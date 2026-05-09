@@ -28,7 +28,7 @@ MeshCtx redesigns from the ground up:
      roll back anytime
   ✅ COST-EFFICIENT — Multi-tier caching reduces API calls by 60%+
 
-CONTACT: jason.liu@meshctx.com
+CONTACT: support@meshctx.com
 WEBSITE: https://meshctx.com
 GITHUB: https://github.com/LucyAndLuna2023/meshctx
 
@@ -55,7 +55,7 @@ MeshCtx 从架构层解决：
   ✅ 可控进化 — 技能和策略变更全版本化，随时回滚任意历史版本
   ✅ 成本友好 — 四层缓存机制，API 调用量降低 60% 以上
 
-联系: jason.liu@meshctx.com
+联系: support@meshctx.com
 官网: https://meshctx.com
 GitHub: https://github.com/LucyAndLuna2023/meshctx
 
@@ -86,7 +86,7 @@ MeshCtx repense l'architecture depuis zéro :
      retour arrière possible à tout moment
   ✅ ÉCONOMIQUE — Cache multi-niveaux, réduction de 60%+ des appels API
 
-CONTACT: jason.liu@meshctx.com
+CONTACT: support@meshctx.com
 
 ───────────────────────────────────────────────────────────
 
@@ -115,4 +115,4 @@ MeshCtx wurde von Grund auf neu konzipiert:
      Rollback jederzeit möglich
   ✅ KOSTENEFFIZIENT — Mehrstufiges Caching reduziert API-Aufrufe um 60%+
 
-KONTAKT: jason.liu@meshctx.com
+KONTAKT: support@meshctx.com
