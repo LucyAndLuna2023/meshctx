@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}项目: {{ project.name }} | meshctx{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div class="header-row">
+        <div>
+            <h1>{{ project.name }}</h1>
+            <p class="subtitle">{{ project.description }}</p>
+        </div>
+        <div class="header-actions">
+            <span class="badge badge-{{ project.status }}">{{ project.status }}</span>
+            <form method="POST" action="/ui/projects/{{ project.id }}/delete"
+                  onsubmit="return confirm('确定要删除此项目吗？')">
+                <button type="submit" class="btn btn-danger">🗑 删除项目</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- 连续性卡片 -->
+<div class="card continuity-card"
+     style="border-left: 4px solid {{ continuity_color(continuity.continuity_score) }}">
+    <div class="continuity-header">
+        <h3>📊 连续性检测</h3>
+        <div class="continuity-score" style="color:{{ continuity_color(continuity.continuity_score) }}">
+            <span class="score-big">{{ "%.0f"|format(continuity.continuity_score * 100) }}%</span>
+            <span class="score-label">{{ continuity_label(continuity.continuity_score) }}</span>
+        </div>
+    </div>
+    <div class="continuity-details">
+        <div class="cont-item">
+            <span class="cont-label">会话数</span>
+            <span class="cont-value">{{ continuity.conversation_count }}</span>
+        </div>
+        <div class="cont-item">
+            <span class="cont-label">记忆数</span>
+            <span class="cont-value">{{ continuity.memory_count }}</span>
+        </div>
+        <div class="cont-item">
+            <span class="cont-label">活跃会话</span>
+            <span class="cont-value">{{ continuity.active_session_count }}</span>
+        </div>
+        <div class="cont-item">
+            <span class="cont-label">总会话</span>
+            <span class="cont-value">{{ continuity.total_session_count }}</span>
+        </div>
+        <div class="cont-item">
+            <span class="cont-label">最近活动</span>
+            <span class="cont-value">{{ format_dt(continuity.last_active) }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- 会话列表 -->
+<div class="section">
+    <div class="section-header">
+        <h2>💬 会话列表 ({{ conversations|length }})</h2>
+    </div>
+
+    {% if conversations %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>标题</th>
+                    <th>消息数</th>
+                    <th>活跃会话</th>
+                    <th>更新时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in conversations %}
+                <tr>
+                    <td>
+                        <a href="/ui/conversations/{{ c.conversation.id }}" class="project-link">
+                            {{ c.conversation.title }}
+                        </a>
+                        {% if c.conversation.summary %}
+                        <div class="cell-desc">{{ truncate(c.conversation.summary, 60) }}</div>
+                        {% endif %}
+                    </td>
+                    <td>{{ c.message_count }}</td>
+                    <td>
+                        {% if c.active_sessions %}
+                        <span class="badge badge-active">{{ c.active_sessions|length }}</span>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-sm">{{ format_dt(c.conversation.updated_at) }}</td>
+                    <td>
+                        <a href="/ui/conversations/{{ c.conversation.id }}" class="btn btn-xs">查看</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><p>暂无会话</p></div>
+    {% endif %}
+</div>
+
+<!-- 记忆列表 -->
+<div class="section">
+    <div class="section-header">
+        <h2>🧠 项目记忆 ({{ memories|length }})</h2>
+    </div>
+
+    {% if memories %}
+    <div class="memories-list-compact">
+        {% for mem in memories %}
+        <div class="memory-item">
+            <div class="memory-item-key">{{ mem.key }}</div>
+            <div class="memory-item-value">{{ truncate(mem.value, 120) }}</div>
+            <div class="memory-item-meta">
+                <span>重要性: {{ "%.0f"|format(mem.importance * 100) }}%</span>
+                <span>{{ format_dt(mem.created_at) }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state"><p>暂无记忆</p></div>
+    {% endif %}
+</div>
+
+<!-- Agent 会话 -->
+{% if agent_sessions %}
+<div class="section">
+    <div class="section-header">
+        <h2>🤖 Agent 会话 ({{ agent_sessions|length }})</h2>
+    </div>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>会话ID</th>
+                    <th>Agent</th>
+                    <th>开始时间</th>
+                    <th>结束时间</th>
+                    <th>状态</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in agent_sessions %}
+                <tr>
+                    <td class="text-sm">{{ s.id[:12] }}...</td>
+                    <td>{{ s.agent_id[:8] }}...</td>
+                    <td class="text-sm">{{ format_dt(s.started_at) }}</td>
+                    <td class="text-sm">{{ format_dt(s.ended_at) }}</td>
+                    <td>
+                        {% if s.ended_at %}
+                        <span class="badge badge-archived">已结束</span>
+                        {% else %}
+                        <span class="badge badge-active">活跃</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

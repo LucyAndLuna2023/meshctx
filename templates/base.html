@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}meshctx{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <a href="/ui/" class="nav-logo">🕸 meshctx</a>
+            <span class="nav-version">v0.2.0</span>
+        </div>
+        <div class="nav-links">
+            <a href="/ui/" class="nav-link">仪表板</a>
+            <a href="/ui/projects" class="nav-link">项目</a>
+            <a href="/ui/memories" class="nav-link">记忆</a>
+            <a href="/ui/continuity" class="nav-link">连续性</a>
+            <a href="/docs" class="nav-link" target="_blank">API</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p>meshctx — 智能助手连续上下文记忆平台</p>
+    </footer>
+</body>
+</html>

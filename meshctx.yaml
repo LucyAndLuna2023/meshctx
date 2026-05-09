@@ -1,0 +1,81 @@
+# ═══════════════════════════════════════════════════
+# meshctx v1.0 完整配置
+# ═══════════════════════════════════════════════════
+
+# ── 内核 ──────────────────────────────────────────
+kernel:
+  worker_count: 4
+  log_level: info
+
+# ── 模型 (30+内置, 零配置) ────────────────────────
+models:
+  default: bailian:qwen-flash
+  entries:
+    bailian:qwen-flash:
+      key: "${BAILIAN_API_KEY}"
+
+# ── 记忆 ──────────────────────────────────────────
+memory:
+  embedding:
+    provider: local
+    model: hash
+  auto_compact: true
+
+# ── 插件 ──────────────────────────────────────────
+plugins:
+  builtin:
+    - memory
+    - metacognition
+    - orchestrator
+    - gateway
+
+# ── Gateway: 9大平台统一接入 ──────────────────────
+gateway:
+  enabled: true
+  
+  feishu:
+    enabled: false
+    app_id: ""
+    app_secret: ""
+    
+  telegram:
+    enabled: false
+    bot_token: ""
+    
+  wechat:
+    enabled: false
+    corp_id: ""
+    corp_secret: ""
+    agent_id: ""
+
+  wechat_personal:
+    enabled: false
+    bridge_url: ""     # 微信桥接服务地址
+    
+  whatsapp:
+    enabled: false
+    phone_number_id: ""
+    access_token: ""
+    verify_token: ""
+    
+  qq:
+    enabled: false
+    bridge_url: ""     # go-cqhttp / NapCatQQ 地址
+    
+  line:
+    enabled: false
+    channel_secret: ""
+    channel_access_token: ""
+    
+  discord:
+    enabled: false
+    bot_token: ""
+    
+  slack:
+    enabled: false
+    bot_token: ""
+
+# ── Skills ────────────────────────────────────────
+skills:
+  auto_create: true
+  directory: ~/.meshctx/skills/

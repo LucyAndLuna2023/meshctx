@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="50%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#a855f7"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#06b6d4"/>
+      <stop offset="100%" style="stop-color:#6366f1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="90" cy="90" r="85" fill="#0f0f1a" stroke="url(#g)" stroke-width="3"/>
+
+  <!-- Mesh nodes -->
+  <circle cx="45" cy="45" r="6" fill="url(#g)"/>
+  <circle cx="90" cy="30" r="6" fill="url(#g)"/>
+  <circle cx="135" cy="45" r="6" fill="url(#g)"/>
+  <circle cx="30" cy="90" r="6" fill="url(#g)"/>
+  <circle cx="90" cy="90" r="10" fill="url(#g2)"/>
+  <circle cx="150" cy="90" r="6" fill="url(#g)"/>
+  <circle cx="45" cy="135" r="6" fill="url(#g)"/>
+  <circle cx="90" cy="150" r="6" fill="url(#g)"/>
+  <circle cx="135" cy="135" r="6" fill="url(#g)"/>
+
+  <!-- Connection lines (mesh) -->
+  <line x1="51" y1="45" x2="84" y2="36" stroke="#4b5563" stroke-width="1.5" opacity="0.5"/>
+  <line x1="129" y1="45" x2="96" y2="36" stroke="#4b5563" stroke-width="1.5" opacity="0.5"/>
+  <line x1="36" y1="90" x2="80" y2="90" stroke="#4b5563" stroke-width="1.5" opacity="0.5"/>
+  <line x1="144" y1="90" x2="100" y2="90" stroke="#4b5563" stroke-width="1.5" opacity="0.5"/>
+  <line x1="51" y1="135" x2="84" y2="144" stroke="#4b5563" stroke-width="1.5" opacity="0.5"/>
+  <line x1="129" y1="135" x2="96" y2="144" stroke="#4b5563" stroke-width="1.5" opacity="0.5"/>
+  <line x1="51" y1="51" x2="84" y2="84" stroke="#4b5563" stroke-width="1.5" opacity="0.3"/>
+  <line x1="129" y1="51" x2="96" y2="84" stroke="#4b5563" stroke-width="1.5" opacity="0.3"/>
+  <line x1="51" y1="129" x2="84" y2="96" stroke="#4b5563" stroke-width="1.5" opacity="0.3"/>
+  <line x1="129" y1="129" x2="96" y2="96" stroke="#4b5563" stroke-width="1.5" opacity="0.3"/>
+
+  <!-- Pulsing center -->
+  <circle cx="90" cy="90" r="15" fill="none" stroke="url(#g2)" stroke-width="1" opacity="0.3">
+    <animate attributeName="r" values="15;25;15" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0;0.3" dur="3s" repeatCount="indefinite"/>
+  </circle>
+</svg>

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}记忆浏览 | meshctx{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <h1>🧠 记忆浏览</h1>
+    <p class="subtitle">浏览和管理所有项目的关键记忆</p>
+</section>
+
+<!-- 筛选栏 -->
+<div class="filter-bar">
+    <div class="filter-info">
+        共 <strong>{{ memories|length }}</strong> 条记忆，
+        来自 <strong>{{ projects|length }}</strong> 个项目
+    </div>
+</div>
+
+{% if memories %}
+<div class="memories-grid">
+    {% for item in memories %}
+    <div class="memory-card">
+        <div class="memory-header">
+            <span class="memory-key">{{ item.memory.key }}</span>
+            <span class="memory-importance" title="重要性: {{ "%.0f"|format(item.memory.importance * 100) }}%">
+                {% set imp = item.memory.importance %}
+                {% if imp >= 0.8 %}⭐⭐⭐
+                {% elif imp >= 0.5 %}⭐⭐
+                {% else %}⭐
+                {% endif %}
+            </span>
+        </div>
+        <div class="memory-value">{{ truncate(item.memory.value, 200) }}</div>
+        <div class="memory-meta">
+            <span class="badge badge-outline">{{ item.project_name }}</span>
+            <span class="text-sm">{{ format_dt(item.memory.created_at) }}</span>
+            <span class="memory-importance-pct">
+                重要性: {{ "%.0f"|format(item.memory.importance * 100) }}%
+            </span>
+        </div>
+        <div class="memory-actions">
+            <form method="POST" action="/ui/memories/{{ item.memory.id }}/delete"
+                  onsubmit="return confirm('确定要删除这条记忆吗？')">
+                <button type="submit" class="btn btn-xs btn-danger">删除</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <p>🧹 暂无记忆记录。添加一些消息后，记忆会自动提取。</p>
+</div>
+{% endif %}
+{% endblock %}

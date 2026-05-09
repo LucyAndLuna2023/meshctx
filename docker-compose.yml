@@ -1,0 +1,66 @@
+# ============================================================
+# meshctx Docker Compose 配置
+# ============================================================
+
+version: "3.9"
+
+services:
+  # ── meshctx FastAPI 主服务 ────────────────────────────────
+  meshctx:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: meshctx-api
+    ports:
+      - "8000:8000"
+    environment:
+      # ChromaDB 连接（使用 compose 内部服务名）
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8002
+      - CHROMA_PERSIST_DIR=/app/data/chroma
+      # 日志级别
+      - LOG_LEVEL=info
+      # OpenAI / LLM 相关（按需配置）
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+    volumes:
+      # 持久化 ChromaDB 向量数据
+      - chroma_data:/app/data/chroma
+    depends_on:
+      chromadb:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - meshctx-network
+
+  # ── ChromaDB 向量数据库（可选独立服务）────────────────────
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: meshctx-chromadb
+    ports:
+      - "8002:8002"
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - ANONYMIZED_TELEMETRY=FALSE
+    volumes:
+      - chroma_data:/chroma/chroma
+    restart: unless-stopped
+    networks:
+      - meshctx-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/api/v2/heartbeat"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+# ── 持久化卷 ─────────────────────────────────────────────────
+volumes:
+  chroma_data:
+    driver: local
+
+# ── 网络 ─────────────────────────────────────────────────────
+networks:
+  meshctx-network:
+    driver: bridge

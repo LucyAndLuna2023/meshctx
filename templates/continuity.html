@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}连续性检测 | meshctx{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <h1>🔗 连续性检测仪表板</h1>
+    <p class="subtitle">
+        检测各项目的上下文连续性状态：
+        <strong>{{ continuous_count }}</strong>/<strong>{{ total_count }}</strong> 个项目保持连续
+    </p>
+</section>
+
+<!-- 总体统计 -->
+<div class="stats-grid stats-compact">
+    <div class="stat-card stat-success">
+        <div class="stat-value">{{ continuous_count }}</div>
+        <div class="stat-label">连续项目</div>
+    </div>
+    <div class="stat-card stat-danger">
+        <div class="stat-value">{{ total_count - continuous_count }}</div>
+        <div class="stat-label">断裂项目</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ total_count }}</div>
+        <div class="stat-label">总项目</div>
+    </div>
+</div>
+
+{% if data %}
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>项目</th>
+                <th>评分</th>
+                <th>状态</th>
+                <th>会话数</th>
+                <th>记忆数</th>
+                <th>活跃会话</th>
+                <th>最后活动</th>
+                <th>进度</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in data %}
+            <tr>
+                <td>
+                    <a href="/ui/projects/{{ item.project.id }}" class="project-link">
+                        {{ item.project.name }}
+                    </a>
+                </td>
+                <td>
+                    <strong style="color:{{ continuity_color(item.continuity.continuity_score) }}">
+                        {{ "%.2f"|format(item.continuity.continuity_score) }}
+                    </strong>
+                </td>
+                <td>
+                    {% if item.continuity.is_continuous %}
+                    <span class="badge badge-active">连续 ✅</span>
+                    {% else %}
+                    <span class="badge badge-archived">断裂 ❌</span>
+                    {% endif %}
+                </td>
+                <td>{{ item.continuity.conversation_count }}</td>
+                <td>{{ item.continuity.memory_count }}</td>
+                <td>{{ item.continuity.active_session_count }}</td>
+                <td class="text-sm">{{ format_dt(item.continuity.last_active) }}</td>
+                <td>
+                    <div class="score-bar">
+                        <div class="score-fill" style="width:{{ (item.continuity.continuity_score * 100)|int }}%; background:{{ continuity_color(item.continuity.continuity_score) }}"></div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <p>暂无项目数据</p>
+</div>
+{% endif %}
+
+<!-- 评分说明 -->
+<div class="card info-card">
+    <h3>📖 连续性评分说明</h3>
+    <ul class="info-list">
+        <li><strong>≥ 0.7 优秀:</strong> 有会话、记忆和活跃助手会话，24小时内有活动</li>
+        <li><strong>0.5-0.7 良好:</strong> 有基本会话和记忆记录</li>
+        <li><strong>0.3-0.5 一般:</strong> 仅有部分记录，上下文可能不完整</li>
+        <li><strong>&lt; 0.3 断裂:</strong> 缺少关键数据，建议补充会话和记忆</li>
+    </ul>
+</div>
+{% endblock %}

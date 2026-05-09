@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}会话: {{ conversation.title }} | meshctx{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div class="header-row">
+        <div>
+            <h1>💬 {{ conversation.title }}</h1>
+            <p class="subtitle">
+                项目:
+                <a href="/ui/projects/{{ project.id }}" class="link">{{ project.name }}</a>
+                {% if conversation.summary %}
+                <span class="divider">|</span> 摘要: {{ truncate(conversation.summary, 80) }}
+                {% endif %}
+            </p>
+        </div>
+        <a href="/ui/projects/{{ project.id }}" class="btn">← 返回项目</a>
+    </div>
+</section>
+
+<div class="section">
+    <div class="section-header">
+        <h2>📝 消息记录 ({{ messages|length }})</h2>
+        <span class="text-sm text-muted">conversation_id: {{ conversation.id }}</span>
+    </div>
+
+    {% if messages %}
+    <div class="messages-container">
+        {% for msg in messages %}
+        <div class="message-item message-{{ msg.role }}">
+            <div class="message-header">
+                <span class="message-role">
+                    {% if msg.role == 'user' %}👤 用户
+                    {% elif msg.role == 'assistant' %}🤖 助手
+                    {% elif msg.role == 'system' %}⚙️ 系统
+                    {% else %}{{ msg.role }}
+                    {% endif %}
+                </span>
+                <span class="message-time">{{ format_dt(msg.timestamp) }}</span>
+            </div>
+            <div class="message-content">{{ msg.content }}</div>
+            {% if msg.metadata %}
+            <div class="message-meta">
+                {% for k, v in msg.metadata.items() %}
+                <span class="meta-tag">{{ k }}: {{ v }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state"><p>暂无消息</p></div>
+    {% endif %}
+</div>
+{% endblock %}

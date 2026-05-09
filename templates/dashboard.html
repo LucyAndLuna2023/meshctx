@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}meshctx 管理面板{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <h1>📊 系统仪表板</h1>
+    <p class="subtitle">智能助手连续上下文记忆平台</p>
+</section>
+
+<!-- 统计卡片 -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">📁</div>
+        <div class="stat-value">{{ total_projects }}</div>
+        <div class="stat-label">项目</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">💬</div>
+        <div class="stat-value">{{ total_conversations }}</div>
+        <div class="stat-label">会话</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🧠</div>
+        <div class="stat-value">{{ total_memories }}</div>
+        <div class="stat-label">记忆</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🤖</div>
+        <div class="stat-value">{{ total_agents }}</div>
+        <div class="stat-label">助手</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📡</div>
+        <div class="stat-value">{{ total_sessions }}</div>
+        <div class="stat-label">会话</div>
+    </div>
+</div>
+
+<!-- 项目连续性概览 -->
+<div class="section">
+    <div class="section-header">
+        <h2>📋 项目连续性概览</h2>
+        <a href="/ui/projects" class="btn btn-sm">全部项目 →</a>
+    </div>
+
+    {% if project_data %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>项目名称</th>
+                    <th>状态</th>
+                    <th>会话数</th>
+                    <th>记忆数</th>
+                    <th>活跃会话</th>
+                    <th>连续性评分</th>
+                    <th>连续性</th>
+                    <th>最近活动</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in project_data %}
+                <tr>
+                    <td>
+                        <a href="/ui/projects/{{ item.project.id }}" class="project-link">
+                            {{ item.project.name }}
+                        </a>
+                        <div class="cell-desc">{{ item.project.description[:40] }}</div>
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ item.project.status }}">
+                            {{ item.project.status }}
+                        </span>
+                    </td>
+                    <td>{{ item.conv_count }}</td>
+                    <td>{{ item.mem_count }}</td>
+                    <td>{{ item.session_count }}</td>
+                    <td>
+                        <div class="score-bar">
+                            <div class="score-fill" style="width:{{ (item.continuity.continuity_score * 100)|int }}%; background:{{ continuity_color(item.continuity.continuity_score) }}"></div>
+                        </div>
+                        <span class="score-text">{{ "%.2f"|format(item.continuity.continuity_score) }}</span>
+                    </td>
+                    <td>
+                        <span style="color:{{ continuity_color(item.continuity.continuity_score) }}; font-weight:600;">
+                            {{ continuity_label(item.continuity.continuity_score) }}
+                        </span>
+                    </td>
+                    <td class="text-sm">{{ format_dt(item.continuity.last_active) }}</td>
+                    <td>
+                        <a href="/ui/projects/{{ item.project.id }}" class="btn btn-xs">详情</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>暂无项目，<a href="/ui/projects">立即创建</a></p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
