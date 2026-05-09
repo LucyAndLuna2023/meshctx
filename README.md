@@ -17,16 +17,11 @@
 
 > **meshctx** is an **open-source, self-evolving agent platform** that remembers everything, learns from every task, and orchestrates multiple AI agents in parallel — all with zero manual configuration.
 
-## ⚖️ License — AGPL v3 + Commercial
+## ⚖️ License — AGPL v3 · Free Forever
 
-> **Free for individuals & open-source. Commercial use requires a license.**
-> 
-> | You are | Cost | License |
-> |---------|------|---------|
-> | Individual developer / Student / Open-source | Free | AGPL v3 |
-> | Enterprise (>¥1M revenue) or Commercial product | Paid | [Contact us](mailto:license@meshctx.com) |
-> 
-> 📧 **license@meshctx.com** · [Full Legal Notice](docs/LEGAL.md)
+> **MeshCtx is and always will be free — for everyone. Individuals, startups, enterprises.**
+>
+> We compete on technology, not on price. Our revenue comes from [optional paid services](docs/BUSINESS.md) — cloud hosting, enterprise support, and premium plugins — never from charging for the software itself.
 
 ---
 
