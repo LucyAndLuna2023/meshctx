@@ -1,21 +1,33 @@
-MIT License
+MeshCtx 采用双重许可模式 (Dual Licensing)
 
-Copyright (c) 2026 LucyAndLuna2023
+═══════════════════════════════════════════════════════
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+🔓 开源许可 — GNU Affero General Public License v3 (AGPL v3)
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+  个人开发者、学生、开源爱好者、非商业组织：
+  可自由使用、修改、分发 MeshCtx 的 AGPL v3 版本，
+  无需支付任何费用，无需联系我方。
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+  条件：任何修改和衍生作品必须同样以 AGPL v3 开源。
+  如果您通过网络提供服务，必须公开源代码。
+
+🔐 商业许可 — Commercial License
+
+  以下情况需购买商业许可证：
+  • 企业年营收超过 100 万人民币
+  • 将 MeshCtx 集成到商业产品或服务中
+  • 不希望按 AGPL v3 要求开源您的修改
+  • 需要商业支持、SLA 或定制开发
+
+  📧 联系 license@meshctx.com 获取商业授权
+
+═══════════════════════════════════════════════════════
+
+⚠️ 为什么采用此模式？
+
+  1. 保护独立开发者和学生 — 永远免费
+  2. 防止大企业白嫖 — 用我们的代码赚钱就该付费
+  3. 合法可执行 — AGPL v3 是法院认可的强 copyleft 协议
+  4. 可持续 — 商业收入支持项目长期发展
+
+═══════════════════════════════════════════════════════
