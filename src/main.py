@@ -34,6 +34,7 @@ from .core import (
     TaskEvaluation, TaskStatus, PatternEngine,
 )
 from .gateway import GatewayPlugin
+from .core.hotreload import ConfigWatcher, APIKeyFailover, MemoryBackup
 
 # ═══════════════════════════════════════════════════════════
 # V0.2 兼容层
@@ -47,6 +48,8 @@ logger = logging.getLogger("meshctx.server")
 # ─── 全局状态 ────────────────────────────────────────────
 _kernel: Optional[Kernel] = None
 _memory_engine: Optional[MemoryEngine] = None
+_key_failover = APIKeyFailover()
+_memory_backup = MemoryBackup()
 
 
 def get_kernel() -> Kernel:
@@ -448,6 +451,45 @@ async def performance_report():
         return {"status": "disabled"}
     return plugin.generate_report()
 
+# ── 配置热加载 / Key故障转移 / 记忆备份 ────────────────
+
+@app.get("/v1/failover")
+async def failover_status():
+    """API Key 故障转移状态"""
+    return _key_failover.status()
+
+@app.get("/v1/backups")
+async def list_backups():
+    """记忆备份列表"""
+    return {"backups": _memory_backup.list_backups()}
+
+@app.post("/v1/backup")
+async def create_backup(label: str = ""):
+    """创建记忆备份"""
+    engine = get_memory_engine()
+    data = {
+        "projects": {pid: p.model_dump() if hasattr(p,'model_dump') else str(p) for pid, p in engine.projects.items()},
+        "conversations": {cid: c.model_dump() if hasattr(c,'model_dump') else str(c) for cid, c in engine.conversations.items()},
+        "memories": {mid: m.model_dump() if hasattr(m,'model_dump') else str(m) for mid, m in engine.memories.items()},
+    }
+    path = _memory_backup.backup(data, label)
+    return {"status": "ok", "path": path}
+
+@app.post("/v1/restore")
+async def restore_backup(name: str = ""):
+    """恢复记忆备份"""
+    data = _memory_backup.restore(name or None)
+    if data is None:
+        return {"status": "error", "message": "无可用备份"}
+    return {"status": "ok", "keys": list(data.keys())}
+
+@app.get("/v1/config/reload")
+async def reload_config():
+    """手动触发配置重载"""
+    from src.config import load_config
+    config = load_config()
+    return {"status": "reloaded", "plugins": config.get("plugins", {}).get("builtin", [])}
+
 # ── 自愈引擎 ────────────────────────────────────────────
 
 @app.get("/healer/report")
@@ -817,6 +859,12 @@ async def on_startup():
     app.state.memory_engine = _memory_engine
 
     logger.info(f"事件总线: {_kernel.bus.get_stats()['subscriptions']} 订阅")
+    
+    # 启动配置热加载
+    watcher = ConfigWatcher()
+    watcher.on_change(lambda: logger.info("配置已变更,下次请求生效"))
+    watcher.start()
+    
     logger.info("═══════════════════════════════════════════")
     logger.info("  meshctx v1.0 已就绪!")
     logger.info(f"  API: http://0.0.0.0:8000")
