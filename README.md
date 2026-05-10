@@ -17,7 +17,7 @@
 ## ⚡ 30秒开始
 
 ```bash
-git clone https://github.com/meshctx/meshctx.git
+git clone https://github.com/LucyAndLuna2023/meshctx.git
 cd meshctx && pip install -e . && pip install pycryptodome
 
 export DEEPSEEK_API_KEY=sk-你的key
@@ -42,6 +42,7 @@ meshctx chat
 ```
 9插件微内核 → 事件总线 → 30+ API端点
  L0-L4记忆 元认知 多Agent编排 预测 自愈 Gateway WebSocket
+ Hermes集成: 55+技能目录 意图解析 技能链 ContextPortal
 ```
 
 ## 📖 文档
