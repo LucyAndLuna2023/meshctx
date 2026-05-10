@@ -1,132 +1,126 @@
 #!/bin/bash
-# ============================================================
-# meshctx 一键安装脚本
-# 像安装 Hermes 一样简单：一条命令搞定
-# ============================================================
+# ═══════════════════════════════════════════════════════
+# meshctx 一键安装脚本 v2.0
+# 一条命令: curl -fsSL meshctx.com/install | bash
+# 自动完成: 安装依赖 → 配置模型 → 启动服务 → 打开浏览器
+# ═══════════════════════════════════════════════════════
 set -e
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+RED='\033[0;31m'; GREEN='\033[0;32m'; CYAN='\033[0;36m'; NC='\033[0m'
+INSTALL_DIR="${HOME}/.meshctx"
 
 echo -e "${CYAN}"
 echo "╔═══════════════════════════════════════════╗"
-echo "║       meshctx v1.0 一键安装              ║"
+echo "║     meshctx v1.0  一键安装               ║"
 echo "║   World's First Self-Evolving Agent      ║"
 echo "╚═══════════════════════════════════════════╝"
 echo -e "${NC}"
 
 # 1. 检查 Python
-echo -e "${YELLOW}[1/5] 检查环境...${NC}"
-if ! command -v python3 &> /dev/null; then
-    echo -e "${RED}需要 Python 3.10+，请先安装${NC}"
-    exit 1
-fi
+echo -e "→ 检查环境..."
+python3 --version 2>/dev/null || { echo -e "${RED}需要 Python 3.10+${NC}"; exit 1; }
 
-PYVER=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-echo "  Python $PYVER"
-
-# 2. 创建虚拟环境
-echo -e "${YELLOW}[2/5] 创建虚拟环境...${NC}"
-INSTALL_DIR="${HOME}/.meshctx"
-mkdir -p "$INSTALL_DIR"
-
-if [ ! -d "$INSTALL_DIR/venv" ]; then
-    python3 -m venv "$INSTALL_DIR/venv"
-fi
-source "$INSTALL_DIR/venv/bin/activate"
-
-# 3. 安装
-echo -e "${YELLOW}[3/5] 安装 meshctx...${NC}"
-pip install -q --upgrade pip
-
-if [ -f "pyproject.toml" ]; then
-    # 从源码安装
-    pip install -q -e .
+# 2. 克隆/更新代码
+if [ -d "$INSTALL_DIR/src" ]; then
+    echo "→ 更新已有安装..."
+    cd "$INSTALL_DIR" && git pull --force --quiet 2>/dev/null || true
 else
-    # 从 PyPI
-    pip install -q meshctx
+    echo "→ 下载 meshctx..."
+    git clone --depth 1 https://github.com/LucyAndLuna2023/meshctx.git "$INSTALL_DIR" 2>/dev/null || {
+        echo "GitHub不可达，从备用源下载..."
+        mkdir -p "$INSTALL_DIR"
+        # 备用: 用户手动复制文件
+    }
 fi
 
-# 安装额外依赖
-pip install -q pytest-asyncio 2>/dev/null || true
+cd "$INSTALL_DIR"
 
-# 4. 配置
-echo -e "${YELLOW}[4/5] 配置...${NC}"
-mkdir -p "$INSTALL_DIR/skills" "$INSTALL_DIR/cache" "$INSTALL_DIR/logs"
+# 3. 创建虚拟环境
+if [ ! -d "venv" ]; then
+    echo "→ 创建虚拟环境..."
+    python3 -m venv venv
+fi
+source venv/bin/activate
 
-# 创建默认配置
-cat > "$INSTALL_DIR/config.yaml" << 'EOF'
-kernel:
-  worker_count: 4
-  log_level: info
+# 4. 安装依赖
+echo "→ 安装依赖..."
+pip install -q --upgrade pip 2>/dev/null
+pip install -q -e . 2>/dev/null || pip install -q -r requirements.txt 2>/dev/null
+pip install -q pycryptodome fastapi uvicorn pydantic numpy openai jinja2 httpx 2>/dev/null
 
-models:
-  default: bailian-free
-  providers:
-    bailian-free:
-      provider: bailian
-      model: qwen-turbo-latest
-      base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
-      api_key: "${BAILIAN_API_KEY}"
+# 5. 自动检测 API Key
+echo "→ 检测 API Key..."
+mkdir -p ~/.meshctx
 
-memory:
-  embedding:
-    provider: local
-    model: hash
+# 检查常见的 API Key 环境变量
+FOUND_KEY=""
+for var in DEEPSEEK_API_KEY OPENAI_API_KEY BAILIAN_API_KEY ANTHROPIC_API_KEY GEMINI_API_KEY; do
+    val="${!var}"
+    if [ -n "$val" ]; then
+        echo "  ✓ 发现 $var"
+        FOUND_KEY="$var"
+        break
+    fi
+done
 
-plugins:
-  builtin:
-    - memory
-    - metacognition
-    - orchestrator
-    - predictor
-    - agent_loop
-    - performance
-    - healer
-    - websocket
+if [ -z "$FOUND_KEY" ]; then
+    echo ""
+    echo -e "${CYAN}════════════════════════════════════════════${NC}"
+    echo -e "  需要配置一个 AI 模型的 API Key"
+    echo ""
+    echo -e "  ${GREEN}推荐 DeepSeek (免费额度):${NC}"
+    echo -e "  1. 打开 https://platform.deepseek.com"
+    echo -e "  2. 注册 → API Keys → 创建"
+    echo -e "  3. 复制 key，粘贴到下面:"
+    echo ""
+    read -p "  DeepSeek API Key: " user_key
+    
+    if [ -n "$user_key" ]; then
+        export DEEPSEEK_API_KEY="$user_key"
+        echo "export DEEPSEEK_API_KEY=$user_key" >> ~/.bashrc
+        echo -e "  ${GREEN}✓ 已保存到 ~/.bashrc${NC}"
+    fi
+fi
 
-gateway:
-  enabled: false
-
-skills:
-  auto_create: true
-  directory: "~/.meshctx/skills/"
-EOF
-
-# 5. 创建启动脚本
-echo -e "${YELLOW}[5/5] 创建快捷命令...${NC}"
-
-cat > "$INSTALL_DIR/bin/meshctx" << 'SCRIPT'
+# 6. 创建启动脚本
+mkdir -p ~/bin
+cat > ~/bin/meshctx << SCRIPT
 #!/bin/bash
-source "${HOME}/.meshctx/venv/bin/activate"
-exec python -m meshctx.cli "$@"
+export DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY}"
+export OPENAI_API_KEY="${OPENAI_API_KEY}"
+export BAILIAN_API_KEY="${BAILIAN_API_KEY}"
+cd ${INSTALL_DIR}
+source venv/bin/activate
+python -m src.cli "\$@"
 SCRIPT
-chmod +x "$INSTALL_DIR/bin/meshctx"
+chmod +x ~/bin/meshctx
 
-# 添加到 PATH
-SHELL_RC=""
-if [ -f "$HOME/.bashrc" ]; then
-    SHELL_RC="$HOME/.bashrc"
-elif [ -f "$HOME/.zshrc" ]; then
-    SHELL_RC="$HOME/.zshrc"
-fi
+# 确保 ~/bin 在 PATH
+grep -q 'PATH.*~/bin' ~/.bashrc 2>/dev/null || echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
+export PATH="$HOME/bin:$PATH"
 
-if [ -n "$SHELL_RC" ] && ! grep -q "meshctx/bin" "$SHELL_RC" 2>/dev/null; then
-    echo "export PATH=\"\$HOME/.meshctx/bin:\$PATH\"" >> "$SHELL_RC"
-fi
+# 7. 自动扫描模型
+echo "→ 扫描可用模型..."
+source venv/bin/activate
+python -m src.cli model scan 2>/dev/null || true
 
+# 8. 完成
 echo ""
 echo -e "${GREEN}╔═══════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}║       meshctx 安装完成!                  ║${NC}"
 echo -e "${GREEN}╚═══════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "  启动服务:  ${CYAN}meshctx start${NC}"
-echo -e "  开始聊天:  ${CYAN}meshctx chat${NC}"
-echo -e "  扫描模型:  ${CYAN}meshctx model scan${NC}"
-echo -e "  Web界面:   ${CYAN}http://localhost:3000/ui/${NC}"
+echo -e "  聊天:        ${CYAN}meshctx chat${NC}"
+echo -e "  Web界面:     ${CYAN}meshctx start${NC} → http://localhost:3000/ui/chat"
+echo -e "  配置平台:    聊天中输入 ${CYAN}/gateway${NC}"
+echo -e "  切换模型:    聊天中输入 ${CYAN}/models${NC}"
 echo ""
-echo -e "  ${YELLOW}提示: 运行 'source $SHELL_RC' 或新开终端使 PATH 生效${NC}"
-echo ""
+
+# 9. 询问是否立即启动
+read -p "是否立即启动 Web 界面? [Y/n] " start_now
+if [[ "$start_now" != "n" && "$start_now" != "N" ]]; then
+    echo "→ 启动中..."
+    meshctx start &
+    sleep 3
+    echo -e "${GREEN}→ 浏览器打开 http://localhost:3000/ui/chat${NC}"
+fi

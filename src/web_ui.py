@@ -334,3 +334,7 @@ async def continuity_dashboard(request: Request):
 @router.get("/chat", response_class=HTMLResponse)
 async def chat_page(request: Request):
     return _render("chat.html", {"request": request, "title": "Chat"})
+
+@router.get("/setup", response_class=HTMLResponse)
+async def setup_page(request: Request):
+    return _render("setup.html", {"request": request, "title": "Setup"})

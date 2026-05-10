@@ -512,7 +512,6 @@ async def api_chat(request: Request):
     content = resp.get("content", "")
     tokens = resp.get("tokens", 0)
     
-    # 检测并执行工具
     tool_result = None
     if has_tool_call(content):
         tool_result = execute_tool(content)
@@ -522,6 +521,47 @@ async def api_chat(request: Request):
         "tokens": tokens,
         "model": model_id,
         "tool_result": tool_result,
+    }
+
+# ── 一键配置 API ────────────────────────────────────
+
+@app.post("/api/setup")
+async def api_setup(request: Request):
+    """Web设置向导: 输入API Key,自动配置模型"""
+    from src.model_registry import get_registry
+    
+    try:
+        body = await request.json()
+    except:
+        return {"success": False, "error": "无效请求"}
+    
+    provider = body.get("provider", "deepseek")
+    key = body.get("key", "").strip()
+    
+    if not key:
+        return {"success": False, "error": "请输入API Key"}
+    
+    # 保存到环境
+    env_map = {"deepseek":"DEEPSEEK_API_KEY","openai":"OPENAI_API_KEY","bailian":"BAILIAN_API_KEY"}
+    env_var = env_map.get(provider, "DEEPSEEK_API_KEY")
+    os.environ[env_var] = key
+    
+    # 写入bashrc
+    bashrc = os.path.expanduser("~/.bashrc")
+    with open(bashrc, "r") as f:
+        lines = f.read()
+    if env_var not in lines:
+        with open(bashrc, "a") as f:
+            f.write(f"\nexport {env_var}={key}\n")
+    
+    # 配置模型
+    reg = get_registry()
+    entries = reg.auto_configure()
+    
+    return {
+        "success": True,
+        "models": len([e for e in entries if e["ready"]]),
+        "provider": provider,
     }
 
 # ── Gateway Webhook (企业微信消息接收+回复) ──

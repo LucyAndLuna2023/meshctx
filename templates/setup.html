@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>meshctx 设置向导</title>
+<style>
+:root {--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#58a6ff;--green:#238636;}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px;max-width:500px;width:90%}
+h1{font-size:1.5rem;margin-bottom:8px}h1 span{color:var(--accent)}
+.sub{color:var(--muted);margin-bottom:24px;font-size:0.9rem}
+.step{margin-bottom:24px}
+.step-label{font-size:0.85rem;color:var(--muted);margin-bottom:6px}
+input,select{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;margin-bottom:8px}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+.btn{display:block;width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px}
+.btn:hover{opacity:0.9}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);margin-top:4px}
+.result{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;margin-top:16px;display:none}
+.result.success{border-color:var(--green);display:block}
+.result .ok{color:var(--green)}
+.skip{text-align:center;margin-top:16px}.skip a{color:var(--muted);font-size:0.85rem}
+.provider-card{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:border-color .2s}
+.provider-card:hover,.provider-card.selected{border-color:var(--accent)}
+.provider-card .icon{font-size:1.5rem;width:40px;text-align:center}
+.provider-card .info{flex:1}.provider-card .name{font-weight:600}.provider-card .desc{font-size:0.8rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>🕸 欢迎使用 <span>meshctx</span></h1>
+<p class="sub">30秒完成配置，开始使用世界最智能的AI助手</p>
+
+<div id="step1" class="step">
+  <div class="step-label">第1步: 选择AI模型提供商</div>
+  <div class="provider-card selected" onclick="selectProvider('deepseek')" id="card-deepseek">
+    <div class="icon">🚀</div><div class="info"><div class="name">DeepSeek</div><div class="desc">免费额度 · 性价比最高 · 推荐</div></div>
+  </div>
+  <div class="provider-card" onclick="selectProvider('openai')" id="card-openai">
+    <div class="icon">🤖</div><div class="info"><div class="name">OpenAI</div><div class="desc">GPT-4o · 全球最强 · 付费</div></div>
+  </div>
+  <div class="provider-card" onclick="selectProvider('bailian')" id="card-bailian">
+    <div class="icon">☁️</div><div class="info"><div class="name">阿里百炼</div><div class="desc">Qwen系列 · 百万token免费/月</div></div>
+  </div>
+</div>
+
+<div id="step2" class="step">
+  <div class="step-label">第2步: 输入API Key</div>
+  <input type="password" id="apiKey" placeholder="sk-xxxxxxxxxxxxxxxx">
+  <p style="font-size:0.8rem;color:var(--muted);margin-top:4px">
+    没有Key? <a href="#" id="getKeyLink" target="_blank" style="color:var(--accent)">点击获取 →</a>
+  </p>
+</div>
+
+<button class="btn" onclick="setup()">🚀 完成配置</button>
+<button class="btn btn-ghost" onclick="skip()">跳过，稍后配置</button>
+<div class="skip"><a href="/ui/chat">直接使用 Web Chat →</a></div>
+
+<div id="result" class="result"></div>
+</div>
+
+<script>
+let provider = 'deepseek';
+const urls = {
+  deepseek: 'https://platform.deepseek.com/api_keys',
+  openai: 'https://platform.openai.com/api-keys',
+  bailian: 'https://dashscope.console.aliyun.com/apiKey'
+};
+
+function selectProvider(p) {
+  provider = p;
+  document.querySelectorAll('.provider-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('card-'+p).classList.add('selected');
+  document.getElementById('getKeyLink').href = urls[p];
+}
+
+async function setup() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) { alert('请输入API Key'); return; }
+  
+  const result = document.getElementById('result');
+  result.style.display = 'block';
+  result.innerHTML = '⏳ 正在配置...';
+  
+  try {
+    const resp = await fetch('/api/setup', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({provider, key})
+    });
+    const data = await resp.json();
+    
+    if (data.success) {
+      result.className = 'result success';
+      result.innerHTML = `
+        <p class="ok">✅ 配置完成!</p>
+        <p>可用模型: ${data.models}个</p>
+        <p style="margin-top:12px">
+          <a href="/ui/chat" style="color:var(--accent)">→ 开始聊天</a> |
+          <a href="/ui/" style="color:var(--muted)">→ 管理控制台</a>
+        </p>`;
+    } else {
+      result.innerHTML = '❌ 配置失败: ' + (data.error || '未知错误');
+    }
+  } catch(e) {
+    result.innerHTML = '❌ 连接失败: ' + e.message;
+  }
+}
+
+function skip() { window.location.href = '/ui/chat'; }
+selectProvider('deepseek');
+</script>
+</body>
+</html>
