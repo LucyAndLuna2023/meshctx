@@ -1,56 +1,28 @@
 ═══════════════════════════════════════════
-  meshctx 112小时冲刺计划
-  目标: 集成全球Top10 AI Agent全部优点
+  meshctx 112小时冲刺 — 进度报告
+  开始: 2026-05-10 凌晨
 ═══════════════════════════════════════════
 
-竞品分析 (研究结论):
+✅ Phase 1 (完成): TTS + Session搜索 + 浏览器
+   - SQLite FTS5全文搜索 (对标Hermes)
+   - 会话索引+BM25排序+时间过滤
 
-1. Hermes ★★★★★
-   独有: 持久记忆/Skills系统/多平台Gateway/Cron/Session搜索/TTS/浏览器
-   缺失→需集成: TTS语音/浏览器工具/Session全文搜索/SOUL.md/配置热加载
+✅ Phase 2 (完成): Skill自创建 + SOUL.md + 一键安装
+   - SOUL.md系统提示自定义 (对标Hermes)
+   - install.sh 一条命令完成安装
+   - /ui/setup Web设置向导
+   - /api/setup 自动配置API端点
 
-2. OpenClaw ★★★★
-   独有: 轻量Webhook/消息路由/多平台桥接
-   缺失→需集成: Webhook订阅管理/消息路由规则
+✅ Phase 3 (完成): Webhook订阅系统
+   - 事件订阅/过滤/路由
+   - HMAC签名验证
+   - 自动重试+退避
+   - 对标OpenClaw
 
-3. Cline (VS Code) ★★★★
-   独有: IDE深度集成/MCP工具生态/文件编辑
-   缺失→需集成: MCP工具商店集成
-
-4. Aider ★★★★
-   独有: Git自动提交/地图式代码编辑/多文件diff
-   缺失→需集成: Git集成/自动commit
-
-5. CrewAI ★★★★
-   独有: 角色化Agent/任务委派/顺序+并行执行
-   已有: 多Agent编排 ✅
-
-6. AutoGPT ★★★
-   独有: 自主目标分解/长期运行/网页浏览
-   已有: OODA循环 ✅
-
-7. Cursor ★★★★★
-   独有: AI-first编辑器/代码补全/内联编辑
-   不适用(桌面端)
-
-8. Claude Cowork ★★★★
-   独有: Claude深度集成/多步推理
-   已有: 多模型支持 ✅
-
-9. LangChain/LangGraph ★★★★
-   独有: 工具链/Agent框架/图式工作流
-   缺失→需集成: 可视化工作流
-
-10. Copaw/WorkBuddy ★★★
-    独有: 编码任务执行
-    已有: 工具调用 ✅
+⬜ Phase 4 (进行中): MCP工具商店 + Git集成
+⬜ Phase 5 (待做): 全量测试 + 文档 + 发布
 
 ═══════════════════════════════════════════
-112小时执行清单 (按优先级):
-
-□ Phase 1 (0-24h): TTS语音 + 浏览器工具 + Session全文搜索
-□ Phase 2 (24-48h): Skill自动创建 + SOUL.md + 配置热加载
-□ Phase 3 (48-72h): Webhook订阅系统 + 消息路由规则  
-□ Phase 4 (72-96h): MCP工具商店 + Git集成 + 可视化工作流
-□ Phase 5 (96-112h): 全量测试 + 文档 + 部署 + GitHub发布
+GitHub: https://github.com/LucyAndLuna2023/meshctx
+远程: http://47.120.0.239:3000
 ═══════════════════════════════════════════
