@@ -292,11 +292,15 @@ def cmd_chat(args):
    用户可以访问 Windows 文件，如 /mnt/e/file.txt。
    你本地有完整的文件系统访问权限，不是云端！"""
         
+        from src.soul import get_soul_prompt
+        soul_prompt = get_soul_prompt()
+        
         messages.append({"role": "system", "content": f"""你是 meshctx 助手，运行在用户本地机器。
 
 你有完整的本地文件系统访问权限，可以读写文件。
 {wsl_info}
 
+{soul_prompt}
 你可以使用以下工具（在回复中用JSON格式调用）:
   read_file: 读取文件。参数: path
   write_file: 写入文件。参数: path, content
