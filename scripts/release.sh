@@ -27,6 +27,10 @@ cp /tmp/benchmark_latest.txt "$BENCH_DIR/$DATE_TAG.txt"
 # 4. 更新版本号
 echo "[3/5] Bumping version..."
 CURRENT=$(python -c "from src.core import __version__; print(__version__)" 2>/dev/null || echo "1.1.0")
+# Ensure we got a valid version
+if [[ ! "$CURRENT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    CURRENT="1.1.0"
+fi
 IFS='.' read -r MAJ MIN PAT <<< "$CURRENT"
 
 case $TYPE in

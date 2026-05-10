@@ -73,7 +73,7 @@ from .homeostasis import (
     SystemMode, MarginalUtilityScheduler,
 )
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
