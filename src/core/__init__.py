@@ -1,5 +1,5 @@
 """
-meshctx v1.0 Core Package — 8核心插件
+meshctx v1.1 Core Package — 12核心插件 (新增4个脑启发模块)
 
 核心模块:
 - kernel: 微内核+事件总线+插件管理器+资源调控器
@@ -11,6 +11,12 @@ meshctx v1.0 Core Package — 8核心插件
 - performance: 性能层 (L1/L2缓存+流式响应+监控)
 - healer: 自愈引擎 (健康监控+自动恢复+熔断+记忆压缩)
 - websocket_plugin: WebSocket实时通信 (事件推送+双向对话)
+
+v1.1 新增 — 脑启发智能模块:
+- free_energy: 自由能计算引擎 (Friston自由能原理+信息几何+贝叶斯推断)
+- active_inference: 主动推理引擎 (行动选择=最小化期望自由能)
+- global_workspace: 全局工作空间 (多专家竞争+意识点火+注意瓶颈)
+- homeostasis: 异稳态调节 (预测性资源管理+PID控制+边际效用调度)
 """
 from .kernel import (
     Kernel, EventBus, Event, EventPriority,
@@ -49,7 +55,25 @@ from .websocket_plugin import (
     WebSocketPlugin, WSManager, WSClient, create_ws_routes,
 )
 
-__version__ = "1.0.0"
+# v1.1 脑启发模块
+from .free_energy import (
+    FreeEnergyAgent, FreeEnergyComputer, PrecisionWeighting,
+    CriticalityRegulator, BeliefState, BeliefType,
+)
+from .active_inference import (
+    ActiveInferenceEngine, GenerativeModel, Policy,
+    ActionType, MultiScaleLearning,
+)
+from .global_workspace import (
+    GlobalWorkspace, Processor, ProcessorType,
+    AttentionBottleneck,
+)
+from .homeostasis import (
+    HomeostaticRegulator, ResourceBudget, ResourceType,
+    SystemMode, MarginalUtilityScheduler,
+)
+
+__version__ = "1.1.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -78,4 +102,12 @@ __all__ = [
     "HealthStatus", "CircuitState", "PluginHealth",
     # WebSocket
     "WebSocketPlugin", "WSManager", "WSClient", "create_ws_routes",
+    # v1.1 Brain-Inspired
+    "FreeEnergyAgent", "FreeEnergyComputer", "PrecisionWeighting",
+    "CriticalityRegulator", "BeliefState", "BeliefType",
+    "ActiveInferenceEngine", "GenerativeModel", "Policy",
+    "ActionType", "MultiScaleLearning",
+    "GlobalWorkspace", "Processor", "ProcessorType", "AttentionBottleneck",
+    "HomeostaticRegulator", "ResourceBudget", "ResourceType",
+    "SystemMode", "MarginalUtilityScheduler",
 ]

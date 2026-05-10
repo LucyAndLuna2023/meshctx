@@ -1,18 +1,18 @@
 <p align="center">
   <h1 align="center">🕸 meshctx</h1>
-  <h3 align="center">World's First Self-Evolving Agent System</h3>
+  <h3 align="center">World's First Self-Evolving Agent System — v1.1 Brain-Inspired</h3>
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPLv3-blue.svg"></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.10%2B-green"></a>
   <a href="#"><img src="https://img.shields.io/badge/tests-70%2F70-brightgreen"></a>
-  <a href="#"><img src="https://img.shields.io/badge/plugins-9-blue"></a>
+  <a href="#"><img src="https://img.shields.io/badge/plugins-12-purple"></a>
 </p>
 
 ---
 
-> **meshctx 是一个能自我进化的AI Agent平台。** 它会记住所有对话，越用越聪明，能同时派多个AI干活。支持企业微信/飞书/Telegram接入。
+> **meshctx 是一个能自我进化的AI Agent平台。** v1.1 引入脑启发智能架构：自由能原理驱动的预测加工、主动推理、全局工作空间和异稳态调节。跨7学科融合，目前没有任何开源框架实现过。
 
 ## ⚡ 30秒开始
 
@@ -29,19 +29,39 @@ meshctx chat
 
 | 能力 | Hermes | OpenClaw | Copaw | Cowork | **meshctx** |
 |------|--------|----------|-------|--------|-------------|
-| 层次记忆 | ❌ | ❌ | ❌ | ❌ | ✅ |
+| 层次记忆 L0-L4 | ❌ | ❌ | ❌ | ❌ | ✅ |
+| 自由能驱动决策 | ❌ | ❌ | ❌ | ❌ | ✅★ v1.1 |
+| 主动推理 (探索vs利用) | ❌ | ❌ | ❌ | ❌ | ✅★ v1.1 |
+| 全局工作空间 (多专家竞争) | ❌ | ❌ | ❌ | ❌ | ✅★ v1.1 |
+| 异稳态资源调节 | ❌ | ❌ | ❌ | ❌ | ✅★ v1.1 |
 | 元认知自进化 | ❌ | ❌ | ❌ | ❌ | ✅ |
 | 预测引擎 | ❌ | ❌ | ❌ | ❌ | ✅★ |
 | 自主Agent循环 | ❌ | ❌ | ❌ | ❌ | ✅★ |
 | 自愈恢复 | ❌ | ❌ | ❌ | ❌ | ✅★ |
-| 企业微信 | ✅ | ❌ | ❌ | ❌ | ✅ |
+| 企业微信/飞书/TG | ✅ | ❌ | ❌ | ❌ | ✅ |
 | 开源 | ✅ | ✅ | ⚠️ | ❌ | ✅ |
 
-## 🧩 架构
+## 🧠 v1.1 脑启发架构 (新增)
 
 ```
-9插件微内核 → 事件总线 → 30+ API端点
+自由能智能体 (Free Energy Agent)
+├── 预测加工 (Predictive Processing) — 层级生成模型，自上而下预测
+├── 主动推理 (Active Inference) — 行动=最小化期望自由能
+├── 全局工作空间 (Global Workspace) — 7专家竞争+意识点火+注意瓶颈
+├── 异稳态调节 (Homeostasis) — PID控制+预测性资源管理
+├── 精密加权 (Precision Weighting) — 注意力驱动的学习率调节
+├── 多时间尺度学习 — 快/中/慢三时间尺度并行更新
+└── 自组织临界性 — 维持混沌边缘最大化信息处理
+```
+
+**跨学科基础**: 脑科学+物理学+数学+认知科学+心理学+控制论+经济学
+
+## 🧩 完整架构
+
+```
+12插件微内核 → 事件总线 → 30+ API端点
  L0-L4记忆 元认知 多Agent编排 预测 自愈 Gateway WebSocket
+ v1.1: FEA自由能 AI主动推理 GW全局工作空间 异稳态
  Hermes集成: 55+技能目录 意图解析 技能链 ContextPortal
 ```
 
