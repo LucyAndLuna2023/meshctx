@@ -1,0 +1,16 @@
+# MeshCtx Core
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+numpy>=1.24.0
+
+# Optional: semantic embeddings
+# Uncomment to enable real semantic search:
+# sentence-transformers>=2.2.0
+
+# LLM extraction (optional, uses requests)
+requests>=2.31.0
+
+# Dev
+pytest>=7.0.0
+httpx>=0.25.0
