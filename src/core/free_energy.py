@@ -525,11 +525,11 @@ class FreeEnergyAgent:
     def perceive(self, outcome: int, duration: float, success: bool) -> Dict[str, Any]:
         """
         感知步骤: 处理任务结果，更新信念。
-        
-        返回感知分析结果。
         """
-        # 精密加权更新
-        w = self.precision.compute_precision(self.strategy_belief, self.episode_count)
+        # 精密加权更新 — 学习率自适应
+        w = self.precision.compute_precision(self.strategy_belief, max(self.episode_count, 1))
+        # 确保最小学习率 (避免冷启动太慢)
+        w = max(w, 0.3)
         
         # 成功时强化，失败时不强化（但也不惩罚——保持贝叶斯优雅）
         if success:
@@ -565,9 +565,20 @@ class FreeEnergyAgent:
         """
         决策步骤: 选择最小化期望自由能的行动。
         
-        主动推理的核心: 行动不是为了最大化奖励，而是为了最小化惊讶。
-        这自动平衡了探索(认知价值)和利用(实用价值)。
+        当没有偏好结果时，直接用期望概率采样 (Thompson风格)。
         """
+        # 如果没有偏好，直接用信念的期望概率 (等价于最小化期望惊讶)
+        if preferred_outcomes is None:
+            probs = self.strategy_belief.expected_probability
+            # 加入温度调节探索
+            T = self.criticality.temperature
+            if T > 1.0:
+                # 高温: 增加探索 (flatten distribution)
+                probs = np.power(probs, 1.0 / T)
+                probs /= probs.sum()
+            action = np.random.choice(self.n_strategies, p=probs)
+            return int(action)
+        
         G = self.free_energy.compute_expected_free_energy(
             belief=self.strategy_belief,
             prior_alpha=np.ones(self.n_strategies),
