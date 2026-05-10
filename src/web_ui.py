@@ -328,3 +328,9 @@ async def continuity_dashboard(request: Request):
         "continuity_label": _continuity_label,
         "continuity_color": _continuity_color,
     })
+
+# ── Chat 页面 ───────────────────────────────────────────
+
+@router.get("/chat", response_class=HTMLResponse)
+async def chat_page(request: Request):
+    return _render("chat.html", {"request": request, "title": "Chat"})

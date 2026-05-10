@@ -8,7 +8,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 # 百炼 API 配置（从 .env 读取，回退到内置key）
-BAILIAN_API_KEY = os.environ.get("BAILIAN_API_KEY", "sk-04bc47f3e08a46cc9888ab85ce919839")
+BAILIAN_API_KEY = os.environ.get("BAILIAN_API_KEY", "")
 BAILIAN_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 BAILIAN_MODEL = "qwen-turbo-latest"
 

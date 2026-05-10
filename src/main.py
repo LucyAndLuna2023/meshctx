@@ -484,6 +484,46 @@ async def ws_stats():
         return {"status": "disabled"}
     return plugin.manager.stats()
 
+# ── Web Chat API ──────────────────────────────────────
+
+@app.post("/api/chat")
+async def api_chat(request: Request):
+    """Web聊天API: 接收消息,调用AI,返回回复+工具执行"""
+    from src.model_registry import get_registry
+    from src.chat_tools import execute_tool, has_tool_call
+    
+    try:
+        body = await request.json()
+    except:
+        return {"content": "无效请求", "tokens": 0}
+    
+    msgs = body.get("messages", [])
+    model_id = body.get("model", "deepseek:v4-flash")
+    
+    if not msgs:
+        return {"content": "请输入消息", "tokens": 0}
+    
+    reg = get_registry()
+    client = reg.get(model_id) or reg.get(None)
+    if not client:
+        return {"content": "模型未配置。请先设置 API Key", "tokens": 0}
+    
+    resp = client.chat(msgs)
+    content = resp.get("content", "")
+    tokens = resp.get("tokens", 0)
+    
+    # 检测并执行工具
+    tool_result = None
+    if has_tool_call(content):
+        tool_result = execute_tool(content)
+    
+    return {
+        "content": content,
+        "tokens": tokens,
+        "model": model_id,
+        "tool_result": tool_result,
+    }
+
 # ── Gateway Webhook (企业微信消息接收+回复) ──
 
 import hashlib

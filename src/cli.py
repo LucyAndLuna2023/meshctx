@@ -280,20 +280,38 @@ def cmd_chat(args):
     if args.system:
         messages.append({"role": "system", "content": args.system})
     else:
-        # 默认系统提示：告知Agent自己的能力
-        messages.append({"role": "system", "content": """你是 meshctx 助手。你可以帮用户：
+        # 检测运行环境
+        import platform
+        is_wsl = "microsoft" in platform.uname().release.lower()
+        wsl_info = ""
+        if is_wsl:
+            wsl_info = """
+⚠️ 你正运行在 WSL (Windows Subsystem for Linux) 环境中。
+   Windows 文件路径映射:
+     C:\\ → /mnt/c/      D:\\ → /mnt/d/      E:\\ → /mnt/e/
+   用户可以访问 Windows 文件，如 /mnt/e/file.txt。
+   你本地有完整的文件系统访问权限，不是云端！"""
+        
+        messages.append({"role": "system", "content": f"""你是 meshctx 助手，运行在用户本地机器。
 
-1. 回答问题、写代码、分析数据
-2. 配置消息平台接入：
-   - 企业微信：需要 corp_id, corp_secret, agent_id
-   - 飞书：需要 app_id, app_secret
-   - Telegram：需要 bot_token
-   如果用户想配置，引导他们使用 /gateway 命令，或告诉他们去企业微信管理后台获取这些参数。
+你有完整的本地文件系统访问权限，可以读写文件。
+{wsl_info}
 
-3. 管理项目、记忆、会话
-4. 执行多Agent编排任务
+你可以使用以下工具（在回复中用JSON格式调用）:
+  read_file: 读取文件。参数: path
+  write_file: 写入文件。参数: path, content
+  list_dir: 列出目录。参数: path
+  run_cmd: 执行终端命令。参数: cmd
+  search_files: 搜索文件内容。参数: pattern, path, glob
+  web_search: 搜索网页。参数: query
 
-回复简洁有用，中文优先。"""})
+调用格式示例:
+{{"tool": "read_file", "path": "/mnt/e/file.txt"}}
+
+重要规则:
+- 用户让你读文件/查代码/执行命令时，直接使用工具！不要说"我无法访问"
+- 工具执行后你会收到结果，基于结果回复用户
+- 回复简洁有用，中文优先"""})
 
     while True:
         try:
@@ -328,15 +346,40 @@ def cmd_chat(args):
             continue
 
         messages.append({"role": "user", "content": user})
-        print("meshctx> ", end="", flush=True)
-        resp = client.chat(messages)
-        text = resp["content"]
-        # 安全打印：处理非法代理字符
-        try:
-            print(text)
-        except UnicodeEncodeError:
-            print(text.encode('utf-8', errors='surrogateescape').decode('utf-8', errors='replace'))
-        messages.append({"role": "assistant", "content": resp["content"]})
+        
+        # 自动翻译 Windows 路径 → WSL 路径
+        import re as _re
+        if _re.search(r'[A-Z]:\\', user):
+            def _translate_path(m):
+                return '/mnt/' + m.group(1).lower() + '/'
+            wsl_user = _re.sub(r'([A-Z]):\\', _translate_path, user).replace('\\', '/')
+            if wsl_user != user:
+                messages[-1]["content"] = wsl_user + "\n[WSL路径: " + wsl_user + "]"
+        
+        from src.chat_tools import execute_tool, has_tool_call
+        max_turns = 3
+        for _ in range(max_turns):
+            print("meshctx> ", end="", flush=True)
+            resp = client.chat(messages)
+            text = resp["content"]
+            
+            # 安全打印
+            try:
+                print(text)
+            except UnicodeEncodeError:
+                print(text.encode('utf-8', errors='surrogateescape').decode('utf-8', errors='replace'))
+            
+            messages.append({"role": "assistant", "content": text})
+            
+            # 检测工具调用
+            if has_tool_call(text):
+                result = execute_tool(text)
+                if result:
+                    print(f"\n🔧 {result[:200]}")
+                    messages.append({"role": "user", "content": f"[工具执行结果]\n{result}\n\n请基于以上结果回复用户。"})
+                    continue
+            break
+        
         if len(messages) > 30:
             messages = messages[-30:]
 

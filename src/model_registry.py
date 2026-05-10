@@ -18,62 +18,70 @@ from dataclasses import dataclass
 # ═══════════════════════════════════════════════════
 
 BUILTIN_MODELS = {
-    # ── 阿里百炼 ──────────────────────────
+    # ── OpenAI ────────────────────────────────────────
+    "openai:gpt-4o":           {"provider":"openai","base_url":"https://api.openai.com/v1","model":"gpt-4o","key_env":"OPENAI_API_KEY"},
+    "openai:gpt-4o-mini":      {"provider":"openai","base_url":"https://api.openai.com/v1","model":"gpt-4o-mini","key_env":"OPENAI_API_KEY"},
+    "openai:gpt-4.1":          {"provider":"openai","base_url":"https://api.openai.com/v1","model":"gpt-4.1","key_env":"OPENAI_API_KEY"},
+    "openai:gpt-4.1-mini":     {"provider":"openai","base_url":"https://api.openai.com/v1","model":"gpt-4.1-mini","key_env":"OPENAI_API_KEY"},
+    "openai:gpt-4.1-nano":     {"provider":"openai","base_url":"https://api.openai.com/v1","model":"gpt-4.1-nano","key_env":"OPENAI_API_KEY"},
+    "openai:o4-mini":          {"provider":"openai","base_url":"https://api.openai.com/v1","model":"o4-mini","key_env":"OPENAI_API_KEY"},
+    "openai:o3":               {"provider":"openai","base_url":"https://api.openai.com/v1","model":"o3","key_env":"OPENAI_API_KEY"},
+    "openai:o3-mini":          {"provider":"openai","base_url":"https://api.openai.com/v1","model":"o3-mini","key_env":"OPENAI_API_KEY"},
+    # ── Anthropic ─────────────────────────────────────
+    "anthropic:claude-opus":   {"provider":"anthropic","base_url":"https://api.anthropic.com/v1","model":"claude-opus-4-20250514","key_env":"ANTHROPIC_API_KEY"},
+    "anthropic:claude-sonnet": {"provider":"anthropic","base_url":"https://api.anthropic.com/v1","model":"claude-sonnet-4-20250514","key_env":"ANTHROPIC_API_KEY"},
+    "anthropic:claude-haiku":  {"provider":"anthropic","base_url":"https://api.anthropic.com/v1","model":"claude-3.5-haiku","key_env":"ANTHROPIC_API_KEY"},
+    # ── Google ────────────────────────────────────────
+    "google:gemini-pro":       {"provider":"google","base_url":"https://generativelanguage.googleapis.com/v1beta/openai","model":"gemini-2.5-pro","key_env":"GEMINI_API_KEY"},
+    "google:gemini-flash":     {"provider":"google","base_url":"https://generativelanguage.googleapis.com/v1beta/openai","model":"gemini-2.5-flash","key_env":"GEMINI_API_KEY"},
+    # ── DeepSeek ──────────────────────────────────────
+    "deepseek:v4-pro":         {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-pro","key_env":"DEEPSEEK_API_KEY"},
+    "deepseek:v4-flash":       {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-flash","key_env":"DEEPSEEK_API_KEY"},
+    "deepseek:chat":           {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-chat","key_env":"DEEPSEEK_API_KEY"},
+    "deepseek:reasoner":       {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-reasoner","key_env":"DEEPSEEK_API_KEY"},
+    # ── 阿里百炼 ──────────────────────────────────────
+    "bailian:qwen3-flash":     {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen3-flash","key_env":"BAILIAN_API_KEY"},
+    "bailian:qwen3-plus":      {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen3-plus","key_env":"BAILIAN_API_KEY"},
+    "bailian:qwen3-max":       {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen3-max","key_env":"BAILIAN_API_KEY"},
     "bailian:qwen-flash":      {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen-flash","key_env":"BAILIAN_API_KEY"},
     "bailian:qwen-plus":       {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen-plus","key_env":"BAILIAN_API_KEY"},
     "bailian:qwen-turbo":      {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen-turbo-latest","key_env":"BAILIAN_API_KEY"},
     "bailian:qwen-max":        {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen-max","key_env":"BAILIAN_API_KEY"},
     "bailian:qwen-coder":      {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen-coder-plus","key_env":"BAILIAN_API_KEY"},
-    "bailian:qwen-vl":         {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen-vl-max","key_env":"BAILIAN_API_KEY"},
-    "bailian:qwen-omni":       {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen-omni-turbo","key_env":"BAILIAN_API_KEY"},
+    "bailian:qwq-plus":        {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwq-plus","key_env":"BAILIAN_API_KEY"},
     "bailian:deepseek-v3":     {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"deepseek-v3","key_env":"BAILIAN_API_KEY"},
     "bailian:deepseek-r1":     {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"deepseek-r1","key_env":"BAILIAN_API_KEY"},
-    
-    # ── DeepSeek ──────────────────────────
-    "deepseek:chat":           {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-chat","key_env":"DEEPSEEK_API_KEY"},
-    "deepseek:reasoner":       {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-reasoner","key_env":"DEEPSEEK_API_KEY"},
-    "deepseek:v4-pro":         {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-pro","key_env":"DEEPSEEK_API_KEY"},
-    "deepseek:v4-flash":       {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-flash","key_env":"DEEPSEEK_API_KEY"},
-    
-    # ── OpenAI ────────────────────────────
-    "openai:gpt-4o":           {"provider":"openai","base_url":"https://api.openai.com/v1","model":"gpt-4o","key_env":"OPENAI_API_KEY"},
-    "openai:gpt-4o-mini":      {"provider":"openai","base_url":"https://api.openai.com/v1","model":"gpt-4o-mini","key_env":"OPENAI_API_KEY"},
-    "openai:gpt-4.1":          {"provider":"openai","base_url":"https://api.openai.com/v1","model":"gpt-4.1","key_env":"OPENAI_API_KEY"},
-    "openai:o4-mini":          {"provider":"openai","base_url":"https://api.openai.com/v1","model":"o4-mini","key_env":"OPENAI_API_KEY"},
-    
-    # ── Anthropic ─────────────────────────
-    "anthropic:claude-sonnet": {"provider":"anthropic","base_url":"https://api.anthropic.com/v1","model":"claude-sonnet-4-20250514","key_env":"ANTHROPIC_API_KEY"},
-    "anthropic:claude-haiku":  {"provider":"anthropic","base_url":"https://api.anthropic.com/v1","model":"claude-3.5-haiku","key_env":"ANTHROPIC_API_KEY"},
-    
-    # ── Google ────────────────────────────
-    "google:gemini-flash":     {"provider":"google","base_url":"https://generativelanguage.googleapis.com/v1beta/openai","model":"gemini-2.0-flash","key_env":"GEMINI_API_KEY"},
-    "google:gemini-pro":       {"provider":"google","base_url":"https://generativelanguage.googleapis.com/v1beta/openai","model":"gemini-2.5-pro","key_env":"GEMINI_API_KEY"},
-    
-    # ── 智谱 ─────────────────────────────
+    # ── 智谱 ──────────────────────────────────────────
+    "zhipu:glm-4-plus":        {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4-plus","key_env":"ZHIPU_API_KEY"},
     "zhipu:glm-4":             {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4","key_env":"ZHIPU_API_KEY"},
     "zhipu:glm-4-flash":       {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4-flash","key_env":"ZHIPU_API_KEY"},
-    
-    # ── 月之暗面 ─────────────────────────
-    "moonshot:v1":             {"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"moonshot-v1-8k","key_env":"MOONSHOT_API_KEY"},
-    
-    # ── 零一万物 ─────────────────────────
-    "yi:lightning":            {"provider":"yi","base_url":"https://api.lingyiwanwu.com/v1","model":"yi-lightning","key_env":"YI_API_KEY"},
-    
-    # ── MiniMax ──────────────────────────
-    "minimax:abab":            {"provider":"minimax","base_url":"https://api.minimax.chat/v1","model":"abab6.5-chat","key_env":"MINIMAX_API_KEY"},
-    
-    # ── 百川 ─────────────────────────────
+    # ── 月之暗面 ──────────────────────────────────────
+    "moonshot:kimi":           {"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"moonshot-v1-8k","key_env":"MOONSHOT_API_KEY"},
+    "moonshot:kimi-32k":       {"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"moonshot-v1-32k","key_env":"MOONSHOT_API_KEY"},
+    # ── 字节豆包 ──────────────────────────────────────
+    "doubao:pro-32k":          {"provider":"doubao","base_url":"https://ark.cn-beijing.volces.com/api/v3","model":"doubao-pro-32k","key_env":"DOUBAO_API_KEY"},
+    "doubao:lite":             {"provider":"doubao","base_url":"https://ark.cn-beijing.volces.com/api/v3","model":"doubao-lite-32k","key_env":"DOUBAO_API_KEY"},
+    # ── 阶跃星辰 ──────────────────────────────────────
+    "step:step-2":             {"provider":"stepfun","base_url":"https://api.stepfun.com/v1","model":"step-2-16k","key_env":"STEPFUN_API_KEY"},
+    # ── MiniMax ───────────────────────────────────────
+    "minimax:abab7":           {"provider":"minimax","base_url":"https://api.minimax.chat/v1","model":"abab7-chat","key_env":"MINIMAX_API_KEY"},
+    "minimax:abab6.5":         {"provider":"minimax","base_url":"https://api.minimax.chat/v1","model":"abab6.5-chat","key_env":"MINIMAX_API_KEY"},
+    # ── 百川 ──────────────────────────────────────────
     "baichuan:baichuan4":      {"provider":"baichuan","base_url":"https://api.baichuan-ai.com/v1","model":"Baichuan4","key_env":"BAICHUAN_API_KEY"},
-    
-    # ── 开源/本地 ────────────────────────
-    "ollama:llama3":           {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"llama3","key_env":"OLLAMA_API_KEY"},
-    "ollama:qwen2.5":          {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"qwen2.5","key_env":"OLLAMA_API_KEY"},
-    "ollama:deepseek-r1":      {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"deepseek-r1:8b","key_env":"OLLAMA_API_KEY"},
-    "vllm:local":              {"provider":"openai","base_url":"http://localhost:8000/v1","model":"default","key_env":"VLLM_API_KEY"},
-    
-    # ── 兼容 OpenAI 协议的自定义 ─────────
-    "custom:any":              {"provider":"openai","base_url":"http://localhost:8080/v1","model":"default","key_env":"CUSTOM_API_KEY"},
+    # ── Mistral ───────────────────────────────────────
+    "mistral:large":           {"provider":"mistral","base_url":"https://api.mistral.ai/v1","model":"mistral-large-latest","key_env":"MISTRAL_API_KEY"},
+    "mistral:small":           {"provider":"mistral","base_url":"https://api.mistral.ai/v1","model":"mistral-small-latest","key_env":"MISTRAL_API_KEY"},
+    # ── Groq ──────────────────────────────────────────
+    "groq:llama-3.3-70b":      {"provider":"groq","base_url":"https://api.groq.com/openai/v1","model":"llama-3.3-70b-versatile","key_env":"GROQ_API_KEY"},
+    # ── Perplexity ────────────────────────────────────
+    "perplexity:sonar":        {"provider":"perplexity","base_url":"https://api.perplexity.ai","model":"sonar","key_env":"PERPLEXITY_API_KEY"},
+    # ── xAI ───────────────────────────────────────────
+    "xai:grok-3":              {"provider":"xai","base_url":"https://api.x.ai/v1","model":"grok-3-beta","key_env":"XAI_API_KEY"},
+    # ── Ollama本地 ────────────────────────────────────
+    "ollama:llama3.3":         {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"llama3.3","key_env":"OLLAMA_API_KEY"},
+    "ollama:qwen3":            {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"qwen3","key_env":"OLLAMA_API_KEY"},
 }
+
 
 # 环境变量 → API Key 的自动扫描映射
 ENV_KEY_MAP = {
@@ -289,11 +297,8 @@ class ModelClient:
                 max_tokens=max_tokens,
             )
             choice = resp.choices[0]
-            content = choice.message.content or ""
-            # 清理非法 Unicode 代理字符 (DeepSeek偶发)
-            content = content.encode('utf-8', errors='surrogateescape').decode('utf-8', errors='replace')
             return {
-                "content": content,
+                "content": choice.message.content or "",
                 "model": resp.model,
                 "tokens": resp.usage.total_tokens if resp.usage else 0,
             }

@@ -1,16 +1,36 @@
-venv/
+# 敏感文件
+*.bak
+*.log
+.env
+*.pem
+*secret*
+*password*
+*credential*
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
-.env
-.venv/
+.eggs/
+*.egg-info/
 dist/
 build/
-*.egg-info/
+
+# 数据
 data/
 logs/
-.idea/
+*.db
+*.sqlite
+
+# IDE
 .vscode/
-*.swp
-*.swo
+.idea/
+
+# 系统
 .DS_Store
+Thumbs.db
+
+# 部署敏感文件
+deploy.sh
+install.sh
+venv/
