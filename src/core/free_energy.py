@@ -49,6 +49,14 @@ except ImportError:
     def _digamma_scalar(x):
         if x < 0.5:
             return _digamma_scalar(x + 1) - 1.0 / x
+        # More accurate approximation for small x
+        if x < 3:
+            x_val = float(x)
+            # Use recurrence + log for better accuracy
+            result = -0.5772156649  # Euler-Mascheroni constant
+            for k in range(int(x_val - 0.5)):
+                result += 1.0 / (k + 1)
+            return result
         return _math.log(x) - 0.5/x - 1/(12*x*x) + 1/(120*x**4) - 1/(252*x**6)
     digamma = np.vectorize(_digamma_scalar)
     def gammaln(x):

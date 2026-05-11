@@ -361,10 +361,10 @@ class MultiScaleLearning:
     def detect_regime_change(self) -> bool:
         """
         检测环境突变。
-        
-        快尺度信念 ≠ 慢尺度信念 → 环境可能变了
         """
+        if self.fast_count < 5:
+            return False
         fast_prob = self.fast_belief.expected_probability
         slow_prob = self.slow_belief.expected_probability
         divergence = np.sum(np.abs(fast_prob - slow_prob))
-        return divergence > 0.5
+        return bool(divergence > 0.3)
