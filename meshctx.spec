@@ -21,8 +21,6 @@ a = Analysis(
         ('src/core/__init__.py', 'src/core'),
         ('src/core/*.py', 'src/core'),
         ('src/*.py', 'src'),
-        # CSS 静态文件（模板已内嵌到 web_ui.py，无需 .html 文件）
-        ('static/style.css', 'static'),
     ],
     hiddenimports=[
         # 🔧 修复: 关键! 显式声明src和src.core为包 (解决Windows "parent package" 错误)
