@@ -23,23 +23,22 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pyinstaller pywebview
+          pip install pyinstaller pycryptodome
 
-      - name: Build executable (使用修复后的spec — 解决parent package问题)
-        run: |
-          pyinstaller meshctx.spec
+      - name: Build executable
+        run: pyinstaller meshctx.spec
 
       - name: Verify build
         run: |
           if (Test-Path dist\meshctx.exe) {
-            Write-Host "✅ meshctx.exe built successfully"
-            Get-Item dist\meshctx.exe | Select-Object Name, Length, LastWriteTime
+            Write-Host "OK: meshctx.exe"
+            Get-Item dist\meshctx.exe | Select-Object Name, Length
           } else {
-            Write-Host "❌ meshctx.exe not found!"
+            Write-Host "FAIL"
             exit 1
           }
 
-      - name: Package release
+      - name: Package
         run: |
           copy README.md dist\
           Compress-Archive -Path dist\meshctx.exe,dist\README.md -DestinationPath meshctx-windows.zip
