@@ -397,12 +397,12 @@ def cmd_start(args):
     import uvicorn
     from src.main import app
     
-    port = args.port or 8000
+    port = args.port or 3000
     host = '0.0.0.0'
     
     print(f"""
 ╔══════════════════════════════════════╗
-║       meshctx v1.0 已启动           ║
+║       meshctx v1.2 已启动           ║
 ╠══════════════════════════════════════╣
 ║  API:     http://localhost:{port}     ║
 ║  Docs:    http://localhost:{port}/docs║
