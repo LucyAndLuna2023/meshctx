@@ -107,5 +107,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='docs/assets/logo.png' if Path('docs/assets/logo.png').exists() else None,
+    icon='docs/assets/logo.ico',
 )
