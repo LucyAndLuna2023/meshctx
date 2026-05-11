@@ -47,8 +47,12 @@ def load_config(path: Optional[str] = None) -> Dict[str, Any]:
         search_paths.append(Path(os.environ["MESHCTX_CONFIG"]))
     search_paths.append(Path("meshctx.yaml"))
     search_paths.append(Path.home() / ".meshctx" / "config.yaml")
-    # 包内默认配置
-    search_paths.append(Path(__file__).parent.parent / "meshctx.yaml")
+    # 包内默认配置（PyInstaller 打包后使用 sys._MEIPASS）
+    import sys as _sys
+    if getattr(_sys, 'frozen', False):
+        search_paths.append(Path(_sys._MEIPASS) / "meshctx.yaml")
+    else:
+        search_paths.append(Path(__file__).parent.parent / "meshctx.yaml")
 
     for p in search_paths:
         if p.exists():

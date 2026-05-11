@@ -87,7 +87,11 @@ app.add_middleware(
 )
 
 # ─── 静态文件 ────────────────────────────────────────────
-_static_dir = Path(__file__).resolve().parent.parent / "static"
+# PyInstaller 打包后资源在 sys._MEIPASS 下；开发时相对于项目根目录
+if getattr(sys, 'frozen', False):
+    _static_dir = Path(sys._MEIPASS) / "static"
+else:
+    _static_dir = Path(__file__).resolve().parent.parent / "static"
 if _static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
 

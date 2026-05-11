@@ -21,6 +21,9 @@ a = Analysis(
         ('src/core/__init__.py', 'src/core'),
         ('src/core/*.py', 'src/core'),
         ('src/*.py', 'src'),
+        # 🔧 v1.2.1 修复: 包含模板和静态文件 (TemplateNotFound bug)
+        ('templates/*.html', 'templates'),
+        ('static/*.css', 'static'),
     ],
     hiddenimports=[
         # 🔧 修复: 关键! 显式声明src和src.core为包 (解决Windows "parent package" 错误)

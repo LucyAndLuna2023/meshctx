@@ -2,14 +2,22 @@
 meshctx Web 管理界面
 FastAPI + Jinja2 模板渲染
 """
+import sys
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
-# 模板和静态文件目录
-_TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
-_STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+# ── 模板和静态文件目录 ─────────────────────────────────────────
+# PyInstaller 打包后资源在 sys._MEIPASS 下；开发时相对于项目根目录
+if getattr(sys, 'frozen', False):
+    # PyInstaller 打包后的临时解压目录
+    _BASE_DIR = Path(sys._MEIPASS)
+else:
+    _BASE_DIR = Path(__file__).resolve().parent.parent
+
+_TEMPLATES_DIR = _BASE_DIR / "templates"
+_static_dir = _BASE_DIR / "static"
 
 _jinja_env = Environment(loader=FileSystemLoader(str(_TEMPLATES_DIR)))
 
