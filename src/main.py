@@ -613,7 +613,14 @@ import base64
 import struct
 import string
 import random
-from Crypto.Cipher import AES
+
+# Lazy import — PyInstaller friendly
+def _get_aes():
+    try:
+        from Crypto.Cipher import AES
+        return AES
+    except ImportError:
+        return None
 
 def _wechat_verify_signature(token: str, timestamp: str, nonce: str, 
                               encrypt_str: str = "") -> str:
@@ -624,7 +631,7 @@ def _wechat_verify_signature(token: str, timestamp: str, nonce: str,
 def _wechat_decrypt(encrypted: str, encoding_aes_key: str) -> tuple:
     """解密企业微信消息, 返回 (明文, corp_id)"""
     key = base64.b64decode(encoding_aes_key + "=")
-    cipher = AES.new(key, AES.MODE_CBC, key[:16])
+    cipher = _get_aes().new(key, _get_aes().MODE_CBC, key[:16])
     plain = cipher.decrypt(base64.b64decode(encrypted))
     # 去除 PKCS7 padding
     pad = plain[-1]
@@ -646,7 +653,7 @@ def _wechat_encrypt(text: str, encoding_aes_key: str, corp_id: str) -> str:
     # PKCS7 padding
     pad = 32 - len(raw) % 32
     raw += bytes([pad] * pad)
-    cipher = AES.new(key, AES.MODE_CBC, key[:16])
+    cipher = _get_aes().new(key, _get_aes().MODE_CBC, key[:16])
     return base64.b64encode(cipher.encrypt(raw)).decode()
 
 def _get_wechat_config() -> dict:
