@@ -73,6 +73,9 @@ a = Analysis(
         'uvicorn',
         'pydantic',
         'jinja2',
+        'Crypto',
+        'Crypto.Cipher',
+        'Crypto.Cipher.AES',
     ],
     hookspath=[],
     runtime_hooks=[],
@@ -107,5 +110,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='docs/assets/logo.png' if Path('docs/assets/logo.png').exists() else None,
+    icon=None
 )
