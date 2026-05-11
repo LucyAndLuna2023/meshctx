@@ -5,6 +5,8 @@
 import sys, os
 from pathlib import Path
 
+from PyInstaller.building.datastruct import Tree
+
 _here = os.path.dirname(os.path.abspath(SPECPATH)) if 'SPECPATH' in dir() else os.getcwd()
 
 block_cipher = None
@@ -16,12 +18,9 @@ a = Analysis(
     binaries=[],
     datas=[
         ('meshctx.yaml', '.'),
-        # 🔧 修复: 显式包含__init__.py确保包结构完整
         ('src/__init__.py', 'src'),
         ('src/core/__init__.py', 'src/core'),
-        ('src/core/*.py', 'src/core'),
-        ('src/*.py', 'src'),
-    ],
+    ] + Tree('src', prefix='src', excludes=['*.pyc', '__pycache__']),
     hiddenimports=[
         # 🔧 修复: 关键! 显式声明src和src.core为包 (解决Windows "parent package" 错误)
         'src',
