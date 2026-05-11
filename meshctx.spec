@@ -21,9 +21,17 @@ a = Analysis(
         ('src/core/__init__.py', 'src/core'),
         ('src/core/*.py', 'src/core'),
         ('src/*.py', 'src'),
-        # 🔧 v1.2.1 修复: 包含模板和静态文件 (TemplateNotFound bug)
-        ('templates/*.html', 'templates'),
-        ('static/*.css', 'static'),
+        # 🔧 v1.2.9 修复: 显式逐文件列出 TemplateNotFound bug（Windows PyInstaller 不支持 *.html 通配）
+        ('templates/base.html', 'templates'),
+        ('templates/dashboard.html', 'templates'),
+        ('templates/projects.html', 'templates'),
+        ('templates/project_detail.html', 'templates'),
+        ('templates/conversation.html', 'templates'),
+        ('templates/memories.html', 'templates'),
+        ('templates/continuity.html', 'templates'),
+        ('templates/chat.html', 'templates'),
+        ('templates/setup.html', 'templates'),
+        ('static/style.css', 'static'),
     ],
     hiddenimports=[
         # 🔧 修复: 关键! 显式声明src和src.core为包 (解决Windows "parent package" 错误)
