@@ -1,0 +1,46 @@
+name: Build Windows Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller pycryptodome
+
+      - name: Build executable
+        run: |
+          pyinstaller --onefile --name meshctx --add-data "templates:templates" --add-data "static:static" --hidden-import=uvicorn.logging --hidden-import=uvicorn.loops --hidden-import=uvicorn.protocols src/main.py
+
+      - name: Package release
+        run: |
+          copy install.bat dist\
+          copy README.md dist\
+          Compress-Archive -Path dist\meshctx.exe,dist\install.bat,dist\README.md -DestinationPath meshctx-windows.zip
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/meshctx.exe
+            install.bat
+            meshctx-windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

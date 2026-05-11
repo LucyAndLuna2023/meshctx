@@ -11,7 +11,7 @@ INSTALL_DIR="${HOME}/.meshctx"
 
 echo -e "${CYAN}"
 echo "╔═══════════════════════════════════════════╗"
-echo "║     meshctx v1.0  一键安装               ║"
+echo "║     meshctx v1.1  一键安装               ║"
 echo "║   World's First Self-Evolving Agent      ║"
 echo "╚═══════════════════════════════════════════╝"
 echo -e "${NC}"
