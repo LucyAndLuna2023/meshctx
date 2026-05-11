@@ -473,7 +473,6 @@ TOOLS: dict[str, ToolEntry] = {
     "execute_code": ToolEntry("execute_code", "code_execution", "Run Python script that can call Hermes tools programmatically.", [], ["run python", "execute script"]),
     "skill_view": ToolEntry("skill_view", "skills", "Load skill's full content or access linked files.", [], ["load skill", "view skill", "skill details"]),
     "skill_manage": ToolEntry("skill_manage", "skills", "Manage skills (create/update/delete/patch).", [], ["create skill", "update skill", "save skill"]),
-    "memory": ToolEntry("memory", "memory", "Save durable information to persistent memory.", [], ["remember", "save"]),
 }
 
 # ── Providers ─────────────────────────────────────────────────────

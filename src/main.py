@@ -876,7 +876,7 @@ async def on_startup():
 @app.on_event("shutdown")
 async def on_shutdown():
     """优雅关闭"""
-    global _kernel
+    global _kernel  # noqa: F824
     if _kernel is not None:
         await _kernel.stop()
     logger.info("meshctx v1.0 已停止")
