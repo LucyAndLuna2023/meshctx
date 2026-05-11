@@ -624,7 +624,23 @@ def main():
 
     args = p.parse_args()
     if not args.command:
-        p.print_help()
+        # 默认: 启动 Web 服务 (双击 .exe 的行为)
+        import uvicorn, webbrowser, threading, time
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        # 延迟导入避免依赖问题
+        import importlib
+        main_mod = importlib.import_module('src.main')
+        
+        def _open_browser():
+            time.sleep(2)
+            webbrowser.open("http://127.0.0.1:3000/ui/chat")
+        
+        if sys.platform == "win32":
+            threading.Thread(target=_open_browser, daemon=True).start()
+        
+        host = os.environ.get("MESHCTX_HOST", "0.0.0.0")
+        port = int(os.environ.get("MESHCTX_PORT", "3000"))
+        uvicorn.run(main_mod.app, host=host, port=port, log_level="info")
         return
     args.func(args)
 

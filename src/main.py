@@ -886,15 +886,8 @@ def main():
     """入口"""
     import uvicorn
     host = os.environ.get("MESHCTX_HOST", "0.0.0.0")
-    port = int(os.environ.get("MESHCTX_PORT", "3000"))
+    port = int(os.environ.get("MESHCTX_PORT", "8000"))
     
-    # Auto-open browser on Windows (GUI experience)
-    if sys.platform == "win32":
-        import threading, webbrowser, time
-        def _open_browser():
-            time.sleep(1.5)
-            webbrowser.open(f"http://127.0.0.1:{port}/ui/chat")
-        threading.Thread(target=_open_browser, daemon=True).start()
     
     uvicorn.run(app, host=host, port=port, log_level="info")
 
