@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pyinstaller
+          pip install pyinstaller pywebview
 
       - name: Build executable (使用修复后的spec — 解决parent package问题)
         run: |

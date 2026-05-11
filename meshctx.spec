@@ -12,7 +12,7 @@ _here = os.path.dirname(os.path.abspath(SPECPATH)) if 'SPECPATH' in dir() else o
 block_cipher = None
 
 a = Analysis(
-    ['src/cli.py'],
+    ['meshctx_gui.py'],
     # 🔧 修复: 添加src/到搜索路径，确保 relative import 能找到parent package
     pathex=[_here, os.path.join(_here, 'src')],
     binaries=[],
@@ -72,6 +72,8 @@ a = Analysis(
         'uvicorn',
         'pydantic',
         'jinja2',
+        'webview',
+        'clr',  # pythonnet for WebView2
     ],
     hookspath=[],
     runtime_hooks=[],
