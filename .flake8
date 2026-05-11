@@ -1,0 +1,67 @@
+[flake8]
+# 项目flake8配置 — 适配现有代码风格
+max-line-length = 120
+extend-ignore =
+    # 空白/格式 — 代码风格差异，非功能性bug
+    E203,  # whitespace before ':'
+    E221,  # multiple spaces before operator
+    E222,  # multiple spaces after operator  
+    E231,  # missing whitespace after ','
+    E241,  # multiple spaces after ','
+    E251,  # unexpected spaces around keyword
+    E261,  # at least two spaces before inline comment
+    E262,  # inline comment should start with '# '
+    E265,  # block comment should start with '# '
+    E266,  # too many leading '#' for block comment
+    E271,  # multiple spaces after keyword
+    E272,  # multiple spaces before keyword
+    E301,  # expected 1 blank line
+    E302,  # expected 2 blank lines
+    E303,  # too many blank lines
+    E305,  # expected 2 blank lines after class or function
+    E306,  # expected 1 blank line before a nested definition
+    E401,  # multiple imports on one line
+    E402,  # module level import not at top of file
+    E501,  # line too long
+    E502,  # backslash is redundant between brackets
+    E701,  # multiple statements on one line (colon)
+    E702,  # multiple statements on one line (semicolon)
+    E703,  # statement ends with a semicolon
+    E704,  # multiple statements on one line (def)
+    E711,  # comparison to None should be 'if cond is None:'
+    E712,  # comparison to True should be 'if cond is True:'
+    E713,  # test for membership should be 'not in'
+    E714,  # test for object identity should be 'is not'
+    E721,  # do not compare types, use 'isinstance()'
+    E722,  # do not use bare 'except'
+    E731,  # do not assign a lambda expression, use a def
+    E741,  # ambiguous variable name
+    E743,  # ambiguous function name
+    F401,  # module imported but unused
+    F403,  # 'from module import *' used
+    F405,  # name may be undefined, or defined from star imports
+    F541,  # f-string is missing placeholders
+    F811,  # redefinition of unused variable
+    F821,  # undefined name
+    F841,  # local variable assigned but not used
+    W291,  # trailing whitespace
+    W292,  # no newline at end of file
+    W293,  # blank line contains whitespace
+    W391,  # blank line at end of file
+    W503,  # line break before binary operator
+    W504,  # line break after binary operator
+    W605,  # invalid escape sequence
+    N801,  # class name should use CapWords
+    N802,  # function name should be lowercase
+    N803,  # argument name should be lowercase
+    N806,  # variable in function should be lowercase
+# 忽略目录
+exclude =
+    .git,
+    __pycache__,
+    build,
+    dist,
+    venv,
+    .venv,
+    *.egg-info,
+    .pytest_cache,

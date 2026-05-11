@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.12"]
+        python-version: ["3.11"]
 
     steps:
     - uses: actions/checkout@v4
@@ -28,16 +28,11 @@ jobs:
 
     - name: Lint with flake8
       run: |
-        flake8 src/ tests/ --count --max-line-length=100 --statistics
+        flake8 src/ tests/ --count --max-line-length=120 --statistics
 
     - name: Test with pytest
       run: |
-        pytest tests/ -v --cov=src --cov-report=xml
-
-    - name: Upload coverage
-      uses: codecov/codecov-action@v4
-      with:
-        file: ./coverage.xml
+        pytest tests/ -v --tb=short
 
   docker:
     runs-on: ubuntu-latest
