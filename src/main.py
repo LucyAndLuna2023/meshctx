@@ -75,7 +75,7 @@ def get_memory_engine() -> MemoryEngine:
 app = FastAPI(
     title="meshctx API",
     description="世界第一自进化Agent系统",
-    version="1.0.0",
+    version="1.2.11",
 )
 
 app.add_middleware(
@@ -165,8 +165,8 @@ class IntentRequest(BaseModel):
 @app.get("/")
 async def root():
     return {
-        "message": "meshctx API v1.0 运行中",
-        "version": "1.0.0",
+        "message": "meshctx API v1.2 运行中",
+        "version": "1.2.11",
         "endpoints": {
             "projects": "/projects",
             "conversations": "/conversations",
@@ -351,7 +351,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.0.0",
+        "version": "1.2.11",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -544,17 +544,24 @@ async def api_chat(request: Request):
         return {"content": "无效请求", "tokens": 0}
     
     msgs = body.get("messages", [])
+    if not msgs:
+        # fallback: accept single 'message' field from web UI
+        msg = body.get("message", "")
+        if msg:
+            msgs = [{"role": "user", "content": msg}]
     model_id = body.get("model", "deepseek:v4-flash")
     
     if not msgs:
         return {"content": "请输入消息", "tokens": 0}
     
-    reg = get_registry()
-    client = reg.get(model_id) or reg.get(None)
-    if not client:
-        return {"content": "模型未配置。请先设置 API Key", "tokens": 0}
-    
-    resp = client.chat(msgs)
+    try:
+        reg = get_registry()
+        client = reg.get(model_id) or reg.get(None)
+        if not client:
+            return {"content": "模型未配置。请先在/setup页面设置API Key", "tokens": 0}
+        resp = client.chat(msgs)
+    except Exception as e:
+        return {"content": f"模型调用失败: {str(e)}", "tokens": 0}
     content = resp.get("content", "")
     tokens = resp.get("tokens", 0)
     
@@ -794,7 +801,7 @@ async def health_check():
 
     result = {
         "status": "healthy",
-        "version": "1.0.0",
+        "version": "1.2.11",
         "kernel": "running" if (k._started if hasattr(k, '_started') else False) else "standalone",
         "projects_count": len(engine.projects),
         "conversations_count": len(engine.conversations),
