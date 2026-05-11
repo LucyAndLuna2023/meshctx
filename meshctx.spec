@@ -23,6 +23,7 @@ a = Analysis(
     ] + Tree('src', prefix='src', excludes=['*.pyc', '__pycache__']),
     hiddenimports=[
         # 🔧 修复: 关键! 显式声明src和src.core为包 (解决Windows "parent package" 错误)
+        'meshctx_gui',
         'src',
         'src.core',
         # Core 插件 — kernel + 所有v1.1模块
