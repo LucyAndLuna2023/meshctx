@@ -27,7 +27,7 @@ jobs:
 
       - name: Build executable
         run: |
-          pyinstaller --onefile --name meshctx --add-data "templates:templates" --add-data "static:static" --hidden-import=uvicorn.logging --hidden-import=uvicorn.loops --hidden-import=uvicorn.protocols src/main.py
+          pyinstaller --onefile --name meshctx --add-data "templates;templates" --add-data "static;static" --hidden-import=uvicorn.logging --hidden-import=uvicorn.loops --hidden-import=uvicorn.protocols --hidden-import=jinja2 --hidden-import=fastapi src/main.py
 
       - name: Package release
         run: |
