@@ -21,16 +21,7 @@ a = Analysis(
         ('src/core/__init__.py', 'src/core'),
         ('src/core/*.py', 'src/core'),
         ('src/*.py', 'src'),
-        # 🔧 v1.2.9 修复: 显式逐文件列出 TemplateNotFound bug（Windows PyInstaller 不支持 *.html 通配）
-        ('templates/base.html', 'templates'),
-        ('templates/dashboard.html', 'templates'),
-        ('templates/projects.html', 'templates'),
-        ('templates/project_detail.html', 'templates'),
-        ('templates/conversation.html', 'templates'),
-        ('templates/memories.html', 'templates'),
-        ('templates/continuity.html', 'templates'),
-        ('templates/chat.html', 'templates'),
-        ('templates/setup.html', 'templates'),
+        # CSS 静态文件（模板已内嵌到 web_ui.py，无需 .html 文件）
         ('static/style.css', 'static'),
     ],
     hiddenimports=[

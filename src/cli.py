@@ -399,10 +399,11 @@ def cmd_start(args):
     
     port = args.port or 3000
     host = '0.0.0.0'
+    from src.core import __version__
     
     print(f"""
 ╔══════════════════════════════════════╗
-║       meshctx v1.2 已启动           ║
+║       meshctx v{__version__} 已启动           ║
 ╠══════════════════════════════════════╣
 ║  API:     http://localhost:{port}     ║
 ║  Docs:    http://localhost:{port}/docs║
