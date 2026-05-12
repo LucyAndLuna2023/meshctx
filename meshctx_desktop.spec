@@ -18,6 +18,7 @@ a = Analysis(
     datas=[
         ('logo.png', '.'),
         ('logo.ico', '.'),
+        ('version_info.txt', '.'),
         ('meshctx.yaml', '.'),
         ('src/__init__.py', 'src'),
         ('src/core/__init__.py', 'src/core'),
@@ -76,6 +77,7 @@ exe = EXE(
     debug=False,
     strip=False,
     upx=True,
-    console=False,  # GUI app, no console window
+    console=False,
     icon='logo.ico',
+    version='version_info.txt',
 )
