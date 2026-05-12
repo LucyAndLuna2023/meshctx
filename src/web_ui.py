@@ -389,6 +389,20 @@ async function loadModels() {
 }
 loadModels();
 
+// Chat历史持久化
+const HISTORY_KEY = 'meshctx_chat_history';
+let chatHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+function saveHistory() { localStorage.setItem(HISTORY_KEY, JSON.stringify(chatHistory.slice(-100))); }
+function restoreHistory() {
+    const div = document.getElementById('messages');
+    chatHistory.forEach(h => {
+        if (h.role === 'user') div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ' + h.content + '</div>';
+        else div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;"><strong style="color:#38bdf8;">AI:</strong> ' + h.content + '</div>';
+    });
+    div.scrollTop = div.scrollHeight;
+}
+restoreHistory();
+
 async function send() {
     const input = document.getElementById('userInput');
     const msg = input.value.trim();
@@ -400,6 +414,8 @@ async function send() {
     const div = document.getElementById('messages');
     const displayMsg = uploadedFilename ? '[📄 ' + uploadedFilename + '] ' + msg : msg;
     div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ' + displayMsg + '</div>';
+    chatHistory.push({role:'user', content:displayMsg});
+    saveHistory();
     input.value = '';
     clearFile();
     
@@ -434,6 +450,9 @@ async function send() {
                     const data = line.slice(6);
                     if (data === '[DONE]') {
                         cursor.remove();
+                        // 保存历史
+                        chatHistory.push({role:'assistant', content:streamText.innerHTML});
+                        saveHistory();
                         // 渲染Markdown
                         const raw = streamText.innerHTML;
                         streamText.innerHTML = marked.parse(raw);

@@ -584,10 +584,10 @@ async def api_chat(request: Request):
         reg = get_registry()
         client = reg.get(model_id) or reg.get(None)
         if not client:
-            return {"content": "模型未配置。请先在/setup页面设置API Key", "tokens": 0}
+            return {"content": "❌ 模型未配置。请访问 Setup 页面配置 API Key 后重试。", "tokens": 0}
         resp = client.chat(msgs)
     except Exception as e:
-        return {"content": f"模型调用失败: {str(e)}", "tokens": 0}
+        return {"content": f"❌ 模型调用失败，请检查: 1) API Key是否正确 2) 网络连接 3) 模型名称。详情: " + str(e)[:100], "tokens": 0}
     content = resp.get("content", "")
     tokens = resp.get("tokens", 0)
     
