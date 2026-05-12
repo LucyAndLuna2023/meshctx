@@ -98,6 +98,9 @@
                 <button class="lang-btn active" onclick="switchLang('en')">EN</button>
                 <button class="lang-btn" onclick="switchLang('zh')">中文</button>
                 <button class="lang-btn" onclick="switchLang('fr')">FR</button>
+                <button class="lang-btn" onclick="switchLang('ja')">日本語</button>
+                <button class="lang-btn" onclick="switchLang('ko')">한국어</button>
+                <button class="lang-btn" onclick="switchLang('fr')">FR</button>
                 <button class="lang-btn" onclick="switchLang('de')">DE</button>
             </span>
         </div>
@@ -123,6 +126,24 @@
         <div class="hero-buttons">
             <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
             <a href="getting-started" class="btn btn-ghost">快速开始 →</a>
+        </div>
+    </div>
+    <!-- JA -->
+    <div class="lang" data-lang="ja">
+        <h1><span>自己進化</span>するエージェント</h1>
+        <p>meshctx は世界初の自己進化型AIエージェントプラットフォームです。すべてを記憶し、タスクから学習し、複数エージェントを協調させます — 完全オープンソース。</p>
+        <div class="hero-buttons">
+            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
+            <a href="getting-started" class="btn btn-ghost">はじめる →</a>
+        </div>
+    </div>
+    <!-- KO -->
+    <div class="lang" data-lang="ko">
+        <h1><span>자기 진화</span>하는 에이전트</h1>
+        <p>meshctx는 세계 최초의 자기 진화형 AI 에이전트 플랫폼입니다. 모든 것을 기억하고, 작업에서 학습하며, 여러 에이전트를 조율합니다 — 완전 오픈소스.</p>
+        <div class="hero-buttons">
+            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
+            <a href="getting-started" class="btn btn-ghost">시작하기 →</a>
         </div>
     </div>
     <!-- FR -->
@@ -211,6 +232,28 @@
                     <li><strong>可拦截</strong> — 删除、外发等关键操作需用户或监管员确认</li>
                     <li><strong>可控进化</strong> — 技能和策略变更全版本化，随时回滚</li>
                     <li><strong>成本友好</strong> — 四层缓存，API 调用降低 60% 以上</li>
+                </ul>
+            </div>
+            <!-- JA -->
+            <div class="lang about-card" data-lang="ja">
+                <h3>🇨🇳 中国発、世界へオープン</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">meshctx は <strong>「分業＋完全透明性」</strong>を基盤とするオープンソースのマルチエージェントフレームワークです。オーケストレーター、ガーディアン、専門エージェントからなるメッシュネットワークです。</p>
+                <ul>
+                    <li><strong>監査可能</strong> — すべての判断が実行レポート付き</li>
+                    <li><strong>介入可能</strong> — 重要な操作は確認が必要</li>
+                    <li><strong>制御可能な進化</strong> — 全変更がバージョン管理され、ロールバック可能</li>
+                    <li><strong>コスト効率</strong> — マルチレベルキャッシュでAPI呼出60%削減</li>
+                </ul>
+            </div>
+            <!-- KO -->
+            <div class="lang about-card" data-lang="ko">
+                <h3>🇨🇳 중국에서 제작, 세계에 공개</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">meshctx는 <strong>"분업 + 완전 투명성"</strong>을 기반으로 하는 오픈소스 멀티 에이전트 프레임워크입니다. 오케스트레이터, 가디언, 전문 에이전트로 구성된 메시 네트워크입니다.</p>
+                <ul>
+                    <li><strong>감사 가능</strong> — 모든 결정에 실행 보고서 첨부</li>
+                    <li><strong>개입 가능</strong> — 중요 작업은 확인 필요</li>
+                    <li><strong>제어 가능한 진화</strong> — 모든 변경사항 버전 관리, 롤백 가능</li>
+                    <li><strong>비용 효율</strong> — 다중 캐시로 API 호출 60% 감소</li>
                 </ul>
             </div>
             <!-- FR -->
@@ -352,6 +395,38 @@ const L = {
         contact_title:"📬 联系我们", contact_desc:"有疑问？有合作意向？随时联系。",
         quick_title:"快速开始",
         cta_title:"准备好构建未来了吗？", cta_desc:"开源。自我进化。永久免费。", cta_btn:"开始使用"
+    },
+    ja: {
+        nav_features:"機能", nav_compare:"比較", nav_about:"概要", nav_docs:"ドキュメント",
+        why_title:"なぜ meshctx？",
+        f1_title:"階層的メモリ", f1_desc:"人間の認知に基づく4層メモリシステム(L0-L4)。エビングハウスの忘却曲線 — 重要な情報は持続し、些末な情報は自然に減衰。",
+        f2_title:"自己進化", f2_desc:"タスク後にメタ認知ループ: 評価→パターン抽出→知識グラフ更新→行動調整。使うほど賢くなる。",
+        f3_title:"マルチエージェント", f3_desc:"一つの意図から自動でタスクDAGに分解、専門エージェントが並列実行。",
+        f4_title:"予測的コンテキスト", f4_desc:"使用パターンを学習。質問前にメモリを先読み。コンテキスト構築50ms未満。",
+        f5_title:"プラグイン市場", f5_desc:"MCPプロトコルネイティブ。pip install meshctx-plugin-xxx。",
+        f6_title:"100% オープンソース", f6_desc:"MITライセンス。永久無料。Docker/K8sでセルフホスト。",
+        compare_title:"meshctx vs 競合",
+        c1:"階層的メモリ", c2:"忘却曲線", c3:"メタ認知", c4:"マルチエージェント", c5:"知識グラフ", c6:"プラグイン市場", c7:"MCPプロトコル", c8:"オープンソース",
+        about_title:"meshctx について",
+        contact_title:"📬 お問い合わせ", contact_desc:"ご質問・ご協力はいつでもどうぞ。",
+        quick_title:"クイックスタート",
+        cta_title:"未来を創る準備は？", cta_desc:"オープンソース。自己進化。永久無料。", cta_btn:"はじめる"
+    },
+    ko: {
+        nav_features:"기능", nav_compare:"비교", nav_about:"소개", nav_docs:"문서",
+        why_title:"왜 meshctx 인가?",
+        f1_title:"계층적 메모리", f1_desc:"인간 인지 기반 4계층 메모리(L0-L4). 에빙하우스 망각 곡선 — 중요한 건 유지, 사소한 건 감쇠.",
+        f2_title:"자기 진화", f2_desc:"작업 후 메타인지 루프: 평가→패턴추출→지식그래프갱신→행동조정. 사용할수록 똑똑해짐.",
+        f3_title:"멀티 에이전트", f3_desc:"하나의 의도를 자동으로 작업 DAG로 분해, 전문 에이전트가 병렬 실행.",
+        f4_title:"예측적 컨텍스트", f4_desc:"사용 패턴 학습. 질문 전에 메모리 선행 로드. 컨텍스트 조립 50ms 미만.",
+        f5_title:"플러그인 마켓", f5_desc:"MCP 프로토콜 네이티브. pip install meshctx-plugin-xxx.",
+        f6_title:"100% 오픈소스", f6_desc:"MIT 라이선스. 영구 무료. Docker/K8s로 자체 호스팅.",
+        compare_title:"meshctx vs 경쟁",
+        c1:"계층적 메모리", c2:"망각 곡선", c3:"메타인지", c4:"멀티에이전트", c5:"지식 그래프", c6:"플러그인 마켓", c7:"MCP 프로토콜", c8:"오픈소스",
+        about_title:"meshctx 소개",
+        contact_title:"📬 연락처", contact_desc:"질문이나 협업 문의는 언제든지.",
+        quick_title:"빠른 시작",
+        cta_title:"미래를 만들 준비가 되셨나요?", cta_desc:"오픈소스. 자기 진화. 영구 무료.", cta_btn:"시작하기"
     },
     fr: {
         nav_features:"Fonctionnalités", nav_compare:"Comparer", nav_about:"À propos", nav_docs:"Docs",

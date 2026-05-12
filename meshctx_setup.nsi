@@ -52,6 +52,8 @@ SetCompressor /SOLID lzma
 !insertmacro MUI_LANGUAGE "SimpChinese"
 !insertmacro MUI_LANGUAGE "Japanese"
 !insertmacro MUI_LANGUAGE "Korean"
+!insertmacro MUI_LANGUAGE "German"
+!insertmacro MUI_LANGUAGE "French"
 
 ; ── 安装区段 ──────────────────────────────
 Section "meshctx Desktop" SecMain
