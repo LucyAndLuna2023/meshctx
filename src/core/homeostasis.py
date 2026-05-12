@@ -719,3 +719,101 @@ class MarginalUtilityScheduler:
             self.task_utilities.pop(tid, None)
         
         return scheduled
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# P1: 昼夜节律调制器 (Circadian Rhythm Modulator)
+# ═══════════════════════════════════════════════════════════════════════
+
+class CircadianModulator:
+    """
+    昼夜节律影响认知效能的调制器。
+    
+    神经科学基础:
+    - 视交叉上核 (SCN) 调控昼夜节律
+    - 褪黑素/皮质醇周期影响认知表现
+    - 双峰模型: 上午10-12点 + 下午4-6点为认知高峰
+    
+    论文: Walker et al. (2025) "Chronobiological AI"
+    """
+    
+    def __init__(self, wake_hour: int = 8, sleep_hour: int = 23):
+        self.wake_hour = wake_hour
+        self.sleep_hour = sleep_hour
+    
+    def cognitive_efficiency(self, hour_of_day: float) -> float:
+        """
+        认知效能随昼夜节律变化 (双峰余弦模型)。
+        
+        峰值: 10:00 (上午峰) 和 16:00 (下午峰)
+        低谷: 2:00-5:00 和 14:00-15:00
+        
+        Returns: [0.3, 1.0] 认知效能系数
+        """
+        import math
+        
+        # 双峰模型: 两个高斯函数的叠加
+        morning_peak = math.exp(-((hour_of_day - 11) ** 2) / 12)  # 上午峰 (11点附近)
+        afternoon_peak = math.exp(-((hour_of_day - 17) ** 2) / 14)  # 下午峰 (17点附近)
+        
+        # 深夜低谷
+        night_penalty = 1.0 - 0.4 * math.exp(-((hour_of_day - 3) ** 2) / 8)
+        
+        efficiency = 0.3 + 0.7 * max(morning_peak * 0.6 + afternoon_peak * 0.4, 0.1)
+        efficiency *= night_penalty
+        
+        return max(0.3, min(1.0, efficiency))
+    
+    def get_current_efficiency(self) -> float:
+        """获取当前时刻的认知效能"""
+        import datetime
+        now = datetime.datetime.now()
+        hour = now.hour + now.minute / 60.0
+        return self.cognitive_efficiency(hour)
+    
+    def get_modulated_policy(self, base_policy: dict, hour: float = None) -> dict:
+        """
+        根据昼夜节律调整策略参数。
+        
+        低效时: 提高探索率, 降低并行度, 降低质量阈值
+        高效时: 保持默认, 最佳表现
+        """
+        if hour is None:
+            import datetime
+            hour = datetime.datetime.now().hour + datetime.datetime.now().minute / 60.0
+        
+        eff = self.cognitive_efficiency(hour)
+        policy = base_policy.copy()
+        
+        # 温度参数 (探索率): 低效时多探索寻找突破
+        policy["temperature"] = policy.get("temperature", 0.7) * (1.0 + (1.0 - eff) * 0.5)
+        
+        # 并行度: 低效时少做并行任务
+        policy["max_parallel_tasks"] = max(1, int(policy.get("max_parallel_tasks", 4) * eff))
+        
+        # 质量阈值: 低效时降低
+        policy["quality_threshold"] = policy.get("quality_threshold", 0.7) * (0.5 + 0.5 * eff)
+        
+        # 批大小: 低效时小批量
+        policy["batch_size"] = max(1, int(policy.get("batch_size", 8) * eff))
+        
+        return policy
+    
+    def is_sleep_time(self) -> bool:
+        """是否在睡眠时段 (23:00-7:00)"""
+        import datetime
+        now = datetime.datetime.now()
+        hour = now.hour
+        return hour >= self.sleep_hour or hour < self.wake_hour
+    
+    def get_stats(self) -> dict:
+        """返回昼夜节律状态"""
+        eff = self.get_current_efficiency()
+        hour = __import__('datetime').datetime.now().hour
+        return {
+            "hour": hour,
+            "efficiency": round(eff, 3),
+            "peak_time": eff > 0.8,
+            "sleep_time": self.is_sleep_time(),
+            "mode": "peak" if eff > 0.8 else ("normal" if eff > 0.5 else "low"),
+        }

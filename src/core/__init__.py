@@ -63,6 +63,7 @@ from .free_energy import (
 from .active_inference import (
     ActiveInferenceEngine, GenerativeModel, Policy,
     ActionType, MultiScaleLearning,
+    LookaheadPlanner, DualProcessDecision,
 )
 from .global_workspace import (
     GlobalWorkspace, Processor, ProcessorType,
@@ -70,7 +71,8 @@ from .global_workspace import (
 )
 from .homeostasis import (
     HomeostaticRegulator, ResourceBudget, ResourceType,
-    SystemMode, MarginalUtilityScheduler,
+    SystemMode, MarginalUtilityScheduler, NeuromodulatorSystem,
+    CircadianModulator,
 )
 
 __version__ = "1.3.0"
@@ -107,6 +109,7 @@ __all__ = [
     "CriticalityRegulator", "BeliefState", "BeliefType",
     "ActiveInferenceEngine", "GenerativeModel", "Policy",
     "ActionType", "MultiScaleLearning",
+    "LookaheadPlanner", "DualProcessDecision",
     "GlobalWorkspace", "Processor", "ProcessorType", "AttentionBottleneck",
     "UnconsciousProcessing", "RecursiveWorkspace",
     "HomeostaticRegulator", "ResourceBudget", "ResourceType",

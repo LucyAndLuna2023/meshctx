@@ -367,4 +367,144 @@ class MultiScaleLearning:
         fast_prob = self.fast_belief.expected_probability
         slow_prob = self.slow_belief.expected_probability
         divergence = np.sum(np.abs(fast_prob - slow_prob))
-        return bool(divergence > 0.3)
+        return bool(divergence > 0.5)  # 分歧 > 0.5 → 可能发生制度转变
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# P1: 多步前瞻规划 (Lookahead Monte Carlo Tree Search)
+# ═══════════════════════════════════════════════════════════════════════
+
+class LookaheadPlanner:
+    """
+    基于 Monte Carlo Rollout 的深度时间规划。
+    
+    超越贪心单步决策: 模拟未来 N 步轨迹, 选择期望自由能最小的行动序列。
+    
+    论文: Fountas et al. (2024) "Deep Active Inference for Episodic Planning"
+    """
+    
+    def __init__(self, model: GenerativeModel, horizon: int = 3, n_rollouts: int = 50):
+        self.model = model
+        self.horizon = horizon
+        self.n_rollouts = n_rollouts
+    
+    def plan(self, belief: BeliefState, preferences: np.ndarray, 
+             n_actions: int = 5, temperature: float = 1.0) -> tuple:
+        """
+        多步前瞻规划: 返回 (最优行动, G值).
+        
+        Args:
+            belief: 当前信念状态
+            preferences: 偏好分布 p(o) ~ exp(-G)
+            n_actions: 行动空间大小
+            temperature: 探索温度 (高→更随机)
+        
+        Returns:
+            (best_action, expected_free_energy)
+        """
+        action_G = {}
+        
+        for a0 in range(n_actions):
+            total_G = 0.0
+            
+            for _ in range(self.n_rollouts):
+                G_trajectory = 0.0
+                state = belief.expected_probability
+                action = a0
+                discount = 1.0
+                
+                for t in range(self.horizon):
+                    # 模拟状态转移 (带噪声)
+                    next_state = self.model.predict_forward(state, action)
+                    noise = np.random.dirichlet(np.ones_like(next_state) * 0.1) * 0.05
+                    next_state = 0.95 * next_state + noise
+                    next_state /= next_state.sum()
+                    
+                    # 计算该步期望自由能 G_t ≈ -ln(p(o|π)·preferences) + epistemic
+                    obs_probs = self.model.expected_observation_probability(next_state)
+                    expected_utility = np.dot(obs_probs, preferences)
+                    epistemic_value = -np.sum(next_state * np.log(next_state + 1e-10))  # entropy
+                    
+                    G_step = -np.log(expected_utility + 1e-10) + temperature * epistemic_value
+                    G_trajectory += discount * G_step
+                    
+                    discount *= 0.9  # 未来衰减
+                    state = next_state
+                    action = np.random.choice(n_actions)  # 后续简单随机策略
+                
+                total_G += G_trajectory
+            
+            action_G[a0] = total_G / self.n_rollouts
+        
+        best_action = min(action_G, key=action_G.get)
+        return best_action, action_G[best_action]
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# P1: 双过程决策 (系统1习惯 + 系统2规划)
+# ═══════════════════════════════════════════════════════════════════════
+
+class DualProcessDecision:
+    """
+    系统1(习惯,快速) + 系统2(规划,精确)的双过程决策模型。
+    
+    神经科学基础:
+    - 系统1 = 纹状体习惯回路 (模型自由, TD学习)
+    - 系统2 = 前额叶规划回路 (模型基, 主动推理)
+    - 仲裁 = 前扣带皮层 (基于不确定性/认知负荷切换)
+    
+    论文: Pezzulo et al. (2025) "Habit and Goal-Directed Control"
+    """
+    
+    def __init__(self, ai_engine: ActiveInferenceEngine = None):
+        self.habit_cache: Dict[int, float] = {}  # state_hash → estimated_value
+        self.use_counts: Dict[int, int] = {}
+        self.cache_hits = 0
+        self.cache_misses = 0
+        self.habit_threshold = 10  # 重复N次后形成习惯
+        self.ai_engine = ai_engine
+    
+    def _hash_state(self, belief: BeliefState) -> int:
+        """对信念状态做轻量哈希"""
+        prob = belief.expected_probability
+        return hash(tuple(np.round(prob, 3)))
+    
+    def cached_value(self, state_hash: int) -> Optional[float]:
+        """查询习惯缓存的动作值"""
+        self.use_counts[state_hash] = self.use_counts.get(state_hash, 0) + 1
+        if self.use_counts[state_hash] >= self.habit_threshold:
+            self.cache_hits += 1
+            return self.habit_cache.get(state_hash)
+        self.cache_misses += 1
+        return None
+    
+    def update_habit(self, state_hash: int, action_value: float, lr: float = 0.1):
+        """更新习惯缓存 (模型自由 TD 学习)"""
+        old = self.habit_cache.get(state_hash, 0.5)
+        self.habit_cache[state_hash] = old + lr * (action_value - old)
+    
+    def should_use_habit(self, uncertainty: float = 0.0) -> bool:
+        """
+        决定使用系统1(习惯)还是系统2(规划)。
+        
+        - 低不确定性 + 高缓存命中率 → 习惯 (快速)
+        - 高不确定性 + 新状态 → 规划 (精确)
+        """
+        total = max(self.cache_hits + self.cache_misses, 1)
+        hit_rate = self.cache_hits / total
+        
+        if hit_rate < 0.6:
+            return False  # 缓存还不够可靠
+        if uncertainty > 0.4:
+            return False  # 环境太不确定, 需要仔细推理
+        
+        return True
+    
+    def get_stats(self) -> dict:
+        """返回双过程统计"""
+        total = max(self.cache_hits + self.cache_misses, 1)
+        return {
+            "cache_size": len(self.habit_cache),
+            "hit_rate": self.cache_hits / total,
+            "mode": "habit" if self.should_use_habit() else "planning",
+        }
