@@ -104,6 +104,7 @@
                 <option value="ko">🇰🇷 한국어</option>
                 <option value="fr">🇫🇷 Français</option>
                 <option value="de">🇩🇪 Deutsch</option>
+                <option value="es">🇪🇸 Español</option>
             </select>
         </div>
     </div>
@@ -115,7 +116,7 @@
     <div class="lang active" data-lang="en">
         <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
         <h1>The Agent That <span>Learns</span></h1>
-        <p>meshctx is the world's first self-evolving agent platform. All-in-One Desktop Client + Brain-Inspired AI. 4 languages. Fully open-source.</p>
+        <p>meshctx is the world's first self-evolving agent platform. All-in-One Desktop Client + Brain-Inspired AI. multi-language. Fully open-source.</p>
         <div class="hero-buttons">
             <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ Star on GitHub</a>
             <a href="getting-started" class="btn btn-ghost">Get Started →</a>
@@ -125,7 +126,7 @@
     <div class="lang" data-lang="zh">
         <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
         <h1>会<span>自我进化</span>的 Agent</h1>
-        <p>meshctx v1.3 — All-in-One 桌面客户端 + 脑启发AI算法。记忆一切、多Agent协同、4语言 — 完全开源。</p>
+        <p>meshctx v1.3 — All-in-One 桌面客户端 + 脑启发AI算法。记忆一切、多Agent协同、多语言 — 完全开源。</p>
         <div class="hero-buttons">
             <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
             <a href="getting-started" class="btn btn-ghost">快速开始 →</a>
@@ -171,6 +172,16 @@
             <a href="getting-started" class="btn btn-ghost">Loslegen →</a>
         </div>
     </div>
+    <!-- ES -->
+    <div class="lang" data-lang="es">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
+        <h1>El Agente que <span>Aprende</span></h1>
+        <p>meshctx es la primera plataforma de agentes auto-evolutiva del mundo. Todo en Uno - Cliente de Escritorio + IA Neuroinspirada. 7 idiomas. Código abierto.</p>
+        <div class="hero-buttons">
+            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
+            <a href="getting-started" class="btn btn-ghost">Comenzar →</a>
+        </div>
+    </div>
 </header>
 
 <!-- ═══ FEATURES ═══ -->
@@ -207,7 +218,7 @@
                 <tr><td data-lang-key="c7">MCP Protocol</td><td class="highlight"><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="check">✓</span></td></tr>
                 <tr><td>Desktop Client</td><td class="highlight"><span class="check">✓ Win+Mac</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
                 <tr><td>Brain-Inspired AI</td><td class="highlight"><span class="check">7 Models</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td>Multi-Language</td><td class="highlight"><span class="check">4 langs</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>Multi-Language</td><td class="highlight"><span class="check">7 langs</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
                 <tr><td data-lang-key="c8">Open Source</td><td class="highlight"><span class="check">MIT</span></td><td><span class="check">MIT</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td></tr>
             </tbody></table>
         </div>
@@ -286,6 +297,18 @@
                 </ul>
             </div>
             <!-- Contact (shared) -->
+            <div class="about-card">
+                <!-- ES -->
+            <div class="lang about-card" data-lang="es">
+                <h3>🇨🇳 Construido en China, Abierto al Mundo</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">meshctx es un framework multi-agente de código abierto basado en <strong>"División del Trabajo + Transparencia Total".</strong> Una red de agentes con Orquestador, Guardián y especialistas bajo supervisión humana.</p>
+                <ul>
+                    <li><strong>Auditable</strong> — Cada decisión genera un informe ejecutable</li>
+                    <li><strong>Interceptable</strong> — Las acciones críticas requieren confirmación</li>
+                    <li><strong>Evolución Controlada</strong> — Cambios versionados, retroceso en cualquier momento</li>
+                    <li><strong>Eficiente en Costos</strong> — Caché multinivel, -60% llamadas API</li>
+                </ul>
+            </div>
             <div class="about-card">
                 <h3 data-lang-key="contact_title">📬 Contact</h3>
                 <p style="color:var(--muted);margin-bottom:12px;" data-lang-key="contact_desc">Questions? Collaborations? Reach out anytime.</p>
@@ -466,6 +489,22 @@ const L = {
         contact_title:"📬 Kontakt", contact_desc:"Fragen? Kooperationen? Jederzeit erreichbar.",
         quick_title:"Schnellstart",
         cta_title:"Bereit, die Zukunft zu bauen?", cta_desc:"Open Source. Selbstlernend. Immer kostenlos.", cta_btn:"Loslegen"
+    },
+    es: {
+        nav_features:"Funciones", nav_compare:"Comparar", nav_about:"Acerca de", nav_docs:"Docs",
+        why_title:"¿Por qué meshctx?",
+        f1_title:"Memoria Jerárquica", f1_desc:"Sistema de memoria de 4 niveles (L0-L4) modelado según la cognición humana. Curva de olvido de Ebbinghaus — lo importante persiste, lo trivial se desvanece.",
+        f2_title:"Auto-Evolutivo", f2_desc:"Bucle de metacognición tras cada tarea: evaluar → extraer patrones → actualizar → ajustar. Mejora con cada uso.",
+        f3_title:"Orquesta Multi-Agente", f3_desc:"Una intención. Automáticamente descompuesta en DAG, ejecutada en paralelo por agentes especializados.",
+        f4_title:"Contexto Predictivo", f4_desc:"Aprende tus patrones. Precarga recuerdos relevantes antes de que preguntes. Ensamblaje < 50ms.",
+        f5_title:"Marketplace de Plugins", f5_desc:"Protocolo MCP nativo. pip install meshctx-plugin-xxx. Ecosistema comunitario.",
+        f6_title:"100% Código Abierto", f6_desc:"Licencia MIT. Gratis para siempre. Auto-hospedado en tu infraestructura. Sin dependencia.",
+        compare_title:"meshctx vs El Mundo",
+        c1:"Memoria Jerárquica", c2:"Curva de Olvido", c3:"Metacognición", c4:"Multi-Agente", c5:"Grafo de Conocimiento", c6:"Marketplace", c7:"Protocolo MCP", c8:"Código Abierto",
+        about_title:"Acerca de meshctx",
+        contact_title:"📬 Contacto", contact_desc:"¿Preguntas? ¿Colaboraciones? Contáctanos.",
+        quick_title:"Inicio Rápido",
+        cta_title:"¿Listo para construir el futuro?", cta_desc:"Código abierto. Auto-evolutivo. Siempre gratis.", cta_btn:"Comenzar"
     }
 };
 
