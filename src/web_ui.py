@@ -56,6 +56,22 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         .flash-error { background: #7f1d1d; color: #fca5a5; }
         a { color: #38bdf8; text-decoration: none; }
         a:hover { text-decoration: underline; }
+        /* 亮色主题 */
+        body.light { background:#f8fafc; color:#1e293b; }
+        body.light .header { background:#fff; border-bottom:1px solid #e2e8f0; }
+        body.light .card { background:#fff; border:1px solid #e2e8f0; }
+        body.light .stat-card { background:#fff; border:1px solid #e2e8f0; }
+        body.light .stat-card .value { color:#2563eb; }
+        body.light .stat-card .label { color:#64748b; }
+        body.light th, body.light td { border-bottom:1px solid #e2e8f0; }
+        body.light th { color:#64748b; }
+        body.light tr:hover { background:#f1f5f9; }
+        body.light input, body.light textarea, body.light select { background:#fff; border:1px solid #e2e8f0; color:#1e293b; }
+        body.light #messages { background:#f8fafc; border-color:#e2e8f0; }
+        body.light .flash-success { background:#dcfce7; color:#166534; }
+        body.light .flash-error { background:#fef2f2; color:#991b1b; }
+        body.light a { color:#2563eb; }
+        .cursor { animation: blink 1s infinite; } @keyframes blink { 0%,50% { opacity:1; } 51%,100% { opacity:0; } }
         .cursor { animation: blink 1s infinite; } @keyframes blink { 0%,50% { opacity:1; } 51%,100% { opacity:0; } }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
@@ -80,6 +96,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
             <option value="ko">한국어</option>
             <option value="es">Español</option>
         </select>
+        <button onclick="toggleTheme()" style="background:transparent;border:1px solid #334155;color:#94a3b8;padding:4px 8px;border-radius:4px;font-size:12px;cursor:pointer;margin-left:4px;" title="切换主题">🌓</button>
     </div>
 </div>
 <div class="main">
@@ -454,6 +471,14 @@ function saveHistory() {
     allTabs[activeTab] = chatHistory.slice(-100);
     saveTabs();
 }
+function toggleTheme() {
+    document.body.classList.toggle('light');
+    const isLight = document.body.classList.contains('light');
+    localStorage.setItem('meshctx_theme', isLight ? 'light' : 'dark');
+}
+// Restore theme
+if (localStorage.getItem('meshctx_theme') === 'light') document.body.classList.add('light');
+
 restoreHistory();
 
 async function runTerm() {
