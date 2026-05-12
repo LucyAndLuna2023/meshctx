@@ -613,92 +613,76 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
 {% endif %}
 
 {% if configured %}
-<div class="card" style="margin-top:16px;background:#0a2a1a;border:1px solid #166534;">
-    <h3 style="color:#6ee7b7;">✅ 已配置模型</h3>
-    <div style="display:grid;gap:8px;margin-top:8px;">
+<div class="card" style="border:2px solid #22c55e;background:#052e16;">
+    <h3 style="color:#22c55e;">🟢 已配置模型 ({{ configured|length }})</h3>
     {% for m in configured %}
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#0f172a;border-radius:6px;font-size:13px;">
-            <span><strong>{{ m.id }}</strong> <span style="color:#64748b;">→ {{ m.model }}</span></span>
-            <span style="color:#6ee7b7;">✓ 就绪</span>
-        </div>
-    {% endfor %}
+    <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;font-size:13px;margin-top:4px;">
+        <span><strong>{{ m.id }}</strong> <span style="color:#64748b;">→ {{ m.model }}</span></span>
+        <span style="color:#22c55e;">✓ 就绪</span>
     </div>
+    {% endfor %}
 </div>
 {% endif %}
 
-<div class="card" style="margin-top:16px;">
-    <h2>🔑 配置 API 密钥</h2>
-    <p style="color:#94a3b8;margin-bottom:16px;font-size:13px;">
-        选择一个模型提供商，输入你的 API Key，点击保存即可。
-    </p>
-    <form method="POST" action="/ui/setup/save">
-        <div class="form-group">
-            <label>模型提供商</label>
-            <select name="provider" style="background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:10px 14px;border-radius:6px;font-size:14px;width:100%;">
-                <option value="deepseek">🟢 DeepSeek（推荐 — 性价比最高）</option>
-                <option value="bailian">🔵 阿里云百炼（新用户免费100万Tokens）</option>
-                <option value="siliconflow">🔴 硅基流动 SiliconFlow（开源模型免费额度）</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>API Key</label>
-            <input name="api_key" type="password" placeholder="sk-xxxxxxxxxxxxxxxx" required
-                   style="background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:10px 14px;border-radius:6px;font-size:14px;width:100%;">
-        </div>
-        <details style="margin-bottom:12px;">
-            <summary style="color:#64748b;font-size:13px;cursor:pointer;padding:4px 0;">📝 高级配置（可选）</summary>
-            <div class="form-group" style="margin-top:8px;">
-                <label>Base URL</label>
-                <input name="base_url" type="text" placeholder="自动填充默认地址"
-                       style="background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:10px 14px;border-radius:6px;font-size:14px;width:100%;">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
+    <!-- 左侧：配置表单 -->
+    <div class="card">
+        <h2>🔑 配置 API 密钥</h2>
+        <p style="color:#94a3b8;margin-bottom:16px;font-size:13px;">选择模型提供商，输入API Key后保存。</p>
+        <form method="POST" action="/ui/setup/save">
+            <div class="form-group">
+                <label>模型提供商</label>
+                <select name="provider">
+                    <option value="deepseek">🟢 DeepSeek（推荐）</option>
+                    <option value="bailian">🔵 阿里云百炼</option>
+                    <option value="siliconflow">🔴 硅基流动 SiliconFlow</option>
+                </select>
             </div>
             <div class="form-group">
-                <label>模型名称</label>
-                <input name="model_name" type="text" placeholder="自动填充默认模型"
-                       style="background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:10px 14px;border-radius:6px;font-size:14px;width:100%;">
+                <label>API Key</label>
+                <input name="api_key" type="password" placeholder="sk-xxxxxxxxxxxxxxxx" required>
             </div>
-        </details>
-        <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;font-size:15px;">💾 保存配置</button>
-    </form>
-</div>
+            <details style="margin-bottom:12px;">
+                <summary style="color:#64748b;font-size:13px;cursor:pointer;">📝 高级（Base URL / 模型名）</summary>
+                <div class="form-group" style="margin-top:8px;">
+                    <label>Base URL</label>
+                    <input name="base_url" type="text" placeholder="自动填充">
+                </div>
+                <div class="form-group">
+                    <label>模型名称</label>
+                    <input name="model_name" type="text" placeholder="自动填充">
+                </div>
+            </details>
+            <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;font-size:15px;">💾 保存配置</button>
+        </form>
+    </div>
 
-<div class="card" style="margin-top:16px;">
-    <h3>🔗 还没有 API Key？</h3>
-    <div style="display:grid;gap:12px;margin-top:12px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#0f172a;border-radius:8px;">
-            <div>
-                <strong>🟢 DeepSeek</strong>
-                <p style="font-size:12px;color:#94a3b8;">高性价比，deepseek-chat / deepseek-reasoner</p>
+    <!-- 右侧：获取Key + 说明 -->
+    <div>
+        <div class="card">
+            <h3>🔗 获取 API Key</h3>
+            <div style="display:grid;gap:8px;margin-top:8px;">
+                <a href="https://platform.deepseek.com/api_keys" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#0f172a;border-radius:6px;color:inherit;text-decoration:none;">
+                    <span>🟢 DeepSeek</span><span style="color:#38bdf8;">获取 →</span>
+                </a>
+                <a href="https://bailian.console.aliyun.com/" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#0f172a;border-radius:6px;color:inherit;text-decoration:none;">
+                    <span>🔵 阿里云百炼</span><span style="color:#38bdf8;">获取 →</span>
+                </a>
+                <a href="https://siliconflow.cn/" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#0f172a;border-radius:6px;color:inherit;text-decoration:none;">
+                    <span>🔴 硅基流动</span><span style="color:#38bdf8;">获取 →</span>
+                </a>
             </div>
-            <a href="https://platform.deepseek.com/api_keys" target="_blank" class="btn btn-primary" style="font-size:12px;">获取 →</a>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#0f172a;border-radius:8px;">
-            <div>
-                <strong>🔵 阿里云百炼</strong>
-                <p style="font-size:12px;color:#94a3b8;">新用户赠送100万Tokens，支持Qwen系列</p>
-            </div>
-            <a href="https://bailian.console.aliyun.com/" target="_blank" class="btn btn-primary" style="font-size:12px;">获取 →</a>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#0f172a;border-radius:8px;">
-            <div>
-                <strong>🔴 硅基流动 SiliconFlow</strong>
-                <p style="font-size:12px;color:#94a3b8;">开源模型免费额度，Llama/Qwen/DeepSeek</p>
-            </div>
-            <a href="https://siliconflow.cn/" target="_blank" class="btn btn-primary" style="font-size:12px;">获取 →</a>
+        <div class="card" style="margin-top:16px;">
+            <h3>📝 手动配置</h3>
+            <p style="font-size:12px;color:#64748b;">编辑 <code>~/.meshctx/config.yaml</code>:</p>
+            <pre style="background:#0f172a;padding:10px;border-radius:6px;font-size:11px;overflow-x:auto;">models:
+  default: "deepseek:chat"
+  entries:
+    deepseek:chat:
+      key: "sk-your-key"</pre>
         </div>
     </div>
-</div>
-
-<div class="card" style="margin-top:16px;">
-    <h3>📝 手动配置（高级）</h3>
-    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px;">编辑 <code style="background:#0f172a;padding:2px 6px;border-radius:4px;">~/.meshctx/config.yaml</code>:</p>
-    <pre style="background:#0f172a;padding:12px;border-radius:8px;font-size:12px;overflow-x:auto;">models:
-  default: "deepseek:deepseek-chat"
-  entries:
-    deepseek:deepseek-chat:
-      key: "sk-your-key-here"
-      model: "deepseek-chat"
-      base_url: "https://api.deepseek.com/v1"</pre>
 </div>
 {% endblock %}"""
 
