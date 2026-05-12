@@ -23,7 +23,7 @@
 
 ```bash
 # 或命令行安装
-pip install meshctx
+pip install git+https://github.com/LucyAndLuna2023/meshctx.git
 meshctx desktop    # 启动原生桌面窗口
 meshctx start      # 启动 Web 服务器
 ```
