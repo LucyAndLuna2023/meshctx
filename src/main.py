@@ -533,6 +533,23 @@ async def ws_stats():
 
 # ── Web Chat API ──────────────────────────────────────
 
+@app.get("/api/models")
+async def api_models():
+    """返回可用模型列表"""
+    from src.model_registry import get_registry
+    from src.config import load_config
+    try:
+        reg = get_registry()
+        cfg = load_config()
+        default = cfg.get("models", {}).get("default", "deepseek:chat")
+        return {
+            "models": reg.list_all(),
+            "default": default,
+        }
+    except:
+        return {"models": [], "default": "deepseek:chat"}
+
+
 @app.post("/api/chat")
 async def api_chat(request: Request):
     """Web聊天API: 接收消息,调用AI,返回回复+工具执行"""

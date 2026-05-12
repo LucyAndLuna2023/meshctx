@@ -314,6 +314,12 @@ _TEMPLATES["continuity.html"] = r"""{% extends "base.html" %}
 _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
 {% block content %}
 <h2>💬 Chat</h2>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+    <span style="color:#64748b;font-size:13px;">模型:</span>
+    <select id="modelSelect" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:13px;" onchange="loadModels()">
+        <option value="">加载中...</option>
+    </select>
+</div>
 <div class="card" style="margin-top:16px; display:flex; flex-direction:column; height:60vh;" id="chatCard">
     <div id="messages" style="flex:1; overflow-y:auto; margin-bottom:12px; padding:8px; border:1px solid #334155; border-radius:8px; background:#0a0f1a;"></div>
     <div id="fileTag" style="margin-top:8px;font-size:12px;color:#38bdf8;display:none;"></div>
@@ -361,6 +367,28 @@ function clearFile() {
     document.getElementById('fileInput').value = '';
 }
 
+async function loadModels() {
+    try {
+        const res = await fetch('/api/models');
+        const data = await res.json();
+        const sel = document.getElementById('modelSelect');
+        sel.innerHTML = '';
+        if (data.models) {
+            data.models.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.id + (m.ready ? ' ✓' : ' ⚠');
+                if (!m.ready) opt.disabled = true;
+                sel.appendChild(opt);
+            });
+        }
+        if (data.default) sel.value = data.default;
+    } catch(e) {
+        document.getElementById('modelSelect').innerHTML = '<option>加载失败</option>';
+    }
+}
+loadModels();
+
 async function send() {
     const input = document.getElementById('userInput');
     const msg = input.value.trim();
@@ -387,7 +415,7 @@ async function send() {
         const res = await fetch('/api/chat/stream', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({message: fullMsg})
+            body: JSON.stringify({message: fullMsg, model: document.getElementById('modelSelect').value})
         });
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
