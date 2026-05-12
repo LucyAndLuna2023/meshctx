@@ -892,22 +892,7 @@ async def save_api_key(
     with open(config_path, "w") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
 
-    # 同时设置环境变量，确保立即可用
+    # 设置环境变量立即可用，ConfigWatcher会自动检测文件变更并重载
     os.environ[defaults["key_env"]] = api_key
-
-    # 立即重载模型注册表，无需重启
-    try:
-        import src.model_registry as mr
-        mr._registry = None  # 清除缓存
-        from src.model_registry import get_registry
-        reg = get_registry()
-        available = reg.list_all()
-        ready_count = sum(1 for e in available if e["ready"])
-        import logging
-        logging.getLogger("meshctx").info(
-            f"API Key 已保存并自动重载: {ready_count}/{len(available)} 模型就绪"
-        )
-    except Exception:
-        pass
 
     return RedirectResponse(url="/ui/setup?saved=1", status_code=303)
