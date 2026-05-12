@@ -41,7 +41,7 @@ meshctx chat
 
 ## 🌍 多语言支持 (v1.3)
 
-| 中文 | English | 日本語 | 한국어 |
+| 中文 | English | 日本語 | 한국어 | Deutsch | Français | Español |
 |------|---------|--------|--------|
 | ✅ | ✅ | ✅ | ✅ |
 

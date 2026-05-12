@@ -58,6 +58,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         a:hover { text-decoration: underline; }
         .cursor { animation: blink 1s infinite; } @keyframes blink { 0%,50% { opacity:1; } 51%,100% { opacity:0; } }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 </head>
 <body>
 <div class="header">
@@ -84,6 +85,12 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
 <div class="main">
 {% block content %}{% endblock %}
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+marked.setOptions({breaks:true, gfm:true});
+hljs.configure({languages:['python','javascript','bash','json','yaml','sql','css','html','xml','java','go','rust','cpp','typescript','shell']});
+</script>
 </body>
 </html>"""
 
@@ -399,6 +406,11 @@ async function send() {
                     const data = line.slice(6);
                     if (data === '[DONE]') {
                         cursor.remove();
+                        // 渲染Markdown
+                        const raw = streamText.innerHTML;
+                        streamText.innerHTML = marked.parse(raw);
+                        // 高亮代码块
+                        streamText.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
                         continue;
                     }
                     try {
@@ -407,7 +419,7 @@ async function send() {
                             streamText.innerHTML += '<span style="color:#fca5a5;">' + parsed.error + '</span>';
                             cursor.remove();
                         } else if (parsed.token) {
-                            streamText.textContent += parsed.token;
+                            streamText.innerHTML += parsed.token.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
                         }
                     } catch(e) {}
                 }
