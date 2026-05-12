@@ -656,6 +656,32 @@ async def api_chat_stream(request: Request):
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 
+# ── 内嵌终端 ──────────────────────────────────────
+
+@app.post("/api/terminal")
+async def api_terminal(request: Request):
+    """执行终端命令"""
+    import subprocess, asyncio
+    try:
+        body = await request.json()
+        cmd = body.get("cmd","").strip()
+        timeout = body.get("timeout", 30)
+    except:
+        return {"error": "无效请求", "output": ""}
+    if not cmd:
+        return {"error": "请输入命令", "output": ""}
+    if any(d in cmd for d in ["rm -rf /","mkfs","dd if=","> /dev/sda"]):
+        return {"error": "⚠️ 危险命令已拦截", "output": ""}
+    try:
+        proc = await asyncio.create_subprocess_shell(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout)
+        out = (stdout or b"").decode(errors="replace") + (stderr or b"").decode(errors="replace")
+        return {"output": out.strip() or "(无输出)", "exit_code": proc.returncode}
+    except asyncio.TimeoutError:
+        return {"error": f"超时({timeout}s)", "output": ""}
+    except Exception as e:
+        return {"error": str(e), "output": ""}
+
 # ── 文件上传 API ──────────────────────────────────────
 
 ALLOWED_EXTENSIONS = {

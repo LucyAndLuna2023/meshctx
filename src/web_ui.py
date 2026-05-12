@@ -330,6 +330,17 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
     </div>
     <input type="file" id="fileInput" style="display:none" onchange="uploadFile()">
 </div>
+<details style="margin-top:12px;">
+    <summary style="color:#64748b;font-size:12px;cursor:pointer;">🖥️ 终端</summary>
+    <div style="background:#0a0a0a;border:1px solid #334155;border-radius:6px;padding:8px;margin-top:8px;font-family:monospace;font-size:12px;">
+        <div id="termOutput" style="max-height:200px;overflow-y:auto;color:#22c55e;white-space:pre-wrap;min-height:40px;">$ _</div>
+        <div style="display:flex;gap:4px;margin-top:4px;">
+            <span style="color:#22c55e;">$</span>
+            <input id="termInput" placeholder="输入命令..." style="flex:1;background:transparent;border:none;color:#22c55e;font-family:monospace;font-size:12px;outline:none;" onkeydown="if(event.key==='Enter')runTerm()">
+        </div>
+    </div>
+</details>
+</div>
 <script>
 let uploadedContent = null;
 let uploadedFilename = null;
@@ -402,6 +413,26 @@ function restoreHistory() {
     div.scrollTop = div.scrollHeight;
 }
 restoreHistory();
+
+async function runTerm() {
+    const inp = document.getElementById('termInput');
+    const out = document.getElementById('termOutput');
+    const cmd = inp.value.trim();
+    if (!cmd) return;
+    out.innerHTML += '\n$ ' + cmd;
+    inp.value = '';
+    try {
+        const res = await fetch('/api/terminal', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({cmd:cmd})
+        });
+        const d = await res.json();
+        out.innerHTML += '\n' + (d.output || d.error || '(无输出)');
+    } catch(e) {
+        out.innerHTML += '\n错误: ' + e.message;
+    }
+    out.scrollTop = out.scrollHeight;
+}
 
 async function send() {
     const input = document.getElementById('userInput');
