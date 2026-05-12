@@ -291,26 +291,71 @@ _TEMPLATES["continuity.html"] = r"""{% extends "base.html" %}
 _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
 {% block content %}
 <h2>💬 Chat</h2>
-<div class="card" style="margin-top:16px; min-height:400px;">
+<div class="card" style="margin-top:16px; min-height:400px;" id="chatCard">
     <div id="messages" style="max-height:500px;overflow-y:auto;"></div>
+    <div id="fileTag" style="margin-top:8px;font-size:12px;color:#38bdf8;display:none;"></div>
     <div style="display:flex;gap:8px;margin-top:16px;">
         <input id="userInput" placeholder="输入消息..." style="flex:1;" onkeydown="if(event.key==='Enter')send()">
+        <button class="btn" style="background:#334155;color:#94a3b8;font-size:16px;padding:8px 12px;" onclick="document.getElementById('fileInput').click()" title="上传文件">📎</button>
         <button class="btn btn-primary" onclick="send()">发送</button>
     </div>
+    <input type="file" id="fileInput" style="display:none" onchange="uploadFile()">
 </div>
 <script>
+let uploadedContent = null;
+let uploadedFilename = null;
+
+async function uploadFile() {
+    const input = document.getElementById('fileInput');
+    const file = input.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    const tag = document.getElementById('fileTag');
+    tag.style.display = 'block';
+    tag.textContent = '⏳ 上传中: ' + file.name;
+    try {
+        const res = await fetch('/api/chat/upload', {method: 'POST', body: formData});
+        if (!res.ok) {
+            const err = await res.json();
+            tag.innerHTML = '<span style="color:#fca5a5;">❌ ' + (err.detail || '上传失败') + '</span>';
+            return;
+        }
+        const data = await res.json();
+        uploadedContent = data.content;
+        uploadedFilename = data.filename;
+        tag.innerHTML = '📄 ' + data.filename + ' <span style="color:#64748b;">(' + (data.size > 1024 ? (data.size/1024).toFixed(1)+'KB' : data.size+'B') + ')</span> <a href="#" onclick="clearFile()" style="color:#f87171;text-decoration:none;">✕</a>';
+    } catch(e) {
+        tag.innerHTML = '<span style="color:#fca5a5;">❌ 上传失败: ' + e.message + '</span>';
+    }
+    input.value = '';
+}
+
+function clearFile() {
+    uploadedContent = null;
+    uploadedFilename = null;
+    document.getElementById('fileTag').style.display = 'none';
+    document.getElementById('fileInput').value = '';
+}
+
 async function send() {
     const input = document.getElementById('userInput');
     const msg = input.value.trim();
     if (!msg) return;
+    let fullMsg = msg;
+    if (uploadedContent && uploadedFilename) {
+        fullMsg = '[上传文件: ' + uploadedFilename + ']\n```\n' + uploadedContent + '\n```\n\n' + msg;
+    }
     const div = document.getElementById('messages');
-    div.innerHTML += `<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ${msg}</div>`;
+    const displayMsg = uploadedFilename ? '[📄 ' + uploadedFilename + '] ' + msg : msg;
+    div.innerHTML += `<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ${displayMsg}</div>`;
     input.value = '';
+    clearFile();
     try {
         const res = await fetch('/api/chat', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({message: msg, project_id: 'default'})
+            body: JSON.stringify({message: fullMsg, project_id: 'default'})
         });
         const data = await res.json();
         div.innerHTML += `<div style="margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;"><strong style="color:#38bdf8;">AI:</strong> ${data.response || '无响应'}</div>`;
@@ -319,6 +364,29 @@ async function send() {
         div.innerHTML += `<div style="margin:8px 0;color:#fca5a5;">错误: ${e.message}</div>`;
     }
 }
+
+// 拖拽上传
+const chatCard = document.getElementById('chatCard');
+chatCard.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    chatCard.style.borderColor = '#38bdf8';
+});
+chatCard.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    chatCard.style.borderColor = '';
+});
+chatCard.addEventListener('drop', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    chatCard.style.borderColor = '';
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        document.getElementById('fileInput').files = files;
+        uploadFile();
+    }
+});
 </script>
 {% endblock %}"""
 

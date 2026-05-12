@@ -18,7 +18,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -75,7 +75,7 @@ def get_memory_engine() -> MemoryEngine:
 app = FastAPI(
     title="meshctx API",
     description="世界第一自进化Agent系统",
-    version="1.2.13",
+    version="1.2.14",
 )
 
 app.add_middleware(
@@ -166,7 +166,7 @@ class IntentRequest(BaseModel):
 async def root():
     return {
         "message": "meshctx API v1.2 运行中",
-        "version": "1.2.13",
+        "version": "1.2.14",
         "endpoints": {
             "projects": "/projects",
             "conversations": "/conversations",
@@ -351,7 +351,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.2.13",
+        "version": "1.2.14",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -574,6 +574,52 @@ async def api_chat(request: Request):
         "tokens": tokens,
         "model": model_id,
         "tool_result": tool_result,
+    }
+
+# ── 文件上传 API ──────────────────────────────────────
+
+ALLOWED_EXTENSIONS = {
+    ".txt", ".py", ".js", ".json", ".yaml", ".yml", ".md",
+    ".csv", ".log", ".html", ".css", ".xml", ".toml",
+    ".cfg", ".ini", ".sh", ".bat"
+}
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5MB
+
+@app.post("/api/chat/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """上传文件，读取文本内容返回"""
+    import mimetypes
+
+    # 检查扩展名
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            400,
+            f"不支持的文件类型: {ext}。支持: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+        )
+
+    # 读取内容并限制大小
+    content_bytes = await file.read()
+    if len(content_bytes) > MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            413,
+            f"文件过大: {len(content_bytes)} bytes，最大 {MAX_UPLOAD_SIZE} bytes (5MB)"
+        )
+
+    # 尝试 UTF-8 解码，失败则用 latin-1
+    try:
+        content = content_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        content = content_bytes.decode("latin-1")
+
+    mime_type, _ = mimetypes.guess_type(file.filename or "")
+    file_type = mime_type or "text/plain"
+
+    return {
+        "filename": file.filename,
+        "content": content,
+        "size": len(content_bytes),
+        "type": file_type,
     }
 
 # ── 一键配置 API ────────────────────────────────────
@@ -801,7 +847,7 @@ async def health_check():
 
     result = {
         "status": "healthy",
-        "version": "1.2.13",
+        "version": "1.2.14",
         "kernel": "running" if (k._started if hasattr(k, '_started') else False) else "standalone",
         "projects_count": len(engine.projects),
         "conversations_count": len(engine.conversations),

@@ -165,6 +165,9 @@ class GlobalWorkspace:
         # 精密权重 (注意力分配)
         self.precision = PrecisionWeighting()
         
+        # 无意识加工积累
+        self.unconscious = UnconsciousProcessing()
+        
         # 当前工作空间内容
         self.workspace: List[Tuple[str, Any, float]] = []  # (processor, output, confidence)
         
@@ -214,7 +217,8 @@ class GlobalWorkspace:
         for name, proc in self.processors.items():
             belief_idx = list(self.processors.keys()).index(name)
             reliability = float(self.processor_belief.expected_probability[belief_idx])
-            scores[name] = proc.activation * (0.5 + 0.5 * reliability) - proc.adaptation * 0.3
+            priming = self.unconscious.get_priming_bias(name)
+            scores[name] = proc.activation * (0.5 + 0.5 * reliability) - proc.adaptation * 0.3 + priming
 
         # 胜者选择 + 侧抑制
         ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
@@ -276,6 +280,15 @@ class GlobalWorkspace:
         
         # 2. 竞争
         winners = self.compete()
+        
+        # 2.5 无意识加工: 捕获阈下输出
+        winner_names = {w[0] for w in winners}
+        for name, proc in self.processors.items():
+            if name not in winner_names and proc.output is not None:
+                self.unconscious.accumulate(name, proc.output, proc.activation)
+        
+        # 2.6 无意识衰减
+        self.unconscious._decay_and_prune()
         
         # 3. 更新工作空间
         self.workspace = [(name, proc.output, proc.confidence) for name, proc, _ in winners]
@@ -346,6 +359,98 @@ class GlobalWorkspace:
 
 
 # ═══════════════════════════════════════════════════════════════════════
+# 无意识加工积累 — 阈下信息存储与启动效应
+# ═══════════════════════════════════════════════════════════════════════
+
+class UnconsciousProcessing:
+    """
+    无意识加工积累 — 模拟阈下知觉和启动效应。
+    
+    认知基础:
+    - 阈下知觉: 激活未达到点火阈值的处理器输出进入无意识层
+    - 启动效应 (Priming): 阈下刺激影响后续加工
+    - 衰减与遗忘: 无意识痕迹随时间衰减
+    
+    神经科学对应:
+    - 无意识加工 → 前注意加工 (preattentive processing)
+    - 启动效应 → 重复抑制 (repetition suppression) 的逆效应
+    - 衰减 → 突触痕迹消退
+    """
+    
+    def __init__(self, max_queue_size: int = 50, priming_decay: float = 0.9,
+                 accumulation_rate: float = 0.1):
+        self.subliminal_queue: List[Dict] = []   # 阈下输出队列
+        self.priming_effects: Dict[str, float] = {}  # 启动效应
+        self.max_queue_size = max_queue_size
+        self.priming_decay = priming_decay        # 每次循环衰减率
+        self.accumulation_rate = accumulation_rate  # 积累速率
+    
+    def accumulate(self, processor_name: str, output: Any, activation: float):
+        """
+        积累阈下输出。
+        
+        当处理器激活低于点火阈值时，其输出不会进入意识，
+        但仍会留下痕迹，影响后续加工（启动效应）。
+        
+        Args:
+            processor_name: 处理器名称
+            output: 处理器输出
+            activation: 当前激活水平
+        """
+        entry = {
+            "processor": processor_name,
+            "output": output,
+            "activation": activation,
+            "timestamp": time.time(),
+        }
+        self.subliminal_queue.append(entry)
+        
+        # 更新启动效应: 重复的阈下刺激累积
+        if processor_name not in self.priming_effects:
+            self.priming_effects[processor_name] = 0.0
+        self.priming_effects[processor_name] += activation * self.accumulation_rate
+        
+        # 限制队列大小
+        if len(self.subliminal_queue) > self.max_queue_size:
+            self.subliminal_queue = self.subliminal_queue[-self.max_queue_size:]
+    
+    def get_priming_bias(self, processor_name: str) -> float:
+        """
+        获取处理器的启动偏置。
+        
+        返回值影响该处理器在竞争中的得分，
+        模拟阈下启动对意识加工的影响。
+        
+        Returns:
+            启动偏置值 (通常 0.0 ~ 0.3)
+        """
+        return self.priming_effects.get(processor_name, 0.0)
+    
+    def _decay_and_prune(self):
+        """
+        衰减旧的无意识痕迹并清理过期条目。
+        
+        模拟:
+        - 突触痕迹的自然衰减
+        - 短期记忆向长期记忆转化中丢失的信息
+        """
+        now = time.time()
+        
+        # 衰减启动效应
+        for name in list(self.priming_effects.keys()):
+            self.priming_effects[name] *= self.priming_decay
+            if self.priming_effects[name] < 0.001:
+                del self.priming_effects[name]
+        
+        # 清理过期条目 (超过60秒)
+        cutoff = now - 60.0
+        self.subliminal_queue = [
+            entry for entry in self.subliminal_queue
+            if entry["timestamp"] > cutoff
+        ]
+
+
+# ═══════════════════════════════════════════════════════════════════════
 # 注意瓶颈 — Miller's Law 实现
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -393,3 +498,76 @@ class AttentionBottleneck:
         """卸载最不显著的项目"""
         if self.current_chunks:
             self.current_chunks.pop()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 递归工作空间 — 元认知循环
+# ═══════════════════════════════════════════════════════════════════════
+
+class RecursiveWorkspace(GlobalWorkspace):
+    """
+    递归工作空间 — 支持元认知循环。
+    
+    认知基础:
+    - 元认知 (Metacognition): 对自身认知过程的监控与调节
+    - 递归自指 (Recursive Self-reference): 意识可以反思自身
+    
+    工作机制:
+    每个递归深度层接收上一层的输出作为输入，
+    形成\"思考-反思-再反思\"的链式加工。
+    
+    神经科学对应:
+    - 前额叶-前扣带回回路 → 元认知监控
+    - 默认模式网络 → 自我参照加工
+    """
+    
+    MAX_RECURSION_DEPTH = 5  # 最大递归深度
+    
+    def recursive_cycle(self, stimulus: Dict[str, float], depth: int = 2) -> Dict[str, Any]:
+        """
+        递归元认知循环。
+        
+        每一层递归将上一层的胜者输出作为下一层的刺激输入，
+        使工作空间能够\"反思自己的思考\"。
+        
+        Args:
+            stimulus: 初始刺激 {processor_name: signal}
+            depth: 递归深度 (1-5)
+        
+        Returns:
+            {
+                "depth": 实际执行深度,
+                "results": [每层结果],
+                "final_workspace": 最终工作空间内容,
+                "activation_levels": 最终激活水平,
+            }
+        """
+        depth = max(1, min(depth, self.MAX_RECURSION_DEPTH))
+        results = []
+        current_stimulus = stimulus
+        
+        for d in range(depth):
+            result = self.cycle(current_stimulus)
+            results.append({
+                "level": d + 1,
+                "result": result,
+            })
+            
+            # 将前一层胜者的输出作为下一层的刺激
+            # 只有\"意识到\"的内容才能被元认知反思
+            current_stimulus = {}
+            for entry in result.get("workspace", []):
+                name = entry["processor"]
+                conf = entry.get("confidence", 0.5)
+                current_stimulus[name] = conf
+            
+            # 如果工作空间为空，无法继续反思
+            if not current_stimulus:
+                break
+        
+        return {
+            "depth": len(results),
+            "results": results,
+            "final_workspace": self.workspace,
+            "activation_levels": {n: round(p.activation, 3) for n, p in self.processors.items()},
+        }

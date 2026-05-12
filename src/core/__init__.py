@@ -66,14 +66,14 @@ from .active_inference import (
 )
 from .global_workspace import (
     GlobalWorkspace, Processor, ProcessorType,
-    AttentionBottleneck,
+    AttentionBottleneck, UnconsciousProcessing, RecursiveWorkspace,
 )
 from .homeostasis import (
     HomeostaticRegulator, ResourceBudget, ResourceType,
     SystemMode, MarginalUtilityScheduler,
 )
 
-__version__ = "1.2.13"
+__version__ = "1.2.14"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -108,6 +108,7 @@ __all__ = [
     "ActiveInferenceEngine", "GenerativeModel", "Policy",
     "ActionType", "MultiScaleLearning",
     "GlobalWorkspace", "Processor", "ProcessorType", "AttentionBottleneck",
+    "UnconsciousProcessing", "RecursiveWorkspace",
     "HomeostaticRegulator", "ResourceBudget", "ResourceType",
     "SystemMode", "MarginalUtilityScheduler",
 ]

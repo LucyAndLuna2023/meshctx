@@ -41,6 +41,15 @@ import numpy as np
 
 logger = logging.getLogger("meshctx.homeostasis")
 
+# ═══════════════════════════════════════════════════════════════════════
+# 神经调质系统常量
+# ═══════════════════════════════════════════════════════════════════════
+DEFAULT_NM_LEVEL = 0.5       # 默认调质水平
+NM_DECAY_RATE = 0.95         # 调质自然衰减率 (每步保留95%)
+DA_RPE_SCALE = 1.5           # 多巴胺对RPE的敏感度
+NE_UNC_SCALE = 1.0           # 去甲肾上腺素对不确定性的敏感度
+ACH_SURP_SCALE = 1.2         # 乙酰胆碱对惊奇的敏感度
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # 资源定义
@@ -129,6 +138,199 @@ class ResourceBudget:
 
 
 # ═══════════════════════════════════════════════════════════════════════
+# 神经调质系统 (Neuromodulator Trinity)
+# ═══════════════════════════════════════════════════════════════════════
+
+class NeuromodulatorSystem:
+    """
+    神经调质三件套 — 模拟脑干/基底前脑的神经调质系统。
+
+    三种核心调质:
+    ├── 多巴胺 (Dopamine): 奖励预测误差 → 调节探索/利用平衡
+    │   - 正向RPE (比预期好) → DA↑ → 倾向利用当前策略
+    │   - 负向RPE (比预期差) → DA↓ → 倾向探索新策略
+    │
+    ├── 去甲肾上腺素 (Norepinephrine): 不确定性 → 调节警觉/聚焦
+    │   - 高不确定性 → NE↑ → 提高警觉, 缩小注意范围
+    │   - 低不确定性 → NE↓ → 放松, 扩大注意范围
+    │
+    └── 乙酰胆碱 (Acetylcholine): 惊奇度 → 调节感官精度/学习率
+        - 高惊奇 → ACh↑ → 提高感官精度, 加速学习
+        - 低惊奇 → ACh↓ → 降低感官精度, 稳定表征
+
+    神经科学依据:
+    - 多巴胺: Schultz et al. (1997) — 中脑多巴胺神经元编码RPE
+    - 去甲肾上腺素: Aston-Jones & Cohen (2005) — 蓝斑核编码不确定性
+    - 乙酰胆碱: Yu & Dayan (2005) — 基底前脑乙酰胆碱编码期望不确定性
+    """
+
+    def __init__(self):
+        # 三种调质水平 [0, 1]
+        self.dopamine: float = DEFAULT_NM_LEVEL          # DA
+        self.norepinephrine: float = DEFAULT_NM_LEVEL     # NE
+        self.acetylcholine: float = DEFAULT_NM_LEVEL     # ACh
+
+        # 历史记录 (用于平滑)
+        self.da_history: List[float] = [DEFAULT_NM_LEVEL]
+        self.ne_history: List[float] = [DEFAULT_NM_LEVEL]
+        self.ach_history: List[float] = [DEFAULT_NM_LEVEL]
+
+        # 统计
+        self.update_count: int = 0
+
+    def update(
+        self,
+        reward_prediction_error: float = 0.0,
+        uncertainty: float = 0.5,
+        surprise: float = 0.5,
+    ) -> Dict[str, float]:
+        """
+        根据感知输入更新三种神经调质水平。
+
+        参数:
+            reward_prediction_error: 奖励预测误差 (RPE)，[-1, 1]
+                >0: 比预期好 (正惊奇)
+                <0: 比预期差 (负惊奇)
+            uncertainty: 环境不确定性估计, [0, 1]
+            surprise: 惊奇度 (感官输入与预测的差异), [0, 1]
+
+        返回:
+            包含三种调质当前水平的字典
+        """
+        self.update_count += 1
+
+        # ── 多巴胺: 由奖励预测误差驱动 ──
+        # 使用 tanh 将 RPE 映射到 [-1, 1] 范围
+        rpe_clipped = np.tanh(reward_prediction_error * DA_RPE_SCALE)
+        da_target = 0.5 + 0.5 * rpe_clipped  # 映射到 [0, 1]
+        # 平滑更新 (EMA, α=0.3)
+        self.dopamine = 0.7 * self.dopamine + 0.3 * da_target
+
+        # ── 去甲肾上腺素: 由不确定性驱动 ──
+        ne_target = np.clip(uncertainty * NE_UNC_SCALE, 0.0, 1.0)
+        # 高不确定性时 NE 升高更快, 低不确定性时衰减
+        if uncertainty > 0.6:
+            self.norepinephrine = 0.6 * self.norepinephrine + 0.4 * ne_target
+        else:
+            self.norepinephrine = 0.8 * self.norepinephrine + 0.2 * ne_target
+
+        # ── 乙酰胆碱: 由惊奇度驱动 ──
+        ach_target = np.clip(surprise * ACH_SURP_SCALE, 0.0, 1.0)
+        self.acetylcholine = 0.6 * self.acetylcholine + 0.4 * ach_target
+
+        # ── 自然衰减 (所有调质缓慢回归基线) ──
+        self._apply_decay()
+
+        # 记录历史
+        self._record_history()
+
+        return {
+            "dopamine": round(self.dopamine, 4),
+            "norepinephrine": round(self.norepinephrine, 4),
+            "acetylcholine": round(self.acetylcholine, 4),
+        }
+
+    def _apply_decay(self):
+        """所有调质向默认水平衰减 (模拟再摄取/酶解)"""
+        self.dopamine = (
+            NM_DECAY_RATE * self.dopamine
+            + (1 - NM_DECAY_RATE) * DEFAULT_NM_LEVEL
+        )
+        self.norepinephrine = (
+            NM_DECAY_RATE * self.norepinephrine
+            + (1 - NM_DECAY_RATE) * DEFAULT_NM_LEVEL
+        )
+        self.acetylcholine = (
+            NM_DECAY_RATE * self.acetylcholine
+            + (1 - NM_DECAY_RATE) * DEFAULT_NM_LEVEL
+        )
+
+    def _record_history(self):
+        """记录历史 (最多100步)"""
+        max_history = 100
+        self.da_history.append(self.dopamine)
+        self.ne_history.append(self.norepinephrine)
+        self.ach_history.append(self.acetylcholine)
+        if len(self.da_history) > max_history:
+            self.da_history = self.da_history[-max_history:]
+            self.ne_history = self.ne_history[-max_history:]
+            self.ach_history = self.ach_history[-max_history:]
+
+    def get_explore_exploit_ratio(self) -> float:
+        """
+        返回探索/利用比率。
+
+        计算逻辑 (神经科学依据):
+        - 多巴胺高 + 去甲肾上腺素低 → 利用 (exploitation)
+        - 多巴胺低 + 去甲肾上腺素高 → 探索 (exploration)
+        - 乙酰胆碱调节探索的随机性
+
+        返回值: [0, 1]
+            0.0 = 纯探索 (随机行动)
+            0.5 = 平衡
+            1.0 = 纯利用 (贪婪选择)
+        """
+        # 利用倾向: DA高 → 利用; NE高 → 探索 (反向)
+        exploit_lever = self.dopamine
+        explore_lever = self.norepinephrine
+
+        # 乙酰胆碱调节: ACh高 → 探索时更精确 (有针对性探索)
+        # ACh低 → 探索时更随机
+        ach_modifier = 1.0 - 0.3 * self.acetylcholine  # [0.7, 1.0]
+
+        # 核心公式: exploit偏向 vs explore偏向
+        total = exploit_lever + explore_lever * ach_modifier
+        if total < 0.001:
+            return 0.5
+
+        ratio = exploit_lever / total
+
+        # 钳制在 [0.05, 0.95] 避免极端
+        return float(np.clip(ratio, 0.05, 0.95))
+
+    def get_sensory_precision_modifier(self) -> float:
+        """
+        返回感官精度调节因子。
+
+        计算逻辑:
+        - 乙酰胆碱高 → 提高感官精度 (信噪比↑)
+        - 去甲肾上腺素高 → 窄化注意 → 提高相关通道精度
+        - 多巴胺适中 → 维持正常精度
+
+        返回值: float, 以1.0为基准
+            > 1.0: 提高精度 (更相信感官输入)
+            < 1.0: 降低精度 (更依赖先验)
+        """
+        # 乙酰胆碱主导感官精度
+        ach_effect = 1.0 + 0.8 * (self.acetylcholine - DEFAULT_NM_LEVEL)
+
+        # 去甲肾上腺素辅助 (高NE → 聚焦 → 有效精度提升)
+        ne_effect = 1.0 + 0.3 * (self.norepinephrine - DEFAULT_NM_LEVEL)
+
+        # 多巴胺微调 (极高DA可能过度乐观, 极低DA可能过度悲观)
+        da_deviation = self.dopamine - DEFAULT_NM_LEVEL
+        da_effect = 1.0 - 0.1 * abs(da_deviation) * np.sign(da_deviation)
+
+        modifier = ach_effect * ne_effect * da_effect
+
+        # 钳制在 [0.5, 2.0]
+        return float(np.clip(modifier, 0.5, 2.0))
+
+    def get_state(self) -> Dict[str, Any]:
+        """获取完整系统状态"""
+        return {
+            "dopamine": round(self.dopamine, 4),
+            "norepinephrine": round(self.norepinephrine, 4),
+            "acetylcholine": round(self.acetylcholine, 4),
+            "explore_exploit_ratio": round(self.get_explore_exploit_ratio(), 4),
+            "sensory_precision_modifier": round(
+                self.get_sensory_precision_modifier(), 4
+            ),
+            "update_count": self.update_count,
+        }
+
+
+# ═══════════════════════════════════════════════════════════════════════
 # 异稳态调节器
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -175,6 +377,14 @@ class HomeostaticRegulator:
         self.last_error: Dict[ResourceType, float] = {
             rt: 0.0 for rt in ResourceType
         }
+
+        # 神经调质系统 (P0: 调质三件套)
+        self.neuromodulators: NeuromodulatorSystem = NeuromodulatorSystem()
+
+        # 累积统计 (用于传递给调质系统)
+        self._total_reward_prediction_error: float = 0.0
+        self._total_surprise: float = 0.0
+        self._surprise_count: int = 0
 
     def consume(self, resource_type: ResourceType, amount: float) -> bool:
         """
@@ -339,6 +549,122 @@ class HomeostaticRegulator:
         """整体应激水平 (0-1)"""
         usage_ratios = [b.usage_ratio for b in self.resources.values()]
         return float(np.mean(usage_ratios))
+
+    def update_neuromodulators(
+        self,
+        reward_prediction_error: float = 0.0,
+        reward: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """
+        更新神经调质系统。
+
+        从内稳态状态推导 uncertainty 和 surprise，结合外部 RPE。
+
+        参数:
+            reward_prediction_error: 外部传入的奖励预测误差
+            reward: 可选的实际奖励值 (用于计算内部 RPE)
+
+        返回:
+            调质状态字典
+        """
+        # 从资源压力推导 uncertainty
+        uncertainty = self.stress_level()
+
+        # 从预测误差推导 surprise
+        avg_prediction_error = 0.0
+        n = 0
+        for budget in self.resources.values():
+            if budget.prediction_errors:
+                avg_prediction_error += abs(budget.prediction_errors[-1])
+                n += 1
+        surprise = avg_prediction_error / max(n, 1)
+
+        # 确保 surprise 在合理范围
+        surprise = np.clip(surprise, 0.0, 1.0)
+
+        return self.neuromodulators.update(
+            reward_prediction_error=reward_prediction_error,
+            uncertainty=uncertainty,
+            surprise=surprise,
+        )
+
+    def get_workspace_params(self) -> Dict[str, Any]:
+        """
+        返回工作空间参数 (内稳态→工作空间调制)。
+
+        根据当前系统模式调整工作空间的容量和阈值:
+        ├── NORMAL:  容量=5, 阈值=0.5  (标准)
+        ├── STRESS:  容量=3, 阈值=0.7  (缩小, 只让高显著性通过)
+        ├── CRITICAL: 容量=1, 阈值=0.85 (最小, 仅最高优先级)
+        ├── IDLE:    容量=8, 阈值=0.2  (扩大, 允许更多信息进入)
+        ├── BURST:   容量=10,阈值=0.4  (最大容量, 中低阈值)
+        └── RECOVERY:容量=4, 阈值=0.55 (逐步恢复)
+
+        返回:
+            {
+                "capacity": int,        # 工作空间槽位数
+                "threshold": float,     # 进入工作空间的最低显著性
+                "decay_rate": float,    # 表征衰减率
+                "mode": str,           # 当前模式
+            }
+        """
+        params_map = {
+            SystemMode.NORMAL: {
+                "capacity": 5,
+                "threshold": 0.5,
+                "decay_rate": 0.9,
+            },
+            SystemMode.STRESS: {
+                "capacity": 3,
+                "threshold": 0.7,
+                "decay_rate": 0.85,
+            },
+            SystemMode.CRITICAL: {
+                "capacity": 1,
+                "threshold": 0.85,
+                "decay_rate": 0.95,
+            },
+            SystemMode.IDLE: {
+                "capacity": 8,
+                "threshold": 0.2,
+                "decay_rate": 0.7,
+            },
+            SystemMode.BURST: {
+                "capacity": 10,
+                "threshold": 0.4,
+                "decay_rate": 0.8,
+            },
+            SystemMode.RECOVERY: {
+                "capacity": 4,
+                "threshold": 0.55,
+                "decay_rate": 0.85,
+            },
+        }
+
+        base = params_map.get(self.current_mode, params_map[SystemMode.NORMAL])
+
+        # 神经调质微调
+        nm = self.neuromodulators
+        explore_ratio = nm.get_explore_exploit_ratio()
+        precision_mod = nm.get_sensory_precision_modifier()
+
+        # 探索倾向高 → 略微降低阈值 (让更多新信息进入)
+        # 精度高 → 略微提高阈值 (更选择性)
+        threshold_mod = (1.0 - explore_ratio) * 0.05 - (precision_mod - 1.0) * 0.1
+
+        return {
+            "capacity": base["capacity"],
+            "threshold": round(
+                np.clip(base["threshold"] + threshold_mod, 0.1, 0.95), 4
+            ),
+            "decay_rate": base["decay_rate"],
+            "mode": self.current_mode.value,
+            "neuromodulator_influence": {
+                "explore_exploit_ratio": round(explore_ratio, 4),
+                "sensory_precision": round(precision_mod, 4),
+                "threshold_adjustment": round(threshold_mod, 4),
+            },
+        }
 
 
 # ═══════════════════════════════════════════════════════════════════════

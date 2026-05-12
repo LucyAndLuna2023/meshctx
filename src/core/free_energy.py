@@ -251,6 +251,40 @@ class FreeEnergyComputer:
         return 0.0
 
     @staticmethod
+    def epistemic_value_exact(belief: BeliefState, action: int = 0) -> float:
+        """计算精确认知价值 (互信息): E_q(o|π)[D_KL[q(s|o,π) || q(s|π)]]
+
+        对于 Dirichlet 信念:
+        - 当前信念: q(s) = Dir(α)
+        - 观察 o 后的后验: q(s|o) = Dir(α + e_o) (e_o 为 one-hot)
+        - q(o|π) = E[q(s)] = α / Σα
+        - 认知价值 = Σ_o q(o|π) × D_KL[Dir(α + e_o) || Dir(α)]
+
+        这个值表示期望信息增益。在期望自由能中取负号 (最大化信息
+        增益 ⇔ 最小化期望自由能)。
+
+        物理类比: 麦克斯韦妖通过测量获取的信息量。
+        """
+        if belief.belief_type != BeliefType.DIRICHLET:
+            # 非 Dirichlet 回退到启发式
+            return belief.uncertainty * 0.1
+
+        alpha = belief.alpha
+        prob = belief.expected_probability  # q(o|π)
+        epistemic = 0.0
+
+        for o in range(belief.n_categories):
+            # 后验信念: α_post = α + one_hot(o)
+            alpha_post = alpha.copy()
+            alpha_post[o] += 1.0
+            # D_KL[Dir(α_post) || Dir(α)]
+            kl = FreeEnergyComputer.dirichlet_kl(alpha_post, alpha)
+            # 期望: q(o|π) × KL
+            epistemic += prob[o] * kl
+
+        return float(epistemic)
+
+    @staticmethod
     def compute_free_energy(
         belief: BeliefState,
         observation: int,
@@ -346,9 +380,9 @@ class FreeEnergyComputer:
             else:
                 pragmatic = 0.0
             
-            # 认知价值: 采取行动后的期望信息增益
-            # 近似的: 当前不确定性越高，任何行动的认知价值越大
-            epistemic = -belief.uncertainty * 0.1
+            # 认知价值: 采取行动后的期望信息增益 (互信息)
+            # 精确计算: E_q(o|π)[D_KL[q(s|o,π) || q(s|π)]]
+            epistemic = -FreeEnergyComputer.epistemic_value_exact(belief, a)
             
             G[a] = pragmatic + epistemic + temperature * belief.uncertainty
         
@@ -481,6 +515,91 @@ class CriticalityRegulator:
 
 
 # ═══════════════════════════════════════════════════════════════════════
+# ECE 校准追踪 — 期望校准误差
+# ═══════════════════════════════════════════════════════════════════════
+
+class BeliefCalibration:
+    """ECE (Expected Calibration Error) 校准追踪器。
+
+    跟踪模型预测概率与实际结果之间的一致性。
+    ECE 越低，模型校准越好 — 即模型对其预测的置信度与实际
+    准确率相匹配。
+
+    完美校准: 预测 80% 概率的事件实际发生率为 80%。
+
+    参考: "On Calibration of Modern Neural Networks" (Guo et al., 2017)
+
+    使用示例:
+        cal = BeliefCalibration()
+        cal.record(predicted_prob=0.8, actual=1.0)   # 预测对
+        cal.record(predicted_prob=0.9, actual=0.0)   # 预测错
+        ece = cal.expected_calibration_error()        # 量化校准误差
+    """
+
+    def __init__(self, n_bins: int = 10):
+        self.n_bins = n_bins
+        self.predictions: List[Tuple[float, int]] = []   # (predicted_prob, actual)
+
+    def record(self, predicted_prob: float, actual: float):
+        """记录一次预测结果。
+
+        参数:
+            predicted_prob: 模型预测的概率 (0-1)
+            actual: 实际结果 (0=失败, 1=成功)
+        """
+        # 用 int 存储 actual 避免浮点累积误差
+        self.predictions.append((float(predicted_prob), int(round(float(actual)))))
+
+    def expected_calibration_error(self, n_bins: int = 10) -> float:
+        """计算期望校准误差 (ECE)。
+
+        ECE = Σ_m (|B_m|/n) × |acc(B_m) - conf(B_m)|
+
+        其中:
+            B_m: 第 m 个桶中的样本
+            acc(B_m): 桶中的实际准确率
+            conf(B_m): 桶中的平均预测概率
+            n: 总样本数
+
+        返回 0-1 之间的 ECE 值 (越低越好)。
+        """
+        if not self.predictions:
+            return 0.0
+
+        n = len(self.predictions)
+        bins = n_bins if n_bins else self.n_bins
+
+        # 按预测概率排序后均匀分桶
+        sorted_preds = sorted(self.predictions, key=lambda x: x[0])
+
+        ece = 0.0
+        for m in range(bins):
+            start = int(m * n / bins)
+            end = int((m + 1) * n / bins)
+            if start >= end:
+                continue
+
+            bin_items = sorted_preds[start:end]
+            bin_count = len(bin_items)
+
+            avg_predicted = sum(p for p, a in bin_items) / bin_count
+            avg_actual = sum(a for p, a in bin_items) / bin_count
+
+            ece += (bin_count / n) * abs(avg_actual - avg_predicted)
+
+        return float(ece)
+
+    @property
+    def total_predictions(self) -> int:
+        """已记录的预测总数"""
+        return len(self.predictions)
+
+    def reset(self):
+        """重置校准追踪器"""
+        self.predictions.clear()
+
+
+# ═══════════════════════════════════════════════════════════════════════
 # 自由能智能体 — 统一入口
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -524,6 +643,7 @@ class FreeEnergyAgent:
         self.free_energy = FreeEnergyComputer()
         self.precision = PrecisionWeighting()
         self.criticality = CriticalityRegulator()
+        self.calibration = BeliefCalibration()  # ECE 校准追踪
         
         # 状态追踪
         self.total_free_energy: float = 0.0
@@ -559,6 +679,12 @@ class FreeEnergyAgent:
         # 临界态调节
         avg_surprise = np.mean(self.surprise_buffer[-10:]) if self.surprise_buffer else 0.0
         new_T = self.criticality.adjust(surprise, avg_surprise)
+        
+        # ECE 校准追踪: 记录预测概率 vs 实际结果
+        self.calibration.record(
+            predicted_prob=float(expected_prob),
+            actual=1.0 if success else 0.0,
+        )
         
         return {
             "surprise": surprise,
