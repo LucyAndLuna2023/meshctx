@@ -3,6 +3,8 @@ meshctx Web 管理界面
 FastAPI + Jinja2 DictLoader（模板内嵌，适配 PyInstaller）
 """
 import sys
+import yaml
+import os
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pathlib import Path
@@ -76,6 +78,18 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
 
 _TEMPLATES["dashboard.html"] = r"""{% extends "base.html" %}
 {% block content %}
+{% if total_projects == 0 %}
+<div class="card" style="background:linear-gradient(135deg,#1e3a5f,#1e293b);border:1px solid #38bdf8;margin-bottom:20px;">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div style="font-size:40px;">🔑</div>
+        <div style="flex:1;">
+            <h2 style="margin:0;color:#38bdf8;">欢迎使用 meshctx！</h2>
+            <p style="color:#94a3b8;margin:8px 0 0;">首次使用需要配置 AI 模型 API 密钥才能开始。</p>
+        </div>
+        <a href="/ui/setup" class="btn btn-primary" style="font-size:15px;padding:12px 24px;white-space:nowrap;">⚙️ 配置 API 密钥</a>
+    </div>
+</div>
+{% endif %}
 <div class="stats">
     <div class="stat-card"><div class="value">{{ total_projects }}</div><div class="label">项目</div></div>
     <div class="stat-card"><div class="value">{{ total_conversations }}</div><div class="label">会话</div></div>
@@ -311,49 +325,73 @@ async function send() {
 _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
 {% block content %}
 <h2>⚙️ Setup</h2>
+
+{% if flash == "success" %}
+<div class="flash flash-success">✅ API Key 已保存！重启 meshctx 后生效。</div>
+{% elif flash == "error" %}
+<div class="flash flash-error">❌ 保存失败，请重试。</div>
+{% endif %}
+
 <div class="card" style="margin-top:16px;">
-    <h2>获取 API 密钥</h2>
-    <p style="color:#94a3b8;margin-bottom:12px;">
-        meshctx 支持多种 AI 模型提供商。推荐使用<strong>阿里云百炼</strong>（免费额度）或 <strong>DeepSeek</strong>（性价比最高）。
+    <h2>🔑 配置 API 密钥</h2>
+    <p style="color:#94a3b8;margin-bottom:16px;font-size:13px;">
+        选择一个模型提供商，输入你的 API Key，点击保存即可。
     </p>
-
-    <div style="display:grid;gap:16px;margin-top:16px;">
-        <div class="card" style="background:#0f172a;">
-            <h3>🔵 阿里云百炼（推荐）</h3>
-            <p style="font-size:13px;color:#94a3b8;">新用户赠送100万Tokens，支持Qwen系列模型</p>
-            <a href="https://bailian.console.aliyun.com/" target="_blank" class="btn btn-primary" style="margin-top:8px;">前往获取 →</a>
+    <form method="POST" action="/ui/setup/save">
+        <div class="form-group">
+            <label>模型提供商</label>
+            <select name="provider" style="background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:10px 14px;border-radius:6px;font-size:14px;width:100%;">
+                <option value="deepseek">🟢 DeepSeek（推荐 — 性价比最高）</option>
+                <option value="bailian">🔵 阿里云百炼（新用户免费100万Tokens）</option>
+                <option value="siliconflow">🔴 硅基流动 SiliconFlow（开源模型免费额度）</option>
+            </select>
         </div>
-
-        <div class="card" style="background:#0f172a;">
-            <h3>🟢 DeepSeek</h3>
-            <p style="font-size:13px;color:#94a3b8;">高性价比，支持deepseek-chat模型</p>
-            <a href="https://platform.deepseek.com/api_keys" target="_blank" class="btn btn-primary" style="margin-top:8px;">前往获取 →</a>
+        <div class="form-group">
+            <label>API Key</label>
+            <input name="api_key" type="password" placeholder="sk-xxxxxxxxxxxxxxxx" required
+                   style="background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:10px 14px;border-radius:6px;font-size:14px;width:100%;">
         </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;font-size:15px;">💾 保存配置</button>
+    </form>
+</div>
 
-        <div class="card" style="background:#0f172a;">
-            <h3>🔴 硅基流动 SiliconFlow</h3>
-            <p style="font-size:13px;color:#94a3b8;">多种开源模型，免费额度</p>
-            <a href="https://siliconflow.cn/" target="_blank" class="btn btn-primary" style="margin-top:8px;">前往获取 →</a>
+<div class="card" style="margin-top:16px;">
+    <h3>🔗 还没有 API Key？</h3>
+    <div style="display:grid;gap:12px;margin-top:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#0f172a;border-radius:8px;">
+            <div>
+                <strong>🟢 DeepSeek</strong>
+                <p style="font-size:12px;color:#94a3b8;">高性价比，deepseek-chat / deepseek-reasoner</p>
+            </div>
+            <a href="https://platform.deepseek.com/api_keys" target="_blank" class="btn btn-primary" style="font-size:12px;">获取 →</a>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#0f172a;border-radius:8px;">
+            <div>
+                <strong>🔵 阿里云百炼</strong>
+                <p style="font-size:12px;color:#94a3b8;">新用户赠送100万Tokens，支持Qwen系列</p>
+            </div>
+            <a href="https://bailian.console.aliyun.com/" target="_blank" class="btn btn-primary" style="font-size:12px;">获取 →</a>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#0f172a;border-radius:8px;">
+            <div>
+                <strong>🔴 硅基流动 SiliconFlow</strong>
+                <p style="font-size:12px;color:#94a3b8;">开源模型免费额度，Llama/Qwen/DeepSeek</p>
+            </div>
+            <a href="https://siliconflow.cn/" target="_blank" class="btn btn-primary" style="font-size:12px;">获取 →</a>
         </div>
     </div>
+</div>
 
-    <h2 style="margin-top:24px;">手动配置</h2>
-    <p style="font-size:13px;color:#94a3b8;margin-bottom:12px;">
-        编辑 <code style="background:#0f172a;padding:2px 6px;border-radius:4px;">~/.meshctx/config.yaml</code>:
-    </p>
-    <pre style="background:#0f172a;padding:16px;border-radius:8px;overflow-x:auto;font-size:13px;">models:
-  default: "deepseek"
-  providers:
-    deepseek:
-      provider: "deepseek"
+<div class="card" style="margin-top:16px;">
+    <h3>📝 手动配置（高级）</h3>
+    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px;">编辑 <code style="background:#0f172a;padding:2px 6px;border-radius:4px;">~/.meshctx/config.yaml</code>:</p>
+    <pre style="background:#0f172a;padding:12px;border-radius:8px;font-size:12px;overflow-x:auto;">models:
+  default: "deepseek:deepseek-chat"
+  entries:
+    deepseek:deepseek-chat:
+      key: "sk-your-key-here"
       model: "deepseek-chat"
-      base_url: "https://api.deepseek.com/v1"
-      api_key: "sk-your-key-here"
-    bailian-free:
-      provider: "bailian"
-      model: "qwen-plus"
-      base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-      api_key: "sk-your-key-here"</pre>
+      base_url: "https://api.deepseek.com/v1"</pre>
 </div>
 {% endblock %}"""
 
@@ -679,4 +717,49 @@ async def chat_page(request: Request):
 
 @router.get("/setup", response_class=HTMLResponse)
 async def setup_page(request: Request):
-    return _render("setup.html", {"request": request, "title": "Setup"})
+    flash = ""
+    if request.query_params.get("saved") == "1":
+        flash = "success"
+    elif request.query_params.get("error") == "1":
+        flash = "error"
+    return _render("setup.html", {"request": request, "title": "Setup", "flash": flash})
+
+
+@router.post("/setup/save")
+async def save_api_key(
+    request: Request,
+    provider: str = Form(...),
+    api_key: str = Form(...),
+):
+    """保存 API Key 到 ~/.meshctx/config.yaml"""
+    from pathlib import Path
+
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    config = {}
+    if config_path.exists():
+        with open(config_path) as f:
+            config = yaml.safe_load(f) or {}
+
+    provider_defaults = {
+        "deepseek": {"model": "deepseek-chat", "base_url": "https://api.deepseek.com/v1"},
+        "bailian": {"model": "qwen-plus", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"},
+        "siliconflow": {"model": "Qwen/Qwen2.5-7B-Instruct", "base_url": "https://api.siliconflow.cn/v1"},
+    }
+    defaults = provider_defaults.get(provider, provider_defaults["deepseek"])
+    model_id = f"{provider}:{defaults['model']}"
+
+    config.setdefault("models", {})
+    config["models"].setdefault("entries", {})
+    config["models"]["default"] = model_id
+    config["models"]["entries"][model_id] = {
+        "key": api_key,
+        "model": defaults["model"],
+        "base_url": defaults["base_url"],
+    }
+
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+
+    return RedirectResponse(url="/ui/setup?saved=1", status_code=303)
