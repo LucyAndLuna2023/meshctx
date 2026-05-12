@@ -83,50 +83,23 @@ def wait_for_server(url, timeout=10):
 
 # ── 系统托盘 ─────────────────────────────────────────
 def create_tray(webview_window):
-    """创建系统托盘图标 (可选, 需要 pystray)"""
+    """创建系统托盘图标 (可选)"""
     try:
         import pystray
         from PIL import Image
-
         if not LOGO_PATH.exists():
-            logger.warning(f"Logo not found: {LOGO_PATH}")
             return None
-
-        image = Image.open(LOGO_PATH)
-        image = image.resize((32, 32))
-
-        def on_show(icon, item):
-            webview_window.show()
-            webview_window.restore()
-
-        def on_hide(icon, item):
-            webview_window.hide()
-
-        def on_quit(icon, item):
-            icon.stop()
-            os._exit(0)
-
+        image = Image.open(LOGO_PATH).resize((32, 32))
         menu = pystray.Menu(
-            pystray.MenuItem("显示窗口", on_show, default=True),
-            pystray.MenuItem("隐藏到托盘", on_hide),
+            pystray.MenuItem("Show", lambda: (webview_window.show(), webview_window.restore()), default=True),
+            pystray.MenuItem("Hide", lambda: webview_window.hide()),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("退出", on_quit),
+            pystray.MenuItem("Quit", lambda: os._exit(0)),
         )
-
         icon = pystray.Icon("meshctx", image, TITLE, menu)
-
-        def run_tray():
-            icon.run()
-
-        tray_thread = threading.Thread(target=run_tray, daemon=True)
-        tray_thread.start()
-        logger.info("系统托盘已创建")
+        threading.Thread(target=icon.run, daemon=True).start()
         return icon
-    except ImportError:
-        logger.info("pystray 未安装，跳过托盘")
-        return None
-    except Exception as e:
-        logger.warning(f"托盘创建失败: {e}")
+    except Exception:
         return None
 
 
@@ -147,53 +120,40 @@ def main():
     """)
 
     # 1. 启动后台服务器
-    logger.info(f"启动 FastAPI 服务器: {HOST}:{PORT}")
+    logger.info(f"Starting FastAPI: {HOST}:{PORT}")
     server_thread = start_server(PORT)
 
     # 2. 等待服务器就绪
-    if not wait_for_server(f"http://{HOST}:{PORT}/health"):
-        logger.error("服务器启动超时！")
+    health_url = f"http://{HOST}:{PORT}/health"
+    if not wait_for_server(health_url):
+        # GUI模式下用messagebox报错
+        try:
+            import webview as wv
+            wv.windows[0].destroy() if wv.windows else None
+        except:
+            pass
+        logger.error("Server failed to start!")
         sys.exit(1)
-    logger.info("服务器就绪 ✓")
+    logger.info("Server ready")
 
     # 3. 打开桌面窗口
     icon_path = str(LOGO_ICO) if LOGO_ICO.exists() else None
 
     try:
         import webview
-
         window = webview.create_window(
             title=TITLE,
             url=app_url,
             width=WIDTH,
             height=HEIGHT,
             resizable=True,
-            fullscreen=False,
             min_size=(800, 600),
-            confirm_close=True,
         )
-
-        # 4. 系统托盘 (可选)
         tray_icon = create_tray(window)
-
-        # 5. 启动主循环
-        logger.info("启动桌面窗口...")
+        logger.info("Starting desktop window...")
         webview.start(debug=False)
-
     except ImportError:
-        logger.error("pywebview 未安装。运行: pip install pywebview")
-        logger.info(f"请在浏览器中打开: {app_url}")
-        # 回退: 直接在浏览器打开
-        import webbrowser
-        webbrowser.open(app_url)
-        # 保持运行
-        try:
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            pass
-    except Exception as e:
-        logger.error(f"窗口启动失败: {e}")
+        logger.error("pywebview not installed. Opening browser instead.")
         import webbrowser
         webbrowser.open(app_url)
         try:

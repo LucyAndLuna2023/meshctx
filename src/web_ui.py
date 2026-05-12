@@ -835,14 +835,14 @@ async def save_api_key(
             config = yaml.safe_load(f) or {}
 
     provider_defaults = {
-        "deepseek": {"model": "deepseek-chat", "base_url": "https://api.deepseek.com/v1"},
-        "bailian": {"model": "qwen-plus", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"},
-        "siliconflow": {"model": "Qwen/Qwen2.5-7B-Instruct", "base_url": "https://api.siliconflow.cn/v1"},
+        "deepseek": {"model_id": "deepseek:chat", "model": "deepseek-chat", "base_url": "https://api.deepseek.com/v1", "key_env": "DEEPSEEK_API_KEY"},
+        "bailian": {"model_id": "bailian:qwen-flash", "model": "qwen-plus", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "key_env": "BAILIAN_API_KEY"},
+        "siliconflow": {"model_id": "siliconflow:qwen-flash", "model": "Qwen/Qwen2.5-7B-Instruct", "base_url": "https://api.siliconflow.cn/v1", "key_env": "SILICONFLOW_API_KEY"},
     }
     defaults = provider_defaults.get(provider, provider_defaults["deepseek"])
     actual_model = model_name or defaults["model"]
     actual_url = base_url or defaults["base_url"]
-    model_id = f"{provider}:{actual_model}"
+    model_id = defaults["model_id"]  # 使用内置目录中的标准ID
 
     config.setdefault("models", {})
     config["models"].setdefault("entries", {})
@@ -855,6 +855,9 @@ async def save_api_key(
 
     with open(config_path, "w") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+
+    # 同时设置环境变量，确保立即可用
+    os.environ[defaults["key_env"]] = api_key
 
     # 立即重载模型注册表，无需重启
     try:

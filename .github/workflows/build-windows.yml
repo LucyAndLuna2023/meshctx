@@ -23,16 +23,16 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pyinstaller pycryptodome
+          pip install pyinstaller pycryptodome pywebview
 
-      - name: Build executable
-        run: pyinstaller meshctx.spec
+      - name: Build Desktop .exe
+        run: pyinstaller meshctx_desktop.spec
 
       - name: Verify build
         run: |
-          if (Test-Path dist\meshctx.exe) {
-            Write-Host "OK: meshctx.exe"
-            Get-Item dist\meshctx.exe | Select-Object Name, Length
+          if (Test-Path dist\meshctx-desktop.exe) {
+            Write-Host "OK: meshctx-desktop.exe"
+            Get-Item dist\meshctx-desktop.exe | Select-Object Name, Length
           } else {
             Write-Host "FAIL"
             exit 1
@@ -41,6 +41,7 @@ jobs:
       - name: Package
         run: |
           copy README.md dist\
+          copy dist\meshctx-desktop.exe dist\meshctx.exe
           Compress-Archive -Path dist\meshctx.exe,dist\README.md -DestinationPath meshctx-windows.zip
 
       - name: Upload to Release
@@ -48,6 +49,7 @@ jobs:
         with:
           files: |
             dist/meshctx.exe
+            dist/meshctx-desktop.exe
             meshctx-windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

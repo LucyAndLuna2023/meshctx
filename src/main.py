@@ -75,7 +75,7 @@ def get_memory_engine() -> MemoryEngine:
 app = FastAPI(
     title="meshctx API",
     description="世界第一自进化Agent系统",
-    version="1.3.0",
+    version="1.3.1",
 )
 
 app.add_middleware(
@@ -166,7 +166,7 @@ class IntentRequest(BaseModel):
 async def root():
     return {
         "message": "meshctx API v1.2 运行中",
-        "version": "1.3.0",
+        "version": "1.3.1",
         "endpoints": {
             "projects": "/projects",
             "conversations": "/conversations",
@@ -351,7 +351,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.3.0",
+        "version": "1.3.1",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -549,7 +549,15 @@ async def api_chat(request: Request):
         msg = body.get("message", "")
         if msg:
             msgs = [{"role": "user", "content": msg}]
-    model_id = body.get("model", "deepseek:v4-flash")
+    model_id = body.get("model")
+    if not model_id:
+        # 从配置读取默认模型，fallback到内置
+        try:
+            from src.config import load_config
+            config = load_config()
+            model_id = config.get("models", {}).get("default", "deepseek:chat")
+        except:
+            model_id = "deepseek:chat"
     
     if not msgs:
         return {"content": "请输入消息", "tokens": 0}
@@ -847,7 +855,7 @@ async def health_check():
 
     result = {
         "status": "healthy",
-        "version": "1.3.0",
+        "version": "1.3.1",
         "kernel": "running" if (k._started if hasattr(k, '_started') else False) else "standalone",
         "projects_count": len(engine.projects),
         "conversations_count": len(engine.conversations),
