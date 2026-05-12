@@ -25,6 +25,9 @@
         .lang-switch { display:flex; gap:4px; margin-left:12px; }
         .lang-btn { background:transparent; color:var(--muted); border:1px solid var(--border); padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.75rem; transition:all .2s; }
         .lang-btn:hover,.lang-btn.active { color:var(--fg); border-color:var(--purple); background:rgba(139,92,246,0.1); }
+        .lang-select { background:var(--bg2); color:var(--fg); border:1px solid var(--border); padding:5px 10px; border-radius:6px; font-size:0.8rem; cursor:pointer; outline:none; }
+        .lang-select:hover { border-color:var(--purple); }
+        .lang-select option { background:var(--bg2); color:var(--fg); }
 
         .btn { display:inline-block; padding:10px 24px; border-radius:8px; font-weight:600; font-size:0.95rem; transition:all .2s; cursor:pointer; border:none; }
         .btn-primary { background:var(--purple); color:white; } .btn-primary:hover { background:#7c3aed; transform:translateY(-1px); text-decoration:none; }
@@ -94,15 +97,14 @@
             <a href="#about" class="nav-hide" data-lang-key="nav_about">About</a>
             <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a>
             <a href="getting-started" data-lang-key="nav_docs">Docs</a>
-            <span class="lang-switch">
-                <button class="lang-btn active" onclick="switchLang('en')">EN</button>
-                <button class="lang-btn" onclick="switchLang('zh')">中文</button>
-                <button class="lang-btn" onclick="switchLang('fr')">FR</button>
-                <button class="lang-btn" onclick="switchLang('ja')">日本語</button>
-                <button class="lang-btn" onclick="switchLang('ko')">한국어</button>
-                <button class="lang-btn" onclick="switchLang('fr')">FR</button>
-                <button class="lang-btn" onclick="switchLang('de')">DE</button>
-            </span>
+            <select class="lang-select" onchange="switchLang(this.value)">
+                <option value="en">🌐 English</option>
+                <option value="zh">🇨🇳 中文</option>
+                <option value="ja">🇯🇵 日本語</option>
+                <option value="ko">🇰🇷 한국어</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="de">🇩🇪 Deutsch</option>
+            </select>
         </div>
     </div>
 </nav>
@@ -121,6 +123,7 @@
     </div>
     <!-- ZH -->
     <div class="lang" data-lang="zh">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
         <h1>会<span>自我进化</span>的 Agent</h1>
         <p>meshctx v1.3 — All-in-One 桌面客户端 + 脑启发AI算法。记忆一切、多Agent协同、4语言 — 完全开源。</p>
         <div class="hero-buttons">
@@ -130,6 +133,7 @@
     </div>
     <!-- JA -->
     <div class="lang" data-lang="ja">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
         <h1><span>自己進化</span>するエージェント</h1>
         <p>meshctx は世界初の自己進化型AIエージェントプラットフォームです。すべてを記憶し、タスクから学習し、複数エージェントを協調させます — 完全オープンソース。</p>
         <div class="hero-buttons">
@@ -139,6 +143,7 @@
     </div>
     <!-- KO -->
     <div class="lang" data-lang="ko">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
         <h1><span>자기 진화</span>하는 에이전트</h1>
         <p>meshctx는 세계 최초의 자기 진화형 AI 에이전트 플랫폼입니다. 모든 것을 기억하고, 작업에서 학습하며, 여러 에이전트를 조율합니다 — 완전 오픈소스.</p>
         <div class="hero-buttons">
@@ -148,6 +153,7 @@
     </div>
     <!-- FR -->
     <div class="lang" data-lang="fr">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
         <h1>L'Agent qui <span>Apprend</span></h1>
         <p>meshctx est la première plateforme d'agents auto-évolutive au monde. Elle mémorise tout, apprend de chaque tâche et orchestre plusieurs agents — 100% open-source.</p>
         <div class="hero-buttons">
@@ -157,6 +163,7 @@
     </div>
     <!-- DE -->
     <div class="lang" data-lang="de">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
         <h1>Der Agent, der <span>lernt</span></h1>
         <p>meshctx ist die weltweit erste selbstlernende Agenten-Plattform. Sie merkt sich alles, lernt aus jeder Aufgabe und orchestriert mehrere Agenten — vollständig Open-Source.</p>
         <div class="hero-buttons">
@@ -463,8 +470,9 @@ const L = {
 };
 
 function switchLang(lang) {
-    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector(`.lang-btn[onclick="switchLang('${lang}')"]`).classList.add('active');
+    // Sync dropdown
+    const sel = document.querySelector('.lang-select');
+    if (sel) sel.value = lang;
 
     // Show/hide language blocks
     document.querySelectorAll('.lang[data-lang]').forEach(el => {
@@ -484,6 +492,8 @@ function switchLang(lang) {
 
 // Restore saved language
 const saved = localStorage.getItem('meshctx-lang') || 'en';
+const sel = document.querySelector('.lang-select');
+if (sel) sel.value = saved;
 switchLang(saved);
 </script>
 
