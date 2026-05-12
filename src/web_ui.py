@@ -266,7 +266,12 @@ _TEMPLATES["memories.html"] = r"""{% extends "base.html" %}
     </tbody>
 </table>
 {% else %}
-<div class="empty">📭 暂无记忆</div>
+<div class="empty">
+        <p style="font-size:48px;margin-bottom:16px;">🧠</p>
+        <h3>还没有记忆</h3>
+        <p style="color:#64748b;margin-top:8px;">创建项目并开始对话后，meshctx会自动从对话中提取重要信息作为记忆。</p>
+        <a href="/ui/projects" class="btn btn-primary" style="margin-top:16px;">创建项目 →</a>
+    </div>
 {% endif %}
 {% endblock %}"""
 
@@ -300,8 +305,8 @@ _TEMPLATES["continuity.html"] = r"""{% extends "base.html" %}
 _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
 {% block content %}
 <h2>💬 Chat</h2>
-<div class="card" style="margin-top:16px; min-height:400px;" id="chatCard">
-    <div id="messages" style="max-height:500px;overflow-y:auto;"></div>
+<div class="card" style="margin-top:16px; display:flex; flex-direction:column; height:60vh;" id="chatCard">
+    <div id="messages" style="flex:1; overflow-y:auto; margin-bottom:12px; padding:8px; border:1px solid #334155; border-radius:8px; background:#0a0f1a;"></div>
     <div id="fileTag" style="margin-top:8px;font-size:12px;color:#38bdf8;display:none;"></div>
     <div style="display:flex;gap:8px;margin-top:16px;">
         <input id="userInput" placeholder="输入消息..." style="flex:1;" onkeydown="if(event.key==='Enter')send()">
@@ -367,7 +372,8 @@ async function send() {
             body: JSON.stringify({message: fullMsg, project_id: 'default'})
         });
         const data = await res.json();
-        div.innerHTML += `<div style="margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;"><strong style="color:#38bdf8;">AI:</strong> ${data.response || '无响应'}</div>`;
+        const reply = data.content || data.response || '无响应';
+        div.innerHTML += `<div style="margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;"><strong style="color:#38bdf8;">AI:</strong> ${reply}</div>`;
         div.scrollTop = div.scrollHeight;
     } catch(e) {
         div.innerHTML += `<div style="margin:8px 0;color:#fca5a5;">错误: ${e.message}</div>`;
@@ -407,6 +413,20 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
 <div class="flash flash-success">✅ API Key 已保存！配置已自动生效，无需重启。</div>
 {% elif flash == "error" %}
 <div class="flash flash-error">❌ 保存失败，请重试。</div>
+{% endif %}
+
+{% if configured %}
+<div class="card" style="margin-top:16px;background:#0a2a1a;border:1px solid #166534;">
+    <h3 style="color:#6ee7b7;">✅ 已配置模型</h3>
+    <div style="display:grid;gap:8px;margin-top:8px;">
+    {% for m in configured %}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#0f172a;border-radius:6px;font-size:13px;">
+            <span><strong>{{ m.id }}</strong> <span style="color:#64748b;">→ {{ m.model }}</span></span>
+            <span style="color:#6ee7b7;">✓ 就绪</span>
+        </div>
+    {% endfor %}
+    </div>
+</div>
 {% endif %}
 
 <div class="card" style="margin-top:16px;">
@@ -812,7 +832,22 @@ async def setup_page(request: Request):
         flash = "success"
     elif request.query_params.get("error") == "1":
         flash = "error"
-    return _render("setup.html", {"request": request, "title": "Setup", "flash": flash})
+    
+    # 读取当前已配置的模型列表
+    configured = []
+    try:
+        from src.model_registry import get_registry
+        reg = get_registry()
+        for e in reg.list_all():
+            if e["ready"]:
+                configured.append({"id": e["id"], "model": e.get("model", "?"), "provider": e.get("provider", "?")})
+    except:
+        pass
+    
+    return _render("setup.html", {
+        "request": request, "title": "Setup",
+        "flash": flash, "configured": configured
+    })
 
 
 @router.post("/setup/save")

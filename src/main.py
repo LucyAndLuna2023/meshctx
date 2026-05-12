@@ -166,7 +166,7 @@ class IntentRequest(BaseModel):
 async def root():
     return {
         "message": "meshctx API v1.2 运行中",
-        "version": "1.3.1",
+        "version": "1.3.2",
         "endpoints": {
             "projects": "/projects",
             "conversations": "/conversations",
@@ -351,7 +351,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.3.1",
+        "version": "1.3.2",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -855,7 +855,7 @@ async def health_check():
 
     result = {
         "status": "healthy",
-        "version": "1.3.1",
+        "version": "1.3.2",
         "kernel": "running" if (k._started if hasattr(k, '_started') else False) else "standalone",
         "projects_count": len(engine.projects),
         "conversations_count": len(engine.conversations),
