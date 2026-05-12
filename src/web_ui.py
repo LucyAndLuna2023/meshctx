@@ -321,7 +321,11 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
     </select>
 </div>
 <div class="card" style="margin-top:16px; display:flex; flex-direction:column; height:60vh;" id="chatCard">
-    <div id="messages" style="flex:1; overflow-y:auto; margin-bottom:12px; padding:8px; border:1px solid #334155; border-radius:8px; background:#0a0f1a;"></div>
+    <div id="chatTabs" style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
+    <button class="tab-btn active" data-tab="default" onclick="switchTab('default')" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 14px;border-radius:6px 6px 0 0;font-size:12px;cursor:pointer;">Chat 1</button>
+    <button onclick="newTab()" style="background:transparent;border:1px dashed #334155;color:#64748b;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;">+ 新建</button>
+</div>
+<div id="messages" style="flex:1; overflow-y:auto; margin-bottom:12px; padding:8px; border:1px solid #334155; border-radius:0 8px 8px 8px; background:#0a0f1a;"></div>
     <div id="fileTag" style="margin-top:8px;font-size:12px;color:#38bdf8;display:none;"></div>
     <div style="display:flex;gap:8px;margin-top:16px;">
         <input id="userInput" placeholder="输入消息..." style="flex:1;" onkeydown="if(event.key==='Enter')send()">
@@ -411,6 +415,44 @@ function restoreHistory() {
         else div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;"><strong style="color:#38bdf8;">AI:</strong> ' + h.content + '</div>';
     });
     div.scrollTop = div.scrollHeight;
+}
+// 多会话标签
+let activeTab = 'default';
+const TABS_KEY = 'meshctx_tabs';
+let allTabs = JSON.parse(localStorage.getItem(TABS_KEY) || '{"default":[]}');
+function saveTabs() { localStorage.setItem(TABS_KEY, JSON.stringify(allTabs)); }
+function switchTab(tabId) {
+    activeTab = tabId;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-tab="'+tabId+'"]').classList.add('active');
+    const div = document.getElementById('messages');
+    div.innerHTML = '';
+    (allTabs[tabId]||[]).forEach(h => {
+        if (h.role==='user') div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ' + h.content + '</div>';
+        else div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;"><strong style="color:#38bdf8;">AI:</strong> ' + h.content + '</div>';
+    });
+    div.scrollTop = div.scrollHeight;
+}
+function newTab() {
+    const id = 'chat_' + Date.now();
+    const n = Object.keys(allTabs).length + 1;
+    allTabs[id] = [];
+    saveTabs();
+    const tabs = document.getElementById('chatTabs');
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn'; btn.dataset.tab = id;
+    btn.textContent = 'Chat ' + n;
+    btn.style.cssText = 'background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 14px;border-radius:6px 6px 0 0;font-size:12px;cursor:pointer;';
+    btn.onclick = function(){switchTab(id)};
+    tabs.insertBefore(btn, tabs.lastElementChild);
+    switchTab(id);
+}
+// Override chatHistory to use per-tab storage
+chatHistory = allTabs[activeTab] || [];
+function saveHistory() { 
+    if (!allTabs[activeTab]) allTabs[activeTab] = [];
+    allTabs[activeTab] = chatHistory.slice(-100);
+    saveTabs();
 }
 restoreHistory();
 
