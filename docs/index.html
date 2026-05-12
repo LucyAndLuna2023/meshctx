@@ -60,8 +60,11 @@
         .cross { color:#ef4444; } .warn { color:#eab308; }
         .highlight { background:rgba(139,92,246,0.08); }
 
-        .code-block { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:24px; overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:0.85rem; line-height:1.8; }
+        .code-block { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:24px; overflow-x:auto; font-family:'JetBrains Mono','Fira Code',monospace; font-size:0.85rem; line-height:1.8; word-break:break-all; max-width:100%; position:relative; }
         .code-block .c { color:#6b7280; } .code-block .k { color:var(--purple); } .code-block .s { color:var(--green); } .code-block .f { color:var(--cyan); }
+        .copy-btn { position:absolute; top:8px; right:8px; background:var(--bg); color:var(--muted); border:1px solid var(--border); padding:4px 10px; border-radius:4px; font-size:0.75rem; cursor:pointer; transition:all .2s; }
+        .copy-btn:hover { color:var(--fg); border-color:var(--purple); }
+        .copy-btn.copied { color:var(--green); border-color:var(--green); }
 
         /* About Us */
         .about-grid { display:grid; grid-template-columns:1fr 1fr; gap:32px; }
@@ -193,7 +196,7 @@
             <div class="feature-card"><div class="feature-icon">🔄</div><h3 data-lang-key="f2_title">Self-Evolving</h3><p data-lang-key="f2_desc">Meta-cognition loop runs after every task: evaluate → extract patterns → update knowledge graph → adjust behavior. Gets smarter every time.</p></div>
             <div class="feature-card"><div class="feature-icon">🎭</div><h3 data-lang-key="f3_title">Multi-Agent Orchestra</h3><p data-lang-key="f3_desc">One intent. Automatically decomposed into a task DAG, executed in parallel by specialized agents (Coder + Researcher + DevOps + Reviewer).</p></div>
             <div class="feature-card"><div class="feature-icon">🔮</div><h3 data-lang-key="f4_title">Predictive Context</h3><p data-lang-key="f4_desc">Learns your patterns. Pre-loads relevant memories before you ask. Context assembly in under 50ms.</p></div>
-            <div class="feature-card"><div class="feature-icon">🔌</div><h3 data-lang-key="f5_title">Plugin Marketplace</h3><p data-lang-key="f5_desc">MCP protocol native. pip install git+https://github.com/LucyAndLuna2023/meshctx.git-plugin-xxx. Community-driven ecosystem of tools and integrations.</p></div>
+            <div class="feature-card"><div class="feature-icon">🔌</div><h3 data-lang-key="f5_title">Plugin Marketplace</h3><p data-lang-key="f5_desc">MCP protocol native. pip install meshctx-plugin-xxx. Community-driven ecosystem of tools and integrations.</p></div>
             <div class="feature-card"><div class="feature-icon">🖥️</div><h3>Desktop Client</h3><p>All-in-One native desktop app. Double-click to launch. System tray, no browser needed. Windows + macOS.</p></div>
             <div class="feature-card"><div class="feature-icon">🧠</div><h3>Brain-Inspired AI</h3><p>Free Energy Principle + Active Inference + Global Workspace + Neuromodulators. P0+P1 algorithms from cognitive neuroscience.</p></div>
             <div class="feature-card"><div class="feature-icon">🌍</div><h3>4 Languages</h3><p>中文 · English · 日本語 · 한국어. Full i18n support with language switcher. Auto-detect browser language.</p></div>
@@ -337,9 +340,9 @@
             <div class="feature-card" style="text-align:center;">
                 <div style="font-size:2.5rem;margin-bottom:8px;">🐧</div>
                 <h3>Linux / WSL</h3>
-                <p style="color:var(--muted);">pip install git+https://github.com/LucyAndLuna2023/meshctx.git</p>
+                <p style="color:var(--muted);">pip install meshctx</p>
                 <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest" class="btn btn-ghost" style="margin-top:12px;width:100%;">Download Binary</a>
-                <p style="font-size:0.75rem;color:var(--muted);margin-top:8px;">or <code style="background:var(--bg);padding:2px 6px;border-radius:3px;">pip install git+https://github.com/LucyAndLuna2023/meshctx.git</code></p>
+                <p style="font-size:0.75rem;color:var(--muted);margin-top:8px;">or <code style="background:var(--bg);padding:2px 6px;border-radius:3px;">pip install meshctx</code></p>
             </div>
             <div class="feature-card" style="text-align:center;">
                 <div style="font-size:2.5rem;margin-bottom:8px;">🐳</div>
@@ -355,9 +358,10 @@
 <section>
     <div class="section-inner">
         <h2 class="section-title"><span data-lang-key="quick_title">Quick Start</span></h2>
-        <div class="code-block">
+        <div class="code-block" id="installBlock">
+            <button class="copy-btn" onclick="copyCode('installBlock')">📋 Copy</button>
             <span class="c"># Install</span><br>
-            pip install git+https://github.com/LucyAndLuna2023/meshctx.git<br><br>
+            pip install meshctx<br><br>
             <span class="c"># Start the kernel</span><br>
             meshctx start<br><br>
             <span class="c"># Or via Docker</span><br>
@@ -401,7 +405,7 @@ const L = {
         f2_title:"Self-Evolving", f2_desc:"Meta-cognition loop runs after every task: evaluate → extract patterns → update knowledge graph → adjust behavior. Gets smarter every time.",
         f3_title:"Multi-Agent Orchestra", f3_desc:"One intent. Automatically decomposed into a task DAG, executed in parallel by specialized agents (Coder + Researcher + DevOps + Reviewer).",
         f4_title:"Predictive Context", f4_desc:"Learns your patterns. Pre-loads relevant memories before you ask. Context assembly in under 50ms.",
-        f5_title:"Plugin Marketplace", f5_desc:"MCP protocol native. pip install git+https://github.com/LucyAndLuna2023/meshctx.git-plugin-xxx. Community-driven ecosystem of tools and integrations.",
+        f5_title:"Plugin Marketplace", f5_desc:"MCP protocol native. pip install meshctx-plugin-xxx. Community-driven ecosystem of tools and integrations.",
         f6_title:"100% Open Source", f6_desc:"MIT license. Free forever. Self-host on your own infrastructure with Docker or Kubernetes. No vendor lock-in.",
         compare_title:"MeshCtx vs The World",
         c1:"Hierarchical Memory", c2:"Forgetting Curve", c3:"Meta-Cognition", c4:"Multi-Agent", c5:"Knowledge Graph", c6:"Plugin Market", c7:"MCP Protocol", c8:"Open Source",
@@ -417,7 +421,7 @@ const L = {
         f2_title:"自我进化", f2_desc:"每次任务后运行元认知循环：评估 → 提取模式 → 更新知识图谱 → 调整行为。越用越聪明。",
         f3_title:"多智能体编排", f3_desc:"一个意图，自动分解为任务DAG，由专业Agent（编码+研究+运维+审查）并行执行。",
         f4_title:"预测性上下文", f4_desc:"学习你的使用模式。在你提问之前预加载相关记忆。上下文组装 < 50ms。",
-        f5_title:"插件市场", f5_desc:"原生MCP协议。pip install git+https://github.com/LucyAndLuna2023/meshctx.git-plugin-xxx。社区驱动的工具和集成生态。",
+        f5_title:"插件市场", f5_desc:"原生MCP协议。pip install meshctx-plugin-xxx。社区驱动的工具和集成生态。",
         f6_title:"100% 开源", f6_desc:"MIT 许可证。永久免费。在自己的 Docker/K8s 基础设施上自托管。无厂商锁定。",
         compare_title:"MeshCtx vs 竞品",
         c1:"层次记忆", c2:"遗忘曲线", c3:"元认知", c4:"多Agent", c5:"知识图谱", c6:"插件市场", c7:"MCP协议", c8:"开源",
@@ -433,7 +437,7 @@ const L = {
         f2_title:"自己進化", f2_desc:"タスク後にメタ認知ループ: 評価→パターン抽出→知識グラフ更新→行動調整。使うほど賢くなる。",
         f3_title:"マルチエージェント", f3_desc:"一つの意図から自動でタスクDAGに分解、専門エージェントが並列実行。",
         f4_title:"予測的コンテキスト", f4_desc:"使用パターンを学習。質問前にメモリを先読み。コンテキスト構築50ms未満。",
-        f5_title:"プラグイン市場", f5_desc:"MCPプロトコルネイティブ。pip install git+https://github.com/LucyAndLuna2023/meshctx.git-plugin-xxx。",
+        f5_title:"プラグイン市場", f5_desc:"MCPプロトコルネイティブ。pip install meshctx-plugin-xxx。",
         f6_title:"100% オープンソース", f6_desc:"MITライセンス。永久無料。Docker/K8sでセルフホスト。",
         compare_title:"MeshCtx vs 競合",
         c1:"階層的メモリ", c2:"忘却曲線", c3:"メタ認知", c4:"マルチエージェント", c5:"知識グラフ", c6:"プラグイン市場", c7:"MCPプロトコル", c8:"オープンソース",
@@ -449,7 +453,7 @@ const L = {
         f2_title:"자기 진화", f2_desc:"작업 후 메타인지 루프: 평가→패턴추출→지식그래프갱신→행동조정. 사용할수록 똑똑해짐.",
         f3_title:"멀티 에이전트", f3_desc:"하나의 의도를 자동으로 작업 DAG로 분해, 전문 에이전트가 병렬 실행.",
         f4_title:"예측적 컨텍스트", f4_desc:"사용 패턴 학습. 질문 전에 메모리 선행 로드. 컨텍스트 조립 50ms 미만.",
-        f5_title:"플러그인 마켓", f5_desc:"MCP 프로토콜 네이티브. pip install git+https://github.com/LucyAndLuna2023/meshctx.git-plugin-xxx.",
+        f5_title:"플러그인 마켓", f5_desc:"MCP 프로토콜 네이티브. pip install meshctx-plugin-xxx.",
         f6_title:"100% 오픈소스", f6_desc:"MIT 라이선스. 영구 무료. Docker/K8s로 자체 호스팅.",
         compare_title:"MeshCtx vs 경쟁",
         c1:"계층적 메모리", c2:"망각 곡선", c3:"메타인지", c4:"멀티에이전트", c5:"지식 그래프", c6:"플러그인 마켓", c7:"MCP 프로토콜", c8:"오픈소스",
@@ -465,7 +469,7 @@ const L = {
         f2_title:"Auto-Évolutif", f2_desc:"Boucle de méta-cognition après chaque tâche : évaluer → extraire → mettre à jour → ajuster. S'améliore à chaque utilisation.",
         f3_title:"Orchestre Multi-Agent", f3_desc:"Une intention. Automatiquement décomposée en DAG, exécutée en parallèle par des agents spécialisés.",
         f4_title:"Contexte Prédictif", f4_desc:"Apprend vos habitudes. Précharge les souvenirs pertinents avant que vous ne demandiez. Assemblage < 50ms.",
-        f5_title:"Marketplace de Plugins", f5_desc:"Protocole MCP natif. pip install git+https://github.com/LucyAndLuna2023/meshctx.git-plugin-xxx. Écosystème communautaire.",
+        f5_title:"Marketplace de Plugins", f5_desc:"Protocole MCP natif. pip install meshctx-plugin-xxx. Écosystème communautaire.",
         f6_title:"100% Open Source", f6_desc:"Licence MIT. Gratuit pour toujours. Auto-hébergé sur votre infrastructure. Sans verrouillage.",
         compare_title:"MeshCtx vs Le Monde",
         c1:"Mémoire Hiérarchique", c2:"Courbe d'Oubli", c3:"Méta-Cognition", c4:"Multi-Agent", c5:"Graphe de Connaissances", c6:"Marketplace", c7:"Protocole MCP", c8:"Open Source",
@@ -481,7 +485,7 @@ const L = {
         f2_title:"Selbstlernend", f2_desc:"Meta-Kognitions-Schleife nach jeder Aufgabe: bewerten → Muster extrahieren → Wissensgraph aktualisieren → Verhalten anpassen.",
         f3_title:"Multi-Agent Orchester", f3_desc:"Eine Absicht. Automatisch in Aufgaben-DAG zerlegt, parallel von spezialisierten Agenten ausgeführt.",
         f4_title:"Prädiktiver Kontext", f4_desc:"Lernt Ihre Muster. Lädt relevante Erinnerungen, bevor Sie fragen. Kontextaufbau < 50ms.",
-        f5_title:"Plugin Marketplace", f5_desc:"MCP-Protokoll nativ. pip install git+https://github.com/LucyAndLuna2023/meshctx.git-plugin-xxx. Community-getriebenes Ökosystem.",
+        f5_title:"Plugin Marketplace", f5_desc:"MCP-Protokoll nativ. pip install meshctx-plugin-xxx. Community-getriebenes Ökosystem.",
         f6_title:"100% Open Source", f6_desc:"MIT-Lizenz. Für immer kostenlos. Self-Hosting mit Docker oder Kubernetes. Kein Vendor-Lock-in.",
         compare_title:"MeshCtx vs Die Welt",
         c1:"Hierarch. Speicher", c2:"Vergessenskurve", c3:"Meta-Kognition", c4:"Multi-Agent", c5:"Wissensgraph", c6:"Marketplace", c7:"MCP-Protokoll", c8:"Open Source",
@@ -497,7 +501,7 @@ const L = {
         f2_title:"Auto-Evolutivo", f2_desc:"Bucle de metacognición tras cada tarea: evaluar → extraer patrones → actualizar → ajustar. Mejora con cada uso.",
         f3_title:"Orquesta Multi-Agente", f3_desc:"Una intención. Automáticamente descompuesta en DAG, ejecutada en paralelo por agentes especializados.",
         f4_title:"Contexto Predictivo", f4_desc:"Aprende tus patrones. Precarga recuerdos relevantes antes de que preguntes. Ensamblaje < 50ms.",
-        f5_title:"Marketplace de Plugins", f5_desc:"Protocolo MCP nativo. pip install git+https://github.com/LucyAndLuna2023/meshctx.git-plugin-xxx. Ecosistema comunitario.",
+        f5_title:"Marketplace de Plugins", f5_desc:"Protocolo MCP nativo. pip install meshctx-plugin-xxx. Ecosistema comunitario.",
         f6_title:"100% Código Abierto", f6_desc:"Licencia MIT. Gratis para siempre. Auto-hospedado en tu infraestructura. Sin dependencia.",
         compare_title:"MeshCtx vs El Mundo",
         c1:"Memoria Jerárquica", c2:"Curva de Olvido", c3:"Metacognición", c4:"Multi-Agente", c5:"Grafo de Conocimiento", c6:"Marketplace", c7:"Protocolo MCP", c8:"Código Abierto",
@@ -534,6 +538,17 @@ const saved = localStorage.getItem('meshctx-lang') || 'en';
 const sel = document.querySelector('.lang-select');
 if (sel) sel.value = saved;
 switchLang(saved);
+
+function copyCode(blockId) {
+    const block = document.getElementById(blockId);
+    const btn = block.querySelector('.copy-btn');
+    let text = block.innerText.replace('📋 Copy', '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✓ Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = '📋 Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+}
 </script>
 
 </body>

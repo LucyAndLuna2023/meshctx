@@ -305,6 +305,22 @@ class ModelClient:
         except Exception as e:
             return {"content": f"[错误: {e}]", "model": self.model_name, "tokens": 0}
 
+    def chat_stream(self, messages: List[Dict], temperature=0.7, max_tokens=4096):
+        """流式对话 — 逐token返回"""
+        try:
+            stream = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=True,
+            )
+            for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+        except Exception as e:
+            yield f"[错误: {e}]"
+
 
 # ── 全局单例 ──────────────────────────────────────────
 

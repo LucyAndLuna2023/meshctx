@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -165,8 +166,8 @@ class IntentRequest(BaseModel):
 @app.get("/")
 async def root():
     return {
-        "message": "meshctx API v1.2 运行中",
-        "version": "1.3.2",
+        "message": "MeshCtx API v1.3 运行中",
+        "version": "1.4.0",
         "endpoints": {
             "projects": "/projects",
             "conversations": "/conversations",
@@ -351,7 +352,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.3.2",
+        "version": "1.4.0",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -583,6 +584,60 @@ async def api_chat(request: Request):
         "model": model_id,
         "tool_result": tool_result,
     }
+
+
+@app.post("/api/chat/stream")
+async def api_chat_stream(request: Request):
+    """流式Chat API — SSE逐token推送"""
+    from src.model_registry import get_registry
+    from src.config import load_config
+    import json as _json
+
+    try:
+        body = await request.json()
+    except:
+        return StreamingResponse(
+            iter(["data: [错误] 无效请求\n\n"]),
+            media_type="text/event-stream"
+        )
+
+    msgs = body.get("messages", [])
+    if not msgs:
+        msg = body.get("message", "")
+        if msg:
+            msgs = [{"role": "user", "content": msg}]
+
+    if not msgs:
+        return StreamingResponse(
+            iter(["data: [请输入消息]\n\n"]),
+            media_type="text/event-stream"
+        )
+
+    model_id = body.get("model")
+    if not model_id:
+        try:
+            config = load_config()
+            model_id = config.get("models", {}).get("default", "deepseek:chat")
+        except:
+            model_id = "deepseek:chat"
+
+    async def generate():
+        try:
+            reg = get_registry()
+            client = reg.get(model_id) or reg.get(None)
+            if not client:
+                yield f"data: {_json.dumps({'error': '模型未配置，请在Setup页面设置API Key'})}\n\n"
+                yield "data: [DONE]\n\n"
+                return
+
+            for token in client.chat_stream(msgs):
+                yield f"data: {_json.dumps({'token': token})}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            yield f"data: {_json.dumps({'error': str(e)})}\n\n"
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 # ── 文件上传 API ──────────────────────────────────────
 
@@ -855,7 +910,7 @@ async def health_check():
 
     result = {
         "status": "healthy",
-        "version": "1.3.2",
+        "version": "1.4.0",
         "kernel": "running" if (k._started if hasattr(k, '_started') else False) else "standalone",
         "projects_count": len(engine.projects),
         "conversations_count": len(engine.conversations),

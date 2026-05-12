@@ -56,6 +56,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         .flash-error { background: #7f1d1d; color: #fca5a5; }
         a { color: #38bdf8; text-decoration: none; }
         a:hover { text-decoration: underline; }
+        .cursor { animation: blink 1s infinite; } @keyframes blink { 0%,50% { opacity:1; } 51%,100% { opacity:0; } }
     </style>
 </head>
 <body>
@@ -363,22 +364,60 @@ async function send() {
     }
     const div = document.getElementById('messages');
     const displayMsg = uploadedFilename ? '[📄 ' + uploadedFilename + '] ' + msg : msg;
-    div.innerHTML += `<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ${displayMsg}</div>`;
+    div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ' + displayMsg + '</div>';
     input.value = '';
     clearFile();
+    
+    // 创建AI消息气泡(流式填充)
+    const aiBubble = document.createElement('div');
+    aiBubble.style.cssText = 'margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;';
+    aiBubble.innerHTML = '<strong style="color:#38bdf8;">AI:</strong> <span id="streamText"></span><span class="cursor">▊</span>';
+    div.appendChild(aiBubble);
+    const streamText = aiBubble.querySelector('#streamText');
+    const cursor = aiBubble.querySelector('.cursor');
+    
     try {
-        const res = await fetch('/api/chat', {
+        const res = await fetch('/api/chat/stream', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({message: fullMsg, project_id: 'default'})
+            body: JSON.stringify({message: fullMsg})
         });
-        const data = await res.json();
-        const reply = data.content || data.response || '无响应';
-        div.innerHTML += `<div style="margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;"><strong style="color:#38bdf8;">AI:</strong> ${reply}</div>`;
-        div.scrollTop = div.scrollHeight;
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        
+        while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, {stream: true});
+            
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+            
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = line.slice(6);
+                    if (data === '[DONE]') {
+                        cursor.remove();
+                        continue;
+                    }
+                    try {
+                        const parsed = JSON.parse(data);
+                        if (parsed.error) {
+                            streamText.innerHTML += '<span style="color:#fca5a5;">' + parsed.error + '</span>';
+                            cursor.remove();
+                        } else if (parsed.token) {
+                            streamText.textContent += parsed.token;
+                        }
+                    } catch(e) {}
+                }
+            }
+        }
     } catch(e) {
-        div.innerHTML += `<div style="margin:8px 0;color:#fca5a5;">错误: ${e.message}</div>`;
+        streamText.innerHTML += '<span style="color:#fca5a5;">错误: ' + e.message + '</span>';
+        cursor.remove();
     }
+    div.scrollTop = div.scrollHeight;
 }
 
 // 拖拽上传
