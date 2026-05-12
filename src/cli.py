@@ -461,6 +461,17 @@ def cmd_web(args):
     webbrowser.open("http://localhost:8000/ui")
 
 
+def cmd_desktop(args):
+    """启动 All-in-One 桌面客户端"""
+    import subprocess, sys
+    desktop_script = Path(__file__).resolve().parent.parent / "meshctx_desktop.py"
+    if not desktop_script.exists():
+        print("❌ meshctx_desktop.py 未找到")
+        sys.exit(1)
+    print("🚀 启动 meshctx Desktop...")
+    subprocess.run([sys.executable, str(desktop_script)])
+
+
 def cmd_cron(args):
     """Cron 定时任务管理"""
     from src.cron import CronPlugin
@@ -589,6 +600,7 @@ def main():
     ev.set_defaults(func=cmd_evolve)
 
     sub.add_parser("web", help="Web控制台").set_defaults(func=cmd_web)
+    sub.add_parser("desktop", help="桌面客户端 (All-in-One)").set_defaults(func=cmd_desktop)
     
     # cron
     cr = sub.add_parser("cron", help="定时任务")

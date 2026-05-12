@@ -75,7 +75,7 @@ def get_memory_engine() -> MemoryEngine:
 app = FastAPI(
     title="meshctx API",
     description="世界第一自进化Agent系统",
-    version="1.2.14",
+    version="1.3.0",
 )
 
 app.add_middleware(
@@ -166,7 +166,7 @@ class IntentRequest(BaseModel):
 async def root():
     return {
         "message": "meshctx API v1.2 运行中",
-        "version": "1.2.14",
+        "version": "1.3.0",
         "endpoints": {
             "projects": "/projects",
             "conversations": "/conversations",
@@ -351,7 +351,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.2.14",
+        "version": "1.3.0",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -847,7 +847,7 @@ async def health_check():
 
     result = {
         "status": "healthy",
-        "version": "1.2.14",
+        "version": "1.3.0",
         "kernel": "running" if (k._started if hasattr(k, '_started') else False) else "standalone",
         "projects_count": len(engine.projects),
         "conversations_count": len(engine.conversations),
@@ -924,9 +924,21 @@ async def on_startup():
 
     logger.info(f"事件总线: {_kernel.bus.get_stats()['subscriptions']} 订阅")
     
-    # 启动配置热加载
+    # 启动配置热加载 — 文件变更后自动重载模型注册表
     watcher = ConfigWatcher()
-    watcher.on_change(lambda: logger.info("配置已变更,下次请求生效"))
+    def _reload_config():
+        logger.info("配置已变更，自动重载模型...")
+        try:
+            from src.model_registry import get_registry
+            import src.model_registry as mr
+            mr._registry = None  # 清除缓存，下次请求重建
+            reg = get_registry()
+            available = reg.list_all()
+            ready = [e["id"] for e in available if e["ready"]]
+            logger.info(f"配置重载完成: {len(ready)}/{len(available)} 模型就绪")
+        except Exception as e:
+            logger.error(f"配置重载失败: {e}")
+    watcher.on_change(_reload_config)
     watcher.start()
     
     logger.info("═══════════════════════════════════════════")

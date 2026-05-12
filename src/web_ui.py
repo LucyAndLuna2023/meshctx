@@ -69,6 +69,15 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         <a href="/ui/chat" class="{% if '/ui/chat' in request.url.path %}active{% endif %}">Chat</a>
         <a href="/ui/setup" class="{% if '/ui/setup' in request.url.path %}active{% endif %}">Setup</a>
     </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
+        <select onchange="document.cookie='meshctx_lang='+this.value+';path=/';location.reload()" 
+                style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:4px 8px;border-radius:4px;font-size:12px;cursor:pointer;">
+            <option value="zh">中文</option>
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+        </select>
+    </div>
 </div>
 <div class="main">
 {% block content %}{% endblock %}
@@ -395,7 +404,7 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
 <h2>⚙️ Setup</h2>
 
 {% if flash == "success" %}
-<div class="flash flash-success">✅ API Key 已保存！重启 meshctx 后生效。</div>
+<div class="flash flash-success">✅ API Key 已保存！配置已自动生效，无需重启。</div>
 {% elif flash == "error" %}
 <div class="flash flash-error">❌ 保存失败，请重试。</div>
 {% endif %}
@@ -419,6 +428,19 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
             <input name="api_key" type="password" placeholder="sk-xxxxxxxxxxxxxxxx" required
                    style="background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:10px 14px;border-radius:6px;font-size:14px;width:100%;">
         </div>
+        <details style="margin-bottom:12px;">
+            <summary style="color:#64748b;font-size:13px;cursor:pointer;padding:4px 0;">📝 高级配置（可选）</summary>
+            <div class="form-group" style="margin-top:8px;">
+                <label>Base URL</label>
+                <input name="base_url" type="text" placeholder="自动填充默认地址"
+                       style="background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:10px 14px;border-radius:6px;font-size:14px;width:100%;">
+            </div>
+            <div class="form-group">
+                <label>模型名称</label>
+                <input name="model_name" type="text" placeholder="自动填充默认模型"
+                       style="background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:10px 14px;border-radius:6px;font-size:14px;width:100%;">
+            </div>
+        </details>
         <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;font-size:15px;">💾 保存配置</button>
     </form>
 </div>
@@ -798,8 +820,10 @@ async def save_api_key(
     request: Request,
     provider: str = Form(...),
     api_key: str = Form(...),
+    base_url: str = Form(""),
+    model_name: str = Form(""),
 ):
-    """保存 API Key 到 ~/.meshctx/config.yaml"""
+    """保存 API Key 并自动重载配置 — 无需重启"""
     from pathlib import Path
 
     config_path = Path.home() / ".meshctx" / "config.yaml"
@@ -816,18 +840,35 @@ async def save_api_key(
         "siliconflow": {"model": "Qwen/Qwen2.5-7B-Instruct", "base_url": "https://api.siliconflow.cn/v1"},
     }
     defaults = provider_defaults.get(provider, provider_defaults["deepseek"])
-    model_id = f"{provider}:{defaults['model']}"
+    actual_model = model_name or defaults["model"]
+    actual_url = base_url or defaults["base_url"]
+    model_id = f"{provider}:{actual_model}"
 
     config.setdefault("models", {})
     config["models"].setdefault("entries", {})
     config["models"]["default"] = model_id
     config["models"]["entries"][model_id] = {
         "key": api_key,
-        "model": defaults["model"],
-        "base_url": defaults["base_url"],
+        "model": actual_model,
+        "base_url": actual_url,
     }
 
     with open(config_path, "w") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+
+    # 立即重载模型注册表，无需重启
+    try:
+        import src.model_registry as mr
+        mr._registry = None  # 清除缓存
+        from src.model_registry import get_registry
+        reg = get_registry()
+        available = reg.list_all()
+        ready_count = sum(1 for e in available if e["ready"])
+        import logging
+        logging.getLogger("meshctx").info(
+            f"API Key 已保存并自动重载: {ready_count}/{len(available)} 模型就绪"
+        )
+    except Exception:
+        pass
 
     return RedirectResponse(url="/ui/setup?saved=1", status_code=303)

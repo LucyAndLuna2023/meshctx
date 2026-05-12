@@ -1,0 +1,299 @@
+"""
+meshctx i18n 多语言支持
+支持: 中文(zh) / English(en) / 日本語(ja) / 한국어(ko)
+"""
+import json
+import os
+from pathlib import Path
+from typing import Dict
+
+if getattr(__import__("sys"), 'frozen', False):
+    BASE_DIR = Path(__import__("sys")._MEIPASS)
+else:
+    BASE_DIR = Path(__file__).resolve().parent.parent
+
+_loaded: Dict[str, Dict[str, str]] = {}
+_current_lang = os.environ.get("MESHCTX_LANG", "zh")
+
+TRANSLATIONS = {
+    "zh": {
+        # Header
+        "dashboard": "仪表板",
+        "projects": "项目",
+        "memories": "记忆",
+        "continuity": "连续性",
+        "chat": "Chat",
+        "setup": "Setup",
+        # Dashboard
+        "welcome_title": "欢迎使用 meshctx！",
+        "welcome_desc": "首次使用需要配置 AI 模型 API 密钥才能开始。",
+        "config_api_btn": "⚙️ 配置 API 密钥",
+        "project_overview": "📊 项目概览",
+        "no_projects": "📭 暂无项目，",
+        "create_one": "创建一个",
+        "projects_label": "项目",
+        "sessions_label": "会话",
+        "memories_label": "记忆",
+        "agent_label": "Agent",
+        "active_sessions_label": "活跃会话",
+        # Setup
+        "setup_title": "⚙️ Setup",
+        "setup_api_title": "🔑 配置 API 密钥",
+        "setup_api_desc": "选择一个模型提供商，输入你的 API Key，点击保存即可。",
+        "provider_label": "模型提供商",
+        "api_key_label": "API Key",
+        "api_key_placeholder": "sk-xxxxxxxxxxxxxxxx",
+        "save_btn": "💾 保存配置",
+        "saved_ok": "✅ API Key 已保存！配置已自动生效，无需重启。",
+        "saved_error": "❌ 保存失败，请重试。",
+        "no_key_title": "🔗 还没有 API Key？",
+        "advanced_config": "📝 高级配置",
+        "advanced_config_desc": "自定义 base_url 和模型名称：",
+        "model_name_label": "模型名称 (可选)",
+        "base_url_label": "Base URL (可选)",
+        "manual_config": "📝 手动配置（高级）",
+        "manual_config_desc": "编辑 ~/.meshctx/config.yaml:",
+        # Chat
+        "chat_title": "💬 Chat",
+        "chat_placeholder": "输入消息...",
+        "send_btn": "发送",
+        "upload_btn": "📎",
+        "you_label": "You",
+        "ai_label": "AI",
+        "error_label": "错误",
+        "no_response": "无响应",
+        "file_uploaded": "已上传",
+        # Common
+        "status": "状态",
+        "updated": "更新时间",
+        "actions": "操作",
+        "delete": "删除",
+        "delete_confirm": "确定删除?",
+        "excellent": "优秀",
+        "good": "良好",
+        "fair": "一般",
+        "broken": "断裂",
+        "continuous": "连续",
+        "not_continuous": "断裂",
+        "active": "活跃",
+        "inactive": "待机",
+        "no_data": "📭 暂无数据",
+        "no_conversations": "暂无会话",
+        "no_memories": "暂无记忆",
+    },
+    "en": {
+        "dashboard": "Dashboard",
+        "projects": "Projects",
+        "memories": "Memories",
+        "continuity": "Continuity",
+        "chat": "Chat",
+        "setup": "Setup",
+        "welcome_title": "Welcome to meshctx!",
+        "welcome_desc": "Configure your AI model API key to get started.",
+        "config_api_btn": "⚙️ Configure API Key",
+        "project_overview": "📊 Project Overview",
+        "no_projects": "📭 No projects yet, ",
+        "create_one": "create one",
+        "projects_label": "Projects",
+        "sessions_label": "Conversations",
+        "memories_label": "Memories",
+        "agent_label": "Agents",
+        "active_sessions_label": "Active Sessions",
+        "setup_title": "⚙️ Setup",
+        "setup_api_title": "🔑 Configure API Key",
+        "setup_api_desc": "Select a provider, enter your API key, and save.",
+        "provider_label": "Provider",
+        "api_key_label": "API Key",
+        "api_key_placeholder": "sk-xxxxxxxxxxxxxxxx",
+        "save_btn": "💾 Save Configuration",
+        "saved_ok": "✅ API Key saved! Configuration auto-applied, no restart needed.",
+        "saved_error": "❌ Save failed, please retry.",
+        "no_key_title": "🔗 Don't have an API Key?",
+        "advanced_config": "📝 Advanced Configuration",
+        "advanced_config_desc": "Custom base_url and model name:",
+        "model_name_label": "Model Name (optional)",
+        "base_url_label": "Base URL (optional)",
+        "manual_config": "📝 Manual Configuration (Advanced)",
+        "manual_config_desc": "Edit ~/.meshctx/config.yaml:",
+        "chat_title": "💬 Chat",
+        "chat_placeholder": "Type a message...",
+        "send_btn": "Send",
+        "upload_btn": "📎",
+        "you_label": "You",
+        "ai_label": "AI",
+        "error_label": "Error",
+        "no_response": "No response",
+        "file_uploaded": "Uploaded",
+        "status": "Status",
+        "updated": "Updated",
+        "actions": "Actions",
+        "delete": "Delete",
+        "delete_confirm": "Confirm delete?",
+        "excellent": "Excellent",
+        "good": "Good",
+        "fair": "Fair",
+        "broken": "Broken",
+        "continuous": "Continuous",
+        "not_continuous": "Broken",
+        "active": "Active",
+        "inactive": "Inactive",
+        "no_data": "📭 No data",
+        "no_conversations": "No conversations",
+        "no_memories": "No memories",
+    },
+    "ja": {
+        "dashboard": "ダッシュボード",
+        "projects": "プロジェクト",
+        "memories": "メモリ",
+        "continuity": "継続性",
+        "chat": "チャット",
+        "setup": "設定",
+        "welcome_title": "meshctx へようこそ！",
+        "welcome_desc": "AIモデルのAPIキーを設定して始めましょう。",
+        "config_api_btn": "⚙️ APIキーを設定",
+        "project_overview": "📊 プロジェクト概要",
+        "no_projects": "📭 プロジェクトがありません、",
+        "create_one": "作成する",
+        "projects_label": "プロジェクト",
+        "sessions_label": "会話",
+        "memories_label": "メモリ",
+        "agent_label": "エージェント",
+        "active_sessions_label": "アクティブセッション",
+        "setup_title": "⚙️ 設定",
+        "setup_api_title": "🔑 APIキー設定",
+        "setup_api_desc": "プロバイダーを選択し、APIキーを入力して保存してください。",
+        "provider_label": "プロバイダー",
+        "api_key_label": "APIキー",
+        "api_key_placeholder": "sk-xxxxxxxxxxxxxxxx",
+        "save_btn": "💾 設定を保存",
+        "saved_ok": "✅ APIキーを保存しました！自動適用されました。再起動不要です。",
+        "saved_error": "❌ 保存に失敗しました。再試行してください。",
+        "no_key_title": "🔗 APIキーをお持ちでない方",
+        "advanced_config": "📝 詳細設定",
+        "advanced_config_desc": "カスタムbase_urlとモデル名：",
+        "model_name_label": "モデル名 (任意)",
+        "base_url_label": "ベースURL (任意)",
+        "manual_config": "📝 手動設定（上級者向け）",
+        "manual_config_desc": "~/.meshctx/config.yaml を編集:",
+        "chat_title": "💬 チャット",
+        "chat_placeholder": "メッセージを入力...",
+        "send_btn": "送信",
+        "upload_btn": "📎",
+        "you_label": "あなた",
+        "ai_label": "AI",
+        "error_label": "エラー",
+        "no_response": "応答なし",
+        "file_uploaded": "アップロード済",
+        "status": "ステータス",
+        "updated": "更新日時",
+        "actions": "操作",
+        "delete": "削除",
+        "delete_confirm": "削除確認",
+        "excellent": "優秀",
+        "good": "良好",
+        "fair": "普通",
+        "broken": "断絶",
+        "continuous": "継続的",
+        "not_continuous": "断絶",
+        "active": "アクティブ",
+        "inactive": "待機中",
+        "no_data": "📭 データなし",
+        "no_conversations": "会話なし",
+        "no_memories": "メモリなし",
+    },
+    "ko": {
+        "dashboard": "대시보드",
+        "projects": "프로젝트",
+        "memories": "메모리",
+        "continuity": "연속성",
+        "chat": "채팅",
+        "setup": "설정",
+        "welcome_title": "meshctx에 오신 것을 환영합니다!",
+        "welcome_desc": "AI 모델 API 키를 설정하여 시작하세요.",
+        "config_api_btn": "⚙️ API 키 설정",
+        "project_overview": "📊 프로젝트 개요",
+        "no_projects": "📭 프로젝트가 없습니다, ",
+        "create_one": "생성하기",
+        "projects_label": "프로젝트",
+        "sessions_label": "대화",
+        "memories_label": "메모리",
+        "agent_label": "에이전트",
+        "active_sessions_label": "활성 세션",
+        "setup_title": "⚙️ 설정",
+        "setup_api_title": "🔑 API 키 설정",
+        "setup_api_desc": "제공업체를 선택하고 API 키를 입력하여 저장하세요.",
+        "provider_label": "제공업체",
+        "api_key_label": "API 키",
+        "api_key_placeholder": "sk-xxxxxxxxxxxxxxxx",
+        "save_btn": "💾 설정 저장",
+        "saved_ok": "✅ API 키가 저장되었습니다! 자동 적용됨, 재시작 불필요.",
+        "saved_error": "❌ 저장 실패, 다시 시도하세요.",
+        "no_key_title": "🔗 API 키가 없으신가요?",
+        "advanced_config": "📝 고급 설정",
+        "advanced_config_desc": "사용자 정의 base_url 및 모델 이름:",
+        "model_name_label": "모델 이름 (선택)",
+        "base_url_label": "기본 URL (선택)",
+        "manual_config": "📝 수동 설정 (고급)",
+        "manual_config_desc": "~/.meshctx/config.yaml 편집:",
+        "chat_title": "💬 채팅",
+        "chat_placeholder": "메시지 입력...",
+        "send_btn": "전송",
+        "upload_btn": "📎",
+        "you_label": "나",
+        "ai_label": "AI",
+        "error_label": "오류",
+        "no_response": "응답 없음",
+        "file_uploaded": "업로드됨",
+        "status": "상태",
+        "updated": "업데이트",
+        "actions": "작업",
+        "delete": "삭제",
+        "delete_confirm": "삭제 확인",
+        "excellent": "우수",
+        "good": "양호",
+        "fair": "보통",
+        "broken": "단절",
+        "continuous": "연속적",
+        "not_continuous": "단절",
+        "active": "활성",
+        "inactive": "비활성",
+        "no_data": "📭 데이터 없음",
+        "no_conversations": "대화 없음",
+        "no_memories": "메모리 없음",
+    },
+}
+
+
+def get_lang() -> str:
+    """获取当前语言"""
+    return os.environ.get("MESHCTX_LANG", "zh")
+
+
+def set_lang(lang: str):
+    """设置语言"""
+    global _current_lang
+    if lang in TRANSLATIONS:
+        _current_lang = lang
+        os.environ["MESHCTX_LANG"] = lang
+
+
+def t(key: str, lang: str = None) -> str:
+    """翻译: t('welcome_title') → 当前语言的翻译"""
+    lang = lang or _current_lang
+    return TRANSLATIONS.get(lang, TRANSLATIONS["en"]).get(key, key)
+
+
+def get_translations(lang: str = None) -> Dict[str, str]:
+    """获取指定语言的全部翻译"""
+    lang = lang or _current_lang
+    return TRANSLATIONS.get(lang, TRANSLATIONS["en"])
+
+
+def get_available_languages() -> list:
+    """可用的语言列表"""
+    return [
+        {"code": "zh", "name": "中文", "native": "中文"},
+        {"code": "en", "name": "English", "native": "English"},
+        {"code": "ja", "name": "Japanese", "native": "日本語"},
+        {"code": "ko", "name": "Korean", "native": "한국어"},
+    ]
