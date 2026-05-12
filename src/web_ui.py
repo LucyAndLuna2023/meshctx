@@ -333,7 +333,7 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
 <h2>💬 Chat</h2>
 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
     <span style="color:#64748b;font-size:13px;">模型:</span>
-    <select id="modelSelect" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:13px;" onchange="loadModels()">
+    <select id="modelSelect" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:13px;" onchange="localStorage.setItem('meshctx_model',this.value)">
         <option value="">加载中...</option>
     </select>
 </div>
@@ -414,7 +414,10 @@ async function loadModels() {
                 sel.appendChild(opt);
             });
         }
-        if (data.default) sel.value = data.default;
+        if (data.default) {
+        const saved = localStorage.getItem('meshctx_model');
+        sel.value = saved || data.default;
+    }
     } catch(e) {
         document.getElementById('modelSelect').innerHTML = '<option>加载失败</option>';
     }
@@ -442,6 +445,7 @@ function switchTab(tabId) {
     activeTab = tabId;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelector('[data-tab="'+tabId+'"]').classList.add('active');
+    localStorage.setItem('meshctx_active_tab', tabId);
     const div = document.getElementById('messages');
     div.innerHTML = '';
     (allTabs[tabId]||[]).forEach(h => {
@@ -479,6 +483,26 @@ function toggleTheme() {
 // Restore theme
 if (localStorage.getItem('meshctx_theme') === 'light') document.body.classList.add('light');
 
+// 恢复标签页
+(function restoreTabs() {
+    const tabs = JSON.parse(localStorage.getItem(TABS_KEY) || '{"default":[]}');
+    const tabIds = Object.keys(tabs);
+    const tabsDiv = document.getElementById('chatTabs');
+    // 清除旧标签（保留+按钮）
+    while (tabsDiv.children.length > 1) tabsDiv.removeChild(tabsDiv.firstChild);
+    tabIds.forEach((id, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'tab-btn'; btn.dataset.tab = id;
+        btn.textContent = 'Chat ' + (i+1);
+        btn.style.cssText = 'background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 14px;border-radius:6px 6px 0 0;font-size:12px;cursor:pointer;';
+        btn.onclick = function(){switchTab(id)};
+        tabsDiv.insertBefore(btn, tabsDiv.lastElementChild);
+    });
+    // 恢复上次活跃标签
+    const lastActive = localStorage.getItem('meshctx_active_tab') || 'default';
+    if (tabs[lastActive]) switchTab(lastActive);
+    else if (tabs['default']) switchTab('default');
+})();
 restoreHistory();
 
 async function runTerm() {
