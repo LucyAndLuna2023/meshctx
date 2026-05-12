@@ -1,0 +1,77 @@
+name: Build macOS Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller pycryptodome pywebview
+
+      - name: Build macOS .app
+        run: |
+          pyinstaller --onefile \
+            --windowed \
+            --name "MeshCtx" \
+            --icon logo.ico \
+            --add-data "logo.png:." \
+            --add-data "logo.ico:." \
+            --add-data "meshctx.yaml:." \
+            --add-data "src:src" \
+            --hidden-import src \
+            --hidden-import src.core \
+            --hidden-import webview \
+            --hidden-import fastapi \
+            --hidden-import uvicorn \
+            --hidden-import jinja2 \
+            --hidden-import yaml \
+            meshctx_desktop.py
+
+      - name: Verify build
+        run: |
+          if [ -f dist/MeshCtx.app/Contents/MacOS/MeshCtx ]; then
+            echo "OK: MeshCtx.app built"
+            ls -lh dist/MeshCtx.app/Contents/MacOS/MeshCtx
+          elif [ -f dist/MeshCtx ]; then
+            echo "OK: MeshCtx binary built"
+            ls -lh dist/MeshCtx
+          else
+            echo "FAIL"
+            exit 1
+          fi
+
+      - name: Package as .dmg
+        run: |
+          if [ -d dist/MeshCtx.app ]; then
+            mkdir dist/dmg
+            cp -r dist/MeshCtx.app dist/dmg/
+            ln -s /Applications dist/dmg/Applications
+            hdiutil create -volname "MeshCtx" -srcfolder dist/dmg -ov -format UDZO dist/MeshCtx.dmg
+            ls -lh dist/MeshCtx.dmg
+          fi
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/MeshCtx
+            dist/MeshCtx.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
