@@ -77,7 +77,7 @@ exe = EXE(
     debug=False,
     strip=False,
     upx=True,
-    console=False,
+    console=True,   # 显示终端窗口以便看到启动日志/错误
     icon='logo.ico',
     version='version_info.txt',
 )
