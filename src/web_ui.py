@@ -1001,6 +1001,13 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
         </div>
         <div id="convHistoryList" style="max-height:300px;overflow-y:auto;font-size:12px;"></div>
       </div>
+      <div class="card">
+        <h2>🔧 MCP 服务器管理
+          <span style="flex:1"></span>
+          <button class="action-btn start-btn" onclick="showAddMcpForm()" style="font-size:10px;">+ 添加</button>
+        </h2>
+        <div id="mcpServerList"></div>
+      </div>
     </div>
   </div>
   <div class="pane" id="pane-lab">
@@ -1492,6 +1499,8 @@ function renderProviders(){
     html += '</div>';
     document.getElementById('providerList').innerHTML = html;
   }).catch(function(e){ document.getElementById('providerList').innerHTML = '<span class=error-block>加载失败</span>'; });
+  // v1.5.17: 同时加载MCP服务器
+  loadMcpServers();
 }
 
 function showKeyInput(pid){
@@ -1581,6 +1590,67 @@ function loadConversations(search){
 function searchConversations(){
   var q = document.getElementById('convSearch').value;
   loadConversations(q);
+}
+
+// ═══ v1.5.17 MCP服务器管理 ═══
+function loadMcpServers(){
+  fetch('/api/mcp-servers').then(function(r){return r.json()}).then(function(d){
+    var servers = d.servers || [];
+    var html = '';
+    if(servers.length===0){
+      html = '<div class="empty">🔌 暂无MCP服务器 — 点击"+ 添加"配置</div>';
+    } else {
+      for(var i=0;i<servers.length;i++){
+        var s = servers[i];
+        var statusColor = s.status==='connected'?'var(--accent2)':s.status==='error'?'var(--danger)':'var(--border)';
+        var statusIcon = s.status==='connected'?'✓':s.status==='error'?'✗':'?';
+        var enabled = s.enabled !== false;
+        html += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px;">'+
+          '<div style="display:flex;align-items:center;gap:8px;">'+
+            '<span style="width:8px;height:8px;border-radius:50%;background:'+statusColor+';flex-shrink:0;"></span>'+
+            '<span style="font-weight:600;font-size:13px;flex:1;">'+s.name+'</span>'+
+            '<span style="font-size:10px;color:'+statusColor+';">'+statusIcon+' '+s.status+'</span>'+
+            '<span class="tag '+(enabled?'tag-ok':'tag-err')+'" style="font-size:9px;cursor:pointer;" onclick="toggleMcp(\''+s.id+'\')">'+(enabled?'启用':'禁用')+'</span>'+
+            '<button onclick="deleteMcp(\''+s.id+'\')" style="font-size:10px;background:none;color:var(--danger);border:1px solid var(--danger);border-radius:4px;cursor:pointer;padding:2px 6px;">🗑</button>'+
+          '</div>'+
+          '<div style="font-size:10px;color:var(--muted);margin-top:4px;font-family:monospace;">'+s.command+' '+(s.args||[]).join(' ')+'</div>'+
+          (s.last_tested ? '<div style="font-size:9px;color:var(--muted);">上次测试: '+new Date(s.last_tested*1000).toLocaleString()+'</div>' : '')+
+        '</div>';
+      }
+    }
+    document.getElementById('mcpServerList').innerHTML = html;
+  }).catch(function(e){ document.getElementById('mcpServerList').innerHTML = '<span class=error-block>加载失败</span>'; });
+}
+
+function showAddMcpForm(){
+  var name = prompt('MCP服务器名称:');
+  if(!name) return;
+  var command = prompt('命令 (如 npx 或 python):');
+  if(!command) return;
+  var argsStr = prompt('参数 (空格分隔, 可选):','');
+  var args = argsStr ? argsStr.trim().split(/\\s+/) : [];
+  
+  fetch('/api/mcp-servers', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:name, command:command, args:args})
+  }).then(function(r){return r.json()}).then(function(d){
+    if(d.success) loadMcpServers();
+    else alert('添加失败: '+JSON.stringify(d));
+  }).catch(function(e){ alert('请求失败: '+e); });
+}
+
+function toggleMcp(sid){
+  fetch('/api/mcp-servers/'+sid+'/toggle', {method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    loadMcpServers();
+  });
+}
+
+function deleteMcp(sid){
+  if(!confirm('确认删除此MCP服务器?')) return;
+  fetch('/api/mcp-servers/'+sid, {method:'DELETE'}).then(function(r){return r.json()}).then(function(d){
+    loadMcpServers();
+  });
 }
 
 // ═══ 启动 ═══

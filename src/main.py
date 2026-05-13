@@ -708,7 +708,7 @@ async def system_summary():
     k = get_kernel()
     now = time.time()
     summary = {
-        "version": "1.5.16",
+        "version": "1.5.17",
         "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
         "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
         "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},
@@ -1225,6 +1225,129 @@ async def test_provider(provider_id: str):
         cfg[provider_id]["last_tested"] = time.time()
         cfg[provider_id]["test_status"] = "error"
         _save_provider_config(cfg)
+        return {"success": False, "error": str(e)[:200]}
+
+# ── v1.5.17 MCP服务器管理 ──────────────────────────────────
+
+_MCP_CONFIG_FILE = Path(__file__).resolve().parent.parent / "mcp_config.json"
+
+def _load_mcp_config() -> list:
+    if _MCP_CONFIG_FILE.exists():
+        try:
+            return json.loads(_MCP_CONFIG_FILE.read_text())
+        except:
+            pass
+    return []
+
+def _save_mcp_config(servers: list):
+    _MCP_CONFIG_FILE.write_text(json.dumps(servers, indent=2, ensure_ascii=False))
+
+@app.get("/api/mcp-servers")
+async def list_mcp_servers():
+    """列出所有MCP服务器配置"""
+    servers = _load_mcp_config()
+    # 给没有id的补充id
+    for i, s in enumerate(servers):
+        if "id" not in s:
+            s["id"] = f"mcp-{i+1}"
+    return {"servers": servers, "total": len(servers)}
+
+@app.post("/api/mcp-servers")
+async def save_mcp_server(request: Request):
+    """添加/更新MCP服务器"""
+    body = await request.json()
+    sid = body.get("id", f"mcp-{int(time.time())}")
+    name = body.get("name", "").strip()
+    command = body.get("command", "").strip()
+    
+    if not name or not command:
+        raise HTTPException(400, "name和command为必填项")
+    
+    server = {
+        "id": sid,
+        "name": name,
+        "command": command,
+        "args": body.get("args", []),
+        "env": body.get("env", {}),
+        "enabled": body.get("enabled", True),
+        "status": body.get("status", "unknown"),
+        "updated": time.time(),
+    }
+    
+    servers = _load_mcp_config()
+    # 更新或新增
+    found = False
+    for i, s in enumerate(servers):
+        if s.get("id") == sid:
+            servers[i] = server
+            found = True
+            break
+    if not found:
+        servers.append(server)
+    
+    _save_mcp_config(servers)
+    
+    return {"success": True, "server": server}
+
+@app.delete("/api/mcp-servers/{server_id}")
+async def delete_mcp_server(server_id: str):
+    """删除MCP服务器"""
+    servers = _load_mcp_config()
+    servers = [s for s in servers if s.get("id") != server_id]
+    _save_mcp_config(servers)
+    return {"success": True, "deleted": server_id}
+
+@app.post("/api/mcp-servers/{server_id}/toggle")
+async def toggle_mcp_server(server_id: str):
+    """启用/禁用MCP服务器"""
+    servers = _load_mcp_config()
+    for s in servers:
+        if s.get("id") == server_id:
+            s["enabled"] = not s.get("enabled", True)
+            s["updated"] = time.time()
+            _save_mcp_config(servers)
+            return {"success": True, "id": server_id, "enabled": s["enabled"]}
+    raise HTTPException(404, f"MCP服务器 {server_id} 未找到")
+
+@app.post("/api/mcp-servers/{server_id}/test")
+async def test_mcp_server(server_id: str):
+    """测试MCP服务器连通性 — 尝试启动子进程并检查"""
+    servers = _load_mcp_config()
+    server = None
+    for s in servers:
+        if s.get("id") == server_id:
+            server = s
+            break
+    if not server:
+        raise HTTPException(404, f"MCP服务器 {server_id} 未找到")
+    
+    import subprocess
+    try:
+        cmd = [server["command"]] + server.get("args", [])
+        proc = subprocess.run(
+            cmd, 
+            capture_output=True, 
+            text=True, 
+            timeout=10,
+            env={**os.environ, **server.get("env", {})}
+        )
+        ok = proc.returncode == 0
+        # 更新状态
+        for s in servers:
+            if s.get("id") == server_id:
+                s["status"] = "connected" if ok else "error"
+                s["last_tested"] = time.time()
+                break
+        _save_mcp_config(servers)
+        return {
+            "success": ok, 
+            "exit_code": proc.returncode,
+            "stdout": proc.stdout[:300],
+            "stderr": proc.stderr[:300],
+        }
+    except subprocess.TimeoutExpired:
+        return {"success": False, "error": "超时(>10s)"}
+    except Exception as e:
         return {"success": False, "error": str(e)[:200]}
 
 # ── v1.5.16 会话历史浏览器 ────────────────────────────────
