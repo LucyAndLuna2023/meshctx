@@ -708,7 +708,7 @@ async def system_summary():
     k = get_kernel()
     now = time.time()
     summary = {
-        "version": "1.5.17",
+        "version": "1.5.18",
         "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
         "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
         "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},
@@ -991,6 +991,82 @@ async def api_terminal(request: Request):
         return {"error": f"超时({timeout}s)", "output": ""}
     except Exception as e:
         return {"error": str(e), "output": ""}
+
+# ── v1.5.18 代码运行 ─────────────────────────────────
+
+@app.post("/api/code/run")
+async def api_code_run(request: Request):
+    """执行代码块 (Python/Bash/JS) — 返回输出+语言检测"""
+    import subprocess, asyncio, tempfile
+    
+    try:
+        body = await request.json()
+        code = body.get("code", "").strip()
+        lang = body.get("lang", "python").lower()
+        timeout = min(body.get("timeout", 15), 30)
+    except:
+        return {"error": "无效请求", "output": ""}
+    
+    if not code:
+        return {"error": "请输入代码", "output": ""}
+    
+    # 安全检查
+    dangerous = ["rm -rf /", "mkfs", "dd if=", "> /dev/sda", "os.system", "__import__('os')", "subprocess"]
+    for d in dangerous:
+        if d in code.lower():
+            return {"error": f"⚠️ 危险代码已拦截 ({d})", "output": ""}
+    
+    try:
+        if lang in ("python", "py"):
+            # Python: 写入临时文件执行
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as f:
+                f.write(code)
+                tmpfile = f.name
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    sys.executable, tmpfile,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    cwd="/tmp"
+                )
+                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout)
+                out = (stdout or b"").decode(errors="replace") + (stderr or b"").decode(errors="replace")
+                return {"output": out.strip() or "(无输出)", "exit_code": proc.returncode, "lang": lang}
+            finally:
+                os.unlink(tmpfile)
+        
+        elif lang in ("bash", "sh", "shell"):
+            # Bash: 通过shell执行
+            proc = await asyncio.create_subprocess_shell(
+                code, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                cwd="/tmp"
+            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout)
+            out = (stdout or b"").decode(errors="replace") + (stderr or b"").decode(errors="replace")
+            return {"output": out.strip() or "(无输出)", "exit_code": proc.returncode, "lang": lang}
+        
+        elif lang in ("js", "javascript", "node"):
+            # Node.js
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8') as f:
+                f.write(code)
+                tmpfile = f.name
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    "node", tmpfile,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    cwd="/tmp"
+                )
+                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout)
+                out = (stdout or b"").decode(errors="replace") + (stderr or b"").decode(errors="replace")
+                return {"output": out.strip() or "(无输出)", "exit_code": proc.returncode, "lang": lang}
+            finally:
+                os.unlink(tmpfile)
+        else:
+            return {"error": f"不支持的语言: {lang}", "output": ""}
+    
+    except asyncio.TimeoutError:
+        return {"error": f"⏰ 代码执行超时({timeout}s)", "output": ""}
+    except Exception as e:
+        return {"error": str(e)[:300], "output": ""}
 
 # ── 文件上传 API ──────────────────────────────────────
 

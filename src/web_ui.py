@@ -434,6 +434,8 @@ function restoreHistory() {
         if (h.role === 'user') div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ' + h.content + '</div>';
         else div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;"><strong style="color:#38bdf8;">AI:</strong> ' + h.content + '</div>';
     });
+    // v1.5.18: 添加代码运行按钮
+    setTimeout(function(){ addCodeRunButtons(div); }, 100);
     div.scrollTop = div.scrollHeight;
 }
 // 多会话标签
@@ -580,6 +582,27 @@ async function send() {
                         streamText.innerHTML = marked.parse(raw);
                         // 高亮代码块
                         streamText.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+                        // v1.5.18: 代码块▶运行按钮
+                        streamText.querySelectorAll('pre').forEach(function(pre){
+                          var code = pre.querySelector('code');
+                          if(!code) return;
+                          var lang = ''; 
+                          var cls = code.className || '';
+                          var m = cls.match(/language-(\w+)/);
+                          if(m) lang = m[1]; else if(cls.match(/python|py/)) lang='python';
+                          var wrapper = document.createElement('div');
+                          wrapper.className = 'code-block-wrapper';
+                          wrapper.style.cssText = 'position:relative;margin:8px 0;';
+                          pre.parentNode.insertBefore(wrapper, pre);
+                          wrapper.appendChild(pre);
+                          var runBtn = document.createElement('button');
+                          runBtn.textContent = '▶ 运行';
+                          runBtn.title = '运行此代码块';
+                          runBtn.className = 'run-btn';
+                          runBtn.style.cssText = 'position:absolute;top:4px;right:4px;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:2px 10px;font-size:11px;cursor:pointer;z-index:10;';
+                          runBtn.onclick = function(){ runCodeBlock(code.textContent, lang, pre); };
+                          wrapper.appendChild(runBtn);
+                        });
                         // v1.5.14: 复制按钮
                         var copyBtn = document.createElement('button');
                         copyBtn.textContent = '📋';
@@ -645,6 +668,69 @@ window.addEventListener('message', function(e){
     send();
   }
 });
+
+// ═══ v1.5.18 代码运行引擎 ═══
+async function runCodeBlock(code, lang, preEl){
+  var wrapper = preEl.parentNode;
+  // 移除旧输出
+  var oldOut = wrapper.querySelector('.code-output');
+  if(oldOut) oldOut.remove();
+  
+  var runBtn = wrapper.querySelector('.run-btn');
+  if(runBtn){ runBtn.textContent = '⏳...'; runBtn.disabled = true; }
+  
+  // 创建输出区域
+  var output = document.createElement('div');
+  output.className = 'code-output';
+  output.style.cssText = 'margin-top:4px;background:#0a0a0a;border:1px solid #334155;border-radius:4px;padding:8px;font-family:monospace;font-size:12px;color:#22c55e;white-space:pre-wrap;max-height:300px;overflow-y:auto;';
+  output.textContent = '⏳ 执行中...';
+  wrapper.appendChild(output);
+  
+  try {
+    var res = await fetch('/api/code/run', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code:code, lang:lang||'python'})
+    });
+    var d = await res.json();
+    if(d.error){
+      output.style.color = '#fca5a5';
+      output.textContent = '❌ ' + d.error;
+    } else {
+      output.textContent = (d.output||'(无输出)') + (d.exit_code!==undefined ? '\n\n[退出码: '+d.exit_code+']' : '');
+      output.style.color = d.exit_code===0 ? '#22c55e' : '#fbbf24';
+    }
+  } catch(e){
+    output.style.color = '#fca5a5';
+    output.textContent = '❌ 请求失败: ' + e.message;
+  }
+  
+  if(runBtn){ runBtn.textContent = '▶ 运行'; runBtn.disabled = false; }
+}
+
+// 为历史消息中代码块添加运行按钮
+function addCodeRunButtons(container){
+  container.querySelectorAll('pre').forEach(function(pre){
+    if(pre.querySelector('.run-btn')) return; // 已有
+    var code = pre.querySelector('code');
+    if(!code) return;
+    var lang = '';
+    var cls = code.className || '';
+    var m = cls.match(/language-(\w+)/);
+    if(m) lang = m[1];
+    var wrapper = document.createElement('div');
+    wrapper.className = 'code-block-wrapper';
+    wrapper.style.cssText = 'position:relative;margin:8px 0;';
+    pre.parentNode.insertBefore(wrapper, pre);
+    wrapper.appendChild(pre);
+    var runBtn = document.createElement('button');
+    runBtn.textContent = '▶ 运行';
+    runBtn.className = 'run-btn';
+    runBtn.style.cssText = 'position:absolute;top:4px;right:4px;background:#2563eb;color:#fff;border:none;border-radius:4px;padding:2px 10px;font-size:11px;cursor:pointer;z-index:10;';
+    runBtn.onclick = function(){ runCodeBlock(code.textContent, lang, pre); };
+    wrapper.appendChild(runBtn);
+  });
+}
 </script>
 {% endblock %}"""
 
