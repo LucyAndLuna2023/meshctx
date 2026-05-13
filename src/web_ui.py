@@ -1819,3 +1819,34 @@ async def save_api_key(
     os.environ[defaults["key_env"]] = api_key
 
     return RedirectResponse(url="/ui/setup?saved=1", status_code=303)
+
+
+# ── v1.5.13 下载页面 ─────────────────────────────────────
+
+@router.get("/download", response_class=HTMLResponse)
+async def download_page(request: Request):
+    html = r"""{% extends "base.html" %}
+{% block content %}
+<h2>💻 下载 meshctx Desktop</h2>
+<div class="card" style="margin-top:16px;">
+  <h3>🪟 Windows 原生客户端 (v1.5)</h3>
+  <p style="color:var(--muted);">独立 .exe 程序，无需 Python，下载即用</p>
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;margin:12px 0;">
+    <p>📦 <b>meshctx-setup-v1.5.exe</b><br><span style="font-size:11px;color:var(--muted);">NSIS安装 · 每次Git提交自动构建 · Win10/11 x64</span></p>
+    <a class="btn btn-primary" href="https://github.com/LucyAndLuna2023/meshctx/actions/workflows/build-windows.yml" target="_blank" style="display:inline-block;text-decoration:none;padding:10px 24px;">⬇ 前往构建页下载</a>
+  </div>
+  <h4>📋 步骤</h4>
+  <ol style="color:var(--muted);font-size:13px;line-height:2;">
+    <li>点击上方按钮 → GitHub Actions</li>
+    <li>选择最新绿色✓运行 → Artifacts区域下载 <b>meshctx-setup-v1.5.exe</b></li>
+    <li>运行安装 → 桌面快捷方式 → 启动 → ⚙设置填入API Key</li>
+  </ol>
+  <p style="font-size:11px;color:var(--muted);">⚙ 系统: Win10/11 x64 · 4GB RAM · 500MB磁盘<br>首次运行可能触发Windows Defender → "更多信息"→"仍要运行"</p>
+</div>
+<div class="card" style="margin-top:16px;">
+  <h3>🌐 Web直接使用</h3>
+  <p>💬 <a href="/ui/chat">Chat</a> · 📊 <a href="/ui/desktop">Desktop</a> · ⚙ <a href="/ui/setup">Setup</a></p>
+</div>
+{% endblock %}"""
+    _TEMPLATES["download.html"] = html
+    return _render("download.html", {"request": request, "title": "Download"})
