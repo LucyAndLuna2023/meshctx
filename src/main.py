@@ -403,7 +403,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.5.7",
+        "version": "1.5.8",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -708,7 +708,7 @@ async def system_summary():
     k = get_kernel()
     now = time.time()
     summary = {
-        "version": "1.5.7",
+        "version": "1.5.8",
         "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
         "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
         "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},
@@ -797,6 +797,23 @@ async def system_summary():
     except:
         summary["models"] = {"total": 0, "ready": 0, "list": []}
 
+    # v1.5.8: 系统健康评分 (0-100)
+    hscore = 100
+    h = summary.get("health", {})
+    plugins = h.get("plugins", {})
+    if plugins:
+        weights = {"healthy": 1.0, "degraded": 0.5, "unstable": 0.2, "critical": 0.0, "unknown": 0.5}
+        total_w = len(plugins)
+        score = sum(weights.get(p.get("status", "unknown"), 0.5) for p in plugins.values()) / max(total_w, 1)
+        hscore = round(score * 100)
+    # 性能扣分
+    res = summary.get("resources", {})
+    if res.get("memory_percent", 0) > 80:
+        hscore = max(0, hscore - 15)
+    elif res.get("memory_percent", 0) > 60:
+        hscore = max(0, hscore - 5)
+    summary["health_score"] = hscore
+    
     return summary
 
 

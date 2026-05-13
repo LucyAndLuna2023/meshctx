@@ -1106,7 +1106,14 @@ function renderMonitor(d){
   var statusCount = {healthy:0,degraded:0,unstable:0,critical:0,unknown:0};
   Object.values(plugins).forEach(function(p){ statusCount[p.status||'unknown'] = (statusCount[p.status||'unknown']||0)+1; });
 
+  var hs = d.health_score || 100;
+  var hsColor = hs >= 80 ? 'var(--accent2)' : hs >= 50 ? '#ffa940' : 'var(--danger)';
   document.getElementById('monitorStats').innerHTML =
+    '<div class="stat-card" style="grid-column:1/-1;background:linear-gradient(90deg,'+hsColor+'22,'+hsColor+'05);border:1px solid '+hsColor+'44;">'+
+      '<div class="value" style="color:'+hsColor+';font-size:28px;">'+hs+'</div>'+
+      '<div class="label">🩺 系统健康评分</div>'+
+      '<div style="font-size:9px;color:var(--muted);">'+ (hs>=80?'优秀':hs>=50?'一般':'需关注') +'</div>'+
+    '</div>'+
     '<div class="stat-card"><div class="value '+colorByStatus(h.overall)+'">'+ (statusCount.healthy||0) +'/'+Object.keys(plugins).length+'</div><div class="label">插件健康</div></div>'+
     '<div class="stat-card"><div class="value">'+ (models.ready||0) +'/'+(models.total||0)+'</div><div class="label">模型就绪</div></div>'+
     '<div class="stat-card"><div class="value">'+ (perf.total_requests||0) +'</div><div class="label">总请求</div></div>'+
