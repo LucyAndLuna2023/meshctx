@@ -75,7 +75,7 @@ from .homeostasis import (
     CircadianModulator,
 )
 
-__version__ = "1.4.0"
+__version__ = "1.5.26"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",

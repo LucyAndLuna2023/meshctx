@@ -225,6 +225,9 @@ if _static_dir.exists():
 from .web_ui import router as web_ui_router
 app.include_router(web_ui_router)
 
+# ─── i18n 语言切换 ─────────────────────────────────────
+from .i18n import set_lang, get_lang
+
 # 挂载引擎到 app.state
 app.state.kernel = None
 app.state.memory_engine = None
@@ -292,7 +295,7 @@ class IntentRequest(BaseModel):
 async def root():
     return {
         "message": "MeshCtx API v1.5 运行中",
-        "version": "1.5.24",
+        "version": "1.5.26",
         "endpoints": {
             "projects": "/projects",
             "conversations": "/conversations",
@@ -310,6 +313,21 @@ async def root():
             "docs": "/docs",
         },
     }
+
+# ── 语言切换 ──────────────────────────────────────────
+class LangSetRequest(BaseModel):
+    lang: str
+
+@app.post("/api/lang/set")
+async def api_lang_set(request: LangSetRequest):
+    """设置UI语言"""
+    set_lang(request.lang)
+    return {"status": "ok", "lang": request.lang}
+
+@app.get("/api/lang/get")
+async def api_lang_get():
+    """获取当前语言"""
+    return {"lang": get_lang()}
 
 
 # ── 项目管理 (委托给 MemoryEngine) ──────────────────────

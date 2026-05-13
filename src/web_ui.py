@@ -87,12 +87,14 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         <a href="/ui/setup" class="{% if '/ui/setup' in request.url.path %}active{% endif %}">Setup</a>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
-        <select onchange="document.cookie='meshctx_lang='+this.value+';path=/';location.reload()" 
+        <select id="langSelect" onchange="switchLang(this.value)" 
                 style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:4px 8px;border-radius:4px;font-size:12px;cursor:pointer;">
             <option value="zh">中文</option>
             <option value="en">English</option>
             <option value="ja">日本語</option>
             <option value="ko">한국어</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
             <option value="es">Español</option>
         </select>
         <button onclick="toggleTheme()" style="background:transparent;border:1px solid #334155;color:#94a3b8;padding:4px 8px;border-radius:4px;font-size:12px;cursor:pointer;margin-left:4px;" title="切换主题">🌓</button>
@@ -106,6 +108,19 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
 <script>
 marked.setOptions({breaks:true, gfm:true});
 hljs.configure({languages:['python','javascript','bash','json','yaml','sql','css','html','xml','java','go','rust','cpp','typescript','shell']});
+
+// Language switcher — localStorage + server sync
+function switchLang(lang) {
+    localStorage.setItem('meshctx_lang', lang);
+    fetch('/api/lang/set', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({lang:lang})})
+        .then(function(){ location.reload(); })
+        .catch(function(){ location.reload(); });
+}
+(function(){
+    var saved = localStorage.getItem('meshctx_lang') || 'zh';
+    var sel = document.getElementById('langSelect');
+    if (sel) sel.value = saved;
+})();
 </script>
 </body>
 </html>"""

@@ -1,4 +1,4 @@
-﻿; meshctx Desktop — NSIS Unicode 安装脚本 v1.5.25
+; meshctx Desktop — NSIS Unicode 安装脚本 v1.5.26
 ; 7语言 + MUI_LANGDLL(原生语言选择,解决乱码)
 ; 构建: makensis meshctx_setup.nsi
 
@@ -13,7 +13,7 @@ InstallDir "$PROGRAMFILES\MeshCtx"
 RequestExecutionLevel admin
 SetCompressor /SOLID lzma
 
-!define VERSION "1.5.25"
+!define VERSION "1.5.26"
 !define PUBLISHER "meshctx.com"
 
 ; ── 界面图标 ───────────────────────────────
@@ -53,6 +53,9 @@ PageExEnd
 !insertmacro MUI_UNPAGE_INSTFILES
 
 ; ── 7语言注册 ─────────────────────────────
+!define MUI_LANGDLL_REGISTRY_ROOT "HKLM"
+!define MUI_LANGDLL_REGISTRY_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\MeshCtx"
+!define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
 !define MUI_LANGDLL_ALLLANGUAGES
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "SimpChinese"
