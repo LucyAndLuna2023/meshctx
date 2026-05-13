@@ -888,6 +888,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
   <span class="status-dot" id="sysDot" title="系统状态"></span>
   <span class="live-indicator" id="liveTag"></span>
   <span class="spacer"></span>
+  <button onclick="toggleTheme()" title="切换明暗主题" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;" id="themeBtn">🌓</button>
   <select id="quickModel" onchange="switchQuickModel()" title="快速切换模型">
     <option value="">加载中...</option>
   </select>
@@ -1284,6 +1285,21 @@ function trainPredictor(){
     setTimeout(function(){ btn.textContent = '🧠 训练'; btn.disabled = false; }, 2000);
     console.error(e);
   });
+}
+
+// ═══ 主题切换 v1.5.7 ═══
+(function(){
+  var saved = localStorage.getItem('meshctx-theme');
+  if(saved==='light') document.body.classList.add('light');
+  if(saved==='light') document.getElementById('themeBtn').textContent = '☀️';
+})();
+function toggleTheme(){
+  var body = document.body;
+  var btn = document.getElementById('themeBtn');
+  body.classList.toggle('light');
+  var isLight = body.classList.contains('light');
+  localStorage.setItem('meshctx-theme', isLight ? 'light' : 'dark');
+  btn.textContent = isLight ? '☀️' : '🌓';
 }
 
 // ═══ 基准测试 v1.5.6 ═══
