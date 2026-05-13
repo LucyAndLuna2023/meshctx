@@ -938,8 +938,11 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
     <div class="pane-inner">
       <div class="dl-banner">
         <span class="dlicon">💻</span>
-        <span class="dltxt"><b>meshctx Desktop v1.5</b> — Windows原生客户端<br>下载即用，无需Python环境</span>
-        <a class="dl-btn" href="https://github.com/LucyAndLuna2023/meshctx/releases/latest" target="_blank">⬇ 下载</a>
+        <span class="dltxt">
+          <b>meshctx Desktop v1.5</b> — Windows原生客户端，下载即用<br>
+          <span style="font-size:10px;color:var(--muted);">自动构建 · 每次提交均编译最新 .exe + NSIS 安装程序</span>
+        </span>
+        <a class="dl-btn" href="https://github.com/LucyAndLuna2023/meshctx/actions/workflows/build-windows.yml" target="_blank">⬇ 构建页</a>
       </div>
       <div class="stats-grid" id="monitorStats"></div>
       <div class="card">
