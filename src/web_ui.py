@@ -1166,6 +1166,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
   <button class="tab" data-pane="monitor">📊 Monitor</button>
   <button class="tab" data-pane="providers">🔌 供应商</button>
   <button class="tab" data-pane="lab">🧪 Lab</button>
+  <button class="tab" data-pane="history">📜 历史</button>
 </div>
 <div class="content">
   <div class="pane active" id="pane-chat">
