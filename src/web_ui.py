@@ -845,7 +845,34 @@ body{
 .action-btn.start-btn:hover{background:#065f46;}
 .action-btn.stop-btn{color:var(--danger);border-color:var(--danger);}
 .action-btn.stop-btn:hover{background:#7f1d1d;}
-.button-row{display:flex;gap:8px;margin-top:8px;}
+.action-btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+/* v1.5.4: OODA相位脉冲动画 */
+@keyframes phasePulse {
+  0%,100%{box-shadow:0 0 0 0 rgba(0,208,132,0.4);}
+  50%{box-shadow:0 0 0 6px rgba(0,208,132,0);}
+}
+.phase-observing{background:var(--accent);}
+.phase-orienting{background:#ffa940;}
+.phase-deciding{background:#ff7875;}
+.phase-acting{background:#36cfc9;}
+.phase-active{animation:phasePulse 2s ease-in-out infinite;border-radius:50%;display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:middle;}
+.phase-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:9px;color:#000;font-weight:600;margin-left:6px;}
+
+/* v1.5.4: 下载Banner */
+.dl-banner{background:linear-gradient(135deg,#1a1a3e,#2a1a5e);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;}
+.dl-banner .dlicon{font-size:20px;}
+.dl-banner .dltxt{flex:1;font-size:12px;line-height:1.6;}
+.dl-banner .dltxt b{color:var(--accent);}
+.dl-btn{background:var(--accent);color:#000;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:600;font-size:11px;text-decoration:none;display:inline-block;}
+.dl-btn:hover{filter:brightness(1.2);}
+.heal-chain{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;}
+.heal-node{padding:3px 10px;border-radius:12px;font-size:10px;border:1px solid var(--border);display:flex;align-items:center;gap:4px;}
+.heal-node.ok{border-color:var(--accent);color:var(--accent);}
+.heal-node.warn{border-color:#ffa940;color:#ffa940;}
+.heal-node .heal-dot{width:6px;height:6px;border-radius:50%;display:inline-block;}
+.heal-node.ok .heal-dot{background:var(--accent);}
+.heal-node.warn .heal-dot{background:#ffa940;}
 </style>
 </head>
 <body>
@@ -888,10 +915,19 @@ body{
   </div>
   <div class="pane" id="pane-monitor">
     <div class="pane-inner">
+      <div class="dl-banner">
+        <span class="dlicon">💻</span>
+        <span class="dltxt"><b>meshctx Desktop v1.5</b> — Windows原生客户端<br>下载即用，无需Python环境</span>
+        <a class="dl-btn" href="https://github.com/LucyAndLuna2023/meshctx/releases/latest" target="_blank">⬇ 下载</a>
+      </div>
       <div class="stats-grid" id="monitorStats"></div>
       <div class="card">
         <h2>❤️ 插件健康</h2>
         <div class="plugin-grid" id="pluginHealth"></div>
+      </div>
+      <div class="card">
+        <h2>🩺 自愈链路</h2>
+        <div class="heal-chain" id="healChain"></div>
       </div>
       <div class="card">
         <h2>🔧 模型就绪状态</h2>
@@ -1019,7 +1055,7 @@ function renderAgent(d){
   var oodaHTML = '';
   for(var i=0; i<phases.length; i++){
     var p=phases[i], isActive = (p===curPhase || (curPhase==='idle' && p==='O'));
-    oodaHTML += '<div class="ooda-step '+p+(isActive?' active':'')+'"><div class="letter">'+(p.length===1?p:'Oo')+'</div><div class="name">'+_phaseMap[p]+'</div></div>';
+    oodaHTML += '<div class="ooda-step '+p+(isActive?' active':'')+'"'+(isActive?' style="animation:phasePulse 2s ease-in-out infinite;"':'')+'><div class="letter">'+(p.length===1?p:'Oo')+'</div><div class="name">'+_phaseMap[p]+'</div></div>';
     if(i<3) oodaHTML += '<div class="ooda-arrow">→</div>';
   }
   document.getElementById('oodaBox').innerHTML = oodaHTML;
@@ -1075,6 +1111,22 @@ function renderMonitor(d){
     pHtml = '<div class="empty">🔌 暂无插件数据</div>';
   }
   document.getElementById('pluginHealth').innerHTML = pHtml;
+  
+  // v1.5.4: 自愈链路
+  var healPlugins = h.plugins || {};
+  var chainNames = ['healer','predictor','metacognition','gateway','websocket'];
+  var chainHtml = '';
+  for(var i=0;i<chainNames.length;i++){
+    var cn = chainNames[i];
+    var hp = healPlugins[cn] || {};
+    var ok = hp.status==='healthy';
+    chainHtml += '<span class=heal-node'+(ok?' ok':' warn')+'>';
+    chainHtml += '<span class=heal-dot></span>'+cn;
+    if(!ok) chainHtml += ' ⚠';
+    if(i<chainNames.length-1) chainHtml += ' →';
+    chainHtml += '</span>';
+  }
+  document.getElementById('healChain').innerHTML = chainHtml;
 
   // 模型就绪状态 (紧凑表)
   var mHtml = '';
