@@ -117,7 +117,7 @@ _metrics = MetricsCollector()
 app = FastAPI(
     title="meshctx API",
     description="世界第一自进化Agent系统",
-    version="1.5.19",
+    version="1.5.20",
 )
 
 app.add_middleware(
@@ -403,7 +403,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.5.19",
+        "version": "1.5.20",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -708,7 +708,7 @@ async def system_summary():
     k = get_kernel()
     now = time.time()
     summary = {
-        "version": "1.5.19",
+        "version": "1.5.20",
         "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
         "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
         "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},
@@ -880,8 +880,8 @@ async def api_chat(request: Request):
     if not msgs:
         return {"content": "请输入消息", "tokens": 0}
     
-    # v1.5.16: 注入 .meshctx.md 项目上下文
-    md_ctx = _load_meshctx_md()
+    # v1.5.20: 注入 .meshctx.md 项目上下文 (多项目支持)
+    md_ctx = _get_chat_context()
     if md_ctx:
         msgs.insert(0, {"role": "system", "content": f"[项目上下文 .meshctx.md]\n{md_ctx}"})
     
@@ -935,8 +935,8 @@ async def api_chat_stream(request: Request):
             media_type="text/event-stream"
         )
 
-    # v1.5.16: 注入 .meshctx.md 项目上下文
-    md_ctx = _load_meshctx_md()
+    # v1.5.20: 注入 .meshctx.md 项目上下文 (多项目支持)
+    md_ctx = _get_chat_context()
     if md_ctx:
         msgs.insert(0, {"role": "system", "content": f"[项目上下文 .meshctx.md]\n{md_ctx}"})
 
@@ -1465,9 +1465,11 @@ async def conversation_history(
         "total": len(conversations),
     }
 
-# ── v1.5.16 .meshctx.md 上下文注入 ───────────────────────
+# ── v1.5.20 .meshctx.md 多项目上下文 ──────────────────────
 
 _MESHCTX_MD_CACHE: Dict[str, tuple] = {}  # path -> (content, mtime)
+_ACTIVE_PROJECT: Optional[str] = None  # 当前活跃项目路径
+
 
 def _load_meshctx_md(project_path: str = ".") -> Optional[str]:
     """加载项目目录中的 .meshctx.md 文件"""
@@ -1494,11 +1496,92 @@ def _load_meshctx_md(project_path: str = ".") -> Optional[str]:
     _MESHCTX_MD_CACHE[cache_key] = (content, mtime)
     return content
 
+
+def _scan_projects(base_dir: str = ".") -> list:
+    """扫描工作区所有 .meshctx.md 项目"""
+    projects = []
+    base = Path(base_dir).resolve()
+    # 扫描当前目录及2层子目录
+    for root, dirs, files in os.walk(base):
+        if ".meshctx.md" in files:
+            rel_path = str(Path(root).relative_to(base))
+            display = rel_path if rel_path != "." else "(根目录)"
+            # 读取第一行作为项目名
+            try:
+                first_line = (Path(root) / ".meshctx.md").read_text(encoding="utf-8").strip().split("\n")[0].strip("# ")[:50]
+            except:
+                first_line = display
+            projects.append({
+                "path": str(Path(root).resolve()),
+                "name": display,
+                "title": first_line or display,
+                "active": str(Path(root).resolve()) == _ACTIVE_PROJECT
+            })
+        # 只扫描2层
+        if root != str(base):
+            dirs.clear()
+        if len(projects) >= 20:
+            break
+    return projects
+
+
 @app.get("/api/context/meshctx-md")
 async def get_meshctx_md():
     """获取当前 .meshctx.md 上下文"""
     content = _load_meshctx_md()
-    return {"found": content is not None, "content": content, "path": str(Path(".").resolve() / ".meshctx.md") if content else None}  # 修复中文引号
+    md_path = _get_active_md_path()
+    return {"found": content is not None, "content": content, "path": md_path}
+
+
+@app.get("/api/context/projects")
+async def list_projects():
+    """列出所有可用的 .meshctx.md 项目"""
+    projects = _scan_projects()
+    return {
+        "projects": projects,
+        "active": _ACTIVE_PROJECT,
+        "total": len(projects)
+    }
+
+
+@app.post("/api/context/project/activate")
+async def activate_project(request: Request):
+    """切换活跃项目上下文"""
+    global _ACTIVE_PROJECT
+    try:
+        body = await request.json()
+        path = body.get("path", "").strip()
+    except:
+        return {"error": "无效请求"}
+    
+    if not path:
+        _ACTIVE_PROJECT = None
+        return {"active": None, "message": "已清除项目上下文"}
+    
+    p = Path(path)
+    if (p / ".meshctx.md").exists():
+        _ACTIVE_PROJECT = str(p.resolve())
+        content = _load_meshctx_md(str(p))
+        return {"active": _ACTIVE_PROJECT, "name": path, "content": content[:100] + "..." if content and len(content) > 100 else content, "message": f"已切换到: {path}"}
+    return {"error": f"未找到 .meshctx.md: {path}"}
+
+
+def _get_active_md_path() -> Optional[str]:
+    """获取活跃的 .meshctx.md 路径"""
+    if _ACTIVE_PROJECT:
+        p = Path(_ACTIVE_PROJECT) / ".meshctx.md"
+        if p.exists():
+            return str(p)
+    return str(Path(".").resolve() / ".meshctx.md") if (Path(".") / ".meshctx.md").exists() else None
+
+
+def _get_chat_context() -> Optional[str]:
+    """获取Chat对话应注入的上下文 (优先活跃项目，否则当前目录)"""
+    if _ACTIVE_PROJECT:
+        content = _load_meshctx_md(_ACTIVE_PROJECT)
+        if content:
+            return content
+    return _load_meshctx_md(".")
 
 # ── Gateway Webhook (企业微信消息接收+回复) ──
 

@@ -1179,8 +1179,15 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
         <div id="providerList"></div>
       </div>
       <div class="card">
-        <h2>📄 项目上下文 (.meshctx.md)</h2>
+        <h2>📄 项目上下文 (.meshctx.md) <span style="font-size:10px;color:var(--muted);">v1.5.20 多项目</span></h2>
+        <div style="margin-bottom:10px;">
+          <select id="projectSelector" onchange="switchProject(this.value)" 
+            style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;width:100%;min-width:200px;">
+            <option value="">(自动检测...</option>
+          </select>
+        </div>
         <div id="meshctxMdStatus" style="font-size:12px;"></div>
+        <div id="meshctxMdPreview" style="font-size:11px;color:var(--muted);margin-top:8px;max-height:120px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:8px;display:none;"></div>
       </div>
       <div class="card">
         <h2>💬 会话历史</h2>
@@ -1730,25 +1737,63 @@ function deleteProvider(pid){
   });
 }
 
-// ═══ v1.5.16 .meshctx.md 上下文 ═══
+// ═══ v1.5.20 .meshctx.md 多项目上下文 ═══
 function loadMeshctxMd(){
+  var statusEl = document.getElementById('meshctxMdStatus');
+  var previewEl = document.getElementById('meshctxMdPreview');
+  var selector = document.getElementById('projectSelector');
+  
+  // 加载项目列表
+  fetch('/api/context/projects').then(function(r){return r.json()}).then(function(pd){
+    if(pd.projects && pd.projects.length > 0){
+      selector.innerHTML = '<option value="">(自动检测)</option>';
+      pd.projects.forEach(function(p){
+        var sel = p.path === pd.active ? ' selected' : '';
+        selector.innerHTML += '<option value="'+p.path+'"'+sel+'>'+p.title+' ('+p.name+')</option>';
+      });
+    }
+  }).catch(function(e){ console.log('项目列表加载失败:', e); });
+  
+  // 加载当前上下文
   fetch('/api/context/meshctx-md').then(function(r){return r.json()}).then(function(d){
-    var el = document.getElementById('meshctxMdStatus');
     if(d.found){
-      el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">'+
+      statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">'+
         '<span class="dot on"></span>'+
         '<span style="color:var(--accent2);font-weight:600;">✅ .meshctx.md 已加载</span>'+
-        '<span style="color:var(--muted);font-size:10px;">'+d.path+'</span>'+
-        '</div>'+
-        '<div style="margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;max-height:150px;overflow-y:auto;font-family:monospace;font-size:11px;white-space:pre-wrap;">'+
-        (d.content||'').substring(0,500)+((d.content||'').length>500?'...':'')+
+        '<span style="color:var(--muted);font-size:10px;">'+ (d.path||'').split('/').slice(-3).join('/') +'</span>'+
         '</div>';
+      if(previewEl){
+        previewEl.style.display = 'block';
+        previewEl.textContent = (d.content||'').substring(0, 800) + ((d.content||'').length > 800 ? '...' : '');
+      }
     } else {
-      el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--muted);">'+
+      statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--muted);">'+
         '<span class="dot off"></span>'+
-        '<span>📄 未检测到 .meshctx.md — 在当前目录创建此文件即可自动注入上下文</span>'+
-        '</div>';
+        '<span>📄 未检测到 .meshctx.md — 创建此文件自动注入上下文</span>'+
+        '</div>'+
+        '<div style="margin-top:6px;"><button onclick="createMeshctxMd()" style="background:#2563eb;color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;">+ 创建模板</button></div>';
+      if(previewEl) previewEl.style.display = 'none';
     }
+  }).catch(function(e){ statusEl.innerHTML = '<span class=error-block>加载失败: '+e.message+'</span>'; });
+}
+
+function switchProject(path){
+  fetch('/api/context/project/activate', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({path:path||''})
+  }).then(function(r){return r.json()}).then(function(d){
+    loadMeshctxMd();
+  }).catch(function(e){ console.log('项目切换失败:', e); });
+}
+
+function createMeshctxMd(){
+  var content = '# 项目名称\n\n## 技术栈\n- Python 3.10+\n- FastAPI\n\n## 项目简介\n简要描述你的项目...\n\n## 关键约定\n- 使用TDD\n- 70测试必须全过';
+  navigator.clipboard.writeText(content).then(function(){
+    var el = document.getElementById('meshctxMdStatus');
+    el.innerHTML += '<br><span style="color:#22c55e;">✅ 模板已复制! 创建 .meshctx.md 后刷新</span>';
+  });
+}
   }).catch(function(e){ document.getElementById('meshctxMdStatus').innerHTML = '<span class=error-block>加载失败</span>'; });
 }
 
