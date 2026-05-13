@@ -915,6 +915,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
     <button type="submit" style="background:var(--accent);color:#000;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px;font-weight:600;">发送</button>
   </form>
   <button onclick="toggleTheme()" title="切换明暗主题" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;" id="themeBtn">🌓</button>
+  <a href="/ui/download" title="下载Windows客户端" style="text-decoration:none;font-size:13px;padding:4px 6px;">💻</a>
   <select id="quickModel" onchange="switchQuickModel()" title="快速切换模型">
     <option value="">加载中...</option>
   </select>
@@ -1026,6 +1027,10 @@ function startAutoRefresh(){
   _timer = setInterval(fetchSummary, REFRESH_SEC*1000);
 }
 function fetchSummary(){
+  // v1.5.15: 标题闪烁
+  var origTitle = document.title;
+  document.title = '● meshctx Desktop';
+  setTimeout(function(){ document.title = origTitle; }, 600);
   // v1.5.11: 刷新脉冲动画
   if(_refreshPulse){
     document.getElementById('liveTag').style.transform = 'scale(1.2)';
