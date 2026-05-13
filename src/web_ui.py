@@ -623,6 +623,15 @@ chatCard.addEventListener('drop', function(e) {
         uploadFile();
     }
 });
+
+// v1.5.9: Desktop快速提问监听
+window.addEventListener('message', function(e){
+  var d = e.data;
+  if(d && d.type === 'meshctx-quick-ask' && d.message){
+    document.getElementById('userInput').value = d.message;
+    send();
+  }
+});
 </script>
 {% endblock %}"""
 
@@ -888,6 +897,10 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
   <span class="status-dot" id="sysDot" title="系统状态"></span>
   <span class="live-indicator" id="liveTag"></span>
   <span class="spacer"></span>
+  <form onsubmit="quickAsk(event)" style="display:flex;gap:4px;align-items:center;">
+    <input type="text" id="quickInput" placeholder="快速提问..." style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;width:140px;font-family:inherit;">
+    <button type="submit" style="background:var(--accent);color:#000;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px;font-weight:600;">发送</button>
+  </form>
   <button onclick="toggleTheme()" title="切换明暗主题" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;" id="themeBtn">🌓</button>
   <select id="quickModel" onchange="switchQuickModel()" title="快速切换模型">
     <option value="">加载中...</option>
@@ -1292,6 +1305,27 @@ function trainPredictor(){
     setTimeout(function(){ btn.textContent = '🧠 训练'; btn.disabled = false; }, 2000);
     console.error(e);
   });
+}
+
+// ═══ 快速提问 v1.5.9 ═══
+function quickAsk(e){
+  e.preventDefault();
+  var inp = document.getElementById('quickInput');
+  var msg = inp.value.trim();
+  if(!msg) return;
+  // 切换到Chat tab
+  document.querySelectorAll('.tabbar .tab').forEach(function(t){t.classList.remove('active')});
+  document.querySelectorAll('.content .pane').forEach(function(p){p.classList.remove('active')});
+  var chatTab = document.querySelector('.tab[data-pane="chat"]');
+  var chatPane = document.getElementById('pane-chat');
+  if(chatTab) chatTab.classList.add('active');
+  if(chatPane) chatPane.classList.add('active');
+  // 通过postMessage发送给chat iframe
+  var iframe = document.getElementById('chatFrame');
+  if(iframe && iframe.contentWindow){
+    iframe.contentWindow.postMessage({type:'meshctx-quick-ask', message:msg}, '*');
+  }
+  inp.value = '';
 }
 
 // ═══ 主题切换 v1.5.7 ═══
