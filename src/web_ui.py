@@ -906,7 +906,10 @@ body{
   <div class="pane" id="pane-lab">
     <div class="pane-inner">
       <div class="card">
-        <h2>🔮 预测引擎</h2>
+        <h2>🔮 预测引擎
+          <span style="flex:1"></span>
+          <button class="action-btn start-btn" onclick="trainPredictor()" title="从最近事件中学习模式">🧠 训练</button>
+        </h2>
         <div id="predictorPanel"></div>
       </div>
       <div class="card">
@@ -1187,6 +1190,20 @@ function controlAgent(action){
       console.error(e);
     });
   }
+}
+
+// ═══ 预测器训练 ═══
+function trainPredictor(){
+  var btn = event.target;
+  btn.textContent = '⏳ 训练中...'; btn.disabled = true;
+  fetch('/predictor/learn', {method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    btn.textContent = '✅ 完成';
+    setTimeout(function(){ btn.textContent = '🧠 训练'; btn.disabled = false; fetchSummary(); }, 1500);
+  }).catch(function(e){
+    btn.textContent = '❌ 失败';
+    setTimeout(function(){ btn.textContent = '🧠 训练'; btn.disabled = false; }, 2000);
+    console.error(e);
+  });
 }
 
 // ═══ 启动 ═══
