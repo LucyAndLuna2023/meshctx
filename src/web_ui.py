@@ -1174,7 +1174,12 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
   <div class="pane" id="pane-providers">
     <div class="pane-inner">
       <div class="card">
-        <h2>🔑 API 供应商管理</h2>
+        <h2>🔑 API 供应商管理
+          <span style="flex:1"></span>
+          <button class="action-btn start-btn" onclick="exportConfig()" style="font-size:10px;margin-right:4px;">📥 导出</button>
+          <button class="action-btn" onclick="document.getElementById('importFileInput').click()" style="font-size:10px;">📤 导入</button>
+          <input type="file" id="importFileInput" accept=".json" onchange="importConfig(this)" style="display:none;">
+        </h2>
         <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">管理API密钥 · 测试连通性 · 一键切换 · 配置自动同步环境变量</div>
         <div id="providerList"></div>
       </div>
@@ -1735,6 +1740,64 @@ function deleteProvider(pid){
   fetch('/api/providers/'+pid, {method:'DELETE'}).then(function(r){return r.json()}).then(function(d){
     renderProviders(); fetchModels(); fetchSummary();
   });
+}
+
+// ═══ v1.5.21 配置导出/导入 ═══
+async function exportConfig(){
+  try {
+    var res = await fetch('/api/config/export');
+    var d = await res.json();
+    var blob = new Blob([JSON.stringify(d, null, 2)], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+    a.href = url;
+    a.download = 'meshctx-config-'+ts+'.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ 配置已导出 (Key已脱敏)');
+  }catch(e){
+    showToast('❌ 导出失败: '+e.message);
+  }
+}
+
+async function importConfig(input){
+  var file = input.files[0];
+  if(!file) return;
+  try {
+    var text = await file.text();
+    var data = JSON.parse(text);
+    var res = await fetch('/api/config/import', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    var d = await res.json();
+    if(d.success){
+      showToast('✅ 导入完成: '+d.imported+'项, 跳过'+d.skipped+'项');
+      loadProviders();
+      loadMcpServers();
+    }else{
+      showToast('❌ 导入失败');
+    }
+  }catch(e){
+    showToast('❌ 导入失败: '+e.message);
+  }
+  input.value = '';
+}
+
+function showToast(msg){
+  var t = document.getElementById('meshctx-toast');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'meshctx-toast';
+    t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:rgba(0,0,0,0.85);color:#fff;padding:10px 20px;border-radius:8px;z-index:9999;font-size:13px;animation:fadeOut 3s forwards;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.animation = 'none';
+  t.offsetHeight;
+  t.style.animation = 'fadeOut 3s forwards';
 }
 
 // ═══ v1.5.20 .meshctx.md 多项目上下文 ═══

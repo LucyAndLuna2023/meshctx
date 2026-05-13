@@ -117,7 +117,7 @@ _metrics = MetricsCollector()
 app = FastAPI(
     title="meshctx API",
     description="世界第一自进化Agent系统",
-    version="1.5.20",
+    version="1.5.21",
 )
 
 app.add_middleware(
@@ -403,7 +403,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.5.20",
+        "version": "1.5.21",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -708,7 +708,7 @@ async def system_summary():
     k = get_kernel()
     now = time.time()
     summary = {
-        "version": "1.5.20",
+        "version": "1.5.21",
         "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
         "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
         "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},
@@ -1583,7 +1583,90 @@ def _get_chat_context() -> Optional[str]:
             return content
     return _load_meshctx_md(".")
 
-# ── Gateway Webhook (企业微信消息接收+回复) ──
+# ── v1.5.21 配置导出/导入 ──────────────────────────────────
+
+@app.get("/api/config/export")
+async def export_config():
+    """导出所有配置 (供应商Key + MCP服务器) 为可导入JSON"""
+    providers = _load_provider_config()
+    mcp_servers = _load_mcp_config()
+    
+    # 脱敏处理: 只导出key的前4后4字符提示，不导出完整Key
+    safe_providers = {}
+    for pid, pcfg in providers.items():
+        sp = dict(pcfg)
+        if "key" in sp and sp["key"]:
+            k = sp["key"]
+            if len(k) > 12:
+                sp["key"] = k[:8] + "..." + k[-4:]
+            sp["key_masked"] = True
+        else:
+            sp["key_masked"] = False
+        safe_providers[pid] = sp
+    
+    export_data = {
+        "version": "1.5.21",
+        "exported_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "providers": safe_providers,
+        "mcp_servers": mcp_servers,
+        "note": "Key已脱敏，导入时需重新填入。MCP配置完整保留。"
+    }
+    
+    return export_data
+
+
+@app.post("/api/config/import")
+async def import_config(request: Request):
+    """导入配置 (合并供应商 + MCP服务器)"""
+    try:
+        body = await request.json()
+    except:
+        raise HTTPException(400, "无效的JSON格式")
+    
+    imported = 0
+    skipped = 0
+    messages = []
+    
+    # 导入MCP服务器
+    if "mcp_servers" in body and isinstance(body["mcp_servers"], list):
+        existing_mcp = _load_mcp_config()
+        existing_ids = {s.get("id") for s in existing_mcp}
+        for server in body["mcp_servers"]:
+            sid = server.get("id", f"mcp-imported-{int(time.time())}")
+            if sid not in existing_ids:
+                server["status"] = "imported"
+                server["enabled"] = False  # 默认禁用，用户手动启用
+                existing_mcp.append(server)
+                existing_ids.add(sid)
+                imported += 1
+                messages.append(f"MCP: +{server.get('name', sid)}")
+            else:
+                skipped += 1
+        _save_mcp_config(existing_mcp)
+    
+    # 导入供应商
+    if "providers" in body and isinstance(body["providers"], dict):
+        existing_cfg = _load_provider_config()
+        for pid, pcfg in body["providers"].items():
+            if pid not in existing_cfg:
+                # 如果是脱敏key，提示用户填入
+                if pcfg.get("key_masked"):
+                    pcfg["key"] = ""
+                    pcfg["_note"] = "Key已脱敏，请手动填入"
+                existing_cfg[pid] = pcfg
+                imported += 1
+                messages.append(f"Provider: +{pid}")
+            else:
+                skipped += 1
+        _save_provider_config(existing_cfg)
+    
+    return {
+        "success": True,
+        "imported": imported,
+        "skipped": skipped,
+        "messages": messages,
+        "note": "MCP服务器默认禁用，请手动启用。供应商Key已脱敏，请重新填入。"
+    }
 
 import hashlib
 import base64
