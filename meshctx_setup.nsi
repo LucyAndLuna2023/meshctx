@@ -16,6 +16,11 @@ SetCompressor /SOLID lzma
 !define VERSION "1.5.18"
 !define PUBLISHER "meshctx.com"
 
+; ── 界面图标（必须在所有MUI_*之前） ─────────
+!define MUI_ABORTWARNING
+!define MUI_ICON "logo.ico"
+!define MUI_UNICON "logo.ico"
+
 ; ── 语言选择页面 (安装前) ──────────────────
 Var SelectedLang
 Page custom LangPage LangPageLeave
@@ -84,11 +89,6 @@ Function .onInit
   ; 默认英语
   StrCpy $LANGUAGE ${LANG_ENGLISH}
 FunctionEnd
-
-; ── 界面图标 ────────────────────────────────
-!define MUI_ABORTWARNING
-!define MUI_ICON "logo.ico"
-!define MUI_UNICON "logo.ico"
 
 ; ── 安装区段 ──────────────────────────────
 Section "MeshCtx Desktop" SecMain
