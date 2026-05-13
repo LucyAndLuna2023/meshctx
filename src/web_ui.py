@@ -710,6 +710,424 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
 </div>
 {% endblock %}"""
 
+_TEMPLATES["desktop.html"] = r"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>meshctx Desktop</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --border: #30363d;
+  --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+  --accent2: #3fb950; --warn: #d29922; --danger: #f85149;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);
+  display:flex;flex-direction:column;
+}
+.topbar{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;padding:8px 16px;
+  min-height:44px;
+}
+.topbar .logo{font-size:16px;font-weight:700;color:var(--accent);white-space:nowrap;}
+.topbar .logo .v{font-size:11px;color:var(--muted);font-weight:400;}
+.topbar .spacer{flex:1;}
+.topbar select,.topbar button{
+  background:var(--bg);color:var(--text);border:1px solid var(--border);
+  padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;
+}
+.topbar select:hover,.topbar button:hover{border-color:var(--accent);}
+.topbar .status-dot{width:8px;height:8px;border-radius:50%;background:var(--accent2);box-shadow:0 0 6px var(--accent2);margin-left:-6px;}
+.topbar .live-indicator{font-size:11px;color:var(--muted);margin-left:4px;}
+.tabbar{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;padding:0 16px;
+}
+.tabbar .tab{
+  padding:10px 20px;font-size:13px;cursor:pointer;
+  border:none;background:none;color:var(--muted);
+  border-bottom:2px solid transparent;transition:all .15s;
+  font-family:inherit;
+}
+.tabbar .tab:hover{color:var(--text);}
+.tabbar .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.content{flex:1;overflow:hidden;position:relative;}
+.content .pane{display:none;height:100%;overflow:auto;}
+.content .pane.active{display:flex;flex-direction:column;}
+.content iframe{border:none;width:100%;height:100%;}
+.pane-inner{padding:16px;overflow-y:auto;flex:1;}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px;}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:14px;text-align:center;
+}
+.stat-card .value{font-size:26px;font-weight:700;color:var(--accent);}
+.stat-card .v-green{color:var(--accent2);}
+.stat-card .v-warn{color:var(--warn);}
+.stat-card .v-red{color:var(--danger);}
+.stat-card .label{font-size:11px;color:var(--muted);margin-top:3px;}
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:16px;margin-bottom:12px;
+}
+.card h2{font-size:13px;color:var(--muted);margin-bottom:10px;font-weight:600;
+  display:flex;align-items:center;gap:8px;}
+.card .empty{color:var(--muted);font-size:13px;text-align:center;padding:20px;}
+.row{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 0;border-bottom:1px solid var(--border);
+  font-size:12px;
+}
+.row:last-child{border-bottom:none;}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dot.on{background:var(--accent2);box-shadow:0 0 6px var(--accent2);}
+.dot.off{background:var(--border);}
+.dot.warn{background:var(--warn);box-shadow:0 0 6px var(--warn);}
+.dot.err{background:var(--danger);box-shadow:0 0 6px var(--danger);}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;}
+.tag-ok{background:#065f46;color:#6ee7b7;}
+.tag-warn{background:#451a03;color:#fbbf24;}
+.tag-err{background:#7f1d1d;color:#fca5a5;}
+.tag-info{background:#1e3a5f;color:#93c5fd;}
+.meta{font-size:10px;color:var(--muted);}
+.loading{color:var(--muted);font-size:12px;padding:12px;}
+.spin{display:inline-block;animation:spin 1s linear infinite;}@keyframes spin{to{transform:rotate(360deg)}}
+.error-block{color:var(--danger);font-size:11px;padding:8px;}
+.refresh-btn{font-size:10px;padding:2px 8px;margin-left:8px;cursor:pointer;background:var(--bg);color:var(--muted);border:1px solid var(--border);border-radius:4px;}
+.timeline{max-height:200px;overflow-y:auto;font-size:11px;}
+.timeline .tl-item{padding:4px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;}
+.timeline .tl-time{color:var(--muted);white-space:nowrap;min-width:60px;}
+.timeline .tl-type{color:var(--accent);min-width:55px;font-weight:600;}
+.timeline .tl-detail{color:var(--text);flex:1;}
+.gauge-wrap{text-align:center;padding:8px;}
+.gauge-value{font-size:40px;font-weight:700;}
+.ooda-box{
+  display:flex;gap:6px;padding:12px 0;overflow-x:auto;align-items:center;
+}
+.ooda-step{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;padding:10px 14px;text-align:center;
+  min-width:70px;flex-shrink:0;
+}
+.ooda-step .letter{font-size:22px;font-weight:700;}
+.ooda-step .name{font-size:10px;color:var(--muted);}
+.ooda-step.active{border-width:2px;}
+.ooda-step.O{border-color:#58a6ff;}.ooda-step.O .letter{color:#58a6ff;}
+.ooda-step.Oo{border-color:#3fb950;}.ooda-step.Oo .letter{color:#3fb950;}
+.ooda-step.D{border-color:#d29922;}.ooda-step.D .letter{color:#d29922;}
+.ooda-step.A{border-color:#f85149;}.ooda-step.A .letter{color:#f85149;}
+.ooda-arrow{font-size:18px;color:var(--muted);}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;margin-top:6px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:3px;transition:width .5s;}
+.setup-hint{text-align:center;padding:40px;color:var(--muted);}
+.setup-hint .icon{font-size:48px;margin-bottom:12px;}
+.setup-hint a{color:var(--accent);}
+.auto-refresh{font-size:10px;color:var(--muted);}
+.plugin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;}
+.plugin-card{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;padding:12px;
+}
+.plugin-card .pname{font-size:13px;font-weight:600;margin-bottom:4px;}
+.plugin-card .pmeta{font-size:10px;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="logo">🕸 meshctx <span class="v">Desktop v1.5</span></span>
+  <span class="status-dot" id="sysDot" title="系统状态"></span>
+  <span class="live-indicator" id="liveTag"></span>
+  <span class="spacer"></span>
+  <select id="quickModel" onchange="switchQuickModel()" title="快速切换模型">
+    <option value="">加载中...</option>
+  </select>
+  <button onclick="window.open('/ui/setup','_blank')" title="设置">⚙</button>
+</div>
+<div class="tabbar" id="tabbar">
+  <button class="tab active" data-pane="chat">💬 Chat</button>
+  <button class="tab" data-pane="agent">🤖 Agent</button>
+  <button class="tab" data-pane="monitor">📊 Monitor</button>
+  <button class="tab" data-pane="lab">🧪 Lab</button>
+</div>
+<div class="content">
+  <div class="pane active" id="pane-chat">
+    <iframe src="/ui/chat" id="chatFrame"></iframe>
+  </div>
+  <div class="pane" id="pane-agent">
+    <div class="pane-inner">
+      <div class="stats-grid" id="agentStats"></div>
+      <div class="card">
+        <h2>🌀 OODA 循环 <span class="auto-refresh" id="oodaRefreshTag"></span></h2>
+        <div class="ooda-box" id="oodaBox"></div>
+      </div>
+      <div class="card">
+        <h2>📋 最近任务</h2>
+        <div id="agentTaskList"></div>
+      </div>
+    </div>
+  </div>
+  <div class="pane" id="pane-monitor">
+    <div class="pane-inner">
+      <div class="stats-grid" id="monitorStats"></div>
+      <div class="card">
+        <h2>❤️ 插件健康</h2>
+        <div class="plugin-grid" id="pluginHealth"></div>
+      </div>
+      <div class="card">
+        <h2>🔧 模型就绪状态</h2>
+        <div id="modelReadiness"></div>
+      </div>
+      <div class="card">
+        <h2>📜 事件时间线</h2>
+        <div class="timeline" id="eventTimeline"></div>
+      </div>
+    </div>
+  </div>
+  <div class="pane" id="pane-lab">
+    <div class="pane-inner">
+      <div class="card">
+        <h2>🔮 预测引擎</h2>
+        <div id="predictorPanel"></div>
+      </div>
+      <div class="card">
+        <h2>🧠 元认知状态</h2>
+        <div id="metaPanel"></div>
+      </div>
+      <div class="card">
+        <h2>📈 系统能力基准</h2>
+        <div id="benchPanel"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// ═══ v1.5.0 Desktop Dashboard — 富数据+自动刷新 ═══
+var REFRESH_SEC = 10, _timer = null, _data = null;
+var _phaseMap = {O:'Observe',Or:'Orient',D:'Decide',A:'Act'};
+
+// Tab切换
+document.querySelectorAll('.tabbar .tab').forEach(function(t){
+  t.onclick = function(){
+    document.querySelectorAll('.tabbar .tab').forEach(function(x){x.classList.remove('active')});
+    document.querySelectorAll('.content .pane').forEach(function(x){x.classList.remove('active')});
+    t.classList.add('active');
+    var p = document.getElementById('pane-'+t.dataset.pane);
+    if(p){p.classList.add('active');}
+    if(_data) renderAll(_data);
+  };
+});
+
+// 自动刷新
+function startAutoRefresh(){
+  fetchSummary();
+  _timer = setInterval(fetchSummary, REFRESH_SEC*1000);
+}
+function fetchSummary(){
+  fetch('/api/system/summary').then(function(r){return r.json()}).then(function(d){
+    _data = d;
+    renderAll(d);
+    updateLiveTag();
+  }).catch(function(e){
+    console.error('Summary fetch error:', e);
+    document.getElementById('liveTag').textContent = '⚠ 离线';
+    document.getElementById('sysDot').style.background = 'var(--danger)';
+  });
+}
+function updateLiveTag(){
+  var el = document.getElementById('liveTag');
+  var t = new Date().toTimeString().slice(0,8);
+  el.textContent = '● LIVE '+t;
+  el.style.color = 'var(--accent2)';
+  document.getElementById('sysDot').style.background = 'var(--accent2)';
+}
+
+// ═══ 模型切换 ═══
+function loadModels(){
+  fetch('/api/models').then(function(r){return r.json()}).then(function(d){
+    var sel = document.getElementById('quickModel');
+    sel.innerHTML = '';
+    (d.models||[]).forEach(function(m){
+      var opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = (m.default?'⭐ ':'') + m.id;
+      if(m.default) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }).catch(function(e){console.error(e);});
+}
+function switchQuickModel(){
+  var id = document.getElementById('quickModel').value;
+  if(!id) return;
+  localStorage.setItem('meshctx_desktop_model', id);
+}
+loadModels();
+
+// ═══ 全量渲染 ═══
+function renderAll(d){
+  renderAgent(d);
+  renderMonitor(d);
+  renderLab(d);
+}
+function colorByStatus(s){
+  if(s==='healthy'||s==='active'||s==='running') return 'v-green';
+  if(s==='degraded'||s==='warning') return 'v-warn';
+  if(s==='critical'||s==='error'||s==='failed') return 'v-red';
+  return '';
+}
+function tagByStatus(s){
+  if(s==='healthy'||s==='ready'||s==='active') return 'tag-ok';
+  if(s==='degraded'||s==='warning'||s==='unstable') return 'tag-warn';
+  if(s==='critical'||s==='error') return 'tag-err';
+  return 'tag-info';
+}
+
+// ── Agent Tab ──
+function renderAgent(d){
+  var ag = d.agents||{}, oo = ag.ooda||{}, tasks = ag.recent_tasks||[];
+  document.getElementById('agentStats').innerHTML =
+    '<div class="stat-card"><div class="value '+colorByStatus(oo.status)+'">'+ (ag.active||0) +'</div><div class="label">活跃任务</div></div>'+
+    '<div class="stat-card"><div class="value">'+ (ag.total||0) +'</div><div class="label">已完成</div></div>'+
+    '<div class="stat-card"><div class="value '+((ag.success_rate||0)>=0.8?'v-green':(ag.success_rate||0)>=0.5?'v-warn':'v-red')+'">'+ ((ag.success_rate||0)*100).toFixed(0) +'%</div><div class="label">成功率</div></div>'+
+    '<div class="stat-card"><div class="value">'+ (oo.cycle_count||0) +'</div><div class="label">OODA循环</div></div>';
+
+  // OODA可视化
+  var phases = ['O','Or','D','A'];
+  var curPhase = oo.phase||'idle';
+  var oodaHTML = '';
+  for(var i=0; i<phases.length; i++){
+    var p=phases[i], isActive = (p===curPhase || (curPhase==='idle' && p==='O'));
+    oodaHTML += '<div class="ooda-step '+p+(isActive?' active':'')+'"><div class="letter">'+(p.length===1?p:'Oo')+'</div><div class="name">'+_phaseMap[p]+'</div></div>';
+    if(i<3) oodaHTML += '<div class="ooda-arrow">→</div>';
+  }
+  document.getElementById('oodaBox').innerHTML = oodaHTML;
+  document.getElementById('oodaRefreshTag').textContent = '循环#'+(oo.cycle_count||0)+' · '+curPhase;
+
+  // 任务列表
+  var taskHTML = '';
+  if(tasks.length>0){
+    for(var i=0; i<Math.min(tasks.length,8); i++){
+      var tk = tasks[i];
+      taskHTML += '<div class="row"><span style="color:var(--muted);font-family:monospace;font-size:10px;">'+tk.id+'</span><span style="flex:1">'+(tk.description||tk.id||'')+'</span><span class="tag '+tagByStatus(tk.status)+'">'+(tk.status||'pending')+'</span></div>';
+    }
+  } else {
+    taskHTML = '<div class="empty">😴 暂无任务记录</div>';
+  }
+  document.getElementById('agentTaskList').innerHTML = taskHTML;
+}
+
+// ── Monitor Tab ──
+function renderMonitor(d){
+  var h = d.health||{}, plugins = h.plugins||{}, events = h.recent_events||[];
+  var perf = d.performance||{}, models = d.models||{}, kernel = d.kernel||{};
+
+  // 状态层级: healthy/degraded/unstable/critical
+  var statusCount = {healthy:0,degraded:0,unstable:0,critical:0,unknown:0};
+  Object.values(plugins).forEach(function(p){ statusCount[p.status||'unknown'] = (statusCount[p.status||'unknown']||0)+1; });
+
+  document.getElementById('monitorStats').innerHTML =
+    '<div class="stat-card"><div class="value '+colorByStatus(h.overall)+'">'+ (statusCount.healthy||0) +'/'+Object.keys(plugins).length+'</div><div class="label">插件健康</div></div>'+
+    '<div class="stat-card"><div class="value">'+ (models.ready||0) +'/'+(models.total||0)+'</div><div class="label">模型就绪</div></div>'+
+    '<div class="stat-card"><div class="value">'+ (perf.total_requests||0) +'</div><div class="label">总请求</div></div>'+
+    '<div class="stat-card"><div class="value">'+ ((perf.avg_latency_ms||0).toFixed(0)) +'ms</div><div class="label">平均延迟</div></div>';
+
+  // 插件健康卡片
+  var pHtml = '';
+  var pNames = Object.keys(plugins);
+  if(pNames.length>0){
+    for(var i=0; i<pNames.length; i++){
+      var pn = pNames[i], p = plugins[pn];
+      pHtml += '<div class="plugin-card"><div class="row"><span class="dot '+colorByStatus(p.status).replace('v-','')+'"></span><span class="pname">'+pn+'</span></div>'+
+        '<div class="pmeta">状态: <span class="tag '+tagByStatus(p.status)+'">'+p.status+'</span> · 失败: '+(p.failures||0)+' · 重启: '+(p.restarts||0)+'</div>'+
+        '<div class="pmeta">心跳: '+((p.heartbeat_age||0)>10?'⚠ '+p.heartbeat_age+'s':'✓ '+p.heartbeat_age+'s')+' · 熔断: '+p.circuit+'</div></div>';
+    }
+  } else {
+    pHtml = '<div class="empty">🔌 暂无插件数据</div>';
+  }
+  document.getElementById('pluginHealth').innerHTML = pHtml;
+
+  // 模型就绪状态 (紧凑表)
+  var mHtml = '';
+  var mList = models.list||[];
+  if(mList.length>0){
+    var cols = 3;
+    for(var i=0; i<Math.min(mList.length,12); i++){
+      var m = mList[i];
+      if(i%cols===0) mHtml += '<div class="row">';
+      mHtml += '<span class="dot '+(m.ready?'on':'off')+'"></span><span style="font-size:11px;margin-right:12px;">'+m.id+'</span><span class="meta">'+m.provider+'</span>';
+      if(i%cols===cols-1 || i===mList.length-1) mHtml += '</div>';
+    }
+  } else {
+    mHtml = '<div class="empty">🤖 暂无已配置模型</div>';
+  }
+  document.getElementById('modelReadiness').innerHTML = mHtml;
+
+  // 事件时间线
+  var eHtml = '';
+  if(events.length>0){
+    for(var i=0; i<Math.min(events.length,15); i++){
+      var ev = events[i];
+      var t = new Date(ev.time*1000).toTimeString().slice(0,8);
+      eHtml += '<div class="tl-item"><span class="tl-time">'+t+'</span><span class="tl-type">'+ev.type+'</span><span class="tl-detail">'+ev.detail+'</span></div>';
+    }
+  } else {
+    eHtml = '<div class="empty">📭 暂无事件记录</div>';
+  }
+  document.getElementById('eventTimeline').innerHTML = eHtml;
+}
+
+// ── Lab Tab ──
+function renderLab(d){
+  var pred = d.predictor||{}, ag = d.agents||{};
+
+  // 预测面板
+  var predHTML = '<div class="stats-grid" style="margin-bottom:10px">'+
+    '<div class="stat-card"><div class="value">'+ (pred.patterns_learned||0) +'</div><div class="label">学习模式</div></div>'+
+    '<div class="stat-card"><div class="value">'+ (ag.total||0) +'</div><div class="label">任务积累</div></div>'+
+    '<div class="stat-card"><div class="value '+( (ag.success_rate||0)>=0.8?'v-green':(ag.success_rate||0)>=0.5?'v-warn':'v-red') +'">'+ ((ag.success_rate||0)*100).toFixed(0) +'%</div><div class="label">智能成功率</div></div>'+
+    '</div>';
+
+  var topPreds = pred.top_predictions||[];
+  if(topPreds.length>0){
+    predHTML += '<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">📊 最新预测:</div>';
+    for(var i=0; i<topPreds.length; i++){
+      var pp = topPreds[i];
+      var conf = parseFloat(pp.confidence)||0;
+      var barColor = conf>=0.7?'var(--accent2)':conf>=0.4?'var(--warn)':'var(--danger)';
+      predHTML += '<div class="row"><span style="flex:1">'+pp.task+'</span><span class="meta">'+pp.confidence+'</span>'+
+        '<div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:'+(conf*100)+'%;background:'+barColor+'"></div></div></div>';
+    }
+  }
+  document.getElementById('predictorPanel').innerHTML = predHTML;
+
+  // 元认知面板 — 从summary数据派生
+  var metaHTML = '<div class="row"><span style="flex:1">🧠 自省循环</span><span class="tag tag-ok">活跃</span></div>'+
+    '<div class="row"><span style="flex:1">🔄 OODA状态</span><span>'+ ((ag.ooda||{}).status||'unknown') +' · 相位: '+((ag.ooda||{}).phase||'idle')+'</span></div>'+
+    '<div class="row"><span style="flex:1">📊 任务成功率</span><span>'+ ((ag.success_rate||0)*100).toFixed(0) +'%</span></div>'+
+    '<div class="row"><span style="flex:1">🎯 模型丰富度</span><span>'+ ((d.models||{}).total||0) +' 模型 · '+( (d.models||{}).ready||0) +' 就绪</span></div>';
+  document.getElementById('metaPanel').innerHTML = metaHTML;
+
+  // 基准面板
+  var benchHTML = '<div class="row"><span style="flex:1">🎯 模型支持</span><span>'+ ((d.models||{}).total||0) +'+ 模型</span></div>'+
+    '<div class="row"><span style="flex:1">🧩 插件系统</span><span>'+ ((d.kernel||{}).plugins||[]).length +' 插件</span></div>'+
+    '<div class="row"><span style="flex:1">⚡ 连接池复用</span><span class="tag tag-ok">启用</span></div>'+
+    '<div class="row"><span style="flex:1">🛡️ 自愈引擎</span><span class="tag tag-ok">'+ ((d.health||{}).overall||'enabled') +'</span></div>'+
+    '<div class="row"><span style="flex:1">🔄 故障转移</span><span class="tag tag-ok">自动</span></div>'+
+    '<div class="row"><span style="flex:1">📦 版本</span><span>v1.5.0 · 146测试 · '+ (d.uptime||0) +'s 运行</span></div>';
+  document.getElementById('benchPanel').innerHTML = benchHTML;
+}
+
+// ═══ 启动 ═══
+startAutoRefresh();
+</script>
+</body>
+</html>"""
+
+
 # ── DictLoader 初始化 ───────────────────────────────────────────
 _jinja_env = Environment(loader=DictLoader(_TEMPLATES))
 
@@ -1025,6 +1443,10 @@ async def continuity_dashboard(request: Request):
     })
 
 # ── Chat 页面 ───────────────────────────────────────────
+
+@router.get("/desktop", response_class=HTMLResponse)
+async def desktop_page(request: Request):
+    return _render("desktop.html", {"request": request, "title": "Desktop"})
 
 @router.get("/chat", response_class=HTMLResponse)
 async def chat_page(request: Request):

@@ -352,7 +352,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.4.0",
+        "version": "1.5.0",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -530,6 +530,105 @@ async def ws_stats():
     if not plugin:
         return {"status": "disabled"}
     return plugin.manager.stats()
+
+# ── v1.5.0 系统总览摘要 (Desktop专属) ────────────────────
+
+@app.get("/api/system/summary")
+async def system_summary():
+    """统一摘要端点: 内核+自愈+性能+Agent+预测 合并为一个富响应"""
+    k = get_kernel()
+    now = time.time()
+    summary = {
+        "version": "1.5.0",
+        "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
+        "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
+        "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},
+        "health": {"overall": "unknown", "plugins": {}, "recent_events": []},
+        "performance": {"total_requests": 0, "avg_latency_ms": 0, "last_active": None},
+        "predictor": {"patterns_learned": 0, "top_predictions": []},
+    }
+    if not k._started:
+        return summary
+
+    # Agent数据
+    try:
+        al = k.plugins.get("agent_loop")
+        if al:
+            rpt = al.generate_report()
+            summary["agents"]["active"] = len(rpt.get("active_tasks", []))
+            summary["agents"]["total"] = rpt.get("total_completed", 0)
+            summary["agents"]["success_rate"] = rpt.get("success_rate", 0)
+            summary["agents"]["recent_tasks"] = rpt.get("recent_tasks", [])[:10]
+            summary["agents"]["ooda"] = {
+                "status": rpt.get("status", "stopped"),
+                "phase": rpt.get("current_phase", "idle"),
+                "cycle_count": rpt.get("cycle_count", 0),
+            }
+    except:
+        pass
+
+    # 自愈数据
+    try:
+        healer = k.plugins.get("healer")
+        if healer:
+            hrpt = healer.generate_report()
+            h = hrpt.get("health", {})
+            summary["health"]["overall"] = h.get("overall", "unknown")
+            summary["health"]["plugins"] = h.get("plugins", {})
+            summary["health"]["recent_events"] = h.get("recent_events", [])[:15]
+    except:
+        pass
+
+    # 性能数据
+    try:
+        perf = k.plugins.get("performance")
+        if perf:
+            prpt = perf.generate_report()
+            summary["performance"]["total_requests"] = prpt.get("total_requests", 0)
+            summary["performance"]["avg_latency_ms"] = prpt.get("avg_latency_ms", 0)
+            summary["performance"]["last_active"] = prpt.get("last_active", None)
+    except:
+        pass
+
+    # 预测数据
+    try:
+        pred = k.plugins.get("predictor")
+        if pred:
+            pr = pred.generate_report()
+            summary["predictor"]["patterns_learned"] = pr.get("patterns_learned", 0)
+            summary["predictor"]["accuracy"] = pr.get("accuracy", "N/A")
+            summary["predictor"]["top_predictions"] = pr.get("current_predictions", [])[:5]
+    except:
+        pass
+
+    # 模型统计
+    try:
+        from src.model_registry import get_registry
+        reg = get_registry()
+        models = reg.list_all()
+        summary["models"] = {
+            "total": len(models),
+            "ready": sum(1 for m in models if m.get("ready")),
+            "list": [{"id": m["id"], "ready": m.get("ready", False), "provider": m.get("provider", "?")} for m in models],
+        }
+    except:
+        summary["models"] = {"total": 0, "ready": 0, "list": []}
+
+    return summary
+
+
+@app.get("/api/events/recent")
+async def events_recent(limit: int = 30):
+    """最近事件时间线"""
+    k = get_kernel()
+    if not k._started:
+        return {"events": []}
+    try:
+        stats = k.bus.get_stats()
+        return {"events": stats.get("recent_events", [])[-limit:], "total_events": stats.get("total_events", 0)}
+    except:
+        return {"events": []}
+
 
 # ── Web Chat API ──────────────────────────────────────
 

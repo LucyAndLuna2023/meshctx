@@ -81,7 +81,7 @@ def main():
         logger.info(f"Log: {LOG_FILE}")
 
         PORT = find_free_port(PORT)
-        app_url = f"http://{HOST}:{PORT}/ui/"
+        app_url = f"http://{HOST}:{PORT}/ui/desktop"
 
         # 1. 启动后台服务器
         logger.info(f"启动 FastAPI: {HOST}:{PORT}")
