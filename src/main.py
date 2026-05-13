@@ -403,7 +403,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.5.11",
+        "version": "1.5.12",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -708,7 +708,7 @@ async def system_summary():
     k = get_kernel()
     now = time.time()
     summary = {
-        "version": "1.5.11",
+        "version": "1.5.12",
         "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
         "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
         "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},
@@ -781,6 +781,7 @@ async def system_summary():
             summary["predictor"]["patterns_learned"] = pr.get("patterns_learned", 0)
             summary["predictor"]["accuracy"] = pr.get("accuracy", "N/A")
             summary["predictor"]["top_predictions"] = pr.get("current_predictions", [])[:5]
+            summary["predictor"]["last_trained"] = pr.get("last_trained", None)
     except:
         pass
 

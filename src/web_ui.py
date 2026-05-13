@@ -1208,7 +1208,9 @@ function renderMonitor(d){
     for(var i=0; i<Math.min(events.length,15); i++){
       var ev = events[i];
       var t = new Date(ev.time*1000).toTimeString().slice(0,8);
-      eHtml += '<div class="tl-item"><span class="tl-time">'+t+'</span><span class="tl-type">'+ev.type+'</span><span class="tl-detail">'+ev.detail+'</span></div>';
+      var et = ev.type || 'info';
+      var etColor = et==='error'?'#f87171':et==='warning'?'#fbbf24':'#60a5fa';
+      eHtml += '<div class="tl-item"><span class="tl-time">'+t+'</span><span class="tl-type" style="background:'+etColor+'22;color:'+etColor+';padding:1px 6px;border-radius:8px;font-size:9px;font-weight:600;">'+et+'</span><span class="tl-detail">'+ev.detail+'</span></div>';
     }
   } else {
     eHtml = '<div class="empty">📭 暂无事件记录</div>';
@@ -1255,6 +1257,9 @@ function renderLab(d){
       predHTML += '<div class="row"><span style="flex:1">'+pp.task+'</span><span class="meta">'+pp.confidence+'</span>'+
         '<div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:'+(conf*100)+'%;background:'+barColor+'"></div></div></div>';
     }
+  }
+  if(pred.last_trained){
+    predHTML += '<div style="font-size:10px;color:var(--muted);margin-top:4px;">🕐 最后训练: '+new Date(pred.last_trained*1000).toLocaleString()+'</div>';
   }
   document.getElementById('predictorPanel').innerHTML = predHTML;
 
