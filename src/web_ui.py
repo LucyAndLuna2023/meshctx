@@ -72,7 +72,6 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         body.light .flash-error { background:#fef2f2; color:#991b1b; }
         body.light a { color:#2563eb; }
         .cursor { animation: blink 1s infinite; } @keyframes blink { 0%,50% { opacity:1; } 51%,100% { opacity:0; } }
-        .cursor { animation: blink 1s infinite; } @keyframes blink { 0%,50% { opacity:1; } 51%,100% { opacity:0; } }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 </head>
@@ -1660,7 +1659,7 @@ function quickAsk(e){
 
 // ═══ 主题切换 v1.5.7 ═══
 (function(){
-  var saved = localStorage.getItem('meshctx-theme');
+  var saved = localStorage.getItem('meshctx_theme');
   if(saved==='light') document.body.classList.add('light');
   if(saved==='light') document.getElementById('themeBtn').textContent = '☀️';
 })();
@@ -1669,7 +1668,7 @@ function toggleTheme(){
   var btn = document.getElementById('themeBtn');
   body.classList.toggle('light');
   var isLight = body.classList.contains('light');
-  localStorage.setItem('meshctx-theme', isLight ? 'light' : 'dark');
+  localStorage.setItem('meshctx_theme', isLight ? 'light' : 'dark');
   btn.textContent = isLight ? '☀️' : '🌓';
 }
 

@@ -15,6 +15,7 @@ import logging
 import os
 import sys
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -114,10 +115,83 @@ _metrics = MetricsCollector()
 # FastAPI 应用
 # ═══════════════════════════════════════════════════════════
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """v1.5.25: 迁移至 lifespan — 替换已弃用的 on_event"""
+    global _kernel, _memory_engine
+
+    # ── Startup ──
+    logger.info("═══════════════════════════════════════════")
+    logger.info("  meshctx v1.0 启动中...")
+    logger.info("═══════════════════════════════════════════")
+
+    _kernel = Kernel()
+    logger.info("加载核心插件...")
+    _kernel.plugins.register(MemoryPlugin())
+    _kernel.plugins.register(MetaCognitionPlugin())
+    _kernel.plugins.register(OrchestratorPlugin())
+    _kernel.plugins.register(PredictorPlugin())
+    _kernel.plugins.register(AgentLoopPlugin())
+    _kernel.plugins.register(PerformancePlugin())
+    _kernel.plugins.register(HealerPlugin())
+
+    gw_plugin = GatewayPlugin()
+    _kernel.plugins.register(gw_plugin)
+
+    ws_plugin = WebSocketPlugin()
+    _kernel.plugins.register(ws_plugin)
+    create_ws_routes(app, ws_plugin)
+
+    config = load_config()
+    worker_count = config.get("kernel", {}).get("worker_count", 4)
+    await _kernel.start(worker_count=worker_count)
+
+    results = await _kernel.plugins.load_all()
+    loaded = sum(1 for v in results.values() if v)
+    logger.info(f"插件加载: {loaded}/{len(results)}")
+
+    _memory_engine = MemoryEngine(use_llm=False, use_vector_store=False)
+    app.state.kernel = _kernel
+    app.state.memory_engine = _memory_engine
+
+    logger.info(f"事件总线: {_kernel.bus.get_stats()['subscriptions']} 订阅")
+
+    watcher = ConfigWatcher()
+    def _reload_config():
+        logger.info("配置已变更，自动重载模型...")
+        try:
+            from src.model_registry import get_registry
+            import src.model_registry as mr
+            mr._registry = None
+            reg = get_registry()
+            available = reg.list_all()
+            ready = [e["id"] for e in available if e["ready"]]
+            logger.info(f"配置重载完成: {len(ready)}/{len(available)} 模型就绪")
+        except Exception as e:
+            logger.error(f"配置重载失败: {e}")
+    watcher.on_change(_reload_config)
+    watcher.start()
+
+    logger.info("═══════════════════════════════════════════")
+    logger.info("  meshctx v1.0 已就绪!")
+    logger.info(f"  API: http://0.0.0.0:8000")
+    logger.info(f"  Docs: http://0.0.0.0:8000/docs")
+    logger.info(f"  Web UI: http://0.0.0.0:8000/ui")
+    logger.info("═══════════════════════════════════════════")
+
+    yield  # ── 服务运行中 ──
+
+    # ── Shutdown ──
+    if _kernel is not None:
+        await _kernel.stop()
+    logger.info("meshctx v1.0 已停止")
+
+
 app = FastAPI(
     title="meshctx API",
     description="世界第一自进化Agent系统",
-    version="1.5.24",
+    version="1.5.25",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -1622,7 +1696,7 @@ async def export_config():
         safe_providers[pid] = sp
     
     export_data = {
-        "version": "1.5.24",
+        "version": "1.5.25",
         "exported_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "providers": safe_providers,
         "mcp_servers": mcp_servers,
@@ -1975,92 +2049,6 @@ async def health_check():
             }
 
     return result
-
-
-# ═══════════════════════════════════════════════════════════
-# 生命周期事件 (在模块级别注册)
-# ═══════════════════════════════════════════════════════════
-
-@app.on_event("startup")
-async def on_startup():
-    """启动 v1.0 内核 + 挂载到 app.state"""
-    global _kernel, _memory_engine
-
-    logger.info("═══════════════════════════════════════════")
-    logger.info("  meshctx v1.0 启动中...")
-    logger.info("═══════════════════════════════════════════")
-
-    _kernel = Kernel()
-
-    # 加载核心插件
-    logger.info("加载核心插件...")
-    _kernel.plugins.register(MemoryPlugin())
-    _kernel.plugins.register(MetaCognitionPlugin())
-    _kernel.plugins.register(OrchestratorPlugin())
-    _kernel.plugins.register(PredictorPlugin())
-    _kernel.plugins.register(AgentLoopPlugin())
-    _kernel.plugins.register(PerformancePlugin())
-    _kernel.plugins.register(HealerPlugin())
-    
-    # Gateway插件
-    gw_plugin = GatewayPlugin()
-    _kernel.plugins.register(gw_plugin)
-    
-    # WebSocket插件单独注册(需要app引用)
-    ws_plugin = WebSocketPlugin()
-    _kernel.plugins.register(ws_plugin)
-    create_ws_routes(app, ws_plugin)
-
-    # 启动内核
-    config = load_config()
-    worker_count = config.get("kernel", {}).get("worker_count", 4)
-    await _kernel.start(worker_count=worker_count)
-
-    # 加载插件
-    results = await _kernel.plugins.load_all()
-    loaded = sum(1 for v in results.values() if v)
-    logger.info(f"插件加载: {loaded}/{len(results)}")
-
-    _memory_engine = MemoryEngine(use_llm=False, use_vector_store=False)
-
-    # 挂载到 app.state
-    app.state.kernel = _kernel
-    app.state.memory_engine = _memory_engine
-
-    logger.info(f"事件总线: {_kernel.bus.get_stats()['subscriptions']} 订阅")
-    
-    # 启动配置热加载 — 文件变更后自动重载模型注册表
-    watcher = ConfigWatcher()
-    def _reload_config():
-        logger.info("配置已变更，自动重载模型...")
-        try:
-            from src.model_registry import get_registry
-            import src.model_registry as mr
-            mr._registry = None  # 清除缓存，下次请求重建
-            reg = get_registry()
-            available = reg.list_all()
-            ready = [e["id"] for e in available if e["ready"]]
-            logger.info(f"配置重载完成: {len(ready)}/{len(available)} 模型就绪")
-        except Exception as e:
-            logger.error(f"配置重载失败: {e}")
-    watcher.on_change(_reload_config)
-    watcher.start()
-    
-    logger.info("═══════════════════════════════════════════")
-    logger.info("  meshctx v1.0 已就绪!")
-    logger.info(f"  API: http://0.0.0.0:8000")
-    logger.info(f"  Docs: http://0.0.0.0:8000/docs")
-    logger.info(f"  Web UI: http://0.0.0.0:8000/ui")
-    logger.info("═══════════════════════════════════════════")
-
-
-@app.on_event("shutdown")
-async def on_shutdown():
-    """优雅关闭"""
-    global _kernel  # noqa: F824
-    if _kernel is not None:
-        await _kernel.stop()
-    logger.info("meshctx v1.0 已停止")
 
 
 def main():
