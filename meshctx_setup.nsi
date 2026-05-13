@@ -1,4 +1,4 @@
-; meshctx Desktop — NSIS Unicode 安装脚本
+﻿; meshctx Desktop — NSIS Unicode 安装脚本
 ; 7语言 + 语言选择页 + 路径选择
 ; 构建: makensis meshctx_setup.nsi
 
@@ -13,7 +13,7 @@ InstallDir "$PROGRAMFILES\MeshCtx"
 RequestExecutionLevel admin
 SetCompressor /SOLID lzma
 
-!define VERSION "1.5.18"
+!define VERSION "1.5.24"
 !define PUBLISHER "meshctx.com"
 
 ; ── 界面图标（必须在所有MUI_*之前） ─────────
