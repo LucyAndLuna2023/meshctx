@@ -929,6 +929,10 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
       </div>
       <div class="stats-grid" id="monitorStats"></div>
       <div class="card">
+        <h2>⚙ 系统资源</h2>
+        <div id="sysResources" style="display:flex;gap:12px;flex-wrap:wrap;"></div>
+      </div>
+      <div class="card">
         <h2>❤️ 插件健康</h2>
         <div class="plugin-grid" id="pluginHealth"></div>
       </div>
@@ -960,7 +964,10 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
         <div id="metaPanel"></div>
       </div>
       <div class="card">
-        <h2>📈 系统能力基准</h2>
+        <h2>📈 系统能力基准
+          <span style="flex:1"></span>
+          <button class="action-btn start-btn" onclick="runBenchmark()" title="跑一次基准测试">⚡ 基准测试</button>
+        </h2>
         <div id="benchPanel"></div>
       </div>
     </div>
@@ -1103,6 +1110,20 @@ function renderMonitor(d){
     '<div class="stat-card"><div class="value">'+ (models.ready||0) +'/'+(models.total||0)+'</div><div class="label">模型就绪</div></div>'+
     '<div class="stat-card"><div class="value">'+ (perf.total_requests||0) +'</div><div class="label">总请求</div></div>'+
     '<div class="stat-card"><div class="value">'+ ((perf.avg_latency_ms||0).toFixed(0)) +'ms</div><div class="label">平均延迟</div></div>';
+
+  // v1.5.6: 系统资源
+  var res = d.resources || {};
+  if(res.cpu !== undefined){
+    var cpuC = res.cpu > 80 ? 'var(--danger)' : res.cpu > 60 ? '#ffa940' : 'var(--accent2)';
+    var memC = res.memory_percent > 80 ? 'var(--danger)' : res.memory_percent > 60 ? '#ffa940' : 'var(--accent2)';
+    var resHtml = '<div style="flex:1;min-width:120px;text-align:center;background:var(--bg);border-radius:8px;padding:8px">';
+    resHtml += '<div style="font-size:22px;font-weight:700;color:'+cpuC+';">'+res.cpu+'%</div>';
+    resHtml += '<div style="font-size:10px;color:var(--muted);">CPU</div></div>';
+    resHtml += '<div style="flex:1;min-width:120px;text-align:center;background:var(--bg);border-radius:8px;padding:8px">';
+    resHtml += '<div style="font-size:22px;font-weight:700;color:'+memC+';">'+res.memory_percent+'%</div>';
+    resHtml += '<div style="font-size:10px;color:var(--muted);">内存 '+res.memory_used_gb+'/'+res.memory_total_gb+' GB</div></div>';
+    document.getElementById('sysResources').innerHTML = resHtml;
+  }
 
   // 插件健康卡片
   var pHtml = '';
@@ -1262,6 +1283,31 @@ function trainPredictor(){
     btn.textContent = '❌ 失败';
     setTimeout(function(){ btn.textContent = '🧠 训练'; btn.disabled = false; }, 2000);
     console.error(e);
+  });
+}
+
+// ═══ 基准测试 v1.5.6 ═══
+function runBenchmark(){
+  var btn = event.target;
+  var panel = document.getElementById('benchPanel');
+  btn.textContent = '⏳ 测试中...'; btn.disabled = true;
+  panel.innerHTML = '<div class=stat><span>⏳</span><span>正在运行基准测试...</span></div>';
+  fetch('/api/benchmark/run', {method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    if(d.status==='ok'){
+      panel.innerHTML = [
+        '<div class=stat><span>'+d.latency_ms+'ms</span><span>延迟 (TTFB)</span></div>',
+        '<div class=stat><span>'+d.tokens_per_sec+' tok/s</span><span>推理速度</span></div>',
+        '<div class=stat><span>'+d.output_tokens+'</span><span>输出tokens</span></div>',
+        '<div class=stat><span>'+d.input_tokens+'</span><span>输入tokens</span></div>',
+        '<div style="font-size:10px;color:var(--muted);margin-top:6px;"><b>模型:</b> '+d.model+'<br><b>回复:</b> '+d.response_preview+'</div>'
+      ].join('');
+    }else{
+      panel.innerHTML = '<div class=stat><span>❌</span><span>'+d.error+'</span></div>';
+    }
+    btn.textContent = '⚡ 基准测试'; btn.disabled = false;
+  }).catch(function(e){
+    panel.innerHTML = '<div class=stat><span>❌</span><span>请求失败</span></div>';
+    btn.textContent = '⚡ 基准测试'; btn.disabled = false;
   });
 }
 

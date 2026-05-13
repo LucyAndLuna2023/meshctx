@@ -403,7 +403,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.5.5",
+        "version": "1.5.6",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -608,6 +608,61 @@ async def ws_stats():
         return {"status": "disabled"}
     return plugin.manager.stats()
 
+# ── v1.5.6 系统资源 ──────────────────────────────────────
+
+@app.get("/api/system/resources")
+async def system_resources():
+    """CPU/内存使用率"""
+    import psutil
+    return {
+        "cpu_percent": psutil.cpu_percent(interval=0.1),
+        "memory_percent": psutil.virtual_memory().percent,
+        "memory_used_gb": round(psutil.virtual_memory().used / (1024**3), 1),
+        "memory_total_gb": round(psutil.virtual_memory().total / (1024**3), 1),
+        "disk_percent": psutil.disk_usage("/").percent,
+    }
+
+# ── v1.5.6 基准测试 ──────────────────────────────────────
+
+@app.post("/api/benchmark/run")
+async def run_benchmark():
+    """跑一次快速基准: 延迟、推理速度、token输出"""
+    from src.model_registry import get_registry
+    import time as _time
+    reg = get_registry()
+    current = os.environ.get("MESHCTX_MODEL", "")
+    if not current and reg._entries:
+        current = next(iter(reg._entries))
+    if not current:
+        return {"error": "没有配置的模型"}
+    
+    client = reg.get(current)
+    if not client:
+        return {"error": f"模型 {current} 未初始化"}
+    
+    results = {}
+    test_messages = [{"role": "user", "content": "用一句话介绍meshctx"}]
+    
+    # 延迟测试
+    t0 = _time.time()
+    try:
+        resp = client.chat.completions.create(model=client.model_name, messages=test_messages, max_tokens=50, temperature=0)
+        elapsed = _time.time() - t0
+        results["latency_ms"] = round(elapsed * 1000, 1)
+        results["ttfb_ms"] = results["latency_ms"]  # 非流式近似
+        results["output_tokens"] = resp.usage.completion_tokens if resp.usage else 0
+        results["input_tokens"] = resp.usage.prompt_tokens if resp.usage else 0
+        results["tokens_per_sec"] = round(results["output_tokens"] / elapsed, 1) if elapsed > 0 else 0
+        results["model"] = current
+        results["status"] = "ok"
+        results["response_preview"] = resp.choices[0].message.content[:100] if resp.choices else ""
+    except Exception as e:
+        results["status"] = "error"
+        results["error"] = str(e)
+        results["latency_ms"] = round((_time.time() - t0) * 1000, 1)
+    
+    return results
+
 # ── v1.5.5 模型切换 API ─────────────────────────────────
 
 @app.get("/api/models")
@@ -653,7 +708,7 @@ async def system_summary():
     k = get_kernel()
     now = time.time()
     summary = {
-        "version": "1.5.5",
+        "version": "1.5.6",
         "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
         "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
         "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},
@@ -662,6 +717,19 @@ async def system_summary():
         "predictor": {"patterns_learned": 0, "top_predictions": []},
         "metrics_history": _metrics.snapshot(),  # v1.5.2: 时间序列
     }
+    
+    # v1.5.6: 系统资源
+    try:
+        import psutil
+        summary["resources"] = {
+            "cpu": psutil.cpu_percent(interval=0.05),
+            "memory_percent": psutil.virtual_memory().percent,
+            "memory_used_gb": round(psutil.virtual_memory().used / (1024**3), 1),
+            "memory_total_gb": round(psutil.virtual_memory().total / (1024**3), 1),
+        }
+    except:
+        summary["resources"] = {}
+    
     if not k._started:
         return summary
 
