@@ -708,7 +708,7 @@ async def system_summary():
     k = get_kernel()
     now = time.time()
     summary = {
-        "version": "1.5.15",
+        "version": "1.5.16",
         "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
         "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
         "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},
@@ -880,6 +880,11 @@ async def api_chat(request: Request):
     if not msgs:
         return {"content": "请输入消息", "tokens": 0}
     
+    # v1.5.16: 注入 .meshctx.md 项目上下文
+    md_ctx = _load_meshctx_md()
+    if md_ctx:
+        msgs.insert(0, {"role": "system", "content": f"[项目上下文 .meshctx.md]\n{md_ctx}"})
+    
     try:
         reg = get_registry()
         client = reg.get(model_id) or reg.get(None)
@@ -929,6 +934,11 @@ async def api_chat_stream(request: Request):
             iter(["data: [请输入消息]\n\n"]),
             media_type="text/event-stream"
         )
+
+    # v1.5.16: 注入 .meshctx.md 项目上下文
+    md_ctx = _load_meshctx_md()
+    if md_ctx:
+        msgs.insert(0, {"role": "system", "content": f"[项目上下文 .meshctx.md]\n{md_ctx}"})
 
     model_id = body.get("model")
     if not model_id:
@@ -1068,6 +1078,228 @@ async def api_setup(request: Request):
         "models": len([e for e in entries if e["ready"]]),
         "provider": provider,
     }
+
+# ── v1.5.16 供应商管理面板 ────────────────────────────────
+
+_PROVIDER_CONFIG_FILE = Path(__file__).resolve().parent.parent / "provider_config.json"
+
+def _load_provider_config() -> dict:
+    if _PROVIDER_CONFIG_FILE.exists():
+        try:
+            return json.loads(_PROVIDER_CONFIG_FILE.read_text())
+        except:
+            pass
+    return {}
+
+def _save_provider_config(cfg: dict):
+    _PROVIDER_CONFIG_FILE.write_text(json.dumps(cfg, indent=2, ensure_ascii=False))
+
+@app.get("/api/providers")
+async def list_providers():
+    """列出所有已配置的供应商及状态"""
+    cfg = _load_provider_config()
+    from src.model_registry import get_registry, BUILTIN_MODELS
+    reg = get_registry()
+    
+    provider_status = {}
+    for mid, info in BUILTIN_MODELS.items():
+        pid = info["provider"]
+        if pid not in provider_status:
+            has_key = pid in cfg and bool(cfg[pid].get("key", ""))
+            env_var = info.get("key_env", "")
+            env_key = os.environ.get(env_var, "")
+            provider_status[pid] = {
+                "id": pid,
+                "name": _provider_display_name(pid),
+                "has_key": has_key or bool(env_key),
+                "models_configured": 0,
+                "models_total": 0,
+                "key_masked": (cfg.get(pid, {}).get("key","") or env_key)[:4] + "****" if (cfg.get(pid, {}).get("key","") or env_key) else "",
+                "last_tested": cfg.get(pid, {}).get("last_tested"),
+                "test_status": cfg.get(pid, {}).get("test_status", "unknown"),
+            }
+        provider_status[pid]["models_total"] += 1
+        if mid in reg._entries:
+            provider_status[pid]["models_configured"] += 1
+    
+    return {
+        "providers": sorted(provider_status.values(), key=lambda x: x["name"]),
+        "total": len(provider_status),
+        "configured": sum(1 for p in provider_status.values() if p["has_key"]),
+    }
+
+def _provider_display_name(pid: str) -> str:
+    names = {
+        "deepseek": "DeepSeek", "openai": "OpenAI", "anthropic": "Anthropic",
+        "google": "Google Gemini", "bailian": "阿里百炼", "zhipu": "智谱AI",
+        "moonshot": "月之暗面", "doubao": "字节豆包", "stepfun": "阶跃星辰",
+        "minimax": "MiniMax", "baichuan": "百川智能", "mistral": "Mistral AI",
+        "groq": "Groq", "perplexity": "Perplexity", "xai": "xAI Grok",
+        "ollama": "Ollama (本地)",
+    }
+    return names.get(pid, pid.capitalize())
+
+@app.post("/api/providers")
+async def save_provider(request: Request):
+    """保存/更新供应商 API Key"""
+    body = await request.json()
+    pid = body.get("provider", "").strip()
+    key = body.get("key", "").strip()
+    
+    if not pid:
+        raise HTTPException(400, "缺少 provider 参数")
+    
+    cfg = _load_provider_config()
+    if key:
+        cfg[pid] = {"key": key, "base_url": body.get("base_url", ""), "updated": time.time()}
+    else:
+        cfg.pop(pid, None)
+    
+    _save_provider_config(cfg)
+    
+    # 同步到环境变量
+    from src.model_registry import BUILTIN_MODELS
+    env_map = {}
+    for mid, info in BUILTIN_MODELS.items():
+        if info["provider"] == pid:
+            env_map[info.get("key_env", "")] = key
+    for env_var, env_val in env_map.items():
+        if env_var:
+            os.environ[env_var] = env_val
+    
+    # 重新配置模型
+    from src.model_registry import get_registry
+    reg = get_registry()
+    reg.auto_configure()
+    
+    return {"success": True, "provider": pid, "saved": bool(key)}
+
+@app.delete("/api/providers/{provider_id}")
+async def delete_provider(provider_id: str):
+    """删除供应商配置"""
+    cfg = _load_provider_config()
+    if provider_id in cfg:
+        del cfg[provider_id]
+        _save_provider_config(cfg)
+        return {"success": True, "deleted": provider_id}
+    raise HTTPException(404, f"供应商 {provider_id} 未配置")
+
+@app.post("/api/providers/{provider_id}/test")
+async def test_provider(provider_id: str):
+    """测试供应商API连通性"""
+    cfg = _load_provider_config()
+    if provider_id not in cfg:
+        raise HTTPException(404, f"供应商 {provider_id} 未配置")
+    
+    key = cfg[provider_id].get("key", "")
+    if not key:
+        return {"success": False, "error": "未配置 API Key"}
+    
+    # 发送最小化测试请求
+    import aiohttp
+    test_urls = {
+        "openai": ("https://api.openai.com/v1/models", {"Authorization": f"Bearer {key}"}),
+        "deepseek": ("https://api.deepseek.com/v1/models", {"Authorization": f"Bearer {key}"}),
+        "anthropic": ("https://api.anthropic.com/v1/messages", {"x-api-key": key, "anthropic-version": "2023-06-01"}),
+        "bailian": ("https://dashscope.aliyuncs.com/api/v1/models", {"Authorization": f"Bearer {key}"}),
+        "zhipu": ("https://open.bigmodel.cn/api/paas/v4/models", {"Authorization": f"Bearer {key}"}),
+        "moonshot": ("https://api.moonshot.cn/v1/models", {"Authorization": f"Bearer {key}"}),
+        "minimax": ("https://api.minimax.chat/v1/text/chatcompletion_v2", {"Authorization": f"Bearer {key}"}),
+    }
+    
+    if provider_id not in test_urls:
+        return {"success": False, "error": f"不支持测试 {provider_id}"}
+    
+    url, headers = test_urls[provider_id]
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                status = resp.status
+                result = await resp.text()
+                ok = status in (200, 202)
+                cfg[provider_id]["last_tested"] = time.time()
+                cfg[provider_id]["test_status"] = "ok" if ok else "fail"
+                _save_provider_config(cfg)
+                return {"success": ok, "status": status, "preview": result[:200]}
+    except Exception as e:
+        cfg[provider_id]["last_tested"] = time.time()
+        cfg[provider_id]["test_status"] = "error"
+        _save_provider_config(cfg)
+        return {"success": False, "error": str(e)[:200]}
+
+# ── v1.5.16 会话历史浏览器 ────────────────────────────────
+
+@app.get("/api/conversations/history")
+async def conversation_history(
+    project_id: Optional[str] = None, 
+    search: Optional[str] = None,
+    limit: int = 50
+):
+    """列出历史会话 + 搜索"""
+    from src.models import Conversation, Project
+    
+    conversations = []
+    # 从内存中的数据获取
+    for proj_id, proj in Project._registry.items() if hasattr(Project, '_registry') else {}:
+        if project_id and proj_id != project_id:
+            continue
+        convs = Conversation._registry.get(proj_id, {}) if hasattr(Conversation, '_registry') else {}
+        for cid, conv in convs.items():
+            conv_data = {
+                "id": cid,
+                "title": getattr(conv, 'title', '未命名'),
+                "project_id": proj_id,
+                "project_name": getattr(proj, 'name', ''),
+                "message_count": len(getattr(conv, 'messages', [])),
+                "created_at": getattr(conv, 'created_at', 0),
+                "updated_at": getattr(conv, 'updated_at', 0),
+            }
+            if search:
+                if search.lower() in conv_data["title"].lower():
+                    conversations.append(conv_data)
+            else:
+                conversations.append(conv_data)
+    
+    conversations.sort(key=lambda x: x.get("updated_at", 0), reverse=True)
+    return {
+        "conversations": conversations[:limit],
+        "total": len(conversations),
+    }
+
+# ── v1.5.16 .meshctx.md 上下文注入 ───────────────────────
+
+_MESHCTX_MD_CACHE: Dict[str, tuple] = {}  # path -> (content, mtime)
+
+def _load_meshctx_md(project_path: str = ".") -> Optional[str]:
+    """加载项目目录中的 .meshctx.md 文件"""
+    path = Path(project_path).resolve()
+    md_file = path / ".meshctx.md"
+    if not md_file.exists():
+        # 向上查找
+        for p in [path] + list(path.parents)[:5]:
+            candidate = p / ".meshctx.md"
+            if candidate.exists():
+                md_file = candidate
+                break
+        else:
+            return None
+    
+    mtime = md_file.stat().st_mtime
+    cache_key = str(md_file)
+    if cache_key in _MESHCTX_MD_CACHE:
+        cached_content, cached_mtime = _MESHCTX_MD_CACHE[cache_key]
+        if cached_mtime == mtime:
+            return cached_content
+    
+    content = md_file.read_text(encoding="utf-8", errors="replace")
+    _MESHCTX_MD_CACHE[cache_key] = (content, mtime)
+    return content
+
+@app.get("/api/context/meshctx-md")
+async def get_meshctx_md():
+    """获取当前 .meshctx.md 上下文"""
+    content = _load_meshctx_md()
+    return {"found": content is not None, "content": content, "path": str(Path(".").resolve() / ".meshctx.md") if content else None}  # 修复中文引号
 
 # ── Gateway Webhook (企业微信消息接收+回复) ──
 

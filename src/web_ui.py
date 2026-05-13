@@ -925,6 +925,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
   <button class="tab active" data-pane="chat">💬 Chat</button>
   <button class="tab" data-pane="agent">🤖 Agent</button>
   <button class="tab" data-pane="monitor">📊 Monitor</button>
+  <button class="tab" data-pane="providers">🔌 供应商</button>
   <button class="tab" data-pane="lab">🧪 Lab</button>
 </div>
 <div class="content">
@@ -978,6 +979,27 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
       <div class="card">
         <h2>📜 事件时间线</h2>
         <div class="timeline" id="eventTimeline"></div>
+      </div>
+    </div>
+  </div>
+  <div class="pane" id="pane-providers">
+    <div class="pane-inner">
+      <div class="card">
+        <h2>🔑 API 供应商管理</h2>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">管理API密钥 · 测试连通性 · 一键切换 · 配置自动同步环境变量</div>
+        <div id="providerList"></div>
+      </div>
+      <div class="card">
+        <h2>📄 项目上下文 (.meshctx.md)</h2>
+        <div id="meshctxMdStatus" style="font-size:12px;"></div>
+      </div>
+      <div class="card">
+        <h2>💬 会话历史</h2>
+        <div style="margin-bottom:8px;">
+          <input type="text" id="convSearch" placeholder="搜索会话标题..." oninput="searchConversations()" 
+            style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;width:100%;font-family:inherit;">
+        </div>
+        <div id="convHistoryList" style="max-height:300px;overflow-y:auto;font-size:12px;"></div>
       </div>
     </div>
   </div>
@@ -1080,7 +1102,10 @@ loadModels();
 function renderAll(d){
   renderAgent(d);
   renderMonitor(d);
+  renderProviders();
   renderLab(d);
+  loadMeshctxMd();
+  loadConversations();
 }
 function colorByStatus(s){
   if(s==='healthy'||s==='active'||s==='running') return 'v-green';
@@ -1433,6 +1458,129 @@ function switchQuickModel(){
   }).catch(function(e){
     alert('切换失败: ' + e);
   });
+}
+
+// ═══ v1.5.16 供应商管理 ═══
+function renderProviders(){
+  fetch('/api/providers').then(function(r){return r.json()}).then(function(d){
+    var list = d.providers || [];
+    var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;">';
+    for(var i=0;i<list.length;i++){
+      var p = list[i];
+      var dotColor = p.has_key ? 'var(--accent2)' : 'var(--border)';
+      var testBadge = '';
+      if(p.test_status==='ok') testBadge = '<span class="tag tag-ok">✓ 连通</span>';
+      else if(p.test_status==='fail') testBadge = '<span class="tag tag-err">✗ 失败</span>';
+      else if(p.test_status==='error') testBadge = '<span class="tag tag-err">⚠ 错误</span>';
+      html += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;">'+
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'+
+          '<span style="width:8px;height:8px;border-radius:50%;background:'+dotColor+';flex-shrink:0;"></span>'+
+          '<span style="font-weight:600;font-size:13px;flex:1;">'+p.name+'</span>'+
+          testBadge+
+        '</div>'+
+        '<div style="font-size:10px;color:var(--muted);margin-bottom:6px;">'+
+          p.models_configured+'/'+p.models_total+' 模型 · '+
+          (p.has_key ? 'Key: '+p.key_masked : '未配置')+
+        '</div>'+
+        '<div style="display:flex;gap:4px;">'+
+          '<button onclick="showKeyInput(\''+p.id+'\')" style="font-size:10px;padding:3px 8px;cursor:pointer;background:var(--accent);color:#000;border:none;border-radius:4px;">🔑 设置</button>'+
+          (p.has_key ? '<button onclick="testProvider(\''+p.id+'\')" style="font-size:10px;padding:3px 8px;cursor:pointer;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;">🔍 测试</button>' : '')+
+          (p.has_key ? '<button onclick="deleteProvider(\''+p.id+'\')" style="font-size:10px;padding:3px 8px;cursor:pointer;background:none;color:var(--danger);border:1px solid var(--danger);border-radius:4px;">🗑</button>' : '')+
+        '</div>'+
+      '</div>';
+    }
+    html += '</div>';
+    document.getElementById('providerList').innerHTML = html;
+  }).catch(function(e){ document.getElementById('providerList').innerHTML = '<span class=error-block>加载失败</span>'; });
+}
+
+function showKeyInput(pid){
+  var name = {'deepseek':'DeepSeek','openai':'OpenAI','anthropic':'Anthropic','bailian':'阿里百炼'}[pid]||pid;
+  var key = prompt('输入 '+name+' API Key (留空删除):');
+  if(key===null) return;
+  fetch('/api/providers', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({provider:pid, key:key})
+  }).then(function(r){return r.json()}).then(function(d){
+    renderProviders();
+    fetchModels(); // 刷新模型就绪状态
+    fetchSummary();
+  }).catch(function(e){ alert('保存失败: '+e); });
+}
+
+function testProvider(pid){
+  var btn = event.target;
+  btn.textContent = '⏳...'; btn.disabled = true;
+  fetch('/api/providers/'+pid+'/test', {method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    if(d.success){
+      btn.textContent = '✅ OK'; btn.style.color = 'var(--accent2)';
+    } else {
+      btn.textContent = '❌ '+d.status; btn.style.color = 'var(--danger)';
+    }
+    setTimeout(function(){ btn.textContent = '🔍 测试'; btn.disabled = false; btn.style.color = ''; renderProviders(); }, 2000);
+  }).catch(function(e){
+    btn.textContent = '⚠ 错误'; btn.disabled = false;
+    setTimeout(function(){ btn.textContent = '🔍 测试'; renderProviders(); }, 2000);
+  });
+}
+
+function deleteProvider(pid){
+  if(!confirm('确认删除 '+pid+' 的API Key?')) return;
+  fetch('/api/providers/'+pid, {method:'DELETE'}).then(function(r){return r.json()}).then(function(d){
+    renderProviders(); fetchModels(); fetchSummary();
+  });
+}
+
+// ═══ v1.5.16 .meshctx.md 上下文 ═══
+function loadMeshctxMd(){
+  fetch('/api/context/meshctx-md').then(function(r){return r.json()}).then(function(d){
+    var el = document.getElementById('meshctxMdStatus');
+    if(d.found){
+      el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;">'+
+        '<span class="dot on"></span>'+
+        '<span style="color:var(--accent2);font-weight:600;">✅ .meshctx.md 已加载</span>'+
+        '<span style="color:var(--muted);font-size:10px;">'+d.path+'</span>'+
+        '</div>'+
+        '<div style="margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;max-height:150px;overflow-y:auto;font-family:monospace;font-size:11px;white-space:pre-wrap;">'+
+        (d.content||'').substring(0,500)+((d.content||'').length>500?'...':'')+
+        '</div>';
+    } else {
+      el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--muted);">'+
+        '<span class="dot off"></span>'+
+        '<span>📄 未检测到 .meshctx.md — 在当前目录创建此文件即可自动注入上下文</span>'+
+        '</div>';
+    }
+  }).catch(function(e){ document.getElementById('meshctxMdStatus').innerHTML = '<span class=error-block>加载失败</span>'; });
+}
+
+// ═══ v1.5.16 会话历史 ═══
+function loadConversations(search){
+  var url = '/api/conversations/history?limit=20';
+  if(search) url += '&search='+encodeURIComponent(search);
+  fetch(url).then(function(r){return r.json()}).then(function(d){
+    var convs = d.conversations || [];
+    var html = '';
+    if(convs.length===0){
+      html = '<div class="empty">📭 '+(search?'无匹配会话':'暂无会话记录')+'</div>';
+    } else {
+      html += '<div style="font-size:10px;color:var(--muted);margin-bottom:8px;">共 '+d.total+' 个会话</div>';
+      for(var i=0;i<convs.length;i++){
+        var c = convs[i];
+        html += '<div class="row" style="cursor:pointer;padding:8px 4px;flex-wrap:wrap;" onclick="window.open(\'/ui/chat\',\'_blank\')">'+
+          '<span style="flex:1;font-weight:500;">💬 '+c.title+'</span>'+
+          '<span style="font-size:10px;color:var(--muted);">'+c.message_count+' 条消息</span>'+
+          '<span style="font-size:9px;color:var(--muted);margin-left:auto;">'+(c.project_name||'')+'</span>'+
+          '</div>';
+      }
+    }
+    document.getElementById('convHistoryList').innerHTML = html;
+  }).catch(function(e){ document.getElementById('convHistoryList').innerHTML = '<span class=error-block>加载失败</span>'; });
+}
+
+function searchConversations(){
+  var q = document.getElementById('convSearch').value;
+  loadConversations(q);
 }
 
 // ═══ 启动 ═══
