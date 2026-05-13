@@ -117,7 +117,7 @@ _metrics = MetricsCollector()
 app = FastAPI(
     title="meshctx API",
     description="世界第一自进化Agent系统",
-    version="1.5.22",
+    version="1.5.23",
 )
 
 app.add_middleware(
@@ -218,7 +218,7 @@ class IntentRequest(BaseModel):
 async def root():
     return {
         "message": "MeshCtx API v1.5 运行中",
-        "version": "1.5.22",
+        "version": "1.5.23",
         "endpoints": {
             "projects": "/projects",
             "conversations": "/conversations",
@@ -403,7 +403,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.5.22",
+        "version": "1.5.23",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -708,7 +708,7 @@ async def system_summary():
     k = get_kernel()
     now = time.time()
     summary = {
-        "version": "1.5.22",
+        "version": "1.5.23",
         "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
         "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
         "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},
@@ -1605,7 +1605,7 @@ async def export_config():
         safe_providers[pid] = sp
     
     export_data = {
-        "version": "1.5.22",
+        "version": "1.5.23",
         "exported_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "providers": safe_providers,
         "mcp_servers": mcp_servers,
@@ -1667,6 +1667,91 @@ async def import_config(request: Request):
         "messages": messages,
         "note": "MCP服务器默认禁用，请手动启用。供应商Key已脱敏，请重新填入。"
     }
+
+# ── v1.5.23 会话历史浏览器 + 供应商故障转移 ──────────────────
+
+_SESSION_ARCHIVE: Dict[str, list] = {}  # session_id -> list of messages
+
+
+@app.get("/api/sessions/archive")
+async def list_session_archives(search: Optional[str] = None, limit: int = 50):
+    """列出所有存档会话，支持搜索"""
+    sessions = []
+    for sid, msgs in _SESSION_ARCHIVE.items():
+        if len(msgs) < 2:
+            continue
+        first_user = next((m.get("content", "")[:80] for m in msgs if m.get("role") == "user"), "")
+        last_msg = msgs[-1]
+        sessions.append({
+            "id": sid,
+            "title": first_user or sid[:16],
+            "message_count": len(msgs),
+            "first_message": first_user,
+            "last_role": last_msg.get("role", ""),
+            "last_content": last_msg.get("content", "")[:100],
+            "created_at": msgs[0].get("timestamp", 0) if msgs else 0,
+            "model": msgs[0].get("model", "") if msgs else "",
+        })
+    if search:
+        s = search.lower()
+        sessions = [s for s in sessions if s in s["title"].lower() or s in s["last_content"].lower()]
+    sessions.sort(key=lambda x: x["created_at"], reverse=True)
+    return {"sessions": sessions[:limit], "total": len(sessions)}
+
+
+@app.get("/api/sessions/archive/{session_id}")
+async def get_session_detail(session_id: str):
+    """获取存档会话完整内容"""
+    msgs = _SESSION_ARCHIVE.get(session_id, [])
+    return {"id": session_id, "messages": msgs, "count": len(msgs)}
+
+
+@app.post("/api/sessions/archive")
+async def archive_session(request: Request):
+    """存档当前会话"""
+    body = await request.json()
+    sid = body.get("id", f"session-{int(time.time())}")
+    messages = body.get("messages", [])
+    _SESSION_ARCHIVE[sid] = messages
+    return {"success": True, "id": sid, "count": len(messages)}
+
+
+# 供应商健康追踪
+_PROVIDER_HEALTH: Dict[str, dict] = {}
+
+
+@app.get("/api/providers/health")
+async def get_provider_health():
+    """供应商健康评分 (成功率/延迟/故障转移建议)"""
+    cfg = _load_provider_config()
+    health = {}
+    for pid, pcfg in cfg.items():
+        stats = _PROVIDER_HEALTH.get(pid, {})
+        success = stats.get("success", 0)
+        failure = stats.get("failure", 0)
+        total = success + failure
+        rate = round(success / total * 100, 1) if total > 0 else 100.0
+        health[pid] = {
+            "name": pcfg.get("name", pid),
+            "success_rate": rate,
+            "total_calls": total,
+            "avg_latency_ms": round(stats.get("total_latency", 0) / max(total, 1), 1),
+            "status": "healthy" if rate >= 80 else ("degraded" if rate >= 50 else "unhealthy"),
+            "last_error": stats.get("last_error", ""),
+        }
+    # 故障转移建议：按成功率排序
+    sorted_pids = sorted(health.keys(), key=lambda p: health[p]["success_rate"], reverse=True)
+    return {"providers": health, "failover_order": sorted_pids}
+
+
+@app.api_route("/api/chat/archive-on-done", methods=["POST"])
+async def archive_on_chat_done(request: Request):
+    """Chat完成后自动存档"""
+    body = await request.json()
+    sid = body.get("id", f"chat-{int(time.time())}")
+    messages = body.get("messages", [])
+    _SESSION_ARCHIVE[sid] = messages
+    return {"success": True, "id": sid}
 
 import hashlib
 import base64
@@ -1850,7 +1935,7 @@ async def health_check():
 
     result = {
         "status": "healthy",
-        "version": "1.5.22",
+        "version": "1.5.23",
         "kernel": "running" if (k._started if hasattr(k, '_started') else False) else "standalone",
         "projects_count": len(engine.projects),
         "conversations_count": len(engine.conversations),

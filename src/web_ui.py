@@ -1261,6 +1261,20 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
       </div>
     </div>
   </div>
+   <!-- v1.5.23 会话历史浏览器 -->
+   <div class="pane" id="pane-history">
+     <div class="pane-inner">
+       <div class="card">
+         <h2>📜 会话历史浏览器 <span style="font-size:10px;color:var(--muted);">v1.5.23</span></h2>
+         <div style="display:flex;gap:8px;margin-bottom:12px;">
+           <input id="historySearch" placeholder="搜索会话..." style="flex:1;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:6px 12px;border-radius:6px;font-size:12px;" onkeyup="renderHistory()">
+           <button class="action-btn" onclick="renderHistory()" style="font-size:11px;">🔍 搜索</button>
+         </div>
+         <div id="historySessions" style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto;"></div>
+       </div>
+     </div>
+   </div>
+   
   <div class="pane" id="pane-lab">
     <div class="pane-inner">
       <div class="card">
@@ -1789,6 +1803,69 @@ function deleteProvider(pid){
   if(!confirm('确认删除 '+pid+' 的API Key?')) return;
   fetch('/api/providers/'+pid, {method:'DELETE'}).then(function(r){return r.json()}).then(function(d){
     renderProviders(); fetchModels(); fetchSummary();
+  });
+}
+
+// ═══ v1.5.23 会话历史浏览器 ═══
+function renderHistory(){
+  var search = document.getElementById('historySearch') ? document.getElementById('historySearch').value : '';
+  var url = '/api/sessions/archive?limit=50';
+  if(search) url += '&search=' + encodeURIComponent(search);
+  fetch(url).then(function(r){return r.json();}).then(function(d){
+    var el = document.getElementById('historySessions');
+    if(!el) return;
+    if(!d.sessions || d.sessions.length === 0){
+      el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px;">暂无存档会话<br><span style="font-size:11px;">Chat对话完成后自动存档</span></div>';
+      return;
+    }
+    var html = '';
+    d.sessions.forEach(function(s){
+      var date = s.created_at ? new Date(s.created_at*1000).toLocaleDateString('zh-CN') : '';
+      var preview = (s.first_message||'').substring(0,60);
+      var color = s.last_role === 'assistant' ? '#38bdf8' : '#94a3b8';
+      html += '<div class="history-item" onclick="viewSession(''+s.id+'')" style="background:#1e293b;border-radius:8px;padding:10px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background=\'#334155\'" onmouseout="this.style.background=\'#1e293b\'">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
+      html += '<span style="color:'+color+';font-size:13px;font-weight:600;">'+preview+'</span>';
+      html += '<span style="color:var(--muted);font-size:10px;">'+s.message_count+'条 · '+date+'</span>';
+      html += '</div>';
+      html += '<div style="color:var(--muted);font-size:11px;">'+(s.last_content||'').substring(0,80)+'</div>';
+      html += '<div style="color:#6366f1;font-size:10px;margin-top:3px;">🤖 '+(s.model||'默认')+'</div>';
+      html += '</div>';
+    });
+    el.innerHTML = html;
+  }).catch(function(e){
+    var el = document.getElementById('historySessions');
+    if(el) el.innerHTML = '<div style="color:#fca5a5;">加载失败: '+e.message+'</div>';
+  });
+}
+
+function viewSession(sid){
+  fetch('/api/sessions/archive/'+sid).then(function(r){return r.json();}).then(function(d){
+    var html = '<div style="background:#0f172a;border-radius:12px;padding:16px;max-width:800px;margin:0 auto;">';
+    html += '<h3 style="color:#38bdf8;margin-bottom:12px;">📜 会话详情 ('+d.count+'条消息)</h3>';
+    d.messages.forEach(function(m){
+      var role = m.role === 'user' ? '👤 You' : '🤖 AI';
+      var bg = m.role === 'user' ? '#1e293b' : '#312e81';
+      var content = (m.content||'').substring(0,300);
+      html += '<div style="background:'+bg+';border-radius:8px;padding:10px;margin:6px 0;font-size:12px;">';
+      html += '<strong style="color:'+(m.role===\'user\'?\'#e2e8f0\':\'#a5b4fc\')+';margin-bottom:4px;display:block;">'+role+'</strong>';
+      html += '<div style="color:#cbd5e1;">'+content+'</div>';
+      html += '</div>';
+    });
+    html += '<button onclick="document.getElementById(\'sessionDetail\').innerHTML=\'\'" style="margin-top:10px;background:#334155;color:#e2e8f0;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;">关闭</button>';
+    html += '</div>';
+    var detail = document.getElementById('sessionDetail');
+    if(!detail){
+      detail = document.createElement('div');
+      detail.id = 'sessionDetail';
+      detail.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+      detail.onclick = function(e){if(e.target===detail)detail.innerHTML='';};
+      document.body.appendChild(detail);
+    }
+    detail.innerHTML = html;
+    showToast('📜 查看会话: '+d.count+'条消息');
+  }).catch(function(e){
+    showToast('❌ 加载会话失败: '+e.message);
   });
 }
 
