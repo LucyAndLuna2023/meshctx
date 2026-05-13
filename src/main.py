@@ -217,8 +217,8 @@ class IntentRequest(BaseModel):
 @app.get("/")
 async def root():
     return {
-        "message": "MeshCtx API v1.3 运行中",
-        "version": "1.4.0",
+        "message": "MeshCtx API v1.5 运行中",
+        "version": "1.5.22",
         "endpoints": {
             "projects": "/projects",
             "conversations": "/conversations",
@@ -1850,7 +1850,7 @@ async def health_check():
 
     result = {
         "status": "healthy",
-        "version": "1.4.0",
+        "version": "1.5.22",
         "kernel": "running" if (k._started if hasattr(k, '_started') else False) else "standalone",
         "projects_count": len(engine.projects),
         "conversations_count": len(engine.conversations),
