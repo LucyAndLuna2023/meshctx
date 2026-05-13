@@ -34,6 +34,21 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller pycryptodome pywebview
 
+      - name: Generate logo icons
+        run: |
+          python -c "
+          import struct
+          # Create a simple 32x32 blue square .ico
+          w, h = 32, 32
+          pixels = bytes([0,85,255] * w * h)
+          bmp = b'BM' + struct.pack('<I', 54 + len(pixels)) + b'\x00\x00\x00\x00\x36\x00\x00\x00\x28\x00\x00\x00' + struct.pack('<II', w, h) + b'\x01\x00\x18\x00\x00\x00\x00\x00' + struct.pack('<I', len(pixels)) + b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' + pixels
+          ico_header = b'\x00\x00\x01\x00\x01\x00'
+          entry = struct.pack('BBBBHHII', w, h, 0, 0, 1, 24, len(ico_header) + 16, len(bmp))
+          with open('logo.ico', 'wb') as f: f.write(ico_header + entry + bmp)
+          import shutil; shutil.copy('logo.ico', 'logo.png')
+          print('logo.ico and logo.png created')
+          "
+
       - name: Build Desktop .exe
         run: pyinstaller meshctx_desktop.spec
 
