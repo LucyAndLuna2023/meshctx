@@ -403,7 +403,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.5.4",
+        "version": "1.5.5",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -608,6 +608,43 @@ async def ws_stats():
         return {"status": "disabled"}
     return plugin.manager.stats()
 
+# ── v1.5.5 模型切换 API ─────────────────────────────────
+
+@app.get("/api/models")
+async def list_models():
+    """列出所有可用模型 + 当前激活"""
+    from src.model_registry import get_registry, BUILTIN_MODELS
+    reg = get_registry()
+    current = os.environ.get("MESHCTX_MODEL", "")
+    if not current and reg._entries:
+        current = next(iter(reg._entries))
+    
+    models = []
+    for mid, info in BUILTIN_MODELS.items():
+        configd = mid in reg._entries
+        models.append({
+            "id": mid,
+            "provider": info["provider"],
+            "model_name": info["model"],
+            "configured": configd,
+            "current": mid == current,
+            "key_env": info["key_env"],
+        })
+    return {"models": models, "current": current, "default": current, "total": len(models), "configured": sum(1 for m in models if m["configured"])}
+
+@app.post("/api/model/switch")
+async def switch_model(request: Request):
+    """切换当前模型"""
+    from src.model_registry import get_registry
+    body = await request.json()
+    model_id = body.get("model_id", "")
+    reg = get_registry()
+    if model_id not in reg._entries:
+        raise HTTPException(400, f"模型 {model_id} 未配置，请先 meshctx model add {model_id}")
+    os.environ["MESHCTX_MODEL"] = model_id
+    logger.info(f"模型已切换为: {model_id}")
+    return {"status": "ok", "current": model_id}
+
 # ── v1.5.0 系统总览摘要 (Desktop专属) ────────────────────
 
 @app.get("/api/system/summary")
@@ -616,7 +653,7 @@ async def system_summary():
     k = get_kernel()
     now = time.time()
     summary = {
-        "version": "1.5.4",
+        "version": "1.5.5",
         "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
         "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
         "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},

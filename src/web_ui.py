@@ -873,6 +873,13 @@ body{
 .heal-node .heal-dot{width:6px;height:6px;border-radius:50%;display:inline-block;}
 .heal-node.ok .heal-dot{background:var(--accent);}
 .heal-node.warn .heal-dot{background:#ffa940;}
+
+select#quickModel{
+  background:var(--bg);color:var(--text);border:1px solid var(--border);
+  border-radius:6px;padding:4px 8px;font-size:11px;max-width:180px;
+  cursor:pointer;font-family:inherit;
+}
+select#quickModel:focus{outline:none;border-color:var(--accent);}
 </style>
 </head>
 <body>
@@ -1258,7 +1265,43 @@ function trainPredictor(){
   });
 }
 
+// ═══ 模型切换器 v1.5.5 ═══
+function fetchModels(){
+  fetch('/api/models').then(function(r){return r.json()}).then(function(d){
+    var sel = document.getElementById('quickModel');
+    sel.innerHTML = '';
+    var models = d.models || [];
+    for(var i=0;i<models.length;i++){
+      var m = models[i];
+      var opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = (m.current?'● ':'') + m.provider + ' / ' + m.model_name + (m.configured?'':' (需配置)');
+      if(m.current) opt.selected = true;
+      if(!m.configured) opt.disabled = true;
+      sel.appendChild(opt);
+    }
+    sel.title = d.total + ' 模型 · ' + d.configured + ' 已配置';
+  }).catch(function(e){ console.error('加载模型列表失败:', e); });
+}
+function switchQuickModel(){
+  var modelId = document.getElementById('quickModel').value;
+  if(!modelId) return;
+  fetch('/api/model/switch', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model_id:modelId})
+  }).then(function(r){return r.json()}).then(function(d){
+    var live = document.getElementById('liveTag');
+    live.textContent = '✅ 已切换: ' + d.current;
+    setTimeout(function(){ live.textContent = 'LIVE'; }, 3000);
+    fetchModels(); // 刷新选中状态
+  }).catch(function(e){
+    alert('切换失败: ' + e);
+  });
+}
+
 // ═══ 启动 ═══
+fetchModels();
 startAutoRefresh();
 </script>
 </body>
