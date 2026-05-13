@@ -2,8 +2,17 @@ name: Build Windows Release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
+    paths:
+      - 'src/**'
+      - 'meshctx_desktop.py'
+      - 'meshctx_desktop.spec'
+      - 'meshctx_setup.nsi'
+      - 'version_info.txt'
+      - 'requirements.txt'
   workflow_dispatch:
 
 permissions:

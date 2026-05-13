@@ -835,6 +835,17 @@ body{
 }
 .plugin-card .pname{font-size:13px;font-weight:600;margin-bottom:4px;}
 .plugin-card .pmeta{font-size:10px;color:var(--muted);}
+.action-btn{
+  font-size:11px;padding:4px 12px;border-radius:6px;cursor:pointer;
+  border:1px solid var(--border);background:var(--bg);color:var(--text);
+  font-family:inherit;transition:all .15s;
+}
+.action-btn:hover{border-color:var(--accent);}
+.action-btn.start-btn{color:var(--accent2);border-color:var(--accent2);}
+.action-btn.start-btn:hover{background:#065f46;}
+.action-btn.stop-btn{color:var(--danger);border-color:var(--danger);}
+.action-btn.stop-btn:hover{background:#7f1d1d;}
+.button-row{display:flex;gap:8px;margin-top:8px;}
 </style>
 </head>
 <body>
@@ -862,7 +873,11 @@ body{
     <div class="pane-inner">
       <div class="stats-grid" id="agentStats"></div>
       <div class="card">
-        <h2>🌀 OODA 循环 <span class="auto-refresh" id="oodaRefreshTag"></span></h2>
+        <h2>🌀 OODA 循环 <span class="auto-refresh" id="oodaRefreshTag"></span>
+          <span style="flex:1"></span>
+          <button class="action-btn start-btn" id="btnAgentStart" onclick="controlAgent('start')" title="启动Agent循环">▶ 启动</button>
+          <button class="action-btn stop-btn" id="btnAgentStop" onclick="controlAgent('stop')" title="停止Agent循环" style="display:none">⏹ 停止</button>
+        </h2>
         <div class="ooda-box" id="oodaBox"></div>
       </div>
       <div class="card">
@@ -1006,6 +1021,14 @@ function renderAgent(d){
   }
   document.getElementById('oodaBox').innerHTML = oodaHTML;
   document.getElementById('oodaRefreshTag').textContent = '循环#'+(oo.cycle_count||0)+' · '+curPhase;
+  // 按钮状态
+  var btnStart = document.getElementById('btnAgentStart');
+  var btnStop = document.getElementById('btnAgentStop');
+  var isRunning = (oo.status==='active' || oo.status==='running');
+  if(btnStart && btnStop){
+    btnStart.style.display = isRunning ? 'none' : '';
+    btnStop.style.display = isRunning ? '' : 'none';
+  }
 
   // 任务列表
   var taskHTML = '';
@@ -1119,6 +1142,33 @@ function renderLab(d){
     '<div class="row"><span style="flex:1">🔄 故障转移</span><span class="tag tag-ok">自动</span></div>'+
     '<div class="row"><span style="flex:1">📦 版本</span><span>v1.5.0 · 146测试 · '+ (d.uptime||0) +'s 运行</span></div>';
   document.getElementById('benchPanel').innerHTML = benchHTML;
+}
+
+// ═══ Agent控制 ═══
+function controlAgent(action){
+  var btnStart = document.getElementById('btnAgentStart');
+  var btnStop = document.getElementById('btnAgentStop');
+  if(action==='start'){
+    btnStart.textContent = '⏳ 启动中...'; btnStart.disabled = true;
+    fetch('/agent/start', {method:'POST'}).then(function(r){return r.json()}).then(function(d){
+      btnStart.style.display = 'none'; btnStop.style.display = '';
+      btnStart.textContent = '▶ 启动'; btnStart.disabled = false;
+      fetchSummary();
+    }).catch(function(e){
+      btnStart.textContent = '▶ 启动'; btnStart.disabled = false;
+      console.error(e);
+    });
+  } else if(action==='stop'){
+    btnStop.textContent = '⏳ 停止中...'; btnStop.disabled = true;
+    fetch('/agent/stop', {method:'POST'}).then(function(r){return r.json()}).then(function(d){
+      btnStop.style.display = 'none'; btnStart.style.display = '';
+      btnStop.textContent = '⏹ 停止'; btnStop.disabled = false;
+      fetchSummary();
+    }).catch(function(e){
+      btnStop.textContent = '⏹ 停止'; btnStop.disabled = false;
+      console.error(e);
+    });
+  }
 }
 
 // ═══ 启动 ═══

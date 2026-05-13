@@ -303,6 +303,23 @@ class AgentLoopPlugin(Plugin):
             self._loop_task.cancel()
         logger.info("自主Agent循环已停止")
     
+    async def start_loop(self):
+        """v1.5.1: 手动启动循环 (API调用)"""
+        if self._loop_task and not self._loop_task.done():
+            return  # 已经在运行
+        self._loop_task = asyncio.create_task(self._autonomous_loop())
+        logger.info("自主Agent循环已手动启动")
+    
+    async def stop_loop(self):
+        """v1.5.1: 手动停止循环 (API调用)"""
+        if self._loop_task and not self._loop_task.done():
+            self._loop_task.cancel()
+            try:
+                await self._loop_task
+            except asyncio.CancelledError:
+                pass
+            logger.info("自主Agent循环已手动停止")
+    
     # ═══════════════════════════════════════════════════════
     # OODA 阶段实现
     # ═══════════════════════════════════════════════════════

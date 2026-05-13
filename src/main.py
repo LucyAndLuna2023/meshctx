@@ -418,7 +418,6 @@ async def predictor_learn(task_type: str = "general", project_id: str = None):
     return {"status": "learned", "task_type": task_type}
 
 # ── 自主Agent循环 ───────────────────────────────────────
-
 @app.get("/agent/status")
 async def agent_status():
     """Agent循环状态"""
@@ -427,6 +426,33 @@ async def agent_status():
     if not plugin:
         return {"status": "disabled"}
     return plugin.generate_report()
+
+
+@app.post("/agent/start")
+async def agent_start():
+    """启动自主Agent循环"""
+    k = get_kernel()
+    if not k._started:
+        raise HTTPException(503, "Kernel not started")
+    plugin = k.plugins.get("agent_loop")
+    if not plugin:
+        raise HTTPException(404, "agent_loop plugin not loaded")
+    await plugin.start_loop()
+    return {"status": "started", "message": "Agent loop started"}
+
+
+@app.post("/agent/stop")
+async def agent_stop():
+    """停止自主Agent循环"""
+    k = get_kernel()
+    if not k._started:
+        raise HTTPException(503, "Kernel not started")
+    plugin = k.plugins.get("agent_loop")
+    if not plugin:
+        raise HTTPException(404, "agent_loop plugin not loaded")
+    await plugin.stop_loop()
+    return {"status": "stopped", "message": "Agent loop stopped"}
+
 
 @app.post("/agent/message")
 async def agent_message(content: str = ""):

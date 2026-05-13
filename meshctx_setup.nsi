@@ -13,7 +13,7 @@ InstallDir "$PROGRAMFILES\MeshCtx"
 RequestExecutionLevel admin
 SetCompressor /SOLID lzma
 
-!define VERSION "1.3.2"
+!define VERSION "1.5.0"
 !define PUBLISHER "meshctx.com"
 
 ; ── 语言选择页面 (安装前) ──────────────────

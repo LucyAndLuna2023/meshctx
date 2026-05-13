@@ -25,7 +25,7 @@ logger = logging.getLogger("meshctx.desktop")
 # ── 全局配置 ─────────────────────────────────────────
 PORT = int(os.environ.get("MESHCTX_PORT", "3000"))
 HOST = "127.0.0.1"
-TITLE = "meshctx Desktop v1.3"
+TITLE = "meshctx Desktop v1.5"
 
 # 路径（兼容 PyInstaller 冻结模式）
 if getattr(sys, 'frozen', False):
@@ -75,7 +75,7 @@ def main():
     global PORT
     try:
         logger.info("=" * 50)
-        logger.info("meshctx Desktop v1.3 启动中...")
+        logger.info("meshctx Desktop v1.5 启动中...")
         logger.info(f"Python: {sys.version}")
         logger.info(f"Frozen: {getattr(sys, 'frozen', False)}")
         logger.info(f"Log: {LOG_FILE}")
