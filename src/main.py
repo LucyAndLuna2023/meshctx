@@ -117,7 +117,7 @@ _metrics = MetricsCollector()
 app = FastAPI(
     title="meshctx API",
     description="世界第一自进化Agent系统",
-    version="1.5.23",
+    version="1.5.24",
 )
 
 app.add_middleware(
@@ -218,7 +218,7 @@ class IntentRequest(BaseModel):
 async def root():
     return {
         "message": "MeshCtx API v1.5 运行中",
-        "version": "1.5.23",
+        "version": "1.5.24",
         "endpoints": {
             "projects": "/projects",
             "conversations": "/conversations",
@@ -403,7 +403,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.5.23",
+        "version": "1.5.24",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -667,25 +667,42 @@ async def run_benchmark():
 
 @app.get("/api/models")
 async def list_models():
-    """列出所有可用模型 + 当前激活"""
+    """列出所有可用模型 + 当前激活 + v1.5.24 Key可用性检测"""
     from src.model_registry import get_registry, BUILTIN_MODELS
     reg = get_registry()
     current = os.environ.get("MESHCTX_MODEL", "")
     if not current and reg._entries:
         current = next(iter(reg._entries))
     
+    # v1.5.24: 检查provider_config中是否有Key
+    provider_cfg = _load_provider_config()
+    
     models = []
     for mid, info in BUILTIN_MODELS.items():
         configd = mid in reg._entries
+        pid = info["provider"]
+        # 检查供应商是否有配置Key
+        has_key = bool(provider_cfg.get(pid, {}).get("key", ""))
+        usable = configd or has_key
         models.append({
             "id": mid,
-            "provider": info["provider"],
+            "provider": pid,
+            "provider_name": _provider_display_name(pid),
             "model_name": info["model"],
             "configured": configd,
+            "has_key": has_key,
+            "usable": usable,
             "current": mid == current,
             "key_env": info["key_env"],
         })
-    return {"models": models, "current": current, "default": current, "total": len(models), "configured": sum(1 for m in models if m["configured"])}
+    return {
+        "models": models, 
+        "current": current, 
+        "default": current, 
+        "total": len(models), 
+        "configured": sum(1 for m in models if m["configured"]),
+        "usable": sum(1 for m in models if m["usable"]),
+    }
 
 @app.post("/api/model/switch")
 async def switch_model(request: Request):
@@ -708,7 +725,7 @@ async def system_summary():
     k = get_kernel()
     now = time.time()
     summary = {
-        "version": "1.5.23",
+        "version": "1.5.24",
         "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
         "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
         "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},
@@ -1605,7 +1622,7 @@ async def export_config():
         safe_providers[pid] = sp
     
     export_data = {
-        "version": "1.5.23",
+        "version": "1.5.24",
         "exported_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "providers": safe_providers,
         "mcp_servers": mcp_servers,
@@ -1935,7 +1952,7 @@ async def health_check():
 
     result = {
         "status": "healthy",
-        "version": "1.5.23",
+        "version": "1.5.24",
         "kernel": "running" if (k._started if hasattr(k, '_started') else False) else "standalone",
         "projects_count": len(engine.projects),
         "conversations_count": len(engine.conversations),

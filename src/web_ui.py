@@ -409,8 +409,8 @@ async function loadModels() {
             data.models.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m.id;
-                opt.textContent = m.id + (m.ready ? ' ✓' : ' ⚠');
-                if (!m.ready) opt.disabled = true;
+                opt.textContent = m.id + (m.usable ? ' ✓' : (m.has_key ? ' ⚠' : ' 🔒'));
+                if (!m.usable) opt.disabled = true;
                 sel.appendChild(opt);
             });
         }
@@ -1708,9 +1708,9 @@ function fetchModels(){
       var m = models[i];
       var opt = document.createElement('option');
       opt.value = m.id;
-      opt.textContent = (m.current?'● ':'') + m.provider + ' / ' + m.model_name + (m.configured?'':' (需配置)');
+      opt.textContent = (m.current?'● ':'') + m.provider_name + ' / ' + m.model_name + (m.usable?' ✓':(m.has_key?' ⚠':' 🔒'));
       if(m.current) opt.selected = true;
-      if(!m.configured) opt.disabled = true;
+      if(!m.usable) { opt.disabled = true; opt.style.color = '#64748b'; }
       sel.appendChild(opt);
     }
     sel.title = d.total + ' 模型 · ' + d.configured + ' 已配置';
