@@ -580,6 +580,19 @@ async function send() {
                         streamText.innerHTML = marked.parse(raw);
                         // 高亮代码块
                         streamText.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+                        // v1.5.14: 复制按钮
+                        var copyBtn = document.createElement('button');
+                        copyBtn.textContent = '📋';
+                        copyBtn.title = '复制回复';
+                        copyBtn.style.cssText = 'float:right;background:transparent;border:1px solid #334155;color:#64748b;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:11px;';
+                        copyBtn.onclick = function(){
+                          var txt = streamText.textContent;
+                          navigator.clipboard.writeText(txt).then(function(){
+                            copyBtn.textContent = '✅';
+                            setTimeout(function(){ copyBtn.textContent = '📋'; }, 1500);
+                          });
+                        };
+                        aiBubble.insertBefore(copyBtn, aiBubble.firstChild);
                         continue;
                     }
                     try {
