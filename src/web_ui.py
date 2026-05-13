@@ -545,75 +545,125 @@ async function send() {
     
     // 创建AI消息气泡(流式填充)
     const aiBubble = document.createElement('div');
-    aiBubble.style.cssText = 'margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;';
-    aiBubble.innerHTML = '<strong style="color:#38bdf8;">AI:</strong> <span id="streamText"></span><span class="cursor">▊</span>';
+    aiBubble.style.cssText = 'margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;position:relative;';
+    aiBubble.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><strong style="color:#38bdf8;">AI:</strong><button id="stopStreamBtn" onclick="event.stopPropagation();window._abortStream()" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;display:none;">⏹ 停止</button></div><span class="streamText"></span><span class="cursor">▊</span>';
     div.appendChild(aiBubble);
-    const streamText = aiBubble.querySelector('#streamText');
+    const streamText = aiBubble.querySelector('.streamText');
     const cursor = aiBubble.querySelector('.cursor');
+    const stopBtn = document.getElementById('stopStreamBtn');
+    stopBtn.style.display = 'inline-block';
     
-    try {
-        const res = await fetch('/api/chat/stream', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({message: fullMsg, model: document.getElementById('modelSelect').value})
+    // 全局中断函数
+    window._abortStream = function(){
+        streamAborted = true;
+        if (innerAbortController) innerAbortController.abort();
+        stopBtn.style.display = 'none';
+    };
+    
+    // v1.5.22: 增强流式(重试+工具调用+思考折叠+中断按钮)
+    let streamAborted = false;
+    let retryCount = 0;
+    const maxRetries = 3;
+    let innerAbortController = null; // 中断当前fetch
+
+    while (retryCount <= maxRetries) {
+      if (streamAborted) break;
+      if (retryCount > 0) {
+        // 重试前等待
+        var waitMs = Math.pow(2, retryCount-1) * 1000;
+        streamText.innerHTML += '<div style="color:#fbbf24;font-size:11px;margin:4px 0;">⏳ 重试 ' + retryCount + '/' + maxRetries + ' (等待' + (waitMs/1000) + 's)...</div>';
+        await new Promise(function(r){setTimeout(r, waitMs);});
+      }
+      try {
+        innerAbortController = new AbortController();
+        var res = await fetch('/api/chat/stream', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({message: fullMsg, model: document.getElementById('modelSelect').value}),
+          signal: innerAbortController.signal
         });
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+
+        var reader = res.body.getReader();
+        var decoder = new TextDecoder();
+        var buffer = '';
+
         while (true) {
-            const {done, value} = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, {stream: true});
-            
-            const lines = buffer.split('\n');
-            buffer = lines.pop();
-            
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const data = line.slice(6);
-                    if (data === '[DONE]') {
-                        cursor.remove();
-                        // 保存历史
-                        chatHistory.push({role:'assistant', content:streamText.innerHTML});
-                        saveHistory();
-                        // 渲染Markdown
-                        const raw = streamText.innerHTML;
-                        streamText.innerHTML = marked.parse(raw);
-                        // 高亮代码块
-                        streamText.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
-                        // v1.5.19: 代码块增强 (工具栏+运行+复制+语言标签)
-                        enhanceCodeBlocks(streamText);
-                        // v1.5.14: 复制按钮
-                        var copyBtn = document.createElement('button');
-                        copyBtn.textContent = '📋';
-                        copyBtn.title = '复制回复';
-                        copyBtn.style.cssText = 'float:right;background:transparent;border:1px solid #334155;color:#64748b;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:11px;';
-                        copyBtn.onclick = function(){
-                          var txt = streamText.textContent;
-                          navigator.clipboard.writeText(txt).then(function(){
-                            copyBtn.textContent = '✅';
-                            setTimeout(function(){ copyBtn.textContent = '📋'; }, 1500);
-                          });
-                        };
-                        aiBubble.insertBefore(copyBtn, aiBubble.firstChild);
-                        continue;
-                    }
-                    try {
-                        const parsed = JSON.parse(data);
-                        if (parsed.error) {
-                            streamText.innerHTML += '<span style="color:#fca5a5;">' + parsed.error + '</span>';
-                            cursor.remove();
-                        } else if (parsed.token) {
-                            streamText.innerHTML += parsed.token.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-                        }
-                    } catch(e) {}
-                }
+          var readResult = await reader.read();
+          if (readResult.done) break;
+          buffer += decoder.decode(readResult.value, {stream: true});
+
+          var lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (var li = 0; li < lines.length; li++) {
+            var line = lines[li];
+            if (!line.startsWith('data: ')) continue;
+            var data = line.slice(6);
+
+            if (data === '[DONE]') {
+              cursor.remove();
+              chatHistory.push({role:'assistant', content:streamText.innerHTML});
+              saveHistory();
+              var raw = streamText.innerHTML;
+              // v1.5.22: 渲染前处理工具调用/思考标记
+              raw = raw.replace(/🔧\s*调用:\s*(\S+)/g, function(m,tool){
+                return '<details style="background:#312e81;border-radius:6px;padding:6px;margin:6px 0;font-size:12px;"><summary style="cursor:pointer;color:#a5b4fc;">🔧 工具调用: '+tool+'</summary><pre style="background:#1e1b4b;padding:6px;border-radius:4px;overflow-x:auto;max-height:200px;"></pre></details>';
+              });
+              raw = raw.replace(/💭\s*思考:/g, function(m){
+                return '<details style="background:#1e293b;border-radius:6px;padding:6px;margin:6px 0;font-size:12px;"><summary style="cursor:pointer;color:#94a3b8;">💭 思考过程</summary><div style="padding:6px;color:#94a3b8;">';
+              });
+              raw = raw.replace(/💭结束/g, '</div></details>');
+              streamText.innerHTML = marked.parse(raw);
+              streamText.querySelectorAll('pre code').forEach(function(b){hljs.highlightElement(b);});
+              enhanceCodeBlocks(streamText);
+              // 复制按钮
+              var copyBtn = document.createElement('button');
+              copyBtn.textContent = '📋';
+              copyBtn.title = '复制回复';
+              copyBtn.style.cssText = 'float:right;background:transparent;border:1px solid #334155;color:#64748b;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:11px;';
+              copyBtn.onclick = function(){
+                var txt = streamText.textContent;
+                navigator.clipboard.writeText(txt).then(function(){
+                  copyBtn.textContent = '✅';
+                  setTimeout(function(){copyBtn.textContent='📋';},1500);
+                });
+              };
+              aiBubble.insertBefore(copyBtn, aiBubble.firstChild);
+              retryCount = maxRetries + 1; // 成功，跳出重试循环
+              continue;
             }
+
+            try {
+              var parsed = JSON.parse(data);
+              if (parsed.error) {
+                streamText.innerHTML += '<span style="color:#fca5a5;">' + parsed.error + '</span>';
+                cursor.remove();
+                throw new Error(parsed.error); // 触发重试
+              } else if (parsed.token) {
+                var token = parsed.token.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                streamText.innerHTML += token;
+              } else if (parsed.tool_call) {
+                // v1.5.22: 工具调用内联展示
+                streamText.innerHTML += '<div style="background:#312e81;border-radius:6px;padding:6px;margin:4px 0;font-size:12px;"><span style="color:#a5b4fc;">🔧 '+parsed.tool_call+'</span></div>';
+              }
+            } catch(parseErr) {
+              // 忽略解析错误
+            }
+          }
         }
-    } catch(e) {
-        streamText.innerHTML += '<span style="color:#fca5a5;">错误: ' + e.message + '</span>';
-        cursor.remove();
+      } catch(e) {
+        if (e.name === 'AbortError') {
+          streamText.innerHTML += '<span style="color:#fbbf24;">⏹ 已中断</span>';
+          cursor.remove();
+          break;
+        }
+        retryCount++;
+        if (retryCount > maxRetries) {
+          streamText.innerHTML += '<span style="color:#fca5a5;">❌ 失败(重试' + maxRetries + '次): ' + e.message + '</span>';
+          cursor.remove();
+        }
+      }
     }
     div.scrollTop = div.scrollHeight;
 }

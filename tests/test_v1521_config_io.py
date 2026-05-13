@@ -28,7 +28,7 @@ class TestConfigExportImport:
         client = TestClient(app)
         resp = client.get("/api/config/export")
         data = resp.json()
-        assert data["version"] == "1.5.21"
+        assert data["version"] == "1.5.22"
         assert "exported_at" in data
     
     def test_import_rejects_invalid_json(self):

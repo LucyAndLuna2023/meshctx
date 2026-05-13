@@ -117,7 +117,7 @@ _metrics = MetricsCollector()
 app = FastAPI(
     title="meshctx API",
     description="世界第一自进化Agent系统",
-    version="1.5.21",
+    version="1.5.22",
 )
 
 app.add_middleware(
@@ -403,7 +403,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.5.21",
+        "version": "1.5.22",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -708,7 +708,7 @@ async def system_summary():
     k = get_kernel()
     now = time.time()
     summary = {
-        "version": "1.5.21",
+        "version": "1.5.22",
         "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
         "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
         "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},
@@ -1605,7 +1605,7 @@ async def export_config():
         safe_providers[pid] = sp
     
     export_data = {
-        "version": "1.5.21",
+        "version": "1.5.22",
         "exported_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "providers": safe_providers,
         "mcp_servers": mcp_servers,
