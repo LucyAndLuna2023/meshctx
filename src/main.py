@@ -70,13 +70,54 @@ def get_memory_engine() -> MemoryEngine:
 
 
 # ═══════════════════════════════════════════════════════════
+# v1.5.2 指标采集器 — 内存时间序列
+# ═══════════════════════════════════════════════════════════
+
+from collections import deque
+
+class MetricsCollector:
+    """轻量级指标采集，保留最近60个采样点(10分钟@10s)"""
+    def __init__(self, maxlen=60):
+        self.timestamps = deque(maxlen=maxlen)
+        self.request_counts = deque(maxlen=maxlen)
+        self.latency_ms = deque(maxlen=maxlen)
+        self._counter = 0
+        self._latency_acc = 0.0
+        self._count_in_window = 0
+    
+    def record(self, latency_ms: float = 0):
+        self._counter += 1
+        self._latency_acc += latency_ms
+        self._count_in_window += 1
+    
+    def snapshot(self):
+        """返回当前快照"""
+        import time as _time
+        now = _time.time()
+        avg_lat = round(self._latency_acc / max(1, self._count_in_window), 1)
+        self.timestamps.append(now)
+        self.request_counts.append(self._count_in_window)
+        self.latency_ms.append(avg_lat)
+        # 重置窗口
+        self._count_in_window = 0
+        self._latency_acc = 0.0
+        return {
+            "timestamps": list(self.timestamps),
+            "requests": list(self.request_counts),
+            "latency": list(self.latency_ms),
+            "total_requests": self._counter,
+        }
+
+_metrics = MetricsCollector()
+
+# ═══════════════════════════════════════════════════════════
 # FastAPI 应用
 # ═══════════════════════════════════════════════════════════
 
 app = FastAPI(
     title="meshctx API",
     description="世界第一自进化Agent系统",
-    version="1.3.1",
+    version="1.5.1",
 )
 
 app.add_middleware(
@@ -86,6 +127,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def metrics_middleware(request: Request, call_next):
+    """v1.5.2: 记录每个请求的延迟"""
+    t0 = time.time()
+    response = await call_next(request)
+    elapsed = (time.time() - t0) * 1000
+    _metrics.record(elapsed)
+    return response
+
 
 # ─── 静态文件 ────────────────────────────────────────────
 # PyInstaller 打包后资源在 sys._MEIPASS 下；开发时相对于项目根目录
@@ -352,7 +403,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.5.0",
+        "version": "1.5.2",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -565,13 +616,14 @@ async def system_summary():
     k = get_kernel()
     now = time.time()
     summary = {
-        "version": "1.5.0",
+        "version": "1.5.2",
         "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
         "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
         "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},
         "health": {"overall": "unknown", "plugins": {}, "recent_events": []},
         "performance": {"total_requests": 0, "avg_latency_ms": 0, "last_active": None},
         "predictor": {"patterns_learned": 0, "top_predictions": []},
+        "metrics_history": _metrics.snapshot(),  # v1.5.2: 时间序列
     }
     if not k._started:
         return summary

@@ -1101,6 +1101,24 @@ function renderMonitor(d){
     eHtml = '<div class="empty">📭 暂无事件记录</div>';
   }
   document.getElementById('eventTimeline').innerHTML = eHtml;
+
+  // v1.5.2: 绘制请求趋势图
+  var metrics = d.metrics_history || {};
+  var reqs = metrics.requests || [];
+  var lats = metrics.latency || [];
+  if (reqs.length > 0) {
+    var maxReq = Math.max.apply(null, reqs) || 1;
+    var chartHTML = '<div style="display:flex;align-items:flex-end;gap:3px;height:60px;padding:4px 0;">';
+    var showN = Math.min(reqs.length, 30);
+    var start = reqs.length - showN;
+    for (var ri = start; ri < reqs.length; ri++) {
+      var h = Math.max(4, (reqs[ri]/maxReq)*56);
+      var c = lats[ri] > 200 ? 'var(--danger)' : lats[ri] > 100 ? 'var(--warn)' : 'var(--accent2)';
+      chartHTML += '<div style="width:8px;height:'+h+'px;background:'+c+';border-radius:2px;flex-shrink:0;" title="'+reqs[ri]+' req, '+lats[ri]+'ms"></div>';
+    }
+    chartHTML += '</div><div style="font-size:10px;color:var(--muted);display:flex;justify-content:space-between;"><span>'+reqs.length+'数据点</span><span>max '+maxReq+' req</span></div>';
+    document.getElementById('eventTimeline').insertAdjacentHTML('beforebegin', '<div class="card"><h2>📈 请求趋势 (30点)</h2>'+chartHTML+'</div>');
+  }
 }
 
 // ── Lab Tab ──
