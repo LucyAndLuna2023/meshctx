@@ -752,7 +752,7 @@ body{
 }
 .topbar select:hover,.topbar button:hover{border-color:var(--accent);}
 .topbar .status-dot{width:8px;height:8px;border-radius:50%;background:var(--accent2);box-shadow:0 0 6px var(--accent2);margin-left:-6px;}
-.topbar .live-indicator{font-size:11px;color:var(--muted);margin-left:4px;}
+.topbar .live-indicator{transition:transform 0.15s ease;}font-size:11px;color:var(--muted);margin-left:4px;}
 .tabbar{
   background:var(--surface);border-bottom:1px solid var(--border);
   display:flex;padding:0 16px;
@@ -992,7 +992,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
 </div>
 <script>
 // ═══ v1.5.0 Desktop Dashboard — 富数据+自动刷新 ═══
-var REFRESH_SEC = 10, _timer = null, _data = null;
+var REFRESH_SEC = 5, _timer = null, _data = null, _refreshPulse = false;
 var _phaseMap = {O:'Observe',Or:'Orient',D:'Decide',A:'Act'};
 
 // Tab切换
@@ -1013,6 +1013,12 @@ function startAutoRefresh(){
   _timer = setInterval(fetchSummary, REFRESH_SEC*1000);
 }
 function fetchSummary(){
+  // v1.5.11: 刷新脉冲动画
+  if(_refreshPulse){
+    document.getElementById('liveTag').style.transform = 'scale(1.2)';
+    setTimeout(function(){ document.getElementById('liveTag').style.transform = ''; }, 200);
+  }
+  _refreshPulse = true;
   fetch('/api/system/summary').then(function(r){return r.json()}).then(function(d){
     _data = d;
     renderAll(d);
