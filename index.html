@@ -97,11 +97,11 @@
             <span class="lang-switch">
                 <button class="lang-btn active" onclick="switchLang('en')">EN</button>
                 <button class="lang-btn" onclick="switchLang('zh')">中文</button>
-                <button class="lang-btn" onclick="switchLang('fr')">FR</button>
-                <button class="lang-btn" onclick="switchLang('de')">DE</button>
+                <button class="lang-btn" onclick="switchLang('fr')">Français</button>
+                <button class="lang-btn" onclick="switchLang('de')">Deutsch</button>
                 <button class="lang-btn" onclick="switchLang('ja')">日本語</button>
                 <button class="lang-btn" onclick="switchLang('ko')">한국어</button>
-                <button class="lang-btn" onclick="switchLang('es')">ES</button>
+                <button class="lang-btn" onclick="switchLang('es')">Español</button>
             </span>
         </div>
     </div>
@@ -515,7 +515,10 @@ function switchLang(lang) {
         if (b.textContent.trim().toLowerCase() === lang.toLowerCase() ||
             (lang === 'zh' && b.textContent.trim() === '中文') ||
             (lang === 'ja' && b.textContent.trim() === '日本語') ||
-            (lang === 'ko' && b.textContent.trim() === '한국어')) {
+            (lang === 'ko' && b.textContent.trim() === '한국어') ||
+            (lang === 'es' && b.textContent.trim() === 'Español') ||
+            (lang === 'fr' && b.textContent.trim() === 'Français') ||
+            (lang === 'de' && b.textContent.trim() === 'Deutsch')) {
             b.classList.add('active');
         }
     });
