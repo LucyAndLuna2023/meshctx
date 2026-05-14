@@ -85,6 +85,18 @@
             .hero h1 { font-size:2rem; }
             .nav-links a.nav-hide { display:none; }
             .about-grid { grid-template-columns:1fr; }
+            .hero { padding:120px 16px 60px; }
+            .hero p { font-size:1rem; }
+            section { padding:40px 16px; }
+            .section-title { font-size:1.5rem; margin-bottom:24px; }
+            .code-block { padding:16px; font-size:0.75rem; }
+            .feature-grid { grid-template-columns:1fr; }
+            .feature-card { padding:20px; }
+            .footer-links { flex-direction:column; gap:8px; }
+            .hero-buttons { flex-direction:column; align-items:center; }
+            .hero-buttons .btn { width:100%; max-width:300px; text-align:center; }
+            table { font-size:0.75rem; }
+            th,td { padding:8px 6px; }
         }
     </style>
 </head>
@@ -216,6 +228,15 @@
         </div>
         <p style="text-align:center;margin-top:24px;color:var(--muted);font-size:13px;" data-lang-key="sb_bench">
             📊 <a href="https://github.com/LucyAndLuna2023/meshctx/blob/main/tests/benchmark_v19.py" style="color:var(--accent);">Benchmark验证</a>：决策质量+38% · 全脑延迟<0.2ms · 记忆保持100% · 综合76/100
+        </p>
+    </div>
+</section>
+
+<!-- ═══ TRUST ═══ -->
+<section style="padding:40px 24px;">
+    <div class="section-inner" style="text-align:center;">
+        <p style="color:var(--muted);font-size:13px;max-width:700px;margin:0 auto;line-height:1.8;" data-lang-key="trust_text">
+            🔒 <strong>你的数据，你做主。</strong>所有操作可审计、可拦截、可回滚。API Key加密存储。开源MIT协议——代码全透明，永不锁定。
         </p>
     </div>
 </section>
@@ -464,7 +485,8 @@ const L = {
         sb8_desc:"Reads beyond words — infers your true intent and emotional state. Impatient? Concise. Exploring? Creative suggestions.",
         sb9_title:"🫀 Insula → Self-Monitoring",
         sb9_desc:"Constantly checks its own health. Memory leaks, slowdowns — detected and reported before you feel the lag.",
-        sb_bench:"📊 Benchmark: Decision +38% · Latency <0.2ms · Memory 100% · Score 76/100"
+        sb_bench:"📊 Benchmark: Decision +38% · Latency <0.2ms · Memory 100% · Score 76/100",
+        trust_text:"🔒 <strong>Your data, your rules.</strong> Every action is auditable, interceptable, and rollback-able. API keys are encrypted at rest. MIT open-source — fully transparent, zero lock-in."
     },
     zh: {
         nav_features:"特性", nav_compare:"对比", nav_about:"关于", nav_docs:"文档",
