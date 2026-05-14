@@ -97,7 +97,9 @@ from .super_brain import (
     SuperBrainOrchestrator, HippocampalReplay, SalienceTagger,
     DefaultModeNetwork, ThalamicGate, ForwardModel,
     ActionSelector, ConflictMonitor, InteroceptionEngine, TheoryOfMind,
+    STDPLearner, EmotionalConsolidation, IITConsciousness,
 )
+from .plugin_manifest import PluginManifest
 from .online_learning import (
     OnlineLearningEngine, InteractionRecorder, Interaction,
     GenerativeModelUpdater, PreferenceLearner, MemoryConsolidator,

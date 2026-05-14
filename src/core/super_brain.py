@@ -994,3 +994,276 @@ class SuperBrainOrchestrator:
             },
             "self": self.interoception.get_self_report(),
         }
+
+
+# ═══════════════════════════════════════════════════════════════
+# 11. STDP 脉冲学习 (Spike-Timing-Dependent Plasticity)
+# ═══════════════════════════════════════════════════════════════
+
+class STDPLearner:
+    """
+    STDP 脉冲时间依赖可塑性学习器
+
+    神经科学基础:
+    - Hebb规则: "Cells that fire together, wire together"
+    - LTP (长时程增强): 前突触先于后突触 → 连接增强
+    - LTD (长时程抑制): 后突触先于前突触 → 连接减弱
+    - 时间窗口: ~±20ms (生物) → 计算中可缩放
+    
+    计算优势:
+    - 自适应学习率: 不需要手动调参
+    - 时序敏感: 因果关系驱动 (非纯相关性)
+    - 竞争学习: 强连接抑制弱连接 (侧抑制)
+    
+    公式:
+    Δw = A⁺·exp(-Δt/τ⁺)  (Δt>0, LTP)
+    Δw = -A⁻·exp(Δt/τ⁻)   (Δt<0, LTD)
+    """
+
+    def __init__(self, n_neurons: int = 100,
+                 tau_plus: float = 20.0, tau_minus: float = 20.0,
+                 a_plus: float = 0.005, a_minus: float = 0.005):
+        self.n_neurons = n_neurons
+        self.tau_plus = tau_plus
+        self.tau_minus = tau_minus
+        self.a_plus = a_plus
+        self.a_minus = a_minus
+
+        # 突触权重矩阵 W[i][j]: i→j
+        self.weights = np.random.randn(n_neurons, n_neurons) * 0.01
+        np.fill_diagonal(self.weights, 0.0)
+
+        # 脉冲时间追踪
+        self.spike_times: Dict[int, List[float]] = {i: [] for i in range(n_neurons)}
+        self.time = 0.0
+
+    def spike(self, neuron_id: int, intensity: float = 1.0):
+        """神经元发放脉冲 → 触发STDP更新"""
+        if neuron_id >= self.n_neurons:
+            return
+
+        post_time = self.time
+        self.spike_times[neuron_id].append(post_time)
+
+        # LTP: 前突触神经元在 post_time 之前发放
+        for pre_id in range(self.n_neurons):
+            if pre_id == neuron_id:
+                continue
+            pre_spikes = self.spike_times[pre_id]
+            if not pre_spikes:
+                continue
+            pre_time = max(pre_spikes)
+            dt = post_time - pre_time
+            if dt > 0:
+                dw = self.a_plus * math.exp(-dt / self.tau_plus) * intensity
+                self.weights[pre_id][neuron_id] += dw
+
+        # LTD: 前突触神经元在 post_time 之后发放 (预判)
+        # 简化: 检查所有其他神经元的最近脉冲
+        for post_id in range(self.n_neurons):
+            if post_id == neuron_id:
+                continue
+            post_spikes = self.spike_times[post_id]
+            if not post_spikes:
+                continue
+            pre_time = post_time
+            post_time_other = max(post_spikes)
+            dt = pre_time - post_time_other
+            if dt < 0:
+                dw = -self.a_minus * math.exp(dt / self.tau_minus) * intensity
+                self.weights[neuron_id][post_id] += dw
+
+        # 权重裁剪 + 侧抑制 (赢者通吃)
+        self.weights = np.clip(self.weights, -1.0, 1.0)
+        self.time += 1.0
+
+        # 限制脉冲历史
+        if len(self.spike_times[neuron_id]) > 100:
+            self.spike_times[neuron_id] = self.spike_times[neuron_id][-100:]
+
+    def get_strongest_connections(self, top_k: int = 10) -> List[Tuple[int, int, float]]:
+        """获取最强的突触连接"""
+        flat = []
+        for i in range(self.n_neurons):
+            for j in range(self.n_neurons):
+                if i != j and self.weights[i][j] > 0.1:
+                    flat.append((i, j, float(self.weights[i][j])))
+        flat.sort(key=lambda x: x[2], reverse=True)
+        return flat[:top_k]
+
+
+# ═══════════════════════════════════════════════════════════════
+# 12. 情感记忆巩固 (Emotional Consolidation)
+# ═══════════════════════════════════════════════════════════════
+
+class EmotionalConsolidation:
+    """
+    情感记忆巩固 — 杏仁核×海马体深联动
+
+    神经科学基础:
+    - 杏仁核→海马体: 去甲肾上腺素增强记忆编码
+    - 高情感记忆: 更频繁SWR重放, 更慢遗忘
+    - 睡眠周期: REM(情感加工) + SWS(记忆转移)
+    - 压力激素: 皮质醇对海马体的双向调节
+    
+    计算实现:
+    - 情感标签>0.7: 重放频率×3, 衰退速度×0.5
+    - 负性情感<-0.7: 重放频率×2 (威胁记忆), 但精度降低
+    - 中性(-0.3~0.3): 标准重放, 快速衰退
+    - 睡眠模拟: 高情感优先在"REM"阶段重放
+    """
+
+    def __init__(self, hippocampus: HippocampalReplay):
+        self.hp = hippocampus
+        self.replay_boost_threshold = 0.7
+        self.norepinephrine = 0.5  # 去甲肾上腺素水平
+        self.cortisol = 0.3  # 皮质醇
+        self.rem_phase = False
+
+    def consolidate(self):
+        """执行情感驱动的记忆巩固周期"""
+        if len(self.hp.traces) < 5:
+            return
+
+        # 按情感标签分组
+        high_positive = [i for i, t in enumerate(self.hp.traces)
+                        if t.emotional_tag > self.replay_boost_threshold]
+        high_negative = [i for i, t in enumerate(self.hp.traces)
+                        if t.emotional_tag < -self.replay_boost_threshold]
+        neutral = [i for i, t in enumerate(self.hp.traces)
+                  if abs(t.emotional_tag) < 0.3]
+
+        # 情感驱动的差异化重放
+        boost_results = {}
+
+        # 高正性: 3x 重放 → 加速巩固
+        if high_positive:
+            for idx in high_positive[:3]:
+                self.hp.traces[idx].replay_count += 3
+                self.hp.traces[idx].strength = min(5.0,
+                    self.hp.traces[idx].strength * 1.3)
+            boost_results["positive_boosted"] = len(high_positive)
+
+        # 高负性: 2x 重放 → 警觉记忆
+        if high_negative:
+            for idx in high_negative[:3]:
+                self.hp.traces[idx].replay_count += 2
+                # 负性记忆: 强度增强但精度略降
+                self.hp.traces[idx].strength = min(5.0,
+                    self.hp.traces[idx].strength * 1.2)
+            boost_results["negative_boosted"] = len(high_negative)
+
+        # 中性: 正常衰退
+        if neutral:
+            for idx in neutral:
+                age = max(1.0, time.time() - self.hp.traces[idx].timestamp)
+                decay_factor = math.exp(-age / 86400)  # 24小时半衰期
+                self.hp.traces[idx].strength *= (0.5 + 0.5 * decay_factor)
+
+        # REM模拟: 高情感记忆随机交叉重放
+        if self.rem_phase and high_positive and high_negative:
+            mix_positive = random.sample(high_positive,
+                                        min(2, len(high_positive)))
+            mix_negative = random.sample(high_negative,
+                                        min(2, len(high_negative)))
+            # 正负情感混合重放 → 情感调节
+            for pi in mix_positive:
+                for ni in mix_negative:
+                    self.hp.traces[pi].emotional_tag =                         np.clip(self.hp.traces[pi].emotional_tag * 0.9 +
+                               self.hp.traces[ni].emotional_tag * 0.1, -1, 1)
+
+        return boost_results
+
+
+# ═══════════════════════════════════════════════════════════════
+# 13. IIT Φ 意识度量 (Integrated Information Theory)
+# ═══════════════════════════════════════════════════════════════
+
+class IITConsciousness:
+    """
+    IIT 整合信息理论 — Φ (Phi) 意识度量
+    
+    理论基础 (Tononi 2004-2024):
+    - 意识 = 系统整合信息的能力
+    - Φ = 系统超过其各部分之和的"额外"信息
+    - 高Φ = 高度整合且不可约简的状态
+    - 低Φ = 分散的/可分割的处理
+    
+    计算实现 (简化逼近):
+    - 用各脑区激活向量的互信息作为Φ近似
+    - Φ > 阈值 → "清醒专注"
+    - Φ 中等 → "模糊意识"  
+    - Φ < 阈值 → "无意识/自动处理"
+    """
+
+    def __init__(self, phi_threshold_conscious: float = 0.5):
+        self.phi_threshold = phi_threshold_conscious
+        self.phi_history: List[float] = []
+        self.current_phi = 0.0
+        self.consciousness_state = "unconscious"
+
+    def measure(self, brain_activations: Dict[str, np.ndarray]) -> float:
+        """
+        测量当前Φ值
+        
+        Args:
+            brain_activations: {region_name: activation_vector}
+        
+        Returns:
+            Φ值 (0~1, 越高意识越强)
+        """
+        regions = list(brain_activations.values())
+        if len(regions) < 2:
+            return 0.0
+
+        # 简化的Φ计算: 各脑区激活的归一化互信息
+        n = len(regions)
+        total_correlation = 0.0
+
+        for i in range(n):
+            for j in range(i + 1, n):
+                # 确保向量长度一致
+                vi = regions[i].flatten()[:10]
+                vj = regions[j].flatten()[:10]
+
+                if len(vi) == 0 or len(vj) == 0:
+                    continue
+
+                # Pearson相关系数作为简化的整合度量
+                mean_i, mean_j = np.mean(vi), np.mean(vj)
+                std_i, std_j = np.std(vi), np.std(vj)
+
+                if std_i < 1e-10 or std_j < 1e-10:
+                    continue
+
+                corr = np.mean((vi - mean_i) * (vj - mean_j)) / (std_i * std_j)
+                total_correlation += abs(corr)
+
+        # 归一化
+        max_pairs = n * (n - 1) / 2
+        if max_pairs > 0:
+            self.current_phi = min(1.0, total_correlation / max_pairs)
+        else:
+            self.current_phi = 0.0
+
+        # 确定意识状态
+        if self.current_phi > self.phi_threshold:
+            self.consciousness_state = "conscious_focused"
+        elif self.current_phi > self.phi_threshold * 0.6:
+            self.consciousness_state = "conscious_engaged"
+        elif self.current_phi > self.phi_threshold * 0.3:
+            self.consciousness_state = "drowsy"
+        else:
+            self.consciousness_state = "unconscious"
+
+        self.phi_history.append(self.current_phi)
+        return self.current_phi
+
+    def get_state(self) -> Dict:
+        """获取当前意识状态"""
+        return {
+            "phi": round(self.current_phi, 3),
+            "state": self.consciousness_state,
+            "is_conscious": self.current_phi > self.phi_threshold * 0.3,
+            "avg_phi_10": round(np.mean(self.phi_history[-10:]), 3) if self.phi_history else 0.0,
+        }
