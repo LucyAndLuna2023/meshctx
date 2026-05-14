@@ -81,7 +81,18 @@ from .homeostasis import (
     CircadianModulator,
 )
 
-__version__ = "1.5.26"
+from .brain_router import (
+    SymbolicProjector,
+    SparseAttentionRouter,
+    PsiParameterizedComplexity,
+    BrainInspiredRouter,
+)
+from .online_learning import (
+    OnlineLearningEngine, InteractionRecorder, Interaction,
+    GenerativeModelUpdater, PreferenceLearner, MemoryConsolidator,
+)
+
+__version__ = "1.6.3"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -129,4 +140,7 @@ __all__ = [
     # v1.6.2 Online Learning
     "OnlineLearningEngine", "InteractionRecorder", "Interaction",
     "GenerativeModelUpdater", "PreferenceLearner", "MemoryConsolidator",
+    # v1.6.3 Brain Router
+    "SymbolicProjector", "SparseAttentionRouter",
+    "PsiParameterizedComplexity", "BrainInspiredRouter",
 ]

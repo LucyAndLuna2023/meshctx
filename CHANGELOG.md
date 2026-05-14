@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.6.3] - 2026-05-14 (v1.6.3 Brain Router Integration)
+
+### Added — 脑启发路由器模块 (基于Global Workspace Theory 2.0论文 2026.04.30)
+
+- **SymbolicProjector** (`src/core/brain_router.py`)
+  - Gumbel-Softmax神经符号转换，支持可微分离散化
+  - 自适应维度处理，任意输入维度均可投影
+  - 自动温度调度（高熵→降温，低熵→升温）
+  - 符号空间投影、置信度、分布熵计算
+
+- **SparseAttentionRouter** (`src/core/brain_router.py`)
+  - 动态路由系数α_i，可学习注意力机制
+  - Gumbel-TopK稀疏化，避免所有专家同时激活
+  - 自适应上下文投影（任意维度→key_dim）
+  - 路由历史跟踪、专家使用率统计
+
+- **PsiParameterizedComplexity** (`src/core/brain_router.py`)
+  - ψ-参数化动态复杂度调节（基于Active Inference+Free Energy论文 2026.05.12）
+  - 自适应容量扩展/收缩（利用率驱动）
+  - λ惩罚系数随惊讶度动态调整
+  - Token预算分配（30%-80%动态范围）
+
+- **BrainInspiredRouter** (`src/core/brain_router.py`)
+  - 统一接口整合符号投影+稀疏路由+ψ参数化
+  - 全链路统计（router/symbolizer/psi_adjuster）
+  - 支持空专家、变维度、连续操作压力测试
+
+### Tests
+- 新增: 30个脑启发路由器测试全过
+- 全量: 629 passed (排除UI), 2 skipped
+
+### Changed
+- 版本: v1.6.2 → v1.6.3
+- src/core/__init__.py: 导出新增4个类
+- 测试数: 599 → 629
+
 ## [1.6.2] - 2026-05-14 (v1.6.2 Release)
 
 ### Changed
