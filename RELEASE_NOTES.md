@@ -51,7 +51,12 @@ websocket     — 实时事件推送+双向通信
 
 ```bash
 git clone https://github.com/meshctx/meshctx.git
-cd meshctx && pip install -e . && pip install pycryptodome
+cd meshctx
+
+# 创建虚拟环境（Linux/macOS必备，避免 PEP 668 错误）
+python3 -m venv .venv && source .venv/bin/activate
+
+pip install -e . && pip install pycryptodome
 meshctx start
 ```
 

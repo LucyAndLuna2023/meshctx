@@ -64,6 +64,11 @@
 
         .code-block { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:24px; overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:0.85rem; line-height:1.8; }
         .code-block .c { color:#6b7280; } .code-block .k { color:var(--purple); } .code-block .s { color:var(--green); } .code-block .f { color:var(--cyan); }
+        .plat-tab { background:var(--bg2); border:1px solid var(--border); color:var(--muted); padding:8px 20px; border-radius:8px 8px 0 0; cursor:pointer; font-size:0.9rem; border-bottom:none; }
+        .plat-tab.active { background:var(--bg); color:var(--fg); border-color:var(--accent); }
+        .plat-tab:hover { color:var(--accent); }
+        .plat-code { display:none; }
+        .plat-code.active { display:block; }
 
         /* About Us */
         .about-grid { display:grid; grid-template-columns:1fr 1fr; gap:32px; }
@@ -300,19 +305,63 @@
 <!-- ═══ QUICK START ═══ -->
 <section>
     <div class="section-inner">
-        <h2 class="section-title"><span data-lang-key="quick_title">30秒快速开始</span></h2>
-        <div class="code-block">
-            <span class="c" data-lang-key="quick_c1"># 安装</span><br>
-            git clone https://github.com/LucyAndLuna2023/meshctx.git<br>
-            cd meshctx && python3 -m venv .venv && source .venv/bin/activate<br>
-            pip install -e . && pip install pycryptodome<br><br>
-            <span class="c" data-lang-key="quick_c2"># 配置 DeepSeek（免费）</span><br>
-            export DEEPSEEK_API_KEY=sk-你的key<br><br>
-            <span class="c" data-lang-key="quick_c3"># 扫描模型 & 开始聊天</span><br>
-            meshctx model scan<br>
-            meshctx chat<br><br>
-            <span class="c" data-lang-key="quick_c4"># 或打开浏览器 Web Chat</span><br>
-            meshctx start && open http://localhost:3000/ui/chat
+        <h2 class="section-title"><span data-lang-key="quick_title">快速开始</span></h2>
+        <!-- Platform tabs -->
+        <div style="display:flex;justify-content:center;gap:4px;margin-bottom:16px;flex-wrap:wrap;">
+            <button class="plat-tab active" onclick="switchPlat('linux')" data-lang-key="plat_linux">🐧 Linux</button>
+            <button class="plat-tab" onclick="switchPlat('macos')" data-lang-key="plat_macos">🍎 macOS</button>
+            <button class="plat-tab" onclick="switchPlat('windows')" data-lang-key="plat_windows">🪟 Windows</button>
+        </div>
+        <!-- Linux -->
+        <div class="plat-code active" id="plat-linux">
+            <div class="code-block">
+                <span class="c"># 1. 克隆仓库</span><br>
+                git clone https://github.com/LucyAndLuna2023/meshctx.git<br>
+                cd meshctx<br><br>
+                <span class="c"># 2. 创建虚拟环境（解决 PEP 668）</span><br>
+                python3 -m venv .venv && source .venv/bin/activate<br><br>
+                <span class="c"># 3. 安装</span><br>
+                pip install -e . && pip install pycryptodome<br><br>
+                <span class="c"># 4. 配置 API Key（DeepSeek 免费）</span><br>
+                export DEEPSEEK_API_KEY=sk-你的key<br><br>
+                <span class="c"># 5. 启动 Web Chat</span><br>
+                meshctx start<br>
+                xdg-open http://localhost:3000/ui/chat
+            </div>
+        </div>
+        <!-- macOS -->
+        <div class="plat-code" id="plat-macos">
+            <div class="code-block">
+                <span class="c"># 1. 克隆仓库</span><br>
+                git clone https://github.com/LucyAndLuna2023/meshctx.git<br>
+                cd meshctx<br><br>
+                <span class="c"># 2. 创建虚拟环境</span><br>
+                python3 -m venv .venv && source .venv/bin/activate<br><br>
+                <span class="c"># 3. 安装</span><br>
+                pip install -e . && pip install pycryptodome<br><br>
+                <span class="c"># 4. 配置 API Key</span><br>
+                export DEEPSEEK_API_KEY=sk-你的key<br><br>
+                <span class="c"># 5. 启动 Web Chat</span><br>
+                meshctx start<br>
+                open http://localhost:3000/ui/chat
+            </div>
+        </div>
+        <!-- Windows -->
+        <div class="plat-code" id="plat-windows">
+            <div class="code-block">
+                <span class="c"># 方式A：一键安装（推荐）</span><br>
+                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" style="color:var(--accent);">下载 meshctx-setup.exe</a><br>
+                双击运行 → 选择语言 → 安装完成 ✓<br><br>
+                <span class="c"># 方式B：开发者模式</span><br>
+                git clone https://github.com/LucyAndLuna2023/meshctx.git<br>
+                cd meshctx<br>
+                python -m venv .venv<br>
+                .venv\\Scripts\\activate<br>
+                pip install -e . && pip install pycryptodome<br>
+                set DEEPSEEK_API_KEY=sk-你的key<br>
+                meshctx start<br>
+                start http://localhost:3000/ui/chat
+            </div>
         </div>
     </div>
 </section>
@@ -386,6 +435,7 @@ const L = {
         about_title:"About meshctx",
         contact_title:"📬 Contact", contact_desc:"Questions? Collaborations? Reach out anytime.",
         quick_title:"Quick Start",
+        plat_linux:"🐧 Linux", plat_macos:"🍎 macOS", plat_windows:"🪟 Windows",
         quick_c1:"# Install", quick_c2:"# Configure DeepSeek (free)",
         quick_c3:"# Scan models & start chat", quick_c4:"# Or open Web Chat in browser",
         win_title:"🪟 Windows Desktop Client",
@@ -474,6 +524,15 @@ function switchLang(lang) {
     // Update html lang attribute
     document.documentElement.lang = lang;
     localStorage.setItem('meshctx-lang', lang);
+}
+
+function switchPlat(plat) {
+    document.querySelectorAll('.plat-tab').forEach(function(b){b.classList.remove('active');});
+    document.querySelectorAll('.plat-code').forEach(function(d){d.classList.remove('active');});
+    var tab = document.querySelector('[onclick="switchPlat(\\''+plat+'\\')"]');
+    if(tab) tab.classList.add('active');
+    var code = document.getElementById('plat-'+plat);
+    if(code) code.classList.add('active');
 }
 
 // Restore saved language

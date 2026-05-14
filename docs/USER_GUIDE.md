@@ -26,8 +26,12 @@
 # 前提: Python 3.10+
 git clone https://github.com/meshctx/meshctx.git
 cd meshctx
+
+# PEP 668 修复: 先创建虚拟环境
+python3 -m venv .venv && source .venv/bin/activate
+
 pip install -e .
-pip install pycryptodome  # 企业微信加密需要
+pip install pycryptodome
 ```
 
 ### 启动
@@ -231,7 +235,7 @@ rm ~/.local/bin/meshctx
 
 ```bash
 # 升级到最新代码即可，已自动修复
-cd meshctx && git pull && pip install -e .
+cd meshctx && git pull && source .venv/bin/activate && pip install -e .
 ```
 
 ### 企业微信消息发来没回复

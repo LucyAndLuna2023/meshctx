@@ -28,15 +28,21 @@ meshctx desktop    # 启动原生桌面窗口
 meshctx start      # 启动 Web 服务器
 ```
 
-## ⚡ 30秒开始
+## ⚡ 快速安装
 
 ```bash
 git clone https://github.com/LucyAndLuna2023/meshctx.git
-cd meshctx && pip install -e .
+cd meshctx
+
+# 方式A: 虚拟环境（推荐）
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e . && pip install pycryptodome
+
+# 方式B: 直接安装（如遇 PEP 668 错误加 --break-system-packages）
+# pip install -e . --break-system-packages
 
 export DEEPSEEK_API_KEY=sk-你的key
-meshctx model scan
-meshctx chat
+meshctx start                # 或 meshctx chat
 ```
 
 ## 🌍 多语言支持 (v1.5)

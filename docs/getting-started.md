@@ -16,9 +16,12 @@
     17|### Install from source
     18|
     19|```bash
-    20|git clone https://github.com/meshctx/meshctx.git
-    21|cd meshctx
-    22|pip install -e .
+git clone https://github.com/meshctx/meshctx.git
+cd meshctx
+
+# 创建虚拟环境 或 加 --break-system-packages
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .
     23|```
     24|
     25|### Docker
