@@ -396,7 +396,13 @@ const L = {
 
 function switchLang(lang) {
     document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector(`.lang-btn[onclick="switchLang('${lang}')"]`).classList.add('active');
+    // 用 data-lang 属性选择按钮，避免 onclick 字符串解析问题
+    document.querySelectorAll(`.lang-btn`).forEach(b => {
+        if (b.textContent.trim().toLowerCase() === lang.toLowerCase() ||
+            (lang === 'zh' && b.textContent.trim() === '中文')) {
+            b.classList.add('active');
+        }
+    });
 
     // Show/hide language blocks
     document.querySelectorAll('.lang[data-lang]').forEach(el => {
