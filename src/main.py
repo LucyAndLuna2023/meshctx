@@ -1015,6 +1015,109 @@ async def test_model_connection(model_id: str):
         return {"status": "error", "message": f"连接失败: {str(e)[:200]}"}
 
 
+# ── v2.2 本地文件访问 API ──────────────────────────────────
+
+@app.get("/api/file/read")
+async def read_local_file(path: str = ""):
+    """读取本地文件内容 (支持WSL/Windows路径自动翻译)"""
+    if not path:
+        raise HTTPException(400, "请提供文件路径 path 参数")
+    
+    from pathlib import Path
+    from src.core.platform_fs import wsl_to_windows, windows_to_wsl
+    
+    # WSL/Windows路径翻译
+    resolved = path
+    if path.startswith("/mnt/"):
+        resolved = wsl_to_windows(path)
+    elif len(path) >= 2 and path[1] == ":":
+        resolved = windows_to_wsl(path)
+    
+    file_path = Path(resolved).expanduser().resolve()
+    
+    # 安全检查: 拒绝系统目录
+    dangerous_prefixes = ["/sys/", "/proc/", "/dev/", "C:\\Windows\\", "C:\\windows\\"]
+    sp = str(file_path)
+    if any(sp.lower().startswith(d.lower()) for d in dangerous_prefixes):
+        raise HTTPException(403, "安全限制: 无法访问系统目录")
+    
+    if not file_path.exists():
+        raise HTTPException(404, f"文件不存在: {file_path}")
+    
+    if file_path.is_dir():
+        raise HTTPException(400, f"路径是目录而非文件: {file_path}。请使用 /api/file/list")
+    
+    # 大小限制: 10MB
+    file_size = file_path.stat().st_size
+    if file_size > 10 * 1024 * 1024:
+        raise HTTPException(413, f"文件过大 ({file_size} bytes), 最大10MB")
+    
+    # 读取内容
+    try:
+        content = file_path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        content = file_path.read_bytes().decode("latin-1")
+    except Exception as e:
+        raise HTTPException(500, f"读取失败: {e}")
+    
+    return {
+        "path": str(file_path),
+        "filename": file_path.name,
+        "size": file_size,
+        "content": content,
+        "lines": len(content.split("\n")),
+    }
+
+
+@app.get("/api/file/list")
+async def list_directory(path: str = ""):
+    """列出目录内容"""
+    if not path:
+        path = str(Path.home())
+    
+    from pathlib import Path
+    from src.core.platform_fs import wsl_to_windows, windows_to_wsl
+    
+    resolved = path
+    if path.startswith("/mnt/"):
+        resolved = wsl_to_windows(path)
+    elif len(path) >= 2 and path[1] == ":":
+        resolved = windows_to_wsl(path)
+    
+    dir_path = Path(resolved).expanduser().resolve()
+    
+    if not dir_path.exists():
+        raise HTTPException(404, f"目录不存在: {dir_path}")
+    if not dir_path.is_dir():
+        raise HTTPException(400, f"路径不是目录: {dir_path}")
+    
+    try:
+        items = []
+        for entry in sorted(dir_path.iterdir()):
+            try:
+                stat = entry.stat()
+                items.append({
+                    "name": entry.name,
+                    "path": str(entry),
+                    "is_dir": entry.is_dir(),
+                    "size": stat.st_size if entry.is_file() else 0,
+                    "modified": stat.st_mtime,
+                })
+            except PermissionError:
+                items.append({"name": entry.name, "path": str(entry), "is_dir": entry.is_dir(), "size": 0, "modified": 0, "error": "权限不足"})
+        
+        return {
+            "path": str(dir_path),
+            "parent": str(dir_path.parent) if dir_path.parent != dir_path else None,
+            "items": items[:200],  # 限制200条
+            "total": len(items),
+        }
+    except PermissionError:
+        raise HTTPException(403, f"权限不足: {dir_path}")
+    except Exception as e:
+        raise HTTPException(500, f"读取失败: {e}")
+
+
 # ── v2.1 插件市场 API ──────────────────────────────────
 
 @app.get("/api/brain/status")

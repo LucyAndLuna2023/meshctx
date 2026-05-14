@@ -359,7 +359,7 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
 <div id="messages" style="flex:1; overflow-y:auto; margin-bottom:12px; padding:8px; border:1px solid #334155; border-radius:0 8px 8px 8px; background:#0a0f1a;"></div>
     <div id="fileTag" style="margin-top:8px;font-size:12px;color:#38bdf8;display:none;"></div>
     <div style="display:flex;gap:8px;margin-top:16px;">
-        <input id="userInput" placeholder="输入消息..." style="flex:1;" onkeydown="if(event.key==='Enter')send()">
+        <input id="userInput" placeholder="输入消息... (/read 路径读文件, /ls 路径列目录)" style="flex:1;" onkeydown="if(event.key==='Enter')send()">
         <button class="btn" style="background:#334155;color:#94a3b8;font-size:16px;padding:8px 12px;" onclick="document.getElementById('fileInput').click()" title="上传文件">📎</button>
         <button class="btn btn-primary" onclick="send()">发送</button>
     </div>
@@ -562,6 +562,29 @@ async function send() {
     if (!msg) return;
     let fullMsg = msg;
     const div = document.getElementById('messages');
+    
+    // v2.2: 本地文件快捷指令 /read /ls
+    if (msg.startsWith('/read ') || msg.startsWith('/ls ')) {
+        var parts = msg.split(' ');
+        var cmd = parts[0];
+        var fpath = parts.slice(1).join(' ');
+        if (!fpath) { alert('用法: /read 文件路径  或  /ls 目录路径'); return; }
+        var apiUrl = cmd === '/read' ? '/api/file/read?path=' + encodeURIComponent(fpath)
+                                     : '/api/file/list?path=' + encodeURIComponent(fpath);
+        try {
+            var res = await fetch(apiUrl);
+            var data = await res.json();
+            if (!res.ok) { alert('❌ ' + (data.detail || '失败')); return; }
+            if (cmd === '/read') {
+                fullMsg = '[本地文件: ' + data.filename + ' (' + (data.size>1024?(data.size/1024).toFixed(1)+'KB':data.size+'B') + ')]\n```\n' + data.content.substring(0, 50000) + '\n```\n\n用户消息: 请分析以上文件内容';
+            } else {
+                var listing = data.items.map(function(it){ return (it.is_dir?'📁':'📄')+' '+it.name + (it.size?' ('+(it.size>1024?(it.size/1024).toFixed(1)+'KB':it.size+'B')+')':''); }).join('\n');
+                fullMsg = '[目录: ' + data.path + ']\n' + listing + '\n\n用户消息: 请分析以上目录结构';
+            }
+            msg = cmd + ' ' + fpath;
+        } catch(e) { alert('读取失败: ' + e.message); return; }
+    }
+    
     // v1.7: 多文件批量上传
     if (uploadedContents && uploadedContents.length > 0) {
         let fileBlock = '';
