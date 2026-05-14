@@ -931,98 +931,181 @@ function addCodeRunButtons(container){
 
 _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
 {% block content %}
-<h2>⚙️ Setup</h2>
+<h2>⚙️ 模型管理</h2>
 
 {% if flash == "success" %}
-<div class="flash flash-success">✅ API Key 已保存！配置已自动生效，无需重启。</div>
+<div class="flash flash-success">✅ 已保存！配置自动生效。</div>
 {% elif flash == "error" %}
-<div class="flash flash-error">❌ 保存失败，请重试。</div>
+<div class="flash flash-error">❌ 操作失败。</div>
+{% elif flash == "deleted" %}
+<div class="flash flash-success">🗑 已删除。</div>
 {% endif %}
 
-{% if configured %}
-<div class="card" style="border:2px solid #22c55e;background:#052e16;">
-    <h3 style="color:#22c55e;">🟢 已配置模型 ({{ configured|length }})</h3>
-    {% for m in configured %}
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#0f172a;border-radius:6px;font-size:13px;margin-top:4px;">
-        <span><strong>{{ m.id }}</strong> <span style="color:#64748b;">→ {{ m.model }}</span></span>
-        <span style="display:flex;align-items:center;gap:8px;">
-            <code style="font-size:11px;color:#64748b;background:#1e293b;padding:2px 6px;border-radius:4px;">
-                {{ m.key_masked or '***' }}
-                <span onclick="var e=this.parentNode;var t=e.dataset.full||'';e.textContent=t||e.textContent;e.dataset.full=e.textContent===t?'':t;" 
-                      style="cursor:pointer;color:var(--accent);margin-left:4px;" 
-                      data-full="{{ m.key_full or '' }}">👁</span>
-            </code>
-            <span style="color:#22c55e;">✓</span>
-            <form method="POST" action="/ui/setup/delete" style="display:inline;margin:0;" onsubmit="return confirm('删除 {{ m.id }} 的密钥？')">
-                <input type="hidden" name="model_id" value="{{ m.id }}">
-                <button type="submit" style="background:none;border:none;color:#f85149;cursor:pointer;font-size:16px;padding:0 4px;" title="删除">✕</button>
-            </form>
-        </span>
-    </div>
-    {% endfor %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0;">
+    <h3 style="margin:0;">已配置模型 <span style="color:var(--accent);" id="modelCount">{{ configured|length }}</span></h3>
+    <button class="btn btn-primary" onclick="showAddForm()" style="padding:10px 20px;">+ 添加模型</button>
 </div>
-{% endif %}
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
-    <!-- 左侧：配置表单 -->
+<!-- 添加/编辑表单(默认隐藏) -->
+<div id="modelForm" style="display:none;margin-bottom:16px;">
     <div class="card">
-        <h2>🔑 配置 API 密钥</h2>
-        <p style="color:#94a3b8;margin-bottom:16px;font-size:13px;">选择模型提供商，输入API Key后保存。</p>
-        <form method="POST" action="/ui/setup/save">
-            <div class="form-group">
-                <label>模型提供商</label>
-                <select name="provider">
-                    <option value="deepseek">🟢 DeepSeek（推荐）</option>
-                    <option value="bailian">🔵 阿里云百炼</option>
-                    <option value="siliconflow">🔴 硅基流动 SiliconFlow</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>API Key</label>
-                <input name="api_key" type="password" placeholder="sk-xxxxxxxxxxxxxxxx" required>
-            </div>
-            <details style="margin-bottom:12px;">
-                <summary style="color:#64748b;font-size:13px;cursor:pointer;">📝 高级（Base URL / 模型名）</summary>
-                <div class="form-group" style="margin-top:8px;">
-                    <label>Base URL</label>
-                    <input name="base_url" type="text" placeholder="自动填充">
-                </div>
-                <div class="form-group">
-                    <label>模型名称</label>
-                    <input name="model_name" type="text" placeholder="自动填充">
-                </div>
-            </details>
-            <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;font-size:15px;">💾 保存配置</button>
-        </form>
-    </div>
-
-    <!-- 右侧：获取Key + 说明 -->
-    <div>
-        <div class="card">
-            <h3>🔗 获取 API Key</h3>
-            <div style="display:grid;gap:8px;margin-top:8px;">
-                <a href="https://platform.deepseek.com/api_keys" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#0f172a;border-radius:6px;color:inherit;text-decoration:none;">
-                    <span>🟢 DeepSeek</span><span style="color:#38bdf8;">获取 →</span>
-                </a>
-                <a href="https://bailian.console.aliyun.com/" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#0f172a;border-radius:6px;color:inherit;text-decoration:none;">
-                    <span>🔵 阿里云百炼</span><span style="color:#38bdf8;">获取 →</span>
-                </a>
-                <a href="https://siliconflow.cn/" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#0f172a;border-radius:6px;color:inherit;text-decoration:none;">
-                    <span>🔴 硅基流动</span><span style="color:#38bdf8;">获取 →</span>
-                </a>
-            </div>
+        <h3 id="formTitle">添加模型</h3>
+        <input type="hidden" id="editModelId">
+        <div class="form-group"><label>模型ID</label><input id="fid" placeholder="deepseek:chat"></div>
+        <div class="form-group"><label>提供商</label><input id="fprovider" placeholder="deepseek"></div>
+        <div class="form-group"><label>API Key</label><input id="fkey" type="password" placeholder="sk-..."></div>
+        <div class="form-group"><label>模型名(可选)</label><input id="fmodel" placeholder="auto"></div>
+        <div class="form-group"><label>Base URL(可选)</label><input id="furl" placeholder="auto"></div>
+        <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" onclick="saveModel()">💾 保存</button>
+            <button class="btn btn-ghost" onclick="hideForm()">取消</button>
+            <button class="btn btn-ghost" onclick="testFromForm()" style="margin-left:auto;">🔍 测试连接</button>
         </div>
-        <div class="card" style="margin-top:16px;">
-            <h3>📝 手动配置</h3>
-            <p style="font-size:12px;color:#64748b;">编辑 <code>~/.meshctx/config.yaml</code>:</p>
-            <pre style="background:#0f172a;padding:10px;border-radius:6px;font-size:11px;overflow-x:auto;">models:
-  default: "deepseek:chat"
-  entries:
-    deepseek:chat:
-      key: "sk-your-key"</pre>
-        </div>
+        <div id="testResult" style="margin-top:8px;font-size:13px;"></div>
     </div>
 </div>
+
+<!-- 模型列表 -->
+{% if configured %}
+<div class="card" style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:13px;">
+<thead><tr style="border-bottom:1px solid var(--border);text-align:left;color:var(--muted);">
+    <th style="padding:8px;">模型ID</th>
+    <th style="padding:8px;">提供商</th>
+    <th style="padding:8px;">Key</th>
+    <th style="padding:8px;">默认</th>
+    <th style="padding:8px;">操作</th>
+</tr></thead>
+<tbody>
+{% for m in configured %}
+<tr style="border-bottom:1px solid var(--border);" data-id="{{ m.id }}">
+    <td style="padding:8px;"><strong>{{ m.id }}</strong><br><span style="font-size:11px;color:var(--muted);">{{ m.model }}</span></td>
+    <td style="padding:8px;">{{ m.provider }}</td>
+    <td style="padding:8px;">
+        <code style="font-size:11px;background:#1e293b;padding:2px 6px;border-radius:4px;">
+            {{ m.key_masked or '***' }}
+            <span onclick="var e=this.parentNode;var t=e.dataset.full||'';e.textContent=t||e.textContent;e.dataset.full=e.textContent===t?'':t;" style="cursor:pointer;color:var(--accent);" data-full="{{ m.key_full or '' }}">👁</span>
+        </code>
+    </td>
+    <td style="padding:8px;">
+        {% if m.is_default %}
+        <span style="color:#22c55e;">⭐ 默认</span>
+        {% else %}
+        <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;" onclick="setDefault('{{ m.id }}')">设为默认</button>
+        {% endif %}
+    </td>
+    <td style="padding:8px;">
+        <div style="display:flex;gap:4px;">
+            <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;" onclick="editModel('{{ m.id }}','{{ m.provider }}','{{ m.key_full or '' }}','{{ m.model }}','{{ m.base_url or '' }}')">✏️</button>
+            <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;" onclick="testModel('{{ m.id }}')">🔍</button>
+            <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;color:#f85149;" onclick="if(confirm('确定删除 {{ m.id }}?'))deleteModel('{{ m.id }}')">✕</button>
+        </div>
+    </td>
+</tr>
+{% endfor %}
+</tbody></table>
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:40px;color:var(--muted);">
+    <p style="font-size:48px;margin-bottom:12px;">🔑</p>
+    <p>尚未配置任何模型。点击上方「+ 添加模型」开始。</p>
+</div>
+{% endif %}
+
+<!-- 获取Key链接 -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px;">
+    <a href="https://platform.deepseek.com/api_keys" target="_blank" class="card" style="text-align:center;text-decoration:none;color:inherit;padding:12px;">
+        <span>🟢 DeepSeek</span><br><span style="color:#38bdf8;font-size:11px;">获取 Key →</span>
+    </a>
+    <a href="https://bailian.console.aliyun.com/" target="_blank" class="card" style="text-align:center;text-decoration:none;color:inherit;padding:12px;">
+        <span>🔵 阿里百炼</span><br><span style="color:#38bdf8;font-size:11px;">获取 Key →</span>
+    </a>
+    <a href="https://siliconflow.cn/" target="_blank" class="card" style="text-align:center;text-decoration:none;color:inherit;padding:12px;">
+        <span>🔴 硅基流动</span><br><span style="color:#38bdf8;font-size:11px;">获取 Key →</span>
+    </a>
+</div>
+
+<script>
+function showAddForm() {
+    document.getElementById('modelForm').style.display = 'block';
+    document.getElementById('formTitle').textContent = '添加模型';
+    document.getElementById('editModelId').value = '';
+    document.getElementById('fid').value = ''; document.getElementById('fid').disabled = false;
+    document.getElementById('fprovider').value = 'deepseek';
+    document.getElementById('fkey').value = '';
+    document.getElementById('fmodel').value = '';
+    document.getElementById('furl').value = '';
+    document.getElementById('testResult').innerHTML = '';
+}
+function hideForm() { document.getElementById('modelForm').style.display = 'none'; }
+function editModel(id, provider, key, model, url) {
+    showAddForm();
+    document.getElementById('formTitle').textContent = '编辑 ' + id;
+    document.getElementById('editModelId').value = id;
+    document.getElementById('fid').value = id; document.getElementById('fid').disabled = true;
+    document.getElementById('fprovider').value = provider;
+    document.getElementById('fkey').value = key;
+    document.getElementById('fmodel').value = model;
+    document.getElementById('furl').value = url||'';
+}
+async function saveModel() {
+    var eid = document.getElementById('editModelId').value;
+    var body = {
+        id: document.getElementById('fid').value.trim(),
+        provider: document.getElementById('fprovider').value.trim(),
+        key: document.getElementById('fkey').value.trim(),
+        model: document.getElementById('fmodel').value.trim(),
+        base_url: document.getElementById('furl').value.trim(),
+    };
+    if (!body.id || !body.provider) { alert('ID和提供商为必填'); return; }
+    var method = eid ? 'PUT' : 'POST';
+    var url = eid ? '/api/models/' + eid : '/api/models';
+    if (!eid) body.overwrite = true;
+    try {
+        var res = await fetch(url, {method: method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)});
+        var data = await res.json();
+        if (res.ok) { location.reload(); }
+        else { alert('失败: ' + (data.detail||data.message||'未知')); }
+    } catch(e) { alert('网络错误: ' + e.message); }
+}
+async function deleteModel(id) {
+    try {
+        var res = await fetch('/api/models/' + id, {method: 'DELETE'});
+        if (res.ok) location.reload();
+        else { var d = await res.json(); alert('失败: ' + (d.detail||'')); }
+    } catch(e) { alert('错误: ' + e.message); }
+}
+async function setDefault(id) {
+    try {
+        var res = await fetch('/api/models/' + id + '/default', {method: 'PATCH'});
+        if (res.ok) location.reload();
+        else { var d = await res.json(); alert('失败: ' + (d.detail||'')); }
+    } catch(e) { alert('错误: ' + e.message); }
+}
+async function testModel(id) {
+    var tr = document.querySelector('tr[data-id="' + id + '"]');
+    if (tr) tr.style.background = '#1a2a1a';
+    try {
+        var res = await fetch('/api/models/' + id + '/test', {method: 'POST'});
+        var d = await res.json();
+        if (d.status === 'ok') alert('✅ ' + id + ' 连接成功');
+        else alert('❌ ' + id + ': ' + (d.message||'失败'));
+    } catch(e) { alert('错误: ' + e.message); }
+    if (tr) tr.style.background = '';
+}
+async function testFromForm() {
+    var id = document.getElementById('fid').value.trim();
+    if (!id) { alert('请先输入模型ID'); return; }
+    document.getElementById('testResult').innerHTML = '⏳ 测试中...';
+    try {
+        var res = await fetch('/api/models/' + id + '/test', {method: 'POST'});
+        var d = await res.json();
+        document.getElementById('testResult').innerHTML = d.status === 'ok' 
+            ? '<span style="color:#22c55e;">✅ ' + d.message + '</span>'
+            : '<span style="color:#f85149;">❌ ' + (d.message||'失败') + '</span>';
+    } catch(e) { document.getElementById('testResult').innerHTML = '<span style="color:#f85149;">错误: ' + e.message + '</span>'; }
+}
+</script>
 {% endblock %}"""
 
 _TEMPLATES["desktop.html"] = r"""<!DOCTYPE html>
@@ -2487,19 +2570,22 @@ async def setup_page(request: Request):
         for e in reg.list_all():
             if e["ready"]:
                 entry = {"id": e["id"], "model": e.get("model", "?"), "provider": e.get("provider", "?")}
-                # 读取实际key做mask和全量展示
+                # 检查是否默认模型
                 try:
                     from pathlib import Path
-                    import yaml as _yaml
                     cp = Path.home() / ".meshctx" / "config.yaml"
                     if cp.exists():
+                        import yaml as _yaml2
                         with open(cp) as f:
-                            cfg = _yaml.safe_load(f) or {}
+                            cfg = _yaml2.safe_load(f) or {}
+                        default_id = cfg.get("models", {}).get("default", "")
+                        entry["is_default"] = (default_id == e["id"])
                         model_cfg = cfg.get("models", {}).get("entries", {}).get(e["id"], {})
                         raw_key = model_cfg.get("key", "")
                         if raw_key:
                             entry["key_full"] = raw_key
                             entry["key_masked"] = raw_key[:6] + "****" + raw_key[-4:] if len(raw_key)>10 else "****"
+                        entry["base_url"] = model_cfg.get("base_url", "")
                 except:
                     pass
                 configured.append(entry)
@@ -2544,8 +2630,15 @@ async def save_api_key(
     config.setdefault("models", {})
     config["models"].setdefault("entries", {})
     config["models"]["default"] = model_id
+    # v1.8: 加密存储 API Key
+    encrypted_key = api_key
+    try:
+        from src.core.crypto import encrypt_key
+        encrypted_key = encrypt_key(api_key)
+    except:
+        pass
     config["models"]["entries"][model_id] = {
-        "key": api_key,
+        "key": encrypted_key,
         "model": actual_model,
         "base_url": actual_url,
     }

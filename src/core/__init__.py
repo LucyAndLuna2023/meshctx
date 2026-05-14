@@ -87,6 +87,8 @@ from .brain_router import (
     PsiParameterizedComplexity,
     BrainInspiredRouter,
 )
+
+from .crypto import encrypt_key, decrypt_key, is_encrypted
 from .online_learning import (
     OnlineLearningEngine, InteractionRecorder, Interaction,
     GenerativeModelUpdater, PreferenceLearner, MemoryConsolidator,

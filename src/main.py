@@ -858,6 +858,12 @@ async def add_model(request: Request):
         "base_url": base_url,
         "provider": provider,
     }
+    # v1.8: 加密存储
+    try:
+        from src.core.crypto import encrypt_key
+        config["models"]["entries"][model_id]["key"] = encrypt_key(api_key)
+    except:
+        pass
     
     # 如果这是第一个模型，设为默认
     if not config["models"].get("default"):
@@ -900,6 +906,13 @@ async def update_model(model_id: str, request: Request):
     for field in ["key", "model", "base_url", "provider"]:
         if field in body:
             entries[model_id][field] = body[field]
+    # v1.8: 加密key
+    if "key" in body and body["key"]:
+        try:
+            from src.core.crypto import encrypt_key
+            entries[model_id]["key"] = encrypt_key(body["key"])
+        except:
+            pass
     
     with open(config_path, "w") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
