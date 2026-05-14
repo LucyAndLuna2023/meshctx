@@ -71,11 +71,82 @@ def wait_for_server(url, timeout=15):
     return False
 
 
+def enable_autostart():
+    """启用开机自启动 (PRD §3.1-3.3)"""
+    import platform
+    system = platform.system()
+    try:
+        if system == "Windows":
+            import winreg
+            key = winreg.HKEY_CURRENT_USER
+            subkey = r"Software\Microsoft\Windows\CurrentVersion\Run"
+            with winreg.OpenKey(key, subkey, 0, winreg.KEY_SET_VALUE) as reg:
+                exe_path = sys.executable if not getattr(sys, 'frozen', False) else sys.argv[0]
+                winreg.SetValueEx(reg, "meshctx", 0, winreg.REG_SZ, f'"{exe_path}"')
+            logger.info("已启用 Windows 开机自启动")
+            return True
+        elif system == "Darwin":
+            plist_dir = Path.home() / "Library" / "LaunchAgents"
+            plist_dir.mkdir(parents=True, exist_ok=True)
+            plist = plist_dir / "com.meshctx.desktop.plist"
+            plist.write_text(f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>Label</key><string>com.meshctx.desktop</string>
+    <key>ProgramArguments</key><array><string>{sys.executable}</string><string>{__file__}</string></array>
+    <key>RunAtLoad</key><true/>
+</dict></plist>""")
+            logger.info("已启用 macOS 开机自启动")
+            return True
+        else:
+            autostart_dir = Path.home() / ".config" / "autostart"
+            autostart_dir.mkdir(parents=True, exist_ok=True)
+            desktop_file = autostart_dir / "meshctx.desktop"
+            desktop_file.write_text(f"""[Desktop Entry]
+Type=Application
+Name=meshctx Desktop
+Exec={sys.executable} {__file__}
+Terminal=false
+X-GNOME-Autostart-enabled=true
+""")
+            logger.info("已启用 Linux 开机自启动")
+            return True
+    except Exception as e:
+        logger.warning(f"开机自启动设置失败: {e}")
+        return False
+
+
+def disable_autostart():
+    """禁用开机自启动"""
+    import platform
+    system = platform.system()
+    try:
+        if system == "Windows":
+            import winreg
+            key = winreg.HKEY_CURRENT_USER
+            subkey = r"Software\Microsoft\Windows\CurrentVersion\Run"
+            with winreg.OpenKey(key, subkey, 0, winreg.KEY_SET_VALUE) as reg:
+                winreg.DeleteValue(reg, "meshctx")
+        elif system == "Darwin":
+            plist = Path.home() / "Library" / "LaunchAgents" / "com.meshctx.desktop.plist"
+            if plist.exists():
+                plist.unlink()
+        else:
+            desktop_file = Path.home() / ".config" / "autostart" / "meshctx.desktop"
+            if desktop_file.exists():
+                desktop_file.unlink()
+        logger.info("已禁用开机自启动")
+        return True
+    except Exception as e:
+        logger.warning(f"禁用自启动失败: {e}")
+        return False
+
+
 def main():
     global PORT
     try:
         logger.info("=" * 50)
-        logger.info("meshctx Desktop v1.5 启动中...")
+        logger.info(f"meshctx Desktop v1.8.2 启动中...")
         logger.info(f"Python: {sys.version}")
         logger.info(f"Frozen: {getattr(sys, 'frozen', False)}")
         logger.info(f"Log: {LOG_FILE}")
@@ -96,7 +167,46 @@ def main():
             sys.exit(1)
         logger.info("服务器就绪 ✓")
 
-        # 3. 打开桌面窗口
+        # 3. 系统托盘 (pystray)
+        tray_thread = None
+        try:
+            from PIL import Image
+            import pystray
+            
+            # 创建托盘图标
+            icon_img = Image.new('RGB', (64, 64), color=(88, 101, 242))
+            if LOGO_ICO.exists():
+                try:
+                    icon_img = Image.open(LOGO_ICO)
+                    icon_img = icon_img.resize((64, 64), Image.LANCZOS)
+                except:
+                    pass
+            
+            def on_open(icon, item):
+                import webbrowser
+                webbrowser.open(app_url)
+            
+            def on_quit(icon, item):
+                icon.stop()
+                os._exit(0)
+            
+            menu = pystray.Menu(
+                pystray.MenuItem("打开 meshctx", on_open, default=True),
+                pystray.MenuItem(f"地址: {app_url}", None, enabled=False),
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem("退出", on_quit),
+            )
+            
+            tray_icon = pystray.Icon("meshctx", icon_img, "meshctx Desktop", menu)
+            tray_thread = threading.Thread(target=tray_icon.run, daemon=True)
+            tray_thread.start()
+            logger.info("系统托盘已启动")
+        except ImportError:
+            logger.info("pystray 未安装，跳过系统托盘")
+        except Exception as e:
+            logger.warning(f"系统托盘启动失败: {e}")
+
+        # 4. 打开桌面窗口
         try:
             import webview
             logger.info("创建桌面窗口...")
@@ -112,7 +222,8 @@ def main():
             print(f"\n❌ pywebview 未安装。请在浏览器打开: {app_url}\n")
             import webbrowser
             webbrowser.open(app_url)
-            input("按 Enter 退出...")
+            if tray_thread:
+                input("托盘已运行，按 Enter 退出...")
         except Exception as e:
             logger.error(f"窗口启动失败: {traceback.format_exc()}")
             print(f"\n❌ 窗口启动失败: {e}")
@@ -120,7 +231,8 @@ def main():
             print(f"   日志: {LOG_FILE}\n")
             import webbrowser
             webbrowser.open(app_url)
-            input("按 Enter 退出...")
+            if tray_thread:
+                input("托盘已运行，按 Enter 退出...")
 
     except Exception as e:
         logger.error(f"致命错误: {traceback.format_exc()}")

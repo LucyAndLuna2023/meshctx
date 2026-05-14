@@ -47,7 +47,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         .btn-danger { background: #dc2626; color: white; }
         .btn-danger:hover { background: #b91c1c; }
         input, textarea, select { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 14px; width: 100%; }
-        input:focus, textarea:focus { border-color: #2563eb; outline: none; }
+        input:focus, textarea:focus, select:focus, button:focus-visible { border-color: #2563eb; outline: 2px solid #8b5cf6; outline-offset: 2px; }
         .form-group { margin-bottom: 12px; }
         .form-group label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 4px; }
         .empty { text-align: center; color: #64748b; padding: 40px; }
