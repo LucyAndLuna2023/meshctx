@@ -502,7 +502,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.5.24",
+        "version": "1.8.0",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -816,6 +816,192 @@ async def switch_model(request: Request):
     logger.info(f"模型已切换为: {model_id}")
     return {"status": "ok", "current": model_id}
 
+
+# ── v1.8 模型管理 CRUD API ────────────────────────────────
+
+@app.post("/api/models")
+async def add_model(request: Request):
+    """新增模型配置"""
+    from src.model_registry import get_registry, BUILTIN_MODELS
+    from pathlib import Path
+    try:
+        body = await request.json()
+    except:
+        raise HTTPException(400, "无效的JSON请求体")
+    
+    model_id = body.get("id", "").strip()
+    provider = body.get("provider", "").strip()
+    api_key = body.get("key", "").strip()
+    model_name = body.get("model", "")
+    base_url = body.get("base_url", "")
+    
+    if not model_id or not provider:
+        raise HTTPException(400, "id 和 provider 为必填项")
+    
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    config = {}
+    if config_path.exists():
+        with open(config_path) as f:
+            config = yaml.safe_load(f) or {}
+    
+    config.setdefault("models", {})
+    config["models"].setdefault("entries", {})
+    
+    if model_id in config["models"]["entries"] and not body.get("overwrite"):
+        raise HTTPException(409, f"模型 {model_id} 已存在，使用 overwrite=true 覆盖")
+    
+    config["models"]["entries"][model_id] = {
+        "key": api_key,
+        "model": model_name or model_id,
+        "base_url": base_url,
+        "provider": provider,
+    }
+    
+    # 如果这是第一个模型，设为默认
+    if not config["models"].get("default"):
+        config["models"]["default"] = model_id
+    
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+    
+    # 设置环境变量
+    import src.model_registry as mr
+    mr._registry = None
+    key_env = BUILTIN_MODELS.get(model_id, {}).get("key_env", "")
+    if key_env and api_key:
+        os.environ[key_env] = api_key
+    
+    return {"status": "ok", "id": model_id, "message": f"模型 {model_id} 已添加"}
+
+
+@app.put("/api/models/{model_id}")
+async def update_model(model_id: str, request: Request):
+    """更新模型配置"""
+    from pathlib import Path
+    try:
+        body = await request.json()
+    except:
+        raise HTTPException(400, "无效的JSON请求体")
+    
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    if not config_path.exists():
+        raise HTTPException(404, "配置文件不存在，请先添加模型")
+    
+    with open(config_path) as f:
+        config = yaml.safe_load(f) or {}
+    
+    entries = config.get("models", {}).get("entries", {})
+    if model_id not in entries:
+        raise HTTPException(404, f"模型 {model_id} 不存在")
+    
+    # 更新字段
+    for field in ["key", "model", "base_url", "provider"]:
+        if field in body:
+            entries[model_id][field] = body[field]
+    
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+    
+    # 更新环境变量
+    if "key" in body and body["key"]:
+        from src.model_registry import BUILTIN_MODELS
+        key_env = BUILTIN_MODELS.get(model_id, {}).get("key_env", "")
+        if key_env:
+            os.environ[key_env] = body["key"]
+    
+    import src.model_registry as mr
+    mr._registry = None
+    
+    return {"status": "ok", "id": model_id, "message": f"模型 {model_id} 已更新"}
+
+
+@app.delete("/api/models/{model_id}")
+async def delete_model(model_id: str):
+    """删除模型配置"""
+    from pathlib import Path
+    
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    if not config_path.exists():
+        raise HTTPException(404, "无配置文件")
+    
+    with open(config_path) as f:
+        config = yaml.safe_load(f) or {}
+    
+    entries = config.get("models", {}).get("entries", {})
+    if model_id not in entries:
+        raise HTTPException(404, f"模型 {model_id} 不存在")
+    
+    del entries[model_id]
+    
+    if config.get("models", {}).get("default") == model_id:
+        config["models"]["default"] = next(iter(entries), "") if entries else ""
+    
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+    
+    import src.model_registry as mr
+    mr._registry = None
+    
+    return {"status": "ok", "id": model_id, "message": f"模型 {model_id} 已删除"}
+
+
+@app.patch("/api/models/{model_id}/default")
+async def set_default_model(model_id: str):
+    """设为默认模型"""
+    from pathlib import Path
+    
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    if not config_path.exists():
+        raise HTTPException(404, "无配置文件")
+    
+    with open(config_path) as f:
+        config = yaml.safe_load(f) or {}
+    
+    entries = config.get("models", {}).get("entries", {})
+    if model_id not in entries:
+        raise HTTPException(404, f"模型 {model_id} 未配置")
+    
+    config["models"]["default"] = model_id
+    os.environ["MESHCTX_MODEL"] = model_id
+    
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+    
+    return {"status": "ok", "default": model_id, "message": f"已将 {model_id} 设为默认模型"}
+
+
+@app.post("/api/models/{model_id}/test")
+async def test_model_connection(model_id: str):
+    """测试模型连接"""
+    from src.model_registry import get_registry
+    
+    reg = get_registry()
+    try:
+        client = reg.get(model_id)
+        if not client:
+            return {"status": "error", "message": f"模型 {model_id} 未配置或不可用"}
+        
+        # 发送简单测试请求
+        test_msg = [{"role": "user", "content": "Hi"}]
+        import asyncio
+        response = await asyncio.wait_for(
+            asyncio.to_thread(client.chat, test_msg, max_tokens=10),
+            timeout=15
+        )
+        return {
+            "status": "ok",
+            "model": model_id,
+            "response": str(response)[:100],
+            "message": "连接成功"
+        }
+    except asyncio.TimeoutError:
+        return {"status": "error", "message": "连接超时(15s)"}
+    except Exception as e:
+        return {"status": "error", "message": f"连接失败: {str(e)[:200]}"}
+
+
 # ── v1.5.0 系统总览摘要 (Desktop专属) ────────────────────
 
 @app.get("/api/system/summary")
@@ -824,7 +1010,7 @@ async def system_summary():
     k = get_kernel()
     now = time.time()
     summary = {
-        "version": "1.5.24",
+        "version": "1.8.0",
         "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
         "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
         "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},
@@ -2088,7 +2274,7 @@ async def health_check():
 
     result = {
         "status": "healthy",
-        "version": "1.5.24",
+        "version": "1.8.0",
         "kernel": "running" if (k._started if hasattr(k, '_started') else False) else "standalone",
         "projects_count": len(engine.projects),
         "conversations_count": len(engine.conversations),

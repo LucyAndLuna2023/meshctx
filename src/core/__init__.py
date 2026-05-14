@@ -92,7 +92,7 @@ from .online_learning import (
     GenerativeModelUpdater, PreferenceLearner, MemoryConsolidator,
 )
 
-__version__ = "1.7.0"
+__version__ = "1.8.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
