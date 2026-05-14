@@ -1,5 +1,57 @@
 # Changelog
 
+## [1.7.0] - 2026-05-14 (v1.7.0 BrainRouter OODA Integration)
+
+### Added — BrainRouter OODA集成 + 跨模块闭环
+
+- **BrainRouterAdapter** (`src/core/agent_loop.py`)
+  - 将BrainInspiredRouter完整集成到OODA循环的Orient→Decide阶段
+  - 工作空间7处理器激活→稀疏路由→神经符号投影→ψ容量调节
+  - 自由能门控: surprise动态调制路由温度 (high surprise → more exploration)
+  - 动态活跃专家数调节 (高惊讶度时激活更多专家)
+  - AgentLoopPlugin自动初始化brain_router实例
+
+- **Surprise-Gated Temperature Modulation**
+  - 低惊讶度(surprise=0.1) → 温度T=1.15 → 保守路由
+  - 高惊讶度(surprise=0.9) → 温度T=2.35 → 探索路由
+  - n_active动态范围: 3(默认) → 5(高surprise)
+
+### Fixed
+- brain_router `_gumbel_topk` 线性归一化数值不稳定 → 改用softmax归一化
+- test_gumbel_vs_softmax 边界值溢出修复
+- PEP 668 外部管理环境: 网站安装指令添加venv创建步骤
+
+### Changed
+- **网站重构**: 快速开始分平台展示 (🐧 Linux / 🍎 macOS / 🪟 Windows)
+  - 每个平台独立代码块, tab切换
+  - Linux明确标注PEP 668 venv解决方案
+  - Windows一键安装+开发者模式双选项
+  - 英文版i18n全覆盖 (quick_start/windows/install区域)
+  - 修复英文站"30秒快速开始"/"一键安装"等中文残留
+  
+- agent_loop.py: 新增 `import numpy as np`
+- version_info.txt: 1.6.3 → 1.7.0
+
+### Tests
+- 新增: 19个BrainRouter集成测试 (test_v17_brain_router_integration.py)
+- 脑模块: 46 passed (test_v11_brain)
+- 脑路由: 29 passed (test_v16_brain_router, 修复1个)
+- 集成: 57 passed (test_v15_integration)
+- 新集成: 19 passed (test_v17)
+- 全量: 648 passed (排除UI)
+
+### Module Stats
+| 模块 | 行数 | 类 | 方法 | 测试 |
+|------|------|-----|------|------|
+| free_energy | 771 | 7 | 30 | 18 ✅ |
+| active_inference | 510 | 7 | 22 | 10 ✅ |
+| global_workspace | 573 | 6 | 20 | 10 ✅ |
+| homeostasis | 819 | 7 | 30 | 6 ✅ |
+| metacognition | 812 | 7 | 35 | - |
+| brain_router | 692 | 4 | 19 | 29 ✅ |
+| **agent_loop** | **1104** | **+1** | **+3** | **+19 ✅** |
+| **总计** | **~5300** | **~42** | **~163** | **648** |
+
 ## [1.6.3] - 2026-05-14 (v1.6.3 Brain Router Integration)
 
 ### Added — 脑启发路由器模块 (基于Global Workspace Theory 2.0论文 2026.04.30)

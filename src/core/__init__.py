@@ -43,7 +43,7 @@ from .predictor import (
 from .agent_loop import (
     AgentLoopPlugin, Observation, Decision, ActionResult,
     AgentTask, TaskPriority, LoopPhase, ResponseGenerator, ActionExecutor,
-    WorkspaceAwareAdapter,
+    WorkspaceAwareAdapter, BrainRouterAdapter,
 )
 from .performance import (
     PerformancePlugin, L1MemoryCache, L2FileCache,
@@ -92,7 +92,7 @@ from .online_learning import (
     GenerativeModelUpdater, PreferenceLearner, MemoryConsolidator,
 )
 
-__version__ = "1.6.3"
+__version__ = "1.7.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -114,7 +114,7 @@ __all__ = [
     # Agent Loop
     "AgentLoopPlugin", "Observation", "Decision", "ActionResult",
     "AgentTask", "TaskPriority", "LoopPhase", "ResponseGenerator", "ActionExecutor",
-    "WorkspaceAwareAdapter",
+    "WorkspaceAwareAdapter", "BrainRouterAdapter",
     # Performance
     "PerformancePlugin", "L1MemoryCache", "L2FileCache",
     "StreamGenerator", "PerformanceMonitor",

@@ -47,6 +47,8 @@ a = Analysis(
         'src.core.webhook',
         'src.core.free_energy', 'src.core.active_inference',
         'src.core.global_workspace', 'src.core.homeostasis',
+        'src.core.brain_router', 'src.core.online_learning',
+        'src.core.hybrid_reasoning', 'src.core.multi_agent',
         # Desktop deps
         'webview', 'webview.platforms', 'webview.js',
         'webview.guilib', 'webview.util',

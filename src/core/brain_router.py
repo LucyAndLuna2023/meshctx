@@ -367,20 +367,20 @@ class SparseAttentionRouter:
         # Top-k 选择
         topk_indices = np.argsort(noisy_scores)[-self.n_active:]
         
-        # 转换为概率分布
+        # 转换为概率分布 (softmax on top-k for stability)
         alpha = {name: 0.0 for name in names}
-        for idx in topk_indices:
-            alpha[names[idx]] = float(noisy_scores[idx])
-        
-        # 归一化
-        total = sum(alpha.values())
-        if total > 0:
-            for name in alpha:
-                alpha[name] /= total
+        topk_scores = np.array([noisy_scores[i] for i in topk_indices], dtype=np.float64)
+        # softmax归一化: 数值稳定，所有值严格在(0,1)，和为1
+        topk_scores -= topk_scores.max()  # 防溢出
+        exp_scores = np.exp(topk_scores)
+        exp_sum = exp_scores.sum()
+        if exp_sum > 0:
+            for j, idx in enumerate(topk_indices):
+                alpha[names[idx]] = float(exp_scores[j] / exp_sum)
         else:
             # fallback: 均匀分布
-            for name in alpha:
-                alpha[name] = 1.0 / len(alpha)
+            for idx in topk_indices:
+                alpha[names[idx]] = 1.0 / len(topk_indices)
         
         return alpha
     

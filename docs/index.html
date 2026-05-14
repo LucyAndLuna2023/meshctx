@@ -300,17 +300,18 @@
 <!-- ═══ QUICK START ═══ -->
 <section>
     <div class="section-inner">
-        <h2 class="section-title"><span>30秒快速开始</span></h2>
+        <h2 class="section-title"><span data-lang-key="quick_title">30秒快速开始</span></h2>
         <div class="code-block">
-            <span class="c"># 安装</span><br>
+            <span class="c" data-lang-key="quick_c1"># 安装</span><br>
             git clone https://github.com/LucyAndLuna2023/meshctx.git<br>
-            cd meshctx && pip install -e . && pip install pycryptodome<br><br>
-            <span class="c"># 配置 DeepSeek（免费）</span><br>
+            cd meshctx && python3 -m venv .venv && source .venv/bin/activate<br>
+            pip install -e . && pip install pycryptodome<br><br>
+            <span class="c" data-lang-key="quick_c2"># 配置 DeepSeek（免费）</span><br>
             export DEEPSEEK_API_KEY=sk-你的key<br><br>
-            <span class="c"># 扫描模型 & 开始聊天</span><br>
+            <span class="c" data-lang-key="quick_c3"># 扫描模型 & 开始聊天</span><br>
             meshctx model scan<br>
             meshctx chat<br><br>
-            <span class="c"># 或打开浏览器 Web Chat</span><br>
+            <span class="c" data-lang-key="quick_c4"># 或打开浏览器 Web Chat</span><br>
             meshctx start && open http://localhost:3000/ui/chat
         </div>
     </div>
@@ -319,25 +320,25 @@
 <!-- ═══ WINDOWS 桌面客户端 ═══ -->
 <section>
     <div class="section-inner">
-        <h2 class="section-title"><span>🪟 Windows 桌面客户端</span></h2>
+        <h2 class="section-title"><span data-lang-key="win_title">🪟 Windows 桌面客户端</span></h2>
         <div style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin-top:20px;">
             <div class="feature-card" style="text-align:center;min-width:200px;">
                 <div class="feature-icon">📦</div>
-                <h3>一键安装</h3>
-                <p>NSIS安装程序(7语言) · 开始菜单快捷方式 · 添加/删除程序</p>
-                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" style="margin-top:12px;">下载安装程序</a>
+                <h3 data-lang-key="win_installer_title">一键安装</h3>
+                <p data-lang-key="win_installer_desc">NSIS安装程序(7语言) · 开始菜单快捷方式 · 添加/删除程序</p>
+                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" style="margin-top:12px;" data-lang-key="win_download_installer">下载安装程序</a>
             </div>
             <div class="feature-card" style="text-align:center;min-width:200px;">
                 <div class="feature-icon">📂</div>
-                <h3>绿色便携版</h3>
-                <p>无需安装 · 解压即用 · 自带运行环境</p>
-                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-ghost" style="margin-top:12px;">下载便携版</a>
+                <h3 data-lang-key="win_portable_title">绿色便携版</h3>
+                <p data-lang-key="win_portable_desc">无需安装 · 解压即用 · 自带运行环境</p>
+                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-ghost" style="margin-top:12px;" data-lang-key="win_download_portable">下载便携版</a>
             </div>
             <div class="feature-card" style="text-align:center;min-width:200px;">
                 <div class="feature-icon">🍎</div>
-                <h3>macOS</h3>
-                <p>DMG安装包 · ARM架构原生</p>
-                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-desktop.dmg" class="btn btn-ghost" style="margin-top:12px;">下载 macOS 版</a>
+                <h3 data-lang-key="win_macos_title">macOS</h3>
+                <p data-lang-key="win_macos_desc">DMG安装包 · ARM架构原生</p>
+                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-desktop.dmg" class="btn btn-ghost" style="margin-top:12px;" data-lang-key="win_download_macos">下载 macOS 版</a>
             </div>
         </div>
     </div>
@@ -385,6 +386,18 @@ const L = {
         about_title:"About meshctx",
         contact_title:"📬 Contact", contact_desc:"Questions? Collaborations? Reach out anytime.",
         quick_title:"Quick Start",
+        quick_c1:"# Install", quick_c2:"# Configure DeepSeek (free)",
+        quick_c3:"# Scan models & start chat", quick_c4:"# Or open Web Chat in browser",
+        win_title:"🪟 Windows Desktop Client",
+        win_installer_title:"One-Click Install",
+        win_installer_desc:"NSIS installer (7 languages) · Start Menu shortcut · Add/Remove Programs",
+        win_download_installer:"Download Installer",
+        win_portable_title:"Portable Edition",
+        win_portable_desc:"No install needed · Extract & run · Self-contained runtime",
+        win_download_portable:"Download Portable",
+        win_macos_title:"macOS",
+        win_macos_desc:"DMG package · Native ARM64 support",
+        win_download_macos:"Download for macOS",
         cta_title:"Ready to build the future?", cta_desc:"Open source. Self-evolving. Always free.", cta_btn:"Get Started"
     },
     zh: {
