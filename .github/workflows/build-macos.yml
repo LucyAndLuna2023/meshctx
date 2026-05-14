@@ -4,6 +4,11 @@ on:
   push:
     tags:
       - 'v*'
+    paths:
+      - 'src/**'
+      - 'meshctx_desktop.py'
+      - 'meshctx_desktop.spec'
+      - 'requirements.txt'
   workflow_dispatch:
 
 permissions:
@@ -23,47 +28,65 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pyinstaller pycryptodome pywebview Pillow
+          pip install pyinstaller pycryptodome pywebview
+          brew install create-dmg || true
 
-      - name: Build macOS .app using spec
+      - name: Build macOS .app bundle
         run: |
-          bash scripts/build-mac.sh
+          pyinstaller meshctx_desktop.spec --distpath dist/meshctx.app/Contents/MacOS || \
+          pyinstaller --onefile --windowed \
+            --name meshctx \
+            --add-data "meshctx.yaml:." \
+            --add-data "src:src" \
+            --hidden-import src \
+            --hidden-import src.core \
+            --hidden-import yaml \
+            --hidden-import openai \
+            --hidden-import httpx \
+            --hidden-import fastapi \
+            --hidden-import uvicorn \
+            --hidden-import jinja2 \
+            src/cli.py
 
       - name: Verify build
         run: |
-          if [ -d dist/meshctx-desktop.app ]; then
-            APP_BINARY="dist/meshctx-desktop.app/Contents/MacOS/meshctx-desktop"
-            if [ -f "$APP_BINARY" ]; then
-              echo "OK: meshctx-desktop.app built"
-              file "$APP_BINARY"
-              ls -lh "$APP_BINARY"
-            else
-              echo "WARN: .app structure found but no binary inside"
-              find dist/meshctx-desktop.app -type f
-            fi
+          if [ -f dist/meshctx ]; then
+            echo "OK: dist/meshctx"
+            ls -lh dist/meshctx
+          elif [ -f dist/meshctx.app/Contents/MacOS/meshctx ]; then
+            echo "OK: .app bundle"
+            ls -lh dist/meshctx.app/Contents/MacOS/meshctx
           else
-            echo "dist contents:"
-            ls -lh dist/
-            # Fallback: check for any .app
+            echo "FAIL: binary not found"
+            find dist -type f 2>/dev/null | head -20
+            exit 1
           fi
 
-      - name: Package as .dmg
+      - name: Package as .tar.gz (portable)
         run: |
-          if [ -d dist/meshctx-desktop.app ]; then
-            mkdir -p dist/dmg
-            cp -r dist/meshctx-desktop.app dist/dmg/
-            ln -sf /Applications dist/dmg/Applications
-            hdiutil create -volname "meshctx-desktop" -srcfolder dist/dmg -ov -format UDZO dist/meshctx-desktop.dmg
-            ls -lh dist/meshctx-desktop.dmg
-          else
-            echo "Skipping DMG creation: .app not found"
+          if [ -f dist/meshctx ]; then
+            cp README.md dist/
+            tar -czf meshctx-macos.tar.gz -C dist meshctx README.md
           fi
+
+      - name: Create DMG (if create-dmg available)
+        if: success()
+        run: |
+          if [ -d dist/meshctx.app ] && command -v create-dmg &>/dev/null; then
+            create-dmg --volname "meshctx" --window-pos 200 120 \
+              --window-size 600 400 --icon-size 100 \
+              --icon "meshctx.app" 150 190 \
+              --hide-extension "meshctx.app" \
+              --app-drop-link 450 190 \
+              "meshctx-macos.dmg" "dist/meshctx.app"
+          fi
+        continue-on-error: true
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/meshctx-desktop.dmg
-            dist/meshctx-desktop.app
+            meshctx-macos.tar.gz
+            meshctx-macos.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

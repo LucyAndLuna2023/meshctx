@@ -22,7 +22,8 @@
 **[📥 下载 meshctx.exe](https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx.exe)** — 双击即用，无需 Python，无需浏览器！
 
 ```bash
-# 或命令行安装
+# 或命令行安装 (需先在虚拟环境中)
+python3 -m venv .venv && source .venv/bin/activate
 pip install git+https://github.com/LucyAndLuna2023/meshctx.git
 meshctx desktop    # 启动原生桌面窗口
 meshctx start      # 启动 Web 服务器
