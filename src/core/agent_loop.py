@@ -579,6 +579,9 @@ class AgentLoopPlugin(Plugin):
         self.executor = ActionExecutor()
         self.workspace_adapter = WorkspaceAwareAdapter()
         self.brain_router = BrainRouterAdapter(n_experts=7, input_dim=512)
+        # v1.9: 超级大脑编排器
+        from .super_brain import SuperBrainOrchestrator
+        self.super_brain = SuperBrainOrchestrator()
         self._active_tasks: Dict[str, AgentTask] = {}
         self._task_queue: asyncio.Queue = asyncio.Queue(maxsize=100)
         self._loop_task: Optional[asyncio.Task] = None
@@ -682,6 +685,11 @@ class AgentLoopPlugin(Plugin):
         # 路由增强的主处理器覆盖
         if brain_result.get("dominant_processor"):
             workspace_result["dominant_processor"] = brain_result["dominant_processor"]
+        
+        # v1.9: 超级大脑全脑认知循环
+        sb_result = self.super_brain.full_cycle(content, {"workspace": workspace_result})
+        obs.context["super_brain"] = sb_result
+        workspace_result["super_brain"] = sb_result
         
         # 发布Orient事件 — 包含工作空间结果
         await self.kernel.bus.publish(Event(
