@@ -18,6 +18,7 @@ a = Analysis(
     datas=[
         ('logo.png', '.'),
         ('logo.ico', '.'),
+        ('logo.icns', '.'),
         ('version_info.txt', '.'),
         ('meshctx.yaml', '.'),
         ('src/__init__.py', 'src'),
@@ -49,7 +50,6 @@ a = Analysis(
         # Desktop deps
         'webview', 'webview.platforms', 'webview.js',
         'webview.guilib', 'webview.util',
-        'clr', 'pythonnet',
         # Common deps
         'yaml', 'openai', 'httpx', 'fastapi', 'uvicorn',
         'pydantic', 'jinja2', 'Crypto', 'Crypto.Cipher',
@@ -70,32 +70,36 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
+# ── Platform-specific settings ──────────────────────────────
+if sys.platform == 'darwin':
+    icon_file = 'logo.icns'
+else:
+    icon_file = 'logo.ico'
+
 exe = EXE(
     pyz, a.scripts, a.binaries, a.zipfiles, a.datas,
     [],
     name='meshctx-desktop',
     debug=False,
     strip=False,
-    upx=True,
+    upx=(sys.platform != 'darwin'),  # upx not recommended on macOS
     console=True,   # 显示终端窗口以便看到启动日志/错误
-    icon='logo.ico',
+    icon=icon_file,
     version='version_info.txt',
 )
 
-# ── macOS .app bundle ─────────────────────────────────────
-# COLLECT/BUNDLE is only used on macOS; EXE is used on Windows.
-# PyInstaller on macOS auto-detects and creates an .app wrapper.
-# Use BUNDLE for explicit .app creation:
+# ── macOS .app bundle (BUNDLE) ──────────────────────────────
+# BUNDLE is macOS-specific; EXE is used on Windows.
 if sys.platform == 'darwin':
     app = BUNDLE(
         exe,
         name='meshctx-desktop.app',
-        icon='logo.ico',
+        icon='logo.icns',
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '1.0',
-            'CFBundleVersion': '1.0',
+            'CFBundleShortVersionString': '1.6.0',
+            'CFBundleVersion': '1.6.0',
         },
         version='version_info.txt',
     )

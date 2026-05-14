@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pyinstaller pycryptodome pywebview
+          pip install pyinstaller pycryptodome pywebview Pillow
 
       - name: Build macOS .app using spec
         run: |
