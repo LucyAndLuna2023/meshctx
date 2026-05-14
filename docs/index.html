@@ -441,7 +441,7 @@ function switchLang(lang) {
     document.querySelectorAll('.lang-dropdown-menu button').forEach(function(b){b.classList.remove('active');});
     var btns = document.querySelectorAll('.lang-dropdown-menu button');
     for(var i=0;i<btns.length;i++){var t=btns[i].textContent.trim();if((lang==='en'&&t.indexOf('English')>=0)||(lang==='zh'&&t.indexOf('中文')>=0)||(lang==='ja'&&t.indexOf('日本語')>=0)||(lang==='ko'&&t.indexOf('한국어')>=0)||(lang==='es'&&t.indexOf('Español')>=0)||(lang==='fr'&&t.indexOf('Français')>=0)||(lang==='de'&&t.indexOf('Deutsch')>=0))btns[i].classList.add('active');}
-}    // Show/hide language blocks
+    // Show/hide language blocks
     document.querySelectorAll('.lang[data-lang]').forEach(el => {
         el.classList.toggle('active', el.dataset.lang === lang);
     });
