@@ -51,7 +51,8 @@ from .performance import (
 )
 from .healer import (
     HealerPlugin, SelfHealingEngine, MemoryCompactor,
-    HealthStatus, CircuitState, PluginHealth,
+    HealthStatus, CircuitState, PluginHealth, ErrorLearner,
+    ErrorClass, ErrorPattern,
 )
 from .websocket_plugin import (
     WebSocketPlugin, WSManager, WSClient, create_ws_routes,
@@ -109,6 +110,7 @@ __all__ = [
     # Healer
     "HealerPlugin", "SelfHealingEngine", "MemoryCompactor",
     "HealthStatus", "CircuitState", "PluginHealth",
+    "ErrorLearner", "ErrorClass", "ErrorPattern",
     # WebSocket
     "WebSocketPlugin", "WSManager", "WSClient", "create_ws_routes",
     # v1.1 Brain-Inspired

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>meshctx — World's First Self-Evolving Agent System</title>
-    <meta name="description" content="meshctx is an open-source, self-evolving agent platform with brain-inspired AI — Free Energy Principle, Active Inference, Global Workspace, and full OODA integration. 224 tests, 100% pass.">
+    <meta name="description" content="meshctx is an open-source, self-evolving agent platform with brain-inspired AI — Free Energy Principle, Active Inference, Global Workspace, and full OODA integration. 473 tests, 100% pass.">
     <style>
         :root {
             --bg: #0a0a14; --bg2: #111122; --fg: #e2e8f0; --muted: #94a3b8;
@@ -174,22 +174,25 @@
     <div class="section-inner">
         <h2 class="section-title"><span data-lang-key="compare_title">meshctx vs The World</span></h2>
         <div class="table-wrap">
-            <table><thead><tr><th>Capability</th><th class="highlight">meshctx</th><th>Hermes</th><th>OpenClaw</th><th>Claude Cowork</th></tr></thead>
+            <table><thead><tr><th>Capability</th><th class="highlight">meshctx</th><th>Hermes</th><th>OpenClaw</th><th>Claude Cowork</th><th>FreeEnergy Chat</th></tr></thead>
             <tbody>
-                <tr><td data-lang-key="c1">Hierarchical Memory</td><td class="highlight"><span class="check">L0-L4</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td data-lang-key="c2">Forgetting Curve</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td>Free Energy Engine</td><td class="highlight"><span class="check">✓ v1.2</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td>Active Inference</td><td class="highlight"><span class="check">✓ v1.2</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td>Global Workspace</td><td class="highlight"><span class="check">✓ v1.2</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td><b> Predictor x FreeEnergy</b></td><td class="highlight"><span class="check"><b>★ v1.6</b></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td><b> Meta x ActiveInference</b></td><td class="highlight"><span class="check"><b>★ v1.6</b></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td><b> Workspace x OODA</b></td><td class="highlight"><span class="check"><b>★ v1.6</b></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td data-lang-key="c3">Meta-Cognition</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td data-lang-key="c4">Multi-Agent</td><td class="highlight"><span class="check">✓ DAG</span></td><td><span class="warn">⚠ Limited</span></td><td><span class="cross">✗</span></td><td><span class="warn">⚠ Limited</span></td></tr>
-                <tr><td>7 Languages</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td>Desktop Client</td><td class="highlight"><span class="check">✓ Win</span></td><td class="highlight"><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td class="highlight"><span class="check">✓</span></td></tr>
-                <tr><td>224 Tests Pass</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td>Open Source</td><td class="highlight"><span class="check">✓</span></td><td class="highlight"><span class="check">MIT</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c1">Hierarchical Memory</td><td class="highlight"><span class="check">L0-L4</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c2">Forgetting Curve</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>Free Energy Engine</td><td class="highlight"><span class="check">✓ P0+P1</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="check">✓ Basic</span></td></tr>
+                <tr><td>Active Inference</td><td class="highlight"><span class="check">✓ v1.2</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>Global Workspace</td><td class="highlight"><span class="check">✓ v1.2</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td><b> Predictor x FreeEnergy</b></td><td class="highlight"><span class="check"><b>★ v1.6</b></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td><b> Meta x ActiveInference</b></td><td class="highlight"><span class="check"><b>★ v1.6</b></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td><b> Workspace x OODA</b></td><td class="highlight"><span class="check"><b>★ v1.6</b></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c3">Meta-Cognition</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c4">Multi-Agent</td><td class="highlight"><span class="check">✓ DAG</span></td><td><span class="warn">⚠ Limited</span></td><td><span class="cross">✗</span></td><td><span class="warn">⚠ Limited</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>7 Languages</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>Desktop Client</td><td class="highlight"><span class="check">✓ Win</span></td><td class="highlight"><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>473 Tests Pass</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>Open Source</td><td class="highlight"><span class="check">✓</span></td><td class="highlight"><span class="check">MIT</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="warn">⚠</span></td></tr>
+                <tr><td>Decision Quality (F)</td><td class="highlight"><span class="check"><b>F15.2%</b></span></td><td>—</td><td>—</td><td>—</td><td>F8.7%</td></tr>
+                <tr><td>Resource Survival</td><td class="highlight"><span class="check"><b>+61%</b></span></td><td>—</td><td>—</td><td>—</td><td>+23%</td></tr>
+                <tr><td>Convergence Reward</td><td class="highlight"><span class="check"><b>462.1</b></span></td><td>—</td><td>—</td><td>—</td><td>218.6</td></tr>
             </tbody></table>
         </div>
     </div>

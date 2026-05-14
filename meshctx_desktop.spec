@@ -72,7 +72,7 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 # ── Platform-specific settings ──────────────────────────────
 if sys.platform == 'darwin':
-    icon_file = 'logo.icns'
+    icon_file = None  # macOS EXE icon handled by BUNDLE
 else:
     icon_file = 'logo.ico'
 

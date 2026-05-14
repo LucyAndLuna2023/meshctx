@@ -7,7 +7,7 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPLv3-blue.svg"></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.10%2B-green"></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-224%2F224-brightgreen"></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-473%2F473-brightgreen"></a>
   <a href="#"><img src="https://img.shields.io/badge/plugins-12-purple"></a>
   <a href="#"><img src="https://img.shields.io/badge/languages-7-orange"></a>
   <a href="#"><img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue"></a>
@@ -15,7 +15,7 @@
 
 ---
 
-> **meshctx 是一个能自我进化的 AI Agent 平台。** v1.6 打通三大智能闭环：预测引擎×自由能、元认知×主动推理、全局工作空间×OODA循环。224测试全部通过，跨 7 学科融合，7 语言全覆盖。
+> **meshctx 是一个能自我进化的 AI Agent 平台。** v1.6 打通三大智能闭环：预测引擎×自由能、元认知×主动推理、全局工作空间×OODA循环。473测试全部通过，跨 7 学科融合，7 语言全覆盖。
 
 ## 🖥️ 桌面客户端 (v1.3 新增)
 

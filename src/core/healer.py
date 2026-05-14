@@ -11,6 +11,7 @@ meshctx v1.0 自愈引擎 — Self-Healing Engine
 这是 meshctx 实现真正 24/7 自主运行的关键。
 """
 import asyncio
+import json
 import logging
 import time
 import uuid
@@ -22,6 +23,182 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from .kernel import Event, EventPriority, Plugin, PluginInfo, PluginState
 
 logger = logging.getLogger("meshctx.healer")
+
+
+# ═══════════════════════════════════════════════════════════
+# 错误分类系统
+# ═══════════════════════════════════════════════════════════
+
+class ErrorClass(Enum):
+    """错误分类: transient(瞬态) vs permanent(永久)"""
+    TRANSIENT = "transient"       # 可自动恢复 (网络抖动、资源暂时不足)
+    PERMANENT = "permanent"       # 需要人工介入 (配置错误、权限缺失)
+    UNKNOWN = "unknown"           # 待分类
+
+
+@dataclass
+class ErrorPattern:
+    """学习的错误模式"""
+    signature: str = ""                 # 错误签名 (关键词hash)
+    error_class: ErrorClass = ErrorClass.UNKNOWN
+    count: int = 0
+    first_seen: float = 0.0
+    last_seen: float = 0.0
+    auto_recover_success: int = 0       # 自动恢复成功次数
+    auto_recover_attempts: int = 0      # 自动恢复尝试次数
+    auto_recover_rate: float = 0.0      # 自动恢复成功率
+    notify_needed: bool = False         # 是否需要通知人工
+
+
+class ErrorLearner:
+    """
+    错误学习器 — 从自我修复中学习
+    
+    功能:
+    - 记录错误模式 → 改进预测
+    - transient vs permanent 自动分类
+    - 自动恢复成功率追踪
+    - 向HealerPlugin提供改进建议
+    """
+    
+    def __init__(self):
+        self._patterns: Dict[str, ErrorPattern] = {}
+        self._history: deque = deque(maxlen=1000)
+        
+        # transient 关键词 — 可自动恢复
+        self._transient_keywords = {
+            "timeout", "connection", "reset", "refused", "unreachable",
+            "temporarily", "retry", "throttl", "rate_limit", "too_many",
+            "overflow", "busy", "unavailable", "interrupted", "timed out",
+            "econnreset", "econnrefused", "eagain", "would block",
+        }
+        
+        # permanent 关键词 — 需要人工介入
+        self._permanent_keywords = {
+            "permission", "denied", "forbidden", "unauthorized", "invalid",
+            "not found", "not exist", "cannot find", "misconfig",
+            "no such", "doesn't exist", "does not exist", "missing",
+            "syntax error", "illegal", "disabled", "deprecated",
+        }
+        
+        # config
+        self.min_samples_for_classification = 3
+        self.min_recover_rate_for_auto = 0.5   # 成功率≥50%继续自动修复
+        
+    def classify(self, error_msg: str) -> ErrorClass:
+        """自动分类错误"""
+        error_lower = error_msg.lower()
+        
+        # 检查permanent关键词
+        for kw in self._permanent_keywords:
+            if kw in error_lower:
+                return ErrorClass.PERMANENT
+        
+        # 检查transient关键词
+        for kw in self._transient_keywords:
+            if kw in error_lower:
+                return ErrorClass.TRANSIENT
+        
+        return ErrorClass.UNKNOWN
+    
+    def _make_signature(self, error_msg: str) -> str:
+        """从错误消息提取签名"""
+        error_lower = error_msg.lower().strip()
+        # 取前50个字符作为签名
+        return error_lower[:50]
+    
+    def record(self, plugin: str, error_msg: str, auto_recover_success: Optional[bool] = None) -> ErrorClass:
+        """记录错误并返回分类"""
+        error_class = self.classify(error_msg)
+        signature = self._make_signature(error_msg)
+        
+        now = time.time()
+        if signature not in self._patterns:
+            self._patterns[signature] = ErrorPattern(
+                signature=signature,
+                error_class=error_class,
+                first_seen=now,
+            )
+        
+        pattern = self._patterns[signature]
+        pattern.count += 1
+        pattern.last_seen = now
+        
+        # 更新error_class (如果积累足够样本)
+        if pattern.count >= self.min_samples_for_classification:
+            pattern.error_class = error_class
+        
+        # 记录恢复结果
+        if auto_recover_success is not None:
+            pattern.auto_recover_attempts += 1
+            if auto_recover_success:
+                pattern.auto_recover_success += 1
+            pattern.auto_recover_rate = (
+                pattern.auto_recover_success / max(1, pattern.auto_recover_attempts)
+            )
+            pattern.notify_needed = pattern.auto_recover_rate < self.min_recover_rate_for_auto
+        
+        # 加入历史
+        self._history.append({
+            "timestamp": now,
+            "plugin": plugin,
+            "error": error_msg,
+            "class": error_class.value,
+            "auto_recover_success": auto_recover_success,
+        })
+        
+        return error_class
+    
+    def should_auto_recover(self, error_msg: str) -> bool:
+        """是否应该自动恢复"""
+        error_class = self.classify(error_msg)
+        if error_class == ErrorClass.PERMANENT:
+            return False
+        
+        signature = self._make_signature(error_msg)
+        pattern = self._patterns.get(signature)
+        
+        if pattern and pattern.notify_needed:
+            return False
+        
+        if pattern and pattern.auto_recover_attempts >= 5:
+            return pattern.auto_recover_rate >= self.min_recover_rate_for_auto
+        
+        return True  # 新错误默认尝试自动恢复
+    
+    def get_known_patterns(self, top_k: int = 20) -> List[Dict]:
+        """获取已知错误模式"""
+        sorted_patterns = sorted(
+            self._patterns.values(),
+            key=lambda p: p.count,
+            reverse=True,
+        )
+        return [
+            {
+                "signature": p.signature,
+                "error_class": p.error_class.value,
+                "count": p.count,
+                "auto_recover_rate": round(p.auto_recover_rate, 2),
+                "notify_needed": p.notify_needed,
+                "last_seen": p.last_seen,
+            }
+            for p in sorted_patterns[:top_k]
+        ]
+    
+    def get_stats(self) -> Dict:
+        """获取学习统计"""
+        total = len(self._patterns)
+        transient = sum(1 for p in self._patterns.values() if p.error_class == ErrorClass.TRANSIENT)
+        permanent = sum(1 for p in self._patterns.values() if p.error_class == ErrorClass.PERMANENT)
+        unknown = sum(1 for p in self._patterns.values() if p.error_class == ErrorClass.UNKNOWN)
+        return {
+            "total_patterns": total,
+            "transient": transient,
+            "permanent": permanent,
+            "unknown": unknown,
+            "history_size": len(self._history),
+            "recent": list(self._history)[-5:] if self._history else [],
+        }
 
 
 class HealthStatus(Enum):
@@ -49,6 +226,10 @@ class PluginHealth:
     circuit_state: CircuitState = CircuitState.CLOSED
     restart_count: int = 0
     max_restarts: int = 5
+    crash_count: int = 0                 # 崩溃次数
+    last_crash_time: float = 0.0         # 最后崩溃时间
+    periodic_ping_ok: bool = True        # 周期性ping状态
+    ping_failures: int = 0               # ping失败计数
 
 
 @dataclass
@@ -73,12 +254,17 @@ class SelfHealingEngine:
         self._event_history: deque = deque(maxlen=500)
         self._repair_actions: Dict[str, List[str]] = defaultdict(list)
         
+        # 错误学习器
+        self._error_learner = ErrorLearner()
+        
         # 配置
         self.heartbeat_interval = 30      # 30秒心跳
         self.failure_threshold = 3        # 连续3次失败触发恢复
         self.circuit_threshold = 5        # 5次失败熔断
         self.circuit_timeout = 60         # 60秒后尝试半开
         self.max_restarts = 5             # 最多重启5次
+        self.restart_delay = 1.0          # 重启延迟(秒)
+        self.max_crash_restarts = 3       # 连续崩溃最多重启3次
         
         # 降级策略: 各插件重要性
         self._critical_plugins = {"memory", "kernel"}
@@ -124,23 +310,106 @@ class SelfHealingEngine:
         health.consecutive_failures += 1
         health.last_error = error
         
+        # 使用ErrorLearner分类和记录
+        error_class = self._error_learner.record(name, error)
+        
         # 熔断判断
         if health.consecutive_failures >= self.circuit_threshold:
             if health.circuit_state != CircuitState.OPEN:
                 health.circuit_state = CircuitState.OPEN
                 self._log_event(name, "circuit_open", 
-                              f"熔断器打开: 连续{health.consecutive_failures}次失败")
+                              f"熔断器打开: 连续{health.consecutive_failures}次失败 ({error_class.value})")
                 return True  # 需要隔离
         
         # 恢复触发
         if health.consecutive_failures >= self.failure_threshold:
             severity = 2 if name in self._critical_plugins else 1
             self._log_event(name, "failure_threshold",
-                          f"连续失败{health.consecutive_failures}次, 触发恢复",
+                          f"连续失败{health.consecutive_failures}次, 触发恢复 ({error_class.value})",
                           severity=severity)
             return True  # 需要恢复
         
         return False
+    
+    def report_crash(self, name: str, error: str) -> bool:
+        """报告插件崩溃 — 使用重启策略"""
+        health = self._plugin_health.get(name)
+        if not health:
+            return False
+        
+        health.crash_count += 1
+        health.last_crash_time = time.time()
+        health.last_error = error
+        health.consecutive_failures += 1
+        
+        # 记录到错误学习器
+        self._error_learner.record(name, error)
+        
+        # 检查是否超过最大崩溃重启次数
+        if health.crash_count > self.max_crash_restarts:
+            self._log_event(name, "crash_limit",
+                          f"崩溃次数{health.crash_count}超过限制{self.max_crash_restarts}, 需要隔离",
+                          severity=2)
+            return False  # 不再自动重启，需要隔离
+        
+        self._log_event(name, "crash",
+                      f"第{health.crash_count}次崩溃: {error}",
+                      severity=2)
+        return True  # 可以重启
+    
+    def periodic_ping(self, name: str) -> bool:
+        """周期性健康检查ping"""
+        health = self._plugin_health.get(name)
+        if not health:
+            return False
+        
+        now = time.time()
+        elapsed = now - health.last_heartbeat
+        
+        if elapsed > self.heartbeat_interval * 2:
+            health.ping_failures += 1
+            health.periodic_ping_ok = False
+            self._log_event(name, "ping_fail",
+                          f"心跳超时({elapsed:.0f}s), ping失败#{health.ping_failures}",
+                          severity=1)
+            return False
+        else:
+            health.ping_failures = 0
+            health.periodic_ping_ok = True
+            return True
+    
+    def get_status_aggregation(self) -> Dict:
+        """状态聚合 — 返回各插件状态汇总"""
+        now = time.time()
+        total = len(self._plugin_health)
+        healthy = 0
+        degraded = 0
+        unstable = 0
+        critical = 0
+        crashed = 0
+        
+        for name, h in self._plugin_health.items():
+            if h.circuit_state == CircuitState.OPEN:
+                critical += 1
+            elif h.crash_count > self.max_crash_restarts:
+                crashed += 1
+                critical += 1
+            elif h.consecutive_failures >= self.failure_threshold:
+                unstable += 1
+            elif now - h.last_heartbeat > self.heartbeat_interval * 3:
+                degraded += 1
+            else:
+                healthy += 1
+        
+        return {
+            "total": total,
+            "healthy": healthy,
+            "degraded": degraded,
+            "unstable": unstable,
+            "critical": critical,
+            "crashed": crashed,
+            "health_pct": round(healthy / max(1, total) * 100, 1),
+        }
     
     def should_restart(self, name: str) -> bool:
         """判断是否应该重启"""
@@ -200,7 +469,7 @@ class SelfHealingEngine:
         except:
             pass
         
-        await asyncio.sleep(1)
+        await asyncio.sleep(self.restart_delay)
         
         # 重新加载
         try:
@@ -209,6 +478,7 @@ class SelfHealingEngine:
                 health.consecutive_failures = 0
                 health.circuit_state = CircuitState.CLOSED
                 health.restart_count = 0
+                health.crash_count = 0  # 重置崩溃计数
                 self._log_event(name, "recovery", "重启成功")
                 return True
         except Exception as e:
@@ -270,6 +540,8 @@ class SelfHealingEngine:
             
             if h.circuit_state == CircuitState.OPEN:
                 status = HealthStatus.CRITICAL.value
+            elif h.crash_count > self.max_crash_restarts:
+                status = HealthStatus.CRITICAL.value
             elif h.consecutive_failures >= self.failure_threshold:
                 status = HealthStatus.UNSTABLE.value
             elif heartbeat_age > self.heartbeat_interval * 3:
@@ -283,6 +555,8 @@ class SelfHealingEngine:
                 "failures": h.consecutive_failures,
                 "restarts": h.total_restarts,
                 "circuit": h.circuit_state.value,
+                "crashes": h.crash_count,
+                "ping_ok": h.periodic_ping_ok,
             }
         
         # 整体状态
@@ -300,6 +574,8 @@ class SelfHealingEngine:
         return {
             "overall": overall,
             "plugins": plugin_statuses,
+            "aggregation": self.get_status_aggregation(),
+            "error_learner": self._error_learner.get_stats(),
             "recent_events": [
                 {"time": e.timestamp, "plugin": e.plugin,
                  "type": e.event_type, "detail": e.detail}

@@ -24,6 +24,8 @@ def chat_page(page, server_url: str):
 def test_chat_input_exists(chat_page):
     """Chat page should have a text input area for messages."""
     input_selectors = [
+        chat_page.locator("input#userInput"),
+        chat_page.locator("#userInput"),
         chat_page.locator("textarea#input"),
         chat_page.locator("textarea"),
         chat_page.locator("input[type='text']"),
@@ -42,21 +44,29 @@ def test_chat_input_exists(chat_page):
 @pytest.mark.ui
 def test_chat_input_placeholder(chat_page):
     """Input field should have a placeholder hint."""
-    textarea = chat_page.locator("textarea#input")
+    textarea = chat_page.locator("input#userInput")
+    if textarea.count() == 0:
+        textarea = chat_page.locator("textarea#input")
     if textarea.count() == 0:
         textarea = chat_page.locator("textarea").first
+    if textarea.count() == 0:
+        textarea = chat_page.locator("input").first
     if textarea.count() > 0:
         placeholder = textarea.get_attribute("placeholder") or ""
         assert len(placeholder) > 0, "Input field has no placeholder"
-    # else: skip assertion if no textarea found (test not applicable)
+    # else: skip assertion if no input found (test not applicable)
 
 
 @pytest.mark.ui
 def test_chat_input_typing(chat_page):
     """User should be able to type into the input field."""
-    textarea = chat_page.locator("textarea#input")
+    textarea = chat_page.locator("input#userInput")
+    if textarea.count() == 0:
+        textarea = chat_page.locator("textarea#input")
     if textarea.count() == 0:
         textarea = chat_page.locator("textarea").first
+    if textarea.count() == 0:
+        textarea = chat_page.locator("input").first
     if textarea.count() > 0:
         textarea.fill("Hello, meshctx!")
         value = textarea.input_value()
@@ -74,6 +84,7 @@ def test_send_button_exists(chat_page):
         chat_page.get_by_text("Send"),
         chat_page.locator("button[type='submit']"),
         chat_page.locator("button:has(svg)"),
+        chat_page.locator("button.btn-primary"),
     ]
     found = False
     for sel in send_selectors:
@@ -87,9 +98,11 @@ def test_send_button_exists(chat_page):
 @pytest.mark.ui
 def test_send_button_enabled(chat_page):
     """Send button should be enabled (not disabled) on page load."""
-    button = chat_page.locator("button#sendBtn")
+    button = chat_page.locator("button.btn-primary").first
     if button.count() == 0:
         button = chat_page.get_by_text("发送").first
+    if button.count() == 0:
+        button = chat_page.locator("button#sendBtn")
     if button.count() > 0:
         assert button.is_enabled(), "Send button is disabled on page load"
 
@@ -146,7 +159,7 @@ def test_model_selector_exists(chat_page):
 def test_chat_page_loads_without_errors(chat_page):
     """Chat page should load without console errors."""
     # Check that no JS errors were logged during load
-    logs = [log for log in chat_page.context.pages[0].console_messages]
+    logs = list(chat_page.context.pages[0].console_messages())
     errors = [msg for msg in logs if msg.type == "error"]
     if errors:
         # Only fail on critical errors, not 404s for missing favicons etc.

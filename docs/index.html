@@ -1,492 +1,495 @@
-     1|<!DOCTYPE html>
-     2|<html lang="en">
-     3|<head>
-     4|    <meta charset="UTF-8">
-     5|    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     6|    <title data-lang-key="meta_title">MeshCtx — Self-Evolving Agent Platform</title>
-     7|    <meta name="description" content="MeshCtx is an open-source, self-evolving agent platform that remembers everything, learns from every task, and orchestrates multiple AI agents in parallel.">
-     8|    <style>
-     9|        :root {
-    10|            --bg: #0a0a14; --bg2: #111122; --fg: #e2e8f0; --muted: #94a3b8;
-    11|            --purple: #8b5cf6; --cyan: #06b6d4; --green: #22c55e; --border: #1e293b;
-    12|        }
-    13|        * { margin:0; padding:0; box-sizing:border-box; }
-    14|        body { background:var(--bg); color:var(--fg); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; line-height:1.6; }
-    15|        a { color:var(--cyan); text-decoration:none; } a:hover { text-decoration:underline; }
-    16|        .lang { display:none; }
-    17|        .lang.active { display:block; }
-    18|
-    19|        nav { position:fixed; top:0; width:100%; background:rgba(10,10,20,0.92); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); z-index:100; }
-    20|        .nav-inner { max-width:1200px; margin:0 auto; padding:14px 24px; display:flex; justify-content:space-between; align-items:center; }
-    21|        .logo { font-size:1.4rem; font-weight:700; } .logo span { color:var(--purple); }
-    22|        .nav-links { display:flex; gap:20px; align-items:center; }
-    23|        .nav-links a { color:var(--muted); font-size:0.9rem; } .nav-links a:hover { color:var(--fg); text-decoration:none; }
-    24|
-    25|        .lang-switch { display:flex; gap:4px; margin-left:12px; }
-    26|        .lang-btn { background:transparent; color:var(--muted); border:1px solid var(--border); padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.75rem; transition:all .2s; }
-    27|        .lang-btn:hover,.lang-btn.active { color:var(--fg); border-color:var(--purple); background:rgba(139,92,246,0.1); }
-    28|        .lang-select { background:var(--bg2); color:var(--fg); border:1px solid var(--border); padding:5px 10px; border-radius:6px; font-size:0.8rem; cursor:pointer; outline:none; }
-    29|        .lang-select:hover { border-color:var(--purple); }
-    30|        .lang-select option { background:var(--bg2); color:var(--fg); }
-    31|
-    32|        .btn { display:inline-block; padding:10px 24px; border-radius:8px; font-weight:600; font-size:0.95rem; transition:all .2s; cursor:pointer; border:none; }
-    33|        .btn-primary { background:var(--purple); color:white; } .btn-primary:hover { background:#7c3aed; transform:translateY(-1px); text-decoration:none; }
-    34|        .btn-ghost { background:transparent; color:var(--fg); border:1px solid var(--border); } .btn-ghost:hover { border-color:var(--purple); text-decoration:none; }
-    35|
-    36|        .hero { padding:160px 24px 100px; text-align:center; background:radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.15), transparent 60%); }
-    37|        .hero h1 { font-size:3.2rem; font-weight:800; letter-spacing:-0.02em; margin-bottom:16px; }
-    38|        .hero h1 span { background:linear-gradient(135deg,var(--purple),var(--cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-    39|        .hero p { font-size:1.15rem; color:var(--muted); max-width:600px; margin:0 auto 32px; }
-    40|        .hero-buttons { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
-    41|
-    42|        section { padding:80px 24px; }
-    43|        .section-inner { max-width:1200px; margin:0 auto; }
-    44|        .section-title { font-size:2rem; font-weight:700; text-align:center; margin-bottom:48px; }
-    45|        .section-title span { color:var(--purple); }
-    46|
-    47|        .feature-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:24px; }
-    48|        .feature-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:28px; transition:border-color .2s; }
-    49|        .feature-card:hover { border-color:var(--purple); }
-    50|        .feature-icon { font-size:2rem; margin-bottom:12px; }
-    51|        .feature-card h3 { font-size:1.1rem; margin-bottom:8px; }
-    52|        .feature-card p { color:var(--muted); font-size:0.9rem; }
-    53|
-    54|        .table-wrap { overflow-x:auto; }
-    55|        table { width:100%; border-collapse:collapse; font-size:0.9rem; }
-    56|        th,td { padding:12px 16px; text-align:left; }
-    57|        th { color:var(--muted); font-weight:600; border-bottom:2px solid var(--border); }
-    58|        td { border-bottom:1px solid var(--border); }
-    59|        .check { color:var(--green); font-weight:bold; }
-    60|        .cross { color:#ef4444; } .warn { color:#eab308; }
-    61|        .highlight { background:rgba(139,92,246,0.08); }
-    62|
-    63|        .code-block { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:24px; overflow-x:auto; font-family:'JetBrains Mono','Fira Code',monospace; font-size:0.85rem; line-height:1.8; word-break:break-all; max-width:100%; position:relative; }
-    64|        .code-block .c { color:#6b7280; } .code-block .k { color:var(--purple); } .code-block .s { color:var(--green); } .code-block .f { color:var(--cyan); }
-    65|        .copy-btn { position:absolute; top:8px; right:8px; background:var(--bg); color:var(--muted); border:1px solid var(--border); padding:4px 10px; border-radius:4px; font-size:0.75rem; cursor:pointer; transition:all .2s; }
-    66|        .copy-btn:hover { color:var(--fg); border-color:var(--purple); }
-    67|        .copy-btn.copied { color:var(--green); border-color:var(--green); }
-    68|
-    69|        /* About Us */
-    70|        .about-grid { display:grid; grid-template-columns:1fr 1fr; gap:32px; }
-    71|        .about-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:28px; }
-    72|        .about-card h3 { font-size:1.2rem; margin-bottom:16px; color:var(--purple); }
-    73|        .about-card ul { list-style:none; padding:0; }
-    74|        .about-card li { padding:6px 0; color:var(--muted); font-size:0.9rem; display:flex; align-items:flex-start; gap:8px; }
-    75|        .about-card li::before { content:"✓"; color:var(--green); font-weight:bold; }
-    76|        .contact-box { margin-top:20px; padding:16px; background:rgba(139,92,246,0.1); border-radius:8px; border:1px solid rgba(139,92,246,0.3); }
-    77|        .contact-box a { color:var(--cyan); font-weight:600; }
-    78|
-    79|        .cta { text-align:center; padding:100px 24px; background:radial-gradient(ellipse at 50% 100%,rgba(6,182,212,0.1),transparent 60%); }
-    80|        .cta h2 { font-size:2rem; margin-bottom:16px; }
-    81|
-    82|        footer { border-top:1px solid var(--border); padding:32px 24px; text-align:center; color:var(--muted); font-size:0.85rem; }
-    83|        .footer-links { display:flex; gap:24px; justify-content:center; margin-bottom:16px; flex-wrap:wrap; }
-    84|
-    85|        @media(max-width:768px) {
-    86|            .hero h1 { font-size:2rem; }
-    87|            .nav-links a.nav-hide { display:none; }
-    88|            .about-grid { grid-template-columns:1fr; }
-    89|        }
-    90|    </style>
-    91|</head>
-    92|<body>
-    93|
-    94|<nav>
-    95|    <div class="nav-inner">
-    96|        <div class="logo"><a href="/" style="color:inherit;text-decoration:none;">Mesh<span>Ctx</span></a></div>
-    97|        <div class="nav-links">
-    98|            <a href="#features" class="nav-hide" data-lang-key="nav_features">Features</a>
-    99|            <a href="#compare" class="nav-hide" data-lang-key="nav_compare">Compare</a>
-   100|            <a href="#about" class="nav-hide" data-lang-key="nav_about">About</a>
-   101|            <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a>
-   102|            <a href="getting-started" data-lang-key="nav_docs">Docs</a>
-   103|            <select class="lang-select" onchange="switchLang(this.value)">
-   104|                <option value="en">🌐 English</option>
-   105|                <option value="zh">🇨🇳 中文</option>
-   106|                <option value="ja">🇯🇵 日本語</option>
-   107|                <option value="ko">🇰🇷 한국어</option>
-   108|                <option value="fr">🇫🇷 Français</option>
-   109|                <option value="de">🇩🇪 Deutsch</option>
-   110|                <option value="es">🇪🇸 Español</option>
-   111|            </select>
-   112|        </div>
-   113|    </div>
-   114|</nav>
-   115|
-   116|<!-- ═══ HERO ═══ -->
-   117|<header class="hero">
-   118|    <!-- EN -->
-   119|    <div class="lang active" data-lang="en">
-   120|        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
-   121|        <h1>The Agent That <span>Learns</span></h1>
-   122|        <p>MeshCtx is the world's first self-evolving agent platform. All-in-One Desktop Client + Brain-Inspired AI. multi-language. Fully open-source.</p>
-   123|        <div class="hero-buttons">
-   124|            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ Star on GitHub</a>
-   125|            <a href="getting-started" class="btn btn-ghost">Get Started →</a>
-   126|        </div>
-   127|    </div>
-   128|    <!-- ZH -->
-   129|    <div class="lang" data-lang="zh">
-   130|        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
-   131|        <h1>会<span>自我进化</span>的 Agent</h1>
-   132|        <p>MeshCtx v1.5.18 — All-in-One 桌面客户端 + 脑启发AI算法。记忆一切、多Agent协同、多语言 — 完全开源。</p>
-   133|        <div class="hero-buttons">
-   134|            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
-   135|            <a href="getting-started" class="btn btn-ghost">快速开始 →</a>
-   136|        </div>
-   137|    </div>
-   138|    <!-- JA -->
-   139|    <div class="lang" data-lang="ja">
-   140|        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
-   141|        <h1><span>自己進化</span>するエージェント</h1>
-   142|        <p>MeshCtx は世界初の自己進化型AIエージェントプラットフォームです。すべてを記憶し、タスクから学習し、複数エージェントを協調させます — 完全オープンソース。</p>
-   143|        <div class="hero-buttons">
-   144|            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
-   145|            <a href="getting-started" class="btn btn-ghost">はじめる →</a>
-   146|        </div>
-   147|    </div>
-   148|    <!-- KO -->
-   149|    <div class="lang" data-lang="ko">
-   150|        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
-   151|        <h1><span>자기 진화</span>하는 에이전트</h1>
-   152|        <p>MeshCtx는 세계 최초의 자기 진화형 AI 에이전트 플랫폼입니다. 모든 것을 기억하고, 작업에서 학습하며, 여러 에이전트를 조율합니다 — 완전 오픈소스.</p>
-   153|        <div class="hero-buttons">
-   154|            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
-   155|            <a href="getting-started" class="btn btn-ghost">시작하기 →</a>
-   156|        </div>
-   157|    </div>
-   158|    <!-- FR -->
-   159|    <div class="lang" data-lang="fr">
-   160|        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
-   161|        <h1>L'Agent qui <span>Apprend</span></h1>
-   162|        <p>MeshCtx est la première plateforme d'agents auto-évolutive au monde. Elle mémorise tout, apprend de chaque tâche et orchestre plusieurs agents — 100% open-source.</p>
-   163|        <div class="hero-buttons">
-   164|            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
-   165|            <a href="getting-started" class="btn btn-ghost">Commencer →</a>
-   166|        </div>
-   167|    </div>
-   168|    <!-- DE -->
-   169|    <div class="lang" data-lang="de">
-   170|        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
-   171|        <h1>Der Agent, der <span>lernt</span></h1>
-   172|        <p>MeshCtx ist die weltweit erste selbstlernende Agenten-Plattform. Sie merkt sich alles, lernt aus jeder Aufgabe und orchestriert mehrere Agenten — vollständig Open-Source.</p>
-   173|        <div class="hero-buttons">
-   174|            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
-   175|            <a href="getting-started" class="btn btn-ghost">Loslegen →</a>
-   176|        </div>
-   177|    </div>
-   178|    <!-- ES -->
-   179|    <div class="lang" data-lang="es">
-   180|        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
-   181|        <h1>El Agente que <span>Aprende</span></h1>
-   182|        <p>MeshCtx es la primera plataforma de agentes auto-evolutiva del mundo. Todo en Uno - Cliente de Escritorio + IA Neuroinspirada. 7 idiomas. Código abierto.</p>
-   183|        <div class="hero-buttons">
-   184|            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
-   185|            <a href="getting-started" class="btn btn-ghost">Comenzar →</a>
-   186|        </div>
-   187|    </div>
-   188|</header>
-   189|
-   190|<!-- ═══ FEATURES ═══ -->
-   191|<section id="features">
-   192|    <div class="section-inner">
-   193|        <h2 class="section-title"><span data-lang-key="why_title">Why MeshCtx?</span></h2>
-   194|        <div class="feature-grid">
-   195|            <div class="feature-card"><div class="feature-icon">🧠</div><h3 data-lang-key="f1_title">Hierarchical Memory</h3><p data-lang-key="f1_desc">4-tier memory system (L0-L4) modeled after human cognition. With the Ebbinghaus Forgetting Curve — important info persists, trivia naturally decays.</p></div>
-   196|            <div class="feature-card"><div class="feature-icon">🔄</div><h3 data-lang-key="f2_title">Self-Evolving</h3><p data-lang-key="f2_desc">Meta-cognition loop runs after every task: evaluate → extract patterns → update knowledge graph → adjust behavior. Gets smarter every time.</p></div>
-   197|            <div class="feature-card"><div class="feature-icon">🎭</div><h3 data-lang-key="f3_title">Multi-Agent Orchestra</h3><p data-lang-key="f3_desc">One intent. Automatically decomposed into a task DAG, executed in parallel by specialized agents (Coder + Researcher + DevOps + Reviewer).</p></div>
-   198|            <div class="feature-card"><div class="feature-icon">🔮</div><h3 data-lang-key="f4_title">Predictive Context</h3><p data-lang-key="f4_desc">Learns your patterns. Pre-loads relevant memories before you ask. Context assembly in under 50ms.</p></div>
-   199|            <div class="feature-card"><div class="feature-icon">🔌</div><h3 data-lang-key="f5_title">Plugin Marketplace</h3><p data-lang-key="f5_desc">MCP protocol native. pip install meshctx-plugin-xxx. Community-driven ecosystem of tools and integrations.</p></div>
-   200|            <div class="feature-card"><div class="feature-icon">🖥️</div><h3 data-lang-key="f7_title">Desktop Client</h3><p data-lang-key="f7_desc">All-in-One native desktop app. Double-click to launch. System tray, no browser needed. Windows + macOS.</p></div>
-   201|            <div class="feature-card"><div class="feature-icon">🧠</div><h3 data-lang-key="f8_title">Brain-Inspired AI</h3><p data-lang-key="f8_desc">Free Energy Principle + Active Inference + Global Workspace + Neuromodulators. P0+P1 algorithms from cognitive neuroscience.</p></div>
-   202|            <div class="feature-card"><div class="feature-icon">🌍</div><h3 data-lang-key="f9_title">7 Languages</h3><p data-lang-key="f9_desc">中文 · English · 日本語 · 한국어 · Deutsch · Français · Español. Full i18n with language switcher.</p></div>
-   203|            <div class="feature-card"><div class="feature-icon">🔓</div><h3 data-lang-key="f6_title">100% Open Source</h3><p data-lang-key="f6_desc">MIT license. Free forever. Self-host on your own infrastructure. No vendor lock-in.</p></div>
-   204|        </div>
-   205|    </div>
-   206|</section>
-   207|
-   208|<!-- ═══ COMPARISON ═══ -->
-   209|<section id="compare">
-   210|    <div class="section-inner">
-   211|        <h2 class="section-title"><span data-lang-key="compare_title">MeshCtx vs The World</span></h2>
-   212|        <div class="table-wrap">
-   213|            <table><thead><tr><th data-lang-key="th_capability">Capability</th><th class="highlight">MeshCtx</th><th>Hermes</th><th>OpenClaw</th><th>Claude Cowork</th></tr></thead>
-   214|            <tbody>
-   215|                <tr><td data-lang-key="c1">Hierarchical Memory</td><td class="highlight"><span class="check">L0-L4</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-   216|                <tr><td data-lang-key="c2">Forgetting Curve</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-   217|                <tr><td data-lang-key="c3">Meta-Cognition</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-   218|                <tr><td data-lang-key="c4">Multi-Agent</td><td class="highlight"><span class="check">✓ DAG</span></td><td><span class="warn">⚠ Limited</span></td><td><span class="cross">✗</span></td><td><span class="warn">⚠ Limited</span></td></tr>
-   219|                <tr><td data-lang-key="c5">Knowledge Graph</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-   220|                <tr><td data-lang-key="c6">Plugin Market</td><td class="highlight"><span class="warn">⚠ Soon</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-   221|                <tr><td data-lang-key="c7">MCP Protocol</td><td class="highlight"><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="check">✓</span></td></tr>
-   222|                <tr><td data-lang-key="c9">Desktop Client</td><td class="highlight"><span class="check">✓ Windows</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-   223|                <tr><td data-lang-key="c10">Brain-Inspired AI</td><td class="highlight"><span class="check">7 Models</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-   224|                <tr><td data-lang-key="c11">Multi-Language</td><td class="highlight"><span class="check">7 langs</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-   225|                <tr><td data-lang-key="c8">Open Source</td><td class="highlight"><span class="check">MIT</span></td><td><span class="check">MIT</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td></tr>
-   226|            </tbody></table>
-   227|        </div>
-   228|    </div>
-   229|</section>
-   230|
-   231|<!-- ═══ ABOUT US ═══ -->
-   232|<section id="about">
-   233|    <div class="section-inner">
-   234|        <h2 class="section-title"><span data-lang-key="about_title">About MeshCtx</span></h2>
-   235|        <div class="about-grid">
-   236|            <!-- EN -->
-   237|            <div class="lang active about-card" data-lang="en">
-   238|                <h3>🌍 Open Source, Global Community</h3>
-   239|                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx is an open-source multi-agent framework built on <strong>"Division of Labor + Full Transparency."</strong> — a mesh network of an Orchestrator, Guardian, and specialized agents under full human supervision. It's not a black-box single agent — it's a mesh network of an Orchestrator, a Guardian, and specialized agents working under full human supervision.</p>
-   240|                <ul>
-   241|                    <li><strong>Auditable</strong> — Every call, every decision has an execution report</li>
-   242|                    <li><strong>Interceptable</strong> — Critical operations require user or Guardian confirmation</li>
-   243|                    <li><strong>Controllable Evolution</strong> — All skill changes are versioned; roll back anytime</li>
-   244|                    <li><strong>Cost-Efficient</strong> — Multi-tier caching reduces API calls by 60%+</li>
-   245|                </ul>
-   246|                            </div>
-   247|            <!-- ZH -->
-   248|            <div class="lang about-card" data-lang="zh">
-   249|                <h3>🌍 全球开源社区</h3>
-   250|                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx 是基于"<strong>分工协作 + 完全透明</strong>"的开源多智能体框架 — 由编排器、监管员与专业智能体组成的网状协作系统。</p>
-   251|                <ul>
-   252|                    <li><strong>可审计</strong> — 每次调用、每次决策都有执行报告，像 Git 一样可回溯</li>
-   253|                    <li><strong>可拦截</strong> — 删除、外发等关键操作需用户或监管员确认</li>
-   254|                    <li><strong>可控进化</strong> — 技能和策略变更全版本化，随时回滚</li>
-   255|                    <li><strong>成本友好</strong> — 四层缓存，API 调用降低 60% 以上</li>
-   256|                </ul>
-   257|            </div>
-   258|            <!-- JA -->
-   259|            <div class="lang about-card" data-lang="ja">
-   260|                <h3>🌍 グローバル・オープンソース</h3>
-   261|                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx は <strong>「分業＋完全透明性」</strong>を基盤とするオープンソースのマルチエージェントフレームワーク — オーケストレーター、ガーディアン、専門エージェントのメッシュネットワーク。</p>
-   262|                <ul>
-   263|                    <li><strong>監査可能</strong> — すべての判断が実行レポート付き</li>
-   264|                    <li><strong>介入可能</strong> — 重要な操作は確認が必要</li>
-   265|                    <li><strong>制御可能な進化</strong> — 全変更がバージョン管理され、ロールバック可能</li>
-   266|                    <li><strong>コスト効率</strong> — マルチレベルキャッシュでAPI呼出60%削減</li>
-   267|                </ul>
-   268|            </div>
-   269|            <!-- KO -->
-   270|            <div class="lang about-card" data-lang="ko">
-   271|                <h3>🌍 글로벌 오픈소스</h3>
-   272|                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx는 <strong>"분업 + 완전 투명성"</strong>을 기반으로 하는 오픈소스 멀티 에이전트 프레임워크 — 오케스트레이터, 가디언, 전문 에이전트의 메시 네트워크.</p>
-   273|                <ul>
-   274|                    <li><strong>감사 가능</strong> — 모든 결정에 실행 보고서 첨부</li>
-   275|                    <li><strong>개입 가능</strong> — 중요 작업은 확인 필요</li>
-   276|                    <li><strong>제어 가능한 진화</strong> — 모든 변경사항 버전 관리, 롤백 가능</li>
-   277|                    <li><strong>비용 효율</strong> — 다중 캐시로 API 호출 60% 감소</li>
-   278|                </ul>
-   279|            </div>
-   280|            <!-- FR -->
-   281|            <div class="lang about-card" data-lang="fr">
-   282|                <h3>🌍 Open Source, Communauté Mondiale</h3>
-   283|                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx est un framework multi-agents open-source basé sur <strong>« Division du Travail + Transparence Totale ».</strong> Un réseau maillé d'un Orchestrateur, d'un Gardien et d'agents spécialisés sous supervision humaine.</p>
-   284|                <ul>
-   285|                    <li><strong>Auditable</strong> — Chaque décision génère un rapport exécutable</li>
-   286|                    <li><strong>Interceptable</strong> — Les actions critiques nécessitent confirmation</li>
-   287|                    <li><strong>Évolution Contrôlée</strong> — Compétences versionnées, retour arrière possible</li>
-   288|                    <li><strong>Économique</strong> — Cache multi-niveaux, -60% d'appels API</li>
-   289|                </ul>
-   290|            </div>
-   291|            <!-- DE -->
-   292|            <div class="lang about-card" data-lang="de">
-   293|                <h3>🌍 Open Source, Globale Gemeinschaft</h3>
-   294|                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx ist ein Open-Source Multi-Agent-Framework nach dem Prinzip <strong>„Arbeitsteilung + Volle Transparenz".</strong> Ein Netzwerk aus Orchestrator, Guardian und spezialisierten Agenten unter menschlicher Aufsicht.</p>
-   295|                <ul>
-   296|                    <li><strong>Prüfbar</strong> — Jeder Aufruf, jede Entscheidung mit Ausführungsbericht</li>
-   297|                    <li><strong>Unterbrechbar</strong> — Kritische Operationen erfordern Bestätigung</li>
-   298|                    <li><strong>Kontrollierte Evolution</strong> — Alle Änderungen versioniert, Rollback jederzeit</li>
-   299|                    <li><strong>Kosteneffizient</strong> — Mehrstufiges Caching, -60% API-Aufrufe</li>
-   300|                </ul>
-   301|            </div>
-   302|            <!-- Contact (shared) -->
-   303|            <div class="about-card">
-   304|                <!-- ES -->
-   305|            <div class="lang about-card" data-lang="es">
-   306|                <h3>🌍 Código Abierto, Comunidad Global</h3>
-   307|                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx es un framework multi-agente de código abierto basado en <strong>"División del Trabajo + Transparencia Total".</strong> Una red de agentes con Orquestador, Guardián y especialistas bajo supervisión humana.</p>
-   308|                <ul>
-   309|                    <li><strong>Auditable</strong> — Cada decisión genera un informe ejecutable</li>
-   310|                    <li><strong>Interceptable</strong> — Las acciones críticas requieren confirmación</li>
-   311|                    <li><strong>Evolución Controlada</strong> — Cambios versionados, retroceso en cualquier momento</li>
-   312|                    <li><strong>Eficiente en Costos</strong> — Caché multinivel, -60% llamadas API</li>
-   313|                </ul>
-   314|            </div>
-   315|            <div class="about-card">
-   316|                <h3 data-lang-key="contact_title">📬 Contact</h3>
-   317|                <p style="color:var(--muted);margin-bottom:12px;" data-lang-key="contact_desc">Questions? Collaborations? Reach out anytime.</p>
-   318|                <div class="contact-box">
-   319|                    <p>📧 <a href="mailto:support@meshctx.com">support@meshctx.com</a></p>
-   320|                    <p>🌐 <a href="https://meshctx.com">meshctx.com</a></p>
-   321|                    <p>💻 <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a></p>
-   322|                </div>
-   323|            </div>
-   324|        </div>
-   325|    </div>
-   326|</section>
-   327|
-   328|<!-- ═══ DOWNLOAD ═══ -->
-   329|<section id="download" style="background:var(--bg2);">
-   330|    <div class="section-inner">
-   331|        <h2 class="section-title"><span data-lang-key="dl_title">Download</span></h2>
-   332|        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;max-width:800px;margin:0 auto;">
-   333|            <div class="feature-card" style="text-align:center;">
-   334|                <div style="font-size:2.5rem;margin-bottom:8px;">🪟</div>
-   335|                <h3 data-lang-key="dl_win">Windows</h3>
-   336|                <p data-lang-key="dl_win_desc" style="color:var(--muted);">All-in-One Desktop · v1.5.18</p>
-   337|                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx.exe" class="btn btn-primary" style="margin-top:12px;width:100%;" data-lang-key="dl_win_btn">Download .exe</a>
-   338|                <p data-lang-key="dl_win_note" style="font-size:0.75rem;color:var(--muted);margin-top:8px;">Double-click to run — no install required</p>
-   339|            </div>
-   340|            <div class="feature-card" style="text-align:center;">
-   341|                <div style="font-size:2.5rem;margin-bottom:8px;">🐧</div>
-   342|                <h3 data-lang-key="dl_linux">Linux / WSL</h3>
-   343|                <p data-lang-key="dl_linux_desc" style="color:var(--muted);">pip install meshctx</p>
-   344|                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest" class="btn btn-ghost" style="margin-top:12px;width:100%;" data-lang-key="dl_linux_btn">Download Binary</a>
-   345|                <p data-lang-key="dl_linux_note" style="font-size:0.75rem;color:var(--muted);margin-top:8px;">or <code style="background:var(--bg);padding:2px 6px;border-radius:3px;">pip install meshctx</code></p>
-   346|            </div>
-   347|            <div class="feature-card" style="text-align:center;">
-   348|                <div style="font-size:2.5rem;margin-bottom:8px;">🐳</div>
-   349|                <h3 data-lang-key="dl_docker">Docker</h3>
-   350|                <p data-lang-key="dl_docker_desc" style="color:var(--muted);">Any platform</p>
-   352|            </div>
-   353|        </div>
-   354|    </div>
-   355|</section>
-   356|
-   357|<!-- ═══ QUICK START ═══ -->
-   358|<section>
-   359|    <div class="section-inner">
-   360|        <h2 class="section-title"><span data-lang-key="quick_title">Quick Start</span></h2>
-   361|        <div class="code-block" id="installBlock">
-   362|            <button class="copy-btn" onclick="copyCode('installBlock')">📋 Copy</button>
-   363|            <span class="c" data-lang-key="qs_install"># Install</span><br>
-   364|            pip install meshctx<br><br>
-   365|            <span class="c" data-lang-key="qs_start"># Start the kernel</span><br>
-   366|            meshctx start<br><br>
-   369|        </div>
-   370|    </div>
-   371|</section>
-   372|
-   373|<!-- ═══ CTA ═══ -->
-   374|<div class="cta">
-   375|    <h2 data-lang-key="cta_title">Ready to build the future?</h2>
-   376|    <p style="color:var(--muted);margin-bottom:24px;" data-lang-key="cta_desc">Open source. Self-evolving. Always free.</p>
-   377|    <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ Star on GitHub</a>
-   378|    <a href="getting-started" class="btn btn-ghost" style="margin-left:8px;" data-lang-key="cta_btn">Get Started</a>
-   379|</div>
-   380|
-   381|<footer>
-   382|    <div class="footer-links">
-   383|        <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a>
-   384|        <a href="getting-started" data-lang-key="nav_docs">Docs</a>
-   385|        <a href="LEGAL" data-lang-key="ft_legal">Legal</a>
-   386|        <a href="mailto:license@meshctx.com" data-lang-key="ft_license">Commercial License</a>
-   387|        <a href="mailto:support@meshctx.com" data-lang-key="ft_contact">Contact</a>
-   388|    </div>
-   389|<p style="margin-bottom:8px;">
-   390|        <strong>AGPL v3</strong> · Free for everyone ·
-   391|        <a href="LEGAL" style="color:var(--muted);">Terms</a> · 
-   392|        <a href="LEGAL" style="color:var(--muted);">Privacy</a> · 
-   393|        <a href="LEGAL" style="color:var(--muted);">Disclaimer</a>
-   394|    </p>
-   395|    <p>© 2026 MeshCtx — Built for the community. Open source. Always free.</p>
-   396|</footer>
-   397|
-   398|<script>
-   399|// ═══ Language Data ═══
-   400|const L = {
-   401|    en: {
-   402|        nav_features:"Features", nav_compare:"Compare", nav_about:"About", nav_docs:"Docs",
-   403|        why_title:"Why MeshCtx?",
-   404|        f1_title:"Hierarchical Memory", f1_desc:"4-tier memory system (L0-L4) modeled after human cognition. With the Ebbinghaus Forgetting Curve — important info persists, trivia naturally decays.",
-   405|        f2_title:"Self-Evolving", f2_desc:"Meta-cognition loop runs after every task: evaluate → extract patterns → update knowledge graph → adjust behavior. Gets smarter every time.",
-   406|        f3_title:"Multi-Agent Orchestra", f3_desc:"One intent. Automatically decomposed into a task DAG, executed in parallel by specialized agents (Coder + Researcher + DevOps + Reviewer).",
-   407|        f4_title:"Predictive Context", f4_desc:"Learns your patterns. Pre-loads relevant memories before you ask. Context assembly in under 50ms.",
-   408|        f5_title:"Plugin Marketplace", f5_desc:"MCP protocol native. pip install meshctx-plugin-xxx. Community-driven ecosystem of tools and integrations.",
-   409|        f6_title:"100% Open Source", f6_desc:"MIT license. Free forever. Self-host on your own infrastructure. No vendor lock-in.",
-   410|        compare_title:"MeshCtx vs The World",
-   411|        c1:"Hierarchical Memory", c2:"Forgetting Curve", c3:"Meta-Cognition", c4:"Multi-Agent", c5:"Knowledge Graph", c6:"Plugin Market", c7:"MCP Protocol", c8:"Open Source",
-   412|        about_title:"About MeshCtx",
-   413|        contact_title:"📬 Contact", contact_desc:"Questions? Collaborations? Reach out anytime.",
-   414|        quick_title:"Quick Start",
-   415|        cta_title:"Ready to build the future?", cta_desc:"Open source. Self-evolving. Always free.", cta_btn:"Get Started",
-   416|        f7_title:'Desktop Client',
-   417|        f7_desc:'All-in-One native desktop app. Double-click to launch. System tray, no browser needed. Windows + macOS.',
-   418|        f8_title:'Brain-Inspired AI',
-   419|        f8_desc:'Free Energy Principle + Active Inference + Global Workspace + Neuromodulators. P0+P1 algorithms from cognitive neuroscience.',
-   420|        f9_title:'7 Languages',
-   421|        f9_desc:'中文 · English · 日本語 · 한국어 · Deutsch · Français · Español. Full i18n with language switcher.',
-   422|        th_capability:'Capability',
-   423|        c9:'Desktop Client',
-   424|        c10:'Brain-Inspired AI',
-   425|        c11:'Multi-Language',
-   426|        dl_title:'Download',
-   427|        dl_win:'Windows',
-   428|        dl_win_desc:'All-in-One Desktop · v1.5.18',
-   429|        dl_win_btn:'Download .exe',
-   430|        dl_win_note:'Double-click to run — no install required',
-   431|        dl_linux:'Linux / WSL',
-   432|        dl_linux_desc:'pip install meshctx',
-   433|        dl_linux_btn:'Download Binary',
-   434|        dl_linux_note:'or pip install meshctx',
-   437|        qs_install:'# Install',
-   438|        qs_start:'# Start the kernel',
-   440|        ft_legal:'Legal',
-   441|        ft_license:'Commercial License',
-   442|        ft_contact:'Contact',
-   443|        meta_title:'MeshCtx — Self-Evolving Agent Platform',
-   444|    },
-   445|    zh: {
-   446|        nav_features:"特性", nav_compare:"对比", nav_about:"关于", nav_docs:"文档",
-   447|        why_title:"为什么选择 MeshCtx？",
-   448|        f1_title:"层次记忆", f1_desc:"4层记忆系统(L0-L4)，模拟人类认知。引入艾宾浩斯遗忘曲线 — 重要信息持久保留，琐碎信息自然衰减。",
-   449|        f2_title:"自我进化", f2_desc:"每次任务后运行元认知循环：评估 → 提取模式 → 更新知识图谱 → 调整行为。越用越聪明。",
-   450|        f3_title:"多智能体编排", f3_desc:"一个意图，自动分解为任务DAG，由专业Agent（编码+研究+运维+审查）并行执行。",
-   451|        f4_title:"预测性上下文", f4_desc:"学习你的使用模式。在你提问之前预加载相关记忆。上下文组装 < 50ms。",
-   452|        f5_title:"插件市场", f5_desc:"原生MCP协议。pip install meshctx-plugin-xxx。社区驱动的工具和集成生态。",
-   453|        f6_title:"100% 开源", f6_desc:"MIT 许可证。永久免费。在自己的基础设施上自托管。无厂商锁定。",
-   454|        compare_title:"MeshCtx vs 竞品",
-   455|        c1:"层次记忆", c2:"遗忘曲线", c3:"元认知", c4:"多Agent", c5:"知识图谱", c6:"插件市场", c7:"MCP协议", c8:"开源",
-   456|        about_title:"关于 MeshCtx",
-   457|        contact_title:"📬 联系我们", contact_desc:"有疑问？有合作意向？随时联系。",
-   458|        quick_title:"快速开始",
-   459|        cta_title:"准备好构建未来了吗？", cta_desc:"开源。自我进化。永久免费。", cta_btn:"开始使用",
-   460|        f7_title:'桌面客户端',
-   461|        f7_desc:'All-in-One原生桌面应用。双击启动，系统托盘，无需浏览器。Windows + macOS。',
-   462|        f8_title:'脑启发AI',
-   463|        f8_desc:'自由能原理 + 主动推理 + 全局工作空间 + 神经调节器。来自认知神经科学的P0+P1算法。',
-   464|        f9_title:'7种语言',
-   465|        f9_desc:'中文 · English · 日本語 · 한국어 · Deutsch · Français · Español。完整国际化，一键切换。',
-   466|        th_capability:'能力',
-   467|        c9:'桌面客户端',
-   468|        c10:'脑启发AI',
-   469|        c11:'多语言',
-   470|        dl_title:'下载',
-   471|        dl_win:'Windows',
-   472|        dl_win_desc:'All-in-One 桌面版 · v1.5.18',
-   473|        dl_win_btn:'下载 .exe',
-   474|        dl_win_note:'双击即可运行 — 无需安装',
-   475|        dl_linux:'Linux / WSL',
-   476|        dl_linux_desc:'pip install meshctx',
-   477|        dl_linux_btn:'下载二进制',
-   478|        dl_linux_note:'或 pip install meshctx',
-   481|        qs_install:'# 安装',
-   482|        qs_start:'# 启动内核',
-   484|        ft_legal:'法律信息',
-   485|        ft_license:'商业许可',
-   486|        ft_contact:'联系我们',
-   487|        meta_title:'MeshCtx — 自进化智能体平台',
-   488|    },
-   489|    ja: {
-   490|        nav_features:"機能", nav_compare:"比較", nav_about:"概要", nav_docs:"ドキュメント",
-   491|        why_title:"なぜ MeshCtx？",
-   492|        f1_title:"階層的メモリ", f1_desc:"人間の認知に基づく4層メモリシステム(L0-L4)。エビングハウスの忘却曲線 — 重要な情報は持続し、些末な情報は自然に減衰。",
-   493|        f2_title:"自己進化", f2_desc:"タスク後にメタ認知ループ: 評価→パターン抽出→知識グラフ更新→行動調整。使うほど賢くなる。",
-   494|        f3_title:"マルチエージェント", f3_desc:"一つの意図から自動でタスクDAGに分解、専門エージェントが並列実行。",
-   495|        f4_title:"予測的コンテキスト", f4_desc:"使用パターンを学習。質問前にメモリを先読み。コンテキスト構築50ms未満。",
-   496|        f5_title:"プラグイン市場", f5_desc:"MCPプロトコルネイティブ。pip install meshctx-plugin-xxx。",
-   497|        f6_title:"100% オープンソース", f6_desc:"MITライセンス。永久無料。セルフホスト。",
-   498|        compare_title:"MeshCtx vs 競合",
-   499|        c1:"階層的メモリ", c2:"忘却曲線", c3:"メタ認知", c4:"マルチエージェント", c5:"知識グラフ", c6:"プラグイン市場", c7:"MCPプロトコル", c8:"オープンソース",
-   500|        about_title:"MeshCtx について",
-   501|
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-lang-key="meta_title">MeshCtx — Self-Evolving Agent Platform</title>
+    <meta name="description" content="MeshCtx is an open-source, self-evolving agent platform that remembers everything, learns from every task, and orchestrates multiple AI agents in parallel.">
+    <style>
+        :root {
+            --bg: #0a0a14; --bg2: #111122; --fg: #e2e8f0; --muted: #94a3b8;
+            --purple: #8b5cf6; --cyan: #06b6d4; --green: #22c55e; --border: #1e293b;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:var(--bg); color:var(--fg); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; line-height:1.6; }
+        a { color:var(--cyan); text-decoration:none; } a:hover { text-decoration:underline; }
+        .lang { display:none; }
+        .lang.active { display:block; }
+
+        nav { position:fixed; top:0; width:100%; background:rgba(10,10,20,0.92); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); z-index:100; }
+        .nav-inner { max-width:1200px; margin:0 auto; padding:14px 24px; display:flex; justify-content:space-between; align-items:center; }
+        .logo { font-size:1.4rem; font-weight:700; } .logo span { color:var(--purple); }
+        .nav-links { display:flex; gap:20px; align-items:center; }
+        .nav-links a { color:var(--muted); font-size:0.9rem; } .nav-links a:hover { color:var(--fg); text-decoration:none; }
+
+        .lang-switch { display:flex; gap:4px; margin-left:12px; }
+        .lang-btn { background:transparent; color:var(--muted); border:1px solid var(--border); padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.75rem; transition:all .2s; }
+        .lang-btn:hover,.lang-btn.active { color:var(--fg); border-color:var(--purple); background:rgba(139,92,246,0.1); }
+        .lang-select { background:var(--bg2); color:var(--fg); border:1px solid var(--border); padding:5px 10px; border-radius:6px; font-size:0.8rem; cursor:pointer; outline:none; }
+        .lang-select:hover { border-color:var(--purple); }
+        .lang-select option { background:var(--bg2); color:var(--fg); }
+
+        .btn { display:inline-block; padding:10px 24px; border-radius:8px; font-weight:600; font-size:0.95rem; transition:all .2s; cursor:pointer; border:none; }
+        .btn-primary { background:var(--purple); color:white; } .btn-primary:hover { background:#7c3aed; transform:translateY(-1px); text-decoration:none; }
+        .btn-ghost { background:transparent; color:var(--fg); border:1px solid var(--border); } .btn-ghost:hover { border-color:var(--purple); text-decoration:none; }
+
+        .hero { padding:160px 24px 100px; text-align:center; background:radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.15), transparent 60%); }
+        .hero h1 { font-size:3.2rem; font-weight:800; letter-spacing:-0.02em; margin-bottom:16px; }
+        .hero h1 span { background:linear-gradient(135deg,var(--purple),var(--cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .hero p { font-size:1.15rem; color:var(--muted); max-width:600px; margin:0 auto 32px; }
+        .hero-buttons { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+
+        section { padding:80px 24px; }
+        .section-inner { max-width:1200px; margin:0 auto; }
+        .section-title { font-size:2rem; font-weight:700; text-align:center; margin-bottom:48px; }
+        .section-title span { color:var(--purple); }
+
+        .feature-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:24px; }
+        .feature-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:28px; transition:border-color .2s; }
+        .feature-card:hover { border-color:var(--purple); }
+        .feature-icon { font-size:2rem; margin-bottom:12px; }
+        .feature-card h3 { font-size:1.1rem; margin-bottom:8px; }
+        .feature-card p { color:var(--muted); font-size:0.9rem; }
+
+        .table-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; font-size:0.9rem; }
+        th,td { padding:12px 16px; text-align:left; }
+        th { color:var(--muted); font-weight:600; border-bottom:2px solid var(--border); }
+        td { border-bottom:1px solid var(--border); }
+        .check { color:var(--green); font-weight:bold; }
+        .cross { color:#ef4444; } .warn { color:#eab308; }
+        .highlight { background:rgba(139,92,246,0.08); }
+
+        .code-block { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:24px; overflow-x:auto; font-family:'JetBrains Mono','Fira Code',monospace; font-size:0.85rem; line-height:1.8; word-break:break-all; max-width:100%; position:relative; }
+        .code-block .c { color:#6b7280; } .code-block .k { color:var(--purple); } .code-block .s { color:var(--green); } .code-block .f { color:var(--cyan); }
+        .copy-btn { position:absolute; top:8px; right:8px; background:var(--bg); color:var(--muted); border:1px solid var(--border); padding:4px 10px; border-radius:4px; font-size:0.75rem; cursor:pointer; transition:all .2s; }
+        .copy-btn:hover { color:var(--fg); border-color:var(--purple); }
+        .copy-btn.copied { color:var(--green); border-color:var(--green); }
+
+        /* About Us */
+        .about-grid { display:grid; grid-template-columns:1fr 1fr; gap:32px; }
+        .about-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:28px; }
+        .about-card h3 { font-size:1.2rem; margin-bottom:16px; color:var(--purple); }
+        .about-card ul { list-style:none; padding:0; }
+        .about-card li { padding:6px 0; color:var(--muted); font-size:0.9rem; display:flex; align-items:flex-start; gap:8px; }
+        .about-card li::before { content:"✓"; color:var(--green); font-weight:bold; }
+        .contact-box { margin-top:20px; padding:16px; background:rgba(139,92,246,0.1); border-radius:8px; border:1px solid rgba(139,92,246,0.3); }
+        .contact-box a { color:var(--cyan); font-weight:600; }
+
+        .cta { text-align:center; padding:100px 24px; background:radial-gradient(ellipse at 50% 100%,rgba(6,182,212,0.1),transparent 60%); }
+        .cta h2 { font-size:2rem; margin-bottom:16px; }
+
+        footer { border-top:1px solid var(--border); padding:32px 24px; text-align:center; color:var(--muted); font-size:0.85rem; }
+        .footer-links { display:flex; gap:24px; justify-content:center; margin-bottom:16px; flex-wrap:wrap; }
+
+        @media(max-width:768px) {
+            .hero h1 { font-size:2rem; }
+            .nav-links a.nav-hide { display:none; }
+            .about-grid { grid-template-columns:1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="nav-inner">
+        <div class="logo"><a href="/" style="color:inherit;text-decoration:none;">Mesh<span>Ctx</span></a></div>
+        <div class="nav-links">
+            <a href="#features" class="nav-hide" data-lang-key="nav_features">Features</a>
+            <a href="#compare" class="nav-hide" data-lang-key="nav_compare">Compare</a>
+            <a href="#about" class="nav-hide" data-lang-key="nav_about">About</a>
+            <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a>
+            <a href="getting-started" data-lang-key="nav_docs">Docs</a>
+            <select class="lang-select" onchange="switchLang(this.value)">
+                <option value="en">🌐 English</option>
+                <option value="zh">🇨🇳 中文</option>
+                <option value="ja">🇯🇵 日本語</option>
+                <option value="ko">🇰🇷 한국어</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="de">🇩🇪 Deutsch</option>
+                <option value="es">🇪🇸 Español</option>
+            </select>
+        </div>
+    </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<header class="hero">
+    <!-- EN -->
+    <div class="lang active" data-lang="en">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
+        <h1>The Agent That <span>Learns</span></h1>
+        <p>MeshCtx is the world's first self-evolving agent platform. All-in-One Desktop Client + Brain-Inspired AI. multi-language. Fully open-source.</p>
+        <div class="hero-buttons">
+            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ Star on GitHub</a>
+            <a href="getting-started" class="btn btn-ghost">Get Started →</a>
+        </div>
+    </div>
+    <!-- ZH -->
+    <div class="lang" data-lang="zh">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
+        <h1>会<span>自我进化</span>的 Agent</h1>
+        <p>MeshCtx v1.5.18 — All-in-One 桌面客户端 + 脑启发AI算法。记忆一切、多Agent协同、多语言 — 完全开源。</p>
+        <div class="hero-buttons">
+            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
+            <a href="getting-started" class="btn btn-ghost">快速开始 →</a>
+        </div>
+    </div>
+    <!-- JA -->
+    <div class="lang" data-lang="ja">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
+        <h1><span>自己進化</span>するエージェント</h1>
+        <p>MeshCtx は世界初の自己進化型AIエージェントプラットフォームです。すべてを記憶し、タスクから学習し、複数エージェントを協調させます — 完全オープンソース。</p>
+        <div class="hero-buttons">
+            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
+            <a href="getting-started" class="btn btn-ghost">はじめる →</a>
+        </div>
+    </div>
+    <!-- KO -->
+    <div class="lang" data-lang="ko">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
+        <h1><span>자기 진화</span>하는 에이전트</h1>
+        <p>MeshCtx는 세계 최초의 자기 진화형 AI 에이전트 플랫폼입니다. 모든 것을 기억하고, 작업에서 학습하며, 여러 에이전트를 조율합니다 — 완전 오픈소스.</p>
+        <div class="hero-buttons">
+            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
+            <a href="getting-started" class="btn btn-ghost">시작하기 →</a>
+        </div>
+    </div>
+    <!-- FR -->
+    <div class="lang" data-lang="fr">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
+        <h1>L'Agent qui <span>Apprend</span></h1>
+        <p>MeshCtx est la première plateforme d'agents auto-évolutive au monde. Elle mémorise tout, apprend de chaque tâche et orchestre plusieurs agents — 100% open-source.</p>
+        <div class="hero-buttons">
+            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
+            <a href="getting-started" class="btn btn-ghost">Commencer →</a>
+        </div>
+    </div>
+    <!-- DE -->
+    <div class="lang" data-lang="de">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
+        <h1>Der Agent, der <span>lernt</span></h1>
+        <p>MeshCtx ist die weltweit erste selbstlernende Agenten-Plattform. Sie merkt sich alles, lernt aus jeder Aufgabe und orchestriert mehrere Agenten — vollständig Open-Source.</p>
+        <div class="hero-buttons">
+            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
+            <a href="getting-started" class="btn btn-ghost">Loslegen →</a>
+        </div>
+    </div>
+    <!-- ES -->
+    <div class="lang" data-lang="es">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
+        <h1>El Agente que <span>Aprende</span></h1>
+        <p>MeshCtx es la primera plataforma de agentes auto-evolutiva del mundo. Todo en Uno - Cliente de Escritorio + IA Neuroinspirada. 7 idiomas. Código abierto.</p>
+        <div class="hero-buttons">
+            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
+            <a href="getting-started" class="btn btn-ghost">Comenzar →</a>
+        </div>
+    </div>
+</header>
+
+<!-- ═══ FEATURES ═══ -->
+<section id="features">
+    <div class="section-inner">
+        <h2 class="section-title"><span data-lang-key="why_title">Why MeshCtx?</span></h2>
+        <div class="feature-grid">
+            <div class="feature-card"><div class="feature-icon">🧠</div><h3 data-lang-key="f1_title">Hierarchical Memory</h3><p data-lang-key="f1_desc">4-tier memory system (L0-L4) modeled after human cognition. With the Ebbinghaus Forgetting Curve — important info persists, trivia naturally decays.</p></div>
+            <div class="feature-card"><div class="feature-icon">🔄</div><h3 data-lang-key="f2_title">Self-Evolving</h3><p data-lang-key="f2_desc">Meta-cognition loop runs after every task: evaluate → extract patterns → update knowledge graph → adjust behavior. Gets smarter every time.</p></div>
+            <div class="feature-card"><div class="feature-icon">🎭</div><h3 data-lang-key="f3_title">Multi-Agent Orchestra</h3><p data-lang-key="f3_desc">One intent. Automatically decomposed into a task DAG, executed in parallel by specialized agents (Coder + Researcher + DevOps + Reviewer).</p></div>
+            <div class="feature-card"><div class="feature-icon">🔮</div><h3 data-lang-key="f4_title">Predictive Context</h3><p data-lang-key="f4_desc">Learns your patterns. Pre-loads relevant memories before you ask. Context assembly in under 50ms.</p></div>
+            <div class="feature-card"><div class="feature-icon">🔌</div><h3 data-lang-key="f5_title">Plugin Marketplace</h3><p data-lang-key="f5_desc">MCP protocol native. pip install meshctx-plugin-xxx. Community-driven ecosystem of tools and integrations.</p></div>
+            <div class="feature-card"><div class="feature-icon">🖥️</div><h3 data-lang-key="f7_title">Desktop Client</h3><p data-lang-key="f7_desc">All-in-One native desktop app. Double-click to launch. System tray, no browser needed. Windows + macOS.</p></div>
+            <div class="feature-card"><div class="feature-icon">🧠</div><h3 data-lang-key="f8_title">Brain-Inspired AI</h3><p data-lang-key="f8_desc">Free Energy Principle + Active Inference + Global Workspace + Neuromodulators. P0+P1 algorithms from cognitive neuroscience.</p></div>
+            <div class="feature-card"><div class="feature-icon">🌍</div><h3 data-lang-key="f9_title">7 Languages</h3><p data-lang-key="f9_desc">中文 · English · 日本語 · 한국어 · Deutsch · Français · Español. Full i18n with language switcher.</p></div>
+            <div class="feature-card"><div class="feature-icon">🔓</div><h3 data-lang-key="f6_title">100% Open Source</h3><p data-lang-key="f6_desc">MIT license. Free forever. Self-host on your own infrastructure. No vendor lock-in.</p></div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ COMPARISON ═══ -->
+<section id="compare">
+    <div class="section-inner">
+        <h2 class="section-title"><span data-lang-key="compare_title">MeshCtx vs The World</span></h2>
+        <div class="table-wrap">
+            <table><thead><tr><th data-lang-key="th_capability">Capability</th><th class="highlight">MeshCtx</th><th>Hermes</th><th>OpenClaw</th><th>Claude Cowork</th><th>FreeEnergy Chat</th></tr></thead>
+            <tbody>
+                <tr><td data-lang-key="c1">Hierarchical Memory</td><td class="highlight"><span class="check">L0-L4</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c2">Forgetting Curve</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c3">Meta-Cognition</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c4">Multi-Agent</td><td class="highlight"><span class="check">✓ DAG</span></td><td><span class="warn">⚠ Limited</span></td><td><span class="cross">✗</span></td><td><span class="warn">⚠ Limited</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c5">Knowledge Graph</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c6">Plugin Market</td><td class="highlight"><span class="warn">⚠ Soon</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c7">MCP Protocol</td><td class="highlight"><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c9">Desktop Client</td><td class="highlight"><span class="check">✓ Windows</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c10">Brain-Inspired AI</td><td class="highlight"><span class="check">7 Models</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c11">Multi-Language</td><td class="highlight"><span class="check">7 langs</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c8">Open Source</td><td class="highlight"><span class="check">MIT</span></td><td><span class="check">MIT</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="warn">⚠</span></td></tr>
+                <tr><td>Free Energy Principle</td><td class="highlight"><span class="check">✅ P0+P1</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="check">✅ Basic</span></td></tr>
+                <tr><td>Decision Quality (F)</td><td class="highlight"><span class="check"><b>F15.2%</b></span></td><td>—</td><td>—</td><td>—</td><td>F8.7%</td></tr>
+                <tr><td>Resource Survival</td><td class="highlight"><span class="check"><b>+61%</b></span></td><td>—</td><td>—</td><td>—</td><td>+23%</td></tr>
+                <tr><td>Convergence Reward</td><td class="highlight"><span class="check"><b>462.1</b></span></td><td>—</td><td>—</td><td>—</td><td>218.6</td></tr>
+            </tbody></table>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ ABOUT US ═══ -->
+<section id="about">
+    <div class="section-inner">
+        <h2 class="section-title"><span data-lang-key="about_title">About MeshCtx</span></h2>
+        <div class="about-grid">
+            <!-- EN -->
+            <div class="lang active about-card" data-lang="en">
+                <h3>🌍 Open Source, Global Community</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx is an open-source multi-agent framework built on <strong>"Division of Labor + Full Transparency."</strong> — a mesh network of an Orchestrator, Guardian, and specialized agents under full human supervision. It's not a black-box single agent — it's a mesh network of an Orchestrator, a Guardian, and specialized agents working under full human supervision.</p>
+                <ul>
+                    <li><strong>Auditable</strong> — Every call, every decision has an execution report</li>
+                    <li><strong>Interceptable</strong> — Critical operations require user or Guardian confirmation</li>
+                    <li><strong>Controllable Evolution</strong> — All skill changes are versioned; roll back anytime</li>
+                    <li><strong>Cost-Efficient</strong> — Multi-tier caching reduces API calls by 60%+</li>
+                </ul>
+                            </div>
+            <!-- ZH -->
+            <div class="lang about-card" data-lang="zh">
+                <h3>🌍 全球开源社区</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx 是基于"<strong>分工协作 + 完全透明</strong>"的开源多智能体框架 — 由编排器、监管员与专业智能体组成的网状协作系统。</p>
+                <ul>
+                    <li><strong>可审计</strong> — 每次调用、每次决策都有执行报告，像 Git 一样可回溯</li>
+                    <li><strong>可拦截</strong> — 删除、外发等关键操作需用户或监管员确认</li>
+                    <li><strong>可控进化</strong> — 技能和策略变更全版本化，随时回滚</li>
+                    <li><strong>成本友好</strong> — 四层缓存，API 调用降低 60% 以上</li>
+                </ul>
+            </div>
+            <!-- JA -->
+            <div class="lang about-card" data-lang="ja">
+                <h3>🌍 グローバル・オープンソース</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx は <strong>「分業＋完全透明性」</strong>を基盤とするオープンソースのマルチエージェントフレームワーク — オーケストレーター、ガーディアン、専門エージェントのメッシュネットワーク。</p>
+                <ul>
+                    <li><strong>監査可能</strong> — すべての判断が実行レポート付き</li>
+                    <li><strong>介入可能</strong> — 重要な操作は確認が必要</li>
+                    <li><strong>制御可能な進化</strong> — 全変更がバージョン管理され、ロールバック可能</li>
+                    <li><strong>コスト効率</strong> — マルチレベルキャッシュでAPI呼出60%削減</li>
+                </ul>
+            </div>
+            <!-- KO -->
+            <div class="lang about-card" data-lang="ko">
+                <h3>🌍 글로벌 오픈소스</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx는 <strong>"분업 + 완전 투명성"</strong>을 기반으로 하는 오픈소스 멀티 에이전트 프레임워크 — 오케스트레이터, 가디언, 전문 에이전트의 메시 네트워크.</p>
+                <ul>
+                    <li><strong>감사 가능</strong> — 모든 결정에 실행 보고서 첨부</li>
+                    <li><strong>개입 가능</strong> — 중요 작업은 확인 필요</li>
+                    <li><strong>제어 가능한 진화</strong> — 모든 변경사항 버전 관리, 롤백 가능</li>
+                    <li><strong>비용 효율</strong> — 다중 캐시로 API 호출 60% 감소</li>
+                </ul>
+            </div>
+            <!-- FR -->
+            <div class="lang about-card" data-lang="fr">
+                <h3>🌍 Open Source, Communauté Mondiale</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx est un framework multi-agents open-source basé sur <strong>« Division du Travail + Transparence Totale ».</strong> Un réseau maillé d'un Orchestrateur, d'un Gardien et d'agents spécialisés sous supervision humaine.</p>
+                <ul>
+                    <li><strong>Auditable</strong> — Chaque décision génère un rapport exécutable</li>
+                    <li><strong>Interceptable</strong> — Les actions critiques nécessitent confirmation</li>
+                    <li><strong>Évolution Contrôlée</strong> — Compétences versionnées, retour arrière possible</li>
+                    <li><strong>Économique</strong> — Cache multi-niveaux, -60% d'appels API</li>
+                </ul>
+            </div>
+            <!-- DE -->
+            <div class="lang about-card" data-lang="de">
+                <h3>🌍 Open Source, Globale Gemeinschaft</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx ist ein Open-Source Multi-Agent-Framework nach dem Prinzip <strong>„Arbeitsteilung + Volle Transparenz".</strong> Ein Netzwerk aus Orchestrator, Guardian und spezialisierten Agenten unter menschlicher Aufsicht.</p>
+                <ul>
+                    <li><strong>Prüfbar</strong> — Jeder Aufruf, jede Entscheidung mit Ausführungsbericht</li>
+                    <li><strong>Unterbrechbar</strong> — Kritische Operationen erfordern Bestätigung</li>
+                    <li><strong>Kontrollierte Evolution</strong> — Alle Änderungen versioniert, Rollback jederzeit</li>
+                    <li><strong>Kosteneffizient</strong> — Mehrstufiges Caching, -60% API-Aufrufe</li>
+                </ul>
+            </div>
+            <!-- Contact (shared) -->
+            <div class="about-card">
+                <!-- ES -->
+            <div class="lang about-card" data-lang="es">
+                <h3>🌍 Código Abierto, Comunidad Global</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx es un framework multi-agente de código abierto basado en <strong>"División del Trabajo + Transparencia Total".</strong> Una red de agentes con Orquestador, Guardián y especialistas bajo supervisión humana.</p>
+                <ul>
+                    <li><strong>Auditable</strong> — Cada decisión genera un informe ejecutable</li>
+                    <li><strong>Interceptable</strong> — Las acciones críticas requieren confirmación</li>
+                    <li><strong>Evolución Controlada</strong> — Cambios versionados, retroceso en cualquier momento</li>
+                    <li><strong>Eficiente en Costos</strong> — Caché multinivel, -60% llamadas API</li>
+                </ul>
+            </div>
+            <div class="about-card">
+                <h3 data-lang-key="contact_title">📬 Contact</h3>
+                <p style="color:var(--muted);margin-bottom:12px;" data-lang-key="contact_desc">Questions? Collaborations? Reach out anytime.</p>
+                <div class="contact-box">
+                    <p>📧 <a href="mailto:support@meshctx.com">support@meshctx.com</a></p>
+                    <p>🌐 <a href="https://meshctx.com">meshctx.com</a></p>
+                    <p>💻 <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ DOWNLOAD ═══ -->
+<section id="download" style="background:var(--bg2);">
+    <div class="section-inner">
+        <h2 class="section-title"><span data-lang-key="dl_title">Download</span></h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;max-width:800px;margin:0 auto;">
+            <div class="feature-card" style="text-align:center;">
+                <div style="font-size:2.5rem;margin-bottom:8px;">🪟</div>
+                <h3 data-lang-key="dl_win">Windows</h3>
+                <p data-lang-key="dl_win_desc" style="color:var(--muted);">All-in-One Desktop · v1.5.18</p>
+                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx.exe" class="btn btn-primary" style="margin-top:12px;width:100%;" data-lang-key="dl_win_btn">Download .exe</a>
+                <p data-lang-key="dl_win_note" style="font-size:0.75rem;color:var(--muted);margin-top:8px;">Double-click to run — no install required</p>
+            </div>
+            <div class="feature-card" style="text-align:center;">
+                <div style="font-size:2.5rem;margin-bottom:8px;">🐧</div>
+                <h3 data-lang-key="dl_linux">Linux / WSL</h3>
+                <p data-lang-key="dl_linux_desc" style="color:var(--muted);">pip install meshctx</p>
+                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest" class="btn btn-ghost" style="margin-top:12px;width:100%;" data-lang-key="dl_linux_btn">Download Binary</a>
+                <p data-lang-key="dl_linux_note" style="font-size:0.75rem;color:var(--muted);margin-top:8px;">or <code style="background:var(--bg);padding:2px 6px;border-radius:3px;">pip install meshctx</code></p>
+            </div>
+            <div class="feature-card" style="text-align:center;">
+                <div style="font-size:2.5rem;margin-bottom:8px;">🐳</div>
+                <h3 data-lang-key="dl_docker">Docker</h3>
+                <p data-lang-key="dl_docker_desc" style="color:var(--muted);">Any platform</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ QUICK START ═══ -->
+<section>
+    <div class="section-inner">
+        <h2 class="section-title"><span data-lang-key="quick_title">Quick Start</span></h2>
+        <div class="code-block" id="installBlock">
+            <button class="copy-btn" onclick="copyCode('installBlock')">📋 Copy</button>
+            <span class="c" data-lang-key="qs_install"># Install</span><br>
+            pip install meshctx<br><br>
+            <span class="c" data-lang-key="qs_start"># Start the kernel</span><br>
+            meshctx start<br><br>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ CTA ═══ -->
+<div class="cta">
+    <h2 data-lang-key="cta_title">Ready to build the future?</h2>
+    <p style="color:var(--muted);margin-bottom:24px;" data-lang-key="cta_desc">Open source. Self-evolving. Always free.</p>
+    <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ Star on GitHub</a>
+    <a href="getting-started" class="btn btn-ghost" style="margin-left:8px;" data-lang-key="cta_btn">Get Started</a>
+</div>
+
+<footer>
+    <div class="footer-links">
+        <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a>
+        <a href="getting-started" data-lang-key="nav_docs">Docs</a>
+        <a href="LEGAL" data-lang-key="ft_legal">Legal</a>
+        <a href="mailto:license@meshctx.com" data-lang-key="ft_license">Commercial License</a>
+        <a href="mailto:support@meshctx.com" data-lang-key="ft_contact">Contact</a>
+    </div>
+<p style="margin-bottom:8px;">
+        <strong>AGPL v3</strong> · Free for everyone ·
+        <a href="LEGAL" style="color:var(--muted);">Terms</a> · 
+        <a href="LEGAL" style="color:var(--muted);">Privacy</a> · 
+        <a href="LEGAL" style="color:var(--muted);">Disclaimer</a>
+    </p>
+    <p>© 2026 MeshCtx — Built for the community. Open source. Always free.</p>
+</footer>
+
+<script>
+// ═══ Language Data ═══
+const L = {
+    en: {
+        nav_features:"Features", nav_compare:"Compare", nav_about:"About", nav_docs:"Docs",
+        why_title:"Why MeshCtx?",
+        f1_title:"Hierarchical Memory", f1_desc:"4-tier memory system (L0-L4) modeled after human cognition. With the Ebbinghaus Forgetting Curve — important info persists, trivia naturally decays.",
+        f2_title:"Self-Evolving", f2_desc:"Meta-cognition loop runs after every task: evaluate → extract patterns → update knowledge graph → adjust behavior. Gets smarter every time.",
+        f3_title:"Multi-Agent Orchestra", f3_desc:"One intent. Automatically decomposed into a task DAG, executed in parallel by specialized agents (Coder + Researcher + DevOps + Reviewer).",
+        f4_title:"Predictive Context", f4_desc:"Learns your patterns. Pre-loads relevant memories before you ask. Context assembly in under 50ms.",
+        f5_title:"Plugin Marketplace", f5_desc:"MCP protocol native. pip install meshctx-plugin-xxx. Community-driven ecosystem of tools and integrations.",
+        f6_title:"100% Open Source", f6_desc:"MIT license. Free forever. Self-host on your own infrastructure. No vendor lock-in.",
+        compare_title:"MeshCtx vs The World",
+        c1:"Hierarchical Memory", c2:"Forgetting Curve", c3:"Meta-Cognition", c4:"Multi-Agent", c5:"Knowledge Graph", c6:"Plugin Market", c7:"MCP Protocol", c8:"Open Source",
+        about_title:"About MeshCtx",
+        contact_title:"📬 Contact", contact_desc:"Questions? Collaborations? Reach out anytime.",
+        quick_title:"Quick Start",
+        cta_title:"Ready to build the future?", cta_desc:"Open source. Self-evolving. Always free.", cta_btn:"Get Started",
+        f7_title:'Desktop Client',
+        f7_desc:'All-in-One native desktop app. Double-click to launch. System tray, no browser needed. Windows + macOS.',
+        f8_title:'Brain-Inspired AI',
+        f8_desc:'Free Energy Principle + Active Inference + Global Workspace + Neuromodulators. P0+P1 algorithms from cognitive neuroscience.',
+        f9_title:'7 Languages',
+        f9_desc:'中文 · English · 日本語 · 한국어 · Deutsch · Français · Español. Full i18n with language switcher.',
+        th_capability:'Capability',
+        c9:'Desktop Client',
+        c10:'Brain-Inspired AI',
+        c11:'Multi-Language',
+        dl_title:'Download',
+        dl_win:'Windows',
+        dl_win_desc:'All-in-One Desktop · v1.5.18',
+        dl_win_btn:'Download .exe',
+        dl_win_note:'Double-click to run — no install required',
+        dl_linux:'Linux / WSL',
+        dl_linux_desc:'pip install meshctx',
+        dl_linux_btn:'Download Binary',
+        dl_linux_note:'or pip install meshctx',
+        qs_install:'# Install',
+        qs_start:'# Start the kernel',
+        ft_legal:'Legal',
+        ft_license:'Commercial License',
+        ft_contact:'Contact',
+        meta_title:'MeshCtx — Self-Evolving Agent Platform',
+    },
+    zh: {
+        nav_features:"特性", nav_compare:"对比", nav_about:"关于", nav_docs:"文档",
+        why_title:"为什么选择 MeshCtx？",
+        f1_title:"层次记忆", f1_desc:"4层记忆系统(L0-L4)，模拟人类认知。引入艾宾浩斯遗忘曲线 — 重要信息持久保留，琐碎信息自然衰减。",
+        f2_title:"自我进化", f2_desc:"每次任务后运行元认知循环：评估 → 提取模式 → 更新知识图谱 → 调整行为。越用越聪明。",
+        f3_title:"多智能体编排", f3_desc:"一个意图，自动分解为任务DAG，由专业Agent（编码+研究+运维+审查）并行执行。",
+        f4_title:"预测性上下文", f4_desc:"学习你的使用模式。在你提问之前预加载相关记忆。上下文组装 < 50ms。",
+        f5_title:"插件市场", f5_desc:"原生MCP协议。pip install meshctx-plugin-xxx。社区驱动的工具和集成生态。",
+        f6_title:"100% 开源", f6_desc:"MIT 许可证。永久免费。在自己的基础设施上自托管。无厂商锁定。",
+        compare_title:"MeshCtx vs 竞品",
+        c1:"层次记忆", c2:"遗忘曲线", c3:"元认知", c4:"多Agent", c5:"知识图谱", c6:"插件市场", c7:"MCP协议", c8:"开源",
+        about_title:"关于 MeshCtx",
+        contact_title:"📬 联系我们", contact_desc:"有疑问？有合作意向？随时联系。",
+        quick_title:"快速开始",
+        cta_title:"准备好构建未来了吗？", cta_desc:"开源。自我进化。永久免费。", cta_btn:"开始使用",
+        f7_title:'桌面客户端',
+        f7_desc:'All-in-One原生桌面应用。双击启动，系统托盘，无需浏览器。Windows + macOS。',
+        f8_title:'脑启发AI',
+        f8_desc:'自由能原理 + 主动推理 + 全局工作空间 + 神经调节器。来自认知神经科学的P0+P1算法。',
+        f9_title:'7种语言',
+        f9_desc:'中文 · English · 日本語 · 한국어 · Deutsch · Français · Español。完整国际化，一键切换。',
+        th_capability:'能力',
+        c9:'桌面客户端',
+        c10:'脑启发AI',
+        c11:'多语言',
+        dl_title:'下载',
+        dl_win:'Windows',
+        dl_win_desc:'All-in-One 桌面版 · v1.5.18',
+        dl_win_btn:'下载 .exe',
+        dl_win_note:'双击即可运行 — 无需安装',
+        dl_linux:'Linux / WSL',
+        dl_linux_desc:'pip install meshctx',
+        dl_linux_btn:'下载二进制',
+        dl_linux_note:'或 pip install meshctx',
+        qs_install:'# 安装',
+        qs_start:'# 启动内核',
+        ft_legal:'法律信息',
+        ft_license:'商业许可',
+        ft_contact:'联系我们',
+        meta_title:'MeshCtx — 自进化智能体平台',
+    },
+    ja: {
+        nav_features:"機能", nav_compare:"比較", nav_about:"概要", nav_docs:"ドキュメント",
+        why_title:"なぜ MeshCtx？",
+        f1_title:"階層的メモリ", f1_desc:"人間の認知に基づく4層メモリシステム(L0-L4)。エビングハウスの忘却曲線 — 重要な情報は持続し、些末な情報は自然に減衰。",
+        f2_title:"自己進化", f2_desc:"タスク後にメタ認知ループ: 評価→パターン抽出→知識グラフ更新→行動調整。使うほど賢くなる。",
+        f3_title:"マルチエージェント", f3_desc:"一つの意図から自動でタスクDAGに分解、専門エージェントが並列実行。",
+        f4_title:"予測的コンテキスト", f4_desc:"使用パターンを学習。質問前にメモリを先読み。コンテキスト構築50ms未満。",
+        f5_title:"プラグイン市場", f5_desc:"MCPプロトコルネイティブ。pip install meshctx-plugin-xxx。",
+        f6_title:"100% オープンソース", f6_desc:"MITライセンス。永久無料。セルフホスト。",
+        compare_title:"MeshCtx vs 競合",
+        c1:"階層的メモリ", c2:"忘却曲線", c3:"メタ認知", c4:"マルチエージェント", c5:"知識グラフ", c6:"プラグイン市場", c7:"MCPプロトコル", c8:"オープンソース",
+        about_title:"MeshCtx について",

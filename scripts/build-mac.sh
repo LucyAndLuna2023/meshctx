@@ -8,6 +8,18 @@ echo "=== meshctx macOS Build ==="
 echo "Python: $(python3 --version)"
 echo "PyInstaller: $(pyinstaller --version)"
 
+# Ensure .icns icon exists for macOS .app bundle
+if [ ! -f logo.icns ]; then
+    echo "WARN: logo.icns not found, attempting conversion from logo.png..."
+    python3 -c "
+from PIL import Image
+img = Image.open('logo.png')
+img.save('logo.icns', format='ICNS', sizes=[16,32,64,128,256,512])
+print('logo.icns created successfully')
+" 2>/dev/null || echo "WARN: icon conversion failed, continuing..."
+fi
+ls -lh logo.icns 2>/dev/null || echo "WARN: no icon file found"
+
 # Clean previous builds
 rm -rf build dist
 
