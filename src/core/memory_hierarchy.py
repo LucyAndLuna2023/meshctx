@@ -13,6 +13,7 @@ import asyncio
 import hashlib
 import json
 import math
+import os
 import time
 import uuid
 from abc import ABC, abstractmethod
@@ -180,6 +181,60 @@ class MemoryItem:
             "entities": self.entities,
         }
 
+    def to_json_dict(self) -> Dict[str, Any]:
+        """完整的序列化dict（用于文件持久化）"""
+        d: Dict[str, Any] = {
+            "id": self.id,
+            "level": self.level.value,
+            "key": self.key,
+            "value": self.value,
+            "summary": self.summary,
+            "embedding": self.embedding,
+            "project_id": self.project_id,
+            "conversation_id": self.conversation_id,
+            "source": self.source,
+            "created_at": self.created_at,
+            "last_accessed": self.last_accessed,
+            "last_reviewed": self.last_reviewed,
+            "importance": self.importance,
+            "access_count": self.access_count,
+            "review_count": self.review_count,
+            "tags": self.tags,
+            "entities": self.entities,
+            "related_memory_ids": self.related_memory_ids,
+            "confidence": self.confidence,
+            "is_corrected": self.is_corrected,
+            "correction_history": self.correction_history,
+        }
+        return d
+
+    @classmethod
+    def from_json_dict(cls, d: Dict[str, Any]) -> "MemoryItem":
+        """从dict反序列化（用于文件持久化）"""
+        item = cls.__new__(cls)
+        item.id = d["id"]
+        item.level = MemoryLevel(d["level"])
+        item.key = d.get("key", "")
+        item.value = d.get("value", "")
+        item.summary = d.get("summary", "")
+        item.embedding = d.get("embedding")
+        item.project_id = d.get("project_id")
+        item.conversation_id = d.get("conversation_id")
+        item.source = d.get("source", "")
+        item.created_at = d.get("created_at", time.time())
+        item.last_accessed = d.get("last_accessed", time.time())
+        item.last_reviewed = d.get("last_reviewed", time.time())
+        item.importance = d.get("importance", 0.5)
+        item.access_count = d.get("access_count", 0)
+        item.review_count = d.get("review_count", 0)
+        item.tags = d.get("tags", [])
+        item.entities = d.get("entities", [])
+        item.related_memory_ids = d.get("related_memory_ids", [])
+        item.confidence = d.get("confidence", 1.0)
+        item.is_corrected = d.get("is_corrected", False)
+        item.correction_history = d.get("correction_history", [])
+        return item
+
 
 # ═══════════════════════════════════════════════════════════
 # 向量索引
@@ -236,6 +291,27 @@ class VectorIndex:
 
     def count(self) -> int:
         return len(self._vectors)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """序列化为可JSON序列化的dict"""
+        vectors_list = []
+        for item_id in sorted(self._vectors.keys()):
+            vectors_list.append({
+                "item_id": item_id,
+                "embedding": self._vectors[item_id].tolist(),
+            })
+        return {
+            "dim": self.dim,
+            "vectors": vectors_list,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "VectorIndex":
+        """从dict反序列化"""
+        index = cls(dim=data.get("dim", 384))
+        for entry in data.get("vectors", []):
+            index.add(entry["item_id"], entry["embedding"])
+        return index
 
 
 # ═══════════════════════════════════════════════════════════
@@ -335,6 +411,52 @@ class KnowledgeGraph:
             ),
         }
 
+    def to_dict(self) -> Dict[str, Any]:
+        """序列化为可JSON序列化的dict"""
+        # entities
+        entities_dict = {}
+        for name, info in self._entities.items():
+            entities_dict[name] = {
+                "type": info["type"],
+                "properties": info["properties"],
+                "created_at": info["created_at"],
+            }
+        # relations
+        relations_list = []
+        for (s, r, o), w in self._relations.items():
+            relations_list.append({
+                "subject": s,
+                "relation": r,
+                "object": o,
+                "weight": w,
+            })
+        # entity_memories
+        entity_memories_dict = {}
+        for entity, mem_ids in self._entity_memories.items():
+            entity_memories_dict[entity] = sorted(mem_ids)
+        return {
+            "entities": entities_dict,
+            "relations": relations_list,
+            "entity_memories": entity_memories_dict,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "KnowledgeGraph":
+        """从dict反序列化"""
+        kg = cls()
+        for name, info in data.get("entities", {}).items():
+            kg._entities[name] = {
+                "type": info["type"],
+                "properties": info["properties"],
+                "created_at": info["created_at"],
+            }
+        for rel in data.get("relations", []):
+            key = (rel["subject"], rel["relation"], rel["object"])
+            kg._relations[key] = rel.get("weight", 1.0)
+        for entity, mem_ids in data.get("entity_memories", {}).items():
+            kg._entity_memories[entity] = set(mem_ids)
+        return kg
+
 
 # ═══════════════════════════════════════════════════════════
 # 层次记忆存储
@@ -389,6 +511,9 @@ class HierarchicalMemoryStore:
         if len(store) > self._capacity[item.level]:
             oldest = next(iter(store))
             self._evict(oldest, item.level)
+
+        # 自动保存
+        self._maybe_auto_save()
 
         return item.id
 
@@ -584,6 +709,160 @@ class HierarchicalMemoryStore:
     def set_embedding_fn(self, fn):
         """设置嵌入函数(用于真实向量)"""
         self._embedding_fn = fn
+
+    # ═══════════════════════════════════════════════════════════
+    # 持久化 (save_to_file / load_from_file)
+    # ═══════════════════════════════════════════════════════════
+
+    # 文件格式版本 — 用于向前兼容
+    PERSISTENCE_VERSION = 1
+
+    # 自动保存：每次写入N条记忆后触发 (0=禁用)
+    auto_save_threshold: int = 0
+    _auto_save_path: Optional[str] = None
+    _write_count_since_save: int = 0
+
+    def set_auto_save(self, path: str, threshold: int = 10):
+        """配置自动保存
+
+        Args:
+            path: 自动保存的文件路径
+            threshold: 每写入threshold条记忆后自动保存 (0=禁用)
+        """
+        self._auto_save_path = path
+        self.auto_save_threshold = threshold
+        self._write_count_since_save = 0
+
+    def _maybe_auto_save(self):
+        """检查是否需要自动保存"""
+        if self.auto_save_threshold <= 0 or not self._auto_save_path:
+            return
+        self._write_count_since_save += 1
+        if self._write_count_since_save >= self.auto_save_threshold:
+            self.save_to_file(self._auto_save_path)
+            self._write_count_since_save = 0
+
+    def _serialize_memory_items(self) -> List[Dict[str, Any]]:
+        """序列化所有记忆条目"""
+        items = []
+        for item_id, item in sorted(
+            self._all_items(), key=lambda x: (
+                x[1].level.value, x[1].created_at, x[0]
+            )
+        ):
+            items.append(item.to_json_dict())
+        return items
+
+    def _deserialize_memory_items(self, items_data: List[Dict[str, Any]]):
+        """反序列化并加载所有记忆条目"""
+        for d in items_data:
+            item = MemoryItem.from_json_dict(d)
+            self._stores[item.level][item.id] = item
+            if item.embedding is not None:
+                self.vector_index.add(item.id, item.embedding)
+            # 重建图谱关联
+            for entity in item.entities:
+                self.knowledge_graph.link_memory(entity, item.id)
+
+    def save_to_file(self, path: str) -> str:
+        """将整个记忆系统保存到JSON文件
+
+        Args:
+            path: 文件路径
+
+        Returns:
+            写入的文件路径 (绝对路径规范化后)
+
+        Raises:
+            IOError: 写入失败
+        """
+        # 收集所有记忆条目
+        items_data = self._serialize_memory_items()
+
+        # 组装完整快照
+        snapshot: Dict[str, Any] = {
+            "version": self.PERSISTENCE_VERSION,
+            "meta": {
+                "saved_at": time.time(),
+                "total_items": len(items_data),
+                "total_stores": sum(
+                    len(s) for s in self._stores.values()
+                ),
+                "vector_count": self.vector_index.count(),
+                "graph_stats": self.knowledge_graph.get_stats(),
+            },
+            "items": items_data,
+            "vector_index": self.vector_index.to_dict(),
+            "knowledge_graph": self.knowledge_graph.to_dict(),
+        }
+
+        # 写入文件 (原子写入: 先写临时文件再重命名)
+        tmp_path = path + ".tmp"
+        try:
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                json.dump(snapshot, f, ensure_ascii=False, indent=2)
+            os.replace(tmp_path, path)
+        except (IOError, OSError) as e:
+            # 清理临时文件
+            try:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+            except OSError:
+                pass
+            raise IOError(f"保存记忆失败: {e}") from e
+
+        return os.path.abspath(path)
+
+    @classmethod
+    def load_from_file(cls, path: str) -> "HierarchicalMemoryStore":
+        """从JSON文件加载整个记忆系统
+
+        Args:
+            path: 文件路径
+
+        Returns:
+            加载完成的 HierarchicalMemoryStore 实例
+
+        Raises:
+            FileNotFoundError: 文件不存在
+            ValueError: 版本不兼容或格式错误
+            IOError: 读取失败
+        """
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"记忆文件不存在: {path}")
+
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                snapshot = json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            raise IOError(f"读取记忆文件失败: {e}") from e
+
+        # 版本检查
+        version = snapshot.get("version", 0)
+        if version != cls.PERSISTENCE_VERSION:
+            raise ValueError(
+                f"版本不兼容: 文件版本={version}, "
+                f"期望版本={cls.PERSISTENCE_VERSION}"
+            )
+
+        # 创建空实例
+        store = cls()
+
+        # 加载向量索引
+        vi_data = snapshot.get("vector_index")
+        if vi_data:
+            store.vector_index = VectorIndex.from_dict(vi_data)
+
+        # 加载知识图谱
+        kg_data = snapshot.get("knowledge_graph")
+        if kg_data:
+            store.knowledge_graph = KnowledgeGraph.from_dict(kg_data)
+
+        # 加载记忆条目
+        items_data = snapshot.get("items", [])
+        store._deserialize_memory_items(items_data)
+
+        return store
 
     # ── 维护操作 ──────────────────────────────────────────
 

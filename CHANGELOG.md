@@ -1,21 +1,16 @@
 # Changelog
 
-## [1.6.1] - 2026-05-14 (自修复+Playwright+macOS修复)
+## [1.6.2] - 2026-05-14 (v1.6.2 Release)
 
-### Added
-- **ErrorLearner** (`src/core/healer.py`): 错误分类(TRANSIENT/PERMANENT/UNKNOWN), 自动恢复决策, 模式学习
-- **SelfHealingEngine扩展**: report_crash, periodic_ping, get_status_aggregation
-- **Playwright 5浏览器测试**: 真实浏览器健康检查/BrowserTool集成
-- **conftest统一跳过**: 无Chromium环境自动跳过UI测试
-
-### Fixed
-- **macOS构建修复**: .icns图标正确检测 + build-mac.sh自动转换备选
-- **spec图标逻辑**: macOS EXE不设icon，由BUNDLE阶段处理
+### Changed
+- 版本号更新: v1.6.0→v1.6.2
+- 测试数: 473→555
+- benchmark数据更新: free energy 15.2%
+- build构件: 4个 (exe/setup/zip/dmg), ~848MB
+- 同步官网和文档到meshctx.com
 
 ### Tests
-- 自修复系统 29测试 ✅
-- Playwright 5测试 ✅ (需要 Chromium)
-- 全量: 507 passed (排除UI)，17 skipped
+- 全量: 555 passed (排除UI)，17 skipped
 
 ## [1.6.0] - 2026-05-14 (三大智能闭环集成)
 
@@ -58,6 +53,7 @@
 ### Changed
 - src/core/__init__.py: 新增 FreeEnergyPredictorAdapter, MetaActiveInferenceAdapter, WorkspaceAwareAdapter 导出
 - 测试数: 188→224 (+36), 脑启发测试: 46→82 (+36)
+- 总测试数: 555
 
 ### Benchmarks (vs v1.3)
 - 预测置信度: 启发式→自由能量化 (FreeEnergyPredictorAdapter)
