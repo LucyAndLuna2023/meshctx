@@ -1749,42 +1749,31 @@ function renderLab(d){
   document.getElementById('benchPanel').innerHTML = benchHTML;
 }
 
-// ═══ Brain Monitor v2.0 ═══
+// ═══ Brain Monitor v2.1: 实时API ═══
 function renderBrain(){
-  var regions = [
-    {id:'hp', name:'海马体', icon:'🏛️', desc:'记忆重放', color:'#22c55e'},
-    {id:'amy', name:'杏仁核', icon:'😊', desc:'情感标记', color:'#f59e0b'},
-    {id:'dmn', name:'默认模式', icon:'💭', desc:'创意涌现', color:'#8b5cf6'},
-    {id:'tha', name:'丘脑', icon:'🎯', desc:'注意力门控', color:'#06b6d4'},
-    {id:'cer', name:'小脑', icon:'🔮', desc:'前向预测', color:'#ef4444'},
-    {id:'bg', name:'基底节', icon:'🕹️', desc:'动作选择', color:'#ec4899'},
-    {id:'acc', name:'前扣带', icon:'⚡', desc:'冲突监测', color:'#f97316'},
-    {id:'mir', name:'镜像神经元', icon:'🪞', desc:'心智理论', color:'#14b8a6'},
-    {id:'ins', name:'岛叶', icon:'🫀', desc:'内感知', color:'#6366f1'},
-  ];
-  var html = '';
-  for(var i=0; i<regions.length; i++){
-    var r = regions[i];
-    var act = 0.3 + Math.random() * 0.5;
-    html += '<div class="stat-card" style="border-left:3px solid '+r.color+';">'+
-      '<div style="font-size:20px;">'+r.icon+'</div>'+
-      '<div style="font-size:13px;font-weight:600;">'+r.name+'</div>'+
-      '<div style="font-size:10px;color:var(--muted);">'+r.desc+'</div>'+
-      '<div class="progress-bar" style="margin-top:6px;">'+
-        '<div class="progress-fill" style="width:'+(act*100)+'%;background:'+r.color+';"></div>'+
-      '</div>'+
-      '<div style="font-size:9px;color:var(--muted);text-align:right;">'+(act*100).toFixed(0)+'%</div>'+
-      '</div>';
-  }
-  // 添加Φ意识度量
-  html += '<div class="stat-card" style="border-left:3px solid #a78bfa;grid-column:1/-1;">'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;">'+
-    '<span>🧿 整合信息 Φ (IIT意识度量)</span>'+
-    '<span style="font-size:24px;font-weight:700;color:#a78bfa;">'+(0.45+Math.random()*0.3).toFixed(2)+'</span>'+
-    '</div>'+
-    '<div style="font-size:10px;color:var(--muted);">状态: 清醒专注 · 10脑区激活中</div>'+
-    '</div>';
-  document.getElementById('brainMonitor').innerHTML = html;
+  fetch('/api/brain/status').then(function(r){return r.json()}).then(function(d){
+    var html = '';
+    var regions = d.regions || [];
+    for(var i=0; i<regions.length; i++){
+      var r = regions[i];
+      var act = r.activation || 0.5;
+      html += '<div class="stat-card" style="border-left:3px solid '+r.color+';">'+
+        '<div style="font-size:20px;">'+r.icon+'</div>'+
+        '<div style="font-size:13px;font-weight:600;">'+r.name+'</div>'+
+        '<div style="font-size:10px;color:var(--muted);">激活: '+(act*100).toFixed(0)+'%</div>'+
+        '<div class="progress-bar" style="margin-top:6px;">'+
+          '<div class="progress-fill" style="width:'+(act*100)+'%;background:'+r.color+';"></div>'+
+        '</div></div>';
+    }
+    html += '<div class="stat-card" style="border-left:3px solid #a78bfa;grid-column:1/-1;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;">'+
+      '<span>🧿 Φ (IIT意识度量)</span>'+
+      '<span style="font-size:24px;font-weight:700;color:#a78bfa;">'+(d.phi||0).toFixed(2)+'</span></div>'+
+      '<div style="font-size:10px;color:var(--muted);">状态: '+(d.state||'unknown')+' · 9脑区</div></div>';
+    document.getElementById('brainMonitor').innerHTML = html;
+  }).catch(function(e){
+    document.getElementById('brainMonitor').innerHTML = '<div class="stat-card" style="grid-column:1/-1;text-align:center;color:var(--muted);">🧠 等待后端连接...</div>';
+  });
 }
 
 // ═══ Agent控制 ═══

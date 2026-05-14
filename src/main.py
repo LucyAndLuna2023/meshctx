@@ -1017,6 +1017,43 @@ async def test_model_connection(model_id: str):
 
 # ── v2.1 插件市场 API ──────────────────────────────────
 
+@app.get("/api/brain/status")
+async def brain_status():
+    """超级大脑实时状态 (供Brain Monitor面板)"""
+    from src.core.super_brain import IITConsciousness
+    import numpy as np
+    
+    try:
+        # 尝试从agent_loop获取super_brain实例
+        from src.core.agent_loop import AgentLoopPlugin
+        # 这里无法直接访问实例，返回模拟数据
+    except:
+        pass
+    
+    # 生成各脑区模拟激活值 (后续接入真实数据)
+    regions = [
+        {"id": "hp", "name": "Hippocampus", "icon": "🏛️", "activation": 0.45 + random.random() * 0.3, "color": "#22c55e"},
+        {"id": "amy", "name": "Amygdala", "icon": "😊", "activation": 0.35 + random.random() * 0.4, "color": "#f59e0b"},
+        {"id": "dmn", "name": "Default Mode", "icon": "💭", "activation": 0.25 + random.random() * 0.5, "color": "#8b5cf6"},
+        {"id": "tha", "name": "Thalamus", "icon": "🎯", "activation": 0.55 + random.random() * 0.3, "color": "#06b6d4"},
+        {"id": "cer", "name": "Cerebellum", "icon": "🔮", "activation": 0.30 + random.random() * 0.35, "color": "#ef4444"},
+        {"id": "bg", "name": "Basal Ganglia", "icon": "🕹️", "activation": 0.40 + random.random() * 0.3, "color": "#ec4899"},
+        {"id": "acc", "name": "ACC", "icon": "⚡", "activation": 0.20 + random.random() * 0.4, "color": "#f97316"},
+        {"id": "mir", "name": "Mirror Neurons", "icon": "🪞", "activation": 0.35 + random.random() * 0.35, "color": "#14b8a6"},
+        {"id": "ins", "name": "Insula", "icon": "🫀", "activation": 0.15 + random.random() * 0.25, "color": "#6366f1"},
+    ]
+    
+    # IIT Φ 意识度量
+    phi = 0.3 + random.random() * 0.4
+    
+    return {
+        "regions": regions,
+        "phi": round(phi, 3),
+        "state": "conscious_focused" if phi > 0.5 else "conscious_engaged",
+        "timestamp": time.time(),
+    }
+
+
 @app.get("/api/plugins")
 async def list_plugins():
     """列出所有可用插件"""
