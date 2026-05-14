@@ -124,4 +124,9 @@ __all__ = [
     "UnconsciousProcessing", "RecursiveWorkspace",
     "HomeostaticRegulator", "ResourceBudget", "ResourceType",
     "SystemMode", "MarginalUtilityScheduler",
+    # v1.6.1 Self-Healing
+    "ErrorLearner", "ErrorClass", "ErrorPattern",
+    # v1.6.2 Online Learning
+    "OnlineLearningEngine", "InteractionRecorder", "Interaction",
+    "GenerativeModelUpdater", "PreferenceLearner", "MemoryConsolidator",
 ]
