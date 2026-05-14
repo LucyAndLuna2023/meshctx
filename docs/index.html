@@ -130,13 +130,12 @@
     <!-- ZH -->
     <div class="lang" data-lang="zh">
         <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
-        <h1>会<span>自我进化</span>的 Agent <span style="font-size:0.5em;background:var(--purple);padding:2px 8px;border-radius:4px;">v1.1</span></h1>
+        <h1>会<span>自我进化</span>的 Agent <span style="font-size:0.5em;background:var(--purple);padding:2px 8px;border-radius:4px;">v1.6</span></h1>
         <p>meshctx 是全球首个自进化智能体平台。12核心插件、100+模型、企业微信接入、预测引擎、自主OODA循环 — 完全开源。</p>
         <div class="hero-buttons">
             <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
             <a href="getting-started" class="btn btn-ghost">快速开始 →</a>
-<a href="http://47.120.0.239:3000/static/dl/meshctx.exe" class="btn btn-primary" style="background:var(--green)">🪟 下载 Windows .exe</a>
-            <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/install.bat" class="btn btn-ghost" style="border-color:var(--green);color:var(--green)">📜 安装脚本</a>
+<a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" style="background:var(--green)">🪟 下载 Windows 客户端</a>
         </div>
     </div>
     <!-- FR -->
@@ -317,23 +316,30 @@
     </div>
 </section>
 
-<!-- ═══ WINDOWS 安装 ═══ -->
+<!-- ═══ WINDOWS 桌面客户端 ═══ -->
 <section>
     <div class="section-inner">
-        <h2 class="section-title"><span>🪟 Windows 用户 (WSL)</span></h2>
-        <div class="code-block">
-            <span class="c"># 方法1: 一键安装 (推荐)</span><br>
-            下载 <a href="http://47.120.0.239:3000/static/dl/meshctx.exe" style="color:var(--green)">meshctx.exe</a> → 双击运行，输入API Key<br><br>
-            <span class="c"># 方法2: 手动安装</span><br>
-            wsl --install                                    <span class="c"># 先装WSL(如未安装)</span><br>
-            wsl bash -c "curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash"<br><br>
-            <span class="c"># 启动</span><br>
-            wsl meshctx start<br>
-            浏览器打开 http://localhost:3000/ui/chat
+        <h2 class="section-title"><span>🪟 Windows 桌面客户端</span></h2>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin-top:20px;">
+            <div class="feature-card" style="text-align:center;min-width:200px;">
+                <div class="feature-icon">📦</div>
+                <h3>一键安装</h3>
+                <p>NSIS安装程序(7语言) · 开始菜单快捷方式 · 添加/删除程序</p>
+                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" style="margin-top:12px;">下载安装程序</a>
+            </div>
+            <div class="feature-card" style="text-align:center;min-width:200px;">
+                <div class="feature-icon">📂</div>
+                <h3>绿色便携版</h3>
+                <p>无需安装 · 解压即用 · 自带运行环境</p>
+                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-ghost" style="margin-top:12px;">下载便携版</a>
+            </div>
+            <div class="feature-card" style="text-align:center;min-width:200px;">
+                <div class="feature-icon">🍎</div>
+                <h3>macOS</h3>
+                <p>DMG安装包 · ARM架构原生</p>
+                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-desktop.dmg" class="btn btn-ghost" style="margin-top:12px;">下载 macOS 版</a>
+            </div>
         </div>
-        <p style="color:var(--muted);font-size:0.9rem;margin-top:12px">
-        💡 meshctx 通过 WSL 在 Windows 上运行，可以访问全部 Windows 文件 (C:\ → /mnt/c/   E:\ → /mnt/e/)
-        </p>
     </div>
 </section>
 
