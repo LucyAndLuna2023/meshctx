@@ -1015,6 +1015,108 @@ async def test_model_connection(model_id: str):
         return {"status": "error", "message": f"连接失败: {str(e)[:200]}"}
 
 
+# ── v2.1 插件市场 API ──────────────────────────────────
+
+@app.get("/api/plugins")
+async def list_plugins():
+    """列出所有可用插件"""
+    import json
+    from pathlib import Path
+    
+    registry_path = Path(__file__).resolve().parent.parent / "plugins" / "registry.json"
+    if not registry_path.exists():
+        return {"plugins": [], "total": 0, "categories": []}
+    
+    with open(registry_path) as f:
+        registry = json.load(f)
+    
+    return registry
+
+
+@app.get("/api/plugins/{plugin_name}")
+async def get_plugin(plugin_name: str):
+    """获取单个插件详情"""
+    import json
+    from pathlib import Path
+    
+    registry_path = Path(__file__).resolve().parent.parent / "plugins" / "registry.json"
+    if not registry_path.exists():
+        raise HTTPException(404, "插件注册表不存在")
+    
+    with open(registry_path) as f:
+        registry = json.load(f)
+    
+    for p in registry.get("plugins", []):
+        if p["name"] == plugin_name:
+            return p
+    
+    raise HTTPException(404, f"插件 {plugin_name} 不存在")
+
+
+@app.post("/api/plugins/install/{plugin_name}")
+async def install_plugin(plugin_name: str):
+    """安装插件 (从GitHub下载manifest)"""
+    import json
+    from pathlib import Path
+    
+    registry_path = Path(__file__).resolve().parent.parent / "plugins" / "registry.json"
+    if not registry_path.exists():
+        raise HTTPException(404, "插件注册表不存在")
+    
+    with open(registry_path) as f:
+        registry = json.load(f)
+    
+    plugin = None
+    plugin_idx = None
+    for i, p in enumerate(registry.get("plugins", [])):
+        if p["name"] == plugin_name:
+            plugin = p
+            plugin_idx = i
+            break
+    
+    if not plugin:
+        raise HTTPException(404, f"插件 {plugin_name} 不存在")
+    
+    # 尝试下载manifest (实际安装逻辑)
+    try:
+        import urllib.request
+        manifest_url = plugin.get("download_url", "")
+        if manifest_url:
+            req = urllib.request.Request(manifest_url, headers={"User-Agent": "MeshCtx/2.0"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                manifest_data = json.loads(resp.read())
+                # 保存到本地plugins目录
+                plugin_dir = Path(__file__).resolve().parent.parent / "plugins" / plugin_name
+                plugin_dir.mkdir(parents=True, exist_ok=True)
+                with open(plugin_dir / "manifest.json", "w") as f:
+                    json.dump(manifest_data, f, indent=2)
+        
+        registry["plugins"][plugin_idx]["installs"] += 1
+        with open(registry_path, "w") as f:
+            json.dump(registry, f, indent=2, ensure_ascii=False)
+        
+        return {"status": "ok", "plugin": plugin_name, "installs": registry["plugins"][plugin_idx]["installs"]}
+    except Exception as e:
+        logger.warning(f"插件安装失败 {plugin_name}: {e}")
+        return {"status": "partial", "plugin": plugin_name, "message": f"注册成功，远程manifest下载失败: {e}"}
+
+
+@app.get("/api/plugins/categories")
+async def list_categories():
+    """列出插件分类"""
+    import json
+    from pathlib import Path
+    
+    registry_path = Path(__file__).resolve().parent.parent / "plugins" / "registry.json"
+    if not registry_path.exists():
+        return {"categories": []}
+    
+    with open(registry_path) as f:
+        registry = json.load(f)
+    
+    return {"categories": registry.get("categories", [])}
+
+
 # ── v1.5.0 系统总览摘要 (Desktop专属) ────────────────────
 
 @app.get("/api/system/summary")

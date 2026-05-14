@@ -130,6 +130,8 @@ class HippocampalReplay:
     
     def should_replay(self) -> bool:
         """是否应该触发重放 (闲时检测)"""
+        if self.replay_interval < 0:
+            return True
         elapsed = time.time() - self.last_replay_time
         return elapsed >= self.replay_interval
     

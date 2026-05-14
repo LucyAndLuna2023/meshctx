@@ -1,0 +1,14 @@
+{
+  "name": "web-search-tool",
+  "version": "1.0.0",
+  "description": "Web搜索工具插件，支持多搜索引擎",
+  "author": "MeshCtx Community",
+  "permissions": ["network:search", "fs:read"],
+  "platforms": ["windows", "macos", "linux"],
+  "pluginOverrides": {
+    "windows": {"dependencies": ["winhttp.dll"]},
+    "linux": {"dependencies": ["libcurl.so.4"]}
+  },
+  "entryPoint": "search.py",
+  "minMeshctxVersion": "2.0"
+}

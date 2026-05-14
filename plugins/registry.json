@@ -1,0 +1,73 @@
+{
+  "version": "1.0",
+  "updated": "2026-05-14",
+  "plugins": [
+    {
+      "name": "web-search-tool",
+      "version": "1.0.0",
+      "description": "Web搜索工具插件，支持Google/Bing/DuckDuckGo",
+      "author": "MeshCtx Community",
+      "icon": "🔍",
+      "category": "search",
+      "permissions": ["network:search"],
+      "platforms": ["windows", "macos", "linux"],
+      "entry_point": "web_search/manifest.json",
+      "download_url": "https://github.com/LucyAndLuna2023/meshctx-plugins/raw/main/web-search/manifest.json",
+      "installs": 0
+    },
+    {
+      "name": "code-reviewer",
+      "version": "1.0.0",
+      "description": "AI代码审查插件，自动检测bug/安全漏洞/代码风格",
+      "author": "MeshCtx Community",
+      "icon": "📝",
+      "category": "dev",
+      "permissions": ["fs:read", "model:call"],
+      "platforms": ["windows", "macos", "linux"],
+      "entry_point": "code_review/manifest.json",
+      "download_url": "https://github.com/LucyAndLuna2023/meshctx-plugins/raw/main/code-review/manifest.json",
+      "installs": 0
+    },
+    {
+      "name": "file-manager",
+      "version": "1.0.0",
+      "description": "本地文件管理插件，浏览/读写/搜索文件系统",
+      "author": "MeshCtx Community",
+      "icon": "📁",
+      "category": "system",
+      "permissions": ["fs:read", "fs:write", "exec:shell"],
+      "platforms": ["windows", "macos", "linux"],
+      "entry_point": "file_manager/manifest.json",
+      "download_url": "https://github.com/LucyAndLuna2023/meshctx-plugins/raw/main/file-manager/manifest.json",
+      "installs": 0
+    },
+    {
+      "name": "feishu-bot",
+      "version": "1.0.0", 
+      "description": "飞书机器人集成，消息推送/接收/群管理",
+      "author": "MeshCtx Community",
+      "icon": "📡",
+      "category": "integration",
+      "permissions": ["network:api"],
+      "platforms": ["windows", "macos", "linux"],
+      "entry_point": "feishu_bot/manifest.json",
+      "download_url": "https://github.com/LucyAndLuna2023/meshctx-plugins/raw/main/feishu-bot/manifest.json",
+      "installs": 0
+    },
+    {
+      "name": "data-visualizer",
+      "version": "1.0.0",
+      "description": "数据可视化插件，图表/仪表盘/报告生成",
+      "author": "MeshCtx Community",
+      "icon": "📊",
+      "category": "analytics",
+      "permissions": ["fs:read", "model:call"],
+      "platforms": ["windows", "macos", "linux"],
+      "entry_point": "data_viz/manifest.json",
+      "download_url": "https://github.com/LucyAndLuna2023/meshctx-plugins/raw/main/data-visualizer/manifest.json",
+      "installs": 0
+    }
+  ],
+  "categories": ["search", "dev", "system", "integration", "analytics"],
+  "repository": "https://github.com/LucyAndLuna2023/meshctx-plugins"
+}
