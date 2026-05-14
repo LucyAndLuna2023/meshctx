@@ -93,6 +93,11 @@ from .platform_fs import (
     IFileSystem, WindowsFileSystem, MacOSFileSystem, LinuxFileSystem,
     get_filesystem, get_platform, wsl_to_windows, windows_to_wsl,
 )
+from .super_brain import (
+    SuperBrainOrchestrator, HippocampalReplay, SalienceTagger,
+    DefaultModeNetwork, ThalamicGate, ForwardModel,
+    ActionSelector, ConflictMonitor, InteroceptionEngine, TheoryOfMind,
+)
 from .online_learning import (
     OnlineLearningEngine, InteractionRecorder, Interaction,
     GenerativeModelUpdater, PreferenceLearner, MemoryConsolidator,
