@@ -154,6 +154,13 @@ async def lifespan(app: FastAPI):
     app.state.kernel = _kernel
     app.state.memory_engine = _memory_engine
 
+    # v1.5.26: 初始化混合推理调度器
+    from .core.hybrid_reasoning import HybridReasoningScheduler
+    app.state.hybrid_scheduler = HybridReasoningScheduler(
+        threshold=1.5,
+        adaptive=True,
+    )
+
     logger.info(f"事件总线: {_kernel.bus.get_stats()['subscriptions']} 订阅")
 
     watcher = ConfigWatcher()
@@ -964,12 +971,12 @@ async def api_chat(request: Request):
     """Web聊天API: 接收消息,调用AI,返回回复+工具执行"""
     from src.model_registry import get_registry
     from src.chat_tools import execute_tool, has_tool_call
-    
+
     try:
         body = await request.json()
     except:
         return {"content": "无效请求", "tokens": 0}
-    
+
     msgs = body.get("messages", [])
     if not msgs:
         # fallback: accept single 'message' field from web UI
@@ -985,15 +992,27 @@ async def api_chat(request: Request):
             model_id = config.get("models", {}).get("default", "deepseek:chat")
         except:
             model_id = "deepseek:chat"
-    
+
     if not msgs:
         return {"content": "请输入消息", "tokens": 0}
-    
+
     # v1.5.20: 注入 .meshctx.md 项目上下文 (多项目支持)
     md_ctx = _get_chat_context()
     if md_ctx:
         msgs.insert(0, {"role": "system", "content": f"[项目上下文 .meshctx.md]\n{md_ctx}"})
-    
+
+    # v1.5.26: 混合推理调度 — 自由能驱动的探索/直出决策
+    scheduler = getattr(request.app.state, "hybrid_scheduler", None)
+    hybrid_result = None
+    if scheduler is not None and msgs:
+        current_query = msgs[-1]["content"] if msgs[-1]["role"] == "user" else msgs[-1].get("content", "")
+        message_history = msgs[:-1] if len(msgs) > 1 else []
+
+        if scheduler.should_reason(message_history, current_query):
+            hybrid_result = scheduler.reason(message_history, current_query)
+        else:
+            hybrid_result = scheduler.direct(message_history, current_query)
+
     try:
         reg = get_registry()
         client = reg.get(model_id) or reg.get(None)
@@ -1004,16 +1023,31 @@ async def api_chat(request: Request):
         return {"content": f"❌ 模型调用失败，请检查: 1) API Key是否正确 2) 网络连接 3) 模型名称。详情: " + str(e)[:100], "tokens": 0}
     content = resp.get("content", "")
     tokens = resp.get("tokens", 0)
-    
+
     tool_result = None
     if has_tool_call(content):
         tool_result = execute_tool(content)
-    
+
+    # v1.5.26: 探索模式下在响应头部添加认知状态提示
+    hybrid_info = None
+    if hybrid_result and hybrid_result.get("strategy") == "explore":
+        trace = hybrid_result.get("reasoning_trace", {})
+        policy = hybrid_result.get("policy_used", "unknown")
+        f_val = hybrid_result.get("free_energy", 0.0)
+        hybrid_info = {
+            "strategy": "explore",
+            "policy": policy,
+            "free_energy": round(f_val, 4),
+        }
+        # 在回复末尾附加轻微认知状态提示
+        content += f"\n\n---\n🧠 [混合推理] 自由能 F={f_val:.3f} | 策略: {policy}"
+
     return {
         "content": content,
         "tokens": tokens,
         "model": model_id,
         "tool_result": tool_result,
+        "hybrid_info": hybrid_info,
     }
 
 
@@ -1691,6 +1725,16 @@ def _get_chat_context() -> Optional[str]:
         if content:
             return content
     return _load_meshctx_md(".")
+
+# ── v1.5.26 ChatGPT API 统计 ──────────────────────────────
+
+@app.get("/api/chat/stats")
+async def api_chat_stats(request: Request):
+    """返回混合推理调度器的决策统计"""
+    scheduler = getattr(request.app.state, "hybrid_scheduler", None)
+    if scheduler is None:
+        return {"error": "scheduler not initialized", "stats": {}}
+    return {"status": "ok", "stats": scheduler.get_decision_stats()}
 
 # ── v1.5.21 配置导出/导入 ──────────────────────────────────
 

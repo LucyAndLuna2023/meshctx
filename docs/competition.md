@@ -18,7 +18,7 @@
 | **Cron/Scheduling** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Skills System** | ✅ Auto-create | ✅ Manual | ❌ | ❌ | ❌ | ❌ |
 | **Open Source** | ✅ MIT | ✅ MIT | ✅ | ⚠️ | ⚠️ | ❌ Closed |
-| **Self-Hosting** | ✅ K8s/Docker | ✅ | ✅ | ❌ | ❌ | ❌ |
+| **Self-Hosting** | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
 
 ### Detailed Analysis
 

@@ -106,12 +106,15 @@ body {
 </div>
 <div class="info-bar">
   <span id="modelInfo">模型: deepseek:v4-flash</span>
+  <span id="hybridMode" style="color:var(--accent)">🧠 直出</span>
+  <span id="freeEnergy" style="color:var(--muted)"></span>
   <span id="tokenCount"></span>
 </div>
 
 <script>
 let messages = [];
 let model = 'deepseek:v4-flash';
+let currentHybridInfo = null;
 
 function addMsg(role, content, isTool) {
   const div = document.createElement('div');
@@ -162,6 +165,19 @@ async function send() {
     
     document.getElementById('tokenCount').textContent = 
       `Tokens: ${data.tokens || 0}`;
+    
+    // v1.5.26: 更新混合推理状态指示器
+    if (data.hybrid_info) {
+      currentHybridInfo = data.hybrid_info;
+      document.getElementById('hybridMode').textContent = 
+        data.hybrid_info.strategy === 'explore' ? '🧭 探索' : '⚡ 直出';
+      document.getElementById('freeEnergy').textContent = 
+        `F=${data.hybrid_info.free_energy.toFixed(3)} | ${data.hybrid_info.policy}`;
+    } else if (data.content && !data.hybrid_info) {
+      // direct mode — 没有 hybrid_info 时也从直出模式推断
+      document.getElementById('hybridMode').textContent = '⚡ 直出';
+      document.getElementById('freeEnergy').textContent = '';
+    }
   } catch(e) {
     typingDiv.remove();
     addMsg('ai', '错误: ' + e.message);

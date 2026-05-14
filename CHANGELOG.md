@@ -1,6 +1,70 @@
 # Changelog
 
-All notable changes to meshctx will be documented in this file.
+## [1.6.0] - 2026-05-14 (三大智能闭环集成)
+
+### Added — 预测引擎 × 自由能集成 (世界首创)
+
+- **FreeEnergyPredictorAdapter** (`src/core/predictor.py`)
+  - TemporalPatternLearner 包装为 Dirichlet BeliefState
+  - 预测置信度 = expected_probability × precision_gate (精密加权)
+  - 每次用户活动同时更新时间模式 + 信念状态
+  - 动态类别扩展: 新任务类型自动扩展Dirichlet维度
+  - 事件驱动注入: `predictor.free_energy_prediction` + `context.preloaded` 事件
+  - get_free_energy_state(): 返回信念熵、精度、概率分布、波动性
+
+### Added — 元认知 × 主动推理闭环 (世界首创)
+
+- **MetaActiveInferenceAdapter** (`src/core/metacognition.py`)
+  - TaskEvaluation → (success:bool, strength:float) 映射
+  - → ActiveInferenceEngine.learn_from_outcome() 策略信念更新
+  - BehaviorAdjuster 策略权重 → AI 温度调节
+  - 6种评估状态映射: SUCCESS/质量→exploit_best, knowledge_gap→explore_random, tool_error→safe_path, timeout→defer_decision
+  - 事件: `metacognition.ai_feedback` 全局广播
+
+### Added — 全局工作空间 × OODA 循环集成
+
+- **WorkspaceAwareAdapter** (`src/core/agent_loop.py`)
+  - Orient阶段调用 GlobalWorkspace.cycle() — 7处理器竞争
+  - 智能刺激信号构造: intent+urgency+content → 6处理器(analyst/creator/observer/memory/predictor/critic)
+  - 意识点火检测 (>0.75 activation) → "aha moment"
+  - 认知状态注入 observation.context
+  - learn_from_outcome: action_type→processor→processor_belief 更新
+  - 新事件: `agent.orient` (在observe和decide之间)
+
+### Added — 36个集成测试
+
+- **test_v15_integration.py** (新文件, 463行, 36测试)
+  - FreeEnergyPredictorAdapter: 初始化/学习/预测/置信度/事件集成 (17测试)
+  - MetaActiveInferenceAdapter: 初始化/反馈循环/策略映射/集成验证 (7测试)
+  - WorkspaceAwareAdapter: 初始化/Orient/点火/反馈/OODA集成 (12测试)
+
+### Changed
+- src/core/__init__.py: 新增 FreeEnergyPredictorAdapter, MetaActiveInferenceAdapter, WorkspaceAwareAdapter 导出
+- 测试数: 188→224 (+36), 脑启发测试: 46→82 (+36)
+
+### Benchmarks (vs v1.3)
+- 预测置信度: 启发式→自由能量化 (FreeEnergyPredictorAdapter)
+- 学习反馈: 单向记录→闭环强化 (MetaActiveInferenceAdapter)
+- OODA循环: 3阶段→4阶段(新增Orient/工作空间) (WorkspaceAwareAdapter)
+
+---
+
+## [1.5.25] - 2026-05-13 (7语言 + FastAPI迁移)
+
+### Added
+- 7语言全覆盖: EN/ZH/JA/KO/FR/DE/ES
+- MUI_LANGDLL替代自定义语言页解决乱码
+- FastAPI lifespan迁移消除deprecation
+- 下载页 meshctx.com + NSIS安装程序
+
+### Changed
+- 主题localStorage key统一 (meshctx_theme)
+- CSS重复修复
+- exe自动同步到自有服务器
+- Tag v1.5.25 已推送触发GitHub Actions构建
+- 测试数: 116→188
+
+---
 
 ## [1.1.0] - 2026-05-10 (Brain-Inspired Architecture)
 

@@ -21,6 +21,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from .kernel import Event, EventPriority, Plugin, PluginInfo
+from .active_inference import ActiveInferenceEngine
 
 logger = logging.getLogger("meshctx.meta")
 
@@ -310,6 +311,154 @@ class BehaviorAdjuster:
 
 
 # ═══════════════════════════════════════════════════════════
+# 元认知-主动推理适配器
+# ═══════════════════════════════════════════════════════════
+
+class MetaActiveInferenceAdapter:
+    """
+    元认知-主动推理适配器
+    
+    闭环桥梁：
+    1. TaskEvaluation.status/quality → ActiveInferenceEngine.learn_from_outcome()
+    2. BehaviorAdjuster.get_strategy() → 影响主动推理的策略权重
+    3. 新增事件 "metacognition.ai_feedback" 供全局使用
+    
+    集成方式:
+    - MetaActiveInferenceAdapter 内部持有 ActiveInferenceEngine 实例
+    - MetaCognitionPlugin._on_task_completed → 调用 adapter.evaluate_and_feedback()
+    - evaluate_and_feedback: 解析 TaskEvaluation → 映射到策略成功/失败 → learn_from_outcome
+    - behavior_adjuster 的 strategy_weights 影响主动推理的 epistemic/pragmatic 权重
+    """
+
+    def __init__(self, ai_engine: Optional[ActiveInferenceEngine] = None):
+        self.ai_engine = ai_engine or ActiveInferenceEngine(name="meta_ai")
+        self._last_feedback: Optional[Dict] = None
+        self._feedback_count = 0
+
+    def evaluate_and_feedback(self, evaluation: TaskEvaluation,
+                              strategy_weights: Optional[Dict[str, float]] = None) -> Dict:
+        """
+        核心方法: 将任务评估结果反馈到主动推理引擎。
+        
+        映射规则:
+        - SUCCESS + quality >= 0.7 → 成功, 强化当前策略信念
+        - SUCCESS + quality < 0.7 → 部分成功, 弱学习信号
+        - PARTIAL → 部分失败, 削弱策略信念
+        - FAILED/TIMEOUT/CANCELLED → 失败, 显著削弱
+        
+        额外:
+        - strategy_weights 来自 BehaviorAdjuster.get_strategy()
+        - 被用来调整 AI 引擎的探索-利用温度
+        """
+        # 1. 将 TaskStatus + quality_score 映射为 success/failure 信号
+        success, strength = self._map_evaluation_to_outcome(evaluation)
+
+        # 2. 将策略权重映射到 AI 引擎
+        if strategy_weights is not None:
+            self._apply_strategy_weights(strategy_weights)
+
+        # 3. 确定受影响的策略名
+        policy_name = self._select_policy_for_evaluation(evaluation)
+
+        # 4. 反馈到 AI 引擎
+        self.ai_engine.learn_from_outcome(
+            policy_name=policy_name,
+            success=success,
+            duration=evaluation.duration_seconds,
+        )
+
+        # 5. 记录反馈
+        self._last_feedback = {
+            "task_id": evaluation.task_id,
+            "status": evaluation.status.value,
+            "quality": evaluation.quality_score,
+            "success": success,
+            "strength": strength,
+            "policy_name": policy_name,
+            "ai_temperature": self.ai_engine.criticality.temperature,
+            "exploration_ratio": self.ai_engine.get_exploration_ratio(),
+        }
+        self._feedback_count += 1
+
+        return self._last_feedback
+
+    def get_current_strategy(self) -> Dict:
+        """获取当前主动推理策略信息"""
+        # 获取最近一次 select_action 的信息
+        return {
+            "selected_policy": self._last_feedback.get("policy_name", "unknown")
+            if self._last_feedback else "none",
+            "G_values": {},
+            "mode": "explore" if self.ai_engine.should_explore() else "exploit",
+            "temperature": round(self.ai_engine.criticality.temperature, 3),
+            "exploration_ratio": round(self.ai_engine.get_exploration_ratio(), 3),
+            "feedback_count": self._feedback_count,
+        }
+
+    def _map_evaluation_to_outcome(self, ev: TaskEvaluation) -> Tuple[bool, float]:
+        """
+        将 TaskEvaluation 映射为 (success: bool, learning_strength: float)。
+        
+        strength ∈ [0.1, 1.0] 控制学习速率。
+        """
+        if ev.status == TaskStatus.SUCCESS:
+            if ev.quality_score >= 0.7:
+                return (True, min(1.0, ev.quality_score))
+            else:
+                return (True, 0.3)  # 低质量成功 — 弱正信号
+        elif ev.status == TaskStatus.PARTIAL:
+            return (False, 0.5)
+        elif ev.status == TaskStatus.FAILED:
+            return (False, min(1.0, 0.5 + ev.quality_score))
+        elif ev.status == TaskStatus.TIMEOUT:
+            return (False, 0.4)
+        else:  # CANCELLED
+            return (False, 0.2)
+
+    def _apply_strategy_weights(self, weights: Dict[str, float]):
+        """
+        将 BehaviorAdjuster 的策略权重映射到主动推理引擎参数。
+        
+        映射:
+        - verification ↑ → 降低温度 (更保守/利用)
+        - parallelism ↑ → 略微提高温度 (更探索)
+        - retry_aggressiveness ↑ → 提高实用权重
+        """
+        T = self.ai_engine.criticality.temperature
+        adjustment = 0.0
+
+        # 验证偏好高 → 更保守 (低温度)
+        verification = weights.get("verification", 0.5)
+        adjustment -= (verification - 0.5) * 0.5
+
+        # 并行度偏好高 → 更探索 (高温度)
+        parallelism = weights.get("parallelism", 0.5)
+        adjustment += (parallelism - 0.5) * 0.3
+
+        # 重试激进 → 稍微探索
+        retry = weights.get("retry_aggressiveness", 0.3)
+        adjustment += (retry - 0.3) * 0.2
+
+        new_T = max(0.1, T + adjustment * 0.1)
+        self.ai_engine.criticality.temperature = new_T
+
+    def _select_policy_for_evaluation(self, ev: TaskEvaluation) -> str:
+        """根据评估结果选择受影响的策略名"""
+        if ev.status == TaskStatus.SUCCESS and ev.quality_score >= 0.8:
+            return "exploit_best"
+        elif ev.status == TaskStatus.SUCCESS:
+            return "balanced"
+        elif ev.error_category and ev.error_category.value == "knowledge_gap":
+            return "explore_random"
+        elif ev.error_category and ev.error_category.value in ("tool_error", "resource"):
+            return "safe_path"
+        elif ev.status == TaskStatus.TIMEOUT:
+            return "defer_decision"
+        else:
+            return "balanced"
+
+
+# ═══════════════════════════════════════════════════════════
 # 元认知插件
 # ═══════════════════════════════════════════════════════════
 
@@ -326,9 +475,10 @@ class MetaCognitionPlugin(Plugin):
         author="meshctx",
     )
 
-    def __init__(self):
+    def __init__(self, ai_adapter: Optional[MetaActiveInferenceAdapter] = None):
         self.pattern_engine = PatternEngine()
         self.behavior_adjuster = BehaviorAdjuster()
+        self.ai_adapter = ai_adapter or MetaActiveInferenceAdapter()
         self._evaluation_count = 0
 
     async def on_load(self):
@@ -358,7 +508,21 @@ class MetaCognitionPlugin(Plugin):
         self.pattern_engine.add_evaluation(evaluation)
         self._evaluation_count += 1
 
-        # 2. 模式提取(每10次任务)
+        # 2. 主动推理反馈 (元认知-主动推理闭环)
+        strategy_weights = self.behavior_adjuster.get_strategy()
+        feedback = self.ai_adapter.evaluate_and_feedback(
+            evaluation, strategy_weights=strategy_weights
+        )
+
+        # 3. 发布 metacognition.ai_feedback 事件
+        await self.kernel.bus.publish(Event(
+            type="metacognition.ai_feedback",
+            source="metacognition",
+            correlation_id=event.id,
+            data=feedback,
+        ))
+
+        # 4. 模式提取(每10次任务)
         if self._evaluation_count % 10 == 0:
             top_patterns = self.pattern_engine.get_top_patterns()
             guard_rules = self.pattern_engine.get_guard_rules()
@@ -386,10 +550,10 @@ class MetaCognitionPlugin(Plugin):
                     data=rule,
                 ))
 
-        # 3. 知识图谱更新
+        # 5. 知识图谱更新
         await self._update_knowledge_graph(evaluation)
 
-        # 4. 发布评估结果
+        # 6. 发布评估结果
         await self.kernel.bus.publish(Event(
             type="task.evaluated",
             source="metacognition",

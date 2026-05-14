@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>meshctx — World's First Self-Evolving Agent System</title>
-    <meta name="description" content="meshctx is an open-source, self-evolving agent platform that remembers everything, learns from every task, and orchestrates multiple AI agents in parallel.">
+    <meta name="description" content="meshctx is an open-source, self-evolving agent platform with brain-inspired AI — Free Energy Principle, Active Inference, Global Workspace, and full OODA integration. 224 tests, 100% pass.">
     <style>
         :root {
             --bg: #0a0a14; --bg2: #111122; --fg: #e2e8f0; --muted: #94a3b8;
@@ -119,8 +119,8 @@
     <!-- ZH -->
     <div class="lang" data-lang="zh">
         <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
-        <h1>会<span>自我进化</span>的 Agent <span style="font-size:0.5em;background:var(--purple);padding:2px 8px;border-radius:4px;">v1.1</span></h1>
-        <p>meshctx 是全球首个自进化智能体平台。12核心插件、100+模型、企业微信接入、预测引擎、自主OODA循环 — 完全开源。</p>
+        <h1>会<span>自我进化</span>的 Agent <span style="font-size:0.5em;background:var(--purple);padding:2px 8px;border-radius:4px;">v1.6</span></h1>
+        <p>meshctx 是全球首个自进化智能体平台。三大智能闭环：预测×自由能、元认知×主动推理、全局工作空间×OODA。224测试全过，12核心插件，7语言。完全开源。</p>
         <div class="hero-buttons">
             <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
             <a href="getting-started" class="btn btn-ghost">快速开始 →</a>
@@ -157,8 +157,9 @@
         <div class="feature-grid">
             <div class="feature-card"><div class="feature-icon">🧠</div><h3>层次记忆 L0-L4</h3><p>4层记忆系统，模拟人脑认知。艾宾浩斯遗忘曲线自动管理——重要信息永久保留，琐碎信息自然衰减。</p></div>
             <div class="feature-card"><div class="feature-icon">🔄</div><h3>元认知自进化</h3><p>每次任务后自动运行：评估→提取模式→更新知识图谱→调整行为。越用越聪明。</p></div>
-            <div class="feature-card"><div class="feature-icon">🔮</div><h3>⭐ 预测引擎</h3><p>学习你的使用习惯，提前预加载你需要的信息。世界首创——所有竞品都不具备。</p></div>
-            <div class="feature-card"><div class="feature-icon">🤖</div><h3>⭐ 自主Agent循环</h3><p>OODA闭环：观察→判断→决策→执行→学习。完全自主运行，无需人工触发。</p></div>
+            <div class="feature-card"><div class="feature-icon">🔮</div><h3>⭐ 预测引擎 × 自由能</h3><p>v1.6: TemporalPatternLearner 包装为 Dirichlet BeliefState，预测置信度 = expected_probability × precision_gate。事件驱动注入OODA循环。</p></div>
+            <div class="feature-card"><div class="feature-icon">🧬</div><h3>⭐ 元认知 × 主动推理</h3><p>v1.6: TaskEvaluation映射为策略成功/失败信号→ActiveInferenceEngine闭环，BehaviorAdjuster权重→AI温度调节。</p></div>
+            <div class="feature-card"><div class="feature-icon">🌐</div><h3>⭐ 工作空间 × OODA</h3><p>v1.6: Orient阶段调用GlobalWorkspace，7处理器竞争+点火检测，认知状态注入决策上下文。</p></div>
             <div class="feature-card"><div class="feature-icon">🩺</div><h3>⭐ 自愈引擎</h3><p>插件故障自动检测→重启→恢复。熔断器防止雪崩。7×24无人值守运行。</p></div>
             <div class="feature-card"><div class="feature-icon">🎭</div><h3>多Agent编排</h3><p>一句话意图自动分解为任务DAG，4个专业Agent（Coder/Researcher/DevOps/Reviewer）并行执行。</p></div>
             <div class="feature-card"><div class="feature-icon">💬</div><h3>Web Chat + CLI</h3><p>浏览器打开即用，也能终端聊天。AI能读文件、写代码、执行命令、搜索网页。</p></div>
@@ -177,12 +178,18 @@
             <tbody>
                 <tr><td data-lang-key="c1">Hierarchical Memory</td><td class="highlight"><span class="check">L0-L4</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
                 <tr><td data-lang-key="c2">Forgetting Curve</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>Free Energy Engine</td><td class="highlight"><span class="check">✓ v1.2</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>Active Inference</td><td class="highlight"><span class="check">✓ v1.2</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>Global Workspace</td><td class="highlight"><span class="check">✓ v1.2</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td><b> Predictor x FreeEnergy</b></td><td class="highlight"><span class="check"><b>★ v1.6</b></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td><b> Meta x ActiveInference</b></td><td class="highlight"><span class="check"><b>★ v1.6</b></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td><b> Workspace x OODA</b></td><td class="highlight"><span class="check"><b>★ v1.6</b></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
                 <tr><td data-lang-key="c3">Meta-Cognition</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
                 <tr><td data-lang-key="c4">Multi-Agent</td><td class="highlight"><span class="check">✓ DAG</span></td><td><span class="warn">⚠ Limited</span></td><td><span class="cross">✗</span></td><td><span class="warn">⚠ Limited</span></td></tr>
-                <tr><td data-lang-key="c5">Knowledge Graph</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td data-lang-key="c6">Plugin Market</td><td class="highlight"><span class="warn">⚠ Soon</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td data-lang-key="c7">MCP Protocol</td><td class="highlight"><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="check">✓</span></td></tr>
-                <tr><td data-lang-key="c8">Open Source</td><td class="highlight"><span class="check">MIT</span></td><td><span class="check">MIT</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>7 Languages</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>Desktop Client</td><td class="highlight"><span class="check">✓ Win</span></td><td class="highlight"><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td class="highlight"><span class="check">✓</span></td></tr>
+                <tr><td>224 Tests Pass</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>Open Source</td><td class="highlight"><span class="check">✓</span></td><td class="highlight"><span class="check">MIT</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td></tr>
             </tbody></table>
         </div>
     </div>
@@ -326,7 +333,7 @@ const L = {
         f3_title:"Multi-Agent Orchestra", f3_desc:"One intent. Automatically decomposed into a task DAG, executed in parallel by specialized agents (Coder + Researcher + DevOps + Reviewer).",
         f4_title:"Predictive Context", f4_desc:"Learns your patterns. Pre-loads relevant memories before you ask. Context assembly in under 50ms.",
         f5_title:"Plugin Marketplace", f5_desc:"MCP protocol native. pip install meshctx-plugin-xxx. Community-driven ecosystem of tools and integrations.",
-        f6_title:"100% Open Source", f6_desc:"MIT license. Free forever. Self-host on your own infrastructure with Docker or Kubernetes. No vendor lock-in.",
+        f6_title:"100% Open Source", f6_desc:"MIT license. Free forever. Self-host on your own infrastructure. No vendor lock-in.",
         compare_title:"meshctx vs The World",
         c1:"Hierarchical Memory", c2:"Forgetting Curve", c3:"Meta-Cognition", c4:"Multi-Agent", c5:"Knowledge Graph", c6:"Plugin Market", c7:"MCP Protocol", c8:"Open Source",
         about_title:"About meshctx",
@@ -342,7 +349,7 @@ const L = {
         f3_title:"多智能体编排", f3_desc:"一个意图，自动分解为任务DAG，由专业Agent（编码+研究+运维+审查）并行执行。",
         f4_title:"预测性上下文", f4_desc:"学习你的使用模式。在你提问之前预加载相关记忆。上下文组装 < 50ms。",
         f5_title:"插件市场", f5_desc:"原生MCP协议。pip install meshctx-plugin-xxx。社区驱动的工具和集成生态。",
-        f6_title:"100% 开源", f6_desc:"MIT 许可证。永久免费。在自己的 Docker/K8s 基础设施上自托管。无厂商锁定。",
+        f6_title:"100% 开源", f6_desc:"MIT 许可证。永久免费。在自己的基础设施上自托管。无厂商锁定。",
         compare_title:"meshctx vs 竞品",
         c1:"层次记忆", c2:"遗忘曲线", c3:"元认知", c4:"多Agent", c5:"知识图谱", c6:"插件市场", c7:"MCP协议", c8:"开源",
         about_title:"关于 meshctx",
@@ -374,7 +381,7 @@ const L = {
         f3_title:"Multi-Agent Orchester", f3_desc:"Eine Absicht. Automatisch in Aufgaben-DAG zerlegt, parallel von spezialisierten Agenten ausgeführt.",
         f4_title:"Prädiktiver Kontext", f4_desc:"Lernt Ihre Muster. Lädt relevante Erinnerungen, bevor Sie fragen. Kontextaufbau < 50ms.",
         f5_title:"Plugin Marketplace", f5_desc:"MCP-Protokoll nativ. pip install meshctx-plugin-xxx. Community-getriebenes Ökosystem.",
-        f6_title:"100% Open Source", f6_desc:"MIT-Lizenz. Für immer kostenlos. Self-Hosting mit Docker oder Kubernetes. Kein Vendor-Lock-in.",
+        f6_title:"100% Open Source", f6_desc:"MIT-Lizenz. Für immer kostenlos. Self-Hosting auf eigener Infrastruktur. Kein Vendor-Lock-in.",
         compare_title:"meshctx vs Die Welt",
         c1:"Hierarch. Speicher", c2:"Vergessenskurve", c3:"Meta-Kognition", c4:"Multi-Agent", c5:"Wissensgraph", c6:"Marketplace", c7:"MCP-Protokoll", c8:"Open Source",
         about_title:"Über meshctx",

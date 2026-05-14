@@ -23,6 +23,7 @@ from enum import Enum
 from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Tuple
 
 from .kernel import Event, EventPriority, Plugin, PluginInfo
+from .global_workspace import GlobalWorkspace, ProcessorType, AttentionBottleneck
 
 logger = logging.getLogger("meshctx.agent")
 
@@ -244,6 +245,166 @@ class ActionExecutor:
 
 
 # ═══════════════════════════════════════════════════════════
+# 全局工作空间适配器 — OODA Orient阶段集成
+# ═══════════════════════════════════════════════════════════
+
+class WorkspaceAwareAdapter:
+    """
+    全局工作空间适配器 — 将GlobalWorkspace集成到OODA循环的Orient(定位)阶段。
+    
+    功能:
+    1. 接收Observation → 构造stimulus信号 → GlobalWorkspace.cycle()
+    2. 返回workspace结果(dominant_processor, ignition, mode)
+    3. 根据行动结果更新processor_belief
+    
+    认知对应:
+    - Orient阶段 = 大脑对感知信息的意识加工
+    - 多处理器竞争 = 不同认知模块对同一刺激的解读竞争
+    - 点火 = "aha moment" — 找到最佳解释
+    """
+
+    def __init__(self):
+        self.workspace = GlobalWorkspace()
+        self._last_result: Optional[Dict[str, Any]] = None
+
+    def orient(self, observation: Observation) -> Dict[str, Any]:
+        """
+        将Observation映射到工作空间刺激并执行一个完整的意识循环。
+        
+        Stimulus构造策略:
+        - content长度 → observer激活
+        - intent匹配 → 对应处理器激活
+        - urgency → 整体增益
+        
+        Returns:
+            {
+                "dominant_processor": str,
+                "ignition": List[str],
+                "mode": str,
+                "workspace": List[Dict],
+                "activation_levels": Dict[str, float],
+            }
+        """
+        # 构造刺激信号
+        stimulus = self._build_stimulus(observation)
+        
+        # 执行意识循环
+        result = self.workspace.cycle(stimulus)
+        
+        # 获取认知状态
+        cognitive = self.workspace.get_cognitive_state()
+        
+        self._last_result = {
+            "dominant_processor": cognitive["dominant"],
+            "ignition": result.get("ignition", []),
+            "mode": cognitive["mode"],
+            "workspace": result.get("workspace", []),
+            "activation_levels": result.get("activation_levels", {}),
+        }
+        return self._last_result
+
+    def _build_stimulus(self, observation: Observation) -> Dict[str, float]:
+        """
+        将Observation转换为工作空间刺激信号。
+        
+        映射规则:
+        - observer ← content非空 + 0.4
+        - analyst ← intent匹配analyze/reason/fix + 0.5
+        - creator ← intent匹配create/develop + 0.5
+        - executor ← intent匹配deploy/execute + 0.4
+        - critic ← 总是低激活(反思监督)
+        - memory ← 总是基线 + 0.1 (关联检索)
+        - predictor ← urgency > 0.5时激活
+        """
+        stimulus: Dict[str, float] = {}
+        content = observation.content
+        intent = observation.intent
+        urgency = observation.urgency
+        
+        # observer — 总是激活(感知)
+        stimulus["observer"] = 0.4 if content else 0.1
+        stimulus["observer_relevance"] = 0.8 if content else 0.3
+        
+        # analyst — 深度处理
+        if intent in ("analyze", "fix", "search"):
+            stimulus["analyst"] = 0.5 + urgency * 0.3
+            stimulus["analyst_relevance"] = 0.9
+        else:
+            stimulus["analyst"] = 0.2
+            stimulus["analyst_relevance"] = 0.4
+        
+        # creator — 发散思维
+        if intent in ("create", "develop", "optimize"):
+            stimulus["creator"] = 0.5 + urgency * 0.2
+            stimulus["creator_relevance"] = 0.8
+        else:
+            stimulus["creator"] = 0.15
+            stimulus["creator_relevance"] = 0.3
+        
+        # executor — 行动准备
+        if intent in ("deploy", "execute", "test", "monitor"):
+            stimulus["executor"] = 0.4 + urgency * 0.3
+            stimulus["executor_relevance"] = 0.85
+        else:
+            stimulus["executor"] = 0.1
+            stimulus["executor_relevance"] = 0.3
+        
+        # critic — 评估(总是中等)
+        stimulus["critic"] = 0.2
+        stimulus["critic_relevance"] = 0.5
+        
+        # memory — 关联检索
+        stimulus["memory"] = 0.25
+        stimulus["memory_relevance"] = 0.6
+        
+        # predictor — 预测(高紧急时)
+        if urgency > 0.5:
+            stimulus["predictor"] = 0.3 + urgency * 0.4
+            stimulus["predictor_relevance"] = 0.7
+        else:
+            stimulus["predictor"] = 0.1
+            stimulus["predictor_relevance"] = 0.3
+        
+        return stimulus
+
+    def get_cognitive_state(self) -> Dict[str, Any]:
+        """
+        返回当前认知状态快照。
+        
+        Returns:
+            {
+                "mode": "focused" | "engaged" | "default" | "resting",
+                "dominant": str | None,
+                "avg_activation": float,
+                "ignition_count": int,
+                "workspace_items": int,
+            }
+        """
+        return self.workspace.get_cognitive_state()
+
+    def learn_from_outcome(self, action_type: str, success: bool):
+        """
+        根据行动结果更新处理器信念。
+        
+        将action_type映射到处理器→更新processor_belief。
+        """
+        # action_type → processor_name 映射
+        action_map = {
+            "orchestrate": "executor",
+            "search": "analyst",
+            "read": "observer",
+            "create": "creator",
+            "monitor": "observer",
+            "general": "analyst",
+            "write": "creator",
+            "delete": "executor",
+            "update": "executor",
+        }
+        processor_name = action_map.get(action_type, "analyst")
+        self.workspace.learn_from_feedback(processor_name, was_helpful=success)
+
+
+# ═══════════════════════════════════════════════════════════
 # 自主Agent插件
 # ═══════════════════════════════════════════════════════════
 
@@ -266,6 +427,7 @@ class AgentLoopPlugin(Plugin):
     def __init__(self):
         self.responder = ResponseGenerator()
         self.executor = ActionExecutor()
+        self.workspace_adapter = WorkspaceAwareAdapter()
         self._active_tasks: Dict[str, AgentTask] = {}
         self._task_queue: asyncio.Queue = asyncio.Queue(maxsize=100)
         self._loop_task: Optional[asyncio.Task] = None
@@ -349,6 +511,29 @@ class AgentLoopPlugin(Plugin):
         )
         
         self._active_tasks[task.id] = task
+        
+        # ═══════════════════════════════════════════════
+        # O - Orient: 全局工作空间加工 (认知定位)
+        # ═══════════════════════════════════════════════
+        workspace_result = self.workspace_adapter.orient(obs)
+        
+        # 发布Orient事件 — 包含工作空间结果
+        await self.kernel.bus.publish(Event(
+            type="agent.orient",
+            source="agent_loop",
+            correlation_id=event.id,
+            data={
+                "task_id": task.id,
+                "dominant_processor": workspace_result.get("dominant_processor"),
+                "mode": workspace_result.get("mode"),
+                "ignition": workspace_result.get("ignition", []),
+                "workspace": workspace_result.get("workspace", []),
+            },
+        ))
+        
+        # 将工作空间信息注入task上下文
+        obs.context["workspace"] = workspace_result
+        task.phase = LoopPhase.ORIENT
         
         # 发布观察结果 → 触发定位阶段
         await self.kernel.bus.publish(Event(

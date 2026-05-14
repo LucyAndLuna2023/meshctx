@@ -81,3 +81,21 @@ exe = EXE(
     icon='logo.ico',
     version='version_info.txt',
 )
+
+# ── macOS .app bundle ─────────────────────────────────────
+# COLLECT/BUNDLE is only used on macOS; EXE is used on Windows.
+# PyInstaller on macOS auto-detects and creates an .app wrapper.
+# Use BUNDLE for explicit .app creation:
+if sys.platform == 'darwin':
+    app = BUNDLE(
+        exe,
+        name='meshctx-desktop.app',
+        icon='logo.ico',
+        bundle_identifier='com.meshctx.desktop',
+        info_plist={
+            'NSHighResolutionCapable': 'True',
+            'CFBundleShortVersionString': '1.0',
+            'CFBundleVersion': '1.0',
+        },
+        version='version_info.txt',
+    )

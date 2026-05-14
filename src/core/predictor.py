@@ -416,6 +416,252 @@ class ContextPreloader:
 
 
 # ═══════════════════════════════════════════════════════════
+# 自由能预测适配器 — 预测引擎与自由能融合
+# ═══════════════════════════════════════════════════════════
+
+class FreeEnergyPredictorAdapter:
+    """
+    自由能预测适配器：将 TemporalPatternLearner 包装为自由能驱动组件。
+
+    工作原理:
+    1. 维护一个 Dirichlet BeliefState，跟踪"哪种任务类型在当前时间最可能"
+    2. 每次用户活动时，同时更新 TemporalPatternLearner 和 BeliefState
+    3. 预测置信度 = BeliefState.expected_probability × PrecisionWeighting
+    4. 结果通过事件总线注入 agent_loop 的 Orient 阶段
+
+    这与 Friston 自由能原理一致：
+    - 预测 = 智能体对未来的先验信念
+    - 置信度 = 精密加权（precision-weighted）的期望概率
+    - 低置信度预测 = 高自由能 → 系统不会浪费资源预加载
+    """
+
+    def __init__(self, learner: TemporalPatternLearner,
+                 event_bus=None,
+                 precision_weighting: Optional['PrecisionWeighting'] = None):
+        self.learner = learner
+        self.bus = event_bus
+
+        # 从 free_energy 模块导入（延迟导入避免循环依赖）
+        from .free_energy import BeliefState, BeliefType, PrecisionWeighting
+
+        # 任务类型信念：跟踪用户最可能做什么
+        # n_categories 会随着发现新任务类型动态扩展
+        self.task_belief = BeliefState(
+            name="predicted_task_type",
+            belief_type=BeliefType.DIRICHLET,
+            n_categories=10,  # 初始容量，会动态扩展
+            prior_strength=1.0,
+        )
+
+        # 精密加权器 — 模拟注意力调节
+        self.precision = precision_weighting or PrecisionWeighting()
+
+        # 任务类型 → 类别索引的映射
+        self._task_to_idx: Dict[str, int] = {}
+        self._idx_to_task: Dict[int, str] = {}
+        self._next_idx = 0
+
+        # 预测置信度历史（用于波动估计）
+        self._confidence_history: List[float] = []
+
+        # 统计
+        self.total_predictions = 0
+        self.total_preloads = 0
+
+    def _ensure_category(self, task_type: str) -> int:
+        """确保任务类型有对应的类别索引"""
+        if task_type not in self._task_to_idx:
+            idx = self._next_idx
+            self._task_to_idx[task_type] = idx
+            self._idx_to_task[idx] = task_type
+            self._next_idx += 1
+
+            # 动态扩展 Dirichlet 维度
+            if idx >= self.task_belief.n_categories:
+                old_alpha = self.task_belief.alpha
+                self.task_belief.n_categories = max(
+                    self.task_belief.n_categories * 2, idx + 5
+                )
+                new_alpha = np.full(self.task_belief.n_categories, 0.5)
+                new_alpha[:len(old_alpha)] = old_alpha
+                self.task_belief.alpha = new_alpha
+
+            return idx
+        return self._task_to_idx[task_type]
+
+    def record(self, task_type: str, project_id: Optional[str] = None,
+               keywords: List[str] = None, duration: float = 0,
+               success: bool = True):
+        """
+        记录用户活动，同时更新 TemporalPatternLearner 和 BeliefState。
+        """
+        # 1. 更新时间模式学习器
+        self.learner.record(
+            task_type=task_type,
+            project_id=project_id,
+            keywords=keywords,
+            duration=duration,
+            success=success,
+        )
+
+        # 2. 更新自由能信念
+        idx = self._ensure_category(task_type)
+        precision_weight = self.precision.compute_precision(
+            self.task_belief, max(len(self.learner._patterns), 1)
+        )
+        # 最小学习率确保冷启动样本也能收敛
+        precision_weight = max(precision_weight, 0.3)
+
+        if success:
+            self.task_belief.observe(idx, weight=precision_weight)
+        else:
+            # 失败时也轻微学习（但权重更低）
+            self.task_belief.observe(idx, weight=precision_weight * 0.3)
+
+        logger.debug(
+            f"FreeEnergyPredictor: 记录 {task_type} "
+            f"(idx={idx}, precision={precision_weight:.3f})"
+        )
+
+    def predict(self, now: float = None, top_k: int = 3) -> List[PredictionResult]:
+        """
+        增强预测：融合 TemporalPatternLearner 的输出与自由能信念。
+
+        预测置信度 = BeliefState.expected_probability × precision_gate
+        其中 precision_gate 由 PrecisionWeighting 计算。
+        """
+        # 1. 获取基础预测
+        base_predictions = self.learner.predict(now=now, top_k=top_k * 2)
+
+        # 2. 用自由能信念调制置信度
+        enhanced = []
+        for pred in base_predictions:
+            # 获取自由能期望概率
+            if pred.task_type in self._task_to_idx:
+                idx = self._task_to_idx[pred.task_type]
+                fe_prob = float(self.task_belief.expected_probability[idx])
+            else:
+                # 模型没见过 → 低置信度
+                fe_prob = 0.1
+
+            # 精密加权
+            precision = self.precision.compute_precision(
+                self.task_belief, max(len(self._task_to_idx), 1)
+            )
+            # 精密门控: 高精度 → 置信度接近 raw；低精度 → 压低置信度
+            # 注意：无scipy时digamma近似可能产生负精度，此时视为低精度
+            precision_gate = min(1.0, max(0.1, abs(precision) / 2.0))
+
+            # 融合置信度
+            fused_confidence = pred.confidence * fe_prob * precision_gate
+            fused_confidence = min(1.0, fused_confidence)
+
+            enhanced.append(PredictionResult(
+                task_type=pred.task_type,
+                project_id=pred.project_id,
+                confidence=fused_confidence,
+                expected_time=pred.expected_time,
+                preload_context={
+                    **pred.preload_context,
+                    "free_energy_probability": round(fe_prob, 4),
+                    "precision_gate": round(precision_gate, 4),
+                },
+                keywords=pred.keywords,
+                reason=f"{pred.reason} [FE调制: prob={fe_prob:.2f}, π={precision_gate:.2f}]",
+            ))
+
+        # 3. 重排序
+        enhanced.sort(key=lambda x: -x.confidence)
+
+        # 记录置信度历史
+        if enhanced:
+            self._confidence_history.append(enhanced[0].confidence)
+            if len(self._confidence_history) > 100:
+                self._confidence_history = self._confidence_history[-100:]
+
+        return enhanced[:top_k]
+
+    def get_free_energy_state(self) -> Dict[str, Any]:
+        """获取当前自由能状态摘要"""
+        prediction_confidence = (
+            self._confidence_history[-1] if self._confidence_history else 0.0
+        )
+
+        return {
+            "belief_entropy": float(self.task_belief.uncertainty),
+            "belief_precision": float(self.task_belief.precision),
+            "expected_probabilities": {
+                self._idx_to_task.get(i, f"cat_{i}"): float(p)
+                for i, p in enumerate(self.task_belief.expected_probability)
+            },
+            "prediction_confidence": prediction_confidence,
+            "precision_weight": self.precision.compute_precision(
+                self.task_belief, max(len(self._task_to_idx), 1)
+            ),
+            "volatility": self.precision.volatility_estimate,
+            "total_observations": self.task_belief.total_observations,
+        }
+
+    async def _publish_free_energy_prediction(self, pred: PredictionResult):
+        """发布自由能增强的预测事件"""
+        if not self.bus:
+            return
+
+        fe_state = self.get_free_energy_state()
+
+        await self.bus.publish(Event(
+            type="predictor.free_energy_prediction",
+            source="predictor",
+            priority=EventPriority.LOW,
+            data={
+                "task_type": pred.task_type,
+                "project_id": pred.project_id,
+                "confidence": pred.confidence,
+                "reason": pred.reason,
+                "keywords": pred.keywords,
+                "free_energy": fe_state,
+            },
+        ))
+
+        # 同时也发布 context.preloaded（兼容现有订阅者）
+        await self.bus.publish(Event(
+            type="context.preloaded",
+            source="predictor",
+            priority=EventPriority.LOW,
+            data={
+                "type": "predicted_preload_fe",
+                "prediction": {
+                    "task_type": pred.task_type,
+                    "project_id": pred.project_id,
+                    "confidence": pred.confidence,
+                    "reason": pred.reason,
+                },
+                "suggested_context": pred.preload_context,
+                "preloaded_at": time.time(),
+                "free_energy": fe_state,
+            },
+        ))
+
+        self.total_preloads += 1
+        logger.info(
+            f"FE预测发布: {pred.task_type} "
+            f"(置信度={pred.confidence:.0%}, "
+            f"信念熵={fe_state['belief_entropy']:.3f})"
+        )
+
+    def get_stats(self) -> Dict[str, Any]:
+        """获取统计信息"""
+        base = self.learner.get_stats()
+        fe_state = self.get_free_energy_state()
+        return {
+            **base,
+            "free_energy": fe_state,
+            "fe_predictions_made": self.total_predictions,
+            "fe_preloads_published": self.total_preloads,
+        }
+
+
+# ═══════════════════════════════════════════════════════════
 # 预测引擎插件
 # ═══════════════════════════════════════════════════════════
 

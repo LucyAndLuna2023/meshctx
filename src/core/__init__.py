@@ -29,7 +29,7 @@ from .memory_hierarchy import (
 )
 from .metacognition import (
     MetaCognitionPlugin, TaskEvaluation, TaskStatus,
-    PatternEngine, BehaviorAdjuster,
+    PatternEngine, BehaviorAdjuster, MetaActiveInferenceAdapter,
 )
 from .orchestrator import (
     OrchestratorPlugin, TaskDAG, TaskNode, TaskNodeStatus,
@@ -38,10 +38,12 @@ from .orchestrator import (
 from .predictor import (
     PredictorPlugin, TemporalPatternLearner, ContextPreloader,
     PredictionResult, ActivityPattern, TimeSlot,
+    FreeEnergyPredictorAdapter,
 )
 from .agent_loop import (
     AgentLoopPlugin, Observation, Decision, ActionResult,
     AgentTask, TaskPriority, LoopPhase, ResponseGenerator, ActionExecutor,
+    WorkspaceAwareAdapter,
 )
 from .performance import (
     PerformancePlugin, L1MemoryCache, L2FileCache,
@@ -65,6 +67,9 @@ from .active_inference import (
     ActionType, MultiScaleLearning,
     LookaheadPlanner, DualProcessDecision,
 )
+from .hybrid_reasoning import (
+    HybridReasoningScheduler,
+)
 from .global_workspace import (
     GlobalWorkspace, Processor, ProcessorType,
     AttentionBottleneck, UnconsciousProcessing, RecursiveWorkspace,
@@ -86,16 +91,18 @@ __all__ = [
     "EbbinghausForgetting", "MemoryPlugin",
     # Meta
     "MetaCognitionPlugin", "TaskEvaluation", "TaskStatus",
-    "PatternEngine", "BehaviorAdjuster",
+    "PatternEngine", "BehaviorAdjuster", "MetaActiveInferenceAdapter",
     # Orchestrator
     "OrchestratorPlugin", "TaskDAG", "TaskNode", "TaskNodeStatus",
     "AgentPool", "AgentInstance", "AgentRole", "MemoryHub", "TaskDecomposer",
     # Predictor
     "PredictorPlugin", "TemporalPatternLearner", "ContextPreloader",
     "PredictionResult", "ActivityPattern", "TimeSlot",
+    "FreeEnergyPredictorAdapter",
     # Agent Loop
     "AgentLoopPlugin", "Observation", "Decision", "ActionResult",
     "AgentTask", "TaskPriority", "LoopPhase", "ResponseGenerator", "ActionExecutor",
+    "WorkspaceAwareAdapter",
     # Performance
     "PerformancePlugin", "L1MemoryCache", "L2FileCache",
     "StreamGenerator", "PerformanceMonitor",
@@ -110,6 +117,7 @@ __all__ = [
     "ActiveInferenceEngine", "GenerativeModel", "Policy",
     "ActionType", "MultiScaleLearning",
     "LookaheadPlanner", "DualProcessDecision",
+    "HybridReasoningScheduler",
     "GlobalWorkspace", "Processor", "ProcessorType", "AttentionBottleneck",
     "UnconsciousProcessing", "RecursiveWorkspace",
     "HomeostaticRegulator", "ResourceBudget", "ResourceType",
