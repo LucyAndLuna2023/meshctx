@@ -363,7 +363,7 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
         <button class="btn" style="background:#334155;color:#94a3b8;font-size:16px;padding:8px 12px;" onclick="document.getElementById('fileInput').click()" title="上传文件">📎</button>
         <button class="btn btn-primary" onclick="send()">发送</button>
     </div>
-    <input type="file" id="fileInput" style="display:none" onchange="uploadFile()">
+    <input type="file" id="fileInput" style="display:none" multiple onchange="uploadFiles()">
 </div>
 <details style="margin-top:12px;">
     <summary style="color:#64748b;font-size:12px;cursor:pointer;">🖥️ 终端</summary>
@@ -377,40 +377,55 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
 </details>
 </div>
 <script>
-let uploadedContent = null;
-let uploadedFilename = null;
+let uploadedContents = [];  // v1.7: 多文件支持
 
-async function uploadFile() {
+async function uploadFiles() {
     const input = document.getElementById('fileInput');
-    const file = input.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('file', file);
+    const files = Array.from(input.files);
+    if (!files.length) return;
+    
     const tag = document.getElementById('fileTag');
     tag.style.display = 'block';
-    tag.textContent = '⏳ 上传中: ' + file.name;
-    try {
-        const res = await fetch('/api/chat/upload', {method: 'POST', body: formData});
-        if (!res.ok) {
-            const err = await res.json();
-            tag.innerHTML = '<span style="color:#fca5a5;">❌ ' + (err.detail || '上传失败') + '</span>';
-            return;
+    uploadedContents = [];
+    
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        tag.textContent = '⏳ 上传中 (' + (i+1) + '/' + files.length + '): ' + file.name;
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            const res = await fetch('/api/chat/upload', {method: 'POST', body: formData});
+            if (!res.ok) {
+                const err = await res.json();
+                tag.innerHTML += '<br><span style="color:#fca5a5;">❌ ' + file.name + ': ' + (err.detail || '失败') + '</span>';
+                continue;
+            }
+            const data = await res.json();
+            uploadedContents.push({filename: data.filename, content: data.content, size: data.size});
+        } catch(e) {
+            tag.innerHTML += '<br><span style="color:#fca5a5;">❌ ' + file.name + ': ' + e.message + '</span>';
         }
-        const data = await res.json();
-        uploadedContent = data.content;
-        uploadedFilename = data.filename;
-        tag.innerHTML = '📄 ' + data.filename + ' <span style="color:#64748b;">(' + (data.size > 1024 ? (data.size/1024).toFixed(1)+'KB' : data.size+'B') + ')</span> <a href="#" onclick="clearFile()" style="color:#f87171;text-decoration:none;">✕</a>';
-    } catch(e) {
-        tag.innerHTML = '<span style="color:#fca5a5;">❌ 上传失败: ' + e.message + '</span>';
+    }
+    
+    if (uploadedContents.length > 0) {
+        const names = uploadedContents.map(f => f.filename).join(', ');
+        const totalSize = uploadedContents.reduce((s,f) => s + f.size, 0);
+        tag.innerHTML = '📄 ' + uploadedContents.length + '个文件: ' + names + 
+            ' <span style="color:#64748b;">(' + (totalSize > 1024 ? (totalSize/1024).toFixed(1)+'KB' : totalSize+'B') + ')</span>' +
+            ' <a href="#" onclick="clearFiles()" style="color:#f87171;text-decoration:none;">✕</a>';
     }
     input.value = '';
 }
 
-function clearFile() {
-    uploadedContent = null;
-    uploadedFilename = null;
+function clearFiles() {
+    uploadedContents = [];
     document.getElementById('fileTag').style.display = 'none';
     document.getElementById('fileInput').value = '';
+}
+
+// 向后兼容: 单文件旧接口
+async function uploadFile() {
+    return uploadFiles();
 }
 
 async function loadModels() {
@@ -546,16 +561,29 @@ async function send() {
     const msg = input.value.trim();
     if (!msg) return;
     let fullMsg = msg;
-    if (uploadedContent && uploadedFilename) {
-        fullMsg = '[上传文件: ' + uploadedFilename + ']\n```\n' + uploadedContent + '\n```\n\n' + msg;
-    }
     const div = document.getElementById('messages');
-    const displayMsg = uploadedFilename ? '[📄 ' + uploadedFilename + '] ' + msg : msg;
-    div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ' + displayMsg + '</div>';
-    chatHistory.push({role:'user', content:displayMsg});
+    // v1.7: 多文件批量上传
+    if (uploadedContents && uploadedContents.length > 0) {
+        let fileBlock = '';
+        let fnames = [];
+        for (const f of uploadedContents) {
+            fileBlock += '[上传文件: ' + f.filename + ']\n```\n' + f.content + '\n```\n\n';
+            fnames.push(f.filename);
+        }
+        fullMsg = fileBlock + msg;
+        const displayMsg = '[📄 ' + fnames.join(', ') + '] ' + msg;
+        div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ' + displayMsg + '</div>';
+        chatHistory.push({role:'user', content:displayMsg});
+        uploadedContents = [];
+        document.getElementById('fileTag').style.display = 'none';
+    } else {
+        const displayMsg = msg;
+        div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ' + displayMsg + '</div>';
+        chatHistory.push({role:'user', content:displayMsg});
+    }
     saveHistory();
     input.value = '';
-    clearFile();
+    clearFiles();
     
     // 创建AI消息气泡(流式填充)
     const aiBubble = document.createElement('div');
@@ -915,9 +943,21 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
 <div class="card" style="border:2px solid #22c55e;background:#052e16;">
     <h3 style="color:#22c55e;">🟢 已配置模型 ({{ configured|length }})</h3>
     {% for m in configured %}
-    <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;font-size:13px;margin-top:4px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#0f172a;border-radius:6px;font-size:13px;margin-top:4px;">
         <span><strong>{{ m.id }}</strong> <span style="color:#64748b;">→ {{ m.model }}</span></span>
-        <span style="color:#22c55e;">✓ 就绪</span>
+        <span style="display:flex;align-items:center;gap:8px;">
+            <code style="font-size:11px;color:#64748b;background:#1e293b;padding:2px 6px;border-radius:4px;">
+                {{ m.key_masked or '***' }}
+                <span onclick="var e=this.parentNode;var t=e.dataset.full||'';e.textContent=t||e.textContent;e.dataset.full=e.textContent===t?'':t;" 
+                      style="cursor:pointer;color:var(--accent);margin-left:4px;" 
+                      data-full="{{ m.key_full or '' }}">👁</span>
+            </code>
+            <span style="color:#22c55e;">✓</span>
+            <form method="POST" action="/ui/setup/delete" style="display:inline;margin:0;" onsubmit="return confirm('删除 {{ m.id }} 的密钥？')">
+                <input type="hidden" name="model_id" value="{{ m.id }}">
+                <button type="submit" style="background:none;border:none;color:#f85149;cursor:pointer;font-size:16px;padding:0 4px;" title="删除">✕</button>
+            </form>
+        </span>
     </div>
     {% endfor %}
 </div>
@@ -1321,12 +1361,19 @@ var _phaseMap = {O:'Observe',Or:'Orient',D:'Decide',A:'Act'};
 // Tab切换
 document.querySelectorAll('.tabbar .tab').forEach(function(t){
   t.onclick = function(){
-    document.querySelectorAll('.tabbar .tab').forEach(function(x){x.classList.remove('active')});
-    document.querySelectorAll('.content .pane').forEach(function(x){x.classList.remove('active')});
-    t.classList.add('active');
-    var p = document.getElementById('pane-'+t.dataset.pane);
-    if(p){p.classList.add('active');}
-    if(_data) renderAll(_data);
+    try {
+      document.querySelectorAll('.tabbar .tab').forEach(function(x){x.classList.remove('active')});
+      document.querySelectorAll('.content .pane').forEach(function(x){x.classList.remove('active')});
+      t.classList.add('active');
+      var p = document.getElementById('pane-'+t.dataset.pane);
+      if(p){ p.classList.add('active'); }
+      // 如果还没加载数据，先获取
+      if(!_data) { fetchSummary(); return; }
+      renderAll(_data);
+    } catch(e) {
+      console.error('Tab switch error:', e);
+      // 降级：至少切换面板
+    }
   };
 });
 
@@ -2439,7 +2486,23 @@ async def setup_page(request: Request):
         reg = get_registry()
         for e in reg.list_all():
             if e["ready"]:
-                configured.append({"id": e["id"], "model": e.get("model", "?"), "provider": e.get("provider", "?")})
+                entry = {"id": e["id"], "model": e.get("model", "?"), "provider": e.get("provider", "?")}
+                # 读取实际key做mask和全量展示
+                try:
+                    from pathlib import Path
+                    import yaml as _yaml
+                    cp = Path.home() / ".meshctx" / "config.yaml"
+                    if cp.exists():
+                        with open(cp) as f:
+                            cfg = _yaml.safe_load(f) or {}
+                        model_cfg = cfg.get("models", {}).get("entries", {}).get(e["id"], {})
+                        raw_key = model_cfg.get("key", "")
+                        if raw_key:
+                            entry["key_full"] = raw_key
+                            entry["key_masked"] = raw_key[:6] + "****" + raw_key[-4:] if len(raw_key)>10 else "****"
+                except:
+                    pass
+                configured.append(entry)
     except:
         pass
     
@@ -2494,6 +2557,39 @@ async def save_api_key(
     os.environ[defaults["key_env"]] = api_key
 
     return RedirectResponse(url="/ui/setup?saved=1", status_code=303)
+
+
+@router.post("/setup/delete")
+async def delete_api_key(
+    request: Request,
+    model_id: str = Form(...),
+):
+    """删除指定模型的API密钥"""
+    from pathlib import Path
+    
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    if not config_path.exists():
+        return RedirectResponse(url="/ui/setup?error=1", status_code=303)
+    
+    with open(config_path) as f:
+        config = yaml.safe_load(f) or {}
+    
+    entries = config.get("models", {}).get("entries", {})
+    if model_id in entries:
+        del entries[model_id]
+        # 如果删除的是默认模型，清除默认
+        if config.get("models", {}).get("default") == model_id:
+            config["models"]["default"] = next(iter(entries), "") if entries else ""
+    
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+    
+    # 清除环境变量
+    from src.model_registry import _registry
+    import src.model_registry as mr
+    mr._registry = None
+    
+    return RedirectResponse(url="/ui/setup?deleted=1", status_code=303)
 
 
 # ── v1.5.13 下载页面 ─────────────────────────────────────
