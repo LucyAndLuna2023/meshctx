@@ -1802,11 +1802,27 @@ function quickAsk(e){
   inp.value = '';
 }
 
-// ═══ 主题切换 v1.5.7 ═══
+// ═══ 主题切换 v1.8.2: 自动跟随系统 ═══
 (function(){
   var saved = localStorage.getItem('meshctx_theme');
+  if(!saved){
+    // 自动检测系统主题偏好
+    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    saved = prefersDark ? 'dark' : 'light';
+    localStorage.setItem('meshctx_theme', saved);
+  }
   if(saved==='light') document.body.classList.add('light');
   if(saved==='light') document.getElementById('themeBtn').textContent = '☀️';
+  // 监听系统主题变化
+  if(window.matchMedia){
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e){
+      var current = localStorage.getItem('meshctx_theme');
+      if(!current || current === 'auto'){
+        if(e.matches) document.body.classList.remove('light');
+        else document.body.classList.add('light');
+      }
+    });
+  }
 })();
 function toggleTheme(){
   var body = document.body;
@@ -2691,18 +2707,18 @@ async def delete_api_key(
 async def download_page(request: Request):
     html = r"""{% extends "base.html" %}
 {% block content %}
-<h2>💻 下载 meshctx Desktop v1.5.18</h2>
+<h2>💻 下载 meshctx Desktop v1.8.2</h2>
 <div class="card" style="margin-top:16px;">
   <h3>🪟 Windows 原生客户端</h3>
   <p style="color:var(--muted);">独立 .exe 程序，无需 Python，支持46+ AI模型，下载即用</p>
   <div style="display:flex;gap:16px;flex-wrap:wrap;margin:16px 0;">
     <div style="flex:1;min-width:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;">
       <p>📦 <b>便携版 meshctx.exe</b><br><span style="font-size:11px;color:var(--muted);">~211MB · 解压即用</span></p>
-      <a class="btn btn-primary" href="https://meshctx.com/meshctx-v1.5.18.exe" style="display:inline-block;text-decoration:none;padding:10px 20px;margin-top:8px;">⬇ 下载便携版</a>
+      <a class="btn btn-primary" href="https://meshctx.com/meshctx-v1.8.2.exe" style="display:inline-block;text-decoration:none;padding:10px 20px;margin-top:8px;">⬇ 下载便携版</a>
     </div>
     <div style="flex:1;min-width:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;">
       <p>💿 <b>安装版 meshctx-setup.exe</b><br><span style="font-size:11px;color:var(--muted);">~210MB · NSIS安装程序</span></p>
-      <a class="btn btn-primary" href="https://meshctx.com/meshctx-setup-v1.5.18.exe" style="display:inline-block;text-decoration:none;padding:10px 20px;margin-top:8px;">⬇ 下载安装版</a>
+      <a class="btn btn-primary" href="https://meshctx.com/meshctx-setup-v1.8.2.exe" style="display:inline-block;text-decoration:none;padding:10px 20px;margin-top:8px;">⬇ 下载安装版</a>
     </div>
   </div>
   <p style="font-size:11px;color:var(--muted);">SHA256: <code style="word-break:break-all;font-size:10px;">95d766ea...</code>&nbsp;·&nbsp;<a href="https://meshctx.com/sha256.txt" target="_blank">校验文件</a></p>
@@ -2714,7 +2730,7 @@ async def download_page(request: Request):
 </div>
 <div class="card" style="margin-top:16px;">
   <h3>📋 命令行安装 (高级)</h3>
-  <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);">powershell -c "Invoke-WebRequest https://meshctx.com/meshctx-setup-v1.5.18.exe -OutFile meshctx-setup.exe; Start-Process meshctx-setup.exe"</pre>
+  <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);">powershell -c "Invoke-WebRequest https://meshctx.com/meshctx-setup-v1.8.2.exe -OutFile meshctx-setup.exe; Start-Process meshctx-setup.exe"</pre>
 </div>
 {% endblock %}"""
     _TEMPLATES["download.html"] = html

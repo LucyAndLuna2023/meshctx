@@ -197,7 +197,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="meshctx API",
     description="世界第一自进化Agent系统",
-    version="1.5.25",
+    version="1.8.2",
     lifespan=lifespan,
 )
 
@@ -302,7 +302,7 @@ class IntentRequest(BaseModel):
 async def root():
     return {
         "message": "MeshCtx API v1.5 运行中",
-        "version": "1.5.26",
+        "version": "1.8.2",
         "endpoints": {
             "projects": "/projects",
             "conversations": "/conversations",
@@ -502,7 +502,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.8.0",
+        "version": "1.8.2",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -1023,7 +1023,7 @@ async def system_summary():
     k = get_kernel()
     now = time.time()
     summary = {
-        "version": "1.8.0",
+        "version": "1.8.2",
         "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
         "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
         "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},
@@ -1957,7 +1957,7 @@ async def export_config():
         safe_providers[pid] = sp
     
     export_data = {
-        "version": "1.5.25",
+        "version": "1.8.2",
         "exported_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "providers": safe_providers,
         "mcp_servers": mcp_servers,
@@ -2287,7 +2287,7 @@ async def health_check():
 
     result = {
         "status": "healthy",
-        "version": "1.8.0",
+        "version": "1.8.2",
         "kernel": "running" if (k._started if hasattr(k, '_started') else False) else "standalone",
         "projects_count": len(engine.projects),
         "conversations_count": len(engine.conversations),
