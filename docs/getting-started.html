@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeshCtx Docs — 入门指南</title>
+<style>
+:root{--bg:#0a0a14;--bg2:#111122;--fg:#e2e8f0;--muted:#94a3b8;--purple:#8b5cf6;--cyan:#06b6d4;--green:#22c55e;--border:#1e293b;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;line-height:1.7;}
+nav{position:fixed;top:0;width:100%;background:rgba(10,10,20,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);z-index:100;padding:12px 24px;}
+.nav-inner{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;}
+.logo{font-size:1.3rem;font-weight:700}.logo span{color:var(--purple)}
+.container{max-width:1100px;margin:80px auto 0;padding:40px 24px;}
+h1{font-size:2.5rem;margin-bottom:8px;background:linear-gradient(135deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+h2{font-size:1.6rem;margin:32px 0 12px;color:var(--cyan);}
+h3{font-size:1.1rem;margin:16px 0 8px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin:16px 0;}
+code{background:#1e293b;color:var(--green);padding:2px 6px;border-radius:4px;font-size:0.9em;}
+pre{background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-size:13px;line-height:1.5;}
+pre code{background:none;padding:0;color:#e2e8f0;}
+a{color:var(--cyan);}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;}
+.tag{display:inline-block;background:var(--purple);color:#fff;font-size:10px;padding:2px 8px;border-radius:4px;margin-right:4px;}
+</style>
+</head>
+<body>
+<nav><div class="nav-inner"><a href="/" class="logo">Mesh<span>Ctx</span> Docs</a></div></nav>
+
+<div class="container">
+
+<h1>🚀 快速开始</h1>
+<p style="color:var(--muted);font-size:1.1rem;">3分钟上手全球首个全脑仿真AI Agent平台</p>
+
+<div class="grid2">
+<div class="card">
+<h3>🐧 Linux / WSL</h3>
+<pre><code>git clone https://github.com/LucyAndLuna2023/meshctx.git
+cd meshctx
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .
+# 配置API Key
+export DEEPSEEK_API_KEY=sk-xxx
+# 启动
+mesctx start</code></pre>
+</div>
+
+<div class="card">
+<h3>🪟 Windows</h3>
+<pre><code># 下载安装程序
+# https://github.com/LucyAndLuna2023/meshctx/releases
+# 双击 meshctx-setup-v2.12.0.exe
+# 按向导安装 → 桌面快捷方式 → 启动</code></pre>
+</div>
+
+<div class="card">
+<h3>🐳 Docker</h3>
+<pre><code># 一键部署
+echo "DEEPSEEK_API_KEY=sk-xxx" > .env
+docker-compose up -d
+# 访问 http://localhost:8000</code></pre>
+</div>
+</div>
+
+<h2>📡 API 端点速查</h2>
+<div class="card">
+<table style="width:100%;border-collapse:collapse;font-size:13px;">
+<tr style="color:var(--muted);"><th style="text-align:left;padding:6px;">端点</th><th style="text-align:left;padding:6px;">说明</th></tr>
+<tr><td style="padding:6px;"><code>POST /api/chat</code></td><td>Chat对话</td></tr>
+<tr><td style="padding:6px;"><code>POST /api/chat/compare</code></td><td>多模型对比 <span class="tag">v2.11</span></td></tr>
+<tr><td style="padding:6px;"><code>POST /api/sandbox/execute</code></td><td>代码沙箱 <span class="tag">v2.7</span></td></tr>
+<tr><td style="padding:6px;"><code>GET /api/project/context</code></td><td>项目索引 <span class="tag">v2.7</span></td></tr>
+<tr><td style="padding:6px;"><code>POST /api/feishu/notify</code></td><td>飞书通知 <span class="tag">v2.8</span></td></tr>
+<tr><td style="padding:6px;"><code>POST /api/win/execute</code></td><td>Windows管理 <span class="tag">v2.10</span></td></tr>
+<tr><td style="padding:6px;"><code>POST /api/code/review</code></td><td>代码审查 <span class="tag">v2.12</span></td></tr>
+<tr><td style="padding:6px;"><code>GET /api/conversations</code></td><td>对话持久化 <span class="tag">v2.11</span></td></tr>
+<tr><td style="padding:6px;"><code>GET /api/config/backup</code></td><td>配置备份 <span class="tag">v2.11</span></td></tr>
+<tr><td style="padding:6px;"><code>GET /docs</code></td><td>OpenAPI文档</td></tr>
+</table>
+</div>
+
+<h2>💬 Chat 命令</h2>
+<div class="card">
+<pre><code>/read &lt;路径&gt;         读取本地文件
+/ls &lt;路径&gt;          列出目录
+/search &lt;关键词&gt;     网页搜索
+/run python &lt;代码&gt;  代码沙箱执行
+/context &lt;关键词&gt;    搜索项目代码
+/win services        Windows服务列表
+/win exec &lt;PS命令&gt;   执行PowerShell</code></pre>
+</div>
+
+<h2>🧠 架构</h2>
+<div class="card">
+<p style="color:var(--muted);">MeshCtx采用13脑区全脑仿真架构，融合AGPLv3开源框架和专有核心大脑算法。</p>
+<div class="grid2" style="margin-top:12px;">
+<div><strong>框架层 (AGPLv3)</strong><br><span style="color:var(--muted);">Web UI · API路由 · 插件系统 · Chat界面 · 安装程序</span></div>
+<div><strong>核心大脑 (专有)</strong><br><span style="color:var(--muted);">Super Brain · Free Energy · Active Inference · Global Workspace · Metacognition</span></div>
+<div><strong>工具层</strong><br><span style="color:var(--muted);">代码沙箱 · 项目索引 · Web搜索 · Windows管理 · 飞书通知</span></div>
+<div><strong>模型层</strong><br><span style="color:var(--muted);">100模型 · 28供应商 · OpenAI兼容 · 零配置</span></div>
+</div>
+</div>
+
+<p style="text-align:center;color:var(--muted);margin-top:40px;padding:20px;">
+  <a href="/">← 返回首页</a> · <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a>
+</p>
+</div>
+</body>
+</html>
