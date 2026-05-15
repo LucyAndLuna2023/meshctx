@@ -107,8 +107,9 @@ from .online_learning import (
 from .sandbox import SandboxEngine, SandboxResult, get_sandbox
 from .project_indexer import ProjectIndexer, FileSummary, IndexStats, get_indexer
 from .feishu_notify import FeishuNotifier, FeishuPlugin
+from .win_admin import WindowsAdmin, WinResult, WinService, get_win_admin
 
-__version__ = "2.9.0"
+__version__ = "2.10.1"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -163,4 +164,5 @@ __all__ = [
     "SandboxEngine", "SandboxResult", "get_sandbox",
     "ProjectIndexer", "FileSummary", "IndexStats", "get_indexer",
     "FeishuNotifier", "FeishuPlugin",
+    "WindowsAdmin", "WinResult", "WinService", "get_win_admin",
 ]

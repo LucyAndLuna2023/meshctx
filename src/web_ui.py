@@ -362,7 +362,7 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
      ondrop="event.preventDefault();this.style.borderColor='#334155';handleDrop(event)"></div>
     <div id="fileTag" style="margin-top:8px;font-size:12px;color:#38bdf8;display:none;"></div>
     <div style="display:flex;gap:8px;margin-top:16px;">
-        <input id="userInput" placeholder="/read 读文件 /ls 列目录 /search 搜索 /run 运行 /context 查代码" style="flex:1;" onkeydown="if(event.key==='Enter')send()">
+        <input id="userInput" placeholder="/read /ls /search /run /context /win 命令大全" style="flex:1;" onkeydown="if(event.key==='Enter')send()">
         <button class="btn" style="background:#334155;color:#94a3b8;font-size:16px;padding:8px 12px;" onclick="document.getElementById('fileInput').click()" title="上传文件">📎</button>
         <button class="btn btn-primary" onclick="send()">发送</button>
     </div>
@@ -655,6 +655,74 @@ async function send() {
             fullMsg = ctxBlock + '\\n用户消息: 请基于以上项目上下文回答';
             msg = '/context ' + query;
         } catch(e) { alert('项目索引失败: ' + e.message); return; }
+    }
+    
+    // v2.10.1: Windows管理 /win 命令
+    if (msg.startsWith('/win ')) {
+        var parts = msg.substring(5).trim();
+        var action = parts.split(' ')[0]; // list/start/stop/restart/exec/service/process/system
+        var arg = parts.substring(action.length).trim();
+        
+        if (action === 'services' || action === 'service') {
+            try {
+                var svcRes = await fetch('/api/win/services' + (arg ? '?filter=' + encodeURIComponent(arg) : ''));
+                var svcData = await svcRes.json();
+                var svcBlock = '[Windows Services]\n';
+                (svcData.services||[]).forEach(function(s){
+                    svcBlock += s.status + ' ' + s.name + ' - ' + s.display_name + '\n';
+                });
+                fullMsg = svcBlock + '\n用户消息: 以上是Windows服务列表';
+                msg = '/win services';
+            } catch(e) { alert('获取服务失败: ' + e.message); return; }
+        } else if (action === 'processes' || action === 'ps') {
+            try {
+                var procRes = await fetch('/api/win/processes');
+                var procData = await procRes.json();
+                var procBlock = '[Windows Processes Top 30]\n';
+                (procData.processes||[]).forEach(function(p){
+                    procBlock += 'PID:' + p.pid + ' ' + p.name + ' CPU:' + p.cpu + ' MEM:' + p.memory_mb + 'MB\n';
+                });
+                fullMsg = procBlock + '\n用户消息: 以上是Windows进程列表';
+                msg = '/win processes';
+            } catch(e) { alert('获取进程失败: ' + e.message); return; }
+        } else if (action === 'system' || action === 'sys') {
+            try {
+                var sysRes = await fetch('/api/win/system');
+                var sysData = await sysRes.json();
+                fullMsg = '[Windows System Info]\n' + JSON.stringify(sysData, null, 2)
+                    + '\n用户消息: 以上是Windows系统信息';
+                msg = '/win system';
+            } catch(e) { alert('获取系统信息失败: ' + e.message); return; }
+        } else if (action === 'exec' || action === 'ps1') {
+            if (!arg) { alert('用法: /win exec <PowerShell命令>'); return; }
+            try {
+                var execRes = await fetch('/api/win/execute', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({command:arg, timeout:30})
+                });
+                var execData = await execRes.json();
+                fullMsg = '[PowerShell: ' + arg.substring(0,80) + ']\n'
+                    + (execData.stdout || '') + '\n'
+                    + (execData.stderr ? '[STDERR] ' + execData.stderr + '\n' : '')
+                    + '[Exit: ' + execData.exit_code + ' | ' + execData.duration_ms + 'ms]'
+                    + '\n用户消息: 请分析以上PowerShell执行结果';
+                msg = '/win exec ' + arg.substring(0,50);
+            } catch(e) { alert('PowerShell执行失败: ' + e.message); return; }
+        } else if (action === 'software' || action === 'apps') {
+            try {
+                var swRes = await fetch('/api/win/software');
+                var swData = await swRes.json();
+                var swBlock = '[Installed Software]\n';
+                (swData.software||[]).slice(0,20).forEach(function(s){
+                    swBlock += (s.name||'?') + ' v' + (s.version||'?') + '\n';
+                });
+                fullMsg = swBlock + '\n用户消息: 以上是已安装软件列表';
+                msg = '/win software';
+            } catch(e) { alert('获取软件列表失败: ' + e.message); return; }
+        } else {
+            alert('用法: /win services|processes|system|software|exec <PS命令>');
+            return;
+        }
     }
     
     // v1.7: 多文件批量上传
@@ -1403,6 +1471,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
   <button class="tab" data-pane="plugins-dt">🔌 Plugins</button>
   <button class="tab" data-pane="sandbox-dt">🖥️ Sandbox</button>
   <button class="tab" data-pane="project-dt">📂 Project</button>
+  <button class="tab" data-pane="win-dt">🪟 Windows</button>
 </div>
 <div class="content">
   <div class="pane active" id="pane-chat">
@@ -1611,6 +1680,34 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
       <div id="projectResults" style="display:grid;gap:8px;"></div>
     </div>
   </div>
+  <!-- 🪟 Windows Admin v2.10.1 -->
+  <div class="pane" id="pane-win-dt">
+    <div class="pane-inner">
+      <h2>🪟 Windows 管理 <span style="font-size:10px;color:var(--muted);">v2.10.1</span></h2>
+      <p style="color:var(--muted);margin-bottom:8px;">服务管理 · 进程监控 · PowerShell · 系统信息</p>
+      
+      <!-- Quick Buttons -->
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+        <button class="action-btn start-btn" onclick="winLoadServices()" style="font-size:11px;">🔧 服务</button>
+        <button class="action-btn" onclick="winLoadProcesses()" style="font-size:11px;background:#334155;color:#e2e8f0;">📊 进程</button>
+        <button class="action-btn" onclick="winLoadSystem()" style="font-size:11px;background:#334155;color:#e2e8f0;">💻 系统</button>
+        <button class="action-btn" onclick="winLoadSoftware()" style="font-size:11px;background:#334155;color:#e2e8f0;">📦 软件</button>
+      </div>
+      
+      <!-- PowerShell Console -->
+      <div class="card" style="margin-bottom:8px;">
+        <h3>💻 PowerShell</h3>
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input id="winPsCmd" style="flex:1;background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:6px 10px;border-radius:4px;font-family:monospace;font-size:12px;" placeholder="Get-Service | Where-Object {$_.Status -eq 'Running'}">
+          <button class="btn btn-primary" onclick="winExec()">▶ 执行</button>
+        </div>
+        <div id="winPsResult" style="background:#0f172a;border:1px solid var(--border);border-radius:6px;padding:10px;font-family:monospace;font-size:11px;white-space:pre-wrap;max-height:300px;overflow-y:auto;display:none;"></div>
+      </div>
+      
+      <!-- Dynamic Content -->
+      <div id="winContent"></div>
+    </div>
+  </div>
 </div>
 <script>
 // ═══ v2.9.0 Desktop Dashboard — 富数据+自动刷新 ═══
@@ -1650,6 +1747,87 @@ function quickSearch(){
   if(iframe && iframe.contentWindow){
     iframe.contentWindow.postMessage({type:'meshctx-quick-ask', message:'/search '+q}, '*');
   }
+}
+
+// ═══ Windows Admin Panel v2.10.1 ═══
+function winExec(){
+  var cmd = document.getElementById('winPsCmd').value.trim();
+  if(!cmd){alert('请输入PowerShell命令');return;}
+  var el = document.getElementById('winPsResult');
+  el.style.display = 'block';
+  el.style.color = '#94a3b8';
+  el.textContent = '⏳ 执行中...';
+  fetch('/api/win/execute', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({command:cmd, timeout:30})
+  }).then(function(r){return r.json()}).then(function(d){
+    var out = (d.stdout||'') + '\n' + (d.stderr?'[STDERR] '+d.stderr+'\n':'');
+    out += '[Exit: '+d.exit_code+' | '+d.duration_ms+'ms]';
+    el.textContent = out;
+    el.style.color = d.success ? '#22c55e' : '#fca5a5';
+  }).catch(function(e){
+    el.textContent = '失败: '+e.message;
+    el.style.color = '#fca5a5';
+  });
+}
+function winLoadServices(){
+  var el = document.getElementById('winContent');
+  el.innerHTML = '<span style="color:var(--muted);">⏳ 加载服务列表...</span>';
+  fetch('/api/win/services').then(function(r){return r.json()}).then(function(d){
+    var html = '<div class="card"><h3>🔧 Windows 服务</h3><div style="max-height:400px;overflow-y:auto;">';
+    (d.services||[]).forEach(function(s){
+      var color = s.status==='Running'?'#22c55e':s.status==='Stopped'?'#fca5a5':'#f59e0b';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);font-size:11px;">'+
+        '<span><span style="color:'+color+';font-weight:600;">'+s.status+'</span> '+s.name+'</span>'+
+        '<span style="color:var(--muted);">'+s.display_name+'</span></div>';
+    });
+    html += '</div></div>';
+    el.innerHTML = html;
+  }).catch(function(e){el.innerHTML='<span style="color:#fca5a5;">加载失败: '+e.message+'</span>';});
+}
+function winLoadProcesses(){
+  var el = document.getElementById('winContent');
+  el.innerHTML = '<span style="color:var(--muted);">⏳ 加载进程列表...</span>';
+  fetch('/api/win/processes').then(function(r){return r.json()}).then(function(d){
+    var html = '<div class="card"><h3>📊 进程 Top 30</h3><div style="max-height:400px;overflow-y:auto;">';
+    html += '<table style="width:100%;font-size:11px;border-collapse:collapse;"><tr style="color:var(--muted);"><th style="text-align:left;">PID</th><th style="text-align:left;">名称</th><th>CPU</th><th>内存</th></tr>';
+    (d.processes||[]).forEach(function(p){
+      html += '<tr style="border-bottom:1px solid var(--border);">'+
+        '<td>'+p.pid+'</td><td>'+p.name+'</td>'+
+        '<td style="text-align:right;">'+p.cpu+'</td>'+
+        '<td style="text-align:right;">'+p.memory_mb+'MB</td></tr>';
+    });
+    html += '</table></div></div>';
+    el.innerHTML = html;
+  }).catch(function(e){el.innerHTML='<span style="color:#fca5a5;">加载失败: '+e.message+'</span>';});
+}
+function winLoadSystem(){
+  var el = document.getElementById('winContent');
+  fetch('/api/win/system').then(function(r){return r.json()}).then(function(d){
+    var html = '<div class="card"><h3>💻 系统信息</h3>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">';
+    for(var k in d){
+      html += '<div style="color:var(--muted);">'+k+'</div><div style="font-weight:600;">'+d[k]+'</div>';
+    }
+    html += '</div></div>';
+    el.innerHTML = html;
+  }).catch(function(e){el.innerHTML='<span style="color:#fca5a5;">加载失败: '+e.message+'</span>';});
+}
+function winLoadSoftware(){
+  var el = document.getElementById('winContent');
+  el.innerHTML = '<span style="color:var(--muted);">⏳ 扫描已安装软件...</span>';
+  fetch('/api/win/software').then(function(r){return r.json()}).then(function(d){
+    var html = '<div class="card"><h3>📦 已安装软件</h3><div style="max-height:400px;overflow-y:auto;">';
+    (d.software||[]).slice(0,30).forEach(function(s){
+      html += '<div style="font-size:11px;padding:3px 0;border-bottom:1px solid var(--border);">'+
+        '<span style="font-weight:600;">'+s.name+'</span>'+
+        (s.version?' <span style="color:var(--muted);">v'+s.version+'</span>':'')+
+        (s.publisher?' <span style="color:var(--muted);font-size:10px;">- '+s.publisher+'</span>':'')+
+        '</div>';
+    });
+    html += '</div></div>';
+    el.innerHTML = html;
+  }).catch(function(e){el.innerHTML='<span style="color:#fca5a5;">加载失败: '+e.message+'</span>';});
 }
 
 // ═══ Memory Visualization v2.9 ═══

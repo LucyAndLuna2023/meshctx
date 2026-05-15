@@ -1232,6 +1232,163 @@ async def feishu_notify(req: Request):
     return {"success": success, "message": "发送成功" if success else "发送失败"}
 
 
+# ═══════════════════════════════════════════════════
+# Windows 管理 API (v2.10.1)
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/win/status")
+async def win_status():
+    """Windows连接状态"""
+    from src.core.win_admin import get_win_admin
+    wa = get_win_admin()
+    return {"available": wa.available, "powershell": str(wa.available)}
+
+
+@app.post("/api/win/execute")
+async def win_execute(req: Request):
+    """执行PowerShell命令"""
+    try:
+        body = await req.json()
+    except Exception:
+        raise HTTPException(400, "请求body需为JSON")
+    
+    command = body.get("command", "")
+    timeout = min(int(body.get("timeout", 30)), 120)
+    confirmed = body.get("confirmed", False)
+    
+    if not command:
+        raise HTTPException(400, "请提供 command 参数")
+    
+    from src.core.win_admin import get_win_admin
+    wa = get_win_admin()
+    result = await wa.execute(command, timeout, confirmed)
+    return result.to_dict()
+
+
+@app.get("/api/win/services")
+async def win_services(filter: str = ""):
+    """列出Windows服务"""
+    from src.core.win_admin import get_win_admin
+    wa = get_win_admin()
+    services = await wa.list_services(filter)
+    return {"count": len(services), "services": [s.to_dict() for s in services]}
+
+
+@app.post("/api/win/service/{name}/{action}")
+async def win_service_action(name: str, action: str, req: Request = None):
+    """Windows服务操作: start/stop/restart"""
+    import json as _j
+    confirmed = False
+    if req:
+        try:
+            body = await req.json()
+            confirmed = body.get("confirmed", False)
+        except: pass
+    
+    from src.core.win_admin import get_win_admin
+    wa = get_win_admin()
+    
+    if action == "start":
+        result = await wa.start_service(name, confirmed)
+    elif action == "stop":
+        result = await wa.stop_service(name, confirmed)
+    elif action == "restart":
+        result = await wa.restart_service(name, confirmed)
+    elif action == "info":
+        svc = await wa.get_service(name)
+        return svc.to_dict() if svc else {"error": "Service not found"}
+    else:
+        raise HTTPException(400, f"Unknown action: {action}")
+    
+    return result.to_dict()
+
+
+@app.get("/api/win/processes")
+async def win_processes():
+    """列出Windows进程"""
+    from src.core.win_admin import get_win_admin
+    wa = get_win_admin()
+    procs = await wa.process_list(30)
+    return {"count": len(procs), "processes": procs}
+
+
+@app.post("/api/win/process/kill")
+async def win_process_kill(req: Request):
+    """终止Windows进程"""
+    try: body = await req.json()
+    except: raise HTTPException(400, "请求body需为JSON")
+    
+    pid = body.get("pid", 0)
+    name = body.get("name", "")
+    confirmed = body.get("confirmed", False)
+    
+    from src.core.win_admin import get_win_admin
+    wa = get_win_admin()
+    result = await wa.process_kill(pid, name, confirmed)
+    return result.to_dict()
+
+
+@app.get("/api/win/system")
+async def win_system():
+    """Windows系统信息"""
+    from src.core.win_admin import get_win_admin
+    wa = get_win_admin()
+    return await wa.get_system_info()
+
+
+@app.get("/api/win/browsers")
+async def win_browsers():
+    """列出已安装浏览器"""
+    from src.core.win_admin import get_win_admin
+    wa = get_win_admin()
+    return {"browsers": await wa.get_browsers()}
+
+
+@app.post("/api/win/open")
+async def win_open(req: Request):
+    """在浏览器中打开URL"""
+    try: body = await req.json()
+    except: raise HTTPException(400, "请求body需为JSON")
+    
+    url = body.get("url", "")
+    browser = body.get("browser", "default")
+    confirmed = body.get("confirmed", False)
+    
+    if not url:
+        raise HTTPException(400, "请提供 url 参数")
+    
+    from src.core.win_admin import get_win_admin
+    wa = get_win_admin()
+    result = await wa.open_url(url, browser, confirmed)
+    return result.to_dict()
+
+
+@app.get("/api/win/registry")
+async def win_registry(path: str = "", name: str = ""):
+    """读取注册表"""
+    if not path:
+        raise HTTPException(400, "请提供 path 参数")
+    from src.core.win_admin import get_win_admin
+    wa = get_win_admin()
+    return await wa.reg_read(path, name)
+
+
+@app.get("/api/win/network")
+async def win_network():
+    """Windows网络信息"""
+    from src.core.win_admin import get_win_admin
+    wa = get_win_admin()
+    return await wa.network_info()
+
+
+@app.get("/api/win/software")
+async def win_software():
+    """已安装软件列表"""
+    from src.core.win_admin import get_win_admin
+    wa = get_win_admin()
+    return {"software": await wa.installed_software()}
+
+
 @app.get("/api/file/read")
 async def read_local_file(path: str = ""):
     """读取本地文件内容 (支持WSL/Windows路径自动翻译)"""
