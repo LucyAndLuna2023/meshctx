@@ -1328,6 +1328,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
   <button class="tab" data-pane="lab">🧪 Lab</button>
   <button class="tab" data-pane="history">📜 历史</button>
   <button class="tab" data-pane="brain">🧠 Brain</button>
+  <button class="tab" data-pane="plugins-dt">🔌 Plugins</button>
 </div>
 <div class="content">
   <div class="pane active" id="pane-chat">
@@ -1466,6 +1467,13 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
       <div id="brainMonitor" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:12px;"></div>
     </div>
   </div>
+  <!-- 🔌 Plugins v2.3 -->
+  <div class="pane" id="pane-plugins-dt">
+    <div class="pane-inner">
+      <h2>🔌 Plugin Marketplace <span style="font-size:10px;color:var(--muted);">v2.3</span></h2>
+      <div id="pluginList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin-top:12px;"></div>
+    </div>
+  </div>
 </div>
 <script>
 // ═══ v1.5.0 Desktop Dashboard — 富数据+自动刷新 ═══
@@ -1553,6 +1561,7 @@ function renderAll(d){
   renderProviders();
   renderLab(d);
   renderBrain();  // v2.0 Brain Monitor
+  renderPlugins(); // v2.3 Plugin Market
   loadMeshctxMd();
   loadConversations();
 }
@@ -1796,6 +1805,40 @@ function renderBrain(){
     document.getElementById('brainMonitor').innerHTML = html;
   }).catch(function(e){
     document.getElementById('brainMonitor').innerHTML = '<div class="stat-card" style="grid-column:1/-1;text-align:center;color:var(--muted);">🧠 等待后端连接...</div>';
+  });
+}
+
+// ═══ Plugin Marketplace v2.3 ═══
+function renderPlugins(){
+  fetch('/api/plugins').then(function(r){return r.json()}).then(function(d){
+    var plugins = d.plugins || [];
+    var html = '';
+    for(var i=0; i<plugins.length; i++){
+      var p = plugins[i];
+      html += '<div class="stat-card" style="border-left:3px solid #8b5cf6;">'+
+        '<div style="display:flex;justify-content:space-between;align-items:start;">'+
+        '<div><span style="font-size:20px;">'+p.icon+'</span> <strong>'+p.name+'</strong></div>'+
+        '<span style="font-size:10px;color:var(--muted);">v'+p.version+'</span></div>'+
+        '<p style="font-size:11px;color:var(--muted);margin:4px 0;">'+p.description+'</p>'+
+        '<div style="display:flex;gap:4px;margin-top:6px;">'+
+        '<button class="action-btn start-btn" style="font-size:10px;" onclick="installPlugin(\''+p.name+'\')">📥 安装</button>'+
+        '<button class="action-btn stop-btn" style="font-size:10px;" onclick="uninstallPlugin(\''+p.name+'\')">🗑</button>'+
+        '<span style="font-size:9px;color:var(--muted);align-self:center;">'+p.installs+' installs</span></div></div>';
+    }
+    document.getElementById('pluginList').innerHTML = html || '<div class="stat-card" style="grid-column:1/-1;text-align:center;color:var(--muted);">暂无插件</div>';
+  });
+}
+function installPlugin(name){
+  fetch('/api/plugins/install/'+name, {method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    alert(d.status==='ok'?'✅ '+name+' 安装成功!':d.message||'失败');
+    renderPlugins();
+  });
+}
+function uninstallPlugin(name){
+  if(!confirm('卸载 '+name+'?')) return;
+  fetch('/api/plugins/uninstall/'+name, {method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    alert(d.status==='ok'?'🗑 '+name+' 已卸载':d.message);
+    renderPlugins();
   });
 }
 

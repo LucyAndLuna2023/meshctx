@@ -1257,6 +1257,29 @@ async def list_categories():
     return {"categories": registry.get("categories", [])}
 
 
+@app.post("/api/plugins/uninstall/{plugin_name}")
+async def uninstall_plugin(plugin_name: str):
+    """卸载插件"""
+    import json, shutil
+    from pathlib import Path
+    
+    registry_path = Path(__file__).resolve().parent.parent / "plugins" / "registry.json"
+    plugin_dir = Path(__file__).resolve().parent.parent / "plugins" / plugin_name
+    
+    # 删除插件目录
+    if plugin_dir.exists():
+        shutil.rmtree(plugin_dir)
+    
+    if registry_path.exists():
+        with open(registry_path) as f:
+            registry = json.load(f)
+        registry["plugins"] = [p for p in registry.get("plugins", []) if p["name"] != plugin_name]
+        with open(registry_path, "w") as f:
+            json.dump(registry, f, indent=2, ensure_ascii=False)
+    
+    return {"status": "ok", "plugin": plugin_name, "message": f"插件 {plugin_name} 已卸载"}
+
+
 # ── v1.5.0 系统总览摘要 (Desktop专属) ────────────────────
 
 @app.get("/api/system/summary")
