@@ -1,9 +1,18 @@
 """
-meshctx v1.1 — 主动推理引擎 (Active Inference Engine)
+MeshCtx Active Inference Engine — Proprietary Core
+====================================================
+Copyright (c) 2026 MeshCtx. ALL RIGHTS RESERVED.
+
+Implements active inference with expected free energy minimization,
+information gain maximization, and precision-weighted learning —
+proprietary algorithms.
+
+License: AGPLv3 for non-commercial use only.
+         Commercial use REQUIRES a separate license.
+         Contact: license@meshctx.com
 
 跨学科融合:
 - 认知科学: 感知与行动的数学统一 → 行动服务于信念更新
-- 经济学: 期望效用理论 → 期望自由能作为决策准则
 - 博弈论: 与环境的动态博弈 → 策略选择对抗不确定性
 - 信息论: 信息增益最大化 → 认知价值驱动探索
 - 神经科学: 多巴胺编码预测误差 → 精密加权的学习信号

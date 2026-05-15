@@ -1,5 +1,15 @@
 """
-meshctx v1.1 — 内稳态调节引擎 (Homeostatic Allostasis)
+MeshCtx Homeostasis Engine — Proprietary Core
+==============================================
+Copyright (c) 2026 MeshCtx. ALL RIGHTS RESERVED.
+
+Implements allostatic regulation with multi-dimensional homeostatic
+variables, predictive allostasis, and adaptive set-points —
+proprietary algorithms.
+
+License: AGPLv3 for non-commercial use only.
+         Commercial use REQUIRES a separate license.
+         Contact: license@meshctx.com
 
 跨学科融合:
 - 生理学: Cannon的内稳态 → 维持内部环境稳定

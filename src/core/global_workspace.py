@@ -1,5 +1,15 @@
 """
-meshctx v1.1 — 全局工作空间 (Global Workspace Architecture)
+MeshCtx Global Workspace — Proprietary Core
+============================================
+Copyright (c) 2026 MeshCtx. ALL RIGHTS RESERVED.
+
+Implements Baars-Dehaene Global Workspace Theory with competitive
+agent broadcasting, ignition thresholds, and workspace consolidation —
+proprietary algorithms.
+
+License: AGPLv3 for non-commercial use only.
+         Commercial use REQUIRES a separate license.
+         Contact: license@meshctx.com
 
 跨学科融合:
 - 认知科学: Baars的全局工作空间理论 → 意识作为信息广播机制

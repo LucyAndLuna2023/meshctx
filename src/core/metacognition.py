@@ -1,5 +1,15 @@
 """
-meshctx v1.0 元认知引擎 (Meta-Cognition Engine)
+MeshCtx Metacognition Engine — Proprietary Core
+================================================
+Copyright (c) 2026 MeshCtx. ALL RIGHTS RESERVED.
+
+Implements hierarchical metacognitive monitoring with uncertainty
+calibration, self-evaluation loops, and adaptive strategy selection —
+proprietary algorithms.
+
+License: AGPLv3 for non-commercial use only.
+         Commercial use REQUIRES a separate license.
+         Contact: license@meshctx.com
 
 核心循环:
 1. Self-Evaluate: 任务后自评(成功/质量/耗时/错误分类)

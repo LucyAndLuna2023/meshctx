@@ -1,11 +1,11 @@
 <p align="center">
   <img src="docs/assets/logo.png" alt="meshctx" width="200">
-  <h1 align="center">🧠 MeshCtx v2.3</h1>
-  <h3 align="center">世界首个全脑仿真 AI Agent — 10脑区超级大脑 + 插件市场 + 本地文件直读</h3>
+  <h1 align="center">🧠 MeshCtx v2.7</h1>
+  <h3 align="center">世界首个全脑仿真 AI Agent — 13脑区超级大脑 + Web搜索 + 插件市场 + 本地文件</h3>
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPLv3-blue.svg"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPLv3%20%2B%20Commercial-blue.svg"></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.10%2B-green"></a>
   <a href="#"><img src="https://img.shields.io/badge/tests-673%2F673-brightgreen"></a>
   <a href="#"><img src="https://img.shields.io/badge/plugins-12+5-purple"></a>
@@ -15,7 +15,7 @@
 
 ---
 
-> **MeshCtx 是世界首个全脑仿真 AI Agent 平台。** v2.3 打通10脑区全脑架构+插件生态：预测引擎×自由能、元认知×主动推理、全局工作空间×OODA循环。673测试全部通过，跨 7 学科融合，7 语言全覆盖。
+> **MeshCtx 是世界首个全脑仿真 AI Agent 平台。** v2.7 打通13脑区全脑架构+Web搜索+插件生态：预测引擎×自由能、元认知×主动推理、全局工作空间×OODA循环。673测试全部通过，跨 7 学科融合，7 语言全覆盖。**框架AGPLv3开源 | 核心大脑源码可见，商业授权需联系。**
 
 ## 🖥️ 桌面客户端 (v1.3 新增)
 

@@ -362,7 +362,7 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
      ondrop="event.preventDefault();this.style.borderColor='#334155';handleDrop(event)"></div>
     <div id="fileTag" style="margin-top:8px;font-size:12px;color:#38bdf8;display:none;"></div>
     <div style="display:flex;gap:8px;margin-top:16px;">
-        <input id="userInput" placeholder="输入消息... (/read 路径读文件, /ls 路径列目录)" style="flex:1;" onkeydown="if(event.key==='Enter')send()">
+        <input id="userInput" placeholder="/read 读文件 /ls 列目录 /search 搜索网页" style="flex:1;" onkeydown="if(event.key==='Enter')send()">
         <button class="btn" style="background:#334155;color:#94a3b8;font-size:16px;padding:8px 12px;" onclick="document.getElementById('fileInput').click()" title="上传文件">📎</button>
         <button class="btn btn-primary" onclick="send()">发送</button>
     </div>
@@ -597,6 +597,23 @@ async function send() {
             }
             msg = cmd + ' ' + fpath;
         } catch(e) { alert('读取失败: ' + e.message); return; }
+    }
+    
+    // v2.7: Web搜索 /search 
+    if (msg.startsWith('/search ')) {
+        var query = msg.substring(8).trim();
+        if (!query) { alert('用法: /search 搜索词'); return; }
+        try {
+            var res = await fetch('/api/search?q=' + encodeURIComponent(query));
+            var data = await res.json();
+            var results = data.results || [];
+            var searchBlock = '[Web搜索: ' + query + ']\n';
+            for (var i=0; i<results.length; i++) {
+                searchBlock += (i+1) + '. ' + results[i].title + '\n   ' + results[i].snippet + '\n   ' + results[i].url + '\n\n';
+            }
+            fullMsg = searchBlock + '\n用户消息: 请基于以上搜索结果回答';
+            msg = '/search ' + query;
+        } catch(e) { alert('搜索失败: ' + e.message); return; }
     }
     
     // v1.7: 多文件批量上传

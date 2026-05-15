@@ -1,6 +1,30 @@
 """
-MeshCtx v1.9 — 超级大脑架构 (Super Brain Architecture)
-========================================================
+MeshCtx Super Brain Architecture — Proprietary Core
+=====================================================
+Copyright (c) 2026 MeshCtx. ALL RIGHTS RESERVED.
+
+This module contains proprietary brain-inspired algorithms that form
+the core intellectual property of MeshCtx. It is NOT open-source.
+
+License: AGPLv3 for non-commercial use only.
+         Commercial use REQUIRES a separate license.
+         Contact: license@meshctx.com
+
+Protected Algorithms:
+  - SuperBrainOrchestrator (10-region whole-brain emulation)
+  - HippocampalReplay (sharp-wave ripple memory consolidation)
+  - SalienceTagger (amygdala emotional evaluation)
+  - DefaultModeNetwork (background creative ideation)
+  - ThalamicGate (TRN attention gating)
+  - ForwardModel (cerebellar internal simulation)
+  - ActionSelector (basal ganglia TD-learning)
+  - ConflictMonitor (ACC error detection)
+  - InteroceptionEngine (insular self-monitoring)
+  - TheoryOfMind (mirror neuron intent inference)
+  - STDPLearner (spike-timing-dependent plasticity)
+  - EmotionalConsolidation (amygdala-hippocampus coupling)
+  - IITConsciousness (integrated information Φ metric)
+
 基于全脑仿真理论，实现接近100%人脑认知能力的计算架构。
 
 核心脑区映射:

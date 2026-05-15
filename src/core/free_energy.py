@@ -1,5 +1,15 @@
 """
-meshctx v1.1 — 自由能计算引擎 (Free Energy Engine)
+MeshCtx Free Energy Engine — Proprietary Core
+==============================================
+Copyright (c) 2026 MeshCtx. ALL RIGHTS RESERVED.
+
+Implements Karl Friston's Free Energy Principle with variational
+inference, KL-divergence surprise metrics, and precision-weighted
+prediction errors — proprietary algorithms.
+
+License: AGPLv3 for non-commercial use only.
+         Commercial use REQUIRES a separate license.
+         Contact: license@meshctx.com
 
 跨学科融合：
 - 脑科学: Friston自由能原理 → 变分推断在神经网络中的实现

@@ -1,6 +1,14 @@
 """
-meshctx v1.6 — 动态路由与神经符号模块 (Dynamic Router + Symbolic Projector)
-============================================================================
+MeshCtx Brain Router — Proprietary Core
+========================================
+Copyright (c) 2026 MeshCtx. ALL RIGHTS RESERVED.
+
+This module implements dynamic neural routing with Gumbel-softmax
+gating and surprise-modulated temperature — proprietary algorithms.
+
+License: AGPLv3 for non-commercial use only.
+         Commercial use REQUIRES a separate license.
+         Contact: license@meshctx.com
 
 基于论文《Global Workspace Theory 2.0: Neural Implementations in LLMs》(2026.04.30)
 实现核心改进：

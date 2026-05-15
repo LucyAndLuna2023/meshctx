@@ -1017,6 +1017,36 @@ async def test_model_connection(model_id: str):
 
 # ── v2.2 本地文件访问 API ──────────────────────────────────
 
+@app.get("/api/search")
+async def web_search(q: str = "", engine: str = "duckduckgo"):
+    """Web搜索 (v2.7 — 对标Perplexity/Claude Web Search)"""
+    if not q:
+        raise HTTPException(400, "请提供搜索词 q 参数")
+    
+    import urllib.request
+    import urllib.parse
+    import json as _json
+    
+    results = []
+    try:
+        if engine == "duckduckgo":
+            # DuckDuckGo Instant Answer API
+            url = f"https://api.duckduckgo.com/?q={urllib.parse.quote(q)}&format=json&no_html=1"
+            req = urllib.request.Request(url, headers={"User-Agent": "MeshCtx/2.7"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = _json.loads(resp.read())
+                if data.get("Abstract"):
+                    results.append({"title": data.get("Heading", q), "snippet": data["Abstract"], "url": data.get("AbstractURL", "")})
+                for topic in data.get("RelatedTopics", [])[:5]:
+                    if isinstance(topic, dict) and "Text" in topic:
+                        results.append({"title": topic.get("FirstURL", "").split("/")[-1], "snippet": topic["Text"], "url": topic.get("FirstURL", "")})
+    except Exception as e:
+        logger.warning(f"Web搜索失败 ({engine}): {e}")
+        results.append({"title": "搜索失败", "snippet": f"DuckDuckGo不可用: {e}", "url": ""})
+    
+    return {"query": q, "engine": engine, "results": results[:8], "total": len(results)}
+
+
 @app.get("/api/file/read")
 async def read_local_file(path: str = ""):
     """读取本地文件内容 (支持WSL/Windows路径自动翻译)"""

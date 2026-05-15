@@ -1,8 +1,17 @@
 """
-meshctx v1.5.26 — 混合推理调度器 (Hybrid Reasoning Scheduler)
+MeshCtx Hybrid Reasoning Scheduler — Proprietary Core
+======================================================
+Copyright (c) 2026 MeshCtx. ALL RIGHTS RESERVED.
+
+Implements free-energy-gated reasoning mode switching between
+exploratory deep reasoning and fast direct generation —
+proprietary algorithms.
+
+License: AGPLv3 for non-commercial use only.
+         Commercial use REQUIRES a separate license.
+         Contact: license@meshctx.com
 
 核心思想:
-在 Chat 流程中，用自由能 F 值决定走"探索模式"还是"直出模式"。
 
 - 高惊讶 / 高不确定性 (F > 阈值) → 探索模式: 先执行主动推理策略积累证据，再回答
 - 低惊讶 / 低不确定性 (F < 阈值) → 直出模式: 直接 LLM 回答
