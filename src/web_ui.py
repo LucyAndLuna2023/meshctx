@@ -1964,13 +1964,17 @@ function renderPlugins(){
     var html = '';
     for(var i=0; i<plugins.length; i++){
       var p = plugins[i];
-      html += '<div class="stat-card" style="border-left:3px solid #8b5cf6;">'+
+      var badge = p.builtin ? '<span style="background:#8b5cf6;color:#fff;font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px;">内置</span>' : '';
+      var installBtn = p.builtin 
+        ? (p.installs > 0 ? '<span style="font-size:10px;color:#22c55e;">✅ 已激活</span>' : '<button class="action-btn start-btn" style="font-size:10px;" onclick="installPlugin(\''+p.name+'\')">⚡ 激活</button>')
+        : '<button class="action-btn start-btn" style="font-size:10px;" onclick="installPlugin(\''+p.name+'\')">📥 安装</button>';
+      html += '<div class="stat-card" style="border-left:3px solid '+(p.builtin?'#8b5cf6':'#06b6d4')+';">'+
         '<div style="display:flex;justify-content:space-between;align-items:start;">'+
-        '<div><span style="font-size:20px;">'+p.icon+'</span> <strong>'+p.name+'</strong></div>'+
+        '<div><span style="font-size:20px;">'+p.icon+'</span> <strong>'+p.name+'</strong>'+badge+'</div>'+
         '<span style="font-size:10px;color:var(--muted);">v'+p.version+'</span></div>'+
         '<p style="font-size:11px;color:var(--muted);margin:4px 0;">'+p.description+'</p>'+
         '<div style="display:flex;gap:4px;margin-top:6px;">'+
-        '<button class="action-btn start-btn" style="font-size:10px;" onclick="installPlugin(\''+p.name+'\')">📥 安装</button>'+
+        installBtn+
         '<button class="action-btn stop-btn" style="font-size:10px;" onclick="uninstallPlugin(\''+p.name+'\')">🗑</button>'+
         '<span style="font-size:9px;color:var(--muted);align-self:center;">'+p.installs+' installs</span></div></div>';
     }

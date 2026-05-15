@@ -1410,7 +1410,7 @@ async def get_plugin(plugin_name: str):
 
 @app.post("/api/plugins/install/{plugin_name}")
 async def install_plugin(plugin_name: str):
-    """安装插件 (从GitHub下载manifest)"""
+    """安装插件 (从GitHub下载manifest或启用内置)"""
     import json
     from pathlib import Path
     
@@ -1432,15 +1432,22 @@ async def install_plugin(plugin_name: str):
     if not plugin:
         raise HTTPException(404, f"插件 {plugin_name} 不存在")
     
-    # 尝试下载manifest (实际安装逻辑)
+    # 内置插件直接激活
+    if plugin.get("builtin"):
+        registry["plugins"][plugin_idx]["installs"] += 1
+        with open(registry_path, "w") as f:
+            json.dump(registry, f, indent=2, ensure_ascii=False)
+        return {"status": "ok", "plugin": plugin_name, "builtin": True,
+                "message": f"内置插件 {plugin_name} 已激活"}
+    
+    # 尝试下载manifest
     try:
         import urllib.request
         manifest_url = plugin.get("download_url", "")
         if manifest_url:
-            req = urllib.request.Request(manifest_url, headers={"User-Agent": "MeshCtx/2.0"})
+            req = urllib.request.Request(manifest_url, headers={"User-Agent": "MeshCtx/2.9"})
             with urllib.request.urlopen(req, timeout=10) as resp:
                 manifest_data = json.loads(resp.read())
-                # 保存到本地plugins目录
                 plugin_dir = Path(__file__).resolve().parent.parent / "plugins" / plugin_name
                 plugin_dir.mkdir(parents=True, exist_ok=True)
                 with open(plugin_dir / "manifest.json", "w") as f:
