@@ -1453,6 +1453,10 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
         <div id="modelReadiness"></div>
       </div>
       <div class="card">
+        <h2>⚡ 性能基准 <span style="font-size:10px;color:var(--muted);">v2.9</span></h2>
+        <div id="perfBench" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px;"></div>
+      </div>
+      <div class="card">
         <h2>📜 事件时间线</h2>
         <div class="timeline" id="eventTimeline"></div>
       </div>
@@ -1600,6 +1604,30 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
 var REFRESH_SEC = 5, _timer = null, _data = null, _refreshPulse = false;
 var _phaseMap = {O:'Observe',Or:'Orient',D:'Decide',A:'Act'};
 
+// ═══ Performance Monitor v2.9 ═══
+function renderPerf(){
+  var el = document.getElementById('perfBench');
+  if(!el) return;
+  fetch('/api/project/index').then(function(r){return r.json()}).then(function(d){
+    var items = [
+      {label:'项目文件', value:d.total_files, unit:'个', color:'#38bdf8'},
+      {label:'代码行数', value:(d.total_lines/1000).toFixed(1)+'K', unit:'行', color:'#22c55e'},
+      {label:'语言', value:d.languages?Object.keys(d.languages).length:0, unit:'种', color:'#8b5cf6'},
+      {label:'索引速度', value:(d.scan_duration_ms||0).toFixed(0), unit:'ms', color:'#f59e0b'},
+    ];
+    var html = '';
+    items.forEach(function(it){
+      html += '<div style=\"text-align:center;padding:8px;background:#0f172a;border-radius:6px;\">'+
+        '<div style=\"font-size:20px;font-weight:700;color:'+it.color+';\">'+it.value+'</div>'+
+        '<div style=\"font-size:10px;color:var(--muted);\">'+it.label+'</div>'+
+        '</div>';
+    });
+    el.innerHTML = html;
+  }).catch(function(e){
+    el.innerHTML = '<span style=\"color:var(--muted);font-size:11px;\">索引未就绪</span>';
+  });
+}
+
 // Tab切换
 document.querySelectorAll('.tabbar .tab').forEach(function(t){
   t.onclick = function(){
@@ -1682,6 +1710,7 @@ function renderAll(d){
   renderLab(d);
   renderBrain();  // v2.0 Brain Monitor
   renderPlugins(); // v2.3 Plugin Market
+  renderPerf();    // v2.9 Perf Bench
   loadMeshctxMd();
   loadConversations();
 }
