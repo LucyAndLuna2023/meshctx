@@ -1461,6 +1461,15 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
         <div id="memoryViz" style="font-size:12px;color:var(--muted);">加载中...</div>
       </div>
       <div class="card">
+        <h2>⚡ 快捷操作</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <button class="action-btn start-btn" onclick="quickSearch()" style="font-size:11px;">🔍 网页搜索</button>
+          <button class="action-btn" onclick="document.querySelector('.tab[data-pane=\"sandbox-dt\"]').click()" style="font-size:11px;background:#334155;color:#e2e8f0;">🖥️ 沙箱</button>
+          <button class="action-btn" onclick="document.querySelector('.tab[data-pane=\"project-dt\"]').click();refreshProjectIndex()" style="font-size:11px;background:#334155;color:#e2e8f0;">📂 索引</button>
+          <button class="action-btn" onclick="document.querySelector('.tab[data-pane=\"brain\"]').click()" style="font-size:11px;background:#334155;color:#e2e8f0;">🧠 脑图</button>
+        </div>
+      </div>
+      <div class="card">
         <h2>📜 事件时间线</h2>
         <div class="timeline" id="eventTimeline"></div>
       </div>
@@ -1630,6 +1639,17 @@ function renderPerf(){
   }).catch(function(e){
     el.innerHTML = '<span style=\"color:var(--muted);font-size:11px;\">索引未就绪</span>';
   });
+}
+
+// ═══ Quick Actions v2.9 ═══
+function quickSearch(){
+  var q = prompt('🔍 网页搜索:');
+  if(!q) return;
+  document.querySelector('.tab[data-pane="chat"]').click();
+  var iframe = document.getElementById('chatFrame');
+  if(iframe && iframe.contentWindow){
+    iframe.contentWindow.postMessage({type:'meshctx-quick-ask', message:'/search '+q}, '*');
+  }
 }
 
 // ═══ Memory Visualization v2.9 ═══
