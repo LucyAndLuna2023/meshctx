@@ -2453,7 +2453,7 @@ function deleteMcp(sid){
 fetchModels();
 startAutoRefresh();
 
-// ═══ Sandbox v2.8 ═══
+// ═══ Sandbox v2.8.1 SSE ═══
 function runSandbox(){
   var lang = document.getElementById('sandboxLang').value;
   var code = document.getElementById('sandboxCode').value;
@@ -2462,17 +2462,48 @@ function runSandbox(){
   var resultEl = document.getElementById('sandboxResult');
   resultEl.style.display = 'block';
   resultEl.style.color = '#94a3b8';
-  resultEl.textContent = '⏳ 执行中...';
-  fetch('/api/sandbox/execute', {
+  resultEl.textContent = '⏳ 执行中...\n';
+  
+  // Use SSE streaming
+  fetch('/api/sandbox/execute/stream', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({code:code, language:lang, timeout:timeout})
-  }).then(function(r){return r.json()}).then(function(d){
-    var out = '';
-    if(d.stdout) out += d.stdout;
-    if(d.stderr) out += '\\n[STDERR]\\n' + d.stderr;
-    out += '\\n\\n[退出码: ' + d.exit_code + ' | 耗时: ' + d.duration_ms + 'ms | ' + d.method + ']';
-    resultEl.textContent = out;
-    resultEl.style.color = d.success ? '#22c55e' : '#fca5a5';
+  }).then(function(response){
+    var reader = response.body.getReader();
+    var decoder = new TextDecoder();
+    resultEl.textContent = '';
+    
+    function read(){
+      reader.read().then(function(result){
+        if(result.done){
+          resultEl.style.color = '#22c55e';
+          return;
+        }
+        var text = decoder.decode(result.value, {stream:true});
+        var lines = text.split('\n');
+        for(var i=0;i<lines.length;i++){
+          if(lines[i].startsWith('data: ')){
+            try{
+              var d = JSON.parse(lines[i].substring(6));
+              if(d.type==='stdout' && d.line !== undefined){
+                resultEl.textContent += d.line + '\n';
+              }else if(d.type==='stderr' && d.line){
+                resultEl.textContent += '[STDERR] ' + d.line + '\n';
+              }else if(d.type==='done'){
+                resultEl.textContent += '\n[退出码: '+d.exit_code+' | 耗时: '+d.duration_ms+'ms | '+d.method+']';
+                resultEl.style.color = d.exit_code===0 ? '#22c55e' : '#fca5a5';
+              }else if(d.type==='error'){
+                resultEl.textContent += '\n[ERROR] ' + d.message;
+                resultEl.style.color = '#fca5a5';
+              }
+            }catch(e){}
+          }
+        }
+        resultEl.scrollTop = resultEl.scrollHeight;
+        read(); // Continue reading
+      });
+    }
+    read();
   }).catch(function(e){
     resultEl.textContent = '执行失败: ' + e.message;
     resultEl.style.color = '#fca5a5';

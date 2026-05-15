@@ -1069,6 +1069,50 @@ async def sandbox_execute(req: Request):
     return result.to_dict()
 
 
+@app.post("/api/sandbox/execute/stream")
+async def sandbox_execute_stream(req: Request):
+    """代码沙箱流式执行 (v2.8.1 — SSE)"""
+    try:
+        body = await req.json()
+    except Exception:
+        raise HTTPException(400, "请求body需为JSON")
+    
+    code = body.get("code", "")
+    language = body.get("language", "python")
+    timeout = min(int(body.get("timeout", 30)), 120)
+    
+    if not code or not code.strip():
+        raise HTTPException(400, "请提供 code 参数")
+    
+    from src.core.sandbox import get_sandbox
+    import asyncio
+    
+    async def generate():
+        sandbox = get_sandbox()
+        yield f"data: {json.dumps({'type': 'start', 'language': language})}\n\n"
+        
+        try:
+            result = await sandbox.execute(code, language, timeout)
+            lines = result.stdout.split('\n')
+            for i, line in enumerate(lines):
+                if i == len(lines) - 1 and not line:
+                    break
+                yield f"data: {json.dumps({'type': 'stdout', 'line': line, 'index': i})}\n\n"
+                await asyncio.sleep(0.01)  # Small delay for stream effect
+            
+            if result.stderr:
+                for line in result.stderr.split('\n'):
+                    if line.strip():
+                        yield f"data: {json.dumps({'type': 'stderr', 'line': line})}\n\n"
+            
+            yield f"data: {json.dumps({'type': 'done', 'exit_code': result.exit_code, 'duration_ms': result.duration_ms, 'method': result.method, 'truncated': result.truncated})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
 @app.get("/api/project/index")
 async def project_index(root: str = "."):
     """项目索引状态 (v2.7)"""
