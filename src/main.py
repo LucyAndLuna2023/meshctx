@@ -163,6 +163,16 @@ async def lifespan(app: FastAPI):
 
     logger.info(f"事件总线: {_kernel.bus.get_stats()['subscriptions']} 订阅")
 
+    # v2.13: 自动激活内置插件
+    from .core.plugin_autoload import auto_activate_builtins
+    builtin_count = auto_activate_builtins()
+    logger.info(f"内置插件自动激活: {builtin_count}")
+
+    # v2.13: 启动WebSocket实时推送
+    from .core.realtime_push import get_hub
+    asyncio.create_task(get_hub().start_broadcast_loop(interval=2.0))
+    logger.info("WebSocket实时推送已启动 (2s间隔)")
+
     watcher = ConfigWatcher()
     def _reload_config():
         logger.info("配置已变更，自动重载模型...")
