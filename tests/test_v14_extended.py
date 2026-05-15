@@ -42,7 +42,7 @@ class TestRestartRecovery:
         """FastAPI app可重复创建"""
         from src.main import app
         assert app is not None
-        assert app.title == "meshctx API"
+        assert app.title == "MeshCtx API"
 
     def test_health_endpoint_after_restart(self):
         """重启后health可用"""

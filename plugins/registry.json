@@ -66,6 +66,45 @@
       "entry_point": "data_viz/manifest.json",
       "download_url": "https://github.com/LucyAndLuna2023/meshctx-plugins/raw/main/data-visualizer/manifest.json",
       "installs": 0
+    },
+    {
+      "name": "sandbox-runner",
+      "version": "2.8.0",
+      "description": "代码沙箱 — Docker/子进程隔离执行 Python/Bash/JS，SSE流式输出",
+      "author": "MeshCtx Core",
+      "icon": "🖥️",
+      "category": "dev",
+      "permissions": ["exec:docker", "exec:subprocess"],
+      "platforms": ["windows", "macos", "linux"],
+      "entry_point": "sandbox/manifest.json",
+      "builtin": true,
+      "installs": 1
+    },
+    {
+      "name": "project-indexer",
+      "version": "2.8.0",
+      "description": "项目代码索引 — 15+语言符号提取，文件变更监控，/context上下文检索",
+      "author": "MeshCtx Core",
+      "icon": "📂",
+      "category": "dev",
+      "permissions": ["fs:read", "fs:watch"],
+      "platforms": ["windows", "macos", "linux"],
+      "entry_point": "project_indexer/manifest.json",
+      "builtin": true,
+      "installs": 1
+    },
+    {
+      "name": "feishu-notifier",
+      "version": "2.8.0",
+      "description": "飞书通知 — 卡片/文本/部署通知推送到Lark/Feishu群",
+      "author": "MeshCtx Core",
+      "icon": "📨",
+      "category": "integration",
+      "permissions": ["network:api"],
+      "platforms": ["windows", "macos", "linux"],
+      "entry_point": "feishu_notify/manifest.json",
+      "builtin": true,
+      "installs": 1
     }
   ],
   "categories": ["search", "dev", "system", "integration", "analytics"],

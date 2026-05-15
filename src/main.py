@@ -195,10 +195,20 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="meshctx API",
-    description="世界第一自进化Agent系统",
-    version="1.8.2",
+    title="MeshCtx API",
+    description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
+    version="2.9.1",
     lifespan=lifespan,
+    openapi_tags=[
+        {"name": "system", "description": "系统状态与配置"},
+        {"name": "chat", "description": "Chat对话与Agent交互"},
+        {"name": "sandbox", "description": "代码沙箱 — Python/Bash/JS安全执行"},
+        {"name": "project", "description": "项目索引 — 代码搜索与上下文"},
+        {"name": "feishu", "description": "飞书通知 — Lark/Feishu Webhook集成"},
+        {"name": "plugins", "description": "插件市场 — 安装/卸载/列表"},
+        {"name": "models", "description": "模型管理 — CRUD/切换/测试"},
+        {"name": "brain", "description": "超级大脑 — 13脑区监控与诊断"},
+    ],
 )
 
 app.add_middleware(
