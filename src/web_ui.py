@@ -1457,6 +1457,10 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
         <div id="perfBench" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px;"></div>
       </div>
       <div class="card">
+        <h2>🧠 记忆状态 <span style="font-size:10px;color:var(--muted);">v2.9</span></h2>
+        <div id="memoryViz" style="font-size:12px;color:var(--muted);">加载中...</div>
+      </div>
+      <div class="card">
         <h2>📜 事件时间线</h2>
         <div class="timeline" id="eventTimeline"></div>
       </div>
@@ -1628,6 +1632,33 @@ function renderPerf(){
   });
 }
 
+// ═══ Memory Visualization v2.9 ═══
+function renderMemory(){
+  var el = document.getElementById('memoryViz');
+  if(!el) return;
+  fetch('/api/system/summary').then(function(r){return r.json()}).then(function(d){
+    var mem = d.memory || {};
+    var items = [
+      {label:'工作记忆(L0)', value:mem.l0_count||0, color:'#38bdf8', max:100},
+      {label:'短期记忆(L1)', value:mem.l1_count||0, color:'#22c55e', max:500},
+      {label:'长期记忆(L2)', value:mem.l2_count||0, color:'#8b5cf6', max:2000},
+      {label:'归档记忆(L3)', value:mem.l3_count||0, color:'#f59e0b', max:10000},
+    ];
+    var html = '';
+    items.forEach(function(it){
+      var pct = Math.min(100, (it.value/it.max)*100);
+      html += '<div style="margin-bottom:8px;">'+
+        '<div style="display:flex;justify-content:space-between;margin-bottom:2px;">'+
+        '<span>'+it.label+'</span><span style="color:'+it.color+';">'+it.value+'</span></div>'+
+        '<div style="background:#1e293b;border-radius:4px;height:6px;overflow:hidden;">'+
+        '<div style="background:'+it.color+';width:'+pct+'%;height:100%;border-radius:4px;transition:width 0.5s;"></div></div></div>';
+    });
+    el.innerHTML = html || '<span style="color:var(--muted);">记忆数据获取中...</span>';
+  }).catch(function(e){
+    el.innerHTML = '<span style="color:var(--muted);">记忆系统未就绪</span>';
+  });
+}
+
 // Tab切换
 document.querySelectorAll('.tabbar .tab').forEach(function(t){
   t.onclick = function(){
@@ -1711,6 +1742,7 @@ function renderAll(d){
   renderBrain();  // v2.0 Brain Monitor
   renderPlugins(); // v2.3 Plugin Market
   renderPerf();    // v2.9 Perf Bench
+  renderMemory();  // v2.9 Memory Viz
   loadMeshctxMd();
   loadConversations();
 }
