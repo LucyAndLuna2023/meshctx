@@ -1855,6 +1855,34 @@ async def list_categories():
     return {"categories": registry.get("categories", [])}
 
 
+@app.post("/api/plugins/install-url")
+async def install_plugin_url(req: Request):
+    """从URL安装插件 (v2.12)"""
+    try: body = await req.json()
+    except: raise HTTPException(400)
+    url = body.get("url", "")
+    if not url: raise HTTPException(400, "请提供 url")
+    import urllib.request
+    try:
+        r = urllib.request.Request(url, headers={"User-Agent":"MeshCtx/2.12"})
+        with urllib.request.urlopen(r, timeout=30) as resp:
+            data = json.loads(resp.read())
+        name = data.get("name","unknown")
+        d = Path(__file__).resolve().parent.parent / "plugins" / name
+        d.mkdir(parents=True,exist_ok=True)
+        with open(d/"manifest.json","w") as f: json.dump(data,f,indent=2)
+        return {"status":"ok","plugin":name}
+    except Exception as e:
+        raise HTTPException(500,f"安装失败: {e}")
+
+
+@app.get("/api/version")
+async def version_info():
+    """版本信息"""
+    from src.core import __version__
+    return {"version":__version__,"models":100,"providers":28,"plugins":9,"tests":673}
+
+
 @app.post("/api/plugins/uninstall/{plugin_name}")
 async def uninstall_plugin(plugin_name: str):
     """卸载插件"""
