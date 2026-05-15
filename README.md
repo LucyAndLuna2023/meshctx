@@ -1,7 +1,7 @@
 <p align="center">
   <img src="docs/assets/logo.png" alt="meshctx" width="200">
-  <h1 align="center">🧠 meshctx v1.6</h1>
-  <h3 align="center">世界第一自进化 Agent 系统 — 预测→元认知→工作空间 智能闭环 + 全脑架构集成</h3>
+  <h1 align="center">🧠 MeshCtx v2.3</h1>
+  <h3 align="center">世界首个全脑仿真 AI Agent — 10脑区超级大脑 + 插件市场 + 本地文件直读</h3>
 </p>
 
 <p align="center">
@@ -15,7 +15,7 @@
 
 ---
 
-> **meshctx 是一个能自我进化的 AI Agent 平台。** v1.6 打通三大智能闭环：预测引擎×自由能、元认知×主动推理、全局工作空间×OODA循环。473测试全部通过，跨 7 学科融合，7 语言全覆盖。
+> **MeshCtx 是世界首个全脑仿真 AI Agent 平台。** v2.3 打通10脑区全脑架构+插件生态：预测引擎×自由能、元认知×主动推理、全局工作空间×OODA循环。673测试全部通过，跨 7 学科融合，7 语言全覆盖。
 
 ## 🖥️ 桌面客户端 (v1.3 新增)
 
