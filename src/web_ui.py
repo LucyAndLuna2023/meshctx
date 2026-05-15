@@ -815,6 +815,24 @@ async function send() {
         }
     }
     
+    // v2.12: Agent统计 /stats 命令
+    if (msg === '/stats') {
+        try {
+            var statsRes = await fetch('/api/agent/monitor');
+            var statsData = await statsRes.json();
+            var statsBlock = '[MeshCtx Agent Stats]\n'+
+                '⏱ Uptime: '+(statsData.uptime_seconds||0)+'s\n'+
+                '💬 Messages: '+(statsData.chat?.messages||0)+' | Tokens: '+(statsData.chat?.tokens||0)+'\n'+
+                '✅ Tasks: '+(statsData.tasks?.completed||0)+' | ❌ Failed: '+(statsData.tasks?.failed||0)+'\n'+
+                '🖥️ Sandbox: '+(statsData.tools?.sandbox||0)+' | 🔍 Search: '+(statsData.tools?.search||0)+'\n'+
+                '🪟 Windows: '+(statsData.tools?.windows||0)+' | 📄 Files: '+(statsData.tools?.file_reads||0)+'\n'+
+                '🧠 Brain: '+(statsData.brain_cycles||0)+' cycles\n'+
+                '❤️ Health: '+(statsData.health||'unknown')+'\n';
+            fullMsg = statsBlock + '\n用户消息: 请分析以上Agent运行统计';
+            msg = '/stats';
+        } catch(e) { alert('统计获取失败: '+e.message); return; }
+    }
+    
     // v1.7: 多文件批量上传
     if (uploadedContents && uploadedContents.length > 0) {
         let fileBlock = '';
