@@ -362,7 +362,7 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
      ondrop="event.preventDefault();this.style.borderColor='#334155';handleDrop(event)"></div>
     <div id="fileTag" style="margin-top:8px;font-size:12px;color:#38bdf8;display:none;"></div>
     <div style="display:flex;gap:8px;margin-top:16px;">
-        <input id="userInput" placeholder="/read 读文件 /ls 列目录 /search 搜索网页" style="flex:1;" onkeydown="if(event.key==='Enter')send()">
+        <input id="userInput" placeholder="/read 读文件 /ls 列目录 /search 搜索 /run 运行 /context 查代码" style="flex:1;" onkeydown="if(event.key==='Enter')send()">
         <button class="btn" style="background:#334155;color:#94a3b8;font-size:16px;padding:8px 12px;" onclick="document.getElementById('fileInput').click()" title="上传文件">📎</button>
         <button class="btn btn-primary" onclick="send()">发送</button>
     </div>
@@ -614,6 +614,47 @@ async function send() {
             fullMsg = searchBlock + '\n用户消息: 请基于以上搜索结果回答';
             msg = '/search ' + query;
         } catch(e) { alert('搜索失败: ' + e.message); return; }
+    }
+    
+    // v2.7: 代码沙箱 /run python|bash|js 代码
+    if (msg.startsWith('/run ')) {
+        var parts = msg.substring(5).trim();
+        var lang = 'python';
+        var code = parts;
+        // Parse: /run python print('hello')  or  /run bash echo hi
+        if (parts.match(/^(python|bash|javascript|js|sh)\s/)) {
+            var spaceIdx = parts.indexOf(' ');
+            lang = parts.substring(0, spaceIdx);
+            code = parts.substring(spaceIdx + 1);
+            if (lang === 'js') lang = 'javascript';
+            if (lang === 'sh') lang = 'bash';
+        }
+        if (!code) { alert('用法: /run [python|bash|js] 代码'); return; }
+        try {
+            var runRes = await fetch('/api/sandbox/execute', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({code:code, language:lang, timeout:30})
+            });
+            var runData = await runRes.json();
+            var runBlock = '[Sandbox执行: ' + lang + ']\\n```\\n' + (runData.stdout || '') + '\\n```\\n';
+            if (runData.stderr) runBlock += '[stderr]\\n```\\n' + runData.stderr + '\\n```\\n';
+            runBlock += '[退出码: ' + runData.exit_code + ' | 耗时: ' + runData.duration_ms + 'ms | 方式: ' + (runData.method||'unknown') + ']\\n';
+            fullMsg = runBlock + '\\n用户消息: 请分析以上执行结果并回答';
+            msg = '/run ' + lang + ' ' + code.substring(0, 50);
+        } catch(e) { alert('沙箱执行失败: ' + e.message); return; }
+    }
+    
+    // v2.7: 项目上下文 /context 查询
+    if (msg.startsWith('/context ')) {
+        var query = msg.substring(9).trim();
+        if (!query) { alert('用法: /context 搜索词'); return; }
+        try {
+            var ctxRes = await fetch('/api/project/context?q=' + encodeURIComponent(query));
+            var ctxData = await ctxRes.json();
+            var ctxBlock = '[项目上下文: ' + query + ']\\n```\\n' + ctxData.context + '\\n```\\n';
+            fullMsg = ctxBlock + '\\n用户消息: 请基于以上项目上下文回答';
+            msg = '/context ' + query;
+        } catch(e) { alert('项目索引失败: ' + e.message); return; }
     }
     
     // v1.7: 多文件批量上传

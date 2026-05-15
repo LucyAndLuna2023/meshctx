@@ -1047,6 +1047,81 @@ async def web_search(q: str = "", engine: str = "duckduckgo"):
     return {"query": q, "engine": engine, "results": results[:8], "total": len(results)}
 
 
+@app.post("/api/sandbox/execute")
+async def sandbox_execute(req: Request):
+    """代码沙箱执行 (v2.7 — 对标Open Interpreter/Claude Code)"""
+    try:
+        body = await req.json()
+    except Exception:
+        raise HTTPException(400, "请求body需为JSON")
+    
+    code = body.get("code", "")
+    language = body.get("language", "python")
+    timeout = min(int(body.get("timeout", 30)), 120)
+    
+    if not code or not code.strip():
+        raise HTTPException(400, "请提供 code 参数")
+    
+    from src.core.sandbox import get_sandbox
+    
+    sandbox = get_sandbox()
+    result = await sandbox.execute(code, language, timeout)
+    return result.to_dict()
+
+
+@app.get("/api/project/index")
+async def project_index(root: str = "."):
+    """项目索引状态 (v2.7)"""
+    from src.core.project_indexer import get_indexer
+    idx = get_indexer(root)
+    stats = idx.scan()
+    return {
+        "root": str(idx.project_root),
+        "total_files": stats.total_files,
+        "total_size": stats.total_size,
+        "total_lines": stats.total_lines,
+        "languages": stats.languages,
+        "scan_duration_ms": stats.scan_duration_ms,
+        "last_scan": stats.last_scan,
+    }
+
+
+@app.get("/api/project/search")
+async def project_search(q: str = "", root: str = ".", top_k: int = 10):
+    """搜索项目文件 (v2.7)"""
+    if not q:
+        raise HTTPException(400, "请提供 q 参数")
+    from src.core.project_indexer import get_indexer
+    idx = get_indexer(root)
+    results = idx.search(q, top_k)
+    return {
+        "query": q,
+        "count": len(results),
+        "results": [
+            {
+                "path": r.path,
+                "language": r.language,
+                "symbols": r.symbols[:20],
+                "summary": r.summary,
+                "line_count": r.line_count,
+                "size": r.size,
+            }
+            for r in results
+        ],
+    }
+
+
+@app.get("/api/project/context")
+async def project_context(q: str = "", root: str = ".", max_chars: int = 8000):
+    """获取项目上下文 (v2.7 — 对标Cursor/Windsurf)"""
+    if not q:
+        raise HTTPException(400, "请提供 q 参数")
+    from src.core.project_indexer import get_indexer
+    idx = get_indexer(root)
+    context = idx.get_context(q, max_chars)
+    return {"query": q, "context": context, "chars": len(context)}
+
+
 @app.get("/api/file/read")
 async def read_local_file(path: str = ""):
     """读取本地文件内容 (支持WSL/Windows路径自动翻译)"""
