@@ -112,8 +112,10 @@ from .model_compare import compare_models, compare_models_stream
 from .conversation_store import Conversation, get_or_create
 from .code_reviewer import CodeReviewer, ReviewIssue
 from .agent_monitor import AgentMonitor, AgentMetrics, get_monitor
+from .plugin_autoload import discover_plugins, auto_activate_builtins
+from .agent_tasks import AgentTask
 
-__version__ = "2.12.5"
+__version__ = "2.13.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",

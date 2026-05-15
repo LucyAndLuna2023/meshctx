@@ -1911,6 +1911,61 @@ async def system_resources():
     }
 
 
+# ═══════════════════════════════════════════════════
+# Agent任务持久化 (v2.13)
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/tasks")
+async def list_tasks():
+    """Agent任务历史"""
+    from src.core.agent_tasks import AgentTask
+    return {"tasks": AgentTask.list_recent(30), "stats": AgentTask.stats()}
+
+
+@app.post("/api/tasks")
+async def create_task(req: Request):
+    """创建Agent任务"""
+    try: body = await req.json()
+    except: body = {}
+    from src.core.agent_tasks import AgentTask
+    t = AgentTask(
+        title=body.get("title", "Untitled"),
+        priority=body.get("priority", 5),
+        agent=body.get("agent", ""),
+    )
+    t.save()
+    return t.to_dict()
+
+
+@app.post("/api/tasks/{task_id}/status")
+async def update_task_status(task_id: str, req: Request):
+    """更新任务状态"""
+    try: body = await req.json()
+    except: raise HTTPException(400)
+    from src.core.agent_tasks import AgentTask
+    t = AgentTask.load(task_id)
+    if not t:
+        raise HTTPException(404)
+    t.status = body.get("status", t.status)
+    if body.get("result"): t.result = body["result"]
+    if body.get("error"): t.error = body["error"]
+    t.save()
+    return t.to_dict()
+
+
+# ═══════════════════════════════════════════════════
+# 插件自动发现 (v2.13)
+# ═══════════════════════════════════════════════════
+
+@app.post("/api/plugins/autoload")
+async def autoload_plugins():
+    """自动激活所有内置插件"""
+    from src.core.plugin_autoload import auto_activate_builtins, discover_plugins
+    count = auto_activate_builtins()
+    all_plugins = discover_plugins()
+    return {"activated": count, "total": len(all_plugins), "plugins": [p.get("name") for p in all_plugins]}
+
+
 @app.post("/api/plugins/uninstall/{plugin_name}")
 async def uninstall_plugin(plugin_name: str):
     """卸载插件"""
