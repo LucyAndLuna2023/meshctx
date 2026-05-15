@@ -1490,6 +1490,17 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
         <div id="convHistoryList" style="max-height:300px;overflow-y:auto;font-size:12px;"></div>
       </div>
       <div class="card">
+        <h2>📨 飞书通知 <span style="font-size:10px;color:var(--muted);">v2.8 新</span>
+          <span style="flex:1"></span>
+          <button class="action-btn start-btn" onclick="testFeishu()" style="font-size:10px;">🧪 测试</button>
+          <button class="action-btn" onclick="saveFeishu()" style="font-size:10px;">💾 保存</button>
+        </h2>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">配置飞书机器人Webhook，接收部署/健康/错误实时通知</div>
+        <div class="form-group"><label>Webhook URL</label><input id="feishuUrl" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxx" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:6px 10px;border-radius:4px;font-size:12px;"></div>
+        <div class="form-group"><label>签名密钥 (可选)</label><input id="feishuSecret" type="password" placeholder="HMAC签名密钥" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:6px 10px;border-radius:4px;font-size:12px;"></div>
+        <div id="feishuStatus" style="font-size:11px;margin-top:6px;"></div>
+      </div>
+      <div class="card">
         <h2>🔧 MCP 服务器管理
           <span style="flex:1"></span>
           <button class="action-btn start-btn" onclick="showAddMcpForm()" style="font-size:10px;">+ 添加</button>
@@ -1585,7 +1596,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
   </div>
 </div>
 <script>
-// ═══ v2.8.0 Desktop Dashboard — 富数据+自动刷新 ═══
+// ═══ v2.9.0 Desktop Dashboard — 富数据+自动刷新 ═══
 var REFRESH_SEC = 5, _timer = null, _data = null, _refreshPulse = false;
 var _phaseMap = {O:'Observe',Or:'Orient',D:'Decide',A:'Act'};
 
@@ -2452,6 +2463,44 @@ function deleteMcp(sid){
 // ═══ 启动 ═══
 fetchModels();
 startAutoRefresh();
+
+// ═══ Feishu Webhook v2.9 ═══
+function saveFeishu(){
+  var url = document.getElementById('feishuUrl').value.trim();
+  var secret = document.getElementById('feishuSecret').value.trim();
+  if(!url){ alert('请输入Webhook URL'); return; }
+  localStorage.setItem('meshctx_feishu_url', url);
+  localStorage.setItem('meshctx_feishu_secret', secret);
+  document.getElementById('feishuStatus').innerHTML = '<span style="color:#22c55e;">✅ 已保存</span>';
+  setTimeout(function(){ document.getElementById('feishuStatus').innerHTML = ''; }, 2000);
+}
+function testFeishu(){
+  var url = document.getElementById('feishuUrl').value.trim();
+  var secret = document.getElementById('feishuSecret').value.trim();
+  if(!url){ alert('请先输入Webhook URL'); return; }
+  var statusEl = document.getElementById('feishuStatus');
+  statusEl.innerHTML = '<span style="color:#94a3b8;">⏳ 发送测试消息...</span>';
+  fetch('/api/feishu/test', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({webhook_url:url, secret:secret})
+  }).then(function(r){return r.json()}).then(function(d){
+    if(d.success){
+      statusEl.innerHTML = '<span style="color:#22c55e;">✅ 测试成功！请查看飞书群消息</span>';
+      saveFeishu();
+    }else{
+      statusEl.innerHTML = '<span style="color:#fca5a5;">❌ 发送失败，请检查Webhook地址</span>';
+    }
+  }).catch(function(e){
+    statusEl.innerHTML = '<span style="color:#fca5a5;">❌ 请求失败: '+e.message+'</span>';
+  });
+}
+// Load saved feishu config on init
+(function(){
+  var savedUrl = localStorage.getItem('meshctx_feishu_url');
+  var savedSecret = localStorage.getItem('meshctx_feishu_secret');
+  if(savedUrl) document.getElementById('feishuUrl').value = savedUrl;
+  if(savedSecret) document.getElementById('feishuSecret').value = savedSecret;
+})();
 
 // ═══ Sandbox v2.8.1 SSE ═══
 function runSandbox(){

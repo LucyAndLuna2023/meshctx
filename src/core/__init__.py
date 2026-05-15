@@ -108,7 +108,7 @@ from .sandbox import SandboxEngine, SandboxResult, get_sandbox
 from .project_indexer import ProjectIndexer, FileSummary, IndexStats, get_indexer
 from .feishu_notify import FeishuNotifier, FeishuPlugin
 
-__version__ = "2.8.0"
+__version__ = "2.9.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",

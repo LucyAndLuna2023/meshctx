@@ -25,7 +25,7 @@ logger = logging.getLogger("meshctx.desktop")
 # ── 全局配置 ─────────────────────────────────────────
 PORT = int(os.environ.get("MESHCTX_PORT", "3000"))
 HOST = "127.0.0.1"
-TITLE = "meshctx Desktop v1.8.2"
+TITLE = "meshctx Desktop v2.9.0"
 
 # 路径（兼容 PyInstaller 冻结模式）
 if getattr(sys, 'frozen', False):
