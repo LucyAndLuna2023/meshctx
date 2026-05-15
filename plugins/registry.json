@@ -105,6 +105,19 @@
       "entry_point": "feishu_notify/manifest.json",
       "builtin": true,
       "installs": 1
+    },
+    {
+      "name": "code-reviewer-ai",
+      "version": "2.12.0",
+      "description": "AI代码审查 — 12+检测规则,安全/风格/性能/文档四级评分",
+      "author": "MeshCtx Core",
+      "icon": "📝",
+      "category": "dev",
+      "permissions": ["fs:read", "model:call"],
+      "platforms": ["windows", "macos", "linux"],
+      "entry_point": "code_reviewer/manifest.json",
+      "builtin": true,
+      "installs": 1
     }
   ],
   "categories": ["search", "dev", "system", "integration", "analytics"],
