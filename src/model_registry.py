@@ -1,5 +1,5 @@
 """
-meshctx 极简模型系统
+MeshCtx 极简模型系统 — 100模型 · 28供应商 · 零配置
 和 OpenClaw / Hermes 一样简单
 
 用法:
@@ -14,10 +14,13 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 
 # ═══════════════════════════════════════════════════
-# 内置模型目录 — 30+ 模型，零配置可用
+# 内置模型目录 — 100+ 模型，30+ 供应商，零配置可用
 # ═══════════════════════════════════════════════════
 
 BUILTIN_MODELS = {
+    # ═════════════════════════════════════════════════
+    # 第1梯队 — 全球巨头
+    # ═════════════════════════════════════════════════
     # ── OpenAI ────────────────────────────────────────
     "openai:gpt-4o":           {"provider":"openai","base_url":"https://api.openai.com/v1","model":"gpt-4o","key_env":"OPENAI_API_KEY"},
     "openai:gpt-4o-mini":      {"provider":"openai","base_url":"https://api.openai.com/v1","model":"gpt-4o-mini","key_env":"OPENAI_API_KEY"},
@@ -27,19 +30,59 @@ BUILTIN_MODELS = {
     "openai:o4-mini":          {"provider":"openai","base_url":"https://api.openai.com/v1","model":"o4-mini","key_env":"OPENAI_API_KEY"},
     "openai:o3":               {"provider":"openai","base_url":"https://api.openai.com/v1","model":"o3","key_env":"OPENAI_API_KEY"},
     "openai:o3-mini":          {"provider":"openai","base_url":"https://api.openai.com/v1","model":"o3-mini","key_env":"OPENAI_API_KEY"},
+    "openai:gpt-4.5-preview":  {"provider":"openai","base_url":"https://api.openai.com/v1","model":"gpt-4.5-preview","key_env":"OPENAI_API_KEY"},
     # ── Anthropic ─────────────────────────────────────
     "anthropic:claude-opus":   {"provider":"anthropic","base_url":"https://api.anthropic.com/v1","model":"claude-opus-4-20250514","key_env":"ANTHROPIC_API_KEY"},
     "anthropic:claude-sonnet": {"provider":"anthropic","base_url":"https://api.anthropic.com/v1","model":"claude-sonnet-4-20250514","key_env":"ANTHROPIC_API_KEY"},
     "anthropic:claude-haiku":  {"provider":"anthropic","base_url":"https://api.anthropic.com/v1","model":"claude-3.5-haiku","key_env":"ANTHROPIC_API_KEY"},
+    "anthropic:claude-sonnet-3.5":{"provider":"anthropic","base_url":"https://api.anthropic.com/v1","model":"claude-3.5-sonnet","key_env":"ANTHROPIC_API_KEY"},
     # ── Google ────────────────────────────────────────
     "google:gemini-pro":       {"provider":"google","base_url":"https://generativelanguage.googleapis.com/v1beta/openai","model":"gemini-2.5-pro","key_env":"GEMINI_API_KEY"},
     "google:gemini-flash":     {"provider":"google","base_url":"https://generativelanguage.googleapis.com/v1beta/openai","model":"gemini-2.5-flash","key_env":"GEMINI_API_KEY"},
+    "google:gemini-flash-lite":{"provider":"google","base_url":"https://generativelanguage.googleapis.com/v1beta/openai","model":"gemini-2.5-flash-lite","key_env":"GEMINI_API_KEY"},
+    # ── xAI (Grok) ────────────────────────────────────
+    "xai:grok-3":              {"provider":"xai","base_url":"https://api.x.ai/v1","model":"grok-3-beta","key_env":"XAI_API_KEY"},
+    "xai:grok-3-mini":         {"provider":"xai","base_url":"https://api.x.ai/v1","model":"grok-3-mini-beta","key_env":"XAI_API_KEY"},
+    # ── Meta Llama (via Together) ─────────────────────
+    "together:llama-4-maverick":{"provider":"together","base_url":"https://api.together.xyz/v1","model":"meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8","key_env":"TOGETHER_API_KEY"},
+    "together:llama-4-scout":   {"provider":"together","base_url":"https://api.together.xyz/v1","model":"meta-llama/Llama-4-Scout-17B-16E-Instruct","key_env":"TOGETHER_API_KEY"},
+    "together:llama-3.3-70b":  {"provider":"together","base_url":"https://api.together.xyz/v1","model":"meta-llama/Llama-3.3-70B-Instruct-Turbo","key_env":"TOGETHER_API_KEY"},
+    "together:mixtral-8x22b":  {"provider":"together","base_url":"https://api.together.xyz/v1","model":"mistralai/Mixtral-8x22B-Instruct-v0.1","key_env":"TOGETHER_API_KEY"},
+    "together:deepseek-v3":    {"provider":"together","base_url":"https://api.together.xyz/v1","model":"deepseek-ai/DeepSeek-V3","key_env":"TOGETHER_API_KEY"},
+    "together:qwen3-30b":      {"provider":"together","base_url":"https://api.together.xyz/v1","model":"Qwen/Qwen3-30B-A3B","key_env":"TOGETHER_API_KEY"},
+    # ── Mistral ───────────────────────────────────────
+    "mistral:large":           {"provider":"mistral","base_url":"https://api.mistral.ai/v1","model":"mistral-large-latest","key_env":"MISTRAL_API_KEY"},
+    "mistral:small":           {"provider":"mistral","base_url":"https://api.mistral.ai/v1","model":"mistral-small-latest","key_env":"MISTRAL_API_KEY"},
+    "mistral:codestral":       {"provider":"mistral","base_url":"https://api.mistral.ai/v1","model":"codestral-latest","key_env":"MISTRAL_API_KEY"},
+    # ── Cohere ────────────────────────────────────────
+    "cohere:command-r-plus":   {"provider":"cohere","base_url":"https://api.cohere.com/v1","model":"command-r-plus","key_env":"COHERE_API_KEY"},
+    "cohere:command-r":        {"provider":"cohere","base_url":"https://api.cohere.com/v1","model":"command-r","key_env":"COHERE_API_KEY"},
+    # ── Groq (超快推理) ────────────────────────────────
+    "groq:llama-3.3-70b":      {"provider":"groq","base_url":"https://api.groq.com/openai/v1","model":"llama-3.3-70b-versatile","key_env":"GROQ_API_KEY"},
+    "groq:llama-4-scout":      {"provider":"groq","base_url":"https://api.groq.com/openai/v1","model":"meta-llama/Llama-4-Scout-17B-16E-Instruct","key_env":"GROQ_API_KEY"},
+    "groq:mixtral-8x7b":       {"provider":"groq","base_url":"https://api.groq.com/openai/v1","model":"mixtral-8x7b-32768","key_env":"GROQ_API_KEY"},
+    "groq:gemma2-9b":          {"provider":"groq","base_url":"https://api.groq.com/openai/v1","model":"gemma2-9b-it","key_env":"GROQ_API_KEY"},
+    "groq:deepseek-r1-llama":  {"provider":"groq","base_url":"https://api.groq.com/openai/v1","model":"deepseek-r1-distill-llama-70b","key_env":"GROQ_API_KEY"},
+    "groq:qwen-2.5-32b":       {"provider":"groq","base_url":"https://api.groq.com/openai/v1","model":"qwen-2.5-32b","key_env":"GROQ_API_KEY"},
+    # ── Perplexity ────────────────────────────────────
+    "perplexity:sonar":        {"provider":"perplexity","base_url":"https://api.perplexity.ai","model":"sonar","key_env":"PERPLEXITY_API_KEY"},
+    "perplexity:sonar-pro":    {"provider":"perplexity","base_url":"https://api.perplexity.ai","model":"sonar-pro","key_env":"PERPLEXITY_API_KEY"},
+    # ── OpenRouter (200+模型统一网关) ──────────────────
+    "openrouter:claude-sonnet": {"provider":"openrouter","base_url":"https://openrouter.ai/api/v1","model":"anthropic/claude-sonnet-4","key_env":"OPENROUTER_API_KEY"},
+    "openrouter:gpt-4o":       {"provider":"openrouter","base_url":"https://openrouter.ai/api/v1","model":"openai/gpt-4o","key_env":"OPENROUTER_API_KEY"},
+    "openrouter:gemini-pro":   {"provider":"openrouter","base_url":"https://openrouter.ai/api/v1","model":"google/gemini-2.5-pro","key_env":"OPENROUTER_API_KEY"},
+    "openrouter:llama-4":      {"provider":"openrouter","base_url":"https://openrouter.ai/api/v1","model":"meta-llama/llama-4-maverick","key_env":"OPENROUTER_API_KEY"},
+
+    # ═════════════════════════════════════════════════
+    # 第2梯队 — 中国主力军
+    # ═════════════════════════════════════════════════
     # ── DeepSeek ──────────────────────────────────────
     "deepseek:v4-pro":         {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-pro","key_env":"DEEPSEEK_API_KEY"},
     "deepseek:v4-flash":       {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-flash","key_env":"DEEPSEEK_API_KEY"},
     "deepseek:chat":           {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-chat","key_env":"DEEPSEEK_API_KEY"},
     "deepseek:reasoner":       {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-reasoner","key_env":"DEEPSEEK_API_KEY"},
-    # ── 阿里百炼 ──────────────────────────────────────
+    "deepseek:coder":          {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-coder","key_env":"DEEPSEEK_API_KEY"},
+    # ── 阿里百炼 (Qwen家族) ───────────────────────────
     "bailian:qwen3-flash":     {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen3-flash","key_env":"BAILIAN_API_KEY"},
     "bailian:qwen3-plus":      {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen3-plus","key_env":"BAILIAN_API_KEY"},
     "bailian:qwen3-max":       {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen3-max","key_env":"BAILIAN_API_KEY"},
@@ -51,50 +94,110 @@ BUILTIN_MODELS = {
     "bailian:qwq-plus":        {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwq-plus","key_env":"BAILIAN_API_KEY"},
     "bailian:deepseek-v3":     {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"deepseek-v3","key_env":"BAILIAN_API_KEY"},
     "bailian:deepseek-r1":     {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"deepseek-r1","key_env":"BAILIAN_API_KEY"},
-    # ── 智谱 ──────────────────────────────────────────
+    # ── 智谱 (GLM) ─────────────────────────────────────
     "zhipu:glm-4-plus":        {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4-plus","key_env":"ZHIPU_API_KEY"},
     "zhipu:glm-4":             {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4","key_env":"ZHIPU_API_KEY"},
     "zhipu:glm-4-flash":       {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4-flash","key_env":"ZHIPU_API_KEY"},
-    # ── 月之暗面 ──────────────────────────────────────
+    "zhipu:glm-4-air":         {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4-air","key_env":"ZHIPU_API_KEY"},
+    "zhipu:glm-4-flashx":      {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4-flashx","key_env":"ZHIPU_API_KEY"},
+    # ── 月之暗面 (Kimi) ────────────────────────────────
     "moonshot:kimi":           {"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"moonshot-v1-8k","key_env":"MOONSHOT_API_KEY"},
     "moonshot:kimi-32k":       {"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"moonshot-v1-32k","key_env":"MOONSHOT_API_KEY"},
-    # ── 字节豆包 ──────────────────────────────────────
+    "moonshot:kimi-128k":      {"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"moonshot-v1-128k","key_env":"MOONSHOT_API_KEY"},
+    # ── 字节豆包 (火山引擎) ────────────────────────────
     "doubao:pro-32k":          {"provider":"doubao","base_url":"https://ark.cn-beijing.volces.com/api/v3","model":"doubao-pro-32k","key_env":"DOUBAO_API_KEY"},
+    "doubao:pro-128k":         {"provider":"doubao","base_url":"https://ark.cn-beijing.volces.com/api/v3","model":"doubao-pro-128k","key_env":"DOUBAO_API_KEY"},
     "doubao:lite":             {"provider":"doubao","base_url":"https://ark.cn-beijing.volces.com/api/v3","model":"doubao-lite-32k","key_env":"DOUBAO_API_KEY"},
-    # ── 阶跃星辰 ──────────────────────────────────────
-    "step:step-2":             {"provider":"stepfun","base_url":"https://api.stepfun.com/v1","model":"step-2-16k","key_env":"STEPFUN_API_KEY"},
+    # ── 腾讯混元 ───────────────────────────────────────
+    "hunyuan:pro":             {"provider":"hunyuan","base_url":"https://api.hunyuan.cloud.tencent.com/v1","model":"hunyuan-pro","key_env":"HUNYUAN_API_KEY"},
+    "hunyuan:lite":            {"provider":"hunyuan","base_url":"https://api.hunyuan.cloud.tencent.com/v1","model":"hunyuan-lite","key_env":"HUNYUAN_API_KEY"},
+    # ── 讯飞星火 ───────────────────────────────────────
+    "spark:pro":               {"provider":"spark","base_url":"https://spark-api-open.xf-yun.com/v1","model":"spark-pro","key_env":"SPARK_API_KEY"},
+    "spark:max":               {"provider":"spark","base_url":"https://spark-api-open.xf-yun.com/v1","model":"spark-max","key_env":"SPARK_API_KEY"},
+    # ── 01.AI (Yi) ─────────────────────────────────────
+    "yi:yi-large":             {"provider":"yi","base_url":"https://api.lingyiwanwu.com/v1","model":"yi-large","key_env":"YI_API_KEY"},
+    "yi:yi-medium":            {"provider":"yi","base_url":"https://api.lingyiwanwu.com/v1","model":"yi-medium","key_env":"YI_API_KEY"},
+    "yi:yi-vision":            {"provider":"yi","base_url":"https://api.lingyiwanwu.com/v1","model":"yi-vision","key_env":"YI_API_KEY"},
+    # ── 百川 ──────────────────────────────────────────
+    "baichuan:baichuan4":      {"provider":"baichuan","base_url":"https://api.baichuan-ai.com/v1","model":"Baichuan4","key_env":"BAICHUAN_API_KEY"},
+    "baichuan:baichuan4-turbo":{"provider":"baichuan","base_url":"https://api.baichuan-ai.com/v1","model":"Baichuan4-Turbo","key_env":"BAICHUAN_API_KEY"},
     # ── MiniMax ───────────────────────────────────────
     "minimax:abab7":           {"provider":"minimax","base_url":"https://api.minimax.chat/v1","model":"abab7-chat","key_env":"MINIMAX_API_KEY"},
     "minimax:abab6.5":         {"provider":"minimax","base_url":"https://api.minimax.chat/v1","model":"abab6.5-chat","key_env":"MINIMAX_API_KEY"},
-    # ── 百川 ──────────────────────────────────────────
-    "baichuan:baichuan4":      {"provider":"baichuan","base_url":"https://api.baichuan-ai.com/v1","model":"Baichuan4","key_env":"BAICHUAN_API_KEY"},
-    # ── Mistral ───────────────────────────────────────
-    "mistral:large":           {"provider":"mistral","base_url":"https://api.mistral.ai/v1","model":"mistral-large-latest","key_env":"MISTRAL_API_KEY"},
-    "mistral:small":           {"provider":"mistral","base_url":"https://api.mistral.ai/v1","model":"mistral-small-latest","key_env":"MISTRAL_API_KEY"},
-    # ── Groq ──────────────────────────────────────────
-    "groq:llama-3.3-70b":      {"provider":"groq","base_url":"https://api.groq.com/openai/v1","model":"llama-3.3-70b-versatile","key_env":"GROQ_API_KEY"},
-    # ── Perplexity ────────────────────────────────────
-    "perplexity:sonar":        {"provider":"perplexity","base_url":"https://api.perplexity.ai","model":"sonar","key_env":"PERPLEXITY_API_KEY"},
-    # ── xAI ───────────────────────────────────────────
-    "xai:grok-3":              {"provider":"xai","base_url":"https://api.x.ai/v1","model":"grok-3-beta","key_env":"XAI_API_KEY"},
+    # ── 阶跃星辰 ──────────────────────────────────────
+    "step:step-2":             {"provider":"stepfun","base_url":"https://api.stepfun.com/v1","model":"step-2-16k","key_env":"STEPFUN_API_KEY"},
+    "step:step-1v":            {"provider":"stepfun","base_url":"https://api.stepfun.com/v1","model":"step-1v-8k","key_env":"STEPFUN_API_KEY"},
+    # ── 商汤日日新 ─────────────────────────────────────
+    "sensetime:chat":          {"provider":"sensetime","base_url":"https://api.sensenova.cn/v1","model":"SenseChat-Turbo","key_env":"SENSETIME_API_KEY"},
+
+    # ═════════════════════════════════════════════════
+    # 第3梯队 — 高性能推理 + 开源模型
+    # ═════════════════════════════════════════════════
+    # ── Fireworks AI ──────────────────────────────────
+    "fireworks:llama-4":       {"provider":"fireworks","base_url":"https://api.fireworks.ai/inference/v1","model":"accounts/fireworks/models/llama-v4-maverick","key_env":"FIREWORKS_API_KEY"},
+    "fireworks:mixtral-8x22b": {"provider":"fireworks","base_url":"https://api.fireworks.ai/inference/v1","model":"accounts/fireworks/models/mixtral-8x22b-instruct","key_env":"FIREWORKS_API_KEY"},
+    # ── DeepInfra ─────────────────────────────────────
+    "deepinfra:llama-4":       {"provider":"deepinfra","base_url":"https://api.deepinfra.com/v1/openai","model":"meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8","key_env":"DEEPINFRA_API_KEY"},
+    "deepinfra:qwen3":         {"provider":"deepinfra","base_url":"https://api.deepinfra.com/v1/openai","model":"Qwen/Qwen3-30B-A3B","key_env":"DEEPINFRA_API_KEY"},
+    # ── Replicate ─────────────────────────────────────
+    "replicate:llama-4":       {"provider":"replicate","base_url":"https://api.replicate.com/v1","model":"meta/meta-llama-4-maverick","key_env":"REPLICATE_API_KEY"},
+    "replicate:mixtral":       {"provider":"replicate","base_url":"https://api.replicate.com/v1","model":"mistralai/mixtral-8x7b-instruct-v0.1","key_env":"REPLICATE_API_KEY"},
+    # ── HuggingFace ───────────────────────────────────
+    "huggingface:zephyr":      {"provider":"huggingface","base_url":"https://api-inference.huggingface.co/models","model":"HuggingFaceH4/zephyr-7b-beta","key_env":"HF_API_KEY"},
+    "huggingface:llama-3":     {"provider":"huggingface","base_url":"https://api-inference.huggingface.co/models","model":"meta-llama/Meta-Llama-3-8B-Instruct","key_env":"HF_API_KEY"},
+
+    # ═════════════════════════════════════════════════
+    # 第4梯队 — 本地/边缘/开源
+    # ═════════════════════════════════════════════════
     # ── Ollama本地 ────────────────────────────────────
     "ollama:llama3.3":         {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"llama3.3","key_env":"OLLAMA_API_KEY"},
     "ollama:qwen3":            {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"qwen3","key_env":"OLLAMA_API_KEY"},
+    "ollama:mistral":          {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"mistral","key_env":"OLLAMA_API_KEY"},
+    "ollama:gemma3":           {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"gemma3","key_env":"OLLAMA_API_KEY"},
+    "ollama:deepseek-r1":      {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"deepseek-r1","key_env":"OLLAMA_API_KEY"},
+    "ollama:codellama":        {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"codellama","key_env":"OLLAMA_API_KEY"},
+    "ollama:phi4":             {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"phi4","key_env":"OLLAMA_API_KEY"},
+    "ollama:llama3.2":         {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"llama3.2","key_env":"OLLAMA_API_KEY"},
+    "ollama:nomic-embed":      {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"nomic-embed-text","key_env":"OLLAMA_API_KEY"},
+    # ── vLLM / 自定义OpenAI兼容 ───────────────────────
+    "custom:local":            {"provider":"custom","base_url":"http://localhost:8000/v1","model":"default","key_env":"CUSTOM_API_KEY"},
 }
 
 
 # 环境变量 → API Key 的自动扫描映射
 ENV_KEY_MAP = {
-    "BAILIAN_API_KEY":         "bailian:*",
-    "DEEPSEEK_API_KEY":        "deepseek:*",
-    "OPENAI_API_KEY":          "openai:*",
-    "ANTHROPIC_API_KEY":       "anthropic:*",
-    "GEMINI_API_KEY":          "google:*",
-    "ZHIPU_API_KEY":           "zhipu:*",
-    "MOONSHOT_API_KEY":        "moonshot:*",
-    "YI_API_KEY":              "yi:*",
-    "MINIMAX_API_KEY":         "minimax:*",
-    "BAICHUAN_API_KEY":        "baichuan:*",
+    # 全球巨头
+    "OPENAI_API_KEY":           "openai:*",
+    "ANTHROPIC_API_KEY":        "anthropic:*",
+    "GEMINI_API_KEY":           "google:*",
+    "XAI_API_KEY":              "xai:*",
+    "TOGETHER_API_KEY":         "together:*",
+    "MISTRAL_API_KEY":          "mistral:*",
+    "COHERE_API_KEY":           "cohere:*",
+    "GROQ_API_KEY":             "groq:*",
+    "PERPLEXITY_API_KEY":       "perplexity:*",
+    "OPENROUTER_API_KEY":       "openrouter:*",
+    # 中国主力
+    "DEEPSEEK_API_KEY":         "deepseek:*",
+    "BAILIAN_API_KEY":          "bailian:*",
+    "ZHIPU_API_KEY":            "zhipu:*",
+    "MOONSHOT_API_KEY":         "moonshot:*",
+    "DOUBAO_API_KEY":           "doubao:*",
+    "HUNYUAN_API_KEY":          "hunyuan:*",
+    "SPARK_API_KEY":            "spark:*",
+    "YI_API_KEY":               "yi:*",
+    "MINIMAX_API_KEY":          "minimax:*",
+    "BAICHUAN_API_KEY":         "baichuan:*",
+    "STEPFUN_API_KEY":          "stepfun:*",
+    "SENSETIME_API_KEY":        "sensetime:*",
+    # 高性能推理
+    "FIREWORKS_API_KEY":        "fireworks:*",
+    "DEEPINFRA_API_KEY":        "deepinfra:*",
+    "REPLICATE_API_KEY":        "replicate:*",
+    "HF_API_KEY":               "huggingface:*",
+    # 本地
+    "OLLAMA_API_KEY":           "ollama:*",
+    "CUSTOM_API_KEY":           "custom:*",
 }
 
 
