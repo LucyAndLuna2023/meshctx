@@ -1883,6 +1883,13 @@ async def version_info():
     return {"version":__version__,"models":100,"providers":28,"plugins":9,"tests":673}
 
 
+@app.get("/api/agent/monitor")
+async def agent_monitor():
+    """Agent自监控 (v2.12.5)"""
+    from src.core.agent_monitor import get_monitor
+    return get_monitor().get_snapshot()
+
+
 @app.post("/api/plugins/uninstall/{plugin_name}")
 async def uninstall_plugin(plugin_name: str):
     """卸载插件"""
