@@ -1,6 +1,33 @@
 # Changelog
 
-## [1.7.0] - 2026-05-14 (v1.7.0 BrainRouter OODA Integration)
+## [2.8.1] - 2026-05-15
+
+### Added — Code Sandbox + Project Indexer + Feishu Integration
+- **🖥️ Code Sandbox** (`src/core/sandbox.py`): Docker容器隔离 + 子进程回退
+  - 支持 Python/Bash/JavaScript 三语言
+  - SSE流式输出 (`/api/sandbox/execute/stream`)
+  - 资源限制: 256MB内存, 120s超时, 256KB输出截断
+  - Chat `/run` 命令 + Desktop 🖥️ Sandbox面板
+- **📂 Project Indexer** (`src/core/project_indexer.py`): 项目级代码索引
+  - 15+语言符号提取 (函数/类/导入)
+  - 文件变更自动监控 (可配置间隔)
+  - 三端点: `/api/project/index` `/search` `/context`
+  - Chat `/context` 命令 + Desktop 📂 Project面板
+- **📨 Feishu Notifier** (`src/core/feishu_notify.py`): 飞书通知集成
+  - 文本/卡片/部署通知 + HMAC签名
+  - POST `/api/feishu/test` + `/api/feishu/notify`
+  - 速率限制 + 自动重试
+
+### Changed — Core IP Protection
+- 8核心脑模块添加专有版权头 (Proprietary Core)
+- LEGAL.md重写: 双重许可 (AGPLv3框架 + Source Available大脑)
+- 首页更新: "100% Open Source" → "Open Core" (7语言)
+- 竞品表新增: c16(代码沙箱) c17(项目索引)
+
+### Added — 首页特性卡片
+- f10: 🖥️ Code Sandbox | f11: 📂 Project Indexing
+
+## [1.8.2] - 2026-05-14
 
 ### Added — BrainRouter OODA集成 + 跨模块闭环
 
