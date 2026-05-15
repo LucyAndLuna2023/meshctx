@@ -136,7 +136,7 @@ class TestWebsiteContent:
         """README包含当前版本"""
         with open("/home/administrator/meshctx-local/README.md") as f:
             content = f.read()
-        assert "v1.4" in content or "v1.3" in content
+        assert "v2.12" in content or "v2.1" in content or "v2." in content
 
     def test_index_html_has_7_langs(self):
         """官网有7种语言"""
