@@ -114,6 +114,7 @@ from .code_reviewer import CodeReviewer, ReviewIssue
 from .agent_monitor import AgentMonitor, AgentMetrics, get_monitor
 from .plugin_autoload import discover_plugins, auto_activate_builtins
 from .agent_tasks import AgentTask
+from .realtime_push import RealtimeHub, get_hub
 
 __version__ = "2.13.0"
 __all__ = [

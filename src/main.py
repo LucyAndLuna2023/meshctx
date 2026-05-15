@@ -19,7 +19,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Request, UploadFile, File
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, WebSocket
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -1964,6 +1964,17 @@ async def autoload_plugins():
     count = auto_activate_builtins()
     all_plugins = discover_plugins()
     return {"activated": count, "total": len(all_plugins), "plugins": [p.get("name") for p in all_plugins]}
+
+
+# ═══════════════════════════════════════════════════
+# WebSocket实时推送 (v2.13)
+# ═══════════════════════════════════════════════════
+
+@app.websocket("/ws/metrics")
+async def ws_metrics(websocket: WebSocket):
+    """WebSocket实时指标推送"""
+    from src.core.realtime_push import get_hub
+    await get_hub().connect(websocket)
 
 
 @app.post("/api/plugins/uninstall/{plugin_name}")
