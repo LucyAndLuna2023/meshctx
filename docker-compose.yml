@@ -1,66 +1,55 @@
-# ============================================================
-# meshctx Docker Compose 配置
-# ============================================================
-
-version: "3.9"
+# MeshCtx docker-compose — One-command deploy
+# docker-compose up -d
+version: '3.8'
 
 services:
-  # ── meshctx FastAPI 主服务 ────────────────────────────────
   meshctx:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: meshctx-api
+    build: .
+    container_name: meshctx
     ports:
       - "8000:8000"
+    volumes:
+      # Persistent conversations
+      - meshctx_data:/home/meshctx/.meshctx
+      # Mount project for file access
+      - ${PROJECT_DIR:-~/projects}:/projects:ro
+    env_file:
+      - .env
     environment:
-      # ChromaDB 连接（使用 compose 内部服务名）
-      - CHROMA_HOST=chromadb
-      - CHROMA_PORT=8002
-      - CHROMA_PERSIST_DIR=/app/data/chroma
-      # 日志级别
-      - LOG_LEVEL=info
-      # OpenAI / LLM 相关（按需配置）
+      - MESHCTX_HOST=0.0.0.0
+      - MESHCTX_PORT=8000
+      # Model API keys (set in .env or pass through)
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
-    volumes:
-      # 持久化 ChromaDB 向量数据
-      - chroma_data:/app/data/chroma
-    depends_on:
-      chromadb:
-        condition: service_healthy
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - BAILIAN_API_KEY=${BAILIAN_API_KEY:-}
     restart: unless-stopped
-    networks:
-      - meshctx-network
-
-  # ── ChromaDB 向量数据库（可选独立服务）────────────────────
-  chromadb:
-    image: chromadb/chroma:latest
-    container_name: meshctx-chromadb
-    ports:
-      - "8002:8002"
-    environment:
-      - IS_PERSISTENT=TRUE
-      - PERSIST_DIRECTORY=/chroma/chroma
-      - ANONYMIZED_TELEMETRY=FALSE
-    volumes:
-      - chroma_data:/chroma/chroma
-    restart: unless-stopped
-    networks:
-      - meshctx-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8002/api/v2/heartbeat"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.meshctx.rule=Host(`meshctx.local`)"
 
-# ── 持久化卷 ─────────────────────────────────────────────────
+  # Optional: Watchtower for auto-updates
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 3600 meshctx
+    profiles:
+      - auto-update
+
 volumes:
-  chroma_data:
-    driver: local
+  meshctx_data:
 
-# ── 网络 ─────────────────────────────────────────────────────
-networks:
-  meshctx-network:
-    driver: bridge
+# ═══════════════════════════════════════════════
+# Quick Start:
+#   1. echo "DEEPSEEK_API_KEY=sk-xxx" > .env
+#   2. echo "BAILIAN_API_KEY=sk-xxx" >> .env
+#   3. docker-compose up -d
+#   4. Open http://localhost:8000/ui/chat
+# ═══════════════════════════════════════════════

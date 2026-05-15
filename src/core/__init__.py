@@ -110,8 +110,9 @@ from .feishu_notify import FeishuNotifier, FeishuPlugin
 from .win_admin import WindowsAdmin, WinResult, WinService, get_win_admin
 from .model_compare import compare_models, compare_models_stream
 from .conversation_store import Conversation, get_or_create
+from .code_reviewer import CodeReviewer, ReviewIssue
 
-__version__ = "2.11.0"
+__version__ = "2.12.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",

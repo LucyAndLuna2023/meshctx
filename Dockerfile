@@ -1,56 +1,43 @@
-# ============================================================
-# meshctx Dockerfile
-# 多阶段构建，轻量高效
-# ============================================================
+# MeshCtx Docker Deployment
+# v2.11 — 100模型·28供应商·全脑仿真Agent
+FROM python:3.12-slim
 
-# ── 构建阶段 ─────────────────────────────────────────────────
-FROM python:3.11-slim AS builder
+LABEL org.opencontainers.image.title="MeshCtx"
+LABEL org.opencontainers.image.description="World's first self-evolving AI agent platform — 13 brain regions, 100 models, code sandbox"
+LABEL org.opencontainers.image.url="https://meshctx.com"
+LABEL org.opencontainers.image.version="2.11.0"
+
+# System deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl git && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create app user
+RUN useradd -m -s /bin/bash meshctx && \
+    mkdir -p /app /home/meshctx/.meshctx && \
+    chown -R meshctx:meshctx /app /home/meshctx/.meshctx
 
 WORKDIR /app
 
-# 安装构建依赖
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
-
-# 先复制依赖文件，利用 Docker 层缓存
+# Install Python deps
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 安装 Python 依赖到临时目录
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+# Copy source
+COPY . .
 
-# ── 运行阶段 ─────────────────────────────────────────────────
-FROM python:3.11-slim
+# Install MeshCtx
+RUN pip install --no-cache-dir -e .
 
-WORKDIR /app
+# Switch to non-root
+USER meshctx
 
-# 安装运行时必要的系统库（chromadb/sentence-transformers 可能需要）
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
-
-# 从构建阶段复制已安装的依赖
-COPY --from=builder /install /usr/local
-
-# 复制项目源码
-COPY src/ ./src/
-COPY requirements.txt .
-
-# 创建数据目录（ChromaDB 持久化存储）
-RUN mkdir -p /app/data/chroma
-
-# 暴露端口
+# Expose ports
 EXPOSE 8000
 
-# 环境变量
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV CHROMA_PERSIST_DIR=/app/data/chroma
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
 
-# 健康检查
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
-
-# 运行应用
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start
+CMD ["python", "-m", "src.cli", "start", "--host", "0.0.0.0", "--port", "8000"]

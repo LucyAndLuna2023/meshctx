@@ -1545,6 +1545,40 @@ async def config_restore(req: Request):
 
 
 # ═══════════════════════════════════════════════════
+# 代码审查 (v2.12)
+# ═══════════════════════════════════════════════════
+
+@app.post("/api/code/review")
+async def code_review(req: Request):
+    """AI代码审查"""
+    try: body = await req.json()
+    except: raise HTTPException(400)
+    
+    files = body.get("files", [])  # [{path, content, language}]
+    if not files:
+        raise HTTPException(400, "请提供 files 参数")
+    
+    from src.core.code_reviewer import CodeReviewer
+    reviewer = CodeReviewer()
+    all_issues = []
+    
+    for f in files:
+        issues = reviewer.review_file(
+            f.get("path", "unknown"),
+            f.get("content", ""),
+            f.get("language", "python")
+        )
+        all_issues.extend(issues)
+    
+    summary = reviewer.review_summary(all_issues)
+    return {
+        "summary": summary,
+        "issues": [i.to_dict() for i in all_issues[:50]],
+        "total": len(all_issues),
+    }
+
+
+# ═══════════════════════════════════════════════════
 # API 限流 (v2.11)
 # ═══════════════════════════════════════════════════
 
