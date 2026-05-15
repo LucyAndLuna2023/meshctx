@@ -1319,7 +1319,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
 </head>
 <body>
 <div class="topbar">
-  <span class="logo">🕸 meshctx <span class="v">Desktop v1.5</span></span>
+  <span class="logo">🕸 meshctx <span class="v">Desktop v2.6</span></span>
   <span class="status-dot" id="sysDot" title="系统状态"></span>
   <span class="live-indicator" id="liveTag"></span>
   <span class="spacer"></span>
@@ -1791,7 +1791,7 @@ function renderLab(d){
     '<div class="row"><span style="flex:1">⚡ 连接池复用</span><span class="tag tag-ok">启用</span></div>'+
     '<div class="row"><span style="flex:1">🛡️ 自愈引擎</span><span class="tag tag-ok">'+ ((d.health||{}).overall||'enabled') +'</span></div>'+
     '<div class="row"><span style="flex:1">🔄 故障转移</span><span class="tag tag-ok">自动</span></div>'+
-    '<div class="row"><span style="flex:1">📦 版本</span><span>v1.5.0 · 146测试 · '+ (d.uptime||0) +'s 运行</span></div>';
+    '<div class="row"><span style="flex:1">📦 版本</span><span>v2.6 · 673测试 · '+ (d.uptime||0) +'s 运行</span></div>';
   document.getElementById('benchPanel').innerHTML = benchHTML;
 }
 
