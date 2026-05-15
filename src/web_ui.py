@@ -356,7 +356,10 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
     <button class="tab-btn active" data-tab="default" onclick="switchTab('default')" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 14px;border-radius:6px 6px 0 0;font-size:12px;cursor:pointer;">Chat 1</button>
     <button onclick="newTab()" style="background:transparent;border:1px dashed #334155;color:#64748b;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;">+ 新建</button>
 </div>
-<div id="messages" style="flex:1; overflow-y:auto; margin-bottom:12px; padding:8px; border:1px solid #334155; border-radius:0 8px 8px 8px; background:#0a0f1a;"></div>
+<div id="messages" style="flex:1; overflow-y:auto; margin-bottom:12px; padding:8px; border:1px solid #334155; border-radius:0 8px 8px 8px; background:#0a0f1a;" 
+     ondragover="event.preventDefault();this.style.borderColor='#8b5cf6'" 
+     ondragleave="this.style.borderColor='#334155'"
+     ondrop="event.preventDefault();this.style.borderColor='#334155';handleDrop(event)"></div>
     <div id="fileTag" style="margin-top:8px;font-size:12px;color:#38bdf8;display:none;"></div>
     <div style="display:flex;gap:8px;margin-top:16px;">
         <input id="userInput" placeholder="输入消息... (/read 路径读文件, /ls 路径列目录)" style="flex:1;" onkeydown="if(event.key==='Enter')send()">
@@ -426,6 +429,17 @@ function clearFiles() {
 // 向后兼容: 单文件旧接口
 async function uploadFile() {
     return uploadFiles();
+}
+
+// v2.6: 拖拽上传
+async function handleDrop(event) {
+    var files = Array.from(event.dataTransfer.files);
+    if (!files.length) return;
+    var input = document.getElementById('fileInput');
+    var dt = new DataTransfer();
+    files.forEach(function(f){ dt.items.add(f); });
+    input.files = dt.files;
+    await uploadFiles();
 }
 
 async function loadModels() {
