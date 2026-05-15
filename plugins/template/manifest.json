@@ -1,0 +1,16 @@
+{
+  "name": "my-awesome-plugin",
+  "version": "1.0.0",
+  "description": "插件描述",
+  "author": "Your Name",
+  "icon": "🔧",
+  "category": "dev",
+  "permissions": ["fs:read", "model:call"],
+  "platforms": ["windows", "macos", "linux"],
+  "entry_point": "main.py",
+  "download_url": "https://github.com/YOU/meshctx-plugin/releases/latest/download/plugin.zip",
+  "builtin": false,
+  "installs": 0,
+  "dependencies": [],
+  "config": {}
+}
