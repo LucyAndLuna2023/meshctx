@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -1389,6 +1389,191 @@ async def win_software():
     return {"software": await wa.installed_software()}
 
 
+# ═══════════════════════════════════════════════════
+# 多模型对比 (v2.11)
+# ═══════════════════════════════════════════════════
+
+@app.post("/api/chat/compare")
+async def chat_compare(req: Request):
+    """多模型对比 — 同一问题并发问3个模型"""
+    try: body = await req.json()
+    except: raise HTTPException(400, "请求body需为JSON")
+    
+    message = body.get("message", "")
+    model_ids = body.get("models", ["deepseek:chat", "openai:gpt-4o-mini", "anthropic:claude-haiku"])
+    
+    if not message:
+        raise HTTPException(400, "请提供 message")
+    
+    from src.core.model_compare import compare_models
+    result = await compare_models(message, model_ids[:5])
+    return result
+
+
+@app.post("/api/chat/compare/stream")
+async def chat_compare_stream(req: Request):
+    """多模型对比流式 (SSE)"""
+    try: body = await req.json()
+    except: raise HTTPException(400, "请求body需为JSON")
+    
+    message = body.get("message", "")
+    model_ids = body.get("models", ["deepseek:chat", "openai:gpt-4o-mini"])
+    
+    if not message:
+        raise HTTPException(400, "请提供 message")
+    
+    from src.core.model_compare import compare_models_stream
+    return StreamingResponse(
+        compare_models_stream(message, model_ids[:3]),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
+
+
+# ═══════════════════════════════════════════════════
+# 对话持久化 (v2.11)
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/conversations")
+async def list_conversations():
+    """列出所有已保存对话"""
+    from src.core.conversation_store import Conversation
+    return {"conversations": Conversation.list_all()}
+
+
+@app.get("/api/conversations/{conv_id}")
+async def get_conversation(conv_id: str):
+    """获取单个对话"""
+    from src.core.conversation_store import Conversation
+    conv = Conversation.load(conv_id)
+    if not conv:
+        raise HTTPException(404, "对话不存在")
+    return conv.to_dict()
+
+
+@app.post("/api/conversations")
+async def create_conversation(req: Request):
+    """创建/保存对话"""
+    try: body = await req.json()
+    except: body = {}
+    
+    from src.core.conversation_store import get_or_create, Conversation
+    conv = get_or_create(body.get("id", ""))
+    if body.get("title"):
+        conv.title = body["title"]
+    if body.get("model"):
+        conv.model = body["model"]
+    conv.save()
+    return conv.to_dict()
+
+
+@app.post("/api/conversations/{conv_id}/messages")
+async def add_message(conv_id: str, req: Request):
+    """添加消息到对话"""
+    try: body = await req.json()
+    except: raise HTTPException(400)
+    
+    role = body.get("role", "user")
+    content = body.get("content", "")
+    
+    from src.core.conversation_store import get_or_create
+    conv = get_or_create(conv_id)
+    conv.add(role, content)
+    conv.save()
+    return {"status": "ok", "message_count": conv.message_count}
+
+
+@app.delete("/api/conversations/{conv_id}")
+async def delete_conversation(conv_id: str):
+    """删除对话"""
+    from src.core.conversation_store import Conversation
+    ok = Conversation.delete(conv_id)
+    return {"status": "ok" if ok else "not_found"}
+
+
+@app.post("/api/conversations/clear")
+async def clear_conversations():
+    """清空所有对话"""
+    from src.core.conversation_store import Conversation
+    count = Conversation.delete_all()
+    return {"status": "ok", "deleted": count}
+
+
+# ═══════════════════════════════════════════════════
+# 配置备份 (v2.11)
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/config/backup")
+async def config_backup():
+    """一键导出所有配置(Key脱敏)"""
+    import yaml
+    from pathlib import Path
+    
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    if config_path.exists():
+        with open(config_path) as f:
+            raw = yaml.safe_load(f) or {}
+        # Mask keys
+        if "models" in raw and "entries" in raw["models"]:
+            for k, v in raw["models"]["entries"].items():
+                if "key" in v and v["key"]:
+                    v["key"] = v["key"][:8] + "****"
+        return {"config": raw, "path": str(config_path)}
+    return {"config": {}, "message": "No config found"}
+
+
+@app.post("/api/config/restore")
+async def config_restore(req: Request):
+    """一键恢复配置"""
+    try: body = await req.json()
+    except: raise HTTPException(400)
+    
+    import yaml
+    from pathlib import Path
+    
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(config_path, "w") as f:
+        yaml.dump(body.get("config", {}), f, allow_unicode=True)
+    
+    # Reload model registry
+    import src.model_registry as mr
+    mr._registry = None
+    
+    return {"status": "ok", "path": str(config_path)}
+
+
+# ═══════════════════════════════════════════════════
+# API 限流 (v2.11)
+# ═══════════════════════════════════════════════════
+
+_rate_limits: Dict[str, List[float]] = {}
+RATE_WINDOW = 60  # 1 minute window
+RATE_MAX = 60     # 60 requests per minute per IP
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    """简易IP限流"""
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    
+    if client_ip not in _rate_limits:
+        _rate_limits[client_ip] = []
+    
+    # Clean old entries
+    _rate_limits[client_ip] = [t for t in _rate_limits[client_ip] if now - t < RATE_WINDOW]
+    
+    if len(_rate_limits[client_ip]) >= RATE_MAX:
+        return JSONResponse(
+            status_code=429,
+            content={"error": "rate_limited", "message": f"超过限制 ({RATE_MAX}次/{RATE_WINDOW}秒)", "retry_after": RATE_WINDOW}
+        )
+    
+    _rate_limits[client_ip].append(now)
+    return await call_next(request)
+
+
 @app.get("/api/file/read")
 async def read_local_file(path: str = ""):
     """读取本地文件内容 (支持WSL/Windows路径自动翻译)"""
@@ -1949,6 +2134,163 @@ async def api_chat_stream(request: Request):
         except Exception as e:
             yield f"data: {_json.dumps({'error': str(e)})}\n\n"
             yield "data: [DONE]\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+# ═══════════════════════════════════════════════════════════
+# v1.9 多模型对比Chat — 同时问3个模型，三列卡片对比
+# ═══════════════════════════════════════════════════════════
+
+class CompareRequest(BaseModel):
+    message: str
+    models: List[str]  # e.g. ["deepseek:chat","openai:gpt-4o","anthropic:claude-sonnet"]
+
+@app.post("/api/chat/compare")
+async def api_chat_compare(request: CompareRequest):
+    """多模型对比Chat — 并发调用3个模型，返回对比结果"""
+    from src.model_registry import get_registry
+    import time as _time
+
+    if not request.models or len(request.models) < 1:
+        raise HTTPException(400, "至少需要1个模型")
+    if len(request.models) > 6:
+        raise HTTPException(400, "最多支持6个模型同时对比")
+
+    msgs = [{"role": "user", "content": request.message}]
+
+    # 注入项目上下文
+    md_ctx = _get_chat_context()
+    if md_ctx:
+        msgs.insert(0, {"role": "system", "content": f"[项目上下文 .meshctx.md]\n{md_ctx}"})
+
+    reg = get_registry()
+
+    async def call_one(model_id: str) -> dict:
+        t0 = _time.time()
+        try:
+            client = reg.get(model_id)
+            if not client:
+                return {
+                    "model": model_id,
+                    "content": f"❌ 模型 {model_id} 未配置API Key",
+                    "tokens": 0,
+                    "latency_ms": 0,
+                    "error": "model_not_configured",
+                }
+            resp = await asyncio.to_thread(client.chat, msgs)
+            elapsed = round((_time.time() - t0) * 1000, 1)
+            return {
+                "model": model_id,
+                "content": resp.get("content", ""),
+                "tokens": resp.get("tokens", 0),
+                "latency_ms": elapsed,
+            }
+        except Exception as e:
+            elapsed = round((_time.time() - t0) * 1000, 1)
+            return {
+                "model": model_id,
+                "content": f"❌ 调用失败: {str(e)[:200]}",
+                "tokens": 0,
+                "latency_ms": elapsed,
+                "error": str(e)[:200],
+            }
+
+    results = await asyncio.gather(*[call_one(m) for m in request.models])
+    return {
+        "message": request.message,
+        "results": results,
+        "total_models": len(results),
+    }
+
+
+@app.post("/api/chat/compare/stream")
+async def api_chat_compare_stream(request: CompareRequest):
+    """多模型对比Chat SSE流式 — 3路并发逐token推送"""
+    from src.model_registry import get_registry
+    import time as _time
+    import json as _json
+    import asyncio
+
+    if not request.models or len(request.models) < 1:
+        raise HTTPException(400, "至少需要1个模型")
+    if len(request.models) > 6:
+        raise HTTPException(400, "最多支持6个模型同时对比")
+
+    msgs = [{"role": "user", "content": request.message}]
+    md_ctx = _get_chat_context()
+    if md_ctx:
+        msgs.insert(0, {"role": "system", "content": f"[项目上下文 .meshctx.md]\n{md_ctx}"})
+
+    reg = get_registry()
+    results_per_model: Dict[str, dict] = {}  # model_id → {content, tokens, latency_ms, done}
+
+    async def stream_one(model_id: str, queue: asyncio.Queue):
+        """流式调用单个模型，逐token推入队列"""
+        t0 = _time.time()
+        token_count = 0
+        try:
+            client = reg.get(model_id)
+            if not client:
+                await queue.put(_json.dumps({
+                    "model": model_id,
+                    "error": f"模型 {model_id} 未配置API Key",
+                    "done": True,
+                }))
+                return
+
+            for token in client.chat_stream(msgs):
+                token_count += 1
+                await queue.put(_json.dumps({
+                    "model": model_id,
+                    "token": token,
+                    "done": False,
+                }))
+
+            elapsed = round((_time.time() - t0) * 1000, 1)
+            await queue.put(_json.dumps({
+                "model": model_id,
+                "done": True,
+                "tokens": token_count,
+                "latency_ms": elapsed,
+            }))
+        except Exception as e:
+            await queue.put(_json.dumps({
+                "model": model_id,
+                "error": f"❌ 调用失败: {str(e)[:200]}",
+                "done": True,
+                "tokens": token_count,
+                "latency_ms": round((_time.time() - t0) * 1000, 1),
+            }))
+
+    async def generate():
+        queue = asyncio.Queue()
+        model_count = len(request.models)
+        done_count = 0
+
+        # 启动所有模型的流式任务
+        tasks = [asyncio.create_task(stream_one(m, queue)) for m in request.models]
+
+        # 发送初始元数据
+        yield f"data: {_json.dumps({'type': 'start', 'models': request.models, 'count': model_count})}\n\n"
+
+        while done_count < model_count:
+            try:
+                raw = await asyncio.wait_for(queue.get(), timeout=120.0)
+                yield f"data: {raw}\n\n"
+                data = _json.loads(raw)
+                if data.get("done"):
+                    done_count += 1
+            except asyncio.TimeoutError:
+                yield f"data: {_json.dumps({'type': 'timeout', 'error': '部分模型超时'})}\n\n"
+                break
+
+        # 等待所有任务完成
+        for t in tasks:
+            if not t.done():
+                t.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+        yield "data: [DONE]\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 

@@ -108,8 +108,10 @@ from .sandbox import SandboxEngine, SandboxResult, get_sandbox
 from .project_indexer import ProjectIndexer, FileSummary, IndexStats, get_indexer
 from .feishu_notify import FeishuNotifier, FeishuPlugin
 from .win_admin import WindowsAdmin, WinResult, WinService, get_win_admin
+from .model_compare import compare_models, compare_models_stream
+from .conversation_store import Conversation, get_or_create
 
-__version__ = "2.10.1"
+__version__ = "2.11.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -165,4 +167,6 @@ __all__ = [
     "ProjectIndexer", "FileSummary", "IndexStats", "get_indexer",
     "FeishuNotifier", "FeishuPlugin",
     "WindowsAdmin", "WinResult", "WinService", "get_win_admin",
+    "compare_models", "compare_models_stream",
+    "Conversation", "get_or_create",
 ]

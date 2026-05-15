@@ -350,6 +350,7 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
     <select id="modelSelect" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:13px;" onchange="localStorage.setItem('meshctx_model',this.value)">
         <option value="">加载中...</option>
     </select>
+    <button id="compareBtn" onclick="toggleCompareMode()" style="background:#8b5cf6;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;margin-left:12px;">⚡ 对比模式</button>
 </div>
 <div class="card" style="margin-top:16px; display:flex; flex-direction:column; height:60vh;" id="chatCard">
     <div id="chatTabs" style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
@@ -364,6 +365,7 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
     <div style="display:flex;gap:8px;margin-top:16px;">
         <input id="userInput" placeholder="/read /ls /search /run /context /win 命令大全" style="flex:1;" onkeydown="if(event.key==='Enter')send()">
         <button class="btn" style="background:#334155;color:#94a3b8;font-size:16px;padding:8px 12px;" onclick="document.getElementById('fileInput').click()" title="上传文件">📎</button>
+        <button id="compareBtn" class="btn" style="background:#8b5cf6;color:#e2e8f0;font-size:12px;padding:8px 12px;border:none;border-radius:6px;cursor:pointer;" onclick="toggleCompare()" title="多模型对比">⚡ 对比</button>
         <button class="btn btn-primary" onclick="send()">发送</button>
     </div>
     <input type="file" id="fileInput" style="display:none" multiple onchange="uploadFiles()">
@@ -378,7 +380,35 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
         </div>
     </div>
 </details>
+
+<!-- ═══ 对比模式: 模型选择弹窗 ═══ -->
+<div id="compareModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;">
+        <h3 style="margin:0 0 4px;font-size:18px;">⚡ 多模型对比</h3>
+        <p style="color:#64748b;font-size:13px;margin:0 0 16px;">勾选 2-6 个模型，同时提问并对比回答</p>
+        <div id="compareModelList" style="max-height:300px;overflow-y:auto;margin-bottom:16px;">
+            <div style="color:#64748b;font-size:13px;">加载模型列表...</div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <button onclick="cancelCompare()" style="background:#334155;color:#94a3b8;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;">取消</button>
+            <button id="compareStartBtn" onclick="startCompare()" style="background:#8b5cf6;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;">⚡ 开始对比</button>
+        </div>
+    </div>
 </div>
+
+<!-- ═══ 对比模式: 三列结果展示 ═══ -->
+<div id="compareResults" style="display:none;margin-top:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <h3 style="margin:0;font-size:16px;">📊 模型对比结果</h3>
+        <button onclick="closeCompare()" style="background:#334155;color:#94a3b8;border:none;padding:4px 12px;border-radius:6px;font-size:12px;cursor:pointer;">✕ 关闭</button>
+    </div>
+    <div id="compareQuery" style="background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:14px;color:#94a3b8;">
+        <strong style="color:#e2e8f0;">提问:</strong> <span id="compareQueryText"></span>
+    </div>
+    <div id="compareCards" style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));">
+    </div>
+</div>
+
 <script>
 let uploadedContents = [];  // v1.7: 多文件支持
 
@@ -570,10 +600,70 @@ async function runTerm() {
     out.scrollTop = out.scrollHeight;
 }
 
+// ═══ Multi-Model Compare v2.11 ═══
+var compareMode = false;
+function toggleCompare(){
+  compareMode = !compareMode;
+  var btn = document.getElementById('compareBtn');
+  var input = document.getElementById('userInput');
+  if(compareMode){
+    btn.style.background = '#22c55e';
+    btn.textContent = '⚡ 对比中';
+    input.placeholder = '对比模式: 同时问3个模型...';
+  } else {
+    btn.style.background = '#8b5cf6';
+    btn.textContent = '⚡ 对比';
+    input.placeholder = '/read /ls /search /run /context /win 命令大全';
+  }
+}
+async function compareSend(msg){
+  var div = document.getElementById('messages');
+  div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ' + msg + '</div>';
+  document.getElementById('userInput').value = '';
+  
+  var models = JSON.parse(localStorage.getItem('meshctx_compare_models') || '["deepseek:chat","openai:gpt-4o-mini","anthropic:claude-haiku"]');
+  
+  // Show loading
+  var loadId = 'load_' + Date.now();
+  div.innerHTML += '<div id="'+loadId+'" style="display:grid;grid-template-columns:repeat('+models.length+',1fr);gap:8px;margin:8px 0;">';
+  models.forEach(function(m){
+    div.querySelector('#'+loadId).innerHTML += '<div style="background:#1e293b;border-radius:8px;padding:10px;text-align:center;color:var(--muted);"><strong>'+m+'</strong><br>⏳...</div>';
+  });
+  div.querySelector('#'+loadId).innerHTML += '</div>';
+  div.scrollTop = div.scrollHeight;
+  
+  try {
+    var res = await fetch('/api/chat/compare', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({message:msg, models:models})
+    });
+    var data = await res.json();
+    var html = '<div style="display:grid;grid-template-columns:repeat('+models.length+',1fr);gap:8px;margin:8px 0;">';
+    (data.results||[]).forEach(function(r){
+      var color = r.error ? '#fca5a5' : '#22c55e';
+      html += '<div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;font-size:12px;">'+
+        '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'+
+        '<strong style="color:#38bdf8;">'+r.model+'</strong>'+
+        '<span style="font-size:10px;color:var(--muted);">'+r.latency_ms+'ms · '+r.tokens+'t</span></div>'+
+        '<div style="color:#e2e8f0;white-space:pre-wrap;max-height:300px;overflow-y:auto;">'+r.content+'</div></div>';
+    });
+    html += '</div>';
+    document.getElementById(loadId).outerHTML = html;
+  } catch(e) {
+    document.getElementById(loadId).outerHTML = '<div style="color:#fca5a5;">对比失败: '+e.message+'</div>';
+  }
+}
+
 async function send() {
     const input = document.getElementById('userInput');
-    const msg = input.value.trim();
+    let msg = input.value.trim();
     if (!msg) return;
+    
+    // Compare mode intercept
+    if(compareMode){
+      await compareSend(msg);
+      return;
+    }
     let fullMsg = msg;
     const div = document.getElementById('messages');
     
@@ -1088,8 +1178,7 @@ function previewHTML(code, wrapper){
 // 为历史消息中代码块添加运行按钮 (兼容旧版)
 function addCodeRunButtons(container){
   enhanceCodeBlocks(container);
-}
-</script>
+}</script>
 {% endblock %}"""
 
 _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
