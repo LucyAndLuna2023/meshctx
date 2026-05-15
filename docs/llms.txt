@@ -1,42 +1,97 @@
 # MeshCtx — llms.txt
-# AI Agent accessibility for MeshCtx documentation
+# AI Agent accessibility for MeshCtx v2.9.4 documentation
+# Last updated: 2026-05-15
 
 ## MeshCtx
-MeshCtx is the world's first self-evolving AI agent platform with full-brain emulation architecture (10 brain regions).
+MeshCtx is the world's first self-evolving AI agent platform with full-brain emulation (13 brain regions), code sandbox, project indexing, and Feishu notifications. Open-core: AGPLv3 framework + source-available brain algorithms.
 
 ## Core Features
-- Super Brain Architecture: 10 brain regions (Hippocampal Replay, Amygdala, DMN, Thalamus, Cerebellum, Basal Ganglia, ACC, Mirror Neurons, Insula)
-- Hierarchical Memory (L0-L4) with Ebbinghaus Forgetting Curve
-- Meta-Cognition loop: evaluate → extract patterns → update knowledge graph
-- Multi-Agent Orchestra with DAG task decomposition
-- MCP Protocol native
-- 7-language support (EN/ZH/JA/KO/FR/DE/ES)
-- Windows/macOS/Linux cross-platform
+- 🧠 Super Brain: 13 brain regions (Hippocampal Replay, Amygdala Salience, Default Mode Network, Thalamic Gate, Cerebellar Forward Model, Basal Ganglia, ACC, Mirror Neurons, Insula, STDP Learner, Emotional Consolidation, IIT Consciousness)
+- 🖥️ Code Sandbox: Safe Python/Bash/JS execution with Docker isolation + subprocess fallback + SSE streaming
+- 📂 Project Indexer: 15+ language symbol extraction, file change monitoring, /context command
+- 📨 Feishu Notifier: Card/text/deploy notifications with HMAC signature
+- 🔍 Web Search: /search command via DuckDuckGo API
+- 📄 Local File Access: /read /ls commands with WSL path translation
+- 🧠 Hierarchical Memory (L0-L4) with Ebbinghaus Forgetting Curve
+- 🔄 Meta-Cognition: evaluate → extract → update → adjust
+- 🎭 Multi-Agent Orchestra with DAG decomposition
+- 🔌 Plugin Marketplace: 8 plugins (3 builtin + 5 community)
+- 🌐 7-language i18n (EN/ZH/JA/KO/FR/DE/ES)
+- 💻 Windows/Linux cross-platform (macOS pending)
 
 ## Quick Links
 - Homepage: https://meshctx.com
 - GitHub: https://github.com/LucyAndLuna2023/meshctx
+- API Docs: https://meshctx.com/docs (Swagger at /docs when running)
 - Download: https://meshctx.com/#download
-- Setup: https://meshctx.com/ui/setup
-- Chat: https://meshctx.com/ui/chat
-- Desktop Monitor: https://meshctx.com/ui/desktop
+- Setup: /ui/setup | Chat: /ui/chat | Desktop: /ui/desktop
 
 ## Installation
-- Windows: Download meshctx-setup.exe from GitHub Releases
-- macOS: brew install meshctx or DMG from Releases
-- Linux: git clone + python3 -m venv .venv + pip install
+- Windows: meshctx-setup-v2.9.0.exe from GitHub Releases
+- Linux: git clone + python3 -m venv .venv + pip install -e .
+- Start: mesctx start (Web) | mesctx desktop (Native window)
 
-## API Endpoints
-- GET /api/models — List all models
-- POST /api/models — Add model
-- PUT /api/models/{id} — Update model
-- DELETE /api/models/{id} — Delete model
-- PATCH /api/models/{id}/default — Set default
+## API Endpoints (v2.9)
+### System
+- GET /api/system/summary — System overview
+- GET /health — Health check
+
+### Chat & Agent
+- POST /api/chat — Chat completion
+- POST /api/chat/stream — Streaming chat (SSE)
+- POST /api/chat/upload — Upload file context
+- POST /agent/start | /agent/stop — Agent loop control
+
+### Sandbox (v2.7+)
+- POST /api/sandbox/execute — Execute code (Python/Bash/JS)
+- POST /api/sandbox/execute/stream — Streaming SSE execution
+
+### Project Indexer (v2.7+)
+- GET /api/project/index — Index status & stats
+- GET /api/project/search?q= — Search project files
+- GET /api/project/context?q= — Get code context for LLM
+
+### Feishu (v2.8+)
+- POST /api/feishu/test — Test webhook connection
+- POST /api/feishu/notify — Send notification (text/card/deploy)
+
+### Web Search (v2.7+)
+- GET /api/search?q= — DuckDuckGo web search
+
+### File Access (v2.2+)
+- GET /api/file/read?path= — Read local file
+- GET /api/file/list?path= — List directory
+
+### Models
+- GET /api/models — List all
+- POST /api/models — Add | PUT /api/models/{id} — Update
+- DELETE /api/models/{id} — Delete
 - POST /api/models/{id}/test — Test connection
-- POST /api/chat — Chat with AI
-- POST /api/chat/stream — Streaming chat
-- POST /api/chat/upload — Upload file for context
+
+### Plugins (v2.1+)
+- GET /api/plugins — List all (8 plugins)
+- GET /api/plugins/{name} — Plugin detail
+- POST /api/plugins/install/{name} — Install/activate
+- POST /api/plugins/uninstall/{name} — Uninstall
+
+### Brain Monitor
+- GET /api/brain/status — 13-region brain status
+
+## Project Structure
+- src/core/ — Core engine (sandbox, project_indexer, feishu_notify, super_brain, brain_router, free_energy, active_inference, global_workspace, homeostasis, metacognition, hybrid_reasoning)
+- src/web_ui.py — Web UI + Desktop Dashboard (Jinja2 templates)
+- src/main.py — FastAPI app (15+ endpoint groups)
+- plugins/ — Plugin registry + manifests (8 plugins)
+- tests/ — 673 tests, all passing
+- docs/ — GitHub Pages deployment (meshctx.com)
+
+## Chat Commands
+- /read <path> — Read local file
+- /ls <path> — List directory
+- /search <query> — Web search
+- /run [python|bash|js] <code> — Execute in sandbox
+- /context <query> — Search project codebase
 
 ## Optional
-- Documentation: https://meshctx.com/docs
-- Benchmark: https://github.com/LucyAndLuna2023/meshctx/blob/main/tests/benchmark_v19.py
+- License: AGPLv3 (framework) + Commercial (brain algorithms) — license@meshctx.com
+- Benchmark: tests/benchmark_v19.py (76/100 Super Brain score)
