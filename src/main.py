@@ -1890,6 +1890,13 @@ async def agent_monitor():
     return get_monitor().get_snapshot()
 
 
+@app.get("/api/cache/stats")
+async def cache_stats():
+    """缓存统计"""
+    from src.core.cache import get_cache
+    return get_cache().stats()
+
+
 @app.post("/api/plugins/uninstall/{plugin_name}")
 async def uninstall_plugin(plugin_name: str):
     """卸载插件"""
