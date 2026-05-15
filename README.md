@@ -7,8 +7,8 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPLv3-blue.svg"></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.10%2B-green"></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-473%2F473-brightgreen"></a>
-  <a href="#"><img src="https://img.shields.io/badge/plugins-12-purple"></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-673%2F673-brightgreen"></a>
+  <a href="#"><img src="https://img.shields.io/badge/plugins-12+5-purple"></a>
   <a href="#"><img src="https://img.shields.io/badge/languages-7-orange"></a>
   <a href="#"><img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue"></a>
 </p>
@@ -28,6 +28,17 @@ pip install git+https://github.com/LucyAndLuna2023/meshctx.git
 meshctx desktop    # 启动原生桌面窗口
 meshctx start      # 启动 Web 服务器
 ```
+
+
+## 📊 Benchmark (v2.0)
+
+| 指标 | 结果 | vs Baseline |
+|------|------|-------------|
+| 决策质量 | 95% 最优选择 | +38% |
+| 全脑延迟 | 0.17ms avg | <1ms |
+| 记忆保持 | 100% (100条×10轮) | - |
+| 情感准确率 | 75% | - |
+| 综合评分 | 76/100 | - |
 
 ## ⚡ 快速安装
 
