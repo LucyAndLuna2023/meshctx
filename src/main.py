@@ -1897,6 +1897,20 @@ async def cache_stats():
     return get_cache().stats()
 
 
+@app.get("/api/system/resources")
+async def system_resources():
+    """系统资源 (v2.12.6)"""
+    import psutil
+    return {
+        "cpu_percent": psutil.cpu_percent(interval=0.1),
+        "memory_percent": psutil.virtual_memory().percent,
+        "memory_used_gb": round(psutil.virtual_memory().used / (1024**3), 1),
+        "memory_total_gb": round(psutil.virtual_memory().total / (1024**3), 1),
+        "disk_percent": psutil.disk_usage('/').percent,
+        "disk_free_gb": round(psutil.disk_usage('/').free / (1024**3), 1),
+    }
+
+
 @app.post("/api/plugins/uninstall/{plugin_name}")
 async def uninstall_plugin(plugin_name: str):
     """卸载插件"""
