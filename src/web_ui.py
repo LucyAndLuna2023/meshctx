@@ -1401,6 +1401,8 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
   <button class="tab" data-pane="history">📜 历史</button>
   <button class="tab" data-pane="brain">🧠 Brain</button>
   <button class="tab" data-pane="plugins-dt">🔌 Plugins</button>
+  <button class="tab" data-pane="sandbox-dt">🖥️ Sandbox</button>
+  <button class="tab" data-pane="project-dt">📂 Project</button>
 </div>
 <div class="content">
   <div class="pane active" id="pane-chat">
@@ -1546,9 +1548,44 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
       <div id="pluginList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin-top:12px;"></div>
     </div>
   </div>
+  <!-- 🖥️ Sandbox v2.8 -->
+  <div class="pane" id="pane-sandbox-dt">
+    <div class="pane-inner">
+      <h2>🖥️ Code Sandbox <span style="font-size:10px;color:var(--muted);">v2.8</span></h2>
+      <p style="color:var(--muted);margin-bottom:12px;">安全执行 Python / Bash / JavaScript 代码</p>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <select id="sandboxLang" style="background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:6px 10px;border-radius:4px;">
+          <option value="python">Python</option>
+          <option value="bash">Bash</option>
+          <option value="javascript">JavaScript</option>
+        </select>
+        <input id="sandboxTimeout" type="number" value="30" min="1" max="120" style="width:60px;background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:6px;border-radius:4px;" title="超时(秒)">
+      </div>
+      <textarea id="sandboxCode" style="width:100%;height:150px;background:var(--bg);color:var(--green);border:1px solid var(--border);padding:10px;border-radius:4px;font-family:monospace;font-size:13px;resize:vertical;" placeholder="print('Hello MeshCtx!')"></textarea>
+      <div style="margin-top:8px;display:flex;gap:8px;">
+        <button class="btn btn-primary" onclick="runSandbox()">▶ 执行</button>
+        <button class="btn" style="background:#334155;color:#94a3b8;" onclick="document.getElementById('sandboxCode').value=''">清空</button>
+      </div>
+      <div id="sandboxResult" style="margin-top:12px;background:#0f172a;border:1px solid var(--border);border-radius:6px;padding:12px;font-family:monospace;font-size:12px;white-space:pre-wrap;max-height:400px;overflow-y:auto;display:none;"></div>
+    </div>
+  </div>
+  <!-- 📂 Project Index v2.8 -->
+  <div class="pane" id="pane-project-dt">
+    <div class="pane-inner">
+      <h2>📂 Project Indexer <span style="font-size:10px;color:var(--muted);">v2.8</span></h2>
+      <p style="color:var(--muted);margin-bottom:12px;">搜索当前项目代码，获取智能上下文</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input id="projectQuery" style="flex:1;background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:8px 12px;border-radius:4px;" placeholder="搜索函数/类/文件...">
+        <button class="btn btn-primary" onclick="searchProject()">🔍 搜索</button>
+        <button class="btn" style="background:#334155;color:#94a3b8;" onclick="refreshProjectIndex()">🔄 刷新索引</button>
+      </div>
+      <div id="projectStats" style="color:var(--muted);font-size:12px;margin-bottom:8px;"></div>
+      <div id="projectResults" style="display:grid;gap:8px;"></div>
+    </div>
+  </div>
 </div>
 <script>
-// ═══ v1.5.0 Desktop Dashboard — 富数据+自动刷新 ═══
+// ═══ v2.8.0 Desktop Dashboard — 富数据+自动刷新 ═══
 var REFRESH_SEC = 5, _timer = null, _data = null, _refreshPulse = false;
 var _phaseMap = {O:'Observe',Or:'Orient',D:'Decide',A:'Act'};
 
@@ -2415,6 +2452,72 @@ function deleteMcp(sid){
 // ═══ 启动 ═══
 fetchModels();
 startAutoRefresh();
+
+// ═══ Sandbox v2.8 ═══
+function runSandbox(){
+  var lang = document.getElementById('sandboxLang').value;
+  var code = document.getElementById('sandboxCode').value;
+  var timeout = parseInt(document.getElementById('sandboxTimeout').value) || 30;
+  if(!code.trim()){ alert('请输入代码'); return; }
+  var resultEl = document.getElementById('sandboxResult');
+  resultEl.style.display = 'block';
+  resultEl.style.color = '#94a3b8';
+  resultEl.textContent = '⏳ 执行中...';
+  fetch('/api/sandbox/execute', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({code:code, language:lang, timeout:timeout})
+  }).then(function(r){return r.json()}).then(function(d){
+    var out = '';
+    if(d.stdout) out += d.stdout;
+    if(d.stderr) out += '\\n[STDERR]\\n' + d.stderr;
+    out += '\\n\\n[退出码: ' + d.exit_code + ' | 耗时: ' + d.duration_ms + 'ms | ' + d.method + ']';
+    resultEl.textContent = out;
+    resultEl.style.color = d.success ? '#22c55e' : '#fca5a5';
+  }).catch(function(e){
+    resultEl.textContent = '执行失败: ' + e.message;
+    resultEl.style.color = '#fca5a5';
+  });
+}
+
+// ═══ Project Indexer v2.8 ═══
+function searchProject(){
+  var q = document.getElementById('projectQuery').value.trim();
+  if(!q){alert('请输入搜索词');return;}
+  fetch('/api/project/search?q=' + encodeURIComponent(q) + '&top_k=10').then(function(r){return r.json()}).then(function(d){
+    var results = d.results || [];
+    var html = '';
+    for(var i=0;i<results.length;i++){
+      var r = results[i];
+      html += '<div class="stat-card" style="border-left:3px solid #06b6d4;">'+
+        '<strong style="color:#38bdf8;">'+r.path+'</strong>'+
+        '<span style="font-size:10px;color:var(--muted);margin-left:8px;">'+r.language+' · '+r.line_count+'行 · '+(r.size/1024).toFixed(1)+'KB</span>'+
+        '<p style="font-size:11px;color:var(--muted);margin-top:4px;">'+r.summary+'</p>';
+      if(r.symbols && r.symbols.length){
+        html += '<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;">';
+        r.symbols.slice(0,8).forEach(function(s){
+          html += '<span style="background:#1e293b;color:#a5b4fc;font-size:10px;padding:2px 6px;border-radius:3px;">'+s+'</span>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+    document.getElementById('projectResults').innerHTML = html || '<div class="stat-card" style="text-align:center;color:var(--muted);">未找到匹配文件</div>';
+  });
+}
+
+function refreshProjectIndex(){
+  var statsEl = document.getElementById('projectStats');
+  statsEl.textContent = '⏳ 扫描中...';
+  fetch('/api/project/index').then(function(r){return r.json()}).then(function(d){
+    var langs = [];
+    for(var l in d.languages) langs.push(l+':'+d.languages[l]);
+    statsEl.innerHTML = '📊 <b>'+d.total_files+'</b> 文件 · <b>'+(d.total_size/1024/1024).toFixed(1)+'MB</b> · <b>'+d.total_lines.toLocaleString()+'</b> 行 · '+langs.join(', ');
+    document.getElementById('projectResults').innerHTML = '';
+  }).catch(function(e){
+    statsEl.textContent = '❌ 扫描失败: ' + e.message;
+  });
+}
+
 </script>
 </body>
 </html>"""

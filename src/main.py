@@ -1122,6 +1122,62 @@ async def project_context(q: str = "", root: str = ".", max_chars: int = 8000):
     return {"query": q, "context": context, "chars": len(context)}
 
 
+@app.post("/api/feishu/test")
+async def feishu_test(req: Request):
+    """飞书通知测试 (v2.8)"""
+    try:
+        body = await req.json()
+    except Exception:
+        raise HTTPException(400, "请求body需为JSON")
+    
+    webhook_url = body.get("webhook_url", "")
+    secret = body.get("secret", "")
+    
+    if not webhook_url:
+        raise HTTPException(400, "请提供飞书webhook地址")
+    
+    from src.core.feishu_notify import FeishuNotifier
+    
+    notifier = FeishuNotifier(webhook_url, secret)
+    success = await notifier.send_text("✅ MeshCtx 飞书通知测试成功！\n\n如果你看到这条消息，说明webhook配置正确。")
+    
+    return {"success": success, "message": "测试消息已发送" if success else "发送失败，请检查webhook地址"}
+
+
+@app.post("/api/feishu/notify")
+async def feishu_notify(req: Request):
+    """发送飞书通知 (v2.8)"""
+    try:
+        body = await req.json()
+    except Exception:
+        raise HTTPException(400, "请求body需为JSON")
+    
+    webhook_url = body.get("webhook_url", "")
+    secret = body.get("secret", "")
+    msg_type = body.get("type", "text")
+    content = body.get("content", "")
+    title = body.get("title", "MeshCtx Notification")
+    
+    if not webhook_url or not content:
+        raise HTTPException(400, "请提供webhook_url和content")
+    
+    from src.core.feishu_notify import FeishuNotifier
+    
+    notifier = FeishuNotifier(webhook_url, secret)
+    
+    if msg_type == "card":
+        success = await notifier.send_card(title, content)
+    elif msg_type == "deploy":
+        version = body.get("version", "v2.8")
+        status = body.get("status", "deploying")
+        test_count = body.get("test_count", 0)
+        success = await notifier.send_deploy_notification(version, status, content, test_count)
+    else:
+        success = await notifier.send_text(content)
+    
+    return {"success": success, "message": "发送成功" if success else "发送失败"}
+
+
 @app.get("/api/file/read")
 async def read_local_file(path: str = ""):
     """读取本地文件内容 (支持WSL/Windows路径自动翻译)"""
