@@ -1619,6 +1619,10 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
         <div id="memoryViz" style="font-size:12px;color:var(--muted);">加载中...</div>
       </div>
       <div class="card">
+        <h2>📊 Agent 仪表 <span style="font-size:10px;color:var(--muted);">v2.12</span></h2>
+        <div id="agentMonitorDash" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:12px;"></div>
+      </div>
+      <div class="card">
         <h2>⚡ 快捷操作</h2>
         <div style="display:flex;flex-wrap:wrap;gap:6px;">
           <button class="action-btn start-btn" onclick="quickSearch()" style="font-size:11px;">🔍 网页搜索</button>
@@ -1919,6 +1923,31 @@ function winLoadSoftware(){
   }).catch(function(e){el.innerHTML='<span style="color:#fca5a5;">加载失败: '+e.message+'</span>';});
 }
 
+// ═══ Agent Monitor v2.12.5 ═══
+function renderAgentMonitor(){
+  var el = document.getElementById('agentMonitorDash');
+  if(!el) return;
+  fetch('/api/agent/monitor').then(function(r){return r.json()}).then(function(d){
+    var items = [
+      {label:'消息', value:d.chat?.messages||0, color:'#38bdf8'},
+      {label:'Token', value:(d.chat?.tokens||0), color:'#22c55e'},
+      {label:'沙箱', value:d.tools?.sandbox||0, color:'#8b5cf6'},
+      {label:'搜索', value:d.tools?.search||0, color:'#f59e0b'},
+      {label:'Win', value:d.tools?.windows||0, color:'#06b6d4'},
+      {label:'文件', value:d.tools?.file_reads||0, color:'#ec4899'},
+    ];
+    var html = '';
+    items.forEach(function(it){
+      html += '<div style="text-align:center;padding:6px;background:#0f172a;border-radius:6px;">'+
+        '<div style="font-size:18px;font-weight:700;color:'+it.color+';">'+it.value+'</div>'+
+        '<div style="font-size:9px;color:var(--muted);">'+it.label+'</div></div>';
+    });
+    el.innerHTML = html;
+  }).catch(function(e){
+    el.innerHTML = '<span style="color:var(--muted);font-size:11px;">监控未就绪</span>';
+  });
+}
+
 // ═══ Memory Visualization v2.9 ═══
 function renderMemory(){
   var el = document.getElementById('memoryViz');
@@ -2030,6 +2059,7 @@ function renderAll(d){
   renderPlugins(); // v2.3 Plugin Market
   renderPerf();    // v2.9 Perf Bench
   renderMemory();  // v2.9 Memory Viz
+  renderAgentMonitor(); // v2.12.5 Agent Monitor
   loadMeshctxMd();
   loadConversations();
 }
