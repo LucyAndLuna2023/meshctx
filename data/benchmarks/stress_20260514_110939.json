@@ -1,0 +1,12 @@
+{
+  "total_tasks": 100,
+  "survived_base": 39,
+  "survived_homeostasis": 100,
+  "rejected": 0,
+  "survival_rate_base": 0.39,
+  "survival_rate_homeostasis": 1.0,
+  "avg_utilization": 0.26017984328176746,
+  "max_utilization": 0.531612318813775,
+  "mode_switches": 1,
+  "mode_correct_rate": 1.0
+}

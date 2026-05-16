@@ -1,0 +1,24 @@
+{
+  "config": {
+    "n_scenarios": 100,
+    "n_actions": 10,
+    "steps_per_scenario": 20
+  },
+  "summary": {
+    "Random": {
+      "accuracy": 10.550000000000002,
+      "cost": 0.5,
+      "response_time": 0.05012571897896123
+    },
+    "Greedy": {
+      "accuracy": 14.249999999999998,
+      "cost": 0.5,
+      "response_time": 0.06666914951711078
+    },
+    "FreeEnergy": {
+      "accuracy": 15.15,
+      "cost": 0.1,
+      "response_time": 0.29837558850704227
+    }
+  }
+}
