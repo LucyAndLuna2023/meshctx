@@ -1,36 +1,52 @@
-# 敏感文件
-*.bak
-*.log
-.env
-*.pem
-*secret*
-*password*
-*credential*
+     1|# 敏感文件
+     2|*.bak
+     3|*.log
+     4|.env
+     5|*.pem
+     6|*secret*
+     7|*password*
+     8|*credential*
+     9|
+    10|# Python
+    11|__pycache__/
+    12|*.pyc
+    13|*.pyo
+    14|.eggs/
+    15|*.egg-info/
+    16|dist/
+    17|build/
+    18|
+    19|# 数据
+    20|data/
+    21|logs/
+    22|*.db
+    23|*.sqlite
+    24|
+    25|# IDE
+    26|.vscode/
+    27|.idea/
+    28|
+    29|# 系统
+    30|.DS_Store
+    31|Thumbs.db
+    32|
+    33|# 部署敏感文件
+    34|deploy.sh
+    35|install.sh
+    36|venv/
+    37|
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-.eggs/
-*.egg-info/
-dist/
-build/
-
-# 数据
-data/
-logs/
-*.db
-*.sqlite
-
-# IDE
-.vscode/
-.idea/
-
-# 系统
-.DS_Store
-Thumbs.db
-
-# 部署敏感文件
-deploy.sh
-install.sh
-venv/
+# 🔴 Core Brain — proprietary, not in GitHub
+src/core/super_brain.py
+src/core/brain_router.py
+src/core/free_energy.py
+src/core/active_inference.py
+src/core/global_workspace.py
+src/core/homeostasis.py
+src/core/metacognition.py
+src/core/hybrid_reasoning.py
+src/core/principle_extractor.py
+src/core/pre_action_check.py
+src/core/action_gate.py
+src/core/attention_decay.py
+src/core/context_compressor.py
