@@ -1785,6 +1785,18 @@ async def list_directory(path: str = ""):
 
 # ── v2.1 插件市场 API ──────────────────────────────────
 
+@app.get("/api/brain/gate-stats")
+async def gate_stats():
+    """行动前门控统计 — 前额叶抑制事件计数"""
+    from src.core.action_gate import get_gate, TOOL_PRINCIPLE_MAP
+    gate = get_gate()
+    return {
+        "stats": gate.get_stats(),
+        "recent": gate.get_recent_events(limit=10),
+        "mappings": {tool: [{"principle": r["principle_id"], "gate": r["gate"].value} for r in rules] for tool, rules in TOOL_PRINCIPLE_MAP.items()},
+    }
+
+
 @app.get("/api/brain/status")
 async def brain_status():
     """超级大脑实时状态 (供Brain Monitor面板)"""

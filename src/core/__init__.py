@@ -122,6 +122,7 @@ from .workspace_manager import WorkspaceManager, Workspace, get_workspace_manage
 from .telegram_router import TelegramRouter, TgBot, get_telegram_router
 from .principle_extractor import PrincipleExtractor, get_extractor, BUILTIN_PRINCIPLES
 from .pre_action_check import PreActionChecker, get_checker, quick_check
+from .action_gate import ActionGate, GateAction, GateResult, ToolCall, get_gate
 
 __version__ = "2.16.0"
 __all__ = [

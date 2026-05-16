@@ -26,6 +26,7 @@ import numpy as np
 
 from .kernel import Event, EventPriority, Plugin, PluginInfo
 from .global_workspace import GlobalWorkspace, ProcessorType, AttentionBottleneck
+from .action_gate import ActionGate, GateAction, GateResult, ToolCall as GateToolCall, get_gate
 
 logger = logging.getLogger("meshctx.agent")
 
@@ -835,6 +836,50 @@ class AgentLoopPlugin(Plugin):
         
         task.phase = LoopPhase.ACT
         task.started_at = time.time()
+        
+        # 行动前门控 — 前额叶抑制检查
+        gate = get_gate()
+        decision = task.decision
+        
+        gate_call = GateToolCall(
+            name=decision.action_type if hasattr(decision, 'action_type') else "unknown",
+            params=getattr(decision, 'params', {}),
+            metadata={"task_id": task_id},
+        )
+        
+        gate_result = gate.check(gate_call)
+        
+        if gate_result.action == GateAction.BLOCK:
+            logger.warning(f"[GATE_BLOCK] {gate_result.reason}")
+            result = ActionResult(
+                success=False,
+                error=f"Action blocked: {gate_result.reason}",
+                output=None,
+                duration=0,
+            )
+            task.result = result
+            task.completed_at = time.time()
+            task.status = "gate_blocked"
+            task.phase = LoopPhase.LEARN
+            
+            await self.kernel.bus.publish(Event(
+                type="agent.gate_block",
+                source="agent_loop",
+                correlation_id=event.id,
+                data={
+                    "task_id": task_id,
+                    "reason": gate_result.reason,
+                    "principle": gate_result.violated_principle,
+                },
+            ))
+            return
+        elif gate_result.action == GateAction.FIX:
+            logger.info(f"[GATE_FIX] {gate_result.reason}: {gate_result.fix_applied}")
+            # 修正已应用在gate_call.params中，同步回decision
+            if hasattr(decision, 'params') and hasattr(decision, '__dict__'):
+                decision.params = gate_call.params
+        elif gate_result.action == GateAction.WARN:
+            logger.warning(f"[GATE_WARN] {gate_result.reason}")
         
         # 执行
         result = await self.executor.execute(task.decision)
