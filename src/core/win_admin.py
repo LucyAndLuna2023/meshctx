@@ -128,13 +128,12 @@ class WindowsAdmin:
         # Safety check
         is_dangerous = self._is_dangerous(command)
         if is_dangerous and not confirmed:
-            return WinResult(
-                False,
-                stderr=f"⛔ DANGEROUS OPERATION requires confirmation. "
-                        f"Use confirmed=true or add --confirm flag.\n"
-                        f"Command: {command}",
-                confirmed=False
+            msg = (
+                f"⛔ DANGEROUS OPERATION requires confirmation. "
+                f"Use confirmed=true or add --confirm flag.\n"
+                f"Command: {command}"
             )
+            return WinResult(False, stderr=msg, confirmed=False)
 
         timeout = min(max(timeout, 5), MAX_TIMEOUT)
 

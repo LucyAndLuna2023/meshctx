@@ -102,7 +102,7 @@ class TestGenerativeModelUpdater:
     def test_multiple_updates(self):
         gmu = GenerativeModelUpdater(n_states=10, n_actions=5)
         for i in range(10):
-            gmu.update(f"state{i}", f"act{i%3}", f"next{i}", 0.5)
+            gmu.update(f"state{i}", f"act{i % 3}", f"next{i}", 0.5)
         assert gmu.action_counts.sum() == 10
 
 

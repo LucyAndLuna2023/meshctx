@@ -221,7 +221,7 @@ class SymbolicProjector:
             "step_count": self._step_count,
             "temperature": round(self.temperature, 4),
             "avg_entropy": round(float(np.mean(self._entropy_history[-100:])), 4)
-                if self._entropy_history else 0.0,
+            if self._entropy_history else 0.0,
         }
 
 
