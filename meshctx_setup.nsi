@@ -166,7 +166,7 @@ Para otra carpeta, haga clic en Examinar."
    116|        "EstimatedSize" "$0"
    117|SectionEnd
    118|
-   119|; ── 卸载 ──────────────────────────────────
+   119|; ── 卸载(用户数据保留在 %USERPROFILE%\.meshctx) ──
    120|Section "Uninstall"
    121|    Delete "$INSTDIR\MeshCtx.exe"
    122|    Delete "$INSTDIR\logo.ico"

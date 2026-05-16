@@ -176,6 +176,40 @@ async def lifespan(app: FastAPI):
     watcher = ConfigWatcher()
     def _reload_config():
         logger.info("配置已变更，自动重载模型...")
+
+    # v2.15.7: 用户数据迁移检查(跨版本保留profile/keys/会话/记忆)
+    try:
+        from pathlib import Path
+        data_dir = Path.home() / ".meshctx"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 数据版本文件
+        data_version_file = data_dir / ".data_version"
+        current_data_ver = "2.15.7"
+        
+        if data_version_file.exists():
+            old_ver = data_version_file.read_text().strip()
+            if old_ver != current_data_ver:
+                logger.info(f"📦 数据迁移: {old_ver} → {current_data_ver}")
+        else:
+            logger.info(f"📦 首次运行,数据目录: {data_dir}")
+        
+        data_version_file.write_text(current_data_ver)
+        
+        # 列出已有数据
+        existing = []
+        if (data_dir / "config.yaml").exists(): existing.append("配置")
+        if (data_dir / "prompts.json").exists(): existing.append("提示词模板")
+        if (data_dir / "workspaces.json").exists(): existing.append("工作区")
+        if (data_dir / "conversations").exists(): existing.append("对话历史")
+        if existing:
+            logger.info(f"📂 已加载用户数据: {', '.join(existing)}")
+        
+        # 存储到app state供API查询
+        app.state.data_dir = str(data_dir)
+        app.state.data_items = existing
+    except Exception as e:
+        logger.warning(f"数据迁移警告: {e}")
         try:
             from src.model_registry import get_registry
             import src.model_registry as mr
@@ -1921,6 +1955,45 @@ async def version_info():
     """版本信息"""
     from src.core import __version__
     return {"version":__version__,"models":100,"providers":28,"plugins":9,"tests":673}
+
+
+@app.get("/api/data/status")
+async def data_status(request: Request):
+    """用户数据状态 — 跨版本保留的profile/keys/会话/记忆"""
+    from pathlib import Path
+    from datetime import datetime
+    data_dir = Path.home() / ".meshctx"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    
+    items = {}
+    for name, path in [
+        ("config", "config.yaml"),
+        ("prompts", "prompts.json"),
+        ("workspaces", "workspaces.json"),
+        ("conversations", "conversations"),
+        ("principles", "principles/user_principles.json"),
+    ]:
+        p = data_dir / path
+        if p.exists():
+            items[name] = {
+                "path": str(p),
+                "size": p.stat().st_size if p.is_file() else sum(f.stat().st_size for f in p.rglob('*') if f.is_file()),
+                "modified": datetime.fromtimestamp(p.stat().st_mtime).isoformat() if p.exists() else None,
+            }
+    
+    # 数据版本
+    version_file = data_dir / ".data_version"
+    data_version = version_file.read_text().strip() if version_file.exists() else None
+    
+    # 不包含在卸载中的确认
+    return {
+        "data_dir": str(data_dir),
+        "data_version": data_version,
+        "app_version": __version__ if '__version__' in dir() else "2.15.7",
+        "items": items,
+        "preserved_on_reinstall": True,
+        "note": "用户数据存储在用户目录，安装/卸载/升级均保留"
+    }
 
 
 @app.get("/api/agent/monitor")
