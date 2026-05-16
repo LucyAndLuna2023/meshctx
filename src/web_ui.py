@@ -1835,14 +1835,14 @@ function editModel(id, provider, key, model, url) {
     showAddForm();
     document.getElementById('formTitle').textContent = '编辑 ' + id;
     document.getElementById('editModelId').value = id;
-    document.getElementById('fid').value = id; document.getElementById('fid').disabled = true;
+    document.getElementById('fid').value = id;
     document.getElementById('fprovider').value = provider;
     document.getElementById('fkey').value = key;
     document.getElementById('fmodel').value = model;
     document.getElementById('furl').value = url||'';
 }
 async function saveModel() {
-    var eid = document.getElementById('editModelId').value;
+    var eid = document.getElementById('editModelId').value.trim();
     var body = {
         id: document.getElementById('fid').value.trim(),
         provider: document.getElementById('fprovider').value.trim(),
@@ -1851,14 +1851,22 @@ async function saveModel() {
         base_url: document.getElementById('furl').value.trim(),
     };
     if (!body.id || !body.provider) { alert('ID和提供商为必填'); return; }
-    var method = eid ? 'PUT' : 'POST';
-    var url = eid ? '/api/models/' + eid : '/api/models';
-    if (!eid) body.overwrite = true;
+    if (!body.key) { alert('API Key为必填'); return; }
+    
     try {
-        var res = await fetch(url, {method: method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)});
-        var data = await res.json();
+        var res, data;
+        if (eid && eid !== body.id) {
+            await fetch('/api/models/' + eid, {method: 'DELETE'});
+            res = await fetch('/api/models', {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)});
+        } else if (eid) {
+            res = await fetch('/api/models/' + eid, {method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)});
+        } else {
+            body.overwrite = true;
+            res = await fetch('/api/models', {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)});
+        }
+        data = await res.json();
         if (res.ok) { location.reload(); }
-        else { alert('失败: ' + (data.detail||data.message||'未知')); }
+        else { alert('失败: ' + (data.detail||data.message||JSON.stringify(data))); }
     } catch(e) { alert('网络错误: ' + e.message); }
 }
 async function deleteModel(id) {
