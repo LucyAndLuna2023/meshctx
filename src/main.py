@@ -207,7 +207,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.15.3",
+    version="2.15.4",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -2055,6 +2055,95 @@ async def update_memory(req: Request):
     mem = get_memory(user)
     version = mem.update(section, content)
     return {"version": version, "stats": mem.get_stats()}
+
+
+# ═══════════════════════════════════════════════════
+# 提示词模板管理
+# ═══════════════════════════════════════════════════
+
+PROMPTS_DIR = Path.home() / ".meshctx"
+PROMPTS_FILE = PROMPTS_DIR / "prompts.json"
+
+
+def _load_prompts() -> dict:
+    """加载提示词模板"""
+    if not PROMPTS_FILE.exists():
+        return {"templates": []}
+    try:
+        with open(PROMPTS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return {"templates": []}
+
+
+def _save_prompts(data: dict):
+    """保存提示词模板"""
+    PROMPTS_DIR.mkdir(parents=True, exist_ok=True)
+    with open(PROMPTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+@app.get("/api/prompts")
+async def list_prompts():
+    """获取所有提示词模板"""
+    return _load_prompts()
+
+
+@app.post("/api/prompts")
+async def save_prompt(req: Request):
+    """创建/更新提示词模板"""
+    try:
+        body = await req.json()
+    except Exception:
+        raise HTTPException(400, detail="Invalid JSON body")
+
+    name = body.get("name", "").strip()
+    if not name:
+        raise HTTPException(400, detail="Missing 'name' field")
+
+    content = body.get("content", "")
+    tags = body.get("tags", [])
+
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).isoformat()
+
+    data = _load_prompts()
+    templates = data.get("templates", [])
+
+    # 查找是否已存在同名模板
+    for t in templates:
+        if t.get("name") == name:
+            t["content"] = content
+            t["tags"] = tags
+            t["updated_at"] = now
+            _save_prompts(data)
+            return {"ok": True, "action": "updated", "name": name}
+
+    # 新建
+    templates.append({
+        "name": name,
+        "content": content,
+        "tags": tags,
+        "created_at": now,
+        "updated_at": now,
+    })
+    _save_prompts(data)
+    return {"ok": True, "action": "created", "name": name}
+
+
+@app.delete("/api/prompts/{name}")
+async def delete_prompt(name: str):
+    """删除提示词模板"""
+    data = _load_prompts()
+    templates = data.get("templates", [])
+
+    new_templates = [t for t in templates if t.get("name") != name]
+    if len(new_templates) == len(templates):
+        raise HTTPException(404, detail=f"Template '{name}' not found")
+
+    data["templates"] = new_templates
+    _save_prompts(data)
+    return {"ok": True, "deleted": name}
 
 
 # ═══════════════════════════════════════════════════

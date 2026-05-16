@@ -352,6 +352,14 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
     </select>
     <button id="compareBtn" onclick="toggleCompareMode()" style="background:#8b5cf6;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;margin-left:12px;">⚡ 对比模式</button>
 </div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+    <span style="color:#64748b;font-size:13px;">📋 模板:</span>
+    <select id="promptTemplate" onchange="loadTemplate(this.value)" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:12px;min-width:120px;">
+        <option value="">-- 选择模板 --</option>
+    </select>
+    <button onclick="saveAsTemplate()" title="保存当前输入为模板" style="background:transparent;border:1px solid #334155;color:#64748b;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">💾 保存</button>
+    <button onclick="deleteTemplate()" title="删除选中模板" style="background:transparent;border:1px solid #334155;color:#64748b;padding:4px 6px;border-radius:4px;font-size:11px;cursor:pointer;">🗑️</button>
+</div>
 <div class="card" style="margin-top:16px; display:flex; flex-direction:column; height:60vh;" id="chatCard">
     <div id="chatTabs" style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
     <button class="tab-btn active" data-tab="default" onclick="switchTab('default')" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 14px;border-radius:6px 6px 0 0;font-size:12px;cursor:pointer;">Chat 1</button>
@@ -366,6 +374,7 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
         <input id="userInput" placeholder="/read /ls /search /run /context /win 命令大全" style="flex:1;" onkeydown="if(event.key==='Enter')send()">
         <button class="btn" style="background:#334155;color:#94a3b8;font-size:16px;padding:8px 12px;" onclick="document.getElementById('fileInput').click()" title="上传文件">📎</button>
         <button id="compareBtn" class="btn" style="background:#8b5cf6;color:#e2e8f0;font-size:12px;padding:8px 12px;border:none;border-radius:6px;cursor:pointer;" onclick="toggleCompare()" title="多模型对比">⚡ 对比</button>
+        <button onclick="exportChat()" title="导出对话" style="background:transparent;border:1px solid #334155;color:#64748b;padding:6px 10px;border-radius:4px;font-size:11px;cursor:pointer;">📥 导出</button>
         <button class="btn btn-primary" onclick="send()">发送</button>
     </div>
     <input type="file" id="fileInput" style="display:none" multiple onchange="uploadFiles()">
@@ -496,6 +505,7 @@ async function loadModels() {
     }
 }
 loadModels();
+loadTemplates();
 
 // Chat历史持久化
 const HISTORY_KEY = 'meshctx_chat_history';
@@ -503,13 +513,40 @@ let chatHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
 function saveHistory() { localStorage.setItem(HISTORY_KEY, JSON.stringify(chatHistory.slice(-100))); }
 function restoreHistory() {
     const div = document.getElementById('messages');
-    chatHistory.forEach(h => {
-        if (h.role === 'user') div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ' + h.content + '</div>';
-        else div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;"><strong style="color:#38bdf8;">AI:</strong> ' + h.content + '</div>';
+    chatHistory.forEach((h, i) => {
+        if (h.role === 'user') {
+            var userBubble = document.createElement('div');
+            userBubble.style.cssText = 'margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;';
+            userBubble.innerHTML = '<strong>You:</strong> ' + h.content;
+            var editBtn = document.createElement('button');
+            editBtn.textContent = '✏️';
+            editBtn.title = '编辑并重发';
+            editBtn.style.cssText = 'float:right;background:transparent;border:1px solid #334155;color:#64748b;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:11px;margin-left:4px;';
+            editBtn.onclick = function(){ editMessage(i); };
+            userBubble.appendChild(editBtn);
+            div.appendChild(userBubble);
+        }
+        else {
+            var aiBubble = document.createElement('div');
+            aiBubble.style.cssText = 'margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;';
+            aiBubble.innerHTML = '<strong style="color:#38bdf8;">AI:</strong> ' + h.content;
+            div.appendChild(aiBubble);
+        }
     });
     // v1.5.18: 添加代码运行按钮
     setTimeout(function(){ addCodeRunButtons(div); }, 100);
     div.scrollTop = div.scrollHeight;
+}
+// 消息编辑重发
+function editMessage(idx) {
+    if(idx >= chatHistory.length) return;
+    var msg = chatHistory[idx];
+    if(msg.role !== 'user') return;
+    document.getElementById('userInput').value = msg.content;
+    document.getElementById('userInput').focus();
+    chatHistory.splice(idx);
+    saveHistory();
+    restoreHistory();
 }
 // 多会话标签
 let activeTab = 'default';
@@ -652,6 +689,77 @@ async function compareSend(msg){
   } catch(e) {
     document.getElementById(loadId).outerHTML = '<div style="color:#fca5a5;">对比失败: '+e.message+'</div>';
   }
+}
+
+// ── 提示词模板 ──
+async function loadTemplates() {
+    try {
+        var res = await fetch('/api/prompts');
+        var data = await res.json();
+        var sel = document.getElementById('promptTemplate');
+        sel.innerHTML = '<option value="">-- 选择模板 --</option>';
+        if (data && data.prompts) {
+            data.prompts.forEach(function(p) {
+                var opt = document.createElement('option');
+                opt.value = p;
+                opt.textContent = p;
+                sel.appendChild(opt);
+            });
+        }
+    } catch(e) { console.error('加载模板失败:', e); }
+}
+
+async function loadTemplate(name) {
+    if (!name) return;
+    try {
+        var res = await fetch('/api/prompts/' + encodeURIComponent(name));
+        var data = await res.json();
+        document.getElementById('userInput').value = data.content || '';
+    } catch(e) { alert('加载模板失败: ' + e.message); }
+}
+
+async function saveAsTemplate() {
+    var name = prompt('模板名称:');
+    if (!name || !name.trim()) return;
+    var content = document.getElementById('userInput').value;
+    try {
+        var res = await fetch('/api/prompts', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name: name.trim(), content: content})
+        });
+        if (!res.ok) { var err = await res.json(); alert(err.detail || '保存失败'); return; }
+        loadTemplates();
+    } catch(e) { alert('保存失败: ' + e.message); }
+}
+
+async function deleteTemplate() {
+    var sel = document.getElementById('promptTemplate');
+    var name = sel.value;
+    if (!name) { alert('请先选择模板'); return; }
+    if (!confirm('确定删除模板 "' + name + '"？')) return;
+    try {
+        var res = await fetch('/api/prompts/' + encodeURIComponent(name), {method: 'DELETE'});
+        if (!res.ok) { var err = await res.json(); alert(err.detail || '删除失败'); return; }
+        loadTemplates();
+    } catch(e) { alert('删除失败: ' + e.message); }
+}
+
+// ── 对话导出 ──
+function exportChat() {
+    var md = '# MeshCtx Chat Export\n\n';
+    var tabId = localStorage.getItem('meshctx_active_tab') || 'default';
+    var history = JSON.parse(localStorage.getItem('meshctx_chat_' + tabId) || '[]');
+    if(history.length === 0) { alert('当前无对话可导出'); return; }
+    history.forEach(function(m) {
+        var role = m.role === 'user' ? '**🧑 User:**' : '**🤖 AI:**';
+        md += role + '\n\n' + m.content + '\n\n---\n\n';
+    });
+    var blob = new Blob([md], {type: 'text/markdown;charset=utf-8'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'meshctx-chat-' + new Date().toISOString().slice(0,10) + '.md';
+    a.click(); URL.revokeObjectURL(url);
 }
 
 async function send() {
@@ -843,13 +951,33 @@ async function send() {
         }
         fullMsg = fileBlock + msg;
         const displayMsg = '[📄 ' + fnames.join(', ') + '] ' + msg;
-        div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ' + displayMsg + '</div>';
+        var msgIdx = chatHistory.length;
+        var userBubble = document.createElement('div');
+        userBubble.style.cssText = 'margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;';
+        userBubble.innerHTML = '<strong>You:</strong> ' + displayMsg;
+        var editBtn = document.createElement('button');
+        editBtn.textContent = '✏️';
+        editBtn.title = '编辑并重发';
+        editBtn.style.cssText = 'float:right;background:transparent;border:1px solid #334155;color:#64748b;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:11px;margin-left:4px;';
+        editBtn.onclick = function(){ editMessage(msgIdx); };
+        userBubble.appendChild(editBtn);
+        div.appendChild(userBubble);
         chatHistory.push({role:'user', content:displayMsg});
         uploadedContents = [];
         document.getElementById('fileTag').style.display = 'none';
     } else {
         const displayMsg = msg;
-        div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ' + displayMsg + '</div>';
+        var msgIdx = chatHistory.length;
+        var userBubble = document.createElement('div');
+        userBubble.style.cssText = 'margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;';
+        userBubble.innerHTML = '<strong>You:</strong> ' + displayMsg;
+        var editBtn = document.createElement('button');
+        editBtn.textContent = '✏️';
+        editBtn.title = '编辑并重发';
+        editBtn.style.cssText = 'float:right;background:transparent;border:1px solid #334155;color:#64748b;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:11px;margin-left:4px;';
+        editBtn.onclick = function(){ editMessage(msgIdx); };
+        userBubble.appendChild(editBtn);
+        div.appendChild(userBubble);
         chatHistory.push({role:'user', content:displayMsg});
     }
     saveHistory();

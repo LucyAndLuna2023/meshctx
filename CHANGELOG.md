@@ -1,5 +1,13 @@
 # MeshCtx Changelog
 
+## [2.15.4] - 2026-05-16
+### New Features — Chat UX Enhancement
+- 📋 **提示词模板库** — GET/POST/DELETE /api/prompts 端点 + 前端下拉选择器
+- 📥 **对话导出** — 一键导出对话为Markdown文件下载
+- ✏️ **消息编辑重发** — 编辑已发送消息,自动截断历史重新提问
+- 竞品对标驱动: 补齐Claude Code/ChatGPT/Cursor等对话增强体验
+- 测试: 673 passed, 1 failed (UI/WSL), 2 skipped, 5 warnings
+
 ## [2.15.3] - 2026-05-16
 ### Fix & Deploy
 - 版本号统一: main.py 2.9.1→2.15.3, core 2.15.2→2.15.3, pyproject.toml 1.6.0→2.15.3
