@@ -1,5 +1,12 @@
 # MeshCtx Changelog
 
+## [2.15.6] - 2026-05-16
+### New Features — Chat Core Enhancement
+- 🔢 **Token计数器** — POST /api/utils/tokens + 前端实时显示(>4K橙色>8K红色警告)
+- ⌨️ **键盘快捷键** — Ctrl+Enter发送 / Esc取消清空 / ↑历史回溯
+- 🔵 **流式状态指示** — 思考中→生成中→完成 实时状态+光标平滑闪烁
+- ⚙️ **系统提示词** — 每个Chat独立System Prompt,可折叠编辑器,后端/api/chat接受system参数
+
 ## [2.15.5] - 2026-05-16
 ### New Features — Chat Intelligence Upgrade
 - 📎 **@文件引用** — 输入@触发文件自动补全,选择后注入文件内容为上下文(活用/api/file/read)

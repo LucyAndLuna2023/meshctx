@@ -71,7 +71,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         body.light .flash-success { background:#dcfce7; color:#166534; }
         body.light .flash-error { background:#fef2f2; color:#991b1b; }
         body.light a { color:#2563eb; }
-        .cursor { animation: blink 1s infinite; } @keyframes blink { 0%,50% { opacity:1; } 51%,100% { opacity:0; } }
+        .cursor { display:inline-block;width:2px;height:1em;background:#38bdf8;animation:blink 1s infinite;vertical-align:text-bottom;margin-left:2px; } @keyframes blink { 0%,50% {opacity:1} 51%,100% {opacity:0} }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 </head>
@@ -360,6 +360,17 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
     <button onclick="saveAsTemplate()" title="保存当前输入为模板" style="background:transparent;border:1px solid #334155;color:#64748b;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">💾 保存</button>
     <button onclick="deleteTemplate()" title="删除选中模板" style="background:transparent;border:1px solid #334155;color:#64748b;padding:4px 6px;border-radius:4px;font-size:11px;cursor:pointer;">🗑️</button>
 </div>
+<!-- v2.16: 可折叠系统提示词编辑器 -->
+<div style="margin-bottom:8px;">
+    <button onclick="toggleSystemPrompt()" style="background:transparent;border:1px solid #334155;color:#64748b;padding:2px 10px;border-radius:4px;font-size:11px;cursor:pointer;" id="sysPromptToggle">⚙️ 系统提示词 ▸</button>
+    <div id="sysPromptArea" style="display:none;margin-top:6px;">
+        <textarea id="sysPromptInput" placeholder="设置AI的行为和角色...&#10;例如: 你是一个Python专家，用中文回答，代码要加注释" style="width:100%;height:60px;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:8px;border-radius:6px;font-size:12px;resize:vertical;"></textarea>
+        <div style="display:flex;gap:6px;margin-top:4px;">
+            <button onclick="saveSystemPrompt()" style="background:#2563eb;color:#fff;border:none;padding:3px 12px;border-radius:4px;font-size:11px;cursor:pointer;">💾 保存</button>
+            <button onclick="clearSystemPrompt()" style="background:transparent;border:1px solid #334155;color:#64748b;padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;">清空</button>
+        </div>
+    </div>
+</div>
 <div class="card" style="margin-top:16px; display:flex; flex-direction:column; height:60vh;" id="chatCard">
     <div id="chatTabs" style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
     <button class="tab-btn active" data-tab="default" onclick="switchTab('default')" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 14px;border-radius:6px 6px 0 0;font-size:12px;cursor:pointer;">Chat 1</button>
@@ -378,7 +389,8 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
         <button onclick="quickAction('优化性能')" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">⚡ 优化</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:16px;position:relative;">
-        <input id="userInput" placeholder="/read /ls /search /run /context /win @文件引用 命令大全" style="flex:1;" onkeydown="handleAtKeydown(event)" oninput="handleAtInput(this)" autocomplete="off">
+        <input id="userInput" placeholder="/read /ls /search /run /context /win @文件引用 命令大全" style="flex:1;" onkeydown="handleChatKeydown(event)" oninput="handleAtInput(this);updateTokenCount()" autocomplete="off">
+        <span id="tokenCount" style="color:#64748b;font-size:10px;margin-left:8px;align-self:center;white-space:nowrap;">0 tokens</span>
         <button class="btn" style="background:#334155;color:#94a3b8;font-size:16px;padding:8px 12px;" onclick="document.getElementById('fileInput').click()" title="上传文件">📎</button>
         <button id="compareBtn" class="btn" style="background:#8b5cf6;color:#e2e8f0;font-size:12px;padding:8px 12px;border:none;border-radius:6px;cursor:pointer;" onclick="toggleCompare()" title="多模型对比">⚡ 对比</button>
         <button onclick="exportChat()" title="导出对话" style="background:transparent;border:1px solid #334155;color:#64748b;padding:6px 10px;border-radius:4px;font-size:11px;cursor:pointer;">📥 导出</button>
@@ -783,7 +795,7 @@ async function deleteTemplate() {
     var sel = document.getElementById('promptTemplate');
     var name = sel.value;
     if (!name) { alert('请先选择模板'); return; }
-    if (!confirm('确定删除模板 "' + name + '"？')) return;
+    if (!confirm('删除模板 "' + name + '"?')) return;
     try {
         var res = await fetch('/api/prompts/' + encodeURIComponent(name), {method: 'DELETE'});
         if (!res.ok) { var err = await res.json(); alert(err.detail || '删除失败'); return; }
@@ -791,7 +803,43 @@ async function deleteTemplate() {
     } catch(e) { alert('删除失败: ' + e.message); }
 }
 
-// ── 对话导出 ──
+// ── 系统提示词 ──
+function toggleSystemPrompt() {
+    var area = document.getElementById('sysPromptArea');
+    var btn = document.getElementById('sysPromptToggle');
+    var visible = area.style.display !== 'none';
+    area.style.display = visible ? 'none' : 'block';
+    btn.textContent = visible ? '⚙️ 系统提示词 ▸' : '⚙️ 系统提示词 ▾';
+    if(!visible) {
+        // 加载当前tab的system prompt
+        var tabId = localStorage.getItem('meshctx_active_tab') || 'default';
+        var tab = allTabs[tabId];
+        document.getElementById('sysPromptInput').value = (tab && tab.systemPrompt) || '';
+    }
+}
+
+function saveSystemPrompt() {
+    var tabId = localStorage.getItem('meshctx_active_tab') || 'default';
+    var prompt = document.getElementById('sysPromptInput').value.trim();
+    if(!allTabs[tabId]) allTabs[tabId] = {messages:[], name:'Chat'};
+    allTabs[tabId].systemPrompt = prompt;
+    saveTabs();
+    // 视觉反馈
+    var btns = document.querySelectorAll('#sysPromptArea button');
+    if (btns.length > 0) {
+        var btn = btns[0];
+        var orig = btn.textContent;
+        btn.textContent = '✅ 已保存';
+        setTimeout(function(){ btn.textContent = orig; }, 1500);
+    }
+}
+
+function clearSystemPrompt() {
+    document.getElementById('sysPromptInput').value = '';
+    saveSystemPrompt();
+}
+
+// ── 对比模式 ──
 function exportChat() {
     var md = '# MeshCtx Chat Export\n\n';
     var tabId = localStorage.getItem('meshctx_active_tab') || 'default';
@@ -952,13 +1000,27 @@ function selectAtFile(idx) {
     hideAtAutocomplete();
 }
 
-// 键盘导航: Enter/Escape/ArrowUp/ArrowDown/Tab
-function handleAtKeydown(event) {
+// 键盘导航: Enter/Escape/ArrowUp/ArrowDown/Tab + Chat快捷键(Ctrl+Enter/Esc/ArrowUp)
+function handleChatKeydown(event) {
+    // Ctrl+Enter 或 Cmd+Enter: 发送
+    if((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+        event.preventDefault();
+        hideAtAutocomplete();
+        send();
+        return;
+    }
+    
     var dd = document.getElementById('atAutocomplete');
     var isVisible = dd.style.display === 'block';
     
     if (event.key === 'Escape') {
         if (isVisible) { hideAtAutocomplete(); event.preventDefault(); return; }
+        // 中断流式输出(如果有)
+        if(window._abortStream) { window._abortStream(); return; }
+        // 清空输入
+        var input = document.getElementById('userInput');
+        if(input.value) { input.value = ''; updateTokenCount(); }
+        return;
     }
     
     if (isVisible && _atFiles.length > 0) {
@@ -983,10 +1045,43 @@ function handleAtKeydown(event) {
         }
     }
     
+    // ArrowUp: 上一条历史消息(如果输入为空且不在自动补全中)
+    if (event.key === 'ArrowUp' && !document.getElementById('userInput').value && !isVisible) {
+        event.preventDefault();
+        var history = JSON.parse(localStorage.getItem('meshctx_chat_' + (localStorage.getItem('meshctx_active_tab')||'default')) || '[]');
+        for(var i=history.length-1; i>=0; i--) {
+            if(history[i].role === 'user') {
+                document.getElementById('userInput').value = history[i].content;
+                updateTokenCount();
+                break;
+            }
+        }
+        return;
+    }
+    
     if (event.key === 'Enter') {
         hideAtAutocomplete();
         send();
     }
+}
+
+// v2.15.6: Token 计数器, 防抖300ms, 颜色警告
+var tokenDebounce = null;
+function updateTokenCount() {
+    clearTimeout(tokenDebounce);
+    tokenDebounce = setTimeout(async function() {
+        var text = document.getElementById('userInput').value;
+        var el = document.getElementById('tokenCount');
+        if (!text) { el.textContent = '0 tokens'; el.style.color = '#64748b'; return; }
+        try {
+            var res = await fetch('/api/utils/tokens', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text:text})});
+            var data = await res.json();
+            el.textContent = data.tokens + ' tokens';
+            if (data.tokens > 8000) el.style.color = '#ef4444';
+            else if (data.tokens > 4000) el.style.color = '#f59e0b';
+            else el.style.color = '#64748b';
+        } catch(e) {}
+    }, 300);
 }
 
 async function send() {
@@ -1253,6 +1348,13 @@ async function send() {
     const stopBtn = document.getElementById('stopStreamBtn');
     stopBtn.style.display = 'inline-block';
     
+    // 流式状态指示器
+    var statusEl = document.createElement('div');
+    statusEl.className = 'stream-status';
+    statusEl.style.cssText = 'color:#64748b;font-size:10px;margin-bottom:4px;';
+    statusEl.textContent = '🔵 思考中...';
+    aiBubble.insertBefore(statusEl, aiBubble.firstChild);
+    
     // 全局中断函数
     window._abortStream = function(){
         streamAborted = true;
@@ -1265,6 +1367,9 @@ async function send() {
     let retryCount = 0;
     const maxRetries = 3;
     let innerAbortController = null; // 中断当前fetch
+
+    // v2.16: 读取当前tab的系统提示词
+    var sysPrompt = (allTabs[activeTab] && allTabs[activeTab].systemPrompt) || '';
 
     while (retryCount <= maxRetries) {
       if (streamAborted) break;
@@ -1279,7 +1384,7 @@ async function send() {
         var res = await fetch('/api/chat/stream', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({message: fullMsg, model: document.getElementById('modelSelect').value}),
+          body: JSON.stringify({message: fullMsg, model: document.getElementById('modelSelect').value, system: sysPrompt}),
           signal: innerAbortController.signal
         });
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1302,7 +1407,9 @@ async function send() {
             var data = line.slice(6);
 
             if (data === '[DONE]') {
-              cursor.remove();
+              if(statusEl) statusEl.textContent = '✅ 完成 (' + new Date().toLocaleTimeString() + ')';
+              var cursor = aiBubble.querySelector('.cursor');
+              if(cursor) cursor.style.display = 'none';
               chatHistory.push({role:'assistant', content:streamText.innerHTML});
               saveHistory();
               var raw = streamText.innerHTML;
@@ -1343,6 +1450,10 @@ async function send() {
               } else if (parsed.token) {
                 var token = parsed.token.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
                 streamText.innerHTML += token;
+                // 首token到达，更新状态
+                if(statusEl && statusEl.textContent === '🔵 思考中...') {
+                    statusEl.textContent = '🟢 生成中...';
+                }
               } else if (parsed.tool_call) {
                 // v1.5.22: 工具调用内联展示
                 streamText.innerHTML += '<div style="background:#312e81;border-radius:6px;padding:6px;margin:4px 0;font-size:12px;"><span style="color:#a5b4fc;">🔧 '+parsed.tool_call+'</span></div>';

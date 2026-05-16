@@ -207,7 +207,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.15.5",
+    version="2.15.6",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -715,6 +715,22 @@ async def healer_heal(plugin_name: str):
         data={"plugin": plugin_name},
     ))
     return {"status": "healing", "plugin": plugin_name}
+
+# ── v2.15.6 Token 计数器 ─────────────────────────────────────
+
+@app.post("/api/utils/tokens")
+async def count_tokens(req: Request):
+    """估算文本token数量 (启发式: 英文~4字符/token, 中文~1.5字符/token)"""
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
+    text = body.get("text", "")
+    import re
+    chinese = len(re.findall(r'[\u4e00-\u9fff]', text))
+    other = len(text) - chinese
+    tokens = int(chinese / 1.5 + other / 4)
+    return {"tokens": max(1, tokens), "chars": len(text), "method": "heuristic"}
 
 # ── WebSocket状态 ──────────────────────────────────────
 
@@ -2421,6 +2437,12 @@ async def api_chat(request: Request):
         msg = body.get("message", "")
         if msg:
             msgs = [{"role": "user", "content": msg}]
+
+    # v2.16: 可选的系统提示词 — 用户可在Chat UI中设置
+    system_prompt = body.get("system", "")
+    if system_prompt:
+        msgs = [{"role": "system", "content": system_prompt}] + msgs
+
     model_id = body.get("model")
     if not model_id:
         # 从配置读取默认模型，fallback到内置
@@ -2515,6 +2537,11 @@ async def api_chat_stream(request: Request):
             iter(["data: [请输入消息]\n\n"]),
             media_type="text/event-stream"
         )
+
+    # v2.16: 可选的系统提示词 — 用户可在Chat UI中设置
+    system_prompt = body.get("system", "")
+    if system_prompt:
+        msgs = [{"role": "system", "content": system_prompt}] + msgs
 
     # v1.5.20: 注入 .meshctx.md 项目上下文 (多项目支持)
     md_ctx = _get_chat_context()
