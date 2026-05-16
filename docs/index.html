@@ -367,51 +367,70 @@
     </div>
 </section>
 
-<!-- ═══ DOWNLOAD & INSTALL ═══ -->
+<!-- ═══ DOWNLOAD & INSTALL (7语言 data-lang div) ═══ -->
 <section id="download">
     <div class="section-inner">
-        <h2 class="section-title"><span data-lang-key="install_title">下载 & 安装</span></h2>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:16px;">
-            <!-- 🪟 Windows -->
-            <div class="feature-card" style="text-align:center;">
-                <div style="font-size:2.5rem;">🪟</div>
-                <h3 data-lang-key="plat_windows">Windows</h3>
-                <p style="min-height:40px;" data-lang-key="win_desc">NSIS安装程序 · 7语言 · 一键安装</p>
-                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" style="display:block;margin:8px 0;" data-lang-key="win_dl_installer">📦 下载安装程序</a>
-                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-ghost" style="display:block;" data-lang-key="win_dl_portable">📂 下载便携版</a>
+        <!-- EN -->
+        <div class="lang active" data-lang="en">
+            <h2 class="section-title">Download & Install</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:16px;">
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🪟</div><h3>Windows</h3><p style="min-height:40px;">NSIS Installer · 7 languages · One-click</p><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" style="display:block;margin:8px 0;">📦 Download Installer</a><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-ghost" style="display:block;">📂 Download Portable</a></div>
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🍎</div><h3>macOS</h3><p style="min-height:40px;">DMG package · ARM64 native · Homebrew</p><div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">brew install meshctx</div><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-macos.dmg" class="btn btn-ghost" style="display:block;">📥 Download DMG</a></div>
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🐧</div><h3>Linux / WSL</h3><p style="min-height:40px;">Source install · pip · venv · PEP 668</p><div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">git clone https://github.com/LucyAndLuna2023/meshctx.git<br>cd meshctx<br>python3 -m venv .venv && source .venv/bin/activate<br>pip install -e . && export DEEPSEEK_API_KEY=sk-xxx<br>meshctx start</div></div>
             </div>
-            <!-- 🍎 macOS -->
-            <div class="feature-card" style="text-align:center;">
-                <div style="font-size:2.5rem;">🍎</div>
-                <h3 data-lang-key="plat_macos">macOS</h3>
-                <p style="min-height:40px;" data-lang-key="mac_desc">DMG安装包 · ARM64原生 · Homebrew</p>
-                <div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">
-                    <span class="c"># Homebrew 安装</span><br>
-                    brew install meshctx<br><br>
-                    <span class="c"># 或源码安装</span><br>
-                    git clone https://github.com/LucyAndLuna2023/meshctx.git<br>
-                    cd meshctx<br>
-                    python3 -m venv .venv && source .venv/bin/activate<br>
-                    pip install -e . && pip install pycryptodome<br>
-                    meshctx start
-                </div>
-                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-macos.dmg" class="btn btn-ghost" style="display:block;" data-lang-key="mac_dl">📥 下载 DMG</a>
+        </div>
+        <!-- ZH -->
+        <div class="lang" data-lang="zh">
+            <h2 class="section-title">下载 & 安装</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:16px;">
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🪟</div><h3>Windows</h3><p style="min-height:40px;">NSIS安装程序 · 7语言 · 一键安装</p><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" style="display:block;margin:8px 0;">📦 下载安装程序</a><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-ghost" style="display:block;">📂 下载便携版</a></div>
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🍎</div><h3>macOS</h3><p style="min-height:40px;">DMG安装包 · ARM64原生 · Homebrew</p><div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">brew install meshctx</div><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-macos.dmg" class="btn btn-ghost" style="display:block;">📥 下载 DMG</a></div>
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🐧</div><h3>Linux / WSL</h3><p style="min-height:40px;">源码安装 · pip · venv · PEP 668兼容</p><div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">git clone https://github.com/LucyAndLuna2023/meshctx.git<br>cd meshctx<br>python3 -m venv .venv && source .venv/bin/activate<br>pip install -e . && export DEEPSEEK_API_KEY=sk-你的key<br>meshctx start</div></div>
             </div>
-            <!-- 🐧 Linux -->
-            <div class="feature-card" style="text-align:center;">
-                <div style="font-size:2.5rem;">🐧</div>
-                <h3 data-lang-key="plat_linux">Linux</h3>
-                <p style="min-height:40px;" data-lang-key="linux_desc">源码安装 · pip · venv · PEP 668兼容</p>
-                <div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">
-                    <span class="c"># 克隆 + 虚拟环境</span><br>
-                    git clone https://github.com/LucyAndLuna2023/meshctx.git<br>
-                    cd meshctx<br>
-                    python3 -m venv .venv && source .venv/bin/activate<br>
-                    pip install -e . && pip install pycryptodome<br><br>
-                    <span class="c"># 配置 & 启动</span><br>
-                    export DEEPSEEK_API_KEY=sk-你的key<br>
-                    meshctx start
-                </div>
+        </div>
+        <!-- JA -->
+        <div class="lang" data-lang="ja">
+            <h2 class="section-title">ダウンロード & インストール</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:16px;">
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🪟</div><h3>Windows</h3><p style="min-height:40px;">NSISインストーラー · 7言語 · ワンクリック</p><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" style="display:block;margin:8px 0;">📦 インストーラー</a><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-ghost" style="display:block;">📂 ポータブル版</a></div>
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🍎</div><h3>macOS</h3><p style="min-height:40px;">DMG · ARM64ネイティブ · Homebrew</p><div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">brew install meshctx</div><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-macos.dmg" class="btn btn-ghost" style="display:block;">📥 DMG版</a></div>
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🐧</div><h3>Linux / WSL</h3><p style="min-height:40px;">ソース · pip · venv</p><div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">git clone https://github.com/LucyAndLuna2023/meshctx.git<br>cd meshctx<br>python3 -m venv .venv && source .venv/bin/activate<br>pip install -e . && export DEEPSEEK_API_KEY=sk-xxx<br>meshctx start</div></div>
+            </div>
+        </div>
+        <!-- KO -->
+        <div class="lang" data-lang="ko">
+            <h2 class="section-title">다운로드 & 설치</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:16px;">
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🪟</div><h3>Windows</h3><p style="min-height:40px;">NSIS 설치 · 7개 언어 · 원클릭</p><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" style="display:block;margin:8px 0;">📦 설치 프로그램</a><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-ghost" style="display:block;">📂 포터블</a></div>
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🍎</div><h3>macOS</h3><p style="min-height:40px;">DMG · ARM64 네이티브 · Homebrew</p><div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">brew install meshctx</div><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-macos.dmg" class="btn btn-ghost" style="display:block;">📥 DMG 다운로드</a></div>
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🐧</div><h3>Linux / WSL</h3><p style="min-height:40px;">소스 설치 · pip · venv</p><div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">git clone https://github.com/LucyAndLuna2023/meshctx.git<br>cd meshctx<br>python3 -m venv .venv && source .venv/bin/activate<br>pip install -e . && export DEEPSEEK_API_KEY=sk-xxx<br>meshctx start</div></div>
+            </div>
+        </div>
+        <!-- ES -->
+        <div class="lang" data-lang="es">
+            <h2 class="section-title">Descargar e Instalar</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:16px;">
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🪟</div><h3>Windows</h3><p style="min-height:40px;">Instalador NSIS · 7 idiomas · Un clic</p><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" style="display:block;margin:8px 0;">📦 Descargar Instalador</a><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-ghost" style="display:block;">📂 Descargar Portable</a></div>
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🍎</div><h3>macOS</h3><p style="min-height:40px;">DMG · ARM64 nativo · Homebrew</p><div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">brew install meshctx</div><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-macos.dmg" class="btn btn-ghost" style="display:block;">📥 Descargar DMG</a></div>
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🐧</div><h3>Linux / WSL</h3><p style="min-height:40px;">Código fuente · pip · venv</p><div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">git clone https://github.com/LucyAndLuna2023/meshctx.git<br>cd meshctx<br>python3 -m venv .venv && source .venv/bin/activate<br>pip install -e . && export DEEPSEEK_API_KEY=sk-xxx<br>meshctx start</div></div>
+            </div>
+        </div>
+        <!-- FR -->
+        <div class="lang" data-lang="fr">
+            <h2 class="section-title">Télécharger & Installer</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:16px;">
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🪟</div><h3>Windows</h3><p style="min-height:40px;">Installateur NSIS · 7 langues · Un clic</p><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" style="display:block;margin:8px 0;">📦 Télécharger</a><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-ghost" style="display:block;">📂 Portable</a></div>
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🍎</div><h3>macOS</h3><p style="min-height:40px;">DMG · ARM64 natif · Homebrew</p><div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">brew install meshctx</div><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-macos.dmg" class="btn btn-ghost" style="display:block;">📥 Télécharger DMG</a></div>
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🐧</div><h3>Linux / WSL</h3><p style="min-height:40px;">Source · pip · venv</p><div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">git clone https://github.com/LucyAndLuna2023/meshctx.git<br>cd meshctx<br>python3 -m venv .venv && source .venv/bin/activate<br>pip install -e . && export DEEPSEEK_API_KEY=sk-xxx<br>meshctx start</div></div>
+            </div>
+        </div>
+        <!-- DE -->
+        <div class="lang" data-lang="de">
+            <h2 class="section-title">Herunterladen & Installieren</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:16px;">
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🪟</div><h3>Windows</h3><p style="min-height:40px;">NSIS-Installer · 7 Sprachen · Ein-Klick</p><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" style="display:block;margin:8px 0;">📦 Installer</a><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-ghost" style="display:block;">📂 Portable</a></div>
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🍎</div><h3>macOS</h3><p style="min-height:40px;">DMG · ARM64 nativ · Homebrew</p><div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">brew install meshctx</div><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-macos.dmg" class="btn btn-ghost" style="display:block;">📥 DMG herunterladen</a></div>
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🐧</div><h3>Linux / WSL</h3><p style="min-height:40px;">Quellcode · pip · venv</p><div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">git clone https://github.com/LucyAndLuna2023/meshctx.git<br>cd meshctx<br>python3 -m venv .venv && source .venv/bin/activate<br>pip install -e . && export DEEPSEEK_API_KEY=sk-xxx<br>meshctx start</div></div>
             </div>
         </div>
     </div>
