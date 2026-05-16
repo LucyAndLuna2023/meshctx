@@ -1,0 +1,26 @@
+{
+  "Random": {
+    "avg_reward": 390.1,
+    "std_reward": 47.44635567318809,
+    "avg_optimal_rate": 0.10037499999999998,
+    "std_optimal_rate": 0.0091238583760746,
+    "avg_convergence_step": 800.0,
+    "std_convergence_step": 0.0
+  },
+  "Greedy": {
+    "avg_reward": 406.26666666666665,
+    "std_reward": 191.8367245573404,
+    "avg_optimal_rate": 0.199875,
+    "std_optimal_rate": 0.3997500977173114,
+    "avg_convergence_step": 640.1,
+    "std_convergence_step": 319.8000781738491
+  },
+  "FreeEnergy": {
+    "avg_reward": 462.06666666666666,
+    "std_reward": 62.453680613893546,
+    "avg_optimal_rate": 0.19916666666666666,
+    "std_optimal_rate": 0.05613166565218681,
+    "avg_convergence_step": 800.0,
+    "std_convergence_step": 0.0
+  }
+}

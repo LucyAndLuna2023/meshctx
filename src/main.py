@@ -1573,6 +1573,71 @@ async def clear_conversations():
     return {"status": "ok", "deleted": count}
 
 
+@app.patch("/api/conversations/{conv_id}/rename")
+async def rename_conversation(conv_id: str, req: Request):
+    """重命名对话"""
+    try: body = await req.json()
+    except: raise HTTPException(400, "Invalid JSON")
+    new_title = body.get("title", "").strip()
+    if not new_title:
+        raise HTTPException(400, "title is required")
+    
+    from src.core.conversation_store import Conversation, DATA_DIR
+    conv = Conversation.load(conv_id)
+    if not conv:
+        raise HTTPException(404, "对话不存在")
+    conv.title = new_title
+    conv.save()
+    return {"status": "ok", "id": conv_id, "title": new_title}
+
+
+@app.post("/api/conversations/prune")
+async def prune_conversations(req: Request):
+    """清理旧对话 — 删除older_than_days之前的会话"""
+    try: body = await req.json()
+    except: body = {}
+    older_than_days = body.get("older_than_days", 30)
+    
+    from src.core.conversation_store import Conversation, DATA_DIR
+    import time as _time
+    cutoff = _time.time() - (older_than_days * 86400)
+    deleted = 0
+    for path in DATA_DIR.glob("*.json"):
+        try:
+            with open(path) as f:
+                data = __import__('json').load(f)
+            if data.get("created_at", 0) < cutoff:
+                path.unlink()
+                deleted += 1
+        except Exception:
+            pass
+    return {"status": "ok", "deleted": deleted, "older_than_days": older_than_days}
+
+
+@app.get("/api/conversations/stats")
+async def conversation_stats():
+    """对话存储统计"""
+    from src.core.conversation_store import Conversation, DATA_DIR
+    import os as _os
+    files = list(DATA_DIR.glob("*.json"))
+    total_size = sum(f.stat().st_size for f in files)
+    total_messages = 0
+    for f in files[:200]:  # Sample first 200 for performance
+        try:
+            with open(f) as fp:
+                d = __import__('json').load(fp)
+            total_messages += d.get("message_count", 0)
+        except Exception:
+            pass
+    return {
+        "total_sessions": len(files),
+        "total_size_bytes": total_size,
+        "total_size_mb": round(total_size / 1048576, 2),
+        "estimated_messages": total_messages,
+        "storage_path": str(DATA_DIR),
+    }
+
+
 # ═══════════════════════════════════════════════════
 # 配置备份 (v2.11)
 # ═══════════════════════════════════════════════════

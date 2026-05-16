@@ -1,0 +1,19 @@
+{
+  "summary": {
+    "Random": {
+      "accuracy": 10.550000000000002,
+      "cost": 0.5,
+      "response_time": 0.03514720652310643
+    },
+    "Greedy": {
+      "accuracy": 14.249999999999998,
+      "cost": 0.5,
+      "response_time": 0.04648410049776429
+    },
+    "FreeEnergy": {
+      "accuracy": 15.15,
+      "cost": 0.1,
+      "response_time": 0.22611114900064425
+    }
+  }
+}

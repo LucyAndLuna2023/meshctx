@@ -1,0 +1,20 @@
+{
+  "test_result": "ok",
+  "summary": {
+    "Random": {
+      "accuracy": 22.333333333333332,
+      "cost": 0.5,
+      "response_time": 0.04251023330046641
+    },
+    "Greedy": {
+      "accuracy": 25.0,
+      "cost": 0.5,
+      "response_time": 0.05747206666759059
+    },
+    "FreeEnergy": {
+      "accuracy": 25.33333333333333,
+      "cost": 0.10000000000000002,
+      "response_time": 0.2809158000309253
+    }
+  }
+}
