@@ -1552,7 +1552,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
 </head>
 <body>
 <div class="topbar">
-  <span class="logo">🕸 meshctx <span class="v">Desktop v2.6</span></span>
+  <span class="logo">🕸 meshctx <span class="v">Desktop v2.15</span></span>
   <span class="status-dot" id="sysDot" title="系统状态"></span>
   <span class="live-indicator" id="liveTag"></span>
   <span class="spacer"></span>
@@ -1567,6 +1567,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
   </select>
   <button onclick="window.open('/ui/setup','_blank')" title="设置">⚙</button>
 </div>
+<div id="updateBar" style="display:none;background:linear-gradient(135deg,#8b5cf6,#06b6d4);color:#fff;padding:8px 16px;text-align:center;font-size:12px;cursor:pointer;" onclick="window.open('https://github.com/LucyAndLuna2023/meshctx/releases/latest','_blank')">🚀 新版本可用！点击下载 →</div>
 <div class="tabbar" id="tabbar">
   <button class="tab active" data-pane="chat">💬 Chat</button>
   <button class="tab" data-pane="agent">🤖 Agent</button>
@@ -2027,6 +2028,47 @@ document.querySelectorAll('.tabbar .tab').forEach(function(t){
 function startAutoRefresh(){
   fetchSummary();
   _timer = setInterval(fetchSummary, REFRESH_SEC*1000);
+  // v2.15.3: WebSocket实时推送
+  connectWebSocket();
+}
+
+function connectWebSocket(){
+  var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  var wsUrl = proto + '//' + location.host + '/ws/metrics';
+  try {
+    var ws = new WebSocket(wsUrl);
+    ws.onmessage = function(e){
+      try {
+        var d = JSON.parse(e.data);
+        if(d.type === 'agent_metrics') updateLiveMetrics(d);
+      } catch(ex) {}
+    };
+    ws.onclose = function(){ setTimeout(connectWebSocket, 5000); };
+    ws.onerror = function(){ /* fallback to polling */ };
+  } catch(ex) { /* WebSocket not supported */ }
+}
+
+function updateLiveMetrics(d){
+  var el = document.getElementById('liveTag');
+  if(el){
+    var phase = _phaseMap[d.phase] || 'RUN';
+    el.textContent = '● LIVE ' + phase + ' | ' + (d.chat?.messages||0) + 'msgs';
+  }
+  // Update agent monitor card if visible
+  var dash = document.getElementById('agentMonitorDash');
+  if(dash && dash.children.length > 0){
+    setTimeout(function(){ renderAgentMonitor(); }, 500);
+  }
+  // Check for updates periodically
+  if(!window._updateChecked){
+    window._updateChecked = true;
+    fetch('/api/update/check').then(function(r){return r.json()}).then(function(ud){
+      if(ud.update_available){
+        var bar = document.getElementById('updateBar');
+        if(bar) bar.style.display = 'block';
+      }
+    });
+  }
 }
 function fetchSummary(){
   // v1.5.15: 标题闪烁
