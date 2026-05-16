@@ -115,8 +115,10 @@ from .agent_monitor import AgentMonitor, AgentMetrics, get_monitor
 from .plugin_autoload import discover_plugins, auto_activate_builtins
 from .agent_tasks import AgentTask
 from .realtime_push import RealtimeHub, get_hub
+from .auto_update import check_update
+from .multi_notify import TelegramNotifier, DiscordNotifier, SlackNotifier, MultiNotifier, get_multi_notifier
 
-__version__ = "2.13.0"
+__version__ = "2.14.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",

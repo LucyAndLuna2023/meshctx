@@ -1987,6 +1987,48 @@ async def ws_metrics(websocket: WebSocket):
     await get_hub().connect(websocket)
 
 
+# ═══════════════════════════════════════════════════
+# 自动更新检查 (v2.14)
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/update/check")
+async def api_check_update():
+    """检查新版本"""
+    from src.core.auto_update import check_update
+    from src.core import __version__
+    result = check_update(__version__)
+    return result or {"error": "无法检查更新"}
+
+
+# ═══════════════════════════════════════════════════
+# 多通道通知 (v2.14)
+# ═══════════════════════════════════════════════════
+
+@app.post("/api/notify/broadcast")
+async def broadcast_notify(req: Request):
+    """多渠道广播通知"""
+    try: body = await req.json()
+    except: raise HTTPException(400)
+    
+    text = body.get("text", "")
+    if not text: raise HTTPException(400, "请提供 text")
+    
+    from src.core.multi_notify import get_multi_notifier
+    
+    # Configure channels from request
+    mn = get_multi_notifier()
+    
+    if body.get("telegram_token") and body.get("telegram_chat_id"):
+        mn.configure("telegram", token=body["telegram_token"], chat_id=body["telegram_chat_id"])
+    if body.get("discord_webhook"):
+        mn.configure("discord", webhook_url=body["discord_webhook"])
+    if body.get("slack_webhook"):
+        mn.configure("slack", webhook_url=body["slack_webhook"])
+    
+    results = mn.broadcast(text)
+    return {"success": any(results.values()), "results": results}
+
+
 @app.post("/api/plugins/uninstall/{plugin_name}")
 async def uninstall_plugin(plugin_name: str):
     """卸载插件"""
