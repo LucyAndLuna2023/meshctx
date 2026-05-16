@@ -12,7 +12,7 @@
       "permissions": ["network:search"],
       "platforms": ["windows", "macos", "linux"],
       "entry_point": "web_search/manifest.json",
-      "download_url": "https://github.com/LucyAndLuna2023/meshctx-plugins/raw/main/web-search/manifest.json",
+      "download_url": "https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/plugins/web-search/manifest.json",
       "installs": 0
     },
     {
@@ -25,7 +25,7 @@
       "permissions": ["fs:read", "model:call"],
       "platforms": ["windows", "macos", "linux"],
       "entry_point": "code_review/manifest.json",
-      "download_url": "https://github.com/LucyAndLuna2023/meshctx-plugins/raw/main/code-review/manifest.json",
+      "download_url": "https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/plugins/code-review/manifest.json",
       "installs": 0
     },
     {
@@ -38,7 +38,7 @@
       "permissions": ["fs:read", "fs:write", "exec:shell"],
       "platforms": ["windows", "macos", "linux"],
       "entry_point": "file_manager/manifest.json",
-      "download_url": "https://github.com/LucyAndLuna2023/meshctx-plugins/raw/main/file-manager/manifest.json",
+      "download_url": "https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/plugins/file-manager/manifest.json",
       "installs": 0
     },
     {
@@ -51,7 +51,7 @@
       "permissions": ["network:api"],
       "platforms": ["windows", "macos", "linux"],
       "entry_point": "feishu_bot/manifest.json",
-      "download_url": "https://github.com/LucyAndLuna2023/meshctx-plugins/raw/main/feishu-bot/manifest.json",
+      "download_url": "https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/plugins/feishu-bot/manifest.json",
       "installs": 0
     },
     {
@@ -64,7 +64,7 @@
       "permissions": ["fs:read", "model:call"],
       "platforms": ["windows", "macos", "linux"],
       "entry_point": "data_viz/manifest.json",
-      "download_url": "https://github.com/LucyAndLuna2023/meshctx-plugins/raw/main/data-visualizer/manifest.json",
+      "download_url": "https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/plugins/data-visualizer/manifest.json",
       "installs": 0
     },
     {
