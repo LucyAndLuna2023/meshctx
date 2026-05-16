@@ -1,5 +1,14 @@
 # MeshCtx Changelog
 
+## [2.15.7] - 2026-05-16
+### New Features — 智能防错系统
+- 🧠 **原则提取器** — 8条内置原则(从历史错误学习),支持LLM自动提取+用户自定义
+- 🛡️ **行动前检查** — 文件修改前自动语法检查(node --check/ast.parse)+原则匹配
+- 🔍 **自动错误诊断** — /api/principles/extract 从错误日志匹配已知原则
+- 🔧 **NSIS乱码修复** — LangString $\n换行(49处)+版本同步2.15.7
+- 📦 **Windows管理模块完好** — 12端点/560行,构建中已包含
+- 📊 测试: 673 passed + 8原则在线
+
 ## [2.15.6-hotfix] - 2026-05-16
 ### Critical Bug Fixes — 全链路测试驱动
 - 🔴 **ModelClient.chat() 吞错误修复** — 删除try/except伪装成功,改为抛出真实异常

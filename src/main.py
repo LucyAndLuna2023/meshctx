@@ -207,7 +207,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.15.6",
+    version="2.15.7",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -2057,6 +2057,88 @@ async def broadcast_notify(req: Request):
     
     results = mn.broadcast(text)
     return {"success": any(results.values()), "results": results}
+
+
+# ═══════════════════════════════════════════════════
+# 原则提取与行动前检查 (v2.15.7 — 从错误中学习)
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/principles")
+async def list_principles(tag: str = None, severity: str = None):
+    """列出所有原则"""
+    from src.core.principle_extractor import get_extractor
+    ext = get_extractor()
+    principles = ext.list_all()
+    if tag:
+        principles = [p for p in principles if tag in p.get("tags", [])]
+    if severity:
+        principles = [p for p in principles if p.get("severity") == severity]
+    return {"principles": principles, "count": len(principles)}
+
+
+@app.post("/api/principles")
+async def add_principle(req: Request):
+    """添加自定义原则"""
+    try: body = await req.json()
+    except: body = {}
+    rule = body.get("rule", "").strip()
+    if not rule:
+        raise HTTPException(400, "rule为必填")
+    from src.core.principle_extractor import get_extractor
+    ext = get_extractor()
+    p = ext.add_user_principle(
+        rule=rule,
+        severity=body.get("severity", "medium"),
+        tags=body.get("tags", []),
+        file_patterns=body.get("file_patterns", ["*"]),
+        auto_fix=body.get("auto_fix", ""),
+    )
+    return {"status": "ok", "principle": p}
+
+
+@app.post("/api/check/before-modify")
+async def pre_check_modify(req: Request):
+    """文件修改前检查"""
+    try: body = await req.json()
+    except: body = {}
+    file_path = body.get("file", "")
+    if not file_path:
+        raise HTTPException(400, "file为必填")
+    from src.core.pre_action_check import quick_check
+    passed, issues = quick_check(file_path)
+    return {"passed": passed, "issues": issues, "file": file_path}
+
+
+@app.post("/api/check/before-deploy")
+async def pre_check_deploy(req: Request):
+    """部署前检查"""
+    try: body = await req.json()
+    except: body = {}
+    files = body.get("files", [])
+    from src.core.pre_action_check import get_checker
+    checker = get_checker()
+    passed, issues = checker.check_before_deploy(files)
+    return {"passed": passed, "issues": issues}
+
+
+@app.post("/api/principles/extract")
+async def extract_principle(req: Request):
+    """从错误日志中提取原则"""
+    try: body = await req.json()
+    except: body = {}
+    error_msg = body.get("error", "")
+    file_path = body.get("file", "")
+    if not error_msg:
+        raise HTTPException(400, "error为必填")
+    from src.core.principle_extractor import get_extractor
+    ext = get_extractor()
+    result = ext.extract_from_error(error_msg, file_path)
+    if result:
+        return {"found": True, "principle": result}
+    return {"found": False, "message": "未匹配到已知原则,可手动添加"}
+
+
+# ═══════════════════════════════════════════════════
 
 
 # ═══════════════════════════════════════════════════

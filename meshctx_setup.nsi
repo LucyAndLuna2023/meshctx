@@ -14,7 +14,7 @@
     13|RequestExecutionLevel admin
     14|SetCompressor /SOLID lzma
     15|
-    16|!define VERSION "2.15.6"
+    16|!define VERSION "2.15.7"
     17|!define PUBLISHER "meshctx.com"
     18|
     19|; ── 界面图标 ───────────────────────────────

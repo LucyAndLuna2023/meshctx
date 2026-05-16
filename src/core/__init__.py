@@ -120,8 +120,10 @@ from .multi_notify import TelegramNotifier, DiscordNotifier, SlackNotifier, Mult
 from .versioned_memory import VersionedMemory, get_memory
 from .workspace_manager import WorkspaceManager, Workspace, get_workspace_manager
 from .telegram_router import TelegramRouter, TgBot, get_telegram_router
+from .principle_extractor import PrincipleExtractor, get_extractor, BUILTIN_PRINCIPLES
+from .pre_action_check import PreActionChecker, get_checker, quick_check
 
-__version__ = "2.15.6"
+__version__ = "2.15.7"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
