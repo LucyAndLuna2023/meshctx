@@ -2103,6 +2103,45 @@ async def delete_workspace(ws_id: str):
     return {"status": "ok" if ok else "not_found"}
 
 
+# ═══════════════════════════════════════════════════
+# Telegram Bot路由 (v2.15.2 — 学自OpenWork)
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/tg/bots")
+async def list_tg_bots():
+    """列出所有Telegram Bot"""
+    from src.core.telegram_router import get_telegram_router
+    return {"bots": get_telegram_router().list_bots()}
+
+
+@app.post("/api/tg/bots")
+async def add_tg_bot(req: Request):
+    """添加Telegram Bot"""
+    try: body = await req.json()
+    except: raise HTTPException(400)
+    from src.core.telegram_router import get_telegram_router
+    import uuid
+    router = get_telegram_router()
+    bot = router.add_bot(
+        bot_id=body.get("id", f"tg_{uuid.uuid4().hex[:8]}"),
+        token=body.get("token", ""),
+        name=body.get("name", "MeshCtxBot"),
+        workspace=body.get("workspace", "default"),
+    )
+    return {"status": "ok", "bot": bot.to_dict()}
+
+
+@app.post("/api/tg/bots/{bot_id}/send")
+async def tg_send_message(bot_id: str, req: Request):
+    """通过Bot发送消息"""
+    try: body = await req.json()
+    except: raise HTTPException(400)
+    from src.core.telegram_router import get_telegram_router
+    router = get_telegram_router()
+    ok = router.send_message(bot_id, body.get("chat_id", ""), body.get("text", ""))
+    return {"status": "ok" if ok else "failed"}
+
+
 @app.post("/api/plugins/uninstall/{plugin_name}")
 async def uninstall_plugin(plugin_name: str):
     """卸载插件"""
