@@ -2029,6 +2029,34 @@ async def broadcast_notify(req: Request):
     return {"success": any(results.values()), "results": results}
 
 
+# ═══════════════════════════════════════════════════
+# 版本化记忆 (v2.15 — 学自WorkBuddy)
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/memory")
+async def read_memory(user: str = "default"):
+    """读取版本化记忆"""
+    from src.core.versioned_memory import get_memory
+    mem = get_memory(user)
+    return {"content": mem.read(), "stats": mem.get_stats()}
+
+
+@app.post("/api/memory")
+async def update_memory(req: Request):
+    """更新记忆"""
+    try: body = await req.json()
+    except: raise HTTPException(400)
+    
+    section = body.get("section", "Context")
+    content = body.get("content", "")
+    user = body.get("user", "default")
+    
+    from src.core.versioned_memory import get_memory
+    mem = get_memory(user)
+    version = mem.update(section, content)
+    return {"version": version, "stats": mem.get_stats()}
+
+
 @app.post("/api/plugins/uninstall/{plugin_name}")
 async def uninstall_plugin(plugin_name: str):
     """卸载插件"""

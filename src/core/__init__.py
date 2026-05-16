@@ -117,8 +117,9 @@ from .agent_tasks import AgentTask
 from .realtime_push import RealtimeHub, get_hub
 from .auto_update import check_update
 from .multi_notify import TelegramNotifier, DiscordNotifier, SlackNotifier, MultiNotifier, get_multi_notifier
+from .versioned_memory import VersionedMemory, get_memory
 
-__version__ = "2.14.0"
+__version__ = "2.15.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
