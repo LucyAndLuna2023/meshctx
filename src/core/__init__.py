@@ -66,8 +66,8 @@ try:
         CriticalityRegulator, BeliefState, BeliefType,
     )
 except ImportError:
-    FreeEnergyAgent=FreeEnergyComputer=PrecisionWeighting=_brain_noop
-    CriticalityRegulator=BeliefState=BeliefType=_brain_noop
+    FreeEnergyAgent = FreeEnergyComputer = PrecisionWeighting = _brain_noop
+    CriticalityRegulator = BeliefState = BeliefType = _brain_noop
 try:
     from .active_inference import (
         ActiveInferenceEngine, GenerativeModel, Policy,
@@ -75,8 +75,8 @@ try:
         LookaheadPlanner, DualProcessDecision,
     )
 except ImportError:
-    ActiveInferenceEngine=GenerativeModel=Policy=_brain_noop
-    ActionType=MultiScaleLearning=LookaheadPlanner=DualProcessDecision=_brain_noop
+    ActiveInferenceEngine = GenerativeModel = Policy = _brain_noop
+    ActionType = MultiScaleLearning = LookaheadPlanner = DualProcessDecision = _brain_noop
 try:
     from .hybrid_reasoning import HybridReasoningScheduler
 except ImportError:
@@ -87,8 +87,8 @@ try:
         AttentionBottleneck, UnconsciousProcessing, RecursiveWorkspace,
     )
 except ImportError:
-    GlobalWorkspace=Processor=ProcessorType=_brain_noop
-    AttentionBottleneck=UnconsciousProcessing=RecursiveWorkspace=_brain_noop
+    GlobalWorkspace = Processor = ProcessorType = _brain_noop
+    AttentionBottleneck = UnconsciousProcessing = RecursiveWorkspace = _brain_noop
 try:
     from .homeostasis import (
         HomeostaticRegulator, ResourceBudget, ResourceType,
@@ -96,16 +96,16 @@ try:
         CircadianModulator,
     )
 except ImportError:
-    HomeostaticRegulator=ResourceBudget=ResourceType=_brain_noop
-    SystemMode=MarginalUtilityScheduler=NeuromodulatorSystem=CircadianModulator=_brain_noop
+    HomeostaticRegulator = ResourceBudget = ResourceType = _brain_noop
+    SystemMode = MarginalUtilityScheduler = NeuromodulatorSystem = CircadianModulator = _brain_noop
 try:
     from .brain_router import (
         SymbolicProjector, SparseAttentionRouter,
         PsiParameterizedComplexity, BrainInspiredRouter,
     )
 except ImportError:
-    SymbolicProjector=SparseAttentionRouter=_brain_noop
-    PsiParameterizedComplexity=BrainInspiredRouter=_brain_noop
+    SymbolicProjector = SparseAttentionRouter = _brain_noop
+    PsiParameterizedComplexity = BrainInspiredRouter = _brain_noop
 
 from .crypto import encrypt_key, decrypt_key, is_encrypted
 from .platform_fs import (
@@ -120,10 +120,10 @@ try:
         STDPLearner, EmotionalConsolidation, IITConsciousness,
     )
 except ImportError:
-    SuperBrainOrchestrator=HippocampalReplay=SalienceTagger=_brain_noop
-    DefaultModeNetwork=ThalamicGate=ForwardModel=_brain_noop
-    ActionSelector=ConflictMonitor=InteroceptionEngine=TheoryOfMind=_brain_noop
-    STDPLearner=EmotionalConsolidation=IITConsciousness=_brain_noop
+    SuperBrainOrchestrator = HippocampalReplay = SalienceTagger = _brain_noop
+    DefaultModeNetwork = ThalamicGate = ForwardModel = _brain_noop
+    ActionSelector = ConflictMonitor = InteroceptionEngine = TheoryOfMind = _brain_noop
+    STDPLearner = EmotionalConsolidation = IITConsciousness = _brain_noop
 from .plugin_manifest import PluginManifest
 from .online_learning import (
     OnlineLearningEngine, InteractionRecorder, Interaction,
