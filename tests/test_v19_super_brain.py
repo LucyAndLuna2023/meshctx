@@ -18,7 +18,7 @@ class TestHippocampalReplay:
     def test_encode_and_replay(self):
         hp = HippocampalReplay(max_traces=100)
         for i in range(20):
-            hp.encode(f"memory content {i}", emotional_tag=0.5 if i%2==0 else -0.3)
+            hp.encode(f"memory content {i}", emotional_tag=0.5 if i % 2 == 0 else -0.3)
         assert len(hp.traces) == 20
         # 不应立即重放
         assert not hp.should_replay()

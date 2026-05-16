@@ -3977,7 +3977,7 @@ async def setup_page(request: Request):
                         raw_key = model_cfg.get("key", "")
                         if raw_key:
                             entry["key_full"] = raw_key
-                            entry["key_masked"] = raw_key[:6] + "****" + raw_key[-4:] if len(raw_key)>10 else "****"
+                            entry["key_masked"] = raw_key[:6] + "****" + raw_key[-4:] if len(raw_key) > 10 else "****"
                         entry["base_url"] = model_cfg.get("base_url", "")
                 except:
                     pass

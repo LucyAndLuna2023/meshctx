@@ -83,7 +83,7 @@ def t9():
         "id":TM,"key":"sk-fake","base_url":"https://api.openai.com/v1",
         "model":"gpt-3.5","provider":"openai"
     }))
-    assert d.get("status")=="ok" or "id" in d, str(d)
+    assert d.get("status") == "ok" or "id" in d, str(d)
 check("POST /api/models 添加", t9)
 
 def t10():
@@ -92,7 +92,7 @@ check("PUT /api/models 更新", t10)
 
 def t11():
     d = ok(curl(f"/api/models/{TM}/test","POST"))
-    assert d.get("status")=="error", f"假Key居然通过: {d.get('message','?')}"
+    assert d.get("status") == "error", f"假Key居然通过: {d.get('message','?')}"
 check("POST test连接(应失败)", t11)
 
 def t12():
@@ -146,19 +146,19 @@ print("\n═══ Phase 4: Web UI 页面 ═══")
 def t19():
     r = subprocess.run(["curl","-s","-o","/dev/null","-w","%{http_code}","-m","5",f"{BASE}/ui/chat"],
                       capture_output=True, text=True)
-    assert r.stdout.strip()=="200", f"/ui/chat: {r.stdout.strip()}"
+    assert r.stdout.strip() == "200", f"/ui/chat: {r.stdout.strip()}"
 check("GET /ui/chat", t19)
 
 def t20():
     r = subprocess.run(["curl","-s","-o","/dev/null","-w","%{http_code}","-m","5",f"{BASE}/ui/desktop"],
                       capture_output=True, text=True)
-    assert r.stdout.strip()=="200", f"/ui/desktop: {r.stdout.strip()}"
+    assert r.stdout.strip() == "200", f"/ui/desktop: {r.stdout.strip()}"
 check("GET /ui/desktop", t20)
 
 def t21():
     r = subprocess.run(["curl","-s","-o","/dev/null","-w","%{http_code}","-m","5",f"{BASE}/docs"],
                       capture_output=True, text=True)
-    assert r.stdout.strip()=="200", f"/docs: {r.stdout.strip()}"
+    assert r.stdout.strip() == "200", f"/docs: {r.stdout.strip()}"
 check("GET /docs", t21)
 
 # ═══ Phase 5: 竞品功能 ═══
