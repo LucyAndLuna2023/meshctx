@@ -181,7 +181,8 @@ def wsl_to_windows(wsl_path: str) -> str:
     parts = wsl_path[5:].split("/", 1)
     drive = parts[0].upper()
     rest = parts[1] if len(parts) > 1 else ""
-    return f"{drive}:\\{rest.replace('/', '\\')}"
+    win_rest = rest.replace("/", "\\")
+    return f"{drive}:\\{win_rest}"
 
 
 def windows_to_wsl(win_path: str) -> str:

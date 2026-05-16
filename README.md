@@ -1,7 +1,7 @@
 <p align="center">
   <img src="docs/assets/logo.png" alt="MeshCtx" width="200">
-  <h1 align="center">🧠 MeshCtx v2.12</h1>
-  <h3 align="center">世界首个全脑仿真 AI Agent — 100模型·28供应商·13脑区·代码沙箱·多模型对比</h3>
+  <h1 align="center">🧠 MeshCtx v2.15.3</h1>
+  <h3 align="center">世界首个全脑仿真 AI Agent — 100模型·28供应商·13脑区·代码沙箱·多模型对比·WorkBuddy精华</h3>
 </p>
 
 <p align="center">
@@ -15,7 +15,7 @@
 
 ---
 
-> **MeshCtx 是世界首个全脑仿真 AI Agent 平台。** v2.12 支持100模型28供应商，13脑区超级大脑，代码沙箱(Docker+SSE)，项目索引，多模型对比Chat，飞书通知，Windows全管理。框架AGPLv3开源 | 核心大脑源码可见，商业授权需联系。
+> **MeshCtx 是世界首个全脑仿真 AI Agent 平台。** v2.15.3 支持100模型28供应商，13脑区超级大脑，代码沙箱(Docker+SSE)，项目索引，多模型对比Chat，飞书通知，Windows全管理，WorkBuddy精华集成(SOUL人格+版本化记忆+多通道通知+自更新)。框架AGPLv3开源 | 核心大脑源码可见，商业授权需联系。
 
 ## 🚀 快速开始
 
@@ -30,7 +30,7 @@ cd meshctx && python3 -m venv .venv && source .venv/bin/activate
 pip install -e . && export DEEPSEEK_API_KEY=sk-xxx && mesctx start
 
 # Windows
-# 下载 meshctx-setup-v2.12.0.exe → 双击安装
+# 下载 meshctx-setup-v2.15.3.exe → 双击安装
 ```
 
 ## 🧠 核心能力
@@ -43,9 +43,9 @@ pip install -e . && export DEEPSEEK_API_KEY=sk-xxx && mesctx start
 | 多模型对比 | ⚡一键同时问3模型,并排卡片对比 | v2.11 |
 | 飞书通知 | 卡片/文本/部署推送, HMAC签名 | v2.8 |
 | Windows管理 | 服务/进程/注册表/PowerShell/浏览器 | v2.10 |
-| 代码审查 | 12+检测规则,安全/风格/性能评分 | v2.12 |
+| 代码审查 | 12+检测规则,安全/风格/性能评分 | v2.15 |
 | Web搜索 | /search命令, DuckDuckGo | v2.7 |
-| Docker部署 | Dockerfile+docker-compose一键启动 | v2.12 |
+| Docker部署 | Dockerfile+docker-compose一键启动 | v2.15 |
 
 ## 💬 Chat 命令
 

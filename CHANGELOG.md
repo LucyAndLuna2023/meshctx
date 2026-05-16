@@ -1,5 +1,14 @@
 # MeshCtx Changelog
 
+## [2.15.3] - 2026-05-16
+### Fix & Deploy
+- 版本号统一: main.py 2.9.1→2.15.3, core 2.15.2→2.15.3, pyproject.toml 1.6.0→2.15.3
+- meshctx_desktop.spec 版本同步 v2.15.1→v2.15.3
+- Python 3.10兼容: platform_fs.py f-string反斜杠转义修复
+- README/docs/download/docs.html/getting-started.html 全量版本更新
+- 远程服务器部署: 47.120.0.239:3000 v1.5.24→v2.15.3 (全量同步)
+- 测试: 673 passed, 6 failed (UI/WSL无浏览器), 9 errors (UI), 2 skipped
+
 ## [2.15.0] - 2026-05-16
 ### WorkBuddy & OpenWork Learnings
 - SOUL.md/IDENTITY.md/USER.md 三大人格文件系统

@@ -121,7 +121,7 @@ from .versioned_memory import VersionedMemory, get_memory
 from .workspace_manager import WorkspaceManager, Workspace, get_workspace_manager
 from .telegram_router import TelegramRouter, TgBot, get_telegram_router
 
-__version__ = "2.15.2"
+__version__ = "2.15.3"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
