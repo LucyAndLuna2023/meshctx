@@ -1698,6 +1698,17 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
         <div id="feishuStatus" style="font-size:11px;margin-top:6px;"></div>
       </div>
       <div class="card">
+        <h2>📡 多通道通知 <span style="font-size:10px;color:var(--muted);">v2.14</span></h2>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Telegram · Discord · Slack — 一键广播</div>
+        <div class="form-group"><label>Telegram Bot Token</label><input id="tgToken" placeholder="123:abc..." style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:6px 10px;border-radius:4px;font-size:12px;"></div>
+        <div class="form-group"><label>Telegram Chat ID</label><input id="tgChatId" placeholder="-100xxx" style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:6px 10px;border-radius:4px;font-size:12px;"></div>
+        <div class="form-group"><label>Discord Webhook</label><input id="dcWebhook" placeholder="https://discord.com/api/webhooks/..." style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:6px 10px;border-radius:4px;font-size:12px;"></div>
+        <div class="form-group"><label>Slack Webhook</label><input id="slWebhook" placeholder="https://hooks.slack.com/services/..." style="width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:6px 10px;border-radius:4px;font-size:12px;"></div>
+        <button class="action-btn start-btn" onclick="saveMultiNotify()" style="font-size:10px;">💾 保存</button>
+        <button class="action-btn" onclick="testMultiNotify()" style="font-size:10px;background:#334155;color:#e2e8f0;">🧪 测试广播</button>
+        <div id="multiNotifyStatus" style="font-size:11px;margin-top:6px;"></div>
+      </div>
+      <div class="card">
         <h2>🔧 MCP 服务器管理
           <span style="flex:1"></span>
           <button class="action-btn start-btn" onclick="showAddMcpForm()" style="font-size:10px;">+ 添加</button>
@@ -2900,6 +2911,42 @@ function testFeishu(){
   var savedSecret = localStorage.getItem('meshctx_feishu_secret');
   if(savedUrl) document.getElementById('feishuUrl').value = savedUrl;
   if(savedSecret) document.getElementById('feishuSecret').value = savedSecret;
+})();
+
+// ═══ Multi-Notify v2.14 ═══
+function saveMultiNotify(){
+  ['tgToken','tgChatId','dcWebhook','slWebhook'].forEach(function(id){
+    var val = document.getElementById(id).value.trim();
+    if(val) localStorage.setItem('meshctx_'+id, val);
+  });
+  document.getElementById('multiNotifyStatus').innerHTML = '<span style="color:#22c55e;">✅ 已保存</span>';
+  setTimeout(function(){ document.getElementById('multiNotifyStatus').innerHTML = ''; }, 2000);
+}
+function testMultiNotify(){
+  var el = document.getElementById('multiNotifyStatus');
+  el.innerHTML = '<span style="color:#94a3b8;">⏳ 发送中...</span>';
+  var body = {text: '✅ MeshCtx v2.14 多通道通知测试成功!'};
+  var tg = document.getElementById('tgToken').value.trim();
+  var tcid = document.getElementById('tgChatId').value.trim();
+  var dc = document.getElementById('dcWebhook').value.trim();
+  var sl = document.getElementById('slWebhook').value.trim();
+  if(tg&&tcid){ body.telegram_token = tg; body.telegram_chat_id = tcid; }
+  if(dc) body.discord_webhook = dc;
+  if(sl) body.slack_webhook = sl;
+  fetch('/api/notify/broadcast', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  }).then(function(r){return r.json()}).then(function(d){
+    if(d.success) el.innerHTML = '<span style="color:#22c55e;">✅ 广播成功: '+JSON.stringify(d.results)+'</span>';
+    else el.innerHTML = '<span style="color:#fca5a5;">❌ 发送失败</span>';
+    saveMultiNotify();
+  });
+}
+(function(){
+  ['tgToken','tgChatId','dcWebhook','slWebhook'].forEach(function(id){
+    var val = localStorage.getItem('meshctx_'+id);
+    if(val) document.getElementById(id).value = val;
+  });
 })();
 
 // ═══ Sandbox v2.8.1 SSE ═══
