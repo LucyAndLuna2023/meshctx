@@ -241,7 +241,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.15.7",
+    version="2.16.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -1819,6 +1819,22 @@ async def brain_status():
         "phi": round(phi, 3),
         "state": "conscious_focused" if phi > 0.5 else "conscious_engaged",
         "timestamp": time.time(),
+    }
+
+
+@app.get("/api/brain/principle-guard")
+async def principle_guard_status():
+    """原则守护者 — 杏仁核+丘脑门控防止关键原则被淹没"""
+    from src.core.principle_extractor import get_extractor
+    ext = get_extractor()
+    all_p = ext.list_all()
+    return {
+        "total": len(all_p),
+        "critical": len([p for p in all_p if p.get("severity") == "critical"]),
+        "amygdala_active": True,
+        "thalamic_threshold": 0.6,
+        "context_warning_at": 8000,
+        "principles": [{"id": p["id"], "rule": p["rule"][:80], "severity": p.get("severity"), "salience": 0.95 if p.get("severity") == "critical" else 0.5} for p in all_p],
     }
 
 

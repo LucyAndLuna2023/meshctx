@@ -123,7 +123,7 @@ from .telegram_router import TelegramRouter, TgBot, get_telegram_router
 from .principle_extractor import PrincipleExtractor, get_extractor, BUILTIN_PRINCIPLES
 from .pre_action_check import PreActionChecker, get_checker, quick_check
 
-__version__ = "2.15.7"
+__version__ = "2.16.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",

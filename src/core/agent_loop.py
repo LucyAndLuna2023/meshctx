@@ -691,6 +691,48 @@ class AgentLoopPlugin(Plugin):
         obs.context["super_brain"] = sb_result
         workspace_result["super_brain"] = sb_result
         
+        # v2.16: 🛡️ 原则守护者 — 杏仁核高显著性标记+丘脑门控过滤
+        # 解决Hermes记忆机制缺陷:关键原则在长上下文中被淹没
+        try:
+            from .principle_extractor import get_extractor
+            extractor = get_extractor()
+            
+            # 提取与当前上下文相关的原则
+            principles = extractor.query(file_path=content, tags=["critical", "deploy", "syntax", "python", "html", "js"])
+            if not principles:
+                principles = extractor.list_all()[:5]  # fallback: top 5 by severity
+            
+            # 杏仁核情感显著性标记:critical=0.95, high=0.8, 其余=0.5
+            amygdala_tags = {}
+            for p in principles:
+                sev = p.get("severity", "medium")
+                weight = {"critical": 0.95, "high": 0.8}.get(sev, 0.5)
+                amygdala_tags[p["id"]] = weight
+            
+            # 丘脑门控过滤:只保留高显著性(>0.6)的原则
+            thalamic_result = self.super_brain.thalamus.gate(
+                inputs={p["id"]: p for p in principles},
+                context={"salience": amygdala_tags},
+                threshold=0.6
+            )
+            
+            # 全局工作空间广播:高显著性原则进入"意识"层
+            filtered = [p for p in principles if thalamic_result.get("gated_outputs", {}).get(p["id"], 0) > 0.6]
+            guard_result = {
+                "active_principles": filtered,
+                "amygdala_salience": amygdala_tags,
+                "thalamic_threshold": 0.6,
+                "context_length_warning": len(str(content)) > 8000,
+            }
+            
+            obs.context["principle_guard"] = guard_result
+            workspace_result["principle_guard"] = guard_result
+            
+            if guard_result["context_length_warning"]:
+                logger.warning(f"⚠️ 上下文过长({len(str(content))}字符),原则守护已激活{len(filtered)}条")
+        except Exception as e:
+            logger.debug(f"原则守护者: {e}")
+        
         # 发布Orient事件 — 包含工作空间结果
         await self.kernel.bus.publish(Event(
             type="agent.orient",
