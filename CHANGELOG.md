@@ -1,5 +1,13 @@
 # MeshCtx Changelog
 
+## [2.15.5] - 2026-05-16
+### New Features — Chat Intelligence Upgrade
+- 📎 **@文件引用** — 输入@触发文件自动补全,选择后注入文件内容为上下文(活用/api/file/read)
+- 🔢 **代码块行号** — 所有代码块自动显示行号,可选中不复制
+- ⚡ **快捷操作栏** — 翻译/总结/解释代码/修复Bug/优化性能 一键填充
+- ✏️ **会话重命名** — 右键Chat Tab可重命名,持久化存储
+- 竞品对标: @文件引用对标Cursor/Copilot,快捷操作对标ChatGPT
+
 ## [2.15.4] - 2026-05-16
 ### New Features — Chat UX Enhancement
 - 📋 **提示词模板库** — GET/POST/DELETE /api/prompts 端点 + 前端下拉选择器

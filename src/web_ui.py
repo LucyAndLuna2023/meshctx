@@ -370,12 +370,20 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
      ondragleave="this.style.borderColor='#334155'"
      ondrop="event.preventDefault();this.style.borderColor='#334155';handleDrop(event)"></div>
     <div id="fileTag" style="margin-top:8px;font-size:12px;color:#38bdf8;display:none;"></div>
-    <div style="display:flex;gap:8px;margin-top:16px;">
-        <input id="userInput" placeholder="/read /ls /search /run /context /win 命令大全" style="flex:1;" onkeydown="if(event.key==='Enter')send()">
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;" id="quickActions">
+        <button onclick="quickAction('翻译成中文')" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">🌐 翻译</button>
+        <button onclick="quickAction('总结要点')" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">📝 总结</button>
+        <button onclick="quickAction('解释这段代码')" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">💻 解释代码</button>
+        <button onclick="quickAction('修复Bug')" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">🔧 修复</button>
+        <button onclick="quickAction('优化性能')" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">⚡ 优化</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;position:relative;">
+        <input id="userInput" placeholder="/read /ls /search /run /context /win @文件引用 命令大全" style="flex:1;" onkeydown="handleAtKeydown(event)" oninput="handleAtInput(this)" autocomplete="off">
         <button class="btn" style="background:#334155;color:#94a3b8;font-size:16px;padding:8px 12px;" onclick="document.getElementById('fileInput').click()" title="上传文件">📎</button>
         <button id="compareBtn" class="btn" style="background:#8b5cf6;color:#e2e8f0;font-size:12px;padding:8px 12px;border:none;border-radius:6px;cursor:pointer;" onclick="toggleCompare()" title="多模型对比">⚡ 对比</button>
         <button onclick="exportChat()" title="导出对话" style="background:transparent;border:1px solid #334155;color:#64748b;padding:6px 10px;border-radius:4px;font-size:11px;cursor:pointer;">📥 导出</button>
         <button class="btn btn-primary" onclick="send()">发送</button>
+        <div id="atAutocomplete" style="display:none;position:absolute;top:100%;left:0;background:#1e293b;border:1px solid #334155;border-radius:6px;max-height:200px;overflow-y:auto;z-index:1000;min-width:300px;box-shadow:0 4px 12px rgba(0,0,0,0.5);"></div>
     </div>
     <input type="file" id="fileInput" style="display:none" multiple onchange="uploadFiles()">
 </div>
@@ -551,7 +559,20 @@ function editMessage(idx) {
 // 多会话标签
 let activeTab = 'default';
 const TABS_KEY = 'meshctx_tabs';
-let allTabs = JSON.parse(localStorage.getItem(TABS_KEY) || '{"default":[]}');
+let allTabs = (function() {
+    var raw = JSON.parse(localStorage.getItem(TABS_KEY) || '{"default":[]}');
+    var migrated = {};
+    Object.keys(raw).forEach(function(k, i) {
+        if (Array.isArray(raw[k])) {
+            migrated[k] = {messages: raw[k], name: 'Chat ' + (i+1)};
+        } else if (raw[k] && typeof raw[k] === 'object' && Array.isArray(raw[k].messages)) {
+            migrated[k] = raw[k];
+        } else {
+            migrated[k] = {messages: [], name: 'Chat ' + (i+1)};
+        }
+    });
+    return migrated;
+})();
 function saveTabs() { localStorage.setItem(TABS_KEY, JSON.stringify(allTabs)); }
 function switchTab(tabId) {
     activeTab = tabId;
@@ -560,7 +581,7 @@ function switchTab(tabId) {
     localStorage.setItem('meshctx_active_tab', tabId);
     const div = document.getElementById('messages');
     div.innerHTML = '';
-    (allTabs[tabId]||[]).forEach(h => {
+    (allTabs[tabId] && allTabs[tabId].messages || []).forEach(function(h) {
         if (h.role==='user') div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ' + h.content + '</div>';
         else div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;"><strong style="color:#38bdf8;">AI:</strong> ' + h.content + '</div>';
     });
@@ -569,7 +590,7 @@ function switchTab(tabId) {
 function newTab() {
     const id = 'chat_' + Date.now();
     const n = Object.keys(allTabs).length + 1;
-    allTabs[id] = [];
+    allTabs[id] = {messages: [], name: 'Chat ' + n};
     saveTabs();
     const tabs = document.getElementById('chatTabs');
     const btn = document.createElement('button');
@@ -577,14 +598,27 @@ function newTab() {
     btn.textContent = 'Chat ' + n;
     btn.style.cssText = 'background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 14px;border-radius:6px 6px 0 0;font-size:12px;cursor:pointer;';
     btn.onclick = function(){switchTab(id)};
+    btn.oncontextmenu = function(e) {
+        e.preventDefault();
+        var tabId = this.dataset.tab;
+        var curName = (allTabs[tabId] && allTabs[tabId].name) || tabId;
+        var newName = prompt('重命名会话:', curName);
+        if (newName && newName.trim()) {
+            if (!allTabs[tabId]) allTabs[tabId] = {messages: [], name: newName.trim()};
+            allTabs[tabId].name = newName.trim();
+            this.textContent = newName.trim();
+            saveTabs();
+        }
+        return false;
+    };
     tabs.insertBefore(btn, tabs.lastElementChild);
     switchTab(id);
 }
 // Override chatHistory to use per-tab storage
-chatHistory = allTabs[activeTab] || [];
+chatHistory = (allTabs[activeTab] && allTabs[activeTab].messages || []);
 function saveHistory() { 
-    if (!allTabs[activeTab]) allTabs[activeTab] = [];
-    allTabs[activeTab] = chatHistory.slice(-100);
+    if (!allTabs[activeTab]) allTabs[activeTab] = {messages: [], name: 'Chat ' + (Object.keys(allTabs).length + 1)};
+    allTabs[activeTab].messages = chatHistory.slice(-100);
     saveTabs();
 }
 function toggleTheme() {
@@ -597,23 +631,35 @@ if (localStorage.getItem('meshctx_theme') === 'light') document.body.classList.a
 
 // 恢复标签页
 (function restoreTabs() {
-    const tabs = JSON.parse(localStorage.getItem(TABS_KEY) || '{"default":[]}');
-    const tabIds = Object.keys(tabs);
+    const tabIds = Object.keys(allTabs);
     const tabsDiv = document.getElementById('chatTabs');
     // 清除旧标签（保留+按钮）
     while (tabsDiv.children.length > 1) tabsDiv.removeChild(tabsDiv.firstChild);
-    tabIds.forEach((id, i) => {
+    tabIds.forEach(function(id) {
         const btn = document.createElement('button');
         btn.className = 'tab-btn'; btn.dataset.tab = id;
-        btn.textContent = 'Chat ' + (i+1);
+        btn.textContent = (allTabs[id] && allTabs[id].name) || id;
         btn.style.cssText = 'background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 14px;border-radius:6px 6px 0 0;font-size:12px;cursor:pointer;';
         btn.onclick = function(){switchTab(id)};
+        btn.oncontextmenu = function(e) {
+            e.preventDefault();
+            var tabId = this.dataset.tab;
+            var curName = (allTabs[tabId] && allTabs[tabId].name) || tabId;
+            var newName = prompt('重命名会话:', curName);
+            if (newName && newName.trim()) {
+                if (!allTabs[tabId]) allTabs[tabId] = {messages: [], name: newName.trim()};
+                allTabs[tabId].name = newName.trim();
+                this.textContent = newName.trim();
+                saveTabs();
+            }
+            return false;
+        };
         tabsDiv.insertBefore(btn, tabsDiv.lastElementChild);
     });
     // 恢复上次活跃标签
     const lastActive = localStorage.getItem('meshctx_active_tab') || 'default';
-    if (tabs[lastActive]) switchTab(lastActive);
-    else if (tabs['default']) switchTab('default');
+    if (allTabs[lastActive]) switchTab(lastActive);
+    else if (allTabs['default']) switchTab('default');
 })();
 restoreHistory();
 
@@ -760,6 +806,187 @@ function exportChat() {
     var a = document.createElement('a');
     a.href = url; a.download = 'meshctx-chat-' + new Date().toISOString().slice(0,10) + '.md';
     a.click(); URL.revokeObjectURL(url);
+}
+
+// ═══ @文件引用自动补全 v2.16 ═══
+let _atDebounce = null;
+let _atSelectedIndex = -1;
+let _atFiles = [];
+
+function hideAtAutocomplete() {
+    var dd = document.getElementById('atAutocomplete');
+    dd.style.display = 'none';
+    dd.innerHTML = '';
+    _atSelectedIndex = -1;
+    _atFiles = [];
+}
+
+async function handleAtInput(el) {
+    var val = el.value;
+    var cursorPos = el.selectionStart;
+    // 找到光标前最后一个@符号
+    var textBeforeCursor = val.substring(0, cursorPos);
+    var lastAt = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAt === -1) { hideAtAutocomplete(); return; }
+    
+    // 检查@是否在单词边界（前面是空白或行首）
+    if (lastAt > 0 && !/\\s/.test(textBeforeCursor[lastAt - 1])) { hideAtAutocomplete(); return; }
+    
+    var filter = textBeforeCursor.substring(lastAt + 1);
+    
+    // 防抖
+    if (_atDebounce) clearTimeout(_atDebounce);
+    _atDebounce = setTimeout(async function() {
+        await fetchAtFiles(filter);
+    }, 200);
+}
+
+async function fetchAtFiles(filter) {
+    var dd = document.getElementById('atAutocomplete');
+    var allFiles = [];
+    
+    // 搜索项目文件
+    try {
+        var res = await fetch('/api/project/search?q=' + encodeURIComponent(filter) + '&limit=15');
+        if (res.ok) {
+            var data = await res.json();
+            if (data.files) {
+                data.files.forEach(function(f) {
+                    allFiles.push({name: f.name || f.path, path: f.path, source: 'project'});
+                });
+            }
+        }
+    } catch(e) {}
+    
+    // 搜索当前目录文件
+    try {
+        var res2 = await fetch('/api/file/list?path=.');
+        if (res2.ok) {
+            var data2 = await res2.json();
+            if (data2.items) {
+                data2.items.forEach(function(f) {
+                    if (f.is_dir) return; // 只显示文件
+                    allFiles.push({name: f.name, path: data2.path + '/' + f.name, source: 'local'});
+                });
+            }
+        }
+    } catch(e) {}
+    
+    // 去重 + 过滤
+    var seen = {};
+    var results = [];
+    for (var i = 0; i < allFiles.length; i++) {
+        var f = allFiles[i];
+        if (seen[f.path]) continue;
+        seen[f.path] = true;
+        var lf = f.name.toLowerCase();
+        var lfilter = filter.toLowerCase();
+        if (filter && lf.indexOf(lfilter) === -1) continue;
+        results.push(f);
+    }
+    
+    // 排序：精确匹配优先，前缀匹配次之，其余按名字
+    results.sort(function(a, b) {
+        var la = a.name.toLowerCase(), lb = b.name.toLowerCase();
+        var lf = filter.toLowerCase();
+        if (la === lf && lb !== lf) return -1;
+        if (lb === lf && la !== lf) return 1;
+        if (la.indexOf(lf) === 0 && lb.indexOf(lf) !== 0) return -1;
+        if (lb.indexOf(lf) === 0 && la.indexOf(lf) !== 0) return 1;
+        return la.localeCompare(lb);
+    });
+    
+    _atFiles = results;
+    _atSelectedIndex = -1;
+    
+    if (results.length === 0) {
+        dd.style.display = 'none';
+        return;
+    }
+    
+    var html = '';
+    for (var i = 0; i < results.length; i++) {
+        var f = results[i];
+        var icon = f.source === 'project' ? '📁' : '📄';
+        html += '<div class="at-item" data-idx="' + i + '" style="padding:6px 12px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #1e293b;" onmousedown="event.preventDefault();selectAtFile(' + i + ')" onmouseenter="_atSelectedIndex=' + i + ';highlightAtItem(' + i + ')">';
+        html += '<span style="font-size:14px;">' + icon + '</span>';
+        html += '<span style="flex:1;color:#e2e8f0;">' + f.name + '</span>';
+        html += '<span style="color:#64748b;font-size:11px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + f.path + '</span>';
+        html += '</div>';
+    }
+    dd.innerHTML = html;
+    dd.style.display = 'block';
+}
+
+function highlightAtItem(idx) {
+    var items = document.querySelectorAll('#atAutocomplete .at-item');
+    items.forEach(function(item, i) {
+        item.style.background = i === idx ? '#334155' : '';
+    });
+}
+
+function selectAtFile(idx) {
+    var f = _atFiles[idx];
+    if (!f) return;
+    
+    var el = document.getElementById('userInput');
+    var val = el.value;
+    var cursorPos = el.selectionStart;
+    var textBeforeCursor = val.substring(0, cursorPos);
+    var lastAt = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAt === -1) return;
+    
+    // 替换 @filter 为 @[文件名](路径) 
+    var before = val.substring(0, lastAt);
+    var after = val.substring(cursorPos);
+    var replacement = '@[' + f.name + '](' + f.path + ') ';
+    el.value = before + replacement + after;
+    
+    // 移动光标到替换文本之后
+    var newPos = lastAt + replacement.length;
+    el.setSelectionRange(newPos, newPos);
+    el.focus();
+    
+    hideAtAutocomplete();
+}
+
+// 键盘导航: Enter/Escape/ArrowUp/ArrowDown/Tab
+function handleAtKeydown(event) {
+    var dd = document.getElementById('atAutocomplete');
+    var isVisible = dd.style.display === 'block';
+    
+    if (event.key === 'Escape') {
+        if (isVisible) { hideAtAutocomplete(); event.preventDefault(); return; }
+    }
+    
+    if (isVisible && _atFiles.length > 0) {
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            _atSelectedIndex = Math.min(_atSelectedIndex + 1, _atFiles.length - 1);
+            highlightAtItem(_atSelectedIndex);
+            return;
+        }
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            _atSelectedIndex = Math.max(_atSelectedIndex - 1, 0);
+            highlightAtItem(_atSelectedIndex);
+            return;
+        }
+        if (event.key === 'Enter' || event.key === 'Tab') {
+            if (_atSelectedIndex >= 0) {
+                event.preventDefault();
+                selectAtFile(_atSelectedIndex);
+                return;
+            }
+        }
+    }
+    
+    if (event.key === 'Enter') {
+        hideAtAutocomplete();
+        send();
+    }
 }
 
 async function send() {
@@ -939,6 +1166,38 @@ async function send() {
             fullMsg = statsBlock + '\n用户消息: 请分析以上Agent运行统计';
             msg = '/stats';
         } catch(e) { alert('统计获取失败: '+e.message); return; }
+    }
+    
+    // v2.16: @文件引用自动补全 — 检测 @[文件名](路径) 并注入文件内容
+    var atFilePattern = /@\\[([^\\]]+)\\]\\(([^)]+)\\)/g;
+    var atFiles = [];
+    var atMatch;
+    while ((atMatch = atFilePattern.exec(msg)) !== null) {
+        atFiles.push({name: atMatch[1], path: atMatch[2]});
+    }
+    if (atFiles.length > 0) {
+        var refBlocks = [];
+        for (var fi = 0; fi < atFiles.length; fi++) {
+            var af = atFiles[fi];
+            try {
+                var refRes = await fetch('/api/file/read?path=' + encodeURIComponent(af.path));
+                if (refRes.ok) {
+                    var refData = await refRes.json();
+                    var content = refData.content || '';
+                    if (content.length > 50000) content = content.substring(0, 50000) + '\\n... (已截断)';
+                    refBlocks.push('[文件引用: ' + af.name + ']\\n```\\n' + content + '\\n```');
+                } else {
+                    refBlocks.push('[文件引用: ' + af.name + ']\\n⚠️ 无法读取: ' + af.path);
+                }
+            } catch(e) {
+                refBlocks.push('[文件引用: ' + af.name + ']\\n⚠️ 读取失败: ' + e.message);
+            }
+        }
+        var refBlock = refBlocks.join('\\n\\n');
+        // 去除消息中的@引用标记，保留用户实际消息
+        var cleanMsg = msg.replace(atFilePattern, '').trim();
+        fullMsg = refBlock + '\\n\\n用户消息: ' + (cleanMsg || '请分析以上文件内容');
+        msg = atFiles.map(function(f){ return '@' + f.name; }).join(' ') + (cleanMsg ? ' ' + cleanMsg : '');
     }
     
     // v1.7: 多文件批量上传
@@ -1300,9 +1559,23 @@ function enhanceCodeBlocks(container){
     wrapper.appendChild(toolbar);
     
     // 代码块
-    pre.style.cssText = 'margin:0;border-radius:0;';
     pre.parentNode.insertBefore(wrapper, pre);
     wrapper.appendChild(pre);
+    
+    // 行号增强
+    var lines = code.innerHTML.split('\n');
+    var lineCount = lines.length;
+    var nums = '';
+    for(var i=1; i<=lineCount; i++) {
+        nums += '<span>' + i + '</span>\n';
+    }
+    var lineNum = document.createElement('div');
+    lineNum.className = 'line-numbers';
+    lineNum.innerHTML = nums;
+    lineNum.style.cssText = 'padding:8px 8px 8px 0;margin-right:12px;border-right:1px solid #334155;color:#64748b;font-size:11px;text-align:right;user-select:none;min-width:30px;line-height:1.5;';
+    pre.style.cssText = 'display:flex;margin:0;border-radius:0;';
+    pre.insertBefore(lineNum, pre.firstChild);
+    code.style.cssText = 'flex:1;padding:8px 0;overflow-x:auto;';
   });
 }
 
@@ -1319,6 +1592,17 @@ function previewHTML(code, wrapper){
   iframe.srcdoc = code;
   preview.appendChild(iframe);
   wrapper.appendChild(preview);
+}
+
+function quickAction(action) {
+    var input = document.getElementById('userInput');
+    var current = input.value.trim();
+    if(current) {
+        input.value = action + ':\n' + current;
+    } else {
+        input.value = action;
+    }
+    input.focus();
 }
 
 // 为历史消息中代码块添加运行按钮 (兼容旧版)

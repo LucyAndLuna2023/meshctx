@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-MeshCtx Desktop — PyInstaller spec v2.15.4
+MeshCtx Desktop — PyInstaller spec v2.15.5
 pip install pyinstaller && pyinstaller meshctx_desktop.spec
 """
 import sys, os
@@ -105,8 +105,8 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '2.15.4',
-            'CFBundleVersion': '2.15.4',
+            'CFBundleShortVersionString': '2.15.5',
+            'CFBundleVersion': '2.15.5',
         },
         version='version_info.txt',
     )
