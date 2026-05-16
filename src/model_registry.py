@@ -391,22 +391,19 @@ class ModelClient:
     model_name: str
 
     def chat(self, messages: List[Dict], temperature=0.7, max_tokens=4096) -> Dict:
-        """发送对话请求"""
-        try:
-            resp = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-            choice = resp.choices[0]
-            return {
-                "content": choice.message.content or "",
-                "model": resp.model,
-                "tokens": resp.usage.total_tokens if resp.usage else 0,
-            }
-        except Exception as e:
-            return {"content": f"[错误: {e}]", "model": self.model_name, "tokens": 0}
+        """发送对话请求 — 失败时抛出异常，不伪装成功"""
+        resp = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        choice = resp.choices[0]
+        return {
+            "content": choice.message.content or "",
+            "model": resp.model,
+            "tokens": resp.usage.total_tokens if resp.usage else 0,
+        }
 
     def chat_stream(self, messages: List[Dict], temperature=0.7, max_tokens=4096):
         """流式对话 — 逐token返回"""

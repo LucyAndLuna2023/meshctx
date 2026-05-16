@@ -1,5 +1,13 @@
 # MeshCtx Changelog
 
+## [2.15.6-hotfix] - 2026-05-16
+### Critical Bug Fixes — 全链路测试驱动
+- 🔴 **ModelClient.chat() 吞错误修复** — 删除try/except伪装成功,改为抛出真实异常
+- 🔴 **模型CRUD×4缺import yaml** — add/update/delete/set_default_model 全部补上
+- 🔴 **test_model_connection假成功** — 增加base_url检查+错误响应检测
+- 🧪 **E2E全链路测试** — 36条curl测试覆盖6阶段(核心/模型/新特性/UI/竞品/文件)
+- 📊 测试结果: 673 pytest passed + 35/36 E2E passed (97%)
+
 ## [2.15.6] - 2026-05-16
 ### New Features — Chat Core Enhancement
 - 🔢 **Token计数器** — POST /api/utils/tokens + 前端实时显示(>4K橙色>8K红色警告)

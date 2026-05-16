@@ -860,6 +860,7 @@ async def add_model(request: Request):
     """新增模型配置"""
     from src.model_registry import get_registry, BUILTIN_MODELS
     from pathlib import Path
+    import yaml
     try:
         body = await request.json()
     except:
@@ -922,6 +923,7 @@ async def add_model(request: Request):
 async def update_model(model_id: str, request: Request):
     """更新模型配置"""
     from pathlib import Path
+    import yaml
     try:
         body = await request.json()
     except:
@@ -970,6 +972,7 @@ async def update_model(model_id: str, request: Request):
 async def delete_model(model_id: str):
     """删除模型配置"""
     from pathlib import Path
+    import yaml
     
     config_path = Path.home() / ".meshctx" / "config.yaml"
     if not config_path.exists():
@@ -1000,6 +1003,7 @@ async def delete_model(model_id: str):
 async def set_default_model(model_id: str):
     """设为默认模型"""
     from pathlib import Path
+    import yaml
     
     config_path = Path.home() / ".meshctx" / "config.yaml"
     if not config_path.exists():
@@ -1023,32 +1027,42 @@ async def set_default_model(model_id: str):
 
 @app.post("/api/models/{model_id}/test")
 async def test_model_connection(model_id: str):
-    """测试模型连接"""
+    """测试模型连接 — 真实发送API请求验证"""
     from src.model_registry import get_registry
     
     reg = get_registry()
+    client = reg.get(model_id)
+    if not client:
+        return {"status": "error", "message": f"模型 {model_id} 未配置或缺少API Key"}
+    
+    # 检查 base_url 有效性
+    cfg = reg._entries.get(model_id, {})
+    base_url = cfg.get("base_url", "")
+    if not base_url:
+        return {"status": "error", "message": "未配置 Base URL"}
+    
     try:
-        client = reg.get(model_id)
-        if not client:
-            return {"status": "error", "message": f"模型 {model_id} 未配置或不可用"}
-        
-        # 发送简单测试请求
-        test_msg = [{"role": "user", "content": "Hi"}]
         import asyncio
         response = await asyncio.wait_for(
-            asyncio.to_thread(client.chat, test_msg, max_tokens=10),
-            timeout=15
+            asyncio.to_thread(client.chat, [{"role":"user","content":"Hi"}], max_tokens=10),
+            timeout=20
         )
+        content = str(response.get("content", ""))
+        # 检测假成功 (错误消息伪装)
+        if content.startswith("[错误") or "Error" in content or "error" in content.lower():
+            return {"status": "error", "message": f"API返回错误: {content[:200]}"}
         return {
             "status": "ok",
             "model": model_id,
-            "response": str(response)[:100],
+            "response": content[:100],
+            "tokens": response.get("tokens", 0),
             "message": "连接成功"
         }
     except asyncio.TimeoutError:
-        return {"status": "error", "message": "连接超时(15s)"}
+        return {"status": "error", "message": "连接超时(20s)，请检查Base URL是否正确"}
     except Exception as e:
-        return {"status": "error", "message": f"连接失败: {str(e)[:200]}"}
+        msg = str(e)[:300]
+        return {"status": "error", "message": f"连接失败: {msg}"}
 
 
 # ── v2.2 本地文件访问 API ──────────────────────────────────
