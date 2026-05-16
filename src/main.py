@@ -1834,6 +1834,18 @@ async def brain_status():
     }
 
 
+@app.get("/api/brain/attention-status")
+async def attention_status():
+    """注意力衰减监控 — ACC+LC双核状态"""
+    from src.core.attention_decay import get_monitor
+    monitor = get_monitor()
+    return {
+        "state": monitor.get_state(),
+        "boosts": {level.value: factor for level, factor in monitor.BOOST_FACTORS.items()},
+        "thresholds": {level.value: pct for level, pct in monitor.THRESHOLDS.items()},
+    }
+
+
 @app.get("/api/brain/principle-guard")
 async def principle_guard_status():
     """原则守护者 — 杏仁核+丘脑门控防止关键原则被淹没"""

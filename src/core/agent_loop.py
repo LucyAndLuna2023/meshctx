@@ -731,6 +731,35 @@ class AgentLoopPlugin(Plugin):
             
             if guard_result["context_length_warning"]:
                 logger.warning(f"⚠️ 上下文过长({len(str(content))}字符),原则守护已激活{len(filtered)}条")
+
+            # v2.16+: 🧠 注意力衰减监控 — ACC+LC双核检测
+            try:
+                from .attention_decay import get_monitor
+                monitor = get_monitor(context_limit=16000)
+                
+                estimated_tokens = len(str(content)) // 3
+                snapshot = monitor.assess(estimated_tokens)
+                
+                guard_result["attention"] = {
+                    "level": snapshot.level.value,
+                    "fill_pct": snapshot.fill_pct,
+                    "principle_boost": snapshot.principle_boost,
+                }
+                
+                if snapshot.level.value in ("stressed", "overloaded", "critical"):
+                    alert = monitor.generate_alert()
+                    if alert:
+                        guard_result["alert"] = alert
+                        workspace_result["attention_alert"] = alert
+                        
+                        if guard_result.get("amygdala_salience"):
+                            boosted = {}
+                            for pid, weight in guard_result["amygdala_salience"].items():
+                                boosted[pid] = min(weight * snapshot.principle_boost, 1.0)
+                            guard_result["amygdala_salience"] = boosted
+                            guard_result["boost_applied"] = snapshot.principle_boost
+            except Exception as e:
+                logger.debug(f"注意力监控: {e}")
         except Exception as e:
             logger.debug(f"原则守护者: {e}")
         
