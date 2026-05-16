@@ -2057,6 +2057,52 @@ async def update_memory(req: Request):
     return {"version": version, "stats": mem.get_stats()}
 
 
+# ═══════════════════════════════════════════════════
+# Workspace管理 (v2.15.1 — 学自OpenWork)
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/workspaces")
+async def list_workspaces():
+    """列出所有工作区"""
+    from src.core.workspace_manager import get_workspace_manager
+    wm = get_workspace_manager()
+    return {"workspaces": wm.list_all(), "active": wm.active.to_dict() if wm.active else None}
+
+
+@app.post("/api/workspaces")
+async def create_workspace(req: Request):
+    """创建工作区"""
+    try: body = await req.json()
+    except: body = {}
+    from src.core.workspace_manager import get_workspace_manager
+    wm = get_workspace_manager()
+    ws = wm.add(
+        name=body.get("name", "new-workspace"),
+        path=body.get("path", "."),
+        description=body.get("description", ""),
+        tags=body.get("tags", []),
+    )
+    return ws.to_dict()
+
+
+@app.post("/api/workspaces/{ws_id}/activate")
+async def activate_workspace(ws_id: str):
+    """激活工作区"""
+    from src.core.workspace_manager import get_workspace_manager
+    wm = get_workspace_manager()
+    ok = wm.set_active(ws_id)
+    return {"status": "ok" if ok else "not_found"}
+
+
+@app.delete("/api/workspaces/{ws_id}")
+async def delete_workspace(ws_id: str):
+    """删除工作区"""
+    from src.core.workspace_manager import get_workspace_manager
+    wm = get_workspace_manager()
+    ok = wm.remove(ws_id)
+    return {"status": "ok" if ok else "not_found"}
+
+
 @app.post("/api/plugins/uninstall/{plugin_name}")
 async def uninstall_plugin(plugin_name: str):
     """卸载插件"""
