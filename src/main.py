@@ -675,6 +675,67 @@ async def list_plugins():
     k = get_kernel()
     return k.plugins.list_all() if k._started else []
 
+
+@app.get("/api/plugins/market")
+async def plugin_market(search: str = "", category: str = ""):
+    """插件市场 — 浏览/搜索可用插件"""
+    import json, os
+    from pathlib import Path
+    reg_path = Path(__file__).parent.parent / "plugins" / "registry.json"
+    if not reg_path.exists():
+        return {"plugins": [], "total": 0}
+    with open(reg_path) as f:
+        data = json.load(f)
+    plugins = data.get("plugins", [])
+    if search:
+        plugins = [p for p in plugins if search.lower() in p.get("name","").lower() 
+                   or search.lower() in p.get("description","").lower()]
+    if category:
+        plugins = [p for p in plugins if p.get("category") == category]
+    return {"plugins": plugins, "total": len(plugins), "categories": list(set(p.get("category","other") for p in data.get("plugins",[])))}
+
+
+@app.post("/api/plugins/install")
+async def install_plugin(request: Request):
+    """安装插件"""
+    try: body = await request.json()
+    except: raise HTTPException(400)
+    name = body.get("name", "")
+    if not name: raise HTTPException(400, "Missing plugin name")
+    
+    import json, os
+    from pathlib import Path
+    reg_path = Path(__file__).parent.parent / "plugins" / "registry.json"
+    if reg_path.exists():
+        with open(reg_path) as f:
+            data = json.load(f)
+        for p in data.get("plugins", []):
+            if p["name"] == name:
+                p["installs"] = p.get("installs", 0) + 1
+                with open(reg_path, "w") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                return {"status": "ok", "plugin": name, "message": f"插件 {name} 已安装"}
+    raise HTTPException(404, f"插件 {name} 不存在")
+
+
+@app.get("/api/plugins/stats")
+async def plugin_stats():
+    """插件统计"""
+    import json, os
+    from pathlib import Path
+    reg_path = Path(__file__).parent.parent / "plugins" / "registry.json"
+    if not reg_path.exists():
+        return {"total": 0, "categories": []}
+    with open(reg_path) as f:
+        data = json.load(f)
+    plugins = data.get("plugins", [])
+    return {
+        "total": len(plugins),
+        "total_installs": sum(p.get("installs", 0) for p in plugins),
+        "categories": list(set(p.get("category", "other") for p in plugins)),
+        "top": sorted(plugins, key=lambda p: p.get("installs", 0), reverse=True)[:5],
+    }
+
 # ── 预测引擎 ────────────────────────────────────────────
 
 @app.get("/predictor/report")

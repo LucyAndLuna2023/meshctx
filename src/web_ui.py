@@ -85,6 +85,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         <a href="/ui/continuity" class="{% if '/ui/continuity' in request.url.path %}active{% endif %}">连续性</a>
         <a href="/ui/chat" class="{% if '/ui/chat' in request.url.path %}active{% endif %}">Chat</a>
         <a href="/ui/setup" class="{% if '/ui/setup' in request.url.path %}active{% endif %}">Setup</a>
+        <a href="/ui/plugins" class="{% if '/ui/plugins' in request.url.path %}active{% endif %}">🔌 插件</a>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
         <select id="langSelect" onchange="switchLang(this.value)" 
@@ -4220,6 +4221,69 @@ async def delete_api_key(
     
     return RedirectResponse(url="/ui/setup?deleted=1", status_code=303)
 
+
+# ── v2.17 插件市场 ─────────────────────────────────────
+
+@router.get("/plugins", response_class=HTMLResponse)
+async def plugins_page(request: Request):
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse("""<!DOCTYPE html>
+<html lang="zh">
+<head><meta charset="UTF-8"><title>Plugins - MeshCtx</title>
+<style>
+:root{--bg:#0b0e1a;--card-bg:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08);--text:#e0e4f0;--muted:#8090b0;--accent:#6c5ce7}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,sans-serif;background:linear-gradient(135deg,#0b0e1a,#1a1f35);color:var(--text);min-height:100vh;padding:24px}
+nav{display:flex;gap:12px;margin-bottom:24px}
+nav a{color:var(--muted);text-decoration:none;padding:8px 16px;border-radius:8px;font-size:14px}
+nav a:hover{background:rgba(108,92,231,0.15);color:var(--accent)}
+.container{max-width:860px;margin:0 auto}
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:16px}
+.btn{padding:8px 20px;border-radius:8px;border:none;font-weight:600;cursor:pointer;font-size:13px}
+.btn-primary{background:linear-gradient(135deg,#6c5ce7,#5a4bd1);color:#fff}
+input,select{padding:8px 12px;background:#1e293b;border:1px solid #334155;color:var(--text);border-radius:8px}
+</style></head><body>
+<div class="container">
+<nav><a href="/ui/chat">Chat</a><a href="/ui/setup">Setup</a><a href="/ui/plugins" style="color:var(--accent);background:rgba(108,92,231,0.15);">Plugins</a></nav>
+<h2>Plugins</h2>
+<p style="color:var(--muted);margin-bottom:16px">Community plugins for MeshCtx</p>
+<div style="display:flex;gap:8px;margin-bottom:16px">
+<input id="pluginSearch" placeholder="Search..." style="flex:1" oninput="loadPlugins()">
+<select id="pluginCat" onchange="loadPlugins()"><option value="">All</option></select>
+</div>
+<div id="pluginList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+<div style="text-align:center;color:var(--muted);padding:40px">Loading...</div>
+</div>
+</div>
+<script>
+async function loadPlugins(){
+var q=document.getElementById('pluginSearch').value;
+var cat=document.getElementById('pluginCat').value;
+var list=document.getElementById('pluginList');
+list.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px">Loading...</div>';
+try{
+var r=await fetch('/api/plugins/market?search='+encodeURIComponent(q)+'&category='+encodeURIComponent(cat));
+var d=await r.json();
+if(!d.plugins.length){list.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px">No plugins</div>';return}
+list.innerHTML=d.plugins.map(function(p){
+return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:start"><div><span style="font-size:24px">'+p.icon+'</span> <strong>'+p.name+'</strong> <span style="font-size:10px;color:var(--muted)">v'+p.version+'</span></div><span style="font-size:10px;background:#1e293b;padding:2px 6px;border-radius:4px">'+p.category+'</span></div><p style="font-size:12px;color:var(--muted);margin:8px 0">'+p.description+'</p><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:10px;color:var(--muted)">'+p.author+'</span><button class="btn btn-primary" style="font-size:11px;padding:4px 12px" onclick="installPlugin(\''+p.name+'\',this)">Install</button></div></div>';
+}).join('');
+var sel=document.getElementById('pluginCat');
+var cur=sel.value;
+sel.innerHTML='<option value="">All</option>'+d.categories.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join('');
+sel.value=cur;
+}catch(e){list.innerHTML='<div style="color:#f85149;padding:20px">Error: '+e.message+'</div>'}
+}
+async function installPlugin(name,btn){
+btn.textContent='Installing...';btn.disabled=true;
+try{
+var r=await fetch('/api/plugins/install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})});
+if(r.ok){btn.textContent='Installed';btn.style.background='#22c55e'}
+else{var d=await r.json();alert(d.detail||'Failed');btn.textContent='Install';btn.disabled=false}
+}catch(e){alert(e.message);btn.textContent='Install';btn.disabled=false}
+}
+loadPlugins();
+</script></body></html>""")
 
 # ── v1.5.13 下载页面 ─────────────────────────────────────
 
