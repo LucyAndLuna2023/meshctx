@@ -4349,7 +4349,31 @@ async function load(){
 function badge(label,value,color){return '<span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:4px 12px;text-align:center"><div style="font-size:10px;color:var(--muted)">'+label+'</div><div class="'+color+'" style="font-size:16px;font-weight:700">'+value+'</div></span>'}
 function card(label,value,color){return '<div class="card"><div class="l">'+label+'</div><div class="v '+color+'">'+value+'</div></div>'}
 load();
-setInterval(load, 30000); // Auto-refresh every 30s
+setInterval(load, 30000);
+
+// WebSocket real-time watchdog (every 15s)
+try {
+    var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    var ws = new WebSocket(protocol + '//' + location.host + '/ws/dashboard');
+    ws.onmessage = function(e) {
+        var d = JSON.parse(e.data);
+        if (d.type === 'watchdog') {
+            var w = d.data;
+            var wsHtml = '<div style="display:flex;gap:12px;flex-wrap:wrap">';
+            wsHtml += badge('Running', w.running?'✅':'❌', w.running?'green':'red');
+            wsHtml += badge('Uptime', w.uptime, 'purple');
+            wsHtml += badge('Checks', w.checks, 'yellow');
+            wsHtml += badge('Alerts', w.alerts, w.alerts>0?'red':'green');
+            for (var k in w.subsystems) {
+                var s = w.subsystems[k];
+                wsHtml += badge(k, s.status, s.status=='ok'?'green':'yellow');
+            }
+            wsHtml += '</div>';
+            document.getElementById('wdStatus').innerHTML = wsHtml;
+        }
+    };
+    ws.onerror = function() { /* WebSocket fallback to poll */ };
+} catch(e) {} // Auto-refresh every 30s
 </script></body></html>""")
 
 # ── v2.17 插件市场 ─────────────────────────────────────

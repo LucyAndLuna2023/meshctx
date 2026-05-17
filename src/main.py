@@ -2817,6 +2817,29 @@ async def autoload_plugins():
 
 
 # ═══════════════════════════════════════════════════
+# WebSocket实时推送 (v2.13 + v2.18 watchdog)
+@app.websocket("/ws/dashboard")
+async def ws_dashboard(websocket: WebSocket):
+    """Dashboard实时推送 — watchdog状态"""
+    await websocket.accept()
+    try:
+        while True:
+            daemon = get_daemon()
+            status = daemon.get_status()
+            await websocket.send_json({
+                "type": "watchdog",
+                "data": {
+                    "running": status["running"],
+                    "uptime": status["uptime_human"],
+                    "checks": status["stats"]["checks_total"],
+                    "subsystems": status["subsystems"],
+                    "alerts": len(status["recent_alerts"]),
+                }
+            })
+            await asyncio.sleep(15)
+    except:
+        pass
+
 # WebSocket实时推送 (v2.13)
 # ═══════════════════════════════════════════════════
 
