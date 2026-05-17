@@ -2291,6 +2291,12 @@ async def install_plugin_url(req: Request):
         raise HTTPException(500,f"安装失败: {e}")
 
 
+@app.get("/api/health")
+async def health_check():
+    """健康检查"""
+    return {"status": "ok", "timestamp": __import__("time").time()}
+
+
 @app.get("/api/version")
 async def version_info():
     """版本信息"""
