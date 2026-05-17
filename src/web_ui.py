@@ -1836,6 +1836,9 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
             {% if is_ready %}
             <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;" onclick="editModel('{{ m.id }}','{{ m.provider }}','{{ m.key_full or '' }}','{{ m.model }}','{{ m.base_url or '' }}')">✏️</button>
             <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;" onclick="testModel('{{ m.id }}')">🔍</button>
+            {% if not is_def %}
+            <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;color:#22c55e;" onclick="setDefault('{{ m.id }}')">⭐默认</button>
+            {% endif %}
             {% else %}
             <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;color:var(--accent);" onclick="configureModel('{{ m.id }}')">⚡ 配置</button>
             {% endif %}
