@@ -1727,7 +1727,17 @@ function quickAction(action) {
 // 为历史消息中代码块添加运行按钮 (兼容旧版)
 function addCodeRunButtons(container){
   enhanceCodeBlocks(container);
-}</script>
+}
+
+// DEBUG: Verify JS loaded
+(function(){
+  var input = document.getElementById('userInput');
+  if (input) {
+    input.placeholder = '✅ JS OK — 输入消息...';
+    console.log('Chat JS loaded. send() defined:', typeof send === 'function');
+  }
+})();
+</script>
 {% endblock %}"""
 
 _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
