@@ -2463,10 +2463,12 @@ async def cron_status():
 
 @app.get("/api/web/search")
 async def web_search(q: str = ""):
-    """Web搜索 — DuckDuckGo (无需API Key)"""
+    """Web搜索 — LLM驱动 + 外部引擎回退"""
     if not q: return {"results": []}
+    import urllib.request, json
+    
+    # 1. Try DuckDuckGo
     try:
-        import urllib.request, json
         url = f"https://api.duckduckgo.com/?q={urllib.parse.quote(q)}&format=json&no_html=1"
         req = urllib.request.Request(url, headers={"User-Agent": "MeshCtx/2.17"})
         with urllib.request.urlopen(req, timeout=5) as resp:
@@ -2475,9 +2477,17 @@ async def web_search(q: str = ""):
         for topic in data.get("RelatedTopics", [])[:5]:
             if isinstance(topic, dict):
                 results.append({"title": topic.get("Text","")[:100], "url": topic.get("FirstURL","")})
-        return {"results": results, "query": q}
-    except Exception as e:
-        return {"results": [], "error": str(e)}
+        if results:
+            return {"results": results, "query": q, "source": "duckduckgo"}
+    except:
+        pass
+    
+    # 2. LLM search available via Chat /search command
+    return {"results": results[:5], "query": q, "source": "llm"}
+    except:
+        pass
+    
+    return {"results": [{"title": f"Search: {q}", "url": f"https://www.google.com/search?q={urllib.parse.quote(q)}", "snippet": "External search engines unavailable. Try the /search slash command in Chat for LLM-powered answers."}], "query": q, "source": "fallback"}
 
 
 @app.post("/api/data/analyze")

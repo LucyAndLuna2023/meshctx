@@ -11,57 +11,87 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Install build tools
+    - name: Create .deb package
       run: |
-        pip install pyinstaller
-
-    - name: Build binary
-      run: |
-        pyinstaller --onefile --name meshctx \
-          --add-data "src:src" \
-          --add-data "plugins:plugins" \
-          --add-data "docs:docs" \
-          src/main.py
-
-    - name: Package as .deb
-      run: |
+        VERSION=${GITHUB_REF_NAME#v}
         mkdir -p meshctx-deb/DEBIAN
+        mkdir -p meshctx-deb/opt/meshctx
+        mkdir -p meshctx-deb/etc/systemd/system
         mkdir -p meshctx-deb/usr/local/bin
-        mkdir -p meshctx-deb/usr/share/meshctx
-        mkdir -p meshctx-deb/etc/meshctx
         
-        cp dist/meshctx meshctx-deb/usr/local/bin/
-        cp -r src meshctx-deb/usr/share/meshctx/
-        cp -r plugins meshctx-deb/usr/share/meshctx/
-        cp meshctx.yaml meshctx-deb/etc/meshctx/config.yaml.example
+        # Copy source
+        cp -r src meshctx-deb/opt/meshctx/
+        cp -r plugins meshctx-deb/opt/meshctx/
+        cp -r docs meshctx-deb/opt/meshctx/
+        cp meshctx.yaml meshctx-deb/opt/meshctx/
+        cp requirements.txt meshctx-deb/opt/meshctx/ 2>/dev/null || true
         
+        # Create launcher script
+        cat > meshctx-deb/usr/local/bin/meshctx << 'LAUNCHER'
+#!/bin/bash
+cd /opt/meshctx
+exec python3 -m uvicorn src.main:app --host 0.0.0.0 --port 3000 "$@"
+LAUNCHER
+        chmod 755 meshctx-deb/usr/local/bin/meshctx
+        
+        # Create systemd service
+        cat > meshctx-deb/etc/systemd/system/meshctx.service << 'SERVICE'
+[Unit]
+Description=MeshCtx AI Agent
+After=network.target
+
+[Service]
+Type=simple
+User=meshctx
+WorkingDirectory=/opt/meshctx
+ExecStart=/usr/local/bin/meshctx
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+        
+        # Control file
         cat > meshctx-deb/DEBIAN/control << EOF
 Package: meshctx
-Version: ${GITHUB_REF_NAME#v}
+Version: ${VERSION}
 Section: utils
 Priority: optional
-Architecture: amd64
+Architecture: all
+Depends: python3, python3-pip
 Maintainer: MeshCtx <jason.liu@meshctx.com>
 Description: World's first self-evolving AI agent
  13 brain regions, 100+ models, 28 providers.
- Multi-platform AI agent with web UI, code sandbox,
- and full brain-inspired architecture.
+ Framework-only package (brain modules require meshctx-core).
 EOF
 
+        # Post-install
         cat > meshctx-deb/DEBIAN/postinst << 'DONE'
 #!/bin/bash
-echo "MeshCtx installed. Run: meshctx --help"
+set -e
+useradd -r -s /bin/false meshctx 2>/dev/null || true
+chown -R meshctx:meshctx /opt/meshctx
+pip3 install -r /opt/meshctx/requirements.txt 2>/dev/null || true
+systemctl daemon-reload
+echo "MeshCtx v${VERSION} installed."
+echo "Start: systemctl start meshctx"
+echo "Web UI: http://localhost:3000/ui/chat"
 DONE
         chmod 755 meshctx-deb/DEBIAN/postinst
         
-        dpkg-deb --build meshctx-deb meshctx_${GITHUB_REF_NAME#v}_amd64.deb
+        # Pre-remove
+        cat > meshctx-deb/DEBIAN/prerm << 'PRERM'
+#!/bin/bash
+systemctl stop meshctx 2>/dev/null || true
+systemctl disable meshctx 2>/dev/null || true
+PRERM
+        chmod 755 meshctx-deb/DEBIAN/prerm
+        
+        dpkg-deb --build meshctx-deb meshctx_${VERSION}_all.deb
+        ls -lh meshctx_*.deb
 
     - name: Upload .deb
       uses: softprops/action-gh-release@v2
       with:
-        files: meshctx_*_amd64.deb
+        files: meshctx_*_all.deb
