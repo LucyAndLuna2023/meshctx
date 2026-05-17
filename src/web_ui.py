@@ -1768,47 +1768,81 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
     </div>
 </div>
 
-<!-- 模型列表 -->
-{% if configured %}
+<!-- 模型列表 + 状态统计 -->
+{% set all_models = configured %}
 <div class="card" style="overflow-x:auto;">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <div>
+        <span style="color:var(--muted);font-size:12px;">
+            🟢 <b id="readyCount">{{ all_models|selectattr('ready')|list|length }}</b> 已配置
+            &nbsp;🔴 <b id="unreadyCount">{{ all_models|rejectattr('ready')|list|length }}</b> 未配置
+        </span>
+    </div>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;color:#f85149;" onclick="cleanUnconfigured()">🗑 清理未配置</button>
+</div>
 <table style="width:100%;border-collapse:collapse;font-size:13px;">
 <thead><tr style="border-bottom:1px solid var(--border);text-align:left;color:var(--muted);">
+    <th style="padding:8px;">状态</th>
     <th style="padding:8px;">模型ID</th>
     <th style="padding:8px;">提供商</th>
+    <th style="padding:8px;">端点</th>
     <th style="padding:8px;">Key</th>
-    <th style="padding:8px;">默认</th>
     <th style="padding:8px;">操作</th>
 </tr></thead>
 <tbody>
-{% for m in configured %}
-<tr style="border-bottom:1px solid var(--border);" data-id="{{ m.id }}">
-    <td style="padding:8px;"><strong>{{ m.id }}</strong><br><span style="font-size:11px;color:var(--muted);">{{ m.model }}</span></td>
-    <td style="padding:8px;">{{ m.provider }}</td>
+{% for m in all_models %}
+{% set is_ready = m.ready|default(true) %}
+{% set is_def = m.is_default|default(false) %}
+<tr style="border-bottom:1px solid var(--border);{% if is_def %}background:rgba(108,92,231,0.08);{% endif %}" data-id="{{ m.id }}">
     <td style="padding:8px;">
-        <code style="font-size:11px;background:#1e293b;padding:2px 6px;border-radius:4px;">
-            {{ m.key_masked or '***' }}
-            <span onclick="var e=this.parentNode;var t=e.dataset.full||'';e.textContent=t||e.textContent;e.dataset.full=e.textContent===t?'':t;" style="cursor:pointer;color:var(--accent);" data-full="{{ m.key_full or '' }}">👁</span>
-        </code>
+        {% if is_def %}
+        <span style="background:var(--accent);color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">⭐ 默认</span>
+        {% elif is_ready %}
+        <span style="color:#22c55e;font-size:11px;">🟢 已配置</span>
+        {% else %}
+        <span style="color:#f85149;font-size:11px;">🔴 未配置</span>
+        {% endif %}
     </td>
     <td style="padding:8px;">
-        {% if m.is_default %}
-        <span style="color:#22c55e;">⭐ 默认</span>
+        <strong>{{ m.id }}</strong>
+        {% if m.model and m.model != m.id %}<br><span style="font-size:10px;color:var(--muted);">→ {{ m.model }}</span>{% endif %}
+    </td>
+    <td style="padding:8px;">{{ m.provider }}</td>
+    <td style="padding:8px;">
+        {% if m.base_url %}
+        <code style="font-size:10px;background:#1e293b;padding:1px 4px;border-radius:3px;max-width:120px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ m.base_url }}">{{ m.base_url }}</code>
+        {% elif is_ready %}
+        <span style="color:var(--muted);font-size:10px;">默认</span>
         {% else %}
-        <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;" onclick="setDefault('{{ m.id }}')">设为默认</button>
+        <span style="color:#f85149;font-size:10px;">未设置</span>
+        {% endif %}
+    </td>
+    <td style="padding:8px;">
+        {% if m.key_masked %}
+        <code style="font-size:10px;background:#1e293b;padding:2px 6px;border-radius:4px;">{{ m.key_masked }}</code>
+        {% else %}
+        <span style="color:#f85149;font-size:10px;">—</span>
         {% endif %}
     </td>
     <td style="padding:8px;">
         <div style="display:flex;gap:4px;">
+            {% if is_ready %}
             <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;" onclick="editModel('{{ m.id }}','{{ m.provider }}','{{ m.key_full or '' }}','{{ m.model }}','{{ m.base_url or '' }}')">✏️</button>
             <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;" onclick="testModel('{{ m.id }}')">🔍</button>
+            {% else %}
+            <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;color:var(--accent);" onclick="configureModel('{{ m.id }}')">⚡ 配置</button>
+            {% endif %}
+            {% if not is_def %}
             <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;color:#f85149;" onclick="if(confirm('确定删除 {{ m.id }}?'))deleteModel('{{ m.id }}')">✕</button>
+            {% endif %}
         </div>
     </td>
 </tr>
 {% endfor %}
 </tbody></table>
 </div>
-{% else %}
+
+{% if not all_models %}
 <div class="card" style="text-align:center;padding:40px;color:var(--muted);">
     <p style="font-size:48px;margin-bottom:12px;">🔑</p>
     <p>尚未配置任何模型。点击上方「+ 添加模型」开始。</p>
@@ -1903,6 +1937,24 @@ async function setDefault(id) {
         if (res.ok) location.reload();
         else { var d = await res.json(); alert('失败: ' + (d.detail||'')); }
     } catch(e) { alert('错误: ' + e.message); }
+}
+async function cleanUnconfigured() {
+    if (!confirm('确定删除所有未配置Key的模型吗？此操作不可撤销。')) return;
+    try {
+        var res = await fetch('/api/models/clean-unconfigured', {method: 'POST'});
+        var d = await res.json();
+        alert('已清理 ' + (d.deleted || 0) + ' 个未配置模型');
+        location.reload();
+    } catch(e) { alert('错误: ' + e.message); }
+}
+function configureModel(id) {
+    showAddForm();
+    document.getElementById('fid').value = id;
+    document.getElementById('fid').disabled = true;
+    document.getElementById('fid').style.background = '#1e293b';
+    document.getElementById('editModelId').value = id;
+    document.getElementById('formTitle').textContent = '配置 API Key — ' + id;
+    document.getElementById('fkey').focus();
 }
 async function testModel(id) {
     var tr = document.querySelector('tr[data-id="' + id + '"]');
@@ -3982,27 +4034,26 @@ async def setup_page(request: Request):
         from src.model_registry import get_registry
         reg = get_registry()
         for e in reg.list_all():
-            if e["ready"]:
-                entry = {"id": e["id"], "model": e.get("model", "?"), "provider": e.get("provider", "?")}
-                # 检查是否默认模型
-                try:
-                    from pathlib import Path
-                    cp = Path.home() / ".meshctx" / "config.yaml"
-                    if cp.exists():
-                        import yaml as _yaml2
-                        with open(cp) as f:
-                            cfg = _yaml2.safe_load(f) or {}
-                        default_id = cfg.get("models", {}).get("default", "")
-                        entry["is_default"] = (default_id == e["id"])
-                        model_cfg = cfg.get("models", {}).get("entries", {}).get(e["id"], {})
-                        raw_key = model_cfg.get("key", "")
-                        if raw_key:
-                            entry["key_full"] = raw_key
-                            entry["key_masked"] = raw_key[:6] + "****" + raw_key[-4:] if len(raw_key) > 10 else "****"
-                        entry["base_url"] = model_cfg.get("base_url", "")
-                except:
-                    pass
-                configured.append(entry)
+            entry = {"id": e["id"], "model": e.get("model", "?"), "provider": e.get("provider", "?"), "ready": e.get("ready", False)}
+            # 检查是否默认模型
+            try:
+                from pathlib import Path
+                cp = Path.home() / ".meshctx" / "config.yaml"
+                if cp.exists():
+                    import yaml as _yaml2
+                    with open(cp) as f:
+                        cfg = _yaml2.safe_load(f) or {}
+                    default_id = cfg.get("models", {}).get("default", "")
+                    entry["is_default"] = (default_id == e["id"])
+                    model_cfg = cfg.get("models", {}).get("entries", {}).get(e["id"], {})
+                    raw_key = model_cfg.get("key", "")
+                    if raw_key:
+                        entry["key_full"] = raw_key
+                        entry["key_masked"] = raw_key[:6] + "****" + raw_key[-4:] if len(raw_key) > 10 else "****"
+                    entry["base_url"] = model_cfg.get("base_url", "")
+            except:
+                pass
+            configured.append(entry)
     except:
         pass
     
