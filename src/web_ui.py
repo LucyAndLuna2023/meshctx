@@ -1781,6 +1781,12 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
     </div>
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;color:#f85149;" onclick="cleanUnconfigured()">🗑 清理未配置</button>
 </div>
+{% if has_more_unconfigured %}
+<div style="text-align:center;margin-bottom:12px;">
+    <span style="color:var(--muted);font-size:11px;">仅显示前20个未配置模型 (共{{ total_unconfigured }}个)</span>
+    <a href="?all=1" style="color:var(--accent);font-size:11px;margin-left:8px;">展开全部 →</a>
+</div>
+{% endif %}
 <table style="width:100%;border-collapse:collapse;font-size:13px;">
 <thead><tr style="border-bottom:1px solid var(--border);text-align:left;color:var(--muted);">
     <th style="padding:8px;">状态</th>
@@ -4129,9 +4135,28 @@ async def setup_page(request: Request):
     except:
         pass
     
+    # 排序: 默认最前 → 已配置 → 按provider
+    configured.sort(key=lambda m: (
+        not m.get("is_default", False),
+        not m.get("ready", False),
+        m.get("provider", ""),
+    ))
+    
+    # 未配置模型默认折叠(仅显示前20)
+    unconfigured_count = sum(1 for m in configured if not m.get("ready"))
+    show_all = request.query_params.get("all") == "1"
+    has_more = False
+    if not show_all and unconfigured_count > 20:
+        ready = [m for m in configured if m.get("ready")]
+        unready = [m for m in configured if not m.get("ready")][:20]
+        configured = ready + unready
+        has_more = True
+    
     return _render("setup.html", {
         "request": request, "title": "Setup",
-        "flash": flash, "configured": configured
+        "flash": flash, "configured": configured,
+        "has_more_unconfigured": has_more,
+        "total_unconfigured": unconfigured_count,
     })
 
 
