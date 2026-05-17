@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, WebSocket
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -262,6 +262,85 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── v2.17: Web UI 认证中间件 ────────────────────────
+import hashlib, secrets
+_AUTH_PASSWORD = os.environ.get("MESHCTX_PASSWORD", "")
+_AUTH_SECRET = os.environ.get("MESHCTX_SECRET", secrets.token_hex(32))
+_AUTH_ENABLED = bool(_AUTH_PASSWORD)
+
+if _AUTH_ENABLED:
+    import base64
+    logger.info(f"🔐 Web UI 认证已启用 (密码保护)")
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    """Web UI 基础认证 — 保护 /ui/* 路由"""
+    if not _AUTH_ENABLED:
+        return await call_next(request)
+    
+    path = request.url.path
+    
+    # Public endpoints (API, static, login)
+    if not path.startswith("/ui/") or path == "/ui/login":
+        return await call_next(request)
+    
+    # Check auth cookie
+    session = request.cookies.get("meshctx_session", "")
+    expected = hashlib.sha256(f"{_AUTH_PASSWORD}:{_AUTH_SECRET}".encode()).hexdigest()
+    
+    if session == expected:
+        return await call_next(request)
+    
+    # Redirect to login
+    return RedirectResponse(url=f"/ui/login?next={path}", status_code=302)
+
+@app.get("/ui/login", response_class=HTMLResponse)
+async def login_page(request: Request, next: str = ""):
+    return HTMLResponse(content=r"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>MeshCtx Login</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,sans-serif;background:linear-gradient(135deg,#0b0e1a,#1a1f35);min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:40px;width:360px;text-align:center}
+h1{color:#e0e4f0;margin-bottom:8px}
+p{color:#8090b0;font-size:14px;margin-bottom:24px}
+input{width:100%;padding:12px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;background:rgba(0,0,0,0.3);color:#e0e4f0;font-size:16px;margin-bottom:16px;outline:none}
+input:focus{border-color:#6c5ce7}
+button{width:100%;padding:12px;background:linear-gradient(135deg,#6c5ce7,#5a4bd1);border:none;border-radius:8px;color:#fff;font-size:16px;cursor:pointer}
+.error{color:#f85149;font-size:13px;margin-top:8px;display:none}
+</style></head><body>
+<div class="card">
+<h1>🔐 MeshCtx</h1><p>请输入管理密码</p>
+<form onsubmit="login(event)">
+<input type="password" id="pw" placeholder="密码" autofocus>
+<button type="submit">登 录</button>
+<div class="error" id="err">密码错误</div>
+</form>
+<script>
+async function login(e){e.preventDefault();
+var pw=document.getElementById('pw').value;
+var r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
+if(r.ok){location.href='""" + (next or "/ui/chat") + """'}else{document.getElementById('err').style.display='block'}}
+</script></div></body></html>""")
+
+@app.post("/api/auth/login")
+async def auth_login(request: Request):
+    try: body = await request.json()
+    except: raise HTTPException(400)
+    password = body.get("password", "")
+    if password == _AUTH_PASSWORD:
+        expected = hashlib.sha256(f"{_AUTH_PASSWORD}:{_AUTH_SECRET}".encode()).hexdigest()
+        resp = JSONResponse({"status": "ok"})
+        resp.set_cookie("meshctx_session", expected, httponly=True, max_age=86400, samesite="lax")
+        return resp
+    raise HTTPException(401, "密码错误")
+
+@app.post("/api/auth/logout")
+async def auth_logout():
+    resp = JSONResponse({"status": "ok"})
+    resp.delete_cookie("meshctx_session")
+    return resp
 
 @app.middleware("http")
 async def metrics_middleware(request: Request, call_next):
