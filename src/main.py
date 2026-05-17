@@ -1002,6 +1002,58 @@ async def update_model(model_id: str, request: Request):
     return {"status": "ok", "id": model_id, "message": f"模型 {model_id} 已更新"}
 
 
+@app.patch("/api/models/{model_id}")
+async def rename_model(model_id: str, request: Request):
+    """重命名模型ID + 更新配置"""
+    from pathlib import Path
+    import yaml
+    try:
+        body = await request.json()
+    except:
+        raise HTTPException(400, "无效的JSON请求体")
+    
+    rename_to = body.get("rename_to", "").strip()
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    if not config_path.exists():
+        raise HTTPException(404, "配置文件不存在")
+    
+    with open(config_path) as f:
+        config = yaml.safe_load(f) or {}
+    
+    entries = config.get("models", {}).get("entries", {})
+    if model_id not in entries:
+        raise HTTPException(404, f"模型 {model_id} 不存在")
+    
+    # Update fields
+    current = entries[model_id]
+    for field in ["key", "model", "base_url", "provider"]:
+        if field in body and body[field]:
+            current[field] = body[field]
+    
+    if "key" in body and body["key"]:
+        try:
+            from src.core.crypto import encrypt_key
+            current["key"] = encrypt_key(body["key"])
+        except:
+            pass
+    
+    # Rename
+    new_id = rename_to or model_id
+    if rename_to and rename_to != model_id:
+        entries[new_id] = current
+        del entries[model_id]
+        if config.get("models", {}).get("default") == model_id:
+            config["models"]["default"] = new_id
+    
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+    
+    import src.model_registry as mr
+    mr._registry = None
+    
+    return {"status": "ok", "id": new_id, "old_id": model_id if rename_to else None}
+
+
 @app.delete("/api/models/{model_id}")
 async def delete_model(model_id: str):
     """删除模型配置"""
