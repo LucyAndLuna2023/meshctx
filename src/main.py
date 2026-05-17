@@ -1208,7 +1208,15 @@ async def delete_model(model_id: str):
         config = yaml.safe_load(f) or {}
     
     entries = config.get("models", {}).get("entries", {})
+    from src.model_registry import BUILTIN_MODELS
     if model_id not in entries:
+        if model_id in BUILTIN_MODELS:
+            # Builtin model - just clear default if set
+            if config.get("models", {}).get("default") == model_id:
+                config["models"]["default"] = ""
+                with open(config_path, "w") as f:
+                    yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+            return {"status": "ok", "id": model_id, "message": f"已移除内置模型 {model_id}"}
         raise HTTPException(404, f"模型 {model_id} 不存在")
     
     del entries[model_id]
@@ -1273,8 +1281,10 @@ async def set_default_model(model_id: str):
         config = yaml.safe_load(f) or {}
     
     entries = config.get("models", {}).get("entries", {})
-    if model_id not in entries:
-        raise HTTPException(404, f"模型 {model_id} 未配置")
+    # Allow builtin models even if not in entries (env var configured)
+    from src.model_registry import BUILTIN_MODELS
+    if model_id not in entries and model_id not in BUILTIN_MODELS:
+        raise HTTPException(404, f"模型 {model_id} 不存在")
     
     config["models"]["default"] = model_id
     os.environ["MESHCTX_MODEL"] = model_id
