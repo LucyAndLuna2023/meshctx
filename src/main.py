@@ -363,6 +363,7 @@ if _static_dir.exists():
 
 # ─── Web UI 路由 (延迟导入避免循环) ────────────────────
 from .web_ui import router as web_ui_router
+from .core.session_archiver import get_archiver, SessionArchiver
 app.include_router(web_ui_router)
 
 # ─── i18n 语言切换 ─────────────────────────────────────
@@ -2524,6 +2525,46 @@ async def voice_status():
         "tts": {"available": False, "message": "需安装 edge-tts"},
         "message": "语音功能开发中，预计v2.18上线"
     }
+
+
+# ═══════════════════════════════════════════════════
+# 会话自动存档 (v2.18)
+# ═══════════════════════════════════════════════════
+
+@app.post("/api/archive/save")
+async def archive_save(request: Request):
+    """手动保存上下文"""
+    archiver = get_archiver()
+    try:
+        body = await request.json()
+        for key in body:
+            if key in ["version", "decisions", "rules", "progress"]:
+                archiver._context[key] = body[key]
+    except:
+        pass
+    path = archiver.save(force=True)
+    return {"status": "ok", "path": path, "summary": archiver.get_summary()}
+
+
+@app.get("/api/archive/load")
+async def archive_load():
+    """加载最近存档"""
+    archiver = get_archiver()
+    data = archiver.load_latest()
+    return {"status": "ok", "data": data} if data else {"status": "empty"}
+
+
+@app.get("/api/archive/list")
+async def archive_list():
+    """列出所有存档"""
+    archiver = get_archiver()
+    return {"archives": archiver.list_archives(), "summary": archiver.get_summary()}
+
+
+@app.get("/api/archive/summary")
+async def archive_summary():
+    """会话摘要"""
+    return get_archiver().get_summary()
 
 
 @app.get("/api/version")
