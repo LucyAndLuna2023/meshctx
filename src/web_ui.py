@@ -1739,6 +1739,16 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
     <button class="btn btn-primary" onclick="showAddForm()" style="padding:10px 20px;">+ 添加模型</button>
 </div>
 
+<!-- v2.17: 本地模型快捷预设 -->
+<div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px;">
+    <span style="font-size:12px;color:var(--muted);line-height:28px;">快捷预设:</span>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('ollama','qwen2.5:7b','Ollama本地','http://localhost:11434/v1','')">🦙 Ollama</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('vllm','qwen','vLLM本地','http://localhost:8000/v1','')">🚀 vLLM</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('localai','gpt-3.5-turbo','LocalAI','http://localhost:8080/v1','')">🏠 LocalAI</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('openai-compat','gpt-3.5-turbo','OpenAI兼容','https://your-api.com/v1','sk-...')">🔌 通用OpenAI</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('custom','custom-model','自定义供应商','https://your-server.com','your-key')">⚙️ 完全自定义</button>
+</div>
+
 <!-- 添加/编辑表单(默认隐藏) -->
 <div id="modelForm" style="display:none;margin-bottom:16px;">
     <div class="card">
@@ -1828,6 +1838,16 @@ function showAddForm() {
     document.getElementById('fkey').value = '';
     document.getElementById('fmodel').value = '';
     document.getElementById('furl').value = '';
+
+function presetModel(id, model, provider, url, key) {
+    showAddForm();
+    document.getElementById('fid').value = id;
+    document.getElementById('fprovider').value = provider;
+    document.getElementById('fkey').value = key;
+    document.getElementById('fmodel').value = model;
+    document.getElementById('furl').value = url;
+    document.getElementById('fid').focus();
+}
     document.getElementById('testResult').innerHTML = '';
 }
 function hideForm() { document.getElementById('modelForm').style.display = 'none'; }
@@ -1851,7 +1871,8 @@ async function saveModel() {
         base_url: document.getElementById('furl').value.trim(),
     };
     if (!body.id || !body.provider) { alert('ID和提供商为必填'); return; }
-    if (!body.key) { alert('API Key为必填'); return; }
+    // v2.17: 本地模型可以不填key (Ollama/vLLM等无需认证)
+    if (!body.key && !body.base_url) { alert('请填写API Key或Base URL'); return; }
     
     try {
         var res, data;
