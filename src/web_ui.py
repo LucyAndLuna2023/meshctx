@@ -4284,6 +4284,10 @@ input,select{padding:8px 12px;background:#1e293b;border:1px solid #334155;color:
 </div>
 </div>
 <script>
+var _installed = {};
+async function loadInstalled(){
+  try{var r=await fetch('/api/plugins/installed');var d=await r.json();_installed=d.installed||{};}catch(e){}
+}
 async function loadPlugins(){
 var q=document.getElementById('pluginSearch').value;
 var cat=document.getElementById('pluginCat').value;
@@ -4294,7 +4298,14 @@ var r=await fetch('/api/plugins/market?search='+encodeURIComponent(q)+'&category
 var d=await r.json();
 if(!d.plugins.length){list.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px">No plugins</div>';return}
 list.innerHTML=d.plugins.map(function(p){
-return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:start"><div><span style="font-size:24px">'+p.icon+'</span> <strong>'+p.name+'</strong> <span style="font-size:10px;color:var(--muted)">v'+p.version+'</span></div><span style="font-size:10px;background:#1e293b;padding:2px 6px;border-radius:4px">'+p.category+'</span></div><p style="font-size:12px;color:var(--muted);margin:8px 0">'+p.description+'</p><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:10px;color:var(--muted)">'+p.author+'</span><button class="btn btn-primary" style="font-size:11px;padding:4px 12px" data-name="'+p.name+'" onclick="installPlugin(this.dataset.name,this)">Install</button></div></div>';
+var isInstalled = _installed[p.name] !== undefined;
+var isBuiltin = p.builtin;
+var btnHtml;
+if(isBuiltin && isInstalled){btnHtml='<span style="font-size:11px;color:#22c55e;">✅ 已激活</span>'}
+else if(isInstalled){btnHtml='<button class="btn" style="font-size:11px;padding:4px 12px;background:#22c55e;color:#fff;" onclick="uninstallPlugin(&quot;'+p.name+'&quot;,this)">✅ 已安装</button>'}
+else if(isBuiltin){btnHtml='<button class="btn btn-primary" style="font-size:11px;padding:4px 12px" onclick="installPlugin(&quot;'+p.name+'&quot;,this)">⚡ 激活</button>'}
+else{btnHtml='<button class="btn btn-primary" style="font-size:11px;padding:4px 12px" onclick="installPlugin(&quot;'+p.name+'&quot;,this)">📥 安装</button>'}
+return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:start"><div><span style="font-size:24px">'+p.icon+'</span> <strong>'+p.name+'</strong> <span style="font-size:10px;color:var(--muted)">v'+p.version+'</span></div><span style="font-size:10px;background:#1e293b;padding:2px 6px;border-radius:4px">'+(p.builtin?'内置':'社区')+'</span></div><p style="font-size:12px;color:var(--muted);margin:8px 0">'+p.description+'</p><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:10px;color:var(--muted)">'+p.author+'</span>'+btnHtml+'</div></div>';
 }).join('');
 var sel=document.getElementById('pluginCat');
 var cur=sel.value;
@@ -4306,11 +4317,20 @@ async function installPlugin(name,btn){
 btn.textContent='Installing...';btn.disabled=true;
 try{
 var r=await fetch('/api/plugins/install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})});
-if(r.ok){btn.textContent='Installed';btn.style.background='#22c55e'}
-else{var d=await r.json();alert(d.detail||'Failed');btn.textContent='Install';btn.disabled=false}
-}catch(e){alert(e.message);btn.textContent='Install';btn.disabled=false}
+if(r.ok){_installed[name]={}; btn.textContent='✅ 已安装';btn.style.background='#22c55e';btn.style.color='#fff'}
+else{var d=await r.json();alert(d.detail||'Failed');btn.textContent='📥 安装';btn.disabled=false}
+}catch(e){alert(e.message);btn.textContent='📥 安装';btn.disabled=false}
 }
-loadPlugins();
+async function uninstallPlugin(name,btn){
+if(!confirm('确定卸载 '+name+'?'))return;
+btn.textContent='卸载中...';btn.disabled=true;
+try{
+var r=await fetch('/api/plugins/uninstall',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})});
+if(r.ok){delete _installed[name];loadPlugins();}
+else{var d=await r.json();alert(d.detail||'Failed');btn.textContent='✅ 已安装';btn.disabled=false}
+}catch(e){alert(e.message);btn.textContent='✅ 已安装';btn.disabled=false}
+}
+(async function(){await loadInstalled();loadPlugins();})();
 </script></body></html>""")
 
 # ── v1.5.13 下载页面 ─────────────────────────────────────
