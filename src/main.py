@@ -1827,6 +1827,30 @@ async def chat_compare_stream(req: Request):
 # 对话持久化 (v2.11)
 # ═══════════════════════════════════════════════════
 
+@app.get("/api/conversations/search")
+async def search_conversations(q: str = ""):
+    """搜索对话历史"""
+    from src.core.conversation_store import Conversation, DATA_DIR
+    import json
+    results = []
+    if not q: return {"results": [], "query": q}
+    for path in sorted(DATA_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:50]:
+        try:
+            with open(path) as f:
+                data = json.load(f)
+            for msg in data.get("messages", []):
+                if q.lower() in msg.get("content", "").lower():
+                    results.append({
+                        "conv_id": data.get("id", path.stem),
+                        "title": data.get("title", ""),
+                        "role": msg.get("role", ""),
+                        "content": msg.get("content", "")[:300],
+                        "time": msg.get("time", 0),
+                    })
+        except: pass
+    return {"results": results[:20], "query": q}
+
+
 @app.get("/api/conversations")
 async def list_conversations():
     """列出所有已保存对话"""
@@ -2404,6 +2428,46 @@ async def system_status():
         "plugins": {"available": plugin_count},
         "sessions": {"total": sessions},
     }
+
+
+@app.get("/api/config/export")
+async def export_config():
+    """导出配置 (不含API Key敏感信息)"""
+    import yaml
+    from pathlib import Path
+    cp = Path.home() / ".meshctx" / "config.yaml"
+    if cp.exists():
+        with open(cp) as f:
+            config = yaml.safe_load(f) or {}
+        # 脱敏: 移除key
+        for mid in config.get("models", {}).get("entries", {}):
+            if "key" in config["models"]["entries"][mid]:
+                config["models"]["entries"][mid]["key"] = "***REDACTED***"
+        return {"status": "ok", "config": config}
+    return {"status": "empty", "config": {}}
+
+
+@app.post("/api/config/import")
+async def import_config(request: Request):
+    """导入配置"""
+    try: body = await request.json()
+    except: raise HTTPException(400)
+    import yaml
+    from pathlib import Path
+    cp = Path.home() / ".meshctx" / "config.yaml"
+    config = body.get("config", {})
+    # 合并而非覆盖
+    if cp.exists():
+        with open(cp) as f:
+            existing = yaml.safe_load(f) or {}
+        existing.update(config)
+        config = existing
+    cp.parent.mkdir(parents=True, exist_ok=True)
+    with open(cp, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+    import src.model_registry as mr
+    mr._registry = None
+    return {"status": "ok", "message": "配置已导入"}
 
 
 @app.get("/api/health")

@@ -4278,6 +4278,10 @@ th{color:var(--muted)}
 <nav><a href="/ui/chat">Chat</a><a href="/ui/setup">Setup</a><a href="/ui/plugins">Plugins</a><a href="/ui/dashboard" style="color:var(--accent);background:rgba(108,92,231,0.15);">Dashboard</a></nav>
 <h2 style="margin-bottom:16px;">📊 System Dashboard</h2>
 <div class="grid" id="stats"></div>
+<div class="card" style="margin-bottom:16px;text-align:left">
+<h3 style="margin-bottom:8px">🛡️ Watchdog</h3>
+<div id="wdStatus" style="font-size:12px;color:var(--muted)">Loading...</div>
+</div>
 <h3 style="margin-top:8px;">API Endpoints</h3>
 <table><thead><tr><th>Endpoint</th><th>Latency</th><th>Status</th></tr></thead><tbody id="epTable"></tbody></table>
 <div id="pluginStatus" style="margin-top:16px;"></div>
@@ -4315,9 +4319,31 @@ async function load(){
   });
   ps+='</table>';
   document.getElementById('pluginStatus').innerHTML=ps;
+  
+  // Watchdog
+  try{
+    var wd=await fetch('/api/watchdog/status');
+    var w=await wd.json();
+    var ws='<div style="display:flex;gap:12px;flex-wrap:wrap">';
+    ws+=badge('Running',w.running?'✅':'❌',w.running?'green':'red');
+    ws+=badge('Uptime',w.uptime_human,'purple');
+    ws+=badge('Checks',w.stats.checks_total,'yellow');
+    ws+=badge('Fixed',w.stats.issues_fixed,'green');
+    for(var k in w.subsystems){
+      var s=w.subsystems[k];
+      ws+=badge(k,s.status,s.status=='ok'?'green':'yellow');
+    }
+    ws+='</div>';
+    if(w.recent_alerts&&w.recent_alerts.length){
+      ws+='<div style="margin-top:8px;font-size:11px;color:var(--muted)">Recent alerts: '+w.recent_alerts.length+'</div>';
+    }
+    document.getElementById('wdStatus').innerHTML=ws;
+  }catch(e){}
 }
+function badge(label,value,color){return '<span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:4px 12px;text-align:center"><div style="font-size:10px;color:var(--muted)">'+label+'</div><div class="'+color+'" style="font-size:16px;font-weight:700">'+value+'</div></span>'}
 function card(label,value,color){return '<div class="card"><div class="l">'+label+'</div><div class="v '+color+'">'+value+'</div></div>'}
 load();
+setInterval(load, 30000); // Auto-refresh every 30s
 </script></body></html>""")
 
 # ── v2.17 插件市场 ─────────────────────────────────────
