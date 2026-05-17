@@ -1872,6 +1872,9 @@ function showAddForm() {
     document.getElementById('fkey').value = '';
     document.getElementById('fmodel').value = '';
     document.getElementById('furl').value = '';
+    document.getElementById('testResult').innerHTML = '';
+}
+function hideForm() { document.getElementById('modelForm').style.display = 'none'; }
 
 function presetModel(id, model, provider, url, key) {
     showAddForm();
@@ -1882,42 +1885,54 @@ function presetModel(id, model, provider, url, key) {
     document.getElementById('furl').value = url;
     document.getElementById('fid').focus();
 }
-    document.getElementById('testResult').innerHTML = '';
-}
-function hideForm() { document.getElementById('modelForm').style.display = 'none'; }
+
 function editModel(id, provider, key, model, url) {
     showAddForm();
     document.getElementById('formTitle').textContent = '编辑 ' + id;
     document.getElementById('editModelId').value = id;
     document.getElementById('fid').value = id;
+    document.getElementById('fid').disabled = false;
     document.getElementById('fprovider').value = provider;
     document.getElementById('fkey').value = key;
     document.getElementById('fmodel').value = model;
     document.getElementById('furl').value = url||'';
 }
+
 async function saveModel() {
     var eid = document.getElementById('editModelId').value.trim();
+    var newId = document.getElementById('fid').value.trim();
     var body = {
-        id: document.getElementById('fid').value.trim(),
+        id: newId,
         provider: document.getElementById('fprovider').value.trim(),
         key: document.getElementById('fkey').value.trim(),
         model: document.getElementById('fmodel').value.trim(),
         base_url: document.getElementById('furl').value.trim(),
     };
     if (!body.id || !body.provider) { alert('ID和提供商为必填'); return; }
-    // v2.17: 本地模型可以不填key (Ollama/vLLM等无需认证)
     if (!body.key && !body.base_url) { alert('请填写API Key或Base URL'); return; }
     
     try {
         var res, data;
-        if (eid && eid !== body.id) {
-            await fetch('/api/models/' + eid, {method: 'DELETE'});
-            res = await fetch('/api/models', {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)});
+        if (eid && eid !== newId) {
+            // Rename: update old entry with new ID
+            res = await fetch('/api/models/' + eid, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({rename_to: newId, key: body.key, model: body.model, base_url: body.base_url, provider: body.provider})
+            });
         } else if (eid) {
-            res = await fetch('/api/models/' + eid, {method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)});
+            res = await fetch('/api/models/' + eid, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({key: body.key, model: body.model, base_url: body.base_url, provider: body.provider})
+            });
         } else {
             body.overwrite = true;
-            res = await fetch('/api/models', {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)});
+            res = await fetch('/api/models', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
         }
         data = await res.json();
         if (res.ok) { location.reload(); }
@@ -1950,8 +1965,7 @@ async function cleanUnconfigured() {
 function configureModel(id) {
     showAddForm();
     document.getElementById('fid').value = id;
-    document.getElementById('fid').disabled = true;
-    document.getElementById('fid').style.background = '#1e293b';
+    document.getElementById('fid').disabled = false;
     document.getElementById('editModelId').value = id;
     document.getElementById('formTitle').textContent = '配置 API Key — ' + id;
     document.getElementById('fkey').focus();
@@ -4028,32 +4042,89 @@ async def setup_page(request: Request):
     elif request.query_params.get("error") == "1":
         flash = "error"
     
-    # 读取当前已配置的模型列表
+    # 合并内置模型 + 已配置模型
     configured = []
+    seen_ids = set()
     try:
-        from src.model_registry import get_registry
+        from src.model_registry import get_registry, BUILTIN_MODELS
         reg = get_registry()
-        for e in reg.list_all():
-            entry = {"id": e["id"], "model": e.get("model", "?"), "provider": e.get("provider", "?"), "ready": e.get("ready", False)}
-            # 检查是否默认模型
-            try:
-                from pathlib import Path
-                cp = Path.home() / ".meshctx" / "config.yaml"
-                if cp.exists():
-                    import yaml as _yaml2
-                    with open(cp) as f:
-                        cfg = _yaml2.safe_load(f) or {}
-                    default_id = cfg.get("models", {}).get("default", "")
-                    entry["is_default"] = (default_id == e["id"])
-                    model_cfg = cfg.get("models", {}).get("entries", {}).get(e["id"], {})
-                    raw_key = model_cfg.get("key", "")
-                    if raw_key:
-                        entry["key_full"] = raw_key
-                        entry["key_masked"] = raw_key[:6] + "****" + raw_key[-4:] if len(raw_key) > 10 else "****"
-                    entry["base_url"] = model_cfg.get("base_url", "")
-            except:
-                pass
+        
+        # 读取config.yaml获取已配置模型详情
+        from pathlib import Path
+        cp = Path.home() / ".meshctx" / "config.yaml"
+        config = {}
+        if cp.exists():
+            import yaml as _yaml2
+            with open(cp) as f:
+                config = _yaml2.safe_load(f) or {}
+        entries = config.get("models", {}).get("entries", {})
+        default_id = config.get("models", {}).get("default", "")
+        
+        # 1. 内置模型 (BUILTIN_MODELS)
+        # Build reverse lookup: (provider, model) -> config entry
+        provider_model_to_entry = {}
+        for mid, einfo in entries.items():
+            pm_key = (einfo.get("provider", ""), einfo.get("model", ""))
+            provider_model_to_entry[pm_key] = (mid, einfo)
+        
+        for mid, info in BUILTIN_MODELS.items():
+            seen_ids.add(mid)
+            # Exact ID match or fuzzy (provider+model) match
+            is_configured = mid in entries
+            config_entry = None
+            
+            if is_configured:
+                config_entry = entries[mid]
+            else:
+                # Fuzzy match: same provider+model but different ID format
+                pm_key = (info.get("provider", ""), info.get("model", ""))
+                if pm_key in provider_model_to_entry:
+                    config_mid, config_entry = provider_model_to_entry[pm_key]
+                    is_configured = True
+            
+            entry = {
+                "id": mid,
+                "model": info.get("model", mid),
+                "provider": info.get("provider", "?"),
+                "base_url": info.get("base_url", ""),
+                "ready": is_configured,
+                "is_default": (default_id == mid),
+                "builtin": True,
+            }
+            if is_configured and config_entry:
+                raw_key = config_entry.get("key", "")
+                if raw_key:
+                    entry["key_full"] = raw_key
+                    entry["key_masked"] = raw_key[:6] + "****" + raw_key[-4:] if len(raw_key) > 10 else "****"
             configured.append(entry)
+        
+        # 2. 用户自定义模型 (不在BUILTIN_MODELS中)
+        for mid, einfo in entries.items():
+            if mid in seen_ids:
+                # Already shown as builtin, just update
+                for item in configured:
+                    if item["id"] == mid:
+                        item["ready"] = True
+                        raw_key = einfo.get("key", "")
+                        if raw_key:
+                            item["key_full"] = raw_key
+                            item["key_masked"] = raw_key[:6] + "****" + raw_key[-4:] if len(raw_key) > 10 else "****"
+                        item["base_url"] = einfo.get("base_url", item.get("base_url", ""))
+                        break
+            else:
+                # Custom model not in builtins
+                raw_key = einfo.get("key", "")
+                configured.append({
+                    "id": mid,
+                    "model": einfo.get("model", mid),
+                    "provider": einfo.get("provider", "?"),
+                    "base_url": einfo.get("base_url", ""),
+                    "ready": True,
+                    "is_default": (default_id == mid),
+                    "builtin": False,
+                    "key_full": raw_key,
+                    "key_masked": raw_key[:6] + "****" + raw_key[-4:] if len(raw_key) > 10 else ("****" if raw_key else ""),
+                })
     except:
         pass
     
