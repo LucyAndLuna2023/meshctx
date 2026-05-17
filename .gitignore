@@ -1,3 +1,4 @@
+
      1|# 敏感文件
      2|*.bak
      3|*.log
@@ -35,18 +36,17 @@
     35|install.sh
     36|venv/
     37|
-
 # 🔴 Core Brain — proprietary, not in GitHub
-src/core/super_brain.py
-src/core/brain_router.py
-src/core/free_energy.py
+src/core/action_gate.py
 src/core/active_inference.py
+src/core/attention_decay.py
+src/core/brain_router.py
+src/core/context_compressor.py__pycache__/
+src/core/free_energy.py
 src/core/global_workspace.py
 src/core/homeostasis.py
-src/core/metacognition.py
 src/core/hybrid_reasoning.py
-src/core/principle_extractor.py
+src/core/metacognition.py
 src/core/pre_action_check.py
-src/core/action_gate.py
-src/core/attention_decay.py
-src/core/context_compressor.py
+src/core/principle_extractor.py
+src/core/super_brain.py
