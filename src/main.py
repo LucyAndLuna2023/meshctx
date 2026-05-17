@@ -2066,7 +2066,7 @@ async def code_review(req: Request):
 
 _rate_limits: Dict[str, List[float]] = {}
 RATE_WINDOW = 60  # 1 minute window
-RATE_MAX = 60     # 60 requests per minute per IP
+RATE_MAX = 500     # 500 requests per minute per IP (test mode)
 
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
