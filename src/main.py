@@ -1414,7 +1414,7 @@ async def web_search(q: str = "", engine: str = "duckduckgo"):
             # DuckDuckGo Instant Answer API
             url = f"https://api.duckduckgo.com/?q={urllib.parse.quote(q)}&format=json&no_html=1"
             req = urllib.request.Request(url, headers={"User-Agent": "MeshCtx/2.7"})
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=5) as resp:
                 data = _json.loads(resp.read())
                 if data.get("Abstract"):
                     results.append({"title": data.get("Heading", q), "snippet": data["Abstract"], "url": data.get("AbstractURL", "")})
@@ -2298,7 +2298,7 @@ async def install_plugin(plugin_name: str):
         manifest_url = plugin.get("download_url", "")
         if manifest_url:
             req = urllib.request.Request(manifest_url, headers={"User-Agent": "MeshCtx/2.9"})
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=5) as resp:
                 manifest_data = json.loads(resp.read())
                 plugin_dir = Path(__file__).resolve().parent.parent / "plugins" / plugin_name
                 plugin_dir.mkdir(parents=True, exist_ok=True)
@@ -2350,6 +2350,38 @@ async def install_plugin_url(req: Request):
         return {"status":"ok","plugin":name}
     except Exception as e:
         raise HTTPException(500,f"安装失败: {e}")
+
+
+@app.get("/api/system/status")
+async def system_status():
+    """综合系统状态"""
+    import time, platform, yaml, json
+    from pathlib import Path
+    from src.core import __version__
+    
+    cp = Path.home() / ".meshctx" / "config.yaml"
+    configured = 0
+    if cp.exists():
+        with open(cp) as f:
+            cfg = yaml.safe_load(f) or {}
+        configured = len(cfg.get("models", {}).get("entries", {}))
+    
+    reg_path = Path(__file__).parent.parent / "plugins" / "registry.json"
+    plugin_count = 0
+    if reg_path.exists():
+        with open(reg_path) as f:
+            plugin_count = len(json.load(f).get("plugins", []))
+    
+    conv_path = Path.home() / ".meshctx" / "conversations"
+    sessions = len(list(conv_path.glob("*.json"))) if conv_path.exists() else 0
+    
+    return {
+        "version": __version__,
+        "server": {"python": platform.python_version(), "platform": platform.system()},
+        "models": {"builtin": 100, "providers": 28, "configured": configured},
+        "plugins": {"available": plugin_count},
+        "sessions": {"total": sessions},
+    }
 
 
 @app.get("/api/health")
@@ -2437,7 +2469,7 @@ async def web_search(q: str = ""):
         import urllib.request, json
         url = f"https://api.duckduckgo.com/?q={urllib.parse.quote(q)}&format=json&no_html=1"
         req = urllib.request.Request(url, headers={"User-Agent": "MeshCtx/2.17"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read())
         results = []
         for topic in data.get("RelatedTopics", [])[:5]:
@@ -3882,7 +3914,7 @@ async def test_mcp_server(server_id: str):
             cmd, 
             capture_output=True, 
             text=True, 
-            timeout=10,
+            timeout=5,
             env={**os.environ, **server.get("env", {})}
         )
         ok = proc.returncode == 0
