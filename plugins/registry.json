@@ -5,170 +5,258 @@
     {
       "name": "web-search",
       "version": "1.0.0",
-      "description": "DuckDuckGo/Bing web search with result summarization",
+      "description": "[开发中] DuckDuckGo/Bing web search with result summarization",
       "author": "MeshCtx",
       "icon": "🔍",
       "category": "search",
-      "permissions": ["network:search"],
-      "platforms": ["windows", "macos", "linux"],
+      "permissions": [
+        "network:search"
+      ],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "entry_point": "web-search/manifest.json",
       "installs": 0,
       "builtin": false,
-      "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/web-search"
+      "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/web-search",
+      "status": "coming_soon"
     },
     {
       "name": "code-runner",
       "version": "1.0.0",
-      "description": "Secure sandboxed code execution (Python/JS/Bash), already integrated",
+      "description": "Secure sandboxed code execution (Python/JS/Bash), already integrated [已集成]",
       "author": "MeshCtx",
       "icon": "▶️",
       "category": "dev",
-      "permissions": ["sandbox:exec"],
-      "platforms": ["windows", "macos", "linux"],
+      "permissions": [
+        "sandbox:exec"
+      ],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "entry_point": "sandbox/manifest.json",
       "installs": 156,
       "builtin": true,
-      "repo": ""
+      "repo": "",
+      "status": "active"
     },
     {
       "name": "file-browser",
       "version": "1.0.0",
-      "description": "Browse, search, and manage project files with syntax highlighting",
+      "description": "Browse, search, and manage project files with syntax highlighting [已集成]",
       "author": "MeshCtx",
       "icon": "📁",
       "category": "dev",
-      "permissions": ["fs:read", "fs:write"],
-      "platforms": ["windows", "macos", "linux"],
+      "permissions": [
+        "fs:read",
+        "fs:write"
+      ],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "entry_point": "file-browser/manifest.json",
       "installs": 89,
       "builtin": true,
-      "repo": ""
+      "repo": "",
+      "status": "active"
     },
     {
       "name": "git-assistant",
       "version": "1.0.0",
-      "description": "AI-powered git: auto-commit messages, PR descriptions, conflict resolution",
+      "description": "[开发中] AI-powered git: auto-commit messages, PR descriptions, conflict resolution",
       "author": "MeshCtx Community",
       "icon": "🔀",
       "category": "dev",
-      "permissions": ["fs:read", "terminal:git"],
-      "platforms": ["windows", "macos", "linux"],
+      "permissions": [
+        "fs:read",
+        "terminal:git"
+      ],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "entry_point": "git-assistant/manifest.json",
       "installs": 0,
       "builtin": false,
-      "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/git-assistant"
+      "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/git-assistant",
+      "status": "coming_soon"
     },
     {
       "name": "translator",
       "version": "1.0.0",
-      "description": "Multi-language translation using built-in LLM (supports 50+ languages)",
+      "description": "Multi-language translation using built-in LLM (supports 50+ languages) [已集成]",
       "author": "MeshCtx",
       "icon": "🌐",
       "category": "integration",
-      "permissions": ["model:call"],
-      "platforms": ["windows", "macos", "linux"],
+      "permissions": [
+        "model:call"
+      ],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "entry_point": "translator/manifest.json",
       "installs": 42,
       "builtin": true,
-      "repo": ""
+      "repo": "",
+      "status": "active"
     },
     {
       "name": "data-analyzer",
       "version": "1.0.0",
-      "description": "Analyze CSV/JSON/Excel data with charts and statistical summaries",
+      "description": "[开发中] Analyze CSV/JSON/Excel data with charts and statistical summaries",
       "author": "MeshCtx Community",
       "icon": "📊",
       "category": "analytics",
-      "permissions": ["fs:read", "sandbox:exec"],
-      "platforms": ["windows", "macos", "linux"],
+      "permissions": [
+        "fs:read",
+        "sandbox:exec"
+      ],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "entry_point": "data-analyzer/manifest.json",
       "installs": 0,
       "builtin": false,
-      "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/data-analyzer"
+      "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/data-analyzer",
+      "status": "coming_soon"
     },
     {
       "name": "feishu-notifier",
       "version": "2.0.0",
-      "description": "Send messages, reports, and alerts to Feishu/Lark groups",
+      "description": "Send messages, reports, and alerts to Feishu/Lark groups [已集成]",
       "author": "MeshCtx",
       "icon": "🐦",
       "category": "integration",
-      "permissions": ["network:feishu"],
-      "platforms": ["windows", "macos", "linux"],
+      "permissions": [
+        "network:feishu"
+      ],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "entry_point": "feishu/manifest.json",
       "installs": 203,
       "builtin": true,
-      "repo": ""
+      "repo": "",
+      "status": "active"
     },
     {
       "name": "wechat-work",
       "version": "1.0.0",
-      "description": "WeChat Work (企业微信) bot integration with webhook messaging",
+      "description": "WeChat Work (企业微信) bot integration with webhook messaging [已集成]",
       "author": "MeshCtx",
       "icon": "💬",
       "category": "integration",
-      "permissions": ["network:wechat"],
-      "platforms": ["windows", "macos", "linux"],
+      "permissions": [
+        "network:wechat"
+      ],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "entry_point": "wechat/manifest.json",
       "installs": 167,
       "builtin": true,
-      "repo": ""
+      "repo": "",
+      "status": "active"
     },
     {
       "name": "telegram-bot",
       "version": "1.2.0",
-      "description": "Full Telegram bot with multi-workspace support, pairing, and commands",
+      "description": "Full Telegram bot with multi-workspace support, pairing, and commands [已集成]",
       "author": "MeshCtx",
       "icon": "🤖",
       "category": "integration",
-      "permissions": ["network:telegram"],
-      "platforms": ["windows", "macos", "linux"],
+      "permissions": [
+        "network:telegram"
+      ],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "entry_point": "telegram/manifest.json",
       "installs": 134,
       "builtin": true,
-      "repo": ""
+      "repo": "",
+      "status": "active"
     },
     {
       "name": "scheduler",
       "version": "1.0.0",
-      "description": "Cron-based task scheduler for automated reports, backups, and monitoring",
+      "description": "Cron-based task scheduler for automated reports, backups, and monitoring [已集成]",
       "author": "MeshCtx",
       "icon": "⏰",
       "category": "system",
-      "permissions": ["cron", "fs:write"],
-      "platforms": ["windows", "macos", "linux"],
+      "permissions": [
+        "cron",
+        "fs:write"
+      ],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "entry_point": "scheduler/manifest.json",
       "installs": 78,
       "builtin": true,
-      "repo": ""
+      "repo": "",
+      "status": "active"
     },
     {
       "name": "monitor-dashboard",
       "version": "1.0.0",
-      "description": "Real-time system monitoring: CPU, memory, GPU, agent health dashboard",
+      "description": "Real-time system monitoring: CPU, memory, GPU, agent health dashboard [已集成]",
       "author": "MeshCtx",
       "icon": "📈",
       "category": "system",
-      "permissions": ["system:monitor"],
-      "platforms": ["windows", "macos", "linux"],
+      "permissions": [
+        "system:monitor"
+      ],
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ],
       "entry_point": "monitor/manifest.json",
       "installs": 112,
       "builtin": true,
-      "repo": ""
+      "repo": "",
+      "status": "active"
     },
     {
       "name": "voice-assistant",
       "version": "0.9.0",
-      "description": "Speech-to-text and text-to-speech for voice interaction (beta)",
+      "description": "[开发中] Speech-to-text and text-to-speech for voice interaction (beta)",
       "author": "MeshCtx Labs",
       "icon": "🎤",
       "category": "integration",
-      "permissions": ["audio:mic", "model:call"],
-      "platforms": ["windows", "macos"],
+      "permissions": [
+        "audio:mic",
+        "model:call"
+      ],
+      "platforms": [
+        "windows",
+        "macos"
+      ],
       "entry_point": "voice/manifest.json",
-      "installs": 28,
+      "installs": 0,
       "builtin": false,
-      "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/voice-assistant"
+      "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/voice-assistant",
+      "status": "coming_soon"
     }
   ]
 }
