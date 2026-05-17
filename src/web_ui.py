@@ -1061,8 +1061,6 @@ function handleChatKeydown(event) {
     }
     
     if (event.key === 'Enter') {
-        event.target.style.borderColor = '#fbbf24';
-        setTimeout(function(){ event.target.style.borderColor = ''; }, 300);
         hideAtAutocomplete();
         send();
     }
@@ -1089,13 +1087,9 @@ function updateTokenCount() {
 
 async function send() {
     const input = document.getElementById('userInput');
-    if (!input) { console.error('userInput not found'); return; }
+    if (!input) return;
     let msg = input.value.trim();
     if (!msg) return;
-    
-    // Visual feedback that send() was called
-    input.style.borderColor = '#22c55e';
-    setTimeout(function(){ input.style.borderColor = ''; }, 500);
     
     // Compare mode intercept
     if(compareMode){
@@ -1272,7 +1266,7 @@ async function send() {
     }
     
     // v2.16: @文件引用自动补全 — 检测 @[文件名](路径) 并注入文件内容
-    var atFilePattern = /@\\[([^\\]]+)\\]\\(([^)]+)\\)/g;
+    var atFilePattern = /@\x5B([^\x5D]+)\x5D\x28([^\x29]+)\x29/g;
     var atFiles = [];
     var atMatch;
     while ((atMatch = atFilePattern.exec(msg)) !== null) {
@@ -1416,7 +1410,6 @@ async function send() {
 
             if (data === '[DONE]') {
               if(statusEl) statusEl.textContent = '✅ 完成 (' + new Date().toLocaleTimeString() + ')';
-              var cursor = aiBubble.querySelector('.cursor');
               if(cursor) cursor.style.display = 'none';
               chatHistory.push({role:'assistant', content:streamText.innerHTML});
               saveHistory();
@@ -1727,17 +1720,7 @@ function quickAction(action) {
 // 为历史消息中代码块添加运行按钮 (兼容旧版)
 function addCodeRunButtons(container){
   enhanceCodeBlocks(container);
-}
-
-// DEBUG: Verify JS loaded
-(function(){
-  var input = document.getElementById('userInput');
-  if (input) {
-    input.placeholder = '✅ JS OK — 输入消息...';
-    console.log('Chat JS loaded. send() defined:', typeof send === 'function');
-  }
-})();
-</script>
+}</script>
 {% endblock %}"""
 
 _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
@@ -3738,7 +3721,7 @@ function refreshProjectIndex(){
 
 
 # ── DictLoader 初始化 ───────────────────────────────────────────
-_jinja_env = Environment(loader=DictLoader(_TEMPLATES))
+_jinja_env = Environment(loader=DictLoader(_TEMPLATES), autoescape=False)
 
 def _render(template_name: str, context: dict) -> HTMLResponse:
     """渲染 Jinja2 模板（从内嵌 DictLoader）"""
