@@ -261,7 +261,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.17.2",
+    version="2.18.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -2478,7 +2478,7 @@ async def health_check():
 
 
 # ═══════════════════════════════════════════════════
-# 插件端点 (v2.17.2 — 真实集成)
+# 插件端点 (v2.18.0 — 真实集成)
 # ═══════════════════════════════════════════════════
 
 @app.get("/api/feishu/status")
