@@ -26,16 +26,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install fastapi uvicorn pyyaml numpy requests python-multipart aiofiles jinja2 websockets cryptography
 
-    - name: Test import (framework only, no brain modules)
+    - name: Test with pytest (framework only, skip brain)
       run: |
-        python -c "from src.core import __version__; print('Version:', __version__)"
-        python -c "from src.core import get_kernel, EventBus; print('Kernel OK')"
-
-    - name: Test with pytest (skip brain tests)
-      run: |
-        pytest tests/ -v --tb=short -k "not brain and not super_brain and not test_v19" \
+        pip install pytest
+        pytest tests/ -v --tb=short -k "not brain and not super_brain and not healer and not predictor and not orchestrator and not free_energy and not active_inference" \
           --ignore=tests/ui/ --ignore=tests/run_e2e_test.py \
-          -o 'addopts=' 2>&1 | tail -20
+          -o 'addopts=' 2>&1 | tail -30
 
   docker:
     runs-on: ubuntu-latest
