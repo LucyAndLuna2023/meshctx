@@ -697,25 +697,86 @@ async def plugin_market(search: str = "", category: str = ""):
 
 @app.post("/api/plugins/install")
 async def install_plugin(request: Request):
-    """安装插件"""
+    """安装插件 — 持久化到config.yaml"""
     try: body = await request.json()
     except: raise HTTPException(400)
     name = body.get("name", "")
     if not name: raise HTTPException(400, "Missing plugin name")
     
-    import json, os
+    import json, yaml
     from pathlib import Path
+    
+    # Verify plugin exists in registry
     reg_path = Path(__file__).parent.parent / "plugins" / "registry.json"
+    plugin_info = None
     if reg_path.exists():
         with open(reg_path) as f:
             data = json.load(f)
         for p in data.get("plugins", []):
             if p["name"] == name:
+                plugin_info = p
                 p["installs"] = p.get("installs", 0) + 1
                 with open(reg_path, "w") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
-                return {"status": "ok", "plugin": name, "message": f"插件 {name} 已安装"}
-    raise HTTPException(404, f"插件 {name} 不存在")
+                break
+    
+    if not plugin_info:
+        raise HTTPException(404, f"插件 {name} 不存在")
+    
+    # Persist to config.yaml
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config = {}
+    if config_path.exists():
+        with open(config_path) as f:
+            config = yaml.safe_load(f) or {}
+    
+    config.setdefault("plugins", {}).setdefault("installed", {})
+    config["plugins"]["installed"][name] = {
+        "version": plugin_info.get("version", "1.0.0"),
+        "installed_at": __import__("time").time(),
+        "category": plugin_info.get("category", ""),
+    }
+    
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+    
+    return {"status": "ok", "plugin": name, "message": f"插件 {name} 已安装"}
+
+
+@app.post("/api/plugins/uninstall")
+async def uninstall_plugin(request: Request):
+    """卸载插件"""
+    try: body = await request.json()
+    except: raise HTTPException(400)
+    name = body.get("name", "")
+    
+    import yaml
+    from pathlib import Path
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    if config_path.exists():
+        with open(config_path) as f:
+            config = yaml.safe_load(f) or {}
+        installed = config.get("plugins", {}).get("installed", {})
+        if name in installed:
+            del installed[name]
+            with open(config_path, "w") as f:
+                yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+            return {"status": "ok", "plugin": name, "message": f"插件 {name} 已卸载"}
+    raise HTTPException(404, f"插件 {name} 未安装")
+
+
+@app.get("/api/plugins/installed")
+async def installed_plugins():
+    """获取已安装插件列表"""
+    import yaml
+    from pathlib import Path
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    installed = {}
+    if config_path.exists():
+        with open(config_path) as f:
+            config = yaml.safe_load(f) or {}
+        installed = config.get("plugins", {}).get("installed", {})
+    return {"installed": installed}
 
 
 @app.get("/api/plugins/stats")
