@@ -85,6 +85,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         <a href="/ui/continuity" class="{% if '/ui/continuity' in request.url.path %}active{% endif %}">连续性</a>
         <a href="/ui/chat" class="{% if '/ui/chat' in request.url.path %}active{% endif %}">Chat</a>
         <a href="/ui/setup" class="{% if '/ui/setup' in request.url.path %}active{% endif %}">Setup</a>
+        <a href="/ui/dashboard" class="{% if '/ui/dashboard' in request.url.path %}active{% endif %}">📊</a>
         <a href="/ui/plugins" class="{% if '/ui/plugins' in request.url.path %}active{% endif %}">🔌 插件</a>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
@@ -4249,6 +4250,75 @@ async def delete_api_key(
     
     return RedirectResponse(url="/ui/setup?deleted=1", status_code=303)
 
+
+# ── v2.17 系统仪表盘 ─────────────────────────────────────
+
+@router.get("/dashboard", response_class=HTMLResponse)
+async def dashboard_page(request: Request):
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse("""<!DOCTYPE html>
+<html lang="zh"><head><meta charset="UTF-8"><title>Dashboard - MeshCtx</title>
+<style>
+:root{--bg:#0b0e1a;--card-bg:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08);--text:#e0e4f0;--muted:#8090b0;--accent:#6c5ce7;--green:#22c55e;--red:#f85149;--yellow:#fbbf24}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,sans-serif;background:linear-gradient(135deg,#0b0e1a,#1a1f35);color:var(--text);min-height:100vh;padding:24px}
+nav{display:flex;gap:12px;margin-bottom:24px}
+nav a{color:var(--muted);text-decoration:none;padding:8px 16px;border-radius:8px;font-size:14px}
+.container{max-width:1000px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center}
+.card .v{font-size:36px;font-weight:700;margin:8px 0}
+.card .l{font-size:12px;color:var(--muted)}
+.green{color:var(--green)} .red{color:var(--red)} .yellow{color:var(--yellow)} .purple{color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:16px}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+th{color:var(--muted)}
+</style></head><body>
+<div class="container">
+<nav><a href="/ui/chat">Chat</a><a href="/ui/setup">Setup</a><a href="/ui/plugins">Plugins</a><a href="/ui/dashboard" style="color:var(--accent);background:rgba(108,92,231,0.15);">Dashboard</a></nav>
+<h2 style="margin-bottom:16px;">📊 System Dashboard</h2>
+<div class="grid" id="stats"></div>
+<h3 style="margin-top:8px;">API Endpoints</h3>
+<table><thead><tr><th>Endpoint</th><th>Latency</th><th>Status</th></tr></thead><tbody id="epTable"></tbody></table>
+<div id="pluginStatus" style="margin-top:16px;"></div>
+</div>
+<script>
+async function load(){
+  var r=await fetch('/api/system/status');
+  var d=await r.json();
+  var s='';
+  s+=card('Version',d.version,'purple');
+  s+=card('Models',d.models.configured+'/'+d.models.builtin,'green');
+  s+=card('Plugins',d.plugins.available,'yellow');
+  s+=card('Sessions',d.sessions.total,'green');
+  s+=card('Python',d.server.python,'purple');
+  document.getElementById('stats').innerHTML=s;
+  
+  // Ping endpoints
+  var eps=['/api/version','/api/health','/api/models','/api/plugins/market','/api/feishu/status'];
+  var rows='';
+  for(var i=0;i<eps.length;i++){
+    var t0=performance.now();
+    var ok=false;
+    try{var r2=await fetch(eps[i]);ok=r2.ok}catch(e){}
+    var ms=(performance.now()-t0).toFixed(0);
+    rows+='<tr><td>'+eps[i]+'</td><td>'+ms+'ms</td><td style="color:'+(ok?'var(--green)':'var(--red)')+'">'+(ok?'OK':'FAIL')+'</td></tr>';
+  }
+  document.getElementById('epTable').innerHTML=rows;
+  
+  // Plugin status
+  var r3=await fetch('/api/plugins/market');
+  var pd=await r3.json();
+  var ps='<h3>Plugins</h3><table><tr><th>Name</th><th>Status</th><th>Installs</th></tr>';
+  pd.plugins.forEach(function(p){
+    ps+='<tr><td>'+p.icon+' '+p.name+'</td><td style="color:'+(p.status=='active'?'var(--green)':'var(--yellow)')+'">'+p.status+'</td><td>'+p.installs+'</td></tr>';
+  });
+  ps+='</table>';
+  document.getElementById('pluginStatus').innerHTML=ps;
+}
+function card(label,value,color){return '<div class="card"><div class="l">'+label+'</div><div class="v '+color+'">'+value+'</div></div>'}
+load();
+</script></body></html>""")
 
 # ── v2.17 插件市场 ─────────────────────────────────────
 
