@@ -119,7 +119,12 @@ function switchLang(lang) {
         .catch(function(){ location.reload(); });
 }
 (function(){
-    var saved = localStorage.getItem('meshctx_lang') || 'zh';
+    // Theme init on load
+(function(){
+    var theme = localStorage.getItem('meshctx_theme');
+    if (theme === 'light') document.body.classList.add('light');
+})();
+var saved = localStorage.getItem('meshctx_lang') || 'zh';
     var sel = document.getElementById('langSelect');
     if (sel) sel.value = saved;
 })();
@@ -637,6 +642,7 @@ function saveHistory() {
 }
 function toggleTheme() {
     document.body.classList.toggle('light');
+    localStorage.setItem('meshctx_theme', document.body.classList.contains('light') ? 'light' : 'dark');
     const isLight = document.body.classList.contains('light');
     localStorage.setItem('meshctx_theme', isLight ? 'light' : 'dark');
 }
@@ -4362,6 +4368,10 @@ nav{display:flex;gap:12px;margin-bottom:24px}
 nav a{color:var(--muted);text-decoration:none;padding:8px 16px;border-radius:8px;font-size:14px}
 nav a:hover{background:rgba(108,92,231,0.15);color:var(--accent)}
 .container{max-width:860px;margin:0 auto}
+body.light{background:#f8fafc;color:#1e293b}
+body.light .card{background:#fff;border-color:#e2e8f0}
+body.light nav a{color:#64748b}
+body.light input,body.light select{background:#fff;border-color:#e2e8f0;color:#1e293b}
 .card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:16px}
 .btn{padding:8px 20px;border-radius:8px;border:none;font-weight:600;cursor:pointer;font-size:13px}
 .btn-primary{background:linear-gradient(135deg,#6c5ce7,#5a4bd1);color:#fff}
