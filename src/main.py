@@ -261,7 +261,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.18.0",
+    version="2.19.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -2430,46 +2430,6 @@ async def system_status():
     }
 
 
-@app.get("/api/config/export")
-async def export_config():
-    """导出配置 (不含API Key敏感信息)"""
-    import yaml
-    from pathlib import Path
-    cp = Path.home() / ".meshctx" / "config.yaml"
-    if cp.exists():
-        with open(cp) as f:
-            config = yaml.safe_load(f) or {}
-        # 脱敏: 移除key
-        for mid in config.get("models", {}).get("entries", {}):
-            if "key" in config["models"]["entries"][mid]:
-                config["models"]["entries"][mid]["key"] = "***REDACTED***"
-        return {"status": "ok", "config": config}
-    return {"status": "empty", "config": {}}
-
-
-@app.post("/api/config/import")
-async def import_config(request: Request):
-    """导入配置"""
-    try: body = await request.json()
-    except: raise HTTPException(400)
-    import yaml
-    from pathlib import Path
-    cp = Path.home() / ".meshctx" / "config.yaml"
-    config = body.get("config", {})
-    # 合并而非覆盖
-    if cp.exists():
-        with open(cp) as f:
-            existing = yaml.safe_load(f) or {}
-        existing.update(config)
-        config = existing
-    cp.parent.mkdir(parents=True, exist_ok=True)
-    with open(cp, "w") as f:
-        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
-    import src.model_registry as mr
-    mr._registry = None
-    return {"status": "ok", "message": "配置已导入"}
-
-
 @app.get("/api/health")
 async def health_check():
     """健康检查"""
@@ -2600,16 +2560,6 @@ async def git_info():
     except:
         return {"status": "ok", "message": "Git not available in this environment"}
 
-
-@app.get("/api/voice/status")
-async def voice_status():
-    """语音助手状态 (beta)"""
-    return {
-        "status": "beta",
-        "stt": {"available": False, "message": "需安装 faster-whisper"},
-        "tts": {"available": False, "message": "需安装 edge-tts"},
-        "message": "语音功能开发中，预计v2.18上线"
-    }
 
 
 # ═══════════════════════════════════════════════════
@@ -4662,6 +4612,92 @@ async def health_check():
             }
 
     return result
+
+
+# ═══════════════════════════════════════════════════
+# 语音I/O (v2.19 — TTS + STT)
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/voice/status")
+async def voice_status():
+    """语音模块状态"""
+    from src.core.voice_io import get_voice_status
+    return get_voice_status()
+
+
+@app.post("/api/voice/tts")
+async def voice_tts(req: Request):
+    """文本转语音 (TTS) → 返回 MP3 音频"""
+    try:
+        body = await req.json()
+    except Exception:
+        raise HTTPException(400, "无效JSON")
+    
+    text = body.get("text", "").strip()
+    if not text:
+        raise HTTPException(400, "请提供 text")
+    
+    if len(text) > 5000:
+        raise HTTPException(400, "文本过长 (最大5000字符)")
+    
+    voice = body.get("voice", "zh-CN-XiaoxiaoNeural")
+    rate = body.get("rate", "+0%")
+    pitch = body.get("pitch", "+0Hz")
+    cache = body.get("cache", True)
+    
+    from src.core.voice_io import text_to_speech
+    audio = await text_to_speech(text, voice=voice, rate=rate, pitch=pitch, cache=cache)
+    
+    if audio is None:
+        raise HTTPException(503, "TTS服务不可用, 请安装 edge-tts: pip install edge-tts")
+    
+    from fastapi.responses import Response
+    return Response(
+        content=audio,
+        media_type="audio/mpeg",
+        headers={
+            "Content-Disposition": "inline; filename=meshctx_tts.mp3",
+            "Cache-Control": "public, max-age=86400",
+        }
+    )
+
+
+@app.post("/api/voice/stt")
+async def voice_stt(req: Request):
+    """语音转文本 (STT) → 返回识别文本"""
+    content_type = req.headers.get("content-type", "")
+    
+    if "multipart" in content_type:
+        form = await req.form()
+        file = form.get("file")
+        if not file:
+            raise HTTPException(400, "请上传音频文件 (file)")
+        audio_data = await file.read()
+    else:
+        audio_data = await req.body()
+    
+    if not audio_data or len(audio_data) < 100:
+        raise HTTPException(400, "音频数据过小")
+    
+    # 最大 10MB
+    if len(audio_data) > 10 * 1024 * 1024:
+        raise HTTPException(400, "音频文件过大 (最大10MB)")
+    
+    try:
+        body = await req.json() if "application/json" in content_type else {}
+    except Exception:
+        body = {}
+    
+    language = body.get("language") if isinstance(body, dict) else None
+    model_size = body.get("model", "tiny") if isinstance(body, dict) else "tiny"
+    
+    from src.core.voice_io import speech_to_text
+    text = await speech_to_text(audio_data, language=language, model_size=model_size)
+    
+    if text is None:
+        raise HTTPException(503, "STT服务不可用, 请安装 faster-whisper: pip install faster-whisper")
+    
+    return {"text": text, "language": language or "auto"}
 
 
 def main():

@@ -72,6 +72,26 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         body.light .flash-error { background:#fef2f2; color:#991b1b; }
         body.light a { color:#2563eb; }
         .cursor { display:inline-block;width:2px;height:1em;background:#38bdf8;animation:blink 1s infinite;vertical-align:text-bottom;margin-left:2px; } @keyframes blink { 0%,50% {opacity:1} 51%,100% {opacity:0} }
+        /* ── 移动端响应式 (v2.19) ── */
+        @media (max-width: 768px) {
+            .header { padding: 12px 16px; flex-direction: column; align-items: flex-start; }
+            .header h1 { font-size: 18px; }
+            .nav { gap: 4px; }
+            .nav a { padding: 5px 10px; font-size: 12px; }
+            .main { padding: 16px; }
+            .stats { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+            .stat-card { padding: 14px; }
+            .stat-card .value { font-size: 24px; }
+            .card { padding: 14px; }
+            table { font-size: 12px; }
+            th, td { padding: 8px 10px; }
+        }
+        @media (max-width: 480px) {
+            .nav { flex-direction: column; width: 100%; }
+            .nav a { width: 100%; text-align: center; }
+            .stats { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .stat-card .value { font-size: 20px; }
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 </head>
@@ -87,6 +107,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         <a href="/ui/setup" class="{% if '/ui/setup' in request.url.path %}active{% endif %}">Setup</a>
         <a href="/ui/dashboard" class="{% if '/ui/dashboard' in request.url.path %}active{% endif %}">📊</a>
         <a href="/ui/plugins" class="{% if '/ui/plugins' in request.url.path %}active{% endif %}">🔌 插件</a>
+        <a href="/docs" target="_blank" class="" style="color:#f59e0b;">📚 API</a>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
         <select id="langSelect" onchange="switchLang(this.value)" 
