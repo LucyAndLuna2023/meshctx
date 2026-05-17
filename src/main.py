@@ -261,7 +261,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.19.0",
+    version="2.20.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -2547,6 +2547,48 @@ async def data_analyze(request: Request):
             return {"status": "ok", "rows": len(rows), "columns": reader.fieldnames or [], "sample": rows[:3]}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+
+# ═══════════════════════════════════════════════════
+# 代码沙箱 (v2.20 — 插件安全隔离)
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/sandbox/status")
+async def sandbox_status():
+    """沙箱状态 — Docker可用性 + 支持语言"""
+    from src.core.sandbox import get_sandbox, SandboxEngine
+    sb = get_sandbox()
+    return {
+        "available": True,
+        "docker": sb._check_docker(),
+        "languages": list(SandboxEngine.SUPPORTED_LANGUAGES.keys()),
+        "max_timeout": 120,
+        "max_output": "256KB",
+    }
+
+
+@app.post("/api/sandbox/execute")
+async def sandbox_execute(req: Request):
+    """安全执行代码 — Docker隔离 / subprocess回退"""
+    try:
+        body = await req.json()
+    except Exception:
+        raise HTTPException(400, "无效JSON")
+    
+    code = body.get("code", "").strip()
+    if not code:
+        raise HTTPException(400, "请提供 code")
+    
+    if len(code) > 50000:
+        raise HTTPException(400, "代码过长 (最大50000字符)")
+    
+    language = body.get("language", "python")
+    timeout = body.get("timeout", 30)
+    
+    from src.core.sandbox import get_sandbox
+    sb = get_sandbox()
+    result = await sb.execute(code, language=language, timeout=timeout)
+    return result.to_dict()
 
 
 @app.get("/api/git/info")
