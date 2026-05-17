@@ -7,34 +7,27 @@ services:
     build: .
     container_name: meshctx
     ports:
-      - "8000:8000"
+      - "3000:3000"
     volumes:
-      # Persistent conversations
+      # Persistent data (conversations, config, keys)
       - meshctx_data:/home/meshctx/.meshctx
-      # Mount project for file access
-      - ${PROJECT_DIR:-~/projects}:/projects:ro
-    env_file:
-      - .env
     environment:
-      - MESHCTX_HOST=0.0.0.0
-      - MESHCTX_PORT=8000
-      # Model API keys (set in .env or pass through)
+      # Model API keys — set in .env or export before running
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - BAILIAN_API_KEY=${BAILIAN_API_KEY:-}
+      - SILICONFLOW_API_KEY=${SILICONFLOW_API_KEY:-}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/api/version"]
       interval: 30s
       timeout: 10s
       retries: 3
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.meshctx.rule=Host(`meshctx.local`)"
+      start_period: 15s
 
-  # Optional: Watchtower for auto-updates
+  # Auto-update (optional: docker-compose --profile auto-update up)
   watchtower:
     image: containrrr/watchtower
     volumes:
@@ -48,8 +41,10 @@ volumes:
 
 # ═══════════════════════════════════════════════
 # Quick Start:
-#   1. echo "DEEPSEEK_API_KEY=sk-xxx" > .env
-#   2. echo "BAILIAN_API_KEY=sk-xxx" >> .env
-#   3. docker-compose up -d
-#   4. Open http://localhost:8000/ui/chat
+#   1. export DEEPSEEK_API_KEY=sk-xxx
+#   2. docker-compose up -d
+#   3. Open http://localhost:3000/ui/chat
+#
+# With optional auto-update:
+#   docker-compose --profile auto-update up -d
 # ═══════════════════════════════════════════════
