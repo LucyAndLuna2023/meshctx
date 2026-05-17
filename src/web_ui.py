@@ -1061,6 +1061,8 @@ function handleChatKeydown(event) {
     }
     
     if (event.key === 'Enter') {
+        event.target.style.borderColor = '#fbbf24';
+        setTimeout(function(){ event.target.style.borderColor = ''; }, 300);
         hideAtAutocomplete();
         send();
     }
@@ -1087,8 +1089,13 @@ function updateTokenCount() {
 
 async function send() {
     const input = document.getElementById('userInput');
+    if (!input) { console.error('userInput not found'); return; }
     let msg = input.value.trim();
     if (!msg) return;
+    
+    // Visual feedback that send() was called
+    input.style.borderColor = '#22c55e';
+    setTimeout(function(){ input.style.borderColor = ''; }, 500);
     
     // Compare mode intercept
     if(compareMode){
