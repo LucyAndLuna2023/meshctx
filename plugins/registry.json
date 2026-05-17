@@ -5,7 +5,7 @@
     {
       "name": "web-search",
       "version": "1.0.0",
-      "description": "[开发中] DuckDuckGo/Bing web search with result summarization",
+      "description": "DuckDuckGo/Bing web search with result summarization",
       "author": "MeshCtx",
       "icon": "🔍",
       "category": "search",
@@ -21,7 +21,7 @@
       "installs": 0,
       "builtin": false,
       "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/web-search",
-      "status": "coming_soon"
+      "status": "active"
     },
     {
       "name": "code-runner",
@@ -69,7 +69,7 @@
     {
       "name": "git-assistant",
       "version": "1.0.0",
-      "description": "[开发中] AI-powered git: auto-commit messages, PR descriptions, conflict resolution",
+      "description": "AI-powered git: auto-commit messages, PR descriptions, conflict resolution",
       "author": "MeshCtx Community",
       "icon": "🔀",
       "category": "dev",
@@ -86,7 +86,7 @@
       "installs": 0,
       "builtin": false,
       "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/git-assistant",
-      "status": "coming_soon"
+      "status": "active"
     },
     {
       "name": "translator",
@@ -112,7 +112,7 @@
     {
       "name": "data-analyzer",
       "version": "1.0.0",
-      "description": "[开发中] Analyze CSV/JSON/Excel data with charts and statistical summaries",
+      "description": "Analyze CSV/JSON/Excel data with charts and statistical summaries",
       "author": "MeshCtx Community",
       "icon": "📊",
       "category": "analytics",
@@ -129,7 +129,7 @@
       "installs": 0,
       "builtin": false,
       "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/data-analyzer",
-      "status": "coming_soon"
+      "status": "active"
     },
     {
       "name": "feishu-notifier",
@@ -240,7 +240,7 @@
     {
       "name": "voice-assistant",
       "version": "0.9.0",
-      "description": "[开发中] Speech-to-text and text-to-speech for voice interaction (beta)",
+      "description": "[Beta] Speech-to-text and text-to-speech for voice interaction (beta)",
       "author": "MeshCtx Labs",
       "icon": "🎤",
       "category": "integration",
@@ -256,7 +256,7 @@
       "installs": 0,
       "builtin": false,
       "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/voice-assistant",
-      "status": "coming_soon"
+      "status": "beta"
     }
   ]
 }

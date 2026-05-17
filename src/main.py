@@ -241,7 +241,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.17.1",
+    version="2.17.2",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -2426,6 +2426,72 @@ async def cron_status():
         return {"status": "ok", "jobs": 0, "message": "定时任务可用"}
     except:
         return {"status": "disabled", "message": "定时任务不可用"}
+
+
+
+@app.get("/api/web/search")
+async def web_search(q: str = ""):
+    """Web搜索 — DuckDuckGo (无需API Key)"""
+    if not q: return {"results": []}
+    try:
+        import urllib.request, json
+        url = f"https://api.duckduckgo.com/?q={urllib.parse.quote(q)}&format=json&no_html=1"
+        req = urllib.request.Request(url, headers={"User-Agent": "MeshCtx/2.17"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+        results = []
+        for topic in data.get("RelatedTopics", [])[:5]:
+            if isinstance(topic, dict):
+                results.append({"title": topic.get("Text","")[:100], "url": topic.get("FirstURL","")})
+        return {"results": results, "query": q}
+    except Exception as e:
+        return {"results": [], "error": str(e)}
+
+
+@app.post("/api/data/analyze")
+async def data_analyze(request: Request):
+    """数据分析 — CSV/JSON解析"""
+    try: body = await request.json()
+    except: raise HTTPException(400)
+    data_str = body.get("data", "")
+    fmt = body.get("format", "csv")
+    try:
+        if fmt == "json":
+            import json
+            parsed = json.loads(data_str)
+            if isinstance(parsed, list):
+                return {"status": "ok", "rows": len(parsed), "columns": list(parsed[0].keys()) if parsed else [], "sample": parsed[:3]}
+            return {"status": "ok", "keys": list(parsed.keys())}
+        else:
+            import csv, io
+            reader = csv.DictReader(io.StringIO(data_str))
+            rows = list(reader)
+            return {"status": "ok", "rows": len(rows), "columns": reader.fieldnames or [], "sample": rows[:3]}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+@app.get("/api/git/info")
+async def git_info():
+    """Git信息 — 当前仓库状态"""
+    import subprocess, os
+    try:
+        branch = subprocess.check_output(["git", "branch", "--show-current"], text=True, timeout=5).strip()
+        log = subprocess.check_output(["git", "log", "--oneline", "-5"], text=True, timeout=5).strip()
+        return {"status": "ok", "branch": branch, "recent": log.split("\n")}
+    except:
+        return {"status": "ok", "message": "Git not available in this environment"}
+
+
+@app.get("/api/voice/status")
+async def voice_status():
+    """语音助手状态 (beta)"""
+    return {
+        "status": "beta",
+        "stt": {"available": False, "message": "需安装 faster-whisper"},
+        "tts": {"available": False, "message": "需安装 edge-tts"},
+        "message": "语音功能开发中，预计v2.18上线"
+    }
 
 
 @app.get("/api/version")

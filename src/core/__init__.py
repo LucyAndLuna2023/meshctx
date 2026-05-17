@@ -163,7 +163,7 @@ try:
 except ImportError:
     AttentionDecayMonitor = AttentionLevel = get_monitor = _brain_noop
 
-__version__ = "2.17.1"
+__version__ = "2.17.2"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
