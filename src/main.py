@@ -1033,6 +1033,40 @@ async def delete_model(model_id: str):
     return {"status": "ok", "id": model_id, "message": f"模型 {model_id} 已删除"}
 
 
+@app.post("/api/models/clean-unconfigured")
+async def clean_unconfigured_models():
+    """批量清理未配置API Key的模型"""
+    from pathlib import Path
+    import yaml
+    
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    if not config_path.exists():
+        return {"deleted": 0, "message": "无配置文件"}
+    
+    with open(config_path) as f:
+        config = yaml.safe_load(f) or {}
+    
+    entries = config.get("models", {}).get("entries", {})
+    default_id = config.get("models", {}).get("default", "")
+    
+    deleted = []
+    for mid, entry in list(entries.items()):
+        key = entry.get("key", "")
+        if not key or len(key) < 10:
+            if mid != default_id:
+                del entries[mid]
+                deleted.append(mid)
+    
+    config["models"]["entries"] = entries
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+    
+    import src.model_registry as mr
+    mr._registry = None
+    
+    return {"status": "ok", "deleted": len(deleted), "ids": deleted}
+
+
 @app.patch("/api/models/{model_id}/default")
 async def set_default_model(model_id: str):
     """设为默认模型"""
