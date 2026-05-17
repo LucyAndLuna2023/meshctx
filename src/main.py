@@ -230,6 +230,26 @@ async def lifespan(app: FastAPI):
     logger.info(f"  Web UI: http://0.0.0.0:8000/ui")
     logger.info("═══════════════════════════════════════════")
 
+    # v2.18: 会话自动存档
+    archiver = get_archiver()
+    from src.core import __version__ as _ver; archiver.init_session(_ver)
+    archiver.record("server_start", f"v{_ver}", "info")
+    
+    async def auto_archive():
+        while True:
+            await asyncio.sleep(300)
+            try:
+                archiver.record("auto_save", "自动存档", "info")
+                archiver.save()
+            except Exception as e:
+                logger.debug(f"存档: {e}")
+    asyncio.create_task(auto_archive())
+    
+    # v2.18: 主动监控守护进程 (解决Hermes被动响应痛点)
+    daemon = get_daemon()
+    await daemon.start()
+    logger.info("🛡️ 主动监控守护进程已启动 (每60s检查cron/磁盘/内存)")
+
     yield  # ── 服务运行中 ──
 
     # ── Shutdown ──
@@ -364,6 +384,7 @@ if _static_dir.exists():
 # ─── Web UI 路由 (延迟导入避免循环) ────────────────────
 from .web_ui import router as web_ui_router
 from .core.session_archiver import get_archiver, SessionArchiver
+from .core.watchdog import WatchdogDaemon, get_daemon
 app.include_router(web_ui_router)
 
 # ─── i18n 语言切换 ─────────────────────────────────────
@@ -2525,6 +2546,41 @@ async def voice_status():
         "tts": {"available": False, "message": "需安装 edge-tts"},
         "message": "语音功能开发中，预计v2.18上线"
     }
+
+
+# ═══════════════════════════════════════════════════
+# 主动监控守护进程 (v2.18)
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/watchdog/status")
+async def watchdog_status():
+    """守护进程状态 — 心跳/子系统/告警"""
+    daemon = get_daemon()
+    return daemon.get_status()
+
+
+@app.get("/api/watchdog/heartbeat")
+async def watchdog_heartbeat():
+    """最新心跳信号"""
+    if HEARTBEAT_FILE.exists():
+        with open(HEARTBEAT_FILE) as f:
+            return json.load(f)
+    return {"status": "no_heartbeat", "message": "守护进程未启动"}
+
+
+@app.get("/api/watchdog/alerts")
+async def watchdog_alerts(limit: int = 20):
+    """最近告警列表"""
+    daemon = get_daemon()
+    return {"alerts": daemon._alerts[-limit:]}
+
+
+@app.post("/api/watchdog/check")
+async def watchdog_check():
+    """手动触发全面检查"""
+    daemon = get_daemon()
+    await daemon._check_all()
+    return daemon.get_status()
 
 
 # ═══════════════════════════════════════════════════
