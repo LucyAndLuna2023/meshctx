@@ -261,7 +261,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.20.0",
+    version="2.21.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -453,28 +453,24 @@ class IntentRequest(BaseModel):
 # API Routes
 # ═══════════════════════════════════════════════════════════
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    return {
-        "message": "MeshCtx API v1.5 运行中",
-        "version": "1.8.2",
-        "endpoints": {
-            "projects": "/projects",
-            "conversations": "/conversations",
-            "messages": "/messages",
-            "memories": "/projects/{id}/memories",
-            "agents": "/agents",
-            "agent_sessions": "/agent-sessions",
-            "continuity": "/projects/{id}/continuity",
-            "context": "/context/build",
-            "search": "/search",
-            "health": "/health",
-            "kernel_stats": "/kernel/stats",
-            "orchestrator": "/orchestrator/execute",
-            "metacognition": "/metacognition/report",
-            "docs": "/docs",
-        },
-    }
+    return HTMLResponse(content="""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="0;url=/ui/">
+<title>meshctx</title>
+<style>
+body{font-family:-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+p{font-size:18px;color:#94a3b8}
+a{color:#38bdf8}
+</style>
+</head>
+<body>
+<p>正在跳转到 <a href="/ui/">meshctx UI</a>...</p>
+</body>
+</html>""")
 
 # ── 语言切换 ──────────────────────────────────────────
 class LangSetRequest(BaseModel):
