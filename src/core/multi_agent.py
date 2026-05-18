@@ -67,6 +67,14 @@ class AgentCapability:
     max_concurrent_tasks: int = 3
 
 
+# 预定义能力常量
+AgentCapability.SEARCH = AgentCapability(name="search", description="搜索与信息检索", inputs=["query"], outputs=["results"])
+AgentCapability.ANALYZE = AgentCapability(name="analyze", description="数据分析与推理", inputs=["data"], outputs=["insights"])
+AgentCapability.CODE = AgentCapability(name="code", description="代码编写与调试", inputs=["spec"], outputs=["code"])
+AgentCapability.WRITE = AgentCapability(name="write", description="文档撰写与编辑", inputs=["topic"], outputs=["document"])
+AgentCapability.GENERAL = AgentCapability(name="general", description="通用任务处理", inputs=["task"], outputs=["result"])
+
+
 # ── Agent节点 ──────────────────────────────────────────────
 
 class AgentNode:
