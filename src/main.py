@@ -233,6 +233,17 @@ async def lifespan(app: FastAPI):
     # v2.18: 会话自动存档
     archiver = get_archiver()
     from src.core import __version__ as _ver; archiver.init_session(_ver)
+    
+    # v2.21: 智能自愈 + 性能优化器
+    try:
+        from src.core.auto_healer import healer
+        from src.core.performance_optimizer import optimizer
+        app.state.healer = healer
+        app.state.optimizer = optimizer
+        healer.start()
+        logger.info("AutoHealer & PerformanceOptimizer started")
+    except Exception as e:
+        logger.warning(f"Healer/Optimizer init skipped: {e}")
     archiver.record("server_start", f"v{_ver}", "info")
     
     async def auto_archive():
@@ -4754,6 +4765,55 @@ async def voice_stt(req: Request):
         raise HTTPException(503, "STT服务不可用, 请安装 faster-whisper: pip install faster-whisper")
     
     return {"text": text, "language": language or "auto"}
+
+
+
+
+# ═══════════════════════════════════════════════════════════
+# v2.21: 智能自愈 + 性能优化器 API
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/healer/status")
+async def healer_status(req: Request):
+    h = getattr(req.app.state, "healer", None)
+    if not h: return {"error": "healer not initialized"}
+    return h.get_status()
+
+@app.post("/api/healer/run")
+async def healer_run(req: Request):
+    h = getattr(req.app.state, "healer", None)
+    if not h: return {"error": "healer not initialized"}
+    return h.run_manual_check()
+
+@app.get("/api/healer/history")
+async def healer_history(req: Request, limit: int = 20):
+    h = getattr(req.app.state, "healer", None)
+    if not h: return {"error": "healer not initialized"}
+    return h.get_history(limit)
+
+@app.get("/api/performance/cache-stats")
+async def perf_cache_stats(req: Request):
+    o = getattr(req.app.state, "optimizer", None)
+    if not o: return {"error": "optimizer not initialized"}
+    return o.get_cache_stats()
+
+@app.get("/api/performance/latency-stats")
+async def perf_latency_stats(req: Request):
+    o = getattr(req.app.state, "optimizer", None)
+    if not o: return {"error": "optimizer not initialized"}
+    return o.get_latency_stats()
+
+@app.post("/api/performance/clear-cache")
+async def perf_clear_cache(req: Request):
+    o = getattr(req.app.state, "optimizer", None)
+    if not o: return {"error": "optimizer not initialized"}
+    return o.clear_cache()
+
+@app.get("/api/performance/optimization-report")
+async def perf_report(req: Request):
+    o = getattr(req.app.state, "optimizer", None)
+    if not o: return {"error": "optimizer not initialized"}
+    return o.get_optimization_report()
 
 
 def main():
