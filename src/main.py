@@ -272,7 +272,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.21.0",
+    version="2.22.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -919,6 +919,71 @@ async def agent_message(content: str = ""):
         data={"content": content},
     ))
     return {"status": "accepted", "message": content}
+
+# ── 多Agent协作 v2.0 API ────────────────────────────────
+
+@app.get("/api/multi-agent/status")
+async def multi_agent_status():
+    """多Agent系统状态"""
+    from src.core.multi_agent import get_manager, get_executor
+    mgr = get_manager()
+    executor = get_executor()
+    return {
+        "manager": mgr.get_summary(),
+        "executor": {
+            "timeout_per_task": executor.timeout_per_task,
+            "decomposer_max_depth": executor.decomposer.max_depth,
+        }
+    }
+
+@app.post("/api/multi-agent/create-team")
+async def create_agent_team():
+    """创建默认Agent团队"""
+    from src.core.multi_agent import get_manager, AgentFactory
+    mgr = get_manager()
+    agents = AgentFactory.create_team(mgr)
+    return {
+        "status": "created",
+        "agents": {aid: agent.get_info() for aid, agent in agents.items()},
+    }
+
+@app.post("/api/multi-agent/decompose")
+async def decompose_task(task: dict = None):
+    """分解复杂任务为子任务"""
+    from src.core.multi_agent import get_executor
+    if not task:
+        raise HTTPException(400, "task body required")
+    task["id"] = task.get("id", f"task_{int(time.time())}")
+    executor = get_executor()
+    plan = executor.get_execution_plan(task)
+    return plan
+
+@app.post("/api/multi-agent/execute")
+async def execute_decomposed_task(task: dict = None):
+    """执行分解后的复杂任务 (并行)"""
+    from src.core.multi_agent import get_executor, get_manager, AgentFactory
+    if not task:
+        raise HTTPException(400, "task body required")
+    task["id"] = task.get("id", f"task_{int(time.time())}")
+    
+    # 确保有Agent可用
+    mgr = get_manager()
+    if len(mgr.bus._agents) == 0:
+        AgentFactory.create_team(mgr)
+    
+    executor = get_executor()
+    result = await executor.execute_task(task)
+    return result
+
+@app.post("/api/multi-agent/plan")
+async def get_execution_plan(task: dict = None):
+    """查看任务执行计划 (不实际执行)"""
+    from src.core.multi_agent import get_executor
+    if not task:
+        raise HTTPException(400, "task body required")
+    task["id"] = task.get("id", "plan")
+    executor = get_executor()
+    return executor.get_execution_plan(task)
 
 # ── 性能监控 ────────────────────────────────────────────
 
