@@ -641,6 +641,21 @@ async def get_continuity(project_id: str):
 
 # ── 上下文组装 ──────────────────────────────────────────
 
+@app.get("/context/build")
+async def context_build_doc():
+    """POST /context/build 文档 — 构建Agent上下文记忆"""
+    return {
+        "method": "POST",
+        "description": "为指定Agent构建上下文记忆",
+        "body": {
+            "agent_id": "string (必填) — Agent标识",
+            "project_id": "string (必填) — 项目ID",
+            "conversation_id": "string (必填) — 对话ID",
+            "max_messages": "int (默认20) — 最大消息数"
+        },
+        "example": 'curl -X POST http://localhost:3001/context/build -H "Content-Type: application/json" -d \'{"agent_id":"main","project_id":"default","conversation_id":"conv1"}\''
+    }
+
 @app.post("/context/build")
 async def build_context(request: BuildContextRequest):
     try:
@@ -2155,7 +2170,9 @@ async def read_local_file(path: str = ""):
 async def list_directory(path: str = ""):
     """列出目录内容"""
     if not path:
-        path = str(Path.home())
+        # 安全默认: 优先使用MESHCTX_DATA_DIR，否则用/opt
+        import os as _os
+        path = _os.environ.get("MESHCTX_DATA_DIR", "/opt")
     
     from pathlib import Path
     from src.core.platform_fs import wsl_to_windows, windows_to_wsl
