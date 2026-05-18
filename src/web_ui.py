@@ -4331,6 +4331,10 @@ th{color:var(--muted)}
 <h3 style="margin-bottom:8px">🛡️ Watchdog</h3>
 <div id="wdStatus" style="font-size:12px;color:var(--muted)">Loading...</div>
 </div>
+<div class="card" style="margin-bottom:16px;text-align:left">
+<h3 style="margin-bottom:8px">🏥 Auto-Healer</h3>
+<div id="healerStatus" style="font-size:12px;color:var(--muted)">Loading...</div>
+</div>
 <h3 style="margin-top:8px;">API Endpoints</h3>
 <table><thead><tr><th>Endpoint</th><th>Latency</th><th>Status</th></tr></thead><tbody id="epTable"></tbody></table>
 <div id="pluginStatus" style="margin-top:16px;"></div>
@@ -4388,6 +4392,24 @@ async function load(){
     }
     document.getElementById('wdStatus').innerHTML=ws;
   }catch(e){}
+
+  // Auto-Healer
+  try{
+    var ah=await fetch('/api/healer/dashboard');
+    var h=await ah.json();
+    var hs='<div style="display:flex;gap:12px;flex-wrap:wrap">';
+    var colorMap={green:'var(--green)',yellow:'var(--yellow)',orange:'#f97316',red:'var(--red)',gray:'var(--muted)'};
+    var emojiMap={green:'🟢',yellow:'🟡',orange:'🟠',red:'🔴',gray:'⚪'};
+    var emoji=emojiMap[h.color]||'⚪';
+    hs+=badge('Status',emoji+' '+h.status,colorMap[h.color]||'var(--muted)');
+    hs+=badge('Running',h.running?'✅':'❌',h.running?'green':'red');
+    hs+=badge('Last Check',h.last_check_human,'purple');
+    hs+=badge('Uptime',h.uptime_since_incident_human,'purple');
+    hs+=badge('Heals',h.heals_successful+'/'+h.heals_performed,'yellow');
+    hs+=badge('Checks',h.checks_total,'green');
+    hs+='</div>';
+    document.getElementById('healerStatus').innerHTML=hs;
+  }catch(e){}
 }
 function badge(label,value,color){return '<span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:4px 12px;text-align:center"><div style="font-size:10px;color:var(--muted)">'+label+'</div><div class="'+color+'" style="font-size:16px;font-weight:700">'+value+'</div></span>'}
 function card(label,value,color){return '<div class="card"><div class="l">'+label+'</div><div class="v '+color+'">'+value+'</div></div>'}
@@ -4413,6 +4435,23 @@ try {
             }
             wsHtml += '</div>';
             document.getElementById('wdStatus').innerHTML = wsHtml;
+
+            // Update healer if data available
+            if (w.healer) {
+                var h = w.healer;
+                var hsHtml = '<div style="display:flex;gap:12px;flex-wrap:wrap">';
+                var colorMap={green:'var(--green)',yellow:'var(--yellow)',orange:'#f97316',red:'var(--red)',gray:'var(--muted)'};
+                var emojiMap={green:'🟢',yellow:'🟡',orange:'🟠',red:'🔴',gray:'⚪'};
+                var emoji=emojiMap[h.color]||'⚪';
+                hsHtml += badge('Status', emoji+' '+h.status, colorMap[h.color]||'var(--muted)');
+                hsHtml += badge('Running', h.running?'✅':'❌', h.running?'green':'red');
+                hsHtml += badge('Last Check', h.last_check_human, 'purple');
+                hsHtml += badge('Uptime', h.uptime_since_incident_human, 'purple');
+                hsHtml += badge('Heals', h.heals_successful+'/'+h.heals_performed, 'yellow');
+                hsHtml += badge('Checks', h.checks_total, 'green');
+                hsHtml += '</div>';
+                document.getElementById('healerStatus').innerHTML = hsHtml;
+            }
         }
     };
     ws.onerror = function() { /* WebSocket fallback to poll */ };
