@@ -272,7 +272,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.22.0",
+    version="2.23.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -2229,6 +2229,45 @@ async def read_local_file(path: str = ""):
         "content": content,
         "lines": len(content.split("\n")),
     }
+
+
+@app.post("/api/file/write")
+async def write_local_file(req: Request, path: str = ""):
+    """写入本地文件 (POST body: {"content":"..."})"""
+    if not path:
+        raise HTTPException(400, "请提供文件路径 path 参数")
+    
+    from pathlib import Path
+    from src.core.platform_fs import wsl_to_windows, windows_to_wsl
+    
+    resolved = path
+    if path.startswith("/mnt/"):
+        resolved = wsl_to_windows(path)
+    elif len(path) >= 2 and path[1] == ":":
+        resolved = windows_to_wsl(path)
+    
+    file_path = Path(resolved).expanduser().resolve()
+    
+    if file_path.is_dir():
+        raise HTTPException(400, "路径是目录无法写入")
+    
+    try:
+        body = await req.json()
+        content = body.get("content", "")
+    except:
+        raise HTTPException(400, "请使用 POST body: {\"content\": \"...\"}")
+    
+    if not content:
+        raise HTTPException(400, "content 不能为空")
+    
+    try:
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text(content, encoding="utf-8")
+        return {"ok": True, "path": str(file_path), "size": len(content)}
+    except PermissionError:
+        raise HTTPException(403, f"权限不足: {file_path}")
+    except Exception as e:
+        raise HTTPException(500, f"写入失败: {e}")
 
 
 @app.get("/api/file/list")
