@@ -1,5 +1,5 @@
 """
-MeshCtx 极简模型系统 — 100模型 · 28供应商 · 零配置
+MeshCtx 极简模型系统 — 123模型 · 37供应商 · 零配置
 和 OpenClaw / Hermes 一样简单
 
 用法:
@@ -14,7 +14,7 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 
 # ═══════════════════════════════════════════════════
-# 内置模型目录 — 100+ 模型，30+ 供应商，零配置可用
+# 内置模型目录 — 123+ 模型，37+ 供应商，零配置可用
 # ═══════════════════════════════════════════════════
 
 BUILTIN_MODELS = {
@@ -145,6 +145,35 @@ BUILTIN_MODELS = {
     # ── HuggingFace ───────────────────────────────────
     "huggingface:zephyr":      {"provider":"huggingface","base_url":"https://api-inference.huggingface.co/models","model":"HuggingFaceH4/zephyr-7b-beta","key_env":"HF_API_KEY"},
     "huggingface:llama-3":     {"provider":"huggingface","base_url":"https://api-inference.huggingface.co/models","model":"meta-llama/Meta-Llama-3-8B-Instruct","key_env":"HF_API_KEY"},
+    # ── NVIDIA NIM ────────────────────────────────────
+    "nvidia:llama-3.3-70b":   {"provider":"nvidia","base_url":"https://integrate.api.nvidia.com/v1","model":"meta/llama-3.3-70b-instruct","key_env":"NVIDIA_API_KEY"},
+    "nvidia:llama-4-maverick": {"provider":"nvidia","base_url":"https://integrate.api.nvidia.com/v1","model":"meta/llama-4-maverick-17b-128e-instruct","key_env":"NVIDIA_API_KEY"},
+    "nvidia:nemotron":        {"provider":"nvidia","base_url":"https://integrate.api.nvidia.com/v1","model":"nvidia/llama-3.1-nemotron-70b-instruct","key_env":"NVIDIA_API_KEY"},
+    # ── Cloudflare Workers AI ─────────────────────────
+    "cloudflare:llama-3.3":   {"provider":"cloudflare","base_url":"https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT/ai/v1","model":"@cf/meta/llama-3.3-70b-instruct-fp8-fast","key_env":"CLOUDFLARE_API_KEY"},
+    "cloudflare:qwen3":       {"provider":"cloudflare","base_url":"https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT/ai/v1","model":"@cf/qwen/qwen3-30b-a3b","key_env":"CLOUDFLARE_API_KEY"},
+    # ── Cerebras (超高速推理) ──────────────────────────
+    "cerebras:llama-4":       {"provider":"cerebras","base_url":"https://api.cerebras.ai/v1","model":"llama-4-maverick-17b-128e-instruct","key_env":"CEREBRAS_API_KEY"},
+    "cerebras:llama-3.3-70b": {"provider":"cerebras","base_url":"https://api.cerebras.ai/v1","model":"llama-3.3-70b","key_env":"CEREBRAS_API_KEY"},
+    # ── SambaNova ─────────────────────────────────────
+    "sambanova:llama-4":      {"provider":"sambanova","base_url":"https://api.sambanova.ai/v1","model":"Meta-Llama-4-Maverick-17B-128E-Instruct","key_env":"SAMBANOVA_API_KEY"},
+    "sambanova:deepseek-v3":  {"provider":"sambanova","base_url":"https://api.sambanova.ai/v1","model":"DeepSeek-V3-0324","key_env":"SAMBANOVA_API_KEY"},
+    # ── AI21 Labs (Jamba) ─────────────────────────────
+    "ai21:jamba-1.6":         {"provider":"ai21","base_url":"https://api.ai21.com/studio/v1","model":"jamba-1.6-large","key_env":"AI21_API_KEY"},
+    "ai21:jamba-1.6-mini":    {"provider":"ai21","base_url":"https://api.ai21.com/studio/v1","model":"jamba-1.6-mini","key_env":"AI21_API_KEY"},
+    # ── Amazon Bedrock (via OpenAI compat proxy) ──────
+    "bedrock:claude-sonnet":  {"provider":"bedrock","base_url":"https://bedrock-runtime.REGION.amazonaws.com/v1","model":"anthropic.claude-sonnet-4","key_env":"AWS_ACCESS_KEY_ID"},
+    "bedrock:llama-3.3":      {"provider":"bedrock","base_url":"https://bedrock-runtime.REGION.amazonaws.com/v1","model":"meta.llama3-3-70b-instruct-v1","key_env":"AWS_ACCESS_KEY_ID"},
+    # ── Azure OpenAI ──────────────────────────────────
+    "azure:gpt-4o":           {"provider":"azure","base_url":"https://YOUR.openai.azure.com/openai/v1","model":"gpt-4o","key_env":"AZURE_OPENAI_API_KEY"},
+    "azure:gpt-4o-mini":      {"provider":"azure","base_url":"https://YOUR.openai.azure.com/openai/v1","model":"gpt-4o-mini","key_env":"AZURE_OPENAI_API_KEY"},
+    # ── Upstage (Solar) ───────────────────────────────
+    "upstage:solar-pro":      {"provider":"upstage","base_url":"https://api.upstage.ai/v1","model":"solar-pro","key_env":"UPSTAGE_API_KEY"},
+    "upstage:solar-mini":     {"provider":"upstage","base_url":"https://api.upstage.ai/v1","model":"solar-mini","key_env":"UPSTAGE_API_KEY"},
+    # ── Novita AI ─────────────────────────────────────
+    "novita:llama-3.3-70b":   {"provider":"novita","base_url":"https://api.novita.ai/v3/openai","model":"meta-llama/llama-3.3-70b-instruct","key_env":"NOVITA_API_KEY"},
+    "novita:deepseek-v3":     {"provider":"novita","base_url":"https://api.novita.ai/v3/openai","model":"deepseek/deepseek-v3-0324","key_env":"NOVITA_API_KEY"},
+    "novita:qwen3":           {"provider":"novita","base_url":"https://api.novita.ai/v3/openai","model":"qwen/qwen3-30b-a3b","key_env":"NOVITA_API_KEY"},
 
     # ═════════════════════════════════════════════════
     # 第4梯队 — 本地/边缘/开源
@@ -195,6 +224,16 @@ ENV_KEY_MAP = {
     "DEEPINFRA_API_KEY":        "deepinfra:*",
     "REPLICATE_API_KEY":        "replicate:*",
     "HF_API_KEY":               "huggingface:*",
+    "NVIDIA_API_KEY":           "nvidia:*",
+    "CLOUDFLARE_API_KEY":       "cloudflare:*",
+    "CEREBRAS_API_KEY":         "cerebras:*",
+    "SAMBANOVA_API_KEY":        "sambanova:*",
+    "AI21_API_KEY":             "ai21:*",
+    "UPSTAGE_API_KEY":          "upstage:*",
+    "NOVITA_API_KEY":           "novita:*",
+    # 云计算平台
+    "AWS_ACCESS_KEY_ID":        "bedrock:*",
+    "AZURE_OPENAI_API_KEY":     "azure:*",
     # 本地
     "OLLAMA_API_KEY":           "ollama:*",
     "CUSTOM_API_KEY":           "custom:*",
