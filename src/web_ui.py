@@ -378,7 +378,7 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
     <select id="modelSelect" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:13px;" onchange="localStorage.setItem('meshctx_model',this.value)">
         <option value="">加载中...</option>
     </select>
-    <button id="compareBtn" onclick="toggleCompareMode()" style="background:#8b5cf6;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;margin-left:12px;">⚡ 对比模式</button>
+    <button id="compareBtn" onclick="toggleCompare()" style="background:#8b5cf6;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;margin-left:12px;">⚡ 对比模式</button>
 </div>
 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
     <span style="color:#64748b;font-size:13px;">📋 模板:</span>
@@ -740,6 +740,28 @@ function toggleCompare(){
     input.placeholder = '/read /ls /search /run /context /win 命令大全';
   }
 }
+
+// ═══ Compare Modal Functions ═══
+function cancelCompare(){
+  document.getElementById('compareModal').style.display = 'none';
+}
+function startCompare(){
+  var checks = document.querySelectorAll('#compareModelList input[type=checkbox]:checked');
+  if(checks.length < 2){ alert('请至少选择2个模型进行对比'); return; }
+  var models = [];
+  checks.forEach(function(c){ models.push(c.value); });
+  localStorage.setItem('meshctx_compare_models', JSON.stringify(models));
+  document.getElementById('compareModal').style.display = 'none';
+  compareMode = true;
+  var btn = document.getElementById('compareBtn');
+  btn.style.background = '#22c55e';
+  btn.textContent = '⚡ 对比中';
+  document.getElementById('userInput').placeholder = '对比模式: 同时问'+models.length+'个模型...';
+}
+function closeCompare(){
+  document.getElementById('compareResults').style.display = 'none';
+}
+
 async function compareSend(msg){
   var div = document.getElementById('messages');
   div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ' + msg + '</div>';
