@@ -4385,8 +4385,8 @@ async def list_session_archives(search: Optional[str] = None, limit: int = 50):
             "model": msgs[0].get("model", "") if msgs else "",
         })
     if search:
-        s = search.lower()
-        sessions = [s for s in sessions if s in s["title"].lower() or s in s["last_content"].lower()]
+        q = search.lower()
+        sessions = [s for s in sessions if q in s["title"].lower() or q in s["last_content"].lower()]
     sessions.sort(key=lambda x: x["created_at"], reverse=True)
     return {"sessions": sessions[:limit], "total": len(sessions)}
 
