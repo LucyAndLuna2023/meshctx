@@ -486,11 +486,19 @@ class AutoHealer:
         last_incident_dt = datetime.fromisoformat(self.last_incident) if self.last_incident else self._start_time
         time_since_incident = now - last_incident_dt
 
+        # 用已缓存的最后评分，避免递归调用
+        with self._lock:
+            last_score = 0
+            for h in reversed(self.history):
+                if h.get("type") == "check" and "score" in h:
+                    last_score = h["score"]
+                    break
+
         return {
             "status": self.status,
             "color": self.color,
             "running": self.running,
-            "health_score": self._calculate_health_score(self._run_all_checks()),
+            "health_score": last_score,
             "last_check": self.last_check,
             "last_check_human": self._human_time(last_check_dt),
             "uptime_seconds": round(uptime.total_seconds()),
