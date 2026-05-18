@@ -447,3 +447,327 @@ class AgentManager:
             "agents": {aid: agent.get_info() for aid, agent in self._agents.items()},
             "bus": self.bus.get_stats(),
         }
+
+
+# ═══════════════════════════════════════════════════════════
+# 任务分解引擎 v2.0
+# ═══════════════════════════════════════════════════════════
+
+class TaskDecomposer:
+    """
+    将复杂任务递归分解为可并行执行的子任务。
+    
+    策略:
+    - 识别独立子任务 → 并行执行
+    - 识别依赖关系 → 串行执行
+    - 识别可拆分数据 → 分片并行(MapReduce)
+    """
+
+    def __init__(self):
+        self.max_depth = 3
+        self.max_subtasks = 8
+
+    def decompose(self, task: dict, depth: int = 0) -> List[dict]:
+        """
+        分解任务。返回子任务列表，每个子任务包含:
+        - id, description, type, dependencies, priority
+        """
+        if depth >= self.max_depth:
+            return [task]
+
+        task_type = task.get("type", "general")
+        subtasks = []
+
+        if task_type == "research":
+            subtasks = self._decompose_research(task)
+        elif task_type == "code":
+            subtasks = self._decompose_code(task)
+        elif task_type == "analysis":
+            subtasks = self._decompose_analysis(task)
+        elif task_type == "report":
+            subtasks = self._decompose_report(task)
+        else:
+            subtasks = self._decompose_generic(task)
+
+        # 递归分解
+        if depth + 1 < self.max_depth:
+            decomposed = []
+            for st in subtasks:
+                decomposed.extend(self.decompose(st, depth + 1))
+            subtasks = decomposed[:self.max_subtasks]
+
+        return subtasks
+
+    def _decompose_research(self, task: dict) -> List[dict]:
+        topic = task.get("description", "")
+        tid = task.get("id", "task")
+        return [
+            {"id": f"{tid}_search", "description": f"搜索: {topic}", "type": "search", "dependencies": []},
+            {"id": f"{tid}_analyze", "description": f"分析: {topic}", "type": "analyze", "dependencies": [f"{tid}_search"]},
+            {"id": f"{tid}_summarize", "description": f"总结: {topic}", "type": "write", "dependencies": [f"{tid}_analyze"]},
+        ]
+
+    def _decompose_code(self, task: dict) -> List[dict]:
+        desc = task.get("description", "")
+        tid = task.get("id", "task")
+        return [
+            {"id": f"{tid}_design", "description": f"设计: {desc}", "type": "analyze", "dependencies": []},
+            {"id": f"{tid}_implement", "description": f"实现: {desc}", "type": "code", "dependencies": [f"{tid}_design"]},
+            {"id": f"{tid}_test", "description": f"测试: {desc}", "type": "code", "dependencies": [f"{tid}_implement"]},
+            {"id": f"{tid}_review", "description": f"审查: {desc}", "type": "analyze", "dependencies": [f"{tid}_test"]},
+        ]
+
+    def _decompose_analysis(self, task: dict) -> List[dict]:
+        desc = task.get("description", "")
+        tid = task.get("id", "task")
+        return [
+            {"id": f"{tid}_collect", "description": f"收集数据: {desc}", "type": "search", "dependencies": []},
+            {"id": f"{tid}_process", "description": f"处理数据: {desc}", "type": "analyze", "dependencies": [f"{tid}_collect"]},
+            {"id": f"{tid}_conclude", "description": f"得出结论: {desc}", "type": "analyze", "dependencies": [f"{tid}_process"]},
+        ]
+
+    def _decompose_report(self, task: dict) -> List[dict]:
+        desc = task.get("description", "")
+        tid = task.get("id", "task")
+        return [
+            {"id": f"{tid}_outline", "description": f"大纲: {desc}", "type": "analyze", "dependencies": []},
+            {"id": f"{tid}_write", "description": f"撰写: {desc}", "type": "write", "dependencies": [f"{tid}_outline"]},
+            {"id": f"{tid}_polish", "description": f"润色: {desc}", "type": "write", "dependencies": [f"{tid}_write"]},
+        ]
+
+    def _decompose_generic(self, task: dict) -> List[dict]:
+        desc = task.get("description", "")
+        tid = task.get("id", "task")
+        # 最小分解: 计划→执行→验证
+        return [
+            {"id": f"{tid}_plan", "description": f"计划: {desc}", "type": "analyze", "dependencies": []},
+            {"id": f"{tid}_exec", "description": f"执行: {desc}", "type": "general", "dependencies": [f"{tid}_plan"]},
+            {"id": f"{tid}_verify", "description": f"验证: {desc}", "type": "analyze", "dependencies": [f"{tid}_exec"]},
+        ]
+
+
+# ═══════════════════════════════════════════════════════════
+# 并行执行引擎 v2.0
+# ═══════════════════════════════════════════════════════════
+
+class ParallelExecutor:
+    """
+    并行执行任务分解后的子任务。
+    
+    特性:
+    - 自动识别无依赖子任务并行执行
+    - 依赖解析(DAG拓扑排序)
+    - 超时控制
+    - 结果合并
+    """
+
+    def __init__(self, manager: AgentManager, bus: MessageBus):
+        self.manager = manager
+        self.bus = bus
+        self.decomposer = TaskDecomposer()
+        self.timeout_per_task = 30  # 秒
+
+    async def execute_task(self, task: dict) -> dict:
+        """
+        执行一个复杂任务:
+        1. 分解为子任务
+        2. 按依赖关系并行/串行执行
+        3. 合并结果
+        """
+        task_id = task.get("id", str(uuid.uuid4())[:8])
+        subtasks = self.decomposer.decompose(task)
+
+        logger.info(f"Task {task_id}: decomposed into {len(subtasks)} subtasks")
+
+        # 构建依赖图
+        completed = {}
+        results = []
+        pending = list(subtasks)
+        start_time = time.time()
+
+        while pending:
+            # 找出所有依赖已完成的子任务
+            ready = [
+                st for st in pending
+                if all(dep in completed for dep in st.get("dependencies", []))
+            ]
+
+            if not ready:
+                # 循环依赖或全部pending都有未完成依赖
+                logger.warning(f"Task {task_id}: deadlock detected, breaking")
+                break
+
+            # 并行执行所有ready任务
+            if len(ready) == 1:
+                r = await self._execute_single(ready[0], task_id)
+                completed[ready[0]["id"]] = r
+                results.append(r)
+                pending.remove(ready[0])
+            else:
+                # 真正并行
+                coros = [self._execute_single(st, task_id) for st in ready]
+                batch_results = await asyncio.gather(*coros, return_exceptions=True)
+                for st, r in zip(ready, batch_results):
+                    if isinstance(r, Exception):
+                        completed[st["id"]] = {"error": str(r), "subtask_id": st["id"]}
+                        results.append(completed[st["id"]])
+                    else:
+                        completed[st["id"]] = r
+                        results.append(r)
+                    pending.remove(st)
+
+            # 超时
+            if time.time() - start_time > self.timeout_per_task * len(subtasks):
+                logger.warning(f"Task {task_id}: timeout")
+                break
+
+        return {
+            "task_id": task_id,
+            "description": task.get("description", ""),
+            "subtasks_total": len(subtasks),
+            "subtasks_completed": len(completed),
+            "results": results,
+            "merged": self._merge_results(results),
+        }
+
+    async def _execute_single(self, subtask: dict, parent_id: str) -> dict:
+        """执行单个子任务 — 委托给最合适的Agent"""
+        st_type = subtask.get("type", "general")
+        capability_map = {
+            "search": "search",
+            "analyze": "analyze",
+            "code": "code",
+            "write": "write",
+            "general": "general",
+        }
+        capability = capability_map.get(st_type, "general")
+
+        # 找到最空闲的Agent
+        agent = self.bus.find_idle_agent(capability)
+        if agent is None:
+            # 回退: 找任意可用的
+            for a in self.bus._agents.values():
+                if a.can_accept_tasks:
+                    agent = a
+                    break
+
+        if agent is None:
+            return {
+                "subtask_id": subtask["id"],
+                "status": "failed",
+                "error": "No available agent",
+            }
+
+        # 模拟执行 (实际应通过LLM调用)
+        try:
+            result = {
+                "subtask_id": subtask["id"],
+                "agent": agent.name,
+                "agent_id": agent.agent_id,
+                "capability": capability,
+                "status": "completed",
+                "description": subtask.get("description", ""),
+                "type": st_type,
+                "output": f"[{agent.name}] executed: {subtask.get('description','')}",
+            }
+            agent._task_count += 1
+            return result
+        except Exception as e:
+            return {
+                "subtask_id": subtask["id"],
+                "status": "failed",
+                "error": str(e),
+            }
+
+    def _merge_results(self, results: List[dict]) -> dict:
+        """合并所有子任务结果"""
+        completed = [r for r in results if r.get("status") == "completed"]
+        failed = [r for r in results if r.get("status") == "failed"]
+
+        # 提取所有输出
+        outputs = [r.get("output", "") for r in completed]
+
+        return {
+            "completed_count": len(completed),
+            "failed_count": len(failed),
+            "agents_used": list(set(r.get("agent", "?") for r in completed)),
+            "summary": " | ".join(outputs[:5]) if outputs else "No output",
+            "all_outputs": outputs,
+        }
+
+    def get_execution_plan(self, task: dict) -> dict:
+        """返回执行计划(不实际执行)"""
+        subtasks = self.decomposer.decompose(task)
+        return {
+            "task": task.get("description", ""),
+            "subtasks": [
+                {
+                    "id": st["id"],
+                    "description": st["description"],
+                    "type": st["type"],
+                    "dependencies": st.get("dependencies", []),
+                    "parallel_group": len(st.get("dependencies", [])),
+                }
+                for st in subtasks
+            ],
+            "total_subtasks": len(subtasks),
+            "estimated_agents": min(len(subtasks), 4),
+            "parallelism": "DAG (拓扑排序 + 并行批次)",
+        }
+
+
+# ═══════════════════════════════════════════════════════════
+# 预定义专业Agent工厂
+# ═══════════════════════════════════════════════════════════
+
+class AgentFactory:
+    """一键创建专业Agent团队"""
+
+    @staticmethod
+    def create_team(manager: AgentManager) -> Dict[str, AgentNode]:
+        """创建默认Agent团队: 搜索/分析/代码/写作/通用"""
+        agents = {}
+
+        agents["searcher"] = manager.create_agent(
+            "searcher", "🔍 Searcher",
+            [AgentCapability.SEARCH, AgentCapability.GENERAL]
+        )
+        agents["analyst"] = manager.create_agent(
+            "analyst", "📊 Analyst",
+            [AgentCapability.ANALYZE, AgentCapability.GENERAL]
+        )
+        agents["coder"] = manager.create_agent(
+            "coder", "💻 Coder",
+            [AgentCapability.CODE, AgentCapability.GENERAL]
+        )
+        agents["writer"] = manager.create_agent(
+            "writer", "✍️ Writer",
+            [AgentCapability.WRITE, AgentCapability.GENERAL]
+        )
+        agents["general"] = manager.create_agent(
+            "general", "🤖 General",
+            [AgentCapability.GENERAL]
+        )
+
+        return agents
+
+
+# ── 全局单例 ──────────────────────────────────────────
+
+_global_manager: Optional[AgentManager] = None
+_global_executor: Optional[ParallelExecutor] = None
+
+
+def get_manager() -> AgentManager:
+    global _global_manager
+    if _global_manager is None:
+        _global_manager = AgentManager()
+    return _global_manager
+
+
+def get_executor() -> ParallelExecutor:
+    global _global_executor
+    mgr = get_manager()
+    if _global_executor is None:
+        _global_executor = ParallelExecutor(mgr, mgr.bus)
+    return _global_executor
