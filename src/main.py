@@ -4873,6 +4873,12 @@ async def healer_history(req: Request, limit: int = 20):
     if not h: return {"error": "healer not initialized"}
     return h.get_history(limit)
 
+@app.get("/api/healer/dashboard")
+async def healer_dashboard(req: Request):
+    h = getattr(req.app.state, "healer", None)
+    if not h: return {"error": "healer not initialized"}
+    return h.get_dashboard()
+
 @app.get("/api/performance/cache-stats")
 async def perf_cache_stats(req: Request):
     o = getattr(req.app.state, "optimizer", None)
