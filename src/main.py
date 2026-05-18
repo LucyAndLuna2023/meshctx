@@ -1869,6 +1869,8 @@ async def create_conversation(req: Request):
     """创建/保存对话"""
     try: body = await req.json()
     except: body = {}
+    if not body or not body.get("title"):
+        raise HTTPException(400, "title is required")
     
     from src.core.conversation_store import get_or_create, Conversation
     conv = get_or_create(body.get("id", ""))
@@ -3353,7 +3355,7 @@ async def api_chat(request: Request):
     try:
         body = await request.json()
     except:
-        return {"content": "无效请求", "tokens": 0}
+        raise HTTPException(400, "Invalid JSON body")
 
     msgs = body.get("messages", [])
     if not msgs:
@@ -3361,6 +3363,10 @@ async def api_chat(request: Request):
         msg = body.get("message", "")
         if msg:
             msgs = [{"role": "user", "content": msg}]
+
+    # v1.5.26: input validation — empty body or missing message
+    if not msgs and not body.get("message"):
+        raise HTTPException(400, "message is required")
 
     # v2.16: 可选的系统提示词 — 用户可在Chat UI中设置
     system_prompt = body.get("system", "")
@@ -3378,7 +3384,7 @@ async def api_chat(request: Request):
             model_id = "deepseek:chat"
 
     if not msgs:
-        return {"content": "请输入消息", "tokens": 0}
+        raise HTTPException(400, "message is required")
 
     # v1.5.20: 注入 .meshctx.md 项目上下文 (多项目支持)
     md_ctx = _get_chat_context()
