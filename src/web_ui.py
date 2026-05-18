@@ -4518,3 +4518,130 @@ async def download_page(request: Request):
 {% endblock %}"""
     _TEMPLATES["download.html"] = html
     return _render("download.html", {"request": request, "title": "Download"})
+
+
+# ── 模型列表页面 ────────────────────────────────────────────
+
+_TEMPLATES["models.html"] = r"""{% extends "base.html" %}
+{% block content %}
+<h2>🤖 模型列表</h2>
+<div style="display:flex;gap:12px;margin:16px 0;flex-wrap:wrap;">
+    <div class="stat-card"><div class="value" id="totalModels">-</div><div class="label">模型总数</div></div>
+    <div class="stat-card"><div class="value" id="configuredModels">-</div><div class="label">已配置</div></div>
+    <div class="stat-card"><div class="value" id="usableModels">-</div><div class="label">可用</div></div>
+    <div class="stat-card"><div class="value" id="currentModel">-</div><div class="label">当前默认</div></div>
+</div>
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <input id="modelSearch" placeholder="搜索模型..." style="max-width:300px;" oninput="filterModels()">
+        <a href="/ui/setup" class="btn btn-primary">+ 配置模型</a>
+    </div>
+    <table>
+        <thead><tr><th>模型ID</th><th>提供商</th><th>状态</th><th>Key环境变量</th></tr></thead>
+        <tbody id="modelTableBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);">加载中...</td></tr></tbody>
+    </table>
+</div>
+<script>
+async function loadModels(){
+    try{
+        var res = await fetch('/api/models');
+        var data = await res.json();
+        document.getElementById('totalModels').textContent = data.total || 0;
+        document.getElementById('configuredModels').textContent = data.configured || 0;
+        document.getElementById('usableModels').textContent = data.usable || 0;
+        document.getElementById('currentModel').textContent = data.current || '-';
+        window._models = data.models || [];
+        renderModels(window._models);
+    }catch(e){
+        document.getElementById('modelTableBody').innerHTML = '<tr><td colspan="4" style="color:#f85149;">加载失败: '+e.message+'</td></tr>';
+    }
+}
+function renderModels(models){
+    var tbody = document.getElementById('modelTableBody');
+    if(!models.length){
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);">暂无模型</td></tr>';
+        return;
+    }
+    tbody.innerHTML = models.map(function(m){
+        var status = m.usable ? '<span style="color:#22c55e;">🟢 可用</span>' : (m.configured ? '<span style="color:#eab308;">🟡 已配置</span>' : '<span style="color:#64748b;">⚫ 未配置</span>');
+        var isCurrent = m.current ? ' ⭐' : '';
+        return '<tr><td><strong>'+m.id+'</strong>'+isCurrent+'<br><span style="font-size:10px;color:var(--muted);">'+m.model_name+'</span></td><td>'+m.provider_name+'</td><td>'+status+'</td><td><code style="font-size:10px;background:#1e293b;padding:2px 6px;border-radius:4px;">'+m.key_env+'</code></td></tr>';
+    }).join('');
+}
+function filterModels(){
+    var q = document.getElementById('modelSearch').value.toLowerCase();
+    var filtered = (window._models||[]).filter(function(m){
+        return m.id.toLowerCase().includes(q) || m.provider_name.toLowerCase().includes(q) || m.model_name.toLowerCase().includes(q);
+    });
+    renderModels(filtered);
+}
+loadModels();
+</script>
+{% endblock %}"""
+
+
+@router.get("/models", response_class=HTMLResponse)
+async def models_page(request: Request):
+    return _render("models.html", {"request": request, "title": "Models"})
+
+
+# ── 供应商列表页面 ───────────────────────────────────────────
+
+_TEMPLATES["providers.html"] = r"""{% extends "base.html" %}
+{% block content %}
+<h2>🔌 供应商</h2>
+<div style="display:flex;gap:12px;margin:16px 0;flex-wrap:wrap;">
+    <div class="stat-card"><div class="value" id="totalProviders">-</div><div class="label">供应商总数</div></div>
+    <div class="stat-card"><div class="value" id="configuredProviders">-</div><div class="label">已配置Key</div></div>
+</div>
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <input id="providerSearch" placeholder="搜索供应商..." style="max-width:300px;" oninput="filterProviders()">
+        <a href="/ui/setup" class="btn btn-primary">+ 配置供应商</a>
+    </div>
+    <table>
+        <thead><tr><th>供应商</th><th>状态</th><th>Key</th><th>已配置模型</th><th>上次测试</th><th>操作</th></tr></thead>
+        <tbody id="providerTableBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);">加载中...</td></tr></tbody>
+    </table>
+</div>
+<script>
+async function loadProviders(){
+    try{
+        var res = await fetch('/api/providers');
+        var data = await res.json();
+        document.getElementById('totalProviders').textContent = data.total || 0;
+        document.getElementById('configuredProviders').textContent = data.configured || 0;
+        window._providers = data.providers || [];
+        renderProviders(window._providers);
+    }catch(e){
+        document.getElementById('providerTableBody').innerHTML = '<tr><td colspan="6" style="color:#f85149;">加载失败: '+e.message+'</td></tr>';
+    }
+}
+function renderProviders(providers){
+    var tbody = document.getElementById('providerTableBody');
+    if(!providers.length){
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);">暂无供应商</td></tr>';
+        return;
+    }
+    tbody.innerHTML = providers.map(function(p){
+        var status = p.has_key ? '<span style="color:#22c55e;">🟢 已配置</span>' : '<span style="color:#64748b;">⚫ 未配置</span>';
+        var testStatus = p.test_status === 'ok' ? '<span style="color:#22c55e;">✅</span>' : (p.test_status === 'fail' ? '<span style="color:#f85149;">❌</span>' : '<span style="color:var(--muted);">—</span>');
+        var lastTested = p.last_tested || '-';
+        return '<tr><td><strong>'+p.name+'</strong><br><span style="font-size:10px;color:var(--muted);">'+p.id+'</span></td><td>'+status+'</td><td><code style="font-size:10px;background:#1e293b;padding:2px 6px;border-radius:4px;">'+(p.key_masked||'—')+'</code></td><td>'+p.models_configured+'/'+p.models_total+'</td><td>'+testStatus+' '+lastTested+'</td><td><a href="/ui/setup" style="font-size:12px;">⚙️ 配置</a></td></tr>';
+    }).join('');
+}
+function filterProviders(){
+    var q = document.getElementById('providerSearch').value.toLowerCase();
+    var filtered = (window._providers||[]).filter(function(p){
+        return p.id.toLowerCase().includes(q) || p.name.toLowerCase().includes(q);
+    });
+    renderProviders(filtered);
+}
+loadProviders();
+</script>
+{% endblock %}"""
+
+
+@router.get("/providers", response_class=HTMLResponse)
+async def providers_page(request: Request):
+    return _render("providers.html", {"request": request, "title": "Providers"})
