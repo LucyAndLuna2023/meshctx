@@ -1119,8 +1119,8 @@ async def add_model(request: Request):
     except:
         raise HTTPException(400, "无效的JSON请求体")
     
-    model_id = body.get("id", "").strip()
-    provider = body.get("provider", "").strip()
+    model_id = (body.get("id") or "").strip()
+    provider = (body.get("provider") or "").strip()
     api_key = body.get("key", "").strip()
     model_name = body.get("model", "")
     base_url = body.get("base_url", "")
@@ -2378,8 +2378,13 @@ async def install_plugin_url(req: Request):
     """从URL安装插件 (v2.12)"""
     try: body = await req.json()
     except: raise HTTPException(400)
-    url = body.get("url", "")
+    url = (body.get("url") or "").strip()
     if not url: raise HTTPException(400, "请提供 url")
+    # Validate URL before attempting request
+    import urllib.parse as urlparse
+    parsed = urlparse.urlparse(url)
+    if not parsed.scheme or not parsed.netloc:
+        raise HTTPException(400, f"无效的URL: {url}")
     import urllib.request
     try:
         r = urllib.request.Request(url, headers={"User-Agent":"MeshCtx/2.12"})
@@ -2390,6 +2395,8 @@ async def install_plugin_url(req: Request):
         d.mkdir(parents=True,exist_ok=True)
         with open(d/"manifest.json","w") as f: json.dump(data,f,indent=2)
         return {"status":"ok","plugin":name}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500,f"安装失败: {e}")
 
@@ -3900,9 +3907,14 @@ def _provider_display_name(pid: str) -> str:
 @app.post("/api/providers")
 async def save_provider(request: Request):
     """保存/更新供应商 API Key"""
-    body = await request.json()
-    pid = body.get("provider", "").strip()
-    key = body.get("key", "").strip()
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "无效的JSON请求体")
+    if not isinstance(body, dict):
+        raise HTTPException(400, "请求体必须是JSON对象")
+    pid = (body.get("provider") or "").strip()
+    key = (body.get("key") or "").strip()
     
     if not pid:
         raise HTTPException(400, "缺少 provider 参数")
