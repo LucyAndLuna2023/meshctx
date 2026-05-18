@@ -2457,7 +2457,7 @@ async def system_status():
     return {
         "version": __version__,
         "server": {"python": platform.python_version(), "platform": platform.system()},
-        "models": {"builtin": 100, "providers": 28, "configured": configured},
+        "models": {"builtin": 123, "providers": 37, "configured": configured},
         "plugins": {"available": plugin_count},
         "sessions": {"total": sessions},
     }
@@ -2716,7 +2716,7 @@ async def archive_summary():
 async def version_info():
     """版本信息"""
     from src.core import __version__
-    return {"version":__version__,"models":100,"providers":28,"plugins":9,"tests":673}
+    return {"version":__version__,"models":123,"providers":37,"plugins":9,"tests":673}
 
 
 @app.get("/api/data/status")
