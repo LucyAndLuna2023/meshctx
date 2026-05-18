@@ -6,7 +6,7 @@ import sys
 import yaml
 import os
 from fastapi import APIRouter, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
 from pathlib import Path
 from jinja2 import Environment, DictLoader
 
@@ -94,6 +94,16 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <!-- PWA -->
+    <link rel="manifest" href="/ui/manifest.json">
+    <meta name="theme-color" content="#0a0a1a">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f8fafc">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MeshCtx">
+    <link rel="apple-touch-icon" href="/ui/icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/ui/icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/ui/icon-512.png">
 </head>
 <body>
 <div class="header">
@@ -107,6 +117,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         <a href="/ui/setup" class="{% if '/ui/setup' in request.url.path %}active{% endif %}">Setup</a>
         <a href="/ui/dashboard" class="{% if '/ui/dashboard' in request.url.path %}active{% endif %}">📊</a>
         <a href="/ui/plugins" class="{% if '/ui/plugins' in request.url.path %}active{% endif %}">🔌 插件</a>
+        <a href="/ui/files" class="{% if '/ui/files' in request.url.path %}active{% endif %}">📁 文件</a>
         <a href="/docs" target="_blank" class="" style="color:#f59e0b;">📚 API</a>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
@@ -149,6 +160,12 @@ var saved = localStorage.getItem('meshctx_lang') || 'zh';
     var sel = document.getElementById('langSelect');
     if (sel) sel.value = saved;
 })();
+// ── Service Worker 注册 (PWA) ──
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/ui/sw.js')
+        .then(function(reg) { console.log('SW registered:', reg.scope); })
+        .catch(function(err) { console.log('SW registration failed:', err); });
+}
 </script>
 </body>
 </html>"""
@@ -4324,7 +4341,7 @@ th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
 th{color:var(--muted)}
 </style></head><body>
 <div class="container">
-<nav><a href="/ui/chat">Chat</a><a href="/ui/setup">Setup</a><a href="/ui/plugins">Plugins</a><a href="/ui/dashboard" style="color:var(--accent);background:rgba(108,92,231,0.15);">Dashboard</a></nav>
+<nav><a href="/ui/chat">Chat</a><a href="/ui/setup">Setup</a><a href="/ui/plugins">Plugins</a><a href="/ui/files">📁 Files</a><a href="/ui/dashboard" style="color:var(--accent);background:rgba(108,92,231,0.15);">Dashboard</a></nav>
 <h2 style="margin-bottom:16px;">📊 System Dashboard</h2>
 <div class="grid" id="stats"></div>
 <div class="card" style="margin-bottom:16px;text-align:left">
@@ -4484,7 +4501,7 @@ body.light input,body.light select{background:#fff;border-color:#e2e8f0;color:#1
 input,select{padding:8px 12px;background:#1e293b;border:1px solid #334155;color:var(--text);border-radius:8px}
 </style></head><body>
 <div class="container">
-<nav><a href="/ui/chat">Chat</a><a href="/ui/setup">Setup</a><a href="/ui/plugins" style="color:var(--accent);background:rgba(108,92,231,0.15);">Plugins</a></nav>
+<nav><a href="/ui/chat">Chat</a><a href="/ui/setup">Setup</a><a href="/ui/files">📁 Files</a><a href="/ui/plugins" style="color:var(--accent);background:rgba(108,92,231,0.15);">Plugins</a></nav>
 <h2>Plugins</h2>
 <p style="color:var(--muted);margin-bottom:16px">Community plugins for MeshCtx</p>
 <div style="display:flex;gap:8px;margin-bottom:16px">
@@ -4706,3 +4723,287 @@ loadProviders();
 @router.get("/providers", response_class=HTMLResponse)
 async def providers_page(request: Request):
     return _render("providers.html", {"request": request, "title": "Providers"})
+
+
+# ── 文件管理器 ─────────────────────────────────────────────
+
+_TEMPLATES["files.html"] = r"""{% extends "base.html" %}
+{% block content %}
+<style>
+.fm-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.fm-breadcrumb{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:13px}
+.fm-breadcrumb a{color:var(--accent);cursor:pointer;text-decoration:none}
+.fm-breadcrumb span{color:var(--muted)}
+.fm-file-table{width:100%;border-collapse:collapse}
+.fm-file-table th{text-align:left;padding:8px 12px;font-size:11px;color:var(--muted);border-bottom:1px solid #1e293b}
+.fm-file-table td{padding:8px 12px;border-bottom:1px solid #0f172a;font-size:13px}
+.fm-file-table tr:hover{background:rgba(108,92,231,0.08)}
+.fm-file-table tr{cursor:pointer}
+.fm-icon{font-size:16px;width:24px}
+.fm-editor{width:100%;min-height:400px;background:#0f172a;color:var(--text);border:1px solid #334155;border-radius:8px;padding:12px;font-family:'Consolas','Courier New',monospace;font-size:13px;resize:vertical}
+.fm-toolbar{display:flex;gap:8px;margin-bottom:12px}
+.fm-toolbar button{padding:6px 14px;background:#1e293b;border:1px solid #334155;color:var(--text);border-radius:6px;cursor:pointer;font-size:12px}
+.fm-toolbar button:hover{background:#334155}
+.fm-toolbar button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+</style>
+<div class="container">
+<nav><a href="/ui/chat">Chat</a><a href="/ui/setup">Setup</a><a href="/ui/plugins">Plugins</a><a href="/ui/files" style="color:var(--accent);background:rgba(108,92,231,0.15);">📁 Files</a><a href="/ui/dashboard">Dashboard</a></nav>
+<h2>📁 File Manager</h2>
+<div class="fm-header">
+ <div class="fm-breadcrumb" id="breadcrumb"></div>
+ <span style="flex:1"></span>
+ <span style="font-size:12px;color:var(--muted)" id="fileCount"></span>
+</div>
+<div class="fm-toolbar">
+ <button onclick="goUp()">⬆ Up</button>
+ <button onclick="refreshFiles()">🔄 Refresh</button>
+ <button class="primary" onclick="navigator.clipboard.writeText(currentPath).then(()=>alert('Copied'))">📋 Copy Path</button>
+</div>
+<table class="fm-file-table">
+<thead><tr><th></th><th>Name</th><th style="width:80px">Size</th><th style="width:160px">Modified</th></tr></thead>
+<tbody id="fileList"><tr><td colspan="4" style="text-align:center;color:var(--muted)">Loading...</td></tr></tbody>
+</table>
+<div id="editorSection" style="display:none;margin-top:20px">
+ <h3 id="editorTitle" style="margin-bottom:8px">📝 Editing: <span id="editorFilename"></span></h3>
+ <div class="fm-toolbar">
+  <button class="primary" onclick="saveFile()">💾 Save</button>
+  <button onclick="closeEditor()">✖ Close</button>
+ </div>
+ <textarea class="fm-editor" id="fileEditor" spellcheck="false"></textarea>
+</div>
+</div>
+<script>
+var currentPath = '';
+var currentFile = null;
+
+async function loadPath(path){
+ currentPath = path || '';
+ try{
+  var r = await fetch('/api/file/list?path='+encodeURIComponent(currentPath||'/opt'));
+  var d = await r.json();
+  renderBreadcrumb(d.path);
+  renderFiles(d.items, d.path);
+  document.getElementById('fileCount').textContent = d.total+' items';
+ }catch(e){
+  document.getElementById('fileList').innerHTML='<tr><td colspan="4" style="color:var(--red)">Error: '+e.message+'</td></tr>';
+ }
+}
+
+function renderBreadcrumb(fullPath){
+ var parts = fullPath.split('/').filter(Boolean);
+ var html = '<a onclick="loadPath(\\'\\')">🏠 /</a>';
+ var cum = '';
+ for(var i=0;i<parts.length;i++){
+  cum += '/'+parts[i];
+  html += '<span>/</span><a onclick="loadPath(\\''+cum+'\\')">'+parts[i]+'</a>';
+ }
+ document.getElementById('breadcrumb').innerHTML = html;
+}
+
+function renderFiles(items, parentPath){
+ var html = '';
+ if(!items||items.length===0){
+  html='<tr><td colspan="4" style="color:var(--muted);text-align:center">Empty directory</td></tr>';
+ }else{
+  for(var i=0;i<items.length;i++){
+   var f=items[i];
+   var icon=f.is_dir?'📁':'📄';
+   var size=f.is_dir?'--':formatSize(f.size);
+   var mod=new Date(f.modified*1000).toLocaleString();
+   var cls=f.error?'color:var(--red)':'';
+   html+='<tr style="'+cls+'" ondblclick="handleClick(\\''+f.path.replace(/\\\\/g,'\\\\\\\\')+'\\','+f.is_dir+')" onclick="selectFile(\\''+f.path.replace(/\\\\/g,'\\\\\\\\')+'\\','+f.is_dir+',this)">';
+   html+='<td class="fm-icon">'+icon+'</td>';
+   html+='<td>'+escHtml(f.name)+(f.error?' ⚠️ '+f.error:'')+'</td>';
+   html+='<td style="font-size:12px;color:var(--muted)">'+size+'</td>';
+   html+='<td style="font-size:12px;color:var(--muted)">'+mod+'</td>';
+   html+='</tr>';
+  }
+ }
+ document.getElementById('fileList').innerHTML = html;
+}
+
+function handleClick(path, isDir){
+ if(isDir){ loadPath(path); closeEditor(); }
+ else{ openEditor(path); }
+}
+
+function selectFile(path, isDir, row){
+ var prev = document.querySelector('.fm-file-table tr.selected');
+ if(prev) prev.classList.remove('selected');
+ row.classList.add('selected');
+}
+
+function goUp(){
+ var p = currentPath || '/opt';
+ var parent = p.substring(0, p.lastIndexOf('/')) || '';
+ loadPath(parent);
+}
+
+function refreshFiles(){ loadPath(currentPath); }
+
+async function openEditor(path){
+ try{
+  var r = await fetch('/api/file/read?path='+encodeURIComponent(path));
+  var d = await r.json();
+  if(d.error){ alert(d.error); return; }
+  currentFile = path;
+  document.getElementById('editorFilename').textContent = path.split('/').pop();
+  document.getElementById('fileEditor').value = d.content || '';
+  document.getElementById('editorSection').style.display = 'block';
+  document.getElementById('editorTitle').scrollIntoView();
+ }catch(e){ alert('Open failed: '+e.message); }
+}
+
+function closeEditor(){
+ currentFile = null;
+ document.getElementById('editorSection').style.display = 'none';
+}
+
+async function saveFile(){
+ if(!currentFile) return;
+ var content = document.getElementById('fileEditor').value;
+ try{
+  var r = await fetch('/api/file/write?path='+encodeURIComponent(currentFile), {
+   method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({content:content})
+  });
+  var d = await r.json();
+  if(d.ok){ alert('Saved ✅'); } else { alert('Failed: '+(d.error||'unknown')); }
+ }catch(e){ alert('Save failed: '+e.message); }
+}
+
+function formatSize(bytes){
+ if(bytes===0) return '0 B';
+ var k=1024, sizes=['B','KB','MB','GB'];
+ var i=Math.floor(Math.log(bytes)/Math.log(k));
+ return parseFloat((bytes/Math.pow(k,i)).toFixed(1))+' '+sizes[i];
+}
+
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+loadPath('');
+</script>
+{% endblock %}"""
+
+
+@router.get("/files", response_class=HTMLResponse)
+async def files_page(request: Request):
+    return _render("files.html", {"request": request, "title": "Files"})
+
+
+# ── PWA 支持 ───────────────────────────────────────────────
+
+@router.get("/manifest.json", response_class=JSONResponse)
+async def manifest():
+    """PWA manifest.json"""
+    return {
+        "name": "MeshCtx",
+        "short_name": "MeshCtx",
+        "description": "MeshCtx - AI Context Manager",
+        "start_url": "/ui/",
+        "display": "standalone",
+        "background_color": "#0a0a1a",
+        "theme_color": "#0a0a1a",
+        "orientation": "any",
+        "icons": [
+            {
+                "src": "/ui/icon-192.png",
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any maskable"
+            },
+            {
+                "src": "/ui/icon-512.png",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any maskable"
+            }
+        ]
+    }
+
+
+@router.get("/sw.js", response_class=Response)
+async def service_worker():
+    """Service Worker — 网络优先 + 缓存回退"""
+    sw_js = r"""
+const CACHE_NAME = 'meshctx-v1';
+const PRECACHE_URLS = [
+    '/ui/',
+    '/ui/manifest.json',
+    '/ui/icon-192.png',
+    '/ui/icon-512.png'
+];
+
+// Install: 预缓存核心资源
+self.addEventListener('install', event => {
+    event.waitUntil(
+        caches.open(CACHE_NAME).then(cache => cache.addAll(PRECACHE_URLS))
+    );
+    self.skipWaiting();
+});
+
+// Activate: 清理旧缓存
+self.addEventListener('activate', event => {
+    event.waitUntil(
+        caches.keys().then(keys => Promise.all(
+            keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+        ))
+    );
+    self.clients.claim();
+});
+
+// Fetch: 网络优先，失败时回退缓存
+self.addEventListener('fetch', event => {
+    // 跳过非 GET 请求和 API 请求
+    if (event.request.method !== 'GET') return;
+    const url = new URL(event.request.url);
+    if (url.pathname.startsWith('/api/')) return;
+
+    event.respondWith(
+        fetch(event.request)
+            .then(response => {
+                // 缓存成功的响应
+                if (response.ok && url.pathname.startsWith('/ui/')) {
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+                }
+                return response;
+            })
+            .catch(() => {
+                // 网络失败时回退缓存
+                return caches.match(event.request);
+            })
+    );
+});
+""".strip()
+    return Response(content=sw_js, media_type="application/javascript")
+
+
+# SVG 图标占位（192x192 和 512x512）
+_ICON_SVG = r"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a5f"/>
+      <stop offset="100%" style="stop-color:#0a0a1a"/>
+    </linearGradient>
+  </defs>
+  <rect width="{size}" height="{size}" rx="{radius}" fill="url(#bg)"/>
+  <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle"
+        font-family="-apple-system,BlinkMacSystemFont,sans-serif"
+        font-weight="700" font-size="{font_size}" fill="#38bdf8">🧠</text>
+</svg>"""
+
+
+@router.get("/icon-192.png", response_class=Response)
+async def icon_192():
+    return Response(
+        content=_ICON_SVG.format(size=192, radius=32, font_size=80),
+        media_type="image/svg+xml"
+    )
+
+
+@router.get("/icon-512.png", response_class=Response)
+async def icon_512():
+    return Response(
+        content=_ICON_SVG.format(size=512, radius=80, font_size=200),
+        media_type="image/svg+xml"
+    )
