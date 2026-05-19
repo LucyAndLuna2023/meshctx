@@ -62,6 +62,15 @@ jobs:
             exit 1
           }
 
+      - name: Verify exe size (防9B损坏)
+        run: |
+          $size = (Get-Item dist\meshctx-desktop.exe).Length
+          if ($size -lt 1048576) {
+            Write-Host "FATAL: exe too small ($size bytes) — build failed!"
+            exit 1
+          }
+          Write-Host "OK: exe size = $size bytes ($([math]::Round($size/1MB,1)) MB)"
+
       - name: Install NSIS
         run: |
           choco install nsis -y --no-progress
@@ -82,7 +91,18 @@ jobs:
           copy README.md dist\
           Compress-Archive -Path dist\meshctx.exe,dist\README.md -DestinationPath meshctx-portable.zip
 
-      - name: Upload to Release
+      - name: Upload Artifact (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: meshctx-windows
+          path: |
+            dist/meshctx.exe
+            dist/meshctx-setup.exe
+            meshctx-portable.zip
+          retention-days: 7
+
+      - name: Upload to Release (tag only)
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
