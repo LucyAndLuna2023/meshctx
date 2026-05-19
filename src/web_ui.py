@@ -5436,18 +5436,12 @@ async def download_page(request: Request):
 </div>
 <div class="card" style="margin-top:16px;">
   <h3>🪟 Windows</h3>
-  <div style="display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;">
-    <div style="flex:1;min-width:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;">
-      <p>📦 <b>安装程序</b><br><span style="font-size:11px;color:var(--muted);">NSIS安装器 · 自动配置</span></p>
-      <a class="btn btn-primary" href="https://github.com/LucyAndLuna2023/meshctx/releases/latest" target="_blank" style="display:inline-block;text-decoration:none;padding:10px 20px;margin-top:8px;">⬇ GitHub Releases</a>
-    </div>
-    <div style="flex:1;min-width:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;">
-      <p>🐍 <b>Python版</b><br><span style="font-size:11px;color:var(--muted);">需Python 3.10+ · Git</span></p>
-      <a class="btn btn-primary" href="https://github.com/LucyAndLuna2023/meshctx" target="_blank" style="display:inline-block;text-decoration:none;padding:10px 20px;margin-top:8px;">⬇ 源码安装</a>
-    </div>
+  <div style="text-align:center;padding:16px;">
+    <a class="btn btn-primary" href="/static/dl/meshctx-windows.zip" style="display:inline-block;text-decoration:none;padding:12px 32px;font-size:15px;">⬇ 下载 meshctx Windows</a>
+    <p style="font-size:11px;color:var(--muted);margin-top:8px;">1.2MB · 解压后运行 run.bat · 需要 Python 3.10+</p>
   </div>
-  <details style="margin-top:12px;font-size:12px;">
-    <summary style="cursor:pointer;color:var(--muted);">📋 或命令行安装</summary>
+  <details style="margin-top:8px;font-size:12px;">
+    <summary style="cursor:pointer;color:var(--muted);">📋 命令行安装</summary>
     <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);margin-top:8px;">git clone https://github.com/LucyAndLuna2023/meshctx.git %USERPROFILE%\.meshctx
 cd %USERPROFILE%\.meshctx
 python -m venv venv
