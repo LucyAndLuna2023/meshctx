@@ -78,6 +78,10 @@ echo -e "  ${GREEN}✓${NC} 依赖完成"
 mkdir -p ~/bin
 cat > ~/bin/meshctx << 'SCRIPT'
 #!/bin/bash
+# 加载API Key
+if [ -f ~/.meshctx/.env ]; then
+  set -a; source ~/.meshctx/.env; set +a
+fi
 cd ~/.meshctx && source venv/bin/activate && python -m src.cli "$@"
 SCRIPT
 chmod +x ~/bin/meshctx
