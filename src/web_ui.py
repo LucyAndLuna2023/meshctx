@@ -101,6 +101,58 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         a { color: var(--link-color); text-decoration: none; }
         a:hover { text-decoration: underline; }
         .cursor { display:inline-block;width:2px;height:1em;background:var(--accent);animation:blink 1s infinite;vertical-align:text-bottom;margin-left:2px; } @keyframes blink { 0%,50% {opacity:1} 51%,100% {opacity:0} }
+        /* ── 代码块/终端可读性 (v2.25) ── */
+        pre, code, .code-output-body, .code-output, .terminal, .console {
+            color: #e6e6e6;
+        }
+        pre {
+            background: #0d1117;
+            border-radius: 6px;
+            padding: 12px;
+            overflow-x: auto;
+            font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        code {
+            font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+            font-size: 13px;
+        }
+        :not(pre) > code {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .code-output-header {
+            color: #8b949e;
+            font-size: 12px;
+        }
+        .code-output-body {
+            background: #0d1117;
+            color: #e6e6e6;
+        }
+        /* ── 浅色主题代码块覆盖 ── */
+        [data-theme="light"] pre,
+        [data-theme="light"] .code-output-body {
+            background: #f6f8fa;
+            color: #1e293b;
+            border: 1px solid #d0d7de;
+        }
+        [data-theme="light"] code,
+        [data-theme="light"] .code-output,
+        [data-theme="light"] .terminal,
+        [data-theme="light"] .console {
+            color: #1e293b;
+        }
+        [data-theme="light"] :not(pre) > code {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+        [data-theme="light"] .code-output-header {
+            color: #64748b;
+        }
         /* ── 移动端响应式 (v2.19) ── */
         @media (max-width: 768px) {
             .header { padding: 12px 16px; flex-direction: column; align-items: flex-start; }
@@ -2042,6 +2094,32 @@ async function send() {
     let retryCount = 0;
     const maxRetries = 3;
     let innerAbortController = null; // 中断当前fetch
+    
+    // 工具调用追踪 — 在token流中检测工具调用模式
+    let toolCallBuffer = '';  // 积累最近字符用以检测tool call
+    let inToolCall = false;
+    let currentToolName = '';
+    let currentToolArgs = {};
+    let toolCallDiv = null;
+    
+    function detectToolCallStart(text) {
+        // 检测 {"tool": "xxx" 模式
+        var m = text.match(/\{"tool"\s*:\s*"(\w+)"/);
+        if (m) {
+            return {found: true, tool: m[1], idx: text.indexOf(m[0])};
+        }
+        return {found: false};
+    }
+    
+    function extractToolArgs(text) {
+        var args = {};
+        var re = /"(\w+)"\s*:\s*"([^"]*?)"/g;
+        var m;
+        while ((m = re.exec(text)) !== null) {
+            if (m[1] !== 'tool') args[m[1]] = m[2];
+        }
+        return args;
+    }
 
     // v2.16: 读取当前tab的系统提示词
     var sysPrompt = (allTabs[activeTab] && allTabs[activeTab].systemPrompt) || '';
@@ -2089,7 +2167,7 @@ async function send() {
               var raw = streamText.innerHTML;
               // v1.5.22: 渲染前处理工具调用/思考标记
               raw = raw.replace(/🔧\s*调用:\s*(\S+)/g, function(m,tool){
-                return '<details style="background:#312e81;border-radius:6px;padding:6px;margin:6px 0;font-size:12px;"><summary style="cursor:pointer;color:#a5b4fc;">🔧 工具调用: '+tool+'</summary><pre style="background:#1e1b4b;padding:6px;border-radius:4px;overflow-x:auto;max-height:200px;"></pre></details>';
+                return '<details style="background:#312e81;border-radius:6px;padding:6px;margin:6px 0;font-size:12px;"><summary style="cursor:pointer;color:#a5b4fc;">🔧 工具调用: '+tool+'</summary><pre style="background:#1e1b4b;color:#e6e6e6;padding:6px;border-radius:4px;overflow-x:auto;max-height:200px;"></pre></details>';
               });
               raw = raw.replace(/💭\s*思考:/g, function(m){
                 return '<details style="background:#1e293b;border-radius:6px;padding:6px;margin:6px 0;font-size:12px;"><summary style="cursor:pointer;color:#94a3b8;">💭 思考过程</summary><div style="padding:6px;color:#94a3b8;">';
@@ -2363,7 +2441,7 @@ function enhanceCodeBlocks(container){
     lineNum.style.cssText = 'padding:8px 8px 8px 0;margin-right:12px;border-right:1px solid #334155;color:#64748b;font-size:11px;text-align:right;user-select:none;min-width:30px;line-height:1.5;';
     pre.style.cssText = 'display:flex;margin:0;border-radius:0;';
     pre.insertBefore(lineNum, pre.firstChild);
-    code.style.cssText = 'flex:1;padding:8px 0;overflow-x:auto;';
+    code.style.cssText = 'flex:1;padding:8px 0;overflow-x:auto;color:#e6e6e6;';
   });
 }
 
