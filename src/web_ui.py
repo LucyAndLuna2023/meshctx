@@ -5461,10 +5461,6 @@ python -m src.cli setup</pre>
   <p style="color:var(--muted);">docker pull meshctx/meshctx:latest</p>
 </div>
 <div class="card" style="margin-top:16px;">
-  <h3>🌐 直接使用</h3>
-  <p>无需安装，在线体验: <a href="/ui/chat">Chat</a> · <a href="/ui/dashboard">Dashboard</a></p>
-</div>
-<div class="card" style="margin-top:16px;">
   <h3>📖 配置文档</h3>
   <p>支持 123 模型 / 37 供应商 — <a href="https://github.com/LucyAndLuna2023/meshctx#-模型配置" target="_blank">查看配置指南</a></p>
   <p style="font-size:12px;color:var(--muted);">DeepSeek · OpenAI · Claude · Gemini · Qwen · Grok · Llama · Mistral · 更多...</p>
