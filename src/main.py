@@ -397,6 +397,24 @@ else:
 if _static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
 
+# ─── 安装脚本 ────────────────────────────────────────
+from fastapi.responses import FileResponse
+
+@app.get("/install.sh")
+async def serve_install_script():
+    """curl -fsSL meshctx.com/install.sh | bash"""
+    script_path = Path(__file__).resolve().parent.parent / "install.sh"
+    if not script_path.exists():
+        script_path = Path("/opt/meshctx/install.sh")
+    return FileResponse(script_path, media_type="text/plain")
+
+@app.get("/install.bat")
+async def serve_install_bat():
+    script_path = Path(__file__).resolve().parent.parent / "install.bat"
+    if not script_path.exists():
+        script_path = Path("/opt/meshctx/install.bat")
+    return FileResponse(script_path, media_type="text/plain")
+
 # ─── Web UI 路由 (延迟导入避免循环) ────────────────────
 from .web_ui import router as web_ui_router
 from .core.session_archiver import get_archiver, SessionArchiver
