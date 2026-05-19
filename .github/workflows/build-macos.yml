@@ -82,7 +82,17 @@ jobs:
           fi
         continue-on-error: true
 
-      - name: Upload to Release
+      - name: Upload Artifact (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: meshctx-macos
+          path: |
+            meshctx-macos.tar.gz
+            meshctx-macos.dmg
+          retention-days: 7
+
+      - name: Upload to Release (tag only)
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |

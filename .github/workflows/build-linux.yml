@@ -91,7 +91,15 @@ PRERM
         dpkg-deb --build meshctx-deb meshctx_${VERSION}_all.deb
         ls -lh meshctx_*.deb
 
-    - name: Upload .deb
+    - name: Upload Artifact (always)
+      uses: actions/upload-artifact@v4
+      with:
+        name: meshctx-deb
+        path: meshctx_*_all.deb
+        retention-days: 7
+
+    - name: Upload to Release (tag only)
+      if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:
         files: meshctx_*_all.deb
