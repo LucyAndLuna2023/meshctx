@@ -178,8 +178,12 @@ try:
     from .approval import ApprovalEngine, ApprovalResult
 except ImportError:
     ApprovalEngine = ApprovalResult = _brain_noop
+try:
+    from .secret_scanner import SecretScanner
+except ImportError:
+    SecretScanner = _brain_noop
 
-__version__ = "2.31.0"
+__version__ = "2.32.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
