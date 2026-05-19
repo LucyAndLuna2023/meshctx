@@ -52,8 +52,14 @@ a = Analysis(
         'src.core.workspace_manager',
         'src.core.platform_fs', 'src.core.crypto',
         'src.core.plugin_manifest',
-        # v2.16+
-        'src.core.memory_v2', 'src.core.auto_healer',
+        # v2.30+ new modules
+        'src.core.learn_loop', 'src.core.cognitive_health',
+        'src.core.progressive_context', 'src.core.session_identity',
+        'src.core.llm_quality', 'src.core.acp_server',
+        'src.core.checkpoint', 'src.core.image_gen',
+        'src.core.secret_scanner', 'src.core.approval',
+        'src.core.profile_manager', 'src.core.context_compressor',
+        'src.core.voice_io', 'src.core.memory_engine',
         'src.core.performance_optimizer', 'src.core.action_gate',
         'src.core.attention_decay', 'src.core.pre_action_check',
         'src.core.principle_extractor', 'src.core.session_archiver',

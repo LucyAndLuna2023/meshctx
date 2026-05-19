@@ -293,7 +293,9 @@ def cmd_chat(args):
         print("无可用模型。运行 'meshctx model scan' 自动扫描")
         return
 
-    print(f"🤖 meshctx → {client.model_id}  /quit退出 /models列表 /model<id>切换 /gateway配置平台\n")
+    print(f"🤖 meshctx → {client.model_id}  /quit退出 /models列表 /model<id>切换 /gateway配置平台 /verbose详情\n")
+
+    verbose = False  # /verbose 切换详细模式
 
     messages = []
     if args.system:
@@ -367,6 +369,10 @@ def cmd_chat(args):
             else:
                 print(f"❌ 模型 '{new_id}' 不可用。输入 /models 查看可选模型\n")
             continue
+        if user == "/verbose":
+            verbose = not verbose
+            print(f"📋 详细模式: {'开启' if verbose else '关闭'} — {'显示所有工具调用和思考过程' if verbose else '仅显示最终结果'}\n")
+            continue
 
         messages.append({"role": "user", "content": user})
         
@@ -379,26 +385,73 @@ def cmd_chat(args):
             if wsl_user != user:
                 messages[-1]["content"] = wsl_user + "\n[WSL路径: " + wsl_user + "]"
         
-        from src.chat_tools import execute_tool, has_tool_call
+        from src.chat_tools import execute_tool, has_tool_call, TOOLS
         max_turns = 3
-        for _ in range(max_turns):
+        for turn in range(max_turns):
+            if verbose:
+                print(f"  ↳ 第{turn+1}轮推理...", end="", flush=True)
             print("meshctx> ", end="", flush=True)
             resp = client.chat(messages)
             text = resp["content"]
-            
+
             # 安全打印
             try:
                 print(text)
             except UnicodeEncodeError:
                 print(text.encode('utf-8', errors='surrogateescape').decode('utf-8', errors='replace'))
-            
+
             messages.append({"role": "assistant", "content": text})
-            
+
             # 检测工具调用
             if has_tool_call(text):
+                # 解析工具名和参数用于显示
+                import re as _re2
+                tool_match = _re2.search(r'\{["\']tool["\']\s*:\s*["\'](\w+)["\'](.*?)\}', text, _re2.DOTALL)
+                if tool_match:
+                    tool_name = tool_match.group(1)
+                    args_str = tool_match.group(2)
+                    # 提取关键参数用于显示
+                    display_args = {}
+                    for k in _re2.findall(r'["\'](\w+)["\']\s*:\s*["\']([^"\']*?)["\']', args_str):
+                        display_args[k[0]] = k[1]
+                    # 简洁显示
+                    if tool_name == "read_file":
+                        fpath = display_args.get("path", "?")
+                        print(f"\n📖 读取文件: {fpath}", flush=True)
+                    elif tool_name == "write_file":
+                        fpath = display_args.get("path", "?")
+                        clen = len(display_args.get("content", ""))
+                        print(f"\n📝 写入文件: {fpath} ({clen}字符)", flush=True)
+                    elif tool_name == "list_dir":
+                        dpath = display_args.get("path", ".")
+                        print(f"\n📂 列出目录: {dpath}", flush=True)
+                    elif tool_name == "run_cmd":
+                        cmd = display_args.get("cmd", "?")
+                        print(f"\n⚡ 执行命令: {cmd[:80]}", flush=True)
+                    elif tool_name == "search_files":
+                        pat = display_args.get("pattern", "?")
+                        print(f"\n🔍 搜索文件: {pat}", flush=True)
+                    elif tool_name == "web_search":
+                        query = display_args.get("query", "?")
+                        print(f"\n🌐 网页搜索: {query}", flush=True)
+                    else:
+                        print(f"\n🔧 调用工具: {tool_name}({display_args})", flush=True)
+                else:
+                    print(f"\n🔧 检测到工具调用...", flush=True)
+
                 result = execute_tool(text)
                 if result:
-                    print(f"\n🔧 {result[:200]}")
+                    # 显示结果摘要
+                    result_summary = result[:300]
+                    if len(result) > 300:
+                        result_summary += "..."
+                    if verbose:
+                        print(f"  ✅ 结果 ({len(result)}字符):\n{result_summary}\n", flush=True)
+                    else:
+                        # 简洁模式：只显示第一行
+                        first_line = result.split('\n')[0]
+                        print(f"  ✅ {first_line[:120]}", flush=True)
+
                     messages.append({"role": "user", "content": f"[工具执行结果]\n{result}\n\n请基于以上结果回复用户。"})
                     continue
             break
