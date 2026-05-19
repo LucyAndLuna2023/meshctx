@@ -35,13 +35,13 @@ trap "rm -rf ${TMPDIR}" EXIT
 if command -v wget >/dev/null 2>&1; then
     wget -q --timeout=60 -O "${TARBALL}" "${SRC_URL}" || {
         echo -e "${RED}✗ 下载失败${NC}"
-        echo "  手动安装: git clone https://github.com/${REPO}.git ${INSTALL_DIR}"
+        echo "  手动安装: curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | bash"
         exit 1
     }
 else
     curl -fsSL --connect-timeout 60 -o "${TARBALL}" "${SRC_URL}" || {
         echo -e "${RED}✗ 下载失败${NC}"
-        echo "  手动安装: git clone https://github.com/${REPO}.git ${INSTALL_DIR}"
+        echo "  手动安装: curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | bash"
         exit 1
     }
 fi

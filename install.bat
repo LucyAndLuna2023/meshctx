@@ -20,7 +20,7 @@ echo [2/4] Downloading...
 set "TMPDIR=%TEMP%\meshctx_%RANDOM%"
 mkdir "%TMPDIR%" 2>nul
 curl -fsSL --connect-timeout 60 -o "%TMPDIR%\meshctx-src.tar.gz" "%SRC_URL%" 2>nul || (
-    echo   FAILED. Manual: git clone https://github.com/LucyAndLuna2023/meshctx %%USERPROFILE%%\.meshctx
+    echo   FAILED. Manual: curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash
     rmdir /s /q "%TMPDIR%" 2>nul
     pause
     exit /b 1

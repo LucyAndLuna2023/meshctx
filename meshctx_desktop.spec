@@ -64,6 +64,8 @@ a = Analysis(
         'src.core.attention_decay', 'src.core.pre_action_check',
         'src.core.principle_extractor', 'src.core.session_archiver',
         'src.core.watchdog', 'src.core.credential_pool',
+        'src.core.auto_healer', 'src.core.memory_v2',
+        'src.core.telegram_router', 'src.core.usage_insights',
         # Desktop deps
         'webview', 'webview.platforms', 'webview.js',
         'webview.guilib', 'webview.util',
