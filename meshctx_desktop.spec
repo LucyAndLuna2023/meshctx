@@ -58,13 +58,12 @@ a = Analysis(
         'src.core.workspace_manager',
         'src.core.platform_fs', 'src.core.crypto',
         'src.core.plugin_manifest',
-        # v2.16-v2.25 NEW MODULES
-        'src.core.memory_v2', 'src.core.auto_healer',
-        'src.core.performance_optimizer', 'src.core.action_gate',
-        'src.core.attention_decay', 'src.core.context_compressor',
+        # v2.16+ MODULES (轻量, 已验证Linux导入OK)
+        'src.core.auto_healer', 'src.core.performance_optimizer',
+        'src.core.action_gate', 'src.core.attention_decay',
         'src.core.pre_action_check', 'src.core.principle_extractor',
-        'src.core.session_archiver', 'src.core.telegram_router',
-        'src.core.voice_io', 'src.core.watchdog',
+        'src.core.session_archiver', 'src.core.watchdog',
+        # skip context_compressor/telegram_router/voice_io (可能有Windows依赖问题)
         # Desktop deps
         'webview', 'webview.platforms', 'webview.js',
         'webview.guilib', 'webview.util',
