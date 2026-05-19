@@ -5085,39 +5085,27 @@ async def perf_report(req: Request):
 
 @app.get("/api/performance/benchmark")
 async def perf_benchmark():
-    """快速性能基准测试 — 测试关键端点延迟"""
-    import time, urllib.request
-    endpoints = [
-        ("GET", "/api/version"),
-        ("GET", "/health"),
-        ("GET", "/api/models"),
-        ("GET", "/api/providers"),
-        ("GET", "/api/file/list"),
-        ("GET", "/api/memory/stats"),
-    ]
-    results = []
-    total_start = time.time()
-    for method, path in endpoints:
-        try:
-            start = time.time()
-            req = urllib.request.Request(f"http://localhost:3001{path}")
-            with urllib.request.urlopen(req, timeout=5) as r:
-                body = r.read()
-            elapsed = round((time.time() - start) * 1000, 1)
-            results.append({"path": path, "method": method, "status": r.status, "latency_ms": elapsed, "size": len(body)})
-        except Exception as e:
-            results.append({"path": path, "method": method, "error": str(e)[:80]})
-    total_elapsed = round((time.time() - total_start) * 1000, 1)
+    """快速性能基准 — 使用已有优化器数据(避免递归调用)"""
+    import time
+    from src.core.performance_optimizer import optimizer
+    
+    latency = optimizer.get_latency_stats()
+    cache = optimizer.get_cache_stats()
+    mem = optimizer.get_memory_usage()
+    
+    # 不发起递归HTTP调用，只用已收集的数据
+    slow = {p: s for p, s in latency.items() if s.get("p95", 0) > 200}
+    
     return {
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
-        "total_ms": total_elapsed,
-        "endpoints_tested": len(endpoints),
-        "results": results,
-        "summary": {
-            "passed": sum(1 for r in results if "status" in r and r["status"] == 200),
-            "failed": sum(1 for r in results if "error" in r),
-            "avg_latency_ms": round(sum(r["latency_ms"] for r in results if "latency_ms" in r) / max(1, sum(1 for r in results if "latency_ms" in r)), 1),
-        }
+        "cache": cache,
+        "latency_stats": {p: s for p, s in list(latency.items())[-10:]},
+        "slow_endpoints": slow,
+        "memory": mem,
+        "recommendations": [
+            f"缓存命中率: {cache['hit_rate']}% — {'✅ 良好' if cache['hit_rate'] > 50 else '⚠️ 考虑增加TTL'}",
+            f"慢端点: {len(slow)}个 (P95>200ms)" if slow else "✅ 无慢端点",
+        ]
     }
 
 
