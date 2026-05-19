@@ -5431,23 +5431,18 @@ async def download_page(request: Request):
 <div class="card" style="margin-top:16px;">
   <h3>🐧 Linux / macOS</h3>
   <p style="color:var(--muted);">一条命令安装，首次启动时交互式配置</p>
-  <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);">curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash</pre>
-  <p style="font-size:11px;color:var(--muted);margin-top:8px;">需要 Python 3.10+ 和 Git · 安装后运行 <code>meshctx setup</code> 配置</p>
+  <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);">curl -fsSL https://meshctx.com/install.sh | bash</pre>
+  <p style="font-size:11px;color:var(--muted);margin-top:8px;">需要 Python 3.10+ · 无需 Git · 一键安装后运行 <code>meshctx setup</code> 配置</p>
 </div>
 <div class="card" style="margin-top:16px;">
   <h3>🪟 Windows</h3>
   <div style="text-align:center;padding:16px;">
-    <a class="btn btn-primary" href="https://github.com/LucyAndLuna2023/meshctx/releases/download/v2.29.2/meshctx-setup.exe" style="display:inline-block;text-decoration:none;padding:12px 32px;font-size:15px;">⬇ 下载 meshctx Windows (34MB)</a>
-    <p style="font-size:11px;color:var(--muted);margin-top:8px;">v2.29.2 · NSIS安装程序 · Win10/11 x64</p>
+    <a class="btn btn-primary" href="https://meshctx.com/dl/meshctx-setup.exe" style="display:inline-block;text-decoration:none;padding:12px 32px;font-size:15px;">⬇ 下载 meshctx Windows (230MB)</a>
+    <p style="font-size:11px;color:var(--muted);margin-top:8px;">v2.29.3 · NSIS安装程序 · Win10/11 x64</p>
   </div>
   <details style="margin-top:8px;font-size:12px;">
     <summary style="cursor:pointer;color:var(--muted);">📋 命令行安装</summary>
-    <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);margin-top:8px;">git clone https://github.com/LucyAndLuna2023/meshctx.git %USERPROFILE%\.meshctx
-cd %USERPROFILE%\.meshctx
-python -m venv venv
-venv\Scripts\activate
-pip install fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles
-python -m src.cli setup</pre>
+    <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);margin-top:8px;">curl -fsSL https://meshctx.com/install.sh | bash</pre>
   </details>
 </div>
 <div class="card" style="margin-top:16px;">

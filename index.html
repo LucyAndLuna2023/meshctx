@@ -377,8 +377,8 @@
                 <div style="font-size:2.5rem;">🪟</div>
                 <h3 data-lang-key="plat_windows">Windows</h3>
                 <p style="min-height:40px;" data-lang-key="win_desc">NSIS安装程序 · 7语言 · 一键安装</p>
-                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" style="display:block;margin:8px 0;" data-lang-key="win_dl_installer">📦 下载安装程序</a>
-                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-ghost" style="display:block;" data-lang-key="win_dl_portable">📂 下载便携版</a>
+                <a href="https://meshctx.com/dl/meshctx-setup.exe" class="btn btn-primary" style="display:block;margin:8px 0;" data-lang-key="win_dl_installer">📦 下载安装程序</a>
+                <span style="font-size:11px;color:var(--muted);">约230MB · v2.29.3 · Win10/11 x64</span>
             </div>
             <!-- 🍎 macOS -->
             <div class="feature-card" style="text-align:center;">
@@ -386,16 +386,11 @@
                 <h3 data-lang-key="plat_macos">macOS</h3>
                 <p style="min-height:40px;" data-lang-key="mac_desc">DMG安装包 · ARM64原生 · Homebrew</p>
                 <div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">
-                    <span class="c"># Homebrew 安装</span><br>
-                    brew install meshctx<br><br>
-                    <span class="c"># 或源码安装</span><br>
-                    git clone https://github.com/LucyAndLuna2023/meshctx.git<br>
-                    cd meshctx<br>
-                    python3 -m venv .venv && source .venv/bin/activate<br>
-                    pip install -e . && pip install pycryptodome<br>
-                    meshctx start
+                    <span class="c"># Homebrew 或 一键安装</span><br>
+                    brew install meshctx<br>
+                    <span class="c"># 或</span><br>
+                    curl -fsSL https://meshctx.com/install.sh | bash
                 </div>
-                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-macos.dmg" class="btn btn-ghost" style="display:block;" data-lang-key="mac_dl">📥 下载 DMG</a>
             </div>
             <!-- 🐧 Linux -->
             <div class="feature-card" style="text-align:center;">
@@ -404,12 +399,10 @@
                 <p style="min-height:40px;" data-lang-key="linux_desc">源码安装 · pip · venv · PEP 668兼容</p>
                 <div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">
                     <span class="c"># 克隆 + 虚拟环境</span><br>
-                    git clone https://github.com/LucyAndLuna2023/meshctx.git<br>
-                    cd meshctx<br>
-                    python3 -m venv .venv && source .venv/bin/activate<br>
-                    pip install -e . && pip install pycryptodome<br><br>
+                    <span class="c"># 一键安装</span><br>
+                    curl -fsSL https://meshctx.com/install.sh | bash<br><br>
                     <span class="c"># 配置 & 启动</span><br>
-                    export DEEPSEEK_API_KEY=sk-你的key<br>
+                    meshctx setup<br>
                     meshctx start
                 </div>
             </div>
