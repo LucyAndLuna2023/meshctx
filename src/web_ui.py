@@ -113,6 +113,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         <a href="/ui/projects" class="{% if '/ui/projects' in request.url.path %}active{% endif %}">项目</a>
         <a href="/ui/memories" class="{% if '/ui/memories' in request.url.path %}active{% endif %}">记忆</a>
         <a href="/ui/continuity" class="{% if '/ui/continuity' in request.url.path %}active{% endif %}">连续性</a>
+        <a href="/ui/memory" class="{% if '/ui/memory' in request.url.path %}active{% endif %}">🧠 Memory</a>
         <a href="/ui/chat" class="{% if '/ui/chat' in request.url.path %}active{% endif %}">Chat</a>
         <a href="/ui/setup" class="{% if '/ui/setup' in request.url.path %}active{% endif %}">Setup</a>
         <a href="/ui/dashboard" class="{% if '/ui/dashboard' in request.url.path %}active{% endif %}">📊</a>
@@ -169,6 +170,378 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>"""
+
+_TEMPLATES["memory.html"] = r"""{% extends "base.html" %}
+{% block content %}
+<h2 style="margin-bottom:16px;">🧠 记忆仪表板</h2>
+
+<!-- ═══ 统计卡片 ═══ -->
+<div class="stats" id="statsRow">
+    <div class="stat-card"><div class="value" id="statTotal">-</div><div class="label">总记忆数</div></div>
+    <div class="stat-card"><div class="value" id="statFact">-</div><div class="label">事实</div></div>
+    <div class="stat-card"><div class="value" id="statEpisode">-</div><div class="label">情节</div></div>
+    <div class="stat-card"><div class="value" id="statSkill">-</div><div class="label">技能</div></div>
+    <div class="stat-card"><div class="value" id="statEntities">-</div><div class="label">实体数</div></div>
+    <div class="stat-card"><div class="value" id="statRelations">-</div><div class="label">关系数</div></div>
+</div>
+
+<!-- ═══ 搜索 + 添加 双栏 ═══ -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <!-- 搜索栏 -->
+    <div class="card">
+        <h2>🔍 语义搜索</h2>
+        <div style="display:flex;gap:8px;">
+            <input id="searchInput" placeholder="输入查询词..." style="flex:1;" onkeydown="if(event.key==='Enter')doSearch()">
+            <select id="searchType" style="width:100px;">
+                <option value="">全部类型</option>
+                <option value="fact">事实</option>
+                <option value="episode">情节</option>
+                <option value="skill">技能</option>
+            </select>
+            <button class="btn btn-primary" onclick="doSearch()">搜索</button>
+        </div>
+        <div id="searchResults" style="margin-top:12px;max-height:400px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- 添加记忆 -->
+    <div class="card">
+        <h2>➕ 添加记忆</h2>
+        <div class="form-group"><label>内容</label><textarea id="addContent" rows="3" placeholder="输入记忆内容..."></textarea></div>
+        <div style="display:flex;gap:8px;">
+            <div class="form-group" style="flex:1;"><label>类型</label>
+                <select id="addType">
+                    <option value="fact">事实 (fact)</option>
+                    <option value="episode">情节 (episode)</option>
+                    <option value="skill">技能 (skill)</option>
+                </select>
+            </div>
+            <div class="form-group" style="flex:1;"><label>重要性 (0-1)</label>
+                <input id="addImportance" type="number" min="0" max="1" step="0.1" value="0.5">
+            </div>
+        </div>
+        <div class="form-group"><label>标签（逗号分隔）</label><input id="addTags" placeholder="python, AI, 记忆"></div>
+        <button class="btn btn-primary" onclick="doAdd()" style="width:100%;">添加记忆</button>
+    </div>
+</div>
+
+<!-- ═══ 知识图谱 ═══ -->
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h2 style="margin:0;">🕸️ 知识图谱</h2>
+        <button class="btn btn-primary" onclick="loadGraph()" style="font-size:12px;padding:4px 12px;">刷新图谱</button>
+    </div>
+    <div style="position:relative;background:#0a0f1a;border:1px solid #334155;border-radius:8px;overflow:hidden;min-height:400px;" id="graphContainer">
+        <canvas id="graphCanvas" style="display:block;width:100%;height:100%;cursor:grab;"></canvas>
+        <div id="graphEmpty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#64748b;text-align:center;">
+            <div style="font-size:40px;">🕸️</div>
+            <div>暂无图谱数据，添加记忆后自动构建</div>
+        </div>
+        <div id="graphTooltip" style="display:none;position:absolute;background:#1e293b;border:1px solid #38bdf8;border-radius:6px;padding:8px 12px;font-size:12px;color:#e2e8f0;pointer-events:none;z-index:100;white-space:nowrap;"></div>
+    </div>
+</div>
+
+<script>
+// ── 页面初始化 ──
+(async function init() {
+    await loadStats();
+    await loadGraph();
+})();
+
+// ── 加载统计 ──
+async function loadStats() {
+    try {
+        const r = await fetch('/api/memory/stats');
+        const data = await r.json();
+        document.getElementById('statTotal').textContent = data.total_memories || 0;
+        document.getElementById('statFact').textContent = (data.by_type && data.by_type.fact) || 0;
+        document.getElementById('statEpisode').textContent = (data.by_type && data.by_type.episode) || 0;
+        document.getElementById('statSkill').textContent = (data.by_type && data.by_type.skill) || 0;
+        if (data.knowledge_graph) {
+            document.getElementById('statEntities').textContent = data.knowledge_graph.entities || 0;
+            document.getElementById('statRelations').textContent = data.knowledge_graph.relations || 0;
+        }
+    } catch(e) {
+        console.error('stats error:', e);
+    }
+}
+
+// ── 搜索 ──
+async function doSearch() {
+    const query = document.getElementById('searchInput').value.trim();
+    if (!query) return;
+    const memType = document.getElementById('searchType').value || null;
+    const resultsDiv = document.getElementById('searchResults');
+    resultsDiv.innerHTML = '<div style="color:#64748b;text-align:center;padding:20px;">⏳ 搜索中...</div>';
+
+    try {
+        const body = { query: query, top_k: 15 };
+        if (memType) body.type = memType;
+        const r = await fetch('/api/memory/search', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+        const data = await r.json();
+        if (!data.results || data.results.length === 0) {
+            resultsDiv.innerHTML = '<div class="empty">📭 未找到匹配记忆</div>';
+            return;
+        }
+        let html = '<div style="color:#64748b;font-size:12px;margin-bottom:8px;">找到 ' + data.count + ' 条结果</div>';
+        for (const m of data.results) {
+            const typeLabel = {fact:'📋事实', episode:'📖情节', skill:'🔧技能'}[m.type] || m.type;
+            const typeColor = {fact:'#38bdf8', episode:'#a78bfa', skill:'#34d399'}[m.type] || '#94a3b8';
+            const scorePercent = Math.round((m.score || 0) * 100);
+            html += '<div style="border-bottom:1px solid #334155;padding:8px 0;font-size:13px;">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
+                '<span style="color:' + typeColor + ';font-weight:600;font-size:11px;">' + typeLabel + '</span>' +
+                '<span style="color:#64748b;font-size:11px;">相似度: ' + scorePercent + '%</span>' +
+                '</div>' +
+                '<div style="color:#e2e8f0;">' + escapeHtml(m.content || m.summary || '') + '</div>' +
+                (m.tags && m.tags.length ? '<div style="margin-top:4px;">' + m.tags.map(function(t){return '<span style="display:inline-block;background:#1e3a5f;color:#7dd3fc;padding:1px 8px;border-radius:10px;font-size:10px;margin-right:4px;">#'+escapeHtml(t)+'</span>'}).join('') + '</div>' : '') +
+                '</div>';
+        }
+        resultsDiv.innerHTML = html;
+    } catch(e) {
+        resultsDiv.innerHTML = '<div class="flash flash-error">搜索失败: ' + escapeHtml(String(e)) + '</div>';
+    }
+}
+
+// ── 添加记忆 ──
+async function doAdd() {
+    const content = document.getElementById('addContent').value.trim();
+    if (!content) { alert('请输入记忆内容'); return; }
+
+    const memType = document.getElementById('addType').value;
+    const importance = parseFloat(document.getElementById('addImportance').value) || 0.5;
+    const tagsRaw = document.getElementById('addTags').value.trim();
+    const tags = tagsRaw ? tagsRaw.split(',').map(function(t){return t.trim()}).filter(Boolean) : [];
+
+    try {
+        const r = await fetch('/api/memory/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                content: content,
+                type: memType,
+                importance: importance,
+                tags: tags,
+                source: 'user'
+            })
+        });
+        const data = await r.json();
+        if (data.ok) {
+            document.getElementById('addContent').value = '';
+            document.getElementById('addTags').value = '';
+            document.getElementById('addImportance').value = '0.5';
+            await loadStats();
+            await loadGraph();
+            // 显示成功提示
+            const area = document.getElementById('searchResults');
+            area.innerHTML = '<div class="flash flash-success">✅ 记忆已添加！ID: ' + data.memory.id.substring(0,8) + '...</div>';
+            setTimeout(function(){ area.innerHTML = ''; }, 3000);
+        } else {
+            alert('添加失败: ' + JSON.stringify(data));
+        }
+    } catch(e) {
+        alert('添加失败: ' + e.message);
+    }
+}
+
+// ── 知识图谱可视化 (Canvas) ──
+let graphData = null;
+let graphPanX = 0, graphPanY = 0;
+let graphScale = 1;
+let graphDragging = false;
+let graphDragStartX = 0, graphDragStartY = 0;
+
+async function loadGraph() {
+    try {
+        const r = await fetch('/api/memory/graph');
+        graphData = await r.json();
+        drawGraph();
+        if (graphData.nodes && graphData.nodes.length > 0) {
+            document.getElementById('graphEmpty').style.display = 'none';
+        } else {
+            document.getElementById('graphEmpty').style.display = 'block';
+        }
+    } catch(e) {
+        console.error('graph error:', e);
+    }
+}
+
+function drawGraph() {
+    const canvas = document.getElementById('graphCanvas');
+    const container = document.getElementById('graphContainer');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = container.getBoundingClientRect();
+    const w = rect.width;
+    const h = Math.max(400, rect.height || 400);
+
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    if (!graphData || !graphData.nodes || graphData.nodes.length === 0) return;
+
+    const nodes = graphData.nodes;
+    const edges = graphData.edges || [];
+
+    // 力导向布局的简单模拟 (圆形布局)
+    const cx = w / 2 + graphPanX;
+    const cy = h / 2 + graphPanY;
+    const radius = Math.min(w, h) * 0.35 * graphScale;
+    const nodePositions = {};
+
+    nodes.forEach(function(node, i) {
+        const angle = (2 * Math.PI * i) / nodes.length;
+        const x = cx + radius * Math.cos(angle);
+        const y = cy + radius * Math.sin(angle);
+        nodePositions[node.id] = { x: x, y: y, node: node };
+    });
+
+    // 绘制边
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    edges.forEach(function(edge) {
+        const from = nodePositions[edge.source];
+        const to = nodePositions[edge.target];
+        if (!from || !to) return;
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.stroke();
+
+        // 边的标签
+        if (edge.label) {
+            const mx = (from.x + to.x) / 2;
+            const my = (from.y + to.y) / 2;
+            ctx.fillStyle = '#64748b';
+            ctx.font = '9px sans-serif';
+            ctx.fillText(edge.label, mx, my - 4);
+        }
+    });
+
+    // 绘制节点
+    const typeColors = { concept: '#38bdf8', person: '#a78bfa', project: '#34d399', skill: '#fbbf24', unknown: '#94a3b8' };
+    nodes.forEach(function(node) {
+        const pos = nodePositions[node.id];
+        if (!pos) return;
+        const color = typeColors[node.type] || '#94a3b8';
+        const nodeR = Math.max(6, Math.min(20, 8 + (node.memory_count || 0) * 2));
+
+        // 光晕
+        if (node.highlight) {
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, nodeR + 4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(56,189,248,0.3)';
+            ctx.fill();
+        }
+
+        // 节点圆
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, nodeR, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = '#0a0f1a';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // 标签
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = (nodeR > 10 ? 'bold ' : '') + '10px sans-serif';
+        ctx.textAlign = 'center';
+        const label = node.label.length > 12 ? node.label.substring(0,11)+'…' : node.label;
+        ctx.fillText(label, pos.x, pos.y + nodeR + 12);
+    });
+
+    // 存储节点位置用于hover检测
+    canvas._nodePositions = nodePositions;
+}
+
+// 图谱交互: 拖拽平移
+(function setupGraphInteraction() {
+    const canvas = document.getElementById('graphCanvas');
+    const tooltip = document.getElementById('graphTooltip');
+
+    canvas.addEventListener('mousedown', function(e) {
+        graphDragging = true;
+        graphDragStartX = e.clientX - graphPanX;
+        graphDragStartY = e.clientY - graphPanY;
+        canvas.style.cursor = 'grabbing';
+    });
+
+    window.addEventListener('mousemove', function(e) {
+        if (graphDragging) {
+            graphPanX = e.clientX - graphDragStartX;
+            graphPanY = e.clientY - graphDragStartY;
+            drawGraph();
+        }
+        // Hover tooltip
+        if (!graphDragging && canvas._nodePositions) {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            let found = null;
+            for (var id in canvas._nodePositions) {
+                var p = canvas._nodePositions[id];
+                var r = Math.max(6, Math.min(20, 8 + (p.node.memory_count || 0) * 2));
+                var dx = mx - p.x, dy = my - p.y;
+                if (dx*dx + dy*dy < (r+6)*(r+6)) {
+                    found = p.node;
+                    break;
+                }
+            }
+            if (found) {
+                tooltip.style.display = 'block';
+                tooltip.style.left = (mx + 15) + 'px';
+                tooltip.style.top = (my - 15) + 'px';
+                tooltip.innerHTML = '<strong>' + escapeHtml(found.label) + '</strong><br>' +
+                    '类型: ' + (found.type || 'unknown') + '<br>' +
+                    '关联记忆: ' + (found.memory_count || 0);
+            } else {
+                tooltip.style.display = 'none';
+            }
+        }
+    });
+
+    window.addEventListener('mouseup', function() {
+        graphDragging = false;
+        canvas.style.cursor = 'grab';
+    });
+
+    canvas.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        graphScale = Math.max(0.2, Math.min(3, graphScale * delta));
+        drawGraph();
+    });
+
+    // 双击重置
+    canvas.addEventListener('dblclick', function() {
+        graphPanX = 0; graphPanY = 0; graphScale = 1;
+        drawGraph();
+    });
+
+    // 窗口大小变化时重绘
+    window.addEventListener('resize', function() {
+        if (graphData) drawGraph();
+    });
+})();
+
+// ── 工具函数 ──
+function escapeHtml(text) {
+    if (!text) return '';
+    var d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+</script>
+{% endblock %}"""
 
 _TEMPLATES["dashboard.html"] = r"""{% extends "base.html" %}
 {% block content %}
@@ -1518,6 +1891,9 @@ async function send() {
               } else if (parsed.token) {
                 var token = parsed.token.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
                 streamText.innerHTML += token;
+                // 自动滚动到底部
+                var msgDiv = document.getElementById('messages');
+                if(msgDiv) msgDiv.scrollTop = msgDiv.scrollHeight;
                 // 首token到达，更新状态
                 if(statusEl && statusEl.textContent === '🔵 思考中...') {
                     statusEl.textContent = '🟢 生成中...';
@@ -4062,6 +4438,17 @@ async def delete_memory_ui(request: Request, memory_id: str):
     engine = _engine(request)
     engine.delete_memory(memory_id)
     return RedirectResponse(url="/ui/memories", status_code=303)
+
+
+# ── 记忆仪表板 (搜索+添加+图谱+统计) ──────────────────────
+
+@router.get("/memory", response_class=HTMLResponse)
+async def memory_dashboard(request: Request):
+    """记忆仪表板: 搜索、添加、知识图谱可视化、统计"""
+    return _render("memory.html", {
+        "request": request,
+        "title": "记忆仪表板",
+    })
 
 
 # ── 连续性检测仪表板 ──────────────────────────────────────────
