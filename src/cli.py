@@ -624,6 +624,79 @@ def cmd_browser(args):
         print(f"打开: {args.target}")
 
 
+def cmd_profile(args):
+    """Profile多实例管理"""
+    from src.core.profile_manager import ProfileManager
+    pm = ProfileManager()
+    
+    if args.action == "list":
+        profiles = pm.list()
+        print(f"Profiles ({len(profiles)}):")
+        for p in profiles:
+            marker = " ← 当前" if p == pm.active else ""
+            print(f"  {'●' if p == pm.active else '○'} {p}{marker}")
+    elif args.action == "create":
+        if not args.name:
+            print("用法: meshctx profile create <name>")
+            return
+        pm.create(args.name)
+        print(f"✓ Profile '{args.name}' 已创建")
+    elif args.action == "use":
+        if not args.name:
+            print("用法: meshctx profile use <name>")
+            return
+        pm.use(args.name)
+        print(f"✓ 已切换到 '{args.name}'")
+    elif args.action == "delete":
+        if not args.name:
+            print("用法: meshctx profile delete <name>")
+            return
+        try:
+            pm.delete(args.name)
+            print(f"✓ Profile '{args.name}' 已删除")
+        except ValueError as e:
+            print(f"✗ {e}")
+    elif args.action == "clone":
+        if not args.name or not args.target:
+            print("用法: meshctx profile clone <src> --target <dst>")
+            return
+        pm.clone(args.name, args.target)
+        print(f"✓ Profile '{args.name}' 已克隆为 '{args.target}'")
+    elif args.action == "path":
+        name = args.name or pm.active
+        print(pm.get_path(name))
+
+
+def cmd_approve(args):
+    """命令审批配置"""
+    from src.core.approval import ApprovalEngine
+    
+    ae = ApprovalEngine()
+    
+    if args.action == "status":
+        print(f"审批模式: {ae.mode}")
+        print(f"YOLO: {'开启' if ae.yolo else '关闭'}")
+    elif args.action == "mode":
+        if not args.mode:
+            print(f"当前模式: {ae.mode}")
+            print("可用: manual, smart, off")
+            return
+        ae.set_mode(args.mode)
+        print(f"✓ 审批模式已切换为: {args.mode}")
+    elif args.action == "check":
+        import sys
+        cmd = " ".join(sys.argv[3:]) if len(sys.argv) > 3 else ""
+        if not cmd:
+            print("用法: meshctx approve check <命令>")
+            return
+        result = ae.check(cmd)
+        print(f"命令: {cmd}")
+        print(f"需要审批: {'是' if result.requires_approval else '否'}")
+        print(f"风险等级: {result.risk_level}")
+        print(f"动作: {result.action}")
+        print(f"原因: {result.reason}")
+
+
 def cmd_tts(args):
     """TTS 语音合成"""
     from src.tts import TTSEngine
@@ -742,6 +815,18 @@ def main():
     tt.add_argument("-o","--output")
     tt.set_defaults(func=cmd_tts)
     
+    # profile
+    pr = sub.add_parser("profile", help="多实例Profile管理")
+    pr.add_argument("action", choices=["list","create","use","delete","clone","path"])
+    pr.add_argument("name", nargs="?", help="Profile名")
+    pr.add_argument("--target", help="克隆目标名")
+    pr.set_defaults(func=cmd_profile)
+    
+    # approve
+    ap = sub.add_parser("approve", help="命令审批配置")
+    ap.add_argument("action", choices=["status","mode","check"])
+    ap.add_argument("mode", nargs="?", choices=["manual","smart","off"])
+    ap.set_defaults(func=cmd_approve)
     # mcp
     mc = sub.add_parser("mcp", help="MCP协议")
     mc.add_argument("action", choices=["serve","tools"])
