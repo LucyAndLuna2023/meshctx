@@ -51,7 +51,7 @@ echo -e "  ${GREEN}✓${NC} 下载完成 ($(du -h "${TARBALL}" | cut -f1))"
 echo "→ 解压到 ${INSTALL_DIR}..."
 rm -rf "${INSTALL_DIR}"
 mkdir -p "${INSTALL_DIR}"
-tar xzf "${TARBALL}" -C "${INSTALL_DIR}" --strip-components=1 || {
+tar xzf "${TARBALL}" -C "${INSTALL_DIR}" || {
     echo -e "${RED}✗ 解压失败${NC}"
     exit 1
 }
