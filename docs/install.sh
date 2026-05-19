@@ -1,8 +1,7 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════
-# meshctx 一键安装 v5
-# 全部走 GitHub Releases，不需要代理
-# curl -fsSL https://meshctx.com/install.sh | bash
+# meshctx 一键安装 v6
+# curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash
 # ═══════════════════════════════════════════════════════
 set -e
 
