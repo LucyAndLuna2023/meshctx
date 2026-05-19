@@ -191,6 +191,14 @@ try:
 except ImportError:
     SessionIdentity = _brain_noop
 try:
+    from .llm_quality import LLMQualityMonitor
+except ImportError:
+    LLMQualityMonitor = _brain_noop
+try:
+    from .acp_server import ACPServer
+except ImportError:
+    ACPServer = _brain_noop
+try:
     from .checkpoint import CheckpointManager
 except ImportError:
     CheckpointManager = _brain_noop
@@ -199,7 +207,7 @@ try:
 except ImportError:
     ImageGenerator = generate_image = _brain_noop
 
-__version__ = "2.35.0"
+__version__ = "2.36.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
