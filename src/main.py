@@ -2447,6 +2447,22 @@ async def learn_loop_stats():
 async def principle_guard_status():
     """原则守护者 — 杏仁核+丘脑门控防止关键原则被淹没"""
     from src.core.principle_extractor import get_extractor
+
+
+@app.get("/api/profile/list")
+async def profile_list():
+    """多实例Profile列表"""
+    from src.core.profile_manager import ProfileManager
+    pm = ProfileManager()
+    return {"profiles": pm.list(), "active": pm.active}
+
+
+@app.get("/api/approval/status")
+async def approval_status():
+    """命令审批状态"""
+    from src.core.approval import ApprovalEngine
+    ae = ApprovalEngine()
+    return {"mode": ae.mode, "yolo": ae.yolo}
     ext = get_extractor()
     all_p = ext.list_all()
     return {

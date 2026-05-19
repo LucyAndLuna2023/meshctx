@@ -170,8 +170,16 @@ try:
     from .learn_loop import LearnLoop
 except ImportError:
     LearnLoop = _brain_noop
+try:
+    from .profile_manager import ProfileManager
+except ImportError:
+    ProfileManager = _brain_noop
+try:
+    from .approval import ApprovalEngine, ApprovalResult
+except ImportError:
+    ApprovalEngine = ApprovalResult = _brain_noop
 
-__version__ = "2.30.0"
+__version__ = "2.31.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
