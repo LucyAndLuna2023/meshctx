@@ -5431,8 +5431,8 @@ async def download_page(request: Request):
 <div class="card" style="margin-top:16px;">
   <h3>🐧 Linux / macOS</h3>
   <p style="color:var(--muted);">一条命令安装，首次启动时交互式配置</p>
-  <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);">curl -fsSL https://meshctx.com/install.sh | bash</pre>
-  <p style="font-size:11px;color:var(--muted);margin-top:8px;">安装后运行 <code>meshctx setup</code> 配置模型和API Key</p>
+  <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);">curl -fsSL http://47.120.0.239:3001/install.sh | bash</pre>
+  <p style="font-size:11px;color:var(--muted);margin-top:8px;">安装后运行 <code>meshctx setup</code> 交互式选择模型和Key (37供应商)</p>
 </div>
 <div class="card" style="margin-top:16px;">
   <h3>🪟 Windows</h3>
