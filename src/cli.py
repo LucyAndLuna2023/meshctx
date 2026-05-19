@@ -697,6 +697,21 @@ def cmd_approve(args):
         print(f"原因: {result.reason}")
 
 
+def cmd_completion(args):
+    """Shell自动补全"""
+    import os
+    script_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "scripts", "completions"
+    )
+    shell_file = os.path.join(script_dir, f"meshctx.{args.shell}")
+    if os.path.isfile(shell_file):
+        with open(shell_file) as f:
+            print(f.read())
+    else:
+        print(f"补全脚本不存在: {shell_file}")
+
+
 def cmd_tts(args):
     """TTS 语音合成"""
     from src.tts import TTSEngine
@@ -827,6 +842,10 @@ def main():
     ap.add_argument("action", choices=["status","mode","check"])
     ap.add_argument("mode", nargs="?", choices=["manual","smart","off"])
     ap.set_defaults(func=cmd_approve)
+    # completion
+    cm = sub.add_parser("completion", help="Shell自动补全脚本")
+    cm.add_argument("shell", choices=["bash","zsh","fish"])
+    cm.set_defaults(func=cmd_completion)
     # mcp
     mc = sub.add_parser("mcp", help="MCP协议")
     mc.add_argument("action", choices=["serve","tools"])
