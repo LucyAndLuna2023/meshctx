@@ -272,7 +272,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.23.0",
+    version="2.24.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -2979,6 +2979,51 @@ async def ws_metrics(websocket: WebSocket):
     await get_hub().connect(websocket)
 
 
+@app.websocket("/ws/chat")
+async def ws_chat_stream(websocket: WebSocket):
+    """WebSocket流式Chat — 打字机效果逐token推送"""
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_json()
+            message = data.get("message", "")
+            model_id = data.get("model", "")
+            if not message:
+                await websocket.send_json({"error": "message required"})
+                continue
+            
+            # 获取模型客户端
+            from src.model_registry import get_registry
+            reg = get_registry()
+            client = reg.get(model_id) if model_id else reg.get()
+            
+            if not client:
+                await websocket.send_json({"error": f"Model not available: {model_id}"})
+                continue
+            
+            # 流式响应
+            try:
+                stream = client.client.chat.completions.create(
+                    model=client.model_name,
+                    messages=[{"role": "user", "content": message}],
+                    stream=True,
+                    temperature=0.7,
+                    max_tokens=2048,
+                )
+                full_text = ""
+                for chunk in stream:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        token = chunk.choices[0].delta.content
+                        full_text += token
+                        await websocket.send_json({"token": token, "type": "chunk"})
+                
+                await websocket.send_json({"type": "done", "full_text": full_text})
+            except Exception as e:
+                await websocket.send_json({"error": str(e), "type": "error"})
+    except Exception:
+        pass
+
+
 # ═══════════════════════════════════════════════════
 # 自动更新检查 (v2.14)
 # ═══════════════════════════════════════════════════
@@ -3129,6 +3174,101 @@ async def update_memory(req: Request):
     mem = get_memory(user)
     version = mem.update(section, content)
     return {"version": version, "stats": mem.get_stats()}
+
+
+# ═══════════════════════════════════════════════════
+# 记忆系统 V2 — 向量检索 + 知识图谱
+# ═══════════════════════════════════════════════════
+
+@app.post("/api/memory/search")
+async def memory_search(req: Request):
+    """语义搜索记忆"""
+    try:
+        body = await req.json()
+    except Exception:
+        raise HTTPException(400, detail="Invalid JSON body")
+
+    query = body.get("query", "").strip()
+    if not query:
+        raise HTTPException(400, detail="Missing 'query' field")
+
+    top_k = min(body.get("top_k", 10), 50)
+    mem_type = body.get("type")  # fact|episode|skill
+    tags = body.get("tags")       # optional tag filter
+
+    from src.core.memory_v2 import get_memory_manager
+    mgr = get_memory_manager()
+    results = mgr.search(query, top_k=top_k, mem_type=mem_type, tags=tags)
+    return {
+        "query": query,
+        "count": len(results),
+        "results": results,
+    }
+
+
+@app.post("/api/memory/add")
+async def memory_add(req: Request):
+    """添加记忆条目"""
+    try:
+        body = await req.json()
+    except Exception:
+        raise HTTPException(400, detail="Invalid JSON body")
+
+    content = body.get("content", "").strip()
+    if not content:
+        raise HTTPException(400, detail="Missing 'content' field")
+
+    tags = body.get("tags", [])
+    entities = body.get("entities")
+    mem_type = body.get("type", "fact")
+    source = body.get("source", "user")
+    importance = min(max(body.get("importance", 0.5), 0.0), 1.0)
+
+    # 验证类型
+    if mem_type not in ("fact", "episode", "skill"):
+        raise HTTPException(400, detail="type must be fact|episode|skill")
+
+    from src.core.memory_v2 import get_memory_manager
+    mgr = get_memory_manager()
+    entry = mgr.add(
+        content=content,
+        tags=tags,
+        entities=entities,
+        mem_type=mem_type,
+        source=source,
+        importance=importance,
+    )
+    return {"ok": True, "memory": entry.to_dict()}
+
+
+@app.get("/api/memory/graph")
+async def memory_graph(query: str = ""):
+    """获取知识图谱数据"""
+    from src.core.memory_v2 import get_memory_manager
+    mgr = get_memory_manager()
+
+    if query:
+        result = mgr.search_graph(query)
+        graph_data = mgr.get_graph_data()
+        # 高亮匹配节点
+        matched = set(result.get("matched_entities", []))
+        for node in graph_data["nodes"]:
+            node["highlight"] = node["id"] in matched
+        return {
+            "query": query,
+            "search": result,
+            "graph": graph_data,
+        }
+
+    return mgr.get_graph_data()
+
+
+@app.get("/api/memory/stats")
+async def memory_stats():
+    """记忆系统统计"""
+    from src.core.memory_v2 import get_memory_manager
+    mgr = get_memory_manager()
+    return mgr.get_stats()
 
 
 # ═══════════════════════════════════════════════════
