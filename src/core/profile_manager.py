@@ -13,14 +13,10 @@ from pathlib import Path
 class ProfileManager:
     """Manage multiple isolated configuration profiles."""
 
-    def __init__(self, home: str):
-        """Initialize with a home directory (e.g. ~/.meshctx).
-
-        Args:
-            home: Base directory for all meshctx data.  Profiles are stored
-                  in {home}/profiles/ and the active marker lives at
-                  {home}/active_profile.
-        """
+    def __init__(self, home: str = None):
+        """Initialize with a home directory (default ~/.meshctx)."""
+        if home is None:
+            home = os.path.expanduser("~/.meshctx")
         self.home = home
         self._profiles_dir = os.path.join(home, "profiles")
         os.makedirs(self._profiles_dir, exist_ok=True)
