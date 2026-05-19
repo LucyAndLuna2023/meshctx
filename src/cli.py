@@ -20,11 +20,29 @@ import sys
 from pathlib import Path
 
 
+def _ensure_keys_loaded():
+    """确保API Key已从.env加载到环境变量（CLI命令调用前）"""
+    env_file = Path.home() / ".meshctx" / ".env"
+    if not env_file.exists():
+        return 0
+    loaded = 0
+    for line in env_file.read_text().strip().split("\n"):
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, val = line.split("=", 1)
+            key, val = key.strip(), val.strip()
+            if val and key not in os.environ:
+                os.environ[key] = val
+                loaded += 1
+    return loaded
+
+
 # ═══════════════════════════════════════════════════
 # model 命令 — 30+模型, 一行配置
 # ═══════════════════════════════════════════════════
 
 def cmd_model(args):
+    _ensure_keys_loaded()
     from src.model_registry import get_registry, BUILTIN_MODELS
 
     reg = get_registry(args.config)
@@ -264,6 +282,7 @@ def _cmd_gateway_setup():
 
 
 def cmd_chat(args):
+    _ensure_keys_loaded()
     from src.model_registry import get_registry
 
     reg = get_registry(args.config)
