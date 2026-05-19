@@ -5436,13 +5436,25 @@ async def download_page(request: Request):
 </div>
 <div class="card" style="margin-top:16px;">
   <h3>🪟 Windows</h3>
-  <p style="color:var(--muted);">需要 Python 3.10+ 和 Git</p>
-  <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);">git clone https://github.com/LucyAndLuna2023/meshctx.git %USERPROFILE%\.meshctx
+  <div style="display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;">
+    <div style="flex:1;min-width:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;">
+      <p>📦 <b>安装程序</b><br><span style="font-size:11px;color:var(--muted);">NSIS安装器 · 自动配置</span></p>
+      <a class="btn btn-primary" href="https://github.com/LucyAndLuna2023/meshctx/releases/latest" target="_blank" style="display:inline-block;text-decoration:none;padding:10px 20px;margin-top:8px;">⬇ GitHub Releases</a>
+    </div>
+    <div style="flex:1;min-width:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;">
+      <p>🐍 <b>Python版</b><br><span style="font-size:11px;color:var(--muted);">需Python 3.10+ · Git</span></p>
+      <a class="btn btn-primary" href="https://github.com/LucyAndLuna2023/meshctx" target="_blank" style="display:inline-block;text-decoration:none;padding:10px 20px;margin-top:8px;">⬇ 源码安装</a>
+    </div>
+  </div>
+  <details style="margin-top:12px;font-size:12px;">
+    <summary style="cursor:pointer;color:var(--muted);">📋 或命令行安装</summary>
+    <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);margin-top:8px;">git clone https://github.com/LucyAndLuna2023/meshctx.git %USERPROFILE%\.meshctx
 cd %USERPROFILE%\.meshctx
 python -m venv venv
 venv\Scripts\activate
 pip install fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles
 python -m src.cli setup</pre>
+  </details>
 </div>
 <div class="card" style="margin-top:16px;">
   <h3>🐳 Docker (即将推出)</h3>
