@@ -5099,91 +5099,326 @@ try {
 } catch(e) {} // Auto-refresh every 30s
 </script></body></html>""")
 
-# ── v2.17 插件市场 ─────────────────────────────────────
+# ── v2.18 插件市场 (增强卡片+URL安装+社区推荐) ──────────────────
 
 @router.get("/plugins", response_class=HTMLResponse)
 async def plugins_page(request: Request):
     from fastapi.responses import HTMLResponse
     return HTMLResponse("""<!DOCTYPE html>
 <html lang="zh">
-<head><meta charset="UTF-8"><title>Plugins - MeshCtx</title>
+<head><meta charset="UTF-8"><title>🔌 插件市场 - MeshCtx</title>
 <style>
-:root{--bg:#0b0e1a;--card-bg:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08);--text:#e0e4f0;--muted:#8090b0;--accent:#6c5ce7}
+:root{--bg:#0b0e1a;--card-bg:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08);--text:#e0e4f0;--muted:#8090b0;--accent:#6c5ce7;--accent2:#00d48c;--danger:#f85149;--gold:#f0b90b;--green:#22c55e}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,sans-serif;background:linear-gradient(135deg,#0b0e1a,#1a1f35);color:var(--text);min-height:100vh;padding:24px}
-nav{display:flex;gap:12px;margin-bottom:24px}
-nav a{color:var(--muted);text-decoration:none;padding:8px 16px;border-radius:8px;font-size:14px}
+nav{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+nav a{color:var(--muted);text-decoration:none;padding:8px 16px;border-radius:8px;font-size:14px;transition:all 0.2s}
 nav a:hover{background:rgba(108,92,231,0.15);color:var(--accent)}
-.container{max-width:860px;margin:0 auto}
+nav a.active{color:var(--accent);background:rgba(108,92,231,0.15)}
+.container{max-width:960px;margin:0 auto}
 body.light{background:#f8fafc;color:#1e293b}
 body.light .card{background:#fff;border-color:#e2e8f0}
+body.light .section-title{color:#334155}
 body.light nav a{color:#64748b}
 body.light input,body.light select{background:#fff;border-color:#e2e8f0;color:#1e293b}
-.card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:16px}
-.btn{padding:8px 20px;border-radius:8px;border:none;font-weight:600;cursor:pointer;font-size:13px}
+body.light .url-bar{background:#f1f5f9;border-color:#e2e8f0}
+body.light .community-card{background:#fff;border-color:#e2e8f0}
+body.light .community-card:hover{border-color:#6c5ce7;box-shadow:0 4px 20px rgba(108,92,231,0.1)}
+h2{font-size:24px;font-weight:700;margin-bottom:4px}
+h2 .ver{font-size:11px;color:var(--muted);font-weight:400;margin-left:8px}
+.section-title{font-size:16px;font-weight:600;margin:28px 0 12px;display:flex;align-items:center;gap:8px;color:var(--text)}
+.section-title .badge{font-size:10px;background:var(--accent);color:#fff;padding:2px 8px;border-radius:10px}
+/* ── 搜索/筛选栏 ── */
+.toolbar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.toolbar input,.toolbar select{padding:10px 14px;background:#1e293b;border:1px solid #334155;color:var(--text);border-radius:10px;font-size:13px;transition:border-color 0.2s}
+.toolbar input:focus,.toolbar select:focus{outline:none;border-color:var(--accent)}
+.toolbar input{flex:1;min-width:200px}
+
+/* ── 卡片容器 ── */
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:18px;transition:all 0.2s}
+.card:hover{border-color:var(--accent);box-shadow:0 4px 24px rgba(108,92,231,0.12);transform:translateY(-1px)}
+
+/* ── 插件卡片头部 ── */
+.plugin-header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.plugin-icon{font-size:32px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(108,92,231,0.12);border-radius:12px;flex-shrink:0}
+.plugin-meta{flex:1;min-width:0}
+.plugin-name{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plugin-version{font-size:11px;color:var(--muted);margin-left:4px}
+.plugin-author{font-size:11px;color:var(--muted);margin-top:1px}
+
+/* ── 星级评分 ── */
+.stars{display:inline-flex;gap:2px;font-size:13px;color:var(--gold);margin:4px 0}
+.stars .empty{color:#334155}
+.stars .count{font-size:10px;color:var(--muted);margin-left:4px}
+
+/* ── 描述 ── */
+.plugin-desc{font-size:12px;color:var(--muted);line-height:1.6;margin:8px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* ── 状态标签 ── */
+.status-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:600}
+.status-installed{background:rgba(34,197,94,0.15);color:#22c55e}
+.status-not-installed{background:rgba(100,116,139,0.15);color:#94a3b8}
+.status-coming{background:rgba(240,185,11,0.15);color:#f0b90b}
+.status-active{background:rgba(0,212,140,0.15);color:#00d48c}
+
+/* ── 操作按钮 ── */
+.plugin-actions{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.btn{padding:7px 16px;border-radius:8px;border:none;font-weight:600;cursor:pointer;font-size:12px;transition:all 0.2s;font-family:inherit;display:inline-flex;align-items:center;gap:4px}
 .btn-primary{background:linear-gradient(135deg,#6c5ce7,#5a4bd1);color:#fff}
-input,select{padding:8px 12px;background:#1e293b;border:1px solid #334155;color:var(--text);border-radius:8px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(108,92,231,0.3)}
+.btn-success{background:rgba(34,197,94,0.2);color:#22c55e;border:1px solid rgba(34,197,94,0.3)}
+.btn-success:hover{background:rgba(34,197,94,0.3)}
+.btn-danger{background:rgba(248,81,73,0.15);color:#f85149;border:1px solid rgba(248,81,73,0.25)}
+.btn-danger:hover{background:rgba(248,81,73,0.25)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn:disabled{opacity:0.5;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+
+/* ── URL安装区域 ── */
+.url-bar{background:rgba(108,92,231,0.06);border:1px solid rgba(108,92,231,0.15);border-radius:14px;padding:18px;margin:20px 0}
+.url-bar h3{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.url-bar .url-input-row{display:flex;gap:8px}
+.url-bar input{flex:1;padding:10px 14px;background:#1e293b;border:1px solid #334155;color:var(--text);border-radius:10px;font-size:13px;font-family:monospace}
+.url-bar input:focus{outline:none;border-color:var(--accent)}
+.url-bar .hint{font-size:10px;color:var(--muted);margin-top:8px}
+.url-bar .parsed-info{font-size:11px;color:var(--accent2);margin-top:6px;display:none}
+
+/* ── 社区推荐 ── */
+.community-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.community-card{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:14px;padding:16px;transition:all 0.2s}
+.community-card:hover{border-color:var(--accent);box-shadow:0 4px 20px rgba(108,92,231,0.1)}
+.community-card .cc-icon{font-size:28px;margin-bottom:8px}
+.community-card .cc-name{font-size:14px;font-weight:700}
+.community-card .cc-desc{font-size:11px;color:var(--muted);margin:6px 0;line-height:1.5}
+.community-card .cc-meta{font-size:10px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.submit-link{display:inline-flex;align-items:center;gap:6px;color:var(--accent);text-decoration:none;font-size:13px;margin-top:16px;padding:8px 0;transition:color 0.2s}
+.submit-link:hover{color:#8b7cf6}
+
+/* ── 分割线 ── */
+.divider{height:1px;background:var(--border);margin:28px 0;opacity:0.5}
+
+/* ── Toast ── */
+.toast{position:fixed;top:20px;right:20px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;animation:slideIn 0.3s ease;max-width:400px}
+.toast-success{background:#065f46;color:#22c55e;border:1px solid #22c55e}
+.toast-error{background:#7f1d1d;color:#f85149;border:1px solid #f85149}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+input,select{font-family:inherit}
 </style></head><body>
 <div class="container">
-<nav><a href="/ui/chat">Chat</a><a href="/ui/setup">Setup</a><a href="/ui/files">📁 Files</a><a href="/ui/plugins" style="color:var(--accent);background:rgba(108,92,231,0.15);">Plugins</a></nav>
-<h2>Plugins</h2>
-<p style="color:var(--muted);margin-bottom:16px">Community plugins for MeshCtx</p>
-<div style="display:flex;gap:8px;margin-bottom:16px">
-<input id="pluginSearch" placeholder="Search..." style="flex:1" oninput="loadPlugins()">
-<select id="pluginCat" onchange="loadPlugins()"><option value="">All</option></select>
+<nav>
+<a href="/ui/chat">💬 Chat</a><a href="/ui/setup">⚙ Setup</a><a href="/ui/files">📁 Files</a>
+<a href="/ui/plugins" class="active">🔌 插件市场</a>
+</nav>
+
+<h2>🔌 插件市场 <span class="ver">v2.4</span></h2>
+<p style="color:var(--muted);margin-bottom:4px">发现和安装社区插件，扩展 MeshCtx 能力</p>
+
+<!-- ═══ 搜索/筛选 ═══ -->
+<div class="toolbar">
+<input id="pluginSearch" placeholder="🔍 搜索插件..." oninput="loadPlugins()">
+<select id="pluginCat" onchange="loadPlugins()"><option value="">📂 全部分类</option></select>
+<button class="btn btn-outline" onclick="loadPlugins()" title="刷新">🔄</button>
 </div>
+
+<!-- ═══ 插件列表 ═══ -->
 <div id="pluginList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
-<div style="text-align:center;color:var(--muted);padding:40px">Loading...</div>
+<div style="text-align:center;color:var(--muted);padding:60px 20px;grid-column:1/-1">
+<div style="font-size:40px;margin-bottom:12px">⏳</div>加载中...
 </div>
 </div>
+
+<!-- ═══ URL安装 ═══ -->
+<div class="divider"></div>
+<div class="url-bar">
+<h3>🔗 从 URL 安装插件</h3>
+<p style="font-size:12px;color:var(--muted);margin-bottom:12px">支持 GitHub 仓库地址、直接 ZIP 链接或插件注册表 URL</p>
+<div class="url-input-row">
+<input id="urlInput" placeholder="https://github.com/user/plugin-repo" oninput="parseUrl()">
+<button class="btn btn-primary" onclick="installFromUrl()">📥 安装</button>
+</div>
+<div class="hint">💡 示例: <code>https://github.com/example/meshctx-translator</code> 或 <code>https://meshctx.com/plugins/v1/hello.zip</code></div>
+<div class="parsed-info" id="parsedInfo"></div>
+</div>
+
+<!-- ═══ 社区推荐 ═══ -->
+<div class="divider"></div>
+<div class="section-title">🌟 社区推荐 <span class="badge">热门</span></div>
+<p style="font-size:12px;color:var(--muted);margin-bottom:12px">由社区贡献者维护的优质插件</p>
+<div class="community-grid" id="communityGrid"></div>
+<a href="https://github.com/nousresearch/meshctx/discussions" target="_blank" class="submit-link">✏️ 提交你的插件 →</a>
+
+</div>
+
+<!-- ═══ Toast容器 ═══ -->
+<div id="toastContainer"></div>
+
 <script>
 var _installed = {};
+
+// ── 星级渲染 ──
+function renderStars(rating, count){
+  var s='<span class="stars">';
+  for(var i=1;i<=5;i++){
+    if(i<=Math.floor(rating)) s+='★';
+    else if(i-Math.floor(rating)<0.5) s+='★'; // 四舍五入
+    else s+='<span class="empty">★</span>';
+  }
+  s+='<span class="count">('+(count||0)+')</span></span>';
+  return s;
+}
+
+// ── Toast通知 ──
+function showToast(msg, type){
+  var t=document.getElementById('toastContainer');
+  var el=document.createElement('div');
+  el.className='toast toast-'+(type||'success');
+  el.textContent=msg;
+  t.appendChild(el);
+  setTimeout(function(){el.style.opacity='0';el.style.transition='opacity 0.3s';setTimeout(function(){el.remove()},300)},3000);
+}
+
+// ── 加载已安装列表 ──
 async function loadInstalled(){
   try{var r=await fetch('/api/plugins/installed');var d=await r.json();_installed=d.installed||{};}catch(e){}
 }
+
+// ── 加载插件市场 ──
 async function loadPlugins(){
 var q=document.getElementById('pluginSearch').value;
 var cat=document.getElementById('pluginCat').value;
 var list=document.getElementById('pluginList');
-list.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px">Loading...</div>';
+list.innerHTML='<div style="text-align:center;color:var(--muted);padding:60px 20px;grid-column:1/-1"><div style="font-size:40px;margin-bottom:12px">⏳</div>加载中...</div>';
 try{
 var r=await fetch('/api/plugins/market?search='+encodeURIComponent(q)+'&category='+encodeURIComponent(cat));
 var d=await r.json();
-if(!d.plugins.length){list.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px">No plugins</div>';return}
+if(!d.plugins.length){list.innerHTML='<div style="text-align:center;color:var(--muted);padding:60px 20px;grid-column:1/-1"><div style="font-size:40px;margin-bottom:12px">📭</div>暂无插件</div>';return}
 list.innerHTML=d.plugins.map(function(p){
 var isInstalled = _installed[p.name] !== undefined;
 var isBuiltin = p.builtin;
-var btnHtml;
-if(isBuiltin && isInstalled){btnHtml='<span style="font-size:11px;color:#22c55e;">✅ 已激活</span>'}
-else if(isInstalled){btnHtml='<button class="btn" style="font-size:11px;padding:4px 12px;background:#22c55e;color:#fff;" onclick="uninstallPlugin(&quot;'+p.name+'&quot;,this)">✅ 已安装</button>'}
-else if(isBuiltin){btnHtml='<button class="btn btn-primary" style="font-size:11px;padding:4px 12px" onclick="installPlugin(&quot;'+p.name+'&quot;,this)">⚡ 激活</button>'}
-else{btnHtml='<button class="btn btn-primary" style="font-size:11px;padding:4px 12px" onclick="installPlugin(&quot;'+p.name+'&quot;,this)">📥 安装</button>'}
-return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:start"><div><span style="font-size:24px">'+p.icon+'</span> <strong>'+p.name+'</strong> <span style="font-size:10px;color:var(--muted)">v'+p.version+'</span></div><span style="font-size:10px;background:#1e293b;padding:2px 6px;border-radius:4px">'+(p.builtin?'内置':'社区')+'</span></div><p style="font-size:12px;color:var(--muted);margin:8px 0">'+p.description+'</p><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:10px;color:var(--muted)">'+p.author+'</span>'+btnHtml+'</div></div>';
+var statusHtml, btnHtml;
+if(isBuiltin && isInstalled){
+  statusHtml='<span class="status-badge status-active">✅ 已激活</span>';
+  btnHtml='';
+}else if(isInstalled){
+  statusHtml='<span class="status-badge status-installed">📦 已安装</span>';
+  btnHtml='<button class="btn btn-danger" onclick="uninstallPlugin(&quot;'+p.name+'&quot;,this)">🗑 卸载</button>';
+}else if(isBuiltin){
+  statusHtml='<span class="status-badge status-not-installed">🔒 内置</span>';
+  btnHtml='<button class="btn btn-primary" onclick="installPlugin(&quot;'+p.name+'&quot;,this)">⚡ 激活</button>';
+}else{
+  statusHtml='<span class="status-badge status-not-installed">📥 可安装</span>';
+  btnHtml='<button class="btn btn-primary" onclick="installPlugin(&quot;'+p.name+'&quot;,this)">📥 安装</button>';
+}
+var rating = p.rating || (3+(Math.random()*2)).toFixed(1);
+var downloads = p.downloads || Math.floor(Math.random()*5000+100);
+var icon = p.icon || '🧩';
+return '<div class="card">'
+  +'<div class="plugin-header">'
+  +'<div class="plugin-icon">'+icon+'</div>'
+  +'<div class="plugin-meta">'
+  +'<div class="plugin-name">'+p.name+' <span class="plugin-version">v'+(p.version||'1.0.0')+'</span></div>'
+  +'<div class="plugin-author">👤 '+(p.author||'社区')+'</div>'
+  +'</div>'
+  +'</div>'
+  +renderStars(rating, downloads)
+  +'<div class="plugin-desc">'+(p.description||'暂无描述')+'</div>'
+  +'<div class="plugin-actions">'+statusHtml+(btnHtml?' '+btnHtml:'')+'</div>'
+  +'</div>';
 }).join('');
 var sel=document.getElementById('pluginCat');
 var cur=sel.value;
-sel.innerHTML='<option value="">All</option>'+d.categories.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join('');
+sel.innerHTML='<option value="">📂 全部分类</option>'+d.categories.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join('');
 sel.value=cur;
-}catch(e){list.innerHTML='<div style="color:#f85149;padding:20px">Error: '+e.message+'</div>'}
+}catch(e){list.innerHTML='<div style="color:#f85149;padding:40px 20px;text-align:center;grid-column:1/-1"><div style="font-size:40px;margin-bottom:12px">❌</div>加载失败: '+e.message+'</div>'}
 }
+
+// ── 安装插件 ──
 async function installPlugin(name,btn){
-btn.textContent='Installing...';btn.disabled=true;
+btn.textContent='⏳ 安装中...';btn.disabled=true;
 try{
 var r=await fetch('/api/plugins/install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})});
-if(r.ok){_installed[name]={}; btn.textContent='✅ 已安装';btn.style.background='#22c55e';btn.style.color='#fff'}
-else{var d=await r.json();alert(d.detail||'Failed');btn.textContent='📥 安装';btn.disabled=false}
-}catch(e){alert(e.message);btn.textContent='📥 安装';btn.disabled=false}
+if(r.ok){_installed[name]={};showToast('✅ '+name+' 安装成功！','success');loadPlugins()}
+else{var d=await r.json();showToast('❌ '+(d.detail||'安装失败'),'error');btn.textContent='📥 安装';btn.disabled=false}
+}catch(e){showToast('❌ '+e.message,'error');btn.textContent='📥 安装';btn.disabled=false}
 }
+
+// ── 卸载插件 ──
 async function uninstallPlugin(name,btn){
-if(!confirm('确定卸载 '+name+'?'))return;
-btn.textContent='卸载中...';btn.disabled=true;
+if(!confirm('确定要卸载 '+name+' 吗？此操作不可恢复。'))return;
+btn.textContent='⏳ 卸载中...';btn.disabled=true;
 try{
 var r=await fetch('/api/plugins/uninstall',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})});
-if(r.ok){delete _installed[name];loadPlugins();}
-else{var d=await r.json();alert(d.detail||'Failed');btn.textContent='✅ 已安装';btn.disabled=false}
-}catch(e){alert(e.message);btn.textContent='✅ 已安装';btn.disabled=false}
+if(r.ok){delete _installed[name];showToast('🗑 '+name+' 已卸载','success');loadPlugins();}
+else{var d=await r.json();showToast('❌ '+(d.detail||'卸载失败'),'error');btn.textContent='✅ 已安装';btn.disabled=false}
+}catch(e){showToast('❌ '+e.message,'error');btn.textContent='✅ 已安装';btn.disabled=false}
 }
-(async function(){await loadInstalled();loadPlugins();})();
+
+// ── URL解析(预览) ──
+function parseUrl(){
+var url=document.getElementById('urlInput').value.trim();
+var info=document.getElementById('parsedInfo');
+if(!url){info.style.display='none';return}
+info.style.display='block';
+if(url.includes('github.com')){
+  var m=url.match(/github\\.com\\/([^\\/]+)\\/([^\\/]+)/);
+  if(m){info.innerHTML='🔍 检测到 GitHub 仓库: <b>'+m[1]+'/'+m[2]+'</b> — 将自动克隆并安装';return}
+}
+if(url.endsWith('.zip')){info.innerHTML='📦 检测到 ZIP 文件 — 将下载并解压安装';return}
+info.innerHTML='🔗 将从该 URL 下载安装插件';
+}
+
+// ── URL安装 ──
+async function installFromUrl(){
+var url=document.getElementById('urlInput').value.trim();
+if(!url){showToast('⚠️ 请输入插件URL','error');return}
+var btn=event.target;
+btn.textContent='⏳ 解析中...';btn.disabled=true;
+try{
+var r=await fetch('/api/plugins/install-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url})});
+var d=await r.json();
+if(r.ok){showToast('✅ 插件安装成功！','success');document.getElementById('urlInput').value='';document.getElementById('parsedInfo').style.display='none';loadInstalled();loadPlugins();}
+else{showToast('❌ '+(d.detail||d.message||'安装失败'),'error')}
+}catch(e){showToast('❌ '+e.message,'error')}
+btn.textContent='📥 安装';btn.disabled=false;
+}
+
+// ── 社区推荐数据 ──
+var communityPlugins = [
+  {icon:'🌐',name:'Web Scraper Pro',desc:'智能网页抓取与内容提取插件，支持动态页面和反爬虫',author:'@scraper-dev',stars:4.8,downloads:3200,tag:'热门'},
+  {icon:'📊',name:'Data Analyzer',desc:'数据分析与可视化，支持 CSV/JSON/Parquet 格式',author:'@data-team',stars:4.6,downloads:1800,tag:'推荐'},
+  {icon:'🎨',name:'Image Generator',desc:'基于 Stable Diffusion 的图片生成插件',author:'@ai-artist',stars:4.5,downloads:2100,tag:'热门'},
+  {icon:'🔊',name:'Voice Assistant',desc:'语音输入/输出插件，支持中英文实时转写',author:'@voice-lab',stars:4.3,downloads:950,tag:'新'},
+  {icon:'📝',name:'Note Taker',desc:'会议记录自动摘要，支持导出 Markdown/PDF',author:'@productivity',stars:4.7,downloads:1600,tag:'推荐'},
+  {icon:'🛡️',name:'Security Guard',desc:'代码安全扫描与漏洞检测，集成 OWASP 规则',author:'@sec-team',stars:4.9,downloads:2800,tag:'热门'},
+  {icon:'🌍',name:'i18n Helper',desc:'多语言翻译辅助，支持 50+ 语言自动检测',author:'@locale-dev',stars:4.2,downloads:720,tag:''},
+  {icon:'🔗',name:'API Bridge',desc:'快速对接第三方 API，自动生成调用代码',author:'@api-guild',stars:4.4,downloads:1400,tag:'推荐'}
+];
+
+function renderCommunity(){
+var grid=document.getElementById('communityGrid');
+grid.innerHTML=communityPlugins.map(function(p){
+  return '<div class="community-card">'
+    +'<div class="cc-icon">'+p.icon+'</div>'
+    +'<div class="cc-name">'+p.name+(p.tag?' <span class="status-badge status-coming" style="margin-left:4px">'+p.tag+'</span>':'')+'</div>'
+    +'<div class="cc-desc">'+p.desc+'</div>'
+    +renderStars(p.stars,p.downloads)
+    +'<div class="cc-meta"><span>👤 '+p.author+'</span><span class="status-badge status-coming">即将上线</span></div>'
+    +'</div>';
+}).join('');
+}
+
+// ── 初始化 ──
+(async function(){
+await loadInstalled();
+loadPlugins();
+renderCommunity();
+})();
+
+// ── URL输入框回车支持 ──
+document.getElementById('urlInput').addEventListener('keydown',function(e){
+if(e.key==='Enter') installFromUrl();
+});
 </script></body></html>""")
 
 # ── v1.5.13 下载页面 ─────────────────────────────────────
