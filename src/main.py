@@ -2411,6 +2411,38 @@ async def attention_status():
     }
 
 
+@app.get("/api/brain/cognitive-health")
+async def cognitive_health_status():
+    """认知衰减监控 — 长时间运行的Agent健康评分"""
+    from src.core.cognitive_health import CognitiveHealthMonitor
+    # 从app state获取或创建
+    try:
+        from src.main import app as _app
+        loop = getattr(_app.state, "agent_loop", None)
+        if loop and hasattr(loop, "cognitive_health"):
+            chm = loop.cognitive_health
+            return chm.get_diagnosis()
+    except Exception:
+        pass
+    chm = CognitiveHealthMonitor()
+    return chm.get_diagnosis()
+
+
+@app.get("/api/brain/learn-stats")
+async def learn_loop_stats():
+    """Learn闭环统计 — 策略信念+习惯缓存"""
+    from src.core.learn_loop import LearnLoop
+    try:
+        from src.main import app as _app
+        loop = getattr(_app.state, "agent_loop", None)
+        if loop and hasattr(loop, "learn_loop"):
+            ll = loop.learn_loop
+            return ll.get_stats()
+    except Exception:
+        pass
+    return {"error": "LearnLoop not initialized"}
+
+
 @app.get("/api/brain/principle-guard")
 async def principle_guard_status():
     """原则守护者 — 杏仁核+丘脑门控防止关键原则被淹没"""

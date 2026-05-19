@@ -162,8 +162,16 @@ try:
     from .attention_decay import AttentionDecayMonitor, AttentionLevel, get_monitor
 except ImportError:
     AttentionDecayMonitor = AttentionLevel = get_monitor = _brain_noop
+try:
+    from .cognitive_health import CognitiveHealthMonitor
+except ImportError:
+    CognitiveHealthMonitor = _brain_noop
+try:
+    from .learn_loop import LearnLoop
+except ImportError:
+    LearnLoop = _brain_noop
 
-__version__ = "2.29.0"
+__version__ = "2.30.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
