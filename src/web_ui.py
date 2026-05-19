@@ -5427,30 +5427,35 @@ if(e.key==='Enter') installFromUrl();
 async def download_page(request: Request):
     html = r"""{% extends "base.html" %}
 {% block content %}
-<h2>💻 下载 meshctx Desktop v1.8.2</h2>
+<h2>💻 安装 meshctx</h2>
 <div class="card" style="margin-top:16px;">
-  <h3>🪟 Windows 原生客户端</h3>
-  <p style="color:var(--muted);">独立 .exe 程序，无需 Python，支持46+ AI模型，下载即用</p>
-  <div style="display:flex;gap:16px;flex-wrap:wrap;margin:16px 0;">
-    <div style="flex:1;min-width:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;">
-      <p>📦 <b>便携版 meshctx.exe</b><br><span style="font-size:11px;color:var(--muted);">~211MB · 解压即用</span></p>
-      <a class="btn btn-primary" href="https://meshctx.com/meshctx-v1.8.2.exe" style="display:inline-block;text-decoration:none;padding:10px 20px;margin-top:8px;">⬇ 下载便携版</a>
-    </div>
-    <div style="flex:1;min-width:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center;">
-      <p>💿 <b>安装版 meshctx-setup.exe</b><br><span style="font-size:11px;color:var(--muted);">~210MB · NSIS安装程序</span></p>
-      <a class="btn btn-primary" href="https://meshctx.com/meshctx-setup-v1.8.2.exe" style="display:inline-block;text-decoration:none;padding:10px 20px;margin-top:8px;">⬇ 下载安装版</a>
-    </div>
-  </div>
-  <p style="font-size:11px;color:var(--muted);">SHA256: <code style="word-break:break-all;font-size:10px;">95d766ea...</code>&nbsp;·&nbsp;<a href="https://meshctx.com/sha256.txt" target="_blank">校验文件</a></p>
-  <p style="font-size:11px;color:var(--muted);">⚙ Win10/11 x64 · 首次运行可能触发SmartScreen → "更多信息"→"仍要运行"</p>
+  <h3>🐧 Linux / macOS</h3>
+  <p style="color:var(--muted);">一条命令安装，首次启动时交互式配置</p>
+  <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);">curl -fsSL https://meshctx.com/install.sh | bash</pre>
+  <p style="font-size:11px;color:var(--muted);margin-top:8px;">安装后运行 <code>meshctx setup</code> 配置模型和API Key</p>
 </div>
 <div class="card" style="margin-top:16px;">
-  <h3>🌐 Web直接使用</h3>
-  <p>💬 <a href="/ui/chat">Chat</a> · 📊 <a href="/ui/desktop">Desktop</a> · ⚙ <a href="/ui/setup">Setup</a></p>
+  <h3>🪟 Windows</h3>
+  <p style="color:var(--muted);">需要 Python 3.10+ 和 Git</p>
+  <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);">git clone https://github.com/LucyAndLuna2023/meshctx.git %USERPROFILE%\.meshctx
+cd %USERPROFILE%\.meshctx
+python -m venv venv
+venv\Scripts\activate
+pip install fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles
+python -m src.cli setup</pre>
 </div>
 <div class="card" style="margin-top:16px;">
-  <h3>📋 命令行安装 (高级)</h3>
-  <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);">powershell -c "Invoke-WebRequest https://meshctx.com/meshctx-setup-v1.8.2.exe -OutFile meshctx-setup.exe; Start-Process meshctx-setup.exe"</pre>
+  <h3>🐳 Docker (即将推出)</h3>
+  <p style="color:var(--muted);">docker pull meshctx/meshctx:latest</p>
+</div>
+<div class="card" style="margin-top:16px;">
+  <h3>🌐 直接使用</h3>
+  <p>无需安装，在线体验: <a href="/ui/chat">Chat</a> · <a href="/ui/dashboard">Dashboard</a></p>
+</div>
+<div class="card" style="margin-top:16px;">
+  <h3>📖 配置文档</h3>
+  <p>支持 123 模型 / 37 供应商 — <a href="https://github.com/LucyAndLuna2023/meshctx#-模型配置" target="_blank">查看配置指南</a></p>
+  <p style="font-size:12px;color:var(--muted);">DeepSeek · OpenAI · Claude · Gemini · Qwen · Grok · Llama · Mistral · 更多...</p>
 </div>
 {% endblock %}"""
     _TEMPLATES["download.html"] = html

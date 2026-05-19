@@ -431,6 +431,116 @@ def cmd_status(args):
         print("meshctx 未运行。meshctx start 启动")
 
 
+def cmd_setup(args):
+    """交互式首次配置向导 — 类似 Hermes / OpenClaw 的 setup 流程"""
+    import os
+    from pathlib import Path
+    from src.model_registry import BUILTIN_MODELS, ENV_KEY_MAP
+    
+    print("""
+╔══════════════════════════════════════════╗
+║     meshctx 配置向导                    ║
+║  支持 123 模型 · 37 供应商              ║
+╚══════════════════════════════════════════╝
+""")
+    
+    # Step 1: 选择模型
+    providers = sorted(set(v["provider"] for v in BUILTIN_MODELS.values()))
+    print("📋 可用供应商:")
+    for i, p in enumerate(providers):
+        models = [k for k, v in BUILTIN_MODELS.items() if v["provider"] == p]
+        print(f"  [{i+1:2d}] {p:15s} ({len(models)} 模型)  — 如: {', '.join(models[:3])}")
+    
+    print(f"\n  输入编号选择供应商 (1-{len(providers)}), 或直接输入模型名")
+    choice = input("  选择: ").strip()
+    
+    model_id = None
+    provider = None
+    
+    # 尝试解析为编号
+    try:
+        idx = int(choice) - 1
+        if 0 <= idx < len(providers):
+            provider = providers[idx]
+    except ValueError:
+        pass
+    
+    # 尝试解析为模型ID
+    if choice in BUILTIN_MODELS:
+        model_id = choice
+        provider = BUILTIN_MODELS[choice]["provider"]
+    
+    if not model_id and provider:
+        # 列出该供应商的模型
+        p_models = [(k, v) for k, v in BUILTIN_MODELS.items() if v["provider"] == provider]
+        print(f"\n  {provider} 可用模型:")
+        for i, (mid, _) in enumerate(p_models):
+            print(f"  [{i+1}] {mid}")
+        m_choice = input("  选择模型: ").strip()
+        try:
+            model_id = p_models[int(m_choice)-1][0]
+        except (ValueError, IndexError):
+            model_id = p_models[0][0]
+            print(f"  使用默认: {model_id}")
+    
+    if not model_id:
+        print("  未识别选择，使用默认 deepseek:chat")
+        model_id = "deepseek:chat"
+        provider = "deepseek"
+    
+    model_info = BUILTIN_MODELS.get(model_id, BUILTIN_MODELS["deepseek:chat"])
+    print(f"\n  ✅ 选定模型: {model_id} ({model_info['model']})")
+    
+    # Step 2: API Key
+    key_env = model_info["key_env"]
+    existing_key = os.environ.get(key_env, "")
+    masked = existing_key[:8] + "..." if len(existing_key) > 8 else ""
+    
+    print(f"\n🔑 API Key: {key_env}")
+    if existing_key:
+        print(f"  已检测到环境变量 ({masked})")
+        use_existing = input("  使用已有Key? [Y/n] ").strip().lower()
+        if use_existing in ('n', 'no'):
+            existing_key = ""
+    
+    if not existing_key:
+        print(f"  获取地址: https://platform.{provider}.com (或对应平台)")
+        api_key = input(f"  请输入 {key_env}: ").strip()
+        if api_key:
+            os.environ[key_env] = api_key
+            # 保存到 ~/.meshctx/.env
+            env_file = Path.home() / ".meshctx" / ".env"
+            env_file.parent.mkdir(parents=True, exist_ok=True)
+            env_file.write_text(f"{key_env}={api_key}\n")
+            print(f"  ✅ 已保存到 {env_file}")
+    
+    # Step 3: 保存配置
+    config_dir = Path.home() / ".meshctx"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    
+    import yaml
+    config = {
+        "default_model": model_id,
+        "provider": provider,
+        "version": "2.27.0",
+    }
+    with open(config_dir / "config.yaml", "w") as f:
+        yaml.dump(config, f)
+    
+    print(f"""
+╔══════════════════════════════════════════╗
+║  配置完成!                              ║
+║                                        ║
+║  模型: {model_id:30s} ║
+║  Key:  {key_env:30s} ║
+║                                        ║
+║  启动: meshctx start                   ║
+║  聊天: meshctx chat                    ║
+║  Web:  http://localhost:3000/ui/chat   ║
+╚══════════════════════════════════════════╝
+""")
+
+
 def cmd_evolve(args):
     from src.skill_manager import SkillManager
     from src.model_registry import get_registry
@@ -593,6 +703,8 @@ def main():
 
     sub.add_parser("stop", help="停止服务").set_defaults(func=cmd_stop)
     sub.add_parser("status", help="状态").set_defaults(func=cmd_status)
+
+    sub.add_parser("setup", help="首次配置向导 (交互式)").set_defaults(func=cmd_setup)
 
     ev = sub.add_parser("evolve", help="自进化")
     ev.add_argument("--auto", action="store_true")
