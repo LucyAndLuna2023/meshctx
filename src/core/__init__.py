@@ -182,6 +182,14 @@ try:
     from .secret_scanner import SecretScanner
 except ImportError:
     SecretScanner = _brain_noop
+try:
+    from .checkpoint import CheckpointManager
+except ImportError:
+    CheckpointManager = _brain_noop
+try:
+    from .image_gen import ImageGenerator, generate_image
+except ImportError:
+    ImageGenerator = generate_image = _brain_noop
 
 __version__ = "2.32.0"
 __all__ = [

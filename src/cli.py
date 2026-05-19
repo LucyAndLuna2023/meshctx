@@ -508,10 +508,17 @@ def cmd_setup(args):
         api_key = input(f"  请输入 {key_env}: ").strip()
         if api_key:
             os.environ[key_env] = api_key
-            # 保存到 ~/.meshctx/.env
+            # 保存到 ~/.meshctx/.env (合并模式)
             env_file = Path.home() / ".meshctx" / ".env"
             env_file.parent.mkdir(parents=True, exist_ok=True)
-            env_file.write_text(f"{key_env}={api_key}\n")
+            existing = {}
+            if env_file.exists():
+                for line in env_file.read_text().strip().split("\n"):
+                    if "=" in line and not line.startswith("#"):
+                        k, v = line.split("=", 1)
+                        existing[k.strip()] = v.strip()
+            existing[key_env] = api_key
+            env_file.write_text("\n".join(f"{k}={v}" for k, v in existing.items()) + "\n")
             print(f"  ✅ 已保存到 {env_file}")
     
     # Step 3: 保存配置
@@ -732,7 +739,7 @@ def cmd_tts(args):
 def cmd_mcp(args):
     """MCP 协议"""
     from src.mcp_server import MCPServer
-    
+
     if args.action == "tools":
         server = MCPServer()
         print(f"MCP 工具 ({len(server._tools)}个):")
@@ -743,6 +750,42 @@ def cmd_mcp(args):
         server = MCPServer()
         import asyncio
         asyncio.run(server.run_stdio())
+
+
+def cmd_image(args):
+    """AI图片生成"""
+    from src.core.image_gen import ImageGenerator
+
+    if not args.prompt:
+        # 无prompt时列出可用provider
+        gen = ImageGenerator()
+        providers = gen.list_providers()
+        print(f"\n  AI图片生成 — 可用Provider:\n")
+        for p in providers:
+            status = "✓ 可用" if p["available"] else "✗ 无Key"
+            print(f"  [{p['id']}] {p['name']:30s} {status}")
+            print(f"       模型: {', '.join(p['models'])}")
+            print(f"       尺寸: {', '.join(p['valid_sizes'][:3])}...")
+            print()
+        if not gen.has_provider:
+            print("  设置API Key:")
+            print("    export OPENAI_API_KEY=sk-...      # DALL-E")
+            print("    export STABILITY_API_KEY=sk-...   # Stable Diffusion")
+        print(f"\n  用法: meshctx image '一只猫在太空' --size 1024x1024 --style vivid\n")
+        return
+
+    gen = ImageGenerator(provider=args.provider)
+    print(f"🎨 生成中: \"{args.prompt}\" ({args.size})")
+    result = gen.generate(args.prompt, size=args.size, style=args.style)
+
+    if result.get("error"):
+        print(f"❌ {result['error']}")
+        return
+
+    cached = " (缓存)" if result.get("cached") else ""
+    print(f"✅ 已生成{cached}")
+    print(f"   提供方: {result['provider']}")
+    print(f"   URL:    {result['url']}")
 
 
 
@@ -850,6 +893,14 @@ def main():
     mc = sub.add_parser("mcp", help="MCP协议")
     mc.add_argument("action", choices=["serve","tools"])
     mc.set_defaults(func=cmd_mcp)
+
+    # image
+    img = sub.add_parser("image", help="AI图片生成 (DALL-E/Stable Diffusion)")
+    img.add_argument("prompt", nargs="?", help="图片描述提示词")
+    img.add_argument("--size", default="1024x1024", help="尺寸, 如 1024x1024")
+    img.add_argument("--style", default=None, help="风格 (DALL-E: vivid/natural)")
+    img.add_argument("--provider", default=None, help="指定provider (openai/stability)")
+    img.set_defaults(func=cmd_image)
 
     args = p.parse_args()
     if not args.command:
