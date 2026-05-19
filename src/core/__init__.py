@@ -183,6 +183,10 @@ try:
 except ImportError:
     SecretScanner = _brain_noop
 try:
+    from .progressive_context import ProgressiveContextManager
+except ImportError:
+    ProgressiveContextManager = _brain_noop
+try:
     from .checkpoint import CheckpointManager
 except ImportError:
     CheckpointManager = _brain_noop
@@ -191,7 +195,7 @@ try:
 except ImportError:
     ImageGenerator = generate_image = _brain_noop
 
-__version__ = "2.32.0"
+__version__ = "2.34.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
