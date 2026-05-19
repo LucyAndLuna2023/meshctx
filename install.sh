@@ -72,7 +72,7 @@ source venv/bin/activate
 # 4. 安装依赖
 echo "→ 安装依赖..."
 pip install -q --upgrade pip 2>/dev/null
-pip install -q fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles 2>/dev/null || {
+pip install -q fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging 2>/dev/null || {
     echo -e "${RED}依赖安装失败。请检查网络连接。${NC}"
     exit 1
 }
