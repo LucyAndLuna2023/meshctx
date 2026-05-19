@@ -206,8 +206,12 @@ try:
     from .image_gen import ImageGenerator, generate_image
 except ImportError:
     ImageGenerator = generate_image = _brain_noop
+try:
+    from .credential_pool import CredentialPoolManager, get_credential_pool, PooledKey, PoolConfig
+except ImportError:
+    CredentialPoolManager = get_credential_pool = PooledKey = PoolConfig = _brain_noop
 
-__version__ = "2.36.0"
+__version__ = "2.37.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",

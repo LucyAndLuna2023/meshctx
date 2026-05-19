@@ -1980,16 +1980,6 @@ async def list_conversations():
     return {"conversations": Conversation.list_all()}
 
 
-@app.get("/api/conversations/{conv_id}")
-async def get_conversation(conv_id: str):
-    """获取单个对话"""
-    from src.core.conversation_store import Conversation
-    conv = Conversation.load(conv_id)
-    if not conv:
-        raise HTTPException(404, "对话不存在")
-    return conv.to_dict()
-
-
 @app.post("/api/conversations")
 async def create_conversation(req: Request):
     """创建/保存对话"""
@@ -2049,12 +2039,10 @@ async def rename_conversation(conv_id: str, req: Request):
     if not new_title:
         raise HTTPException(400, "title is required")
     
-    from src.core.conversation_store import Conversation, DATA_DIR
-    conv = Conversation.load(conv_id)
-    if not conv:
+    from src.core.conversation_store import Conversation
+    ok = Conversation.rename(conv_id, new_title)
+    if not ok:
         raise HTTPException(404, "对话不存在")
-    conv.title = new_title
-    conv.save()
     return {"status": "ok", "id": conv_id, "title": new_title}
 
 
@@ -2064,45 +2052,35 @@ async def prune_conversations(req: Request):
     try: body = await req.json()
     except: body = {}
     older_than_days = body.get("older_than_days", 30)
-    
-    from src.core.conversation_store import Conversation, DATA_DIR
-    import time as _time
-    cutoff = _time.time() - (older_than_days * 86400)
-    deleted = 0
-    for path in DATA_DIR.glob("*.json"):
-        try:
-            with open(path) as f:
-                data = __import__('json').load(f)
-            if data.get("created_at", 0) < cutoff:
-                path.unlink()
-                deleted += 1
-        except Exception:
-            pass
-    return {"status": "ok", "deleted": deleted, "older_than_days": older_than_days}
+    from src.core.conversation_store import Conversation
+    result = Conversation.prune(older_than_days)
+    return {"status": "ok", **result}
 
 
 @app.get("/api/conversations/stats")
 async def conversation_stats():
     """对话存储统计"""
-    from src.core.conversation_store import Conversation, DATA_DIR
-    import os as _os
-    files = list(DATA_DIR.glob("*.json"))
-    total_size = sum(f.stat().st_size for f in files)
-    total_messages = 0
-    for f in files[:200]:  # Sample first 200 for performance
-        try:
-            with open(f) as fp:
-                d = __import__('json').load(fp)
-            total_messages += d.get("message_count", 0)
-        except Exception:
-            pass
-    return {
-        "total_sessions": len(files),
-        "total_size_bytes": total_size,
-        "total_size_mb": round(total_size / 1048576, 2),
-        "estimated_messages": total_messages,
-        "storage_path": str(DATA_DIR),
-    }
+    from src.core.conversation_store import Conversation
+    return Conversation.stats()
+
+
+@app.get("/api/conversations/browse")
+async def browse_conversations(
+    limit: int = 50, offset: int = 0, search: str = ""):
+    """浏览对话元数据（支持搜索+分页）"""
+    from src.core.conversation_store import Conversation
+    return {"conversations": Conversation.browse_meta(limit, offset, search),
+            "limit": limit, "offset": offset, "search": search}
+
+
+@app.get("/api/conversations/{conv_id}")
+async def get_conversation(conv_id: str):
+    """获取单个对话 — 必须放在所有静态路径之后"""
+    from src.core.conversation_store import Conversation
+    conv = Conversation.load(conv_id)
+    if not conv:
+        raise HTTPException(404, "对话不存在")
+    return conv.to_dict()
 
 
 # ═══════════════════════════════════════════════════
@@ -4444,6 +4422,113 @@ async def test_provider(provider_id: str):
         cfg[provider_id]["test_status"] = "error"
         _save_provider_config(cfg)
         return {"success": False, "error": str(e)[:200]}
+
+# ── v2.37 凭证池 (Credential Pool) ───────────────────────
+
+@app.get("/api/auth/pool")
+async def credential_pool_list(provider: str = ""):
+    """列出凭证池中的所有Key"""
+    from src.core.credential_pool import get_credential_pool, PoolConfig
+    pool = get_credential_pool()
+    if provider:
+        return {"keys": pool.list_keys(provider), "strategy": pool.pools.get(provider, PoolConfig(provider)).strategy}
+    return {"keys": pool.list_keys(), "providers": pool.list_providers()}
+
+
+@app.post("/api/auth/pool")
+async def credential_pool_add(req: Request):
+    """添加API Key到凭证池"""
+    try: body = await req.json()
+    except: raise HTTPException(400, "Invalid JSON")
+    provider = body.get("provider", "").strip()
+    key = body.get("key", "").strip()
+    if not provider or not key:
+        raise HTTPException(400, "provider and key are required")
+    from src.core.credential_pool import get_credential_pool
+    pool = get_credential_pool()
+    pk = pool.add_key(provider, key, body.get("label", ""))
+    return {"status": "ok", **pk.to_dict()}
+
+
+@app.delete("/api/auth/pool/{provider}/{index}")
+async def credential_pool_remove(provider: str, index: int):
+    """从凭证池中移除Key"""
+    from src.core.credential_pool import get_credential_pool
+    pool = get_credential_pool()
+    ok = pool.remove_key(provider, index)
+    return {"status": "ok" if ok else "not_found"}
+
+
+@app.post("/api/auth/pool/test-rotate")
+async def credential_pool_test_rotate(req: Request):
+    """测试凭证池轮转 — 获取下一个可用Key"""
+    try: body = await req.json()
+    except: body = {}
+    provider = body.get("provider", "deepseek")
+    from src.core.credential_pool import get_credential_pool
+    pool = get_credential_pool()
+    key = pool.get_key(provider)
+    if key:
+        return {"status": "ok", "key": key[:8] + "..." + key[-4:], "provider": provider}
+    return {"status": "empty", "message": f"No available keys for {provider}"}
+
+
+@app.post("/api/auth/pool/mark-exhausted")
+async def credential_pool_mark_exhausted(req: Request):
+    """标记Key为已耗尽（用于自动轮转）"""
+    try: body = await req.json()
+    except: raise HTTPException(400)
+    provider = body.get("provider", "")
+    key = body.get("key", "")
+    error = body.get("error", "")
+    status = body.get("status", "exhausted")
+    from src.core.credential_pool import get_credential_pool
+    pool = get_credential_pool()
+    ok = pool.mark_exhausted(provider, key, error, status)
+    return {"status": "ok" if ok else "not_found"}
+
+
+@app.post("/api/auth/pool/reset/{provider}")
+async def credential_pool_reset(provider: str, index: int = -1):
+    """重置凭证池 — index=-1重置所有"""
+    from src.core.credential_pool import get_credential_pool
+    pool = get_credential_pool()
+    if index >= 0:
+        ok = pool.reset_key(provider, index)
+        return {"status": "ok" if ok else "not_found"}
+    count = pool.reset_provider(provider)
+    return {"status": "ok", "reset": count}
+
+
+@app.get("/api/auth/pool/stats")
+async def credential_pool_stats(provider: str = ""):
+    """凭证池统计"""
+    from src.core.credential_pool import get_credential_pool
+    pool = get_credential_pool()
+    return pool.get_stats(provider)
+
+
+@app.post("/api/auth/pool/strategy/{provider}")
+async def credential_pool_strategy(provider: str, req: Request):
+    """设置凭证池轮转策略"""
+    try: body = await req.json()
+    except: body = {}
+    strategy = body.get("strategy", "round_robin")
+    from src.core.credential_pool import get_credential_pool
+    pool = get_credential_pool()
+    ok = pool.set_strategy(provider, strategy)
+    if not ok:
+        raise HTTPException(400, f"Invalid strategy: {strategy}. Use round_robin, least_used, or random")
+    return {"status": "ok", "provider": provider, "strategy": strategy}
+
+
+@app.delete("/api/auth/pool")
+async def credential_pool_clear():
+    """清空所有凭证池"""
+    from src.core.credential_pool import get_credential_pool
+    pool = get_credential_pool()
+    pool.clear_all()
+    return {"status": "ok"}
 
 # ── v1.5.17 MCP服务器管理 ──────────────────────────────────
 

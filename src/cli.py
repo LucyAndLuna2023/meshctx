@@ -824,6 +824,150 @@ def cmd_mcp(args):
         asyncio.run(server.run_stdio())
 
 
+def cmd_auth(args):
+    """凭证池管理 — 多Key轮转"""
+    from src.core.credential_pool import CredentialPoolManager
+    mgr = CredentialPoolManager()
+
+    if args.action == "list":
+        if args.provider:
+            keys = mgr.list_keys(args.provider)
+            if not keys:
+                print(f"Provider '{args.provider}' 无凭证池")
+                return
+            strategy = mgr.pools.get(args.provider)
+            print(f"\n📋 {args.provider} — 策略: {strategy.strategy if strategy else 'round_robin'}")
+            for i, k in enumerate(keys):
+                icon = "🟢" if k["status"] == "active" else "🔴" if k["status"] == "revoked" else "🟡"
+                name = k.get("label") or (k["key"][:12] + "...")
+                print(f"  [{i}] {icon} {name} — calls:{k['call_count']} status:{k['status']}")
+        else:
+            providers = mgr.list_providers()
+            if not providers:
+                print("凭证池为空。用 meshctx auth add --provider <name> --key <key> 添加")
+                return
+            stats = mgr.get_stats()
+            print(f"\n📊 凭证池 — {stats['total_pools']} providers, {stats['total_keys']} keys")
+            for prov in providers:
+                pool = mgr.pools[prov]
+                active = sum(1 for k in pool.keys if k.status == "active")
+                print(f"  {prov}: {len(pool.keys)} keys ({active} active) — {pool.strategy}")
+
+    elif args.action == "add":
+        if not args.provider or not args.key:
+            print("用法: meshctx auth add --provider <name> --key <sk-xxx> [--label <name>]")
+            return
+        pk = mgr.add_key(args.provider, args.key, args.label)
+        print(f"✅ 已添加 {args.provider}: {pk.key[:12]}... — 当前池大小: {len(mgr.pools[args.provider].keys)}")
+
+    elif args.action == "remove":
+        if not args.provider or args.index < 0:
+            print("用法: meshctx auth remove --provider <name> --index <N>")
+            return
+        ok = mgr.remove_key(args.provider, args.index)
+        print(f"{'✅ 已移除' if ok else '❌ 未找到'} index={args.index}")
+
+    elif args.action == "rotate":
+        if not args.provider:
+            print("用法: meshctx auth rotate --provider <name>")
+            return
+        key = mgr.get_key(args.provider)
+        if key:
+            print(f"🔑 轮转到: {key[:8]}...{key[-4:]}")
+        else:
+            print(f"❌ {args.provider} 无可用Key")
+
+    elif args.action == "reset":
+        if not args.provider:
+            print("用法: meshctx auth reset --provider <name> [--index N]")
+            return
+        if args.index >= 0:
+            ok = mgr.reset_key(args.provider, args.index)
+            print(f"{'✅ 已重置' if ok else '❌ 未找到'} index={args.index}")
+        else:
+            count = mgr.reset_provider(args.provider)
+            print(f"✅ 已重置 {count} 个Key")
+
+    elif args.action == "stats":
+        stats = mgr.get_stats(args.provider)
+        print(f"\n📊 凭证池统计:")
+        print(f"  Providers: {stats['total_pools']}")
+        print(f"  Total keys: {stats['total_keys']}")
+        print(f"  Active: {stats['active_keys']} | Exhausted: {stats['exhausted_keys']}")
+        for prov, ps in stats.get("per_provider", {}).items():
+            print(f"  {prov}: {ps['total']} keys ({ps['active']} active) — {ps['strategy']}")
+
+    elif args.action == "strategy":
+        if not args.provider or not args.strategy:
+            print("用法: meshctx auth strategy --provider <name> --strategy round_robin|least_used|random")
+            return
+        ok = mgr.set_strategy(args.provider, args.strategy)
+        print(f"{'✅ 策略已更新' if ok else '❌ 无效策略'}: {args.provider} → {args.strategy}")
+
+    elif args.action == "clear":
+        mgr.clear_all()
+        print("✅ 所有凭证池已清空")
+
+
+def cmd_sessions(args):
+    """会话管理 — 重命名/清理/统计/浏览"""
+    from src.core.conversation_store import Conversation
+
+    if args.action == "list":
+        convs = Conversation.list_all()
+        if not convs:
+            print("暂无保存的会话")
+            return
+        print(f"\n📋 会话列表 ({len(convs)}):")
+        for c in convs:
+            import datetime
+            ts = datetime.datetime.fromtimestamp(c.get("updated_at", 0)).strftime("%m-%d %H:%M")
+            title = c.get("title", "Untitled")[:40]
+            mid = c.get("id", "")[:8]
+            print(f"  {mid}... {title} — {c.get('message_count', 0)}msgs @{ts}")
+
+    elif args.action == "rename":
+        if not args.id or not args.title:
+            print("用法: meshctx sessions rename --id <conv_id> --title <新名称>")
+            return
+        ok = Conversation.rename(args.id, args.title)
+        print(f"{'✅ 已重命名' if ok else '❌ 会话不存在'}")
+
+    elif args.action == "delete":
+        if not args.id:
+            print("用法: meshctx sessions delete --id <conv_id>")
+            return
+        ok = Conversation.delete(args.id)
+        print(f"{'✅ 已删除' if ok else '❌ 会话不存在'}")
+
+    elif args.action == "prune":
+        result = Conversation.prune(args.days)
+        print(f"✅ 已清理 {result['deleted']} 个会话 (>{args.days}天前), 释放 {result['freed_bytes']} 字节")
+
+    elif args.action == "stats":
+        stats = Conversation.stats()
+        print(f"\n📊 会话存储统计:")
+        print(f"  总会话: {stats['total_sessions']}")
+        print(f"  总消息: {stats['total_messages']}")
+        print(f"  总大小: {stats['total_size_mb']} MB")
+        print(f"  内存活跃: {stats['active_in_memory']}")
+        if stats.get("model_distribution"):
+            print(f"  模型分布: {stats['model_distribution']}")
+
+    elif args.action == "browse":
+        metas = Conversation.browse_meta(search=args.search)
+        if not metas:
+            print("无匹配结果")
+            return
+        print(f"\n🔍 搜索 '{args.search}' — {len(metas)} 结果:")
+        for m in metas:
+            import datetime
+            ts = datetime.datetime.fromtimestamp(m.get("updated_at", 0)).strftime("%m-%d %H:%M")
+            title = m.get("title", "")[:50]
+            mid = m.get("id", "")[:12]
+            print(f"  {mid}... {title} — {m.get('message_count', 0)}msgs @{ts}")
+
+
 def cmd_image(args):
     """AI图片生成"""
     from src.core.image_gen import ImageGenerator
@@ -973,6 +1117,27 @@ def main():
     img.add_argument("--style", default=None, help="风格 (DALL-E: vivid/natural)")
     img.add_argument("--provider", default=None, help="指定provider (openai/stability)")
     img.set_defaults(func=cmd_image)
+
+    # auth (v2.37 凭证池)
+    au = sub.add_parser("auth", help="凭证池管理 (多Key轮转)")
+    au.add_argument("action", choices=["list","add","remove","rotate","reset","stats","strategy","clear"],
+                    help="list|add|remove|rotate|reset|stats|strategy|clear")
+    au.add_argument("--provider", default="", help="Provider名称")
+    au.add_argument("--key", default="", help="API Key")
+    au.add_argument("--label", default="", help="Key标签")
+    au.add_argument("--index", type=int, default=-1, help="Key索引")
+    au.add_argument("--strategy", default="", help="轮转策略: round_robin|least_used|random")
+    au.set_defaults(func=cmd_auth)
+
+    # sessions (v2.37 会话管理)
+    ss = sub.add_parser("sessions", help="会话管理 (重命名/清理/统计/浏览)")
+    ss.add_argument("action", choices=["list","rename","delete","prune","stats","browse"],
+                    help="list|rename|delete|prune|stats|browse")
+    ss.add_argument("--id", default="", help="会话ID")
+    ss.add_argument("--title", default="", help="新标题 (用于rename)")
+    ss.add_argument("--days", type=int, default=30, help="清理N天前的会话 (默认30)")
+    ss.add_argument("--search", default="", help="搜索关键词 (用于browse)")
+    ss.set_defaults(func=cmd_sessions)
 
     args = p.parse_args()
     if not args.command:
