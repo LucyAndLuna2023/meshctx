@@ -5437,7 +5437,7 @@ async def download_page(request: Request):
 <div class="card" style="margin-top:16px;">
   <h3>🪟 Windows</h3>
   <div style="text-align:center;padding:16px;">
-    <a class="btn btn-primary" href="https://meshctx.com/dl/meshctx-setup.exe" style="display:inline-block;text-decoration:none;padding:12px 32px;font-size:15px;">⬇ 下载 meshctx Windows (230MB)</a>
+    <a class="btn btn-primary" href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" style="display:inline-block;text-decoration:none;padding:12px 32px;font-size:15px;">⬇ 下载 meshctx Windows</a>
     <p style="font-size:11px;color:var(--muted);margin-top:8px;">v2.29.3 · NSIS安装程序 · Win10/11 x64</p>
   </div>
   <details style="margin-top:8px;font-size:12px;">
