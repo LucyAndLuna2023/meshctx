@@ -968,6 +968,55 @@ def cmd_sessions(args):
             print(f"  {mid}... {title} — {m.get('message_count', 0)}msgs @{ts}")
 
 
+def cmd_insights(args):
+    """使用洞察分析"""
+    from src.core.usage_insights import UsageInsights
+    ins = UsageInsights()
+
+    if args.period == "today":
+        data = ins.get_today()
+        print(f"\n📊 今日使用 ({data['date']}):")
+        print(f"  会话: {data['sessions']} | 消息: {data['messages']}")
+        print(f"  Tokens: {data['total_tokens']} | 错误: {data['errors']} ({data['error_rate_pct']}%)")
+        print(f"  平均延迟: {data['avg_latency_ms']}ms | 峰值时段: {data['peak_hour']}h")
+        if data.get("models_used"):
+            print(f"  模型: {data['models_used']}")
+
+    elif args.period == "weekly":
+        data = ins.get_weekly()
+        print(f"\n📊 最近7天:")
+        print(f"  会话: {data['total_sessions']} | 消息: {data['total_messages']}")
+        print(f"  日均: {data['avg_daily_sessions']}会话/{data['avg_daily_messages']}消息")
+        print(f"  Tokens: {data['total_tokens']} | 错误: {data['total_errors']}")
+        if data.get("daily_breakdown"):
+            for d in data["daily_breakdown"]:
+                print(f"    {d['date']}: {d['sessions']}会话 {d['messages']}msg")
+
+    elif args.period == "monthly":
+        data = ins.get_monthly()
+        print(f"\n📊 最近30天:")
+        print(f"  总会话: {data['total_sessions']} | 总消息: {data['total_messages']}")
+        print(f"  日均: {data['avg_daily_sessions']}会话/{data['avg_daily_messages']}消息")
+        print(f"  Tokens: {data['total_tokens']}")
+
+    else:  # all
+        data = ins.get_summary(args.days)
+        print(f"\n📊 使用洞察分析 ({args.days}天):")
+        t = data.get("today", {})
+        print(f"  今日: {t.get('sessions',0)}会话 {t.get('messages',0)}消息")
+        w = data.get("weekly", {})
+        print(f"  本周: {w.get('total_sessions',0)}会话 {w.get('total_messages',0)}消息")
+        m = data.get("monthly", {})
+        print(f"  本月: {m.get('total_sessions',0)}会话 {m.get('total_messages',0)}消息")
+        print(f"  追踪天数: {data.get('total_days_tracked',0)}")
+        # Provider stats
+        provs = data.get("providers", {}).get("providers", [])
+        if provs:
+            print(f"  Providers:")
+            for p in provs[:5]:
+                print(f"    {p['provider']}: {p['calls']}calls, {p['error_rate_pct']}% err, {p['avg_latency_ms']}ms")
+
+
 def cmd_image(args):
     """AI图片生成"""
     from src.core.image_gen import ImageGenerator
@@ -1138,6 +1187,13 @@ def main():
     ss.add_argument("--days", type=int, default=30, help="清理N天前的会话 (默认30)")
     ss.add_argument("--search", default="", help="搜索关键词 (用于browse)")
     ss.set_defaults(func=cmd_sessions)
+
+    # insights (v2.38 使用洞察)
+    ins = sub.add_parser("insights", help="使用洞察分析 (对标Hermes insights)")
+    ins.add_argument("--days", type=int, default=30, help="统计天数 (默认30)")
+    ins.add_argument("--period", default="all", choices=["today","weekly","monthly","all"],
+                     help="统计周期")
+    ins.set_defaults(func=cmd_insights)
 
     args = p.parse_args()
     if not args.command:

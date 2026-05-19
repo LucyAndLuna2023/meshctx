@@ -2083,6 +2083,63 @@ async def get_conversation(conv_id: str):
     return conv.to_dict()
 
 
+# ── v2.38 使用洞察分析 ──────────────────────────────────
+
+@app.get("/api/insights")
+async def usage_insights(days: int = 30, period: str = "all"):
+    """使用洞察分析 — 对标 Hermes insights
+    period: today|weekly|monthly|all
+    """
+    from src.core.usage_insights import get_insights
+    ins = get_insights()
+    if period == "today":
+        return ins.get_today()
+    elif period == "weekly":
+        return ins.get_weekly()
+    elif period == "monthly":
+        return ins.get_monthly()
+    else:
+        return ins.get_summary(days)
+
+
+@app.get("/api/insights/providers")
+async def insights_providers():
+    """Provider性能统计"""
+    from src.core.usage_insights import get_insights
+    return get_insights().get_provider_stats()
+
+
+@app.get("/api/insights/models")
+async def insights_models():
+    """Model使用统计"""
+    from src.core.usage_insights import get_insights
+    return get_insights().get_model_stats()
+
+
+@app.post("/api/insights/record-session")
+async def insights_record_session():
+    """记录会话开始"""
+    from src.core.usage_insights import get_insights
+    get_insights().record_session_start()
+    return {"status": "ok"}
+
+
+@app.post("/api/insights/record-call")
+async def insights_record_call(req: Request):
+    """记录LLM API调用"""
+    try: body = await req.json()
+    except: body = {}
+    from src.core.usage_insights import get_insights
+    get_insights().record_llm_call(
+        model=body.get("model", "unknown"),
+        provider=body.get("provider", ""),
+        tokens=body.get("tokens", 0),
+        latency_ms=body.get("latency_ms", 0),
+        error=body.get("error", False),
+    )
+    return {"status": "ok"}
+
+
 # ═══════════════════════════════════════════════════
 # 配置备份 (v2.11)
 # ═══════════════════════════════════════════════════
