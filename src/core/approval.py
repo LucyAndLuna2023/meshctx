@@ -106,6 +106,14 @@ class ApprovalEngine:
         self._mode = mode
         self._yolo = yolo
 
+    @property
+    def mode(self) -> str:
+        return self._mode
+
+    @property
+    def yolo(self) -> bool:
+        return self._yolo
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
