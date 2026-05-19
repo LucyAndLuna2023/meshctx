@@ -20,58 +20,87 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - meshctx</title>
     <style>
+        /* ═══ CSS 变量：深色主题(默认) ═══ */
+        :root {
+            --bg: #0f172a;
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --surface: #1e293b;
+            --border: #334155;
+            --accent: #6c5ce7;
+            --green: #22c55e;
+            --red: #dc2626;
+            --yellow: #fbbf24;
+            --hover: #1a2332;
+            --nav-hover: #334155;
+            --input-bg: #0f172a;
+            --header-bg: #1e293b;
+            --header-h1: #6c5ce7;
+            --flash-success-bg: #065f46;
+            --flash-success-text: #6ee7b7;
+            --flash-error-bg: #7f1d1d;
+            --flash-error-text: #fca5a5;
+            --link-color: #818cf8;
+        }
+        /* ═══ 浅色主题 ═══ */
+        [data-theme="light"] {
+            --bg: #f8fafc;
+            --text: #0f172a;
+            --muted: #64748b;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --accent: #6c5ce7;
+            --green: #16a34a;
+            --red: #dc2626;
+            --yellow: #d97706;
+            --hover: #f1f5f9;
+            --nav-hover: #e2e8f0;
+            --input-bg: #ffffff;
+            --header-bg: #ffffff;
+            --header-h1: #6c5ce7;
+            --flash-success-bg: #dcfce7;
+            --flash-success-text: #166534;
+            --flash-error-bg: #fef2f2;
+            --flash-error-text: #991b1b;
+            --link-color: #6366f1;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
-        .header { background: #1e293b; border-bottom: 1px solid #334155; padding: 16px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-        .header h1 { font-size: 20px; color: #38bdf8; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background-color 0.3s ease, color 0.3s ease; }
+        .header { background: var(--header-bg); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; transition: background-color 0.3s ease, border-color 0.3s ease; }
+        .header h1 { font-size: 20px; color: var(--header-h1); }
         .nav { display: flex; gap: 8px; flex-wrap: wrap; }
-        .nav a { color: #94a3b8; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 14px; transition: all .2s; }
-        .nav a:hover, .nav a.active { background: #334155; color: #e2e8f0; }
+        .nav a { color: var(--muted); text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 14px; transition: all .2s; }
+        .nav a:hover, .nav a.active { background: var(--nav-hover); color: var(--text); }
         .main { padding: 24px; max-width: 1400px; margin: 0 auto; }
-        .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
-        .card h2 { font-size: 18px; margin-bottom: 12px; color: #f1f5f9; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; transition: background-color 0.3s ease, border-color 0.3s ease; }
+        .card h2 { font-size: 18px; margin-bottom: 12px; color: var(--text); }
         .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-        .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; }
-        .stat-card .value { font-size: 32px; font-weight: 700; color: #38bdf8; }
-        .stat-card .label { font-size: 13px; color: #64748b; margin-top: 4px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; transition: background-color 0.3s ease, border-color 0.3s ease; }
+        .stat-card .value { font-size: 32px; font-weight: 700; color: var(--accent); }
+        .stat-card .label { font-size: 13px; color: var(--muted); margin-top: 4px; }
         .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
         .badge-active { background: #065f46; color: #6ee7b7; }
         .badge-inactive { background: #451a03; color: #fbbf24; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #334155; font-size: 14px; }
-        th { color: #64748b; font-weight: 600; }
-        tr:hover { background: #1a2332; }
+        th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; transition: border-color 0.3s ease; }
+        th { color: var(--muted); font-weight: 600; }
+        tr:hover { background: var(--hover); }
         .btn { display: inline-block; padding: 8px 16px; border-radius: 6px; font-size: 13px; border: none; cursor: pointer; text-decoration: none; transition: all .2s; }
-        .btn-primary { background: #2563eb; color: white; }
-        .btn-primary:hover { background: #1d4ed8; }
-        .btn-danger { background: #dc2626; color: white; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: #5b4bd5; }
+        .btn-danger { background: var(--red); color: white; }
         .btn-danger:hover { background: #b91c1c; }
-        input, textarea, select { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-size: 14px; width: 100%; }
-        input:focus, textarea:focus, select:focus, button:focus-visible { border-color: #2563eb; outline: 2px solid #8b5cf6; outline-offset: 2px; }
+        input, textarea, select { background: var(--input-bg); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; font-size: 14px; width: 100%; transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease; }
+        input:focus, textarea:focus, select:focus, button:focus-visible { border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 2px; }
         .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 4px; }
-        .empty { text-align: center; color: #64748b; padding: 40px; }
+        .form-group label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+        .empty { text-align: center; color: var(--muted); padding: 40px; }
         .flash { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
-        .flash-success { background: #065f46; color: #6ee7b7; }
-        .flash-error { background: #7f1d1d; color: #fca5a5; }
-        a { color: #38bdf8; text-decoration: none; }
+        .flash-success { background: var(--flash-success-bg); color: var(--flash-success-text); }
+        .flash-error { background: var(--flash-error-bg); color: var(--flash-error-text); }
+        a { color: var(--link-color); text-decoration: none; }
         a:hover { text-decoration: underline; }
-        /* 亮色主题 */
-        body.light { background:#f8fafc; color:#1e293b; }
-        body.light .header { background:#fff; border-bottom:1px solid #e2e8f0; }
-        body.light .card { background:#fff; border:1px solid #e2e8f0; }
-        body.light .stat-card { background:#fff; border:1px solid #e2e8f0; }
-        body.light .stat-card .value { color:#2563eb; }
-        body.light .stat-card .label { color:#64748b; }
-        body.light th, body.light td { border-bottom:1px solid #e2e8f0; }
-        body.light th { color:#64748b; }
-        body.light tr:hover { background:#f1f5f9; }
-        body.light input, body.light textarea, body.light select { background:#fff; border:1px solid #e2e8f0; color:#1e293b; }
-        body.light #messages { background:#f8fafc; border-color:#e2e8f0; }
-        body.light .flash-success { background:#dcfce7; color:#166534; }
-        body.light .flash-error { background:#fef2f2; color:#991b1b; }
-        body.light a { color:#2563eb; }
-        .cursor { display:inline-block;width:2px;height:1em;background:#38bdf8;animation:blink 1s infinite;vertical-align:text-bottom;margin-left:2px; } @keyframes blink { 0%,50% {opacity:1} 51%,100% {opacity:0} }
+        .cursor { display:inline-block;width:2px;height:1em;background:var(--accent);animation:blink 1s infinite;vertical-align:text-bottom;margin-left:2px; } @keyframes blink { 0%,50% {opacity:1} 51%,100% {opacity:0} }
         /* ── 移动端响应式 (v2.19) ── */
         @media (max-width: 768px) {
             .header { padding: 12px 16px; flex-direction: column; align-items: flex-start; }
@@ -92,6 +121,49 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
             .stats { grid-template-columns: 1fr 1fr; gap: 8px; }
             .stat-card .value { font-size: 20px; }
         }
+        /* ═══ Ctrl+K 全局命令面板 ═══ */
+        .cmd-overlay {
+            display: none; position: fixed; inset: 0; z-index: 9999;
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            align-items: flex-start; justify-content: center;
+            padding-top: 15vh;
+        }
+        .cmd-overlay.open { display: flex; }
+        .cmd-panel {
+            background: #1e293b; border: 1px solid #334155;
+            border-radius: 16px; width: 100%; max-width: 560px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+            overflow: hidden; animation: cmdSlideIn 0.15s ease-out;
+        }
+        @keyframes cmdSlideIn {
+            from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .cmd-search-wrap {
+            display: flex; align-items: center; gap: 10px;
+            padding: 14px 18px; border-bottom: 1px solid #334155;
+        }
+        .cmd-search-wrap svg { flex-shrink: 0; color: #64748b; }
+        .cmd-search {
+            flex: 1; background: transparent; border: none; outline: none;
+            color: #e2e8f0; font-size: 16px;
+        }
+        .cmd-search::placeholder { color: #475569; }
+        .cmd-list { max-height: 360px; overflow-y: auto; padding: 8px; }
+        .cmd-list::-webkit-scrollbar { width: 6px; }
+        .cmd-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        .cmd-group { font-size: 11px; color: #64748b; padding: 8px 12px 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .cmd-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 14px; border-radius: 8px; cursor: pointer;
+            transition: background 0.1s; color: #e2e8f0; font-size: 14px;
+        }
+        .cmd-item:hover, .cmd-item.selected { background: #334155; }
+        .cmd-item-icon { font-size: 18px; width: 24px; text-align: center; flex-shrink: 0; }
+        .cmd-item-text { flex: 1; }
+        .cmd-item-hint { font-size: 11px; color: #64748b; }
+        .cmd-empty { text-align: center; color: #64748b; padding: 24px; font-size: 14px; }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <!-- PWA -->
@@ -123,7 +195,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
         <select id="langSelect" onchange="switchLang(this.value)" 
-                style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:4px 8px;border-radius:4px;font-size:12px;cursor:pointer;">
+                style="background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:4px;font-size:12px;cursor:pointer;">
             <option value="zh">中文</option>
             <option value="en">English</option>
             <option value="ja">日本語</option>
@@ -132,17 +204,75 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
             <option value="de">Deutsch</option>
             <option value="es">Español</option>
         </select>
-        <button onclick="toggleTheme()" style="background:transparent;border:1px solid #334155;color:#94a3b8;padding:4px 8px;border-radius:4px;font-size:12px;cursor:pointer;margin-left:4px;" title="切换主题">🌓</button>
+        <button onclick="toggleTheme()" id="themeToggle" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:4px;font-size:14px;cursor:pointer;margin-left:4px;transition:border-color 0.3s ease,color 0.3s ease;" title="切换深色/浅色主题">🌙</button>
     </div>
 </div>
 <div class="main">
 {% block content %}{% endblock %}
+</div>
+<!-- ═══ Ctrl+K 全局命令面板 ═══ -->
+<div class="cmd-overlay" id="cmdOverlay" onclick="if(event.target===this)closeCmdPalette()">
+    <div class="cmd-panel">
+        <div class="cmd-search-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="cmd-search" id="cmdSearch" type="text" placeholder="输入命令搜索..." autocomplete="off" oninput="filterCommands()" onkeydown="handleCmdKey(event)">
+        </div>
+        <div class="cmd-list" id="cmdList"></div>
+    </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script>
 marked.setOptions({breaks:true, gfm:true});
 hljs.configure({languages:['python','javascript','bash','json','yaml','sql','css','html','xml','java','go','rust','cpp','typescript','shell']});
+
+// ═══ 主题管理 ═══
+var hljsLight = document.createElement('link');
+hljsLight.rel = 'stylesheet';
+hljsLight.id = 'hljs-theme';
+hljsLight.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+
+function getSystemTheme() {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+    document.body.setAttribute('data-theme', theme);
+    var btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
+    // 切换 highlight.js 主题
+    var existing = document.getElementById('hljs-theme');
+    if (theme === 'light') {
+        if (!existing) document.head.appendChild(hljsLight);
+    } else {
+        if (existing) existing.remove();
+    }
+    // 更新 meta theme-color
+    var metaDark = document.querySelector('meta[name="theme-color"]:not([media])');
+    if (metaDark) metaDark.content = theme === 'light' ? '#f8fafc' : '#0a0a1a';
+    localStorage.setItem('meshctx_theme', theme);
+}
+
+function toggleTheme() {
+    var current = document.body.getAttribute('data-theme') || 'dark';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+// 初始化主题：localStorage > 系统偏好 > 深色
+(function initTheme() {
+    var saved = localStorage.getItem('meshctx_theme');
+    if (saved === 'light' || saved === 'dark') {
+        applyTheme(saved);
+    } else {
+        applyTheme(getSystemTheme());
+    }
+    // 监听系统主题变化
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+        if (!localStorage.getItem('meshctx_theme')) {
+            applyTheme(e.matches ? 'dark' : 'light');
+        }
+    });
+})();
 
 // Language switcher — localStorage + server sync
 function switchLang(lang) {
@@ -152,12 +282,7 @@ function switchLang(lang) {
         .catch(function(){ location.reload(); });
 }
 (function(){
-    // Theme init on load
-(function(){
-    var theme = localStorage.getItem('meshctx_theme');
-    if (theme === 'light') document.body.classList.add('light');
-})();
-var saved = localStorage.getItem('meshctx_lang') || 'zh';
+    var saved = localStorage.getItem('meshctx_lang') || 'zh';
     var sel = document.getElementById('langSelect');
     if (sel) sel.value = saved;
 })();
@@ -167,6 +292,90 @@ if ('serviceWorker' in navigator) {
         .then(function(reg) { console.log('SW registered:', reg.scope); })
         .catch(function(err) { console.log('SW registration failed:', err); });
 }
+// ═══ Ctrl+K 全局命令面板 ═══
+var cmdCommands = [
+    { group: '导航', icon: '💬', label: 'Chat',       hint: '/ui/chat',       action: function(){ location.href='/ui/chat'; } },
+    { group: '导航', icon: '📊', label: 'Dashboard',  hint: '/ui/dashboard',   action: function(){ location.href='/ui/dashboard'; } },
+    { group: '导航', icon: '📁', label: 'Files',      hint: '/ui/files',       action: function(){ location.href='/ui/files'; } },
+    { group: '导航', icon: '🧠', label: 'Memory',     hint: '/ui/memory',      action: function(){ location.href='/ui/memory'; } },
+    { group: '导航', icon: '⚙️', label: 'Setup',      hint: '/ui/setup',       action: function(){ location.href='/ui/setup'; } },
+    { group: '导航', icon: '🤖', label: 'Models',     hint: '/ui/models',      action: function(){ location.href='/ui/models'; } },
+    { group: '导航', icon: '📋', label: '仪表板',     hint: '/ui/',             action: function(){ location.href='/ui/'; } },
+    { group: '导航', icon: '📦', label: '项目',       hint: '/ui/projects',    action: function(){ location.href='/ui/projects'; } },
+    { group: '导航', icon: '📝', label: '记忆列表',   hint: '/ui/memories',    action: function(){ location.href='/ui/memories'; } },
+    { group: '导航', icon: '🔗', label: '连续性',     hint: '/ui/continuity',  action: function(){ location.href='/ui/continuity'; } },
+    { group: '导航', icon: '🔌', label: '插件',       hint: '/ui/plugins',     action: function(){ location.href='/ui/plugins'; } },
+    { group: '操作', icon: '🌓', label: '切换深色/浅色主题', hint: 'Toggle theme', action: function(){ toggleTheme(); closeCmdPalette(); } },
+    { group: '操作', icon: '🔄', label: '刷新页面',   hint: 'Reload',          action: function(){ location.reload(); } },
+    { group: '操作', icon: '📚', label: 'API 文档',   hint: '/docs',           action: function(){ window.open('/docs','_blank'); } }
+];
+var cmdSelected = -1;
+var cmdFiltered = [];
+
+function openCmdPalette() {
+    var overlay = document.getElementById('cmdOverlay');
+    overlay.classList.add('open');
+    document.getElementById('cmdSearch').value = '';
+    cmdSelected = -1;
+    filterCommands();
+    setTimeout(function(){ document.getElementById('cmdSearch').focus(); }, 50);
+}
+function closeCmdPalette() {
+    document.getElementById('cmdOverlay').classList.remove('open');
+}
+function filterCommands() {
+    var q = document.getElementById('cmdSearch').value.toLowerCase().trim();
+    cmdFiltered = q ? cmdCommands.filter(function(c){ return c.label.toLowerCase().indexOf(q) !== -1 || c.hint.toLowerCase().indexOf(q) !== -1 || c.group.toLowerCase().indexOf(q) !== -1; }) : cmdCommands.slice();
+    cmdSelected = cmdFiltered.length > 0 ? 0 : -1;
+    renderCmdList();
+}
+function renderCmdList() {
+    var list = document.getElementById('cmdList');
+    if (cmdFiltered.length === 0) {
+        list.innerHTML = '<div class="cmd-empty">未找到匹配命令</div>';
+        return;
+    }
+    var html = '';
+    var lastGroup = '';
+    for (var i = 0; i < cmdFiltered.length; i++) {
+        var c = cmdFiltered[i];
+        if (c.group !== lastGroup) {
+            html += '<div class="cmd-group">' + c.group + '</div>';
+            lastGroup = c.group;
+        }
+        var sel = i === cmdSelected ? ' selected' : '';
+        html += '<div class="cmd-item' + sel + '" data-idx="' + i + '" onmousedown="event.preventDefault();executeCmd(' + i + ')" onmouseenter="hoverCmd(' + i + ')">';
+        html += '<span class="cmd-item-icon">' + c.icon + '</span>';
+        html += '<span class="cmd-item-text">' + c.label + '</span>';
+        html += '<span class="cmd-item-hint">' + c.hint + '</span>';
+        html += '</div>';
+    }
+    list.innerHTML = html;
+}
+function hoverCmd(idx) {
+    cmdSelected = idx;
+    renderCmdList();
+}
+function handleCmdKey(e) {
+    if (e.key === 'Escape') { e.preventDefault(); closeCmdPalette(); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (cmdFiltered.length > 0) { cmdSelected = Math.min(cmdSelected + 1, cmdFiltered.length - 1); renderCmdList(); } return; }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); if (cmdFiltered.length > 0) { cmdSelected = Math.max(cmdSelected - 1, 0); renderCmdList(); } return; }
+    if (e.key === 'Enter')     { e.preventDefault(); if (cmdSelected >= 0 && cmdSelected < cmdFiltered.length) executeCmd(cmdSelected); return; }
+}
+function executeCmd(idx) {
+    var c = cmdFiltered[idx];
+    if (c && c.action) {
+        closeCmdPalette();
+        setTimeout(function(){ c.action(); }, 80);
+    }
+}
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        var overlay = document.getElementById('cmdOverlay');
+        if (overlay.classList.contains('open')) { closeCmdPalette(); } else { openCmdPalette(); }
+    }
+});
 </script>
 </body>
 </html>"""
@@ -1052,13 +1261,37 @@ function saveHistory() {
     saveTabs();
 }
 function toggleTheme() {
-    document.body.classList.toggle('light');
-    localStorage.setItem('meshctx_theme', document.body.classList.contains('light') ? 'light' : 'dark');
-    const isLight = document.body.classList.contains('light');
-    localStorage.setItem('meshctx_theme', isLight ? 'light' : 'dark');
+    var current = document.body.getAttribute('data-theme') || 'dark';
+    var next = current === 'dark' ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', next);
+    var btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = next === 'light' ? '☀️' : '🌙';
+    // 切换 highlight.js 主题
+    var hljsTheme = document.getElementById('hljs-theme');
+    if (next === 'light') {
+        if (!hljsTheme) {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.id = 'hljs-theme';
+            link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+            document.head.appendChild(link);
+        }
+    } else {
+        if (hljsTheme) hljsTheme.remove();
+    }
+    localStorage.setItem('meshctx_theme', next);
 }
 // Restore theme
-if (localStorage.getItem('meshctx_theme') === 'light') document.body.classList.add('light');
+(function(){
+    var theme = localStorage.getItem('meshctx_theme');
+    if (theme === 'light' || theme === 'dark') {
+        document.body.setAttribute('data-theme', theme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.setAttribute('data-theme', 'dark');
+    } else {
+        document.body.setAttribute('data-theme', 'light');
+    }
+})();
 
 // 恢复标签页
 (function restoreTabs() {
@@ -3572,11 +3805,15 @@ function quickAsk(e){
 })();
 function toggleTheme(){
   var body = document.body;
-  var btn = document.getElementById('themeBtn');
-  body.classList.toggle('light');
-  var isLight = body.classList.contains('light');
-  localStorage.setItem('meshctx_theme', isLight ? 'light' : 'dark');
-  btn.textContent = isLight ? '☀️' : '🌓';
+  var current = body.getAttribute('data-theme') || 'dark';
+  var next = current === 'dark' ? 'light' : 'dark';
+  body.setAttribute('data-theme', next);
+  localStorage.setItem('meshctx_theme', next);
+  var btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = next === 'light' ? '☀️' : '🌙';
+  // 也更新 desktop 按钮 (如果有)
+  var btn2 = document.getElementById('themeBtn');
+  if (btn2) btn2.textContent = next === 'light' ? '☀️' : '🌙';
 }
 
 // ═══ 基准测试 v1.5.6 ═══
