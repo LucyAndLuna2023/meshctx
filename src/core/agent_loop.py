@@ -27,6 +27,8 @@ import numpy as np
 from .kernel import Event, EventPriority, Plugin, PluginInfo
 from .global_workspace import GlobalWorkspace, ProcessorType, AttentionBottleneck
 from .action_gate import ActionGate, GateAction, GateResult, ToolCall as GateToolCall, get_gate
+from .learn_loop import LearnLoop
+from .cognitive_health import CognitiveHealthMonitor
 
 logger = logging.getLogger("meshctx.agent")
 
@@ -583,6 +585,11 @@ class AgentLoopPlugin(Plugin):
         # v1.9: 超级大脑编排器
         from .super_brain import SuperBrainOrchestrator
         self.super_brain = SuperBrainOrchestrator()
+        # v2.30: Learn闭环 + 认知衰减监控
+        self.learn_loop = LearnLoop(habit_threshold=10)
+        self.cognitive_health = CognitiveHealthMonitor(history_size=50)
+        self._health_check_interval = 10  # 每10个任务检查一次健康
+        self._tasks_since_check = 0
         self._active_tasks: Dict[str, AgentTask] = {}
         self._task_queue: asyncio.Queue = asyncio.Queue(maxsize=100)
         self._loop_task: Optional[asyncio.Task] = None
@@ -1174,35 +1181,96 @@ class AgentLoopPlugin(Plugin):
         ))
     
     async def _advance_to_learn(self, task: AgentTask):
-        """推进到学习阶段"""
-        # 发布学习事件
+        """推进到学习阶段 — v2.30: 接入Learn闭环+认知健康监控"""
+        
+        # ── 1. 提取任务结果 ──
+        task_type = task.decision.action_type if task.decision else "general"
+        success = task.result.success if task.result else False
+        quality = 0.9 if success else (0.3 if task.result and task.result.error else 0.1)
+        duration = (
+            task.completed_at - task.started_at
+            if task.completed_at and task.started_at else 0
+        )
+        strategy = "balanced"  # 可从决策上下文获取
+        
+        # ── 2. LearnLoop: 记录结果→更新策略信念 ──
+        learn_result = self.learn_loop.record_outcome(
+            task_type=task_type,
+            success=success,
+            quality=quality,
+            strategy_used=strategy,
+            duration=duration,
+            error_type=task.result.error if task.result and task.result.error else None,
+        )
+        
+        # ── 3. CognitiveHealth: 记录指标 ──
+        # 自由能代理值（从任务质量反推: 低质量→高惊讶→高自由能）
+        free_energy_estimate = 1.0 - quality if success else 0.7 + (1.0 - quality) * 0.3
+        self.cognitive_health.record_free_energy(free_energy_estimate)
+        
+        # 决策置信度
+        confidence = task.decision.confidence if task.decision else 0.5
+        self.cognitive_health.record_confidence(confidence)
+        
+        # 输出指纹（防重复检测）
+        if task.result and task.result.output:
+            self.cognitive_health.record_output(str(task.result.output)[:200])
+        
+        # ── 4. 定期健康检查 ──
+        self._tasks_since_check += 1
+        health_diagnosis = None
+        if self._tasks_since_check >= self._health_check_interval:
+            health_diagnosis = self.cognitive_health.check()
+            self._tasks_since_check = 0
+            
+            if health_diagnosis["alert"] != "normal":
+                logger.warning(f"[HEALTH] Agent认知健康: score={health_diagnosis['score']} "
+                             f"alert={health_diagnosis['alert']} "
+                             f"issues={len(health_diagnosis['issues'])}")
+            
+            if health_diagnosis.get("suggest_new_session"):
+                logger.warning("[HEALTH] 建议开启新会话以避免认知衰减")
+        
+        # ── 5. 发布学习事件 ──
         await self.kernel.bus.publish(Event(
             type="task.completed",
             source="agent_loop",
             data={
                 "task_id": task.id,
                 "description": task.description,
-                "status": "success" if (task.result and task.result.success) else "failed",
-                "duration_seconds": (
-                    task.completed_at - task.started_at
-                    if task.completed_at and task.started_at else 0
-                ),
+                "status": "success" if success else "failed",
+                "duration_seconds": duration,
                 "tool_calls": 1,
-                "tool_failures": 0 if (task.result and task.result.success) else 1,
+                "tool_failures": 0 if success else 1,
                 "error": task.result.error if task.result else None,
+                # v2.30 新增
+                "learn": {
+                    "belief_updated": learn_result["belief_updated"],
+                    "strength": learn_result["strength"],
+                    "habit_formed": learn_result["habit_formed"],
+                },
+                "health": health_diagnosis,
             },
         ))
         
-        # 学习响应
-        if task.result and task.result.success:
-            response = self.responder.generate(LoopPhase.LEARN, {
-                "pattern": f"任务类型: {task.decision.action_type if task.decision else 'unknown'}",
-            })
-            await self.kernel.bus.publish(Event(
-                type="agent.response",
-                source="agent_loop",
-                data={"task_id": task.id, "response": response, "phase": "learn"},
-            ))
+        # ── 6. 学习响应 ──
+        learn_data = {"pattern": f"任务类型: {task_type}"}
+        if learn_result["habit_formed"]:
+            learn_data["pattern"] += f" (习惯已形成!)"
+        if health_diagnosis and health_diagnosis["alert"] != "normal":
+            learn_data["change"] = f"认知健康评分: {health_diagnosis['score']}"
+        
+        response = self.responder.generate(LoopPhase.LEARN, learn_data)
+        await self.kernel.bus.publish(Event(
+            type="agent.response",
+            source="agent_loop",
+            data={
+                "task_id": task.id,
+                "response": response,
+                "phase": "learn",
+                "health": health_diagnosis,
+            },
+        ))
     
     async def _autonomous_loop(self):
         """自主后台循环: 持续检测并处理待办任务"""
