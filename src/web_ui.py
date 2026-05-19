@@ -4741,10 +4741,26 @@ _TEMPLATES["files.html"] = r"""{% extends "base.html" %}
 .fm-file-table tr{cursor:pointer}
 .fm-icon{font-size:16px;width:24px}
 .fm-editor{width:100%;min-height:400px;background:#0f172a;color:var(--text);border:1px solid #334155;border-radius:8px;padding:12px;font-family:'Consolas','Courier New',monospace;font-size:13px;resize:vertical}
-.fm-toolbar{display:flex;gap:8px;margin-bottom:12px}
+.fm-toolbar{display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap}
 .fm-toolbar button{padding:6px 14px;background:#1e293b;border:1px solid #334155;color:var(--text);border-radius:6px;cursor:pointer;font-size:12px}
 .fm-toolbar button:hover{background:#334155}
 .fm-toolbar button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.fm-tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid #334155;padding-bottom:0;min-height:32px;align-items:flex-end}
+.fm-tab{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:#1e293b;border:1px solid #334155;border-bottom:none;border-radius:6px 6px 0 0;font-size:11px;cursor:pointer;white-space:nowrap;color:var(--muted);max-width:200px;overflow:hidden}
+.fm-tab:hover{background:#263348;color:var(--text)}
+.fm-tab.active{background:#0f172a;color:#e2e8f0;border-color:#334155;font-weight:600}
+.fm-tab-name{overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.fm-tab-close{font-size:13px;line-height:1;opacity:0.4;cursor:pointer;padding:0 2px;border-radius:3px}
+.fm-tab-close:hover{opacity:1;color:#ef4444;background:#3b1515}
+.fm-tab-modified{color:#f59e0b;font-weight:bold}
+.fm-editor-wrap{position:relative;width:100%;min-height:400px;border:1px solid #334155;border-radius:0 8px 8px 8px;overflow:hidden;background:#0f172a}
+.fm-editor-gutter{position:absolute;left:0;top:0;bottom:0;width:48px;background:#1a2235;color:#64748b;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.5;padding:12px 6px 12px 0;text-align:right;overflow:hidden;user-select:none;border-right:1px solid #1e293b;z-index:2;pointer-events:none}
+.fm-editor-highlight{position:absolute;left:48px;top:0;right:0;bottom:0;padding:12px;margin:0;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.5;white-space:pre;overflow:hidden;background:transparent!important;z-index:1;border:none;border-radius:0}
+.fm-editor-highlight code{background:transparent!important;padding:0!important;font-family:inherit;font-size:inherit;line-height:inherit;tab-size:4}
+.fm-editor-textarea{position:absolute;left:48px;top:0;right:0;bottom:0;padding:12px;margin:0;font-family:'Consolas','Courier New',monospace;font-size:13px;line-height:1.5;color:transparent;caret-color:#e2e8f0;background:transparent;border:none;resize:none;outline:none;z-index:3;white-space:pre;overflow:auto;tab-size:4;-webkit-text-fill-color:transparent}
+.fm-editor-textarea::selection{background:rgba(108,92,231,0.35);color:transparent;-webkit-text-fill-color:transparent}
+.fm-editor-textarea:focus{outline:none;box-shadow:none}
+.fm-editor-wrap .hljs{background:transparent!important;padding:0!important}
 </style>
 <div class="container">
 <nav><a href="/ui/chat">Chat</a><a href="/ui/setup">Setup</a><a href="/ui/plugins">Plugins</a><a href="/ui/files" style="color:var(--accent);background:rgba(108,92,231,0.15);">📁 Files</a><a href="/ui/dashboard">Dashboard</a></nav>
@@ -4764,18 +4780,217 @@ _TEMPLATES["files.html"] = r"""{% extends "base.html" %}
 <tbody id="fileList"><tr><td colspan="4" style="text-align:center;color:var(--muted)">Loading...</td></tr></tbody>
 </table>
 <div id="editorSection" style="display:none;margin-top:20px">
- <h3 id="editorTitle" style="margin-bottom:8px">📝 Editing: <span id="editorFilename"></span></h3>
  <div class="fm-toolbar">
-  <button class="primary" onclick="saveFile()">💾 Save</button>
-  <button onclick="closeEditor()">✖ Close</button>
+  <button class="primary" onclick="saveFile()" title="Ctrl+S">💾 Save</button>
+  <button onclick="closeActiveTab()">✖ Close Tab</button>
+  <span style="flex:1"></span>
+  <span id="editorLang" style="font-size:11px;color:var(--muted)"></span>
  </div>
- <textarea class="fm-editor" id="fileEditor" spellcheck="false"></textarea>
+ <div class="fm-tabs" id="editorTabs"></div>
+ <div class="fm-editor-wrap" id="editorWrapper">
+  <div class="fm-editor-gutter" id="editorGutter">1</div>
+  <pre class="fm-editor-highlight" id="editorHighlight" aria-hidden="true"><code id="editorCode"></code></pre>
+  <textarea class="fm-editor-textarea" id="fileEditor" spellcheck="false" placeholder="Select a file to edit"></textarea>
+ </div>
 </div>
 </div>
 <script>
 var currentPath = '';
-var currentFile = null;
+var openTabs = [];          // {path, name, content, language, modified, savedContent}
+var activeTabIdx = -1;
 
+// ── Language detection from file extension ──
+var EXT_LANG = {
+  py:'python', js:'javascript', ts:'typescript', jsx:'javascript', tsx:'typescript',
+  json:'json', html:'html', htm:'html', css:'css', scss:'scss', less:'less',
+  md:'markdown', yaml:'yaml', yml:'yaml', toml:'ini', ini:'ini', cfg:'ini',
+  xml:'xml', svg:'xml', sql:'sql', sh:'bash', bash:'bash', zsh:'bash',
+  c:'c', h:'c', cpp:'cpp', hpp:'cpp', cc:'cpp', cxx:'cpp',
+  java:'java', go:'go', rs:'rust', rb:'ruby', php:'php', swift:'swift',
+  kt:'kotlin', scala:'scala', lua:'lua', r:'r', pl:'perl', dockerfile:'dockerfile',
+  makefile:'makefile', cmake:'cmake', tex:'latex', diff:'diff', patch:'diff',
+  txt:'plaintext', log:'plaintext', csv:'plaintext'
+};
+function detectLang(filename){
+  if(!filename) return 'plaintext';
+  var ext = filename.split('.').pop().toLowerCase();
+  var base = filename.toLowerCase();
+  if(base==='dockerfile') return 'dockerfile';
+  if(base==='makefile') return 'makefile';
+  if(base==='cmakelists.txt') return 'cmake';
+  return EXT_LANG[ext] || 'plaintext';
+}
+
+// ── Tab management ──
+function openFileInTab(path, content){
+  // Check if already open
+  for(var i=0; i<openTabs.length; i++){
+    if(openTabs[i].path === path){
+      switchTab(i);
+      return;
+    }
+  }
+  var fname = path.split('/').pop();
+  var lang = detectLang(fname);
+  openTabs.push({
+    path: path, name: fname, content: content || '',
+    language: lang, modified: false, savedContent: content || ''
+  });
+  renderTabs();
+  switchTab(openTabs.length - 1);
+  document.getElementById('editorSection').style.display = 'block';
+}
+
+function switchTab(idx){
+  if(idx < 0 || idx >= openTabs.length) return;
+  // Save current tab content before switching
+  if(activeTabIdx >= 0 && activeTabIdx < openTabs.length){
+    var ta = document.getElementById('fileEditor');
+    if(ta){
+      var cur = openTabs[activeTabIdx];
+      cur.content = ta.value;
+      cur.modified = (ta.value !== cur.savedContent);
+    }
+  }
+  activeTabIdx = idx;
+  var tab = openTabs[idx];
+  var ta = document.getElementById('fileEditor');
+  ta.value = tab.content;
+  document.getElementById('editorLang').textContent = tab.language;
+  updateHighlight();
+  updateLineNumbers();
+  renderTabs();
+  ta.focus();
+  // Sync scroll after render
+  setTimeout(function(){ syncScroll(); }, 10);
+}
+
+function closeTab(idx){
+  if(idx < 0 || idx >= openTabs.length) return;
+  if(openTabs[idx].modified){
+    if(!confirm('Unsaved changes in '+openTabs[idx].name+'. Close anyway?')) return;
+  }
+  openTabs.splice(idx, 1);
+  if(openTabs.length === 0){
+    activeTabIdx = -1;
+    document.getElementById('fileEditor').value = '';
+    document.getElementById('editorCode').textContent = '';
+    document.getElementById('editorGutter').textContent = '1';
+    document.getElementById('editorSection').style.display = 'none';
+    renderTabs();
+    return;
+  }
+  if(activeTabIdx >= openTabs.length) activeTabIdx = openTabs.length - 1;
+  if(idx <= activeTabIdx && activeTabIdx > 0) activeTabIdx--;
+  if(activeTabIdx < 0) activeTabIdx = 0;
+  switchTab(activeTabIdx);
+}
+
+function closeActiveTab(){
+  if(activeTabIdx >= 0) closeTab(activeTabIdx);
+}
+
+function renderTabs(){
+  var html = '';
+  for(var i=0; i<openTabs.length; i++){
+    var t = openTabs[i];
+    var cls = (i === activeTabIdx) ? ' active' : '';
+    var mod = t.modified ? ' <span class="fm-tab-modified">●</span>' : '';
+    html += '<div class="fm-tab'+cls+'" onclick="switchTab('+i+')">';
+    html += '<span class="fm-tab-name" title="'+escHtml(t.path)+'">'+escHtml(t.name)+'</span>'+mod;
+    html += '<span class="fm-tab-close" onclick="event.stopPropagation();closeTab('+i+')">✕</span>';
+    html += '</div>';
+  }
+  document.getElementById('editorTabs').innerHTML = html;
+}
+
+// ── Syntax highlighting ──
+function updateHighlight(){
+  var tab = activeTabIdx >= 0 ? openTabs[activeTabIdx] : null;
+  var lang = tab ? tab.language : 'plaintext';
+  var code = document.getElementById('fileEditor').value;
+  var codeEl = document.getElementById('editorCode');
+  codeEl.textContent = code;
+  codeEl.className = 'language-' + lang;
+  if(lang !== 'plaintext' && typeof hljs !== 'undefined'){
+    try{ hljs.highlightElement(codeEl); }catch(e){}
+  }
+  // Also highlight inline code blocks elsewhere if any
+  if(typeof hljs !== 'undefined'){
+    try{
+      document.querySelectorAll('.fm-editor-highlight code').forEach(function(el){
+        if(!el.dataset.highlighted){ el.dataset.highlighted='1'; hljs.highlightElement(el); }
+      });
+    }catch(e){}
+  }
+}
+
+// ── Line numbers ──
+function updateLineNumbers(){
+  var code = document.getElementById('fileEditor').value;
+  var lines = code.split('\n');
+  var nums = '';
+  for(var i=1; i<=lines.length; i++){ nums += i+'\n'; }
+  if(lines.length === 0) nums = '1';
+  document.getElementById('editorGutter').textContent = nums;
+}
+
+// ── Scroll sync ──
+function syncScroll(){
+  var ta = document.getElementById('fileEditor');
+  var hl = document.getElementById('editorHighlight');
+  var gutter = document.getElementById('editorGutter');
+  hl.scrollTop = ta.scrollTop;
+  hl.scrollLeft = ta.scrollLeft;
+  gutter.scrollTop = ta.scrollTop;
+}
+
+// ── Editor input handler ──
+function onEditorInput(){
+  if(activeTabIdx >= 0){
+    var tab = openTabs[activeTabIdx];
+    var val = document.getElementById('fileEditor').value;
+    tab.content = val;
+    tab.modified = (val !== tab.savedContent);
+    renderTabs();
+  }
+  updateHighlight();
+  updateLineNumbers();
+}
+
+// ── Save ──
+async function saveFile(){
+  if(activeTabIdx < 0) return;
+  var tab = openTabs[activeTabIdx];
+  var content = document.getElementById('fileEditor').value;
+  try{
+    var r = await fetch('/api/file/write?path='+encodeURIComponent(tab.path), {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({content:content})
+    });
+    var d = await r.json();
+    if(d.ok){
+      tab.savedContent = content;
+      tab.modified = false;
+      tab.content = content;
+      renderTabs();
+      showToast('Saved ✅');
+    } else {
+      alert('Failed: '+(d.error||'unknown'));
+    }
+  }catch(e){ alert('Save failed: '+e.message); }
+}
+
+// ── Toast notification ──
+function showToast(msg){
+  var el = document.createElement('div');
+  el.textContent = msg;
+  el.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#065f46;color:#6ee7b7;padding:8px 18px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s';
+  document.body.appendChild(el);
+  requestAnimationFrame(function(){ el.style.opacity = '1'; });
+  setTimeout(function(){ el.style.opacity = '0'; setTimeout(function(){ el.remove(); },300); }, 2000);
+}
+
+// ── File browser ──
 async function loadPath(path){
  currentPath = path || '';
  try{
@@ -4811,7 +5026,7 @@ function renderFiles(items, parentPath){
    var size=f.is_dir?'--':formatSize(f.size);
    var mod=new Date(f.modified*1000).toLocaleString();
    var cls=f.error?'color:var(--red)':'';
-   html+='<tr style="'+cls+'" ondblclick="handleClick(\\''+f.path.replace(/\\\\/g,'\\\\\\\\')+'\\','+f.is_dir+')" onclick="selectFile(\\''+f.path.replace(/\\\\/g,'\\\\\\\\')+'\\','+f.is_dir+',this)">';
+   html+='<tr style="'+cls+'" ondblclick="handleClick(\\''+f.path.replace(/\\\\/g,\\'\\\\\\\\\\')+'\\','+f.is_dir+')" onclick="selectFile(\\''+f.path.replace(/\\\\/g,\\'\\\\\\\\\\')+'\\','+f.is_dir+',this)">';
    html+='<td class="fm-icon">'+icon+'</td>';
    html+='<td>'+escHtml(f.name)+(f.error?' ⚠️ '+f.error:'')+'</td>';
    html+='<td style="font-size:12px;color:var(--muted)">'+size+'</td>';
@@ -4823,8 +5038,8 @@ function renderFiles(items, parentPath){
 }
 
 function handleClick(path, isDir){
- if(isDir){ loadPath(path); closeEditor(); }
- else{ openEditor(path); }
+ if(isDir){ loadPath(path); }
+ else{ openFileInTab(path, null); }
 }
 
 function selectFile(path, isDir, row){
@@ -4841,34 +5056,18 @@ function goUp(){
 
 function refreshFiles(){ loadPath(currentPath); }
 
+// ── Open file (double-click) - fetch content into tab ──
 async function openEditor(path){
  try{
   var r = await fetch('/api/file/read?path='+encodeURIComponent(path));
   var d = await r.json();
   if(d.error){ alert(d.error); return; }
-  currentFile = path;
-  document.getElementById('editorFilename').textContent = path.split('/').pop();
-  document.getElementById('fileEditor').value = d.content || '';
-  document.getElementById('editorSection').style.display = 'block';
-  document.getElementById('editorTitle').scrollIntoView();
+  openFileInTab(path, d.content || '');
  }catch(e){ alert('Open failed: '+e.message); }
 }
 
 function closeEditor(){
- currentFile = null;
- document.getElementById('editorSection').style.display = 'none';
-}
-
-async function saveFile(){
- if(!currentFile) return;
- var content = document.getElementById('fileEditor').value;
- try{
-  var r = await fetch('/api/file/write?path='+encodeURIComponent(currentFile), {
-   method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({content:content})
-  });
-  var d = await r.json();
-  if(d.ok){ alert('Saved ✅'); } else { alert('Failed: '+(d.error||'unknown')); }
- }catch(e){ alert('Save failed: '+e.message); }
+ closeActiveTab();
 }
 
 function formatSize(bytes){
@@ -4879,6 +5078,32 @@ function formatSize(bytes){
 }
 
 function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Event listeners ──
+document.addEventListener('DOMContentLoaded', function(){
+  var ta = document.getElementById('fileEditor');
+  if(ta){
+    ta.addEventListener('input', onEditorInput);
+    ta.addEventListener('scroll', syncScroll);
+    ta.addEventListener('keydown', function(e){
+      // Ctrl+S / Cmd+S
+      if((e.ctrlKey || e.metaKey) && e.key === 's'){
+        e.preventDefault();
+        saveFile();
+      }
+      // Tab key: insert spaces
+      if(e.key === 'Tab'){
+        e.preventDefault();
+        var start = ta.selectionStart;
+        var end = ta.selectionEnd;
+        var val = ta.value;
+        ta.value = val.substring(0, start) + '    ' + val.substring(end);
+        ta.selectionStart = ta.selectionEnd = start + 4;
+        onEditorInput();
+      }
+    });
+  }
+});
 
 loadPath('');
 </script>
