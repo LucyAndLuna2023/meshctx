@@ -1,4 +1,4 @@
-; meshctx Desktop — NSIS Unicode v2.15.7
+; meshctx Desktop — NSIS Unicode v2.25.0
 ; 7语言 + MUI_LANGDLL
 ; $\n for newlines in LangStrings (NOT $\\n)
 ; 构建: makensis meshctx_setup.nsi
@@ -14,7 +14,7 @@ InstallDir "$PROGRAMFILES\MeshCtx"
 RequestExecutionLevel admin
 SetCompressor /SOLID lzma
 
-!define VERSION "2.15.7"
+!define VERSION "2.25.0"
 !define PUBLISHER "meshctx.com"
 
 !define MUI_ABORTWARNING

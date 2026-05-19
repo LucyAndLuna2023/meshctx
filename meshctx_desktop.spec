@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-MeshCtx Desktop — PyInstaller spec v2.15.7
+MeshCtx Desktop — PyInstaller spec v2.25.0
 pip install pyinstaller && pyinstaller meshctx_desktop.spec
 """
 import sys, os
@@ -58,6 +58,13 @@ a = Analysis(
         'src.core.workspace_manager',
         'src.core.platform_fs', 'src.core.crypto',
         'src.core.plugin_manifest',
+        # v2.16-v2.25 NEW MODULES
+        'src.core.memory_v2', 'src.core.auto_healer',
+        'src.core.performance_optimizer', 'src.core.action_gate',
+        'src.core.attention_decay', 'src.core.context_compressor',
+        'src.core.pre_action_check', 'src.core.principle_extractor',
+        'src.core.session_archiver', 'src.core.telegram_router',
+        'src.core.voice_io', 'src.core.watchdog',
         # Desktop deps
         'webview', 'webview.platforms', 'webview.js',
         'webview.guilib', 'webview.util',
@@ -66,6 +73,7 @@ a = Analysis(
         'pydantic', 'jinja2', 'Crypto', 'Crypto.Cipher',
         'Crypto.Cipher.AES', 'aiohttp', 'starlette',
         'anyio', 'sniffio', 'h11', 'websockets', 'psutil',
+        'numpy', 'aiofiles',
     ],
     hookspath=[],
     runtime_hooks=[],
@@ -105,8 +113,8 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '2.15.7',
-            'CFBundleVersion': '2.15.7',
+            'CFBundleShortVersionString': '2.25.0',
+            'CFBundleVersion': '2.25.0',
         },
         version='version_info.txt',
     )
