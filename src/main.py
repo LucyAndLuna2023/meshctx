@@ -124,6 +124,14 @@ async def lifespan(app: FastAPI):
     logger.info("═══════════════════════════════════════════")
     logger.info("  meshctx v1.0 启动中...")
     logger.info("═══════════════════════════════════════════")
+    
+    # v2.33: 加载API Key — 从.env和provider_config.json
+    _load_api_keys_on_startup()
+    
+    # 自动配置模型
+    from src.model_registry import get_registry
+    get_registry().auto_configure()
+    logger.info(f"模型自动配置完成: {len(get_registry()._entries)} 个")
 
     _kernel = Kernel()
     logger.info("加载核心插件...")
@@ -4207,13 +4215,24 @@ async def api_setup(request: Request):
     env_var = env_map.get(provider, "DEEPSEEK_API_KEY")
     os.environ[env_var] = key
     
-    # 写入bashrc
-    bashrc = os.path.expanduser("~/.bashrc")
-    with open(bashrc, "r") as f:
-        lines = f.read()
-    if env_var not in lines:
-        with open(bashrc, "a") as f:
-            f.write(f"\nexport {env_var}={key}\n")
+    # v2.33: 保存到 ~/.meshctx/.env (持久化，启动时自动加载)
+    env_file = Path.home() / ".meshctx" / ".env"
+    env_file.parent.mkdir(parents=True, exist_ok=True)
+    # 读取现有内容，保留其他key
+    existing = {}
+    if env_file.exists():
+        for line in env_file.read_text().strip().split("\n"):
+            if "=" in line and not line.startswith("#"):
+                k, v = line.split("=", 1)
+                existing[k.strip()] = v.strip()
+    existing[env_var] = key
+    env_file.write_text("\n".join(f"{k}={v}" for k, v in existing.items()) + "\n")
+    logger.info(f"Key已持久化到 {env_file}")
+    
+    # v2.33: 也保存到 provider_config.json
+    pcfg = _load_provider_config()
+    pcfg[provider] = {"key": key, "updated": time.time()}
+    _save_provider_config(pcfg)
     
     # 配置模型
     reg = get_registry()
@@ -4228,6 +4247,54 @@ async def api_setup(request: Request):
 # ── v1.5.16 供应商管理面板 ────────────────────────────────
 
 _PROVIDER_CONFIG_FILE = Path(__file__).resolve().parent.parent / "provider_config.json"
+
+
+def _load_api_keys_on_startup():
+    """启动时加载所有来源的API Key到os.environ"""
+    import os
+    from pathlib import Path
+    
+    keys_loaded = 0
+    
+    # 1. 加载 ~/.meshctx/.env (CLI setup写入)
+    env_file = Path.home() / ".meshctx" / ".env"
+    if env_file.exists():
+        try:
+            for line in env_file.read_text().strip().split("\n"):
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, val = line.split("=", 1)
+                    key, val = key.strip(), val.strip()
+                    if val and key not in os.environ:
+                        os.environ[key] = val
+                        keys_loaded += 1
+                        logger.info(f"  Key加载: {key} (from .env)")
+        except Exception as e:
+            logger.warning(f"  .env加载失败: {e}")
+    
+    # 2. 加载 provider_config.json (浏览器配置页写入)
+    if _PROVIDER_CONFIG_FILE.exists():
+        try:
+            cfg = json.loads(_PROVIDER_CONFIG_FILE.read_text())
+            from src.model_registry import BUILTIN_MODELS
+            for pid, pcfg in cfg.items():
+                key = pcfg.get("key", "")
+                if not key:
+                    continue
+                # 找到该provider对应的key_env
+                for mid, info in BUILTIN_MODELS.items():
+                    if info["provider"] == pid:
+                        env_var = info.get("key_env", "")
+                        if env_var and env_var not in os.environ:
+                            os.environ[env_var] = key
+                            keys_loaded += 1
+                            logger.info(f"  Key加载: {env_var} (from provider_config.json)")
+                        break
+        except Exception as e:
+            logger.warning(f"  provider_config加载失败: {e}")
+    
+    logger.info(f"  API Key自动加载: {keys_loaded} 个")
+    return keys_loaded
 
 def _load_provider_config() -> dict:
     if _PROVIDER_CONFIG_FILE.exists():
