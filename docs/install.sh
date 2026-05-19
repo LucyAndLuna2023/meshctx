@@ -69,7 +69,7 @@ echo -e "  ${GREEN}✓${NC} venv 就绪"
 echo "→ 安装依赖..."
 pip install -q --upgrade pip 2>/dev/null
 pip install -q -r requirements.txt 2>/dev/null || {
-    pip install -q fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging 2>/dev/null || {
+    pip install -q fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging python-multipart 2>/dev/null || {
         echo -e "${RED}✗ 依赖安装失败${NC}"; exit 1
     }
 }
@@ -94,5 +94,9 @@ echo "  meshctx setup    # 配置 API Key"
 echo "  meshctx start    # 启动"
 echo ""
 
-read -p "运行配置向导? [Y/n] " r
-[[ "$r" != "n" && "$r" != "N" ]] && { source venv/bin/activate; python -m src.cli setup; }
+echo "  安装完成后执行:"
+echo ""
+echo "    ~/bin/meshctx setup    # 配置 API Key 和模型"
+echo "    ~/bin/meshctx start    # 启动服务"
+echo ""
+echo "  然后访问 http://localhost:8888"
