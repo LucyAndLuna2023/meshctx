@@ -1,4 +1,4 @@
-; meshctx Desktop — NSIS Unicode v2.37.0
+﻿; meshctx Desktop — NSIS Unicode v2.37.0
 ; 7语言 + MUI_LANGDLL
 ; $\n for newlines in LangStrings (NOT $\\n)
 ; 构建: makensis meshctx_setup.nsi
@@ -81,16 +81,7 @@ LangString FINISH_TEXT 1034 "MeshCtx se ha instalado.$\n$\nInicie desde el menu 
 !define MUI_FINISHPAGE_TEXT "$(FINISH_TEXT)"
 !define MUI_INSTFILESPAGE_FINISHHEADER_TEXT "$(INSTALLING)"
 
-; ── 页面顺序 ──
-!insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_DIRECTORY
-!insertmacro MUI_PAGE_INSTFILES
-!insertmacro MUI_PAGE_FINISH
-
-!insertmacro MUI_UNPAGE_CONFIRM
-!insertmacro MUI_UNPAGE_INSTFILES
-
-; ── 7语言注册 ──
+; ── 7语言注册 (define在LANGUAGE之前) ──
 !define MUI_LANGDLL_REGISTRY_ROOT "HKLM"
 !define MUI_LANGDLL_REGISTRY_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\MeshCtx"
 !define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
@@ -106,8 +97,14 @@ LangString FINISH_TEXT 1034 "MeshCtx se ha instalado.$\n$\nInicie desde el menu 
 Function .onInit
   !insertmacro MUI_LANGDLL_DISPLAY
 FunctionEnd
+!insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
+!insertmacro MUI_PAGE_FINISH
 
-; ── 安装(用户数据保留在 %USERPROFILE%\.meshctx) ──
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+
 Section "MeshCtx Desktop" SecMain
     SetOutPath "$INSTDIR"
     File "dist\meshctx-desktop.exe"
