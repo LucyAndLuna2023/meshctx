@@ -3949,6 +3949,32 @@ async def api_chat(request: Request):
     if md_ctx:
         msgs.insert(0, {"role": "system", "content": f"[项目上下文 .meshctx.md]\n{md_ctx}"})
 
+    # v2.40: 注入类人记忆 — 基于当前消息召回相关记忆
+    current_query = msgs[-1]["content"] if msgs[-1]["role"] == "user" else ""
+    if current_query:
+        try:
+            from src.core.human_memory import get_human_memory
+            hm = get_human_memory()
+            recalled = hm.recall(current_query, top_k=5)
+            if recalled:
+                mem_ctx = "[相关记忆]\n"
+                for r in recalled[:3]:
+                    if r.strength > 0.3:
+                        mem_ctx += f"- {r.pattern[:150]} (强度:{r.strength:.1f})\n"
+                if mem_ctx != "[相关记忆]\n":
+                    msgs.insert(0, {"role": "system", "content": mem_ctx})
+            # Also inject learned user preferences
+            from src.core.augmented_memory import get_augmented_memory
+            am = get_augmented_memory()
+            prefs = am.get_preferences(min_confidence=0.5)
+            if prefs:
+                pref_ctx = "[用户偏好]\n"
+                for p in prefs[:5]:
+                    pref_ctx += f"- {p.key}: {p.value}\n"
+                msgs.insert(0, {"role": "system", "content": pref_ctx})
+        except Exception:
+            pass  # Memory injection is best-effort
+
     # v1.5.26: 混合推理调度 — 自由能驱动的探索/直出决策
     scheduler = getattr(request.app.state, "hybrid_scheduler", None)
     hybrid_result = None
@@ -3989,6 +4015,27 @@ async def api_chat(request: Request):
         }
         # 在回复末尾附加轻微认知状态提示
         content += f"\n\n---\n🧠 [混合推理] 自由能 F={f_val:.3f} | 策略: {policy}"
+
+    # v2.40: 后台编码对话到类人记忆
+    try:
+        import asyncio
+        user_msg = msgs[-1]["content"] if msgs and msgs[-1]["role"] == "user" else ""
+        if user_msg and content:
+            async def _encode_memory():
+                from src.core.human_memory import get_human_memory, EmotionIntensity
+                from src.core.augmented_memory import get_augmented_memory
+                hm = get_human_memory()
+                am = get_augmented_memory()
+                # Encode user query
+                hm.encode(user_msg[:500], EmotionIntensity.INTERESTING)
+                # Encode combined exchange as episode
+                episode = f"Q: {user_msg[:100]} → A: {content[:200]}"
+                hm.encode(episode, EmotionIntensity.INTERESTING)
+                # Extract preferences
+                am.extract_preferences_from_text(user_msg)
+            asyncio.create_task(_encode_memory())
+    except Exception:
+        pass  # Non-critical
 
     return {
         "content": content,
