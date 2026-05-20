@@ -227,7 +227,7 @@ try:
 except ImportError:
     AutonomousEngine = get_autonomous_engine = _brain_noop
 
-__version__ = "2.41.0"
+__version__ = "2.42.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
