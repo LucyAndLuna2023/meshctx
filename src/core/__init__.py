@@ -226,8 +226,12 @@ try:
     from .autonomous_engine import AutonomousEngine, get_autonomous_engine
 except ImportError:
     AutonomousEngine = get_autonomous_engine = _brain_noop
+try:
+    from .diff_preview import DiffPreviewEngine, get_diff_engine
+except ImportError:
+    DiffPreviewEngine = get_diff_engine = _brain_noop
 
-__version__ = "2.43.0"
+__version__ = "2.44.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -285,4 +289,6 @@ __all__ = [
     "WindowsAdmin", "WinResult", "WinService", "get_win_admin",
     "compare_models", "compare_models_stream",
     "Conversation", "get_or_create",
+    # v2.44 Diff Preview
+    "DiffPreviewEngine", "get_diff_engine",
 ]

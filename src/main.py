@@ -280,7 +280,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.29.0",
+    version="2.44.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -5195,6 +5195,121 @@ async def archive_session(request: Request):
     messages = body.get("messages", [])
     _SESSION_ARCHIVE[sid] = messages
     return {"success": True, "id": sid, "count": len(messages)}
+
+
+# ── v2.44: Unified Diff Preview API ─────────────────────
+from .core.diff_preview import get_diff_engine
+
+
+@app.post("/api/diff/preview")
+async def preview_diff(request: Request):
+    """生成文件修改的 unified diff 预览
+    
+    Body: {file_path, new_content, original_content?, context_lines?}
+    Returns: {change_id, diff_text, stats, diff_lines}
+    """
+    body = await request.json()
+    engine = get_diff_engine()
+    result = engine.generate_diff(
+        file_path=body["file_path"],
+        new_content=body["new_content"],
+        original_content=body.get("original_content"),
+        context_lines=body.get("context_lines", 3),
+    )
+    return result
+
+
+@app.post("/api/diff/apply")
+async def apply_diff(request: Request):
+    """应用已预览的文件变更
+    
+    Body: {change_id, create_backup?}
+    Returns: {success, file_path, backup_path}
+    """
+    body = await request.json()
+    engine = get_diff_engine()
+    result = engine.apply_change(
+        change_id=body["change_id"],
+        create_backup=body.get("create_backup", True),
+    )
+    return result
+
+
+@app.post("/api/diff/rollback")
+async def rollback_diff(request: Request):
+    """回滚已应用的变更
+    
+    Body: {change_id}
+    Returns: {success, file_path}
+    """
+    body = await request.json()
+    engine = get_diff_engine()
+    result = engine.rollback_change(change_id=body["change_id"])
+    return result
+
+
+@app.post("/api/diff/batch/preview")
+async def batch_preview_diff(request: Request):
+    """批量预览多个文件变更
+    
+    Body: {changes: [{path, content}, ...], context_lines?}
+    """
+    body = await request.json()
+    engine = get_diff_engine()
+    result = engine.generate_batch_diff(
+        changes=body["changes"],
+        context_lines=body.get("context_lines", 3),
+    )
+    return result
+
+
+@app.post("/api/diff/batch/apply")
+async def batch_apply_diff(request: Request):
+    """批量应用多个变更
+    
+    Body: {change_ids: [...]}
+    """
+    body = await request.json()
+    engine = get_diff_engine()
+    result = engine.apply_batch(change_ids=body["change_ids"])
+    return result
+
+
+@app.get("/api/diff/history")
+async def diff_history(limit: int = 20):
+    """变更历史"""
+    engine = get_diff_engine()
+    return {"history": engine.get_history(limit)}
+
+
+@app.get("/api/diff/pending")
+async def diff_pending():
+    """待处理变更"""
+    engine = get_diff_engine()
+    return {"pending": engine.get_pending()}
+
+
+@app.get("/api/diff/backups")
+async def diff_backups():
+    """回滚备份列表"""
+    engine = get_diff_engine()
+    return {"backups": engine.list_backups()}
+
+
+@app.post("/api/diff/compare-files")
+async def compare_files(request: Request):
+    """比较两个文件的差异
+    
+    Body: {file_a, file_b, context_lines?}
+    """
+    body = await request.json()
+    engine = get_diff_engine()
+    result = engine.diff_between_files(
+        file_a=body["file_a"],
+        file_b=body["file_b"],
+        context_lines=body.get("context_lines", 3),
+    )
+    return result
 
 
 # 供应商健康追踪
