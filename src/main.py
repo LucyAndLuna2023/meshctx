@@ -2797,9 +2797,67 @@ async def gateway_broadcast(req: Request):
     gw = get_gateway()
     results = await gw.broadcast(text, platforms)
     return {"status": "ok", "results": results}
+@app.get("/api/memory/human/stats")
+async def human_memory_stats():
+    """类人记忆系统诊断 — 模式组块/情绪加权/海马回放"""
+    from src.core.human_memory import get_human_memory
+    hm = get_human_memory()
+    return hm.get_memory_stats()
 
 
-@app.post("/api/sandbox/run")
+@app.post("/api/memory/human/encode")
+async def human_memory_encode(req: Request):
+    """编码记忆 — 模式组块+情绪加权"""
+    try: body = await req.json()
+    except: raise HTTPException(400)
+    text = body.get("text", "")
+    emotion_name = body.get("emotion", "NEUTRAL")
+    context_tags = set(body.get("context_tags", []))
+    if not text:
+        raise HTTPException(400, "text required")
+    from src.core.human_memory import get_human_memory, EmotionIntensity
+    hm = get_human_memory()
+    emotion = getattr(EmotionIntensity, emotion_name, EmotionIntensity.NEUTRAL)
+    chunk = hm.encode(text, emotion, context_tags)
+    return {"id": chunk.id, "pattern": chunk.pattern[:100], "emotion": chunk.emotion.name}
+
+
+@app.post("/api/memory/human/recall")
+async def human_memory_recall(req: Request):
+    """回忆 — 联想扩散激活"""
+    try: body = await req.json()
+    except: raise HTTPException(400)
+    query = body.get("query", "")
+    context_tags = set(body.get("context_tags", []))
+    top_k = body.get("top_k", 10)
+    if not query:
+        raise HTTPException(400, "query required")
+    from src.core.human_memory import get_human_memory
+    hm = get_human_memory()
+    results = hm.recall(query, context_tags, top_k)
+    return {"results": [{"id": r.id, "pattern": r.pattern[:100], "emotion": r.emotion.name, "strength": round(r.strength, 2), "recall_count": r.recall_count} for r in results]}
+
+
+@app.post("/api/memory/human/replay")
+async def human_memory_replay():
+    """手动触发海马回放 — 记忆巩固"""
+    from src.core.human_memory import get_human_memory
+    hm = get_human_memory()
+    return hm.force_replay()
+
+
+@app.post("/api/memory/human/associate")
+async def human_memory_associate(req: Request):
+    """建立记忆关联"""
+    try: body = await req.json()
+    except: raise HTTPException(400)
+    chunk_id = body.get("chunk_id", "")
+    related_ids = body.get("related_ids", [])
+    weights = body.get("weights", None)
+    from src.core.human_memory import get_human_memory
+    hm = get_human_memory()
+    hm.build_associations(chunk_id, related_ids, weights)
+    return {"status": "ok"}
 async def sandbox_run(request: Request):
     """代码沙箱执行"""
     try: body = await request.json()

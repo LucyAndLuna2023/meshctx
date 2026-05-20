@@ -218,8 +218,12 @@ try:
     from .gateway_connectors import GatewayManager, get_gateway, ConnectorStatus
 except ImportError:
     GatewayManager = get_gateway = ConnectorStatus = _brain_noop
+try:
+    from .human_memory import HumanLikeMemory, get_human_memory, EmotionIntensity
+except ImportError:
+    HumanLikeMemory = get_human_memory = EmotionIntensity = _brain_noop
 
-__version__ = "2.39.0"
+__version__ = "2.40.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
