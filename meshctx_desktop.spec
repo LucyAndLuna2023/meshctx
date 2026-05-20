@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""MeshCtx Desktop — PyInstaller spec v2.29 FULL"""
+"""MeshCtx Desktop — PyInstaller spec v2.41 FULL"""
 import sys, os
+from PyInstaller.utils.hooks import collect_submodules
 _here = os.path.dirname(os.path.abspath(SPECPATH)) if 'SPECPATH' in dir() else os.getcwd()
 block_cipher = None
 
@@ -17,59 +18,7 @@ a = Analysis(
         ('src/*.py', 'src'),
         ('plugins/registry.json', 'plugins'),
     ],
-    hiddenimports=[
-        'src', 'src.core',
-        'src.config', 'src.model_registry', 'src.model_adapter',
-        'src.skill_manager', 'src.gateway', 'src.cron',
-        'src.session_search', 'src.mcp_server', 'src.tts',
-        'src.browser_tool', 'src.memory_engine', 'src.models',
-        'src.llm_extractor', 'src.vector_store', 'src.cross_platform_engine',
-        'src.plugin_system', 'src.main', 'src.web_ui',
-        'src.intent_parser', 'src.hermes_catalog', 'src.context_portal',
-        'src.i18n', 'src.chat_tools', 'src.soul',
-        # Core plugins
-        'src.core.kernel', 'src.core.memory_hierarchy',
-        'src.core.metacognition', 'src.core.orchestrator',
-        'src.core.predictor', 'src.core.agent_loop',
-        'src.core.performance', 'src.core.healer',
-        'src.core.websocket_plugin', 'src.core.hotreload',
-        'src.core.webhook',
-        # Brain modules
-        'src.core.free_energy', 'src.core.active_inference',
-        'src.core.global_workspace', 'src.core.homeostasis',
-        'src.core.brain_router', 'src.core.online_learning',
-        'src.core.hybrid_reasoning', 'src.core.multi_agent',
-        'src.core.super_brain',
-        # v2.7+
-        'src.core.sandbox', 'src.core.project_indexer',
-        'src.core.feishu_notify', 'src.core.win_admin',
-        'src.core.model_compare', 'src.core.conversation_store',
-        'src.core.code_reviewer', 'src.core.agent_monitor',
-        'src.core.cache', 'src.core.security',
-        'src.core.agent_tasks', 'src.core.plugin_autoload',
-        'src.core.realtime_push', 'src.core.auto_update',
-        'src.core.multi_notify', 'src.core.versioned_memory',
-        'src.core.workspace_manager',
-        'src.core.platform_fs', 'src.core.crypto',
-        'src.core.plugin_manifest',
-        # v2.30+ new modules
-        'src.core.learn_loop', 'src.core.cognitive_health',
-        'src.core.progressive_context', 'src.core.session_identity',
-        'src.core.llm_quality', 'src.core.acp_server',
-        'src.core.checkpoint', 'src.core.image_gen',
-        'src.core.secret_scanner', 'src.core.approval',
-        'src.core.profile_manager', 'src.core.context_compressor',
-        'src.core.voice_io', 'src.core.memory_engine',
-        'src.core.performance_optimizer', 'src.core.action_gate',
-        'src.core.attention_decay', 'src.core.pre_action_check',
-        'src.core.principle_extractor', 'src.core.session_archiver',
-        'src.core.watchdog', 'src.core.credential_pool',
-        'src.core.auto_healer', 'src.core.memory_v2',
-        'src.core.telegram_router', 'src.core.usage_insights',
-        'src.core.gateway_connectors',
-        'src.core.human_memory',
-        'src.core.autonomous_engine',
-        'src.core.augmented_memory',
+    hiddenimports=collect_submodules('src.core') + collect_submodules('src') + [
         # Desktop deps
         'webview', 'webview.platforms', 'webview.js',
         'webview.guilib', 'webview.util',

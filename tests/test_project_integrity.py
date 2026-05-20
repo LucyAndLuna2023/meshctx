@@ -143,25 +143,34 @@ class TestHomepageI18N:
 # ═══════════════════════════════════════════════════════════
 
 class TestSpecHiddenImports:
-    def test_all_core_modules_in_hiddenimports(self):
-        """每个src/core/*.py必须在spec的hiddenimports中,否则PyInstaller打包后导入失败"""
+    def test_spec_uses_collect_submodules(self):
+        """v2.41+: 使用collect_submodules自动发现,不再手动列举60+模块"""
         spec = (PROJECT / "meshctx_desktop.spec").read_text()
+        assert "collect_submodules" in spec, \
+            "spec必须使用collect_submodules('src.core')自动收集,手动列举永远会漏!"
+        assert "collect_submodules('src.core')" in spec, \
+            "spec缺少collect_submodules('src.core')"
+
+    def test_collect_submodules_covers_all_modules(self):
+        """验证collect_submodules确实能发现所有src.core模块"""
+        from PyInstaller.utils.hooks import collect_submodules
         core_dir = PROJECT / "src" / "core"
         core_modules = sorted([
             p.stem for p in core_dir.glob("*.py")
             if not p.name.startswith('_') or p.name == '__init__.py'
         ])
 
+        collected = collect_submodules('src.core')
         missing = []
         for mod in core_modules:
             if mod == '__init__':
                 continue
             import_name = f"src.core.{mod}"
-            if import_name not in spec:
+            if import_name not in collected:
                 missing.append(mod)
 
         assert not missing, \
-            f"spec hiddenimports缺少{len(missing)}个模块: {missing}\n" \
+            f"collect_submodules未发现{len(missing)}个模块: {missing}\n" \
             f"这会导致PyInstaller打包的exe启动时ModuleNotFoundError!"
 
     def test_spec_has_all_required_data_files(self):
