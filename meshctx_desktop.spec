@@ -67,7 +67,8 @@ a = Analysis(
         'src.core.auto_healer', 'src.core.memory_v2',
         'src.core.telegram_router', 'src.core.usage_insights',
         'src.core.gateway_connectors',
-        'src.core.human_memory',',
+        'src.core.human_memory',
+        'src.core.augmented_memory',
         # Desktop deps
         'webview', 'webview.platforms', 'webview.js',
         'webview.guilib', 'webview.util',
