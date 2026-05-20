@@ -66,6 +66,7 @@ a = Analysis(
         'src.core.watchdog', 'src.core.credential_pool',
         'src.core.auto_healer', 'src.core.memory_v2',
         'src.core.telegram_router', 'src.core.usage_insights',
+        'src.core.gateway_connectors',
         # Desktop deps
         'webview', 'webview.platforms', 'webview.js',
         'webview.guilib', 'webview.util',
@@ -91,6 +92,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '2.38.0',
-            'CFBundleVersion': '2.38.0',
+            'CFBundleShortVersionString': '2.39.0',
+            'CFBundleVersion': '2.39.0',
         }, version='version_info.txt')
