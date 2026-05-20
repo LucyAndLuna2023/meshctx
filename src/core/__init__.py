@@ -222,8 +222,12 @@ try:
     from .human_memory import HumanLikeMemory, get_human_memory, EmotionIntensity
 except ImportError:
     HumanLikeMemory = get_human_memory = EmotionIntensity = _brain_noop
+try:
+    from .autonomous_engine import AutonomousEngine, get_autonomous_engine
+except ImportError:
+    AutonomousEngine = get_autonomous_engine = _brain_noop
 
-__version__ = "2.40.0"
+__version__ = "2.41.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",

@@ -2874,6 +2874,52 @@ async def sandbox_run(request: Request):
         return {"status": "error", "output": "", "error": str(e), "exit_code": -1}
 
 
+@app.get("/api/autonomous/health")
+async def autonomous_health():
+    """自主运维引擎诊断报告"""
+    from src.core.autonomous_engine import get_autonomous_engine
+    return get_autonomous_engine().get_health_report()
+
+
+@app.get("/api/autonomous/metrics")
+async def autonomous_metrics():
+    """实时监控指标 — CPU/内存/磁盘/事件数"""
+    from src.core.autonomous_engine import get_autonomous_engine
+    eng = get_autonomous_engine()
+    return {
+        "metrics": {k: [{"value": p.value, "ts": p.timestamp}
+                       for p in list(v)[-10:]]
+                   for k, v in list(eng.metrics.items())[:12]},
+        "baselines": {k: {"mean": round(v[0], 1), "std": round(v[1], 2)}
+                     for k, v in list(eng.baselines.items())[:12]}
+    }
+
+
+@app.post("/api/autonomous/fix")
+async def autonomous_force_fix(req: Request):
+    """手动触发自愈"""
+    try: body = await req.json()
+    except: body = {}
+    symptoms = body.get("symptoms", ["manual_trigger"])
+    root_cause = body.get("root_cause", "manual")
+    fix_action = body.get("fix_action", "trigger_memory_cleanup")
+    from src.core.autonomous_engine import get_autonomous_engine, Severity
+    eng = get_autonomous_engine()
+    inc = eng._create_incident("manual fix", Severity.WARNING, symptoms)
+    inc.root_cause = root_cause
+    inc.fix_applied = fix_action
+    success = eng._apply_fix(inc)
+    inc.fix_success = success
+    eng.learn_fix(symptoms, root_cause, fix_action, success)
+    return {"status": "fixed" if success else "failed", "incident_id": inc.id}
+
+
+@app.get("/api/autonomous/evolution")
+async def autonomous_evolution(limit: int = 50):
+    """进化日志 — 所有事件和自愈记录"""
+    from src.core.autonomous_engine import get_autonomous_engine
+    eng = get_autonomous_engine()
+    return {"evolution_log": eng.evolution_log[-limit:]}
 @app.get("/api/cron/status")
 async def cron_status():
     """定时任务状态"""
