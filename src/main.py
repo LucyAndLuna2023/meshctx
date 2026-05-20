@@ -2761,6 +2761,42 @@ async def gateway_status():
         "enabled": gateway.get("enabled", False),
         "platforms": [k for k in gateway if k not in ("enabled",) and isinstance(gateway.get(k), dict)]
     }
+@app.get("/api/gateway/connectors")
+async def gateway_connectors_status():
+    """Gateway连接器状态 — Slack/Discord/WhatsApp"""
+    from src.core.gateway_connectors import get_gateway
+    gw = get_gateway()
+    return {"connectors": gw.get_status()}
+
+
+@app.post("/api/gateway/connectors/{platform}/send")
+async def gateway_send_message(platform: str, req: Request):
+    """发送消息到指定平台"""
+    try: body = await req.json()
+    except: raise HTTPException(400)
+    channel = body.get("channel", "")
+    text = body.get("text", "")
+    if not channel or not text:
+        raise HTTPException(400, "channel and text required")
+    from src.core.gateway_connectors import get_gateway
+    gw = get_gateway()
+    ok = await gw.send_to_platform(platform, channel, text)
+    return {"status": "ok" if ok else "send_failed"}
+
+
+@app.post("/api/gateway/broadcast")
+async def gateway_broadcast(req: Request):
+    """广播消息到多个平台"""
+    try: body = await req.json()
+    except: raise HTTPException(400)
+    text = body.get("text", "")
+    platforms = body.get("platforms", None)
+    if not text:
+        raise HTTPException(400, "text required")
+    from src.core.gateway_connectors import get_gateway
+    gw = get_gateway()
+    results = await gw.broadcast(text, platforms)
+    return {"status": "ok", "results": results}
 
 
 @app.post("/api/sandbox/run")

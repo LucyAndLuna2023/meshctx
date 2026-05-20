@@ -214,8 +214,12 @@ try:
     from .usage_insights import UsageInsights, get_insights
 except ImportError:
     UsageInsights = get_insights = _brain_noop
+try:
+    from .gateway_connectors import GatewayManager, get_gateway, ConnectorStatus
+except ImportError:
+    GatewayManager = get_gateway = ConnectorStatus = _brain_noop
 
-__version__ = "2.38.0"
+__version__ = "2.39.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
