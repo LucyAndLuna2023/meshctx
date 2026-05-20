@@ -68,6 +68,7 @@ a = Analysis(
         'src.core.telegram_router', 'src.core.usage_insights',
         'src.core.gateway_connectors',
         'src.core.human_memory',
+        'src.core.autonomous_engine',
         'src.core.augmented_memory',
         # Desktop deps
         'webview', 'webview.platforms', 'webview.js',
@@ -94,6 +95,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '2.40.0',
-            'CFBundleVersion': '2.40.0',
+            'CFBundleShortVersionString': '2.41.0',
+            'CFBundleVersion': '2.41.0',
         }, version='version_info.txt')
