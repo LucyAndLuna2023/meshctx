@@ -230,8 +230,12 @@ try:
     from .diff_preview import DiffPreviewEngine, get_diff_engine
 except ImportError:
     DiffPreviewEngine = get_diff_engine = _brain_noop
+try:
+    from .task_progress import TaskProgressEngine, get_progress_engine
+except ImportError:
+    TaskProgressEngine = get_progress_engine = _brain_noop
 
-__version__ = "2.44.0"
+__version__ = "2.45.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -291,4 +295,6 @@ __all__ = [
     "Conversation", "get_or_create",
     # v2.44 Diff Preview
     "DiffPreviewEngine", "get_diff_engine",
+    # v2.45 Task Progress
+    "TaskProgressEngine", "get_progress_engine",
 ]

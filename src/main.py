@@ -280,7 +280,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.44.0",
+    version="2.45.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -5310,6 +5310,164 @@ async def compare_files(request: Request):
         context_lines=body.get("context_lines", 3),
     )
     return result
+
+
+# ── v2.45: Background Task Progress API ──────────────────
+from .core.task_progress import get_progress_engine
+
+
+@app.post("/api/tasks/create")
+async def create_task_progress(request: Request):
+    """创建后台任务并返回task_id
+    
+    Body: {name, total_steps?, estimated_seconds?}
+    """
+    body = await request.json()
+    engine = get_progress_engine()
+    task = engine.create_task(
+        name=body["name"],
+        total_steps=body.get("total_steps", 0),
+        estimated_seconds=body.get("estimated_seconds", 0.0),
+    )
+    return task.to_dict()
+
+
+@app.post("/api/tasks/{task_id}/start")
+async def start_task(task_id: str):
+    """开始执行任务"""
+    engine = get_progress_engine()
+    task = engine.start_task(task_id)
+    if task is None:
+        return {"error": "Task not found"}
+    return task.to_dict()
+
+
+@app.post("/api/tasks/{task_id}/progress")
+async def update_task_progress(task_id: str, request: Request):
+    """更新任务进度
+    
+    Body: {progress, stage?, message?, current_step?}
+    """
+    body = await request.json()
+    engine = get_progress_engine()
+    task = engine.update_progress(
+        task_id=task_id,
+        progress=body["progress"],
+        stage=body.get("stage", ""),
+        message=body.get("message", ""),
+        current_step=body.get("current_step", 0),
+    )
+    if task is None:
+        return {"error": "Task not found"}
+    return task.to_dict()
+
+
+@app.post("/api/tasks/{task_id}/complete")
+async def complete_task(task_id: str, request: Request = None):
+    """标记任务完成"""
+    body = await request.json() if request else {}
+    engine = get_progress_engine()
+    task = engine.complete_task(task_id, result=body.get("result"))
+    if task is None:
+        return {"error": "Task not found"}
+    return task.to_dict()
+
+
+@app.post("/api/tasks/{task_id}/fail")
+async def fail_task(task_id: str, request: Request):
+    """标记任务失败"""
+    body = await request.json()
+    engine = get_progress_engine()
+    task = engine.fail_task(task_id, error=body.get("error", "Unknown error"))
+    if task is None:
+        return {"error": "Task not found"}
+    return task.to_dict()
+
+
+@app.post("/api/tasks/{task_id}/cancel")
+async def cancel_task(task_id: str, request: Request = None):
+    """取消任务"""
+    reason = ""
+    if request:
+        body = await request.json()
+        reason = body.get("reason", "用户取消")
+    engine = get_progress_engine()
+    task = engine.cancel_task(task_id, reason=reason)
+    if task is None:
+        return {"error": "Task not found"}
+    return task.to_dict()
+
+
+@app.get("/api/tasks/{task_id}")
+async def get_task(task_id: str):
+    """获取单个任务信息"""
+    engine = get_progress_engine()
+    task = engine.get_task(task_id)
+    if task is None:
+        return {"error": "Task not found"}
+    return task.to_dict()
+
+
+@app.get("/api/tasks")
+async def list_tasks(status: str = ""):
+    """列出任务 (all/active)"""
+    engine = get_progress_engine()
+    if status == "active":
+        tasks = engine.list_active()
+    else:
+        tasks = engine.list_all()
+    return {"tasks": [t.to_dict() for t in tasks], "total": len(tasks)}
+
+
+@app.get("/api/tasks/history")
+async def task_history(limit: int = 20):
+    """已完成任务历史"""
+    engine = get_progress_engine()
+    return {"history": engine.get_history(limit)}
+
+
+@app.get("/api/tasks/stats")
+async def task_stats():
+    """任务统计"""
+    engine = get_progress_engine()
+    return engine.get_stats()
+
+
+@app.get("/api/tasks/{task_id}/stream")
+async def stream_task_progress(task_id: str, request: Request):
+    """SSE流式推送任务进度"""
+    engine = get_progress_engine()
+    task = engine.get_task(task_id)
+    if task is None:
+        return {"error": "Task not found"}
+
+    async def generate():
+        queue = engine.subscribe(task_id)
+        try:
+            # 先发送当前状态
+            current = task.to_dict()
+            yield f"data: {json.dumps(current)}\n\n"
+
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    data = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    yield f"data: {json.dumps(data)}\n\n"
+                    if data["status"] in ("completed", "failed", "cancelled"):
+                        break
+                except asyncio.TimeoutError:
+                    yield ": heartbeat\n\n"
+                except asyncio.CancelledError:
+                    break
+        finally:
+            engine.unsubscribe(task_id, queue)
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 # 供应商健康追踪
