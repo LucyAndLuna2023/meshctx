@@ -1,17 +1,18 @@
 <p align="center">
   <img src="docs/assets/logo.png" alt="MeshCtx" width="200">
-  <h1 align="center">🧠 MeshCtx v2.43</h1>
-  <h3 align="center">全脑仿真 AI Agent · 123模型 · 37供应商 · 13脑区 · 975测试</h3>
+  <h1 align="center">🧠 MeshCtx v2.52</h1>
+  <h3 align="center">世界第一全脑仿真自进化AI Agent · 123模型 · 37供应商 · 13脑区 · 1177测试</h3>
 </p>
 
 <p align="center">
   <a href="LEGAL.md"><img src="https://img.shields.io/badge/license-AGPLv3+Commercial-blue"></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.10+-green"></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-975-brightgreen"></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-1177-brightgreen"></a>
   <a href="#"><img src="https://img.shields.io/badge/models-123-purple"></a>
   <a href="#"><img src="https://img.shields.io/badge/providers-37-orange"></a>
   <a href="#"><img src="https://img.shields.io/badge/languages-7-red"></a>
-  <a href="#"><img src="https://img.shields.io/badge/modules-72-yellow"></a>
+  <a href="#"><img src="https://img.shields.io/badge/modules-80-yellow"></a>
+  <a href="#"><img src="https://img.shields.io/badge/papers-3-blue"></a>
 </p>
 
 ---
