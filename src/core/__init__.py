@@ -238,8 +238,12 @@ try:
     from .sdb_framework import SDBEngine, get_sdb_engine
 except ImportError:
     SDBEngine = get_sdb_engine = _brain_noop
+try:
+    from .self_modify import SelfModifyEngine, get_self_modify_engine
+except ImportError:
+    SelfModifyEngine = get_self_modify_engine = _brain_noop
 
-__version__ = "2.46.0"
+__version__ = "2.47.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
