@@ -250,8 +250,12 @@ try:
     from .gateway_llm import GatewayLLMAdapter, get_gateway_llm
 except ImportError:
     GatewayLLMAdapter = get_gateway_llm = _brain_noop
+try:
+    from .unified_loop import UnifiedLoopEngine, get_unified_loop
+except ImportError:
+    UnifiedLoopEngine = get_unified_loop = _brain_noop
 
-__version__ = "2.49.0"
+__version__ = "2.50.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
