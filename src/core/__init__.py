@@ -277,7 +277,7 @@ try:
 except ImportError:
     RealtimeHealthMonitor = get_health_monitor = _brain_noop
 
-__version__ = "2.59.0"
+__version__ = "2.60.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",

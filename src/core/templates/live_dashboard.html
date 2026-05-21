@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>⚡ meshctx 实时健康面板 — v2.60</title>
+<style>
+:root {
+    --bg: #0a0a0f;
+    --panel: #14142b;
+    --text: #c8d6e5;
+    --green: #10b981;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --accent: #6366f1;
+    --border: rgba(99,102,241,0.15);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    overflow-x: hidden;
+}
+.header {
+    background: linear-gradient(135deg, #14142b 0%, #1e1b4b 100%);
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(10px);
+    position: sticky; top:0; z-index:100;
+}
+.header h1 { font-size: 20px; letter-spacing: -0.5px; }
+.status-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    animation: pulse 2s infinite;
+}
+.status-dot.ok { background: var(--green); }
+.status-dot.degraded { background: var(--yellow); }
+.status-dot.error { background: var(--red); }
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+.badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+.badge.ok { background: rgba(16,185,129,0.15); color: var(--green); }
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+    padding: 16px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+.module-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+}
+.module-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.module-card::before {
+    content: ''; position: absolute; top: 0; left: 0;
+    width: 3px; height: 100%;
+}
+.module-card.status-ok::before { background: var(--green); }
+.module-card.status-warning::before { background: var(--yellow); }
+.module-card.status-error::before { background: var(--red); }
+.module-card.status-unknown::before { background: #6b7280; }
+.module-name {
+    font-size: 14px; font-weight: 600; margin-bottom: 6px;
+    text-transform: uppercase; letter-spacing: 1px;
+    display: flex; align-items: center; gap: 6px;
+}
+.module-icon { font-size: 16px; }
+.module-latency {
+    font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.module-latency.fast { color: var(--green); }
+.module-latency.medium { color: var(--yellow); }
+.module-latency.slow { color: var(--red); }
+.latency-unit { font-size: 12px; font-weight: 400; opacity: 0.6; }
+.gauge {
+    height: 4px; border-radius: 2px; background: rgba(255,255,255,0.05);
+    margin-top: 8px; overflow: hidden;
+}
+.gauge-fill {
+    height: 100%; border-radius: 2px;
+    transition: width 0.5s ease, background 0.5s;
+}
+.error-badge {
+    font-size: 11px; padding: 2px 6px;
+    border-radius: 4px; margin-top: 6px;
+    display: inline-block;
+    background: rgba(239,68,68,0.1); color: var(--red);
+}
+.summary-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    padding: 0 16px 10px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+.summary-stat {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+}
+.summary-stat .value { font-size: 28px; font-weight: 700; }
+.summary-stat .label { font-size: 11px; opacity: 0.5; margin-top: 2px; text-transform: uppercase; }
+.conn-status {
+    font-size: 12px; padding: 4px 10px; border-radius: 10px;
+}
+.conn-status.connected { background: rgba(16,185,129,0.1); color: var(--green); }
+.conn-status.disconnected { background: rgba(239,68,68,0.1); color: var(--red); }
+.footer {
+    text-align: center; padding: 12px; font-size: 11px; opacity: 0.3;
+    max-width: 1400px; margin: 0 auto;
+}
+@media (max-width: 600px) {
+    .grid { grid-template-columns: 1fr; padding: 8px; }
+    .summary-bar { grid-template-columns: repeat(2, 1fr); }
+    .header h1 { font-size: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1><span class="status-dot ok" id="globalDot"></span>meshctx 实时健康面板</h1>
+    <div>
+        <span id="connStatus" class="conn-status disconnected">断开</span>
+        <span class="badge ok" id="versionBadge">v2.60</span>
+    </div>
+</div>
+
+<div class="summary-bar">
+    <div class="summary-stat">
+        <div class="value" id="totalModules" style="color:var(--accent)">15</div>
+        <div class="label">总模块数</div>
+    </div>
+    <div class="summary-stat">
+        <div class="value" id="okModules" style="color:var(--green)">—</div>
+        <div class="label">健康</div>
+    </div>
+    <div class="summary-stat">
+        <div class="value" id="errorModules" style="color:var(--red)">—</div>
+        <div class="label">异常</div>
+    </div>
+    <div class="summary-stat">
+        <div class="value" id="uptime" style="color:var(--accent)">—</div>
+        <div class="label">连续健康</div>
+    </div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="footer">meshctx v2.60 — WebSocket实时推送 — 30秒刷新</div>
+
+<script>
+const WS_URL = `${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws/health`;
+let ws;
+let moduleData = {};
+
+// Module metadata
+const MODULE_META = {
+    sdb: {icon:'🛡️', name:'SDB 安全闸'},
+    memory: {icon:'🧠', name:'突破记忆'},
+    diff: {icon:'📝', name:'Diff预览'},
+    tasks: {icon:'📋', name:'任务进度'},
+    brain: {icon:'🧬', name:'脑验证'},
+    self_modify: {icon:'🔄', name:'自修改'},
+    gateway_llm: {icon:'🌐', name:'LLM网关'},
+    unified_loop: {icon:'🔁', name:'统一循环'},
+    attractor: {icon:'🧲', name:'吸引子推理'},
+    knowledge: {icon:'📚', name:'知识迁移'},
+    precompute: {icon:'⚡', name:'预测计算'},
+    tuner: {icon:'🎛️', name:'自调优'},
+    benchmark: {icon:'📊', name:'基准'},
+    sdb_reliability: {icon:'✅', name:'SDB可靠性'},
+    health: {icon:'❤️', name:'健康监控'},
+};
+
+function statusClass(s) {
+    if (s === 'ok') return 'status-ok';
+    if (s === 'warning') return 'status-warning';
+    if (s === 'error') return 'status-error';
+    return 'status-unknown';
+}
+
+function latencyClass(ms) {
+    if (ms < 30) return 'fast';
+    if (ms < 100) return 'medium';
+    return 'slow';
+}
+
+function renderCards(modules) {
+    const grid = document.getElementById('grid');
+    const entries = Object.entries(modules);
+
+    entries.forEach(([name, info]) => {
+        let card = document.getElementById(`card-${name}`);
+        if (!card) {
+            card = document.createElement('div');
+            card.id = `card-${name}`;
+            card.className = `module-card ${statusClass(info.status)}`;
+            card.innerHTML = `
+                <div class="module-name">
+                    <span class="module-icon">${MODULE_META[name]?.icon || '📦'}</span>
+                    ${MODULE_META[name]?.name || name}
+                </div>
+                <div class="module-latency"></div>
+                <div class="gauge"><div class="gauge-fill"></div></div>
+                <div class="error-badge" style="display:none"></div>
+            `;
+            grid.appendChild(card);
+            if (!moduleData[name]) moduleData[name] = {};
+        }
+
+        card.className = `module-card ${statusClass(info.status || 'ok')}`;
+        const latEl = card.querySelector('.module-latency');
+        const gaugeFill = card.querySelector('.gauge-fill');
+        const errorBadge = card.querySelector('.error-badge');
+
+        const latency = info.latency_ms || 0;
+        const cls = latencyClass(latency);
+        latEl.innerHTML = `${latency.toFixed(1)}<span class="latency-unit">ms</span>`;
+        latEl.className = `module-latency ${cls}`;
+
+        // Gauge: inverse — lower latency = fuller gauge
+        const score = Math.max(0, Math.min(100, 100 * (1 - latency / 200)));
+        gaugeFill.style.width = `${score}%`;
+        gaugeFill.style.background = score > 70 ? 'var(--green)' : score > 30 ? 'var(--yellow)' : 'var(--red)';
+
+        if (info.error) {
+            errorBadge.style.display = 'inline-block';
+            errorBadge.textContent = info.error;
+        } else {
+            errorBadge.style.display = 'none';
+        }
+
+        moduleData[name] = info;
+    });
+
+    // Remove stale cards
+    const existingIds = Object.keys(modules);
+    document.querySelectorAll('.module-card').forEach(c => {
+        const id = c.id.replace('card-', '');
+        if (!existingIds.includes(id)) c.remove();
+    });
+}
+
+function updateSummary(data) {
+    document.getElementById('okModules').textContent = data.ok || 0;
+    document.getElementById('errorModules').textContent = data.error || 0;
+    document.getElementById('totalModules').textContent = data.total || 0;
+
+    const healthy = data.error === 0;
+    const dot = document.getElementById('globalDot');
+    dot.className = `status-dot ${healthy ? 'ok' : 'error'}`;
+
+    if (data.uptime_healthy !== undefined) {
+        document.getElementById('uptime').textContent = data.uptime_healthy ? '✅' : '⚠️';
+    }
+}
+
+function connect() {
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => {
+        document.getElementById('connStatus').textContent = '已连接';
+        document.getElementById('connStatus').className = 'conn-status connected';
+    };
+
+    ws.onmessage = (e) => {
+        try {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'health' && msg.data) {
+                const d = msg.data;
+                updateSummary(d);
+                if (d.modules) renderCards(d.modules);
+            }
+        } catch(err) {
+            console.error('WS parse:', err);
+        }
+    };
+
+    ws.onclose = () => {
+        document.getElementById('connStatus').textContent = '重连中...';
+        document.getElementById('connStatus').className = 'conn-status disconnected';
+        setTimeout(connect, 3000);
+    };
+
+    ws.onerror = () => {
+        ws.close();
+    };
+}
+
+// Start
+connect();
+
+// Clean up old module names in data
+</script>
+</body>
+</html>

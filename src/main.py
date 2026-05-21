@@ -280,7 +280,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.59.0",
+    version="2.60.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -498,6 +498,18 @@ class IntentRequest(BaseModel):
 # ═══════════════════════════════════════════════════════════
 # API Routes
 # ═══════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════
+# 实时健康面板 (v2.60)
+# ═══════════════════════════════════════════════════
+@app.get("/dashboard/live", response_class=HTMLResponse)
+async def live_dashboard():
+    """实时健康面板 — WebSocket驱动的15模块监控"""
+    from pathlib import Path
+    html_path = Path(__file__).parent / "core" / "templates" / "live_dashboard.html"
+    if html_path.exists():
+        return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>Dashboard template not found</h1>", status_code=404)
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
