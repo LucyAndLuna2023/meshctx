@@ -1,5 +1,73 @@
 # MeshCtx Changelog
 
+## [2.50.0] - 2026-05-21 🏆里程碑
+### 统一OODA循环 — 全模块集成
+- 🔄 **统一Agent循环** (unified_loop.py): LLM→Observe→Orient→Decide→Act→Learn→Verify
+- 🛡️ SDB集成: 文件操作自动过安全门控
+- 🧠 脑状态验证: 每10轮自动检查13维度
+- 🎯 意图分类: 6种意图→自动路由动作
+- 📊 综合指标: 迭代/动作/延迟/SDB拒绝/脑评分
+- ⌨️ 6个CLI新命令: diff/tasks/sdb/brain/modify/loop
+- 📊 测试: 1151 passed
+
+## [2.49.0] - 2026-05-21
+### Gateway LLM集成 — 真实模型接入消息平台
+- 🤖 **GatewayLLMAdapter** (gateway_llm.py): Gateway路径接入真实LLM
+- 📡 流式输出: chat_stream()逐token推送
+- ⬇️ 优雅降级: LLM不可用时回退模板
+- 💬 对话历史: 多会话隔离+自动截断
+- 📊 测试: 1124 passed
+
+## [2.48.0] - 2026-05-21
+### 脑状态验证框架 (论文arXiv 2605.20127落地)
+- 🧠 **BrainStateValidator** (brain_validator.py): 13个可复现脑响应维度
+- 📊 Recovery Profile: 超越pass/fail,量化每个维度恢复程度
+- 🔁 测试-重测可复现性验证
+- 🤝 brain-to-brain alignment比较
+- 📊 测试: 1100 passed
+
+## [2.47.0] - 2026-05-20
+### 自修改代码引擎 — 世界首创
+- 🔧 **SelfModifyEngine** (self_modify.py): Agent自主优化自身源码
+- 🔄 7阶段管道: Analyze→Propose→Test→SDBGate→Apply→Verify→Rollback
+- 🔗 整合diff_preview+sdb_framework
+- 📊 源码分析: 指标+问题检测(TODO/FIXME/长行/长函数)
+- 🛡️ 安全级别: low/medium/high/paranoid
+- 📊 测试: 1077 passed
+
+## [2.46.0] - 2026-05-20
+### SDB框架 — 论文arXiv 2605.20173直接落地
+- 🛡️ **SDBEngine** (sdb_framework.py): 随机-确定性边界管理
+- 🔒 4阶段合约: Propose→Verify→Commit→Reject
+- 🔍 重放分歧检测: 相同输入不同LLM输出→自动拒绝
+- 📊 可量化指标: commit_rate, variance_coefficient, replay_divergence
+- 🏅 可靠性评分: 85.43/100 A级
+- 📊 测试: 1047 passed
+
+## [2.45.0] - 2026-05-20
+### 后台任务进度引擎
+- 📊 **TaskProgressEngine** (task_progress.py): 实时进度追踪
+- 📡 SSE流式推送 + WebSocket广播 + 心跳
+- 🔄 完整生命周期: create→start→update→complete/fail/cancel
+- 📝 async上下文管理器: engine.track()
+- 📊 测试: 1018 passed
+
+## [2.44.0] - 2026-05-20
+### Unified Diff Preview — 对标Claude Code
+- 📝 **DiffPreviewEngine** (diff_preview.py): 文件修改前unified diff预览
+- 💾 自动备份+一键回滚
+- 📦 批量diff操作
+- 🌊 SSE流式输出diff
+- 📊 测试: 999 passed
+
+## [2.38.0] - 2026-05-20
+### 使用洞察分析 — 对标Hermes insights
+- 📊 **UsageInsights** (usage_insights.py): 日/周/月分析
+
+## [2.37.0] - 2026-05-19
+### 凭证池轮转
+- 🔑 **CredentialPool** (credential_pool.py): API Key多策略轮转
+
 ## [2.15.7] - 2026-05-16
 ### New Features — 智能防错系统
 - 🧠 **原则提取器** — 8条内置原则(从历史错误学习),支持LLM自动提取+用户自定义
