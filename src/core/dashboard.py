@@ -146,6 +146,14 @@ class UnifiedDashboard:
         except Exception as e:
             dashboard["modules"]["memory"] = {"error": str(e)}
 
+        # ── Health Monitor (v2.59) ──
+        try:
+            from .health_monitor import get_health_monitor
+            hm = get_health_monitor()
+            dashboard["modules"]["health"] = hm.get_summary()
+        except Exception as e:
+            dashboard["modules"]["health"] = {"error": str(e)}
+
         # ── 汇总 ──
         module_count = sum(1 for v in dashboard["modules"].values()
                           if "error" not in v)

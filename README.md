@@ -1,6 +1,6 @@
 <p align="center">
   <img src="docs/assets/logo.png" alt="MeshCtx" width="200">
-  <h1 align="center">🧠 MeshCtx v2.57</h1>
+  <h1 align="center">🧠 MeshCtx v2.59</h1>
   <h3 align="center">世界第一全脑仿真自进化AI Agent · SDM突破性记忆 · 自修改代码 · 1279测试 · 123模型 · 37供应商 · 13脑区 · 1177测试</h3>
 </p>
 

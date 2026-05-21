@@ -272,7 +272,12 @@ try:
 except ImportError:
     CrossAgentKnowledgeEngine = get_knowledge_engine = _brain_noop
 
-__version__ = "2.57.1"
+try:
+    from .health_monitor import RealtimeHealthMonitor, get_health_monitor
+except ImportError:
+    RealtimeHealthMonitor = get_health_monitor = _brain_noop
+
+__version__ = "2.59.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -336,4 +341,28 @@ __all__ = [
     "TaskProgressEngine", "get_progress_engine",
     # v2.46 SDB Framework
     "SDBEngine", "get_sdb_engine",
+    # v2.47 Self-Modify
+    "SelfModifyEngine", "get_self_modify_engine",
+    # v2.48 Brain Validator
+    "BrainValidator", "get_brain_validator",
+    # v2.49 Gateway LLM
+    "GatewayLLM", "get_gateway_llm",
+    # v2.50 Unified Loop
+    "UnifiedLoop", "get_unified_loop",
+    # v2.51 Attractor Reasoner
+    "AttractorReasoner", "get_attractor_reasoner",
+    # v2.52 Dashboard
+    "UnifiedDashboard", "get_dashboard",
+    # v2.53 Knowledge Transfer
+    "CrossAgentKnowledgeEngine", "get_knowledge_engine",
+    # v2.54 Breakthrough Memory
+    "BreakthroughMemoryEngine", "get_breakthrough_memory",
+    # v2.55 Precompute
+    "PredictivePreCompute", "get_precompute_engine",
+    # v2.56 Auto Tuner
+    "AutoTuner", "get_auto_tuner",
+    # v2.57 Benchmark
+    "AgentBenchmark", "get_benchmark_engine",
+    # v2.59 Health Monitor
+    "RealtimeHealthMonitor", "get_health_monitor",
 ]

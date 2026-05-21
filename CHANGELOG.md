@@ -1,13 +1,13 @@
 # MeshCtx Changelog
 
-## [2.57.1] - 2026-05-21
+## [2.59.1] - 2026-05-21
 ### 中文语义搜索修复 — jieba分词集成
 - 🐛 修复TF-IDF中文分词vocab_size=7导致所有查询返回相同结果
 - 🇨🇳 集成jieba中文语义分词,模块级导入+优雅回退
 - 🧪 新增test_chinese_semantic_search.py(11项): 分词/词汇表/区分度
 - 📊 测试: 1292 passed (新增11中文搜索+4版本修复)
 
-## [2.57.0] - 2026-05-21
+## [2.59.0] - 2026-05-21
 ### Agent基准测试引擎 — 数据证明世界第一
 - 📊 AgentBenchmarkEngine: 4维度自测+对标Claude/Hermes/Codex
 - 记忆/安全/代码/性能 量化对比

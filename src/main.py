@@ -280,7 +280,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.57.1",
+    version="2.59.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -2716,7 +2716,20 @@ async def system_status():
 @app.get("/api/health")
 async def health_check():
     """健康检查"""
-    return {"status": "ok", "timestamp": __import__("time").time()}
+    from src.core.health_monitor import get_health_monitor
+    try:
+        monitor = get_health_monitor()
+        result = await monitor.check_all()
+        return {
+            "status": "ok" if result["error"] == 0 else "degraded",
+            "version": __version__,
+            "time": __import__("time").time(),
+            "modules_ok": result["ok"],
+            "modules_total": result["total"],
+            "modules_error": result["error"],
+        }
+    except Exception:
+        return {"status": "ok", "timestamp": __import__("time").time()}
 
 
 @app.get("/api/dashboard")
@@ -3239,13 +3252,32 @@ async def autoload_plugins():
 
 
 # ═══════════════════════════════════════════════════
-# WebSocket实时推送 (v2.13 + v2.18 watchdog)
+# WebSocket实时推送 (v2.13 + v2.18 watchdog + v2.59 health)
 @app.websocket("/ws/dashboard")
 async def ws_dashboard(websocket: WebSocket):
-    """Dashboard实时推送 — watchdog状态"""
+    """Dashboard实时推送 — watchdog状态 + health监控"""
     await websocket.accept()
     try:
+        from src.core.health_monitor import get_health_monitor
+        monitor = get_health_monitor()
+        q = monitor.subscribe()
+    except Exception:
+        q = None
+
+    try:
         while True:
+            # Health monitor data (priority)
+            if q and not q.empty():
+                try:
+                    health_data = q.get_nowait()
+                    await websocket.send_json({
+                        "type": "health",
+                        "data": health_data
+                    })
+                except Exception:
+                    pass
+
+            # Standard watchdog status
             daemon = get_daemon()
             status = daemon.get_status()
             await websocket.send_json({
@@ -3260,6 +3292,24 @@ async def ws_dashboard(websocket: WebSocket):
             })
             await asyncio.sleep(15)
     except:
+        pass
+
+
+@app.websocket("/ws/health")
+async def ws_health(websocket: WebSocket):
+    """WebSocket health实时推送 — 13模块逐检"""
+    await websocket.accept()
+    try:
+        from src.core.health_monitor import get_health_monitor
+        monitor = get_health_monitor()
+        while True:
+            summary = await monitor.check_all()
+            await websocket.send_json({
+                "type": "health",
+                "data": summary
+            })
+            await asyncio.sleep(30)
+    except Exception:
         pass
 
 # WebSocket实时推送 (v2.13)
