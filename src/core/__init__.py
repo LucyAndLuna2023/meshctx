@@ -254,8 +254,12 @@ try:
     from .unified_loop import UnifiedLoopEngine, get_unified_loop
 except ImportError:
     UnifiedLoopEngine = get_unified_loop = _brain_noop
+try:
+    from .attractor_reasoner import AttractorReasoner, get_attractor_reasoner
+except ImportError:
+    AttractorReasoner = get_attractor_reasoner = _brain_noop
 
-__version__ = "2.50.0"
+__version__ = "2.51.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
