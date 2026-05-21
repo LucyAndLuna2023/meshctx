@@ -280,7 +280,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.57.0",
+    version="2.57.1",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -5630,6 +5630,60 @@ async def memory_recall(q: str = "", context: str = ""):
 async def memory_metrics():
     engine = get_breakthrough_memory()
     return engine.get_breakthrough_metrics()
+
+
+# ── v2.55: 预测预计算 API ────────────────────────────
+from .core.predictive_precompute import get_precompute_engine
+
+
+@app.post("/api/precompute/record")
+async def precompute_record(request: Request):
+    body = await request.json()
+    engine = get_precompute_engine()
+    engine.record_action(body["action"], body.get("context", ""))
+    return {"status": "recorded"}
+
+
+@app.get("/api/precompute/predict")
+async def precompute_predict(context: str = ""):
+    engine = get_precompute_engine()
+    return {"predictions": engine.predict_next_actions(context)}
+
+
+@app.get("/api/precompute/stats")
+async def precompute_stats():
+    return get_precompute_engine().get_stats()
+
+
+# ── v2.56: 性能自调优 API ────────────────────────────
+from .core.auto_tuner import get_auto_tuner
+
+
+@app.post("/api/tuner/snapshot")
+async def tuner_snapshot(request: Request):
+    body = await request.json()
+    tuner = get_auto_tuner()
+    tuner.snapshot(**body)
+    return {"status": "ok"}
+
+
+@app.get("/api/tuner/stats")
+async def tuner_stats():
+    return get_auto_tuner().get_stats()
+
+
+@app.post("/api/tuner/tune")
+async def tuner_tune():
+    return get_auto_tuner().auto_tune()
+
+
+# ── v2.57: Agent基准测试 API ──────────────────────────
+from .core.agent_benchmark import get_benchmark_engine
+
+
+@app.get("/api/benchmark/run")
+async def benchmark_run():
+    return get_benchmark_engine().run_all()
 
 
 # 供应商健康追踪

@@ -114,6 +114,30 @@ class UnifiedDashboard:
         except Exception as e:
             dashboard["modules"]["knowledge"] = {"error": str(e)}
 
+        # ── Predictive Pre-Compute (v2.55) ──
+        try:
+            from .predictive_precompute import get_precompute_engine
+            pc = get_precompute_engine()
+            dashboard["modules"]["precompute"] = pc.get_stats()
+        except Exception as e:
+            dashboard["modules"]["precompute"] = {"error": str(e)}
+
+        # ── Auto Tuner (v2.56) ──
+        try:
+            from .auto_tuner import get_auto_tuner
+            at = get_auto_tuner()
+            dashboard["modules"]["tuner"] = at.get_stats()
+        except Exception as e:
+            dashboard["modules"]["tuner"] = {"error": str(e)}
+
+        # ── Agent Benchmark (v2.57) ──
+        try:
+            from .agent_benchmark import get_benchmark_engine
+            ab = get_benchmark_engine()
+            dashboard["modules"]["benchmark"] = {"status": "ready"}
+        except Exception as e:
+            dashboard["modules"]["benchmark"] = {"error": str(e)}
+
         # ── Breakthrough Memory (v2.54) ──
         try:
             from .breakthrough_memory import get_breakthrough_memory
