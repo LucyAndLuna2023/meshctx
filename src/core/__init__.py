@@ -246,8 +246,12 @@ try:
     from .brain_validator import BrainStateValidator, get_brain_validator
 except ImportError:
     BrainStateValidator = get_brain_validator = _brain_noop
+try:
+    from .gateway_llm import GatewayLLMAdapter, get_gateway_llm
+except ImportError:
+    GatewayLLMAdapter = get_gateway_llm = _brain_noop
 
-__version__ = "2.48.0"
+__version__ = "2.49.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
