@@ -81,6 +81,16 @@ LangString FINISH_TEXT 1034 "MeshCtx se ha instalado.$\n$\nInicie desde el menu 
 !define MUI_FINISHPAGE_TEXT "$(FINISH_TEXT)"
 !define MUI_INSTFILESPAGE_FINISHHEADER_TEXT "$(INSTALLING)"
 
+; ── 完成按钮 (显式LangString, 防止多语言下按钮无文字) ──
+LangString FINISH_BUTTON 1033 "&Finish"
+LangString FINISH_BUTTON 2052 "完成(&F)"
+LangString FINISH_BUTTON 1041 "完了(&F)"
+LangString FINISH_BUTTON 1042 "완료(&F)"
+LangString FINISH_BUTTON 1036 "&Terminer"
+LangString FINISH_BUTTON 1031 "&Fertig"
+LangString FINISH_BUTTON 1034 "&Finalizar"
+!define MUI_BUTTONTEXT_FINISH "$(FINISH_BUTTON)"
+
 ; ── 7语言注册 (define在LANGUAGE之前) ──
 !define MUI_LANGDLL_REGISTRY_ROOT "HKLM"
 !define MUI_LANGDLL_REGISTRY_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\MeshCtx"

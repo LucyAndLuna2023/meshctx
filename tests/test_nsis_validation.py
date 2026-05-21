@@ -74,6 +74,7 @@ class TestLangStringCompleteness:
     EXPECTED_GROUPS = [
         'WELCOME_TITLE', 'WELCOME_TEXT', 'DIR_TEXT',
         'INSTALLING', 'FINISH_TITLE', 'FINISH_TEXT',
+        'FINISH_BUTTON',
     ]
 
     def test_langstring_groups_exist(self):

@@ -262,3 +262,94 @@ class TestVersionInfoFormat:
         for field in required:
             assert field in content, \
                 f"version_info.txt缺少必需字段: {field}"
+
+
+# ═══════════════════════════════════════════════════════════
+# 🔴 历史bug回归 — 防止已修复bug复发 (v2.52+)
+# ═══════════════════════════════════════════════════════════
+
+class TestRegressionPrevention:
+    """回归防护: 每个历史bug一条测试,永不复发"""
+
+    def test_spec_explicitly_includes_metacognition(self):
+        """🔴 Bug: Windows启动报 No module named src.core.metacognition
+        根因: PyInstaller try/except漏掉核心模块
+        修复: hiddenimports显式列出全部core模块"""
+        spec = (PROJECT / "meshctx_desktop.spec").read_text()
+        assert 'src.core.metacognition' in spec, \
+            "🔴 meshctx_desktop.spec缺少'src.core.metacognition'! Windows会启动失败!"
+        # 验证所有关键模块
+        critical_modules = [
+            'metacognition', 'memory_hierarchy', 'orchestrator', 'predictor',
+            'agent_loop', 'healer', 'kernel', 'free_energy', 'active_inference',
+            'global_workspace', 'homeostasis', 'super_brain', 'sandbox',
+            'diff_preview', 'task_progress', 'sdb_framework', 'self_modify',
+            'brain_validator', 'gateway_llm', 'unified_loop', 'attractor_reasoner',
+            'dashboard', 'auto_healer', 'human_memory', 'autonomous_engine',
+        ]
+        for mod in critical_modules:
+            assert f'src.core.{mod}' in spec, \
+                f"🔴 spec缺少核心模块: src.core.{mod} — Windows启动会因此报ModuleNotFoundError!"
+
+    def test_spec_collect_submodules_still_present(self):
+        """collect_submodules作为兜底不能丢"""
+        spec = (PROJECT / "meshctx_desktop.spec").read_text()
+        assert 'collect_submodules' in spec, \
+            "🔴 spec缺少collect_submodules导入! PyInstaller无法自动发现新模块!"
+
+    def test_nsis_finish_button_has_langstring(self):
+        """🔴 Bug: 安装完成页面按钮没有"完成"二字
+        根因: MUI多语言下MUI_BUTTONTEXT_FINISH依赖语言文件,未显式定义
+        修复: 显式LangString FINISH_BUTTON 7语言"""
+        nsis = (PROJECT / "meshctx_setup.nsi").read_text()
+        assert 'LangString FINISH_BUTTON' in nsis, \
+            "🔴 NSIS缺少 FINISH_BUTTON LangString! 完成按钮会无文字!"
+        assert 'MUI_BUTTONTEXT_FINISH' in nsis, \
+            "🔴 NSIS缺少 MUI_BUTTONTEXT_FINISH define! 完成按钮文字不会显示!"
+        # 验证7种语言都有
+        for lang_code in ['1033', '2052', '1041', '1042', '1036', '1031', '1034']:
+            pattern = f'FINISH_BUTTON {lang_code}'
+            assert pattern in nsis, \
+                f"🔴 NSIS FINISH_BUTTON缺少语言 {lang_code}! 该语言下完成按钮无文字!"
+
+    def test_nsis_utf8_bom_still_present(self):
+        """🔴 Bug: NSIS选中文后乱码 (v2.38已修复,必须防复发)"""
+        nsis_bytes = (PROJECT / "meshctx_setup.nsi").read_bytes()
+        assert nsis_bytes[:3] == b'\xef\xbb\xbf', \
+            "🔴 NSIS文件缺少UTF-8 BOM! 选中文后会乱码! (历史bug复发)"
+
+    def test_nsis_mui_language_before_pages(self):
+        """🔴 Bug: MUI_PAGE在MUI_LANGUAGE前导致乱码 (v2.38已修复)"""
+        nsis = (PROJECT / "meshctx_setup.nsi").read_text()
+        lang_pos = nsis.find('!insertmacro MUI_LANGUAGE')
+        page_pos = nsis.find('!insertmacro MUI_PAGE_WELCOME')
+        assert lang_pos < page_pos, \
+            "🔴 MUI_LANGUAGE必须在MUI_PAGE之前! 否则选中文后乱码!"
+
+    def test_spec_not_using_manual_hiddenimports_only(self):
+        """collect_submodules必须是主策略,显式列表只是安全兜底"""
+        spec = (PROJECT / "meshctx_desktop.spec").read_text()
+        assert "collect_submodules('src.core')" in spec, \
+            "🔴 spec必须包含collect_submodules('src.core')!"
+        assert "collect_submodules('src')" in spec, \
+            "🔴 spec必须包含collect_submodules('src')!"
+
+    def test_install_sh_no_git_clone(self):
+        """🔴 Bug: install.sh依赖git clone → 中国用户无法安装"""
+        for sh_file in ["install.sh", "docs/install.sh"]:
+            path = PROJECT / sh_file
+            if path.exists():
+                content = path.read_text()
+                assert "git clone" not in content, \
+                    f"🔴 {sh_file}包含git clone! GFW阻断GitHub,中国用户无法安装!"
+                assert "git@" not in content, \
+                    f"🔴 {sh_file}包含git@! 需要SSH密钥,普通用户无法使用!"
+
+    def test_ci_build_has_artifact_fallback(self):
+        """🔴 Bug: CI push to main不创建Release → 产物9B空文件"""
+        ci_file = PROJECT / ".github" / "workflows" / "build-windows.yml"
+        if ci_file.exists():
+            content = ci_file.read_text()
+            assert "upload-artifact" in content, \
+                "🔴 CI缺少upload-artifact兜底! push-to-main时产物会丢失(9B空文件bug)!"
+
