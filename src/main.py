@@ -2719,6 +2719,13 @@ async def health_check():
     return {"status": "ok", "timestamp": __import__("time").time()}
 
 
+@app.get("/api/dashboard")
+async def unified_dashboard():
+    """v2.52: 统一仪表盘 — 全模块统计一页展示"""
+    from .core.dashboard import get_dashboard
+    return get_dashboard().get_full_dashboard()
+
+
 
 # ═══════════════════════════════════════════════════
 # 插件端点 (v2.18.0 — 真实集成)
