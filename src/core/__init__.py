@@ -277,7 +277,12 @@ try:
 except ImportError:
     RealtimeHealthMonitor = get_health_monitor = _brain_noop
 
-__version__ = "2.60.0"
+try:
+    from .smart_router import SmartModelRouter, get_model_router
+except ImportError:
+    SmartModelRouter = get_model_router = _brain_noop
+
+__version__ = "2.62.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
