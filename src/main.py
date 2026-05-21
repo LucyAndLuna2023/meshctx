@@ -280,7 +280,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.45.0",
+    version="2.46.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -5468,6 +5468,97 @@ async def stream_task_progress(task_id: str, request: Request):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+# ── v2.46: SDB Framework API ─────────────────────────────
+from .core.sdb_framework import get_sdb_engine
+
+
+@app.post("/api/sdb/propose")
+async def sdb_propose(request: Request):
+    """SDB: Propose阶段 — LLM提出行动"""
+    body = await request.json()
+    engine = get_sdb_engine()
+    record = engine.propose(
+        model_id=body.get("model_id", ""),
+        action=body.get("action", ""),
+        params=body.get("params", {}),
+        raw_output=body.get("raw_output", ""),
+        deterministic_context=body.get("deterministic_context", ""),
+        agent_id=body.get("agent_id", ""),
+    )
+    return {"record_id": record.record_id, "phase": record.phase.value,
+            "proposed_action": record.proposed_action}
+
+
+@app.post("/api/sdb/verify")
+async def sdb_verify(request: Request):
+    """SDB: Verify阶段 — 确定性验证"""
+    body = await request.json()
+    engine = get_sdb_engine()
+    record = engine.propose(
+        model_id=body.get("model_id", ""),
+        action=body.get("action", ""),
+        params=body.get("params", {}),
+        raw_output=body.get("raw_output", ""),
+        deterministic_context=body.get("deterministic_context", ""),
+    )
+    record = engine.verify(
+        record,
+        rules=body.get("rules", []),
+        checks=body.get("checks", {}),
+    )
+    return {
+        "record_id": record.record_id,
+        "verification_passed": record.verification_passed,
+        "reject_reason": record.reject_reason.value if record.reject_reason else None,
+    }
+
+
+@app.post("/api/sdb/pipeline")
+async def sdb_pipeline(request: Request):
+    """SDB: 一键管道"""
+    body = await request.json()
+    engine = get_sdb_engine()
+    record = engine.pipeline(
+        model_id=body.get("model_id", ""),
+        action=body.get("action", ""),
+        params=body.get("params", {}),
+        raw_output=body.get("raw_output", ""),
+        rules=body.get("rules", []),
+        checks=body.get("checks", {}),
+        deterministic_context=body.get("deterministic_context", ""),
+        agent_id=body.get("agent_id", ""),
+    )
+    return record.to_dict()
+
+
+@app.get("/api/sdb/stats")
+async def sdb_stats():
+    """SDB统计"""
+    engine = get_sdb_engine()
+    return engine.get_stats()
+
+
+@app.get("/api/sdb/variance")
+async def sdb_variance(window: int = 100):
+    """SDB方差报告"""
+    engine = get_sdb_engine()
+    return engine.get_variance_report(window=window)
+
+
+@app.get("/api/sdb/reliability")
+async def sdb_reliability():
+    """SDB可靠性评分"""
+    engine = get_sdb_engine()
+    return engine.get_reliability_score()
+
+
+@app.get("/api/sdb/history")
+async def sdb_history(limit: int = 50):
+    """SDB历史"""
+    engine = get_sdb_engine()
+    return {"records": engine.get_recent_records(limit)}
 
 
 # 供应商健康追踪

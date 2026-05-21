@@ -234,8 +234,12 @@ try:
     from .task_progress import TaskProgressEngine, get_progress_engine
 except ImportError:
     TaskProgressEngine = get_progress_engine = _brain_noop
+try:
+    from .sdb_framework import SDBEngine, get_sdb_engine
+except ImportError:
+    SDBEngine = get_sdb_engine = _brain_noop
 
-__version__ = "2.45.0"
+__version__ = "2.46.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -297,4 +301,6 @@ __all__ = [
     "DiffPreviewEngine", "get_diff_engine",
     # v2.45 Task Progress
     "TaskProgressEngine", "get_progress_engine",
+    # v2.46 SDB Framework
+    "SDBEngine", "get_sdb_engine",
 ]
