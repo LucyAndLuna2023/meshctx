@@ -1017,6 +1017,111 @@ def cmd_insights(args):
                 print(f"    {p['provider']}: {p['calls']}calls, {p['error_rate_pct']}% err, {p['avg_latency_ms']}ms")
 
 
+def cmd_diff(args):
+    """文件Diff预览 (v2.44)"""
+    from src.core.diff_preview import get_diff_engine
+    engine = get_diff_engine()
+    if hasattr(args, 'diff_cmd') and args.diff_cmd == "history":
+        history = engine.get_history()
+        print(f"\n📝 Diff变更历史 ({len(history)}条):")
+        for h in history[-10:]:
+            print(f"  {h['change_id'][:20]}... {h['file_path']} (+{h.get('stats',{}).get('added',0)} -{h.get('stats',{}).get('removed',0)})")
+    elif hasattr(args, 'diff_cmd') and args.diff_cmd == "backups":
+        backups = engine.list_backups()
+        print(f"\n💾 回滚备份 ({len(backups)}个):")
+        for b in backups[:10]:
+            print(f"  {b['filename']} ({b['size']}B)")
+    else:
+        print("用法: meshctx diff preview <file> | history | backups")
+
+
+def cmd_tasks(args):
+    """后台任务管理 (v2.45)"""
+    from src.core.task_progress import get_progress_engine
+    engine = get_progress_engine()
+    if hasattr(args, 'task_cmd') and args.task_cmd == "history":
+        history = engine.get_history()
+        print(f"\n📋 任务历史 ({len(history)}条):")
+        for h in history[-10:]:
+            print(f"  {h['name']}: {h['status']} ({h.get('progress',0)}%)")
+    elif hasattr(args, 'task_cmd') and args.task_cmd == "stats":
+        stats = engine.get_stats()
+        print(f"\n📊 任务统计: 活跃{stats['active']} 完成{stats['completed']} 失败{stats['failed']}")
+    else:
+        active = engine.list_active()
+        print(f"\n🔄 活跃任务 ({len(active)}):")
+        for t in active:
+            print(f"  {t.name}: {t.status} ({t.progress}%)")
+
+
+def cmd_sdb(args):
+    """SDB框架 (v2.46)"""
+    from src.core.sdb_framework import get_sdb_engine
+    engine = get_sdb_engine()
+    if hasattr(args, 'sdb_cmd') and args.sdb_cmd == "reliability":
+        score = engine.get_reliability_score()
+        print(f"\n🛡️ SDB可靠性评分: {score['reliability_score']}/100 {score['grade']}")
+        print(f"  {score['recommendation']}")
+    elif hasattr(args, 'sdb_cmd') and args.sdb_cmd == "test":
+        record = engine.pipeline("cli", args.action, {},
+            "test", ["check"], {"check": getattr(args, 'pass_check', True)})
+        print(f"\n🧪 SDB管道测试: {record.phase.value}")
+        print(f"  提交成功: {record.commit_success}")
+    else:
+        stats = engine.get_stats()
+        print(f"\n📊 SDB统计: 提案{stats['total_proposals']} 提交{stats['total_commits']} 拒绝{stats['total_rejects']}")
+        print(f"  提交率: {stats['commit_rate']:.1%} 重放分歧: {stats['replay_divergences']}")
+
+
+def cmd_brain(args):
+    """脑状态验证 (v2.48)"""
+    from src.core.brain_validator import get_brain_validator
+    bv = get_brain_validator()
+    profile = bv.get_recovery_profile()
+    print(f"\n🧠 脑状态恢复画像: {profile['recovery_grade']}")
+    print(f"  总体恢复率: {profile['overall_recovery']:.1%}")
+    print(f"  完全恢复: {profile['dimensions_recovered']}/{profile['total_dimensions']}维度")
+    for cat, stats in profile.get('by_category', {}).items():
+        print(f"  {cat}: {stats['mean']:.1%}")
+
+
+def cmd_modify(args):
+    """自修改代码引擎 (v2.47)"""
+    from src.core.self_modify import get_self_modify_engine
+    engine = get_self_modify_engine()
+    if hasattr(args, 'modify_cmd') and args.modify_cmd == "analyze":
+        target = getattr(args, 'path', 'src/')
+        results = engine.analyze_src(pattern="*.py" if target.endswith('/') else target)
+        print(f"\n🔍 源码分析: {results['files_analyzed']}文件 {results['total_issues']}问题")
+        if results.get('files_with_issues'):
+            for f in results['files_with_issues'][:5]:
+                print(f"  {f}")
+    elif hasattr(args, 'modify_cmd') and args.modify_cmd == "history":
+        history = engine.get_history()
+        print(f"\n📝 自修改历史 ({len(history)}条):")
+        for c in history[-10:]:
+            print(f"  {c['file_path']}: {c['change_type']} ({c['status']})")
+    else:
+        stats = engine.get_stats()
+        print(f"\n🔧 自修改引擎: 提议{stats['total_proposed']} 应用{stats['total_applied']} 回滚{stats['total_rolled_back']}")
+        print(f"  Session已应用: {stats['applied_this_session']}/{stats['max_per_session']}")
+
+
+def cmd_loop(args):
+    """统一OODA循环测试 (v2.50)"""
+    from src.core.unified_loop import get_unified_loop
+    import asyncio
+    engine = get_unified_loop()
+    text = " ".join(args.input) if args.input else "测试消息"
+    async def run():
+        for i in range(args.iterations):
+            result = await engine.run_once(f"{text} #{i+1}")
+            print(f"\n🔄 迭代{result['iteration']}: {result['total_ms']}ms")
+            for phase, t in result.get('phase_times', {}).items():
+                print(f"  {phase}: {t}ms")
+    asyncio.run(run())
+
+
 def cmd_image(args):
     """AI图片生成"""
     from src.core.image_gen import ImageGenerator
@@ -1194,6 +1299,54 @@ def main():
     ins.add_argument("--period", default="all", choices=["today","weekly","monthly","all"],
                      help="统计周期")
     ins.set_defaults(func=cmd_insights)
+
+    # ── v2.44-v2.50 新模块CLI ─────────────────────────────
+    # diff (v2.44)
+    df = sub.add_parser("diff", help="文件Diff预览 (对标Claude Code)")
+    df_sub = df.add_subparsers(dest="diff_cmd")
+    df_sub.add_parser("preview", help="预览文件修改diff").add_argument("file", help="文件路径")
+    df_sub.add_parser("history", help="diff历史")
+    df_sub.add_parser("backups", help="回滚备份列表")
+    df.set_defaults(func=cmd_diff)
+
+    # tasks (v2.45)
+    tk = sub.add_parser("tasks", help="后台任务管理")
+    tk_sub = tk.add_subparsers(dest="task_cmd")
+    tk_sub.add_parser("list", help="列出活跃任务")
+    tk_sub.add_parser("history", help="已完成任务历史")
+    tk_sub.add_parser("stats", help="任务统计")
+    tk.set_defaults(func=cmd_tasks)
+
+    # sdb (v2.46)
+    sd = sub.add_parser("sdb", help="SDB框架 (随机-确定性边界)")
+    sd_sub = sd.add_subparsers(dest="sdb_cmd")
+    sd_sub.add_parser("stats", help="SDB统计")
+    t = sd_sub.add_parser("test", help="测试SDB管道")
+    t.add_argument("--action", default="test", help="动作")
+    t.add_argument("--pass-check", type=bool, default=True, help="是否通过验证")
+    sd_sub.add_parser("reliability", help="可靠性评分")
+    sd.set_defaults(func=cmd_sdb)
+
+    # brain (v2.48)
+    br = sub.add_parser("brain", help="脑状态验证 (13维度量化)")
+    br_sub = br.add_subparsers(dest="brain_cmd")
+    br_sub.add_parser("profile", help="恢复画像")
+    br_sub.add_parser("measure", help="测量全部13维度")
+    br.set_defaults(func=cmd_brain)
+
+    # modify (v2.47)
+    mo = sub.add_parser("modify", help="自修改代码引擎")
+    mo_sub = mo.add_subparsers(dest="modify_cmd")
+    mo_sub.add_parser("analyze", help="分析源码").add_argument("path", nargs="?", default="src/", help="文件或目录")
+    mo_sub.add_parser("history", help="变更历史")
+    mo_sub.add_parser("stats", help="引擎统计")
+    mo.set_defaults(func=cmd_modify)
+
+    # loop (v2.50)
+    lo = sub.add_parser("loop", help="统一OODA循环测试")
+    lo.add_argument("input", nargs="*", help="测试输入")
+    lo.add_argument("--iterations", type=int, default=1, help="迭代次数")
+    lo.set_defaults(func=cmd_loop)
 
     args = p.parse_args()
     if not args.command:
