@@ -302,7 +302,7 @@ class FractalMemoryCompressor:
         """L0→L1: 提取关键信息"""
         # 找相似经验 → 合并
         similar = self._find_similar_l1(exp["content"])
-        if similar:
+        if similar is not None:
             # 合并到已有压缩项
             existing = self._l1_compressed[similar]
             existing["occurrences"] += 1
