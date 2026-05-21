@@ -11,6 +11,7 @@ meshctx v2.0 记忆系统 — 向量检索 + 知识图谱
 """
 import hashlib
 import json
+import logging
 import math
 import os
 import re
@@ -22,6 +23,15 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
+
+# 中文分词: 优先jieba, 无则回退bi-gram
+try:
+    import jieba
+    jieba.setLogLevel(logging.WARNING)
+    _HAS_JIEBA = True
+except ImportError:
+    jieba = None  # type: ignore
+    _HAS_JIEBA = False
 
 # ── 数据目录 ────────────────────────────────────────────────
 MEMORY_V2_DIR = Path.home() / ".meshctx" / "memory_v2"
@@ -48,20 +58,37 @@ class TfidfVectorizer:
 
     @staticmethod
     def _tokenize(text: str) -> List[str]:
-        """简单分词: 中文单字+英文单词"""
-        tokens = []
-        # 英文单词
-        for word in re.findall(r'[a-zA-Z0-9]+', text.lower()):
-            tokens.append(word)
-        # 中文单字/双字
-        chinese = re.findall(r'[\u4e00-\u9fff]+', text)
-        for seg in chinese:
-            if len(seg) <= 2:
-                tokens.append(seg)
-            else:
-                for i in range(len(seg) - 1):
-                    tokens.append(seg[i:i+2])
-                tokens.append(seg[-1])
+        """混合分词: jieba中文分词 + 正则英文分词
+
+        jieba语义分词解决bi-gram/n-gram语义退化问题:
+        "geoV1端口3002版本v1.01" -> ["geov1","端口","3002","版本","v1.01"]
+        "机器学习是人工智能的核心技术" -> ["机器","学习","是","人工智能","的","核心","技术"]
+
+        无jieba时回退到3-gram中文分词
+        """
+        tokens: List[str] = []
+        text_lower = text.lower()
+
+        if _HAS_JIEBA:
+            parts = re.findall(r'[\u4e00-\u9fff\w]+', text_lower)
+            for part in parts:
+                if re.search(r'[\u4e00-\u9fff]', part):
+                    tokens.extend(jieba.lcut(part))
+                else:
+                    tokens.append(part)
+            if not parts:
+                tokens.extend(jieba.lcut(text_lower))
+        else:
+            for word in re.findall(r'[a-zA-Z0-9]+', text_lower):
+                tokens.append(word)
+            chinese = re.findall(r'[\u4e00-\u9fff]+', text_lower)
+            for seg in chinese:
+                if len(seg) <= 3:
+                    tokens.append(seg)
+                else:
+                    for i in range(len(seg) - 2):
+                        tokens.append(seg[i:i + 3])
+
         return tokens
 
     def fit(self, documents: List[str]):
