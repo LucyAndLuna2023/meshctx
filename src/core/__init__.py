@@ -272,7 +272,7 @@ try:
 except ImportError:
     CrossAgentKnowledgeEngine = get_knowledge_engine = _brain_noop
 
-__version__ = "2.56.0"
+__version__ = "2.57.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
