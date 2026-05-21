@@ -353,3 +353,32 @@ class TestRegressionPrevention:
             assert "upload-artifact" in content, \
                 "🔴 CI缺少upload-artifact兜底! push-to-main时产物会丢失(9B空文件bug)!"
 
+    def test_version_info_uses_absolute_path_in_spec(self):
+        """🔴 Bug: Windows .exe属性里没有版本号
+        根因: EXE(version='version_info.txt')相对路径,CI构建时找不到文件
+        修复: version=os.path.join(_here, 'version_info.txt')"""
+        spec = (PROJECT / "meshctx_desktop.spec").read_text()
+        assert "os.path.join(_here, 'version_info.txt')" in spec, \
+            "🔴 spec中version必须使用绝对路径os.path.join(_here, 'version_info.txt')! 相对路径在CI构建时会找不到,导致.exe属性无版本号!"
+
+    def test_version_info_has_correct_version(self):
+        """验证 version_info.txt 的版本号与 __init__.py 一致"""
+        import re
+        vi = (PROJECT / "version_info.txt").read_text()
+        init = (PROJECT / "src" / "core" / "__init__.py").read_text()
+        # 从 __init__.py 提取版本
+        init_match = re.search(r'__version__\s*=\s*"([^"]+)"', init)
+        assert init_match, "无法从 __init__.py 提取版本号"
+        expected = init_match.group(1)
+        # 验证 version_info.txt 包含相同版本
+        assert f"u'FileVersion', u'{expected}'" in vi or \
+               f"StringStruct(u'FileVersion', u'{expected}')" in vi, \
+            f"🔴 version_info.txt FileVersion 与 __init__.py 不一致! 期望 {expected}"
+        assert f"u'ProductVersion', u'{expected}'" in vi or \
+               f"StringStruct(u'ProductVersion', u'{expected}')" in vi, \
+            f"🔴 version_info.txt ProductVersion 与 __init__.py 不一致! 期望 {expected}"
+        # 验证 filevers/prodvers 元组
+        major, minor, patch, *_ = expected.split('.')
+        assert f"filevers=({major}, {minor}, {patch}" in vi, \
+            f"🔴 version_info.txt filevers 与 __init__.py 不一致! 期望 ({major}, {minor}, {patch}, ...)"
+

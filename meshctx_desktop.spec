@@ -65,7 +65,8 @@ a = Analysis(
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(pyz, a.scripts, a.binaries, a.zipfiles, a.datas, [],
     name='meshctx-desktop', debug=False, strip=False, upx=True,
-    console=True, icon='logo.ico', version='version_info.txt')
+    console=True, icon='logo.ico',
+    version=os.path.join(_here, 'version_info.txt'))
 
 if sys.platform == 'darwin':
     app = BUNDLE(exe, name='meshctx-desktop.app', icon='logo.icns',
@@ -74,4 +75,4 @@ if sys.platform == 'darwin':
             'NSHighResolutionCapable': 'True',
             'CFBundleShortVersionString': '2.52.0',
             'CFBundleVersion': '2.52.0',
-        }, version='version_info.txt')
+        }, version=os.path.join(_here, 'version_info.txt'))
