@@ -258,8 +258,9 @@ try:
     from .attractor_reasoner import AttractorReasoner, get_attractor_reasoner
 except ImportError:
     AttractorReasoner = get_attractor_reasoner = _brain_noop
+from .dashboard import UnifiedDashboard, get_dashboard
 
-__version__ = "2.51.0"
+__version__ = "2.52.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
