@@ -73,6 +73,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '2.52.0',
-            'CFBundleVersion': '2.52.0',
+            'CFBundleShortVersionString': '2.53.0',
+            'CFBundleVersion': '2.53.0',
         }, version=os.path.join(_here, 'version_info.txt'))
