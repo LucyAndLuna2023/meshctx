@@ -242,8 +242,12 @@ try:
     from .self_modify import SelfModifyEngine, get_self_modify_engine
 except ImportError:
     SelfModifyEngine = get_self_modify_engine = _brain_noop
+try:
+    from .brain_validator import BrainStateValidator, get_brain_validator
+except ImportError:
+    BrainStateValidator = get_brain_validator = _brain_noop
 
-__version__ = "2.47.0"
+__version__ = "2.48.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
