@@ -106,6 +106,22 @@ class UnifiedDashboard:
         except Exception as e:
             dashboard["modules"]["attractor"] = {"error": str(e)}
 
+        # ── Knowledge Transfer (v2.53) ──
+        try:
+            from .knowledge_transfer import get_knowledge_engine
+            ke = get_knowledge_engine()
+            dashboard["modules"]["knowledge"] = ke.get_stats()
+        except Exception as e:
+            dashboard["modules"]["knowledge"] = {"error": str(e)}
+
+        # ── Breakthrough Memory (v2.54) ──
+        try:
+            from .breakthrough_memory import get_breakthrough_memory
+            bm = get_breakthrough_memory()
+            dashboard["modules"]["memory"] = bm.get_breakthrough_metrics()
+        except Exception as e:
+            dashboard["modules"]["memory"] = {"error": str(e)}
+
         # ── 汇总 ──
         module_count = sum(1 for v in dashboard["modules"].values()
                           if "error" not in v)
