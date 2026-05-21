@@ -260,6 +260,10 @@ except ImportError:
     AttractorReasoner = get_attractor_reasoner = _brain_noop
 from .dashboard import UnifiedDashboard, get_dashboard
 try:
+    from .predictive_precompute import PredictivePreCompute, get_precompute_engine
+except ImportError:
+    PredictivePreCompute = get_precompute_engine = _brain_noop
+try:
     from .breakthrough_memory import BreakthroughMemoryEngine, get_breakthrough_memory
 except ImportError:
     BreakthroughMemoryEngine = get_breakthrough_memory = _brain_noop
@@ -268,7 +272,7 @@ try:
 except ImportError:
     CrossAgentKnowledgeEngine = get_knowledge_engine = _brain_noop
 
-__version__ = "2.54.0"
+__version__ = "2.55.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
