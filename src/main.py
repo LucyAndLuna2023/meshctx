@@ -5568,6 +5568,70 @@ async def sdb_history(limit: int = 50):
     return {"records": engine.get_recent_records(limit)}
 
 
+# ── v2.53: 跨Agent知识迁移 API ──────────────────────────
+from .core.knowledge_transfer import get_knowledge_engine
+
+
+@app.get("/api/knowledge/stats")
+async def knowledge_stats():
+    engine = get_knowledge_engine()
+    return engine.get_stats()
+
+
+@app.post("/api/knowledge/add")
+async def knowledge_add(request: Request):
+    body = await request.json()
+    engine = get_knowledge_engine()
+    node = engine.add_knowledge(
+        content=body["content"], category=body.get("category", "general"),
+        source_agent=body.get("agent_id", ""), confidence=body.get("confidence", 0.5))
+    return node.to_dict()
+
+
+@app.get("/api/knowledge/query")
+async def knowledge_query(q: str = "", category: str = "", limit: int = 10):
+    engine = get_knowledge_engine()
+    results = engine.query_knowledge(q, category=category, limit=limit)
+    return {"results": [r.to_dict() for r in results], "total": len(results)}
+
+
+@app.post("/api/knowledge/broadcast")
+async def knowledge_broadcast(request: Request):
+    body = await request.json()
+    engine = get_knowledge_engine()
+    return engine.broadcast_lesson(source_agent=body.get("agent_id", "system"),
+                                    lesson=body["lesson"], category=body.get("category", "general"))
+
+
+@app.get("/api/knowledge/insights/{agent_id}")
+async def knowledge_insights(agent_id: str):
+    return get_knowledge_engine().get_agent_insights(agent_id)
+
+
+# ── v2.54: 突破性记忆 API ──────────────────────────────
+from .core.breakthrough_memory import get_breakthrough_memory
+
+
+@app.post("/api/memory/store")
+async def memory_store(request: Request):
+    body = await request.json()
+    engine = get_breakthrough_memory()
+    return engine.store(content=body["content"], context=body.get("context", ""),
+                        outcome=body.get("outcome", ""), tags=body.get("tags"))
+
+
+@app.get("/api/memory/recall")
+async def memory_recall(q: str = "", context: str = ""):
+    engine = get_breakthrough_memory()
+    return engine.recall(q, context=context)
+
+
+@app.get("/api/memory/metrics")
+async def memory_metrics():
+    engine = get_breakthrough_memory()
+    return engine.get_breakthrough_metrics()
+
+
 # 供应商健康追踪
 _PROVIDER_HEALTH: Dict[str, dict] = {}
 
