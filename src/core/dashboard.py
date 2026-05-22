@@ -186,6 +186,30 @@ class UnifiedDashboard:
         except Exception as e:
             dashboard["modules"]["plugins"] = {"error": str(e)}
 
+        # ── Error Learner (v2.66) ──
+        try:
+            from .error_learner import get_learning_engine
+            el = get_learning_engine()
+            dashboard["modules"]["learner"] = el.get_stats()
+        except Exception as e:
+            dashboard["modules"]["learner"] = {"error": str(e)}
+
+        # ── Goal Decomposer (v2.67) ──
+        try:
+            from .goal_decomposer import get_goal_decomposer
+            gd = get_goal_decomposer()
+            dashboard["modules"]["goals"] = gd.get_stats()
+        except Exception as e:
+            dashboard["modules"]["goals"] = {"error": str(e)}
+
+        # ── Backup Vault (v2.68) ──
+        try:
+            from .backup_vault import get_backup_vault
+            bv = get_backup_vault()
+            dashboard["modules"]["backup"] = bv.get_stats()
+        except Exception as e:
+            dashboard["modules"]["backup"] = {"error": str(e)}
+
         # ── 汇总 ──
         module_count = sum(1 for v in dashboard["modules"].values()
                           if "error" not in v)

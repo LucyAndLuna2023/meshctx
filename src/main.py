@@ -3138,7 +3138,7 @@ async def archive_summary():
 async def version_info():
     """版本信息"""
     from src.core import __version__
-    return {"version":__version__,"models":123,"providers":37,"plugins":9,"tests":673}
+    return {"version":__version__,"models":123,"providers":37,"plugins":9,"tests":1450}
 
 
 @app.get("/api/data/status")
@@ -3284,6 +3284,55 @@ async def plugin_install(request: Request):
     data = await request.json()
     pm = get_plugin_marketplace()
     return pm.install(data.get("name", ""))
+
+# ═══════════════════════════════════════════════════
+# v2.66-v2.68 API端点
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/learner/stats")
+async def learner_stats():
+    """错误学习引擎统计 (v2.66)"""
+    from src.core.error_learner import get_learning_engine
+    return get_learning_engine().get_stats()
+
+@app.get("/api/goal/list")
+async def goal_list():
+    """目标列表 (v2.67)"""
+    from src.core.goal_decomposer import get_goal_decomposer
+    gd = get_goal_decomposer()
+    return {"goals": list(gd._goals.keys()), "stats": gd.get_stats()}
+
+@app.post("/api/goal/decompose")
+async def goal_decompose(request: Request):
+    """目标分解 (v2.67)"""
+    from src.core.goal_decomposer import get_goal_decomposer
+    data = await request.json()
+    gd = get_goal_decomposer()
+    goal = gd.decompose(data.get("description", ""))
+    return gd.get_goal_status(goal.id)
+
+@app.get("/api/goal/{goal_id}")
+async def goal_status(goal_id: str):
+    """目标状态 (v2.67)"""
+    from src.core.goal_decomposer import get_goal_decomposer
+    gd = get_goal_decomposer()
+    status = gd.get_goal_status(goal_id)
+    if status is None:
+        return {"error": "Goal not found"}
+    return status
+
+@app.get("/api/backup/stats")
+async def backup_stats():
+    """备份保险库状态 (v2.68)"""
+    from src.core.backup_vault import get_backup_vault
+    return get_backup_vault().get_stats()
+
+@app.post("/api/backup/add-path")
+async def backup_add_path(request: Request):
+    """添加备份路径 (v2.68)"""
+    from src.core.backup_vault import get_backup_vault
+    data = await request.json()
+    return get_backup_vault().add_backup_path(data.get("path", ""))
 
 @app.get("/api/system/resources")
 async def system_resources():
