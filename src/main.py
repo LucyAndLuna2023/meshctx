@@ -3197,6 +3197,97 @@ async def cache_stats():
 @app.get("/api/system/resources")
 async def system_resources():
     """系统资源 (v2.12.6)"""
+    from psutil import cpu_percent, virtual_memory, disk_usage
+    return {
+        "cpu": cpu_percent(),
+        "memory": virtual_memory().percent,
+        "disk": disk_usage("/").percent,
+    }
+
+@app.get("/api/router/stats")
+async def router_stats():
+    """智能模型路由统计 (v2.62)"""
+    from src.core.smart_router import get_model_router
+    r = get_model_router()
+    return r.get_usage_report()
+
+@app.post("/api/router/route")
+async def router_route(request: Request):
+    """模型路由推荐 (v2.62)"""
+    from src.core.smart_router import get_model_router
+    data = await request.json()
+    r = get_model_router()
+    decision = r.route(
+        prompt=data.get("prompt", ""),
+        task_type=data.get("task_type", "general"),
+    )
+    return {
+        "model": decision.selected_model,
+        "complexity": decision.complexity.name,
+        "estimated_cost": decision.estimated_cost,
+        "reasoning": decision.reasoning,
+    }
+
+@app.get("/api/shield/stats")
+async def shield_stats():
+    """回归护盾统计 (v2.63)"""
+    from src.core.regression_shield import get_regression_shield
+    s = get_regression_shield()
+    return s.get_stats()
+
+@app.get("/api/shield/audit")
+async def shield_audit():
+    """回归护盾审计日志 (v2.63)"""
+    from src.core.regression_shield import get_regression_shield
+    s = get_regression_shield()
+    return {"audit_log": s.get_audit_trail()}
+
+@app.get("/api/memory/health")
+async def memory_health():
+    """记忆健康评分 (v2.64)"""
+    from src.core.memory_health import get_memory_health
+    mh = get_memory_health()
+    return mh.get_health_score()
+
+@app.get("/api/memory/trend")
+async def memory_trend():
+    """记忆趋势 (v2.64)"""
+    from src.core.memory_health import get_memory_health
+    mh = get_memory_health()
+    return mh.get_health_trend()
+
+@app.get("/api/plugins")
+async def plugin_list(category: str = ""):
+    """插件市场搜索 (v2.65)"""
+    from src.core.plugin_market import get_plugin_marketplace
+    pm = get_plugin_marketplace()
+    if category:
+        results = pm.search(category=category)
+    else:
+        results = pm.search()
+    return {
+        "total": len(results),
+        "categories": pm.get_categories(),
+        "one_liner": "meshctx plugin install <name>",
+        "plugins": [
+            {"name": p.name, "version": p.version,
+             "description": p.description, "category": p.category,
+             "status": p.status.value}
+            for p in results
+        ],
+    }
+
+@app.post("/api/plugins/install")
+async def plugin_install(request: Request):
+    """安装插件 (v2.65)"""
+    from src.core.plugin_market import get_plugin_marketplace
+    data = await request.json()
+    pm = get_plugin_marketplace()
+    return pm.install(data.get("name", ""))
+
+@app.get("/api/system/resources")
+async def system_resources():
+    """系统资源 (v2.12.6)"""
     import psutil
     return {
         "cpu_percent": psutil.cpu_percent(interval=0.1),

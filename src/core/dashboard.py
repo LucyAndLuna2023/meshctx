@@ -154,6 +154,38 @@ class UnifiedDashboard:
         except Exception as e:
             dashboard["modules"]["health"] = {"error": str(e)}
 
+        # ── Smart Router (v2.62) ──
+        try:
+            from .smart_router import get_model_router
+            sr = get_model_router()
+            dashboard["modules"]["router"] = sr.get_usage_report()
+        except Exception as e:
+            dashboard["modules"]["router"] = {"error": str(e)}
+
+        # ── Regression Shield (v2.63) ──
+        try:
+            from .regression_shield import get_regression_shield
+            rs = get_regression_shield()
+            dashboard["modules"]["shield"] = rs.get_stats()
+        except Exception as e:
+            dashboard["modules"]["shield"] = {"error": str(e)}
+
+        # ── Memory Health (v2.64) ──
+        try:
+            from .memory_health import get_memory_health
+            mh = get_memory_health()
+            dashboard["modules"]["memory_health"] = mh.get_health_score()
+        except Exception as e:
+            dashboard["modules"]["memory_health"] = {"error": str(e)}
+
+        # ── Plugin Market (v2.65) ──
+        try:
+            from .plugin_market import get_plugin_marketplace
+            pm = get_plugin_marketplace()
+            dashboard["modules"]["plugins"] = pm.get_stats()
+        except Exception as e:
+            dashboard["modules"]["plugins"] = {"error": str(e)}
+
         # ── 汇总 ──
         module_count = sum(1 for v in dashboard["modules"].values()
                           if "error" not in v)
