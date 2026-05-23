@@ -50,6 +50,18 @@ a = Analysis(
         'src.core.cache', 'src.core.context_compressor', 'src.core.voice_io',
         'src.core.watchdog', 'src.core.webhook', 'src.core.memory_v2',
         'src.core.memory_engine', 'src.core.cross_platform_engine',
+        # v2.50-v2.76 新模块
+        'src.core.knowledge_transfer', 'src.core.breakthrough_memory',
+        'src.core.predictive_precompute', 'src.core.auto_tuner',
+        'src.core.agent_benchmark', 'src.core.smart_router',
+        'src.core.autonomous_bugfix', 'src.core.regression_shield',
+        'src.core.memory_health', 'src.core.plugin_market',
+        'src.core.error_learner', 'src.core.goal_decomposer',
+        'src.core.backup_vault', 'src.core.version_guard',
+        'src.core.context_restorer', 'src.core.self_updater',
+        'src.core.prompt_shield', 'src.core.cross_validator',
+        'src.core.behavior_monitor', 'src.core.workflow_engine',
+        'src.core.info_geo_router',
         # Common deps
         'yaml', 'openai', 'httpx', 'fastapi', 'uvicorn',
         'pydantic', 'jinja2', 'Crypto', 'Crypto.Cipher',
@@ -73,6 +85,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '2.66.0',
-            'CFBundleVersion': '2.66.0',
+            'CFBundleShortVersionString': '2.76.0',
+            'CFBundleVersion': '2.76.0',
         }, version=os.path.join(_here, 'version_info.txt'))
