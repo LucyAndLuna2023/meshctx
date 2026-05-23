@@ -3334,6 +3334,71 @@ async def backup_add_path(request: Request):
     data = await request.json()
     return get_backup_vault().add_backup_path(data.get("path", ""))
 
+# ═══════════════════════════════════════════════════
+# v2.72-v2.74 API端点
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/security/scan")
+async def security_scan(prompt: str = ""):
+    """Prompt注入扫描 (v2.72)"""
+    from src.core.prompt_shield import get_injection_shield
+    ps = get_injection_shield()
+    detection = ps.scan(prompt)
+    return {
+        "level": detection.level.value,
+        "blocked": detection.blocked,
+        "patterns": detection.patterns_matched,
+        "reason": detection.reason,
+    }
+
+@app.get("/api/security/stats")
+async def security_stats():
+    """安全统计 (v2.72)"""
+    from src.core.prompt_shield import get_injection_shield
+    return get_injection_shield().get_stats()
+
+@app.post("/api/validate/cross-check")
+async def cross_validate(request: Request):
+    """多Agent交叉验证 (v2.73)"""
+    from src.core.cross_validator import get_cross_validator, AgentResponse
+    data = await request.json()
+    cv = get_cross_validator()
+    responses = [
+        AgentResponse(agent_id=r.get("agent_id", f"agent-{i}"),
+                     model=r.get("model", "unknown"),
+                     answer=r.get("answer", ""),
+                     confidence=r.get("confidence", 0.5))
+        for i, r in enumerate(data.get("responses", []))
+    ]
+    result = cv.validate(data.get("query", ""), responses)
+    return {
+        "consensus": result.consensus.value,
+        "hallucination_risk": result.hallucination_risk,
+        "agreed_answer": result.agreed_answer[:300],
+        "divergent_agents": result.divergent_agents,
+        "summary": result.summary,
+    }
+
+@app.get("/api/compliance/report")
+async def compliance_report():
+    """行为合规报告 (v2.74)"""
+    from src.core.behavior_monitor import get_behavior_monitor
+    return get_behavior_monitor().get_compliance_report()
+
+@app.post("/api/compliance/check")
+async def compliance_check(request: Request):
+    """行为合规检查 (v2.74)"""
+    from src.core.behavior_monitor import get_behavior_monitor
+    data = await request.json()
+    bm = get_behavior_monitor()
+    event = bm.check_action(data.get("action", ""), data.get("context", {}))
+    return {
+        "status": event.status.value,
+        "rule_id": event.rule_id,
+        "auto_corrected": event.auto_corrected,
+        "detail": event.detail,
+    }
+
 @app.get("/api/system/resources")
 async def system_resources():
     """系统资源 (v2.12.6)"""

@@ -210,6 +210,30 @@ class UnifiedDashboard:
         except Exception as e:
             dashboard["modules"]["backup"] = {"error": str(e)}
 
+        # ── Prompt Shield (v2.72) ──
+        try:
+            from .prompt_shield import get_injection_shield
+            ps = get_injection_shield()
+            dashboard["modules"]["shield_inject"] = ps.get_stats()
+        except Exception as e:
+            dashboard["modules"]["shield_inject"] = {"error": str(e)}
+
+        # ── Cross Validator (v2.73) ──
+        try:
+            from .cross_validator import get_cross_validator
+            cv = get_cross_validator()
+            dashboard["modules"]["validator"] = cv.get_stats()
+        except Exception as e:
+            dashboard["modules"]["validator"] = {"error": str(e)}
+
+        # ── Behavior Monitor (v2.74) ──
+        try:
+            from .behavior_monitor import get_behavior_monitor
+            bm = get_behavior_monitor()
+            dashboard["modules"]["compliance"] = bm.get_stats()
+        except Exception as e:
+            dashboard["modules"]["compliance"] = {"error": str(e)}
+
         # ── 汇总 ──
         module_count = sum(1 for v in dashboard["modules"].values()
                           if "error" not in v)
