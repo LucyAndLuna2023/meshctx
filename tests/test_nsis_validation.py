@@ -183,3 +183,51 @@ def _get_version_info_version() -> str:
     text = vi.read_text()
     m = re.search(r"StringStruct\(u'FileVersion', u'([^']+)'\)", text)
     return m.group(1) if m else "0.0.0"
+
+
+# ═══════════════════════════════════════════════════════
+# 🔴 回归: spec必须包含全部核心模块 (防ModuleNotFoundError)
+# 这个问题已出现4次: metacognition等模块在exe中缺失
+# ═══════════════════════════════════════════════════════
+class TestSpecModuleCoverage:
+    """验证spec.hiddenimports包含全部src.core模块"""
+
+    def test_all_core_modules_in_spec(self):
+        """每个src/core/*.py都必须在spec的hiddenimports中"""
+        from pathlib import Path
+        core_dir = PROJECT / "src" / "core"
+        actual_modules = sorted([
+            f.stem for f in core_dir.glob("*.py")
+            if f.stem != "__init__" and not f.name.startswith("_")
+        ])
+
+        spec_text = (PROJECT / "meshctx_desktop.spec").read_text()
+        missing = []
+        for mod in actual_modules:
+            full_name = f"src.core.{mod}"
+            if full_name not in spec_text:
+                missing.append(mod)
+
+        assert not missing, (
+            f"🔴 {len(missing)} 模块在spec hiddenimports中缺失! "
+            f"这会导致Windows exe启动时ModuleNotFoundError!\n"
+            f"缺失: {missing}\n"
+            f"修复: 在meshctx_desktop.spec hiddenimports中添加这些模块"
+        )
+
+    def test_collect_submodules_in_spec(self):
+        """spec必须使用collect_submodules作为第一道防线"""
+        spec_text = (PROJECT / "meshctx_desktop.spec").read_text()
+        assert "collect_submodules('src.core')" in spec_text, (
+            "spec缺少collect_submodules('src.core') — 这是自动发现模块的防线"
+        )
+
+    def test_spec_has_no_duplicate_modules(self):
+        """hiddenimports不能有重复模块"""
+        import re
+        spec_text = (PROJECT / "meshctx_desktop.spec").read_text()
+        modules = re.findall(r"'src\.core\.(\w+)'", spec_text)
+        duplicates = [m for m in modules if modules.count(m) > 1]
+        assert not set(duplicates), (
+            f"spec hiddenimports中有重复模块: {set(duplicates)}"
+        )
