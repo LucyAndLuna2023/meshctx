@@ -3138,7 +3138,7 @@ async def archive_summary():
 async def version_info():
     """版本信息"""
     from src.core import __version__
-    return {"version":__version__,"models":123,"providers":37,"plugins":9,"tests":1450}
+    return {"version":__version__,"models":123,"providers":37,"plugins":9,"tests":1537}
 
 
 @app.get("/api/data/status")
