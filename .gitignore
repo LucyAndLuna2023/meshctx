@@ -51,3 +51,4 @@ src/core/pre_action_check.py
 src/core/principle_extractor.py
 src/core/super_brain.py
 __pycache__/
+build/
