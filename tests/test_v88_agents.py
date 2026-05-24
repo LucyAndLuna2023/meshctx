@@ -90,6 +90,36 @@ class TestStats:
         stats = proto.get_stats()
         assert "claude_code_feature_request" in stats
 
+
+class TestClaudeCompat:
+    def test_export_claude_format(self, proto):
+        content = proto.export_claude_format()
+        assert "CLAUDE.md" in content
+        assert "Build" in content or "build" in content
+
+    def test_claude_file_written(self, proto, tmp_path):
+        proto.export_claude_format()
+        claude_file = tmp_path / "CLAUDE.md"
+        assert claude_file.exists()
+
+    def test_import_claude_format(self, proto, tmp_path):
+        f = tmp_path / "CLAUDE.md"
+        f.write_text("# CLAUDE.md\n\n## Build\n- Build: `npm run build`\n- Test: `npm test`")
+        config = proto.import_claude_format(f)
+        assert config is not None
+
+    def test_sync_all_formats(self, proto, tmp_path):
+        result = proto.sync_all_formats()
+        assert result["bidirectional"] is True
+        assert (tmp_path / "AGENTS.md").exists()
+        assert (tmp_path / "CLAUDE.md").exists()
+
+
+class TestMCPLoader:
+    def test_load_mcp_config_empty(self, proto):
+        tools = proto.load_claude_mcp_config()
+        assert isinstance(tools, list)
+
 # Helper
 def _get_config_class(self):
     from src.core.agents_md import AgentsConfig
