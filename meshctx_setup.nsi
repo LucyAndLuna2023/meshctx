@@ -96,17 +96,6 @@ LangString FINISH_BUTTON 1034 "&Finalizar"
 !define MUI_LANGDLL_REGISTRY_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\MeshCtx"
 !define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
 !define MUI_LANGDLL_ALLLANGUAGES
-!insertmacro MUI_LANGUAGE "English"
-!insertmacro MUI_LANGUAGE "SimpChinese"
-!insertmacro MUI_LANGUAGE "Japanese"
-!insertmacro MUI_LANGUAGE "Korean"
-!insertmacro MUI_LANGUAGE "German"
-!insertmacro MUI_LANGUAGE "French"
-!insertmacro MUI_LANGUAGE "Spanish"
-
-Function .onInit
-  !insertmacro MUI_LANGDLL_DISPLAY
-FunctionEnd
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -115,7 +104,20 @@ FunctionEnd
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 
+Function .onInit
+  !insertmacro MUI_LANGDLL_DISPLAY
+FunctionEnd
+
+!insertmacro MUI_LANGUAGE "English"
+!insertmacro MUI_LANGUAGE "SimpChinese"
+!insertmacro MUI_LANGUAGE "Japanese"
+!insertmacro MUI_LANGUAGE "Korean"
+!insertmacro MUI_LANGUAGE "German"
+!insertmacro MUI_LANGUAGE "French"
+!insertmacro MUI_LANGUAGE "Spanish"
+
 Section "MeshCtx Desktop" SecMain
+
     SetOutPath "$INSTDIR"
     File "dist\meshctx-desktop.exe"
     Rename "$INSTDIR\meshctx-desktop.exe" "$INSTDIR\MeshCtx.exe"
