@@ -1,7 +1,7 @@
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(3, 16, 0, 0),
-    prodvers=(3, 16, 0, 0),
+    filevers=(3, 17, 0, 0),
+    prodvers=(3, 17, 0, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -16,9 +16,9 @@ VSVersionInfo(
         [
           StringStruct(u'CompanyName', u'meshctx'),
           StringStruct(u'FileDescription', u'meshctx Desktop'),
-          StringStruct(u'FileVersion', u'3.16.0'),
+          StringStruct(u'FileVersion', u'3.17.0'),
           StringStruct(u'ProductName', u'meshctx'),
-          StringStruct(u'ProductVersion', u'3.16.0'),
+          StringStruct(u'ProductVersion', u'3.17.0'),
           StringStruct(u'LegalCopyright', u'MIT License')
         ]
       )
