@@ -1,8 +1,8 @@
 [project]
 name = "meshctx"
-version = "2.15.7"
+version = "3.33.0"
 description = "World's First Self-Evolving Agent System"
-authors = [{name = "Jason Liu", email = "support@meshctx.com"}]
+authors = [{name = "Jason Liu", email = "jason.liu@meshctx.com"}]
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.104.1",
