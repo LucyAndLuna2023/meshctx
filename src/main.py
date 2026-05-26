@@ -515,12 +515,17 @@ async def live_dashboard():
 async def root():
     """服务主页 — 从 static/index.html"""
     import os
+    from starlette.responses import HTMLResponse as StarletteHTMLResponse
     index_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "index.html")
     if not os.path.exists(index_path):
         index_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "index.html")
     if os.path.exists(index_path):
         with open(index_path, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
+            resp = HTMLResponse(content=f.read())
+            resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+            return resp
     # fallback
     return HTMLResponse(content="""<!DOCTYPE html>
 <html lang="zh-CN">
