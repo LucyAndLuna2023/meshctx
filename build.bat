@@ -1,8 +1,8 @@
 @echo off
-REM MeshCtx v2.76 Windows 构建脚本
+REM MeshCtx v3.33 Windows 构建脚本
 REM 需要: Python 3.10+, PyInstaller, NSIS
 echo ============================================
-echo  MeshCtx v2.76 Windows Desktop Build
+echo  MeshCtx v3.33 Windows Desktop Build
 echo ============================================
 echo.
 
@@ -29,12 +29,12 @@ if errorlevel 1 (
 REM 4. 验证
 echo [4/4] Verifying build...
 if exist "dist\meshctx-setup.exe" (
-    for %%A in ("dist\meshctx-setup.exe") do echo     meshctx-setup.exe: %%~zA bytes
+    echo     meshctx-setup.exe 构建成功
     echo.
     echo ============================================
     echo  BUILD SUCCESS!
     echo  Output: dist\meshctx-setup.exe
-    echo  Version: v2.76.0
+    echo  Version: v3.33.0
     echo ============================================
 ) else (
     echo ERROR: meshctx-setup.exe not found!
