@@ -513,6 +513,15 @@ async def live_dashboard():
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
+    """服务主页 — 从 static/index.html"""
+    import os
+    index_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "index.html")
+    if not os.path.exists(index_path):
+        index_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "index.html")
+    if os.path.exists(index_path):
+        with open(index_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    # fallback
     return HTMLResponse(content="""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -521,12 +530,12 @@ async def root():
 <title>meshctx</title>
 <style>
 body{font-family:-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
-p{font-size:18px;color:#94a3b8}
-a{color:#38bdf8}
+p{font-size:18px;color:#94a3b8}a{color:#38bdf8}
 </style>
 </head>
 <body>
 <p>正在跳转到 <a href="/ui/">meshctx UI</a>...</p>
+<p><small><a href="/static/index.html">🏠 主页</a></small></p>
 </body>
 </html>""")
 
