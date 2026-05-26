@@ -2,7 +2,7 @@
 """MeshCtx Desktop — PyInstaller spec v2.41 FULL"""
 import sys, os
 from PyInstaller.utils.hooks import collect_submodules
-_here = os.path.dirname(os.path.abspath(SPECPATH)) if 'SPECPATH' in globals() else os.path.dirname(os.path.abspath(__file__))
+_here = r'E:\Meshctx'
 block_cipher = None
 
 a = Analysis(
@@ -198,8 +198,8 @@ a = Analysis(
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(pyz, a.scripts, a.binaries, a.zipfiles, a.datas, [],
     name='meshctx-desktop', debug=False, strip=False, upx=True,
-    console=True, icon='logo.ico',
-    version=os.path.join(_here, 'version_info.txt'))
+    console=False, icon='logo.ico',
+    version='version_info.txt')
 
 if sys.platform == 'darwin':
     app = BUNDLE(exe, name='meshctx-desktop.app', icon='logo.icns',
@@ -208,4 +208,4 @@ if sys.platform == 'darwin':
             'NSHighResolutionCapable': 'True',
             'CFBundleShortVersionString': '3.33.0',
             'CFBundleVersion': '3.33.0',
-        }, version=os.path.join(_here, 'version_info.txt'))
+        }, version='version_info.txt')
