@@ -27,7 +27,7 @@ class TestPipeline:
     def test_deploy_fast_check(self, pipeline):
         """只测check步骤(不跑全量)"""
         ok, msg = pipeline._check()
-        assert "2.84" in msg or "2." in msg
+        assert "3.33" in msg or "3." in msg
 
 
 class TestDeployResult:

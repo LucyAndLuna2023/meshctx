@@ -323,8 +323,8 @@ class TestRegressionPrevention:
         nsis = (PROJECT / "meshctx_setup.nsi").read_text()
         lang_pos = nsis.find('!insertmacro MUI_LANGUAGE')
         page_pos = nsis.find('!insertmacro MUI_PAGE_WELCOME')
-        assert lang_pos < page_pos, \
-            "🔴 MUI_LANGUAGE必须在MUI_PAGE之前! 否则选中文后乱码!"
+        assert page_pos < lang_pos, \
+            "🔴 MUI_PAGE必须在MUI_LANGUAGE之前! 否则语言选择对话框不显示!"
 
     def test_spec_not_using_manual_hiddenimports_only(self):
         """collect_submodules必须是主策略,显式列表只是安全兜底"""

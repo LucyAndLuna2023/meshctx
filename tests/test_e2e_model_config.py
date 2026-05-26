@@ -190,11 +190,11 @@ class TestVersionConsistency:
         assert resp.status_code == 200
         data = resp.json()
         assert "version" in data
-        assert data["version"].startswith("2.")
+        assert data["version"].startswith("3.")
 
     def test_core_version(self):
         from src.core import __version__
-        assert __version__.startswith("2.")
+        assert __version__.startswith("3.")
         assert "." in __version__
 
 

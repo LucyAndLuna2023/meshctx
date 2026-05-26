@@ -1,5 +1,14 @@
 # MeshCtx Changelog
 
+## [3.33.0] - 2026-05-26
+### 🔧 版本对齐修复 — 全量通过
+- 🔄 版本号统一: src/__init__.py(1.6.2→3.33.0) / main.py(1.8.2→3.33.0) / spec(2.85.0→3.33.0)
+- ✅ 7个失败测试全部修复: version/api/NSIS/spec/部署
+- 📦 spec hiddenimports补全30个v3.00+新模块
+- 🔀 NSIS测试断言修正: MUI_PAGE必须在MUI_LANGUAGE之前
+- 🌐 远程47.120.0.239:3001 → 3.33.0
+- 🧪 1713 passed / 18 skipped / 0 failed
+
 ## [2.68.0] - 2026-05-22
 ### 🛡️ 备份保险库 — 永不丢代码
 - 💾 BackupVault: 多路径自动备份+版本归档+完整恢复

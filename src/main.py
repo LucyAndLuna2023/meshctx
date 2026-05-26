@@ -726,7 +726,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "1.8.2",
+        "version": "3.33.0",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -4036,7 +4036,7 @@ async def system_summary():
     k = get_kernel()
     now = time.time()
     summary = {
-        "version": "1.8.2",
+        "version": "3.33.0",
         "uptime": int(now - (app.state.start_time if hasattr(app.state, 'start_time') else now)),
         "kernel": {"status": "running" if k._started else "stopped", "plugins": k.plugins.list_active() if k._started else []},
         "agents": {"total": 0, "active": 0, "sessions": 0, "list": [], "ooda": {}},
@@ -5360,7 +5360,7 @@ async def export_config():
         safe_providers[pid] = sp
     
     export_data = {
-        "version": "1.8.2",
+        "version": "3.33.0",
         "exported_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "providers": safe_providers,
         "mcp_servers": mcp_servers,
@@ -6172,7 +6172,7 @@ async def health_check():
 
     result = {
         "status": "healthy",
-        "version": "1.8.2",
+        "version": "3.33.0",
         "kernel": "running" if (k._started if hasattr(k, '_started') else False) else "standalone",
         "projects_count": len(engine.projects),
         "conversations_count": len(engine.conversations),

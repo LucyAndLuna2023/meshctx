@@ -46,8 +46,8 @@ class TestNSISOrder:
 
         last_lang = max(lang_lines)
         first_page = min(page_lines)
-        assert last_lang < first_page, \
-            f"MUI_LANGUAGE({last_lang}行)必须在MUI_PAGE({first_page}行)之前! 之前的修复只加了LangString但没改顺序,导致选完语言下一页仍乱码"
+        assert last_lang > first_page, \
+            f"MUI_LANGUAGE({last_lang}行)必须在MUI_PAGE({first_page}行)之后! NSIS要求页面宏在语言宏之前声明"
 
     def test_unpage_confirm_before_instfiles(self):
         """卸载页: 确认对话框必须在卸载进度之前"""
