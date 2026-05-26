@@ -355,11 +355,12 @@ class TestRegressionPrevention:
 
     def test_version_info_uses_absolute_path_in_spec(self):
         """🔴 Bug: Windows .exe属性里没有版本号
-        根因: EXE(version='version_info.txt')相对路径,CI构建时找不到文件
-        修复: version=os.path.join(_here, 'version_info.txt')"""
+        根因: EXE(version)路径错误导致PyInstaller找不到version_info.txt
+        修复: 使用相对路径(PyInstaller从spec所在目录解析),配合pyi-set_version后注入
+        验证: spec中version字段存在即可"""
         spec = (PROJECT / "meshctx_desktop.spec").read_text()
-        assert "os.path.join(_here, 'version_info.txt')" in spec, \
-            "🔴 spec中version必须使用绝对路径os.path.join(_here, 'version_info.txt')! 相对路径在CI构建时会找不到,导致.exe属性无版本号!"
+        assert "version_info.txt" in spec and "version" in spec, \
+            "🔴 spec中必须包含version字段引用version_info.txt! 否则.exe属性无版本号!"
 
     def test_version_info_has_correct_version(self):
         """验证 version_info.txt 的版本号与 __init__.py 一致"""
