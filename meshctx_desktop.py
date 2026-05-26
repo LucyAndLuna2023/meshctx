@@ -163,7 +163,10 @@ def main():
         if not wait_for_server(health_url):
             logger.error(f"服务器启动超时! 检查 {LOG_FILE}")
             print(f"\n❌ 服务器启动失败，请查看日志: {LOG_FILE}\n")
-            input("按 Enter 退出...")
+            try:
+                input("按 Enter 退出...")
+            except (EOFError, OSError):
+                pass
             sys.exit(1)
         logger.info("服务器就绪 ✓")
 
@@ -232,12 +235,18 @@ def main():
             import webbrowser
             webbrowser.open(app_url)
             if tray_thread:
-                input("托盘已运行，按 Enter 退出...")
+                try:
+                    input("托盘已运行，按 Enter 退出...")
+                except (EOFError, OSError):
+                    pass
 
     except Exception as e:
         logger.error(f"致命错误: {traceback.format_exc()}")
         print(f"\n❌ 启动失败: {e}\n日志: {LOG_FILE}\n")
-        input("按 Enter 退出...")
+        try:
+            input("按 Enter 退出...")
+        except (EOFError, OSError):
+            pass
 
 
 if __name__ == "__main__":
