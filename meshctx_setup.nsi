@@ -14,7 +14,7 @@ InstallDir "$PROGRAMFILES\MeshCtx"
 RequestExecutionLevel admin
 SetCompressor /SOLID lzma
 
-!define VERSION "3.33.0"
+!define VERSION "3.33.4"
 !define PUBLISHER "meshctx.com"
 
 !define MUI_ABORTWARNING
