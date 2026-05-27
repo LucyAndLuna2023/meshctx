@@ -198,7 +198,7 @@ a = Analysis(
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(pyz, a.scripts, a.binaries, a.zipfiles, a.datas, [],
     name='meshctx-desktop', debug=False, strip=False, upx=True,
-    console=False, icon='logo.ico',
+    console=True, icon='logo.ico',
     version='version_info.txt')
 
 if sys.platform == 'darwin':
