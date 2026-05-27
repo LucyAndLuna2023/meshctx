@@ -26,7 +26,7 @@ def discover_plugins(plugins_dir: str = None) -> List[Dict]:
     registry_path = plugins_dir / "registry.json"
     registry = {}
     if registry_path.exists():
-        with open(registry_path) as f:
+        with open(registry_path, encoding='utf-8') as f:
             registry = json.load(f)
 
     # Scan for plugin directories
@@ -71,7 +71,7 @@ def auto_activate_builtins(plugins_dir: str = None):
         logger.warning("No plugin registry found")
         return 0
 
-    with open(registry_path) as f:
+    with open(registry_path, encoding='utf-8') as f:
         registry = json.load(f)
 
     count = 0
