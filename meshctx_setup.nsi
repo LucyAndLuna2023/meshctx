@@ -1,4 +1,4 @@
-﻿; meshctx Desktop — NSIS Unicode v2.37.0
+﻿; meshctx Desktop — NSIS Unicode v3.33.0
 ; 7语言 + MUI_LANGDLL
 ; $\n for newlines in LangStrings (NOT $\\n)
 ; 构建: makensis meshctx_setup.nsi
@@ -76,12 +76,6 @@ LangString FINISH_TEXT 1042 "MeshCtx 설치가 완료되었습니다.$\n$\n시�
 LangString FINISH_TEXT 1036 "MeshCtx a ete installe.$\n$\nLancez depuis le menu Demarrer ou le bureau.$\n$\nLancez 'meshctx setup' pour configurer votre cle API."
 LangString FINISH_TEXT 1031 "MeshCtx wurde installiert.$\n$\nStarten Sie uber das Startmenu oder die Desktop-Verknupfung.$\n$\nFuhren Sie 'meshctx setup' aus, um Ihren API-Schlussel zu konfigurieren."
 LangString FINISH_TEXT 1034 "MeshCtx se ha instalado.$\n$\nInicie desde el menu Inicio o el acceso directo del escritorio.$\n$\nEjecute 'meshctx setup' para configurar su clave API."
-
-!define MUI_FINISHPAGE_TITLE "$(FINISH_TITLE)"
-!define MUI_FINISHPAGE_TEXT "$(FINISH_TEXT)"
-!define MUI_INSTFILESPAGE_FINISHHEADER_TEXT "$(INSTALLING)"
-
-; ── 完成按钮 (显式LangString, 防止多语言下按钮无文字) ──
 LangString FINISH_BUTTON 1033 "&Finish"
 LangString FINISH_BUTTON 2052 "完成(&F)"
 LangString FINISH_BUTTON 1041 "完了(&F)"
@@ -91,19 +85,15 @@ LangString FINISH_BUTTON 1031 "&Fertig"
 LangString FINISH_BUTTON 1034 "&Finalizar"
 !define MUI_BUTTONTEXT_FINISH "$(FINISH_BUTTON)"
 
+!define MUI_FINISHPAGE_TITLE "$(FINISH_TITLE)"
+!define MUI_FINISHPAGE_TEXT "$(FINISH_TEXT)"
+!define MUI_INSTFILESPAGE_FINISHHEADER_TEXT "$(INSTALLING)"
+
 ; ── 7语言注册 (define在LANGUAGE之前) ──
 !define MUI_LANGDLL_REGISTRY_ROOT "HKLM"
 !define MUI_LANGDLL_REGISTRY_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\MeshCtx"
 !define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
 !define MUI_LANGDLL_ALLLANGUAGES
-!insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_DIRECTORY
-!insertmacro MUI_PAGE_INSTFILES
-!insertmacro MUI_PAGE_FINISH
-
-!insertmacro MUI_UNPAGE_CONFIRM
-!insertmacro MUI_UNPAGE_INSTFILES
-
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "SimpChinese"
 !insertmacro MUI_LANGUAGE "Japanese"
@@ -115,9 +105,15 @@ LangString FINISH_BUTTON 1034 "&Finalizar"
 Function .onInit
   !insertmacro MUI_LANGDLL_DISPLAY
 FunctionEnd
+!insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
+!insertmacro MUI_PAGE_FINISH
+
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
 
 Section "MeshCtx Desktop" SecMain
-
     SetOutPath "$INSTDIR"
     File "dist\meshctx-desktop.exe"
     Rename "$INSTDIR\meshctx-desktop.exe" "$INSTDIR\MeshCtx.exe"

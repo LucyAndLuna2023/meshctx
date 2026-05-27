@@ -319,12 +319,13 @@ class TestRegressionPrevention:
             "🔴 NSIS文件缺少UTF-8 BOM! 选中文后会乱码! (历史bug复发)"
 
     def test_nsis_mui_language_before_pages(self):
-        """🔴 Bug: MUI_PAGE在MUI_LANGUAGE前导致乱码 (v2.38已修复)"""
+        """🔴 Bug: NSIS语言对话框不显示
+        v2.43验证可行的顺序: LANGUAGE → .onInit → PAGES"""
         nsis = (PROJECT / "meshctx_setup.nsi").read_text()
         lang_pos = nsis.find('!insertmacro MUI_LANGUAGE')
         page_pos = nsis.find('!insertmacro MUI_PAGE_WELCOME')
-        assert page_pos < lang_pos, \
-            "🔴 MUI_PAGE必须在MUI_LANGUAGE之前! 否则语言选择对话框不显示!"
+        assert lang_pos < page_pos, \
+            "🔴 MUI_LANGUAGE必须在MUI_PAGE之前! 顺序:LANGUAGE→.onInit→PAGES (v2.43验证)"
 
     def test_spec_not_using_manual_hiddenimports_only(self):
         """collect_submodules必须是主策略,显式列表只是安全兜底"""
