@@ -54,6 +54,11 @@ jobs:
       - name: Build Desktop .exe
         run: pyinstaller meshctx_desktop.spec
 
+      - name: Inject version info
+        run: |
+          python -m PyInstaller.utils.win32.versioninfo version_info.txt dist\meshctx-desktop.exe
+          Write-Host "Version info injected"
+
       - name: Verify build
         run: |
           if (Test-Path dist\meshctx-desktop.exe) {
