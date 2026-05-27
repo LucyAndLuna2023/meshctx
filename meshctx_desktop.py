@@ -4,7 +4,7 @@ meshctx Desktop — All-in-One 桌面客户端
 pywebview + FastAPI + 系统托盘
 Windows/macOS/Linux 三平台
 """
-# ── Windows UTF-8 模式(必须在所有import之前) ─────────
+# ── Windows UTF-8 模式 ──────────────────────────────
 import sys, os
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
