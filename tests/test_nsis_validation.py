@@ -49,6 +49,23 @@ class TestNSISOrder:
         assert last_lang > first_page, \
             f"MUI_LANGUAGE({last_lang}行)必须在MUI_PAGE({first_page}行)之后! NSIS要求页面宏在语言宏之前声明"
 
+    def test_oninit_after_languages(self):
+        """🔴 Bug#13: .onInit必须在MUI_LANGUAGE之后 — 否则语言选择对话框不显示"""
+        nsi = PROJECT / "meshctx_setup.nsi"
+        lines = _read_lines(nsi)
+        lang_lines = []
+        oninit_line = None
+        for i, line in enumerate(lines, 1):
+            s = line.strip()
+            if s.startswith('!insertmacro MUI_LANGUAGE '):
+                lang_lines.append(i)
+            if s == 'Function .onInit':
+                oninit_line = i
+        assert oninit_line, "未找到 Function .onInit"
+        last_lang = max(lang_lines)
+        assert oninit_line > last_lang, \
+            f".onInit({oninit_line}行)必须在MUI_LANGUAGE({last_lang}行)之后!"
+
     def test_unpage_confirm_before_instfiles(self):
         """卸载页: 确认对话框必须在卸载进度之前"""
         nsi = PROJECT / "meshctx_setup.nsi"
