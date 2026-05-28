@@ -65,40 +65,40 @@ FunctionEnd
 Function LangPageLeave
   ${NSD_GetState} $RadioEn $0
   ${If} $0 == 1
-    StrCpy $Language 1033
+    StrCpy $LANGUAGE 1033
     Goto lang_done
   ${EndIf}
   ${NSD_GetState} $RadioZh $0
   ${If} $0 == 1
-    StrCpy $Language 2052
+    StrCpy $LANGUAGE 2052
     Goto lang_done
   ${EndIf}
   ${NSD_GetState} $RadioJa $0
   ${If} $0 == 1
-    StrCpy $Language 1041
+    StrCpy $LANGUAGE 1041
     Goto lang_done
   ${EndIf}
   ${NSD_GetState} $RadioKo $0
   ${If} $0 == 1
-    StrCpy $Language 1042
+    StrCpy $LANGUAGE 1042
     Goto lang_done
   ${EndIf}
   ${NSD_GetState} $RadioDe $0
   ${If} $0 == 1
-    StrCpy $Language 1031
+    StrCpy $LANGUAGE 1031
     Goto lang_done
   ${EndIf}
   ${NSD_GetState} $RadioFr $0
   ${If} $0 == 1
-    StrCpy $Language 1036
+    StrCpy $LANGUAGE 1036
     Goto lang_done
   ${EndIf}
   ${NSD_GetState} $RadioEs $0
   ${If} $0 == 1
-    StrCpy $Language 1034
+    StrCpy $LANGUAGE 1034
     Goto lang_done
   ${EndIf}
-  StrCpy $Language 1033
+  StrCpy $LANGUAGE 1033
   lang_done:
 FunctionEnd
 

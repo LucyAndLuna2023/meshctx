@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeshCtx Test Report</title>
+<style>
+body{font-family:-apple-system,monospace;background:#0f172a;color:#e2e8f0;padding:20px;max-width:1200px;margin:auto}
+h1{color:#38bdf8}
+.pass{color:#22c55e}.fail{color:#ef4444}.warn{color:#f59e0b}
+table{width:100%;border-collapse:collapse;margin:10px 0}
+th,td{border:1px solid #334155;padding:8px;text-align:left}
+th{background:#1e293b}
+tr:hover{background:#1e293b}
+.summary{display:flex;gap:20px;margin:20px 0}
+.card{background:#1e293b;padding:16px;border-radius:8px;flex:1;text-align:center}
+.card .num{font-size:2em;font-weight:bold}
+.refresh{color:#94a3b8;font-size:12px}
+</style>
+</head>
+<body>
+<h1>🧪 MeshCtx Test Report</h1>
+<div class="refresh">Auto-refresh every 30s | <span id="time"></span></div>
+
+<div class="summary">
+  <div class="card"><div class="num pass" id="passed">-</div>Passed</div>
+  <div class="card"><div class="num fail" id="failed">-</div>Failed</div>
+  <div class="card"><div class="num warn" id="total">-</div>Total</div>
+</div>
+
+<h2>Test Results</h2>
+<table>
+<thead><tr><th>#</th><th>Test</th><th>Status</th><th>Detail</th></tr></thead>
+<tbody id="results"></tbody>
+</table>
+
+<script>
+async function load() {
+  try {
+    const r = await fetch('/api/test-report');
+    const data = await r.json();
+    document.getElementById('passed').textContent = data.passed;
+    document.getElementById('failed').textContent = data.failed;
+    document.getElementById('total').textContent = data.total;
+    document.getElementById('time').textContent = new Date().toLocaleTimeString();
+    
+    const tbody = document.getElementById('results');
+    tbody.innerHTML = data.tests.map((t,i) => 
+      `<tr><td>${i+1}</td><td>${t.name}</td><td class="${t.status.toLowerCase()}">${t.status}</td><td>${t.detail||''}</td></tr>`
+    ).join('');
+  } catch(e) {
+    document.getElementById('results').innerHTML = '<tr><td colspan="4">Server not running</td></tr>';
+  }
+}
+load();
+setInterval(load, 30000);
+</script>
+</body>
+</html>

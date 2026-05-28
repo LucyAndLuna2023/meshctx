@@ -6429,3 +6429,24 @@ async def governance_learn(request: Request):
         return {"status": "learned", "total": len(g.error_patterns)}
     except Exception as e:
         return {"error": str(e)}
+
+# ── Test Report ──────────────────────────────────
+import json as _json, os as _os
+_TEST_REPORT_PATH = _os.path.join(_os.path.dirname(_os.path.dirname(__file__)), "test_report.json")
+
+@app.get("/api/test-report")
+async def test_report():
+    try:
+        with open(_TEST_REPORT_PATH) as f:
+            data = _json.load(f)
+        data["total"] = data["passed"] + data["failed"]
+        return data
+    except:
+        return {"passed": 0, "failed": 0, "total": 0, "tests": []}
+
+@app.get("/ui/tests", response_class=HTMLResponse)
+async def test_page():
+    report_html = _os.path.join(_os.path.dirname(_os.path.dirname(__file__)), "docs", "test-report.html")
+    if _os.path.exists(report_html):
+        return HTMLResponse(content=open(report_html).read())
+    return HTMLResponse("<h1>Test report not found</h1>")
