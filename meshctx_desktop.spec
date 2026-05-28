@@ -192,7 +192,7 @@ a = Analysis(
         'numpy', 'aiofiles', 'packaging',
     ],
     hookspath=[],
-    excludes=['tkinter','matplotlib','pandas','scipy','jupyter','IPython','PyQt5','PyQt6','PySide2','PySide6','wx','torch','tensorflow','sklearn','keras','onnxruntime','torchvision','torchaudio','xgboost','lightgbm','numba','cupy'],
+    excludes=['torch','tensorflow','sklearn','keras','onnxruntime','torchvision','torchaudio','xgboost','lightgbm','numba','cupy'],
     cipher=block_cipher,
 )
 

@@ -1,107 +1,27 @@
-﻿; meshctx Desktop — NSIS Unicode v2.37.0
-; 7语言 + MUI_LANGDLL
-; $\n for newlines in LangStrings (NOT $\\n)
-; 构建: makensis meshctx_setup.nsi
-
+﻿; meshctx Desktop NSIS Installer — 7语言版
 Unicode true
-!addplugindir "tools\nsis-plugins"
 !include "MUI2.nsh"
-!include "FileFunc.nsh"
-!include "LogicLib.nsh"
 
 Name "MeshCtx Desktop"
 OutFile "dist\meshctx-setup.exe"
 InstallDir "$PROGRAMFILES\MeshCtx"
 RequestExecutionLevel admin
-SetCompressor /SOLID lzma
 
 !define VERSION "3.33.8"
-!define PUBLISHER "meshctx.com"
-
 VIProductVersion "3.33.4.0"
-VIAddVersionKey "ProductName" "MeshCtx Desktop"
 VIAddVersionKey "FileVersion" "3.33.4"
+VIAddVersionKey "ProductName" "MeshCtx Desktop"
 VIAddVersionKey "ProductVersion" "3.33.4"
 VIAddVersionKey "FileDescription" "MeshCtx Desktop Installer"
 VIAddVersionKey "LegalCopyright" "MIT License"
 
-!define MUI_ABORTWARNING
-!define MUI_ICON "logo.ico"
-!define MUI_UNICON "logo.ico"
+!define MUI_BUTTONTEXT_FINISH "Finish"
 
-; ── 7语言欢迎词 ──
-LangString WELCOME_TITLE 1033 "MeshCtx Desktop v${VERSION}"
-LangString WELCOME_TITLE 2052 "MeshCtx 桌面 v${VERSION}"
-LangString WELCOME_TITLE 1041 "MeshCtx デスクトップ v${VERSION}"
-LangString WELCOME_TITLE 1042 "MeshCtx 데스크탑 v${VERSION}"
-LangString WELCOME_TITLE 1036 "MeshCtx Desktop v${VERSION}"
-LangString WELCOME_TITLE 1031 "MeshCtx Desktop v${VERSION}"
-LangString WELCOME_TITLE 1034 "MeshCtx Escritorio v${VERSION}"
+!insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
+!insertmacro MUI_PAGE_FINISH
 
-LangString WELCOME_TEXT 1033 "The first self-evolving AI Agent for Windows.$\n$\nThis wizard will install MeshCtx on your computer.$\n$\nClick Install to begin."
-LangString WELCOME_TEXT 2052 "世界首个自进化AI Agent系统，Windows原生客户端。$\n$\n本向导将在您的电脑上安装 MeshCtx。$\n$\n点击 安装 开始。"
-LangString WELCOME_TEXT 1041 "世界初の自己進化AIエージェント、Windowsネイティブクライアント。$\n$\nこのウィザードは MeshCtx をインストールします。$\n$\nインストール をクリックして開始。"
-LangString WELCOME_TEXT 1042 "세계 최초 자기진화 AI 에이전트, Windows 네이티브 클라이언트.$\n$\n이 마법사는 MeshCtx를 설치합니다.$\n$\n설치를 클릭하여 시작하세요."
-LangString WELCOME_TEXT 1036 "Le premier agent IA auto-evolutif pour Windows.$\n$\nCet assistant installera MeshCtx sur votre ordinateur.$\n$\nCliquez sur Installer pour commencer."
-LangString WELCOME_TEXT 1031 "Der erste selbstentwickelnde KI-Agent fur Windows.$\n$\nDieser Assistent installiert MeshCtx auf Ihrem Computer.$\n$\nKlicken Sie auf Installieren, um zu beginnen."
-LangString WELCOME_TEXT 1034 "El primer agente IA autoevolutivo para Windows.$\n$\nEste asistente instalara MeshCtx en su equipo.$\n$\nHaga clic en Instalar para comenzar."
-
-!define MUI_WELCOMEPAGE_TITLE "$(WELCOME_TITLE)"
-!define MUI_WELCOMEPAGE_TEXT "$(WELCOME_TEXT)"
-
-; ── 7语言目录页 ──
-LangString DIR_TEXT 1033 "Choose install folder.$\n$\nSetup will install MeshCtx in the following folder.$\nTo install in a different folder, click Browse."
-LangString DIR_TEXT 2052 "选择安装目录。$\n$\n安装程序将把 MeshCtx 安装到以下目录。$\n如需安装到其他目录，请点击浏览。"
-LangString DIR_TEXT 1041 "インストール先を選択してください。$\n$\nMeshCtx を以下のフォルダにインストールします。$\n別のフォルダにインストールする場合は、参照をクリック。"
-LangString DIR_TEXT 1042 "설치 폴더를 선택하세요.$\n$\nMeshCtx를 다음 폴더에 설치합니다.$\n다른 폴더에 설치하려면 찾아보기를 클릭하세요."
-LangString DIR_TEXT 1036 "Choisissez le dossier d'installation.$\n$\nMeshCtx sera installe dans le dossier suivant.$\nPour un autre dossier, cliquez sur Parcourir."
-LangString DIR_TEXT 1031 "Wahlen Sie den Installationsordner.$\n$\nMeshCtx wird im folgenden Ordner installiert.$\nFur einen anderen Ordner klicken Sie auf Durchsuchen."
-LangString DIR_TEXT 1034 "Elija la carpeta de instalacion.$\n$\nMeshCtx se instalara en la siguiente carpeta.$\nPara otra carpeta, haga clic en Examinar."
-
-!define MUI_DIRECTORYPAGE_TEXT_TOP "$(DIR_TEXT)"
-
-; ── 7语言安装/完成页 (修复选语言后乱码) ──
-LangString INSTALLING 1033 "Installing MeshCtx..."
-LangString INSTALLING 2052 "正在安装 MeshCtx..."
-LangString INSTALLING 1041 "MeshCtx をインストール中..."
-LangString INSTALLING 1042 "MeshCtx 설치 중..."
-LangString INSTALLING 1036 "Installation de MeshCtx..."
-LangString INSTALLING 1031 "MeshCtx wird installiert..."
-LangString INSTALLING 1034 "Instalando MeshCtx..."
-
-LangString FINISH_TITLE 1033 "Installation Complete"
-LangString FINISH_TITLE 2052 "安装完成"
-LangString FINISH_TITLE 1041 "インストール完了"
-LangString FINISH_TITLE 1042 "설치 완료"
-LangString FINISH_TITLE 1036 "Installation terminee"
-LangString FINISH_TITLE 1031 "Installation abgeschlossen"
-LangString FINISH_TITLE 1034 "Instalacion completada"
-
-LangString FINISH_TEXT 1033 "MeshCtx has been installed.$\n$\nStart from Start Menu or Desktop shortcut.$\n$\nRun 'meshctx setup' to configure your API key."
-LangString FINISH_TEXT 2052 "MeshCtx 安装完成。$\n$\n从开始菜单或桌面快捷方式启动。$\n$\n运行 'meshctx setup' 配置API密钥。"
-LangString FINISH_TEXT 1041 "MeshCtx のインストールが完了しました。$\n$\nスタートメニューまたはデスクトップから起動してください。$\n$\n'meshctx setup' でAPIキーを設定。"
-LangString FINISH_TEXT 1042 "MeshCtx 설치가 완료되었습니다.$\n$\n시작 메뉴 또는 바탕화면에서 실행하세요.$\n$\n'meshctx setup'으로 API 키를 설정하세요."
-LangString FINISH_TEXT 1036 "MeshCtx a ete installe.$\n$\nLancez depuis le menu Demarrer ou le bureau.$\n$\nLancez 'meshctx setup' pour configurer votre cle API."
-LangString FINISH_TEXT 1031 "MeshCtx wurde installiert.$\n$\nStarten Sie uber das Startmenu oder die Desktop-Verknupfung.$\n$\nFuhren Sie 'meshctx setup' aus, um Ihren API-Schlussel zu konfigurieren."
-LangString FINISH_TEXT 1034 "MeshCtx se ha instalado.$\n$\nInicie desde el menu Inicio o el acceso directo del escritorio.$\n$\nEjecute 'meshctx setup' para configurar su clave API."
-LangString FINISH_BUTTON 1033 "&Finish"
-LangString FINISH_BUTTON 2052 "完成(&F)"
-LangString FINISH_BUTTON 1041 "完了(&F)"
-LangString FINISH_BUTTON 1042 "완료(&F)"
-LangString FINISH_BUTTON 1036 "&Terminer"
-LangString FINISH_BUTTON 1031 "&Fertig"
-LangString FINISH_BUTTON 1034 "&Finalizar"
-!define MUI_BUTTONTEXT_FINISH "$(FINISH_BUTTON)"
-
-!define MUI_FINISHPAGE_TITLE "$(FINISH_TITLE)"
-!define MUI_FINISHPAGE_TEXT "$(FINISH_TEXT)"
-!define MUI_INSTFILESPAGE_FINISHHEADER_TEXT "$(INSTALLING)"
-
-; ── 7语言注册 (define在LANGUAGE之前) ──
-!define MUI_LANGDLL_REGISTRY_ROOT "HKLM"
-!define MUI_LANGDLL_REGISTRY_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\MeshCtx"
-!define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
-!define MUI_LANGDLL_ALLLANGUAGES
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "SimpChinese"
 !insertmacro MUI_LANGUAGE "Japanese"
@@ -110,65 +30,16 @@ LangString FINISH_BUTTON 1034 "&Finalizar"
 !insertmacro MUI_LANGUAGE "French"
 !insertmacro MUI_LANGUAGE "Spanish"
 
-Function .onInit
-  !insertmacro MUI_LANGDLL_DISPLAY
-FunctionEnd
-!insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_DIRECTORY
-!insertmacro MUI_PAGE_INSTFILES
-!insertmacro MUI_PAGE_FINISH
-
-!insertmacro MUI_UNPAGE_CONFIRM
-!insertmacro MUI_UNPAGE_INSTFILES
-
-Section "MeshCtx Desktop" SecMain
+Section "Install"
     SetOutPath "$INSTDIR"
     File "dist\meshctx-desktop.exe"
-    Rename "$INSTDIR\meshctx-desktop.exe" "$INSTDIR\MeshCtx.exe"
-    File "logo.ico"
-    File "README.md"
-    Rename "$INSTDIR\README.md" "$INSTDIR\README.txt"
-    
+    CreateShortCut "$DESKTOP\MeshCtx.lnk" "$INSTDIR\meshctx-desktop.exe"
     WriteUninstaller "$INSTDIR\uninstall.exe"
-    
-    CreateDirectory "$SMPROGRAMS\MeshCtx"
-    CreateShortcut "$SMPROGRAMS\MeshCtx\MeshCtx.lnk" "$INSTDIR\MeshCtx.exe" "" "$INSTDIR\logo.ico"
-    CreateShortcut "$SMPROGRAMS\MeshCtx\Uninstall.lnk" "$INSTDIR\uninstall.exe"
-    
-    CreateShortcut "$DESKTOP\MeshCtx.lnk" "$INSTDIR\MeshCtx.exe" "" "$INSTDIR\logo.ico"
-    
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\MeshCtx" \
-        "DisplayName" "MeshCtx Desktop"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\MeshCtx" \
-        "UninstallString" "$INSTDIR\uninstall.exe"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\MeshCtx" \
-        "DisplayIcon" "$INSTDIR\logo.ico"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\MeshCtx" \
-        "Publisher" "${PUBLISHER}"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\MeshCtx" \
-        "DisplayVersion" "${VERSION}"
-    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\MeshCtx" \
-        "NoModify" 1
-    
-    ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
-    IntFmt $0 "0x%08X" $0
-    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\MeshCtx" \
-        "EstimatedSize" "$0"
 SectionEnd
 
-; ── 卸载(只删程序,保留用户数据) ──
 Section "Uninstall"
-    Delete "$INSTDIR\MeshCtx.exe"
-    Delete "$INSTDIR\logo.ico"
-    Delete "$INSTDIR\README.txt"
+    Delete "$INSTDIR\meshctx-desktop.exe"
     Delete "$INSTDIR\uninstall.exe"
     RMDir "$INSTDIR"
-    
-    Delete "$SMPROGRAMS\MeshCtx\MeshCtx.lnk"
-    Delete "$SMPROGRAMS\MeshCtx\Uninstall.lnk"
-    RMDir "$SMPROGRAMS\MeshCtx"
-    
     Delete "$DESKTOP\MeshCtx.lnk"
-    
-    DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\MeshCtx"
 SectionEnd
