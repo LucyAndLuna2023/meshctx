@@ -6390,3 +6390,42 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# ── Agent Governance API ──────────────────────────
+@app.get("/api/governance/status")
+async def governance_status():
+    try:
+        from src.core.agent_governance import get_governance
+        g = get_governance()
+        return {"status": "active", **g.status()}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/governance/rules")
+async def governance_rules():
+    try:
+        from src.core.agent_governance import get_governance
+        g = get_governance()
+        return {"rules": g.rules, "count": len(g.rules)}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/governance/errors")
+async def governance_errors():
+    try:
+        from src.core.agent_governance import get_governance
+        g = get_governance()
+        return {"patterns": g.error_patterns, "count": len(g.error_patterns)}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/api/governance/learn")
+async def governance_learn(request: Request):
+    try:
+        from src.core.agent_governance import get_governance
+        body = await request.json()
+        g = get_governance()
+        g.learn_error(body.get("category",""), body.get("symptom",""), body.get("root_cause",""), body.get("fix",""))
+        return {"status": "learned", "total": len(g.error_patterns)}
+    except Exception as e:
+        return {"error": str(e)}

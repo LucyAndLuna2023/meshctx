@@ -182,6 +182,7 @@ a = Analysis(
         'src.core.ts_predict',
         'src.core.url_builder',
         'src.core.work_queue',
+        'src.core.agent_governance',
         # Common deps
 # Common deps
         'yaml', 'openai', 'httpx', 'fastapi', 'uvicorn',

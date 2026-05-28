@@ -79,3 +79,11 @@ gateway:
 skills:
   auto_create: true
   directory: ~/.meshctx/skills/
+
+# Agent Governance
+governance:
+  enabled: true
+  pre_commit_check: true
+  error_learning: true
+  release_gate: true
+  rules_file: AGENTS.md
