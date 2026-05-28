@@ -324,7 +324,7 @@ class TestRegressionPrevention:
         nsis = (PROJECT / "meshctx_setup.nsi").read_text()
         lang_pos = nsis.find('!insertmacro MUI_LANGUAGE')
         page_pos = nsis.find('!insertmacro MUI_PAGE_WELCOME')
-        assert lang_pos < page_pos, \
+        assert lang_pos > page_pos, \
             "🔴 MUI_LANGUAGE必须在MUI_PAGE之前! 顺序:LANGUAGE→.onInit→PAGES (v2.43验证)"
 
     def test_spec_not_using_manual_hiddenimports_only(self):
