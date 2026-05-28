@@ -4,6 +4,7 @@
 ; 构建: makensis meshctx_setup.nsi
 
 Unicode true
+!addplugindir "tools\nsis-plugins"
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
 !include "LogicLib.nsh"
