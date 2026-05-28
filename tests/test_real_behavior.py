@@ -120,7 +120,7 @@ class TestNSIS:
         page_pos = nsi.find('!insertmacro MUI_PAGE')
         lang_pos = nsi.find('!insertmacro MUI_LANGUAGE')
         assert page_pos > 0 and lang_pos > 0
-        assert lang_pos > page_pos, f"LANGUAGE({lang_pos})必须在PAGE({page_pos})之前! 顺序:LANGUAGE→.onInit→PAGES"
+        assert lang_pos < page_pos, f"LANGUAGE({lang_pos})必须在PAGE({page_pos})之前! 顺序:LANGUAGE→.onInit→PAGES"
 
     def test_nsis_utf8_bom(self):
         """Bug#1: NSIS中文乱码"""
