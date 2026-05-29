@@ -7,7 +7,7 @@
       "version": "1.0.0",
       "description": "DuckDuckGo/Bing web search with result summarization",
       "author": "MeshCtx",
-      "icon": "\ud83d\udd0d",
+      "icon": "🔍",
       "category": "search",
       "permissions": [
         "network:search"
@@ -26,9 +26,9 @@
     {
       "name": "code-runner",
       "version": "1.0.0",
-      "description": "Secure sandboxed code execution (Python/JS/Bash), already integrated [\u5df2\u96c6\u6210]",
+      "description": "Secure sandboxed code execution (Python/JS/Bash), already integrated [已集成]",
       "author": "MeshCtx",
-      "icon": "\u25b6\ufe0f",
+      "icon": "▶️",
       "category": "dev",
       "permissions": [
         "sandbox:exec"
@@ -47,9 +47,9 @@
     {
       "name": "file-browser",
       "version": "1.0.0",
-      "description": "Browse, search, and manage project files with syntax highlighting [\u5df2\u96c6\u6210]",
+      "description": "Browse, search, and manage project files with syntax highlighting [已集成]",
       "author": "MeshCtx",
-      "icon": "\ud83d\udcc1",
+      "icon": "📁",
       "category": "dev",
       "permissions": [
         "fs:read",
@@ -71,7 +71,7 @@
       "version": "1.0.0",
       "description": "AI-powered git: auto-commit messages, PR descriptions, conflict resolution",
       "author": "MeshCtx Community",
-      "icon": "\ud83d\udd00",
+      "icon": "🔀",
       "category": "dev",
       "permissions": [
         "fs:read",
@@ -91,9 +91,9 @@
     {
       "name": "translator",
       "version": "1.0.0",
-      "description": "Multi-language translation using built-in LLM (supports 50+ languages) [\u5df2\u96c6\u6210]",
+      "description": "Multi-language translation using built-in LLM (supports 50+ languages) [已集成]",
       "author": "MeshCtx",
-      "icon": "\ud83c\udf10",
+      "icon": "🌐",
       "category": "integration",
       "permissions": [
         "model:call"
@@ -114,7 +114,7 @@
       "version": "1.0.0",
       "description": "Analyze CSV/JSON/Excel data with charts and statistical summaries",
       "author": "MeshCtx Community",
-      "icon": "\ud83d\udcca",
+      "icon": "📊",
       "category": "analytics",
       "permissions": [
         "fs:read",
@@ -134,9 +134,9 @@
     {
       "name": "feishu-notifier",
       "version": "2.0.0",
-      "description": "Send messages, reports, and alerts to Feishu/Lark groups [\u5df2\u96c6\u6210]",
+      "description": "Send messages, reports, and alerts to Feishu/Lark groups [已集成]",
       "author": "MeshCtx",
-      "icon": "\ud83d\udc26",
+      "icon": "🐦",
       "category": "integration",
       "permissions": [
         "network:feishu"
@@ -155,9 +155,9 @@
     {
       "name": "wechat-work",
       "version": "1.0.0",
-      "description": "WeChat Work (\u4f01\u4e1a\u5fae\u4fe1) bot integration with webhook messaging [\u5df2\u96c6\u6210]",
+      "description": "WeChat Work (企业微信) bot integration with webhook messaging [已集成]",
       "author": "MeshCtx",
-      "icon": "\ud83d\udcac",
+      "icon": "💬",
       "category": "integration",
       "permissions": [
         "network:wechat"
@@ -176,9 +176,9 @@
     {
       "name": "telegram-bot",
       "version": "1.2.0",
-      "description": "Full Telegram bot with multi-workspace support, pairing, and commands [\u5df2\u96c6\u6210]",
+      "description": "Full Telegram bot with multi-workspace support, pairing, and commands [已集成]",
       "author": "MeshCtx",
-      "icon": "\ud83e\udd16",
+      "icon": "🤖",
       "category": "integration",
       "permissions": [
         "network:telegram"
@@ -197,9 +197,9 @@
     {
       "name": "scheduler",
       "version": "1.0.0",
-      "description": "Cron-based task scheduler for automated reports, backups, and monitoring [\u5df2\u96c6\u6210]",
+      "description": "Cron-based task scheduler for automated reports, backups, and monitoring [已集成]",
       "author": "MeshCtx",
-      "icon": "\u23f0",
+      "icon": "⏰",
       "category": "system",
       "permissions": [
         "cron",
@@ -219,9 +219,9 @@
     {
       "name": "monitor-dashboard",
       "version": "1.0.0",
-      "description": "Real-time system monitoring: CPU, memory, GPU, agent health dashboard [\u5df2\u96c6\u6210]",
+      "description": "Real-time system monitoring: CPU, memory, GPU, agent health dashboard [已集成]",
       "author": "MeshCtx",
-      "icon": "\ud83d\udcc8",
+      "icon": "📈",
       "category": "system",
       "permissions": [
         "system:monitor"
@@ -242,7 +242,7 @@
       "version": "0.9.0",
       "description": "[Beta] Speech-to-text and text-to-speech for voice interaction (beta)",
       "author": "MeshCtx Labs",
-      "icon": "\ud83c\udfa4",
+      "icon": "🎤",
       "category": "integration",
       "permissions": [
         "audio:mic",
@@ -262,10 +262,10 @@
       "name": "agent_governance",
       "version": "1.0.0",
       "builtin": true,
-      "description": "AI Agent\u81ea\u9632\u5fa1\u7cfb\u7edf \u2014 AGENTS.md\u52a0\u8f7d+\u9519\u8bef\u6a21\u5f0f\u5b66\u4e60+\u53d1\u5e03\u95f8\u95e8",
+      "description": "AI Agent自防御系统 — AGENTS.md加载+错误模式学习+发布闸门",
       "module": "src.core.agent_governance",
       "priority": 200,
-      "installs": 0
+      "installs": 1
     }
   ]
 }

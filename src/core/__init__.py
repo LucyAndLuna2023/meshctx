@@ -19,7 +19,18 @@ v1.1 新增 — 脑启发智能模块:
 - homeostasis: 异稳态调节 (预测性资源管理+PID控制+边际效用调度)
 """
 # noop fallback for missing optional modules
-def _brain_noop(*a, **kw): return None
+class _BrainNoop:
+    """空插件 — 替代缺失模块，不崩溃"""
+    def __init__(self, *a, **kw): 
+        Info = type('Info', (), {
+            'name': 'noop', 'version': '0',
+            'dependencies': [], 'category': 'noop',
+            'description': 'Noop placeholder for missing module',
+        })
+        self.info = Info()
+
+def _brain_noop(*a, **kw): 
+    return _BrainNoop()
 
 from .kernel import (
     Kernel, EventBus, Event, EventPriority,

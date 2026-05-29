@@ -454,8 +454,11 @@ class BrainRouterAdapter:
     """
 
     def __init__(self, n_experts: int = 7, input_dim: int = 512):
-        from .brain_router import BrainInspiredRouter
-        self.router = BrainInspiredRouter(n_experts=n_experts, input_dim=input_dim)
+        try:
+            from .brain_router import BrainInspiredRouter
+            self.router = BrainInspiredRouter(n_experts=n_experts, input_dim=input_dim)
+        except ImportError:
+            self.router = None
         self._last_result: Optional[Dict[str, Any]] = None
         # 处理器名称 → expert索引 映射
         self._processor_to_expert = {
@@ -521,6 +524,8 @@ class BrainRouterAdapter:
             self._surprise_history = self._surprise_history[-50:]
         
         # 动态温度: base=1.0, surprise每+0.2 → 温度+0.3, 上限5.0
+        if self.router is None:
+            return {"dominant_processor": "observer", "routing_weights": {}, "capacity": 1.0, "token_budget": 4096}
         dynamic_temp = min(5.0, max(0.5, 1.0 + surprise * 1.5))
         self.router.router.temperature = dynamic_temp
         
@@ -573,6 +578,8 @@ class BrainRouterAdapter:
 
     def get_stats(self) -> Dict[str, Any]:
         """获取路由适配器统计"""
+        if self.router is None:
+            return {"status": "unavailable", "last_result": self._last_result}
         stats = self.router.get_full_stats()
         stats["last_result"] = self._last_result
         return stats
@@ -604,8 +611,11 @@ class AgentLoopPlugin(Plugin):
         self.workspace_adapter = WorkspaceAwareAdapter()
         self.brain_router = BrainRouterAdapter(n_experts=7, input_dim=512)
         # v1.9: 超级大脑编排器
-        from .super_brain import SuperBrainOrchestrator
-        self.super_brain = SuperBrainOrchestrator()
+        try:
+            from .super_brain import SuperBrainOrchestrator
+            self.super_brain = SuperBrainOrchestrator()
+        except ImportError:
+            self.super_brain = None
         # v2.30: Learn闭环 + 认知衰减监控
         self.learn_loop = LearnLoop(habit_threshold=10)
         self.cognitive_health = CognitiveHealthMonitor(history_size=50)
@@ -716,9 +726,10 @@ class AgentLoopPlugin(Plugin):
             workspace_result["dominant_processor"] = brain_result["dominant_processor"]
         
         # v1.9: 超级大脑全脑认知循环
-        sb_result = self.super_brain.full_cycle(content, {"workspace": workspace_result})
-        obs.context["super_brain"] = sb_result
-        workspace_result["super_brain"] = sb_result
+        if self.super_brain is not None:
+            sb_result = self.super_brain.full_cycle(content, {"workspace": workspace_result})
+            obs.context["super_brain"] = sb_result
+            workspace_result["super_brain"] = sb_result
         
         # v2.16: 🛡️ 原则守护者 — 杏仁核高显著性标记+丘脑门控过滤
         # 解决Hermes记忆机制缺陷:关键原则在长上下文中被淹没
@@ -739,15 +750,16 @@ class AgentLoopPlugin(Plugin):
                 amygdala_tags[p["id"]] = weight
             
             # 丘脑门控过滤:只保留高显著性(>0.6)的原则
-            thalamic_result = self.super_brain.thalamus.gate(
-                inputs={p["id"]: p for p in principles},
-                context={"salience": amygdala_tags},
-                threshold=0.6
-            )
-            
-            # 全局工作空间广播:高显著性原则进入"意识"层
-            filtered = [p for p in principles if thalamic_result.get("gated_outputs", {}).get(p["id"], 0) > 0.6]
-            guard_result = {
+            if self.super_brain is not None:
+                thalamic_result = self.super_brain.thalamus.gate(
+                    inputs={p["id"]: p for p in principles},
+                    context={"salience": amygdala_tags},
+                    threshold=0.6
+                )
+                filtered = list(thalamic_result.get("gate_output", {}).values())
+                # 全局工作空间广播:高显著性原则进入"意识"层
+                filtered2 = [p for p in principles if thalamic_result.get("gated_outputs", {}).get(p["id"], 0) > 0.6]
+                guard_result = {
                 "active_principles": filtered,
                 "amygdala_salience": amygdala_tags,
                 "thalamic_threshold": 0.6,

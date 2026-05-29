@@ -166,11 +166,14 @@ async def lifespan(app: FastAPI):
     app.state.memory_engine = _memory_engine
 
     # v1.5.26: 初始化混合推理调度器
-    from .core.hybrid_reasoning import HybridReasoningScheduler
-    app.state.hybrid_scheduler = HybridReasoningScheduler(
-        threshold=1.5,
-        adaptive=True,
-    )
+    try:
+        from .core.hybrid_reasoning import HybridReasoningScheduler
+        app.state.hybrid_scheduler = HybridReasoningScheduler(
+            threshold=1.5,
+            adaptive=True,
+        )
+    except ImportError:
+        app.state.hybrid_scheduler = None
 
     logger.info(f"事件总线: {_kernel.bus.get_stats()['subscriptions']} 订阅")
 
