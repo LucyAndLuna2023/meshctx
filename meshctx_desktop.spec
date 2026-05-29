@@ -142,6 +142,7 @@ a = Analysis(
         'src.core.config_migrate',
         'src.core.consensus',
         'src.core.interactive_console',
+        'src.core.jepa_world_model',
         'src.core.knowledge_synth',
         'src.core.log_agg',
         'src.core.mcp_integrator',
@@ -209,6 +210,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.35.0',
-            'CFBundleVersion': '3.35.0',
+            'CFBundleShortVersionString': '3.36.0',
+            'CFBundleVersion': '3.36.0',
         }, version='version_info.txt')

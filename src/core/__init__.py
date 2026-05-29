@@ -269,6 +269,18 @@ try:
     from .session_resume import SessionResumeEngine, get_resume_engine
 except ImportError:
     SessionResumeEngine = get_resume_engine = _brain_noop
+
+# v3.36: JEPA World Model (杨立昆世界模型)
+try:
+    from .jepa_world_model import (
+        JEPAWorldModel, NonGenerativeRouter, UnifiedScorer,
+        JEPAConfig, JEPAEncoder, JEPAPredictor, WorldState,
+        get_world_model, get_non_generative_router,
+    )
+except ImportError:
+    JEPAWorldModel = NonGenerativeRouter = UnifiedScorer = _brain_noop
+    JEPAConfig = JEPAEncoder = JEPAPredictor = WorldState = _brain_noop
+    get_world_model = get_non_generative_router = _brain_noop
 try:
     from .gateway_llm import GatewayLLMAdapter, get_gateway_llm
 except ImportError:
@@ -305,7 +317,7 @@ try:
 except ImportError:
     SmartModelRouter = get_model_router = _brain_noop
 
-__version__ = "3.35.0"
+__version__ = "3.36.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",

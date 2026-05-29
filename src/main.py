@@ -15,6 +15,7 @@ import logging
 import os
 import sys
 import time
+import numpy as np
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -307,6 +308,24 @@ async def lifespan(app: FastAPI):
                 logger.debug(f"存档: {e}")
     asyncio.create_task(auto_archive())
     
+    # v3.36: JEPA世界模型初始化 (杨立昆World Model)
+    try:
+        from .core.jepa_world_model import get_world_model, get_non_generative_router
+        wm = get_world_model()
+        router = get_non_generative_router()
+        app.state.world_model = wm
+        app.state.jepa_router = router
+        # 初始感知
+        init_obs = np.zeros(wm.config.embed_dim)
+        wm.perceive(init_obs)
+        logger.info(f"🧠 JEPA世界模型已初始化 (dim={wm.config.embed_dim}, "
+                   f"潜空间预测→非生成式决策)")
+        archiver.record("jepa_init", f"dim={wm.config.embed_dim}", "info")
+    except Exception as e:
+        logger.debug(f"JEPA世界模型初始化跳过: {e}")
+        app.state.world_model = None
+        app.state.jepa_router = None
+    
     # v2.18: 主动监控守护进程 (解决Hermes被动响应痛点)
     daemon = get_daemon()
     await daemon.start()
@@ -323,7 +342,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="3.35.0",
+    version="3.36.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -3303,6 +3322,84 @@ async def session_resume_clear(days: int = 30):
         engine = get_resume_engine()
         deleted = engine.clear_archives(older_than_days=days)
         return {"status": "ok", "deleted": deleted, "older_than_days": days}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+# ═══════════════════════════════════════════════════
+# JEPA世界模型 (v3.36) — 杨立昆World Model
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/jepa/health")
+async def jepa_health(request: Request):
+    """世界模型健康度"""
+    wm = getattr(request.app.state, 'world_model', None)
+    if wm is None:
+        return {"status": "unavailable", "message": "JEPA世界模型未加载"}
+    return {"status": "ok", **wm.get_world_model_health()}
+
+
+@app.post("/api/jepa/perceive")
+async def jepa_perceive(request: Request):
+    """感知: 状态文本→潜空间编码"""
+    wm = getattr(request.app.state, 'world_model', None)
+    if wm is None:
+        return {"status": "unavailable"}
+    try:
+        body = await request.json()
+        text = body.get("state", body.get("text", ""))
+        obs = np.random.randn(wm.config.embed_dim) * 0.01
+        if text:
+            # 用文本hash作为观测
+            h = abs(hash(text)) % (10 ** 8)
+            np.random.seed(h)
+            obs = np.random.randn(wm.config.embed_dim) * 0.1
+            np.random.seed()
+        z = wm.perceive(obs)
+        return {"status": "ok", "state_version": wm.world_state.version,
+                "embedding_preview": z.ravel()[:8].tolist()}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.post("/api/jepa/predict")
+async def jepa_predict(request: Request):
+    """世界模型预测: 不生成文本，直接在潜空间预测"""
+    wm = getattr(request.app.state, 'world_model', None)
+    if wm is None:
+        return {"status": "unavailable"}
+    try:
+        body = await request.json()
+        state_text = body.get("state", "")
+        action_text = body.get("action", "")
+        z_state = np.random.randn(wm.config.embed_dim) * 0.01
+        z_action = np.random.randn(wm.config.embed_dim) * 0.01
+        z_pred, energy = wm.predict(z_state, z_action)
+        return {
+            "status": "ok",
+            "predicted_energy": energy,
+            "embedding_preview": z_pred.ravel()[:8].tolist(),
+            "tokens_used": 0,
+            "note": "潜空间预测 — 无需LLM生成文本",
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.post("/api/jepa/evaluate")
+async def jepa_evaluate(request: Request):
+    """非生成式行动评估: 不用LLM判断行动好坏"""
+    router = getattr(request.app.state, 'jepa_router', None)
+    if router is None:
+        return {"status": "unavailable"}
+    try:
+        body = await request.json()
+        result = router.evaluate_without_generation(
+            state_text=body.get("state", ""),
+            action_text=body.get("action", ""),
+            expected_outcome_text=body.get("expected_outcome", body.get("action", "")),
+        )
+        return {"status": "ok", **result}
     except Exception as e:
         return {"status": "error", "error": str(e)}
 

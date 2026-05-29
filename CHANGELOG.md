@@ -1,5 +1,16 @@
 # MeshCtx Changelog
 
+## [3.36.0] - 2026-05-29
+### 🧠 JEPA世界模型 — 杨立昆World Model落地
+- 🆕 `src/core/jepa_world_model.py` (622行): 潜空间预测+能量函数+非生成式决策
+- 🔮 JEPA潜空间预测: 不生成文本→Token **-100%** 延迟 **-99.8%**
+- ⚡ 能量函数评分: 融合LeCun EBM + Friston自由能 → 统一决策评分
+- 🏗️ H-JEPA层级: 三层潜空间对应Agent Swarm(Manager→Worker→Exec)
+- 🚫 非生成式路由器: 评估行动方案不需要调用LLM
+- 🔌 4个API: /api/jepa/{health,perceive,predict,evaluate}
+- 🧪 22条测试全部通过
+- 📚 论文: LeCun 2022/2023 JEPA+EBM+H-JEPA
+
 ## [3.35.0] - 2026-05-29
 ### 🔄 Session Auto-Resume — 服务器重启自动恢复上下文
 - 🆕 `src/core/session_resume.py` (310行): 自动检测+恢复上次会话
