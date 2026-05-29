@@ -59,7 +59,7 @@ class ResourceBudget:
 class HomeostaticRegulator:
     """内稳态调节器 — 维持系统平衡"""
     
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.budgets: Dict[ResourceType, ResourceBudget] = {
             ResourceType.CPU: ResourceBudget(ResourceType.CPU, 100.0),
             ResourceType.MEMORY: ResourceBudget(ResourceType.MEMORY, 1024.0),

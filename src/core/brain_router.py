@@ -101,9 +101,11 @@ class PsiParameterizedComplexity:
 class BrainInspiredRouter:
     """脑启发路由器 — 融合3个子系统"""
     
-    def __init__(self):
+    def __init__(self, n_experts: int = 8, input_dim: int = 256, **kwargs):
+        self.n_experts = n_experts
+        self.input_dim = input_dim
         self.projector = SymbolicProjector()
-        self.attention = SparseAttentionRouter()
+        self.attention = SparseAttentionRouter(num_experts=n_experts)
         self.complexity = PsiParameterizedComplexity()
     
     def route(self, query_text: str, candidates: List[str]) -> str:

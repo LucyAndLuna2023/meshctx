@@ -89,7 +89,7 @@ class RecursiveWorkspace:
 class GlobalWorkspace:
     """全局工作空间 — 意识全局广播"""
     
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.processors: List[Processor] = []
         self.bottleneck = AttentionBottleneck()
         self.unconscious = UnconsciousProcessing()

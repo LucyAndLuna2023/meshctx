@@ -302,7 +302,7 @@ class IITConsciousness:
 class SuperBrainOrchestrator:
     """超级大脑编排器 — 10脑区协同控制"""
     
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.hippocampus = HippocampalReplay()
         self.salience = SalienceTagger()
         self.dmn = DefaultModeNetwork()

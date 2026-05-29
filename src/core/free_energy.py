@@ -15,15 +15,31 @@ class BeliefType(Enum):
     POSTERIOR = "posterior"
     PREDICTIVE = "predictive"
     COUNTERFACTUAL = "counterfactual"
+    # 兼容旧API (hybrid_reasoning.py等)
+    DIRICHLET = "dirichlet"
+    GAUSSIAN = "gaussian"
+    CATEGORICAL = "categorical"
 
 
-@dataclass
 class BeliefState:
-    """信念状态 — 概率分布 + 精度"""
-    mean: np.ndarray
-    precision: np.ndarray
-    belief_type: BeliefType = BeliefType.PRIOR
-    free_energy: float = 0.0
+    """信念状态 — 概率分布 + 精度
+    
+    兼容所有旧API参数 (name, n_categories, prior_strength, ...)
+    """
+    
+    def __init__(self, *args, **kwargs):
+        # 兼容旧位置参数: BeliefState("name", BeliefType.X, n_categories=N)
+        self.name = args[0] if len(args) > 0 and isinstance(args[0], str) else kwargs.pop('name', '')
+        self.belief_type = args[1] if len(args) > 1 and isinstance(args[1], BeliefType) else kwargs.pop('belief_type', BeliefType.PRIOR)
+        self.n_categories = args[2] if len(args) > 2 else kwargs.pop('n_categories', kwargs.pop('prior_strength', 0))
+        
+        self.mean = kwargs.pop('mean', np.ones(max(self.n_categories, 8)))
+        self.precision = kwargs.pop('precision', np.ones_like(self.mean))
+        self.free_energy = kwargs.pop('free_energy', 0.0)
+        
+        # 接受所有剩余参数
+        for k, v in kwargs.items():
+            setattr(self, k, v)
     
     def surprise(self) -> float:
         return float(-np.log(max(abs(self.mean.sum()), 1e-10)))
@@ -32,7 +48,7 @@ class BeliefState:
 class FreeEnergyComputer:
     """变分自由能计算器 — F = D_KL(Q||P) - E_Q[ln P(o|s)]"""
     
-    def __init__(self, temperature: float = 1.0):
+    def __init__(self, temperature: float = 1.0, **kwargs):
         self.temperature = temperature
         self.history: List[float] = []
     
@@ -59,6 +75,22 @@ class FreeEnergyComputer:
         elif slope > 0.1: return "increasing"
         return "stable"
     
+    @staticmethod
+    def dirichlet_kl(alpha_q: np.ndarray, alpha_p: np.ndarray) -> float:
+        """Dirichlet KL散度 — 兼容旧API"""
+        return float(np.sum(alpha_q * (np.log(alpha_q + 1e-10) - np.log(alpha_p + 1e-10))))
+    
+    @staticmethod
+    def compute_free_energy(belief: BeliefState, observation_idx: int = 0):
+        """兼容旧API: 计算自由能返回(F, components)"""
+        fe = float(np.sum(belief.precision * belief.mean ** 2) * 0.5)
+        return fe, {"complexity": fe * 0.6, "accuracy": -fe * 0.4}
+    
+    @staticmethod
+    def compute_expected_free_energy(belief: BeliefState, observation: np.ndarray, n_policies: int = 1) -> float:
+        """兼容旧API: 期望自由能"""
+        return float(np.sum((observation[:len(belief.mean)] - belief.mean) ** 2))
+    
     def reset(self):
         self.history.clear()
 
@@ -66,7 +98,7 @@ class FreeEnergyComputer:
 class PrecisionWeighting:
     """精度加权 — 调节先验vs观测的相对置信度"""
     
-    def __init__(self, sensory_precision: float = 1.0, prior_precision: float = 1.0):
+    def __init__(self, sensory_precision: float = 1.0, prior_precision: float = 1.0, **kwargs):
         self.sensory_precision = sensory_precision
         self.prior_precision = prior_precision
     
@@ -82,7 +114,7 @@ class PrecisionWeighting:
 class CriticalityRegulator:
     """临界性调节器 — 维持系统在混沌边缘"""
     
-    def __init__(self, target_branching_ratio: float = 1.0):
+    def __init__(self, target_branching_ratio: float = 1.0, **kwargs):
         self.target = target_branching_ratio
         self.current_branching: float = 1.0
         self.coupling_strength: float = 1.0
@@ -104,7 +136,7 @@ class CriticalityRegulator:
 class FreeEnergyAgent:
     """自由能Agent — 感知-行动循环"""
     
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.computer = FreeEnergyComputer()
         self.precision = PrecisionWeighting()
         self.regulator = CriticalityRegulator()

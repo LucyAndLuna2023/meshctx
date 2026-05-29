@@ -100,7 +100,7 @@ class DualProcessDecision:
 class ActiveInferenceEngine:
     """主动推理引擎 — 统一感知-行动"""
     
-    def __init__(self, state_dim: int = 8, obs_dim: int = 8):
+    def __init__(self, state_dim: int = 8, obs_dim: int = 8, **kwargs):
         self.model = GenerativeModel(state_dim=state_dim, obs_dim=obs_dim)
         self.planner = LookaheadPlanner()
         self.decision = DualProcessDecision()
