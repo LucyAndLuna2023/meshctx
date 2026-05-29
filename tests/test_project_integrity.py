@@ -124,6 +124,52 @@ class TestHomepageI18N:
                 assert key in block, \
                     f"'{lang}' 语言块缺少 key='{key}' — {lang}语言下此元素不会翻译!"
 
+    def test_js_syntax_no_double_commas(self, html):
+        """🔴 回归: JS对象双逗号导致整个L对象解析失败,语言切换全失效
+        根因: 注入翻译时原末尾有,} → 变成,,key → JS语法错误
+        测试: I18N key检查不够,必须加JS语法验证"""
+        # 提取L对象
+        m = re.search(r'const L = (\{.*?\n\};)', html, re.DOTALL)
+        assert m, "找不到 const L = {...}; 定义!"
+        js_obj = m.group(1)
+        
+        # 1. 双逗号检查
+        assert ',,' not in js_obj, \
+            "🔴 JS对象中有双逗号(,,)! 整页语言切换功能会静默失效!"
+        
+        # 2. 括号平衡检查
+        depth = 0
+        for i, c in enumerate(js_obj):
+            if c == '{': depth += 1
+            elif c == '}': depth -= 1
+            if depth < 0:
+                # 找上下文
+                ctx = js_obj[max(0,i-30):i+10]
+                raise AssertionError(f"🔴 JS括号不匹配 at pos {i}: ...{ctx}...")
+        assert depth == 0, f"🔴 JS括号不平衡, depth={depth}"
+        
+        # 3. 每个语言块内部检查
+        for lang in self.LANGUAGES:
+            pattern = rf'{lang}:\s*\{{'
+            m2 = re.search(pattern, js_obj)
+            assert m2, f"🔴 语言块 {lang} 在L对象中找不到!"
+            
+            # 提取块内容
+            start = m2.end() - 1
+            depth2 = 0
+            end = start
+            for i in range(start, len(js_obj)):
+                if js_obj[i] == '{': depth2 += 1
+                elif js_obj[i] == '}': depth2 -= 1
+                if depth2 == 0:
+                    end = i + 1
+                    break
+            block = js_obj[start:end]
+            
+            # 检查没有明显的语法问题
+            assert '::' not in block, f"🔴 {lang}块有双冒号(::)"
+            assert '""' not in block, f"🔴 {lang}块有空字符串键名"
+
     def test_download_links_valid(self, html):
         """下载链接不能指向不存在的文件"""
         # 检查是否有死链
