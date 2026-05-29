@@ -16,6 +16,15 @@ VIAddVersionKey "ProductName" "MeshCtx Desktop"
 VIAddVersionKey "FileDescription" "MeshCtx Desktop Installer"
 VIAddVersionKey "LegalCopyright" "MIT License"
 
+; MUI_LANGUAGE必须在MUI_PAGE之前 — v2.43血训
+!insertmacro MUI_LANGUAGE "English"
+!insertmacro MUI_LANGUAGE "SimpChinese"
+!insertmacro MUI_LANGUAGE "Japanese"
+!insertmacro MUI_LANGUAGE "Korean"
+!insertmacro MUI_LANGUAGE "German"
+!insertmacro MUI_LANGUAGE "French"
+!insertmacro MUI_LANGUAGE "Spanish"
+
 ; ── 自定义语言选择页(radio buttons) ──
 Var Dialog
 Var RadioEn
@@ -25,7 +34,6 @@ Var RadioKo
 Var RadioDe
 Var RadioFr
 Var RadioEs
-Var LangChoice
 
 Function LangPageCreate
   nsDialogs::Create 1018
@@ -108,14 +116,6 @@ Page custom LangPageCreate LangPageLeave
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
-
-!insertmacro MUI_LANGUAGE "English"
-!insertmacro MUI_LANGUAGE "SimpChinese"
-!insertmacro MUI_LANGUAGE "Japanese"
-!insertmacro MUI_LANGUAGE "Korean"
-!insertmacro MUI_LANGUAGE "German"
-!insertmacro MUI_LANGUAGE "French"
-!insertmacro MUI_LANGUAGE "Spanish"
 
 Section "Install"
     SetOutPath "$INSTDIR"

@@ -18,6 +18,9 @@ v1.1 新增 — 脑启发智能模块:
 - global_workspace: 全局工作空间 (多专家竞争+意识点火+注意瓶颈)
 - homeostasis: 异稳态调节 (预测性资源管理+PID控制+边际效用调度)
 """
+# noop fallback for missing optional modules
+def _brain_noop(*a, **kw): return None
+
 from .kernel import (
     Kernel, EventBus, Event, EventPriority,
     Plugin, PluginInfo, PluginManager, PluginState,
@@ -27,10 +30,14 @@ from .memory_hierarchy import (
     HierarchicalMemoryStore, MemoryItem, MemoryLevel,
     EbbinghausForgetting, MemoryPlugin,
 )
-from .metacognition import (
-    MetaCognitionPlugin, TaskEvaluation, TaskStatus,
-    PatternEngine, BehaviorAdjuster, MetaActiveInferenceAdapter,
-)
+try:
+    from .metacognition import (
+        MetaCognitionPlugin, TaskEvaluation, TaskStatus,
+        PatternEngine, BehaviorAdjuster, MetaActiveInferenceAdapter,
+    )
+except ImportError:
+    MetaCognitionPlugin = TaskEvaluation = TaskStatus = _brain_noop
+    PatternEngine = BehaviorAdjuster = MetaActiveInferenceAdapter = _brain_noop
 from .orchestrator import (
     OrchestratorPlugin, TaskDAG, TaskNode, TaskNodeStatus,
     AgentPool, AgentInstance, AgentRole, MemoryHub, TaskDecomposer,
@@ -59,7 +66,6 @@ from .websocket_plugin import (
 )
 
 # v1.1 脑启发模块 (私有 — 优雅降级)
-def _brain_noop(*a, **kw): return None
 try:
     from .free_energy import (
         FreeEnergyAgent, FreeEnergyComputer, PrecisionWeighting,
@@ -349,11 +355,11 @@ __all__ = [
     # v2.47 Self-Modify
     "SelfModifyEngine", "get_self_modify_engine",
     # v2.48 Brain Validator
-    "BrainValidator", "get_brain_validator",
+    "BrainStateValidator", "get_brain_validator",
     # v2.49 Gateway LLM
-    "GatewayLLM", "get_gateway_llm",
+    "GatewayLLMAdapter", "get_gateway_llm",
     # v2.50 Unified Loop
-    "UnifiedLoop", "get_unified_loop",
+    "UnifiedLoopEngine", "get_unified_loop",
     # v2.51 Attractor Reasoner
     "AttractorReasoner", "get_attractor_reasoner",
     # v2.52 Dashboard
@@ -364,10 +370,6 @@ __all__ = [
     "BreakthroughMemoryEngine", "get_breakthrough_memory",
     # v2.55 Precompute
     "PredictivePreCompute", "get_precompute_engine",
-    # v2.56 Auto Tuner
-    "AutoTuner", "get_auto_tuner",
-    # v2.57 Benchmark
-    "AgentBenchmark", "get_benchmark_engine",
-    # v2.59 Health Monitor
+    # v2.57 Health Monitor
     "RealtimeHealthMonitor", "get_health_monitor",
 ]

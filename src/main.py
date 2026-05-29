@@ -136,7 +136,10 @@ async def lifespan(app: FastAPI):
     _kernel = Kernel()
     logger.info("加载核心插件...")
     _kernel.plugins.register(MemoryPlugin())
-    _kernel.plugins.register(MetaCognitionPlugin())
+    if MetaCognitionPlugin and callable(MetaCognitionPlugin):
+        _kernel.plugins.register(MetaCognitionPlugin())
+    else:
+        logger.warning("MetaCognitionPlugin 不可用 — 跳过")
     _kernel.plugins.register(OrchestratorPlugin())
     _kernel.plugins.register(PredictorPlugin())
     _kernel.plugins.register(AgentLoopPlugin())

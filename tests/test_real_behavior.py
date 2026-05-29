@@ -115,12 +115,12 @@ class TestNSIS:
         assert len(langs) == 7, f"应为7语言,实际{len(langs)}: {langs}"
 
     def test_nsis_mui_order_correct(self):
-        """Bug#2: NSIS正确顺序: LANGUAGE → .onInit → PAGES"""
-        nsi = (PROJECT / "meshctx_setup.nsi").read_text()
+        """v3.33.9自定义radio方案: MUI_LANGUAGE在MUI_PAGE之前(编译时顺序)"""
+        nsi = (PROJECT / "meshctx_setup.nsi").read_text(encoding="utf-8-sig")
         page_pos = nsi.find('!insertmacro MUI_PAGE')
         lang_pos = nsi.find('!insertmacro MUI_LANGUAGE')
         assert page_pos > 0 and lang_pos > 0
-        assert lang_pos < page_pos, f"LANGUAGE({lang_pos})必须在PAGE({page_pos})之前! 顺序:LANGUAGE→.onInit→PAGES"
+        assert lang_pos < page_pos, f"LANGUAGE({lang_pos})必须在PAGE({page_pos})之前! (编译时顺序)"
 
     def test_nsis_utf8_bom(self):
         """Bug#1: NSIS中文乱码"""

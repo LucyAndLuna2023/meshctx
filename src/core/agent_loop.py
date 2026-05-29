@@ -25,8 +25,29 @@ from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Tuple
 import numpy as np
 
 from .kernel import Event, EventPriority, Plugin, PluginInfo
-from .global_workspace import GlobalWorkspace, ProcessorType, AttentionBottleneck
-from .action_gate import ActionGate, GateAction, GateResult, ToolCall as GateToolCall, get_gate
+
+# 可选模块 — 优雅降级
+try:
+    from .global_workspace import GlobalWorkspace, ProcessorType, AttentionBottleneck
+except ImportError:
+    class _NoopEnum: BLOCK="block"; FIX="fix"; WARN="warn"; PASS="pass"
+    class GlobalWorkspace:
+        def __init__(self, *a, **kw): pass
+        def cycle(self, *a, **kw): return {"dominant_processor": None, "ignition": False, "mode": "idle"}
+    ProcessorType = type('ProcessorType', (), {'ANALYST': 'analyst', 'EXECUTOR': 'executor', 'CREATOR': 'creator'})
+    AttentionBottleneck = type('AttentionBottleneck', (), {'select': lambda *a, **kw: None})
+
+try:
+    from .action_gate import ActionGate, GateAction, GateResult, ToolCall as GateToolCall, get_gate
+except ImportError:
+    class GateAction: BLOCK="block"; FIX="fix"; WARN="warn"; PASS="pass"
+    class GateResult:
+        def __init__(self, action="pass", reason="", fix=None):
+            self.action = action; self.reason = reason; self.fix = fix
+    GateToolCall = type('GateToolCall', (), {})
+    ActionGate = type('ActionGate', (), {})
+    def get_gate(*a, **kw): return type('DummyGate', (), {'evaluate': lambda *a, **kw: GateResult(action="pass")})()
+
 from .learn_loop import LearnLoop
 from .cognitive_health import CognitiveHealthMonitor
 

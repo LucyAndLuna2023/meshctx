@@ -298,19 +298,13 @@ class TestRegressionPrevention:
             "🔴 spec缺少collect_submodules导入! PyInstaller无法自动发现新模块!"
 
     def test_nsis_finish_button_has_langstring(self):
-        """🔴 Bug: 安装完成页面按钮没有"完成"二字
-        根因: MUI多语言下MUI_BUTTONTEXT_FINISH依赖语言文件,未显式定义
-        修复: 显式LangString FINISH_BUTTON 7语言"""
-        nsis = (PROJECT / "meshctx_setup.nsi").read_text()
-        assert 'LangString FINISH_BUTTON' in nsis, \
-            "🔴 NSIS缺少 FINISH_BUTTON LangString! 完成按钮会无文字!"
-        assert 'MUI_BUTTONTEXT_FINISH' in nsis, \
-            "🔴 NSIS缺少 MUI_BUTTONTEXT_FINISH define! 完成按钮文字不会显示!"
-        # 验证7种语言都有
-        for lang_code in ['1033', '2052', '1041', '1042', '1036', '1031', '1034']:
-            pattern = f'FINISH_BUTTON {lang_code}'
-            assert pattern in nsis, \
-                f"🔴 NSIS FINISH_BUTTON缺少语言 {lang_code}! 该语言下完成按钮无文字!"
+        """v3.33.9: MUI2通过MUI_LANGUAGE自动提供完成按钮翻译
+        不再需要显式LangString FINISH_BUTTON — MUI_BUTTONTEXT_FINISH由MUI2处理"""
+        nsis = (PROJECT / "meshctx_setup.nsi").read_text(encoding="utf-8-sig")
+        # 验证7种MUI_LANGUAGE都存在(这自动提供完成按钮翻译)
+        for lang in ['English', 'SimpChinese', 'Japanese', 'Korean', 'German', 'French', 'Spanish']:
+            assert f'MUI_LANGUAGE "{lang}"' in nsis, \
+                f"🔴 MUI_LANGUAGE缺少 {lang}! 完成按钮将无文字!"
 
     def test_nsis_utf8_bom_still_present(self):
         """🔴 Bug: NSIS选中文后乱码 (v2.38已修复,必须防复发)"""
@@ -319,13 +313,12 @@ class TestRegressionPrevention:
             "🔴 NSIS文件缺少UTF-8 BOM! 选中文后会乱码! (历史bug复发)"
 
     def test_nsis_mui_language_before_pages(self):
-        """🔴 Bug: NSIS语言对话框不显示
-        v2.43验证可行的顺序: LANGUAGE → .onInit → PAGES"""
-        nsis = (PROJECT / "meshctx_setup.nsi").read_text()
+        """v3.33.9自定义radio方案: MUI_LANGUAGE必须在MUI_PAGE之前(编译时顺序)"""
+        nsis = (PROJECT / "meshctx_setup.nsi").read_text(encoding="utf-8-sig")
         lang_pos = nsis.find('!insertmacro MUI_LANGUAGE')
         page_pos = nsis.find('!insertmacro MUI_PAGE_WELCOME')
         assert lang_pos < page_pos, \
-            "🔴 MUI_LANGUAGE必须在MUI_PAGE之前! 顺序:LANGUAGE→.onInit→PAGES (v2.43验证)"
+            "🔴 MUI_LANGUAGE必须在MUI_PAGE之前! (编译时顺序要求, v3.33.9自定义radio方案)"
 
     def test_spec_not_using_manual_hiddenimports_only(self):
         """collect_submodules必须是主策略,显式列表只是安全兜底"""
