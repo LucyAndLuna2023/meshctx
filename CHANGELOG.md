@@ -1,6 +1,24 @@
 # MeshCtx Changelog
 
-## [3.33.0] - 2026-05-26
+## [3.33.10] - 2026-05-29
+### 🌐 主页I18N修复 — 7语言完整翻译
+- 🔧 注入116个cv_*翻译key到全部7语言块(en/zh/ja/ko/de/fr/es)
+- 🐛 修复JS双逗号语法错误 → 语言切换全失效(全球影响)
+- 🧪 新增JS语法回归测试(test_js_syntax_no_double_commas)
+
+### 🔧 CI全线修复 — 模块导入错误
+- 🐛 修复metacognition模块缺失导致ImportError(CI全红3天)
+- 🐛 修复agent_loop.py中global_workspace/action_gate缺失导入
+- 🐛 修复__all__中6处命名错误(BrainValidator→BrainStateValidator等)
+
+### 🪟 Windows NSIS修复
+- 🔧 MUI_LANGUAGE移到MUI_PAGE之前(编译时顺序→标准页面翻译绑定)
+- 🧪 测试更新为v3.33.9自定义radio方案(7语言×5页面)
+- ✅ 静默安装+启动+版本号+7语言LCID全部验证通过
+
+### 🧪 测试: 57/57 passed
+
+## [3.33.9] - 2026-05-26
 ### 🔧 版本对齐修复 — 全量通过
 - 🔄 版本号统一: src/__init__.py(1.6.2→3.33.0) / main.py(1.8.2→3.33.0) / spec(2.85.0→3.33.0)
 - ✅ 7个失败测试全部修复: version/api/NSIS/spec/部署
