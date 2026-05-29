@@ -56,6 +56,7 @@ a = Analysis(
         'src.core.credential_pool',
         'src.core.cross_validator',
         'src.core.crypto',
+        'src.core.desktop_agent',
         'src.core.dashboard',
         'src.core.diff_preview',
         'src.core.error_learner',
@@ -210,6 +211,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.36.0',
-            'CFBundleVersion': '3.36.0',
+            'CFBundleShortVersionString': '3.37.0',
+            'CFBundleVersion': '3.37.0',
         }, version='version_info.txt')
