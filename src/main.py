@@ -187,6 +187,14 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(get_hub().start_broadcast_loop(interval=2.0))
     logger.info("WebSocket实时推送已启动 (2s间隔)")
 
+    # v3.34: 初始化Agent Swarm多Agent协同
+    try:
+        from .core.agent_swarm import init_swarm_manager
+        await init_swarm_manager(host="0.0.0.0", port=3000)
+        logger.info("Agent Swarm Manager已启动 (多Agent协同就绪)")
+    except Exception as e:
+        logger.warning(f"Agent Swarm初始化失败(非致命): {e}")
+
     watcher = ConfigWatcher()
     def _reload_config():
         logger.info("配置已变更，自动重载模型...")

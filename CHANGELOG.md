@@ -1,5 +1,23 @@
 # MeshCtx Changelog
 
+## [3.34.0] - 2026-05-29
+### 🐝 Agent Swarm — Manager-Worker多Agent协同
+- 🆕 `src/core/agent_swarm.py` (450行): ManagerAgent + WorkerAgent
+- 🔑 身份认证: ed25519/HMAC密钥对+签名+5分钟防重放
+- 🌐 网络传输: HTTP/JSON + aiohttp异步通信
+- 📋 任务分解: 5种模板(research/code/analysis/report/general)
+- 🎯 智能调度: 能力匹配+最少任务优先+30s心跳+60s超时摘除
+- 🤝 协作协议: Delegate/Vote/Consensus/Ensemble
+- 🔌 7个API端点: /swarm/register /heartbeat /task /result /execute /status
+- 🧪 8个端到端测试全部通过
+- 🔧 优雅降级: brain_router/super_brain/hybrid_reasoning缺失不阻塞启动
+
+### 🔧 启动修复
+- 🐛 _BrainNoop类替代函数→缺失模块实例化不崩溃
+- 🐛 agent_loop.py: brain_router/super_brain None安全
+- 🐛 main.py: hybrid_reasoning try/except
+- ✅ 服务器成功启动, Swarm API正常响应
+
 ## [3.33.10] - 2026-05-29
 ### 🌐 主页I18N修复 — 7语言完整翻译
 - 🔧 注入116个cv_*翻译key到全部7语言块(en/zh/ja/ko/de/fr/es)

@@ -87,6 +87,25 @@ meshctx desktop        # Windows桌面客户端
 - 8种事件: PreTool · PostTool · Stop · SessionStart · PreCompact · Notification · SubagentStop · UserPrompt
 - 通配符匹配: `Bash(git *)` · `Write(*.py)` · 子串匹配
 - 安全规则: 默认拦截 `rm -rf` / `git push --force` / `curl|bash`
+
+### 🐝 Agent Swarm — Manager-Worker多Agent协同 (v3.34) 🆕
+```bash
+# 启动Manager节点
+meshctx start --port 3000
+
+# 启动Worker节点 (另一台机器)
+curl -X POST http://manager:3000/swarm/register \
+  -d '{"worker_id":"bot1","name":"Coder","capabilities":["code"]}'
+
+# 提交复杂任务 — 自动分解→派发→并行执行
+curl -X POST http://manager:3000/swarm/execute \
+  -d '{"task":"搜索最佳实践+写代码+审查","type":"research"}'
+```
+- **Manager-Worker架构**: 1个Manager管理N个Worker，通过网络+密钥协同
+- **自动任务分解**: research/code/analysis/report 5种模板
+- **智能调度**: 能力匹配+最少任务优先+60s心跳超时
+- **身份认证**: ed25519密钥对+HMAC签名+5分钟防重放
+- **协作协议**: 委托(Delegate) · 投票(Vote) · 共识(Consensus) · 集成(Ensemble)
 - 冷却机制: 防重复触发
 
 ### Agent团队 (v2.43) — 对标Claude Code @agent
