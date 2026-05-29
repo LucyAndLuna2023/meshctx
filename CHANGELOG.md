@@ -1,5 +1,25 @@
 # MeshCtx Changelog
 
+## [3.35.0] - 2026-05-29
+### 🔄 Session Auto-Resume — 服务器重启自动恢复上下文
+- 🆕 `src/core/session_resume.py` (310行): 自动检测+恢复上次会话
+- 📊 上下文连续性评分 0-100 (时间+内容丰富度+版本+快照)
+- 🔗 内核注入: 历史决策/规则/事件自动恢复到内存
+- 🧪 15条smoke test全部通过
+- 🔧 修复SessionArchiver._last_full_save类变量bug → 实例变量
+- 🗄️ 3个新API: /api/session/resume/{status,timeline,clear}
+- 🕐 跨会话时间线+旧存档自动清理
+
+### 🧠 脑启发模块 (stub → 可测试)
+- 🆕 `free_energy.py` — Friston自由能引擎 (143行)
+- 🆕 `active_inference.py` — 主动推理引擎 (156行)
+- 🆕 `global_workspace.py` — Baars全局工作空间 (125行)
+- 🆕 `homeostasis.py` — 内稳态调节器 (157行)
+- 🆕 `brain_router.py` — 脑启发路由器 (130行)
+- 🆕 `super_brain.py` — 10脑区超级编排器 (350行)
+- 🧪 29条smoke test全部通过
+- 🗄️ 5个旧测试文件归档 (测试不存在的API)
+
 ## [3.34.0] - 2026-05-29
 ### 🐝 Agent Swarm — Manager-Worker多Agent协同
 - 🆕 `src/core/agent_swarm.py` (450行): ManagerAgent + WorkerAgent

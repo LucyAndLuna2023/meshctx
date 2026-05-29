@@ -263,6 +263,12 @@ try:
     from .brain_validator import BrainStateValidator, get_brain_validator
 except ImportError:
     BrainStateValidator = get_brain_validator = _brain_noop
+
+# v3.35: Session Auto-Resume Engine
+try:
+    from .session_resume import SessionResumeEngine, get_resume_engine
+except ImportError:
+    SessionResumeEngine = get_resume_engine = _brain_noop
 try:
     from .gateway_llm import GatewayLLMAdapter, get_gateway_llm
 except ImportError:
@@ -299,7 +305,7 @@ try:
 except ImportError:
     SmartModelRouter = get_model_router = _brain_noop
 
-__version__ = "3.34.0"
+__version__ = "3.35.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",

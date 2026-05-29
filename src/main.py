@@ -256,6 +256,35 @@ async def lifespan(app: FastAPI):
     archiver = get_archiver()
     from src.core import __version__ as _ver; archiver.init_session(_ver)
     
+    # 🔴 v3.35: Session Auto-Resume — 服务器重启自动恢复上下文
+    try:
+        from .core.session_resume import get_resume_engine
+        resume_engine = get_resume_engine()
+        previous = resume_engine.detect_previous_session()
+        if previous:
+            resume_report = resume_engine.restore(previous)
+            app.state.resume_engine = resume_engine
+            app.state.resume_report = resume_report
+            
+            # 注入历史上下文到内核
+            reports = resume_engine.apply_to_kernel(_kernel)
+            
+            continuity = resume_report.get("context_continuity", 0)
+            icon = "🔄" if continuity > 50 else "📋"
+            logger.info(f"{icon} Session Auto-Resume: "
+                       f"continuity={continuity:.0f}% "
+                       f"decisions={resume_report['items_restored'].get('decisions', 0)} "
+                       f"rules={resume_report['items_restored'].get('rules', 0)} "
+                       f"({resume_report.get('resume_time_ms', 0)}ms)")
+            
+            archiver.record("session_resumed", f"continuity={continuity:.0f}%", "info")
+        else:
+            logger.info("🆕 新会话 — 无历史存档可恢复")
+            app.state.resume_engine = resume_engine
+    except Exception as e:
+        logger.warning(f"Session Auto-Resume 初始化失败(非致命): {e}")
+        app.state.resume_engine = None
+    
     # v2.21: 智能自愈 + 性能优化器
     try:
         from src.core.auto_healer import healer
@@ -294,7 +323,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="2.96.0",
+    version="3.35.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -3240,6 +3269,42 @@ async def archive_list():
 async def archive_summary():
     """会话摘要"""
     return get_archiver().get_summary()
+
+
+# ═══════════════════════════════════════════════════
+# 会话自动恢复 (v3.35)
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/session/resume/status")
+async def session_resume_status(request: Request):
+    """会话恢复状态"""
+    engine = getattr(request.app.state, 'resume_engine', None)
+    if engine is None:
+        return {"resumed": False, "message": "恢复引擎未初始化"}
+    return engine.get_resume_report()
+
+
+@app.get("/api/session/resume/timeline")
+async def session_resume_timeline():
+    """会话时间线（跨会话）"""
+    try:
+        from .core.session_resume import get_resume_engine
+        engine = get_resume_engine()
+        return {"timeline": engine.get_timeline()}
+    except Exception as e:
+        return {"error": str(e), "timeline": []}
+
+
+@app.post("/api/session/resume/clear")
+async def session_resume_clear(days: int = 30):
+    """清理旧存档"""
+    try:
+        from .core.session_resume import get_resume_engine
+        engine = get_resume_engine()
+        deleted = engine.clear_archives(older_than_days=days)
+        return {"status": "ok", "deleted": deleted, "older_than_days": days}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 
 @app.get("/api/version")

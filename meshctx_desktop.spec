@@ -120,6 +120,7 @@ a = Analysis(
         'src.core.self_updater',
         'src.core.session_archiver',
         'src.core.session_identity',
+        'src.core.session_resume',
         'src.core.smart_router',
         'src.core.super_brain',
         'src.core.task_progress',
@@ -208,6 +209,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.34.0',
-            'CFBundleVersion': '3.34.0',
+            'CFBundleShortVersionString': '3.35.0',
+            'CFBundleVersion': '3.35.0',
         }, version='version_info.txt')

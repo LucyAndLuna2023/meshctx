@@ -36,6 +36,7 @@ class SessionArchiver:
             "errors": [],
         }
         self._auto_save_interval = 300  # 5分钟自动保存
+        self._last_full_save: float = 0.0  # 🔴 v3.35修复: 实例变量，之前错误地定义为类变量
     
     def init_session(self, version: str = ""):
         """初始化新会话"""
@@ -156,8 +157,6 @@ class SessionArchiver:
             "archive_count": len(list(ARCHIVE_DIR.glob("*.json"))),
         }
     
-    _last_full_save = 0
-
 
 # 单例
 _archiver: Optional[SessionArchiver] = None
