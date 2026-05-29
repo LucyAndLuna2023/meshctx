@@ -26,6 +26,7 @@ a = Analysis(
         'src.core.acp_server',
         'src.core.action_gate',
         'src.core.active_inference',
+        'src.core.agent_swarm',
         'src.core.agent_benchmark',
         'src.core.agent_loop',
         'src.core.agent_monitor',

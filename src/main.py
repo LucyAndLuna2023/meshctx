@@ -1049,6 +1049,86 @@ async def get_execution_plan(task: dict = None):
     executor = get_executor()
     return executor.get_execution_plan(task)
 
+# ── Agent Swarm — 多Agent协同 (Manager-Worker) ──────────
+
+@app.post("/swarm/register")
+async def swarm_register(request: dict):
+    """Worker注册 — Manager端点"""
+    from src.core.agent_swarm import get_swarm_manager
+    mgr = get_swarm_manager()
+    if not mgr:
+        raise HTTPException(503, "Swarm Manager not started")
+    wi = mgr.register_worker(
+        worker_id=request.get("worker_id", ""),
+        name=request.get("name", ""),
+        address=request.get("address", ""),
+        public_key=request.get("public_key", ""),
+        capabilities=request.get("capabilities", []),
+    )
+    return {"status": "registered", "worker": wi.to_dict()}
+
+@app.post("/swarm/heartbeat")
+async def swarm_heartbeat(request: dict):
+    """Worker心跳 — Manager端点"""
+    from src.core.agent_swarm import get_swarm_manager
+    mgr = get_swarm_manager()
+    if not mgr:
+        raise HTTPException(503, "Swarm Manager not started")
+    mgr.update_heartbeat(request.get("agent_id", ""))
+    return {"status": "ok"}
+
+@app.post("/swarm/task")
+async def swarm_receive_task(request: dict):
+    """Worker接收任务 — Worker端点"""
+    from src.core.agent_swarm import get_swarm_worker
+    worker = get_swarm_worker()
+    if not worker:
+        raise HTTPException(503, "Swarm Worker not started")
+    result = await worker.execute_task(request)
+    return result
+
+@app.post("/swarm/result")
+async def swarm_receive_result(request: dict):
+    """Worker返回结果 — Manager端点"""
+    from src.core.agent_swarm import get_swarm_manager
+    mgr = get_swarm_manager()
+    if not mgr:
+        raise HTTPException(503, "Swarm Manager not started")
+    await mgr.receive_result(
+        task_id=request.get("task_id", ""),
+        result=request.get("result", ""),
+        error=request.get("error", ""),
+    )
+    return {"status": "ok"}
+
+@app.post("/swarm/execute")
+async def swarm_execute(request: dict):
+    """提交任务到Swarm — 自动分解→派发→汇总"""
+    from src.core.agent_swarm import get_swarm_manager
+    mgr = get_swarm_manager()
+    if not mgr:
+        raise HTTPException(503, "Swarm Manager not started")
+    tasks = await mgr.submit_task(
+        description=request.get("task", ""),
+        task_type=request.get("type", "general"),
+        context=request.get("context", ""),
+        priority=request.get("priority", 5),
+    )
+    return {
+        "status": "submitted",
+        "total_tasks": len(tasks),
+        "tasks": [t.to_dict() for t in tasks],
+    }
+
+@app.get("/swarm/status")
+async def swarm_status():
+    """Swarm整体状态"""
+    from src.core.agent_swarm import get_swarm_manager
+    mgr = get_swarm_manager()
+    if not mgr:
+        return {"status": "not_started"}
+    return mgr.get_swarm_status()
+
 # ── 性能监控 ────────────────────────────────────────────
 
 @app.get("/performance/report")

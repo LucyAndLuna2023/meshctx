@@ -495,10 +495,10 @@ class TaskDecomposer:
         elif task_type == "report":
             subtasks = self._decompose_report(task)
         else:
-            subtasks = self._decompose_generic(task)
+            subtasks = [task]  # generic tasks don't decompose further
 
-        # 递归分解
-        if depth + 1 < self.max_depth:
+        # 递归分解 — 只对顶层的general类型递归
+        if depth + 1 < self.max_depth and task_type == "general":
             decomposed = []
             for st in subtasks:
                 decomposed.extend(self.decompose(st, depth + 1))
