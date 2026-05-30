@@ -116,6 +116,7 @@ a = Analysis(
         'src.core.realtime_push',
         'src.core.regression_shield',
         'src.core.sandbox',
+        'src.core.self_debug',
         'src.core.sdb_framework',
         'src.core.secret_scanner',
         'src.core.security',
@@ -214,6 +215,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.40.0',
-            'CFBundleVersion': '3.40.0',
+            'CFBundleShortVersionString': '3.41.0',
+            'CFBundleVersion': '3.41.0',
         }, version='version_info.txt')

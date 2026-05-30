@@ -8,7 +8,7 @@ OutFile "dist\meshctx-setup.exe"
 InstallDir "$PROGRAMFILES\MeshCtx"
 RequestExecutionLevel admin
 
-!define VERSION "3.40.0"
+!define VERSION "3.41.0"
 VIProductVersion "3.40.0.0"
 VIAddVersionKey "FileVersion" "3.40.0"
 VIAddVersionKey "ProductVersion" "3.40.0"
