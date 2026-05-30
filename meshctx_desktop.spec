@@ -85,6 +85,7 @@ a = Analysis(
         'src.core.thermo_cost',
         'src.core.topo_memory',
         'src.core.wasserstein_bridge',
+        'src.core.knowledge_graph',
         'src.core.kernel',
         'src.core.knowledge_transfer',
         'src.core.learn_loop',
@@ -215,6 +216,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.42.0',
-            'CFBundleVersion': '3.42.0',
+            'CFBundleShortVersionString': '3.43.0',
+            'CFBundleVersion': '3.43.0',
         }, version='version_info.txt')
