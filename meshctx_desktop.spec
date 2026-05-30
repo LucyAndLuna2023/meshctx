@@ -59,6 +59,7 @@ a = Analysis(
         'src.core.desktop_agent',
         'src.core.dashboard',
         'src.core.diff_preview',
+        'src.core.evolution_tracker',
         'src.core.error_learner',
         'src.core.feishu_notify',
         'src.core.free_energy',
@@ -213,6 +214,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.39.0',
-            'CFBundleVersion': '3.39.0',
+            'CFBundleShortVersionString': '3.40.0',
+            'CFBundleVersion': '3.40.0',
         }, version='version_info.txt')
