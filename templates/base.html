@@ -1,23 +1,39 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}meshctx{% endblock %}</title>
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .lang-switch { position:fixed; top:10px; right:20px; z-index:1000; }
+        .lang-switch select { background:#1a1a2e; color:#e0e0e0; border:1px solid #333; padding:4px 8px; border-radius:4px; font-size:12px; cursor:pointer; }
+    </style>
 </head>
 <body>
+    <div class="lang-switch">
+        <select onchange="changeLang(this.value)" data-lang-key="lang_label" title="Language">
+            <option value="en">🇺🇸 English</option>
+            <option value="zh">🇨🇳 中文</option>
+            <option value="ja">🇯🇵 日本語</option>
+            <option value="ko">🇰🇷 한국어</option>
+            <option value="de">🇩🇪 Deutsch</option>
+            <option value="fr">🇫🇷 Français</option>
+            <option value="es">🇪🇸 Español</option>
+        </select>
+    </div>
+
     <nav class="navbar">
         <div class="nav-brand">
             <a href="/ui/" class="nav-logo">🕸 meshctx</a>
-            <span class="nav-version">v0.2.0</span>
+            <span class="nav-version">v3.37</span>
         </div>
         <div class="nav-links">
-            <a href="/ui/" class="nav-link">仪表板</a>
-            <a href="/ui/projects" class="nav-link">项目</a>
-            <a href="/ui/memories" class="nav-link">记忆</a>
-            <a href="/ui/continuity" class="nav-link">连续性</a>
-            <a href="/docs" class="nav-link" target="_blank">API</a>
+            <a href="/ui/" class="nav-link" data-lang-key="nav_dashboard">仪表板</a>
+            <a href="/ui/projects" class="nav-link" data-lang-key="nav_projects">项目</a>
+            <a href="/ui/memories" class="nav-link" data-lang-key="nav_memories">记忆</a>
+            <a href="/ui/continuity" class="nav-link" data-lang-key="nav_continuity">连续性</a>
+            <a href="/docs" class="nav-link" target="_blank" data-lang-key="nav_api">API</a>
         </div>
     </nav>
 
@@ -26,7 +42,140 @@
     </main>
 
     <footer class="footer">
-        <p>meshctx — 智能助手连续上下文记忆平台</p>
+        <p data-lang-key="footer_text">meshctx — AI Agent 连续上下文记忆平台</p>
     </footer>
+
+<script>
+const LANG = {
+    en: {
+        lang_label:"Language",
+        nav_dashboard:"Dashboard", nav_projects:"Projects", nav_memories:"Memories",
+        nav_continuity:"Continuity", nav_api:"API",
+        footer_text:"meshctx — Continuous Context Memory Platform for AI Agents",
+        chat_title:"Chat", chat_placeholder:"Type your message...", chat_send:"Send",
+        chat_clear:"Clear", chat_model:"Model", chat_thinking:"Thinking...",
+        dashboard_title:"Dashboard", dashboard_stats:"Statistics",
+        dashboard_models:"Models", dashboard_plugins:"Plugins",
+        projects_title:"Projects", projects_search:"Search projects...",
+        memories_title:"Memories", memories_search:"Search memories...",
+        continuity_title:"Continuity", continuity_desc:"Cross-session context preservation",
+        no_data:"No data", loading:"Loading...", error:"Error",
+        save:"Save", cancel:"Cancel", delete:"Delete", confirm:"Confirm",
+        search:"Search", filter:"Filter", sort:"Sort", refresh:"Refresh"
+    },
+    zh: {
+        lang_label:"语言",
+        nav_dashboard:"仪表板", nav_projects:"项目", nav_memories:"记忆",
+        nav_continuity:"连续性", nav_api:"API",
+        footer_text:"meshctx — AI Agent 连续上下文记忆平台",
+        chat_title:"对话", chat_placeholder:"输入消息...", chat_send:"发送",
+        chat_clear:"清空", chat_model:"模型", chat_thinking:"思考中...",
+        dashboard_title:"仪表板", dashboard_stats:"统计",
+        dashboard_models:"模型", dashboard_plugins:"插件",
+        projects_title:"项目", projects_search:"搜索项目...",
+        memories_title:"记忆", memories_search:"搜索记忆...",
+        continuity_title:"连续性", continuity_desc:"跨会话上下文保持",
+        no_data:"无数据", loading:"加载中...", error:"错误",
+        save:"保存", cancel:"取消", delete:"删除", confirm:"确认",
+        search:"搜索", filter:"筛选", sort:"排序", refresh:"刷新"
+    },
+    ja: {
+        lang_label:"言語",
+        nav_dashboard:"ダッシュボード", nav_projects:"プロジェクト", nav_memories:"記憶",
+        nav_continuity:"連続性", nav_api:"API",
+        footer_text:"meshctx — AIエージェント連続コンテキスト記憶プラットフォーム",
+        chat_title:"チャット", chat_placeholder:"メッセージを入力...", chat_send:"送信",
+        chat_clear:"クリア", chat_model:"モデル", chat_thinking:"考え中...",
+        dashboard_title:"ダッシュボード", dashboard_stats:"統計",
+        dashboard_models:"モデル", dashboard_plugins:"プラグイン",
+        projects_title:"プロジェクト", projects_search:"プロジェクト検索...",
+        memories_title:"記憶", memories_search:"記憶検索...",
+        continuity_title:"連続性", continuity_desc:"セッション間コンテキスト保持",
+        no_data:"データなし", loading:"読み込み中...", error:"エラー",
+        save:"保存", cancel:"キャンセル", delete:"削除", confirm:"確認",
+        search:"検索", filter:"フィルター", sort:"並べ替え", refresh:"更新"
+    },
+    ko: {
+        lang_label:"언어",
+        nav_dashboard:"대시보드", nav_projects:"프로젝트", nav_memories:"메모리",
+        nav_continuity:"연속성", nav_api:"API",
+        footer_text:"meshctx — AI 에이전트 연속 컨텍스트 메모리 플랫폼",
+        chat_title:"채팅", chat_placeholder:"메시지 입력...", chat_send:"보내기",
+        chat_clear:"지우기", chat_model:"모델", chat_thinking:"생각 중...",
+        dashboard_title:"대시보드", dashboard_stats:"통계",
+        dashboard_models:"모델", dashboard_plugins:"플러그인",
+        projects_title:"프로젝트", projects_search:"프로젝트 검색...",
+        memories_title:"메모리", memories_search:"메모리 검색...",
+        continuity_title:"연속성", continuity_desc:"세션 간 컨텍스트 유지",
+        no_data:"데이터 없음", loading:"로딩 중...", error:"오류",
+        save:"저장", cancel:"취소", delete:"삭제", confirm:"확인",
+        search:"검색", filter:"필터", sort:"정렬", refresh:"새로고침"
+    },
+    de: {
+        lang_label:"Sprache",
+        nav_dashboard:"Dashboard", nav_projects:"Projekte", nav_memories:"Erinnerungen",
+        nav_continuity:"Kontinuität", nav_api:"API",
+        footer_text:"meshctx — Kontinuierliche Kontextspeicher-Plattform für KI-Agenten",
+        chat_title:"Chat", chat_placeholder:"Nachricht eingeben...", chat_send:"Senden",
+        chat_clear:"Löschen", chat_model:"Modell", chat_thinking:"Denkt nach...",
+        dashboard_title:"Dashboard", dashboard_stats:"Statistik",
+        dashboard_models:"Modelle", dashboard_plugins:"Plugins",
+        projects_title:"Projekte", projects_search:"Projekte durchsuchen...",
+        memories_title:"Erinnerungen", memories_search:"Erinnerungen durchsuchen...",
+        continuity_title:"Kontinuität", continuity_desc:"Sitzungsübergreifende Kontexterhaltung",
+        no_data:"Keine Daten", loading:"Lädt...", error:"Fehler",
+        save:"Speichern", cancel:"Abbrechen", delete:"Löschen", confirm:"Bestätigen",
+        search:"Suchen", filter:"Filter", sort:"Sortieren", refresh:"Aktualisieren"
+    },
+    fr: {
+        lang_label:"Langue",
+        nav_dashboard:"Tableau de bord", nav_projects:"Projets", nav_memories:"Souvenirs",
+        nav_continuity:"Continuité", nav_api:"API",
+        footer_text:"meshctx — Plateforme de mémoire contextuelle continue pour agents IA",
+        chat_title:"Chat", chat_placeholder:"Tapez votre message...", chat_send:"Envoyer",
+        chat_clear:"Effacer", chat_model:"Modèle", chat_thinking:"Réflexion...",
+        dashboard_title:"Tableau de bord", dashboard_stats:"Statistiques",
+        dashboard_models:"Modèles", dashboard_plugins:"Plugins",
+        projects_title:"Projets", projects_search:"Rechercher des projets...",
+        memories_title:"Souvenirs", memories_search:"Rechercher des souvenirs...",
+        continuity_title:"Continuité", continuity_desc:"Préservation du contexte inter-sessions",
+        no_data:"Aucune donnée", loading:"Chargement...", error:"Erreur",
+        save:"Enregistrer", cancel:"Annuler", delete:"Supprimer", confirm:"Confirmer",
+        search:"Rechercher", filter:"Filtrer", sort:"Trier", refresh:"Actualiser"
+    },
+    es: {
+        lang_label:"Idioma",
+        nav_dashboard:"Panel", nav_projects:"Proyectos", nav_memories:"Recuerdos",
+        nav_continuity:"Continuidad", nav_api:"API",
+        footer_text:"meshctx — Plataforma de memoria contextual continua para agentes IA",
+        chat_title:"Chat", chat_placeholder:"Escribe tu mensaje...", chat_send:"Enviar",
+        chat_clear:"Limpiar", chat_model:"Modelo", chat_thinking:"Pensando...",
+        dashboard_title:"Panel", dashboard_stats:"Estadísticas",
+        dashboard_models:"Modelos", dashboard_plugins:"Plugins",
+        projects_title:"Proyectos", projects_search:"Buscar proyectos...",
+        memories_title:"Recuerdos", memories_search:"Buscar recuerdos...",
+        continuity_title:"Continuidad", continuity_desc:"Preservación de contexto entre sesiones",
+        no_data:"Sin datos", loading:"Cargando...", error:"Error",
+        save:"Guardar", cancel:"Cancelar", delete:"Eliminar", confirm:"Confirmar",
+        search:"Buscar", filter:"Filtrar", sort:"Ordenar", refresh:"Actualizar"
+    }
+};
+
+function changeLang(lang) {
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-lang-key]').forEach(el => {
+        const key = el.dataset.langKey;
+        if (LANG[lang] && LANG[lang][key]) {
+            el.textContent = LANG[lang][key];
+        }
+    });
+    localStorage.setItem('meshctx-lang', lang);
+}
+
+// Restore saved language
+const saved = localStorage.getItem('meshctx-lang') || 'en';
+document.querySelector('.lang-switch select').value = saved;
+changeLang(saved);
+</script>
 </body>
 </html>
