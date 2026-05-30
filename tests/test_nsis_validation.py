@@ -47,9 +47,9 @@ class TestNSISOrder:
 
         first_lang = min(lang_lines)
         first_page = min(page_lines)
-        assert first_lang < first_page, \
-            f"MUI_LANGUAGE(最早{first_lang}行)必须在MUI_PAGE(最早{first_page}行)之前! " \
-            "这是编译时顺序要求，影响标准页面翻译绑定"
+        assert first_page < first_lang, \
+            f"MUI_PAGE(最早{first_page}行)必须在MUI_LANGUAGE(最早{first_lang}行)之前! " \
+            "这是NSIS官方编译时顺序要求"
 
     def test_lang_page_custom_exists(self):
         """v3.33.9自定义radio方案: 必须有LangPageCreate+LangPageLeave设置$LANGUAGE"""

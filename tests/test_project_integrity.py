@@ -359,12 +359,12 @@ class TestRegressionPrevention:
             "🔴 NSIS文件缺少UTF-8 BOM! 选中文后会乱码! (历史bug复发)"
 
     def test_nsis_mui_language_before_pages(self):
-        """v3.33.9自定义radio方案: MUI_LANGUAGE必须在MUI_PAGE之前(编译时顺序)"""
+        """v3.43: MUI_PAGE在MUI_LANGUAGE之前(NSIS官方编译时顺序)"""
         nsis = (PROJECT / "meshctx_setup.nsi").read_text(encoding="utf-8-sig")
         lang_pos = nsis.find('!insertmacro MUI_LANGUAGE')
         page_pos = nsis.find('!insertmacro MUI_PAGE_WELCOME')
-        assert lang_pos < page_pos, \
-            "🔴 MUI_LANGUAGE必须在MUI_PAGE之前! (编译时顺序要求, v3.33.9自定义radio方案)"
+        assert page_pos < lang_pos, \
+            "🔴 MUI_PAGE必须在MUI_LANGUAGE之前! (NSIS官方编译时顺序)"
 
     def test_spec_not_using_manual_hiddenimports_only(self):
         """collect_submodules必须是主策略,显式列表只是安全兜底"""
