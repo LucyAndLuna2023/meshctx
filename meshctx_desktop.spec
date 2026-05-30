@@ -77,6 +77,7 @@ a = Analysis(
         'src.core.hybrid_reasoning',
         'src.core.image_gen',
         'src.core.info_geo_router',
+        'src.core.autopilot',
         'src.core.auto_deploy',
         'src.core.category_composer',
         'src.core.causal_analyzer',
@@ -217,6 +218,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.43.0',
-            'CFBundleVersion': '3.43.0',
+            'CFBundleShortVersionString': '3.45.0',
+            'CFBundleVersion': '3.45.0',
         }, version='version_info.txt')
