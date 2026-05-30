@@ -9,9 +9,9 @@ InstallDir "$PROGRAMFILES\MeshCtx"
 RequestExecutionLevel admin
 
 !define VERSION "3.40.0"
-VIProductVersion "3.37.0.0"
-VIAddVersionKey "FileVersion" "3.37.0"
-VIAddVersionKey "ProductVersion" "3.37.0"
+VIProductVersion "3.40.0.0"
+VIAddVersionKey "FileVersion" "3.40.0"
+VIAddVersionKey "ProductVersion" "3.40.0"
 VIAddVersionKey "ProductName" "MeshCtx Desktop"
 VIAddVersionKey "FileDescription" "MeshCtx Desktop Installer"
 VIAddVersionKey "LegalCopyright" "MIT License"
