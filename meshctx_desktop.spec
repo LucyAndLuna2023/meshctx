@@ -98,6 +98,7 @@ a = Analysis(
         'src.core.online_learning',
         'src.core.orchestrator',
         'src.core.performance',
+        'src.core.permission_intel',
         'src.core.performance_optimizer',
         'src.core.platform_fs',
         'src.core.plugin_autoload',
@@ -211,6 +212,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.37.0',
-            'CFBundleVersion': '3.37.0',
+            'CFBundleShortVersionString': '3.38.0',
+            'CFBundleVersion': '3.38.0',
         }, version='version_info.txt')
