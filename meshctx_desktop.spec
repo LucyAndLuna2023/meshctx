@@ -28,6 +28,7 @@ a = Analysis(
         'src.core.active_inference',
         'src.core.agent_swarm',
         'src.core.agent_benchmark',
+        'src.core.benchmark_engine',
         'src.core.agent_loop',
         'src.core.agent_monitor',
         'src.core.agent_tasks',
