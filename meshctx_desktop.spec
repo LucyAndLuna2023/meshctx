@@ -144,6 +144,7 @@ a = Analysis(
         'src.core.config_migrate',
         'src.core.consensus',
         'src.core.interactive_console',
+        'src.core.jepa_router',
         'src.core.jepa_world_model',
         'src.core.knowledge_synth',
         'src.core.log_agg',
@@ -212,6 +213,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.38.0',
-            'CFBundleVersion': '3.38.0',
+            'CFBundleShortVersionString': '3.39.0',
+            'CFBundleVersion': '3.39.0',
         }, version='version_info.txt')
