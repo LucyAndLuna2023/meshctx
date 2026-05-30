@@ -26,6 +26,7 @@ a = Analysis(
         'src.core.acp_server',
         'src.core.action_gate',
         'src.core.active_inference',
+        'src.core.alert_engine',
         'src.core.agent_swarm',
         'src.core.agent_benchmark',
         'src.core.benchmark_engine',
@@ -218,6 +219,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.45.0',
-            'CFBundleVersion': '3.45.0',
+            'CFBundleShortVersionString': '3.46.0',
+            'CFBundleVersion': '3.46.0',
         }, version='version_info.txt')

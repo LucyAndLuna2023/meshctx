@@ -317,7 +317,7 @@ try:
 except ImportError:
     SmartModelRouter = get_model_router = _brain_noop
 
-__version__ = "3.45.0"
+__version__ = "3.46.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
