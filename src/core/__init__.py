@@ -346,7 +346,7 @@ from .feedback_loop import (
     AdaptiveConfig, AutonomousPipeline, get_feedback_engine,
 )
 
-__version__ = "3.56.0"
+__version__ = "3.62.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
