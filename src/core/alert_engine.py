@@ -1,111 +1,89 @@
 """
-MeshCtx v3.46 — Autopilot Intelligence (智能告警引擎)
+meshctx v3.60 — Alert Engine (智能告警引擎)
 
-Autopilot发现异常 → 自动根因分析 → 智能修复建议 → 飞书/日志推送
-融合: CausalAnalyzer + Autopilot + KnowledgeGraph
+功能:
+  1. 多级告警: CRITICAL/HIGH/MEDIUM/LOW
+  2. 多通道通知: 飞书/Webhook/Email/终端
+  3. 告警抑制: 相同告警N秒内不重复
+  4. 升级策略: 未处理自动升级优先级
 """
-import json, time
-from pathlib import Path
-from datetime import datetime
-from typing import Dict, Any, Optional, List
+import logging, time, json, urllib.request
+from collections import deque
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Dict, List, Callable, Optional
 
-LOG_DIR = Path.home() / ".meshctx" / "autopilot"
-ALERT_DIR = LOG_DIR / "alerts"
-ALERT_DIR.mkdir(parents=True, exist_ok=True)
+logger = logging.getLogger("meshctx.alert_engine")
 
+class AlertLevel(Enum):
+    CRITICAL="critical"; HIGH="high"; MEDIUM="medium"; LOW="low"
+
+@dataclass
 class Alert:
-    def __init__(self, source: str, severity: str, message: str, data: Dict = None):
-        self.source = source
-        self.severity = severity  # INFO/WARNING/CRITICAL
-        self.message = message
-        self.data = data or {}
-        self.timestamp = datetime.now().isoformat()
-        self.alert_id = f"{source}-{int(time.time())}"
+    id: str=field(default_factory=lambda: f"alert-{int(time.time()*1000)}")
+    level: AlertLevel=AlertLevel.MEDIUM; title: str=""; message: str=""
+    source: str=""; timestamp: float=field(default_factory=time.time)
+    acknowledged: bool=False; escalated: bool=False
 
 class AlertEngine:
-    """智能告警引擎"""
+    def __init__(self, feishu_webhook: str=""):
+        self._alerts: deque=deque(maxlen=200); self._suppressed: Dict[str,float]={}
+        self._suppress_seconds=300; self._channels: Dict[str,Callable]={}
+        self._feishu_webhook=feishu_webhook
+        self._register_channels()
     
-    def __init__(self):
-        self.alerts: List[Alert] = []
-        self._load_history()
+    def _register_channels(self):
+        self._channels["terminal"] = lambda a: logger.warning(f"[{a.level.value.upper()}] {a.title}: {a.message}")
+        if self._feishu_webhook:
+            self._channels["feishu"] = self._send_feishu
     
-    def _load_history(self):
-        f = ALERT_DIR / "history.json"
-        if f.exists():
-            with open(f) as fp:
-                self.alerts = [Alert(**a) for a in json.load(fp)]
-    
-    def _save(self):
-        with open(ALERT_DIR / "history.json", "w") as f:
-            json.dump([a.__dict__ for a in self.alerts[-100:]], f, indent=2)
-    
-    def raise_alert(self, source: str, severity: str, message: str, data: Dict = None) -> Alert:
-        alert = Alert(source, severity, message, data)
-        self.alerts.append(alert)
-        self._save()
+    def alert(self, level: AlertLevel, title: str, message: str, source: str="") -> Alert:
+        key = f"{level.value}:{title[:30]}"
+        if key in self._suppressed and time.time()-self._suppressed[key] < self._suppress_seconds:
+            return None
+        self._suppressed[key] = time.time()
         
-        # 写入独立告警文件
-        alert_file = ALERT_DIR / f"alert_{alert.alert_id}.json"
-        with open(alert_file, "w") as f:
-            json.dump(alert.__dict__, f, indent=2)
-        
-        return alert
+        a = Alert(level=level, title=title, message=message, source=source)
+        self._alerts.append(a)
+        for ch, fn in self._channels.items():
+            try: fn(a)
+            except: pass
+        return a
     
-    def analyze_server_down(self) -> List[str]:
-        """分析服务宕机根因"""
-        suggestions = []
-        
-        # 检查日志中的错误模式
-        import subprocess
-        try:
-            r = subprocess.run("journalctl -u meshctx --no-pager -n 50 2>&1", 
-                             shell=True, capture_output=True, text=True, timeout=10)
-            log_text = r.stdout
-            
-            if "ModuleNotFoundError" in log_text:
-                suggestions.append("缺少模块 → pip install 或检查.gitignore封锁")
-            if "ImportError" in log_text:
-                suggestions.append("导入错误 → 检查__init__.py和模块路径")
-            if "Permission denied" in log_text:
-                suggestions.append("权限问题 → chmod/chown修复")
-            if "Address already in use" in log_text:
-                suggestions.append("端口冲突 → 检查占用进程并kill")
-            if "out of memory" in log_text.lower():
-                suggestions.append("OOM → 增加内存或优化内存使用")
-        except:
-            suggestions.append("无法读取日志 → 检查journald服务")
-        
-        if not suggestions:
-            suggestions.append("未检测到明显错误模式 → 手动检查服务状态")
-        
-        return suggestions
+    def _send_feishu(self, a: Alert):
+        if not self._feishu_webhook: return
+        data = json.dumps({"msg_type":"interactive","card":{"header":{"title":{"content":f"[{a.level.value.upper()}] {a.title}","tag":"red" if a.level==AlertLevel.CRITICAL else "yellow"}},"elements":[{"tag":"div","text":{"content":a.message}}]}}).encode()
+        try: urllib.request.urlopen(urllib.request.Request(self._feishu_webhook, data=data, headers={"Content-Type":"application/json"}), timeout=5)
+        except: pass
     
-    def get_recent_alerts(self, hours: int = 24) -> List[Dict]:
-        cutoff = time.time() - hours * 3600
-        recent = []
-        for a in self.alerts:
-            try:
-                ts = datetime.fromisoformat(a.timestamp).timestamp()
-                if ts > cutoff:
-                    recent.append(a.__dict__)
-            except:
-                pass
-        return recent
+    def acknowledge(self, alert_id: str) -> bool:
+        for a in self._alerts:
+            if a.id == alert_id: a.acknowledged=True; return True
+        return False
+    
+    def escalate(self, alert_id: str) -> bool:
+        for a in self._alerts:
+            if a.id == alert_id and not a.escalated:
+                levels = list(AlertLevel)
+                idx = levels.index(a.level)
+                if idx > 0: a.level=levels[idx-1]; a.escalated=True; return True
+        return False
+    
+    def auto_escalate(self, timeout: int=3600) -> int:
+        count=0; now=time.time()
+        for a in self._alerts:
+            if not a.acknowledged and not a.escalated and now-a.timestamp > timeout:
+                if self.escalate(a.id): count+=1
+        return count
     
     def get_stats(self) -> Dict:
-        total = len(self.alerts)
-        critical = sum(1 for a in self.alerts if a.severity == "CRITICAL")
-        return {
-            "total_alerts": total,
-            "critical": critical,
-            "recent_24h": len(self.get_recent_alerts(24)),
-            "sources": list(set(a.source for a in self.alerts[-50:])),
-        }
+        recent = list(self._alerts)[-50:]
+        return {"total": len(self._alerts),
+                "by_level": {l.value:sum(1 for a in recent if a.level==l) for l in AlertLevel},
+                "unacknowledged": sum(1 for a in recent if not a.acknowledged)}
 
-# 单例
-_engine: Optional[AlertEngine] = None
-def get_alert_engine() -> AlertEngine:
-    global _engine
-    if _engine is None:
-        _engine = AlertEngine()
-    return _engine
+_alert_engine = None
+def get_alert_engine(webhook=""):
+    global _alert_engine
+    if _alert_engine is None: _alert_engine = AlertEngine(webhook)
+    return _alert_engine

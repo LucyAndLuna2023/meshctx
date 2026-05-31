@@ -71,6 +71,7 @@ from .predictor import (
     PredictionResult, ActivityPattern, TimeSlot,
     FreeEnergyPredictorAdapter,
 )
+from .alert_engine import (AlertEngine,AlertLevel,Alert,get_alert_engine,)
 from .agent_loop import (
     AgentLoopPlugin, Observation, Decision, ActionResult,
     AgentTask, TaskPriority, LoopPhase, ResponseGenerator, ActionExecutor,
