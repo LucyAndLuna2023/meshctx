@@ -54,6 +54,7 @@ a = Analysis(
         'src.core.code_reviewer',
         'src.core.cognitive_health',
         'src.core.context_compressor',
+        'src.core.context_compression',
         'src.core.context_restorer',
         'src.core.conversation_store',
         'src.core.credential_pool',
