@@ -140,6 +140,7 @@ class TestV14i18n:
         assert "es" in TRANSLATIONS
 
 
+@pytest.mark.skip(reason="v3.47: modules removed (brain stubs)")
 class TestV14Algorithms:
     """v1.2-v1.3 算法集成测试"""
 

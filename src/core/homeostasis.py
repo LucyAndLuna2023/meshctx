@@ -138,6 +138,10 @@ class NeuromodulatorSystem:
         self.serotonin: float = 0.5   # 耐心
         self.acetylcholine: float = 0.5  # 注意
     
+    def update(self, reward_prediction_error: float = 0.0, uncertainty: float = 0.5):
+        self.update_dopamine(reward_prediction_error)
+        self.update_norepinephrine(uncertainty)
+    
     def update_dopamine(self, reward_prediction_error: float):
         self.dopamine = max(0.0, min(1.0, self.dopamine + 0.1 * reward_prediction_error))
     
@@ -157,6 +161,10 @@ class CircadianModulator:
     def update(self):
         hour = time.localtime().tm_hour
         self.phase = math.sin((hour - 6) * math.pi / 12)
+    
+    @property
+    def cognitive_efficiency(self) -> float:
+        return self.alertness
     
     @property
     def alertness(self) -> float:

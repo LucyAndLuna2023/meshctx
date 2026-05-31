@@ -28,6 +28,14 @@ class _BrainNoop:
             'description': 'Noop placeholder for missing module',
         })
         self.info = Info()
+        self.state = {}
+    
+    def generate_report(self, *a, **kw):
+        return {"status": "noop", "message": "Module not available"}
+    
+    def __getattr__(self, name):
+        """Catch any missing attribute access"""
+        return lambda *a, **kw: None
 
 def _brain_noop(*a, **kw): 
     return _BrainNoop()

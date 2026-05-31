@@ -95,6 +95,9 @@ class DualProcessDecision:
         if abs(outcome_error) > 0.5:
             self.system2_weight = min(0.8, self.system2_weight + 0.05)
             self.system1_weight = 1.0 - self.system2_weight
+    
+    def get_stats(self):
+        return {"system1_weight": self.system1_weight, "system2_weight": self.system2_weight}
 
 
 class ActiveInferenceEngine:
