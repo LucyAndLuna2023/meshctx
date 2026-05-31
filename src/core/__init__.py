@@ -313,6 +313,7 @@ try:
 except ImportError:
     AttractorReasoner = get_attractor_reasoner = _brain_noop
 from .distributed_mesh import (DistributedAgentMesh,MeshNode,MeshTask,NodeState,get_distributed_mesh,)
+from .desktop_agent import (DesktopAgent,DesktopAction,WindowInfo,get_desktop_agent,)
 from .deploy_engine import (DeployEngine,DeployTarget,DeployResult,get_deploy_engine,)
 from .dashboard import UnifiedDashboard, get_dashboard
 try:
