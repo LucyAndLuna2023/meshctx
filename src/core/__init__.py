@@ -310,6 +310,7 @@ try:
     from .attractor_reasoner import AttractorReasoner, get_attractor_reasoner
 except ImportError:
     AttractorReasoner = get_attractor_reasoner = _brain_noop
+from .distributed_mesh import (DistributedAgentMesh,MeshNode,MeshTask,NodeState,get_distributed_mesh,)
 from .dashboard import UnifiedDashboard, get_dashboard
 try:
     from .predictive_precompute import PredictivePreCompute, get_precompute_engine

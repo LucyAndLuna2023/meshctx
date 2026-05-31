@@ -61,6 +61,7 @@ a = Analysis(
         'src.core.crypto',
         'src.core.desktop_agent',
         'src.core.deploy_engine',
+        'src.core.distributed_mesh',
         'src.core.dashboard',
         'src.core.diff_preview',
         'src.core.evolution_tracker',
