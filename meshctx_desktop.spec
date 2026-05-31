@@ -36,6 +36,7 @@ a = Analysis(
         'src.core.agent_teams',
         'src.core.approval',
         'src.core.attention_decay',
+        'src.core.autonomous_action',
         'src.core.attractor_reasoner',
         'src.core.augmented_memory',
         'src.core.auto_healer',

@@ -272,6 +272,10 @@ try:
 except ImportError:
     BrainStateValidator = get_brain_validator = _brain_noop
 
+from .autonomous_action import (
+    ActionEngine, Action, RiskLevel, ActionStatus, get_action_engine,
+    subconscious_to_action_cycle,
+)
 # v3.35: Session Auto-Resume Engine
 try:
     from .session_resume import SessionResumeEngine, get_resume_engine
