@@ -73,6 +73,7 @@ from .predictor import (
     FreeEnergyPredictorAdapter,
 )
 from .alert_engine import (AlertEngine,AlertLevel,Alert,get_alert_engine,)
+from .agent_governance import (AgentGovernance,AgentIdentity,Quota,AuditEntry,get_governance,)
 from .agent_loop import (
     AgentLoopPlugin, Observation, Decision, ActionResult,
     AgentTask, TaskPriority, LoopPhase, ResponseGenerator, ActionExecutor,
