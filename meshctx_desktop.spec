@@ -129,6 +129,7 @@ a = Analysis(
         'src.core.sdb_framework',
         'src.core.secret_scanner',
         'src.core.security',
+        'src.core.security_audit',
         'src.core.self_modify',
         'src.core.self_updater',
         'src.core.session_archiver',
