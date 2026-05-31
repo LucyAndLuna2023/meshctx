@@ -311,6 +311,7 @@ try:
 except ImportError:
     AttractorReasoner = get_attractor_reasoner = _brain_noop
 from .distributed_mesh import (DistributedAgentMesh,MeshNode,MeshTask,NodeState,get_distributed_mesh,)
+from .deploy_engine import (DeployEngine,DeployTarget,DeployResult,get_deploy_engine,)
 from .dashboard import UnifiedDashboard, get_dashboard
 try:
     from .predictive_precompute import PredictivePreCompute, get_precompute_engine
