@@ -11,17 +11,22 @@ InstallDir "$PROGRAMFILES\MeshCtx"
 RequestExecutionLevel admin
 
 !define VERSION "3.47.0"
-VIProductVersion "3.43.0.0"
-VIAddVersionKey "FileVersion" "3.43.0"
-VIAddVersionKey "ProductVersion" "3.43.0"
+VIProductVersion "3.47.0.0"
+VIAddVersionKey "FileVersion" "3.47.0"
+VIAddVersionKey "ProductVersion" "3.47.0"
 VIAddVersionKey "ProductName" "MeshCtx Desktop"
 VIAddVersionKey "FileDescription" "MeshCtx Desktop Installer"
 VIAddVersionKey "LegalCopyright" "MIT License"
 
 ; ── 自定义语言选择页 ──
 Var Dialog
-Var RadioEn Var RadioZh Var RadioJa Var RadioKo
-Var RadioDe Var RadioFr Var RadioEs
+Var RadioEn
+Var RadioZh
+Var RadioJa
+Var RadioKo
+Var RadioDe
+Var RadioFr
+Var RadioEs
 
 Function LangPageCreate
   nsDialogs::Create 1018
