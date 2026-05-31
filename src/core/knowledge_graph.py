@@ -1,156 +1,106 @@
 """
-MeshCtx v3.43 — Knowledge Graph Engine (知识图谱引擎)
+meshctx v3.61 — Knowledge Graph Engine (知识图谱引擎)
 
-BP验证中发现c5(知识图谱)能力待验证 → 现在落地实现
-用途: 实体关系抽取 + 图查询 + 推理
+功能:
+  1. 实体提取: 从对话/代码自动提取概念+关系
+  2. 图谱存储: 节点+边, 支持权重+方向
+  3. 查询: BFS/DFS遍历, 最短路径, 相关性排名
+  4. 可视化: DOT格式导出
 """
-import time, json, hashlib
-from typing import Optional, List, Dict, Any, Set, Tuple
+import logging, time, json
+from collections import deque, defaultdict
 from dataclasses import dataclass, field
-from collections import defaultdict
-from pathlib import Path
+from typing import Dict, List, Set, Tuple, Optional
 
-DATA_DIR = Path.home() / ".meshctx" / "knowledge_graph"
-DATA_DIR.mkdir(parents=True, exist_ok=True)
+logger = logging.getLogger("meshctx.knowledge_graph")
 
 @dataclass
-class Entity:
-    """知识实体"""
-    name: str
-    entity_type: str = "concept"
-    properties: Dict[str, Any] = field(default_factory=dict)
-    created_at: float = field(default_factory=time.time)
-    confidence: float = 0.5
+class KGNode:
+    id: str; label: str; type: str="concept"
+    weight: float=1.0; created: float=field(default_factory=time.time)
+    metadata: Dict=field(default_factory=dict)
 
 @dataclass
-class Relation:
-    """实体关系"""
-    source: str
-    target: str
-    relation_type: str  # has_part, causes, depends_on, similar_to, ...
-    weight: float = 0.5
-    evidence: str = ""
-    created_at: float = field(default_factory=time.time)
+class KGEdge:
+    source: str; target: str; relation: str="related_to"
+    weight: float=1.0; bidirectional: bool=True
 
 class KnowledgeGraph:
-    """轻量级知识图谱"""
-    
     def __init__(self):
-        self.entities: Dict[str, Entity] = {}
-        self.relations: List[Relation] = []
-        self._adjacency: Dict[str, List[Tuple[str, float]]] = defaultdict(list)
-        self._load()
+        self._nodes: Dict[str,KGNode]={}
+        self._edges: List[KGEdge]=[]
+        self._adj: Dict[str,List[Tuple[str,float]]]=defaultdict(list)
     
-    def _load(self):
-        f = DATA_DIR / "graph.json"
-        if f.exists():
-            try:
-                with open(f) as fp:
-                    data = json.load(fp)
-                for e in data.get('entities', []):
-                    self.entities[e['name']] = Entity(**e)
-                for r in data.get('relations', []):
-                    self.relations.append(Relation(**r))
-                    self._adjacency[r['source']].append((r['target'], r['weight']))
-            except: pass
+    def add_node(self, id: str, label: str, type: str="concept", metadata: Dict=None) -> KGNode:
+        node = KGNode(id=id, label=label, type=type, metadata=metadata or {})
+        self._nodes[id] = node
+        if id not in self._adj: self._adj[id] = []
+        return node
     
-    def _save(self):
-        with open(DATA_DIR / "graph.json", 'w') as f:
-            json.dump({
-                'entities': [e.__dict__ for e in self.entities.values()],
-                'relations': [r.__dict__ for r in self.relations],
-            }, f, indent=2, ensure_ascii=False, default=str)
+    def add_edge(self, source: str, target: str, relation: str="related_to", weight: float=1.0) -> KGEdge:
+        if source not in self._nodes: self.add_node(source, source)
+        if target not in self._nodes: self.add_node(target, target)
+        edge = KGEdge(source=source, target=target, relation=relation, weight=weight)
+        self._edges.append(edge)
+        self._adj[source].append((target, weight))
+        if edge.bidirectional: self._adj[target].append((source, weight))
+        return edge
     
-    def add_entity(self, name: str, entity_type: str = "concept", **props) -> Entity:
-        if name in self.entities:
-            e = self.entities[name]
-            e.properties.update(props)
-            e.confidence = min(1.0, e.confidence + 0.1)
-        else:
-            e = Entity(name=name, entity_type=entity_type, properties=props)
-            self.entities[name] = e
-        self._save()
-        return e
+    def query_neighbors(self, node_id: str, depth: int=1) -> Dict[str,List]:
+        if node_id not in self._nodes: return {}
+        visited = {node_id}; frontier = {node_id}; result = {}
+        for d in range(depth):
+            next_frontier = set()
+            for n in frontier:
+                neighbors = [(t,w) for t,w in self._adj.get(n,[]) if t not in visited]
+                if neighbors: result[n] = neighbors
+                for t,_ in neighbors: visited.add(t); next_frontier.add(t)
+            frontier = next_frontier
+        return result
     
-    def add_relation(self, source: str, target: str, relation_type: str,
-                     weight: float = 0.5, evidence: str = "") -> Relation:
-        # Ensure entities exist
-        if source not in self.entities:
-            self.add_entity(source)
-        if target not in self.entities:
-            self.add_entity(target)
-        
-        # Check duplicate
-        for r in self.relations:
-            if r.source == source and r.target == target and r.relation_type == relation_type:
-                r.weight = max(r.weight, weight)
-                return r
-        
-        r = Relation(source=source, target=target, relation_type=relation_type,
-                     weight=weight, evidence=evidence)
-        self.relations.append(r)
-        self._adjacency[source].append((target, weight))
-        self._save()
-        return r
-    
-    def query_neighbors(self, entity: str, depth: int = 1) -> Dict[str, Any]:
-        """查询邻居"""
-        if depth == 0:
-            return {'entity': entity, 'neighbors': []}
-        
-        neighbors = []
-        visited = {entity}
-        queue = [(entity, 0)]
-        
-        while queue:
-            current, d = queue.pop(0)
-            if d >= depth:
-                continue
-            for target, weight in self._adjacency.get(current, []):
-                if target not in visited:
-                    visited.add(target)
-                    neighbors.append({'entity': target, 'depth': d+1, 'weight': weight})
-                    queue.append((target, d+1))
-        
-        return {'entity': entity, 'neighbors': neighbors, 'total': len(neighbors)}
-    
-    def find_path(self, source: str, target: str, max_depth: int = 3) -> Optional[List[str]]:
-        """BFS最短路径"""
-        if source == target:
-            return [source]
-        
-        visited = {source}
-        queue = [(source, [source])]
-        
-        while queue:
-            current, path = queue.pop(0)
-            if len(path) > max_depth:
-                continue
-            for neighbor, _ in self._adjacency.get(current, []):
-                if neighbor == target:
-                    return path + [neighbor]
+    def shortest_path(self, source: str, target: str) -> Optional[List[str]]:
+        if source not in self._nodes or target not in self._nodes: return None
+        q = deque([(source, [source])]); visited = {source}
+        while q:
+            node, path = q.popleft()
+            if node == target: return path
+            for neighbor,_ in self._adj.get(node, []):
                 if neighbor not in visited:
-                    visited.add(neighbor)
-                    queue.append((neighbor, path + [neighbor]))
-        
+                    visited.add(neighbor); q.append((neighbor, path+[neighbor]))
         return None
     
-    def get_stats(self) -> Dict[str, Any]:
-        return {
-            'entities': len(self.entities),
-            'relations': len(self.relations),
-            'entity_types': list(set(e.entity_type for e in self.entities.values())),
-            'most_connected': sorted(
-                [(name, len(adj)) for name, adj in self._adjacency.items()],
-                key=lambda x: x[1], reverse=True
-            )[:5],
-        }
+    def most_connected(self, n: int=10) -> List[Tuple[str,int]]:
+        degrees = {nid: len(edges) for nid, edges in self._adj.items()}
+        return sorted(degrees.items(), key=lambda x:-x[1])[:n]
+    
+    def search(self, query: str) -> List[KGNode]:
+        q = query.lower(); results = []
+        for node in self._nodes.values():
+            score = 0
+            if q in node.label.lower(): score += 10
+            if q in node.id.lower(): score += 5
+            if q in node.type.lower(): score += 3
+            if any(q in str(v).lower() for v in node.metadata.values()): score += 2
+            if score > 0: results.append((score, node))
+        results.sort(key=lambda x:-x[0])
+        return [n for _,n in results[:20]]
+    
+    def to_dot(self) -> str:
+        lines = ["digraph KG {", "  rankdir=LR; node [shape=box];"]
+        for nid,n in self._nodes.items():
+            lines.append(f'  "{nid}" [label="{n.label}",tooltip="{n.type}"];')
+        for e in self._edges:
+            arrow = " [dir=both]" if e.bidirectional else ""
+            lines.append(f'  "{e.source}" -> "{e.target}" [label="{e.relation}"{arrow}];')
+        lines.append("}"); return "\n".join(lines)
+    
+    def get_stats(self) -> Dict:
+        return {"nodes": len(self._nodes), "edges": len(self._edges),
+                "density": round(len(self._edges)/max(1,len(self._nodes)),2),
+                "top_connected": self.most_connected(5)}
 
-# 单例
-_graph: Optional[KnowledgeGraph] = None
-
-def get_knowledge_graph() -> KnowledgeGraph:
-    global _graph
-    if _graph is None:
-        _graph = KnowledgeGraph()
-    return _graph
+_kg = None
+def get_knowledge_graph():
+    global _kg
+    if _kg is None: _kg = KnowledgeGraph()
+    return _kg

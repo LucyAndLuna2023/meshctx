@@ -40,6 +40,7 @@ class _BrainNoop:
 def _brain_noop(*a, **kw): 
     return _BrainNoop()
 
+from .knowledge_graph import (KnowledgeGraph,KGNode,KGEdge,get_knowledge_graph,)
 from .knowledge_sync import (
     KnowledgeItem, KnowledgeBus, CrossAgentSyncEngine,
     KnowledgeDomain, SyncPriority, ProfileInfo,
