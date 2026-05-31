@@ -325,6 +325,9 @@ try:
 except ImportError:
     SmartModelRouter = get_model_router = _brain_noop
 
+from .subconscious import (
+    SubconsciousObserver, Nudge, NudgePriority, NudgeSource, get_observer,
+)
 __version__ = "3.47.0"
 __all__ = [
     # Kernel

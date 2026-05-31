@@ -131,6 +131,7 @@ a = Analysis(
         'src.core.session_identity',
         'src.core.session_resume',
         'src.core.smart_router',
+        'src.core.subconscious',
         'src.core.super_brain',
         'src.core.task_progress',
         'src.core.telegram_router',
