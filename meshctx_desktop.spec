@@ -170,6 +170,7 @@ a = Analysis(
         'src.core.rate_limiter',
         'src.core.roi_analytics',
         'src.core.scheduler',
+        'src.core.smart_permissions',
         'src.core.self_opt_router',
         'src.core.self_healing2',
         'src.core.usage_tracker',
