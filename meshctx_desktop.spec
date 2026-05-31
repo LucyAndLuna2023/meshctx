@@ -64,6 +64,7 @@ a = Analysis(
         'src.core.dashboard',
         'src.core.diff_preview',
         'src.core.evolution_tracker',
+        'src.core.feedback_loop',
         'src.core.error_learner',
         'src.core.feishu_notify',
         'src.core.free_energy',

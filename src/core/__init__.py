@@ -332,6 +332,11 @@ except ImportError:
 from .subconscious import (
     SubconsciousObserver, Nudge, NudgePriority, NudgeSource, get_observer,
 )
+from .feedback_loop import (
+    FeedbackLoopEngine, ExecutionRecord, ActionProfile,
+    AdaptiveConfig, AutonomousPipeline, get_feedback_engine,
+)
+
 __version__ = "3.47.0"
 __all__ = [
     # Kernel
