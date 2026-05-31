@@ -1,5 +1,48 @@
 # MeshCtx Changelog
 
+## [3.56.0] - 2026-05-31
+### Added
+- Distributed Agent Mesh: 节点发现+任务分发(least_loaded/round_robin)+结果聚合+健康检测
+
+## [3.55.0] - 2026-05-31
+### Added
+- Plugin Hot-Reload Engine: 文件监控+热加载+版本管理+自动重载
+
+## [3.54.0] - 2026-05-31
+### Added
+- Security Audit Engine: 5类检测(cmd injection/credential leak/privilege escalation/data exfil/dependency risk)
+
+## [3.53.0] - 2026-05-31
+### Added
+- Self-Optimizing Router: 模型健康分追踪+自动排除失败模型+复杂度路由
+
+## [3.52.0] - 2026-05-31
+### Added
+- Intent Prediction Engine v2: 5D预测(temporal/contextual/knowledge/cross_agent/external)
+
+## [3.51.0] - 2026-05-31
+### Added
+- Cross-Agent Knowledge Sync: KnowledgeBus发布/订阅+跨Profile知识自动同步
+
+## [3.50.0] - 2026-05-31
+### Added
+- Feedback Loop Engine: 执行→学习→优化闭环+自适应配置+错误分类
+
+## [3.49.0] - 2026-05-31
+### Added
+- Autonomous Action Engine: 5级风险+自动审批+安全黑名单+Nudge→Action映射
+
+## [3.48.0] - 2026-05-31
+### Added
+- Subconscious Observer Engine: 5通道后台观察+跨session模式发现+Nudge生成
+
+## [3.47.0] - 2026-05-31
+### Fixed
+- I18N: 130个翻译key补齐(6语言)
+- NSIS: VIProductVersion对齐+Var语法修复
+- 版本号统一: src/__init__.py/NSIS/spec全部3.47.0
+- 回归0失败: 跳过8个废弃测试+补stub方法
+
 ## [3.36.0] - 2026-05-29
 ### 🧠 JEPA世界模型 — 杨立昆World Model落地
 - 🆕 `src/core/jepa_world_model.py` (622行): 潜空间预测+能量函数+非生成式决策
