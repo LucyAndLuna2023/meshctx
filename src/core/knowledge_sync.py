@@ -118,7 +118,7 @@ class KnowledgeBus:
     
     def _load(self):
         """从磁盘加载"""
-        if not self._storage_path.exists():
+        if self._storage_path is None or not self._storage_path.exists():
             return
         try:
             with open(self._storage_path, 'r') as f:
@@ -156,6 +156,8 @@ class KnowledgeBus:
     
     def _save(self):
         """持久化到磁盘"""
+        if self._storage_path is None:
+            return
         try:
             data = {
                 "items": [

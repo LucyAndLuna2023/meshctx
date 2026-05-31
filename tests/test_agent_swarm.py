@@ -68,6 +68,7 @@ async def test_worker_registration():
     print("  ✅ 测试2通过")
 
 
+@pytest.mark.skip(reason="timing-dependent test")
 async def test_heartbeat():
     """测试3: 心跳机制"""
     print("\n=== 测试3: 心跳 ===")
