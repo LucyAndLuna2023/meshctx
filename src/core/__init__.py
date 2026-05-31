@@ -40,6 +40,11 @@ class _BrainNoop:
 def _brain_noop(*a, **kw): 
     return _BrainNoop()
 
+from .knowledge_sync import (
+    KnowledgeItem, KnowledgeBus, CrossAgentSyncEngine,
+    KnowledgeDomain, SyncPriority, ProfileInfo,
+    get_knowledge_bus, get_sync_engine,
+)
 from .kernel import (
     Kernel, EventBus, Event, EventPriority,
     Plugin, PluginInfo, PluginManager, PluginState,

@@ -93,6 +93,7 @@ a = Analysis(
         'src.core.wasserstein_bridge',
         'src.core.knowledge_graph',
         'src.core.kernel',
+        'src.core.knowledge_sync',
         'src.core.knowledge_transfer',
         'src.core.learn_loop',
         'src.core.llm_quality',
