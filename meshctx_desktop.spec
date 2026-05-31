@@ -113,6 +113,7 @@ a = Analysis(
         'src.core.platform_fs',
         'src.core.plugin_autoload',
         'src.core.plugin_manifest',
+        'src.core.plugin_hotreload',
         'src.core.plugin_market',
         'src.core.pre_action_check',
         'src.core.predictive_precompute',
