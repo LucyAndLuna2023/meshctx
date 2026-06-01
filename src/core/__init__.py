@@ -79,6 +79,7 @@ from .agent_loop import (
     AgentTask, TaskPriority, LoopPhase, ResponseGenerator, ActionExecutor,
     WorkspaceAwareAdapter, BrainRouterAdapter,
 )
+from .performance_optimizer import (PerformanceOptimizer,PerfProfile,get_perf_optimizer,)
 from .performance import (
     PerformancePlugin, L1MemoryCache, L2FileCache,
     StreamGenerator, PerformanceMonitor,
