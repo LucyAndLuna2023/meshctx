@@ -166,7 +166,7 @@ from .sandbox import SandboxEngine, SandboxResult, get_sandbox
 from .project_indexer import ProjectIndexer, FileSummary, IndexStats, get_indexer
 from .feishu_notify import FeishuNotifier, FeishuPlugin
 from .win_admin import WindowsAdmin, WinResult, WinService, get_win_admin
-from .model_compare import compare_models, compare_models_stream
+from .model_compare import compare_models, compare_models_stream, ModelCompareEngine, ModelResponse, get_compare_engine
 from .conversation_store import Conversation, get_or_create
 from .code_reviewer import CodeReviewer, ReviewIssue
 from .agent_monitor import AgentMonitor, AgentMetrics, get_monitor

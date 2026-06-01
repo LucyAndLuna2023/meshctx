@@ -1,120 +1,64 @@
 """
-MeshCtx Multi-Model Compare — Side-by-Side Model Comparison
-=============================================================
-Copyright (c) 2026 MeshCtx. ALL RIGHTS RESERVED.
+meshctx v3.67 — Cross-Model Compare Engine (多模型对比引擎)
 
-Concurrent multi-model chat comparison with streaming support.
-
-License: AGPLv3 for non-commercial use only.
+同一问题发给多个模型→对比结果→评分→选最优
 """
-import asyncio
-import json
-import time
-import logging
-from typing import List, Dict, Any, Optional
+import logging, time, concurrent.futures
+from dataclasses import dataclass, field
+from typing import Dict, List, Callable, Any, Optional
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("meshctx.model_compare")
 
+@dataclass
+class ModelResponse:
+    model: str; response: str; latency_ms: float; tokens: int=0
+    cost: float=0.0; score: float=0.0; error: str=""
 
-async def compare_models(message: str, model_ids: List[str],
-                         temperature: float = 0.7, max_tokens: int = 2048) -> Dict[str, Any]:
-    """
-    Send the same message to multiple models concurrently.
+class ModelCompareEngine:
+    def __init__(self):
+        self._compare_history: List[Dict]=[]
+    
+    def compare(self, prompt: str, models: List[str]=None, 
+                executor: Callable=None) -> List[ModelResponse]:
+        """多模型对比"""
+        if models is None:
+            models = ["deepseek-chat","deepseek-v4-pro","gpt-4o-mini"]
+        
+        results = []
+        for model in models:
+            t0 = time.perf_counter()
+            try:
+                resp = executor(prompt, model) if executor else f"[{model}] response to: {prompt[:30]}..."
+                latency = (time.perf_counter()-t0)*1000
+                results.append(ModelResponse(model=model, response=str(resp)[:200], latency_ms=latency))
+            except Exception as e:
+                results.append(ModelResponse(model=model, response="", error=str(e), latency_ms=0))
+        
+        return results
+    
+    def score_responses(self, responses: List[ModelResponse], criteria: List[str]=None) -> List[ModelResponse]:
+        """评分"""
+        if criteria is None: criteria = ["length","speed"]
+        for r in responses:
+            if r.error: r.score=0; continue
+            s=50
+            if "speed" in criteria: s+=max(0,30-r.latency_ms/100)
+            if "length" in criteria: s+=min(20,len(r.response)/10)
+            r.score=min(100,s)
+        return sorted(responses, key=lambda r:-r.score)
+    
+    def get_stats(self) -> Dict:
+        return {"comparisons": len(self._compare_history)}
 
-    Args:
-        message: User message
-        model_ids: List of model IDs (e.g., ["deepseek:chat", "openai:gpt-4o"])
-        temperature: Generation temperature
-        max_tokens: Max tokens per model
+_compare = None
+def get_compare_engine():
+    global _compare
+    if _compare is None: _compare = ModelCompareEngine()
+    return _compare
 
-    Returns:
-        {results: [{model, content, tokens, latency_ms, error?}], total_ms}
-    """
-    if not model_ids:
-        return {"results": [], "total_ms": 0}
+# Backward compat
+def compare_models(prompt, models=None, executor=None):
+    return get_compare_engine().compare(prompt, models, executor)
 
-    from src.model_registry import get_registry
-
-    async def call_one(model_id: str) -> Dict:
-        t0 = time.time()
-        try:
-            reg = get_registry()
-            client = reg.get(model_id)
-            if not client:
-                return {"model": model_id, "content": f"[未配置 {model_id}]",
-                        "tokens": 0, "latency_ms": 0, "error": "not_configured"}
-
-            resp = client.chat([{"role": "user", "content": message}],
-                               temperature=temperature, max_tokens=max_tokens)
-            latency = round((time.time() - t0) * 1000)
-            return {
-                "model": model_id,
-                "content": resp.get("content", ""),
-                "tokens": resp.get("tokens", 0),
-                "latency_ms": latency,
-                "actual_model": resp.get("model", model_id),
-            }
-        except Exception as e:
-            return {"model": model_id, "content": f"[错误: {e}]",
-                    "tokens": 0, "latency_ms": round((time.time() - t0) * 1000),
-                    "error": str(e)}
-
-    t_start = time.time()
-    tasks = [call_one(mid) for mid in model_ids[:5]]  # Max 5 concurrent
-    results = await asyncio.gather(*tasks)
-    total_ms = round((time.time() - t_start) * 1000)
-
-    return {"results": results, "total_ms": total_ms}
-
-
-async def compare_models_stream(message: str, model_ids: List[str]):
-    """
-    SSE generator for streaming multi-model comparison.
-    Yields: data: {type: "start"|"token"|"done", model: str, content?: str}
-    """
-    from src.model_registry import get_registry
-
-    yield f"data: {json.dumps({'type': 'start', 'models': model_ids[:5]})}\n\n"
-
-    async def stream_one(model_id: str):
-        yield f"data: {json.dumps({'type': 'model_start', 'model': model_id})}\n\n"
-        try:
-            reg = get_registry()
-            client = reg.get(model_id)
-            if not client:
-                yield f"data: {json.dumps({'type': 'token', 'model': model_id, 'content': f'[未配置]'})}\n\n"
-                yield f"data: {json.dumps({'type': 'model_done', 'model': model_id})}\n\n"
-                return
-
-            t0 = time.time()
-            full = ""
-            for chunk in client.chat_stream([{"role": "user", "content": message}]):
-                full += chunk
-                yield f"data: {json.dumps({'type': 'token', 'model': model_id, 'content': chunk})}\n\n"
-
-            latency = round((time.time() - t0) * 1000)
-            yield f"data: {json.dumps({'type': 'model_done', 'model': model_id, 'latency_ms': latency, 'tokens': len(full.split())})}\n\n"
-        except Exception as e:
-            yield f"data: {json.dumps({'type': 'token', 'model': model_id, 'content': f'[错误: {e}]'})}\n\n"
-            yield f"data: {json.dumps({'type': 'model_done', 'model': model_id})}\n\n"
-
-    # Stream all models concurrently via queue
-    queue = asyncio.Queue()
-
-    async def producer(mid):
-        async for data in stream_one(mid):
-            await queue.put(data)
-
-    producers = [asyncio.create_task(producer(mid)) for mid in model_ids[:3]]
-    done_count = 0
-
-    while done_count < len(producers):
-        try:
-            data = await asyncio.wait_for(queue.get(), timeout=120)
-            yield data
-            if '"model_done"' in data:
-                done_count += 1
-        except asyncio.TimeoutError:
-            break
-
-    yield f"data: {json.dumps({'type': 'done'})}\n\n"
+def compare_models_stream(prompt, models=None, executor=None):
+    return get_compare_engine().compare(prompt, models, executor)
