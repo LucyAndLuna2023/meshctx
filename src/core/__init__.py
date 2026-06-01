@@ -362,6 +362,12 @@ from .mcp_standardizer import (
     discover_functions_in_module, discover_tools_in_package,
 )
 
+# v3.90 Rate Limiter
+from .rate_limiter import (
+    RateLimiter, RateLimitTier, TokenBucket, RateLimitResult,
+    get_rate_limiter, reset_rate_limiter,
+)
+
 from .subconscious import (
     SubconsciousObserver, Nudge, NudgePriority, NudgeSource, get_observer,
 )
@@ -391,6 +397,20 @@ except ImportError:
     CookbookRecommender = GPUInfo = CPUInfo = HardwareProfile = _brain_noop
     ModelRecommendation = CookbookResult = get_cookbook = reset_cookbook = _brain_noop
 
+# v3.89 Deep Research v2 (增强版多步调研)
+try:
+    from .deep_research_v2 import (
+        DeepResearchV2, SearchResultV2, ResearchStepV2,
+        ResearchReportV2, SearchAggregator,
+        CitationFormatter, MermaidChartGenerator, HistoryStore,
+        get_deep_research_v2, reset_deep_research_v2,
+    )
+except ImportError:
+    DeepResearchV2 = SearchResultV2 = ResearchStepV2 = _brain_noop
+    ResearchReportV2 = SearchAggregator = _brain_noop
+    CitationFormatter = MermaidChartGenerator = HistoryStore = _brain_noop
+    get_deep_research_v2 = reset_deep_research_v2 = _brain_noop
+
 # v3.86 Web-to-API Proxy
 try:
     from .web2api import (
@@ -402,7 +422,15 @@ except ImportError:
     PROVIDERS = {}
     get_web2api = reset_web2api = _brain_noop
 
-__version__ = "3.88.0"
+# v3.91 PWA Manifest Builder
+from .pwa_builder import (
+    PWABuilder, PWAManifestConfig, PWAIcon, PWAShortcut,
+    SWCacheRule, CacheStrategy, DisplayMode, IconPurpose,
+    InstallPromptManager, PushManager, PushSubscription, PushNotification,
+    get_pwa_builder, reset_pwa_builder,
+)
+
+__version__ = "3.91.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -495,6 +523,11 @@ __all__ = [
     # v3.81 Deep Research Engine
     "DeepResearchEngine", "SearchResult", "ResearchStep",
     "ResearchReport", "get_deep_research",
+    # v3.89 Deep Research v2
+    "DeepResearchV2", "SearchResultV2", "ResearchStepV2",
+    "ResearchReportV2", "SearchAggregator",
+    "CitationFormatter", "MermaidChartGenerator", "HistoryStore",
+    "get_deep_research_v2", "reset_deep_research_v2",
     # v3.83 Thinking Depth Controller
     "ThinkingDepthController", "ThinkParseResult", "ThinkDepth",
     "get_thinking_controller", "quick_parse",
@@ -503,7 +536,15 @@ __all__ = [
     "CookbookRecommender", "GPUInfo", "CPUInfo", "HardwareProfile",
     "ModelRecommendation", "CookbookResult",
     "get_cookbook", "reset_cookbook",
+    # v3.90 Rate Limiter
+    "RateLimiter", "RateLimitTier", "TokenBucket", "RateLimitResult",
+    "get_rate_limiter", "reset_rate_limiter",
     # v3.86 Web-to-API Proxy
     "Web2APIProxy", "SSEParser", "ProxyStats", "ProviderConfig",
     "PROVIDERS", "get_web2api", "reset_web2api",
+    # v3.91 PWA Manifest Builder
+    "PWABuilder", "PWAManifestConfig", "PWAIcon", "PWAShortcut",
+    "SWCacheRule", "CacheStrategy", "DisplayMode", "IconPurpose",
+    "InstallPromptManager", "PushManager", "PushSubscription", "PushNotification",
+    "get_pwa_builder", "reset_pwa_builder",
 ]

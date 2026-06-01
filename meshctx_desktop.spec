@@ -216,6 +216,8 @@ a = Analysis(
         'src.core.agent_orchestrator',
         'src.core.web2api',
         'src.core.cookbook',
+        'src.core.deep_research_v2',
+        'src.core.pwa_builder',
         # Common deps
 # Common deps
         'yaml', 'openai', 'httpx', 'fastapi', 'uvicorn',
@@ -240,6 +242,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.88.0',
-            'CFBundleVersion': '3.88.0',
+            'CFBundleShortVersionString': '3.91.0',
+            'CFBundleVersion': '3.91.0',
         }, version='version_info.txt')
