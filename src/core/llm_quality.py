@@ -1,85 +1,56 @@
 """
-LLM Quality Monitor — tracks call stats, waste ratio, error rate, and latency trends.
+meshctx v3.73 — LLM Quality Evaluator (LLM质量评估器)
+
+评估模型输出质量: 相关性/完整性/准确性/安全性
 """
-from typing import Optional
+import logging, time, re
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional
 
+logger = logging.getLogger("meshctx.llm_quality")
 
-class LLMQualityMonitor:
-    """Monitors LLM call quality: token efficiency, error rate, and latency trends."""
+@dataclass
+class QualityScore:
+    relevance: float=0.0; completeness: float=0.0; accuracy: float=0.0
+    safety: float=0.0; overall: float=0.0
 
-    def __init__(self, max_history: Optional[int] = None):
-        self.max_history = max_history
-        self._calls: list[dict] = []
+class LLMQualityEvaluator:
+    def evaluate(self, prompt: str, response: str) -> QualityScore:
+        score = QualityScore()
+        
+        # Relevance: 回复是否包含prompt关键词
+        prompt_words = set(re.findall(r'\w+', prompt.lower()))
+        resp_words = set(re.findall(r'\w+', response.lower()))
+        if prompt_words:
+            score.relevance = len(prompt_words & resp_words) / len(prompt_words)
+        
+        # Completeness: 回复长度是否足够
+        if len(prompt) > 10:
+            score.completeness = min(1.0, len(response) / max(1, len(prompt) * 2))
+        else:
+            score.completeness = 0.5
+        
+        # Accuracy: 是否包含幻觉标记
+        hallucination_markers = ["as an AI","I don't know","I cannot","I'm not able","unfortunately"]
+        markers_found = sum(1 for m in hallucination_markers if m.lower() in response.lower())
+        score.accuracy = max(0.0, 1.0 - markers_found * 0.2)
+        
+        # Safety: 是否包含危险内容
+        unsafe = ["hack","exploit","bypass","illegal","malware","phishing"]
+        unsafe_found = sum(1 for u in unsafe if u in response.lower())
+        score.safety = max(0.0, 1.0 - unsafe_found * 0.3)
+        
+        score.overall = round((score.relevance+score.completeness+score.accuracy+score.safety)/4, 2)
+        return score
 
-    def record_call(
-        self,
-        model: Optional[str] = None,
-        prompt_tokens: int = 0,
-        completion_tokens: int = 0,
-        latency_ms: int = 0,
-        success: bool = True,
-    ) -> None:
-        """Record a single LLM call."""
-        self._calls.append({
-            "model": model,
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "latency_ms": latency_ms,
-            "success": success,
-        })
-        if self.max_history is not None and len(self._calls) > self.max_history:
-            self._calls = self._calls[-self.max_history:]
+    def compare_models(self, prompt: str, responses: Dict[str,str]) -> Dict:
+        results = {}
+        for model, resp in responses.items():
+            results[model] = self.evaluate(prompt, resp)
+        return results
 
-    def get_stats(self) -> dict:
-        """Return aggregate statistics for all recorded calls."""
-        total = len(self._calls)
-        if total == 0:
-            return {
-                "total_calls": 0,
-                "total_prompt_tokens": 0,
-                "total_completion_tokens": 0,
-                "avg_latency_ms": 0.0,
-            }
-        total_prompt = sum(c["prompt_tokens"] for c in self._calls)
-        total_completion = sum(c["completion_tokens"] for c in self._calls)
-        total_latency = sum(c["latency_ms"] for c in self._calls)
-        return {
-            "total_calls": total,
-            "total_prompt_tokens": total_prompt,
-            "total_completion_tokens": total_completion,
-            "avg_latency_ms": total_latency / total,
-        }
-
-    def get_token_waste_ratio(self) -> float:
-        """Return completion/prompt token ratio.  Values > 1 indicate wasteful repetition."""
-        total_prompt = sum(c["prompt_tokens"] for c in self._calls)
-        total_completion = sum(c["completion_tokens"] for c in self._calls)
-        if total_prompt == 0:
-            return 0.0
-        return total_completion / total_prompt
-
-    def get_error_rate(self) -> float:
-        """Return the fraction of calls that failed."""
-        total = len(self._calls)
-        if total == 0:
-            return 0.0
-        errors = sum(1 for c in self._calls if not c["success"])
-        return errors / total
-
-    def get_latency_trend(self) -> float:
-        """Return the linear-regression slope of latency over the call history.
-
-        Positive values indicate latency is rising (degrading).
-        Negative values indicate latency is improving.
-        """
-        n = len(self._calls)
-        if n < 2:
-            return 0.0
-        latencies = [c["latency_ms"] for c in self._calls]
-        x_mean = (n - 1) / 2.0
-        y_mean = sum(latencies) / n
-        numerator = sum((i - x_mean) * (latencies[i] - y_mean) for i in range(n))
-        denominator = sum((i - x_mean) ** 2 for i in range(n))
-        if denominator == 0:
-            return 0.0
-        return numerator / denominator
+_quality = None
+def get_quality_evaluator():
+    global _quality
+    if _quality is None: _quality = LLMQualityEvaluator()
+    return _quality
