@@ -18,6 +18,11 @@ class LLMQualityEvaluator:
     def evaluate(self, prompt: str, response: str) -> QualityScore:
         score = QualityScore()
         
+        # Handle empty input
+        if not prompt.strip() or not response.strip():
+            score.overall = 0.0
+            return score
+        
         # Relevance: 回复是否包含prompt关键词
         prompt_words = set(re.findall(r'\w+', prompt.lower()))
         resp_words = set(re.findall(r'\w+', response.lower()))

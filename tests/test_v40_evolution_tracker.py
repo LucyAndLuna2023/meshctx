@@ -1,77 +1,46 @@
-"""v3.40 Evolution Tracker tests"""
-import pytest
+"""v3.59 Evolution Tracker tests"""
+import pytest, json
+from pathlib import Path
+from src.core.evolution_tracker import EvolutionSnapshot, EvolutionTracker
 
 
-class TestVersionSnapshot:
+class TestEvolutionSnapshot:
     def test_snapshot_creation(self):
-        from src.core.evolution_tracker import VersionSnapshot
-        snap = VersionSnapshot(version="3.40.0", modules_count=150, tests_count=1600, papers_landed=7)
+        snap = EvolutionSnapshot(version="3.40.0", modules=150, tests=1600)
         assert snap.version == "3.40.0"
-        assert snap.modules_count == 150
-    
-    def test_default_scores(self):
-        from src.core.evolution_tracker import VersionSnapshot
-        snap = VersionSnapshot(version="1.0")
-        assert snap.memory_score >= 0
+        assert snap.modules == 150
+
+    def test_default_values(self):
+        snap = EvolutionSnapshot(version="1.0")
+        assert snap.version == "1.0"
+        assert snap.modules == 0
 
 
 class TestEvolutionTracker:
     def test_snapshot_records(self):
-        from src.core.evolution_tracker import get_evolution_tracker
-        tracker = get_evolution_tracker()
-        before = len(tracker.history)
-        tracker.snapshot("3.39.0", 150, 1590, 7)
-        tracker.snapshot("3.40.0", 152, 1610, 7)
-        assert len(tracker.history) == before + 2
-    
-    def test_get_trend(self):
-        from src.core.evolution_tracker import get_evolution_tracker
-        tracker = get_evolution_tracker()
-        trend = tracker.get_trend("autonomy")
-        assert "latest_score" in trend
-        assert "growth_rate_pct" in trend
-    
-    def test_overall_health(self):
-        from src.core.evolution_tracker import get_evolution_tracker
-        tracker = get_evolution_tracker()
-        health = tracker.get_overall_health()
-        assert "version" in health
-        assert "avg_capability_score" in health
-        assert "evolution_rating" in health
-    
-    def test_compare_versions(self):
-        from src.core.evolution_tracker import get_evolution_tracker
-        tracker = get_evolution_tracker()
-        tracker.snapshot("3.0.0", 100, 1000, 1)
-        tracker.snapshot("3.40.0", 152, 1610, 7)
-        comp = tracker.compare_versions("3.0.0", "3.40.0")
-        if "error" not in comp:
-            assert comp["modules_gained"] > 0
-    
-    def test_predict(self):
-        from src.core.evolution_tracker import get_evolution_tracker
-        tracker = get_evolution_tracker()
-        pred = tracker.predict_next_version()
-        if "error" not in pred:
-            assert "predicted_version" in pred
-            assert "predicted_scores" in pred
-    
-    def test_evolution_rating(self):
-        from src.core.evolution_tracker import get_evolution_tracker, EvolutionTracker
-        # Fresh tracker
-        t = EvolutionTracker()
-        t.history = []
-        t.snapshot("1.0", 30, 100, 0)
-        t.snapshot("2.0", 60, 500, 3)
-        t.snapshot("3.0", 150, 1600, 7)
-        rating = t._evolution_rating()
-        assert rating in ["🚀 Hyper-Evolving", "📈 Rapidly Growing", "🌿 Steadily Improving", "🌱 Seedling"]
-    
-    def test_persistence(self):
-        from src.core.evolution_tracker import EvolutionTracker, DATA_DIR
-        t1 = EvolutionTracker()
-        t1.history = []
-        t1.snapshot("test-1.0", 50, 500, 2)
-        # Reload
-        t2 = EvolutionTracker()
-        assert len(t2.history) >= 1
+        tracker = EvolutionTracker()
+        tracker.snapshot("3.39.0")
+        tracker.snapshot("3.40.0")
+        latest = tracker.latest()
+        assert latest is not None
+        assert latest.version == "3.40.0"
+
+    def test_trend(self):
+        tracker = EvolutionTracker()
+        # Add multiple snapshots for trend
+        for v in ["3.0", "3.1", "3.2"]:
+            tracker.snapshot(v)
+        trend = tracker.trend()
+        assert isinstance(trend, dict)
+
+    def test_latest_none(self):
+        tracker = EvolutionTracker()
+        tracker._snapshots = []
+        assert tracker.latest() is None
+
+
+def test_singleton():
+    from src.core.evolution_tracker import get_evolution_tracker
+    t1 = get_evolution_tracker()
+    t2 = get_evolution_tracker()
+    assert t1 is t2

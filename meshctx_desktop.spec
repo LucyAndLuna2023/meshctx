@@ -229,7 +229,7 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(pyz, a.scripts, a.binaries, a.zipfiles, a.datas, [],
-    name='meshctx-desktop', debug=False, strip=False, upx=True,
+    name='meshctx-desktop', debug=False, strip=False, upx=False,
     console=True, icon='logo.ico',
     version='version_info.txt')
 

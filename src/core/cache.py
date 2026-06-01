@@ -13,7 +13,7 @@ class CacheEntry:
     key: str; value: Any; hits: int=0; created: float=field(default_factory=time.time)
 
 class SemanticCache:
-    def __init__(self, max_size: int=200, similarity_threshold: float=0.85):
+    def __init__(self, max_size: int=200, similarity_threshold: float=0.4):
         self._cache: OrderedDict=OrderedDict(); self._max=max_size
         self._threshold=similarity_threshold; self._hits=0; self._misses=0
     
