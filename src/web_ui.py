@@ -228,27 +228,28 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
     <link rel="apple-touch-icon" href="/ui/icon-192.png">
     <link rel="apple-touch-icon" sizes="192x192" href="/ui/icon-192.png">
     <link rel="apple-touch-icon" sizes="512x512" href="/ui/icon-512.png">
+<script>window.__i18n = {{ __i18n_json | safe }}; window.__lang = '{{ __lang }}'; window.__t = function(k){ return (window.__i18n && window.__i18n[k]) || k; };</script>
 </head>
 <body>
 <div class="header">
     <h1>🧠 meshctx</h1>
     <div class="nav">
-        <a href="/ui/" class="{% if request.url.path == '/ui/' %}active{% endif %}">仪表板</a>
-        <a href="/ui/projects" class="{% if '/ui/projects' in request.url.path %}active{% endif %}">项目</a>
-        <a href="/ui/memories" class="{% if '/ui/memories' in request.url.path %}active{% endif %}">记忆</a>
-        <a href="/ui/continuity" class="{% if '/ui/continuity' in request.url.path %}active{% endif %}">连续性</a>
+        <a href="/ui/" class="{% if request.url.path == '/ui/' %}active{% endif %}">{{ t("dashboard") }}</a>
+        <a href="/ui/projects" class="{% if '/ui/projects' in request.url.path %}active{% endif %}">{{ t("projects") }}</a>
+        <a href="/ui/memories" class="{% if '/ui/memories' in request.url.path %}active{% endif %}">{{ t("memories") }}</a>
+        <a href="/ui/continuity" class="{% if '/ui/continuity' in request.url.path %}active{% endif %}">{{ t("continuity") }}</a>
         <a href="/ui/memory" class="{% if '/ui/memory' in request.url.path %}active{% endif %}">🧠 Memory</a>
         <a href="/ui/chat" class="{% if '/ui/chat' in request.url.path %}active{% endif %}">Chat</a>
         <a href="/ui/setup" class="{% if '/ui/setup' in request.url.path %}active{% endif %}">Setup</a>
         <a href="/ui/dashboard" class="{% if '/ui/dashboard' in request.url.path %}active{% endif %}">📊</a>
-        <a href="/ui/plugins" class="{% if '/ui/plugins' in request.url.path %}active{% endif %}">🔌 插件</a>
-        <a href="/ui/files" class="{% if '/ui/files' in request.url.path %}active{% endif %}">📁 文件</a>
+        <a href="/ui/plugins" class="{% if '/ui/plugins' in request.url.path %}active{% endif %}">🔌 {{ t("plugins") }}</a>
+        <a href="/ui/files" class="{% if '/ui/files' in request.url.path %}active{% endif %}">📁 {{ t("files") }}</a>
         <a href="/docs" target="_blank" class="" style="color:#f59e0b;">📚 API</a>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
         <select id="langSelect" onchange="switchLang(this.value)" 
                 style="background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:4px;font-size:12px;cursor:pointer;">
-            <option value="zh">中文</option>
+            <option value="zh">{{ t("chinese") }}</option>
             <option value="en">English</option>
             <option value="ja">日本語</option>
             <option value="ko">한국어</option>
@@ -256,7 +257,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
             <option value="de">Deutsch</option>
             <option value="es">Español</option>
         </select>
-        <button onclick="toggleTheme()" id="themeToggle" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:4px;font-size:14px;cursor:pointer;margin-left:4px;transition:border-color 0.3s ease,color 0.3s ease;" title="切换深色/浅色主题">🌙</button>
+        <button onclick="toggleTheme()" id="themeToggle" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:4px;font-size:14px;cursor:pointer;margin-left:4px;transition:border-color 0.3s ease,color 0.3s ease;" title="{{ t("toggle_theme") }}">🌙</button>
     </div>
 </div>
 <div class="main">
@@ -267,7 +268,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
     <div class="cmd-panel">
         <div class="cmd-search-wrap">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input class="cmd-search" id="cmdSearch" type="text" placeholder="输入命令搜索..." autocomplete="off" oninput="filterCommands()" onkeydown="handleCmdKey(event)">
+            <input class="cmd-search" id="cmdSearch" type="text" placeholder="{{ t("cmd_search_placeholder") }}" autocomplete="off" oninput="filterCommands()" onkeydown="handleCmdKey(event)">
         </div>
         <div class="cmd-list" id="cmdList"></div>
     </div>
@@ -346,20 +347,20 @@ if ('serviceWorker' in navigator) {
 }
 // ═══ Ctrl+K 全局命令面板 ═══
 var cmdCommands = [
-    { group: '导航', icon: '💬', label: 'Chat',       hint: '/ui/chat',       action: function(){ location.href='/ui/chat'; } },
-    { group: '导航', icon: '📊', label: 'Dashboard',  hint: '/ui/dashboard',   action: function(){ location.href='/ui/dashboard'; } },
-    { group: '导航', icon: '📁', label: 'Files',      hint: '/ui/files',       action: function(){ location.href='/ui/files'; } },
-    { group: '导航', icon: '🧠', label: 'Memory',     hint: '/ui/memory',      action: function(){ location.href='/ui/memory'; } },
-    { group: '导航', icon: '⚙️', label: 'Setup',      hint: '/ui/setup',       action: function(){ location.href='/ui/setup'; } },
-    { group: '导航', icon: '🤖', label: 'Models',     hint: '/ui/models',      action: function(){ location.href='/ui/models'; } },
-    { group: '导航', icon: '📋', label: '仪表板',     hint: '/ui/',             action: function(){ location.href='/ui/'; } },
-    { group: '导航', icon: '📦', label: '项目',       hint: '/ui/projects',    action: function(){ location.href='/ui/projects'; } },
-    { group: '导航', icon: '📝', label: '记忆列表',   hint: '/ui/memories',    action: function(){ location.href='/ui/memories'; } },
-    { group: '导航', icon: '🔗', label: '连续性',     hint: '/ui/continuity',  action: function(){ location.href='/ui/continuity'; } },
-    { group: '导航', icon: '🔌', label: '插件',       hint: '/ui/plugins',     action: function(){ location.href='/ui/plugins'; } },
-    { group: '操作', icon: '🌓', label: '切换深色/浅色主题', hint: 'Toggle theme', action: function(){ toggleTheme(); closeCmdPalette(); } },
-    { group: '操作', icon: '🔄', label: '刷新页面',   hint: 'Reload',          action: function(){ location.reload(); } },
-    { group: '操作', icon: '📚', label: 'API 文档',   hint: '/docs',           action: function(){ window.open('/docs','_blank'); } }
+    { group: window.__t('cmd_nav')||'导航', icon: '💬', label: 'Chat',       hint: '/ui/chat',       action: function(){ location.href='/ui/chat'; } },
+    { group: window.__t('cmd_nav')||'导航', icon: '📊', label: 'Dashboard',  hint: '/ui/dashboard',   action: function(){ location.href='/ui/dashboard'; } },
+    { group: window.__t('cmd_nav')||'导航', icon: '📁', label: 'Files',      hint: '/ui/files',       action: function(){ location.href='/ui/files'; } },
+    { group: window.__t('cmd_nav')||'导航', icon: '🧠', label: 'Memory',     hint: '/ui/memory',      action: function(){ location.href='/ui/memory'; } },
+    { group: window.__t('cmd_nav')||'导航', icon: '⚙️', label: 'Setup',      hint: '/ui/setup',       action: function(){ location.href='/ui/setup'; } },
+    { group: window.__t('cmd_nav')||'导航', icon: '🤖', label: 'Models',     hint: '/ui/models',      action: function(){ location.href='/ui/models'; } },
+    { group: window.__t('cmd_nav')||'导航', icon: '📋', label: window.__t('dashboard')||'仪表板',     hint: '/ui/',             action: function(){ location.href='/ui/'; } },
+    { group: window.__t('cmd_nav')||'导航', icon: '📦', label: window.__t('projects')||'项目',       hint: '/ui/projects',    action: function(){ location.href='/ui/projects'; } },
+    { group: window.__t('cmd_nav')||'导航', icon: '📝', label: window.__t('cmd_memories_list')||'记忆列表',   hint: '/ui/memories',    action: function(){ location.href='/ui/memories'; } },
+    { group: window.__t('cmd_nav')||'导航', icon: '🔗', label: window.__t('continuity')||'连续性',     hint: '/ui/continuity',  action: function(){ location.href='/ui/continuity'; } },
+    { group: window.__t('cmd_nav')||'导航', icon: '🔌', label: window.__t('plugins')||'插件',       hint: '/ui/plugins',     action: function(){ location.href='/ui/plugins'; } },
+    { group: window.__t('cmd_actions')||'操作', icon: '🌓', label: window.__t('cmd_toggle_theme')||'切换深色/浅色主题', hint: 'Toggle theme', action: function(){ toggleTheme(); closeCmdPalette(); } },
+    { group: window.__t('cmd_actions')||'操作', icon: '🔄', label: window.__t('cmd_reload')||'刷新页面',   hint: 'Reload',          action: function(){ location.reload(); } },
+    { group: window.__t('cmd_actions')||'操作', icon: '📚', label: window.__t('cmd_api_docs')||'API 文档',   hint: '/docs',           action: function(){ window.open('/docs','_blank'); } }
 ];
 var cmdSelected = -1;
 var cmdFiltered = [];
@@ -434,7 +435,7 @@ document.addEventListener('keydown', function(e) {
 
 _TEMPLATES["memory.html"] = r"""{% extends "base.html" %}
 {% block content %}
-<h2 style="margin-bottom:16px;">🧠 记忆仪表板</h2>
+<h2 style="margin-bottom:16px;">🧠 {{ t("memories") }}</h2>
 
 <!-- ═══ 统计卡片 ═══ -->
 <div class="stats" id="statsRow">
@@ -811,25 +812,25 @@ _TEMPLATES["dashboard.html"] = r"""{% extends "base.html" %}
     <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
         <div style="font-size:40px;">🔑</div>
         <div style="flex:1;">
-            <h2 style="margin:0;color:#38bdf8;">欢迎使用 meshctx！</h2>
-            <p style="color:#94a3b8;margin:8px 0 0;">首次使用需要配置 AI 模型 API 密钥才能开始。</p>
+            <h2 style="margin:0;color:#38bdf8;">{{ t("welcome_title") }}</h2>
+            <p style="color:#94a3b8;margin:8px 0 0;">{{ t("welcome_desc") }}</p>
         </div>
-        <a href="/ui/setup" class="btn btn-primary" style="font-size:15px;padding:12px 24px;white-space:nowrap;">⚙️ 配置 API 密钥</a>
+        <a href="/ui/setup" class="btn btn-primary" style="font-size:15px;padding:12px 24px;white-space:nowrap;">{{ t("config_api_btn") }}</a>
     </div>
 </div>
 {% endif %}
 <div class="stats">
-    <div class="stat-card"><div class="value">{{ total_projects }}</div><div class="label">项目</div></div>
-    <div class="stat-card"><div class="value">{{ total_conversations }}</div><div class="label">会话</div></div>
-    <div class="stat-card"><div class="value">{{ total_memories }}</div><div class="label">记忆</div></div>
+    <div class="stat-card"><div class="value">{{ total_projects }}</div><div class="label">{{ t("projects_label") }}</div></div>
+    <div class="stat-card"><div class="value">{{ total_conversations }}</div><div class="label">{{ t("sessions_label") }}</div></div>
+    <div class="stat-card"><div class="value">{{ total_memories }}</div><div class="label">{{ t("memories_label") }}</div></div>
     <div class="stat-card"><div class="value">{{ total_agents }}</div><div class="label">Agent</div></div>
-    <div class="stat-card"><div class="value">{{ total_sessions }}</div><div class="label">活跃会话</div></div>
+    <div class="stat-card"><div class="value">{{ total_sessions }}</div><div class="label">{{ t("active_sessions_label") }}</div></div>
 </div>
 
-<h2 style="margin-bottom:16px;">📊 项目概览</h2>
+<h2 style="margin-bottom:16px;">{{ t("project_overview") }}</h2>
 {% if project_data %}
 <table>
-    <thead><tr><th>项目</th><th>状态</th><th>会话</th><th>记忆</th><th>连续性</th><th>更新时间</th></tr></thead>
+    <thead><tr><th>{{ t("project_label") }}</th><th>{{ t("status") }}</th><th>{{ t("sessions_label") }}</th><th>{{ t("memories_label") }}</th><th>{{ t("continuity") }}</th><th>{{ t("updated") }}</th></tr></thead>
     <tbody>
     {% for d in project_data %}
     <tr>
@@ -844,7 +845,7 @@ _TEMPLATES["dashboard.html"] = r"""{% extends "base.html" %}
     </tbody>
 </table>
 {% else %}
-<div class="empty">📭 暂无项目，<a href="/ui/projects">创建一个</a></div>
+<div class="empty">{{ t("no_projects") }}<a href="/ui/projects">{{ t("create_one") }}</a></div>
 {% endif %}
 {% endblock %}"""
 
@@ -867,7 +868,7 @@ _TEMPLATES["projects.html"] = r"""{% extends "base.html" %}
 
 {% if projects %}
 <table>
-    <thead><tr><th>名称</th><th>描述</th><th>会话</th><th>记忆</th><th>连续性</th><th>操作</th></tr></thead>
+    <thead><tr><th>{{ t("name") }}</th><th>{{ t("no_description") }}</th><th>{{ t("sessions_label") }}</th><th>{{ t("memories_label") }}</th><th>{{ t("continuity") }}</th><th>{{ t("actions") }}</th></tr></thead>
     <tbody>
     {% for p in projects %}
     <tr>
@@ -877,7 +878,7 @@ _TEMPLATES["projects.html"] = r"""{% extends "base.html" %}
         <td>{{ p.mem_count }}</td>
         <td><span style="color:{{ continuity_color(p.continuity.continuity_score) }}">{{ continuity_label(p.continuity.continuity_score) }}</span></td>
         <td>
-            <form method="POST" action="/ui/projects/{{ p.project.id }}/delete" style="display:inline" onsubmit="return confirm('确定删除?')">
+            <form method="POST" action="/ui/projects/{{ p.project.id }}/delete" style="display:inline" onsubmit="return confirm(window.__t('delete_confirm')||'确定删除?')">
                 <button class="btn btn-danger" style="padding:4px 10px;font-size:12px;">删除</button>
             </form>
         </td>
@@ -896,20 +897,20 @@ _TEMPLATES["project_detail.html"] = r"""{% extends "base.html" %}
     <h2>📁 {{ project.name }}</h2>
     <span class="badge {% if project.status == 'active' %}badge-active{% else %}badge-inactive{% endif %}">{{ project.status }}</span>
 </div>
-<p style="color:#94a3b8;margin-bottom:16px;">{{ project.description or '无描述' }}</p>
+<p style="color:#94a3b8;margin-bottom:16px;">{{ project.description or t('no_description') }}</p>
 
 <div class="card">
     <h2>📈 连续性</h2>
-    <p>得分: <span style="color:{{ continuity_color(continuity.continuity_score) }};font-size:24px;font-weight:700;">{{ "%.2f"|format(continuity.continuity_score) }}</span>
+    <p>{{ t("score_label") }}: <span style="color:{{ continuity_color(continuity.continuity_score) }};font-size:24px;font-weight:700;">{{ "%.2f"|format(continuity.continuity_score) }}</span>
     — {{ continuity_label(continuity.continuity_score) }}</p>
-    {% if continuity.last_active %}<p style="color:#64748b;font-size:13px;">最后活动: {{ format_dt(continuity.last_active) }}</p>{% endif %}
+    {% if continuity.last_active %}<p style="color:#64748b;font-size:13px;">{{ t('last_active_label') }}: {{ format_dt(continuity.last_active) }}</p>{% endif %}
 </div>
 
 <div class="card">
     <h2>💬 会话 ({{ conversations|length }})</h2>
     {% if conversations %}
     <table>
-        <thead><tr><th>标题</th><th>消息</th><th>活跃Agent</th><th>更新时间</th></tr></thead>
+        <thead><tr><th>{{ t("title_label") }}</th><th>{{ t("message_count_label") }}</th><th>{{ t("active_agents_label") }}</th><th>{{ t("updated") }}</th></tr></thead>
         <tbody>
         {% for c in conversations %}
         <tr>
@@ -921,7 +922,7 @@ _TEMPLATES["project_detail.html"] = r"""{% extends "base.html" %}
         {% endfor %}
         </tbody>
     </table>
-    {% else %}<div class="empty">暂无会话</div>{% endif %}
+    {% else %}<div class="empty">{{ t("no_conversations") }}</div>{% endif %}
 </div>
 
 <div class="card">
@@ -933,7 +934,7 @@ _TEMPLATES["project_detail.html"] = r"""{% extends "base.html" %}
         {{ truncate(m.content or '', 100) }}
     </div>
     {% endfor %}
-    {% else %}<div class="empty">暂无记忆</div>{% endif %}
+    {% else %}<div class="empty">{{ t("no_memories") }}</div>{% endif %}
 </div>
 {% endblock %}"""
 
@@ -943,7 +944,7 @@ _TEMPLATES["conversation.html"] = r"""{% extends "base.html" %}
     <h2>💬 {{ conversation.title }}</h2>
     {% if project %}<span style="color:#64748b;">项目: <a href="/ui/projects/{{ project.id }}">{{ project.name }}</a></span>{% endif %}
 </div>
-<p style="color:#64748b;font-size:13px;margin-bottom:16px;">创建: {{ format_dt(conversation.created_at) }} | 更新: {{ format_dt(conversation.updated_at) }}</p>
+<p style="color:#64748b;font-size:13px;margin-bottom:16px;">{{ t('created_label') }}: {{ format_dt(conversation.created_at) }} | {{ t('updated_label') }}: {{ format_dt(conversation.updated_at) }}</p>
 
 <div class="card">
     <h2>消息 ({{ messages|length }})</h2>
@@ -963,11 +964,11 @@ _TEMPLATES["conversation.html"] = r"""{% extends "base.html" %}
 
 _TEMPLATES["memories.html"] = r"""{% extends "base.html" %}
 {% block content %}
-<h2 style="margin-bottom:16px;">🧠 记忆浏览</h2>
+<h2 style="margin-bottom:16px;">🧠 {{ t("memories") }}</h2>
 
 {% if memories %}
 <table>
-    <thead><tr><th>重要性</th><th>项目</th><th>内容</th><th>时间</th><th>操作</th></tr></thead>
+    <thead><tr><th>{{ t("importance") }}</th><th>{{ t("project_label") }}</th><th>{{ t("content_col") }}</th><th>{{ t("time") }}</th><th>{{ t("actions") }}</th></tr></thead>
     <tbody>
     {% for m in memories %}
     <tr>
@@ -976,7 +977,7 @@ _TEMPLATES["memories.html"] = r"""{% extends "base.html" %}
         <td>{{ truncate(m.memory.content or '', 60) }}</td>
         <td style="font-size:12px;">{{ format_dt(m.memory.created_at) }}</td>
         <td>
-            <form method="POST" action="/ui/memories/{{ m.memory.id }}/delete" style="display:inline" onsubmit="return confirm('确定删除?')">
+            <form method="POST" action="/ui/memories/{{ m.memory.id }}/delete" style="display:inline" onsubmit="return confirm(window.__t('delete_confirm')||'确定删除?')">
                 <button class="btn btn-danger" style="padding:2px 8px;font-size:11px;">删除</button>
             </form>
         </td>
@@ -987,9 +988,9 @@ _TEMPLATES["memories.html"] = r"""{% extends "base.html" %}
 {% else %}
 <div class="empty">
         <p style="font-size:48px;margin-bottom:16px;">🧠</p>
-        <h3>还没有记忆</h3>
-        <p style="color:#64748b;margin-top:8px;">创建项目并开始对话后，meshctx会自动从对话中提取重要信息作为记忆。</p>
-        <a href="/ui/projects" class="btn btn-primary" style="margin-top:16px;">创建项目 →</a>
+        <h3>{{ t("no_memories_yet") }}</h3>
+        <p style="color:#64748b;margin-top:8px;">{{ t("no_memories_desc") }}</p>
+        <a href="/ui/projects" class="btn btn-primary" style="margin-top:16px;">{{ t("create_project_btn") }}</a>
     </div>
 {% endif %}
 {% endblock %}"""
@@ -1001,13 +1002,13 @@ _TEMPLATES["continuity.html"] = r"""{% extends "base.html" %}
 
 {% if data %}
 <table>
-    <thead><tr><th>项目</th><th>得分</th><th>状态</th><th>会话数</th><th>记忆数</th><th>活跃会话</th><th>最后活跃</th></tr></thead>
+    <thead><tr><th>{{ t("project_label") }}</th><th>{{ t("score_header") }}</th><th>{{ t("status") }}</th><th>{{ t("sessions_count") }}</th><th>{{ t("memories_count") }}</th><th>{{ t("active_sessions") }}</th><th>{{ t("last_active") }}</th></tr></thead>
     <tbody>
     {% for d in data %}
     <tr>
         <td><a href="/ui/projects/{{ d.project.id }}">{{ d.project.name }}</a></td>
         <td><span style="color:{{ continuity_color(d.continuity.continuity_score) }};font-weight:700;">{{ "%.2f"|format(d.continuity.continuity_score) }}</span></td>
-        <td><span class="badge {% if d.continuity.is_continuous %}badge-active{% else %}badge-inactive{% endif %}">{{ "连续" if d.continuity.is_continuous else "断裂" }}</span></td>
+        <td><span class="badge {% if d.continuity.is_continuous %}badge-active{% else %}badge-inactive{% endif %}">{{ t("continuous_status") if d.continuity.is_continuous else t("broken_status") }}</span></td>
         <td>{{ d.continuity.conversation_count }}</td>
         <td>{{ d.continuity.memory_count }}</td>
         <td>{{ d.continuity.active_session_count }}/{{ d.continuity.total_session_count }}</td>
@@ -4479,10 +4480,17 @@ function refreshProjectIndex(){
 
 
 # ── DictLoader 初始化 ───────────────────────────────────────────
+from src.i18n import t as i18n_t, get_lang as i18n_get_lang, TRANSLATIONS as i18n_translations
 _jinja_env = Environment(loader=DictLoader(_TEMPLATES), autoescape=False)
+_jinja_env.globals['t'] = i18n_t
+_jinja_env.globals['lang'] = i18n_get_lang
 
 def _render(template_name: str, context: dict) -> HTMLResponse:
     """渲染 Jinja2 模板（从内嵌 DictLoader）"""
+    # 自动注入当前语言翻译数据（供JS使用）
+    lang = i18n_get_lang()
+    context['__i18n_json'] = __import__('json').dumps(i18n_translations.get(lang, i18n_translations.get('en', {})), ensure_ascii=False)
+    context['__lang'] = lang
     template = _jinja_env.get_template(template_name)
     html = template.render(**context)
     return HTMLResponse(html)
