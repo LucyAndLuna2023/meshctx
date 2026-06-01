@@ -292,6 +292,7 @@ except ImportError:
 
 # v3.36: JEPA World Model (杨立昆世界模型)
 try:
+    from .jepa_router import (JEPARouter,TaskEncoding,get_jepa_router,)
     from .jepa_world_model import (
         JEPAWorldModel, NonGenerativeRouter, UnifiedScorer,
         JEPAConfig, JEPAEncoder, JEPAPredictor, WorldState,
