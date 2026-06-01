@@ -153,7 +153,6 @@ a = Analysis(
         'src.core.webhook',
         'src.core.websocket_plugin',
         'src.core.win_admin',
-        'src.core.workflow_engine',
         'src.core.workspace_manager',
         'src.core.agent_factory',
         'src.core.agents_md',
@@ -229,6 +228,9 @@ a = Analysis(
         'src.core.voice_chat',
         'src.core.vector_db',
         'src.core.prompt_optimizer',
+        'src.core.memory_compactor',
+        'src.core.agent_swarm_v2',
+        'src.core.workflow_engine',
         # Common deps
 # Common deps
         'yaml', 'openai', 'httpx', 'fastapi', 'uvicorn',
@@ -253,6 +255,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.106.0',
-            'CFBundleVersion': '3.106.0',
+            'CFBundleShortVersionString': '3.109.0',
+            'CFBundleVersion': '3.109.0',
         }, version='version_info.txt')

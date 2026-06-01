@@ -523,7 +523,36 @@ except ImportError:
     BackupManifest = BackupEntry = BackupResult = RestoreResult = _brain_noop
     get_backup_vault = reset_backup_vault = _brain_noop
 
+# v3.109 Agent Swarm V2
+from .agent_swarm_v2 import (
+    AgentSwarmV2, SwarmAgent, AgentRole, RoleType, RoleCapability,
+    DynamicRoleManager, ConsensusEngine, ConsensusStrategy, ConsensusResult,
+    Vote, TaskMarket, MarketTask, MarketTaskStatus, Bid,
+    SelfOrganizingTopology, TopologyType, TopologyConfig, TopologyNode,
+    get_agent_swarm_v2, reset_agent_swarm_v2,
+)
+
+__version__ = "3.109.0"
+from .memory_compactor import (
+    MemoryCompactor as MemoryCompactorV3, MemoryEntry, MemoryTier,
+    CompressionStrategy, CompactionResult, TierMigrationResult,
+    RetrievalResult, CompactionStats,
+    get_memory_compactor, reset_memory_compactor,
+)
+
 # v3.104 Vector DB (向量数据库)
+try:
+    from .workflow_engine import (
+        WorkflowEngine, WorkflowNode, WorkflowEdge,
+        NodeStatus, NodeType, ExecutionContext,
+        get_workflow_engine, reset_workflow_engine,
+    )
+except ImportError:
+    WorkflowEngine = WorkflowNode = WorkflowEdge = _brain_noop
+    NodeStatus = NodeType = ExecutionContext = _brain_noop
+    get_workflow_engine = reset_workflow_engine = _brain_noop
+
+# v3.104 Vector DB (向量数据库) [duplicated section header — actual v3.107 above]
 from .vector_db import (
     VectorDB, VectorDBConfig, VectorDocument, SearchHit, SearchResult,
     SearchType, Backend, SimpleEncoder, KeywordIndex, BuiltinBackend,
@@ -538,7 +567,6 @@ from .prompt_optimizer import (
     get_prompt_optimizer, reset_prompt_optimizer,
 )
 
-__version__ = "3.106.0"
 from .web_crawler import (
     WebCrawler, CrawlResult, CrawlConfig, SitemapEntry, RobotsChecker,
     html_to_markdown, extract_links, extract_title,
@@ -732,4 +760,19 @@ __all__ = [
     "BackupVault", "BackupType", "BackupTarget", "BackupStatus",
     "BackupManifest", "BackupEntry", "BackupResult", "RestoreResult",
     "get_backup_vault", "reset_backup_vault",
+    # v3.107 Workflow Engine
+    "WorkflowEngine", "WorkflowNode", "WorkflowEdge",
+    "NodeStatus", "NodeType", "ExecutionContext",
+    "get_workflow_engine", "reset_workflow_engine",
+    # v3.108 Memory Compactor
+    "MemoryCompactorV3", "MemoryEntry", "MemoryTier",
+    "CompressionStrategy", "CompactionResult", "TierMigrationResult",
+    "RetrievalResult", "CompactionStats",
+    "get_memory_compactor", "reset_memory_compactor",
+    # v3.109 Agent Swarm V2
+    "AgentSwarmV2", "SwarmAgent", "AgentRole", "RoleType", "RoleCapability",
+    "DynamicRoleManager", "ConsensusEngine", "ConsensusStrategy", "ConsensusResult",
+    "Vote", "TaskMarket", "MarketTask", "MarketTaskStatus", "Bid",
+    "SelfOrganizingTopology", "TopologyType", "TopologyConfig", "TopologyNode",
+    "get_agent_swarm_v2", "reset_agent_swarm_v2",
 ]
