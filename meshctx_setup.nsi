@@ -1,6 +1,5 @@
-﻿; meshctx Desktop NSIS v3.43 — 7语言完整本地化
-; 🔴 MUI_PAGE必须在MUI_LANGUAGE之前（NSIS官方要求）
-; 🔴 自定义radio运行时设置$LANGUAGE → 标准页面自动翻译
+﻿; meshctx Desktop NSIS v3.80 — 7语言本地化
+; .onInit语言选择→设$LANGUAGE→MUI_PAGE用标准翻译
 Unicode true
 !include "MUI2.nsh"
 !include "nsDialogs.nsh"
@@ -11,14 +10,13 @@ InstallDir "$PROGRAMFILES\MeshCtx"
 RequestExecutionLevel admin
 
 !define VERSION "3.80.0"
-VIProductVersion "3.47.0.0"
-VIAddVersionKey "FileVersion" "3.47.0"
-VIAddVersionKey "ProductVersion" "3.47.0"
+VIProductVersion "3.80.0.0"
+VIAddVersionKey "FileVersion" "3.80.0"
+VIAddVersionKey "ProductVersion" "3.80.0"
 VIAddVersionKey "ProductName" "MeshCtx Desktop"
 VIAddVersionKey "FileDescription" "MeshCtx Desktop Installer"
-VIAddVersionKey "LegalCopyright" "MIT License"
 
-; ── 自定义语言选择页 ──
+; ── 变量 ──
 Var Dialog
 Var RadioEn
 Var RadioZh
@@ -28,14 +26,15 @@ Var RadioDe
 Var RadioFr
 Var RadioEs
 
-Function LangPageCreate
+; ── .onInit: 在所有页面前弹出语言选择 ──
+Function .onInit
   nsDialogs::Create 1018
   Pop $Dialog
   ${If} $Dialog == error
     Abort
   ${EndIf}
   
-  ${NSD_CreateLabel} 0 0u 100% 12u "Select your language / 选择语言 / Sprache wählen:"
+  ${NSD_CreateLabel} 0 0u 100% 12u "Select your language / 选择语言 / Sprache wahlen:"
   Pop $0
   
   ${NSD_CreateRadioButton} 10u 20u 100% 12u "English"
@@ -54,62 +53,59 @@ Function LangPageCreate
   ${NSD_CreateRadioButton} 10u 80u 100% 12u "Deutsch (German)"
   Pop $RadioDe
   
-  ${NSD_CreateRadioButton} 10u 95u 100% 12u "Français (French)"
+  ${NSD_CreateRadioButton} 10u 95u 100% 12u "Francais (French)"
   Pop $RadioFr
   
-  ${NSD_CreateRadioButton} 10u 110u 100% 12u "Español (Spanish)"
+  ${NSD_CreateRadioButton} 10u 110u 100% 12u "Espanol (Spanish)"
   Pop $RadioEs
   
   nsDialogs::Show
-FunctionEnd
-
-Function LangPageLeave
+  
   ${NSD_GetState} $RadioEn $0
   ${If} $0 == 1
-    StrCpy $LANGUAGE 1033  ; English
-    Goto lang_done
+    StrCpy $LANGUAGE 1033
+    Goto init_done
   ${EndIf}
   ${NSD_GetState} $RadioZh $0
   ${If} $0 == 1
-    StrCpy $LANGUAGE 2052  ; SimpChinese
-    Goto lang_done
+    StrCpy $LANGUAGE 2052
+    Goto init_done
   ${EndIf}
   ${NSD_GetState} $RadioJa $0
   ${If} $0 == 1
-    StrCpy $LANGUAGE 1041  ; Japanese
-    Goto lang_done
+    StrCpy $LANGUAGE 1041
+    Goto init_done
   ${EndIf}
   ${NSD_GetState} $RadioKo $0
   ${If} $0 == 1
-    StrCpy $LANGUAGE 1042  ; Korean
-    Goto lang_done
+    StrCpy $LANGUAGE 1042
+    Goto init_done
   ${EndIf}
   ${NSD_GetState} $RadioDe $0
   ${If} $0 == 1
-    StrCpy $LANGUAGE 1031  ; German
-    Goto lang_done
+    StrCpy $LANGUAGE 1031
+    Goto init_done
   ${EndIf}
   ${NSD_GetState} $RadioFr $0
   ${If} $0 == 1
-    StrCpy $LANGUAGE 1036  ; French
-    Goto lang_done
+    StrCpy $LANGUAGE 1036
+    Goto init_done
   ${EndIf}
   ${NSD_GetState} $RadioEs $0
   ${If} $0 == 1
-    StrCpy $LANGUAGE 1034  ; Spanish
-    Goto lang_done
+    StrCpy $LANGUAGE 1034
+    Goto init_done
   ${EndIf}
-  lang_done:
+  init_done:
 FunctionEnd
 
-; ── 页面顺序 ──
-Page custom LangPageCreate LangPageLeave  ; 先语言选择
+; ── 标准页面 ──
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
-; 🔴 MUI_LANGUAGE必须在MUI_PAGE之后（编译时绑定翻译到标准页面）
+; ── 7语言定义(NSIS要求PAGE之后) ──
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "SimpChinese"
 !insertmacro MUI_LANGUAGE "Japanese"

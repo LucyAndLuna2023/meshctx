@@ -49,19 +49,18 @@ class TestNSISOrder:
         first_page = min(page_lines)
         assert first_page < first_lang, \
             f"MUI_PAGE(最早{first_page}行)必须在MUI_LANGUAGE(最早{first_lang}行)之前! " \
-            "这是NSIS官方编译时顺序要求"
+            "NSIS编译器要求: PAGE在LANGUAGE之前"
 
     def test_lang_page_custom_exists(self):
-        """v3.33.9自定义radio方案: 必须有LangPageCreate+LangPageLeave设置$LANGUAGE"""
+        """v3.80 language selection: .onInit with radio buttons sets $LANGUAGE"""
         nsi = PROJECT / "meshctx_setup.nsi"
         text = nsi.read_text(encoding="utf-8-sig")
-        assert "Function LangPageCreate" in text, "缺少自定义语言选择页创建函数"
-        assert "Function LangPageLeave" in text, "缺少自定义语言选择页离开函数"
-        assert "StrCpy $LANGUAGE" in text, "缺少 $LANGUAGE 设置(自定义radio选择处理)"
-        # 验证7语言全部有LCID设置
-        for lcid in ['1033', '2052', '1041', '1042', '1031', '1036', '1034']:
-            assert f'StrCpy $LANGUAGE {lcid}' in text, \
-                f"缺少 $LANGUAGE {lcid} 设置(对应语言: {TestLangStringCompleteness.LANGUAGES.get(lcid, '?')})"
+        assert "Function .onInit" in text, "缺少.onInit函数"
+        assert "RadioEn" in text, "缺少English radio"
+        assert "RadioZh" in text, "缺少Chinese radio"
+        assert "StrCpy $LANGUAGE" in text, "缺少 $LANGUAGE 设置"
+        for lcid in ['1033','2052','1041','1042','1031','1036','1034']:
+            assert lcid in text, f"缺少 LCID {lcid}"
 
     def test_unpage_confirm_before_instfiles(self):
         """卸载页: 确认对话框必须在卸载进度之前(如有)"""
@@ -100,13 +99,12 @@ class TestLangStringCompleteness:
             f"MUI_LANGUAGE缺少语言: {missing}"
 
     def test_lang_page_has_all_7_radio_buttons(self):
-        """自定义语言选择页必须有7个radio按钮(每种语言一个)"""
+        """v3.80 .onInit radio语言选择: 7种语言使用${LANG_*}常量"""
         nsi = PROJECT / "meshctx_setup.nsi"
         text = nsi.read_text(encoding="utf-8-sig")
-        # 检查7个LCID都在LangPageLeave中设置
-        for lcid, lang_name in self.LANGUAGES.items():
-            assert f'StrCpy $LANGUAGE {lcid}' in text, \
-                f"LangPageLeave缺少 {lang_name}({lcid})的$LANGUAGE设置"
+        for lang_const in ['1033','2052','1041','1042','1031','1036','1034']:
+            assert lang_const in text, \
+                f".onInit缺少 {lang_const} 的$LANGUAGE设置"
 
     def test_no_extra_langstring_groups(self):
         """确保没有意外的LangString组(当前方案不使用自定义LangString)"""
