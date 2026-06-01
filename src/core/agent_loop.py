@@ -51,6 +51,12 @@ except ImportError:
 from .learn_loop import LearnLoop
 from .cognitive_health import CognitiveHealthMonitor
 
+# P0-5 目标自检模块
+try:
+    from .goal_checker import get_goal_checker
+except ImportError:
+    def get_goal_checker(*a, **kw): return None
+
 logger = logging.getLogger("meshctx.agent")
 
 
@@ -995,7 +1001,10 @@ class AgentLoopPlugin(Plugin):
             task.phase = LoopPhase.DECIDE
             await self._advance_to_decide(task)
             return
-        
+
+        # P0-5 目标自检: Act后自动检查达成度
+        self._run_goal_check(task)
+
         # 学习阶段
         await self._advance_to_learn(task)
     
@@ -1305,6 +1314,52 @@ class AgentLoopPlugin(Plugin):
             },
         ))
     
+    def _run_goal_check(self, task: AgentTask) -> None:
+        """
+        P0-5: Act阶段后自动执行目标达成度检查。
+
+        在每次任务执行完毕后，调用 GoalChecker 评估目标完成情况。
+        结果会通过事件总线广播，供其他模块(如通知、仪表盘)消费。
+
+        Args:
+            task: 刚完成执行的Agent任务
+        """
+        try:
+            checker = get_goal_checker()
+            if checker is None:
+                return  # 模块不可用，静默跳过
+
+            # 使用任务描述作为目标文本
+            goal_text = task.description or task.decision.expected_outcome if task.decision else ""
+
+            if not goal_text or len(goal_text.strip()) < 3:
+                return  # 没有足够的目标信息
+
+            # 设置目标并检查
+            checker.set_goal(goal_text)
+            check_result = checker.check_completion()
+
+            # 记录日志
+            score = check_result.get("score", 0)
+            unfinished = check_result.get("unfinished", [])
+            if score < 60:
+                logger.warning(
+                    f"[目标自检] 达成度={score}/100 "
+                    f"未完成项={len(unfinished)} "
+                    f"目标: {goal_text[:60]}..."
+                )
+            else:
+                logger.debug(
+                    f"[目标自检] 达成度={score}/100 "
+                    f"目标: {goal_text[:60]}..."
+                )
+
+            # 将检查结果注入任务上下文
+            task.observation.context["goal_check"] = check_result if task.observation else None
+
+        except Exception as e:
+            logger.debug(f"[目标自检] 检查执行失败 (非致命): {e}")
+
     async def _autonomous_loop(self):
         """自主后台循环: 持续检测并处理待办任务"""
         while True:

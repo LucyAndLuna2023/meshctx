@@ -1,5 +1,11 @@
 # MeshCtx Changelog
 
+## [3.113.0] - 2026-06-02
+### Added
+- **Goal自检机制 (GoalChecker)**: 竞品对标Goose `/goal`命令。任务完成前自动评估达成度(0-100分)、未完成项列表、补救建议。双模式:关键词快速检查+LLM深度分析。集成到OODA循环Act阶段。API: GET/POST /api/goal/check。34个测试。(P0-5)
+- **代码审查增强 (CodeReviewer v2)**: 竞品对标Goose `review`命令。62条静态规则(Python 38+JS 19+通用5)。新增project_review(目录级扫描)、ai_deep_review(LLM深度审查)。CLI命令: `meshctx review <path>`。42个测试。(P0-4)
+- **竞品扫描报告**: 扫描5大竞品(OpenAI Codex/Claude Code/Cline/Aider/Goose CLI)，识别7个P0 gap+15个P1 gap
+
 ## [3.56.0] - 2026-05-31
 ### Added
 - Distributed Agent Mesh: 节点发现+任务分发(least_loaded/round_robin)+结果聚合+健康检测

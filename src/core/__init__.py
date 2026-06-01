@@ -169,7 +169,7 @@ from .feishu_notify import FeishuNotifier, FeishuPlugin
 from .win_admin import WindowsAdmin, WinResult, WinService, get_win_admin
 from .model_compare import compare_models, compare_models_stream, ModelCompareEngine, ModelResponse, CompareResult, get_compare_engine
 from .conversation_store import Conversation, get_or_create
-from .code_reviewer import CodeReviewer, ReviewIssue
+from .code_reviewer import CodeReviewer, ReviewIssue, PYTHON_PATTERNS, JAVASCRIPT_PATTERNS, GENERAL_PATTERNS, SEVERITY_ORDER
 from .agent_monitor import AgentMonitor, AgentMetrics, get_monitor
 from .plugin_autoload import discover_plugins, auto_activate_builtins
 from .agent_tasks import AgentTask
@@ -532,7 +532,26 @@ from .agent_swarm_v2 import (
     get_agent_swarm_v2, reset_agent_swarm_v2,
 )
 
-__version__ = "3.109.0"
+# v3.111 Data Pipeline (数据管道)
+from .data_pipeline import (
+    DataPipeline, DataRecord, DataSourceType, ProcessingMode,
+    ValidationLevel, PipelineState, PipelineStats,
+    DataSourceConnector, FileConnector, HttpConnector, MemoryConnector,
+    DataQualityValidator, ValidationRule, ValidationResult,
+    TransformFunc,
+    get_data_pipeline, reset_data_pipeline,
+)
+
+__version__ = "3.113.0"
+
+# v3.110 API Gateway
+from .api_gateway import (
+    APIGateway, BackendService, BackendHealth, Route,
+    AuthCredential, AuthResult, AuthMethod, Role,
+    CircuitBreaker, CircuitState, TokenBucket,
+    RateLimitConfig, GatewayMetrics,
+    get_gateway, reset_gateway,
+)
 from .memory_compactor import (
     MemoryCompactor as MemoryCompactorV3, MemoryEntry, MemoryTier,
     CompressionStrategy, CompactionResult, TierMigrationResult,
@@ -572,6 +591,22 @@ from .web_crawler import (
     html_to_markdown, extract_links, extract_title,
     get_web_crawler, reset_web_crawler,
 )
+
+# v3.112 Security Scanner
+from .security_scanner import (
+    SecurityScanner, ScanModule, Severity, Finding, ScanResult,
+    SecurityReport, get_security_scanner, reset_security_scanner,
+)
+
+# P0-5 Goal自检机制
+try:
+    from .goal_checker import (
+        GoalChecker, GoalCheckResult,
+        get_goal_checker, reset_goal_checker,
+    )
+except ImportError:
+    GoalChecker = GoalCheckResult = _brain_noop
+    get_goal_checker = reset_goal_checker = _brain_noop
 
 # v3.102 Plugin Market
 from .plugin_market import (
@@ -775,4 +810,23 @@ __all__ = [
     "Vote", "TaskMarket", "MarketTask", "MarketTaskStatus", "Bid",
     "SelfOrganizingTopology", "TopologyType", "TopologyConfig", "TopologyNode",
     "get_agent_swarm_v2", "reset_agent_swarm_v2",
+    # v3.110 API Gateway
+    "APIGateway", "BackendService", "BackendHealth", "Route",
+    "AuthCredential", "AuthResult", "AuthMethod", "Role",
+    "CircuitBreaker", "CircuitState", "TokenBucket",
+    "RateLimitConfig", "GatewayMetrics",
+    "get_gateway", "reset_gateway",
+    # v3.111 Data Pipeline
+    "DataPipeline", "DataRecord", "DataSourceType", "ProcessingMode",
+    "ValidationLevel", "PipelineState", "PipelineStats",
+    "DataSourceConnector", "FileConnector", "HttpConnector", "MemoryConnector",
+    "DataQualityValidator", "ValidationRule", "ValidationResult",
+    "TransformFunc",
+    "get_data_pipeline", "reset_data_pipeline",
+    # v3.112 Security Scanner
+    "SecurityScanner", "ScanModule", "Severity", "Finding", "ScanResult",
+    "SecurityReport", "get_security_scanner", "reset_security_scanner",
+    # P0-5 Goal自检机制
+    "GoalChecker", "GoalCheckResult",
+    "get_goal_checker", "reset_goal_checker",
 ]

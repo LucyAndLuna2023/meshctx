@@ -439,64 +439,64 @@ _TEMPLATES["memory.html"] = r"""{% extends "base.html" %}
 
 <!-- ═══ 统计卡片 ═══ -->
 <div class="stats" id="statsRow">
-    <div class="stat-card"><div class="value" id="statTotal">-</div><div class="label">总记忆数</div></div>
-    <div class="stat-card"><div class="value" id="statFact">-</div><div class="label">事实</div></div>
-    <div class="stat-card"><div class="value" id="statEpisode">-</div><div class="label">情节</div></div>
-    <div class="stat-card"><div class="value" id="statSkill">-</div><div class="label">技能</div></div>
-    <div class="stat-card"><div class="value" id="statEntities">-</div><div class="label">实体数</div></div>
-    <div class="stat-card"><div class="value" id="statRelations">-</div><div class="label">关系数</div></div>
+    <div class="stat-card"><div class="value" id="statTotal">-</div><div class="label">{{ t("total_memories_count") }}</div></div>
+    <div class="stat-card"><div class="value" id="statFact">-</div><div class="label">{{ t("fact") }}</div></div>
+    <div class="stat-card"><div class="value" id="statEpisode">-</div><div class="label">{{ t("episode") }}</div></div>
+    <div class="stat-card"><div class="value" id="statSkill">-</div><div class="label">{{ t("skill_type") }}</div></div>
+    <div class="stat-card"><div class="value" id="statEntities">-</div><div class="label">{{ t("entities_count") }}</div></div>
+    <div class="stat-card"><div class="value" id="statRelations">-</div><div class="label">{{ t("relations_count") }}</div></div>
 </div>
 
 <!-- ═══ 搜索 + 添加 双栏 ═══ -->
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
     <!-- 搜索栏 -->
     <div class="card">
-        <h2>🔍 语义搜索</h2>
+        <h2>🔍 {{ t("semantic_search") }}</h2>
         <div style="display:flex;gap:8px;">
-            <input id="searchInput" placeholder="输入查询词..." style="flex:1;" onkeydown="if(event.key==='Enter')doSearch()">
+            <input id="searchInput" placeholder="{{ t('search_placeholder') }}" style="flex:1;" onkeydown="if(event.key==='Enter')doSearch()">
             <select id="searchType" style="width:100px;">
-                <option value="">全部类型</option>
-                <option value="fact">事实</option>
-                <option value="episode">情节</option>
-                <option value="skill">技能</option>
+                <option value="">{{ t("all_types") }}</option>
+                <option value="fact">{{ t("fact") }}</option>
+                <option value="episode">{{ t("episode") }}</option>
+                <option value="skill">{{ t("skill_type") }}</option>
             </select>
-            <button class="btn btn-primary" onclick="doSearch()">搜索</button>
+            <button class="btn btn-primary" onclick="doSearch()">{{ t("search") }}</button>
         </div>
         <div id="searchResults" style="margin-top:12px;max-height:400px;overflow-y:auto;"></div>
     </div>
 
     <!-- 添加记忆 -->
     <div class="card">
-        <h2>➕ 添加记忆</h2>
-        <div class="form-group"><label>内容</label><textarea id="addContent" rows="3" placeholder="输入记忆内容..."></textarea></div>
+        <h2>➕ {{ t("add_memory") }}</h2>
+        <div class="form-group"><label>{{ t("content") }}</label><textarea id="addContent" rows="3" placeholder="{{ t('input_memory_placeholder') }}"></textarea></div>
         <div style="display:flex;gap:8px;">
-            <div class="form-group" style="flex:1;"><label>类型</label>
+            <div class="form-group" style="flex:1;"><label>{{ t("type") }}</label>
                 <select id="addType">
-                    <option value="fact">事实 (fact)</option>
-                    <option value="episode">情节 (episode)</option>
-                    <option value="skill">技能 (skill)</option>
+                    <option value="fact">{{ t("fact_option") }}</option>
+                    <option value="episode">{{ t("episode_option") }}</option>
+                    <option value="skill">{{ t("skill_option") }}</option>
                 </select>
             </div>
-            <div class="form-group" style="flex:1;"><label>重要性 (0-1)</label>
+            <div class="form-group" style="flex:1;"><label>{{ t("importance_range") }}</label>
                 <input id="addImportance" type="number" min="0" max="1" step="0.1" value="0.5">
             </div>
         </div>
-        <div class="form-group"><label>标签（逗号分隔）</label><input id="addTags" placeholder="python, AI, 记忆"></div>
-        <button class="btn btn-primary" onclick="doAdd()" style="width:100%;">添加记忆</button>
+        <div class="form-group"><label>{{ t("tags_comma_sep") }}</label><input id="addTags" placeholder="{{ t('tags_placeholder') }}"></div>
+        <button class="btn btn-primary" onclick="doAdd()" style="width:100%;">{{ t("add_memory_btn") }}</button>
     </div>
 </div>
 
 <!-- ═══ 知识图谱 ═══ -->
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <h2 style="margin:0;">🕸️ 知识图谱</h2>
-        <button class="btn btn-primary" onclick="loadGraph()" style="font-size:12px;padding:4px 12px;">刷新图谱</button>
+        <h2 style="margin:0;">🕸️ {{ t("knowledge_graph") }}</h2>
+        <button class="btn btn-primary" onclick="loadGraph()" style="font-size:12px;padding:4px 12px;">{{ t("refresh_graph") }}</button>
     </div>
     <div style="position:relative;background:#0a0f1a;border:1px solid #334155;border-radius:8px;overflow:hidden;min-height:400px;" id="graphContainer">
         <canvas id="graphCanvas" style="display:block;width:100%;height:100%;cursor:grab;"></canvas>
         <div id="graphEmpty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#64748b;text-align:center;">
             <div style="font-size:40px;">🕸️</div>
-            <div>暂无图谱数据，添加记忆后自动构建</div>
+            <div>{{ t("no_graph_data_desc") }}</div>
         </div>
         <div id="graphTooltip" style="display:none;position:absolute;background:#1e293b;border:1px solid #38bdf8;border-radius:6px;padding:8px 12px;font-size:12px;color:#e2e8f0;pointer-events:none;z-index:100;white-space:nowrap;"></div>
     </div>
@@ -533,7 +533,7 @@ async function doSearch() {
     if (!query) return;
     const memType = document.getElementById('searchType').value || null;
     const resultsDiv = document.getElementById('searchResults');
-    resultsDiv.innerHTML = '<div style="color:#64748b;text-align:center;padding:20px;">⏳ 搜索中...</div>';
+    resultsDiv.innerHTML = '<div style="color:#64748b;text-align:center;padding:20px;">⏳ ' + window.__t('searching') + '</div>';
 
     try {
         const body = { query: query, top_k: 15 };
@@ -545,18 +545,18 @@ async function doSearch() {
         });
         const data = await r.json();
         if (!data.results || data.results.length === 0) {
-            resultsDiv.innerHTML = '<div class="empty">📭 未找到匹配记忆</div>';
+            resultsDiv.innerHTML = '<div class="empty">📭 ' + window.__t('no_matching_memories') + '</div>';
             return;
         }
-        let html = '<div style="color:#64748b;font-size:12px;margin-bottom:8px;">找到 ' + data.count + ' 条结果</div>';
+        let html = '<div style="color:#64748b;font-size:12px;margin-bottom:8px;">' + window.__t('found_prefix') + ' ' + data.count + ' ' + window.__t('results_suffix') + '</div>';
         for (const m of data.results) {
-            const typeLabel = {fact:'📋事实', episode:'📖情节', skill:'🔧技能'}[m.type] || m.type;
+            const typeLabel = {fact:window.__t('fact_icon_label'), episode:window.__t('episode_icon_label'), skill:window.__t('skill_icon_label')}[m.type] || m.type;
             const typeColor = {fact:'#38bdf8', episode:'#a78bfa', skill:'#34d399'}[m.type] || '#94a3b8';
             const scorePercent = Math.round((m.score || 0) * 100);
             html += '<div style="border-bottom:1px solid #334155;padding:8px 0;font-size:13px;">' +
                 '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
                 '<span style="color:' + typeColor + ';font-weight:600;font-size:11px;">' + typeLabel + '</span>' +
-                '<span style="color:#64748b;font-size:11px;">相似度: ' + scorePercent + '%</span>' +
+                '<span style="color:#64748b;font-size:11px;">' + window.__t('similarity_label') + ' ' + scorePercent + '%</span>' +
                 '</div>' +
                 '<div style="color:#e2e8f0;">' + escapeHtml(m.content || m.summary || '') + '</div>' +
                 (m.tags && m.tags.length ? '<div style="margin-top:4px;">' + m.tags.map(function(t){return '<span style="display:inline-block;background:#1e3a5f;color:#7dd3fc;padding:1px 8px;border-radius:10px;font-size:10px;margin-right:4px;">#'+escapeHtml(t)+'</span>'}).join('') + '</div>' : '') +
@@ -564,14 +564,14 @@ async function doSearch() {
         }
         resultsDiv.innerHTML = html;
     } catch(e) {
-        resultsDiv.innerHTML = '<div class="flash flash-error">搜索失败: ' + escapeHtml(String(e)) + '</div>';
+        resultsDiv.innerHTML = '<div class="flash flash-error">' + window.__t('search_failed_prefix') + ' ' + escapeHtml(String(e)) + '</div>';
     }
 }
 
 // ── 添加记忆 ──
 async function doAdd() {
     const content = document.getElementById('addContent').value.trim();
-    if (!content) { alert('请输入记忆内容'); return; }
+    if (!content) { alert(window.__t('please_input_memory')); return; }
 
     const memType = document.getElementById('addType').value;
     const importance = parseFloat(document.getElementById('addImportance').value) || 0.5;
@@ -599,13 +599,13 @@ async function doAdd() {
             await loadGraph();
             // 显示成功提示
             const area = document.getElementById('searchResults');
-            area.innerHTML = '<div class="flash flash-success">✅ 记忆已添加！ID: ' + data.memory.id.substring(0,8) + '...</div>';
+            area.innerHTML = '<div class="flash flash-success">✅ ' + window.__t('memory_added_prefix') + ' ' + data.memory.id.substring(0,8) + '...</div>';
             setTimeout(function(){ area.innerHTML = ''; }, 3000);
         } else {
-            alert('添加失败: ' + JSON.stringify(data));
+            alert(window.__t('add_failed_prefix') + ' ' + JSON.stringify(data));
         }
     } catch(e) {
-        alert('添加失败: ' + e.message);
+        alert(window.__t('add_failed_prefix') + ' ' + e.message);
     }
 }
 
@@ -763,8 +763,8 @@ function drawGraph() {
                 tooltip.style.left = (mx + 15) + 'px';
                 tooltip.style.top = (my - 15) + 'px';
                 tooltip.innerHTML = '<strong>' + escapeHtml(found.label) + '</strong><br>' +
-                    '类型: ' + (found.type || 'unknown') + '<br>' +
-                    '关联记忆: ' + (found.memory_count || 0);
+                    window.__t('type_label') + ' ' + (found.type || 'unknown') + '<br>' +
+                    window.__t('linked_memories_label') + ' ' + (found.memory_count || 0);
             } else {
                 tooltip.style.display = 'none';
             }

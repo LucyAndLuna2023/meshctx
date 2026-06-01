@@ -6688,6 +6688,81 @@ async def governance_learn(request: Request):
     except Exception as e:
         return {"error": str(e)}
 
+# ── P0-5 Goal自检机制 API ───────────────────────────
+from pydantic import BaseModel as _GoalBaseModel
+
+class _GoalSetRequest(_GoalBaseModel):
+    goal: str
+
+class _GoalCheckResponse(_GoalBaseModel):
+    goal: str = ""
+    score: int = 0
+    unfinished: List[str] = []
+    suggestions: List[str] = []
+    source: str = "keyword"
+
+@app.get("/api/goal/check")
+async def api_goal_check():
+    """
+    P0-5: GET 获取最近一次目标达成度检查结果。
+
+    返回最近一次check_completion()的结果，
+    包括达成度评分(0-100)、未完成项列表、补救建议。
+    """
+    try:
+        from .core.goal_checker import get_goal_checker
+        checker = get_goal_checker()
+        result = checker.get_last_result()
+        if result:
+            return result
+        # 无历史结果 — 执行一次当前目标的检查
+        if checker.get_goal():
+            return checker.check_completion()
+        return {
+            "goal": "",
+            "score": 0,
+            "unfinished": ["未设置检查目标"],
+            "suggestions": ["使用 POST /api/goal/check 设置目标并检查"],
+            "source": "keyword",
+            "checked_at": 0,
+        }
+    except ImportError:
+        raise HTTPException(503, "GoalChecker模块不可用")
+    except Exception as e:
+        raise HTTPException(500, f"目标检查失败: {e}")
+
+
+@app.post("/api/goal/check")
+async def api_goal_check_post(request: Request):
+    """
+    P0-5: POST 设置目标并执行达成度检查。
+
+    请求体: {"goal": "你的任务目标描述"}
+    返回: 完整的目标检查结果
+    """
+    try:
+        from .core.goal_checker import get_goal_checker
+    except ImportError:
+        raise HTTPException(503, "GoalChecker模块不可用")
+
+    try:
+        body = await request.json()
+        goal_text = body.get("goal", "")
+    except Exception:
+        raise HTTPException(400, "请求体必须为JSON格式: {\"goal\": \"目标描述\"}")
+
+    if not goal_text or not goal_text.strip():
+        raise HTTPException(400, "goal字段不能为空")
+
+    try:
+        checker = get_goal_checker()
+        checker.set_goal(goal_text.strip())
+        result = checker.check_completion()
+        return result
+    except Exception as e:
+        raise HTTPException(500, f"目标检查失败: {e}")
+
+
 # ── Test Report ──────────────────────────────────
 import json as _json, os as _os
 _TEST_REPORT_PATH = _os.path.join(_os.path.dirname(_os.path.dirname(__file__)), "test_report.json")

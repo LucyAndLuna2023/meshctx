@@ -52,6 +52,7 @@ a = Analysis(
         'src.core.cache',
         'src.core.checkpoint',
         'src.core.code_reviewer',
+        'src.core.goal_checker',
         'src.core.cognitive_health',
         'src.core.context_compressor',
         'src.core.context_compression',
@@ -231,8 +232,10 @@ a = Analysis(
         'src.core.memory_compactor',
         'src.core.agent_swarm_v2',
         'src.core.workflow_engine',
+        'src.core.api_gateway',
+        'src.core.data_pipeline',
+        'src.core.security_scanner',
         # Common deps
-# Common deps
         'yaml', 'openai', 'httpx', 'fastapi', 'uvicorn',
         'pydantic', 'jinja2', 'Crypto', 'Crypto.Cipher',
         'Crypto.Cipher.AES', 'aiohttp', 'starlette',
@@ -255,6 +258,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.109.0',
-            'CFBundleVersion': '3.109.0',
+            'CFBundleShortVersionString': '3.113.0',
+            'CFBundleVersion': '3.113.0',
         }, version='version_info.txt')

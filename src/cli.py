@@ -1107,6 +1107,124 @@ def cmd_modify(args):
         print(f"  Session已应用: {stats['applied_this_session']}/{stats['max_per_session']}")
 
 
+def cmd_review(args):
+    """代码审查 — 对标 Goose review 命令"""
+    from src.core.code_reviewer import CodeReviewer
+
+    reviewer = CodeReviewer()
+    path = args.path
+
+    if not os.path.exists(path):
+        print(f"❌ 路径不存在: {path}")
+        return
+
+    if os.path.isfile(path):
+        # 单文件审查
+        ext = os.path.splitext(path)[1].lower()
+        lang_map = {".py": "python", ".js": "javascript", ".jsx": "javascript",
+                    ".ts": "typescript", ".tsx": "typescript", ".html": "html"}
+        language = lang_map.get(ext, "python")
+
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read()
+        except IOError as e:
+            print(f"❌ 无法读取文件: {e}")
+            return
+
+        issues = reviewer.review_file(os.path.basename(path), content, language=language)
+        summary = reviewer.review_summary(issues)
+
+        print(f"\n📋 代码审查: {os.path.basename(path)}")
+        print(f"   语言: {language} | 行数: {len(content.split(chr(10)))}")
+        _print_review_result(summary, issues, max_issues=getattr(args, 'max_issues', 30))
+
+        # AI 深度审查（可选）
+        if getattr(args, 'ai', False):
+            print("\n🤖 AI 深度审查中...")
+            ai_result = reviewer.ai_deep_review(content, language=language)
+            if ai_result:
+                print(f"   模型: {ai_result.get('model_used', '?')}")
+                print(f"   {ai_result.get('summary', '')[:300]}")
+            else:
+                print("   ⚠ LLM 不可用，跳过 AI 深度审查")
+
+    else:
+        # 目录审查
+        print(f"\n🔍 扫描目录: {path}")
+        result = reviewer.project_review(path)
+        _print_review_result(result, result.get("issues", []),
+                            max_issues=getattr(args, 'max_issues', 30))
+
+        # 文件级统计
+        by_file = result.get("by_file", {})
+        if by_file:
+            top_files = sorted(by_file.items(), key=lambda x: -x[1])[:10]
+            if top_files:
+                print(f"\n{'='*60}")
+                print("  📂 问题最多的文件 (Top 10):")
+                for fname, count in top_files:
+                    bar = "█" * min(count, 20)
+                    print(f"  {count:>3} {bar} {fname}")
+
+        # AI 深度审查（可选）
+        if getattr(args, 'ai', False):
+            print("\n  ⚠ AI 深度审查仅支持单文件模式。请对具体文件使用 --ai 参数。")
+
+
+def _print_review_result(summary: dict, issues: list, max_issues: int = 30):
+    """格式化输出审查结果。"""
+    score = summary.get("score", 0)
+    verdict = summary.get("verdict", "?")
+
+    # 评分颜色（终端符号）
+    if score >= 80:
+        icon = "🟢"
+    elif score >= 60:
+        icon = "🟡"
+    else:
+        icon = "🔴"
+
+    print(f"\n{'='*60}")
+    print(f"  {icon} 评分: {score}/100 — {verdict}")
+    print(f"  总问题: {summary.get('total_issues', 0)}")
+    if summary.get("files_scanned"):
+        print(f"  扫描文件: {summary['files_scanned']}")
+
+    by_sev = summary.get("by_severity", {})
+    if by_sev:
+        parts = []
+        for sev in ("critical", "high", "medium", "low", "info"):
+            if by_sev.get(sev):
+                parts.append(f"{sev}={by_sev[sev]}")
+        print(f"  严重度: {', '.join(parts)}")
+
+    by_cat = summary.get("by_category", {})
+    if by_cat:
+        parts = []
+        for cat in ("security", "bug", "performance", "style", "docs"):
+            if by_cat.get(cat):
+                parts.append(f"{cat}={by_cat[cat]}")
+        print(f"  类别: {', '.join(parts)}")
+
+    # 打印问题列表（最多显示30条）
+    if issues:
+        display_issues = issues if isinstance(issues[0], dict) else [i.to_dict() if hasattr(i, 'to_dict') else i for i in issues]
+        print(f"\n{'='*60}")
+        print("  📋 问题列表:")
+        for idx, issue in enumerate(display_issues[:max_issues]):
+            sev_icon = {"critical": "🔴", "high": "🟠", "medium": "🟡", "low": "🔵", "info": "⚪"}.get(
+                issue.get("severity", ""), "❓")
+            print(f"  {sev_icon} [{issue.get('severity', '?')}] {issue.get('file', '')}:{issue.get('line', '')}")
+            print(f"     {issue.get('title', '')}")
+            desc = issue.get('description', '')
+            if desc:
+                print(f"     {desc[:100]}")
+
+        if len(display_issues) > max_issues:
+            print(f"  ... 还有 {len(display_issues) - max_issues} 条问题。使用 --max-issues 查看更多。")
+
+
 def cmd_loop(args):
     """统一OODA循环测试 (v2.50)"""
     from src.core.unified_loop import get_unified_loop
@@ -1341,6 +1459,13 @@ def main():
     mo_sub.add_parser("history", help="变更历史")
     mo_sub.add_parser("stats", help="引擎统计")
     mo.set_defaults(func=cmd_modify)
+
+    # review (P0-4: 代码审查，对标Goose review)
+    rv = sub.add_parser("review", help="代码审查 (对标Goose review)")
+    rv.add_argument("path", help="文件或目录路径")
+    rv.add_argument("--ai", action="store_true", help="启用AI深度审查 (需要LLM)")
+    rv.add_argument("--max-issues", type=int, default=30, help="显示的最大问题数 (默认30)")
+    rv.set_defaults(func=cmd_review)
 
     # loop (v2.50)
     lo = sub.add_parser("loop", help="统一OODA循环测试")
