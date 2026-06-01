@@ -2884,6 +2884,7 @@ async def system_status():
 @app.get("/api/health")
 async def health_check():
     """健康检查"""
+    from src.core import __version__
     from src.core.health_monitor import get_health_monitor
     try:
         monitor = get_health_monitor()
