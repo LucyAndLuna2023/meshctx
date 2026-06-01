@@ -495,7 +495,36 @@ except ImportError:
     Modality = VisionProvider = TranscriptionProvider = OCRProvider = _brain_noop
     get_multi_modal_engine = reset_multi_modal_engine = _brain_noop
 
-__version__ = "3.100.0"
+# v3.103 Voice Chat Engine
+try:
+    from .voice_chat import (
+        VoiceChat, VoiceChatConfig, VoiceChatSession,
+        TTSResult, STTResult, TTSProvider, STTProvider,
+        VoiceLanguage, AudioFormat, VoiceGender,
+        get_voice_chat, reset_voice_chat,
+        create_sine_wav,
+    )
+except ImportError:
+    VoiceChat = VoiceChatConfig = VoiceChatSession = _brain_noop
+    TTSResult = STTResult = TTSProvider = STTProvider = _brain_noop
+    VoiceLanguage = AudioFormat = VoiceGender = _brain_noop
+    get_voice_chat = reset_voice_chat = _brain_noop
+    create_sine_wav = _brain_noop
+
+__version__ = "3.103.0"
+from .web_crawler import (
+    WebCrawler, CrawlResult, CrawlConfig, SitemapEntry, RobotsChecker,
+    html_to_markdown, extract_links, extract_title,
+    get_web_crawler, reset_web_crawler,
+)
+
+# v3.102 Plugin Market
+from .plugin_market import (
+    PluginMarket, PluginEntry, PluginVersion, PluginReview,
+    get_plugin_market, reset_plugin_market,
+)
+
+
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -650,4 +679,17 @@ __all__ = [
     "ImageAnalysisResult", "TranscriptionResult", "OCRResult",
     "Modality", "VisionProvider", "TranscriptionProvider", "OCRProvider",
     "get_multi_modal_engine", "reset_multi_modal_engine",
+    # v3.101 Web Crawler
+    "WebCrawler", "CrawlResult", "CrawlConfig", "SitemapEntry", "RobotsChecker",
+    "html_to_markdown", "extract_links", "extract_title",
+    "get_web_crawler", "reset_web_crawler",
+    # v3.102 Plugin Market
+    "PluginMarket", "PluginEntry", "PluginVersion", "PluginReview",
+    "get_plugin_market", "reset_plugin_market",
+    # v3.103 Voice Chat Engine
+    "VoiceChat", "VoiceChatConfig", "VoiceChatSession",
+    "TTSResult", "STTResult", "TTSProvider", "STTProvider",
+    "VoiceLanguage", "AudioFormat", "VoiceGender",
+    "get_voice_chat", "reset_voice_chat",
+    "create_sine_wav",
 ]

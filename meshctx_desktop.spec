@@ -225,6 +225,8 @@ a = Analysis(
         'src.core.code_sandbox_v3',
         'src.core.knowledge_graph_v2',
         'src.core.multi_modal',
+        'src.core.web_crawler',
+        'src.core.voice_chat',
         # Common deps
 # Common deps
         'yaml', 'openai', 'httpx', 'fastapi', 'uvicorn',
@@ -249,6 +251,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.100.0',
-            'CFBundleVersion': '3.100.0',
+            'CFBundleShortVersionString': '3.103.0',
+            'CFBundleVersion': '3.103.0',
         }, version='version_info.txt')
