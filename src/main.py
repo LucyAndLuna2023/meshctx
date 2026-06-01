@@ -260,7 +260,7 @@ async def lifespan(app: FastAPI):
     # 🔴 v3.35: Session Auto-Resume — 服务器重启自动恢复上下文
     try:
         from .core.session_resume import get_resume_engine
-        resume_engine = get_resume_engine()
+        resume_engine = get_session_resume()
         previous = resume_engine.detect_previous_session()
         if previous:
             resume_report = resume_engine.restore(previous)

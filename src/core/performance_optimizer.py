@@ -47,6 +47,7 @@ class PerformanceOptimizer:
                 "slowest": sorted(self._profiles.values(), key=lambda p:-p.avg_ms)[:3]}
 
 _opt = None
+optimizer = PerformanceOptimizer()
 def get_perf_optimizer():
     global _opt
     if _opt is None: _opt = PerformanceOptimizer()

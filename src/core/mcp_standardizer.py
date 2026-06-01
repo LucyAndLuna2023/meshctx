@@ -80,7 +80,10 @@ def _py_type_to_json_schema(py_type: Any) -> Dict:
     args = getattr(py_type, "__args__", ())
 
     if py_type in _TYPE_MAP:
-        return {"type": _TYPE_MAP[py_type]}
+        result = {"type": _TYPE_MAP[py_type]}
+        if py_type is list:
+            result["items"] = {}
+        return result
 
     if origin is list or origin is List:
         item_schema = {}
