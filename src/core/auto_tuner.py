@@ -111,4 +111,68 @@ def get_auto_tuner():
     if _tuner is None: _tuner = AutoTuner()
     return _tuner
 
+@dataclass
+class PerfSnapshot:
+    latency_ms: float = 0; memory_mb: float = 0; error_count: int = 0
+
+class PerformanceAutoTuner(AutoTuner):
+    """v2.56兼容 — 性能自动调优器 (向后兼容)"""
+    
+    def __init__(self, window_size: int = 20, tune_interval: float = 1.0):
+        super().__init__()
+        self._stats = {"total_snapshots": 0, "tunes_performed": 0}
+        self._params = {
+            "cache_size_mb": _ParamDef(64, 8, 256),
+            "batch_size": _ParamDef(8, 1, 64),
+            "timeout_ms": _ParamDef(5000, 1000, 30000),
+            "workers": _ParamDef(4, 1, 16),
+        }
+        self._window_size = window_size
+        self._history: deque = deque(maxlen=window_size)
+    
+    def snapshot(self, latency_ms: float = 0, memory_mb: float = 0, error_count: int = 0):
+        self._history.append(latency_ms)
+        self._stats["total_snapshots"] += 1
+        return PerfSnapshot(latency_ms=latency_ms, memory_mb=memory_mb, error_count=error_count)
+    
+    def auto_tune(self) -> Dict:
+        if self._stats["total_snapshots"] < 5:
+            return {"status": "insufficient_data", "adjustments": {}}
+        
+        adjustments = {}
+        recent = list(self._history)
+        avg_lat = sum(recent) / len(recent)
+        
+        if avg_lat > 500:
+            self._params["timeout_ms"].current_value = min(30000, self._params["timeout_ms"].current_value + 2000)
+            adjustments["timeout_ms"] = self._params["timeout_ms"].current_value
+        
+        self._stats["tunes_performed"] += 1
+        return {"status": "tuned", "adjustments": adjustments}
+    
+    def get_params(self) -> Dict:
+        return {k: v.current_value for k, v in self._params.items()}
+    
+    def set_param(self, name: str, value: int) -> bool:
+        if name not in self._params: return False
+        p = self._params[name]
+        p.current_value = max(p.min_val, min(p.max_val, value))
+        return True
+    
+    def _get_current_metrics(self) -> Dict:
+        recent = list(self._history)
+        if not recent:
+            return {"avg_latency_ms": 0, "memory_mb": 0}
+        return {"avg_latency_ms": sum(recent) / len(recent), "memory_mb": 200}
+    
+    def get_stats(self) -> Dict:
+        return {"total_snapshots": self._stats["total_snapshots"],
+                "current_metrics": self._get_current_metrics(),
+                "params": self.get_params()}
+
+class _ParamDef:
+    def __init__(self, current: int, min_val: int, max_val: int):
+        self.current_value = current; self.min_val = min_val; self.max_val = max_val
+
+_engine = None
 _tuner = None
