@@ -542,7 +542,7 @@ from .data_pipeline import (
     get_data_pipeline, reset_data_pipeline,
 )
 
-__version__ = "3.113.0"
+__version__ = "3.114.0"
 
 # v3.110 API Gateway
 from .api_gateway import (
@@ -607,6 +607,16 @@ try:
 except ImportError:
     GoalChecker = GoalCheckResult = _brain_noop
     get_goal_checker = reset_goal_checker = _brain_noop
+
+# P0-6 Hooks系统 — PreToolUse/PostToolUse事件钩子
+try:
+    from .hooks_engine import (
+        HookSystem, HookResult, HookEvent,
+        get_hook_system, reset_hook_system,
+    )
+except ImportError:
+    HookSystem = HookResult = HookEvent = _brain_noop
+    get_hook_system = reset_hook_system = _brain_noop
 
 # v3.102 Plugin Market
 from .plugin_market import (
@@ -829,4 +839,7 @@ __all__ = [
     # P0-5 Goal自检机制
     "GoalChecker", "GoalCheckResult",
     "get_goal_checker", "reset_goal_checker",
+    # P0-6 Hooks系统
+    "HookSystem", "HookResult", "HookEvent",
+    "get_hook_system", "reset_hook_system",
 ]

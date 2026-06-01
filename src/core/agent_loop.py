@@ -56,6 +56,16 @@ try:
     from .goal_checker import get_goal_checker
 except ImportError:
     def get_goal_checker(*a, **kw): return None
+# P0-6 Hooks系统 — PreToolUse/PostToolUse事件钩子 (可选集成)
+try:
+    from .hooks_engine import get_hook_system, HookEvent
+except ImportError:
+    def get_hook_system(*a, **kw): return None
+    class HookEvent:
+        PRE_DECISION = "pre_decision"
+        PRE_TOOL_USE = "pre_tool_use"
+        POST_TOOL_USE = "post_tool_use"
+        ON_ERROR = "on_error"
 
 logger = logging.getLogger("meshctx.agent")
 
@@ -867,6 +877,26 @@ class AgentLoopPlugin(Plugin):
         
         obs = task.observation
         
+        # P0-6 Hooks: pre_decision — 在决策前触发钩子检查
+        hs = get_hook_system()
+        if hs is not None:
+            try:
+                hook_result = hs.fire_event(HookEvent.PRE_DECISION, {
+                    "task_id": task_id,
+                    "intent": obs.intent,
+                    "content": obs.content,
+                    "urgency": obs.urgency,
+                })
+                if not hook_result.allowed:
+                    logger.warning(
+                        f"[HOOK_BLOCK] 决策被阻止: {hook_result.blocked_by}"
+                    )
+                    task.phase = LoopPhase.OBSERVE  # 回退到观察
+                    task.status = "hook_blocked"
+                    return
+            except Exception as e:
+                logger.error(f"Hooks pre_decision 执行异常: {e}")
+        
         # 基于意图选择行动
         decision = self._make_decision(obs)
         task.decision = decision
@@ -922,6 +952,51 @@ class AgentLoopPlugin(Plugin):
             metadata={"task_id": task_id},
         )
         
+        # P0-6 Hooks: pre_tool_use — 工具调用前触发钩子检查
+        hs = get_hook_system()
+        if hs is not None:
+            try:
+                tool_context = {
+                    "tool_name": gate_call.name,
+                    "command": gate_call.params.get("command", "")
+                        or gate_call.params.get("args", ""),
+                    "params": gate_call.params,
+                    "task_id": task_id,
+                }
+                hook_result = hs.fire_event(HookEvent.PRE_TOOL_USE, tool_context)
+                if not hook_result.allowed:
+                    logger.warning(
+                        f"[HOOK_BLOCK] 工具调用被阻止: {hook_result.blocked_by} "
+                        f"tool={gate_call.name}"
+                    )
+                    result = ActionResult(
+                        success=False,
+                        error=f"Tool blocked by hook: {hook_result.blocked_by}",
+                        output=None,
+                        duration=0,
+                        side_effects=[f"hook_block:{hook_result.blocked_by}"],
+                    )
+                    task.result = result
+                    task.completed_at = time.time()
+                    task.status = "hook_blocked"
+                    task.phase = LoopPhase.LEARN
+                    await self.kernel.bus.publish(Event(
+                        type="agent.hook_block",
+                        source="agent_loop",
+                        correlation_id=event.id,
+                        data={
+                            "task_id": task_id,
+                            "reason": hook_result.blocked_by,
+                            "tool": gate_call.name,
+                        },
+                    ))
+                    return
+                # 应用钩子修改的参数
+                if "modified_args" in hook_result.modified_context:
+                    gate_call.params.update(hook_result.modified_context["modified_args"])
+            except Exception as e:
+                logger.error(f"Hooks pre_tool_use 执行异常: {e}")
+        
         gate_result = gate.check(gate_call)
         
         if gate_result.action == GateAction.BLOCK:
@@ -966,6 +1041,41 @@ class AgentLoopPlugin(Plugin):
         self._total_tasks += 1
         if result.success:
             self._successful_tasks += 1
+        
+        # P0-6 Hooks: post_tool_use — 工具调用后触发钩子
+        hs2 = get_hook_system()
+        if hs2 is not None:
+            try:
+                post_context = {
+                    "tool_name": gate_call.name,
+                    "result": result.output,
+                    "success": result.success,
+                    "error": result.error,
+                    "duration": result.duration,
+                    "task_id": task_id,
+                }
+                post_result = hs2.fire_event(HookEvent.POST_TOOL_USE, post_context)
+                # 应用钩子修改的结果
+                if "result" in post_result.modified_context:
+                    result.output = post_result.modified_context.get("result")
+                if post_result.warnings:
+                    for w in post_result.warnings:
+                        logger.warning(f"[HOOK_WARN] {w}")
+            except Exception as e:
+                logger.error(f"Hooks post_tool_use 执行异常: {e}")
+        
+        # P0-6 Hooks: on_error — 任务失败时触发错误钩子
+        if not result.success and hs2 is not None:
+            try:
+                error_context = {
+                    "tool_name": gate_call.name,
+                    "error": result.error,
+                    "task_id": task_id,
+                    "duration": result.duration,
+                }
+                hs2.fire_event(HookEvent.ON_ERROR, error_context)
+            except Exception as e:
+                logger.error(f"Hooks on_error 执行异常: {e}")
         
         # 发布结果
         await self.kernel.bus.publish(Event(

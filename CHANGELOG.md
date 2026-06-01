@@ -1,5 +1,9 @@
 # MeshCtx Changelog
 
+## [3.114.0] - 2026-06-02
+### Added
+- **Hooks系统 (hooks_engine.py)**: 竞品对标Goose CLI的PreToolUse/PostToolUse。7种事件类型,优先级链式触发,3个内置安全钩子(破坏命令阻止/凭证泄露检测/速率限制)。集成OODA循环。17个测试。(P0-6)
+
 ## [3.113.0] - 2026-06-02
 ### Added
 - **Goal自检机制 (GoalChecker)**: 竞品对标Goose `/goal`命令。任务完成前自动评估达成度(0-100分)、未完成项列表、补救建议。双模式:关键词快速检查+LLM深度分析。集成到OODA循环Act阶段。API: GET/POST /api/goal/check。34个测试。(P0-5)
