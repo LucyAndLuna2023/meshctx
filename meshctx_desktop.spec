@@ -188,6 +188,7 @@ a = Analysis(
         'src.core.env_diag',
         'src.core.error_codes',
         'src.core.event_bus',
+        'src.core.federated',
         'src.core.feature_flags',
         'src.core.hash_utils',
         'src.core.hot_reload',
