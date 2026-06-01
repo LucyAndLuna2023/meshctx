@@ -17,12 +17,13 @@ class EnvDiagnostics:
     def _disk_free(self) -> str:
         try:
             stat = os.statvfs("/"); return f"{stat.f_bavail*stat.f_frsize/1e9:.1f}"
-        except: return "?"
-    
+        except OSError:
+            return "?"
     def _ram_total(self) -> str:
         try:
             import psutil; return f"{psutil.virtual_memory().total/1e9:.1f}"
-        except: return "?"
+        except (ImportError, Exception):
+            return "?"
     
     def _has_cmd(self, cmd: str) -> bool:
         return subprocess.run(["which", cmd], capture_output=True).returncode == 0
@@ -30,15 +31,16 @@ class EnvDiagnostics:
     def _pip_count(self) -> int:
         try:
             return len(subprocess.run([sys.executable,"-m","pip","list"], capture_output=True, text=True).stdout.split("\n"))
-        except: return 0
-    
+        except (subprocess.TimeoutExpired, OSError, Exception):
+            return 0
     def _get_version(self) -> str:
         try:
             import re
             init = Path("/home/administrator/meshctx-local/src/core/__init__.py")
             m = re.search(r'__version__\s*=\s*"([^"]+)"', init.read_text())
             return m.group(1) if m else "?"
-        except: return "?"
+        except (OSError, Exception):
+            return "?"
     
     def get_stats(self) -> Dict: return self.diagnose()
 

@@ -73,8 +73,8 @@ class WSManager:
                 self._remove_from_channel(channel, client_id)
             try:
                 await client.ws.close()
-            except:
-                pass
+            except Exception:
+                logger.debug(f"Error closing WS client {client_id[:8]}", exc_info=True)
             logger.debug(f"WS客户端断开: {client_id[:8]}")
     
     def subscribe(self, client_id: str, channel: str):
@@ -115,7 +115,7 @@ class WSManager:
                 try:
                     await self._send(client, data)
                     client.last_activity = time.time()
-                except:
+                except Exception:
                     dead_clients.append(cid)
         
         # 清理断开的客户端
@@ -128,7 +128,7 @@ class WSManager:
         if client:
             try:
                 await self._send(client, data)
-            except:
+            except Exception:
                 await self.disconnect(client_id)
     
     async def _send(self, client: WSClient, data: Dict):

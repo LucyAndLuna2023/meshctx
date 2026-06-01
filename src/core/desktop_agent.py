@@ -31,7 +31,9 @@ class DesktopAgent:
         try:
             subprocess.run(["import","-window","root",path], timeout=5, check=False)
             return True
-        except: return False
+        except Exception:
+            logger.debug("Screenshot failed", exc_info=True)
+            return False
     
     def list_windows(self) -> List[WindowInfo]:
         windows = []
@@ -41,30 +43,36 @@ class DesktopAgent:
                 parts = line.split(None, 3)
                 if len(parts) >= 4:
                     windows.append(WindowInfo(handle=parts[0], title=parts[3], pid=0))
-        except: pass
+        except Exception:
+            logger.debug("Failed to list windows", exc_info=True)
         return windows
     
     def activate_window(self, title_contains: str) -> bool:
         try:
             subprocess.run(["wmctrl","-a",title_contains], timeout=3, check=False)
             return True
-        except: return False
+        except Exception:
+            logger.debug("Failed to activate window", exc_info=True)
+            return False
     
     def type_text(self, text: str):
         try:
             subprocess.run(["xdotool","type",text], timeout=3, check=False)
-        except: pass
-    
+        except Exception:
+            logger.debug("Failed to type text", exc_info=True)
     def click(self, x: int, y: int):
         try:
             subprocess.run(["xdotool","mousemove",str(x),str(y),"click","1"], timeout=3, check=False)
-        except: pass
+        except Exception:
+            logger.debug("Failed to click", exc_info=True)
     
     def run_command(self, cmd: str) -> str:
         try:
             r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
             return r.stdout or r.stderr
-        except: return ""
+        except (subprocess.TimeoutExpired, OSError, Exception):
+            logger.debug("Command execution failed", exc_info=True)
+            return ""
     
     def get_stats(self) -> Dict:
         return {"platform": self._platform, "actions": len(self._actions),

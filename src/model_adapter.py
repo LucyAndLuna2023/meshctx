@@ -4,6 +4,7 @@ meshctx 统一模型适配器
 """
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
+import os
 
 
 @dataclass
@@ -32,7 +33,7 @@ class ModelAdapter:
 
     def _init_client(self):
         """初始化对应 provider 的客户端"""
-        api_key = self.cfg.get("api_key", "")
+        api_key = self.cfg.get("api_key") or os.environ.get("OPENAI_API_KEY") or os.environ.get("DEEPSEEK_API_KEY") or os.environ.get("BAILIAN_API_KEY", "")
         base_url = self.cfg.get("base_url", "")
         model = self.cfg.get("model", "")
 

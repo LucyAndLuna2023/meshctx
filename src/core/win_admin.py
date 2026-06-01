@@ -403,7 +403,8 @@ class WindowsAdmin:
                 return [{"pid": p.get("Id"), "name": p.get("Name"),
                          "cpu": p.get("CPU", 0), "memory_mb": round(p.get("WorkingSet", 0)/1048576, 1)}
                         for p in data]
-            except: pass
+            except Exception:
+                logger.debug("Failed to parse JSON response", exc_info=True)
         return []
 
     async def process_start(self, exe_path: str, args: str = "",
@@ -430,7 +431,8 @@ class WindowsAdmin:
         result = await self.execute(cmd, timeout=10)
         if result.success and result.stdout:
             try: return json.loads(result.stdout)
-            except: pass
+            except Exception:
+                logger.debug("Failed to parse JSON response", exc_info=True)
         return {}
 
     # ─── File Operations (Windows paths) ──────────────────
@@ -446,7 +448,8 @@ class WindowsAdmin:
                 return [{"name": f.get("Name"), "size": f.get("Length", 0),
                          "modified": str(f.get("LastWriteTime", "")),
                          "mode": f.get("Mode", "")} for f in data]
-            except: pass
+            except Exception:
+                logger.debug("Failed to parse JSON response", exc_info=True)
         return []
 
     async def file_delete(self, win_path: str, confirmed: bool = False) -> WinResult:
@@ -496,7 +499,8 @@ class WindowsAdmin:
                 data = json.loads(result.stdout)
                 if isinstance(data, dict): data = [data]
                 return {"interfaces": data}
-            except: pass
+            except Exception:
+                logger.debug("Failed to parse JSON response", exc_info=True)
         return {}
 
     async def ping(self, host: str, count: int = 4) -> str:
@@ -517,7 +521,8 @@ class WindowsAdmin:
                 if isinstance(data, dict): data = [data]
                 return [{"name": d.get("DisplayName"), "version": d.get("DisplayVersion"),
                          "publisher": d.get("Publisher")} for d in data[:50]]
-            except: pass
+            except Exception:
+                logger.debug("Failed to parse JSON response", exc_info=True)
         return []
 
     # ─── Quick Actions ───────────────────────────────────

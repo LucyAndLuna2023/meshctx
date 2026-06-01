@@ -47,14 +47,16 @@ class AlertEngine:
         self._alerts.append(a)
         for ch, fn in self._channels.items():
             try: fn(a)
-            except: pass
+            except Exception:
+                logger.debug(f"Alert channel {ch} failed", exc_info=True)
         return a
     
     def _send_feishu(self, a: Alert):
         if not self._feishu_webhook: return
         data = json.dumps({"msg_type":"interactive","card":{"header":{"title":{"content":f"[{a.level.value.upper()}] {a.title}","tag":"red" if a.level==AlertLevel.CRITICAL else "yellow"}},"elements":[{"tag":"div","text":{"content":a.message}}]}}).encode()
         try: urllib.request.urlopen(urllib.request.Request(self._feishu_webhook, data=data, headers={"Content-Type":"application/json"}), timeout=5)
-        except: pass
+        except Exception:
+            logger.debug("Failed to send feishu alert", exc_info=True)
     
     def acknowledge(self, alert_id: str) -> bool:
         for a in self._alerts:

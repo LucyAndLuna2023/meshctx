@@ -95,8 +95,8 @@ class BaseConnector(ABC):
         # 回复确认(可选)
         try:
             await self.send_message(msg.chat_id, "收到，思考中...")
-        except:
-            pass
+        except Exception:
+            logger.debug(f"Failed to send ack to {self.platform_name}:{msg.chat_id}", exc_info=True)
 
 
 # ═══════════════════════════════════════════════════

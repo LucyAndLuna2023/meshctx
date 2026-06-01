@@ -138,7 +138,8 @@ class AutoHealerV2:
                         avail = int(l.split()[1])/1024
                         if avail < 200: return HealthCheck("memory","warn",f"Only {avail:.0f}MB available")
                         return HealthCheck("memory","ok",f"{avail:.0f}MB available")
-        except: pass
+        except Exception:
+            logger.debug("Memory check failed", exc_info=True)
         return HealthCheck("memory","unknown")
 
     def _check_disk(self) -> HealthCheck:
@@ -146,20 +147,24 @@ class AutoHealerV2:
             s = os.statvfs("/"); free = s.f_frsize*s.f_bavail/1e9
             if free < 1: return HealthCheck("disk","critical",f"Only {free:.1f}GB free")
             return HealthCheck("disk","ok",f"{free:.1f}GB free")
-        except: return HealthCheck("disk","unknown")
+        except Exception:
+            logger.debug("Disk check failed", exc_info=True)
+            return HealthCheck("disk","unknown")
 
     def _check_port(self, port) -> HealthCheck:
         import socket
         try:
             s=socket.socket(); s.settimeout(2); s.connect(("127.0.0.1",port)); s.close()
             return HealthCheck(f"port{port}","ok",f"Port {port} listening")
-        except: return HealthCheck(f"port{port}","critical",f"Port {port} NOT listening")
+        except (socket.error, socket.timeout, OSError):
+            return HealthCheck(f"port{port}","critical",f"Port {port} NOT listening")
 
     def _check_python(self) -> HealthCheck:
         try:
             r=subprocess.run(["python3","-c","print('ok')"],capture_output=True,text=True,timeout=5)
             return HealthCheck("python","ok" if r.returncode==0 else "warn")
-        except: return HealthCheck("python","unknown")
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            return HealthCheck("python","unknown")
 
     def _check_cache(self) -> HealthCheck:
         cache = os.path.expanduser("~/.cache"); size = 0
@@ -167,9 +172,11 @@ class AutoHealerV2:
             for d,_,fs in os.walk(cache):
                 for f in fs:
                     try: size += os.path.getsize(os.path.join(d,f))
-                    except: pass
+                    except OSError:
+                        logger.debug("Failed to get file size", exc_info=True)
             if size > 500e6: return HealthCheck("cache","warn",f"Cache {size/1e6:.0f}MB")
-        except: pass
+        except OSError:
+            logger.debug("Cache scan failed", exc_info=True)
         return HealthCheck("cache","ok",f"Cache {size/1e6:.0f}MB" if size else "")
     
     def _fix(self, issue: str) -> Optional[HealAction]:
