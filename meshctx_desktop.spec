@@ -221,6 +221,8 @@ a = Analysis(
         'src.core.email_engine',
         'src.core.calendar_engine',
         'src.core.task_queue_v2',
+        'src.core.notification_hub',
+        'src.core.code_sandbox_v3',
         # Common deps
 # Common deps
         'yaml', 'openai', 'httpx', 'fastapi', 'uvicorn',
@@ -245,6 +247,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.94.0',
-            'CFBundleVersion': '3.94.0',
+            'CFBundleShortVersionString': '3.97.0',
+            'CFBundleVersion': '3.97.0',
         }, version='version_info.txt')

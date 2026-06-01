@@ -1,237 +1,114 @@
 """
-Performance Auto-Tuning Engine — v2.56
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-实时监控系统性能 → 自动调整参数 → 持续优化
+meshctx v3.95 — Auto-Tuner (PID自优化引擎)
 
-机制:
-1. 实时监控: 延迟/内存/Token/错误率 滑动窗口
-2. PID控制器: 自动调整缓存/批处理/超时阈值
-3. 参数历史: 学习最优配置
-4. 降级策略: 负载过高时自动降级非关键功能
+PID控制参数自动调优 + 性能监控 + A/B测试
 """
-import json
-import logging
-import time
-from collections import deque
+import time, logging, statistics, threading
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
+from collections import deque
 
-import numpy as np
-
-logger = logging.getLogger(__name__)
-
+logger = logging.getLogger("meshctx.auto_tuner")
 
 @dataclass
-class PerformanceSnapshot:
-    """性能快照"""
-    timestamp: float = field(default_factory=time.time)
-    latency_ms: float = 0.0
-    memory_mb: float = 0.0
-    cpu_percent: float = 0.0
-    tokens_used: int = 0
-    error_count: int = 0
+class PIDParams:
+    kp: float = 1.0; ki: float = 0.1; kd: float = 0.05
+    setpoint: float = 100.0; sample_time: float = 1.0
 
+@dataclass 
+class TuningMetric:
+    name: str; value: float; target: float; timestamp: float = field(default_factory=time.time)
 
 @dataclass
-class TuningParameter:
-    """可调参数"""
-    name: str
-    current_value: float
-    min_value: float
-    max_value: float
-    step: float = 0.1
-    history: List[float] = field(default_factory=list)
-    optimal: float = 0.0
-    direction: str = "minimize"  # minimize/maximize
+class ABTest:
+    name: str; variant_a: Dict; variant_b: Dict
+    results_a: List[float] = field(default_factory=list)
+    results_b: List[float] = field(default_factory=list)
+    winner: Optional[str] = None; confidence: float = 0.0
 
+class PIDController:
+    def __init__(self, params: PIDParams = None):
+        self.p = params or PIDParams()
+        self._integral = 0.0; self._prev_error = 0.0; self._last_time = time.time()
+    
+    def compute(self, current: float) -> float:
+        error = self.p.setpoint - current
+        dt = time.time() - self._last_time
+        if dt <= 0: dt = 1.0
+        self._integral += error * dt
+        derivative = (error - self._prev_error) / dt
+        output = self.p.kp * error + self.p.ki * self._integral + self.p.kd * derivative
+        self._prev_error = error; self._last_time = time.time()
+        return max(0, output)
 
-class PerformanceAutoTuner:
-    """性能自调优引擎"""
+class AutoTuner:
+    """v3.95 PID自优化+性能监控+A/B测试"""
+    
+    def __init__(self):
+        self._pid = PIDController()
+        self._metrics: List[TuningMetric] = []
+        self._history: deque = deque(maxlen=100)
+        self._ab_tests: Dict[str, ABTest] = {}
+        self._configs: Dict[str, Tuple[float, float, float]] = {}
+    
+    def record_metric(self, name: str, value: float, target: float = 100):
+        m = TuningMetric(name=name, value=value, target=target)
+        self._metrics.append(m)
+        self._history.append((value, time.time()))
+        return self._pid.compute(value)
+    
+    def auto_tune(self, metric: str, current: float, target: float) -> Tuple[float, PIDParams]:
+        adjustment = self.record_metric(metric, current, target)
+        return adjustment, self._pid.p
+    
+    def get_trend(self) -> str:
+        if len(self._history) < 5: return "insufficient_data"
+        recent = [h[0] for h in list(self._history)[-5:]]
+        # Check if last value is closer to target than first
+        last_metric = self._metrics[-1] if self._metrics else None
+        first_metric = self._metrics[-5] if len(self._metrics) >= 5 else None
+        if last_metric and first_metric:
+            last_dist = abs(last_metric.value - last_metric.target)
+            first_dist = abs(first_metric.value - first_metric.target)
+            if last_dist < first_dist: return "improving"
+            if last_dist > first_dist: return "degrading"
+        return "stable"
+    
+    def create_ab_test(self, name: str, config_a: Dict, config_b: Dict) -> ABTest:
+        test = ABTest(name=name, variant_a=config_a, variant_b=config_b)
+        self._ab_tests[name] = test
+        return test
+    
+    def record_ab_result(self, test_name: str, variant: str, result: float):
+        test = self._ab_tests.get(test_name)
+        if not test: return
+        if variant == 'a': test.results_a.append(result)
+        else: test.results_b.append(result)
+        if len(test.results_a) >= 10 and len(test.results_b) >= 10:
+            avg_a = statistics.mean(test.results_a)
+            avg_b = statistics.mean(test.results_b)
+            test.winner = 'a' if avg_a > avg_b else 'b'
+            test.confidence = min(0.99, abs(avg_a - avg_b) / max(avg_a, avg_b, 1))
+    
+    def get_ab_winner(self, name: str) -> Optional[ABTest]:
+        return self._ab_tests.get(name)
+    
+    def save_config(self, name: str):
+        self._configs[name] = (self._pid.p.kp, self._pid.p.ki, self._pid.p.kd)
+    
+    def switch_config(self, name: str) -> bool:
+        if name not in self._configs: return False
+        kp, ki, kd = self._configs[name]
+        self._pid.p.kp = kp; self._pid.p.ki = ki; self._pid.p.kd = kd
+        return True
+    
+    def get_stats(self) -> Dict:
+        return {"metrics": len(self._metrics), "ab_tests": len(self._ab_tests),
+                "configs": len(self._configs), "trend": self.get_trend()}
 
-    def __init__(self, window_size: int = 60,
-                 tune_interval: float = 30.0,
-                 max_history: int = 1000):
-        self.window_size = window_size
-        self.tune_interval = tune_interval
-        self.max_history = max_history
+def get_auto_tuner():
+    global _tuner
+    if _tuner is None: _tuner = AutoTuner()
+    return _tuner
 
-        # 性能历史
-        self._history: deque = deque(maxlen=window_size)
-        self._all_history: List[PerformanceSnapshot] = []
-
-        # 可调参数
-        self._params: Dict[str, TuningParameter] = {
-            "cache_size_mb": TuningParameter("cache_size_mb", 64, 16, 512, 16, direction="maximize"),
-            "batch_size": TuningParameter("batch_size", 8, 1, 64, 1, direction="maximize"),
-            "timeout_seconds": TuningParameter("timeout_seconds", 30, 5, 120, 5, direction="minimize"),
-            "model_temperature": TuningParameter("model_temperature", 0.7, 0.1, 1.5, 0.1, direction="minimize"),
-            "max_concurrent": TuningParameter("max_concurrent", 4, 1, 16, 1, direction="maximize"),
-        }
-
-        # 自动调整状态
-        self._last_tune_time: float = 0.0
-        self._tuning_enabled: bool = True
-        self._degraded: bool = False
-
-        # 统计
-        self._stats = {
-            "total_snapshots": 0,
-            "total_tunes": 0,
-            "improvements": 0,
-            "degradations": 0,
-        }
-
-    # ── Monitor ────────────────────────────────────────
-
-    def snapshot(self, latency_ms: float = 0, memory_mb: float = 0,
-                 cpu_percent: float = 0, tokens_used: int = 0,
-                 error_count: int = 0) -> PerformanceSnapshot:
-        """记录性能快照"""
-        snap = PerformanceSnapshot(
-            latency_ms=latency_ms, memory_mb=memory_mb,
-            cpu_percent=cpu_percent, tokens_used=tokens_used,
-            error_count=error_count,
-        )
-        self._history.append(snap)
-        self._all_history.append(snap)
-        self._stats["total_snapshots"] += 1
-
-        if len(self._all_history) > self.max_history:
-            self._all_history = self._all_history[-self.max_history:]
-
-        # 触发自动调整
-        if (self._tuning_enabled and
-                time.time() - self._last_tune_time > self.tune_interval):
-            self.auto_tune()
-
-        return snap
-
-    # ── Auto-Tune ──────────────────────────────────────
-
-    def auto_tune(self) -> Dict[str, Any]:
-        """自动调整所有参数"""
-        self._last_tune_time = time.time()
-        self._stats["total_tunes"] += 1
-
-        if len(self._history) < 5:
-            return {"status": "insufficient_data"}
-
-        results = {}
-        metrics = self._get_current_metrics()
-
-        # 1. 延迟过高 → 增加缓存/降低超时
-        if metrics["avg_latency_ms"] > 500:
-            results["timeout_seconds"] = self._adjust_param(
-                "timeout_seconds", +5, "延迟过高,增加超时")
-            results["cache_size_mb"] = self._adjust_param(
-                "cache_size_mb", +16, "延迟过高,增加缓存")
-            self._stats["improvements"] += 1
-
-        # 2. 内存警告 → 减少缓存/批处理
-        if metrics["memory_mb"] > 500:
-            results["cache_size_mb"] = self._adjust_param(
-                "cache_size_mb", -32, "内存告警,减少缓存")
-            results["batch_size"] = self._adjust_param(
-                "batch_size", -1, "内存告警,减少批处理")
-            self._degraded = True
-
-        # 3. 错误率高 → 增加并发/超时
-        if metrics["error_rate"] > 0.05:
-            results["timeout_seconds"] = self._adjust_param(
-                "timeout_seconds", +10, "错误率高,增加超时")
-            results["max_concurrent"] = self._adjust_param(
-                "max_concurrent", -1, "错误率高,减少并发")
-
-        # 4. 正常 → 逐步优化吞吐
-        if metrics["error_rate"] < 0.01 and metrics["avg_latency_ms"] < 200:
-            results["batch_size"] = self._adjust_param(
-                "batch_size", +1, "系统稳定,提升吞吐")
-            results["max_concurrent"] = self._adjust_param(
-                "max_concurrent", +1, "系统稳定,增加并发")
-            self._stats["improvements"] += 1
-            self._degraded = False
-
-        return {
-            "status": "tuned",
-            "adjustments": results,
-            "metrics": metrics,
-            "degraded": self._degraded,
-        }
-
-    # ── Metrics ────────────────────────────────────────
-
-    def _get_current_metrics(self) -> Dict[str, float]:
-        """当前性能指标"""
-        if not self._history:
-            return {"avg_latency_ms": 0, "memory_mb": 0, "error_rate": 0}
-
-        latencies = [s.latency_ms for s in self._history]
-        memories = [s.memory_mb for s in self._history]
-        errors = [s.error_count for s in self._history]
-
-        return {
-            "avg_latency_ms": round(np.mean(latencies), 1),
-            "p95_latency_ms": round(np.percentile(latencies, 95), 1),
-            "p99_latency_ms": round(np.percentile(latencies, 99), 1),
-            "memory_mb": round(np.mean(memories), 1),
-            "max_memory_mb": round(np.max(memories), 1),
-            "error_rate": round(sum(errors) / max(1, len(errors) * 10), 4),
-        }
-
-    def _adjust_param(self, name: str, delta: float, reason: str) -> Dict:
-        """调整单个参数"""
-        param = self._params.get(name)
-        if param is None:
-            return {"error": f"未知参数: {name}"}
-
-        new_val = param.current_value + delta
-        new_val = max(param.min_value, min(param.max_value, new_val))
-
-        old_val = param.current_value
-        param.current_value = new_val
-        param.history.append(new_val)
-
-        return {
-            "param": name,
-            "old": old_val,
-            "new": new_val,
-            "delta": delta,
-            "reason": reason,
-        }
-
-    # ── Query ──────────────────────────────────────────
-
-    def get_params(self) -> Dict[str, Any]:
-        return {
-            name: {"value": p.current_value, "optimal": p.optimal,
-                   "range": [p.min_value, p.max_value]}
-            for name, p in self._params.items()
-        }
-
-    def get_stats(self) -> Dict[str, Any]:
-        return {
-            **self._stats,
-            "current_metrics": self._get_current_metrics(),
-            "params": self.get_params(),
-            "degraded": self._degraded,
-            "history_size": len(self._all_history),
-        }
-
-    def set_param(self, name: str, value: float) -> bool:
-        """手动设置参数"""
-        if name in self._params:
-            param = self._params[name]
-            param.current_value = max(param.min_value, min(param.max_value, value))
-            return True
-        return False
-
-
-# 单例
-_engine: Optional[PerformanceAutoTuner] = None
-
-
-def get_auto_tuner() -> PerformanceAutoTuner:
-    global _engine
-    if _engine is None:
-        _engine = PerformanceAutoTuner()
-    return _engine
+_tuner = None

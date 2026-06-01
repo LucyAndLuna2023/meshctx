@@ -452,7 +452,27 @@ from .task_queue_v2 import (
     get_task_queue_v2, reset_task_queue_v2,
 )
 
-__version__ = "3.94.0"
+# v3.95 Auto-Tuning Self-Optimization Engine
+from .auto_tuner import (
+    AutoTuner, PIDController, PIDParams, ABTest,
+    get_auto_tuner,
+)
+
+from .notification_hub import (
+    NotificationHub, Notification, NotificationResult,
+    NotificationChannel, NotificationPriority,
+    ChannelConfig, QuietHoursConfig, NotificationStats,
+    TemplateEngine, DEFAULT_TEMPLATES,
+    get_notification_hub, reset_notification_hub,
+)
+
+from .code_sandbox_v3 import (
+    CodeSandboxV3, CodeSandboxResult, SandboxLanguage, SandboxStatus,
+    SandboxRiskLevel, AuditEntry,
+    get_code_sandbox_v3, reset_code_sandbox_v3,
+)
+
+__version__ = "3.97.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -582,4 +602,17 @@ __all__ = [
     "TaskQueueV2", "TaskV2", "TaskStatusV2", "PriorityV2",
     "DependencyGraph", "ExponentialBackoff", "WorkerPool",
     "get_task_queue_v2", "reset_task_queue_v2",
+    # v3.95 Auto-Tuning Engine
+    "AutoTuner", "PIDController", "PIDParams", "ABTest",
+    "get_auto_tuner",
+    # v3.96 Notification Hub
+    "NotificationHub", "Notification", "NotificationResult",
+    "NotificationChannel", "NotificationPriority",
+    "ChannelConfig", "QuietHoursConfig", "NotificationStats",
+    "TemplateEngine", "DEFAULT_TEMPLATES",
+    "get_notification_hub", "reset_notification_hub",
+    # v3.97 Code Sandbox V3
+    "CodeSandboxV3", "CodeSandboxResult", "SandboxLanguage", "SandboxStatus",
+    "SandboxRiskLevel", "AuditEntry",
+    "get_code_sandbox_v3", "reset_code_sandbox_v3",
 ]
