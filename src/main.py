@@ -1188,6 +1188,80 @@ async def swarm_status():
         return {"status": "not_started"}
     return mgr.get_swarm_status()
 
+# ── P0-7 动态Summon子Agent API ──────────────────────────
+
+@app.post("/api/summon")
+async def summon_agent(request: dict = None):
+    """
+    召唤子Agent — POST /api/summon
+
+    请求体:
+        {\"description\": \"写一个排序算法\", \"task\": \"实现快速排序\", \"timeout\": 120, \"role\": \"coder\"}
+
+    响应:
+        {\"agent_id\": \"...\", \"status\": \"done\", \"result\": \"...\", ...}
+    """
+    from src.core.summon_engine import get_summon_engine
+
+    if not request:
+        raise HTTPException(400, "请求体不能为空，需要提供 description 字段")
+
+    description = request.get("description", "")
+    if not description:
+        raise HTTPException(400, "description 字段为必填项")
+
+    task = request.get("task", "")
+    timeout = request.get("timeout", 300)
+    role = request.get("role", "")
+    async_mode = request.get("async", False)
+
+    engine = get_summon_engine()
+    result = engine.summon(
+        description=description,
+        task=task,
+        timeout=float(timeout),
+        role=role,
+        async_mode=async_mode,
+    )
+    return result.to_dict()
+
+
+@app.get("/api/summon")
+async def list_active_summons():
+    """
+    列出活跃子Agent — GET /api/summon
+
+    响应:
+        {\"active\": [...], \"count\": N, \"stats\": {...}}
+    """
+    from src.core.summon_engine import get_summon_engine
+
+    engine = get_summon_engine()
+    active = engine.active_agents()
+    stats = engine.get_stats()
+    return {
+        "active": active,
+        "count": len(active),
+        "stats": stats,
+    }
+
+
+@app.delete("/api/summon/{agent_id}")
+async def dismiss_summon(agent_id: str):
+    """
+    遣散子Agent — DELETE /api/summon/{agent_id}
+
+    响应:
+        {\"agent_id\": \"...\", \"dismissed\": true/false}
+    """
+    from src.core.summon_engine import get_summon_engine
+
+    engine = get_summon_engine()
+    success = engine.dismiss(agent_id)
+    if not success:
+        raise HTTPException(404, f"Agent {agent_id} 不存在或已完成")
+    return {"agent_id": agent_id, "dismissed": True}
+
 # ── 性能监控 ────────────────────────────────────────────
 
 @app.get("/performance/report")

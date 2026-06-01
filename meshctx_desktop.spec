@@ -79,6 +79,7 @@ a = Analysis(
         'src.core.health_monitor',
         'src.core.homeostasis',
         'src.core.hooks_engine',
+        'src.core.summon_engine',
         'src.core.hotreload',
         'src.core.human_memory',
         'src.core.hybrid_reasoning',
@@ -258,6 +259,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.114.0',
-            'CFBundleVersion': '3.114.0',
+            'CFBundleShortVersionString': '3.115.0',
+            'CFBundleVersion': '3.115.0',
         }, version='version_info.txt')

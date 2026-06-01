@@ -1,5 +1,9 @@
 # MeshCtx Changelog
 
+## [3.115.0] - 2026-06-02
+### Added
+- **动态Summon子Agent引擎 (summon_engine.py)**: 竞品对标Goose CLI Summon。自然语言描述→自动创建/委派/回收子Agent。并行召唤多Agent,7种角色自动推断,47个测试+API端点(POST/GET/DELETE /api/summon)。(P0-7)
+
 ## [3.114.0] - 2026-06-02
 ### Added
 - **Hooks系统 (hooks_engine.py)**: 竞品对标Goose CLI的PreToolUse/PostToolUse。7种事件类型,优先级链式触发,3个内置安全钩子(破坏命令阻止/凭证泄露检测/速率限制)。集成OODA循环。17个测试。(P0-6)
