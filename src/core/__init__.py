@@ -430,7 +430,29 @@ from .pwa_builder import (
     get_pwa_builder, reset_pwa_builder,
 )
 
-__version__ = "3.91.0"
+# v3.92 Email Integration Engine
+from .email_engine import (
+    EmailEngine, EmailMessage, EmailAttachment,
+    EmailLabel, EmailLabelType, EmailSummary, DraftReply,
+    SpamVerdict, SpamLevel, InboxStats,
+    get_email_engine, reset_email_engine,
+)
+
+# v3.93 Calendar Engine
+from .calendar_engine import (
+    CalendarEngine, CalendarEvent, CalDAVProvider, SyncStatus,
+    ReminderType, RecurrenceRule, ReminderTask,
+    get_calendar_engine, reset_calendar_engine,
+)
+
+# v3.94 Task Queue v2 (Enhanced)
+from .task_queue_v2 import (
+    TaskQueueV2, TaskV2, TaskStatusV2, PriorityV2,
+    DependencyGraph, ExponentialBackoff, WorkerPool,
+    get_task_queue_v2, reset_task_queue_v2,
+)
+
+__version__ = "3.94.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -547,4 +569,17 @@ __all__ = [
     "SWCacheRule", "CacheStrategy", "DisplayMode", "IconPurpose",
     "InstallPromptManager", "PushManager", "PushSubscription", "PushNotification",
     "get_pwa_builder", "reset_pwa_builder",
+    # v3.92 Email Integration Engine
+    "EmailEngine", "EmailMessage", "EmailAttachment",
+    "EmailLabel", "EmailLabelType", "EmailSummary", "DraftReply",
+    "SpamVerdict", "SpamLevel", "InboxStats",
+    "get_email_engine", "reset_email_engine",
+    # v3.93 Calendar Engine
+    "CalendarEngine", "CalendarEvent", "CalDAVProvider", "SyncStatus",
+    "ReminderType", "ReminderTask", "RecurrenceRule",
+    "get_calendar_engine", "reset_calendar_engine",
+    # v3.94 Task Queue v2
+    "TaskQueueV2", "TaskV2", "TaskStatusV2", "PriorityV2",
+    "DependencyGraph", "ExponentialBackoff", "WorkerPool",
+    "get_task_queue_v2", "reset_task_queue_v2",
 ]

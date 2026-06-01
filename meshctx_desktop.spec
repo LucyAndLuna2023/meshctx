@@ -218,6 +218,9 @@ a = Analysis(
         'src.core.cookbook',
         'src.core.deep_research_v2',
         'src.core.pwa_builder',
+        'src.core.email_engine',
+        'src.core.calendar_engine',
+        'src.core.task_queue_v2',
         # Common deps
 # Common deps
         'yaml', 'openai', 'httpx', 'fastapi', 'uvicorn',
@@ -242,6 +245,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.91.0',
-            'CFBundleVersion': '3.91.0',
+            'CFBundleShortVersionString': '3.94.0',
+            'CFBundleVersion': '3.94.0',
         }, version='version_info.txt')
