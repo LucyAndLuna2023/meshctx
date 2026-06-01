@@ -126,6 +126,7 @@ a = Analysis(
         'src.core.project_indexer',
         'src.core.prompt_shield',
         'src.core.realtime_push',
+        'src.core.resilience_loop',
         'src.core.regression_shield',
         'src.core.sandbox',
         'src.core.self_debug',
