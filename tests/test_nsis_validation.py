@@ -55,7 +55,7 @@ class TestNSISOrder:
         """v3.80 language selection: .onInit with radio buttons sets $LANGUAGE"""
         nsi = PROJECT / "meshctx_setup.nsi"
         text = nsi.read_text(encoding="utf-8-sig")
-        assert "Function .onInit" in text, "缺少.onInit函数"
+        assert "Function LangPageCreate" in text, "缺少LangPageCreate"
         assert "RadioEn" in text, "缺少English radio"
         assert "RadioZh" in text, "缺少Chinese radio"
         assert "StrCpy $LANGUAGE" in text, "缺少 $LANGUAGE 设置"
