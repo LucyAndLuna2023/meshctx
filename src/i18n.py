@@ -16,6 +16,36 @@ _loaded: Dict[str, Dict[str, str]] = {}
 _current_lang = os.environ.get("MESHCTX_LANG", "zh")
 
 TRANSLATIONS = {
+    "en": {
+        "dashboard": "Dashboard",
+        "projects": "Projects",
+        "memories": "Memories",
+        "continuity": "Continuity",
+        "chat": "Chat",
+        "setup": "Setup",
+        "welcome_title": "Welcome to meshctx!",
+        "welcome_desc": "You need to configure your AI model API key before getting started.",
+        "config_api_btn": "⚙️ Configure API Key",
+        "project_overview": "📊 Project Overview",
+        "no_projects": "📭 No projects yet,",
+        "create_one": "create one",
+        "projects_label": "Projects",
+        "sessions_label": "Sessions",
+        "memories_label": "Memories",
+        "agent_label": "Agent",
+        "active_sessions_label": "Active Sessions",
+        "setup_title": "⚙️ Setup",
+        "setup_api_title": "🔑 Configure API Key",
+        "setup_api_desc": "Select a model provider, enter your API Key, and click Save.",
+        "provider_label": "Model Provider",
+        "api_key_label": "API Key",
+        "api_key_placeholder": "sk-xxx...xxxx",
+        "save_btn": "💾 Save Configuration",
+        "saved_ok": "✅ API Key saved! Configuration applied automatically, no restart needed.",
+        "saved_error": "❌ Failed to save. Please try again.",
+        "no_key_title": "🔗 Don\'t have an API Key yet?",
+        "advanced_config": "📝 Advanced Configuration"
+    },
     "zh": {
         # Header
         "dashboard": "仪表板",

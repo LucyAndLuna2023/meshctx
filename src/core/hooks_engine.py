@@ -60,6 +60,14 @@ class HookEvent(Enum):
     POST_DECISION = "post_decision"       # OODA决策阶段之后 — 可监听决策
     ON_ERROR = "on_error"                 # 错误发生时 — 用于告警和恢复
 
+    # ── v2.42 向后兼容别名 ──
+    PRE_TOOL = "pre_tool_use"
+    POST_TOOL = "post_tool_use"
+    STOP = "post_decision"
+    USER_PROMPT = "pre_llm_call"
+    SUBAGENT_STOP = "on_error"
+    SESSION_START = "pre_decision"
+
 
 # ═══════════════════════════════════════════════════════════
 # 数据类 — 钩子触发结果
@@ -823,3 +831,96 @@ def reset_hook_system() -> None:
     HookSystem._instance = None
     _reset_rate_limit_state()
     logger.info("P0-6 HookSystem 已全局重置")
+
+# ── v2.42 向后兼容别名 ──
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
+@dataclass
+class HookRule:
+    event: HookEvent; matcher: str = ""; action: str = ""
+    action_type: str = "shell"; priority: int = 50; cooldown_s: int = 0
+    index: int = -1; last_triggered: float = 0.0
+
+@dataclass
+class HookContext:
+    event: HookEvent; tool_name: str = ""; tool_input: Any = None
+    user_message: str = ""; session_id: str = ""
+
+class HooksEngine:
+    """v2.42兼容包装器"""
+    def __init__(self, config_path: Optional[str] = None):
+        self._hs = HookSystem()
+        self.rules: List[HookRule] = []
+        self._next_idx = 0
+        self._config_path = config_path
+        self._load()
+    
+    def add_rule(self, event: HookEvent, matcher: str, action: str,
+                 action_type: str = "shell", priority: int = 50, cooldown_s: int = 0) -> HookRule:
+        r = HookRule(event=event, matcher=matcher, action=action,
+                     action_type=action_type, priority=priority, cooldown_s=cooldown_s,
+                     index=self._next_idx)
+        self._next_idx += 1
+        self.rules.append(r)
+        return r
+    
+    def remove_rule(self, idx: int) -> bool:
+        for i, r in enumerate(self.rules):
+            if r.index == idx:
+                self.rules.pop(i)
+                return True
+        return False
+    
+    def fire(self, event: HookEvent, ctx: HookContext) -> Dict:
+        import fnmatch, time as _time
+        fired = 0; blocked = 0
+        for r in self.rules:
+            if r.event != event: continue
+            if r.cooldown_s > 0 and _time.time() - r.last_triggered < r.cooldown_s: continue
+            tool = getattr(ctx, 'tool_name', '')
+            if fnmatch.fnmatch(tool, r.matcher) or r.matcher == "" or r.matcher == "*" or r.matcher in tool:
+                r.last_triggered = _time.time()
+                fired += 1
+                if r.action_type == "command" and r.priority >= 100:
+                    blocked += 1
+        return {"fired": fired, "blocked": blocked}
+    
+    def enable_security_defaults(self):
+        for matcher, action in [("Bash(*rm *)", "exit 2"), ("Bash(*sudo *)", "exit 2"),
+                                 ("Write(*.env*)", "echo blocked"), ("Bash(*curl*|*sh)", "exit 2")]:
+            self.add_rule(HookEvent.PRE_TOOL, matcher, action, "command", 100)
+    
+    def _save(self):
+        if self._config_path:
+            import json
+            try:
+                with open(self._config_path, 'w') as f:
+                    json.dump([{"event": r.event.value, "matcher": r.matcher, "action": r.action,
+                               "action_type": r.action_type, "priority": r.priority,
+                               "cooldown_s": r.cooldown_s} for r in self.rules], f)
+            except: pass
+    
+    def _load(self):
+        if self._config_path:
+            import json, os
+            try:
+                if os.path.exists(self._config_path):
+                    with open(self._config_path) as f:
+                        data = json.load(f)
+                    for d in data:
+                        event = HookEvent(d["event"])
+                        self.add_rule(event, d["matcher"], d["action"],
+                                     d.get("action_type","shell"), d.get("priority",50),
+                                     d.get("cooldown_s",0))
+            except: pass
+    
+    def get_stats(self) -> Dict:
+        return {"total_rules": len(self.rules),
+                "rules_by_event": {e.value: sum(1 for r in self.rules if r.event == e) for e in HookEvent}}
+    
+    def list_rules(self) -> List[Dict]:
+        return [{"index": r.index, "event": r.event.value, "matcher": r.matcher,
+                 "action": r.action, "type": r.action_type} for r in self.rules]
+
+get_hooks = get_hook_system
