@@ -511,7 +511,34 @@ except ImportError:
     get_voice_chat = reset_voice_chat = _brain_noop
     create_sine_wav = _brain_noop
 
-__version__ = "3.103.0"
+# v3.106 Backup Vault
+try:
+    from .backup_vault import (
+        BackupVault, BackupType, BackupTarget, BackupStatus,
+        BackupManifest, BackupEntry, BackupResult, RestoreResult,
+        get_backup_vault, reset_backup_vault,
+    )
+except ImportError:
+    BackupVault = BackupType = BackupTarget = BackupStatus = _brain_noop
+    BackupManifest = BackupEntry = BackupResult = RestoreResult = _brain_noop
+    get_backup_vault = reset_backup_vault = _brain_noop
+
+# v3.104 Vector DB (向量数据库)
+from .vector_db import (
+    VectorDB, VectorDBConfig, VectorDocument, SearchHit, SearchResult,
+    SearchType, Backend, SimpleEncoder, KeywordIndex, BuiltinBackend,
+    get_vector_db, reset_vector_db,
+)
+
+# v3.105 Prompt Optimizer
+from .prompt_optimizer import (
+    PromptOptimizer, PromptVariant, PromptTemplate,
+    ABTestResult, EffectMetrics, OptimizationRecord,
+    OptimizationStrategy, ABTestStatus, TemplateCategory,
+    get_prompt_optimizer, reset_prompt_optimizer,
+)
+
+__version__ = "3.106.0"
 from .web_crawler import (
     WebCrawler, CrawlResult, CrawlConfig, SitemapEntry, RobotsChecker,
     html_to_markdown, extract_links, extract_title,
@@ -692,4 +719,17 @@ __all__ = [
     "VoiceLanguage", "AudioFormat", "VoiceGender",
     "get_voice_chat", "reset_voice_chat",
     "create_sine_wav",
+    # v3.104 Vector DB
+    "VectorDB", "VectorDBConfig", "VectorDocument", "SearchHit", "SearchResult",
+    "SearchType", "Backend", "SimpleEncoder", "KeywordIndex", "BuiltinBackend",
+    "get_vector_db", "reset_vector_db",
+    # v3.105 Prompt Optimizer
+    "PromptOptimizer", "PromptVariant", "PromptTemplate",
+    "ABTestResult", "EffectMetrics", "OptimizationRecord",
+    "OptimizationStrategy", "ABTestStatus", "TemplateCategory",
+    "get_prompt_optimizer", "reset_prompt_optimizer",
+    # v3.106 Backup Vault
+    "BackupVault", "BackupType", "BackupTarget", "BackupStatus",
+    "BackupManifest", "BackupEntry", "BackupResult", "RestoreResult",
+    "get_backup_vault", "reset_backup_vault",
 ]
