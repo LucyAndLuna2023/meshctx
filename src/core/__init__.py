@@ -342,6 +342,26 @@ try:
 except ImportError:
     SmartModelRouter = get_model_router = _brain_noop
 
+# v3.83: Thinking Depth Controller
+try:
+    from .thinking_depth import (
+        ThinkingDepthController, ThinkParseResult, ThinkDepth,
+        get_thinking_controller, quick_parse,
+        DEPTH_MODEL_PARAMS, DEPTH_SYSTEM_PROMPTS, DEPTH_INSTRUCTION_SUFFIX,
+    )
+except ImportError:
+    ThinkingDepthController = ThinkParseResult = ThinkDepth = _brain_noop
+    get_thinking_controller = quick_parse = _brain_noop
+    DEPTH_MODEL_PARAMS = DEPTH_SYSTEM_PROMPTS = DEPTH_INSTRUCTION_SUFFIX = _brain_noop
+
+# v3.82: MCP Protocol Standardizer
+from .mcp_standardizer import (
+    MCPStandardizer, MCPToolDef, MCPToolResult,
+    get_mcp_standardizer, reset_mcp_standardizer,
+    generate_json_schema_from_func, generate_schema_from_dict,
+    discover_functions_in_module, discover_tools_in_package,
+)
+
 from .subconscious import (
     SubconsciousObserver, Nudge, NudgePriority, NudgeSource, get_observer,
 )
@@ -350,7 +370,17 @@ from .feedback_loop import (
     AdaptiveConfig, AutonomousPipeline, get_feedback_engine,
 )
 
-__version__ = "3.80.0"
+# v3.81 Deep Research Engine
+try:
+    from .deep_research import (
+        DeepResearchEngine, SearchResult, ResearchStep,
+        ResearchReport, get_deep_research,
+    )
+except ImportError:
+    DeepResearchEngine = SearchResult = ResearchStep = _brain_noop
+    ResearchReport = get_deep_research = _brain_noop
+
+__version__ = "3.83.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -434,4 +464,16 @@ __all__ = [
     "PredictivePreCompute", "get_precompute_engine",
     # v2.57 Health Monitor
     "RealtimeHealthMonitor", "get_health_monitor",
+    # v3.82 MCP Protocol Standardizer
+    "MCPStandardizer", "MCPToolDef", "MCPToolResult",
+    "get_mcp_standardizer", "reset_mcp_standardizer",
+    "generate_json_schema_from_func", "generate_schema_from_dict",
+    "discover_functions_in_module", "discover_tools_in_package",
+    # v3.81 Deep Research Engine
+    "DeepResearchEngine", "SearchResult", "ResearchStep",
+    "ResearchReport", "get_deep_research",
+    # v3.83 Thinking Depth Controller
+    "ThinkingDepthController", "ThinkParseResult", "ThinkDepth",
+    "get_thinking_controller", "quick_parse",
+    "DEPTH_MODEL_PARAMS", "DEPTH_SYSTEM_PROMPTS", "DEPTH_INSTRUCTION_SUFFIX",
 ]
