@@ -6437,12 +6437,13 @@ async def _get_ai_reply(text: str) -> str:
 
 @app.get("/health")
 async def health_check():
+    from src.core import __version__
     engine = get_memory_engine()
     k = get_kernel()
 
     result = {
         "status": "healthy",
-        "version": "3.33.0",
+        "version": __version__,
         "kernel": "running" if (k._started if hasattr(k, '_started') else False) else "standalone",
         "projects_count": len(engine.projects),
         "conversations_count": len(engine.conversations),
