@@ -42,3 +42,4 @@ __pycache__/
 build/
 dist/
 build/
+manager_key.json

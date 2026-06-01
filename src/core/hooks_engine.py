@@ -16,6 +16,7 @@ Inspired by Claude Code's 8-event hook system:
 License: Proprietary Core.
 """
 import json
+import ast
 import os
 import subprocess
 import time
@@ -226,10 +227,7 @@ class HooksEngine:
         elif rule.action_type == "python":
             # Execute simple Python expression
             try:
-                result = eval(rule.action, {
-                    "context": context, "time": time, "os": os,
-                    "json": json, "print": print
-                })
+                result = ast.literal_eval(rule.action) if hasattr(ast, 'literal_eval') else json.loads(rule.action)
                 return str(result)[:500]
             except Exception as e:
                 return f"ERROR: {e}"
