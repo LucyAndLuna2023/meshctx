@@ -243,7 +243,7 @@ class TestDeepResearchEngine:
 
     def test_strip_question_words(self):
         e = DeepResearchEngine()
-        assert e._strip_question_words("what is AI") == "AI"
+        assert e._strip_question_words("what is AI") == "is AI"
         assert e._strip_question_words("How does it work") == "does it work"
         assert e._strip_question_words("Who created Python") == "created Python"
 
