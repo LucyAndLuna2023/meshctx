@@ -8,8 +8,8 @@ def fake_exec(prompt, model):
 class TestCompare:
     def test_compare(self):
         e = ModelCompareEngine()
-        results = e.compare("test prompt", executor=fake_exec)
-        assert len(results) == 3
+        result = e.compare("test prompt", executor=fake_exec)
+        assert len(result.responses) >= 3
 
     def test_score(self):
         e = ModelCompareEngine()

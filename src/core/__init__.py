@@ -167,7 +167,7 @@ from .sandbox import SandboxEngine, SandboxResult, get_sandbox
 from .project_indexer import ProjectIndexer, FileSummary, IndexStats, get_indexer
 from .feishu_notify import FeishuNotifier, FeishuPlugin
 from .win_admin import WindowsAdmin, WinResult, WinService, get_win_admin
-from .model_compare import compare_models, compare_models_stream, ModelCompareEngine, ModelResponse, get_compare_engine
+from .model_compare import compare_models, compare_models_stream, ModelCompareEngine, ModelResponse, CompareResult, get_compare_engine
 from .conversation_store import Conversation, get_or_create
 from .code_reviewer import CodeReviewer, ReviewIssue
 from .agent_monitor import AgentMonitor, AgentMetrics, get_monitor
@@ -380,7 +380,29 @@ except ImportError:
     DeepResearchEngine = SearchResult = ResearchStep = _brain_noop
     ResearchReport = get_deep_research = _brain_noop
 
-__version__ = "3.83.0"
+# v3.88 Cookbook Hardware Recommender
+try:
+    from .cookbook import (
+        CookbookRecommender, GPUInfo, CPUInfo, HardwareProfile,
+        ModelRecommendation, CookbookResult,
+        get_cookbook, reset_cookbook,
+    )
+except ImportError:
+    CookbookRecommender = GPUInfo = CPUInfo = HardwareProfile = _brain_noop
+    ModelRecommendation = CookbookResult = get_cookbook = reset_cookbook = _brain_noop
+
+# v3.86 Web-to-API Proxy
+try:
+    from .web2api import (
+        Web2APIProxy, SSEParser, ProxyStats, ProviderConfig,
+        PROVIDERS, get_web2api, reset_web2api,
+    )
+except ImportError:
+    Web2APIProxy = SSEParser = ProxyStats = ProviderConfig = _brain_noop
+    PROVIDERS = {}
+    get_web2api = reset_web2api = _brain_noop
+
+__version__ = "3.88.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -437,6 +459,7 @@ __all__ = [
     "FeishuNotifier", "FeishuPlugin",
     "WindowsAdmin", "WinResult", "WinService", "get_win_admin",
     "compare_models", "compare_models_stream",
+    "ModelCompareEngine", "ModelResponse", "CompareResult", "get_compare_engine",
     "Conversation", "get_or_create",
     # v2.44 Diff Preview
     "DiffPreviewEngine", "get_diff_engine",
@@ -476,4 +499,11 @@ __all__ = [
     "ThinkingDepthController", "ThinkParseResult", "ThinkDepth",
     "get_thinking_controller", "quick_parse",
     "DEPTH_MODEL_PARAMS", "DEPTH_SYSTEM_PROMPTS", "DEPTH_INSTRUCTION_SUFFIX",
+    # v3.88 Cookbook Hardware Recommender
+    "CookbookRecommender", "GPUInfo", "CPUInfo", "HardwareProfile",
+    "ModelRecommendation", "CookbookResult",
+    "get_cookbook", "reset_cookbook",
+    # v3.86 Web-to-API Proxy
+    "Web2APIProxy", "SSEParser", "ProxyStats", "ProviderConfig",
+    "PROVIDERS", "get_web2api", "reset_web2api",
 ]
