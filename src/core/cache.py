@@ -1,84 +1,53 @@
 """
-MeshCtx Response Cache — Simple TTL Cache
-==========================================
-In-memory caching for API responses to reduce latency.
+meshctx v3.76 — Semantic Cache Engine (语义缓存)
+
+相似问题→直接返回缓存, 节省API调用
 """
-import time
-import threading
-from typing import Dict, Any, Optional, Tuple
-from functools import wraps
+import hashlib, time, json
+from collections import deque, OrderedDict
+from dataclasses import dataclass, field
+from typing import Dict, Optional, Any
 
+@dataclass
+class CacheEntry:
+    key: str; value: Any; hits: int=0; created: float=field(default_factory=time.time)
 
-class TTLCache:
-    """Simple TTL-based in-memory cache."""
+class SemanticCache:
+    def __init__(self, max_size: int=200, similarity_threshold: float=0.85):
+        self._cache: OrderedDict=OrderedDict(); self._max=max_size
+        self._threshold=similarity_threshold; self._hits=0; self._misses=0
+    
+    def _hash(self, text: str) -> str:
+        words = sorted(set(text.lower().split()[:20]))
+        return hashlib.md5(" ".join(words).encode()).hexdigest()[:12]
+    
+    def _similarity(self, a: str, b: str) -> float:
+        wa = set(a.lower().split()); wb = set(b.lower().split())
+        if not wa or not wb: return 0
+        return len(wa & wb) / len(wa | wb)
+    
+    def get(self, query: str) -> Optional[Any]:
+        key = self._hash(query)
+        if key in self._cache:
+            self._cache[key].hits += 1; self._hits += 1
+            self._cache.move_to_end(key); return self._cache[key].value
+        for k, entry in self._cache.items():
+            if self._similarity(query, entry.value.get("_query","")) >= self._threshold:
+                entry.hits += 1; self._hits += 1; return entry.value
+        self._misses += 1; return None
+    
+    def set(self, query: str, value: Any, ttl: int=3600):
+        key = self._hash(query); value["_query"] = query
+        if len(self._cache) >= self._max:
+            self._cache.popitem(last=False)
+        self._cache[key] = CacheEntry(key=key, value=value)
+    
+    def get_stats(self) -> Dict:
+        return {"size": len(self._cache), "hits": self._hits, "misses": self._misses,
+                "hit_rate": f"{self._hits/max(1,self._hits+self._misses)*100:.0f}%"}
 
-    def __init__(self, default_ttl: int = 30, max_size: int = 100):
-        self._cache: Dict[str, Tuple[Any, float]] = {}
-        self._default_ttl = default_ttl
-        self._max_size = max_size
-        self._lock = threading.Lock()
-        self._hits = 0
-        self._misses = 0
-
-    def get(self, key: str) -> Optional[Any]:
-        with self._lock:
-            if key in self._cache:
-                value, expiry = self._cache[key]
-                if time.time() < expiry:
-                    self._hits += 1
-                    return value
-                del self._cache[key]
-            self._misses += 1
-            return None
-
-    def set(self, key: str, value: Any, ttl: int = None):
-        ttl = ttl or self._default_ttl
-        with self._lock:
-            # Evict oldest if at capacity
-            if len(self._cache) >= self._max_size:
-                oldest = min(self._cache, key=lambda k: self._cache[k][1])
-                del self._cache[oldest]
-            self._cache[key] = (value, time.time() + ttl)
-
-    def delete(self, key: str):
-        with self._lock:
-            self._cache.pop(key, None)
-
-    def clear(self):
-        with self._lock:
-            self._cache.clear()
-
-    def stats(self) -> Dict:
-        with self._lock:
-            total = self._hits + self._misses
-            return {
-                "size": len(self._cache),
-                "hits": self._hits,
-                "misses": self._misses,
-                "hit_rate": round(self._hits / total * 100, 1) if total > 0 else 0,
-            }
-
-
-# Global cache instance
-_cache = TTLCache()
-
-
-def cached(ttl: int = 30):
-    """Decorator to cache function results."""
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            # Build cache key from args
-            key = f"{func.__name__}:{str(args)}:{str(sorted(kwargs.items()))}"
-            result = _cache.get(key)
-            if result is not None:
-                return result
-            result = await func(*args, **kwargs)
-            _cache.set(key, result, ttl)
-            return result
-        return wrapper
-    return decorator
-
-
-def get_cache() -> TTLCache:
+_cache = None
+def get_semantic_cache():
+    global _cache
+    if _cache is None: _cache = SemanticCache()
     return _cache
