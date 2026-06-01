@@ -374,6 +374,9 @@ from .subconscious import (
 from .feedback_loop import (
     FeedbackLoopEngine, ExecutionRecord, ActionProfile,
     AdaptiveConfig, AutonomousPipeline, get_feedback_engine,
+    FeedbackLoop, FeedbackSentiment, UserFeedback,
+    FailurePattern, StrategyAdjustment, FeedbackLoopReport,
+    get_feedback_loop, reset_feedback_loop,
 )
 
 # v3.81 Deep Research Engine
@@ -472,7 +475,27 @@ from .code_sandbox_v3 import (
     get_code_sandbox_v3, reset_code_sandbox_v3,
 )
 
-__version__ = "3.97.0"
+# v3.99 Knowledge Graph V2
+from .knowledge_graph_v2 import (
+    KnowledgeGraphV2, Entity, Relation, KGVDocument,
+    get_knowledge_graph_v2, reset_knowledge_graph_v2,
+)
+
+# v3.100 Multi-Modal Engine
+try:
+    from .multi_modal import (
+        MultiModalEngine, MultiModalResult, MultiModalInput,
+        ImageAnalysisResult, TranscriptionResult, OCRResult,
+        Modality, VisionProvider, TranscriptionProvider, OCRProvider,
+        get_multi_modal_engine, reset_multi_modal_engine,
+    )
+except ImportError:
+    MultiModalEngine = MultiModalResult = MultiModalInput = _brain_noop
+    ImageAnalysisResult = TranscriptionResult = OCRResult = _brain_noop
+    Modality = VisionProvider = TranscriptionProvider = OCRProvider = _brain_noop
+    get_multi_modal_engine = reset_multi_modal_engine = _brain_noop
+
+__version__ = "3.100.0"
 __all__ = [
     # Kernel
     "Kernel", "EventBus", "Event", "EventPriority",
@@ -615,4 +638,16 @@ __all__ = [
     "CodeSandboxV3", "CodeSandboxResult", "SandboxLanguage", "SandboxStatus",
     "SandboxRiskLevel", "AuditEntry",
     "get_code_sandbox_v3", "reset_code_sandbox_v3",
+    # v3.98 Feedback Loop
+    "FeedbackLoop", "FeedbackSentiment", "UserFeedback",
+    "FailurePattern", "StrategyAdjustment", "FeedbackLoopReport",
+    "get_feedback_loop", "reset_feedback_loop",
+    # v3.99 Knowledge Graph V2
+    "KnowledgeGraphV2", "Entity", "Relation", "KGVDocument",
+    "get_knowledge_graph_v2", "reset_knowledge_graph_v2",
+    # v3.100 Multi-Modal Engine
+    "MultiModalEngine", "MultiModalResult", "MultiModalInput",
+    "ImageAnalysisResult", "TranscriptionResult", "OCRResult",
+    "Modality", "VisionProvider", "TranscriptionProvider", "OCRProvider",
+    "get_multi_modal_engine", "reset_multi_modal_engine",
 ]
