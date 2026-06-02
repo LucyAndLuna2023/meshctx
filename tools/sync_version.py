@@ -8,6 +8,9 @@ ROOT = Path(__file__).resolve().parent.parent
 def sync_version(new_ver: str):
     major, minor, patch = new_ver.split(".")
     files = {
+        "src/__init__.py": [
+            (r'__version__\s*=\s*"[^"]*"', f'__version__ = "{new_ver}"'),
+        ],
         "src/core/__init__.py": [
             (r'__version__\s*=\s*"[^"]+"', f'__version__ = "{new_ver}"'),
         ],
@@ -19,6 +22,9 @@ def sync_version(new_ver: str):
         ],
         "meshctx_setup.nsi": [
             (r'!define VERSION "[^"]+"', f'!define VERSION "{new_ver}"'),
+        ],
+        "docs/index.html": [
+            (r'(v)\d+\.\d+\.\d+', fr'\g<1>{new_ver}', 1),
         ],
         "meshctx_desktop.spec": [
             (r"'CFBundleShortVersionString': '[^']+'", f"'CFBundleShortVersionString': '{new_ver}'"),
