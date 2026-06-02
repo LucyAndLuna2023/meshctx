@@ -52,15 +52,13 @@ class TestNSISOrder:
             "NSIS编译器要求: PAGE在LANGUAGE之前"
 
     def test_lang_page_custom_exists(self):
-        """v3.80 language selection: .onInit with radio buttons sets $LANGUAGE"""
+        """v3.115 language selection: MUI_LANGDLL_DISPLAY in .onInit"""
         nsi = PROJECT / "meshctx_setup.nsi"
         text = nsi.read_text(encoding="utf-8-sig")
-        assert "Function LangPageCreate" in text, "缺少LangPageCreate"
-        assert "RadioEn" in text, "缺少English radio"
-        assert "RadioZh" in text, "缺少Chinese radio"
-        assert "StrCpy $LANGUAGE" in text, "缺少 $LANGUAGE 设置"
-        for lcid in ['1033','2052','1041','1042','1031','1036','1034']:
-            assert lcid in text, f"缺少 LCID {lcid}"
+        assert "MUI_LANGDLL_DISPLAY" in text, "缺少 MUI_LANGDLL_DISPLAY"
+        assert "!insertmacro MUI_LANGUAGE" in text, "缺少 MUI_LANGUAGE 声明"
+        for lang in ['English','SimpChinese','Japanese','Korean','German','French','Spanish']:
+            assert f'MUI_LANGUAGE "{lang}"' in text, f"缺少 {lang} 语言声明"
 
     def test_unpage_confirm_before_instfiles(self):
         """卸载页: 确认对话框必须在卸载进度之前(如有)"""
@@ -99,12 +97,13 @@ class TestLangStringCompleteness:
             f"MUI_LANGUAGE缺少语言: {missing}"
 
     def test_lang_page_has_all_7_radio_buttons(self):
-        """v3.80 .onInit radio语言选择: 7种语言使用${LANG_*}常量"""
+        """v3.115 MUI_LANGDLL: 7种语言通过MUI_LANGUAGE声明"""
         nsi = PROJECT / "meshctx_setup.nsi"
         text = nsi.read_text(encoding="utf-8-sig")
-        for lang_const in ['1033','2052','1041','1042','1031','1036','1034']:
-            assert lang_const in text, \
-                f".onInit缺少 {lang_const} 的$LANGUAGE设置"
+        langs = ['English','SimpChinese','Japanese','Korean','German','French','Spanish']
+        for lang in langs:
+            assert f'!insertmacro MUI_LANGUAGE "{lang}"' in text, \
+                f"缺少 MUI_LANGUAGE {lang}"
 
     def test_no_extra_langstring_groups(self):
         """确保没有意外的LangString组(当前方案不使用自定义LangString)"""
