@@ -1,5 +1,5 @@
 ﻿; meshctx Desktop NSIS v3.115 — 7语言本地化
-; MUI_LANGDLL 原生语言选择 → 页面创建前完成语言切换
+; MUI_LANGDLL 原生语言选择 → 安装程序启动即弹语言选择框
 Unicode true
 !include "MUI2.nsh"
 
@@ -15,27 +15,26 @@ VIAddVersionKey "ProductVersion" "3.115.0"
 VIAddVersionKey "ProductName" "MeshCtx Desktop"
 VIAddVersionKey "FileDescription" "MeshCtx Desktop Installer"
 
-; ═══ 语言选择 (onInit中，页面创建前) ═══
-Function .onInit
-  !insertmacro MUI_LANGDLL_DISPLAY
-FunctionEnd
-
 ; ═══ 安装页面 ═══
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
-; ═══ 7语言支持 (必须在所有PAGE之后) ═══
-!insertmacro MUI_LANGUAGE "English"
+; ═══ 7语言支持（必须在PAGE之后、onInit之前） ═══
 !insertmacro MUI_LANGUAGE "SimpChinese"
+!insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "Japanese"
 !insertmacro MUI_LANGUAGE "Korean"
 !insertmacro MUI_LANGUAGE "German"
 !insertmacro MUI_LANGUAGE "French"
 !insertmacro MUI_LANGUAGE "Spanish"
 
-; ═══ 静默安装跳过语言选择 ═══
+; ═══ 语言选择对话框（必须在LANGUAGE之后） ═══
+Function .onInit
+  !insertmacro MUI_LANGDLL_DISPLAY
+FunctionEnd
+
 Function .onInstSuccess
 FunctionEnd
 
