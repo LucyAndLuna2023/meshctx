@@ -542,7 +542,7 @@ from .data_pipeline import (
     get_data_pipeline, reset_data_pipeline,
 )
 
-__version__ = "3.115.0"
+__version__ = "3.115.1"
 
 # v3.110 API Gateway
 from .api_gateway import (
