@@ -238,13 +238,13 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         <a href="/ui/projects" class="{% if '/ui/projects' in request.url.path %}active{% endif %}">{{ t("projects") }}</a>
         <a href="/ui/memories" class="{% if '/ui/memories' in request.url.path %}active{% endif %}">{{ t("memories") }}</a>
         <a href="/ui/continuity" class="{% if '/ui/continuity' in request.url.path %}active{% endif %}">{{ t("continuity") }}</a>
-        <a href="/ui/memory" class="{% if '/ui/memory' in request.url.path %}active{% endif %}">🧠 Memory</a>
-        <a href="/ui/chat" class="{% if '/ui/chat' in request.url.path %}active{% endif %}">Chat</a>
-        <a href="/ui/setup" class="{% if '/ui/setup' in request.url.path %}active{% endif %}">Setup</a>
-        <a href="/ui/dashboard" class="{% if '/ui/dashboard' in request.url.path %}active{% endif %}">📊</a>
+        <a href="/ui/memory" class="{% if '/ui/memory' in request.url.path %}active{% endif %}">🧠 {{ t("memories") }}</a>
+        <a href="/ui/chat" class="{% if '/ui/chat' in request.url.path %}active{% endif %}">{{ t("chat") }}</a>
+        <a href="/ui/setup" class="{% if '/ui/setup' in request.url.path %}active{% endif %}">{{ t("setup") }}</a>
+        <a href="/ui/dashboard" class="{% if '/ui/dashboard' in request.url.path %}active{% endif %}">📊 {{ t("dashboard") }}</a>
         <a href="/ui/plugins" class="{% if '/ui/plugins' in request.url.path %}active{% endif %}">🔌 {{ t("plugins") }}</a>
         <a href="/ui/files" class="{% if '/ui/files' in request.url.path %}active{% endif %}">📁 {{ t("files") }}</a>
-        <a href="/docs" target="_blank" class="" style="color:#f59e0b;">📚 API</a>
+        <a href="/docs" target="_blank" class="" style="color:#f59e0b;">📚 {{ t("api_docs") }}</a>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
         <select id="langSelect" onchange="switchLang(this.value)" 
@@ -385,7 +385,7 @@ function filterCommands() {
 function renderCmdList() {
     var list = document.getElementById('cmdList');
     if (cmdFiltered.length === 0) {
-        list.innerHTML = '<div class="cmd-empty">未找到匹配命令</div>';
+        list.innerHTML = '<div class="cmd-empty">'+window.__t('cmd_no_results')+'</div>';
         return;
     }
     var html = '';
@@ -852,17 +852,17 @@ _TEMPLATES["dashboard.html"] = r"""{% extends "base.html" %}
 _TEMPLATES["projects.html"] = r"""{% extends "base.html" %}
 {% block content %}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-    <h2>📁 项目管理</h2>
-    <button class="btn btn-primary" onclick="document.getElementById('createForm').style.display='block'">+ 新建项目</button>
+    <h2>📁 {{ t("project_management") }}</h2>
+    <button class="btn btn-primary" onclick="document.getElementById('createForm').style.display='block'">+ {{ t("new_project") }}</button>
 </div>
 
 <div id="createForm" class="card" style="display:none;">
-    <h2>新建项目</h2>
+    <h2>{{ t("new_project") }}</h2>
     <form method="POST" action="/ui/projects/create">
-        <div class="form-group"><label>名称</label><input name="name" required></div>
-        <div class="form-group"><label>描述</label><textarea name="description" rows="2"></textarea></div>
-        <div class="form-group"><label>标签（逗号分隔）</label><input name="tags"></div>
-        <button type="submit" class="btn btn-primary">创建</button>
+        <div class="form-group"><label>{{ t("name") }}</label><input name="name" required></div>
+        <div class="form-group"><label>{{ t("description") }}</label><textarea name="description" rows="2"></textarea></div>
+        <div class="form-group"><label>{{ t("tags_comma_sep") }}</label><input name="tags"></div>
+        <button type="submit" class="btn btn-primary">{{ t("create_btn") }}</button>
     </form>
 </div>
 
@@ -879,7 +879,7 @@ _TEMPLATES["projects.html"] = r"""{% extends "base.html" %}
         <td><span style="color:{{ continuity_color(p.continuity.continuity_score) }}">{{ continuity_label(p.continuity.continuity_score) }}</span></td>
         <td>
             <form method="POST" action="/ui/projects/{{ p.project.id }}/delete" style="display:inline" onsubmit="return confirm(window.__t('delete_confirm')||'确定删除?')">
-                <button class="btn btn-danger" style="padding:4px 10px;font-size:12px;">删除</button>
+                <button class="btn btn-danger" style="padding:4px 10px;font-size:12px;">{{ t("delete") }}</button>
             </form>
         </td>
     </tr>
@@ -887,7 +887,7 @@ _TEMPLATES["projects.html"] = r"""{% extends "base.html" %}
     </tbody>
 </table>
 {% else %}
-<div class="empty">📭 暂无项目</div>
+<div class="empty">📭 {{ t("no_projects") }}</div>
 {% endif %}
 {% endblock %}"""
 
@@ -900,14 +900,14 @@ _TEMPLATES["project_detail.html"] = r"""{% extends "base.html" %}
 <p style="color:#94a3b8;margin-bottom:16px;">{{ project.description or t('no_description') }}</p>
 
 <div class="card">
-    <h2>📈 连续性</h2>
+    <h2>📈 {{ t("continuity") }}</h2>
     <p>{{ t("score_label") }}: <span style="color:{{ continuity_color(continuity.continuity_score) }};font-size:24px;font-weight:700;">{{ "%.2f"|format(continuity.continuity_score) }}</span>
     — {{ continuity_label(continuity.continuity_score) }}</p>
     {% if continuity.last_active %}<p style="color:#64748b;font-size:13px;">{{ t('last_active_label') }}: {{ format_dt(continuity.last_active) }}</p>{% endif %}
 </div>
 
 <div class="card">
-    <h2>💬 会话 ({{ conversations|length }})</h2>
+    <h2>💬 {{ t("sessions_label") }} ({{ conversations|length }})</h2>
     {% if conversations %}
     <table>
         <thead><tr><th>{{ t("title_label") }}</th><th>{{ t("message_count_label") }}</th><th>{{ t("active_agents_label") }}</th><th>{{ t("updated") }}</th></tr></thead>
@@ -926,7 +926,7 @@ _TEMPLATES["project_detail.html"] = r"""{% extends "base.html" %}
 </div>
 
 <div class="card">
-    <h2>🧠 记忆 ({{ memories|length }})</h2>
+    <h2>🧠 {{ t("memories") }} ({{ memories|length }})</h2>
     {% if memories %}
     {% for m in memories[:20] %}
     <div style="border-bottom:1px solid #334155;padding:8px 0;font-size:13px;">
@@ -942,12 +942,12 @@ _TEMPLATES["conversation.html"] = r"""{% extends "base.html" %}
 {% block content %}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
     <h2>💬 {{ conversation.title }}</h2>
-    {% if project %}<span style="color:#64748b;">项目: <a href="/ui/projects/{{ project.id }}">{{ project.name }}</a></span>{% endif %}
+    {% if project %}<span style="color:#64748b;">{{ t("project") }}: <a href="/ui/projects/{{ project.id }}">{{ project.name }}</a></span>{% endif %}
 </div>
 <p style="color:#64748b;font-size:13px;margin-bottom:16px;">{{ t('created_label') }}: {{ format_dt(conversation.created_at) }} | {{ t('updated_label') }}: {{ format_dt(conversation.updated_at) }}</p>
 
 <div class="card">
-    <h2>消息 ({{ messages|length }})</h2>
+    <h2>{{ t("messages_label") }} ({{ messages|length }})</h2>
     {% if messages %}
     {% for msg in messages %}
     <div style="border-bottom:1px solid #334155;padding:10px 0;">
@@ -958,7 +958,7 @@ _TEMPLATES["conversation.html"] = r"""{% extends "base.html" %}
         <div style="font-size:14px;white-space:pre-wrap;">{{ msg.content }}</div>
     </div>
     {% endfor %}
-    {% else %}<div class="empty">暂无消息</div>{% endif %}
+    {% else %}<div class="empty">{{ t("no_messages") }}</div>{% endif %}
 </div>
 {% endblock %}"""
 
@@ -978,7 +978,7 @@ _TEMPLATES["memories.html"] = r"""{% extends "base.html" %}
         <td style="font-size:12px;">{{ format_dt(m.memory.created_at) }}</td>
         <td>
             <form method="POST" action="/ui/memories/{{ m.memory.id }}/delete" style="display:inline" onsubmit="return confirm(window.__t('delete_confirm')||'确定删除?')">
-                <button class="btn btn-danger" style="padding:2px 8px;font-size:11px;">删除</button>
+                <button class="btn btn-danger" style="padding:2px 8px;font-size:11px;">{{ t("delete") }}</button>
             </form>
         </td>
     </tr>
@@ -997,8 +997,8 @@ _TEMPLATES["memories.html"] = r"""{% extends "base.html" %}
 
 _TEMPLATES["continuity.html"] = r"""{% extends "base.html" %}
 {% block content %}
-<h2 style="margin-bottom:16px;">📊 连续性检测</h2>
-<p style="color:#64748b;margin-bottom:16px;">连续性项目: {{ continuous_count }} / {{ total_count }}</p>
+<h2 style="margin-bottom:16px;">📊 {{ t("continuity_title") }}</h2>
+<p style="color:#64748b;margin-bottom:16px;">{{ t("continuous") }}: {{ continuous_count }} / {{ total_count }}</p>
 
 {% if data %}
 <table>
@@ -1018,43 +1018,43 @@ _TEMPLATES["continuity.html"] = r"""{% extends "base.html" %}
     </tbody>
 </table>
 {% else %}
-<div class="empty">📭 暂无数据</div>
+<div class="empty">📭 {{ t("no_data") }}</div>
 {% endif %}
 {% endblock %}"""
 
 _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
 {% block content %}
-<h2>💬 Chat</h2>
+<h2>💬 {{ t("chat") }}</h2>
 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-    <span style="color:#64748b;font-size:13px;">模型:</span>
+    <span style="color:#64748b;font-size:13px;">{{ t("model_label") }}:</span>
     <select id="modelSelect" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:13px;" onchange="localStorage.setItem('meshctx_model',this.value)">
-        <option value="">加载中...</option>
+        <option value="">{{ t("loading") }}...</option>
     </select>
     <button id="compareBtn" onclick="toggleCompare()" style="background:#8b5cf6;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;margin-left:12px;">⚡ 对比模式</button>
 </div>
 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-    <span style="color:#64748b;font-size:13px;">📋 模板:</span>
+    <span style="color:#64748b;font-size:13px;">📋 {{ t("template_label") }}:</span>
     <select id="promptTemplate" onchange="loadTemplate(this.value)" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:12px;min-width:120px;">
         <option value="">-- 选择模板 --</option>
     </select>
-    <button onclick="saveAsTemplate()" title="保存当前输入为模板" style="background:transparent;border:1px solid #334155;color:#64748b;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">💾 保存</button>
+    <button onclick="saveAsTemplate()" title="{{ t("save_as_template") }}" style="background:transparent;border:1px solid #334155;color:#64748b;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">💾 {{ t("save") }}</button>
     <button onclick="deleteTemplate()" title="删除选中模板" style="background:transparent;border:1px solid #334155;color:#64748b;padding:4px 6px;border-radius:4px;font-size:11px;cursor:pointer;">🗑️</button>
 </div>
 <!-- v2.16: 可折叠系统提示词编辑器 -->
 <div style="margin-bottom:8px;">
-    <button onclick="toggleSystemPrompt()" style="background:transparent;border:1px solid #334155;color:#64748b;padding:2px 10px;border-radius:4px;font-size:11px;cursor:pointer;" id="sysPromptToggle">⚙️ 系统提示词 ▸</button>
+    <button onclick="toggleSystemPrompt()" style="background:transparent;border:1px solid #334155;color:#64748b;padding:2px 10px;border-radius:4px;font-size:11px;cursor:pointer;" id="sysPromptToggle">⚙️ {{ t("system_prompt") }} ▸</button>
     <div id="sysPromptArea" style="display:none;margin-top:6px;">
-        <textarea id="sysPromptInput" placeholder="设置AI的行为和角色...&#10;例如: 你是一个Python专家，用中文回答，代码要加注释" style="width:100%;height:60px;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:8px;border-radius:6px;font-size:12px;resize:vertical;"></textarea>
+        <textarea id="sysPromptInput" placeholder="{{ t("system_prompt_placeholder") }}" style="width:100%;height:60px;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:8px;border-radius:6px;font-size:12px;resize:vertical;"></textarea>
         <div style="display:flex;gap:6px;margin-top:4px;">
-            <button onclick="saveSystemPrompt()" style="background:#2563eb;color:#fff;border:none;padding:3px 12px;border-radius:4px;font-size:11px;cursor:pointer;">💾 保存</button>
-            <button onclick="clearSystemPrompt()" style="background:transparent;border:1px solid #334155;color:#64748b;padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;">清空</button>
+            <button onclick="saveSystemPrompt()" style="background:#2563eb;color:#fff;border:none;padding:3px 12px;border-radius:4px;font-size:11px;cursor:pointer;">💾 {{ t("save") }}</button>
+            <button onclick="clearSystemPrompt()" style="background:transparent;border:1px solid #334155;color:#64748b;padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;">{{ t("clear") }}</button>
         </div>
     </div>
 </div>
 <div class="card" style="margin-top:16px; display:flex; flex-direction:column; height:60vh;" id="chatCard">
     <div id="chatTabs" style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
     <button class="tab-btn active" data-tab="default" onclick="switchTab('default')" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 14px;border-radius:6px 6px 0 0;font-size:12px;cursor:pointer;">Chat 1</button>
-    <button onclick="newTab()" style="background:transparent;border:1px dashed #334155;color:#64748b;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;">+ 新建</button>
+    <button onclick="newTab()" style="background:transparent;border:1px dashed #334155;color:#64748b;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;">+ {{ t("new_tab") }}</button>
 </div>
 <div id="messages" style="flex:1; overflow-y:auto; margin-bottom:12px; padding:8px; border:1px solid #334155; border-radius:0 8px 8px 8px; background:#0a0f1a;" 
      ondragover="event.preventDefault();this.style.borderColor='#8b5cf6'" 
@@ -1069,23 +1069,23 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
         <button onclick="quickAction('优化性能')" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">⚡ 优化</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:16px;position:relative;">
-        <input id="userInput" placeholder="/read /ls /search /run /context /win @文件引用 命令大全" style="flex:1;" onkeydown="handleChatKeydown(event)" oninput="handleAtInput(this);updateTokenCount()" autocomplete="off">
+        <input id="userInput" placeholder="{{ t("chat_placeholder") }}" style="flex:1;" onkeydown="handleChatKeydown(event)" oninput="handleAtInput(this);updateTokenCount()" autocomplete="off">
         <span id="tokenCount" style="color:#64748b;font-size:10px;margin-left:8px;align-self:center;white-space:nowrap;">0 tokens</span>
         <button class="btn" style="background:#334155;color:#94a3b8;font-size:16px;padding:8px 12px;" onclick="document.getElementById('fileInput').click()" title="上传文件">📎</button>
         <button id="compareBtn" class="btn" style="background:#8b5cf6;color:#e2e8f0;font-size:12px;padding:8px 12px;border:none;border-radius:6px;cursor:pointer;" onclick="toggleCompare()" title="多模型对比">⚡ 对比</button>
         <button onclick="exportChat()" title="导出对话" style="background:transparent;border:1px solid #334155;color:#64748b;padding:6px 10px;border-radius:4px;font-size:11px;cursor:pointer;">📥 导出</button>
-        <button class="btn btn-primary" onclick="send()">发送</button>
+        <button class="btn btn-primary" onclick="send()">{{ t("send_btn") }}</button>
         <div id="atAutocomplete" style="display:none;position:absolute;top:100%;left:0;background:#1e293b;border:1px solid #334155;border-radius:6px;max-height:200px;overflow-y:auto;z-index:1000;min-width:300px;box-shadow:0 4px 12px rgba(0,0,0,0.5);"></div>
     </div>
     <input type="file" id="fileInput" style="display:none" multiple onchange="uploadFiles()">
 </div>
 <details style="margin-top:12px;">
-    <summary style="color:#64748b;font-size:12px;cursor:pointer;">🖥️ 终端</summary>
+    <summary style="color:#64748b;font-size:12px;cursor:pointer;">🖥️ {{ t("terminal") }}</summary>
     <div style="background:#0a0a0a;border:1px solid #334155;border-radius:6px;padding:8px;margin-top:8px;font-family:monospace;font-size:12px;">
         <div id="termOutput" style="max-height:200px;overflow-y:auto;color:#22c55e;white-space:pre-wrap;min-height:40px;">$ _</div>
         <div style="display:flex;gap:4px;margin-top:4px;">
             <span style="color:#22c55e;">$</span>
-            <input id="termInput" placeholder="输入命令..." style="flex:1;background:transparent;border:none;color:#22c55e;font-family:monospace;font-size:12px;outline:none;" onkeydown="if(event.key==='Enter')runTerm()">
+<input id="termInput" placeholder="{{ t("term_placeholder") }}" style="flex:1;background:transparent;border:none;color:#22c55e;font-family:monospace;font-size:13px;" onkeydown="if(event.key==='Enter')runTerm()">
         </div>
     </div>
 </details>
@@ -1093,14 +1093,14 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
 <!-- ═══ 对比模式: 模型选择弹窗 ═══ -->
 <div id="compareModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;">
     <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;">
-        <h3 style="margin:0 0 4px;font-size:18px;">⚡ 多模型对比</h3>
-        <p style="color:#64748b;font-size:13px;margin:0 0 16px;">勾选 2-6 个模型，同时提问并对比回答</p>
+        <h3 style="margin:0 0 4px;font-size:18px;">⚡ {{ t("compare_title") }}</h3>
+        <p style="color:#64748b;font-size:13px;margin:0 0 16px;">{{ t("compare_desc") }}</p>
         <div id="compareModelList" style="max-height:300px;overflow-y:auto;margin-bottom:16px;">
-            <div style="color:#64748b;font-size:13px;">加载模型列表...</div>
+            <div style="color:#64748b;font-size:13px;">{{ t("loading_models") }}...</div>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end;">
-            <button onclick="cancelCompare()" style="background:#334155;color:#94a3b8;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;">取消</button>
-            <button id="compareStartBtn" onclick="startCompare()" style="background:#8b5cf6;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;">⚡ 开始对比</button>
+            <button onclick="cancelCompare()" style="background:#334155;color:#94a3b8;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;">{{ t("cancel_btn") }}</button>
+            <button id="compareStartBtn" onclick="startCompare()" style="background:#8b5cf6;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;">⚡ {{ t("compare_start") }}</button>
         </div>
     </div>
 </div>
@@ -1201,7 +1201,7 @@ async function loadModels() {
         sel.value = saved || data.default;
     }
     } catch(e) {
-        document.getElementById('modelSelect').innerHTML = '<option>加载失败</option>';
+        document.getElementById('modelSelect').innerHTML = '<option>'+window.__t('load_failed')+'</option>';
     }
 }
 loadModels();
@@ -1536,7 +1536,7 @@ function toggleSystemPrompt() {
     var btn = document.getElementById('sysPromptToggle');
     var visible = area.style.display !== 'none';
     area.style.display = visible ? 'none' : 'block';
-    btn.textContent = visible ? '⚙️ 系统提示词 ▸' : '⚙️ 系统提示词 ▾';
+    btn.textContent = (visible ? '⚙️ ' : '⚙️ ') + window.__t('system_prompt') + (visible ? ' ▸' : ' ▾');
     if(!visible) {
         // 加载当前tab的system prompt
         var tabId = localStorage.getItem('meshctx_active_tab') || 'default';
@@ -1556,7 +1556,7 @@ function saveSystemPrompt() {
     if (btns.length > 0) {
         var btn = btns[0];
         var orig = btn.textContent;
-        btn.textContent = '✅ 已保存';
+        btn.textContent = '✅ ' + window.__t('saved');
         setTimeout(function(){ btn.textContent = orig; }, 1500);
     }
 }
@@ -2483,11 +2483,11 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
 <h2>⚙️ 模型管理</h2>
 
 {% if flash == "success" %}
-<div class="flash flash-success">✅ 已保存！配置自动生效。</div>
+<div class="flash flash-success">✅ {{ t("saved_config_auto") }}</div>
 {% elif flash == "error" %}
 <div class="flash flash-error">❌ 操作失败。</div>
 {% elif flash == "deleted" %}
-<div class="flash flash-success">🗑 已删除。</div>
+<div class="flash flash-success">🗑 {{ t("deleted_ok") }}</div>
 {% endif %}
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0;">
@@ -2510,13 +2510,13 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
     <div class="card">
         <h3 id="formTitle">添加模型</h3>
         <input type="hidden" id="editModelId">
-        <div class="form-group"><label>模型ID</label><input id="fid" placeholder="deepseek:chat"></div>
-        <div class="form-group"><label>提供商</label><input id="fprovider" placeholder="deepseek"></div>
+        <div class="form-group"><label>{{ t("model_id") }}</label><input id="fid" placeholder="deepseek:chat"></div>
+        <div class="form-group"><label>{{ t("provider") }}</label><input id="fprovider" placeholder="deepseek"></div>
         <div class="form-group"><label>API Key</label><input id="fkey" type="password" placeholder="sk-..."></div>
         <div class="form-group"><label>模型名(可选)</label><input id="fmodel" placeholder="auto"></div>
         <div class="form-group"><label>Base URL(可选)</label><input id="furl" placeholder="auto"></div>
         <div style="display:flex;gap:8px;">
-            <button class="btn btn-primary" onclick="saveModel()">💾 保存</button>
+            <button class="btn btn-primary" onclick="saveModel()">💾 {{ t("save") }}</button>
             <button class="btn btn-ghost" onclick="hideForm()">取消</button>
             <button class="btn btn-ghost" onclick="testFromForm()" style="margin-left:auto;">🔍 测试连接</button>
         </div>
@@ -2946,7 +2946,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
   <button onclick="toggleTheme()" title="切换明暗主题" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;" id="themeBtn">🌓</button>
   <a href="/ui/download" title="下载Windows客户端" style="text-decoration:none;font-size:13px;padding:4px 6px;">💻</a>
   <select id="quickModel" onchange="switchQuickModel()" title="快速切换模型">
-    <option value="">加载中...</option>
+    <option value="">{{ t("loading") }}...</option>
   </select>
   <button onclick="window.open('/ui/setup','_blank')" title="设置">⚙</button>
 </div>
@@ -5513,36 +5513,36 @@ if(e.key==='Enter') installFromUrl();
 async def download_page(request: Request):
     html = r"""{% extends "base.html" %}
 {% block content %}
-<h2>💻 安装 meshctx</h2>
+<h2>{{ t("install_title") }}</h2>
 <div class="card" style="margin-top:16px;">
-  <h3>🐧 Linux / macOS</h3>
-  <p style="color:var(--muted);">一条命令安装，首次启动时交互式配置</p>
+  <h3>{{ t("linux_macos") }}</h3>
+  <p style="color:var(--muted);">{{ t("one_cmd_install_desc") }}</p>
   <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);">curl -fsSL https://meshctx.com/install.sh | bash</pre>
-  <p style="font-size:11px;color:var(--muted);margin-top:8px;">需要 Python 3.10+ · 无需 Git · 一键安装后运行 <code>meshctx setup</code> 配置</p>
+  <p style="font-size:11px;color:var(--muted);margin-top:8px;">{{ t("install_requirements") }}</p>
 </div>
 <div class="card" style="margin-top:16px;">
-  <h3>🪟 Windows</h3>
+  <h3>{{ t("windows_title") }}</h3>
   <div style="text-align:center;padding:16px;">
-    <a class="btn btn-primary" href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" style="display:inline-block;text-decoration:none;padding:12px 32px;font-size:15px;">⬇ 下载 meshctx Windows</a>
-    <p style="font-size:11px;color:var(--muted);margin-top:8px;">v2.29.3 · NSIS安装程序 · Win10/11 x64</p>
+    <a class="btn btn-primary" href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" style="display:inline-block;text-decoration:none;padding:12px 32px;font-size:15px;">{{ t("download_windows_btn") }}</a>
+    <p style="font-size:11px;color:var(--muted);margin-top:8px;">v{{ version }} · {{ t("nsis_installer") }} · Win10/11 x64</p>
   </div>
   <details style="margin-top:8px;font-size:12px;">
-    <summary style="cursor:pointer;color:var(--muted);">📋 命令行安装</summary>
+    <summary style="cursor:pointer;color:var(--muted);">{{ t("cli_install_title") }}</summary>
     <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);margin-top:8px;">curl -fsSL https://meshctx.com/install.sh | bash</pre>
   </details>
 </div>
 <div class="card" style="margin-top:16px;">
-  <h3>🐳 Docker (即将推出)</h3>
+  <h3>{{ t("docker_coming_soon") }}</h3>
   <p style="color:var(--muted);">docker pull meshctx/meshctx:latest</p>
 </div>
 <div class="card" style="margin-top:16px;">
-  <h3>📖 配置文档</h3>
-  <p>支持 123 模型 / 37 供应商 — <a href="https://github.com/LucyAndLuna2023/meshctx#-模型配置" target="_blank">查看配置指南</a></p>
-  <p style="font-size:12px;color:var(--muted);">DeepSeek · OpenAI · Claude · Gemini · Qwen · Grok · Llama · Mistral · 更多...</p>
+  <h3>{{ t("config_docs_title") }}</h3>
+  <p>{{ t("supports_info") }} <a href="https://github.com/LucyAndLuna2023/meshctx#-model-configuration" target="_blank">{{ t("view_config_guide") }}</a></p>
+  <p style="font-size:12px;color:var(--muted);">{{ t("more_models") }}</p>
 </div>
 {% endblock %}"""
     _TEMPLATES["download.html"] = html
-    return _render("download.html", {"request": request, "title": "Download"})
+    return _render("download.html", {"request": request, "title": "Download", "version": __import__("src").__version__})
 
 
 # ── 模型列表页面 ────────────────────────────────────────────
@@ -5552,18 +5552,18 @@ _TEMPLATES["models.html"] = r"""{% extends "base.html" %}
 <h2>🤖 模型列表</h2>
 <div style="display:flex;gap:12px;margin:16px 0;flex-wrap:wrap;">
     <div class="stat-card"><div class="value" id="totalModels">-</div><div class="label">模型总数</div></div>
-    <div class="stat-card"><div class="value" id="configuredModels">-</div><div class="label">已配置</div></div>
-    <div class="stat-card"><div class="value" id="usableModels">-</div><div class="label">可用</div></div>
-    <div class="stat-card"><div class="value" id="currentModel">-</div><div class="label">当前默认</div></div>
+    <div class="stat-card"><div class="value" id="configuredModels">-</div><div class="label">{{ t("configured") }}</div></div>
+    <div class="stat-card"><div class="value" id="usableModels">-</div><div class="label">{{ t("usable") }}</div></div>
+    <div class="stat-card"><div class="value" id="currentModel">-</div><div class="label">{{ t("current_default") }}</div></div>
 </div>
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <input id="modelSearch" placeholder="搜索模型..." style="max-width:300px;" oninput="filterModels()">
-        <a href="/ui/setup" class="btn btn-primary">+ 配置模型</a>
+        <input id="modelSearch" placeholder="{{ t("search_models") }}..." style="max-width:300px;" oninput="filterModels()">
+        <a href="/ui/setup" class="btn btn-primary">+ {{ t("configure_model") }}</a>
     </div>
     <table>
-        <thead><tr><th>模型ID</th><th>提供商</th><th>状态</th><th>Key环境变量</th></tr></thead>
-        <tbody id="modelTableBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);">加载中...</td></tr></tbody>
+        <thead><tr><th>{{ t("model_id") }}</th><th>{{ t("provider") }}</th><th>{{ t("status") }}</th><th>Key{{ t("env_var") }}</th></tr></thead>
+        <tbody id="modelTableBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);">{{ t("loading") }}...</td></tr></tbody>
     </table>
 </div>
 <script>
@@ -5578,17 +5578,17 @@ async function loadModels(){
         window._models = data.models || [];
         renderModels(window._models);
     }catch(e){
-        document.getElementById('modelTableBody').innerHTML = '<tr><td colspan="4" style="color:#f85149;">加载失败: '+e.message+'</td></tr>';
+        document.getElementById('modelTableBody').innerHTML = '<tr><td colspan="4" style="color:#f85149;">'+window.__t('load_failed')+': '+e.message+'</td></tr>';
     }
 }
 function renderModels(models){
     var tbody = document.getElementById('modelTableBody');
     if(!models.length){
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);">暂无模型</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);">'+window.__t('no_models')+'</td></tr>';
         return;
     }
     tbody.innerHTML = models.map(function(m){
-        var status = m.usable ? '<span style="color:#22c55e;">🟢 可用</span>' : (m.configured ? '<span style="color:#eab308;">🟡 已配置</span>' : '<span style="color:#64748b;">⚫ 未配置</span>');
+        var status = m.usable ? '<span style="color:#22c55e;">🟢 '+window.__t('usable')+'</span>' : (m.configured ? '<span style="color:#eab308;">🟡 '+window.__t('configured')+'</span>' : '<span style="color:#64748b;">⚫ '+window.__t('not_configured')+'</span>');
         var isCurrent = m.current ? ' ⭐' : '';
         return '<tr><td><strong>'+m.id+'</strong>'+isCurrent+'<br><span style="font-size:10px;color:var(--muted);">'+m.model_name+'</span></td><td>'+m.provider_name+'</td><td>'+status+'</td><td><code style="font-size:10px;background:#1e293b;padding:2px 6px;border-radius:4px;">'+m.key_env+'</code></td></tr>';
     }).join('');
@@ -5614,19 +5614,19 @@ async def models_page(request: Request):
 
 _TEMPLATES["providers.html"] = r"""{% extends "base.html" %}
 {% block content %}
-<h2>🔌 供应商</h2>
+<h2>🔌 {{ t("providers") }}</h2>
 <div style="display:flex;gap:12px;margin:16px 0;flex-wrap:wrap;">
-    <div class="stat-card"><div class="value" id="totalProviders">-</div><div class="label">供应商总数</div></div>
-    <div class="stat-card"><div class="value" id="configuredProviders">-</div><div class="label">已配置Key</div></div>
+    <div class="stat-card"><div class="value" id="totalProviders">-</div><div class="label">{{ t("total_providers") }}</div></div>
+    <div class="stat-card"><div class="value" id="configuredProviders">-</div><div class="label">{{ t("configured_keys") }}</div></div>
 </div>
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <input id="providerSearch" placeholder="搜索供应商..." style="max-width:300px;" oninput="filterProviders()">
-        <a href="/ui/setup" class="btn btn-primary">+ 配置供应商</a>
+        <input id="providerSearch" placeholder="{{ t("search_providers") }}..." style="max-width:300px;" oninput="filterProviders()">
+        <a href="/ui/setup" class="btn btn-primary">+ {{ t("configure_provider") }}</a>
     </div>
     <table>
-        <thead><tr><th>供应商</th><th>状态</th><th>Key</th><th>已配置模型</th><th>上次测试</th><th>操作</th></tr></thead>
-        <tbody id="providerTableBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);">加载中...</td></tr></tbody>
+        <thead><tr><th>{{ t("provider") }}</th><th>{{ t("status") }}</th><th>Key</th><th>{{ t("configured_models") }}</th><th>{{ t("last_test") }}</th><th>{{ t("actions") }}</th></tr></thead>
+        <tbody id="providerTableBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);">{{ t("loading") }}...</td></tr></tbody>
     </table>
 </div>
 <script>
@@ -5639,17 +5639,17 @@ async function loadProviders(){
         window._providers = data.providers || [];
         renderProviders(window._providers);
     }catch(e){
-        document.getElementById('providerTableBody').innerHTML = '<tr><td colspan="6" style="color:#f85149;">加载失败: '+e.message+'</td></tr>';
+        document.getElementById('providerTableBody').innerHTML = '<tr><td colspan="6" style="color:#f85149;">'+window.__t('load_failed')+': '+e.message+'</td></tr>';
     }
 }
 function renderProviders(providers){
     var tbody = document.getElementById('providerTableBody');
     if(!providers.length){
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);">暂无供应商</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);">'+window.__t('no_providers')+'</td></tr>';
         return;
     }
     tbody.innerHTML = providers.map(function(p){
-        var status = p.has_key ? '<span style="color:#22c55e;">🟢 已配置</span>' : '<span style="color:#64748b;">⚫ 未配置</span>';
+        var status = p.has_key ? '<span style="color:#22c55e;">🟢 '+window.__t('configured')+'</span>' : '<span style="color:#64748b;">⚫ '+window.__t('not_configured')+'</span>';
         var testStatus = p.test_status === 'ok' ? '<span style="color:#22c55e;">✅</span>' : (p.test_status === 'fail' ? '<span style="color:#f85149;">❌</span>' : '<span style="color:var(--muted);">—</span>');
         var lastTested = p.last_tested || '-';
         return '<tr><td><strong>'+p.name+'</strong><br><span style="font-size:10px;color:var(--muted);">'+p.id+'</span></td><td>'+status+'</td><td><code style="font-size:10px;background:#1e293b;padding:2px 6px;border-radius:4px;">'+(p.key_masked||'—')+'</code></td><td>'+p.models_configured+'/'+p.models_total+'</td><td>'+testStatus+' '+lastTested+'</td><td><a href="/ui/setup" style="font-size:12px;">⚙️ 配置</a></td></tr>';

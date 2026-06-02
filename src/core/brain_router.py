@@ -80,7 +80,23 @@ class PsiParameterizedComplexity:
     def estimate(self, model_name: str, params: Optional[int] = None) -> float:
         if model_name in self.complexity_cache:
             return self.complexity_cache[model_name]
-        psi = math.log(params + 1) / math.log(10) if params else 1.0
+        if params is not None:
+            psi = math.log(params + 1) / math.log(10)
+        else:
+            # Heuristic: estimate complexity from model name patterns
+            ml = model_name.lower()
+            if any(k in ml for k in ['gpt-4', 'gpt4', 'claude-3', 'claude3', 'gemini-ultra', 'gemini-2', 'o1', 'o3']):
+                psi = 12.0
+            elif any(k in ml for k in ['gpt-3.5', 'claude', 'gemini-pro', 'llama-3-70', 'mixtral', 'command-r']):
+                psi = 10.5
+            elif any(k in ml for k in ['large', 'pro', 'turbo', 'llama-3', 'qwen-72', 'deepseek']):
+                psi = 9.0
+            elif any(k in ml for k in ['medium', 'llama-2-13', 'mistral', 'qwen-14', 'phi-3']):
+                psi = 7.0
+            elif any(k in ml for k in ['small', 'tiny', 'mini', 'llama-2-7', 'qwen-7', 'phi-2']):
+                psi = 5.0
+            else:
+                psi = 3.0
         self.complexity_cache[model_name] = psi
         return psi
     
@@ -109,11 +125,16 @@ class BrainInspiredRouter:
         self.complexity = PsiParameterizedComplexity()
     
     def route(self, query_text: str, candidates: List[str]) -> str:
+        if not candidates:
+            return ""
         query_vec = self.projector.encode(query_text[:20])
         scores = self.attention.route(query_vec)
-        expert_idx = int(np.argmax(scores))
-        if expert_idx < len(candidates):
-            return candidates[expert_idx]
+        # Find the best-scoring expert within candidate range
+        top_indices = np.argsort(scores)[::-1]
+        for idx in top_indices:
+            if int(idx) < len(candidates):
+                return candidates[int(idx)]
+        # Fallback: use Psi complexity to pick the best match
         psi_scores = [(m, self.complexity.estimate(m)) for m in candidates]
         return max(psi_scores, key=lambda x: x[1])[0]
     
