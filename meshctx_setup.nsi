@@ -31,6 +31,7 @@ VIAddVersionKey "FileDescription" "MeshCtx Desktop Installer"
 !insertmacro MUI_LANGUAGE "Spanish"
 
 ; ═══ 语言选择对话框（必须在LANGUAGE之后） ═══
+!define MUI_LANGDLL_ALLLANGUAGES
 Function .onInit
   !insertmacro MUI_LANGDLL_DISPLAY
 FunctionEnd
