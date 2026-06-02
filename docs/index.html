@@ -39,9 +39,9 @@
         .nav-links a { color:var(--muted); font-size:0.9rem; } .nav-links a:hover { color:var(--fg); text-decoration:none; }
 
         .lang-dropdown { position:relative; margin-left:12px; display:inline-block; }
-        .lang-dropdown-toggle { background:transparent; color:var(--muted); border:1px solid var(--border); padding:4px 10px; border-radius:4px; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; gap:4px; }
-        .lang-dropdown-toggle::after { content:'▾'; font-size:0.6rem; margin-left:2px; }
-        .lang-dropdown-toggle:hover { color:var(--fg); border-color:var(--purple); }
+        .lang-dropdown-toggle { background:var(--bg2); color:var(--fg); border:1px solid var(--purple); padding:6px 14px; border-radius:6px; cursor:pointer; font-size:0.85rem; display:flex; align-items:center; gap:6px; font-weight:500; }
+        .lang-dropdown-toggle::after { content:'▾'; font-size:0.7rem; margin-left:2px; }
+        .lang-dropdown-toggle:hover { background:var(--purple); color:white; border-color:var(--purple); }
         .lang-dropdown-menu { display:none; position:absolute; top:100%; right:0; margin-top:4px; background:var(--bg2); border:1px solid var(--border); border-radius:6px; min-width:100px; z-index:200; box-shadow:0 8px 24px rgba(0,0,0,0.4); }
         .lang-dropdown-menu.show { display:block; }
         .lang-dropdown-menu button { display:block; width:100%; padding:6px 14px; background:transparent; border:none; color:var(--muted); font-size:0.8rem; cursor:pointer; text-align:left; }
