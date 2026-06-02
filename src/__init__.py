@@ -2,7 +2,7 @@
 meshctx - 智能助手连续上下文记忆平台
 """
 
-__version__ = "3.47.0"
+__version__ = "3.115.0"
 __author__ = "Jason"
 
 from .models import (
