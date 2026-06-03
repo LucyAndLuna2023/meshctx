@@ -150,10 +150,16 @@ echo -e "${GREEN}║          meshctx 安装完成！ 🎉                     �
 echo -e "${GREEN}║                                                  ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════╝${NC}"
 echo ""
+if [ "$KILLED" = "1" ]; then
+    echo -e "  ${GREEN}✓${NC} 已自动停止旧进程，新版本不会冲突"
+fi
 echo -e "  ${CYAN}快速开始:${NC}"
-echo "    meshctx setup                    # 配置 API Key（仅首次）"
 echo "    meshctx start                    # 启动服务"
-echo "    浏览器打开 http://localhost:${PORT}/ui"
+echo "    浏览器打开 http://localhost:${PORT}/ui/setup"
+echo "    → 在 Setup 页面配置 API Key"
+echo "    → 打开 Dashboard 查看状态"
+echo ""
+echo -e "  ${YELLOW}💡 提示:${NC} 首次打开页面请按 ${BOLD}Ctrl+Shift+R${NC} 强制刷新浏览器缓存"
 echo ""
 echo -e "  ${CYAN}常用命令:${NC}"
 echo "    meshctx status                   # 查看状态"
