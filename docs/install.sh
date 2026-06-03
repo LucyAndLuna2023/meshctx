@@ -1,6 +1,6 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════
-# meshctx 一键安装 v6
+# meshctx 一键安装 v7
 # curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash
 # ═══════════════════════════════════════════════════════
 set -e
@@ -9,14 +9,20 @@ GREEN='\033[0;32m'; CYAN='\033[0;36m'; RED='\033[0;31m'; NC='\033[0m'
 INSTALL_DIR="${HOME}/.meshctx"
 VERSION="3.115.1"
 REPO="LucyAndLuna2023/meshctx"
-# GitHub releases CDN 有时缓存旧版本，用时间戳绕过
-SRC_URL="https://github.com/${REPO}/releases/download/v${VERSION}/meshctx-src.tar.gz?t=$(date +%s)"
+SRC_URL="https://github.com/${REPO}/releases/download/v${VERSION}/meshctx-src.tar.gz"
 
 echo -e "${CYAN}"
 echo "  ╔══════════════════════════════════════════╗"
 echo "  ║     meshctx v${VERSION} 一键安装              ║"
 echo "  ╚══════════════════════════════════════════╝"
 echo -e "${NC}"
+
+# ── 停止旧进程 ──
+echo "→ 停止旧 meshctx 进程..."
+pkill -f "uvicorn.*src.main" 2>/dev/null || true
+pkill -f "python.*meshctx" 2>/dev/null || true
+sleep 1
+echo -e "  ${GREEN}✓${NC} 已停止"
 
 # ── 检查 Python ──
 echo "→ 检查 Python..."
@@ -96,11 +102,5 @@ echo -e "${GREEN}╚════════════════════
 echo ""
 echo "  meshctx setup    # 配置 API Key"
 echo "  meshctx start    # 启动"
-echo ""
-
-echo "  安装完成后执行:"
-echo ""
-echo "    ~/bin/meshctx setup    # 配置 API Key 和模型"
-echo "    ~/bin/meshctx start    # 启动服务"
 echo ""
 echo "  然后访问 http://localhost:3000"
