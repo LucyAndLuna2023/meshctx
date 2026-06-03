@@ -4861,6 +4861,31 @@ async def setup_page(request: Request):
             with open(cp) as f:
                 config = _yaml2.safe_load(f) or {}
         entries = config.get("models", {}).get("entries", {})
+        
+        # 也检查 provider_config.json 补全遗漏的配置
+        pcfg_path = Path(__file__).resolve().parent.parent / "provider_config.json"
+        pcfg_keys = {}
+        if pcfg_path.exists():
+            try:
+                import json as _json2
+                pcfg_data = _json2.loads(pcfg_path.read_text())
+                for pid, pinfo in pcfg_data.items():
+                    if pinfo.get("key"):
+                        pcfg_keys[pid] = pinfo["key"]
+            except:
+                pass
+        # 对于 provider_config 中有 key 但 config.yaml 中无 entry 的 provider，
+        # 自动补全该 provider 下所有内置模型的 entries
+        for pid, pkey in pcfg_keys.items():
+            for mid, info in BUILTIN_MODELS.items():
+                if info.get("provider") == pid and mid not in entries:
+                    entries[mid] = {
+                        "key": pkey,
+                        "provider": pid,
+                        "model": info.get("model", ""),
+                        "base_url": info.get("base_url", ""),
+                    }
+        
         default_id = config.get("models", {}).get("default", "")
         
         # 1. 内置模型 (BUILTIN_MODELS)

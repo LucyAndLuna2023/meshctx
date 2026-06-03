@@ -2941,10 +2941,25 @@ async def system_status():
     
     cp = Path.home() / ".meshctx" / "config.yaml"
     configured = 0
+    configured_ids = set()
     if cp.exists():
         with open(cp) as f:
             cfg = yaml.safe_load(f) or {}
-        configured = len(cfg.get("models", {}).get("entries", {}))
+        entries = cfg.get("models", {}).get("entries", {})
+        for eid, info in entries.items():
+            if info.get("key") or info.get("base_url"):
+                configured_ids.add(eid)
+    # 也统计 provider_config.json 中的配置
+    pcfg = Path(__file__).resolve().parent.parent / "provider_config.json"
+    if pcfg.exists():
+        try:
+            pdata = json.loads(pcfg.read_text())
+            for pid, pinfo in pdata.items():
+                if pinfo.get("key"):
+                    configured_ids.add(f"provider:{pid}")
+        except Exception:
+            pass
+    configured = len(configured_ids)
     
     reg_path = Path(__file__).parent.parent / "plugins" / "registry.json"
     plugin_count = 0
@@ -5048,6 +5063,7 @@ async def upload_file(file: UploadFile = File(...)):
 async def api_setup(request: Request):
     """Web设置向导: 输入API Key,自动配置模型"""
     from src.model_registry import get_registry
+    import yaml
     
     try:
         body = await request.json()
@@ -5083,6 +5099,29 @@ async def api_setup(request: Request):
     pcfg = _load_provider_config()
     pcfg[provider] = {"key": key, "updated": time.time()}
     _save_provider_config(pcfg)
+    
+    # 同时写入 config.yaml 确保仪表盘能正确计数
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config = {}
+    if config_path.exists():
+        with open(config_path) as f:
+            config = yaml.safe_load(f) or {}
+    entries = config.setdefault("models", {}).setdefault("entries", {})
+    # 为 provider 下所有模型创建/更新 entries
+    from src.model_registry import BUILTIN_MODELS
+    for mid, info in BUILTIN_MODELS.items():
+        if info["provider"] == provider:
+            if mid not in entries:
+                entries[mid] = {}
+            entries[mid]["key"] = key
+            entries[mid]["provider"] = provider
+            entries[mid]["model"] = info["model"]
+            if "base_url" in info:
+                entries[mid]["base_url"] = info["base_url"]
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+    logger.info(f"config.yaml 已同步 {provider} 模型配置")
     
     # 配置模型
     reg = get_registry()

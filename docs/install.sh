@@ -1,106 +1,166 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════
-# meshctx 一键安装 v7
-# curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash
+# meshctx 一键安装 v8
+# 使用: curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash
 # ═══════════════════════════════════════════════════════
 set -e
 
-GREEN='\033[0;32m'; CYAN='\033[0;36m'; RED='\033[0;31m'; NC='\033[0m'
+GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[0;33m'; RED='\033[0;31m'; NC='\033[0m'
 INSTALL_DIR="${HOME}/.meshctx"
 VERSION="3.115.1"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/releases/download/v${VERSION}/meshctx-src.tar.gz"
+PORT=3000
 
-echo -e "${CYAN}"
-echo "  ╔══════════════════════════════════════════╗"
-echo "  ║     meshctx v${VERSION} 一键安装              ║"
-echo "  ╚══════════════════════════════════════════╝"
-echo -e "${NC}"
+echo ""
+echo -e "${CYAN}  ╔══════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}  ║     meshctx v${VERSION} 一键安装              ║${NC}"
+echo -e "${CYAN}  ╚══════════════════════════════════════════╝${NC}"
+echo ""
 
-# ── 停止旧进程 ──
-echo "→ 停止旧 meshctx 进程..."
-pkill -f "uvicorn.*src.main" 2>/dev/null || true
-pkill -f "python.*meshctx" 2>/dev/null || true
+# ── 停止旧版本 ──────────────────────────────────────
+echo -e "${CYAN}[1/5]${NC} 停止旧版本..."
+KILLED=0
+# 停止本机 uvicorn
+if pgrep -f "uvicorn.*src.main" >/dev/null 2>&1; then
+    pkill -9 -f "uvicorn.*src.main" 2>/dev/null || true
+    KILLED=1
+fi
+# 停止 meshctx CLI 进程
+if pgrep -f "python.*meshctx" >/dev/null 2>&1; then
+    pkill -9 -f "python.*meshctx" 2>/dev/null || true
+    KILLED=1
+fi
 sleep 1
-echo -e "  ${GREEN}✓${NC} 已停止"
 
-# ── 检查 Python ──
-echo "→ 检查 Python..."
+# 释放端口
+if command -v ss >/dev/null 2>&1; then
+    PORT_PID=$(ss -tlnp 2>/dev/null | grep ":${PORT} " | grep -oP 'pid=\K[0-9]+' | head -1)
+elif command -v lsof >/dev/null 2>&1; then
+    PORT_PID=$(lsof -ti:${PORT} 2>/dev/null | head -1)
+else
+    PORT_PID=""
+fi
+if [ -n "$PORT_PID" ]; then
+    kill -9 "$PORT_PID" 2>/dev/null || true
+    KILLED=1
+fi
+
+if [ "$KILLED" = "1" ]; then
+    echo -e "  ${GREEN}✓${NC} 已停止旧服务并释放端口 ${PORT}"
+else
+    echo -e "  ${GREEN}✓${NC} 无需停止"
+fi
+
+# ── 检查 Python ──────────────────────────────────────
+echo -e "${CYAN}[2/5]${NC} 检查环境..."
 python3 --version >/dev/null 2>&1 || {
-    echo -e "${RED}✗ 需要 Python 3.10+${NC}"
+    echo -e "${RED}✗ 需要 Python 3.10+，请先安装: apt install python3${NC}"
     exit 1
 }
 PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+PY_OK=$(python3 -c "import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)" 2>/dev/null && echo 1 || echo 0)
+if [ "$PY_OK" = "0" ]; then
+    echo -e "${RED}✗ 需要 Python 3.10+，当前 ${PY_VER}${NC}"
+    exit 1
+fi
 echo -e "  ${GREEN}✓${NC} Python ${PY_VER}"
 
-# ── 下载源码包 ──
-echo "→ 下载源码包..."
+# ── 下载 ────────────────────────────────────────────
+echo -e "${CYAN}[3/5]${NC} 下载 meshctx v${VERSION}..."
 TMPDIR=$(mktemp -d)
 TARBALL="${TMPDIR}/meshctx-src.tar.gz"
 trap "rm -rf ${TMPDIR}" EXIT
 
+DOWNLOAD_OK=0
 if command -v wget >/dev/null 2>&1; then
-    wget -q --timeout=60 -O "${TARBALL}" "${SRC_URL}" || {
-        echo -e "${RED}✗ 下载失败${NC}"
-        echo "  手动安装: curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | bash"
-        exit 1
-    }
+    wget -q --timeout=120 --tries=3 -O "${TARBALL}" "${SRC_URL}" && DOWNLOAD_OK=1
 else
-    curl -fsSL --connect-timeout 60 -o "${TARBALL}" "${SRC_URL}" || {
-        echo -e "${RED}✗ 下载失败${NC}"
-        echo "  手动安装: curl -fsSL https://raw.githubusercontent.com/${REPO}/main/install.sh | bash"
-        exit 1
-    }
+    curl -fsSL --connect-timeout 60 --retry 3 -o "${TARBALL}" "${SRC_URL}" && DOWNLOAD_OK=1
+fi
+
+if [ "$DOWNLOAD_OK" != "1" ]; then
+    echo -e "${RED}✗ 下载失败${NC}"
+    echo "  请检查网络连接，或手动下载:"
+    echo "  ${SRC_URL}"
+    exit 1
 fi
 echo -e "  ${GREEN}✓${NC} 下载完成 ($(du -h "${TARBALL}" | cut -f1))"
 
-# ── 解压 ──
-echo "→ 解压到 ${INSTALL_DIR}..."
+# ── 安装 ────────────────────────────────────────────
+echo -e "${CYAN}[4/5]${NC} 安装中..."
 rm -rf "${INSTALL_DIR}"
 mkdir -p "${INSTALL_DIR}"
 tar xzf "${TARBALL}" -C "${INSTALL_DIR}" || {
-    echo -e "${RED}✗ 解压失败${NC}"
-    exit 1
+    echo -e "${RED}✗ 解压失败${NC}"; exit 1
 }
-echo -e "  ${GREEN}✓${NC} 解压完成"
 
 cd "${INSTALL_DIR}"
 
-# ── venv + 依赖 ──
-echo "→ 创建 venv..."
-python3 -m venv venv 2>/dev/null || { echo -e "${RED}✗ venv失败 (apt install python3-venv)${NC}"; exit 1; }
+# venv
+if [ ! -d "venv" ]; then
+    python3 -m venv venv 2>/dev/null || {
+        echo -e "${RED}✗ 创建 venv 失败，请安装: apt install python3-venv${NC}"; exit 1
+    }
+fi
 source venv/bin/activate
-echo -e "  ${GREEN}✓${NC} venv 就绪"
 
-echo "→ 安装依赖..."
+# 依赖
 pip install -q --upgrade pip 2>/dev/null
 pip install -q -r requirements.txt 2>/dev/null || {
     pip install -q fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging python-multipart 2>/dev/null || {
         echo -e "${RED}✗ 依赖安装失败${NC}"; exit 1
     }
 }
-echo -e "  ${GREEN}✓${NC} 依赖完成"
 
-# ── meshctx 命令 ──
+# meshctx 命令
 mkdir -p ~/bin
 cat > ~/bin/meshctx << 'SCRIPT'
 #!/bin/bash
-# 加载API Key
 if [ -f ~/.meshctx/.env ]; then
   set -a; source ~/.meshctx/.env; set +a
 fi
 cd ~/.meshctx && source venv/bin/activate && python -m src.cli "$@"
 SCRIPT
 chmod +x ~/bin/meshctx
-grep -q "$HOME/bin" ~/.bashrc 2>/dev/null || echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
+
+# PATH
+if ! echo "$PATH" | grep -q "$HOME/bin"; then
+    echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
+fi
 export PATH="$HOME/bin:$PATH"
 
+echo -e "  ${GREEN}✓${NC} 安装完成"
+
+# ── 验证 ────────────────────────────────────────────
+echo -e "${CYAN}[5/5]${NC} 验证安装..."
+source venv/bin/activate
+INSTALLED_VER=$(python -c "from src.core import __version__; print(__version__)" 2>/dev/null || echo "?")
+if [ "$INSTALLED_VER" = "$VERSION" ]; then
+    echo -e "  ${GREEN}✓${NC} 版本 ${INSTALLED_VER} 校验通过"
+else
+    echo -e "  ${YELLOW}⚠${NC} 版本 ${INSTALLED_VER}（期望 ${VERSION}）"
+fi
+
+# ── 完成 ────────────────────────────────────────────
 echo ""
-echo -e "${GREEN}╔══════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║         meshctx 安装完成!                  ║${NC}"
-echo -e "${GREEN}╚══════════════════════════════════════════╝${NC}"
+echo -e "${GREEN}╔══════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║                                                  ║${NC}"
+echo -e "${GREEN}║          meshctx 安装完成！ 🎉                     ║${NC}"
+echo -e "${GREEN}║                                                  ║${NC}"
+echo -e "${GREEN}╚══════════════════════════════════════════════════╝${NC}"
 echo ""
-echo "  meshctx setup    # 配置 API Key"
-echo "  meshctx start    # 启动"
+echo -e "  ${CYAN}快速开始:${NC}"
+echo "    meshctx setup                    # 配置 API Key（仅首次）"
+echo "    meshctx start                    # 启动服务"
+echo "    浏览器打开 http://localhost:${PORT}/ui"
 echo ""
-echo "  然后访问 http://localhost:3000"
+echo -e "  ${CYAN}常用命令:${NC}"
+echo "    meshctx status                   # 查看状态"
+echo "    meshctx stop                     # 停止服务"
+echo "    meshctx start --port 8080        # 指定端口"
+echo ""
+echo -e "  ${YELLOW}💡 提示：${NC}如果页面显示异常，按 Ctrl+Shift+R 强制刷新浏览器缓存"
+echo ""
+echo -e "  ${GREEN}👉 现在运行:${NC}  meshctx start    # 启动服务"
+echo ""

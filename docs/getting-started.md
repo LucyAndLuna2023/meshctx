@@ -1,124 +1,101 @@
-     1|# Getting Started
-     2|
-     3|## Installation
-     4|
-     5|### Prerequisites
-     6|
-     7|- Python 3.12+
-     8|- pip
-     9|    10|
-    11|### Install via pip
-    12|
-    13|```bash
-    14|pip install meshctx
-    15|```
-    16|
-    17|### Install from source
-    18|
-    19|```bash
-git clone https://github.com/meshctx/meshctx.git
-cd meshctx
+# meshctx 快速入门
 
-# 创建虚拟环境 或 加 --break-system-packages
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e .
-    23|```
-    24|
-    25|### Docker
-    26|
-    27|```bash
-    28|docker pull meshctx/meshctx
-    29|docker run -d -p 8000:8000 meshctx/meshctx
-    30|```
-    31|
-    32|## Quick Start
-    33|
-    34|### 1. Start the Kernel
-    35|
-    36|```bash
-    37|meshctx start
-    38|```
-    39|
-    40|This starts the microkernel with:
-    41|- Event bus (4 workers)
-    42|- Memory plugin (L0-L4 hierarchy)
-    43|- Meta-cognition plugin
-    44|- Orchestrator plugin
-    45|
-    46|### 2. Create a Project
-    47|
-    48|```bash
-    49|meshctx project create "My Project" "Project description"
-    50|```
-    51|
-    52|Or via API:
-    53|
-    54|```bash
-    55|curl -X POST http://localhost:8000/projects \
-    56|  -H "Content-Type: application/json" \
-    57|  -d '{"name": "My Project", "description": "Project description"}'
-    58|```
-    59|
-    60|### 3. Start a Conversation
-    61|
-    62|```bash
-    63|meshctx conversation start <project_id> "First conversation"
-    64|```
-    65|
-    66|### 4. Add Messages
-    67|
-    68|```bash
-    69|curl -X POST http://localhost:8000/messages \
-    70|  -H "Content-Type: application/json" \
-    71|  -d '{
-    72|    "conversation_id": "<conv_id>",
-    73|    "role": "user",
-    74|    "content": "Remember: our goal is to build the best agent"
-    75|  }'
-    76|```
-    77|
-    78|### 5. Retrieve Memories
-    79|
-    80|```bash
-    81|curl http://localhost:8000/projects/<project_id>/memories
-    82|```
-    83|
-    84|### 6. Execute Intent (Multi-Agent Orchestration)
-    85|
-    86|```bash
-    87|curl -X POST http://localhost:8000/orchestrator/execute \
-    88|  -H "Content-Type: application/json" \
-    89|  -d '{"intent": "Deploy the new API service"}'
-    90|```
-    91|
-    92|## Python SDK
-    93|
-    94|```python
-    95|from meshctx import Kernel, MemoryPlugin
-    96|
-    97|async def main():
-    98|    kernel = Kernel()
-    99|    memory = MemoryPlugin()
-   100|    kernel.plugins.register(memory)
-   101|    await kernel.start()
-   102|
-   103|    # Add a message
-   104|    await kernel.bus.publish(Event(
-   105|        type="message.added",
-   106|        data={"content": "Important: remember this goal", "role": "user"}
-   107|    ))
-   108|
-   109|    # Retrieve
-   110|    results = memory.store.retrieve("goal", top_k=5)
-   111|    for item in results:
-   112|        print(f"{item.key}: {item.value}")
-   113|
-   114|    await kernel.stop()
-   115|```
-   116|
-   117|## Next Steps
-   118|
-   119|- [Architecture Deep Dive](/docs/architecture)
-   120|- [API Reference](/docs/api)
-   121|- [Plugin Development](/docs/plugins)
-   122|
+## 安装
+
+### 一键安装（推荐）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash
+```
+
+安装脚本会自动：
+- 停止旧版本服务
+- 检查 Python 3.10+
+- 下载最新源码包
+- 创建虚拟环境并安装依赖
+- 安装完成后询问是否立即启动
+
+### 手动安装
+
+```bash
+git clone https://github.com/LucyAndLuna2023/meshctx.git
+cd meshctx
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+```
+
+## 快速开始
+
+```bash
+meshctx setup      # 配置 API Key（仅首次）
+meshctx start      # 启动服务
+```
+
+然后访问 **http://localhost:3000/ui**
+
+### 常用命令
+
+| 命令 | 说明 |
+|------|------|
+| `meshctx start` | 启动服务（默认端口 3000） |
+| `meshctx start --port 8080` | 指定端口启动 |
+| `meshctx stop` | 停止服务 |
+| `meshctx status` | 查看运行状态 |
+| `meshctx setup` | 配置 API Key 和模型 |
+
+## 更新
+
+重新运行安装脚本即可覆盖升级：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash
+```
+
+安装脚本会自动停止旧服务、覆盖安装。
+
+## 故障排查
+
+### 页面显示异常 / 版本不对
+
+这是浏览器缓存了旧页面。**按 Ctrl+Shift+R 强制刷新**即可。
+
+### 端口 3000 被占用
+
+```bash
+# 查看占用进程
+lsof -i :3000
+
+# 停止旧 meshctx
+meshctx stop
+# 或强制停止
+pkill -9 -f uvicorn
+```
+
+### Python 版本过低
+
+需要 Python 3.10+：
+
+```bash
+# Ubuntu/Debian
+sudo apt install python3.12 python3.12-venv
+
+# macOS
+brew install python@3.12
+```
+
+### 下载失败
+
+国内网络可设置代理：
+
+```bash
+export https_proxy=http://127.0.0.1:7890
+curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash
+```
+
+### 手动验证安装
+
+```bash
+cd ~/.meshctx && source venv/bin/activate
+python -c "from src.core import __version__; print(__version__)"
+# 应输出: 3.115.1
+```
