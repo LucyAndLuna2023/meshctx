@@ -14,7 +14,7 @@ from jinja2 import Environment, DictLoader
 _TEMPLATES = {}
 
 _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="{{ __lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -2763,7 +2763,7 @@ async function testFromForm() {
 {% endblock %}"""
 
 _TEMPLATES["desktop.html"] = r"""<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="{{ __lang }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
