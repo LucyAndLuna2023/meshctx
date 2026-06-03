@@ -335,7 +335,8 @@ function switchLang(lang) {
         .catch(function(){ location.reload(); });
 }
 (function(){
-    var saved = localStorage.getItem('meshctx_lang') || 'zh';
+    var serverLang = window.__lang || 'zh';
+    var saved = localStorage.getItem('meshctx_lang') || serverLang;
     var sel = document.getElementById('langSelect');
     if (sel) sel.value = saved;
 })();
@@ -4485,17 +4486,29 @@ _jinja_env = Environment(loader=DictLoader(_TEMPLATES), autoescape=False)
 _jinja_env.globals['t'] = i18n_t
 _jinja_env.globals['lang'] = i18n_get_lang
 
-def _render(template_name: str, context: dict) -> HTMLResponse:
-    """渲染 Jinja2 模板（从内嵌 DictLoader）"""
-    # 自动注入当前语言翻译数据（供JS使用）
-    lang = i18n_get_lang()
+def _render(template_name: str, context: dict, request = None) -> HTMLResponse:
+    """渲染 Jinja2 模板（从内嵌 DictLoader），自动检测浏览器语言"""
+    lang = i18n_get_lang(request)
     context['__i18n_json'] = __import__('json').dumps(i18n_translations.get(lang, i18n_translations.get('en', {})), ensure_ascii=False)
     context['__lang'] = lang
+    # 注入支持的语言列表供 JS 使用
+    context['__languages'] = __import__('json').dumps(i18n_translations.get(lang, i18n_translations.get('en', {})).get('__available_langs__', [{"code":"zh","name":"中文","native":"中文"},{"code":"en","name":"English","native":"English"},{"code":"ja","name":"Japanese","native":"日本語"},{"code":"ko","name":"Korean","native":"한국어"},{"code":"fr","name":"French","native":"Français"},{"code":"de","name":"German","native":"Deutsch"},{"code":"es","name":"Spanish","native":"Español"}]))
     template = _jinja_env.get_template(template_name)
     html = template.render(**context)
     return HTMLResponse(html)
 
 router = APIRouter(prefix="/ui", tags=["Web UI"])
+
+
+# ── 语言切换 ─────────────────────────────────────────────────
+@router.get("/lang/set")
+async def lang_set(request: Request, lang: str = "zh", redirect: str = "/ui/"):
+    """设置语言 cookie 并重定向"""
+    from src.i18n import set_lang as i18n_set_lang
+    i18n_set_lang(lang)
+    response = RedirectResponse(url=redirect, status_code=302)
+    response.set_cookie("meshctx_lang", lang, max_age=365*24*3600, path="/", samesite="lax")
+    return response
 
 
 # ── 工具函数 ─────────────────────────────────────────────────
@@ -4603,7 +4616,7 @@ async def dashboard(request: Request):
         "continuity_label": _continuity_label,
         "continuity_color": _continuity_color,
         "format_dt": _format_dt,
-    })
+    }, request)
 
 
 # ── 项目管理 ─────────────────────────────────────────────────
@@ -4638,7 +4651,7 @@ async def project_list(request: Request):
         "truncate": _truncate,
         "continuity_label": _continuity_label,
         "continuity_color": _continuity_color,
-    })
+    }, request)
 
 
 @router.post("/projects/create")
@@ -4694,7 +4707,7 @@ async def project_detail(request: Request, project_id: str):
         "truncate": _truncate,
         "continuity_label": _continuity_label,
         "continuity_color": _continuity_color,
-    })
+    }, request)
 
 
 @router.post("/projects/{project_id}/delete")
@@ -4724,7 +4737,7 @@ async def conversation_view(request: Request, conversation_id: str):
         "messages": messages,
         "format_dt": _format_dt,
         "truncate": _truncate,
-    })
+    }, request)
 
 
 # ── 记忆浏览 ─────────────────────────────────────────────────
@@ -4753,7 +4766,7 @@ async def memories_overview(request: Request):
         "projects": projects,
         "format_dt": _format_dt,
         "truncate": _truncate,
-    })
+    }, request)
 
 
 @router.post("/memories/{memory_id}/delete")
@@ -4771,7 +4784,7 @@ async def memory_dashboard(request: Request):
     return _render("memory.html", {
         "request": request,
         "title": "记忆仪表板",
-    })
+    }, request)
 
 
 # ── 连续性检测仪表板 ──────────────────────────────────────────
@@ -4809,17 +4822,17 @@ async def continuity_dashboard(request: Request):
         "format_dt": _format_dt,
         "continuity_label": _continuity_label,
         "continuity_color": _continuity_color,
-    })
+    }, request)
 
 # ── Chat 页面 ───────────────────────────────────────────
 
 @router.get("/desktop", response_class=HTMLResponse)
 async def desktop_page(request: Request):
-    return _render("desktop.html", {"request": request, "title": "Desktop"})
+    return _render("desktop.html", {"request": request, "title": "Desktop"}, request)
 
 @router.get("/chat", response_class=HTMLResponse)
 async def chat_page(request: Request):
-    return _render("chat.html", {"request": request, "title": "Chat"})
+    return _render("chat.html", {"request": request, "title": "Chat"}, request)
 
 @router.get("/setup", response_class=HTMLResponse)
 async def setup_page(request: Request):
@@ -4937,7 +4950,7 @@ async def setup_page(request: Request):
         "flash": flash, "configured": configured,
         "has_more_unconfigured": has_more,
         "total_unconfigured": unconfigured_count,
-    })
+    }, request)
 
 
 @router.post("/setup/save")
@@ -5542,7 +5555,7 @@ async def download_page(request: Request):
 </div>
 {% endblock %}"""
     _TEMPLATES["download.html"] = html
-    return _render("download.html", {"request": request, "title": "Download", "version": __import__("src").__version__})
+    return _render("download.html", {"request": request, "title": "Download", "version": __import__("src").__version__}, request)
 
 
 # ── 模型列表页面 ────────────────────────────────────────────
@@ -5607,7 +5620,7 @@ loadModels();
 
 @router.get("/models", response_class=HTMLResponse)
 async def models_page(request: Request):
-    return _render("models.html", {"request": request, "title": "Models"})
+    return _render("models.html", {"request": request, "title": "Models"}, request)
 
 
 # ── 供应商列表页面 ───────────────────────────────────────────
@@ -5669,7 +5682,7 @@ loadProviders();
 
 @router.get("/providers", response_class=HTMLResponse)
 async def providers_page(request: Request):
-    return _render("providers.html", {"request": request, "title": "Providers"})
+    return _render("providers.html", {"request": request, "title": "Providers"}, request)
 
 
 # ── 文件管理器 ─────────────────────────────────────────────
@@ -6059,7 +6072,7 @@ loadPath('');
 
 @router.get("/files", response_class=HTMLResponse)
 async def files_page(request: Request):
-    return _render("files.html", {"request": request, "title": "Files"})
+    return _render("files.html", {"request": request, "title": "Files"}, request)
 
 
 # ── PWA 支持 ───────────────────────────────────────────────

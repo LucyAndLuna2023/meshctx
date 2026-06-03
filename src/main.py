@@ -611,10 +611,13 @@ class LangSetRequest(BaseModel):
     lang: str
 
 @app.post("/api/lang/set")
-async def api_lang_set(request: LangSetRequest):
+async def api_lang_set(request: LangSetRequest, req: Request = None):
     """设置UI语言"""
     set_lang(request.lang)
-    return {"status": "ok", "lang": request.lang}
+    from fastapi.responses import JSONResponse
+    resp = JSONResponse({"status": "ok", "lang": request.lang})
+    resp.set_cookie("meshctx_lang", request.lang, max_age=365*24*3600, path="/", samesite="lax")
+    return resp
 
 @app.get("/api/lang/get")
 async def api_lang_get():
@@ -6713,10 +6716,16 @@ async def perf_benchmark():
 def main():
     """入口"""
     import uvicorn
+    from src import __version__ as _v
+
     host = os.environ.get("MESHCTX_HOST", "0.0.0.0")
     port = int(os.environ.get("MESHCTX_PORT", "8000"))
-    
-    
+
+    print(f"\n{'='*60}")
+    print(f"  meshctx v{_v}")
+    print(f"  Listening on http://{host}:{port}")
+    print(f"{'='*60}\n")
+
     uvicorn.run(app, host=host, port=port, log_level="info")
 
 

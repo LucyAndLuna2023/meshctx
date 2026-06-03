@@ -1631,13 +1631,48 @@ TRANSLATIONS = {
 }
 
 
-def get_lang() -> str:
-    """获取当前语言"""
-    return os.environ.get("MESHCTX_LANG", "zh")
+def parse_accept_language(header: str) -> str:
+    """解析 Accept-Language 头，返回最佳匹配语言代码 (zh/en/ja/ko/fr/de/es)"""
+    if not header:
+        return ""
+    # e.g. "ja,zh-CN;q=0.9,en;q=0.8" → try each in order
+    for part in header.split(","):
+        lang_tag = part.split(";")[0].strip()
+        # Normalize: zh-CN→zh, en-US→en, ja-JP→ja, etc.
+        code = lang_tag.split("-")[0].lower()
+        if code in TRANSLATIONS:
+            return code
+    return ""
+
+
+def get_lang(request=None) -> str:
+    """获取当前语言（优先级：cookie > Accept-Language > 环境变量 > 默认 zh）"""
+    # 1. Cookie（手动选择）
+    if request is not None:
+        try:
+            cookie_lang = request.cookies.get("meshctx_lang")
+            if cookie_lang and cookie_lang in TRANSLATIONS:
+                return cookie_lang
+        except Exception:
+            pass
+        # 2. Accept-Language 请求头（浏览器语言）
+        try:
+            accept = request.headers.get("Accept-Language", "")
+            detected = parse_accept_language(accept)
+            if detected:
+                return detected
+        except Exception:
+            pass
+    # 3. 环境变量 / 默认
+    global _current_lang
+    env_lang = os.environ.get("MESHCTX_LANG", "")
+    if env_lang and env_lang in TRANSLATIONS:
+        return env_lang
+    return _current_lang or "zh"
 
 
 def set_lang(lang: str):
-    """设置语言"""
+    """设置语言（同时更新全局状态和环境变量）"""
     global _current_lang
     if lang in TRANSLATIONS:
         _current_lang = lang
