@@ -573,6 +573,12 @@ async def live_dashboard():
         return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
     return HTMLResponse(content="<h1>Dashboard template not found</h1>", status_code=404)
 
+@app.get("/favicon.ico")
+async def favicon():
+    """浏览器 tab icon — 重定向到 SVG 图标"""
+    from starlette.responses import RedirectResponse
+    return RedirectResponse(url="/ui/icon-192.png")
+
 @app.get("/", response_class=HTMLResponse)
 async def root():
     """服务主页 — 从 static/index.html"""
