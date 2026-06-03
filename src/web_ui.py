@@ -1216,7 +1216,7 @@ function restoreHistory() {
     chatHistory.forEach((h, i) => {
         if (h.role === 'user') {
             var userBubble = document.createElement('div');
-            userBubble.style.cssText = 'margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;';
+            userBubble.style.cssText = 'margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;color:#e2e8f0;';
             userBubble.innerHTML = '<strong>You:</strong> ' + h.content;
             var editBtn = document.createElement('button');
             editBtn.textContent = '✏️';
@@ -1228,7 +1228,7 @@ function restoreHistory() {
         }
         else {
             var aiBubble = document.createElement('div');
-            aiBubble.style.cssText = 'margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;';
+            aiBubble.style.cssText = 'margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;color:#e2e8f0;';
             aiBubble.innerHTML = '<strong style="color:#38bdf8;">AI:</strong> ' + h.content;
             div.appendChild(aiBubble);
         }
@@ -1274,8 +1274,8 @@ function switchTab(tabId) {
     const div = document.getElementById('messages');
     div.innerHTML = '';
     (allTabs[tabId] && allTabs[tabId].messages || []).forEach(function(h) {
-        if (h.role==='user') div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ' + h.content + '</div>';
-        else div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;"><strong style="color:#38bdf8;">AI:</strong> ' + h.content + '</div>';
+        if (h.role==='user') div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;color:#e2e8f0;"><strong>You:</strong> ' + h.content + '</div>';
+else div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;color:#e2e8f0;"><strong style="color:#38bdf8;">AI:</strong> ' + h.content + '</div>';
     });
     div.scrollTop = div.scrollHeight;
 }
@@ -1440,7 +1440,7 @@ function closeCompare(){
 
 async function compareSend(msg){
   var div = document.getElementById('messages');
-  div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;"><strong>You:</strong> ' + msg + '</div>';
+  div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;color:#e2e8f0;"><strong>You:</strong> ' + msg + '</div>';
   document.getElementById('userInput').value = '';
   
   var models = JSON.parse(localStorage.getItem('meshctx_compare_models') || '["deepseek:chat","openai:gpt-4o-mini","anthropic:claude-haiku"]');
@@ -2035,7 +2035,7 @@ async function send() {
         const displayMsg = '[📄 ' + fnames.join(', ') + '] ' + msg;
         var msgIdx = chatHistory.length;
         var userBubble = document.createElement('div');
-        userBubble.style.cssText = 'margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;';
+        userBubble.style.cssText = 'margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;color:#e2e8f0;';
         userBubble.innerHTML = '<strong>You:</strong> ' + displayMsg;
         var editBtn = document.createElement('button');
         editBtn.textContent = '✏️';
@@ -2051,7 +2051,7 @@ async function send() {
         const displayMsg = msg;
         var msgIdx = chatHistory.length;
         var userBubble = document.createElement('div');
-        userBubble.style.cssText = 'margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;';
+        userBubble.style.cssText = 'margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;color:#e2e8f0;';
         userBubble.innerHTML = '<strong>You:</strong> ' + displayMsg;
         var editBtn = document.createElement('button');
         editBtn.textContent = '✏️';
