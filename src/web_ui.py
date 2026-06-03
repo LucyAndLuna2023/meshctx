@@ -1463,7 +1463,7 @@ async function compareSend(msg){
     var html = '<div style="display:grid;grid-template-columns:repeat('+models.length+',1fr);gap:8px;margin:8px 0;">';
     (data.results||[]).forEach(function(r){
       var color = r.error ? '#fca5a5' : '#22c55e';
-      html += '<div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;font-size:12px;">'+
+      html += '<div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;font-size:12px;color:#e2e8f0;">'+
         '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'+
         '<strong style="color:#38bdf8;">'+r.model+'</strong>'+
         '<span style="font-size:10px;color:var(--muted);">'+r.latency_ms+'ms · '+r.tokens+'t</span></div>'+
@@ -2068,7 +2068,7 @@ async function send() {
     
     // 创建AI消息气泡(流式填充)
     const aiBubble = document.createElement('div');
-    aiBubble.style.cssText = 'margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;position:relative;';
+    aiBubble.style.cssText = 'margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;color:#e2e8f0;position:relative;';
     aiBubble.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><strong style="color:#38bdf8;">AI:</strong><button id="stopStreamBtn" onclick="event.stopPropagation();window._abortStream()" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;display:none;">⏹ 停止</button></div><span class="streamText"></span><span class="cursor">▊</span>';
     div.appendChild(aiBubble);
     const streamText = aiBubble.querySelector('.streamText');
@@ -3169,7 +3169,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
         <button class="btn btn-primary" onclick="runSandbox()">▶ 执行</button>
         <button class="btn" style="background:#334155;color:#94a3b8;" onclick="document.getElementById('sandboxCode').value=''">清空</button>
       </div>
-      <div id="sandboxResult" style="margin-top:12px;background:#0f172a;border:1px solid var(--border);border-radius:6px;padding:12px;font-family:monospace;font-size:12px;white-space:pre-wrap;max-height:400px;overflow-y:auto;display:none;"></div>
+      <div id="sandboxResult" style="margin-top:12px;background:#0f172a;border:1px solid var(--border);border-radius:6px;padding:12px;font-family:monospace;font-size:12px;white-space:pre-wrap;max-height:400px;overflow-y:auto;display:none;color:#e2e8f0;"></div>
     </div>
   </div>
   <!-- 📂 Project Index v2.8 -->
@@ -3207,7 +3207,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
           <input id="winPsCmd" style="flex:1;background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:6px 10px;border-radius:4px;font-family:monospace;font-size:12px;" placeholder="Get-Service | Where-Object {$_.Status -eq 'Running'}">
           <button class="btn btn-primary" onclick="winExec()">▶ 执行</button>
         </div>
-        <div id="winPsResult" style="background:#0f172a;border:1px solid var(--border);border-radius:6px;padding:10px;font-family:monospace;font-size:11px;white-space:pre-wrap;max-height:300px;overflow-y:auto;display:none;"></div>
+        <div id="winPsResult" style="background:#0f172a;border:1px solid var(--border);border-radius:6px;padding:10px;font-family:monospace;font-size:11px;white-space:pre-wrap;max-height:300px;overflow-y:auto;display:none;color:#e2e8f0;"></div>
       </div>
       
       <!-- Dynamic Content -->
