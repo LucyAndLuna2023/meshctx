@@ -57,6 +57,12 @@ def sync_all(version: str):
         "docs/index.html": [
             (r'(v)\d+\.\d+\.\d+', fr'\g<1>{version}', 1),  # first occurrence only
         ],
+        "install.sh": [
+            (r'VERSION="[^"]+"', f'VERSION="{version}"'),
+        ],
+        "docs/install.sh": [
+            (r'VERSION="[^"]+"', f'VERSION="{version}"'),
+        ],
     }
     for fpath, patterns in files.items():
         path = ROOT / fpath

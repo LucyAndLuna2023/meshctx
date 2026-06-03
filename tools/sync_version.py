@@ -26,6 +26,12 @@ def sync_version(new_ver: str):
         "docs/index.html": [
             (r'(v)\d+\.\d+\.\d+', fr'\g<1>{new_ver}', 1),
         ],
+        "install.sh": [
+            (r'VERSION="[^"]+"', f'VERSION="{new_ver}"'),
+        ],
+        "docs/install.sh": [
+            (r'VERSION="[^"]+"', f'VERSION="{new_ver}"'),
+        ],
         "meshctx_desktop.spec": [
             (r"'CFBundleShortVersionString': '[^']+'", f"'CFBundleShortVersionString': '{new_ver}'"),
             (r"'CFBundleVersion': '[^']+'", f"'CFBundleVersion': '{new_ver}'"),
