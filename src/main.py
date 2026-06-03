@@ -6725,7 +6725,6 @@ def main():
     print(f"  meshctx v{_v}")
     print(f"  Listening on http://{host}:{port}")
     print(f"{'='*60}\n")
-
     uvicorn.run(app, host=host, port=port, log_level="info")
 
 
