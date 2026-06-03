@@ -67,7 +67,8 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background-color 0.3s ease, color 0.3s ease; }
         .header { background: var(--header-bg); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; transition: background-color 0.3s ease, border-color 0.3s ease; }
-        .header h1 { font-size: 20px; color: var(--header-h1); }
+        .header h1 { font-size: 20px; color: var(--header-h1); display: flex; align-items: center; gap: 8px; }
+        .header .logo-img { width: 28px; height: 28px; }
         .nav { display: flex; gap: 8px; flex-wrap: wrap; }
         .nav a { color: var(--muted); text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 14px; transition: all .2s; }
         .nav a:hover, .nav a.active { background: var(--nav-hover); color: var(--text); }
@@ -233,7 +234,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
 </head>
 <body>
 <div class="header">
-    <h1>🧠 meshctx</h1>
+    <h1><img src="/static/logo.svg" alt="" class="logo-img"> meshctx</h1>
     <div class="nav">
         <a href="/ui/" class="{% if request.url.path == '/ui/' %}active{% endif %}">{{ t("dashboard") }}</a>
         <a href="/ui/projects" class="{% if '/ui/projects' in request.url.path %}active{% endif %}">{{ t("projects") }}</a>
@@ -2787,8 +2788,9 @@ body{
   display:flex;align-items:center;gap:12px;padding:8px 16px;
   min-height:44px;
 }
-.topbar .logo{font-size:16px;font-weight:700;color:var(--accent);white-space:nowrap;}
+.topbar .logo{font-size:16px;font-weight:700;color:var(--accent);white-space:nowrap;display:flex;align-items:center;gap:6px;}
 .topbar .logo .v{font-size:11px;color:var(--muted);font-weight:400;}
+.topbar .topbar-logo-img{width:22px;height:22px;}
 .topbar .spacer{flex:1;}
 .topbar select,.topbar button{
   background:var(--bg);color:var(--text);border:1px solid var(--border);
@@ -2937,7 +2939,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
 </head>
 <body>
 <div class="topbar">
-  <span class="logo">🕸 meshctx <span class="v">Desktop v2.15</span></span>
+  <span class="logo"><img src="/static/logo.svg" class="topbar-logo-img"> meshctx <span class="v">Desktop v2.15</span></span>
   <span class="status-dot" id="sysDot" title="系统状态"></span>
   <span class="live-indicator" id="liveTag"></span>
   <span class="spacer"></span>
