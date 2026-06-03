@@ -6719,7 +6719,7 @@ def main():
     from src import __version__ as _v
 
     host = os.environ.get("MESHCTX_HOST", "0.0.0.0")
-    port = int(os.environ.get("MESHCTX_PORT", "8000"))
+    port = int(os.environ.get("MESHCTX_PORT", "3000"))
 
     print(f"\n{'='*60}")
     print(f"  meshctx v{_v}")

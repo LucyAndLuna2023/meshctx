@@ -495,7 +495,7 @@ def cmd_stop(args):
 def cmd_status(args):
     try:
         import requests
-        r = requests.get("http://localhost:8000/health", timeout=3)
+        r = requests.get("http://localhost:3000/health", timeout=3)
         d = r.json()
         print(f"meshctx v{d.get('version','?')} 运行中  "
               f"项目:{d.get('projects_count',0)} 会话:{d.get('conversations_count',0)} 记忆:{d.get('memories_count',0)}")
@@ -647,7 +647,7 @@ def cmd_evolve(args):
 
 def cmd_web(args):
     import webbrowser
-    webbrowser.open("http://localhost:8000/ui")
+    webbrowser.open("http://localhost:3000/ui")
 
 
 def cmd_desktop(args):
