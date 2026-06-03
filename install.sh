@@ -87,13 +87,44 @@ if [ "$DOWNLOAD_OK" != "1" ]; then
 fi
 echo -e "  ${GREEN}✓${NC} 下载完成 ($(du -h "${TARBALL}" | cut -f1))"
 
-# ── 安装 ────────────────────────────────────────────
-echo -e "${CYAN}[4/5]${NC} 安装中..."
+# ── 备份用户配置 ────────────────────────────────────
+echo -e "${CYAN}[4/6]${NC} 安装中..."
+CONFIG_BACKUP=""
+if [ -d "${INSTALL_DIR}" ]; then
+    # 备份用户的重要配置文件（Key、模型配置等）
+    CONFIG_BACKUP=$(mktemp -d)
+    for f in config.yaml .env provider_config.json; do
+        if [ -f "${INSTALL_DIR}/${f}" ]; then
+            cp "${INSTALL_DIR}/${f}" "${CONFIG_BACKUP}/${f}" 2>/dev/null || true
+        fi
+    done
+    # 也备份项目根目录的 provider_config.json（如果在别处）
+    [ -z "$CONFIG_BACKUP" ] || echo -e "  ${GREEN}✓${NC} 已备份用户配置"
+fi
+
 rm -rf "${INSTALL_DIR}"
 mkdir -p "${INSTALL_DIR}"
 tar xzf "${TARBALL}" -C "${INSTALL_DIR}" || {
     echo -e "${RED}✗ 解压失败${NC}"; exit 1
 }
+
+# ── 恢复用户配置 ────────────────────────────────────
+if [ -n "$CONFIG_BACKUP" ] && [ -d "$CONFIG_BACKUP" ]; then
+    RESTORED=0
+    for f in config.yaml .env; do
+        if [ -f "${CONFIG_BACKUP}/${f}" ]; then
+            cp "${CONFIG_BACKUP}/${f}" "${INSTALL_DIR}/${f}" 2>/dev/null || true
+            RESTORED=1
+        fi
+    done
+    # provider_config.json 位于项目根目录
+    if [ -f "${CONFIG_BACKUP}/provider_config.json" ]; then
+        cp "${CONFIG_BACKUP}/provider_config.json" "${INSTALL_DIR}/provider_config.json" 2>/dev/null || true
+        RESTORED=1
+    fi
+    rm -rf "$CONFIG_BACKUP"
+    [ "$RESTORED" = "0" ] || echo -e "  ${GREEN}✓${NC} 用户配置已恢复（API Key / 模型配置不丢失）"
+fi
 
 cd "${INSTALL_DIR}"
 
@@ -133,7 +164,7 @@ export PATH="$HOME/bin:$PATH"
 echo -e "  ${GREEN}✓${NC} 安装完成"
 
 # ── 验证 ────────────────────────────────────────────
-echo -e "${CYAN}[5/5]${NC} 验证安装..."
+echo -e "${CYAN}[5/6]${NC} 验证安装..."
 source venv/bin/activate
 INSTALLED_VER=$(python -c "from src.core import __version__; print(__version__)" 2>/dev/null || echo "?")
 if [ "$INSTALLED_VER" = "$VERSION" ]; then
