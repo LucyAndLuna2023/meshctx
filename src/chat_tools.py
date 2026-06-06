@@ -4,7 +4,7 @@ meshctx Chat 工具执行引擎
 
 工具集对标 Hermes: read_file, write_file, search_files, terminal, web
 """
-import os, re, json, subprocess, urllib.request
+import os, re, json, subprocess, urllib.request, urllib.parse
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -108,14 +108,31 @@ def _search_files(pattern: str, path: str, glob: str) -> str:
         return f"搜索失败: {e}"
 
 def _web_search(query: str) -> str:
+    # 尝试DuckDuckGo，失败则回退到百度
     try:
-        url = f"https://html.duckduckgo.com/html/?q={urllib.request.quote(query)}"
+        url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
         req = urllib.request.Request(url, headers={"User-Agent": "meshctx/1.0"})
         with urllib.request.urlopen(req, timeout=10) as resp:
             html = resp.read().decode()
-        # 提取摘要
         snippets = re.findall(r'class="result__snippet"[^>]*>(.*?)<', html, re.DOTALL)
         results = [re.sub(r'<[^>]+>', '', s).strip()[:200] for s in snippets[:5]]
+        if results:
+            return "\n".join(f"{i+1}. {r}" for i, r in enumerate(results))
+    except Exception:
+        pass
+    # 回退: Bing搜索
+    try:
+        url = f"https://cn.bing.com/search?q={urllib.parse.quote(query)}"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            html = resp.read().decode()
+        # 提取Bing搜索结果摘要
+        snippets = re.findall(r'<p[^>]* class="b_lineclamp[^"]*"[^>]*>(.*?)</p>', html, re.DOTALL)
+        if not snippets:
+            snippets = re.findall(r'<div class="b_caption"[^>]*>.*?<p>(.*?)</p>', html, re.DOTALL)
+        if not snippets:
+            snippets = re.findall(r'<span class="c-abstract"[^>]*>(.*?)</span>', html, re.DOTALL)
+        results = [re.sub(r'<[^>]+>', '', s).strip()[:200] for s in snippets[:5] if s.strip()]
         return "\n".join(f"{i+1}. {r}" for i, r in enumerate(results)) if results else "无搜索结果"
     except Exception as e:
         return f"搜索失败: {e}"

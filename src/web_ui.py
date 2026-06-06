@@ -976,7 +976,7 @@ _TEMPLATES["memories.html"] = r"""{% extends "base.html" %}
     {% for m in memories %}
     <tr>
         <td><span style="color:{{ continuity_color(m.memory.importance) }};font-weight:600;">{{ "%.2f"|format(m.memory.importance) }}</span></td>
-        <td><a href="/ui/projects/{{ m.memory.project_id }}">{{ m.project_name }}</a></td>
+        <td>{% if m.memory.project_id %}<a href="/ui/projects/{{ m.memory.project_id }}">{{ m.project_name }}</a>{% else %}{{ m.project_name }}{% endif %}</td>
         <td>{{ truncate(m.memory.content or '', 60) }}</td>
         <td style="font-size:12px;">{{ format_dt(m.memory.created_at) }}</td>
         <td>
@@ -4745,20 +4745,65 @@ async def conversation_view(request: Request, conversation_id: str):
 
 # ── 记忆浏览 ─────────────────────────────────────────────────
 
+class _OldMemoryAdapter:
+    """适配旧 Memory 模型（key/value）到模板期望的 content 属性"""
+    def __init__(self, m):
+        self._m = m
+    @property
+    def id(self): return self._m.id
+    @property
+    def content(self): return getattr(self._m, 'content', None) or getattr(self._m, 'value', '')
+    @property
+    def importance(self): return self._m.importance
+    @property
+    def created_at(self): return self._m.created_at
+    @property
+    def project_id(self): return getattr(self._m, 'project_id', '')
+
+
+class _V2MemoryAdapter:
+    """适配 memory_v2 MemoryEntry 到模板期望的接口"""
+    def __init__(self, entry):
+        self._e = entry
+    @property
+    def id(self): return self._e.id
+    @property
+    def content(self): return self._e.content
+    @property
+    def importance(self): return self._e.importance
+    @property
+    def created_at(self): return self._e.created_at
+    @property
+    def project_id(self): return ''
+
+
 @router.get("/memories", response_class=HTMLResponse)
 async def memories_overview(request: Request):
-    """所有项目的记忆总览"""
+    """所有项目的记忆总览（旧引擎 + memory_v2）"""
     engine = _engine(request)
     projects = engine.list_projects()
     all_memories = []
 
+    # 旧引擎记忆
     for p in projects:
         mems = engine.get_memories(p.id)
         for m in mems:
             all_memories.append({
-                "memory": m,
+                "memory": _OldMemoryAdapter(m),
                 "project_name": p.name,
             })
+
+    # memory_v2 记忆
+    try:
+        from src.core.memory_v2 import get_memory_manager
+        mgr = get_memory_manager()
+        for entry in mgr.list_by_type():
+            all_memories.append({
+                "memory": _V2MemoryAdapter(entry),
+                "project_name": "🧠 Memory V2",
+            })
+    except Exception:
+        pass
 
     all_memories.sort(key=lambda x: x["memory"].importance, reverse=True)
 
@@ -4769,13 +4814,23 @@ async def memories_overview(request: Request):
         "projects": projects,
         "format_dt": _format_dt,
         "truncate": _truncate,
+        "continuity_color": _continuity_color,
     }, request)
 
 
 @router.post("/memories/{memory_id}/delete")
 async def delete_memory_ui(request: Request, memory_id: str):
+    # 先尝试旧引擎删除
     engine = _engine(request)
-    engine.delete_memory(memory_id)
+    deleted = engine.delete_memory(memory_id)
+    # 再尝试 memory_v2 删除
+    if not deleted:
+        try:
+            from src.core.memory_v2 import get_memory_manager
+            mgr = get_memory_manager()
+            mgr.remove(memory_id)
+        except Exception:
+            pass
     return RedirectResponse(url="/ui/memories", status_code=303)
 
 

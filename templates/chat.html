@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -227,9 +227,9 @@ body {
     <option value="deepseek:chat">V3 Chat</option>
     <option value="deepseek:reasoner">🧠 R1</option>
   </select>
-  <button onclick="newChat()">➕ 新对话</button>
+  <button onclick="newChat()" data-lang-key="chat_new">➕ 新对话</button>
   <span style="flex:1"></span>
-  <a href="/ui/" style="color:var(--muted);text-decoration:none;font-size:13px">← 控制台</a>
+  <a href="/ui/" style="color:var(--muted);text-decoration:none;font-size:13px" data-lang-key="chat_console">← 控制台</a>
 </div>
 <div class="messages" id="messages">
   <div class="msg ai">
@@ -238,18 +238,18 @@ body {
       <div class="bubble-header">
         <span class="timestamp"></span>
       </div>
-      你好！我是 meshctx。我可以读文件、搜代码、执行命令。<br>试试问我：读一下 README.md
+      <span data-lang-key="chat_welcome">你好！我是 meshctx。我可以读文件、搜代码、执行命令。<br>试试问我：读一下 README.md</span>
     </div>
   </div>
 </div>
 <div class="input-area">
-  <textarea id="input" placeholder="输入消息... (Enter 发送, Shift+Enter 换行)" rows="1"
+  <textarea id="input" data-lang-key="chat_placeholder" placeholder="输入消息... (Enter 发送, Shift+Enter 换行)" rows="1"
     onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"></textarea>
-  <button id="sendBtn" onclick="send()">发送</button>
+  <button id="sendBtn" onclick="send()" data-lang-key="chat_send">发送</button>
 </div>
 <div class="info-bar">
-  <span id="modelInfo">模型: deepseek:v4-flash</span>
-  <span id="hybridMode" style="color:var(--accent)">⚡ 直出</span>
+  <span id="modelInfo"><span data-lang-key="chat_model">模型</span>: deepseek:v4-flash</span>
+  <span id="hybridMode" style="color:var(--accent)">⚡ <span data-lang-key="chat_direct">直出</span></span>
   <span id="freeEnergy" style="color:var(--muted)"></span>
   <span id="tokenCount"></span>
 </div>
@@ -257,29 +257,29 @@ body {
 <!-- Status Panel -->
 <div class="status-panel" id="statusPanel">
   <div class="status-panel-title">
-    📊 状态面板
+    📊 <span data-lang-key="chat_status_panel">状态面板</span>
     <button onclick="toggleStatusPanel()" title="收起">−</button>
   </div>
   <div class="status-row">
-    <span class="label">当前模式</span>
-    <span class="value mode-direct" id="panelMode">⚡ 直出</span>
+    <span class="label" data-lang-key="chat_mode">当前模式</span>
+    <span class="value mode-direct" id="panelMode">⚡ <span data-lang-key="chat_direct">直出</span></span>
   </div>
   <div class="status-row">
-    <span class="label">自由能 F</span>
+    <span class="label" data-lang-key="chat_free_energy">自由能 F</span>
     <span class="value free-energy" id="panelFreeEnergy">—</span>
   </div>
   <div class="status-row">
-    <span class="label">测试通过</span>
+    <span class="label" data-lang-key="chat_tests_passed">测试通过</span>
     <span class="value tests-passed" id="panelTestsPassed">555</span>
   </div>
   <div class="status-row">
-    <span class="label">Agent 状态</span>
+    <span class="label" data-lang-key="chat_agent_status">Agent 状态</span>
     <span class="value agent-idle" id="panelAgentStatus">
-      <span class="status-dot gray"></span>空闲
+      <span class="status-dot gray"></span><span data-lang-key="chat_idle">空闲</span>
     </span>
   </div>
   <div class="status-row">
-    <span class="label">模型</span>
+    <span class="label" data-lang-key="chat_model_label">模型</span>
     <span class="value" id="panelModel" style="font-size:11px;color:var(--accent)">deepseek:v4-flash</span>
   </div>
 </div>
@@ -288,13 +288,140 @@ body {
 </div>
 
 <script>
+// ===== i18n =====
+const LANG = {
+  en: {
+    chat_new:"➕ New Chat", chat_console:"← Console",
+    chat_welcome:"Hello! I'm meshctx. I can read files, search code, and execute commands.<br>Try asking: Read README.md",
+    chat_placeholder:"Type message... (Enter to send, Shift+Enter for newline)",
+    chat_send:"Send", chat_model:"Model", chat_direct:"Direct",
+    chat_status_panel:"Status Panel", chat_mode:"Mode",
+    chat_free_energy:"Free Energy F", chat_tests_passed:"Tests Passed",
+    chat_agent_status:"Agent Status", chat_model_label:"Model",
+    chat_idle:"Idle", chat_online:"Online", chat_thinking:"Thinking...",
+    chat_explore:"Explore", chat_new_chat:"New chat started. How can I help?",
+    chat_error:"Error: ", chat_copied:"📋 Copied",
+    chat_expand:"📖 Expand", chat_collapse:"📖 Collapse",
+    chat_tool:"🔧 Tool"
+  },
+  zh: {
+    chat_new:"➕ 新对话", chat_console:"← 控制台",
+    chat_welcome:"你好！我是 meshctx。我可以读文件、搜代码、执行命令。<br>试试问我：读一下 README.md",
+    chat_placeholder:"输入消息... (Enter 发送, Shift+Enter 换行)",
+    chat_send:"发送", chat_model:"模型", chat_direct:"直出",
+    chat_status_panel:"状态面板", chat_mode:"当前模式",
+    chat_free_energy:"自由能 F", chat_tests_passed:"测试通过",
+    chat_agent_status:"Agent 状态", chat_model_label:"模型",
+    chat_idle:"空闲", chat_online:"在线", chat_thinking:"思考中...",
+    chat_explore:"探索", chat_new_chat:"新对话开始。有什么可以帮你的？",
+    chat_error:"错误: ", chat_copied:"📋 已复制",
+    chat_expand:"📖 展开全部", chat_collapse:"📖 收起",
+    chat_tool:"🔧 工具"
+  },
+  ja: {
+    chat_new:"➕ 新しいチャット", chat_console:"← コンソール",
+    chat_welcome:"こんにちは！meshctxです。ファイルの読み取り、コード検索、コマンド実行ができます。<br>試してみて：README.mdを読んで",
+    chat_placeholder:"メッセージを入力... (Enterで送信、Shift+Enterで改行)",
+    chat_send:"送信", chat_model:"モデル", chat_direct:"直接出力",
+    chat_status_panel:"ステータスパネル", chat_mode:"モード",
+    chat_free_energy:"自由エネルギー F", chat_tests_passed:"テスト合格",
+    chat_agent_status:"エージェント状態", chat_model_label:"モデル",
+    chat_idle:"アイドル", chat_online:"オンライン", chat_thinking:"考え中...",
+    chat_explore:"探索", chat_chat_new:"新しいチャットを開始しました。何をお手伝いしましょうか？",
+    chat_error:"エラー: ", chat_copied:"📋 コピーしました",
+    chat_expand:"📖 展開", chat_collapse:"📖 折りたたむ",
+    chat_tool:"🔧 ツール"
+  },
+  ko: {
+    chat_new:"➕ 새 채팅", chat_console:"← 콘솔",
+    chat_welcome:"안녕하세요! meshctx입니다. 파일 읽기, 코드 검색, 명령 실행이 가능합니다.<br>시도해보세요: README.md 읽어줘",
+    chat_placeholder:"메시지 입력... (Enter로 전송, Shift+Enter로 줄바꿈)",
+    chat_send:"보내기", chat_model:"모델", chat_direct:"직접 출력",
+    chat_status_panel:"상태 패널", chat_mode:"모드",
+    chat_free_energy:"자유 에너지 F", chat_tests_passed:"테스트 통과",
+    chat_agent_status:"에이전트 상태", chat_model_label:"모델",
+    chat_idle:"유휴", chat_online:"온라인", chat_thinking:"생각 중...",
+    chat_explore:"탐색", chat_new_chat:"새 채팅이 시작되었습니다. 무엇을 도와드릴까요?",
+    chat_error:"오류: ", chat_copied:"📋 복사됨",
+    chat_expand:"📖 펼치기", chat_collapse:"📖 접기",
+    chat_tool:"🔧 도구"
+  },
+  de: {
+    chat_new:"➕ Neuer Chat", chat_console:"← Konsole",
+    chat_welcome:"Hallo! Ich bin meshctx. Ich kann Dateien lesen, Code durchsuchen und Befehle ausführen.<br>Versuchen Sie: README.md lesen",
+    chat_placeholder:"Nachricht eingeben... (Enter zum Senden, Shift+Enter für Zeilenumbruch)",
+    chat_send:"Senden", chat_model:"Modell", chat_text:"Direktausgabe",
+    chat_status_panel:"Status-Panel", chat_mode:"Modus",
+    chat_free_energy:"Freie Energie F", chat_tests_passed:"Tests bestanden",
+    chat_agent_status:"Agent-Status", chat_model_label:"Modell",
+    chat_idle:"Leerlauf", chat_chat_online:"Online", chat_thinking:"Denkt nach...",
+    chat_explore:"Erkunden", chat_new_chat:"Neuer Chat gestartet. Wie kann ich helfen?",
+    chat_error:"Fehler: ", chat_copied:"📋 Kopiert",
+    chat_expand:"📖 Erweitern", chat_collapse:"📖 Einklappen",
+    chat_tool:"🔧 Werkzeug"
+  },
+  fr: {
+    chat_new:"➕ Nouveau chat", chat_console:"← Console",
+    chat_welcome:"Bonjour ! Je suis meshctx. Je peux lire des fichiers, rechercher du code et exécuter des commandes.<br>Essayez : Lire README.md",
+    chat_placeholder:"Tapez votre message... (Entrée pour envoyer, Maj+Entrée pour nouvelle ligne)",
+    chat_send:"Envoyer", chat_model:"Modèle", chat_direct:"Sortie directe",
+    chat_status_panel:"Panneau d'état", chat_mode:"Mode",
+    chat_free_energy:"Énergie libre F", chat_tests_passed:"Tests réussis",
+    chat_agent_status:"Statut agent", chat_model_label:"Modèle",
+    chat_idle:"Inactif", chat_chat_online:"En ligne", chat_thinking:"Réflexion...",
+    chat_explore:"Explorer", chat_new_chat:"Nouveau chat commencé. Comment puis-je aider ?",
+    chat_error:"Erreur : ", chat_copied:"📋 Copié",
+    chat_expand:"📖 Développer", chat_collapse:"📖 Réduire",
+    chat_tool:"🔧 Outil"
+  },
+  es: {
+    chat_new:"➕ Nuevo chat", chat_console:"← Consola",
+    chat_welcome:"¡Hola! Soy meshctx. Puedo leer archivos, buscar código y ejecutar comandos.<br>Prueba: Leer README.md",
+    chat_placeholder:"Escribe mensaje... (Enter para enviar, Shift+Enter para nueva línea)",
+    chat_send:"Enviar", chat_model:"Modelo", chat_direct:"Salida directa",
+    chat_status_panel:"Panel de estado", chat_mode:"Modo",
+    chat_free_energy:"Energía libre F", chat_tests_passed:"Tests aprobados",
+    chat_agent_status:"Estado del agente", chat_model_label:"Modelo",
+    chat_idle:"Inactivo", chat_chat_online:"En línea", chat_thinking:"Pensando...",
+    chat_explore:"Explorar", chat_new_chat:"Nuevo chat iniciado. ¿Cómo puedo ayudar?",
+    chat_error:"Error: ", chat_copied:"📋 Copiado",
+    chat_expand:"📖 Expandir", chat_collapse:"📖 Contraer",
+    chat_tool:"🔧 Herramienta"
+  }
+};
+
+function t(key) {
+  const lang = localStorage.getItem('meshctx-lang') || 'en';
+  return (LANG[lang] && LANG[lang][key]) || (LANG['en'] && LANG['en'][key]) || key;
+}
+
+function changeLang(lang) {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-lang-key]').forEach(el => {
+    const key = el.dataset.langKey;
+    if (LANG[lang] && LANG[lang][key]) {
+      if (el.tagName === 'TEXTAREA') {
+        el.placeholder = LANG[lang][key];
+      } else {
+        el.textContent = LANG[lang][key];
+      }
+    }
+  });
+  localStorage.setItem('meshctx-lang', lang);
+}
+
+// Restore saved language on load
+const savedLang = localStorage.getItem('meshctx-lang') || 'en';
+changeLang(savedLang);
+
+// ===== Chat Logic =====
 let messages = [];
 let model = 'deepseek:v4-flash';
 let currentHybridInfo = null;
 
 function getTimestamp() {
   const d = new Date();
-  return d.toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
+  return d.toLocaleTimeString(savedLang, {hour:'2-digit', minute:'2-digit'});
 }
 
 function addMsg(role, content, isTool) {
@@ -306,7 +433,7 @@ function addMsg(role, content, isTool) {
 
   let extraActions = '';
   if (role === 'ai' && content.length > 300) {
-    extraActions = `<button class="action-btn collapse-toggle" onclick="toggleCollapse('${contentId}',this)">📖 展开全部</button>`;
+    extraActions = `<button class="action-btn collapse-toggle" onclick="toggleCollapse('${contentId}',this)">${t('chat_expand')}</button>`;
   }
 
   div.innerHTML = `
@@ -316,13 +443,13 @@ function addMsg(role, content, isTool) {
         <div class="bubble-header">
           <span class="timestamp">${ts}</span>
           <span class="bubble-actions">
-            <button onclick="copyMsg(this)" title="复制">📋</button>
+            <button onclick="copyMsg(this)" title="${t('chat_copied').replace('📋 ','')}">📋</button>
             ${extraActions}
           </span>
         </div>
         <div class="collapsed-content">${escapeHtml(content)}</div>
       </div>
-      ${isTool ? `<div class="tool-result">🔧 ${escapeHtml(isTool)}</div>` : ''}
+      ${isTool ? `<div class="tool-result">${t('chat_tool')} ${escapeHtml(isTool)}</div>` : ''}
     </div>`;
   document.getElementById('messages').appendChild(div);
 
@@ -350,11 +477,11 @@ function toggleCollapse(id, btn) {
   if (isCollapsed) {
     wrapper.style.maxHeight = 'none';
     wrapper.classList.remove('collapsed-content');
-    btn.textContent = '📖 收起';
+    btn.textContent = t('chat_collapse');
   } else {
     wrapper.style.maxHeight = '300px';
     wrapper.classList.add('collapsed-content');
-    btn.textContent = '📖 展开全部';
+    btn.textContent = t('chat_expand');
   }
 }
 
@@ -371,7 +498,7 @@ function copyMsg(btn) {
   }
 
   navigator.clipboard.writeText(cleanText).then(() => {
-    showToast('📋 已复制');
+    showToast(t('chat_copied'));
   }).catch(() => {
     // Fallback
     const ta = document.createElement('textarea');
@@ -380,7 +507,7 @@ function copyMsg(btn) {
     ta.select();
     document.execCommand('copy');
     document.body.removeChild(ta);
-    showToast('📋 已复制');
+    showToast(t('chat_copied'));
   });
 }
 
@@ -416,7 +543,7 @@ async function send() {
   // Typing indicator
   const typingDiv = document.createElement('div');
   typingDiv.className = 'msg ai typing-msg';
-  typingDiv.innerHTML = '<div class="avatar">🤖</div><div class="bubble typing">思考中...</div>';
+  typingDiv.innerHTML = `<div class="avatar">🤖</div><div class="bubble typing">${t('chat_thinking')}</div>`;
   document.getElementById('messages').appendChild(typingDiv);
   
   try {
@@ -438,8 +565,8 @@ async function send() {
     if (data.hybrid_info) {
       currentHybridInfo = data.hybrid_info;
       const modeIcon = data.hybrid_info.strategy === 'explore' ? '🧭' : '⚡';
-      const modeText = data.hybrid_info.strategy === 'explore' ? '探索' : '直出';
-      document.getElementById('hybridMode').textContent = `${modeIcon} ${modeText}`;
+      const modeText = data.hybrid_info.strategy === 'explore' ? t('chat_explore') : t('chat_direct');
+      document.getElementById('hybridMode').innerHTML = `${modeIcon} ${modeText}`;
       document.getElementById('hybridMode').style.color = 
         data.hybrid_info.strategy === 'explore' ? 'var(--orange)' : 'var(--accent)';
       document.getElementById('freeEnergy').textContent = 
@@ -448,7 +575,7 @@ async function send() {
       // Update status panel
       updateStatusPanel(data.hybrid_info);
     } else if (data.content && !data.hybrid_info) {
-      document.getElementById('hybridMode').textContent = '⚡ 直出';
+      document.getElementById('hybridMode').innerHTML = `⚡ ${t('chat_direct')}`;
       document.getElementById('hybridMode').style.color = 'var(--accent)';
       document.getElementById('freeEnergy').textContent = '';
       
@@ -459,7 +586,7 @@ async function send() {
     setAgentStatus('idle');
   } catch(e) {
     typingDiv.remove();
-    addMsg('ai', '错误: ' + e.message);
+    addMsg('ai', t('chat_error') + e.message);
     setAgentStatus('idle');
   }
   
@@ -472,13 +599,13 @@ function setAgentStatus(status) {
   if (!el) return;
   if (status === 'thinking') {
     el.className = 'value agent-thinking';
-    el.innerHTML = '<span class="status-dot orange"></span>思考中...';
+    el.innerHTML = `<span class="status-dot orange"></span>${t('chat_thinking')}`;
   } else if (status === 'online') {
     el.className = 'value agent-online';
-    el.innerHTML = '<span class="status-dot green"></span>在线';
+    el.innerHTML = `<span class="status-dot green"></span>${t('chat_online')}`;
   } else {
     el.className = 'value agent-idle';
-    el.innerHTML = '<span class="status-dot gray"></span>空闲';
+    el.innerHTML = `<span class="status-dot gray"></span>${t('chat_idle')}`;
   }
 }
 
@@ -488,11 +615,11 @@ function updateStatusPanel(hybridInfo) {
   
   if (hybridInfo) {
     const isExplore = hybridInfo.strategy === 'explore';
-    modeEl.textContent = isExplore ? '🧭 探索' : '⚡ 直出';
+    modeEl.innerHTML = isExplore ? `🧭 ${t('chat_explore')}` : `⚡ ${t('chat_direct')}`;
     modeEl.className = 'value ' + (isExplore ? 'mode-explore' : 'mode-direct');
     feEl.textContent = `F=${hybridInfo.free_energy.toFixed(3)} | ${hybridInfo.policy}`;
   } else {
-    modeEl.textContent = '⚡ 直出';
+    modeEl.innerHTML = `⚡ ${t('chat_direct')}`;
     modeEl.className = 'value mode-direct';
     feEl.textContent = '—';
   }
@@ -500,14 +627,14 @@ function updateStatusPanel(hybridInfo) {
 
 function switchModel() {
   model = document.getElementById('modelSelect').value;
-  document.getElementById('modelInfo').textContent = `模型: ${model}`;
+  document.getElementById('modelInfo').innerHTML = `<span data-lang-key="chat_model">${t('chat_model')}</span>: ${model}`;
   document.getElementById('panelModel').textContent = model;
 }
 
 function newChat() {
   messages = [];
   document.getElementById('messages').innerHTML = '';
-  addMsg('ai', '新对话开始。有什么可以帮你的？');
+  addMsg('ai', t('chat_new_chat'));
 }
 
 function toggleStatusPanel() {

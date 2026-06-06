@@ -265,7 +265,10 @@
       "description": "AI Agent自防御系统 — AGENTS.md加载+错误模式学习+发布闸门",
       "module": "src.core.agent_governance",
       "priority": 200,
-      "installs": 1
+      "installs": 1,
+      "icon": "🛡️",
+      "category": "security",
+      "status": "active"
     }
   ]
 }

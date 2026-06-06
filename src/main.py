@@ -1428,6 +1428,43 @@ async def run_benchmark():
     
     return results
 
+
+def _load_provider_config():
+    """加载 provider_config.json 中的供应商配置"""
+    pcfg_path = Path(__file__).resolve().parent.parent / "provider_config.json"
+    if not pcfg_path.exists():
+        return {}
+    try:
+        return json.loads(pcfg_path.read_text())
+    except Exception:
+        return {}
+
+
+_PROVIDER_DISPLAY = {
+    "deepseek": "DeepSeek",
+    "openai": "OpenAI",
+    "anthropic": "Anthropic",
+    "google": "Google",
+    "mistral": "Mistral",
+    "qwen": "通义千问",
+    "zhipu": "智谱",
+    "moonshot": "月之暗面",
+    "baidu": "百度",
+    "minimax": "MiniMax",
+    "xunfei": "讯飞",
+    "volcengine": "火山引擎",
+    "openrouter": "OpenRouter",
+    "together": "Together AI",
+    "groq": "Groq",
+    "ollama": "Ollama",
+    "azure": "Azure OpenAI",
+}
+
+
+def _provider_display_name(pid: str) -> str:
+    """供应商ID→显示名"""
+    return _PROVIDER_DISPLAY.get(pid, pid)
+
 # ── v1.5.5 模型切换 API ─────────────────────────────────
 
 @app.get("/api/models")
@@ -3519,4 +3556,4 @@ async def jepa_evaluate(request: Request):
 async def version_info():
     """版本信息"""
     from src.core import __version__
-    
+    return {"version": __version__}

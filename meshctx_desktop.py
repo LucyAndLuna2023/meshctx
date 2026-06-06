@@ -198,11 +198,12 @@ def main():
                 icon.stop()
                 os._exit(0)
             
+            # 系统托盘菜单 - 使用英文（避免编码问题）
             menu = pystray.Menu(
-                pystray.MenuItem("打开 meshctx", on_open, default=True),
-                pystray.MenuItem(f"地址: {app_url}", None, enabled=False),
+                pystray.MenuItem("Open meshctx", on_open, default=True),
+                pystray.MenuItem(f"URL: {app_url}", None, enabled=False),
                 pystray.Menu.SEPARATOR,
-                pystray.MenuItem("退出", on_quit),
+                pystray.MenuItem("Quit", on_quit),
             )
             
             tray_icon = pystray.Icon("meshctx", icon_img, "meshctx Desktop", menu)
