@@ -43,3 +43,4 @@ build/
 dist/
 build/
 manager_key.json
+provider_config.json

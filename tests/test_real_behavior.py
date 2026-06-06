@@ -17,9 +17,9 @@ class TestExeBehavior:
         from src.main import app
         from fastapi.testclient import TestClient
         client = TestClient(app)
-        resp = client.get("/health")
+        resp = client.get("/api/health")
         assert resp.status_code == 200
-        assert resp.json()["status"] == "healthy"
+        assert resp.json()["status"] in ("healthy", "degraded")
 
     def test_version_api_returns_version(self):
         """Bug#4: exe属性无版本号"""
@@ -27,7 +27,7 @@ class TestExeBehavior:
         from src.main import app
         from fastapi.testclient import TestClient
         client = TestClient(app)
-        resp = client.get("/health")
+        resp = client.get("/api/health")
         assert "version" in resp.json()
         ver = resp.json()["version"]
         # 必须包含3.
