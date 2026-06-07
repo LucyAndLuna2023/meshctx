@@ -469,7 +469,7 @@ def cmd_start(args):
     import uvicorn
     from src.main import app
     
-    port = args.port or 3000
+    port = args.port or 3001
     host = '0.0.0.0'
     from src.core import __version__
     
@@ -495,7 +495,7 @@ def cmd_stop(args):
 def cmd_status(args):
     try:
         import requests
-        r = requests.get("http://localhost:3000/health", timeout=3)
+        r = requests.get("http://localhost:3001/health", timeout=3)
         d = r.json()
         print(f"meshctx v{d.get('version','?')} 运行中  "
               f"项目:{d.get('projects_count',0)} 会话:{d.get('conversations_count',0)} 记忆:{d.get('memories_count',0)}")
@@ -615,7 +615,7 @@ def cmd_setup(args):
 ║                                        ║
 ║  启动: meshctx start                   ║
 ║  聊天: meshctx chat                    ║
-║  Web:  http://localhost:3000/ui/chat   ║
+║  Web:  http://localhost:3001/ui/chat   ║
 ╚══════════════════════════════════════════╝
 """)
 
@@ -647,7 +647,7 @@ def cmd_evolve(args):
 
 def cmd_web(args):
     import webbrowser
-    webbrowser.open("http://localhost:3000/ui")
+    webbrowser.open("http://localhost:3001/ui")
 
 
 def cmd_desktop(args):
@@ -1481,13 +1481,13 @@ def main():
         
         def _open_browser():
             time.sleep(2)
-            webbrowser.open("http://127.0.0.1:3000/ui/chat")
+            webbrowser.open("http://127.0.0.1:3001/ui/chat")
         
         if sys.platform == "win32":
             threading.Thread(target=_open_browser, daemon=True).start()
         
         host = os.environ.get("MESHCTX_HOST", "0.0.0.0")
-        port = int(os.environ.get("MESHCTX_PORT", "3000"))
+        port = int(os.environ.get("MESHCTX_PORT", "3001"))
         uvicorn.run(app, host=host, port=port, log_level="info")
         return
     args.func(args)

@@ -21,7 +21,7 @@ class NodeState(Enum):
 @dataclass
 class MeshNode:
     id: str=field(default_factory=lambda: str(uuid.uuid4())[:8])
-    host: str="localhost"; port: int=3001
+    host: str=""; port: int=3001  # BUG-015: 默认使用MESHCTX_HOST环境变量
     state: NodeState=NodeState.IDLE
     capabilities: List[str]=field(default_factory=list)
     load: float=0.0; last_heartbeat: float=0
@@ -35,7 +35,8 @@ class MeshTask:
     result: Any=None; error: str=""
 
 class DistributedAgentMesh:
-    def __init__(self, host: str="localhost", port: int=3001):
+    def __init__(self, host: str="", port: int=3001):
+        if not host: host = os.environ.get("MESHCTX_HOST", "127.0.0.1")
         self._self = MeshNode(host=host, port=port, state=NodeState.ONLINE)
         self._nodes: Dict[str,MeshNode] = {}
         self._tasks: Dict[str,MeshTask] = {}
@@ -118,7 +119,8 @@ class DistributedAgentMesh:
         }
 
 _mesh: Optional[DistributedAgentMesh]=None
-def get_distributed_mesh(h:str="localhost",p:int=3001):
+def get_distributed_mesh(h:str="",p:int=3001):
+    if not h: h = os.environ.get("MESHCTX_HOST", "127.0.0.1")
     global _mesh
     if _mesh is None: _mesh = DistributedAgentMesh(h,p)
     return _mesh

@@ -13,6 +13,11 @@ import json
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 
+# BUG-011: 本地模型主机可配置
+_OLLAMA_HOST = os.environ.get("MESHCTX_OLLAMA_HOST", "localhost")
+_VLLM_HOST = os.environ.get("MESHCTX_VLLM_HOST", "localhost")
+_LOCALAI_HOST = os.environ.get("MESHCTX_LOCALAI_HOST", "localhost")
+
 # ═══════════════════════════════════════════════════
 # 内置模型目录 — 123+ 模型，37+ 供应商，零配置可用
 # ═══════════════════════════════════════════════════
@@ -179,15 +184,15 @@ BUILTIN_MODELS = {
     # 第4梯队 — 本地/边缘/开源
     # ═════════════════════════════════════════════════
     # ── Ollama本地 ────────────────────────────────────
-    "ollama:llama3.3":         {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"llama3.3","key_env":"OLLAMA_API_KEY"},
-    "ollama:qwen3":            {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"qwen3","key_env":"OLLAMA_API_KEY"},
-    "ollama:mistral":          {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"mistral","key_env":"OLLAMA_API_KEY"},
-    "ollama:gemma3":           {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"gemma3","key_env":"OLLAMA_API_KEY"},
-    "ollama:deepseek-r1":      {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"deepseek-r1","key_env":"OLLAMA_API_KEY"},
-    "ollama:codellama":        {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"codellama","key_env":"OLLAMA_API_KEY"},
-    "ollama:phi4":             {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"phi4","key_env":"OLLAMA_API_KEY"},
-    "ollama:llama3.2":         {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"llama3.2","key_env":"OLLAMA_API_KEY"},
-    "ollama:nomic-embed":      {"provider":"ollama","base_url":"http://localhost:11434/v1","model":"nomic-embed-text","key_env":"OLLAMA_API_KEY"},
+    "ollama:llama3.3":         {"provider":"ollama","base_url":"http://" + _OLLAMA_HOST + ":11434/v1","model":"llama3.3","key_env":"OLLAMA_API_KEY"},
+    "ollama:qwen3":            {"provider":"ollama","base_url":"http://" + _OLLAMA_HOST + ":11434/v1","model":"qwen3","key_env":"OLLAMA_API_KEY"},
+    "ollama:mistral":          {"provider":"ollama","base_url":"http://" + _OLLAMA_HOST + ":11434/v1","model":"mistral","key_env":"OLLAMA_API_KEY"},
+    "ollama:gemma3":           {"provider":"ollama","base_url":"http://" + _OLLAMA_HOST + ":11434/v1","model":"gemma3","key_env":"OLLAMA_API_KEY"},
+    "ollama:deepseek-r1":      {"provider":"ollama","base_url":"http://" + _OLLAMA_HOST + ":11434/v1","model":"deepseek-r1","key_env":"OLLAMA_API_KEY"},
+    "ollama:codellama":        {"provider":"ollama","base_url":"http://" + _OLLAMA_HOST + ":11434/v1","model":"codellama","key_env":"OLLAMA_API_KEY"},
+    "ollama:phi4":             {"provider":"ollama","base_url":"http://" + _OLLAMA_HOST + ":11434/v1","model":"phi4","key_env":"OLLAMA_API_KEY"},
+    "ollama:llama3.2":         {"provider":"ollama","base_url":"http://" + _OLLAMA_HOST + ":11434/v1","model":"llama3.2","key_env":"OLLAMA_API_KEY"},
+    "ollama:nomic-embed":      {"provider":"ollama","base_url":"http://${MESHCTX_OLLAMA_HOST:localhost}:11434/v1","model":"nomic-embed-text","key_env":"OLLAMA_API_KEY"},
     # ── vLLM / 自定义OpenAI兼容 ───────────────────────
     "custom:local":            {"provider":"custom","base_url":"http://localhost:8000/v1","model":"default","key_env":"CUSTOM_API_KEY"},
 }

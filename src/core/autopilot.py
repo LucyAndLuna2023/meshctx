@@ -39,7 +39,8 @@ def run(cmd: str, timeout: int = 30) -> tuple:
         return "", str(e), -2
 
 # ═══ 1. 服务看门狗 ═══
-def check_server(host: str = "127.0.0.1", port: int = 3001) -> bool:
+def check_server(host: str = "", port: int = 3001) -> bool:
+    if not host: host = os.environ.get("MESHCTX_HOST", "127.0.0.1")
     """检查meshctx服务是否存活"""
     import urllib.request
     try:
@@ -157,7 +158,8 @@ def generate_health_report() -> Dict[str, Any]:
     # 获取版本
     try:
         import urllib.request
-        resp = urllib.request.urlopen("http://127.0.0.1:3001/api/version", timeout=5)
+        _host = os.environ.get("MESHCTX_HOST", "127.0.0.1")
+        resp = urllib.request.urlopen(f"http://{_host}:3001/api/version", timeout=5)
         import json
         data = json.loads(resp.read())
         report["version"] = data.get("version", "unknown")

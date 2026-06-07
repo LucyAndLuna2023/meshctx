@@ -154,7 +154,7 @@ class AutoHealerV2:
     def _check_port(self, port) -> HealthCheck:
         import socket
         try:
-            s=socket.socket(); s.settimeout(2); s.connect(("127.0.0.1",port)); s.close()
+            _host=os.environ.get("MESHCTX_HOST","127.0.0.1"); s=socket.socket(); s.settimeout(2); s.connect((_host,port)); s.close()
             return HealthCheck(f"port{port}","ok",f"Port {port} listening")
         except (socket.error, socket.timeout, OSError):
             return HealthCheck(f"port{port}","critical",f"Port {port} NOT listening")

@@ -393,13 +393,14 @@ class BackupVault:
             )
 
         remote_file = f"{remote_user}@{remote_host}:{remote_path}/{backup_id}/backup.tar.gz"
+        import subprocess as _sp
+        cmd_parts = ["scp", "-o", "StrictHostKeyChecking=no"]
         if ssh_key:
-            cmd = f"scp -i {ssh_key} -o StrictHostKeyChecking=no {remote_file} {dest_path}"
-        else:
-            cmd = f"scp -o StrictHostKeyChecking=no {remote_file} {dest_path}"
-        ret = os.system(cmd)
-        if ret != 0:
-            raise RuntimeError(f"SCP download failed with code {ret}")
+            cmd_parts += ["-i", ssh_key]
+        cmd_parts += [remote_file, str(dest_path)]
+        result = _sp.run(cmd_parts, capture_output=True, text=True, timeout=300)
+        if result.returncode != 0:
+            raise RuntimeError(f"SCP download failed with code {result.returncode}: {result.stderr}")
 
     def _store_remote(self, backup_id: str, archive_path: str) -> str:
         """存储到远程 (SFTP)"""
@@ -414,14 +415,14 @@ class BackupVault:
             )
 
         dest = f"{remote_user}@{remote_host}:{remote_path}/{backup_id}/"
-        # Use scp to upload
+        import subprocess as _sp
+        cmd_parts = ["scp", "-o", "StrictHostKeyChecking=no"]
         if ssh_key:
-            cmd = f"scp -i {ssh_key} -o StrictHostKeyChecking=no {archive_path} {dest}"
-        else:
-            cmd = f"scp -o StrictHostKeyChecking=no {archive_path} {dest}"
-        ret = os.system(cmd)
-        if ret != 0:
-            raise RuntimeError(f"SCP upload failed with code {ret}")
+            cmd_parts += ["-i", ssh_key]
+        cmd_parts += [str(archive_path), dest]
+        result = _sp.run(cmd_parts, capture_output=True, text=True, timeout=300)
+        if result.returncode != 0:
+            raise RuntimeError(f"SCP upload failed with code {result.returncode}: {result.stderr}")
         return f"remote://{dest}"
 
     # ── 打包/解包 ─────────────────────────────────────────────────────────

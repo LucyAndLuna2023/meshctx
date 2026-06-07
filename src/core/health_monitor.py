@@ -151,7 +151,8 @@ class RealtimeHealthMonitor:
         from .task_progress import get_progress_engine
         tp = get_progress_engine()
         stats = tp.get_stats()
-        return {"ok": True, "active": stats["active"]}
+        return {"ok": True, "active": stats.get("running", stats.get("active", 0)),
+                "queued": stats.get("queued", 0)}
 
     async def _check_brain(self) -> Dict:
         from .brain_validator import get_brain_validator

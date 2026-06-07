@@ -56,6 +56,10 @@ def rate_limit_check(ip: str, window: int = 60, max_req: int = 60) -> bool:
 
 def mask_key(key: str, show: int = 8) -> str:
     """Mask API key for safe display."""
-    if not key or len(key) <= show:
+    if not key:
+        return "****"
+    if key.startswith("b64:"):
+        return "b64:****"
+    if len(key) <= show:
         return "****"
     return key[:show] + "****" + (key[-4:] if len(key) > show + 4 else "")

@@ -2501,8 +2501,8 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
 <!-- v2.17: 本地模型快捷预设 -->
 <div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px;">
     <span style="font-size:12px;color:var(--muted);line-height:28px;">快捷预设:</span>
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('ollama','qwen2.5:7b','Ollama本地','http://localhost:11434/v1','')">🦙 Ollama</button>
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('vllm','qwen','vLLM本地','http://localhost:8000/v1','')">🚀 vLLM</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('ollama','qwen2.5:7b','Ollama','http://localhost:11434/v1','')">🦙 Ollama</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('vllm','qwen','vLLM','http://localhost:8000/v1','')">🚀 vLLM</button>
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('localai','gpt-3.5-turbo','LocalAI','http://localhost:8080/v1','')">🏠 LocalAI</button>
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('openai-compat','gpt-3.5-turbo','OpenAI兼容','https://your-api.com/v1','sk-...')">🔌 通用OpenAI</button>
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('custom','custom-model','自定义供应商','https://your-server.com','your-key')">⚙️ 完全自定义</button>
@@ -3617,10 +3617,12 @@ function renderMonitor(d){
   var pNames = Object.keys(plugins);
   if(pNames.length>0){
     for(var i=0; i<pNames.length; i++){
-      var pn = pNames[i], p = plugins[pn];
-      pHtml += '<div class="plugin-card"><div class="row"><span class="dot '+colorByStatus(p.status).replace('v-','')+'"></span><span class="pname">'+pn+'</span></div>'+
-        '<div class="pmeta">状态: <span class="tag '+tagByStatus(p.status)+'">'+p.status+'</span> · 失败: '+(p.failures||0)+' · 重启: '+(p.restarts||0)+'</div>'+
-        '<div class="pmeta">心跳: '+((p.heartbeat_age||0)>10?'⚠ '+p.heartbeat_age+'s':'✓ '+p.heartbeat_age+'s')+' · 熔断: '+p.circuit+'</div></div>';
+      var pn = pNames[i], p = plugins[pn] || {};
+      var pName = pn || 'unknown';
+      var pStatus = p.status || 'unknown';
+      pHtml += '<div class="plugin-card"><div class="row"><span class="dot '+colorByStatus(pStatus).replace('v-','')+'"></span><span class="pname">'+pName+'</span></div>'+
+        '<div class="pmeta">状态: <span class="tag '+tagByStatus(pStatus)+'">'+pStatus+'</span> · 失败: '+(p.failures||0)+' · 重启: '+(p.restarts||0)+'</div>'+
+        '<div class="pmeta">心跳: '+((p.heartbeat_age||0)>10?'⚠ '+p.heartbeat_age+'s':'✓ '+p.heartbeat_age+'s')+' · 熔断: '+(p.circuit||'N/A')+'</div></div>';
     }
   } else {
     pHtml = '<div class="empty">🔌 暂无插件数据</div>';
@@ -4978,7 +4980,8 @@ async def setup_page(request: Request):
                 raw_key = config_entry.get("key", "")
                 if raw_key:
                     entry["key_full"] = raw_key
-                    entry["key_masked"] = raw_key[:6] + "****" + raw_key[-4:] if len(raw_key) > 10 else "****"
+                    if raw_key.startswith("b64:"): entry["key_masked"] = "b64:****"
+                    else: entry["key_masked"] = raw_key[:6] + "****" + raw_key[-4:] if len(raw_key) > 10 else "****"
             configured.append(entry)
         
         # 2. 用户自定义模型 (不在BUILTIN_MODELS中)
@@ -5499,7 +5502,7 @@ return '<div class="card">'
   +'<div class="plugin-header">'
   +'<div class="plugin-icon">'+icon+'</div>'
   +'<div class="plugin-meta">'
-  +'<div class="plugin-name">'+p.name+' <span class="plugin-version">v'+(p.version||'1.0.0')+'</span></div>'
+  +'<div class="plugin-name">'+(p.name||p.id||'unknown')+' <span class="plugin-version">v'+(p.version||'1.0.0')+'</span></div>'
   +'<div class="plugin-author">👤 '+(p.author||'社区')+'</div>'
   +'</div>'
   +'</div>'

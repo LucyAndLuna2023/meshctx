@@ -43,12 +43,12 @@ class DeployEngine:
                 "cwd": str(Path.cwd()), "disk_free_gb": 0, "ram_gb": 0}
         try:
             s = os.statvfs("/"); info["disk_free_gb"] = round(s.f_frsize * s.f_bavail / 1e9, 1)
-        except: pass
+        except Exception as e: logger.debug(f"Disk info unavailable: {e}")
         try:
             with open("/proc/meminfo") as f:
                 for l in f:
                     if "MemTotal" in l: info["ram_gb"] = round(int(l.split()[1])/1e6,1); break
-        except: pass
+        except Exception as e: logger.debug(f"Memory info unavailable: {e}")
         return info
     
     def generate_systemd_unit(self, target: DeployTarget) -> str:
@@ -139,7 +139,7 @@ WantedBy=multi-user.target"""
             shutil.copytree(latest / "src", target)
             subprocess.run(["sudo","systemctl","restart","meshctx"], check=False)
             return True
-        except: return False
+        except Exception: return False
     
     def get_stats(self) -> Dict:
         return {"deployments": len(self._history), 

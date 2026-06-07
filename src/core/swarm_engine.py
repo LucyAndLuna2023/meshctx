@@ -9,6 +9,7 @@
 - 共识: Raft-like共识协议简化版
 """
 import hashlib
+import os
 import json
 import logging
 import time
@@ -57,9 +58,9 @@ class SwarmEngine:
     """群体智能引擎"""
 
     def __init__(self, agent_id: str = "meshctx-0",
-                host: str = "localhost", port: int = 3001):
+                host: str = "", port: int = 3001):
         self.agent_id = agent_id
-        self.host = host
+        self.host = host if host else os.environ.get("MESHCTX_HOST", "127.0.0.1")
         self.port = port
         self._members: Dict[str, SwarmMember] = {}
         self._votes: Dict[str, Vote] = {}

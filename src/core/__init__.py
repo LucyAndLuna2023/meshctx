@@ -287,7 +287,7 @@ from .autonomous_action import (
 )
 # v3.35: Session Auto-Resume Engine
 try:
-    from .session_resume import SessionResumeEngine, get_resume_engine
+    from .session_resume import SessionResumeEngine, get_session_resume as get_resume_engine
 except ImportError:
     SessionResumeEngine = get_resume_engine = _brain_noop
 
@@ -542,7 +542,7 @@ from .data_pipeline import (
     get_data_pipeline, reset_data_pipeline,
 )
 
-__version__ = "3.115.1"
+__version__ = "3.115.2"
 
 # v3.110 API Gateway
 from .api_gateway import (

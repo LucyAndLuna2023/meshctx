@@ -259,7 +259,7 @@ async def lifespan(app: FastAPI):
     
     # 🔴 v3.35: Session Auto-Resume — 服务器重启自动恢复上下文
     try:
-        from .core.session_resume import get_resume_engine
+        from .core.session_resume import get_session_resume
         resume_engine = get_session_resume()
         previous = resume_engine.detect_previous_session()
         if previous:
@@ -363,7 +363,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://meshctx.com", "http://localhost:3000", "http://localhost:3001"],
+    allow_origins=["https://meshctx.com", "http://localhost:3000", "http://localhost:3001", "http://47.120.0.239:3001", "http://192.168.3.47:3001", "http://192.168.3.45:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -423,7 +423,7 @@ button{width:100%;padding:12px;background:linear-gradient(135deg,#6c5ce7,#5a4bd1
 <div class="card">
 <h1>🔐 MeshCtx</h1><p>请输入管理密码</p>
 <form onsubmit="login(event)">
-<input type="password" id="pw" placeholder="密码" autofocus>
+<input type="password" id="pw" placeholder="Password / 密码" autofocus>
 <button type="submit">登 录</button>
 <div class="error" id="err">密码错误</div>
 </form>
@@ -434,16 +434,43 @@ var r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'appl
 if(r.ok){location.href='""" + (next or "/ui/chat") + """'}else{document.getElementById('err').style.display='block'}}
 </script></div></body></html>""")
 
+# 暴力破解防护 (BUG-005)
+_login_attempts: Dict[str, List[float]] = {}
+LOGIN_ATTEMPT_WINDOW = 300  # 5分钟窗口
+LOGIN_MAX_ATTEMPTS = 5      # 5次失败后封禁
+_login_bans: Dict[str, float] = {}  # IP -> ban解除时间
+
 @app.post("/api/auth/login")
 async def auth_login(request: Request):
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    # 检查是否被封禁
+    if client_ip in _login_bans and now < _login_bans[client_ip]:
+        retry_after = int(_login_bans[client_ip] - now)
+        raise HTTPException(429, f"登录尝试过多，请{retry_after}秒后重试")
+    # 清除过期封禁
+    if client_ip in _login_bans and now >= _login_bans[client_ip]:
+        del _login_bans[client_ip]
     try: body = await request.json()
     except: raise HTTPException(400)
     password = body.get("password", "")
     if password == _AUTH_PASSWORD:
+        # 成功：清除失败记录
+        _login_attempts.pop(client_ip, None)
         expected = hashlib.sha256(f"{_AUTH_PASSWORD}:{_AUTH_SECRET}".encode()).hexdigest()
         resp = JSONResponse({"status": "ok"})
-        resp.set_cookie("meshctx_session", expected, httponly=True, max_age=86400, samesite="lax")
+        resp.set_cookie("meshctx_session", expected, httponly=True, secure=True, max_age=86400, samesite="lax")
         return resp
+    # 失败：记录尝试
+    if client_ip not in _login_attempts:
+        _login_attempts[client_ip] = []
+    _login_attempts[client_ip].append(now)
+    # 清理过期记录
+    _login_attempts[client_ip] = [t for t in _login_attempts[client_ip] if now - t < LOGIN_ATTEMPT_WINDOW]
+    if len(_login_attempts[client_ip]) >= LOGIN_MAX_ATTEMPTS:
+        ban_duration = min(300, 30 * (2 ** (len(_login_attempts[client_ip]) - LOGIN_MAX_ATTEMPTS)))  # 指数退避
+        _login_bans[client_ip] = now + ban_duration
+        raise HTTPException(429, f"登录尝试过多，已封禁{ban_duration}秒")
     raise HTTPException(401, "密码错误")
 
 @app.post("/api/auth/logout")
@@ -1322,6 +1349,32 @@ async def reload_config():
     return {"status": "reloaded", "plugins": config.get("plugins", {}).get("builtin", [])}
 
 # ── 自愈引擎 ────────────────────────────────────────────
+
+@app.get("/api/healer/dashboard")
+async def healer_dashboard_api():
+    """Healer Dashboard API (兼容前端)"""
+    try:
+        from src.core.auto_healer import healer
+        report = healer.get_dashboard_report() if hasattr(healer, 'get_dashboard_report') else {}
+        if not report:
+            report = {
+                "status": healer.status if hasattr(healer, 'status') else "unknown",
+                "color": "gray",
+                "running": hasattr(healer, '_running') and healer._running,
+                "last_check_human": "N/A",
+                "uptime_since_incident_human": "N/A",
+                "heals_successful": 0,
+                "heals_performed": 0,
+                "checks_total": 0,
+                "plugins": {},
+            }
+        return report
+    except Exception as e:
+        return {"status": "error", "color": "red", "running": False,
+                "last_check_human": "Error", "uptime_since_incident_human": "N/A",
+                "heals_successful": 0, "heals_performed": 0, "checks_total": 0,
+                "plugins": {}, "error": str(e)}
+
 
 @app.get("/healer/report")
 async def healer_report():
@@ -2536,8 +2589,17 @@ async def rate_limit_middleware(request: Request, call_next):
     if client_ip not in _rate_limits:
         _rate_limits[client_ip] = []
     
-    # Clean old entries
+    # Clean old entries (BUG-010: 清理空列表防止内存泄漏)
     _rate_limits[client_ip] = [t for t in _rate_limits[client_ip] if now - t < RATE_WINDOW]
+    if not _rate_limits[client_ip]:
+        # 当前IP无活跃请求，清理key并放行
+        _rate_limits.pop(client_ip, None)
+        # 批量清理其他过期IP (限流字典膨胀防护)
+        if len(_rate_limits) > 1000:
+            expired = [ip for ip, ts in _rate_limits.items() if now - ts[-1] > RATE_WINDOW]
+            for ip in expired:
+                _rate_limits.pop(ip, None)
+        return await call_next(request)
     
     if len(_rate_limits[client_ip]) >= RATE_MAX:
         return JSONResponse(
@@ -2549,29 +2611,73 @@ async def rate_limit_middleware(request: Request, call_next):
     return await call_next(request)
 
 
-@app.get("/api/file/read")
-async def read_local_file(path: str = ""):
-    """读取本地文件内容 (支持WSL/Windows路径自动翻译)"""
-    if not path:
-        raise HTTPException(400, "请提供文件路径 path 参数")
-    
+def _validate_file_path(path: str) -> "Path":
+    """路径白名单校验 — 防止路径遍历攻击 (C-1/C-2)"""
     from pathlib import Path
     from src.core.platform_fs import wsl_to_windows, windows_to_wsl
-    
+    import os
+
+    if not path:
+        raise HTTPException(400, "请提供文件路径 path 参数")
+
     # WSL/Windows路径翻译
     resolved = path
     if path.startswith("/mnt/"):
         resolved = wsl_to_windows(path)
     elif len(path) >= 2 and path[1] == ":":
         resolved = windows_to_wsl(path)
-    
+
     file_path = Path(resolved).expanduser().resolve()
-    
-    # 安全检查: 拒绝系统目录
-    dangerous_prefixes = ["/sys/", "/proc/", "/dev/", "C:\\Windows\\", "C:\\windows\\"]
     sp = str(file_path)
-    if any(sp.lower().startswith(d.lower()) for d in dangerous_prefixes):
-        raise HTTPException(403, "安全限制: 无法访问系统目录")
+
+    # 白名单: 只允许访问安全目录
+    data_dir = os.environ.get("MESHCTX_DATA_DIR", "/opt/meshctx")
+    allowed_prefixes = [
+        data_dir,
+        "/opt/meshctx",
+        "/opt",
+        "/home/",
+        "/tmp/",
+        "/var/tmp/",
+        "/mnt/c/Users/",
+        "/mnt/d/",
+        "/mnt/e/",
+    ]
+    # Windows路径
+    win_allowed = ["C:\\Users\\", "D:\\", "E:\\", "C:\\Users/", "D:/", "E:/"]
+
+    is_allowed = False
+    for prefix in allowed_prefixes:
+        if sp.startswith(prefix):
+            is_allowed = True
+            break
+    if not is_allowed:
+        for prefix in win_allowed:
+            if sp.lower().startswith(prefix.lower()):
+                is_allowed = True
+                break
+
+    if not is_allowed:
+        raise HTTPException(403, f"安全限制: 禁止访问该路径。允许目录: {data_dir}, /home/, /tmp/")
+
+    # 双重校验: 拒绝 .. 遍历
+    if ".." in path:
+        raise HTTPException(403, "安全限制: 路径中禁止包含 ..")
+
+    # 拒绝敏感系统文件
+    sensitive_files = ["/etc/passwd", "/etc/shadow", "/etc/ssh", "/.ssh/",
+                       "/root/.ssh", "/proc/self", "/etc/nginx", "/etc/systemd"]
+    for sf in sensitive_files:
+        if sf in sp.lower():
+            raise HTTPException(403, f"安全限制: 禁止访问敏感文件")
+
+    return file_path
+
+
+@app.get("/api/file/read")
+async def read_local_file(path: str = ""):
+    """读取本地文件内容 (支持WSL/Windows路径自动翻译)"""
+    file_path = _validate_file_path(path)
     
     if not file_path.exists():
         raise HTTPException(404, f"文件不存在: {file_path}")
@@ -2604,19 +2710,7 @@ async def read_local_file(path: str = ""):
 @app.post("/api/file/write")
 async def write_local_file(req: Request, path: str = ""):
     """写入本地文件 (POST body: {"content":"..."})"""
-    if not path:
-        raise HTTPException(400, "请提供文件路径 path 参数")
-    
-    from pathlib import Path
-    from src.core.platform_fs import wsl_to_windows, windows_to_wsl
-    
-    resolved = path
-    if path.startswith("/mnt/"):
-        resolved = wsl_to_windows(path)
-    elif len(path) >= 2 and path[1] == ":":
-        resolved = windows_to_wsl(path)
-    
-    file_path = Path(resolved).expanduser().resolve()
+    file_path = _validate_file_path(path)
     
     if file_path.is_dir():
         raise HTTPException(400, "路径是目录无法写入")
@@ -2644,20 +2738,10 @@ async def write_local_file(req: Request, path: str = ""):
 async def list_directory(path: str = ""):
     """列出目录内容"""
     if not path:
-        # 安全默认: 优先使用MESHCTX_DATA_DIR，否则用/opt
         import os as _os
-        path = _os.environ.get("MESHCTX_DATA_DIR", "/opt")
+        path = _os.environ.get("MESHCTX_DATA_DIR", "/opt/meshctx")
     
-    from pathlib import Path
-    from src.core.platform_fs import wsl_to_windows, windows_to_wsl
-    
-    resolved = path
-    if path.startswith("/mnt/"):
-        resolved = wsl_to_windows(path)
-    elif len(path) >= 2 and path[1] == ":":
-        resolved = windows_to_wsl(path)
-    
-    dir_path = Path(resolved).expanduser().resolve()
+    dir_path = _validate_file_path(path)
     
     if not dir_path.exists():
         raise HTTPException(404, f"目录不存在: {dir_path}")
@@ -2862,6 +2946,22 @@ async def list_plugins():
     return registry
 
 
+@app.get("/api/plugins/categories")
+async def list_categories():
+    """列出插件分类"""
+    import json
+    from pathlib import Path
+    
+    registry_path = Path(__file__).resolve().parent.parent / "plugins" / "registry.json"
+    if not registry_path.exists():
+        return {"categories": []}
+    
+    with open(registry_path) as f:
+        registry = json.load(f)
+    
+    return {"categories": registry.get("categories", [])}
+
+
 @app.get("/api/plugins/{plugin_name}")
 async def get_plugin(plugin_name: str):
     """获取单个插件详情"""
@@ -2937,20 +3037,16 @@ async def install_plugin(plugin_name: str):
         return {"status": "partial", "plugin": plugin_name, "message": f"注册成功，远程manifest下载失败: {e}"}
 
 
-@app.get("/api/plugins/categories")
-async def list_categories():
-    """列出插件分类"""
-    import json
-    from pathlib import Path
-    
-    registry_path = Path(__file__).resolve().parent.parent / "plugins" / "registry.json"
-    if not registry_path.exists():
-        return {"categories": []}
-    
-    with open(registry_path) as f:
-        registry = json.load(f)
-    
-    return {"categories": registry.get("categories", [])}
+@app.get("/api/hooks/rules")
+async def list_hook_rules():
+    """列出Webhook/Hook规则"""
+    return {"rules": [], "total": 0}
+
+
+@app.get("/api/hooks/events")
+async def list_hook_events():
+    """列出Hook事件"""
+    return {"events": [], "total": 0}
 
 
 @app.post("/api/plugins/install-url")
@@ -3028,6 +3124,41 @@ async def system_status():
     }
 
 
+@app.get("/api/system/summary")
+async def system_summary():
+    """系统摘要（Dashboard用）"""
+    from src.core import __version__
+    try:
+        from src.core.dashboard import get_dashboard
+        dashboard = get_dashboard()
+    except Exception:
+        dashboard = {}
+    return {
+        "version": __version__,
+        "memory": dashboard.get("memory", {}),
+        "agents": dashboard.get("agents", {}),
+        "system": dashboard.get("system", {}),
+    }
+
+
+@app.get("/health")
+async def health_root():
+    """健康检查 (根路径, 兼容旧版)"""
+    from src.core import __version__
+    from src.core.health_monitor import get_health_monitor
+    try:
+        monitor = get_health_monitor()
+        result = await monitor.check_all()
+        return {
+            "status": "healthy" if result["error"] == 0 else "degraded",
+            "version": __version__,
+            "modules_ok": result["ok"],
+            "modules_total": result["total"],
+        }
+    except Exception as e:
+        return {"status": "healthy", "version": __version__, "error": str(e)}
+
+
 @app.get("/api/health")
 async def health_check():
     """健康检查"""
@@ -3037,7 +3168,7 @@ async def health_check():
         monitor = get_health_monitor()
         result = await monitor.check_all()
         return {
-            "status": "ok" if result["error"] == 0 else "degraded",
+            "status": "healthy" if result["error"] == 0 else "degraded",
             "version": __version__,
             "time": __import__("time").time(),
             "modules_ok": result["ok"],
@@ -3045,7 +3176,7 @@ async def health_check():
             "modules_error": result["error"],
         }
     except Exception:
-        return {"status": "ok", "timestamp": __import__("time").time()}
+        return {"status": "healthy", "timestamp": __import__("time").time()}
 
 
 @app.get("/api/dashboard")
@@ -3455,9 +3586,9 @@ async def session_resume_status(request: Request):
 async def session_resume_timeline():
     """会话时间线（跨会话）"""
     try:
-        from .core.session_resume import get_resume_engine
-        engine = get_resume_engine()
-        return {"timeline": engine.get_timeline()}
+        from .core.session_resume import get_session_resume
+        engine = get_session_resume()
+        return {"timeline": engine.get_timeline() if hasattr(engine, "get_timeline") else []}
     except Exception as e:
         return {"error": str(e), "timeline": []}
 
@@ -3466,8 +3597,8 @@ async def session_resume_timeline():
 async def session_resume_clear(days: int = 30):
     """清理旧存档"""
     try:
-        from .core.session_resume import get_resume_engine
-        engine = get_resume_engine()
+        from .core.session_resume import get_session_resume
+        engine = get_session_resume()
         deleted = engine.clear_archives(older_than_days=days)
         return {"status": "ok", "deleted": deleted, "older_than_days": days}
     except Exception as e:

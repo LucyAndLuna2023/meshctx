@@ -66,6 +66,34 @@ class AgentGovernance:
                 return agent.role in rule.get("roles", [agent.role])
         return True
     
+    @property
+    def status(self) -> Dict:
+        """治理状态 (兼容 /api/governance/status)"""
+        return {
+            "agents_registered": len(self._agents),
+            "agents_active": sum(1 for a in self._agents.values() if a.active),
+            "policies": len(self._policies),
+            "audit_entries": len(self._audit),
+            "quotas": {aid: {"max_tokens": q.max_tokens, "tokens_used": q.tokens_used,
+                             "max_calls": q.max_calls, "calls_used": q.calls_used}
+                       for aid, q in self._quotas.items()},
+        }
+
+    @property
+    def rules(self) -> List[Dict]:
+        """策略规则列表 (兼容 /api/governance/rules)"""
+        return [{"name": name, **rule} for name, rule in self._policies.items()]
+
+    @property
+    def error_patterns(self) -> Dict:
+        """错误模式分析 (兼容 /api/governance/errors)"""
+        patterns = {}
+        for entry in self._audit:
+            if entry.result != "ok":
+                key = f"{entry.action}:{entry.result}"
+                patterns[key] = patterns.get(key, 0) + 1
+        return {"patterns": patterns, "total_errors": sum(patterns.values())}
+
     def get_stats(self) -> Dict:
         return {"agents": len(self._agents), "policies": len(self._policies),
                 "audit_entries": len(self._audit),
