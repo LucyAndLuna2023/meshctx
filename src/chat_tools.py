@@ -34,7 +34,7 @@ TOOLS = {
         "fn": lambda args: _search_files(args.get("pattern",""), args.get("path","."), args.get("glob","*")),
     },
     "web_search": {
-        "desc": "搜索网页(需要联网)。参数: query(搜索词)",
+        "desc": "联网搜索网页信息(股票、新闻、天气等实时数据优先用此工具)。参数: query(搜索词)",
         "fn": lambda args: _web_search(args.get("query","")),
     },
 }
@@ -79,7 +79,10 @@ def _list_dir(path: str) -> str:
 
 def _run_cmd(cmd: str) -> str:
     try:
-        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30, cwd=os.getcwd())
+        # 确保PATH包含基本工具路径(WSL/Docker/最小环境)
+        env = os.environ.copy()
+        env['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:' + env.get('PATH', '')
+        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30, cwd=os.getcwd(), env=env)
         out = r.stdout[:3000]
         if r.stderr:
             out += "\n[stderr]\n" + r.stderr[:500]
@@ -176,8 +179,10 @@ def get_tools_prompt() -> str:
 可用工具:
 {chr(10).join(tools_desc)}
 
-重要: 如果用户要求读文件、搜代码、执行命令等操作，
-不要说你做不到——直接使用工具！用工具执行后根据结果回复用户。"""
+重要:
+1. 如果用户要求读文件、搜代码、执行命令等操作，不要说你做不到——直接使用工具！
+2. 联网搜索、查股票、查新闻、查天气等实时数据，必须用 web_search 工具，不要用 run_cmd+curl！
+3. 用工具执行后根据结果回复用户。"""
 
 
 def has_tool_call(text: str) -> bool:
