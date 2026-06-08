@@ -2504,6 +2504,64 @@ async def win_software():
 
 
 # ═══════════════════════════════════════════════════
+# 流式Chat API (v1.4.0)
+# ═══════════════════════════════════════════════════
+
+@app.post("/api/chat/stream")
+async def api_chat_stream(request: Request):
+    """流式Chat API — SSE逐token推送"""
+    from src.model_registry import get_registry
+    from src.config import load_config
+    import json as _json
+
+    try:
+        body = await request.json()
+    except:
+        return StreamingResponse(
+            iter(["data: [错误] 无效请求\n\n"]),
+            media_type="text/event-stream"
+        )
+
+    msgs = body.get("messages", [])
+    if not msgs:
+        msg = body.get("message", "")
+        if msg:
+            msgs = [{"role": "user", "content": msg}]
+
+    if not msgs:
+        return StreamingResponse(
+            iter(["data: [请输入消息]\n\n"]),
+            media_type="text/event-stream"
+        )
+
+    model_id = body.get("model")
+    if not model_id:
+        try:
+            config = load_config()
+            model_id = config.get("models", {}).get("default", "deepseek:v4-pro")
+        except:
+            model_id = "deepseek:v4-pro"
+
+    async def generate():
+        try:
+            reg = get_registry()
+            client = reg.get(model_id) or reg.get(None)
+            if not client:
+                yield f"data: {_json.dumps({'error': '模型未配置，请在Setup页面设置API Key'})}\n\n"
+                yield "data: [DONE]\n\n"
+                return
+
+            for token in client.chat_stream(msgs):
+                yield f"data: {_json.dumps({'token': token})}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            yield f"data: {_json.dumps({'error': str(e)})}\n\n"
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+# ═══════════════════════════════════════════════════
 # 多模型对比 (v2.11)
 # ═══════════════════════════════════════════════════
 
