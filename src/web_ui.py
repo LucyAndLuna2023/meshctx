@@ -2501,9 +2501,9 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
 <!-- v2.17: 本地模型快捷预设 -->
 <div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px;">
     <span style="font-size:12px;color:var(--muted);line-height:28px;">快捷预设:</span>
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('ollama','qwen2.5:7b','Ollama','http://localhost:11434/v1','')">🦙 Ollama</button>
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('vllm','qwen','vLLM','http://localhost:8000/v1','')">🚀 vLLM</button>
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('localai','gpt-3.5-turbo','LocalAI','http://localhost:8080/v1','')">🏠 LocalAI</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('ollama','qwen2.5:7b','Ollama','http://{{ ollama_host }}:11434/v1','')">🦙 Ollama</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('vllm','qwen','vLLM','http://{{ vllm_host }}:8000/v1','')">🚀 vLLM</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('localai','gpt-3.5-turbo','LocalAI','http://{{ localai_host }}:8080/v1','')">🏠 LocalAI</button>
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('openai-compat','gpt-3.5-turbo','OpenAI兼容','https://your-api.com/v1','sk-...')">🔌 通用OpenAI</button>
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('custom','custom-model','自定义供应商','https://your-server.com','your-key')">⚙️ 完全自定义</button>
 </div>
@@ -4500,6 +4500,11 @@ def _render(template_name: str, context: dict, request = None) -> HTMLResponse:
     context['t'] = _scoped_t
     context['__i18n_json'] = __import__('json').dumps(i18n_translations.get(lang, i18n_translations.get('en', {})), ensure_ascii=False)
     context['__lang'] = lang
+    # Inject configurable local model hosts (BUG-005 fix)
+    import os as _os
+    context.setdefault('ollama_host', _os.environ.get('MESHCTX_OLLAMA_HOST', 'localhost'))
+    context.setdefault('vllm_host', _os.environ.get('MESHCTX_VLLM_HOST', 'localhost'))
+    context.setdefault('localai_host', _os.environ.get('MESHCTX_LOCALAI_HOST', 'localhost'))
     # 注入支持的语言列表供 JS 使用
     context['__languages'] = __import__('json').dumps(i18n_translations.get(lang, i18n_translations.get('en', {})).get('__available_langs__', [{"code":"zh","name":"中文","native":"中文"},{"code":"en","name":"English","native":"English"},{"code":"ja","name":"Japanese","native":"日本語"},{"code":"ko","name":"Korean","native":"한국어"},{"code":"fr","name":"French","native":"Français"},{"code":"de","name":"German","native":"Deutsch"},{"code":"es","name":"Spanish","native":"Español"}]))
     template = _jinja_env.get_template(template_name)

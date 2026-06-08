@@ -46,7 +46,7 @@ def check_server(host: str = "", port: int = 3001) -> bool:
     try:
         resp = urllib.request.urlopen(f"http://{host}:{port}/api/health", timeout=5)
         return resp.status == 200
-    except:
+    except Exception:
         return False
 
 def restart_server() -> bool:
@@ -163,7 +163,7 @@ def generate_health_report() -> Dict[str, Any]:
         import json
         data = json.loads(resp.read())
         report["version"] = data.get("version", "unknown")
-    except:
+    except Exception:
         report["version"] = "unreachable"
     
     # 写入报告文件

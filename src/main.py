@@ -381,7 +381,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://meshctx.com", "http://localhost:3000", "http://localhost:3001", "http://47.120.0.239:3001", "http://192.168.3.47:3001", "http://192.168.3.45:3001"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -439,11 +439,11 @@ button{width:100%;padding:12px;background:linear-gradient(135deg,#6c5ce7,#5a4bd1
 .error{color:#f85149;font-size:13px;margin-top:8px;display:none}
 </style></head><body>
 <div class="card">
-<h1>🔐 MeshCtx</h1><p>请输入管理密码</p>
+<h1>🔐 MeshCtx</h1><p id="login-hint">请输入管理密码 / Enter password</p>
 <form onsubmit="login(event)">
-<input type="password" id="pw" placeholder="Password / 密码" autofocus>
-<button type="submit">登 录</button>
-<div class="error" id="err">密码错误</div>
+<input type="password" id="pw" placeholder="Password" autofocus>
+<button type="submit" id="login-btn">登 录 / Login</button>
+<div class="error" id="err">密码错误 / Wrong password</div>
 </form>
 <script>
 async function login(e){e.preventDefault();
@@ -1337,6 +1337,112 @@ async def performance_report():
     if not plugin:
         return {"status": "disabled"}
     return plugin.generate_report()
+
+
+@app.get("/api/performance/stats")
+async def api_performance_stats():
+    """性能统计 (/api/ 前缀兼容)"""
+    try:
+        from src.core.performance_optimizer import get_perf_optimizer
+        opt = get_perf_optimizer()
+        if opt and hasattr(opt, "get_stats"):
+            return opt.get_stats()
+        return {"status": "not_initialized"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.get("/api/performance/report")
+async def api_performance_report():
+    """性能报告 (/api/ 前缀兼容)"""
+    return await performance_report()
+
+
+# ── Tasks / Cache / Backup / Governance 兼容路由 ──────
+
+@app.get("/api/tasks/stats")
+async def api_tasks_stats():
+    """任务统计"""
+    try:
+        from src.core.agent_swarm import get_swarm_manager
+        mgr = get_swarm_manager()
+        if mgr and hasattr(mgr, "get_stats"):
+            return mgr.get_stats()
+        return {"total_tasks": 0, "running": 0, "completed": 0, "failed": 0}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.get("/api/tasks/history")
+async def api_tasks_history():
+    """任务历史"""
+    try:
+        from src.core.agent_swarm import get_swarm_manager
+        mgr = get_swarm_manager()
+        if mgr and hasattr(mgr, "get_history"):
+            return {"history": mgr.get_history()}
+        return {"history": [], "total": 0}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.get("/api/cache/stats")
+async def api_cache_stats():
+    """缓存统计"""
+    try:
+        from src.core.performance_optimizer import get_perf_optimizer
+        opt = get_perf_optimizer()
+        if opt and hasattr(opt, "cache_stats"):
+            return opt.cache_stats()
+        return {"status": "not_initialized", "hits": 0, "misses": 0, "size": 0}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.get("/api/backup/stats")
+async def api_backup_stats():
+    """备份统计"""
+    try:
+        from src.core.backup_vault import get_backup_vault
+        vault = get_backup_vault()
+        if vault and hasattr(vault, "get_stats"):
+            return vault.get_stats()
+        return {"status": "not_initialized", "backups": 0, "total_size": 0}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.get("/api/governance/status")
+async def api_governance_status():
+    """治理状态"""
+    try:
+        from src.core.agent_governance import get_governance
+        gov = get_governance()
+        return gov.status() if gov else {"status": "not_initialized"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.get("/api/governance/rules")
+async def api_governance_rules():
+    """治理规则"""
+    try:
+        from src.core.agent_governance import get_governance
+        gov = get_governance()
+        return {"rules": gov.rules() if gov else []}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.get("/api/governance/errors")
+async def api_governance_errors():
+    """治理错误模式"""
+    try:
+        from src.core.agent_governance import get_governance
+        gov = get_governance()
+        return gov.error_patterns() if gov else {"patterns": []}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 # ── 配置热加载 / Key故障转移 / 记忆备份 ────────────────
 
@@ -2541,6 +2647,8 @@ async def config_backup():
             for k, v in raw["models"]["entries"].items():
                 if "key" in v and v["key"]:
                     v["key"] = v["key"][:8] + "****"
+                if "b64" in v and v["b64"]:
+                    v["b64"] = v["b64"][:8] + "****"
         return {"config": raw, "path": str(config_path)}
     return {"config": {}, "message": "No config found"}
 
@@ -2608,12 +2716,24 @@ async def code_review(req: Request):
 _rate_limits: Dict[str, List[float]] = {}
 RATE_WINDOW = 60  # 1 minute window
 RATE_MAX = 500     # 500 requests per minute per IP (test mode)
+_rate_limits_last_cleanup: float = 0.0
+RATE_CLEANUP_INTERVAL = 300  # cleanup every 5 minutes
+
 
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
     """简易IP限流"""
     client_ip = request.client.host if request.client else "unknown"
     now = time.time()
+
+    # BUG-010: Periodic cleanup of stale entries to prevent memory leak
+    global _rate_limits_last_cleanup
+    if now - _rate_limits_last_cleanup > RATE_CLEANUP_INTERVAL:
+        _rate_limits_last_cleanup = now
+        expired = [ip for ip, ts in _rate_limits.items()
+                   if not ts or now - ts[-1] > RATE_WINDOW]
+        for ip in expired:
+            _rate_limits.pop(ip, None)
     
     if client_ip not in _rate_limits:
         _rate_limits[client_ip] = []
@@ -3315,11 +3435,11 @@ async def human_memory_encode(req: Request):
     """编码记忆 — 模式组块+情绪加权"""
     try: body = await req.json()
     except: raise HTTPException(400)
-    text = body.get("text", "")
+    text = body.get("text", "") or body.get("content", "")
     emotion_name = body.get("emotion", "NEUTRAL")
     context_tags = set(body.get("context_tags", []))
     if not text:
-        raise HTTPException(400, "text required")
+        raise HTTPException(400, "text or content required")
     from src.core.human_memory import get_human_memory, EmotionIntensity
     hm = get_human_memory()
     emotion = getattr(EmotionIntensity, emotion_name, EmotionIntensity.NEUTRAL)

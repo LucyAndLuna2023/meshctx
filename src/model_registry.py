@@ -192,9 +192,9 @@ BUILTIN_MODELS = {
     "ollama:codellama":        {"provider":"ollama","base_url":"http://" + _OLLAMA_HOST + ":11434/v1","model":"codellama","key_env":"OLLAMA_API_KEY"},
     "ollama:phi4":             {"provider":"ollama","base_url":"http://" + _OLLAMA_HOST + ":11434/v1","model":"phi4","key_env":"OLLAMA_API_KEY"},
     "ollama:llama3.2":         {"provider":"ollama","base_url":"http://" + _OLLAMA_HOST + ":11434/v1","model":"llama3.2","key_env":"OLLAMA_API_KEY"},
-    "ollama:nomic-embed":      {"provider":"ollama","base_url":"http://${MESHCTX_OLLAMA_HOST:localhost}:11434/v1","model":"nomic-embed-text","key_env":"OLLAMA_API_KEY"},
+    "ollama:nomic-embed":      {"provider":"ollama","base_url":"http://" + _OLLAMA_HOST + ":11434/v1","model":"nomic-embed-text","key_env":"OLLAMA_API_KEY"},
     # ── vLLM / 自定义OpenAI兼容 ───────────────────────
-    "custom:local":            {"provider":"custom","base_url":"http://localhost:8000/v1","model":"default","key_env":"CUSTOM_API_KEY"},
+    "custom:local":            {"provider":"custom","base_url":"http://" + _VLLM_HOST + ":8000/v1","model":"default","key_env":"CUSTOM_API_KEY"},
 }
 
 

@@ -20,6 +20,11 @@ import sys
 from pathlib import Path
 
 
+def _get_port() -> int:
+    """Get meshctx server port from env var (default 3001)"""
+    return int(os.environ.get("MESHCTX_PORT", "3001"))
+
+
 def _ensure_keys_loaded():
     """确保API Key已从.env加载到环境变量（CLI命令调用前）"""
     env_file = Path.home() / ".meshctx" / ".env"
@@ -495,11 +500,11 @@ def cmd_stop(args):
 def cmd_status(args):
     try:
         import requests
-        r = requests.get("http://localhost:3001/health", timeout=3)
+        r = requests.get(f"http://localhost:{_get_port()}/health", timeout=3)
         d = r.json()
         print(f"meshctx v{d.get('version','?')} 运行中  "
               f"项目:{d.get('projects_count',0)} 会话:{d.get('conversations_count',0)} 记忆:{d.get('memories_count',0)}")
-    except:
+    except Exception:
         print("meshctx 未运行。meshctx start 启动")
 
 
@@ -615,7 +620,7 @@ def cmd_setup(args):
 ║                                        ║
 ║  启动: meshctx start                   ║
 ║  聊天: meshctx chat                    ║
-║  Web:  http://localhost:3001/ui/chat   ║
+║  Web:  http://localhost:{_get_port()}/ui/chat   ║
 ╚══════════════════════════════════════════╝
 """)
 
@@ -647,7 +652,7 @@ def cmd_evolve(args):
 
 def cmd_web(args):
     import webbrowser
-    webbrowser.open("http://localhost:3001/ui")
+    webbrowser.open(f"http://localhost:{_get_port()}/ui")
 
 
 def cmd_desktop(args):
@@ -1481,7 +1486,7 @@ def main():
         
         def _open_browser():
             time.sleep(2)
-            webbrowser.open("http://127.0.0.1:3001/ui/chat")
+            webbrowser.open(f"http://127.0.0.1:{_get_port()}/ui/chat")
         
         if sys.platform == "win32":
             threading.Thread(target=_open_browser, daemon=True).start()
