@@ -27,20 +27,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-# ── Monkey-patch uvicorn to not add server header ────────
-try:
-    import uvicorn.config as _uvconfig
-    _orig_init = _uvconfig.Config.__init__
-    def _patched_init(self, *args, **kwargs):
-        _orig_init(self, *args, **kwargs)
-        if hasattr(self, 'default_headers'):
-            self.default_headers = [(k, v) for k, v in self.default_headers if k.lower() != 'server']
-    _uvconfig.Config.__init__ = _patched_init
-except Exception:
-    pass
 
-# ═══════════════════════════════════════════════════════════
-# V1.0 内核
+
 # ═══════════════════════════════════════════════════════════
 from .core import (
     Kernel, MemoryPlugin, MetaCognitionPlugin, OrchestratorPlugin,
