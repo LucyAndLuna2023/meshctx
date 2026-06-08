@@ -262,15 +262,15 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         <button onclick="toggleTheme()" id="themeToggle" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:4px;font-size:14px;cursor:pointer;margin-left:4px;transition:border-color 0.3s ease,color 0.3s ease;" title="{{ t("toggle_theme") }}">🌙</button>
     </div>
 </div>
-<div class="main">
+<main class="main">
 {% block content %}{% endblock %}
-</div>
+</main>
 <!-- ═══ Ctrl+K 全局命令面板 ═══ -->
 <div class="cmd-overlay" id="cmdOverlay" onclick="if(event.target===this)closeCmdPalette()">
     <div class="cmd-panel">
         <div class="cmd-search-wrap">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input class="cmd-search" id="cmdSearch" type="text" placeholder="{{ t("cmd_search_placeholder") }}" autocomplete="off" oninput="filterCommands()" onkeydown="handleCmdKey(event)">
+            <input class="cmd-search" id="cmdSearch" type="text" placeholder="{{ t("cmd_search_placeholder") }}" aria-label="{{ t("cmd_search_placeholder") }}" autocomplete="off" oninput="filterCommands()" onkeydown="handleCmdKey(event)">
         </div>
         <div class="cmd-list" id="cmdList"></div>
     </div>
@@ -456,7 +456,7 @@ _TEMPLATES["memory.html"] = r"""{% extends "base.html" %}
     <div class="card">
         <h2>🔍 {{ t("semantic_search") }}</h2>
         <div style="display:flex;gap:8px;">
-            <input id="searchInput" placeholder="{{ t('search_placeholder') }}" style="flex:1;" onkeydown="if(event.key==='Enter')doSearch()">
+            <input id="searchInput" placeholder="{{ t('search_placeholder') }}" aria-label="{{ t('search_placeholder') }}" style="flex:1;" onkeydown="if(event.key==='Enter')doSearch()">
             <select id="searchType" style="width:100px;">
                 <option value="">{{ t("all_types") }}</option>
                 <option value="fact">{{ t("fact") }}</option>
@@ -1047,7 +1047,7 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
 <div style="margin-bottom:8px;">
     <button onclick="toggleSystemPrompt()" style="background:transparent;border:1px solid #334155;color:#64748b;padding:2px 10px;border-radius:4px;font-size:11px;cursor:pointer;" id="sysPromptToggle">⚙️ {{ t("system_prompt") }} ▸</button>
     <div id="sysPromptArea" style="display:none;margin-top:6px;">
-        <textarea id="sysPromptInput" placeholder="{{ t("system_prompt_placeholder") }}" style="width:100%;height:60px;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:8px;border-radius:6px;font-size:12px;resize:vertical;"></textarea>
+        <textarea id="sysPromptInput" placeholder="{{ t("system_prompt_placeholder") }}" aria-label="{{ t("system_prompt") }}" style="width:100%;height:60px;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:8px;border-radius:6px;font-size:12px;resize:vertical;"></textarea>
         <div style="display:flex;gap:6px;margin-top:4px;">
             <button onclick="saveSystemPrompt()" style="background:#2563eb;color:#fff;border:none;padding:3px 12px;border-radius:4px;font-size:11px;cursor:pointer;">💾 {{ t("save") }}</button>
             <button onclick="clearSystemPrompt()" style="background:transparent;border:1px solid #334155;color:#64748b;padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;">{{ t("clear") }}</button>
@@ -1072,7 +1072,7 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
         <button onclick="quickAction('优化性能')" style="background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;">⚡ 优化</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:16px;position:relative;">
-        <input id="userInput" placeholder="{{ t("chat_placeholder") }}" style="flex:1;" onkeydown="handleChatKeydown(event)" oninput="handleAtInput(this);updateTokenCount()" autocomplete="off">
+        <input id="userInput" placeholder="{{ t("chat_placeholder") }}" aria-label="{{ t("chat_placeholder") }}" style="flex:1;" onkeydown="handleChatKeydown(event)" oninput="handleAtInput(this);updateTokenCount()" autocomplete="off">
         <span id="tokenCount" style="color:#64748b;font-size:10px;margin-left:8px;align-self:center;white-space:nowrap;">0 tokens</span>
         <button class="btn" style="background:#334155;color:#94a3b8;font-size:16px;padding:8px 12px;" onclick="document.getElementById('fileInput').click()" title="上传文件">📎</button>
         <button id="compareBtn" class="btn" style="background:#8b5cf6;color:#e2e8f0;font-size:12px;padding:8px 12px;border:none;border-radius:6px;cursor:pointer;" onclick="toggleCompare()" title="多模型对比">⚡ 对比</button>
@@ -1088,7 +1088,7 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
         <div id="termOutput" style="max-height:200px;overflow-y:auto;color:#22c55e;white-space:pre-wrap;min-height:40px;">$ _</div>
         <div style="display:flex;gap:4px;margin-top:4px;">
             <span style="color:#22c55e;">$</span>
-<input id="termInput" placeholder="{{ t("term_placeholder") }}" style="flex:1;background:transparent;border:none;color:#22c55e;font-family:monospace;font-size:13px;" onkeydown="if(event.key==='Enter')runTerm()">
+<input id="termInput" placeholder="{{ t("term_placeholder") }}" aria-label="{{ t("term_placeholder") }}" style="flex:1;background:transparent;border:none;color:#22c55e;font-family:monospace;font-size:13px;" onkeydown="if(event.key==='Enter')runTerm()">
         </div>
     </div>
 </details>
@@ -2944,7 +2944,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
   <span class="live-indicator" id="liveTag"></span>
   <span class="spacer"></span>
   <form onsubmit="quickAsk(event)" style="display:flex;gap:4px;align-items:center;">
-    <input type="text" id="quickInput" placeholder="快速提问..." style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;width:140px;font-family:inherit;">
+    <input type="text" id="quickInput" placeholder="快速提问..." aria-label="快速提问" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;width:140px;font-family:inherit;">
     <button type="submit" style="background:var(--accent);color:#000;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px;font-weight:600;">发送</button>
   </form>
   <button onclick="toggleTheme()" title="切换明暗主题" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;" id="themeBtn">🌓</button>
@@ -3069,7 +3069,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
       <div class="card">
         <h2>💬 会话历史</h2>
         <div style="margin-bottom:8px;">
-          <input type="text" id="convSearch" placeholder="搜索会话标题..." oninput="searchConversations()" 
+          <input type="text" id="convSearch" placeholder="搜索会话标题..." aria-label="搜索会话标题" oninput="searchConversations()" 
             style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;width:100%;font-family:inherit;">
         </div>
         <div id="convHistoryList" style="max-height:300px;overflow-y:auto;font-size:12px;"></div>
@@ -3111,7 +3111,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
        <div class="card">
          <h2>📜 会话历史浏览器 <span style="font-size:10px;color:var(--muted);">v1.5.23</span></h2>
          <div style="display:flex;gap:8px;margin-bottom:12px;">
-           <input id="historySearch" placeholder="搜索会话..." style="flex:1;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:6px 12px;border-radius:6px;font-size:12px;" onkeyup="renderHistory()">
+           <input id="historySearch" placeholder="搜索会话..." aria-label="搜索会话" style="flex:1;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:6px 12px;border-radius:6px;font-size:12px;" onkeyup="renderHistory()">
            <button class="action-btn" onclick="renderHistory()" style="font-size:11px;">🔍 搜索</button>
          </div>
          <div id="historySessions" style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto;"></div>
@@ -3168,7 +3168,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
         </select>
         <input id="sandboxTimeout" type="number" value="30" min="1" max="120" style="width:60px;background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:6px;border-radius:4px;" title="超时(秒)">
       </div>
-      <textarea id="sandboxCode" style="width:100%;height:150px;background:var(--bg);color:var(--green);border:1px solid var(--border);padding:10px;border-radius:4px;font-family:monospace;font-size:13px;resize:vertical;" placeholder="print('Hello MeshCtx!')"></textarea>
+      <textarea id="sandboxCode" style="width:100%;height:150px;background:var(--bg);color:var(--green);border:1px solid var(--border);padding:10px;border-radius:4px;font-family:monospace;font-size:13px;resize:vertical;" placeholder="print('Hello MeshCtx!')" aria-label="Code Sandbox"></textarea>
       <div style="margin-top:8px;display:flex;gap:8px;">
         <button class="btn btn-primary" onclick="runSandbox()">▶ 执行</button>
         <button class="btn" style="background:#334155;color:#94a3b8;" onclick="document.getElementById('sandboxCode').value=''">清空</button>
@@ -3182,7 +3182,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
       <h2>📂 Project Indexer <span style="font-size:10px;color:var(--muted);">v2.8</span></h2>
       <p style="color:var(--muted);margin-bottom:12px;">搜索当前项目代码，获取智能上下文</p>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <input id="projectQuery" style="flex:1;background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:8px 12px;border-radius:4px;" placeholder="搜索函数/类/文件...">
+        <input id="projectQuery" style="flex:1;background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:8px 12px;border-radius:4px;" placeholder="搜索函数/类/文件..." aria-label="搜索函数/类/文件">
         <button class="btn btn-primary" onclick="searchProject()">🔍 搜索</button>
         <button class="btn" style="background:#334155;color:#94a3b8;" onclick="refreshProjectIndex()">🔄 刷新索引</button>
       </div>
@@ -3208,7 +3208,7 @@ select#quickModel:focus{outline:none;border-color:var(--accent);}
       <div class="card" style="margin-bottom:8px;">
         <h3>💻 PowerShell</h3>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
-          <input id="winPsCmd" style="flex:1;background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:6px 10px;border-radius:4px;font-family:monospace;font-size:12px;" placeholder="Get-Service | Where-Object {$_.Status -eq 'Running'}">
+          <input id="winPsCmd" style="flex:1;background:var(--bg);color:var(--fg);border:1px solid var(--border);padding:6px 10px;border-radius:4px;font-family:monospace;font-size:12px;" placeholder="Get-Service | Where-Object {$_.Status -eq 'Running'}" aria-label="PowerShell Command">
           <button class="btn btn-primary" onclick="winExec()">▶ 执行</button>
         </div>
         <div id="winPsResult" style="background:#0f172a;border:1px solid var(--border);border-radius:6px;padding:10px;font-family:monospace;font-size:11px;white-space:pre-wrap;max-height:300px;overflow-y:auto;display:none;color:#e2e8f0;"></div>
@@ -5410,7 +5410,7 @@ input,select{font-family:inherit}
 
 <!-- ═══ 搜索/筛选 ═══ -->
 <div class="toolbar">
-<input id="pluginSearch" placeholder="🔍 搜索插件..." oninput="loadPlugins()">
+<input id="pluginSearch" placeholder="🔍 搜索插件..." aria-label="搜索插件" oninput="loadPlugins()">
 <select id="pluginCat" onchange="loadPlugins()"><option value="">📂 全部分类</option></select>
 <button class="btn btn-outline" onclick="loadPlugins()" title="刷新">🔄</button>
 </div>
@@ -5428,7 +5428,7 @@ input,select{font-family:inherit}
 <h3>🔗 从 URL 安装插件</h3>
 <p style="font-size:12px;color:var(--muted);margin-bottom:12px">支持 GitHub 仓库地址、直接 ZIP 链接或插件注册表 URL</p>
 <div class="url-input-row">
-<input id="urlInput" placeholder="https://github.com/user/plugin-repo" oninput="parseUrl()">
+<input id="urlInput" placeholder="https://github.com/user/plugin-repo" aria-label="Plugin URL" oninput="parseUrl()">
 <button class="btn btn-primary" onclick="installFromUrl()">📥 安装</button>
 </div>
 <div class="hint">💡 示例: <code>https://github.com/example/meshctx-translator</code> 或 <code>https://meshctx.com/plugins/v1/hello.zip</code></div>
@@ -5666,7 +5666,7 @@ _TEMPLATES["models.html"] = r"""{% extends "base.html" %}
 </div>
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <input id="modelSearch" placeholder="{{ t("search_models") }}..." style="max-width:300px;" oninput="filterModels()">
+        <input id="modelSearch" placeholder="{{ t("search_models") }}..." aria-label="{{ t("search_models") }}" style="max-width:300px;" oninput="filterModels()">
         <a href="/ui/setup" class="btn btn-primary">+ {{ t("configure_model") }}</a>
     </div>
     <table>
@@ -5729,7 +5729,7 @@ _TEMPLATES["providers.html"] = r"""{% extends "base.html" %}
 </div>
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <input id="providerSearch" placeholder="{{ t("search_providers") }}..." style="max-width:300px;" oninput="filterProviders()">
+        <input id="providerSearch" placeholder="{{ t("search_providers") }}..." aria-label="{{ t("search_providers") }}" style="max-width:300px;" oninput="filterProviders()">
         <a href="/ui/setup" class="btn btn-primary">+ {{ t("configure_provider") }}</a>
     </div>
     <table>
@@ -5845,7 +5845,7 @@ _TEMPLATES["files.html"] = r"""{% extends "base.html" %}
  <div class="fm-editor-wrap" id="editorWrapper">
   <div class="fm-editor-gutter" id="editorGutter">1</div>
   <pre class="fm-editor-highlight" id="editorHighlight" aria-hidden="true"><code id="editorCode"></code></pre>
-  <textarea class="fm-editor-textarea" id="fileEditor" spellcheck="false" placeholder="Select a file to edit"></textarea>
+  <textarea class="fm-editor-textarea" id="fileEditor" spellcheck="false" placeholder="Select a file to edit" aria-label="File Editor"></textarea>
  </div>
 </div>
 </div>

@@ -387,6 +387,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── Security Headers Middleware ───────────────────────────────
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    """Add standard security headers to all responses"""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    return response
+
 # GZip压缩 (v2.29) — 减少响应体积 60-80%
 from starlette.middleware.gzip import GZipMiddleware
 app.add_middleware(GZipMiddleware, minimum_size=500)
@@ -425,8 +437,9 @@ async def auth_middleware(request: Request, call_next):
 
 @app.get("/ui/login", response_class=HTMLResponse)
 async def login_page(request: Request, next: str = ""):
+    lang = request.cookies.get("meshctx_lang", "en")
     return HTMLResponse(content=r"""<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>MeshCtx Login</title>
+<html lang=""" + '"' + lang + '"' + r"""><head><meta charset="UTF-8"><title>MeshCtx Login</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,sans-serif;background:linear-gradient(135deg,#0b0e1a,#1a1f35);min-height:100vh;display:flex;align-items:center;justify-content:center}
@@ -441,7 +454,7 @@ button{width:100%;padding:12px;background:linear-gradient(135deg,#6c5ce7,#5a4bd1
 <div class="card">
 <h1>🔐 MeshCtx</h1><p id="login-hint">请输入管理密码 / Enter password</p>
 <form onsubmit="login(event)">
-<input type="password" id="pw" placeholder="Password" autofocus>
+<input type="password" id="pw" placeholder="Password" aria-label="Password" autofocus>
 <button type="submit" id="login-btn">登 录 / Login</button>
 <div class="error" id="err">密码错误 / Wrong password</div>
 </form>
@@ -1566,14 +1579,37 @@ async def ws_stats():
 @app.get("/api/system/resources")
 async def system_resources():
     """CPU/内存使用率"""
-    import psutil
-    return {
-        "cpu_percent": psutil.cpu_percent(interval=0.1),
-        "memory_percent": psutil.virtual_memory().percent,
-        "memory_used_gb": round(psutil.virtual_memory().used / (1024**3), 1),
-        "memory_total_gb": round(psutil.virtual_memory().total / (1024**3), 1),
-        "disk_percent": psutil.disk_usage("/").percent,
-    }
+    try:
+        import psutil
+        return {
+            "cpu_percent": psutil.cpu_percent(interval=0.1),
+            "memory_percent": psutil.virtual_memory().percent,
+            "memory_used_gb": round(psutil.virtual_memory().used / (1024**3), 1),
+            "memory_total_gb": round(psutil.virtual_memory().total / (1024**3), 1),
+            "disk_percent": psutil.disk_usage("/").percent,
+        }
+    except ImportError:
+        # psutil未安装时使用/proc fallback
+        import os
+        mem = {}
+        try:
+            with open("/proc/meminfo") as f:
+                for line in f:
+                    parts = line.split()
+                    if parts[0] == "MemTotal:": mem["total_kb"] = int(parts[1])
+                    elif parts[0] == "MemAvailable:": mem["avail_kb"] = int(parts[1])
+        except: pass
+        total = mem.get("total_kb", 0)
+        avail = mem.get("avail_kb", 0)
+        used_pct = round((total - avail) / total * 100, 1) if total else 0
+        return {
+            "cpu_percent": 0,
+            "memory_percent": used_pct,
+            "memory_used_gb": round((total - avail) / 1048576, 1),
+            "memory_total_gb": round(total / 1048576, 1),
+            "disk_percent": 0,
+            "note": "psutil not installed, using /proc fallback"
+        }
 
 # ── v1.5.6 基准测试 ──────────────────────────────────────
 
