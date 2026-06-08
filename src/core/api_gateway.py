@@ -52,8 +52,6 @@ class Role(Enum):
     READONLY = "readonly"
     SERVICE = "service"
 
-
-@dataclass
 class BackendService:
     """A registered backend service endpoint."""
     name: str
