@@ -111,6 +111,13 @@ def _search_files(pattern: str, path: str, glob: str) -> str:
         return f"搜索失败: {e}"
 
 def _web_search(query: str) -> str:
+    # 自动追加日期: 含"今天/今日/最新/实时"时加当天日期
+    date_keywords = ['今天', '今日', '最新', '实时', '当前', '目前']
+    if any(k in query for k in date_keywords):
+        from datetime import datetime
+        today = datetime.now().strftime('%Y年%m月%d日')
+        if today not in query:
+            query = f"{query} {today}"
     # 尝试DuckDuckGo，失败则回退到百度
     try:
         url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
