@@ -1733,6 +1733,8 @@ function selectAtFile(idx) {
 }
 
 // 键盘导航: Enter/Escape/ArrowUp/ArrowDown/Tab + Chat快捷键(Ctrl+Enter/Esc/ArrowUp)
+var chatHistoryIdx = -1;  // 历史消息索引, -1=未选择
+var chatHistoryCache = []; // 缓存用户历史消息列表
 function handleChatKeydown(event) {
     // Ctrl+Enter 或 Cmd+Enter: 发送
     if((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
@@ -1777,17 +1779,35 @@ function handleChatKeydown(event) {
         }
     }
     
-    // ArrowUp: 上一条历史消息(如果输入为空且不在自动补全中)
-    if (event.key === 'ArrowUp' && !document.getElementById('userInput').value && !isVisible) {
+    // ArrowUp: 上一条历史消息(如果输入为空或已在历史浏览中)
+    if (event.key === 'ArrowUp' && !isVisible) {
+        var input = document.getElementById('userInput');
+        // 首次按ArrowUp时,输入必须为空(防误触)
+        if (chatHistoryIdx === -1 && input.value) return;
         event.preventDefault();
-        var history = JSON.parse(localStorage.getItem('meshctx_chat_' + (localStorage.getItem('meshctx_active_tab')||'default')) || '[]');
-        for(var i=history.length-1; i>=0; i--) {
-            if(history[i].role === 'user') {
-                document.getElementById('userInput').value = history[i].content;
-                updateTokenCount();
-                break;
-            }
+        // 懒加载历史缓存
+        if (chatHistoryCache.length === 0) {
+            var full = JSON.parse(localStorage.getItem('meshctx_chat_' + (localStorage.getItem('meshctx_active_tab')||'default')) || '[]');
+            chatHistoryCache = full.filter(function(m){ return m.role === 'user'; }).map(function(m){ return m.content; });
         }
+        if (chatHistoryCache.length === 0) return;
+        if (chatHistoryIdx < chatHistoryCache.length - 1) chatHistoryIdx++;
+        input.value = chatHistoryCache[chatHistoryCache.length - 1 - chatHistoryIdx];
+        updateTokenCount();
+        return;
+    }
+    // ArrowDown: 下一条历史消息(与ArrowUp配对)
+    if (event.key === 'ArrowDown' && chatHistoryIdx >= 0 && !isVisible) {
+        event.preventDefault();
+        chatHistoryIdx--;
+        var input = document.getElementById('userInput');
+        if (chatHistoryIdx < 0) {
+            input.value = '';
+            chatHistoryIdx = -1;
+        } else {
+            input.value = chatHistoryCache[chatHistoryCache.length - 1 - chatHistoryIdx];
+        }
+        updateTokenCount();
         return;
     }
     
@@ -1821,6 +1841,9 @@ async function send() {
     if (!input) return;
     let msg = input.value.trim();
     if (!msg) return;
+    // 重置历史浏览状态
+    chatHistoryIdx = -1;
+    chatHistoryCache = [];
     
     // Compare mode intercept
     if(compareMode){
