@@ -193,6 +193,48 @@ class AutoHealerV2:
             return HealAction(f"fix_{issue}",False,output=str(e))
         return None
     
+    def get_dashboard_report(self) -> Dict:
+        """Return full dashboard report matching frontend expectations."""
+        uptime = time.time() - (self._start_time or time.time())
+        self._uptime = uptime
+        color = "green"
+        if self._health_score < 60:
+            color = "red"
+        elif self._health_score < 85:
+            color = "yellow"
+
+        # Determine last check time from recent checks
+        last_check_human = "N/A"
+        if self._checks:
+            last = self._checks[-1]
+            elapsed = time.time() - last.timestamp
+            last_check_human = self._format_uptime(elapsed) + " ago"
+
+        # Count successful heals
+        heals_ok = sum(1 for h in self._heals if h.success)
+
+        # Uptime since last incident (last unhealthy check)
+        uptime_since_incident_human = self._format_uptime(uptime)
+        for c in reversed(list(self._checks)):
+            if c.status in ("critical", "warn"):
+                incident_elapsed = time.time() - c.timestamp
+                uptime_since_incident_human = self._format_uptime(incident_elapsed)
+                break
+
+        return {
+            "status": self._status if self._started else "not_started",
+            "color": color,
+            "health_score": round(self._health_score, 1),
+            "running": self._started,
+            "last_check_human": last_check_human,
+            "uptime_since_incident_human": uptime_since_incident_human,
+            "heals_successful": heals_ok,
+            "heals_performed": self._heals_performed,
+            "checks_total": len(self._checks),
+            "plugins": {},
+            "predictions": self._make_predictions(),
+        }
+
     def get_stats(self) -> Dict:
         recent = list(self._checks)
         warns = sum(1 for c in recent if c.status in ("warn","critical"))

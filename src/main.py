@@ -1493,7 +1493,7 @@ async def healer_dashboard_api():
         report = healer.get_dashboard_report() if hasattr(healer, 'get_dashboard_report') else {}
         if not report:
             report = {
-                "status": healer.status if hasattr(healer, 'status') else "unknown",
+                "status": healer._status if hasattr(healer, '_status') else "unknown",
                 "color": "gray",
                 "running": hasattr(healer, '_running') and healer._running,
                 "last_check_human": "N/A",
@@ -2783,6 +2783,7 @@ def _validate_file_path(path: str) -> "Path":
     data_dir = os.environ.get("MESHCTX_DATA_DIR", "/opt/meshctx/data")
     allowed_prefixes = [
         data_dir,
+        "/opt/meshctx",
         "/opt/meshctx/data",
         "/opt/meshctx/projects",
         "/opt/meshctx/plugins",

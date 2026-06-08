@@ -6049,7 +6049,7 @@ function showToast(msg){
 async function loadPath(path){
  currentPath = path || '';
  try{
-  var r = await fetch('/api/file/list?path='+encodeURIComponent(currentPath||'/opt'));
+  var r = await fetch('/api/file/list?path='+encodeURIComponent(currentPath||'/opt/meshctx'));
   var d = await r.json();
   renderBreadcrumb(d.path);
   renderFiles(d.items, d.path);
