@@ -3877,15 +3877,14 @@ function quickAsk(e){
     saved = prefersDark ? 'dark' : 'light';
     localStorage.setItem('meshctx_theme', saved);
   }
-  if(saved==='light') document.body.classList.add('light');
+  if(saved==='light') document.body.setAttribute('data-theme','light');else document.body.setAttribute('data-theme','dark');
   if(saved==='light') document.getElementById('themeBtn').textContent = '☀️';
   // 监听系统主题变化
   if(window.matchMedia){
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e){
       var current = localStorage.getItem('meshctx_theme');
       if(!current || current === 'auto'){
-        if(e.matches) document.body.classList.remove('light');
-        else document.body.classList.add('light');
+        document.body.setAttribute('data-theme', e.matches ? 'dark' : 'light');
       }
     });
   }
@@ -3898,7 +3897,6 @@ function toggleTheme(){
   localStorage.setItem('meshctx_theme', next);
   var btn = document.getElementById('themeToggle');
   if (btn) btn.textContent = next === 'light' ? '☀️' : '🌙';
-  // 也更新 desktop 按钮 (如果有)
   var btn2 = document.getElementById('themeBtn');
   if (btn2) btn2.textContent = next === 'light' ? '☀️' : '🌙';
 }
@@ -5145,7 +5143,7 @@ async def dashboard_page(request: Request):
     return HTMLResponse("""<!DOCTYPE html>
 <html lang="zh"><head><meta charset="UTF-8"><title>Dashboard - MeshCtx</title>
 <style>
-:root{--bg:#0b0e1a;--card-bg:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08);--text:#e0e4f0;--muted:#8090b0;--accent:#6c5ce7;--green:#22c55e;--red:#f85149;--yellow:#fbbf24}
+:root{--bg:#0b0e1a;--card-bg:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08);--text:#e0e4f0;--muted:#8090b0;--accent:#6c5ce7;--green:#22c55e;--red:#f85149;--yellow:#fbbf24;--input-bg:#16213e;--surface:#16213e;--hover:rgba(255,255,255,0.06)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,sans-serif;background:linear-gradient(135deg,#0b0e1a,#1a1f35);color:var(--text);min-height:100vh;padding:24px}
 nav{display:flex;gap:12px;margin-bottom:24px}
@@ -5159,9 +5157,22 @@ nav a{color:var(--muted);text-decoration:none;padding:8px 16px;border-radius:8px
 table{width:100%;border-collapse:collapse;font-size:13px;margin-top:16px}
 th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
 th{color:var(--muted)}
+/* ── Light Theme ── */
+body.light{background:linear-gradient(135deg,#f8fafc,#eef2ff);color:#0f172a}
+body.light .card{background:rgba(255,255,255,0.9);border-color:#e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+body.light nav a{color:#64748b}
+body.light nav a:hover{background:#e2e8f0;color:#0f172a}
+body.light th{color:#64748b}
+body.light td{color:#0f172a}
+body.light table tr:hover{background:rgba(108,92,231,0.06)}
+body.light input,body.light select{background:#fff;border-color:#e2e8f0;color:#0f172a}
+body.light .green{color:#16a34a}
+body.light .red{color:#dc2626}
+body.light .yellow{color:#d97706}
+body.light .purple{color:#7c3aed}
 </style></head><body>
 <div class="container">
-<nav><a href="/ui/chat" data-nav="chat">Chat</a><a href="/ui/setup" data-nav="setup">Setup</a><a href="/ui/plugins" data-nav="plugins">Plugins</a><a href="/ui/files" data-nav="files">📁 Files</a><a href="/ui/dashboard" data-nav="dashboard" style="color:var(--accent);background:rgba(108,92,231,0.15);">Dashboard</a></nav>
+<nav><a href="/ui/chat" data-nav="chat">Chat</a><a href="/ui/setup" data-nav="setup">Setup</a><a href="/ui/plugins" data-nav="plugins">Plugins</a><a href="/ui/files" data-nav="files">📁 Files</a><a href="/ui/dashboard" data-nav="dashboard" style="color:var(--accent);background:rgba(108,92,231,0.15);">Dashboard</a><span style="flex:1"></span><button onclick="toggleThemeDash()" id="themeBtnDash" title="切换明暗主题" style="background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;color:var(--text);">🌙</button></nav>
 <script>
 (function(){
   var L={chat:{en:'Chat',zh:'聊天',ja:'チャット',ko:'채팅',es:'Chat',fr:'Chat',de:'Chat'},
@@ -5191,6 +5202,8 @@ th{color:var(--muted)}
 <div id="pluginStatus" style="margin-top:16px;"></div>
 </div>
 <script>
+(function(){var s=localStorage.getItem('meshctx_theme');if(!s){s=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}if(s==='light')document.body.classList.add('light');var b=document.getElementById('themeBtnDash');if(b)b.textContent=s==='light'?'☀️':'🌙';if(window.matchMedia)window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',function(e){var c=localStorage.getItem('meshctx_theme');if(!c||c==='auto'){if(e.matches)document.body.classList.remove('light');else document.body.classList.add('light')}})})();
+function toggleThemeDash(){var b=document.body;var isLight=b.classList.toggle('light');localStorage.setItem('meshctx_theme',isLight?'light':'dark');var btn=document.getElementById('themeBtnDash');if(btn)btn.textContent=isLight?'☀️':'🌙'}
 async function load(){
   var r=await fetch('/api/system/status');
   var d=await r.json();
@@ -5330,10 +5343,24 @@ body.light{background:#f8fafc;color:#1e293b}
 body.light .card{background:#fff;border-color:#e2e8f0}
 body.light .section-title{color:#334155}
 body.light nav a{color:#64748b}
+body.light nav a:hover{background:#e2e8f0;color:#1e293b}
+body.light nav a.active{color:#6c5ce7;background:rgba(108,92,231,0.1)}
 body.light input,body.light select{background:#fff;border-color:#e2e8f0;color:#1e293b}
+body.light .toolbar input,body.light .toolbar select{background:#fff;border-color:#d1d5db;color:#1e293b}
 body.light .url-bar{background:#f1f5f9;border-color:#e2e8f0}
+body.light .url-bar input{background:#fff;border-color:#d1d5db;color:#1e293b}
+body.light .url-bar .hint code{background:#e2e8f0;color:#1e293b}
 body.light .community-card{background:#fff;border-color:#e2e8f0}
 body.light .community-card:hover{border-color:#6c5ce7;box-shadow:0 4px 20px rgba(108,92,231,0.1)}
+body.light .stars .empty{color:#d1d5db}
+body.light .divider{background:#e2e8f0}
+body.light .plugin-icon{background:rgba(108,92,231,0.08)}
+body.light .btn-outline{background:#fff;border-color:#d1d5db;color:#1e293b}
+body.light .btn-outline:hover{border-color:#6c5ce7;color:#6c5ce7}
+body.light .toast-success{background:#dcfce7;color:#166534;border-color:#86efac}
+body.light .toast-error{background:#fef2f2;color:#991b1b;border-color:#fca5a5}
+body.light h2{color:#0f172a}
+body.light .cc-name{color:#0f172a}
 h2{font-size:24px;font-weight:700;margin-bottom:4px}
 h2 .ver{font-size:11px;color:var(--muted);font-weight:400;margin-left:8px}
 .section-title{font-size:16px;font-weight:600;margin:28px 0 12px;display:flex;align-items:center;gap:8px;color:var(--text)}
@@ -5419,6 +5446,8 @@ input,select{font-family:inherit}
 <nav>
 <a href="/ui/chat" data-nav="chat">💬 Chat</a><a href="/ui/setup" data-nav="setup">⚙ Setup</a><a href="/ui/files" data-nav="files">📁 Files</a>
 <a href="/ui/plugins" data-nav="plugins" class="active">🔌 插件市场</a>
+<span style="flex:1"></span>
+<button onclick="toggleThemePlugins()" id="themeBtnPlugins" title="切换明暗主题" style="background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;color:var(--text);">🌙</button>
 </nav>
 <script>
 (function(){
@@ -5477,6 +5506,8 @@ input,select{font-family:inherit}
 <div id="toastContainer"></div>
 
 <script>
+(function(){var s=localStorage.getItem('meshctx_theme');if(!s){s=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}if(s==='light')document.body.classList.add('light');var b=document.getElementById('themeBtnPlugins');if(b)b.textContent=s==='light'?'☀️':'🌙';if(window.matchMedia)window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',function(e){var c=localStorage.getItem('meshctx_theme');if(!c||c==='auto'){if(e.matches)document.body.classList.remove('light');else document.body.classList.add('light')}})})();
+function toggleThemePlugins(){var b=document.body;var isLight=b.classList.toggle('light');localStorage.setItem('meshctx_theme',isLight?'light':'dark');var btn=document.getElementById('themeBtnPlugins');if(btn)btn.textContent=isLight?'☀️':'🌙'}
 var _installed = {};
 
 // ── 星级渲染 ──

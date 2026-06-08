@@ -27,6 +27,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+# ── Monkey-patch uvicorn to not add server header ────────
+try:
+    import uvicorn.config as _uvconfig
+    _orig_init = _uvconfig.Config.__init__
+    def _patched_init(self, *args, **kwargs):
+        _orig_init(self, *args, **kwargs)
+        if hasattr(self, 'default_headers'):
+            self.default_headers = [(k, v) for k, v in self.default_headers if k.lower() != 'server']
+    _uvconfig.Config.__init__ = _patched_init
+except Exception:
+    pass
+
 # ═══════════════════════════════════════════════════════════
 # V1.0 内核
 # ═══════════════════════════════════════════════════════════
@@ -402,6 +414,29 @@ app.add_middleware(
 )
 
 # ── Security Headers Middleware ───────────────────────────────
+class _ServerHeaderMiddleware:
+    """Raw ASGI middleware to strip uvicorn server header at protocol level"""
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                # Remove any existing server header (e.g. uvicorn)
+                headers = [(k, v) for k, v in headers if k != b"server"]
+                headers.append((b"server", b"meshctx"))
+                message["headers"] = headers
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
+
+app.add_middleware(_ServerHeaderMiddleware)
+
 @app.middleware("http")
 async def security_headers_middleware(request: Request, call_next):
     """Add standard security headers to all responses"""
@@ -1769,10 +1804,8 @@ async def list_models():
             "provider_name": _provider_display_name(pid),
             "model_name": info["model"],
             "configured": configd,
-            "has_key": has_key,
             "usable": usable,
             "current": mid == current,
-            "key_env": info["key_env"],
         })
     return {
         "models": models, 
