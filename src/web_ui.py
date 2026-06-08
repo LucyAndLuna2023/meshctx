@@ -4514,16 +4514,6 @@ def _render(template_name: str, context: dict, request = None) -> HTMLResponse:
 router = APIRouter(prefix="/ui", tags=["Web UI"])
 
 
-# ── 语言切换 ─────────────────────────────────────────────────
-@router.get("/lang/set")
-async def lang_set(request: Request, lang: str = "zh", redirect: str = "/ui/"):
-    """设置语言 cookie 并重定向"""
-    from src.i18n import set_lang as i18n_set_lang
-    i18n_set_lang(lang)
-    response = RedirectResponse(url=redirect, status_code=302)
-    response.set_cookie("meshctx_lang", lang, max_age=365*24*3600, path="/", samesite="lax")
-    return response
-
 
 # ── 工具函数 ─────────────────────────────────────────────────
 

@@ -17,6 +17,7 @@ import sys
 import time
 import random
 import numpy as np
+import subprocess
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -54,6 +55,7 @@ _kernel: Optional[Kernel] = None
 _memory_engine: Optional[MemoryEngine] = None
 _key_failover = APIKeyFailover()
 _memory_backup = MemoryBackup()
+_app_start_time = time.time()  # 用于 /api/agent/monitor uptime计算
 
 
 def get_kernel() -> Kernel:
@@ -3653,6 +3655,295 @@ async def human_memory_associate(req: Request):
     hm = get_human_memory()
     hm.build_associations(chunk_id, related_ids, weights)
     return {"status": "ok"}
+
+
+# ═══════════════════════════════════════════════════════════
+# 通用记忆 API (v2.30)
+# ═══════════════════════════════════════════════════════════
+
+@app.post("/api/memory/stats")
+async def memory_stats(request: Request):
+    """记忆统计信息 — 总数/近7天/按类型分组"""
+    try:
+        from pathlib import Path
+        from datetime import datetime, timedelta
+        import json as _json
+
+        mem_dir = Path.home() / ".meshctx" / "data" / "memories"
+        if not mem_dir.exists():
+            return {"total": 0, "recent_7d": 0, "by_type": {}}
+
+        files = list(mem_dir.glob("*.json"))
+        total = len(files)
+        cutoff = datetime.now() - timedelta(days=7)
+        recent_7d = 0
+        by_type: Dict[str, int] = {}
+
+        for fp in files:
+            try:
+                with open(fp) as f:
+                    data = _json.load(f)
+                ts = data.get("created_at", "")
+                if ts:
+                    dt = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S.%f") if "." in ts else datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+                    if dt >= cutoff:
+                        recent_7d += 1
+                mtype = data.get("type", data.get("key", "default"))
+                by_type[mtype] = by_type.get(mtype, 0) + 1
+            except Exception:
+                continue
+
+        return {"total": total, "recent_7d": recent_7d, "by_type": by_type}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/memory/search")
+async def memory_search(request: Request):
+    """搜索记忆 — 按关键词匹配 content/value 字段"""
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "Invalid JSON body")
+    try:
+        query = body.get("query", "").strip().lower()
+        if not query:
+            raise HTTPException(400, "query required")
+
+        from pathlib import Path
+        import json as _json
+
+        mem_dir = Path.home() / ".meshctx" / "data" / "memories"
+        results = []
+        if not mem_dir.exists():
+            return {"results": []}
+
+        for fp in mem_dir.glob("*.json"):
+            try:
+                with open(fp) as f:
+                    data = _json.load(f)
+                content = (data.get("content", "") or data.get("value", "")).lower()
+                if query in content:
+                    results.append({
+                        "id": data.get("id", fp.stem),
+                        "content": data.get("content", "") or data.get("value", ""),
+                        "timestamp": data.get("created_at", ""),
+                    })
+            except Exception:
+                continue
+
+        return {"results": results}
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/memory/add")
+async def memory_add(request: Request):
+    """添加记忆 — 追加到 ~/.meshctx/data/memories/"""
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "Invalid JSON body")
+    try:
+        import uuid
+        from pathlib import Path
+        from datetime import datetime
+        import json as _json
+
+        content = body.get("content", "").strip()
+        if not content:
+            raise HTTPException(400, "content required")
+
+        mtype = body.get("type", "general")
+        mem_id = str(uuid.uuid4())
+        mem_dir = Path.home() / ".meshctx" / "data" / "memories"
+        mem_dir.mkdir(parents=True, exist_ok=True)
+
+        record = {
+            "id": mem_id,
+            "project_id": "",
+            "key": mtype,
+            "value": content,
+            "content": content,
+            "type": mtype,
+            "importance": body.get("importance", 0.5),
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
+            "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
+        }
+
+        with open(mem_dir / f"{mem_id}.json", "w") as f:
+            _json.dump(record, f, ensure_ascii=False, indent=2)
+
+        return {"status": "ok", "id": mem_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/memory/graph")
+async def memory_graph():
+    """记忆图谱 — 构建节点与边的关系图"""
+    try:
+        from pathlib import Path
+        import json as _json
+
+        mem_dir = Path.home() / ".meshctx" / "data" / "memories"
+        nodes = []
+        edges = []
+        if not mem_dir.exists():
+            return {"nodes": [], "edges": []}
+
+        type_groups: Dict[str, list] = {}
+        all_items = []
+
+        for fp in mem_dir.glob("*.json"):
+            try:
+                with open(fp) as f:
+                    data = _json.load(f)
+                mtype = data.get("type", data.get("key", "default"))
+                node = {
+                    "id": data.get("id", fp.stem),
+                    "label": (data.get("content", "") or data.get("value", ""))[:60],
+                    "type": mtype,
+                    "created_at": data.get("created_at", ""),
+                }
+                nodes.append(node)
+                type_groups.setdefault(mtype, []).append(node["id"])
+                all_items.append((node["id"], mtype))
+            except Exception:
+                continue
+
+        # 同类型记忆建立边
+        for mtype, ids in type_groups.items():
+            for i in range(len(ids)):
+                for j in range(i + 1, min(len(ids), i + 5)):
+                    edges.append({"source": ids[i], "target": ids[j], "relation": mtype})
+
+        return {"nodes": nodes, "edges": edges}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ═══════════════════════════════════════════════════════════
+# 上下文 API (v2.30)
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/context/projects")
+async def context_projects():
+    """上下文项目列表 — 扫描 ~/.meshctx/projects/"""
+    try:
+        from pathlib import Path
+        import json as _json
+
+        proj_dir = Path.home() / ".meshctx" / "projects"
+        data_dir = Path.home() / ".meshctx" / "data" / "projects"
+        projects = []
+
+        # 加载活跃项目标记
+        active_file = Path.home() / ".meshctx" / "active_project.json"
+        active_name = ""
+        if active_file.exists():
+            try:
+                with open(active_file) as f:
+                    active_name = _json.load(f).get("project_name", "")
+            except Exception:
+                pass
+
+        # 扫描 projects 目录
+        if proj_dir.exists():
+            for fp in proj_dir.glob("*.json"):
+                try:
+                    with open(fp) as f:
+                        data = _json.load(f)
+                    name = data.get("project_name", fp.stem)
+                    projects.append({
+                        "name": name,
+                        "path": data.get("project_path", ""),
+                        "active": name == active_name,
+                    })
+                except Exception:
+                    continue
+
+        # 扫描 data/projects 目录
+        if data_dir.exists():
+            for fp in data_dir.glob("*.json"):
+                try:
+                    with open(fp) as f:
+                        data = _json.load(f)
+                    name = data.get("project_name", fp.stem)
+                    path_val = data.get("project_path", "")
+                    # 避免重复
+                    if not any(p["name"] == name for p in projects):
+                        projects.append({
+                            "name": name,
+                            "path": path_val,
+                            "active": name == active_name,
+                        })
+                except Exception:
+                    continue
+
+        return {"projects": projects}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/context/meshctx-md")
+async def context_meshctx_md():
+    """获取 .meshctx.md / AGENTS.md 内容"""
+    try:
+        from pathlib import Path
+
+        # 搜索顺序: 当前目录、home、项目根目录
+        candidates = [
+            Path.cwd() / ".meshctx.md",
+            Path.cwd() / "AGENTS.md",
+            Path.home() / ".meshctx.md",
+            Path.home() / "AGENTS.md",
+            Path.home() / "meshctx-local" / ".meshctx.md",
+            Path.home() / "meshctx-local" / "AGENTS.md",
+        ]
+
+        for p in candidates:
+            if p.exists():
+                content = p.read_text(encoding="utf-8", errors="replace")
+                return {"content": content, "path": str(p)}
+
+        return {"content": "", "path": "", "message": "No .meshctx.md or AGENTS.md found"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/context/project/activate")
+async def context_project_activate(request: Request):
+    """激活项目 — 设置当前活跃项目"""
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "Invalid JSON body")
+    try:
+        from pathlib import Path
+        import json as _json
+
+        project_name = body.get("project_name", "").strip()
+        if not project_name:
+            raise HTTPException(400, "project_name required")
+
+        active_file = Path.home() / ".meshctx" / "active_project.json"
+        active_file.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(active_file, "w") as f:
+            _json.dump({"project_name": project_name}, f, ensure_ascii=False)
+
+        return {"status": "ok", "active": project_name}
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"error": str(e)}
+
+
 async def sandbox_run(request: Request):
     """代码沙箱执行"""
     try: body = await request.json()
@@ -4011,8 +4302,412 @@ async def jepa_evaluate(request: Request):
         return {"status": "error", "error": str(e)}
 
 
+
+# ═══════════════════════════════════════════════════
+# 配置管理 + Provider + MCP + 上传 + 代码执行 + 终端
+# ═══════════════════════════════════════════════════
+
+@app.get("/api/config/export")
+async def config_export():
+    """导出配置 — 返回config.yaml内容 + 环境变量中的Key列表"""
+    try:
+        config_path = Path.home() / ".meshctx" / "config.yaml"
+        config = {}
+        if config_path.exists():
+            import yaml
+            with open(config_path) as f:
+                config = yaml.safe_load(f) or {}
+        # 收集敏感环境变量名（不导出值）
+        env_keys = [k for k in os.environ if k.endswith("_API_KEY") or k.startswith("MESHCTX_")]
+        return {"config": config, "env_vars": sorted(env_keys)}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/config/import")
+async def config_import(request: Request):
+    """导入配置 — 写入~/.meshctx/config.yaml并重置model_registry缓存"""
+    try:
+        import yaml
+        body = await request.json()
+        config = body.get("config", body)
+        if not isinstance(config, dict):
+            return {"error": "config必须是字典"}
+        config_path = Path.home() / ".meshctx" / "config.yaml"
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(config_path, "w") as f:
+            yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+        # 重置model_registry缓存
+        try:
+            import src.model_registry as mr
+            mr._registry = None
+        except Exception:
+            pass
+        # 统计导入的条目数
+        imported = 0
+        for section in ("models", "plugins", "mcp"):
+            if section in config:
+                entries = config[section]
+                if isinstance(entries, dict):
+                    imported += len(entries.get("entries", entries))
+                elif isinstance(entries, list):
+                    imported += len(entries)
+        return {"status": "ok", "imported": imported}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/providers")
+async def list_providers():
+    """列出所有Provider及其模型 — 从BUILTIN_MODELS和config.yaml提取"""
+    try:
+        from src.model_registry import BUILTIN_MODELS
+        # 收集provider → models映射
+        provider_map: Dict[str, List[str]] = {}
+        for mid, info in BUILTIN_MODELS.items():
+            pid = info.get("provider", "unknown")
+            provider_map.setdefault(pid, []).append(mid)
+        # 检查config.yaml中哪些已配置
+        config_path = Path.home() / ".meshctx" / "config.yaml"
+        configured_ids = set()
+        if config_path.exists():
+            import yaml
+            with open(config_path) as f:
+                cfg = yaml.safe_load(f) or {}
+            configured_ids = set(cfg.get("models", {}).get("entries", {}).keys())
+        providers = []
+        for pid, models in sorted(provider_map.items()):
+            providers.append({
+                "name": pid,
+                "display_name": _provider_display_name(pid),
+                "models": sorted(models),
+                "configured": any(m in configured_ids for m in models),
+            })
+        return {"providers": providers, "total": len(providers)}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/mcp-servers")
+async def list_mcp_servers():
+    """列出MCP服务器 — 读取~/.meshctx/config.yaml的mcp部分或mcp.yaml"""
+    try:
+        import yaml
+        servers = []
+        # 优先检查独立mcp.yaml
+        mcp_path = Path.home() / ".meshctx" / "mcp.yaml"
+        config_path = Path.home() / ".meshctx" / "config.yaml"
+        mcp_data = {}
+        if mcp_path.exists():
+            with open(mcp_path) as f:
+                mcp_data = yaml.safe_load(f) or {}
+        elif config_path.exists():
+            with open(config_path) as f:
+                cfg = yaml.safe_load(f) or {}
+            mcp_data = cfg.get("mcp", {})
+        # 解析servers
+        raw = mcp_data.get("servers", mcp_data)
+        if isinstance(raw, dict):
+            for name, info in raw.items():
+                if isinstance(info, dict):
+                    servers.append({
+                        "name": name,
+                        "transport": info.get("transport", info.get("type", "stdio")),
+                        "command": info.get("command", ""),
+                        "status": "configured",
+                    })
+        elif isinstance(raw, list):
+            for item in raw:
+                if isinstance(item, dict):
+                    servers.append({
+                        "name": item.get("name", "unnamed"),
+                        "transport": item.get("transport", item.get("type", "stdio")),
+                        "command": item.get("command", ""),
+                        "status": "configured",
+                    })
+        return {"servers": servers, "total": len(servers)}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/chat/upload")
+async def chat_upload(file: UploadFile = File(...)):
+    """Chat文件上传 — 保存到~/.meshctx/uploads/"""
+    try:
+        upload_dir = Path.home() / ".meshctx" / "uploads"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        # 安全文件名
+        safe_name = Path(file.filename).name if file.filename else "upload"
+        dest = upload_dir / safe_name
+        # 避免覆盖，追加序号
+        counter = 1
+        while dest.exists():
+            stem = Path(safe_name).stem
+            suffix = Path(safe_name).suffix
+            dest = upload_dir / f"{stem}_{counter}{suffix}"
+            counter += 1
+        content = await file.read()
+        dest.write_bytes(content)
+        return {"status": "ok", "filename": dest.name, "path": str(dest), "size": len(content)}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/code/run")
+async def code_run(request: Request):
+    """运行代码 — subprocess沙箱执行，超时10秒"""
+    try:
+        body = await request.json()
+        code = body.get("code", "")
+        language = body.get("language", "python")
+        if not code:
+            return {"error": "code不能为空"}
+        if language == "python":
+            result = subprocess.run(
+                [sys.executable, "-c", code],
+                capture_output=True, text=True, timeout=10,
+            )
+        elif language in ("bash", "shell", "sh"):
+            result = subprocess.run(
+                ["bash", "-c", code],
+                capture_output=True, text=True, timeout=10,
+            )
+        elif language in ("js", "javascript", "node"):
+            result = subprocess.run(
+                ["node", "-e", code],
+                capture_output=True, text=True, timeout=10,
+            )
+        else:
+            return {"error": f"不支持的语言: {language}"}
+        return {
+            "output": result.stdout,
+            "stderr": result.stderr,
+            "exit_code": result.returncode,
+        }
+    except subprocess.TimeoutExpired:
+        return {"error": "代码执行超时 (10秒)"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/terminal")
+async def terminal_exec(request: Request):
+    """终端命令执行 — subprocess执行，超时30秒"""
+    try:
+        body = await request.json()
+        cmd = body.get("cmd", "")
+        if not cmd:
+            return {"error": "cmd不能为空"}
+        result = subprocess.run(
+            cmd, shell=True,
+            capture_output=True, text=True, timeout=30,
+        )
+        return {
+            "output": result.stdout,
+            "stderr": result.stderr,
+            "exit_code": result.returncode,
+        }
+    except subprocess.TimeoutExpired:
+        return {"error": "命令执行超时 (30秒)"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/api/version")
 async def version_info():
     """版本信息"""
     from src.core import __version__
     return {"version": __version__}
+
+
+# ═══════════════════════════════════════════════════════════
+# 新增API端点: monitor / update/check / notify/broadcast / prompts CRUD
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/agent/monitor")
+async def agent_monitor():
+    """Agent监控 — 系统运行状态"""
+    try:
+        import psutil
+        memory_mb = round(psutil.virtual_memory().used / (1024**2), 1)
+        cpu_percent = psutil.cpu_percent(interval=0.1)
+    except ImportError:
+        memory_mb = 0
+        cpu_percent = 0
+    try:
+        k = get_kernel()
+        ws_plugin = k.plugins.get("websocket") if k._started else None
+        active_connections = len(ws_plugin.manager._clients) if ws_plugin else 0
+    except Exception:
+        active_connections = 0
+    try:
+        uptime = int(time.time() - _app_start_time)
+    except Exception:
+        uptime = 0
+    return {
+        "uptime": uptime,
+        "memory_mb": memory_mb,
+        "cpu_percent": cpu_percent,
+        "active_connections": active_connections,
+    }
+
+
+@app.get("/api/update/check")
+async def check_update():
+    """检查更新 — 对比当前版本和GitHub最新版本"""
+    try:
+        from src.core import __version__ as current_version
+        import urllib.request
+        # 从meshctx GitHub API获取最新tag
+        url = "https://api.github.com/repos/nousresearch/meshctx/releases/latest"
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "meshctx"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read())
+                latest = data.get("tag_name", "").lstrip("v")
+        except Exception:
+            # fallback: 尝试tags endpoint
+            try:
+                url2 = "https://api.github.com/repos/nousresearch/meshctx/tags?per_page=1"
+                req2 = urllib.request.Request(url2, headers={"User-Agent": "meshctx"})
+                with urllib.request.urlopen(req2, timeout=5) as resp2:
+                    tags = json.loads(resp2.read())
+                    latest = tags[0]["name"].lstrip("v") if tags else current_version
+            except Exception:
+                latest = current_version
+
+        def _ver_tuple(v):
+            try:
+                return tuple(int(x) for x in v.split("."))
+            except Exception:
+                return (0, 0, 0)
+
+        update_available = _ver_tuple(latest) > _ver_tuple(current_version)
+        return {
+            "current": current_version,
+            "latest": latest,
+            "update_available": update_available,
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.post("/api/notify/broadcast")
+async def notify_broadcast(request: Request):
+    """广播通知 — 通过WebSocket广播给所有连接的客户端"""
+    try:
+        body = await request.json()
+        message = body.get("message", "")
+        level = body.get("level", "info")
+        if not message:
+            raise HTTPException(400, "message field required")
+        if level not in ("info", "warn", "error"):
+            level = "info"
+
+        k = get_kernel()
+        ws_plugin = k.plugins.get("websocket") if k._started else None
+        if not ws_plugin:
+            return {"status": "error", "error": "websocket plugin not loaded", "sent_to": 0}
+
+        count = len(ws_plugin.manager._clients)
+        await ws_plugin.manager.broadcast("global", {
+            "type": "notification",
+            "level": level,
+            "message": message,
+        })
+        return {"status": "ok", "sent_to": count}
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+# ── Prompt模板CRUD ──────────────────────────────────────
+
+def _prompts_dir() -> Path:
+    """获取prompt模板存储目录"""
+    d = Path.home() / ".meshctx" / "prompts"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+@app.get("/api/prompts")
+async def list_prompts():
+    """列出所有prompt模板"""
+    try:
+        pdir = _prompts_dir()
+        templates = []
+        for f in sorted(pdir.glob("*.yaml")):
+            try:
+                import yaml
+                data = yaml.safe_load(f.read_text()) or {}
+            except Exception:
+                data = {"name": f.stem, "raw": f.read_text()}
+            data.setdefault("name", f.stem)
+            templates.append(data)
+        return {"templates": templates, "count": len(templates)}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.get("/api/prompts/{name}")
+async def get_prompt(name: str):
+    """获取指定prompt模板"""
+    try:
+        pdir = _prompts_dir()
+        fpath = pdir / f"{name}.yaml"
+        if not fpath.exists():
+            raise HTTPException(404, f"Prompt template '{name}' not found")
+        try:
+            import yaml
+            data = yaml.safe_load(fpath.read_text()) or {}
+        except Exception:
+            data = {"name": name, "raw": fpath.read_text()}
+        data.setdefault("name", name)
+        return data
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.post("/api/prompts")
+async def save_prompt(request: Request):
+    """保存prompt模板"""
+    try:
+        body = await request.json()
+        name = body.get("name", "")
+        if not name:
+            raise HTTPException(400, "name field required")
+        # sanitize filename
+        name = "".join(c for c in name if c.isalnum() or c in "-_")
+        if not name:
+            raise HTTPException(400, "invalid name")
+        pdir = _prompts_dir()
+        fpath = pdir / f"{name}.yaml"
+        try:
+            import yaml
+            fpath.write_text(yaml.dump(body, allow_unicode=True, default_flow_style=False))
+        except ImportError:
+            fpath.write_text(json.dumps(body, ensure_ascii=False, indent=2))
+        return {"status": "ok", "name": name, "path": str(fpath)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.delete("/api/prompts/{name}")
+async def delete_prompt(name: str):
+    """删除prompt模板"""
+    try:
+        pdir = _prompts_dir()
+        fpath = pdir / f"{name}.yaml"
+        if not fpath.exists():
+            raise HTTPException(404, f"Prompt template '{name}' not found")
+        fpath.unlink()
+        return {"status": "ok", "deleted": name}
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
