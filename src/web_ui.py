@@ -4494,6 +4494,10 @@ _jinja_env.globals['lang'] = i18n_get_lang
 def _render(template_name: str, context: dict, request = None) -> HTMLResponse:
     """渲染 Jinja2 模板（从内嵌 DictLoader），自动检测浏览器语言"""
     lang = i18n_get_lang(request)
+    # 绑定 t() 到检测到的语言（避免全局状态竞争）
+    def _scoped_t(key: str) -> str:
+        return i18n_translations.get(lang, i18n_translations.get('en', {})).get(key, i18n_translations.get('en', {}).get(key, key))
+    context['t'] = _scoped_t
     context['__i18n_json'] = __import__('json').dumps(i18n_translations.get(lang, i18n_translations.get('en', {})), ensure_ascii=False)
     context['__lang'] = lang
     # 注入支持的语言列表供 JS 使用

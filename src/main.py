@@ -15,6 +15,7 @@ import logging
 import os
 import sys
 import time
+import random
 import numpy as np
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -359,7 +360,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="3.36.0",
+    version="3.115.2",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -515,6 +516,17 @@ else:
 if _static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
 
+# ─── Getting Started 页面 ────────────────────────────────
+_docs_dir = Path(__file__).resolve().parent.parent / "docs"
+
+@app.get("/getting-started")
+async def serve_getting_started():
+    """serve getting-started.html"""
+    gs_path = _docs_dir / "getting-started.html"
+    if gs_path.exists():
+        return FileResponse(str(gs_path), media_type="text/html")
+    return HTMLResponse("<h1>404 - Not Found</h1>", status_code=404)
+
 # ─── 安装脚本 ────────────────────────────────────────
 from fastapi.responses import FileResponse
 
@@ -536,7 +548,7 @@ async def serve_install_bat():
 # ─── Web UI 路由 (延迟导入避免循环) ────────────────────
 from .web_ui import router as web_ui_router
 from .core.session_archiver import get_archiver, SessionArchiver
-from .core.watchdog import WatchdogDaemon, get_daemon
+from .core.watchdog import WatchdogDaemon, get_daemon, HEARTBEAT_FILE
 app.include_router(web_ui_router)
 
 # ─── i18n 语言切换 ─────────────────────────────────────
@@ -855,7 +867,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "3.33.0",
+        "version": "3.115.2",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -2460,8 +2472,8 @@ async def usage_insights(days: int = 30, period: str = "all"):
     """使用洞察分析 — 对标 Hermes insights
     period: today|weekly|monthly|all
     """
-    from src.core.usage_insights import get_insights
-    ins = get_insights()
+    from src.core.usage_insights import get_usage_insights
+    ins = get_usage_insights()
     if period == "today":
         return ins.get_today()
     elif period == "weekly":
@@ -2475,22 +2487,22 @@ async def usage_insights(days: int = 30, period: str = "all"):
 @app.get("/api/insights/providers")
 async def insights_providers():
     """Provider性能统计"""
-    from src.core.usage_insights import get_insights
-    return get_insights().get_provider_stats()
+    from src.core.usage_insights import get_usage_insights
+    return get_usage_insights().get_provider_stats()
 
 
 @app.get("/api/insights/models")
 async def insights_models():
     """Model使用统计"""
-    from src.core.usage_insights import get_insights
-    return get_insights().get_model_stats()
+    from src.core.usage_insights import get_usage_insights
+    return get_usage_insights().get_model_stats()
 
 
 @app.post("/api/insights/record-session")
 async def insights_record_session():
     """记录会话开始"""
-    from src.core.usage_insights import get_insights
-    get_insights().record_session_start()
+    from src.core.usage_insights import get_usage_insights
+    get_usage_insights().record_session_start()
     return {"status": "ok"}
 
 
@@ -2499,8 +2511,8 @@ async def insights_record_call(req: Request):
     """记录LLM API调用"""
     try: body = await req.json()
     except: body = {}
-    from src.core.usage_insights import get_insights
-    get_insights().record_llm_call(
+    from src.core.usage_insights import get_usage_insights
+    get_usage_insights().record_llm_call(
         model=body.get("model", "unknown"),
         provider=body.get("provider", ""),
         tokens=body.get("tokens", 0),
@@ -2804,13 +2816,16 @@ async def list_directory(path: str = ""):
 @app.get("/api/brain/gate-stats")
 async def gate_stats():
     """行动前门控统计 — 前额叶抑制事件计数"""
-    from src.core.action_gate import get_gate, TOOL_PRINCIPLE_MAP
-    gate = get_gate()
-    return {
-        "stats": gate.get_stats(),
-        "recent": gate.get_recent_events(limit=10),
-        "mappings": {tool: [{"principle": r["principle_id"], "gate": r["gate"].value} for r in rules] for tool, rules in TOOL_PRINCIPLE_MAP.items()},
-    }
+    try:
+        from src.core.action_gate import get_gate, TOOL_PRINCIPLE_MAP
+        gate = get_gate()
+        return {
+            "stats": gate.get_stats(),
+            "recent": gate.get_recent_events(limit=10),
+            "mappings": {tool: [{"principle": r["principle_id"], "gate": r["gate"].value} for r in rules] for tool, rules in TOOL_PRINCIPLE_MAP.items()},
+        }
+    except (ImportError, ModuleNotFoundError):
+        return {"stats": {}, "recent": [], "mappings": {}, "note": "action_gate module not loaded"}
 
 
 @app.get("/api/brain/status")
@@ -2853,13 +2868,16 @@ async def brain_status():
 @app.get("/api/brain/attention-status")
 async def attention_status():
     """注意力衰减监控 — ACC+LC双核状态"""
-    from src.core.attention_decay import get_monitor
-    monitor = get_monitor()
-    return {
-        "state": monitor.get_state(),
-        "boosts": {level.value: factor for level, factor in monitor.BOOST_FACTORS.items()},
-        "thresholds": {level.value: pct for level, pct in monitor.THRESHOLDS.items()},
-    }
+    try:
+        from src.core.attention_decay import get_monitor
+        monitor = get_monitor()
+        return {
+            "state": monitor.get_state(),
+            "boosts": {level.value: factor for level, factor in monitor.BOOST_FACTORS.items()},
+            "thresholds": {level.value: pct for level, pct in monitor.THRESHOLDS.items()},
+        }
+    except (ImportError, ModuleNotFoundError):
+        return {"state": "unknown", "boosts": {}, "thresholds": {}, "note": "attention_decay module not loaded"}
 
 
 @app.get("/api/brain/cognitive-health")
@@ -2892,12 +2910,6 @@ async def learn_loop_stats():
     except Exception:
         pass
     return {"error": "LearnLoop not initialized"}
-
-
-@app.get("/api/brain/principle-guard")
-async def principle_guard_status():
-    """原则守护者 — 杏仁核+丘脑门控防止关键原则被淹没"""
-    from src.core.principle_extractor import get_extractor
 
 
 @app.get("/api/profile/list")
@@ -2940,11 +2952,13 @@ async def security_scan(req: Request):
 @app.get("/api/brain/principle-guard")
 async def principle_guard_status():
     """原则守护者 — 杏仁核+丘脑门控防止关键原则被淹没"""
-    from src.core.principle_extractor import get_extractor
-    ext = get_extractor()
-    all_p = ext.list_all()
+    try:
+        from src.core.principle_extractor import get_extractor
+        ext = get_extractor()
+        all_p = ext.list_all()
+    except (ImportError, ModuleNotFoundError):
+        all_p = []
     return {
-        "total": len(all_p),
         "total": len(all_p),
         "critical": len([p for p in all_p if p.get("severity") == "critical"]),
         "amygdala_active": True,
@@ -3153,8 +3167,8 @@ async def system_summary():
     """系统摘要（Dashboard用）"""
     from src.core import __version__
     try:
-        from src.core.dashboard import get_dashboard
-        dashboard = get_dashboard()
+        from src.core.dashboard import UnifiedDashboard
+        dashboard = UnifiedDashboard.get_full_dashboard()
     except Exception:
         dashboard = {}
     return {
@@ -3470,12 +3484,12 @@ async def data_analyze(request: Request):
 @app.get("/api/sandbox/status")
 async def sandbox_status():
     """沙箱状态 — Docker可用性 + 支持语言"""
-    from src.core.sandbox import get_sandbox, SandboxEngine
+    from src.core.sandbox import get_sandbox, CodeSandboxV2
     sb = get_sandbox()
     return {
         "available": True,
-        "docker": sb._check_docker(),
-        "languages": list(SandboxEngine.SUPPORTED_LANGUAGES.keys()),
+        "docker": hasattr(sb, '_check_docker') and sb._check_docker(),
+        "languages": ["python", "bash"],
         "max_timeout": 120,
         "max_output": "256KB",
     }

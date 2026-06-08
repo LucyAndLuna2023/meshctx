@@ -28,3 +28,9 @@
 - Spec: meshctx_desktop.spec (console=True, _here=r'E:\Meshctx')
 - 版本: tools/sync_version.py 一键同步10处
 - 发布: tools/release.py 全门禁流程
+
+## 🚨 服务器铁律（不可违反）
+- **meshctx UAT 唯一服务器**: 47.120.0.239:3001 (SSH: root / LucyAndLuna@20230609#)
+- **可做代理**: CloudCone 66.154.101.18
+- **禁止用于meshctx**: 8.130.179.205 及其他任何服务器
+- 之前误部署到 8.130.179.205 需清理，不再使用

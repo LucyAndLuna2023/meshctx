@@ -9,7 +9,7 @@ set -e
 SERVER="47.120.0.239"
 REMOTE_USER="root"
 REMOTE_DIR="/opt/meshctx"
-PASSWORD="LucyAndLuna@20230609"
+PASSWORD="LucyAndLuna@2023"
 LOCAL_DIR="/home/administrator/meshctx-local"
 
 echo "========================================"
