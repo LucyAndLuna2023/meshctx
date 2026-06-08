@@ -5096,8 +5096,15 @@ async def save_api_key(
     with open(config_path, "w") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
 
-    # 设置环境变量立即可用，ConfigWatcher会自动检测文件变更并重载
+    # 设置环境变量立即可用
     os.environ[defaults["key_env"]] = api_key
+    
+    # 重置模型registry缓存，使新key立即生效
+    try:
+        from src.model_registry import reset_registry
+        reset_registry()
+    except:
+        pass
 
     return RedirectResponse(url="/ui/setup?saved=1", status_code=303)
 

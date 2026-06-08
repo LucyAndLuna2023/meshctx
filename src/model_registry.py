@@ -298,11 +298,23 @@ class ModelRegistry:
         except:
             return
         
+        # 解密函数
+        def _decrypt(k):
+            if k and (k.startswith("b64:") or k.startswith("enc:")):
+                try:
+                    from src.core.crypto import decrypt_key
+                    return decrypt_key(k)
+                except:
+                    pass
+            return k
+        
         models_section = config.get("models", {})
         entries = models_section.get("entries", {})
         
         for model_id, cfg in entries.items():
             key = cfg.get("key", "")
+            # 解密加密存储的key
+            key = _decrypt(key)
             # 展开 ${ENV_VAR}
             key = re.sub(r'\$\{(\w+)\}', lambda m: os.environ.get(m.group(1), ""), key)
             
@@ -471,9 +483,21 @@ class ModelClient:
 _registry: Optional[ModelRegistry] = None
 
 
+def reset_registry():
+    """重置registry缓存，下次get_registry()会重新加载"""
+    global _registry
+    _registry = None
+
+
 def get_registry(config_path: str = None) -> ModelRegistry:
     global _registry
     if _registry is None:
+        # 自动查找config.yaml
+        if config_path is None:
+            from pathlib import Path
+            default_path = Path.home() / ".meshctx" / "config.yaml"
+            if default_path.exists():
+                config_path = str(default_path)
         _registry = ModelRegistry(config_path)
     return _registry
 
