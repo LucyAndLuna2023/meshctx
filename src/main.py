@@ -566,7 +566,8 @@ async def auth_login(request: Request):
         _login_attempts.pop(client_ip, None)
         expected = hashlib.sha256(f"{_AUTH_PASSWORD}:{_AUTH_SECRET}".encode()).hexdigest()
         resp = JSONResponse({"status": "ok"})
-        resp.set_cookie("meshctx_session", expected, httponly=True, secure=True, max_age=86400, samesite="lax")
+        is_https = request.url.scheme == "https"
+        resp.set_cookie("meshctx_session", expected, httponly=True, secure=is_https, max_age=86400, samesite="lax")
         return resp
     # 失败：记录尝试
     if client_ip not in _login_attempts:
