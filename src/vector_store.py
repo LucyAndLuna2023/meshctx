@@ -143,7 +143,7 @@ class EmbeddingEngine:
                 self.model = SentenceTransformer("all-MiniLM-L6-v2")
                 self.model_name = "all-MiniLM-L6-v2"
                 return
-            except ImportError:
+            except (ImportError, ValueError, OSError):
                 pass
         # 回退：简单hash向量（32维）
         self.model_name = "hash32"

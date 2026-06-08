@@ -67,7 +67,7 @@ try:
     import sentence_transformers as _sentence_transformers  # noqa: F401
 
     _HAS_SENTENCE_TRANSFORMERS = True
-except ImportError:
+except (ImportError, ValueError, OSError):
     pass
 
 
