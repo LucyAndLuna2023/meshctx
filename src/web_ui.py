@@ -5159,7 +5159,21 @@ th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
 th{color:var(--muted)}
 </style></head><body>
 <div class="container">
-<nav><a href="/ui/chat">Chat</a><a href="/ui/setup">Setup</a><a href="/ui/plugins">Plugins</a><a href="/ui/files">📁 Files</a><a href="/ui/dashboard" style="color:var(--accent);background:rgba(108,92,231,0.15);">Dashboard</a></nav>
+<nav><a href="/ui/chat" data-nav="chat">Chat</a><a href="/ui/setup" data-nav="setup">Setup</a><a href="/ui/plugins" data-nav="plugins">Plugins</a><a href="/ui/files" data-nav="files">📁 Files</a><a href="/ui/dashboard" data-nav="dashboard" style="color:var(--accent);background:rgba(108,92,231,0.15);">Dashboard</a></nav>
+<script>
+(function(){
+  var L={chat:{en:'Chat',zh:'聊天',ja:'チャット',ko:'채팅',es:'Chat',fr:'Chat',de:'Chat'},
+    setup:{en:'Setup',zh:'设置',ja:'設定',ko:'설정',es:'Configuración',fr:'Configuration',de:'Einrichtung'},
+    plugins:{en:'Plugins',zh:'插件',ja:'プラグイン',ko:'플러그인',es:'Plugins',fr:'Plugins',de:'Plugins'},
+    files:{en:'Files',zh:'文件',ja:'ファイル',ko:'파일',es:'Archivos',fr:'Fichiers',de:'Dateien'},
+    dashboard:{en:'Dashboard',zh:'仪表板',ja:'ダッシュボード',ko:'대시보드',es:'Panel',fr:'Tableau de bord',de:'Dashboard'}};
+  var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'en';
+  document.querySelectorAll('[data-nav]').forEach(function(el){
+    var k=el.getAttribute('data-nav'),v=L[k];
+    if(v&&v[lang])el.textContent=(k==='files'?'📁 ':'')+v[lang];
+  });
+})();
+</script>
 <h2 style="margin-bottom:16px;">📊 System Dashboard</h2>
 <div class="grid" id="stats"></div>
 <div class="card" style="margin-bottom:16px;text-align:left">
@@ -5401,9 +5415,22 @@ input,select{font-family:inherit}
 </style></head><body>
 <div class="container">
 <nav>
-<a href="/ui/chat">💬 Chat</a><a href="/ui/setup">⚙ Setup</a><a href="/ui/files">📁 Files</a>
-<a href="/ui/plugins" class="active">🔌 插件市场</a>
+<a href="/ui/chat" data-nav="chat">💬 Chat</a><a href="/ui/setup" data-nav="setup">⚙ Setup</a><a href="/ui/files" data-nav="files">📁 Files</a>
+<a href="/ui/plugins" data-nav="plugins" class="active">🔌 插件市场</a>
 </nav>
+<script>
+(function(){
+  var L={chat:{en:'💬 Chat',zh:'💬 聊天',ja:'💬 チャット',ko:'💬 채팅',es:'💬 Chat',fr:'💬 Chat',de:'💬 Chat'},
+    setup:{en:'⚙ Setup',zh:'⚙ 设置',ja:'⚙ 設定',ko:'⚙ 설정',es:'⚙ Configuración',fr:'⚙ Configuration',de:'⚙ Einrichtung'},
+    plugins:{en:'🔌 Plugins',zh:'🔌 插件',ja:'🔌 プラグイン',ko:'🔌 플러그인',es:'🔌 Plugins',fr:'🔌 Plugins',de:'🔌 Plugins'},
+    files:{en:'📁 Files',zh:'📁 文件',ja:'📁 ファイル',ko:'📁 파일',es:'📁 Archivos',fr:'📁 Fichiers',de:'📁 Dateien'}};
+  var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'en';
+  document.querySelectorAll('[data-nav]').forEach(function(el){
+    var k=el.getAttribute('data-nav'),v=L[k];
+    if(v&&v[lang])el.textContent=v[lang];
+  });
+})();
+</script>
 
 <h2>🔌 插件市场 <span class="ver">v2.4</span></h2>
 <p style="color:var(--muted);margin-bottom:4px">发现和安装社区插件，扩展 MeshCtx 能力</p>
@@ -5818,7 +5845,21 @@ _TEMPLATES["files.html"] = r"""{% extends "base.html" %}
 .fm-editor-wrap .hljs{background:transparent!important;padding:0!important}
 </style>
 <div class="container">
-<nav><a href="/ui/chat">Chat</a><a href="/ui/setup">Setup</a><a href="/ui/plugins">Plugins</a><a href="/ui/files" style="color:var(--accent);background:rgba(108,92,231,0.15);">📁 Files</a><a href="/ui/dashboard">Dashboard</a></nav>
+<nav><a href="/ui/chat" data-nav="chat">Chat</a><a href="/ui/setup" data-nav="setup">Setup</a><a href="/ui/plugins" data-nav="plugins">Plugins</a><a href="/ui/files" data-nav="files" style="color:var(--accent);background:rgba(108,92,231,0.15);">📁 Files</a><a href="/ui/dashboard" data-nav="dashboard">Dashboard</a></nav>
+<script>
+(function(){
+  var L={chat:{en:'Chat',zh:'聊天',ja:'チャット',ko:'채팅',es:'Chat',fr:'Chat',de:'Chat'},
+    setup:{en:'Setup',zh:'设置',ja:'設定',ko:'설정',es:'Configuración',fr:'Configuration',de:'Einrichtung'},
+    plugins:{en:'Plugins',zh:'插件',ja:'プラグイン',ko:'플러그인',es:'Plugins',fr:'Plugins',de:'Plugins'},
+    files:{en:'Files',zh:'文件',ja:'ファイル',ko:'파일',es:'Archivos',fr:'Fichiers',de:'Dateien'},
+    dashboard:{en:'Dashboard',zh:'仪表板',ja:'ダッシュボード',ko:'대시보드',es:'Panel',fr:'Tableau de bord',de:'Dashboard'}};
+  var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'en';
+  document.querySelectorAll('[data-nav]').forEach(function(el){
+    var k=el.getAttribute('data-nav'),v=L[k];
+    if(v&&v[lang])el.textContent=(k==='files'?'📁 ':'')+v[lang];
+  });
+})();
+</script>
 <h2>📁 File Manager</h2>
 <div class="fm-header">
  <div class="fm-breadcrumb" id="breadcrumb"></div>
