@@ -379,9 +379,23 @@ app = FastAPI(
     ],
 )
 
+# CORS origins whitelist — use MESHCTX_CORS_ORIGINS env var (comma-separated)
+# to add custom origins, or defaults to the standard list below.
+_default_cors_origins = [
+    "https://meshctx.com",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+]
+_cors_origins_env = os.environ.get("MESHCTX_CORS_ORIGINS", "").strip()
+if _cors_origins_env:
+    _cors_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()]
+else:
+    _cors_origins = _default_cors_origins
+logger.info(f"CORS allowed origins: {_cors_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -397,6 +411,45 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    return response
+
+# ── Rate Limiting Middleware (MEDIUM-001) ─────────────────────
+_rate_limit_store: Dict[str, List[float]] = {}
+RATE_LIMIT_WINDOW = 60  # seconds
+RATE_LIMIT_MAX = 60     # requests per window
+_rate_limit_cleanup_counter = 0
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    """Simple in-memory rate limiter: 60 req/min per IP, returns 429 when exceeded"""
+    global _rate_limit_cleanup_counter
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    if client_ip not in _rate_limit_store:
+        _rate_limit_store[client_ip] = []
+    _rate_limit_store[client_ip] = [
+        t for t in _rate_limit_store[client_ip] if now - t < RATE_LIMIT_WINDOW
+    ]
+    # Periodic cleanup: every 200 requests, purge inactive IPs
+    _rate_limit_cleanup_counter += 1
+    if _rate_limit_cleanup_counter >= 200:
+        _rate_limit_cleanup_counter = 0
+        stale_ips = [ip for ip, ts in _rate_limit_store.items()
+                     if not ts or now - ts[-1] > RATE_LIMIT_WINDOW]
+        for ip in stale_ips:
+            del _rate_limit_store[ip]
+    if len(_rate_limit_store[client_ip]) >= RATE_LIMIT_MAX:
+        retry_after = int(RATE_LIMIT_WINDOW - (now - _rate_limit_store[client_ip][0]))
+        return JSONResponse(
+            status_code=429,
+            content={"detail": f"Rate limit exceeded. Try again in {retry_after}s."},
+            headers={"Retry-After": str(max(1, retry_after))},
+        )
+    _rate_limit_store[client_ip].append(now)
+    response = await call_next(request)
+    remaining = RATE_LIMIT_MAX - len(_rate_limit_store[client_ip])
+    response.headers["X-RateLimit-Limit"] = str(RATE_LIMIT_MAX)
+    response.headers["X-RateLimit-Remaining"] = str(max(0, remaining))
     return response
 
 # GZip压缩 (v2.29) — 减少响应体积 60-80%

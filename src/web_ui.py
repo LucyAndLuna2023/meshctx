@@ -233,6 +233,8 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
 <script>window.__i18n = {{ __i18n_json | safe }}; window.__lang = '{{ __lang }}'; window.__t = function(k){ return (window.__i18n && window.__i18n[k]) || k; };</script>
 </head>
 <body>
+<!-- Skip to main content (CRITICAL-002) -->
+<a href="#main-content" style="position:absolute;top:-40px;left:0;background:var(--accent);color:white;padding:8px 16px;z-index:10000;font-size:14px;border-radius:0 0 6px 0;transition:top 0.2s;" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">{{ t("skip_to_content") if t("skip_to_content") != "skip_to_content" else "Skip to main content" }}</a>
 <div class="header">
     <h1><img src="/static/logo.svg" alt="" class="logo-img"> meshctx</h1>
     <div class="nav">
@@ -262,7 +264,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         <button onclick="toggleTheme()" id="themeToggle" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:4px;font-size:14px;cursor:pointer;margin-left:4px;transition:border-color 0.3s ease,color 0.3s ease;" title="{{ t("toggle_theme") }}">🌙</button>
     </div>
 </div>
-<main class="main">
+<main class="main" id="main-content">
 {% block content %}{% endblock %}
 </main>
 <!-- ═══ Ctrl+K 全局命令面板 ═══ -->
