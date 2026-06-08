@@ -37,22 +37,28 @@ def encrypt_key(plaintext: str) -> str:
 
 
 def decrypt_key(ciphertext: str) -> str:
-    """解密API Key"""
+    """解密API Key — 支持多层b64编码"""
     if not ciphertext:
         return ciphertext
-    if ciphertext.startswith("enc:") and _HAS_FERNET:
+    result = ciphertext
+    # 递归解码b64，最多5层
+    for _ in range(5):
+        if result.startswith("b64:"):
+            try:
+                result = base64.b64decode(result[4:]).decode()
+            except Exception:
+                break
+        else:
+            break
+    # enc: 格式只解一次
+    if result.startswith("enc:") and _HAS_FERNET:
         try:
             f = Fernet(_derive_key())
-            encrypted = base64.urlsafe_b64decode(ciphertext[4:])
+            encrypted = base64.urlsafe_b64decode(result[4:])
             return f.decrypt(encrypted).decode()
         except Exception:
-            return ciphertext  # 解密失败返回原始值
-    elif ciphertext.startswith("b64:"):
-        try:
-            return base64.b64decode(ciphertext[4:]).decode()
-        except Exception:
-            return ciphertext
-    return ciphertext  # 未加密的值直接返回
+            pass
+    return result
 
 
 def is_encrypted(value: str) -> bool:
