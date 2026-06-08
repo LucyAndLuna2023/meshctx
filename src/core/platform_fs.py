@@ -4,7 +4,7 @@ PRD §1.3 / §7.1
 
 统一跨平台文件系统接口:
 - IFileSystem: 核心接口定义
-- WindowsFileSystem: Windows 实现 (\ 分隔符, AppData)
+- WindowsFileSystem: Windows 实现 (backslash 分隔符, AppData)
 - MacOSFileSystem: macOS 实现 (/ 分隔符, ~/Library)
 - LinuxFileSystem: Linux 实现 (/ 分隔符, XDG)
 - auto_detect(): 自动检测当前平台

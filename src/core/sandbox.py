@@ -3,7 +3,9 @@ meshctx v3.74 — Code Sandbox v2 (代码沙箱v2)
 
 安全执行Python/Bash/JS代码, 资源限制+超时+输出限制
 """
-import subprocess, tempfile, os, time, resource, signal
+import subprocess, tempfile, os, time, signal, sys
+if sys.platform != 'win32':
+    import resource
 from dataclasses import dataclass, field
 from typing import Optional, Dict
 

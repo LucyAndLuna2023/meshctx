@@ -116,6 +116,23 @@ _metrics = MetricsCollector()
 # FastAPI 应用
 # ═══════════════════════════════════════════════════════════
 
+def _load_api_keys_on_startup():
+    """v2.33: 从 .env 和 provider_config.json 加载 API Key"""
+    import dotenv
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+    if env_path.exists():
+        dotenv.load_dotenv(env_path)
+        logger.info(f"  .env loaded: {env_path}")
+    
+    pcfg = _load_provider_config()
+    for provider, cfg in pcfg.items():
+        if isinstance(cfg, dict):
+            for key_name in ("api_key", "key", "token"):
+                if key_name in cfg and cfg[key_name]:
+                    env_key = f"{provider.upper().replace('-','_')}_API_KEY"
+                    if not os.environ.get(env_key):
+                        os.environ[env_key] = str(cfg[key_name])
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """v1.5.25: 迁移至 lifespan — 替换已弃用的 on_event"""
@@ -2630,12 +2647,14 @@ def _validate_file_path(path: str) -> "Path":
     file_path = Path(resolved).expanduser().resolve()
     sp = str(file_path)
 
-    # 白名单: 只允许访问安全目录
-    data_dir = os.environ.get("MESHCTX_DATA_DIR", "/opt/meshctx")
+    # 白名单: 只允许访问安全目录 (收紧: 仅数据目录,禁止整个/opt)
+    data_dir = os.environ.get("MESHCTX_DATA_DIR", "/opt/meshctx/data")
     allowed_prefixes = [
         data_dir,
-        "/opt/meshctx",
-        "/opt",
+        "/opt/meshctx/data",
+        "/opt/meshctx/projects",
+        "/opt/meshctx/plugins",
+        "/opt/meshctx/logs",
         "/home/",
         "/tmp/",
         "/var/tmp/",
@@ -2664,9 +2683,14 @@ def _validate_file_path(path: str) -> "Path":
     if ".." in path:
         raise HTTPException(403, "安全限制: 路径中禁止包含 ..")
 
-    # 拒绝敏感系统文件
+    # 拒绝敏感系统文件 (扩展: 含部署脚本/配置/密钥)
     sensitive_files = ["/etc/passwd", "/etc/shadow", "/etc/ssh", "/.ssh/",
-                       "/root/.ssh", "/proc/self", "/etc/nginx", "/etc/systemd"]
+                       "/root/.ssh", "/root/.bashrc", "/root/.meshctx",
+                       "/proc/self", "/proc/cpuinfo", "/proc/meminfo",
+                       "/etc/nginx", "/etc/systemd",
+                       "deploy.sh", "deploy.py", ".env", "config.yaml",
+                       "credentials", "secret", "password", "token",
+                       ".pem", ".key", "id_rsa", "id_ed25519"]
     for sf in sensitive_files:
         if sf in sp.lower():
             raise HTTPException(403, f"安全限制: 禁止访问敏感文件")
