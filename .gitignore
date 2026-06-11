@@ -44,3 +44,6 @@ dist/
 build/
 manager_key.json
 provider_config.json
+
+# === meshctx-core (private) stub ===
+src/core/
