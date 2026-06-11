@@ -45,5 +45,5 @@ build/
 manager_key.json
 provider_config.json
 
-# === meshctx-core (private) stub ===
-src/core/
+# === meshctx-core stubs (open-source) ===
+# src/core/ now contains open-source stubs — safe to publish
