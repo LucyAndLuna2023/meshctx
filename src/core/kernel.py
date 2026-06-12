@@ -96,8 +96,11 @@ class PluginManager:
         self._plugins: Dict[str, Plugin] = {}
     
     def register(self, plugin: Plugin):
-        self._plugins[plugin.info.name] = plugin
-        plugin.state = PluginState.LOADED
+        name = getattr(plugin, "info", None)
+        name = name.name if name else type(plugin).__name__
+        self._plugins[name] = plugin
+        try: plugin.state = PluginState.LOADED
+        except: pass
     
     def get(self, name: str) -> Optional[Plugin]:
         return self._plugins.get(name)
