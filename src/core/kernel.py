@@ -138,7 +138,7 @@ class Kernel:
         self.governor = ResourceGovernor()
         self.plugins = self.plugin_manager  # 别名兼容
     
-    async def start(self):
+    async def start(self, **kwargs):
         await self.event_bus.start()
         await self.plugin_manager.activate_all(self)
         logger.info("Kernel started (open-source stub mode)")
