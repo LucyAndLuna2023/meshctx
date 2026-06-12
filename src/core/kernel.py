@@ -133,6 +133,7 @@ class Kernel:
         self.event_bus = EventBus()
         self.plugin_manager = PluginManager()
         self.governor = ResourceGovernor()
+        self.plugins = self.plugin_manager  # 别名兼容
     
     async def start(self):
         await self.event_bus.start()
