@@ -763,7 +763,6 @@ class GatewayPlugin(Plugin):
         name="gateway",
         version="1.0.0",
         description="统一消息平台接入: 飞书/企业微信/Telegram/LINE/Discord/Slack",
-        author="meshctx",
     )
 
     CONNECTOR_MAP = {
