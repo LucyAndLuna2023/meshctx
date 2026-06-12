@@ -515,6 +515,51 @@ TOOLS: dict[str, ToolEntry] = {
     "heartbeat_ping": ToolEntry("heartbeat_ping", "heartbeat", "发送心跳（重置计时器）。", [], ["ping", "still alive"]),
     "heartbeat_status": ToolEntry("heartbeat_status", "heartbeat", "查看心跳状态。", [], ["heartbeat status", "health check"]),
     "heartbeat_stop": ToolEntry("heartbeat_stop", "heartbeat", "停止心跳监控。", [], ["stop heartbeat"]),
+
+    # ── Desktop (CoPaw/WorkBuddy) ──
+    "desktop_screenshot": ToolEntry("desktop_screenshot", "desktop", "截取桌面屏幕截图（返回 PNG base64 或保存路径）。", [], ["screenshot", "screen capture", "截屏"]),
+    "desktop_click": ToolEntry("desktop_click", "desktop", "桌面鼠标点击 (x, y 坐标)。", [], ["click", "mouse click", "点击"]),
+    "desktop_type": ToolEntry("desktop_type", "desktop", "桌面键盘输入文本。", [], ["type", "keyboard input", "输入"]),
+    "desktop_press": ToolEntry("desktop_press", "desktop", "桌面按键 (如 'ctrl+c')。", [], ["key press", "hotkey", "快捷键"]),
+    "desktop_move": ToolEntry("desktop_move", "desktop", "桌面鼠标移动。", [], ["move mouse", "移动鼠标"]),
+    "desktop_scroll": ToolEntry("desktop_scroll", "desktop", "桌面鼠标滚轮。", [], ["scroll", "滚轮"]),
+    "desktop_size": ToolEntry("desktop_size", "desktop", "获取屏幕分辨率尺寸。", [], ["screen size", "分辨率"]),
+
+    # ── Send File (CoPaw) ──
+    "send_file": ToolEntry("send_file", "messaging", "发送文件到用户 (通过 Telegram/Feishu/Discord/CLI)。", [], ["send file", "share file", "发送文件"]),
+    "send_file_to_channel": ToolEntry("send_file_to_channel", "messaging", "发送文件到指定频道。", [], ["send to channel", "channel file"]),
+
+    # ── Agents List (OpenClaw) ──
+    "agents_list": ToolEntry("agents_list", "team", "列出所有运行/已完成的 Agent。", [], ["list agents", "agent status", "running agents"]),
+    "agent_status": ToolEntry("agent_status", "team", "获取单个 Agent 详细状态。", [], ["agent detail", "agent info"]),
+    "agent_kill": ToolEntry("agent_kill", "team", "停止/杀死指定 Agent。", [], ["stop agent", "kill agent", "terminate"]),
+    "agent_send": ToolEntry("agent_send", "team", "发送消息到运行中的 Agent。", [], ["send to agent", "agent message"]),
+    "agents_cleanup": ToolEntry("agents_cleanup", "team", "清理已完成 Agent 的记录。", [], ["cleanup agents", "remove completed"]),
+
+    # ── Spreadsheet (WorkBuddy) ──
+    "spreadsheet_analyze": ToolEntry("spreadsheet_analyze", "spreadsheet", "分析电子表格 (读/统计/图表/趋势)。主入口 action: read|stats|chart|trend。", [], ["excel", "csv", "spreadsheet", "表格分析"]),
+    "spreadsheet_read": ToolEntry("spreadsheet_read", "spreadsheet", "读取电子表格内容", [], ["excel", "csv", "read spreadsheet"]),
+    "spreadsheet_stats": ToolEntry("spreadsheet_stats", "spreadsheet", "计算电子表格数值列统计 (min/max/mean/median/std)。", [], ["stats", "statistics", "describe"]),
+    "spreadsheet_chart": ToolEntry("spreadsheet_chart", "spreadsheet", "从电子表格数据生成图表 (line/bar/scatter/pie/hist)。", [], ["chart", "graph", "plot"]),
+    "spreadsheet_trend": ToolEntry("spreadsheet_trend", "spreadsheet", "检测数据列趋势 (increasing/decreasing/stable)。", [], ["trend", "slope", "趋势"]),
+
+    # ── Web Scraper (Coze) ──
+    "web_scrape": ToolEntry("web_scrape", "web", "抓取网页内容 (支持 CSS 选择器/文本/HTML/属性提取)。", [], ["scrape", "crawl", "fetch page"]),
+    "web_scrape_table": ToolEntry("web_scrape_table", "web", "提取网页中的表格数据。", [], ["table", "extract table", "html table"]),
+    "web_scrape_links": ToolEntry("web_scrape_links", "web", "提取网页中所有链接。", [], ["links", "extract links"]),
+    "web_scrape_metadata": ToolEntry("web_scrape_metadata", "web", "提取网页元数据 (title, description, OG tags)。", [], ["metadata", "og tags", "page info"]),
+    "web_scrape_paginate": ToolEntry("web_scrape_paginate", "web", "跨分页抓取内容。", [], ["paginate", "multi-page", "翻页"]),
+
+    # ── PPT Generator (Coze) ──
+    "ppt_generate": ToolEntry("ppt_generate", "media", "生成 PowerPoint 演示文稿 (支持 pptx/markdown + 4 主题)。", [], ["ppt", "presentation", "slides"]),
+
+    # ── Knowledge Base (Coze/CoPaw) ──
+    "kb_add": ToolEntry("kb_add", "knowledge", "添加文档到知识库 (支持分块 + 嵌入)。", [], ["add doc", "knowledge base", "索引"]),
+    "kb_search": ToolEntry("kb_search", "knowledge", "搜索知识库 (关键词/语义搜索)。", [], ["search knowledge", "语义搜索", "find doc"]),
+    "kb_list": ToolEntry("kb_list", "knowledge", "列出知识库所有文档。", [], ["list docs", "knowledge list"]),
+    "kb_remove": ToolEntry("kb_remove", "knowledge", "从知识库删除文档。", [], ["remove doc", "delete knowledge"]),
+    "kb_clear": ToolEntry("kb_clear", "knowledge", "清空知识库。", [], ["clear knowledge", "reset"]),
+    "kb_stats": ToolEntry("kb_stats", "knowledge", "获取知识库统计信息。", [], ["kb stats", "knowledge count"]),
 }
 
 # ── Providers ─────────────────────────────────────────────────────
