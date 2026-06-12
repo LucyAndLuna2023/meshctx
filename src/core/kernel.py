@@ -108,6 +108,9 @@ class PluginManager:
     def list(self) -> List[str]:
         return list(self._plugins.keys())
     
+    def load_all(self) -> dict:
+        return {name: True for name in self._plugins}
+
     async def activate_all(self, kernel):
         for name, p in self._plugins.items():
             try:
