@@ -1,3 +1,19 @@
+## [3.115.2] - 2026-06-11
+### Added
+- **+20 新工具对标5大竞品**: Claude Code/OpenClaw 对标13工具(Monitor/Message/Workflow/Team/LSP/NotebookEdit/Worktree/PushNotify/ScheduleWakeup/ToolSearch/x_search/Goal/Heartbeat) + CoPaw/Coze/WorkBuddy 对标7工具(DesktopScreenshot/DesktopControl/SendFile/AgentsList/Spreadsheet/WebScraper/PPT/KnowledgeBase)。全部渐进降级 stub 模式,无依赖环境 0 错误导入。
+- **开源层 stub 架构**: src/core/ 公开仓库使用动态懒加载工厂 `__getattr__`,覆盖115+符号,53个模块导入不报错。
+
+### Changed
+- **版本同步**: 7文件(package.json/meshctx_desktop.py/meshctx_setup.nsi/meshctx_desktop.spec/version_info.txt/CHANGELOG.md/install.sh)统一 v3.115.2
+- **安全加固**: 公开仓库移除210个核心文件,私有仓库 meshctx-core 保留完整引擎
+
+## [3.115.1] - 2026-06-11
+### Added
+- **sync_version.py**: 自动检查7文件版本一致性工具
+
+### Changed
+- **版本同步**: 从3.33.x统一至3.115.1
+
 # MeshCtx Changelog
 
 ## [3.115.0] - 2026-06-02
