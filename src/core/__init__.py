@@ -78,6 +78,7 @@ _known = {
     'secret_scanner': ['SecretScanner'],
     'super_brain': ['IITConsciousness'],
     'win_admin': ['WindowsAdmin','WinResult','WinService','get_win_admin'],
+    'lsp_tool': ['lsp_start','lsp_stop','lsp_definition','lsp_references','lsp_hover','lsp_diagnostics','lsp_list_servers','lsp_stop_all','detect_language','supported_languages'],
     'agent_monitor': ['AgentMonitor','AgentMetrics'],
     'agent_tasks': ['AgentTask'],
     'workspace_manager': ['WorkspaceManager','Workspace','get_workspace_manager'],
