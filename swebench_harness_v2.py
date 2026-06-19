@@ -372,6 +372,7 @@ INSTANCE_FILE_MAP = {
     # === Flask ===
     "flask-5063": ["src/flask/cli.py"],
     # === Requests ===
+    "requests-863": ["requests/models.py"],
     "requests-3362": ["requests/utils.py"],
     # === xarray ===
     "xarray-4248": ["xarray/core/formatting.py"],
