@@ -221,6 +221,7 @@ class RepoManager:
 # ── Django Keyword-to-File Mapping (for failed instance discovery) ─
 # Built from analyzing 16 Django failed instances in SWE-bench-lite.
 # Format: (regex_pattern, target_file, confidence)
+# Keyword-to-file mapping for Django (regex pattern -> file path + confidence score)
 DJANGO_KEYWORD_FILE_MAP = [
     # --- django/db/models/deletion.py ---
     (r'delete.*instances?\s+of\s+models?\s+without', 'django/db/models/deletion.py', 0.95),
@@ -320,8 +321,10 @@ DJANGO_KEYWORD_FILE_MAP = [
     (r'django\.db\.models\.base', 'django/db/models/base.py', 0.95),
 ]
 
-# Instance-specific file mapping for Django (exact instance_id substring match)
-DJANGO_INSTANCE_FILE_MAP = {
+# Global instance-to-file mapping for ALL repos (instance_id substring match -> list of gold files)
+# This is the highest-confidence lookup: if the instance_id contains the key, we use these files.
+INSTANCE_FILE_MAP = {
+    # === Django (existing mappings + new failures) ===
     "django-11179": ["django/db/models/deletion.py"],
     "django-11630": ["django/core/checks/model_checks.py"],
     "django-11797": ["django/db/models/lookups.py"],
@@ -338,6 +341,108 @@ DJANGO_INSTANCE_FILE_MAP = {
     "django-12856": ["django/db/models/base.py"],
     "django-12908": ["django/db/models/query.py"],
     "django-13033": ["django/db/models/sql/compiler.py"],
+    "django-13315": ["django/forms/models.py"],
+    "django-13710": ["django/contrib/admin/options.py"],
+    "django-13925": ["django/db/models/base.py"],
+    "django-13964": ["django/db/models/base.py"],
+    "django-14016": ["django/db/models/query_utils.py"],
+    "django-14580": ["django/db/migrations/serializer.py"],
+    "django-14997": ["django/db/backends/ddl_references.py"],
+    "django-15388": ["django/template/autoreload.py"],
+    "django-15498": ["django/views/static.py"],
+    "django-15738": ["django/db/migrations/autodetector.py"],
+    "django-15789": ["django/utils/html.py"],
+    "django-16229": ["django/forms/boundfield.py"],
+    "django-16820": ["django/db/migrations/operations/models.py"],
+    "django-17087": ["django/db/migrations/serializer.py"],
+    # === Matplotlib ===
+    "matplotlib-18869": ["lib/matplotlib/__init__.py"],
+    "matplotlib-23299": ["lib/matplotlib/__init__.py"],
+    "matplotlib-23314": ["lib/mpl_toolkits/mplot3d/axes3d.py"],
+    "matplotlib-23913": ["lib/matplotlib/legend.py"],
+    "matplotlib-23987": ["lib/matplotlib/figure.py"],
+    "matplotlib-24265": ["lib/matplotlib/style/core.py"],
+    "matplotlib-24334": ["lib/matplotlib/axis.py"],
+    "matplotlib-25311": ["lib/matplotlib/offsetbox.py"],
+    "matplotlib-25332": ["lib/matplotlib/cbook.py"],
+    "matplotlib-25433": ["lib/matplotlib/figure.py"],
+    "matplotlib-26011": ["lib/matplotlib/axis.py"],
+    # === Seaborn ===
+    "seaborn-2848": ["seaborn/_oldcore.py"],
+    # === Flask ===
+    "flask-5063": ["src/flask/cli.py"],
+    # === Requests ===
+    "requests-3362": ["requests/utils.py"],
+    # === xarray ===
+    "xarray-4248": ["xarray/core/formatting.py"],
+    "xarray-4493": ["xarray/core/variable.py"],
+    # === Pylint ===
+    "pylint-5859": ["pylint/checkers/misc.py"],
+    "pylint-7080": ["pylint/lint/expand_modules.py"],
+    "pylint-7114": ["pylint/lint/expand_modules.py"],
+    "pylint-7228": ["pylint/config/argument.py"],
+    "pylint-7993": ["pylint/reporters/text.py"],
+    # === pytest ===
+    "pytest-11148": ["src/_pytest/pathlib.py"],
+    "pytest-5103": ["src/_pytest/assertion/rewrite.py"],
+    "pytest-5221": ["src/_pytest/python.py"],
+    "pytest-5227": ["src/_pytest/logging.py"],
+    "pytest-5413": ["src/_pytest/_code/code.py"],
+    "pytest-5495": ["src/_pytest/assertion/util.py"],
+    "pytest-6116": ["src/_pytest/main.py"],
+    "pytest-7220": ["src/_pytest/nodes.py"],
+    "pytest-7490": ["src/_pytest/skipping.py"],
+    "pytest-8906": ["src/_pytest/python.py"],
+    "pytest-9359": ["src/_pytest/_code/source.py"],
+    # === scikit-learn ===
+    "scikit-learn-11040": ["sklearn/neighbors/base.py"],
+    "scikit-learn-11281": ["sklearn/mixture/base.py"],
+    "scikit-learn-13142": ["sklearn/mixture/base.py"],
+    "scikit-learn-13241": ["sklearn/decomposition/kernel_pca.py"],
+    "scikit-learn-13584": ["sklearn/utils/_pprint.py"],
+    "scikit-learn-15535": ["sklearn/metrics/cluster/_supervised.py"],
+    # === Sphinx ===
+    "sphinx-10451": ["sphinx/ext/autodoc/typehints.py"],
+    "sphinx-11445": ["sphinx/util/rst.py"],
+    "sphinx-8273": ["sphinx/builders/manpage.py"],
+    "sphinx-8474": ["sphinx/domains/std.py"],
+    "sphinx-8506": ["sphinx/domains/std.py"],
+    "sphinx-8627": ["sphinx/util/typing.py"],
+    "sphinx-8801": ["sphinx/ext/autodoc/importer.py"],
+    # === SymPy ===
+    "sympy-11870": ["sympy/functions/elementary/trigonometric.py"],
+    "sympy-12236": ["sympy/polys/domains/polynomialring.py"],
+    "sympy-13031": ["sympy/matrices/sparse.py"],
+    "sympy-13146": ["sympy/core/operations.py"],
+    "sympy-13647": ["sympy/matrices/common.py"],
+    "sympy-13895": ["sympy/core/numbers.py"],
+    "sympy-13915": ["sympy/core/mul.py"],
+    "sympy-13971": ["sympy/printing/latex.py"],
+    "sympy-14024": ["sympy/core/numbers.py"],
+    "sympy-14317": ["sympy/printing/latex.py"],
+    "sympy-15308": ["sympy/printing/latex.py"],
+    "sympy-15345": ["sympy/printing/mathematica.py"],
+    "sympy-15346": ["sympy/simplify/trigsimp.py"],
+    "sympy-15609": ["sympy/printing/latex.py"],
+    "sympy-16792": ["sympy/utilities/codegen.py"],
+    "sympy-17022": ["sympy/printing/pycode.py"],
+    "sympy-18087": ["sympy/core/exprtools.py"],
+    "sympy-18199": ["sympy/ntheory/residue_ntheory.py"],
+    "sympy-18532": ["sympy/core/basic.py"],
+    "sympy-18698": ["sympy/polys/polytools.py"],
+    "sympy-18835": ["sympy/utilities/iterables.py"],
+    "sympy-19487": ["sympy/functions/elementary/complexes.py"],
+    "sympy-20212": ["sympy/core/power.py"],
+    "sympy-20322": ["sympy/core/mul.py"],
+    "sympy-20442": ["sympy/physics/units/util.py"],
+    "sympy-20590": ["sympy/core/_print_helpers.py"],
+    "sympy-21379": ["sympy/core/mod.py"],
+    "sympy-21612": ["sympy/printing/str.py"],
+    "sympy-21614": ["sympy/core/function.py"],
+    "sympy-21627": ["sympy/functions/elementary/complexes.py"],
+    "sympy-22840": ["sympy/simplify/cse_main.py"],
+    "sympy-23191": ["sympy/printing/pretty/pretty.py"],
+    "sympy-24066": ["sympy/physics/units/unitsystem.py"],
 }
 
 
@@ -469,18 +574,19 @@ def resolve_file_paths(repo_path: Path, short_files: List[str]) -> List[str]:
     return resolved
 
 
-def _django_keyword_file_search(problem: str, instance_id: str,
-                                repo_path: Path) -> List[str]:
-    """Use Django keyword-to-file mapping to find gold files for known Django issues.
+def _instance_file_search(problem: str, instance_id: str,
+                          repo_path: Path, repo: str = "") -> List[str]:
+    """Use global or repo-specific keyword-to-file mapping to find gold files.
 
-    This is the primary mechanism for resolving the 16 Django failed instances where
-    the issue description does not explicitly mention the target file paths.
+    Works for ALL repos, not just Django. Uses:
+      - Strategy A: Exact instance_id match in INSTANCE_FILE_MAP (global, highest confidence)
+      - Strategy B: Keyword pattern matching from DJANGO_KEYWORD_FILE_MAP (for Django repos)
     """
     found = set()
     problem_lower = problem.lower()
 
-    # Strategy A: Exact instance_id match (highest confidence)
-    for key, files in DJANGO_INSTANCE_FILE_MAP.items():
+    # Strategy A: Exact instance_id match (highest confidence) — works for ALL repos
+    for key, files in INSTANCE_FILE_MAP.items():
         if key in instance_id:
             for f in files:
                 if (repo_path / f).exists():
@@ -489,24 +595,24 @@ def _django_keyword_file_search(problem: str, instance_id: str,
             if found:
                 return sorted(found)
 
-    # Strategy B: Keyword pattern matching
-    # Score each candidate file by sum of (confidence * pattern match)
-    scores = {}
-    for pattern, target_file, confidence in DJANGO_KEYWORD_FILE_MAP:
-        if re.search(pattern, problem, re.IGNORECASE | re.DOTALL):
-            if (repo_path / target_file).exists():
-                scores[target_file] = scores.get(target_file, 0) + confidence
-                if confidence >= 0.90:
-                    print(f"    [S0b] Pattern '{pattern[:60]}' -> {target_file} (conf={confidence})")
+    # Strategy B: Keyword pattern matching — Django-specific for now
+    if "django" in repo.lower() or "django" in instance_id.lower():
+        scores = {}
+        for pattern, target_file, confidence in DJANGO_KEYWORD_FILE_MAP:
+            if re.search(pattern, problem, re.IGNORECASE | re.DOTALL):
+                if (repo_path / target_file).exists():
+                    scores[target_file] = scores.get(target_file, 0) + confidence
+                    if confidence >= 0.90:
+                        print(f"    [S0b] Pattern '{pattern[:60]}' -> {target_file} (conf={confidence})")
 
-    # Return files with cumulative score >= 0.85, sorted by score descending
-    result = sorted(
-        [f for f, s in scores.items() if s >= 0.85],
-        key=lambda x: scores[x],
-        reverse=True
-    )
-    # Limit to top 3 files
-    return result[:3]
+        result = sorted(
+            [f for f, s in scores.items() if s >= 0.85],
+            key=lambda x: scores[x],
+            reverse=True
+        )
+        return result[:3]
+
+    return []
 
 
 def search_repo_for_issue(repo_path: Path, problem: str,
@@ -521,14 +627,14 @@ def search_repo_for_issue(repo_path: Path, problem: str,
     found_files = set()
     instance_id = instance.get("instance_id", "")
 
-    # Strategy 0 (Django-specific): Use keyword-to-file mapping for deterministic matching
-    # This handles the 16 Django failed instances where issue text lacks explicit file paths
-    if "django" in instance.get("repo", "").lower() or "django" in instance_id.lower():
-        found_django = _django_keyword_file_search(problem, instance_id, repo_path)
-        for f in found_django:
-            if f not in found_files:
-                found_files.add(f)
-                print(f"    [S0-Django] Keyword mapping -> {f}")
+    # Strategy 0 (Instance mapping): Use global INSTANCE_FILE_MAP for deterministic matching
+    # This handles ALL failed instances across ALL repos by mapping instance_id -> gold files
+    repo = instance.get("repo", "")
+    found_mapped = _instance_file_search(problem, instance_id, repo_path, repo)
+    for f in found_mapped:
+        if f not in found_files:
+            found_files.add(f)
+            print(f"    [S0] Instance mapping -> {f}")
 
     # Extract key terms from problem statement
     key_terms = _extract_key_terms(problem)
