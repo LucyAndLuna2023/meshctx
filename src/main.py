@@ -177,7 +177,8 @@ async def lifespan(app: FastAPI):
     config = load_config()
     worker_count = config.get("kernel", {}).get("worker_count", 4)
     await _kernel.start(worker_count=worker_count)
-    logger.info(f"插件: {_kernel.plugins.plugin_count} 已加载")
+    pc = getattr(_kernel.plugins, "plugin_count", getattr(_kernel.plugins, "count", len(getattr(_kernel.plugins, "_plugins", {}))))
+    logger.info(f"插件: {pc} 已加载")
 
     _memory_engine = MemoryEngine(use_llm=False, use_vector_store=False)
     app.state.kernel = _kernel
@@ -193,17 +194,23 @@ async def lifespan(app: FastAPI):
     except ImportError:
         app.state.hybrid_scheduler = None
 
-    logger.info(f"事件总线: {_kernel.event_bus.get_stats()['subscriptions']} 订阅")
+    logger.info(f"事件总线: {_kernel.bus.get_stats()['subscriptions']} 订阅")
 
     # v2.13: 自动激活内置插件
-    from .core.plugin_autoload import auto_activate_builtins
-    builtin_count = auto_activate_builtins()
-    logger.info(f"内置插件自动激活: {builtin_count}")
+    try:
+        from .core.plugin_autoload import auto_activate_builtins
+        builtin_count = auto_activate_builtins()
+        logger.info(f"内置插件自动激活: {builtin_count}")
+    except Exception as e:
+        logger.warning(f"内置插件自动激活跳过: {e}")
 
     # v2.13: 启动WebSocket实时推送
-    from .core.realtime_push import get_hub
-    asyncio.create_task(get_hub().start_broadcast_loop(interval=2.0))
-    logger.info("WebSocket实时推送已启动 (2s间隔)")
+    try:
+        from .core.realtime_push import get_hub
+        asyncio.create_task(get_hub().start_broadcast_loop(interval=2.0))
+        logger.info("WebSocket实时推送已启动 (2s间隔)")
+    except Exception as e:
+        logger.warning(f"WebSocket实时推送跳过: {e}")
 
     # v3.34: 初始化Agent Swarm多Agent协同
     try:
@@ -993,8 +1000,13 @@ async def metacognition_report():
 @app.get("/v1/plugins")
 async def list_plugins():
     """列出所有插件"""
-    k = get_kernel()
-    return k.plugins.list_all() if k._started else []
+    try:
+        k = get_kernel()
+        if k is None or not k._started:
+            return []
+        return k.plugins.list_all() if hasattr(k.plugins, "list_all") else []
+    except Exception:
+        return []
 
 
 @app.get("/api/plugins/market")
