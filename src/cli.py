@@ -1491,6 +1491,7 @@ def main():
         if sys.platform == "win32":
             threading.Thread(target=_open_browser, daemon=True).start()
         
+        from src.main import app
         host = os.environ.get("MESHCTX_HOST", "0.0.0.0")
         port = int(os.environ.get("MESHCTX_PORT", "3001"))
         uvicorn.run(app, host=host, port=port, log_level="info")
