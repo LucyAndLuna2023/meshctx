@@ -128,10 +128,49 @@ fi
 
 cd "${INSTALL_DIR}"
 
-# venv
+# venv — robust creation with multiple fallbacks
+PYTHON_BIN=""
+for p in python3 python3.11 python3.12 python3.10 python; do
+    if command -v "$p" >/dev/null 2>&1; then
+        ver=$($p --version 2>&1 | grep -oP '\d+\.\d+' | head -1)
+        major=$(echo "$ver" | cut -d. -f1)
+        minor=$(echo "$ver" | cut -d. -f2)
+        if [ "$major" -ge 3 ] && [ "$minor" -ge 8 ] 2>/dev/null; then
+            PYTHON_BIN="$p"
+            break
+        fi
+    fi
+done
+
+if [ -z "$PYTHON_BIN" ]; then
+    echo -e "${RED}✗ 未找到 Python >= 3.8，请先安装 Python${NC}"
+    echo -e "  Ubuntu/Debian: sudo apt install python3 python3-venv python3-pip"
+    echo -e "  CentOS/RHEL:   sudo yum install python3 python3-pip"
+    echo -e "  macOS:         brew install python@3.12"
+    exit 1
+fi
+
+echo -e "  ${CYAN}→${NC} 使用 Python: $PYTHON_BIN ($($PYTHON_BIN --version))"
+
 if [ ! -d "venv" ]; then
-    python3 -m venv venv 2>/dev/null || {
-        echo -e "${RED}✗ 创建 venv 失败，请安装: apt install python3-venv${NC}"; exit 1
+    # Try standard venv first
+    $PYTHON_BIN -m venv venv 2>/dev/null || {
+        # Fallback: ensurepip + venv
+        $PYTHON_BIN -m ensurepip --upgrade 2>/dev/null || true
+        $PYTHON_BIN -m venv venv --without-pip 2>/dev/null && {
+            source venv/bin/activate
+            curl -sS https://bootstrap.pypa.io/get-pip.py | $PYTHON_BIN 2>/dev/null || true
+        } || {
+            # Last resort: virtualenv
+            pip install virtualenv 2>/dev/null || $PYTHON_BIN -m pip install virtualenv 2>/dev/null
+            $PYTHON_BIN -m virtualenv venv 2>/dev/null || {
+                echo -e "${RED}✗ 创建 venv 失败${NC}"
+                echo -e "  Ubuntu/Debian: sudo apt install python3-venv python3-pip"
+                echo -e "  CentOS/RHEL:   sudo yum install python3-pip && pip3 install virtualenv"
+                echo -e "  Arch:          sudo pacman -S python-virtualenv"
+                exit 1
+            }
+        }
     }
 fi
 source venv/bin/activate
