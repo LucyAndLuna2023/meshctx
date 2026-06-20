@@ -194,12 +194,13 @@ async def lifespan(app: FastAPI):
     except ImportError:
         app.state.hybrid_scheduler = None
 
-    logger.info(f"事件总线: {_kernel.bus.get_stats()['subscriptions']} 订阅")
+    bus = getattr(_kernel, 'bus', None) or getattr(_kernel, 'event_bus', None)
+    logger.info(f"事件总线: {bus.get_stats()['subscriptions']} 订阅")
 
     # v2.13: 自动激活内置插件
     try:
         from .core.plugin_autoload import auto_activate_builtins
-        builtin_count = auto_activate_builtins()
+        builtin_count = auto_activate_builtins(_kernel)
         logger.info(f"内置插件自动激活: {builtin_count}")
     except Exception as e:
         logger.warning(f"内置插件自动激活跳过: {e}")
@@ -207,7 +208,7 @@ async def lifespan(app: FastAPI):
     # v2.13: 启动WebSocket实时推送
     try:
         from .core.realtime_push import get_hub
-        asyncio.create_task(get_hub().start_broadcast_loop(interval=2.0))
+        asyncio.create_task(get_hub().start())
         logger.info("WebSocket实时推送已启动 (2s间隔)")
     except Exception as e:
         logger.warning(f"WebSocket实时推送跳过: {e}")
@@ -351,9 +352,12 @@ async def lifespan(app: FastAPI):
         app.state.jepa_router = None
     
     # v2.18: 主动监控守护进程 (解决Hermes被动响应痛点)
-    daemon = get_daemon()
-    await daemon.start()
-    logger.info("🛡️ 主动监控守护进程已启动 (每60s检查cron/磁盘/内存)")
+    try:
+        daemon = get_daemon()
+        daemon.start()
+        logger.info("🛡️ 主动监控守护进程已启动 (每60s检查cron/磁盘/内存)")
+    except Exception as e:
+        logger.warning(f"守护进程启动跳过: {e}")
 
     yield  # ── 服务运行中 ──
 

@@ -786,10 +786,12 @@ class GatewayPlugin(Plugin):
         gw_config = self.kernel.config.get("gateway", {})
         if not gw_config.get("enabled", True):
             logger.info("Gateway 已禁用")
-            return
+            return True
+
+        bus = getattr(self.kernel, 'bus', None) or getattr(self.kernel, 'event_bus', None)
 
         # 订阅 agent 回复事件
-        self.kernel.bus.subscribe(
+        bus.subscribe(
             "agent.response", self._on_agent_response, plugin_name="gateway"
         )
 
@@ -797,7 +799,7 @@ class GatewayPlugin(Plugin):
         for platform, cls in self.CONNECTOR_MAP.items():
             platform_cfg = gw_config.get(platform, {})
             if platform_cfg.get("enabled", True) and self._has_credentials(platform_cfg):
-                connector = cls(platform_cfg, self.kernel.bus)
+                connector = cls(platform_cfg, bus)
                 self._connectors[platform] = connector
                 await connector.start()
 
