@@ -177,10 +177,7 @@ async def lifespan(app: FastAPI):
     config = load_config()
     worker_count = config.get("kernel", {}).get("worker_count", 4)
     await _kernel.start(worker_count=worker_count)
-
-    results = await _kernel.plugins.load_all()
-    loaded = sum(1 for v in results.values() if v)
-    logger.info(f"插件加载: {loaded}/{len(results)}")
+    logger.info(f"插件: {_kernel.plugins.plugin_count} 已加载")
 
     _memory_engine = MemoryEngine(use_llm=False, use_vector_store=False)
     app.state.kernel = _kernel
@@ -196,7 +193,7 @@ async def lifespan(app: FastAPI):
     except ImportError:
         app.state.hybrid_scheduler = None
 
-    logger.info(f"事件总线: {_kernel.bus.get_stats()['subscriptions']} 订阅")
+    logger.info(f"事件总线: {_kernel.event_bus.get_stats()['subscriptions']} 订阅")
 
     # v2.13: 自动激活内置插件
     from .core.plugin_autoload import auto_activate_builtins

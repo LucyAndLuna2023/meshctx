@@ -58,7 +58,14 @@ class EventBus:
     
     async def start(self): self._running = True
     async def stop(self): self._running = False
-    def stats(self): return dict(self._stats)
+    def stats(self) -> dict:
+        s = dict(self._stats)
+        s["subscriptions"] = sum(len(v) for v in self._subscriptions.values())
+        s["subscription_types"] = len(self._subscriptions)
+        return s
+    
+    def get_stats(self) -> dict:
+        return self.stats()
 
 @dataclass
 class PluginInfo:
@@ -108,6 +115,10 @@ class PluginManager:
     def list(self) -> List[str]:
         return list(self._plugins.keys())
     
+    @property
+    def plugin_count(self) -> int:
+        return len(self._plugins)
+    
     def load_all(self) -> dict:
         return {name: True for name in self._plugins}
 
@@ -140,6 +151,7 @@ class Kernel:
         self.plugin_manager = PluginManager()
         self.governor = ResourceGovernor()
         self.plugins = self.plugin_manager  # 别名兼容
+        self.config = {"kernel": {"worker_count": 4}, "gateway": {"enabled": True}}
     
     async def start(self, **kwargs):
         await self.event_bus.start()

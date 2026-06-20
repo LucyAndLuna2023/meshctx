@@ -780,7 +780,9 @@ class GatewayPlugin(Plugin):
     def __init__(self):
         self._connectors: Dict[str, BaseConnector] = {}
 
-    async def on_load(self):
+    async def on_load(self, kernel=None) -> bool:
+        if kernel is not None:
+            self.kernel = kernel
         gw_config = self.kernel.config.get("gateway", {})
         if not gw_config.get("enabled", True):
             logger.info("Gateway 已禁用")
