@@ -39,5 +39,22 @@ class _P:
         return _aw().__await__()
 
 def __getattr__(name):
+    if name == '_is_base64':
+        import base64, re
+        def _is_base64(s):
+            # Handle data URIs
+            if s.startswith('data:'):
+                return True
+            try:
+                base64.b64decode(s, validate=True)
+                return True
+            except Exception:
+                return False
+        return _is_base64
+    if name == '_decode_base64':
+        import base64
+        def _decode_base64(s):
+            return base64.b64decode(s).decode('utf-8')
+        return _decode_base64
     return _P(name)
 
