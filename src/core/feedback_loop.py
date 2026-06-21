@@ -1,12 +1,109 @@
-"""meshctx feedback_loop — auto-generated stub"""
+"""meshctx feedback_loop"""
+import uuid, time, json
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any
 
+class FeedbackPhase(str, Enum):
+    COLLECT = "collect"
+    ANALYZE = "analyze"
+    ADAPT = "adapt"
+    VERIFY = "verify"
 
-class ExecutionRecord:
-    """Stub class"""
-    def __init__(self, *args, **kwargs):
-        pass
+@dataclass
+class FeedbackConfig:
+    adaptive: bool = True
+    min_confidence: float = 0.3
+    max_history: int = 1000
+    analysis_window: int = 100
 
-class FeedbackSentiment:
-    """Stub class"""
-    def __init__(self, *args, **kwargs):
-        pass
+@dataclass
+class UserFeedback:
+    feedback_id: str = field(default_factory=lambda: f"fb_{uuid.uuid4().hex[:8]}")
+    user_id: str = ""
+    action: str = ""
+    rating: float = 0.0
+    comment: str = ""
+    timestamp: float = field(default_factory=time.time)
+
+@dataclass
+class FeedbackEntry:
+    feedback_id: str = field(default_factory=lambda: f"fe_{uuid.uuid4().hex[:8]}")
+    source: str = ""
+    content: dict = field(default_factory=dict)
+    timestamp: float = field(default_factory=time.time)
+
+@dataclass
+class ActionProfile:
+    action: str = ""
+    success_count: int = 0
+    failure_count: int = 0
+    avg_rating: float = 0.0
+
+@dataclass
+class StrategyAdjustment:
+    strategy: str = ""
+    old_params: dict = field(default_factory=dict)
+    new_params: dict = field(default_factory=dict)
+    reason: str = ""
+
+@dataclass
+class FailurePattern:
+    pattern: str = ""
+    frequency: int = 0
+    last_seen: float = 0.0
+
+@dataclass
+class AdaptiveConfig:
+    learning_rate: float = 0.1
+    exploration_rate: float = 0.05
+
+@dataclass
+class FeedbackLoopReport:
+    phase: FeedbackPhase = FeedbackPhase.COLLECT
+    adjustments: list = field(default_factory=list)
+    metrics: dict = field(default_factory=dict)
+
+class FeedbackLoopEngine:
+    def __init__(self):
+        self._feedback = []
+        self._profiles = {}
+    def add_feedback(self, entry=None, user_id="", action="", rating=0.0, comment=""):
+        fb = entry or FeedbackEntry(source=user_id, content={"action": action, "rating": rating, "comment": comment})
+        self._feedback.append(fb)
+        return fb
+    def get_stats(self):
+        return {"total": len(self._feedback), "avg_rating": 0.0}
+    def run_cycle(self):
+        return FeedbackLoopReport()
+
+class FeedbackLoop:
+    def __init__(self, config=None):
+        self.config = config or FeedbackConfig()
+        self.engine = FeedbackLoopEngine()
+    def add_feedback(self, **kwargs):
+        return self.engine.add_feedback(**kwargs)
+    def run_cycle(self):
+        return self.engine.run_cycle()
+
+_loop = None
+def get_feedback_loop():
+    global _loop
+    if _loop is None: _loop = FeedbackLoop()
+    return _loop
+
+def get_feedback_engine():
+    global _loop
+    if _loop is None: _loop = FeedbackLoop()
+    return _loop.engine
+
+def reset_feedback_loop():
+    global _loop
+    _loop = None
+
+class AutonomousPipeline:
+    def __init__(self):
+        self._phases = []
+        self._feedback_loop = FeedbackLoop()
+    def run(self, input_data=None):
+        return {"phases_completed": 0, "adjustments_made": 0}

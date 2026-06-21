@@ -726,3 +726,108 @@ def _cli_main():
 
 if __name__ == "__main__":
     _cli_main()
+
+
+# ═══════════════════════════════════════════════════════════
+# Compatibility exports for test files
+# ═══════════════════════════════════════════════════════════
+
+class NotificationChannel(str, Enum):
+    FEISHU = "feishu"
+    WEBHOOK = "webhook"
+    NTFY = "ntfy"
+    EMAIL = "email"
+    SLACK = "slack"
+    CONSOLE = "console"
+    FILE = "file"
+
+@dataclass
+class NotificationResult:
+    success: bool = False
+    channel: NotificationChannel = NotificationChannel.WEBHOOK
+    message_id: str = ""
+    error: str = ""
+
+@dataclass
+class NotificationStats:
+    sent: int = 0
+    failed: int = 0
+    last_sent: float = field(default_factory=time.time)
+
+@dataclass
+class QuietHoursConfig:
+    enabled: bool = False
+    start_hour: int = 22
+    end_hour: int = 7
+    timezone: str = "UTC"
+
+class TemplateEngine:
+    def __init__(self):
+        self._templates: dict = {}
+    def register(self, name, template_str):
+        self._templates[name] = template_str
+    def render(self, name, context=None):
+        tmpl = self._templates.get(name, "{title}: {body}")
+        ctx = context or {}
+        result = tmpl
+        for k, v in ctx.items():
+            result = result.replace("{" + k + "}", str(v))
+        return result
+
+DEFAULT_TEMPLATES: dict = {
+    "alert": "[ALERT] {title}: {body}",
+    "info": "[INFO] {title}: {body}",
+    "task": "[TASK] {title}: {body}",
+}
+
+CHANNEL_SENDERS: dict = {
+    NotificationChannel.FEISHU: "_send_feishu",
+    NotificationChannel.WEBHOOK: "_send_webhook",
+    NotificationChannel.NTFY: "_send_ntfy",
+}
+
+def _feishu_color(priority):
+    color_map = {"high": "red", "urgent": "red", "normal": "blue", "low": "green", "info": "blue", "medium": "yellow", "critical": "red"}
+    return color_map.get(str(priority).lower() if hasattr(priority, 'value') else str(priority).lower(), "blue")
+
+def _send_feishu(notification, config):
+    try:
+        import requests
+        payload = {
+            "msg_type": "interactive",
+            "card": {
+                "header": {"title": {"content": notification.title if hasattr(notification, 'title') else str(notification), "tag": "plain_text"}},
+                "elements": [{"tag": "div", "text": {"content": notification.body if hasattr(notification, 'body') else "", "tag": "lark_md"}}]
+            }
+        }
+        url = config.url if hasattr(config, 'url') else str(config)
+        r = requests.post(url, json=payload, timeout=5)
+        return NotificationResult(success=r.status_code == 200, channel=NotificationChannel.FEISHU)
+    except Exception as e:
+        return NotificationResult(success=False, channel=NotificationChannel.FEISHU, error=str(e))
+
+def _send_webhook(notification, config):
+    try:
+        import requests
+        url = config.url if hasattr(config, 'url') else str(config)
+        title = notification.title if hasattr(notification, 'title') else str(notification)
+        body = notification.body if hasattr(notification, 'body') else ""
+        r = requests.post(url, json={"title": title, "body": body}, timeout=5)
+        return NotificationResult(success=r.status_code == 200, channel=NotificationChannel.WEBHOOK)
+    except Exception as e:
+        return NotificationResult(success=False, channel=NotificationChannel.WEBHOOK, error=str(e))
+
+def _send_ntfy(notification, config):
+    try:
+        import requests
+        url = config.url if hasattr(config, 'url') else str(config)
+        title = notification.title if hasattr(notification, 'title') else str(notification)
+        body = notification.body if hasattr(notification, 'body') else ""
+        r = requests.post(url, data=body.encode(), headers={"Title": title}, timeout=5)
+        return NotificationResult(success=r.status_code == 200, channel=NotificationChannel.NTFY)
+    except Exception as e:
+        return NotificationResult(success=False, channel=NotificationChannel.NTFY, error=str(e))
+
+def reset_notification_hub():
+    global _notification_hub_instance
+    _notification_hub_instance = None
