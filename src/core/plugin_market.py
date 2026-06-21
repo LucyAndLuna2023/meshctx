@@ -239,9 +239,54 @@ class PluginVersion:
         parts = s.split('.')
         if len(parts) != 3 or not all(p.isdigit() for p in parts):
             raise ValueError(f"Invalid version: {s}")
-        return cls(major=int(parts[0]), minor=int(parts[1]) if len(parts) > 1 else 0, patch=int(parts[2]) if len(parts) > 2 else 0)
+        return cls(major=int(parts[0]), minor=int(parts[1]), patch=int(parts[2]))
     def to_tuple(self):
         return (self.major, self.minor, self.patch)
+
+@dataclass
+class PluginReview:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    user_id: str = ""
+    rating: int = 0
+    text: str = ""
+
+@dataclass
+class PluginEntry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    plugin_id: str = ""
+    name: str = ""
+    description: str = ""
+    tags: list = field(default_factory=list)
+    versions: list = field(default_factory=list)
+    _reviews: list = field(default_factory=list)
+    
+    @property
+    def latest_version(self):
+        return max(self.versions) if self.versions else None
+    
+    @property
+    def average_rating(self):
+        if not self._reviews:
+            return 0.0
+        return sum(r.rating for r in self._reviews) / len(self._reviews)
+    
+    @property
+    def review_count(self):
+        return len(self._reviews)
+    
+    def add_review(self, review):
+        self._reviews.append(review)
+    
+    def add_version(self, version):
+        for i, v in enumerate(self.versions):
+            if v == version:
+                self.versions[i] = version
+                return
+        self.versions.append(version)
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
