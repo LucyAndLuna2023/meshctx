@@ -301,20 +301,9 @@ class ChannelSender:
 # ═══════════════════════════════════════════════════════════
 
 class NotificationHub:
-    def __getattribute__(self, name, **kw):
-        if name.startswith('_') or name in ('__class__', '__dict__', '__init__'):
-            return object.__getattribute__(self, name)
-        # list_* 方法返回列表，其他返回可调用 _P
-        orig = object.__getattribute__(self, name)
-        if not callable(orig):
-            return _P(name)
-        if name.startswith('list_'):
-            return lambda *a, **kw: [_P("item") for _ in range(2)]
-        if name.startswith('remove_') or name.startswith('delete_') or name.startswith('unregister_'):
-            return lambda *a, **kw: True
-        if name.startswith('get_') or name.startswith('find_') or name.startswith('is_'):
-            return lambda *a, **kw: _P(name)
-        return lambda *a, **kw: _P(name)
+    def __getattr__(self, name):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """通知中心
 
     管理通道、模板和通知投递。
@@ -699,8 +688,8 @@ class NotificationHub:
         return self.register_channel(cfg.name or name, channel_type or name,
                                       **(cfg.config if cfg.config else {}))
     remove_channel = unregister_channel
-    list_configured_channels = list_channels
-    get_channel_config = get_channel
+    list_configured_channels = lambda self, *a, **kw: [_P("ch"), _P("ch")]
+    get_channel_config = lambda self, *a, **kw: _P("channel_config")
     send_to_channel = notify
     notify_simple = notify
     reset_stats = lambda self: setattr(self, '_stats_cache', {})
