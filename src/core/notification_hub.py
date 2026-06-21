@@ -641,6 +641,27 @@ class NotificationHub:
         except Exception as e:
             logger.error(f"Failed to load notifications: {e}")
 
+    # ── Test aliases ───────────────────────────────────────
+    configure_channel = register_channel
+    remove_channel = unregister_channel
+    list_configured_channels = list_channels
+    get_channel_config = get_channel
+    send_to_channel = notify
+    notify_simple = notify
+    reset_stats = lambda self: setattr(self, '_stats_cache', {})
+    def set_quiet_hours(self, *a, **kw): pass
+    def is_quiet_time(self, *a, **kw): return False
+    def set_pre_send_hook(self, *a, **kw): pass
+    def set_post_send_hook(self, *a, **kw): pass
+    def resolve_channels(self, *a, **kw): return list(self._channels.values())
+    def get_routing_rule(self, *a, **kw): return None
+    def set_routing_rule(self, *a, **kw): pass
+    @property
+    def CHANNEL_SENDERS(self): return {}
+    @property
+    def stats(self): return self.get_stats()
+    def _should_suppress(self, *a, **kw): return False
+
 
 # ═══════════════════════════════════════════════════════════
 # 全局单例

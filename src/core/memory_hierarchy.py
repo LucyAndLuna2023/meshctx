@@ -1,6 +1,7 @@
 """Memory Hierarchy — 开源版 (stub)"""
 from enum import Enum
 class MemoryLevel(Enum):
+    SENSORY = -1  # sensory
     L0 = 0  # immediate
     L1 = 1  # short-term
     L2 = 2  # working

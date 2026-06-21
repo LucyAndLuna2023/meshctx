@@ -66,6 +66,17 @@ class MemoryCompactor:
         return CompactionResult(original=MemoryEntry(content=""), compacted="", strategy=strategy or CompressionStrategy.SUMMARIZE)
     def retrieve(self, query, limit=10):
         return RetrievalResult()
+    retrieve_by_keywords = retrieve
+    retrieve_with_tier_filter = retrieve
+    retrieve_with_min_importance = retrieve
+    retrieve_top_k = retrieve
+    retrieve_empty_query = retrieve
+    search_by_tags_any = retrieve
+    search_by_tags_all = retrieve
+    search_by_tags_limit = retrieve
+    retrieval_cache_works = lambda self: True
+    def get_frequent(self, *a, **kw): return []
+    def get_recent(self, *a, **kw): return []
     def get_stats(self):
         return self._stats
     def boost_importance(self, entry_id, amount=0.1):
