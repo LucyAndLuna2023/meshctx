@@ -783,7 +783,7 @@ class GatewayPlugin(Plugin):
     async def on_load(self, kernel=None) -> bool:
         if kernel is not None:
             self.kernel = kernel
-        gw_config = self.kernel.config.get("gateway", {})
+        gw_config = getattr(self.kernel, "config", {}).get("gateway", {})
         if not gw_config.get("enabled", True):
             logger.info("Gateway 已禁用")
             return True
@@ -792,7 +792,7 @@ class GatewayPlugin(Plugin):
 
         # 订阅 agent 回复事件
         bus.subscribe(
-            "agent.response", self._on_agent_response, plugin_name="gateway"
+            "agent.response", self._on_agent_response
         )
 
         # 初始化所有已配置的连接器

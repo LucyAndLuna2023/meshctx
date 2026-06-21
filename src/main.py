@@ -200,7 +200,7 @@ async def lifespan(app: FastAPI):
     # v2.13: 自动激活内置插件
     try:
         from .core.plugin_autoload import auto_activate_builtins
-        builtin_count = auto_activate_builtins(_kernel)
+        builtin_count = await auto_activate_builtins(_kernel)
         logger.info(f"内置插件自动激活: {builtin_count}")
     except Exception as e:
         logger.warning(f"内置插件自动激活跳过: {e}")
