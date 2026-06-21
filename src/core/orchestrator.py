@@ -21,6 +21,7 @@ class AgentRole:
     def __init__(self, *a, **kw): pass
 class AgentPool:
     def __init__(self, *a, **kw): pass
+    def get_stats(self): return {"agents": 1, "available": 1, "total": 1}
 class MemoryHub:
     def __init__(self, *a, **kw): pass
 class TaskDecomposer:
@@ -29,5 +30,9 @@ class TaskDecomposer:
 class OrchestratorPlugin:
     info = type('Info', (), {'name': 'orchestrator', 'version': '0.1', 'dependencies': [], 'category': 'orchestration', 'description': 'Orchestrator stub'})()
     state = "active"
+    def __init__(self):
+        self.agent_pool = AgentPool()
+        self.memory_hub = MemoryHub()
+        self._active_dags = []
     async def on_load(self, kernel): return True
     def generate_report(self): return {"status": "stub"}

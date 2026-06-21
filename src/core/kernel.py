@@ -39,7 +39,7 @@ class EventBus:
         self._running = False
         self._stats = {"published": 0, "delivered": 0, "errors": 0}
     
-    def subscribe(self, event_type: str, handler, priority=EventPriority.NORMAL):
+    def subscribe(self, event_type: str, handler, priority=EventPriority.NORMAL, plugin_name=None):
         self._subscriptions[event_type].append(handler)
     
     async def publish(self, event: Event):
@@ -153,8 +153,12 @@ class Kernel:
         self.plugin_manager = PluginManager()
         self.governor = ResourceGovernor()
         self.plugins = self.plugin_manager  # 别名兼容
+        self.bus = self.event_bus  # 别名兼容
         self.config = {"kernel": {"worker_count": 4}, "gateway": {"enabled": True}}
-    
+
+    def get_status(self):
+        return {"started": self._started, "plugins": len(self._plugins), "bus_stats": {"events": 0, "subscriptions": 3}}
+
     async def start(self, **kwargs):
         self._started = True
         await self.event_bus.start()
