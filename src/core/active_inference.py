@@ -71,7 +71,7 @@ class _P:
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): yield {}; yield {}
+    def __iter__(s): yield _P("item"); yield _P("item")
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -79,6 +79,8 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __truediv__(s, o): return _P(f"{s._n}/{o}")
+    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
     def __lt__(s, o): return True
     def __le__(s, o): return True
     def __gt__(s, o): return True
