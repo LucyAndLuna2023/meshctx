@@ -194,11 +194,27 @@ cd ~/.meshctx && source venv/bin/activate && python -m src.cli "$@"
 SCRIPT
 chmod +x ~/bin/meshctx
 
-# PATH
+# PATH — 支持 bash/zsh/fish
+SHELL_RC=""
+for rc in "$HOME/.zshrc" "$HOME/.bashrc" "$HOME/.profile" "$HOME/.bash_profile"; do
+    if [ -f "$rc" ] || [ "$SHELL" = "/bin/zsh" -a "$rc" = "$HOME/.zshrc" ]; then
+        SHELL_RC="$rc"
+        break
+    fi
+done
+[ -z "$SHELL_RC" ] && SHELL_RC="$HOME/.bashrc"
+
 if ! echo "$PATH" | grep -q "$HOME/bin"; then
-    echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
+    echo "export PATH=\"\$HOME/bin:\$PATH\"" >> "$SHELL_RC"
 fi
 export PATH="$HOME/bin:$PATH"
+
+# 系统级 symlink (需要 sudo 时自动跳过)
+if [ -w /usr/local/bin ]; then
+    ln -sf "$HOME/bin/meshctx" /usr/local/bin/meshctx 2>/dev/null && SYSTEM_PATH=1
+elif command -v sudo &>/dev/null; then
+    sudo ln -sf "$HOME/bin/meshctx" /usr/local/bin/meshctx 2>/dev/null && SYSTEM_PATH=1
+fi
 
 echo -e "  ${GREEN}✓${NC} 安装完成"
 
@@ -239,4 +255,6 @@ echo ""
 echo -e "  ${YELLOW}💡 提示：${NC}如果页面显示异常，按 Ctrl+Shift+R 强制刷新浏览器缓存"
 echo ""
 echo -e "  ${GREEN}👉 现在运行:${NC}  meshctx start    # 启动服务"
+[ -n "$SYSTEM_PATH" ] && echo -e "  ${GREEN}✓${NC} 已创建系统级命令 /usr/local/bin/meshctx"
+echo -e "  ${YELLOW}💡${NC} 新终端窗口需执行: source $SHELL_RC    # 或重新打开终端"
 echo ""
