@@ -7,3 +7,4 @@ class _ActionGate:
 
 _gate = _ActionGate()
 def get_gate(): return _gate
+get_action_gate = get_gate

@@ -189,6 +189,7 @@ class ModelEntry:
 # ═══════════════════════════════════════════════════════════
 
 class ModelRegistry:
+    def clean_unconfigured(self): return {"removed": 0, "kept": []}
     """模型注册表
 
     管理所有可用模型及其版本的完整注册表。

@@ -5,3 +5,4 @@ class _Extractor:
 
 _extractor = _Extractor()
 def get_extractor(): return _extractor
+list_all = _Extractor.extract

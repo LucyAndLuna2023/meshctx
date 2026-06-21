@@ -6,3 +6,4 @@ class UnifiedDashboard:
     def stats(self): return {}
 
 def get_dashboard(): return UnifiedDashboard()
+get_full_dashboard = UnifiedDashboard.stats

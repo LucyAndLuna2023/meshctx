@@ -24,3 +24,4 @@ def get_or_create(conv_id: str = None) -> Conversation:
                 d = json.load(f)
                 return Conversation(id=d["id"], title=d["title"], messages=d.get("messages", []))
     return Conversation(id=conv_id or str(time.time()), title="New Chat")
+get_conversation_store = get_or_create

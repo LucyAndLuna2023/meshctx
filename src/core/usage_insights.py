@@ -1,5 +1,7 @@
 """Usage Insights — 开源版 (stub)"""
 class UsageInsights:
+    def get_today(self): return {"calls": 0, "tokens": 0, "models": []}
+    def record_call(self, *a, **kw): return {"recorded": True}
     def __init__(self, *a, **kw): pass
     def track(self, *a, **kw): pass
     def report(self) -> dict: return {"total_tokens": 0, "total_calls": 0}

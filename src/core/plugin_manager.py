@@ -1,12 +1,4 @@
-"""Project Indexer — 开源版 (stub)"""
-class _Indexer:
-    def index(self, *a, **kw): pass
-    def search(self, *a, **kw): return []
-    def stats(self): return {}
-
-_indexer = _Indexer()
-def get_indexer(): return _indexer
-
+"""plugin_manager — 开源版 (stub)"""
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
     def __getattr__(s, n):
@@ -35,8 +27,5 @@ class _P:
     def __await__(s):
         async def _aw(): return s
         return _aw().__await__()
-
 def __getattr__(name):
     return _P(name)
-
-get_index = _Indexer.search

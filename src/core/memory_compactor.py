@@ -25,7 +25,9 @@ class MemoryEntry:
     access_count: int = 0
     importance: float = 0.5
     tags: list = field(default_factory=list)
-
+    importances: dict = field(default_factory=dict)
+    @property
+    def memory_id(self): return self.entry_id
 @dataclass
 class CompactionResult:
     original: MemoryEntry = None
