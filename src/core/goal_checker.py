@@ -10,6 +10,7 @@ class GoalCheckResult:
     met: bool = False
     reason: str = ""
     progress: float = 0.0
+    score: float = 0.0
 
 _gc = None
 def get_goal_checker():
@@ -17,6 +18,8 @@ def get_goal_checker():
     if _gc is None:
         _gc = type("GoalChecker", (), {"check": lambda self, g: GoalCheckResult(goal=str(g), met=True)})()
     return _gc
+
+GoalChecker = get_goal_checker  # 单例工厂
 
 def reset_goal_checker():
     global _gc
