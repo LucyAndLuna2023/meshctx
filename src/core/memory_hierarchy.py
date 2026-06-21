@@ -27,6 +27,10 @@ class MemoryItem:
 class HierarchicalMemoryStore:
     def __init__(self, *a, **kw): pass
     def store(self, *a, **kw): pass
+    @property
+    def knowledge_graph(self): return type('KG', (), {'add_node': lambda *a,**k: None, 'add_edge': lambda *a,**k: None, 'get_node': lambda *a,**k: None, 'get_edge': lambda *a,**k: None, 'nodes': [], 'edges': [], 'to_dict': lambda s=None: {'nodes':[], 'edges':[]}})()
+    def save_to_file(self, *a, **kw): return True
+    def set_auto_save(self, *a, **kw): pass
     def retrieve(self, query: str, *a, **kw):
         item = type('Mem', (), {'key': 'test', 'content': 'test memory', 'value': 'test', 'id': '1'})()
         return [item]

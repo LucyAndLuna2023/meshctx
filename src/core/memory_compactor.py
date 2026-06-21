@@ -36,6 +36,7 @@ class CompactionResult:
 @dataclass
 class CompactionStats:
     total_processed: int = 0
+    total_entries: int = 0
     bytes_saved: int = 0
     compactions: int = 0
 
@@ -54,6 +55,8 @@ class MemoryCompactor:
     def __init__(self):
         self._entries = {}
         self._stats = CompactionStats()
+    @property
+    def _all_entries(self): return list(self._entries.values())
     def add(self, content, tier=None):
         entry = MemoryEntry(content=content, tier=tier or MemoryTier.WORKING)
         self._entries[entry.entry_id] = entry
@@ -65,6 +68,11 @@ class MemoryCompactor:
         return RetrievalResult()
     def get_stats(self):
         return self._stats
+    def boost_importance(self, entry_id, amount=0.1):
+        if entry_id in self._entries:
+            self._entries[entry_id].importance = min(1.0, self._entries[entry_id].importance + amount)
+            return True
+        return False
 
 _mc = None
 def get_memory_compactor():

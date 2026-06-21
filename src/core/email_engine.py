@@ -61,6 +61,7 @@ class EmailEngine:
         self._stats = InboxStats()
     def classify(self, email_id, subject="", body="", sender=""):
         return EmailLabel(label_type=EmailLabelType.IMPORTANT)
+    classify_email = classify
     def summarize(self, email_id, subject="", body="", sender=""):
         return EmailSummary(email_id=email_id, subject=subject, sender=sender, summary=body[:100] if body else "")
     def check_spam(self, email_id, subject="", body="", sender=""):
