@@ -223,6 +223,26 @@ class PluginMarketplace:
             "one_liner": f"meshctx 插件市场 — {len(self._OFFICIAL_PLUGINS)} 个官方插件",
         }
 
+@dataclass(order=True)
+class PluginVersion:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    major: int = 1
+    minor: int = 0
+    patch: int = 0
+    def __str__(self):
+        return f"v{self.major}.{self.minor}.{self.patch}"
+    @classmethod
+    def parse(cls, s: str):
+        s = s.lstrip('v')
+        parts = s.split('.')
+        if len(parts) != 3 or not all(p.isdigit() for p in parts):
+            raise ValueError(f"Invalid version: {s}")
+        return cls(major=int(parts[0]), minor=int(parts[1]) if len(parts) > 1 else 0, patch=int(parts[2]) if len(parts) > 2 else 0)
+    def to_tuple(self):
+        return (self.major, self.minor, self.patch)
+
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
     def __getattr__(s, n, **kw):
