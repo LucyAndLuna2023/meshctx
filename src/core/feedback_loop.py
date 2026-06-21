@@ -114,6 +114,39 @@ class FeedbackLoop:
     def __init__(self, config=None, **kw):
         self.config = config or FeedbackConfig()
         self.engine = FeedbackLoopEngine()
+        self._feedbacks = []
+        self._thumbs_down_categories = {}
+        self._thumbs_up_categories = {}
+    def collect(self, feedback_type, user_id=None, **kw):
+        fb = dict(type=feedback_type, user_id=user_id, **kw)
+        self._feedbacks.append(fb)
+        return fb
+    def collect_thumbs_up(self, **kw):
+        fb = _P("feedback")
+        fb._d['sentiment'] = 'thumbs_up'
+        fb._d['is_critical'] = False
+        self._feedbacks.append(fb)
+        return fb
+    def collect_thumbs_down(self, **kw):
+        fb = _P("feedback")
+        fb._d['sentiment'] = 'thumbs_down'
+        fb._d['is_critical'] = True
+        cat = kw.get('category', 'unknown')
+        self._thumbs_down_categories[cat] = self._thumbs_down_categories.get(cat, 0) + 1
+        self._feedbacks.append(fb)
+        return fb
+    def collect_neutral(self, **kw):
+        fb = _P("feedback")
+        self._feedbacks.append(fb)
+        return fb
+    def collect_invalid(self, **kw):
+        fb = _P("feedback")
+        self._feedbacks.append(fb)
+        return fb
+    def collect_feedback(self, **kw):
+        fb = _P("feedback")
+        self._feedbacks.append(fb)
+        return fb
     def add_feedback(self, **kwargs):
         return self.engine.add_feedback(**kwargs)
     def run_cycle(self, **kw):
