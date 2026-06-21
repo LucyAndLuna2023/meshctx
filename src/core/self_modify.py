@@ -340,6 +340,8 @@ class SelfModifyEngine:
 
     def _init_db(self):
         """初始化修改历史数据库"""
+        import os
+        os.makedirs(os.path.dirname(os.path.abspath(self.db_path)) or '.', exist_ok=True)
         conn = sqlite3.connect(self.db_path)
         conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript("""
