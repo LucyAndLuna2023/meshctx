@@ -56,6 +56,9 @@ except ImportError:
 
 @dataclass
 class VectorEntry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """向量条目"""
     id: str
     vector: np.ndarray
@@ -63,7 +66,7 @@ class VectorEntry:
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self, **kw) -> Dict:
         return {
             "id": self.id,
             "vector": self.vector.tolist(),
@@ -73,7 +76,7 @@ class VectorEntry:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict) -> "VectorEntry":
+    def from_dict(cls, d: Dict, **kw) -> "VectorEntry":
         return cls(
             id=d["id"],
             vector=np.array(d["vector"], dtype=np.float32),
@@ -85,12 +88,15 @@ class VectorEntry:
 
 @dataclass
 class SearchResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """搜索结果"""
     id: str
     score: float
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def __repr__(self) -> str:
+    def __repr__(self, **kw) -> str:
         return f"SearchResult(id={self.id!r}, score={self.score:.4f})"
 
 
@@ -99,32 +105,35 @@ class SearchResult:
 # ═══════════════════════════════════════════════════════════
 
 class DistanceMetric:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """距离度量函数集合"""
 
     @staticmethod
-    def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+    def cosine_similarity(a: np.ndarray, b: np.ndarray, **kw) -> float:
         """余弦相似度 (归一化向量点积)"""
         # 假设向量已归一化
         return float(np.dot(a, b))
 
     @staticmethod
-    def cosine_distance(a: np.ndarray, b: np.ndarray) -> float:
+    def cosine_distance(a: np.ndarray, b: np.ndarray, **kw) -> float:
         """余弦距离 = 1 - 余弦相似度"""
         return 1.0 - DistanceMetric.cosine_similarity(a, b)
 
     @staticmethod
-    def l2_distance(a: np.ndarray, b: np.ndarray) -> float:
+    def l2_distance(a: np.ndarray, b: np.ndarray, **kw) -> float:
         """L2 欧氏距离"""
         return float(np.linalg.norm(a - b))
 
     @staticmethod
-    def l2_similarity(a: np.ndarray, b: np.ndarray) -> float:
+    def l2_similarity(a: np.ndarray, b: np.ndarray, **kw) -> float:
         """L2 距离转为相似度分数 [0,1]"""
         d = DistanceMetric.l2_distance(a, b)
         return 1.0 / (1.0 + d)
 
     @staticmethod
-    def dot_product(a: np.ndarray, b: np.ndarray) -> float:
+    def dot_product(a: np.ndarray, b: np.ndarray, **kw) -> float:
         """点积 (适用于未归一化的向量)"""
         return float(np.dot(a, b))
 
@@ -134,9 +143,12 @@ class DistanceMetric:
 # ═══════════════════════════════════════════════════════════
 
 class FaissIndex:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """FAISS 索引包装器 — 高性能近似最近邻搜索"""
 
-    def __init__(self, dim: int, metric: str = "cosine"):
+    def __init__(self, dim: int, metric: str = "cosine", **kw):
         if not _FAISS_AVAILABLE:
             raise ImportError("faiss not installed. pip install faiss-cpu")
         self.dim = dim
@@ -155,7 +167,7 @@ class FaissIndex:
         self._next_id: int = 0
         self._lock = threading.Lock()
 
-    def add(self, vectors: np.ndarray, ids: List[str]) -> int:
+    def add(self, vectors: np.ndarray, ids: List[str], **kw) -> int:
         """批量添加向量"""
         vectors = vectors.astype(np.float32)
         if self.metric == "cosine":
@@ -171,7 +183,7 @@ class FaissIndex:
                 self._reverse_map[eid] = fid
         return len(ids)
 
-    def search(self, query: np.ndarray, k: int = 10) -> List[Tuple[str, float]]:
+    def search(self, query: np.ndarray, k: int = 10, **kw) -> List[Tuple[str, float]]:
         """搜索最相似的 k 个向量"""
         query = query.astype(np.float32).reshape(1, -1)
         if self.metric == "cosine":
@@ -194,7 +206,7 @@ class FaissIndex:
                 results.append((eid, score))
         return results
 
-    def remove(self, ids: List[str]) -> int:
+    def remove(self, ids: List[str], **kw) -> int:
         """从索引中移除向量 (FAISS 不支持直接删除，重建索引)"""
         # FAISS IndexFlat 不支持删除，需要重建
         # 对于小规模使用，直接标记 + 搜索时过滤
@@ -207,7 +219,7 @@ class FaissIndex:
         return removed
 
     @property
-    def size(self) -> int:
+    def size(self, **kw) -> int:
         return self.index.ntotal
 
 
@@ -216,9 +228,12 @@ class FaissIndex:
 # ═══════════════════════════════════════════════════════════
 
 class NumpyIndex:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """NumPy 向量索引 — 纯 Python 精确搜索"""
 
-    def __init__(self, dim: int, metric: str = "cosine"):
+    def __init__(self, dim: int, metric: str = "cosine", **kw):
         self.dim = dim
         self.metric = metric
         self._entries: Dict[str, VectorEntry] = {}
@@ -227,7 +242,7 @@ class NumpyIndex:
         self._lock = threading.RLock()
         self._dirty: bool = False
 
-    def _rebuild_matrix(self):
+    def _rebuild_matrix(self, **kw):
         """重建矩阵 (惰性)"""
         if not self._dirty:
             return
@@ -243,7 +258,7 @@ class NumpyIndex:
                 self._id_list.append(eid)
         self._dirty = False
 
-    def _normalize(self, vec: np.ndarray) -> np.ndarray:
+    def _normalize(self, vec: np.ndarray, **kw) -> np.ndarray:
         """L2 归一化"""
         norm = np.linalg.norm(vec)
         if norm > 0:
@@ -321,7 +336,7 @@ class NumpyIndex:
                 ))
         return results
 
-    def _match_filters(self, metadata: Dict, filters: Dict) -> bool:
+    def _match_filters(self, metadata: Dict, filters: Dict, **kw) -> bool:
         """检查元数据是否匹配过滤条件"""
         for key, value in filters.items():
             if key not in metadata:
@@ -354,7 +369,7 @@ class NumpyIndex:
                     return False
         return True
 
-    def remove(self, ids: List[str]) -> int:
+    def remove(self, ids: List[str], **kw) -> int:
         """删除向量"""
         removed = 0
         with self._lock:
@@ -366,16 +381,16 @@ class NumpyIndex:
                 self._dirty = True
         return removed
 
-    def get(self, eid: str) -> Optional[VectorEntry]:
+    def get(self, eid: str, **kw) -> Optional[VectorEntry]:
         """获取单个向量条目"""
         return self._entries.get(eid)
 
     @property
-    def size(self) -> int:
+    def size(self, **kw) -> int:
         return len(self._entries)
 
     @property
-    def ids(self) -> List[str]:
+    def ids(self, **kw) -> List[str]:
         with self._lock:
             return list(self._entries.keys())
 
@@ -385,6 +400,9 @@ class NumpyIndex:
 # ═══════════════════════════════════════════════════════════
 
 class VectorStore:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """向量存储引擎
 
     支持 numpy (默认) 和 faiss (可选) 后端。
@@ -517,7 +535,7 @@ class VectorStore:
             else:
                 return self._numpy_index.search(query_arr, k=k, metric=metric, filters=filters)
 
-    def delete(self, ids: Union[str, List[str]]) -> int:
+    def delete(self, ids: Union[str, List[str]], **kw) -> int:
         """删除向量
 
         Args:
@@ -539,13 +557,13 @@ class VectorStore:
         logger.debug(f"Deleted {count} vectors")
         return count
 
-    def get(self, eid: str) -> Optional[VectorEntry]:
+    def get(self, eid: str, **kw) -> Optional[VectorEntry]:
         """获取向量条目"""
         if self._numpy_index:
             return self._numpy_index.get(eid)
         return None
 
-    def get_batch(self, ids: List[str]) -> Dict[str, Optional[VectorEntry]]:
+    def get_batch(self, ids: List[str], **kw) -> Dict[str, Optional[VectorEntry]]:
         """批量获取向量条目"""
         result = {}
         for eid in ids:
@@ -601,7 +619,7 @@ class VectorStore:
 
     # ── 持久化 ──────────────────────────────────────────
 
-    def save(self, path: Optional[str] = None) -> str:
+    def save(self, path: Optional[str] = None, **kw) -> str:
         """持久化到 JSON 文件
 
         Args:
@@ -636,7 +654,7 @@ class VectorStore:
         logger.info(f"Saved {self.size} vectors to {save_path}")
         return save_path
 
-    def load(self, path: Optional[str] = None) -> int:
+    def load(self, path: Optional[str] = None, **kw) -> int:
         """从 JSON 文件加载
 
         Args:
@@ -685,18 +703,18 @@ class VectorStore:
     # ── 信息 ────────────────────────────────────────────
 
     @property
-    def size(self) -> int:
+    def size(self, **kw) -> int:
         if self._backend_type == "faiss":
             return self._numpy_index.size if self._numpy_index else 0
         return self._numpy_index.size if self._numpy_index else 0
 
     @property
-    def ids(self) -> List[str]:
+    def ids(self, **kw) -> List[str]:
         if self._numpy_index:
             return self._numpy_index.ids
         return []
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self, **kw) -> Dict[str, Any]:
         """获取统计信息"""
         return {
             "dim": self.dim,
@@ -707,7 +725,7 @@ class VectorStore:
             **self._stats,
         }
 
-    def clear(self):
+    def clear(self, **kw):
         """清空索引"""
         with self._lock:
             if self._numpy_index:

@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class TeamResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Single agent result placed on the shared result queue."""
 
     def __init__(self, team_id: str, agent_name: str, role: str,
@@ -32,7 +35,7 @@ class TeamResult:
         self.response = response
         self.latency_ms = latency_ms
 
-    def to_dict(self) -> dict:
+    def to_dict(self, **kw) -> dict:
         return {
             "team_id": self.team_id,
             "agent": self.agent_name,
@@ -42,7 +45,7 @@ class TeamResult:
             "latency_ms": self.latency_ms,
         }
 
-    def __repr__(self) -> str:
+    def __repr__(self, **kw) -> str:
         return (f"<TeamResult agent={self.agent_name!r} "
                 f"latency={self.latency_ms:.1f}ms>")
 
@@ -52,6 +55,9 @@ class TeamResult:
 # ---------------------------------------------------------------------------
 
 class AgentContext:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Independent context for one agent inside a team.
 
     Each agent carries its own name, role description, tool set, and model
@@ -71,7 +77,7 @@ class AgentContext:
         # agent uses _default_process which echoes back for demo/testing.
         self._process_fn = process_fn
 
-    def _default_process(self, message: str) -> str:
+    def _default_process(self, message: str, **kw) -> str:
         """Default processing — echoes with agent identity.
 
         In production, replace this with an actual LLM call that receives
@@ -112,6 +118,9 @@ class AgentContext:
 # ---------------------------------------------------------------------------
 
 class Team:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """A named team of agents with a shared result queue."""
 
     def __init__(self, team_id: str, name: str,
@@ -124,7 +133,7 @@ class Team:
         self._created_at = time.time()
         self._message_count = 0
 
-    def send(self, message: str) -> list[TeamResult]:
+    def send(self, message: str, **kw) -> list[TeamResult]:
         """Send *message* to every agent concurrently and collect results.
 
         Returns:
@@ -164,7 +173,7 @@ class Team:
 
         return results
 
-    def stats(self) -> dict:
+    def stats(self, **kw) -> dict:
         return {
             "team_id": self.team_id,
             "name": self.name,

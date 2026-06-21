@@ -44,6 +44,9 @@ logger = logging.getLogger("meshctx.task_planner")
 # ═══════════════════════════════════════════════════════════
 
 class TaskStatus(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """任务状态。"""
     PENDING = "pending"          # 等待依赖完成
     READY = "ready"              # 依赖满足, 可执行
@@ -55,6 +58,9 @@ class TaskStatus(str, Enum):
 
 
 class PlanStatus(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """计划整体状态。"""
     DRAFT = "draft"              # 草稿, 尚未执行
     RUNNING = "running"          # 执行中
@@ -75,6 +81,9 @@ DEFAULT_TASK_TIMEOUT = 300.0  # 秒
 
 @dataclass
 class TaskStep:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """任务步骤 — 计划中的单个可执行单元。
 
     Attributes:
@@ -112,7 +121,7 @@ class TaskStep:
     priority: int = 0
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -127,7 +136,7 @@ class TaskStep:
         }
 
     @property
-    def is_terminal(self) -> bool:
+    def is_terminal(self, **kw) -> bool:
         """是否处于终态。"""
         return self.status in (
             TaskStatus.COMPLETED,
@@ -137,13 +146,16 @@ class TaskStep:
         )
 
     @property
-    def is_blocked(self) -> bool:
+    def is_blocked(self, **kw) -> bool:
         """是否被阻塞 (等待依赖)。"""
         return self.status == TaskStatus.PENDING
 
 
 @dataclass
 class Plan:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """计划容器 — 一组有依赖关系的 TaskStep。
 
     Attributes:
@@ -169,7 +181,7 @@ class Plan:
     total_actual_seconds: float = 0.0
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -186,22 +198,22 @@ class Plan:
         }
 
     @property
-    def completed_count(self) -> int:
+    def completed_count(self, **kw) -> int:
         return sum(1 for t in self.tasks.values() if t.status == TaskStatus.COMPLETED)
 
     @property
-    def failed_count(self) -> int:
+    def failed_count(self, **kw) -> int:
         return sum(1 for t in self.tasks.values() if t.status == TaskStatus.FAILED)
 
     @property
-    def progress_pct(self) -> float:
+    def progress_pct(self, **kw) -> float:
         if not self.tasks:
             return 100.0
         terminal = sum(1 for t in self.tasks.values() if t.is_terminal)
         return round((terminal / len(self.tasks)) * 100, 1)
 
     @property
-    def is_running(self) -> bool:
+    def is_running(self, **kw) -> bool:
         return self.status == PlanStatus.RUNNING
 
 
@@ -210,6 +222,9 @@ class Plan:
 # ═══════════════════════════════════════════════════════════
 
 class DAGError(Exception):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """DAG 操作错误 (循环依赖等)。"""
     pass
 
@@ -296,6 +311,9 @@ def _find_ready_tasks(tasks: Dict[str, TaskStep], running_ids: Set[str]) -> List
 # ═══════════════════════════════════════════════════════════
 
 class TaskPlanner:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """任务规划与执行引擎。
 
     核心职责:
@@ -308,7 +326,7 @@ class TaskPlanner:
     线程安全: 内部使用 asyncio.Lock + threading.Lock。
     """
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._plans: Dict[str, Plan] = {}
         self._plan_lock = threading.Lock()
         self._running_semaphores: Dict[str, asyncio.Semaphore] = {}
@@ -352,12 +370,12 @@ class TaskPlanner:
         logger.info(f"Created plan: {plan.id} '{name}' (max_parallel={max_parallel})")
         return plan
 
-    def get_plan(self, plan_id: str) -> Optional[Plan]:
+    def get_plan(self, plan_id: str, **kw) -> Optional[Plan]:
         """获取计划。"""
         with self._plan_lock:
             return self._plans.get(plan_id)
 
-    def list_plans(self, status: PlanStatus = None) -> List[Plan]:
+    def list_plans(self, status: PlanStatus = None, **kw) -> List[Plan]:
         """列出计划 (可按状态过滤)。"""
         with self._plan_lock:
             plans = list(self._plans.values())
@@ -365,7 +383,7 @@ class TaskPlanner:
             plans = [p for p in plans if p.status == status]
         return plans
 
-    def delete_plan(self, plan_id: str) -> bool:
+    def delete_plan(self, plan_id: str, **kw) -> bool:
         """删除计划 (仅 DRAFT/COMPLETED/FAILED/CANCELLED 状态可删除)。"""
         with self._plan_lock:
             plan = self._plans.get(plan_id)
@@ -435,7 +453,7 @@ class TaskPlanner:
         logger.debug(f"Added task: {task.id} '{name}' to plan {plan_id}")
         return task
 
-    def remove_task(self, plan_id: str, task_id: str) -> bool:
+    def remove_task(self, plan_id: str, task_id: str, **kw) -> bool:
         """从计划中移除任务。"""
         plan = self.get_plan(plan_id)
         if plan is None:
@@ -764,7 +782,7 @@ class TaskPlanner:
 
     # ── 进度跟踪 ───────────────────────────────────────────
 
-    def get_progress(self, plan_id: str) -> Dict[str, Any]:
+    def get_progress(self, plan_id: str, **kw) -> Dict[str, Any]:
         """获取计划执行进度。
 
         Returns:
@@ -794,7 +812,7 @@ class TaskPlanner:
             "total_estimate_seconds": round(plan.total_estimate_seconds, 2),
         }
 
-    def get_time_estimates(self, plan_id: str) -> Dict[str, Any]:
+    def get_time_estimates(self, plan_id: str, **kw) -> Dict[str, Any]:
         """获取预估 vs 实际时间比较。
 
         Returns:
@@ -825,7 +843,7 @@ class TaskPlanner:
 
     # ── 验证 ───────────────────────────────────────────────
 
-    def validate_plan(self, plan_id: str) -> Tuple[bool, str]:
+    def validate_plan(self, plan_id: str, **kw) -> Tuple[bool, str]:
         """验证计划 DAG 完整性。
 
         Returns:
@@ -847,7 +865,7 @@ class TaskPlanner:
 
     # ── 统计 ───────────────────────────────────────────────
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, **kw) -> Dict[str, Any]:
         """获取规划器统计信息。"""
         with self._stats_lock:
             active_plans = sum(

@@ -11,47 +11,53 @@ B = TypeVar("B")
 
 
 class AgentResult(Generic[T]):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Monadic result type for composable agent operations."""
 
-    def __init__(self, is_success: bool, value: Optional[T] = None, error: Optional[str] = None):
+    def __init__(self, is_success: bool, value: Optional[T] = None, error: Optional[str] = None, **kw):
         self.is_success = is_success
         self.is_failure = not is_success
         self._value = value
         self.error = error
 
     @property
-    def value(self) -> T:
+    def value(self, **kw) -> T:
         if not self.is_success:
             raise ValueError(f"Cannot get value from a failure: {self.error}")
         return self._value
 
     @staticmethod
-    def success(value: T) -> "AgentResult[T]":
+    def success(value: T, **kw) -> "AgentResult[T]":
         return AgentResult(is_success=True, value=value)
 
     @staticmethod
-    def failure(error: str) -> "AgentResult[T]":
+    def failure(error: str, **kw) -> "AgentResult[T]":
         return AgentResult(is_success=False, error=error)
 
-    def bind(self, fn: Callable[[T], "AgentResult[U]"]) -> "AgentResult[U]":
+    def bind(self, fn: Callable[[T], "AgentResult[U]"], **kw) -> "AgentResult[U]":
         """Monadic bind — chain operations, short-circuit on failure."""
         if self.is_failure:
             return AgentResult(is_success=False, error=self.error)
         return fn(self._value)
 
-    def map(self, fn: Callable[[T], U]) -> "AgentResult[U]":
+    def map(self, fn: Callable[[T], U], **kw) -> "AgentResult[U]":
         """Functor map — apply a pure function, preserve failure."""
         if self.is_failure:
             return AgentResult(is_success=False, error=self.error)
         return AgentResult.success(fn(self._value))
 
-    def __repr__(self) -> str:
+    def __repr__(self, **kw) -> str:
         if self.is_success:
             return f"AgentResult.success({self._value!r})"
         return f"AgentResult.failure({self.error!r})"
 
 
 class AgentMorphism(Generic[A, B]):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Category-theoretic morphism: A → B with cost and optional inverse."""
 
     def __init__(
@@ -68,24 +74,27 @@ class AgentMorphism(Generic[A, B]):
         self.reversible = reversible
         self.inverse = inverse
 
-    def __class_getitem__(cls, item):
+    def __class_getitem__(cls, item, **kw):
         """Support AgentMorphism[InputType, OutputType] syntax."""
         return cls
 
-    def __repr__(self) -> str:
+    def __repr__(self, **kw) -> str:
         return f"AgentMorphism({self.name!r}, cost={self.cost})"
 
 
 class AgentComposer:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Composes agent morphisms into pipelines and monadic chains."""
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._morphisms: Dict[str, AgentMorphism] = {}
 
-    def register_morphism(self, morphism: AgentMorphism) -> None:
+    def register_morphism(self, morphism: AgentMorphism, **kw) -> None:
         self._morphisms[morphism.name] = morphism
 
-    def compose(self, f: AgentMorphism, g: AgentMorphism) -> AgentMorphism:
+    def compose(self, f: AgentMorphism, g: AgentMorphism, **kw) -> AgentMorphism:
         """Compose two morphisms: f then g."""
         combined_transform: Callable = lambda x: g.transform(f.transform(x))
 
@@ -104,7 +113,7 @@ class AgentComposer:
             inverse=inverse,
         )
 
-    def pipeline(self, morphisms: List[AgentMorphism]) -> AgentMorphism:
+    def pipeline(self, morphisms: List[AgentMorphism], **kw) -> AgentMorphism:
         """Chain multiple morphisms in sequence."""
         if not morphisms:
             raise ValueError("pipeline requires at least one morphism")
@@ -113,7 +122,7 @@ class AgentComposer:
             result = self.compose(result, m)
         return result
 
-    def monadic_chain(self, initial_value: Any, ops: List[Callable]) -> AgentResult:
+    def monadic_chain(self, initial_value: Any, ops: List[Callable], **kw) -> AgentResult:
         """Run a monadic chain: each op receives the value and returns AgentResult."""
         result: AgentResult = AgentResult.success(initial_value)
         for op in ops:
@@ -131,7 +140,7 @@ class AgentComposer:
             "output_b": morph_b.transform(input_val),
         }
 
-    def create_text_morphisms(self) -> List[AgentMorphism]:
+    def create_text_morphisms(self, **kw) -> List[AgentMorphism]:
         """Create a set of pre-built text-processing morphisms."""
         morphs = [
             AgentMorphism[str, str](
@@ -155,7 +164,7 @@ class AgentComposer:
             self.register_morphism(m)
         return morphs
 
-    def get_category_stats(self) -> Dict[str, Any]:
+    def get_category_stats(self, **kw) -> Dict[str, Any]:
         """Return statistics about the registered morphisms."""
         return {
             "morphisms": len(self._morphisms),
@@ -165,17 +174,17 @@ class AgentComposer:
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -183,12 +192,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

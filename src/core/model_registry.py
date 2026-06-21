@@ -45,6 +45,9 @@ logger = logging.getLogger("meshctx.model_registry")
 # ═══════════════════════════════════════════════════════════
 
 class ModelStage(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """模型部署阶段"""
     EXPERIMENTAL = "experimental"     # 实验阶段
     STAGING = "staging"               # 预发布
@@ -54,6 +57,9 @@ class ModelStage(str, Enum):
 
 
 class ModelTask(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """模型任务类型"""
     CHAT = "chat"                     # 对话
     COMPLETION = "completion"         # 文本补全
@@ -68,6 +74,9 @@ class ModelTask(str, Enum):
 
 
 class ModelFramework(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """模型框架"""
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
@@ -84,6 +93,9 @@ class ModelFramework(str, Enum):
 
 @dataclass
 class ModelPricing:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """模型定价"""
     input_price_per_1m: float = 0.0      # 每百万输入 token 价格
     output_price_per_1m: float = 0.0     # 每百万输出 token 价格
@@ -92,6 +104,9 @@ class ModelPricing:
 
 @dataclass
 class ModelBenchmark:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """模型基准测试"""
     benchmark_name: str
     score: float
@@ -102,6 +117,9 @@ class ModelBenchmark:
 
 @dataclass
 class ModelCapability:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """模型能力描述"""
     name: str
     description: str = ""
@@ -111,6 +129,9 @@ class ModelCapability:
 
 @dataclass
 class ModelVersion:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """模型版本"""
     version_id: str                  # e.g. "gpt-4o-2024-08-06"
     model_name: str                  # 所属模型名
@@ -131,6 +152,9 @@ class ModelVersion:
 
 @dataclass
 class ModelEntry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """模型条目 (模型族)"""
     name: str                        # 模型名, e.g. "gpt-4o"
     provider: str                    # 提供商
@@ -143,20 +167,20 @@ class ModelEntry:
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
 
-    def latest_version(self) -> Optional[ModelVersion]:
+    def latest_version(self, **kw) -> Optional[ModelVersion]:
         """获取最新版本"""
         if not self.versions:
             return None
         return max(self.versions.values(), key=lambda v: v.created_at)
 
-    def production_version(self) -> Optional[ModelVersion]:
+    def production_version(self, **kw) -> Optional[ModelVersion]:
         """获取生产版本"""
         for v in sorted(self.versions.values(), key=lambda x: x.created_at, reverse=True):
             if v.stage == ModelStage.PRODUCTION:
                 return v
         return None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "name": self.name,
             "provider": self.provider,
@@ -175,7 +199,7 @@ class ModelEntry:
             "production_version": self.production_version().version_id if self.production_version() else None,
         }
 
-    def _version_capabilities(self, v: ModelVersion) -> List[str]:
+    def _version_capabilities(self, v: ModelVersion, **kw) -> List[str]:
         caps = []
         if v.supports_streaming: caps.append("streaming")
         if v.supports_function_calling: caps.append("function_calling")
@@ -189,6 +213,9 @@ class ModelEntry:
 # ═══════════════════════════════════════════════════════════
 
 class ModelRegistry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     def clean_unconfigured(self): return {"removed": 0, "kept": []}
     """模型注册表
 
@@ -196,7 +223,7 @@ class ModelRegistry:
     支持多维度搜索、版本管理和生产就绪检查。
     """
 
-    def __init__(self, storage_path: str = ""):
+    def __init__(self, storage_path: str = "", **kw):
         self._models: Dict[str, ModelEntry] = {}
         self._index_by_provider: Dict[str, Set[str]] = {}  # provider → {model_name}
         self._index_by_task: Dict[str, Set[str]] = {}      # task → {model_name}
@@ -332,7 +359,7 @@ class ModelRegistry:
         self._save_to_disk()
         return True
 
-    def deprecate_model(self, name: str, reason: str = "") -> bool:
+    def deprecate_model(self, name: str, reason: str = "", **kw) -> bool:
         """弃用整个模型"""
         with self._lock:
             entry = self._models.get(name)
@@ -348,7 +375,7 @@ class ModelRegistry:
         self._save_to_disk()
         return True
 
-    def archive_model(self, name: str) -> bool:
+    def archive_model(self, name: str, **kw) -> bool:
         """归档模型"""
         with self._lock:
             entry = self._models.get(name)
@@ -363,12 +390,12 @@ class ModelRegistry:
 
     # ── 模型查询 ────────────────────────────────────────────
 
-    def get_model(self, name: str) -> Optional[ModelEntry]:
+    def get_model(self, name: str, **kw) -> Optional[ModelEntry]:
         """获取模型条目"""
         with self._lock:
             return self._models.get(name)
 
-    def get_version(self, model_name: str, version_id: str = None) -> Optional[ModelVersion]:
+    def get_version(self, model_name: str, version_id: str = None, **kw) -> Optional[ModelVersion]:
         """获取模型版本
 
         Args:
@@ -437,11 +464,11 @@ class ModelRegistry:
 
             return sorted(results, key=lambda e: e.name)
 
-    def list_all(self):
+    def list_all(self, **kw):
         """兼容别名: 返回所有模型名 -> ModelEntry 的映射"""
         return self.list_models()
 
-    def list_all_versions(self, model_name: str) -> List[ModelVersion]:
+    def list_all_versions(self, model_name: str, **kw) -> List[ModelVersion]:
         """列出模型的所有版本"""
         entry = self.get_model(model_name)
         if not entry:
@@ -452,7 +479,7 @@ class ModelRegistry:
             reverse=True,
         )
 
-    def search_models(self, query: str) -> List[ModelEntry]:
+    def search_models(self, query: str, **kw) -> List[ModelEntry]:
         """模糊搜索模型"""
         query_lower = query.lower()
         with self._lock:
@@ -465,7 +492,7 @@ class ModelRegistry:
                     results.append(entry)
             return results
 
-    def get_models_for_task(self, task: str, min_context: int = 0) -> List[Dict[str, Any]]:
+    def get_models_for_task(self, task: str, min_context: int = 0, **kw) -> List[Dict[str, Any]]:
         """获取适合特定任务的模型 (含容量筛选)"""
         models = self.list_models(task=task)
         result = []
@@ -489,7 +516,7 @@ class ModelRegistry:
 
     # ── 能力矩阵 ────────────────────────────────────────────
 
-    def get_capability_matrix(self) -> Dict[str, List[str]]:
+    def get_capability_matrix(self, **kw) -> Dict[str, List[str]]:
         """获取能力矩阵 (哪些模型支持哪些能力)"""
         matrix = {}
         with self._lock:
@@ -512,7 +539,7 @@ class ModelRegistry:
 
     # ── 统计 ────────────────────────────────────────────────
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, **kw) -> Dict[str, Any]:
         """获取注册表统计"""
         with self._lock:
             total_versions = sum(
@@ -537,7 +564,7 @@ class ModelRegistry:
 
     # ── 持久化 ──────────────────────────────────────────────
 
-    def _save_to_disk(self) -> None:
+    def _save_to_disk(self, **kw) -> None:
         try:
             os.makedirs(os.path.dirname(self._storage_path), exist_ok=True)
             with self._lock:
@@ -584,7 +611,7 @@ class ModelRegistry:
         except Exception as e:
             logger.error(f"Failed to save model registry: {e}")
 
-    def _load_from_disk(self) -> None:
+    def _load_from_disk(self, **kw) -> None:
         if not os.path.exists(self._storage_path):
             return
         try:

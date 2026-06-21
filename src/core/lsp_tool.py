@@ -138,6 +138,9 @@ def _parse_message(data: bytes) -> Optional[Tuple[Optional[Dict], int]]:
 
 @dataclass
 class LSPClient:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Manages a single LSP server process and its JSON-RPC communication."""
 
     language: str
@@ -157,7 +160,7 @@ class LSPClient:
     _buffer: bytes = field(default=b"", init=False)
     _open_files: set = field(default_factory=set, init=False)
 
-    def start(self) -> bool:
+    def start(self, **kw) -> bool:
         """Spawn the LSP server and perform initialize handshake."""
         if self._running:
             logger.warning(f"LSP server for {self.language} already running")
@@ -230,7 +233,7 @@ class LSPClient:
         logger.info(f"LSP server for {self.language} initialized successfully")
         return True
 
-    def stop(self) -> None:
+    def stop(self, **kw) -> None:
         """Shutdown the LSP server gracefully."""
         if not self._running:
             return
@@ -268,7 +271,7 @@ class LSPClient:
         self._diagnostics.clear()
         logger.info(f"LSP server for {self.language} stopped")
 
-    def _ensure_open(self, file_path: str) -> None:
+    def _ensure_open(self, file_path: str, **kw) -> None:
         """Send textDocument/didOpen if not already sent for this file."""
         if file_path in self._open_files:
             return
@@ -294,12 +297,12 @@ class LSPClient:
         })
         self._open_files.add(file_path)
 
-    def _file_uri(self, file_path: str) -> str:
+    def _file_uri(self, file_path: str, **kw) -> str:
         return Path(os.path.abspath(file_path)).resolve().as_uri()
 
     # ── Public query API ──
 
-    def definition(self, file_path: str, line: int, col: int) -> List[Dict]:
+    def definition(self, file_path: str, line: int, col: int, **kw) -> List[Dict]:
         """Go-to-definition. Returns list of Location dicts."""
         self._ensure_open(file_path)
         result = self._call("textDocument/definition", {
@@ -308,7 +311,7 @@ class LSPClient:
         }, timeout=10.0)
         return _normalize_locations(result)
 
-    def references(self, file_path: str, line: int, col: int) -> List[Dict]:
+    def references(self, file_path: str, line: int, col: int, **kw) -> List[Dict]:
         """Find references. Returns list of Location dicts."""
         self._ensure_open(file_path)
         result = self._call("textDocument/references", {
@@ -318,7 +321,7 @@ class LSPClient:
         }, timeout=10.0)
         return _normalize_locations(result)
 
-    def hover(self, file_path: str, line: int, col: int) -> Optional[str]:
+    def hover(self, file_path: str, line: int, col: int, **kw) -> Optional[str]:
         """Hover info. Returns markdown/plaintext string or None."""
         self._ensure_open(file_path)
         result = self._call("textDocument/hover", {
@@ -352,7 +355,7 @@ class LSPClient:
 
         return str(contents)
 
-    def diagnostics(self, file_path: str) -> List[Dict]:
+    def diagnostics(self, file_path: str, **kw) -> List[Dict]:
         """Get diagnostics (errors/warnings) for a file.
         Returns cached diagnostics from publishDiagnostics notifications.
         """
@@ -361,12 +364,12 @@ class LSPClient:
 
     # ── Internal communication ──
 
-    def _next_id(self) -> int:
+    def _next_id(self, **kw) -> int:
         with self._lock:
             self._request_id += 1
             return self._request_id
 
-    def _call(self, method: str, params: Any, timeout: float = 10.0) -> Optional[Any]:
+    def _call(self, method: str, params: Any, timeout: float = 10.0, **kw) -> Optional[Any]:
         """Send a JSON-RPC request and wait for the response."""
         if not self._running or self.process is None or self.process.stdin is None:
             logger.warning(f"Cannot call {method}: server not running")
@@ -408,7 +411,7 @@ class LSPClient:
                 self._pending.pop(req_id, None)
                 self._responses.pop(req_id, None)
 
-    def _notify(self, method: str, params: Any) -> None:
+    def _notify(self, method: str, params: Any, **kw) -> None:
         """Send a JSON-RPC notification (no response expected)."""
         if not self._running or self.process is None or self.process.stdin is None:
             return
@@ -420,7 +423,7 @@ class LSPClient:
         except (BrokenPipeError, OSError) as e:
             logger.warning(f"Notify {method} failed: {e}")
 
-    def _reader_loop(self) -> None:
+    def _reader_loop(self, **kw) -> None:
         """Background thread that reads JSON-RPC messages from the server stdout."""
         assert self.process and self.process.stdout
         while self._running:
@@ -463,7 +466,7 @@ class LSPClient:
                 self._running = False
                 break
 
-    def _handle_message(self, msg: Dict) -> None:
+    def _handle_message(self, msg: Dict, **kw) -> None:
         """Dispatch a received JSON-RPC message."""
         if "method" in msg:
             # Server → client notification or request
@@ -511,7 +514,7 @@ class LSPClient:
                 if event:
                     event.set()
 
-    def _notify_cancel(self, req_id: Any) -> None:
+    def _notify_cancel(self, req_id: Any, **kw) -> None:
         """Respond to an unsupported server request."""
         resp_body = json.dumps({
             "jsonrpc": "2.0",

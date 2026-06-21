@@ -5,6 +5,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 
 class HAEntity:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Represents a Home Assistant entity."""
 
     entity_id: str
@@ -23,7 +26,7 @@ class HAEntity:
         self.attributes = attributes or {}
         self.domain = entity_id.split(".")[0] if "." in entity_id else ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "entity_id": self.entity_id,
             "state": self.state,
@@ -33,6 +36,9 @@ class HAEntity:
 
 
 class HAService:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Represents a Home Assistant service."""
 
     domain: str
@@ -53,10 +59,10 @@ class HAService:
         self.fields = fields or {}
 
     @property
-    def full_name(self) -> str:
+    def full_name(self, **kw) -> str:
         return f"{self.domain}.{self.service}"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "domain": self.domain,
             "service": self.service,
@@ -67,6 +73,9 @@ class HAService:
 
 
 class HABridge:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Bridge to Home Assistant — manages entities, states, and services.
 
     This is a local mock bridge for testing. In production it would connect
@@ -78,14 +87,14 @@ class HABridge:
     _connected: bool
     _config: Dict[str, Any]
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: Optional[Dict[str, Any]] = None, **kw) -> None:
         self._config = config or {}
         self._entities: Dict[str, HAEntity] = {}
         self._services: Dict[str, HAService] = {}
         self._connected = False
         self._seed_defaults()
 
-    def _seed_defaults(self) -> None:
+    def _seed_defaults(self, **kw) -> None:
         """Seed with default entities and services for testing."""
         defaults = [
             HAEntity("light.living_room", "on", {"brightness": 128}),
@@ -109,21 +118,21 @@ class HABridge:
 
     # ── Connection ──
 
-    def connect(self, url: str = "", token: str = "") -> bool:
+    def connect(self, url: str = "", token: str = "", **kw) -> bool:
         """Connect to Home Assistant (mock)."""
         self._connected = True
         return True
 
-    def disconnect(self) -> None:
+    def disconnect(self, **kw) -> None:
         self._connected = False
 
     @property
-    def is_connected(self) -> bool:
+    def is_connected(self, **kw) -> bool:
         return self._connected
 
     # ── Entity methods ──
 
-    def list_entities(self, domain: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_entities(self, domain: Optional[str] = None, **kw) -> List[Dict[str, Any]]:
         """List all entities, optionally filtered by domain.
 
         (This maps to the ha_list_entities tool in AGENTS.md)
@@ -134,7 +143,7 @@ class HABridge:
                 result.append(e.to_dict())
         return result
 
-    def get_state(self, entity_id: str) -> Optional[Dict[str, Any]]:
+    def get_state(self, entity_id: str, **kw) -> Optional[Dict[str, Any]]:
         """Get the current state of an entity.
 
         (This maps to the ha_get_state tool in AGENTS.md)
@@ -144,7 +153,7 @@ class HABridge:
             return None
         return {"entity_id": e.entity_id, "state": e.state, "attributes": e.attributes}
 
-    def set_state(self, entity_id: str, state: str) -> bool:
+    def set_state(self, entity_id: str, state: str, **kw) -> bool:
         """Set the state of an entity (for testing)."""
         e = self._entities.get(entity_id)
         if e is None:
@@ -154,7 +163,7 @@ class HABridge:
 
     # ── Service methods ──
 
-    def list_services(self, domain: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_services(self, domain: Optional[str] = None, **kw) -> List[Dict[str, Any]]:
         """List all services, optionally filtered by domain.
 
         (This maps to the ha_list_services tool in AGENTS.md)
@@ -197,7 +206,7 @@ class HABridge:
 
     # ── Stats ──
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, **kw) -> Dict[str, Any]:
         """Return bridge statistics."""
         return {
             "total_entities": len(self._entities),
@@ -223,17 +232,17 @@ def get_ha_bridge() -> HABridge:
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -241,12 +250,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

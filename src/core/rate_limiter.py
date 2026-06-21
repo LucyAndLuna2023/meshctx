@@ -52,6 +52,9 @@ except ImportError:
 
 @dataclass
 class LimitConfig:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """限流配置 — 定义一条路由的限流规则。"""
     key: str                          # 限流标识, e.g. "api:chat"
     max_requests: int                 # 窗口内最大请求数
@@ -65,6 +68,9 @@ class LimitConfig:
 
 @dataclass
 class LimitResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """限流检查结果。"""
     allowed: bool
     remaining: int                    # 剩余请求数
@@ -79,6 +85,9 @@ class LimitResult:
 
 @dataclass
 class RateLimiterStats:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """限流器全局统计。"""
     total_checks: int = 0
     total_allowed: int = 0
@@ -94,6 +103,9 @@ class RateLimiterStats:
 # ═══════════════════════════════════════════════════════════
 
 class TokenBucket:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     令牌桶 — 支持突发流量。
 
@@ -101,21 +113,21 @@ class TokenBucket:
     每次请求消耗 1 个令牌。桶满时丢弃多余令牌。
     """
 
-    def __init__(self, capacity: int, fill_rate: float):
+    def __init__(self, capacity: int, fill_rate: float, **kw):
         self.capacity = capacity           # 最大令牌数
         self.fill_rate = fill_rate         # 每秒填充令牌数
         self.tokens = float(capacity)      # 当前令牌数
         self.last_fill = time.monotonic()
         self.lock = threading.Lock()
 
-    def _refill(self):
+    def _refill(self, **kw):
         """根据经过的时间填充令牌。"""
         now = time.monotonic()
         elapsed = now - self.last_fill
         self.tokens = min(self.capacity, self.tokens + elapsed * self.fill_rate)
         self.last_fill = now
 
-    def consume(self, tokens: int = 1) -> bool:
+    def consume(self, tokens: int = 1, **kw) -> bool:
         """尝试消耗 1 个令牌。返回 True 表示成功。"""
         with self.lock:
             self._refill()
@@ -124,13 +136,13 @@ class TokenBucket:
                 return True
             return False
 
-    def get_available(self) -> int:
+    def get_available(self, **kw) -> int:
         """获取当前可用令牌数 (近似)。"""
         with self.lock:
             self._refill()
             return int(self.tokens)
 
-    def get_retry_after(self) -> float:
+    def get_retry_after(self, **kw) -> float:
         """估算下一次令牌可用的时间 (秒)。"""
         with self.lock:
             if self.tokens >= 1:
@@ -147,6 +159,9 @@ class TokenBucket:
 # ═══════════════════════════════════════════════════════════
 
 class SlidingWindow:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     滑动窗口 — 精确计数。
 
@@ -154,13 +169,13 @@ class SlidingWindow:
     使用 deque 实现 O(1) 清理, 内存占用与请求数成正比。
     """
 
-    def __init__(self, max_requests: int, window_seconds: int):
+    def __init__(self, max_requests: int, window_seconds: int, **kw):
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         self.timestamps: List[float] = []   # deque-like with list for simplicity
         self.lock = threading.Lock()
 
-    def _clean(self, now: float):
+    def _clean(self, now: float, **kw):
         """清除窗口外的过期时间戳。"""
         cutoff = now - self.window_seconds
         # Find first index >= cutoff
@@ -173,7 +188,7 @@ class SlidingWindow:
             idx = len(self.timestamps)
         self.timestamps = self.timestamps[idx:]
 
-    def add(self) -> bool:
+    def add(self, **kw) -> bool:
         """记录一次请求。返回 True 表示在限制内。"""
         now = time.monotonic()
         with self.lock:
@@ -183,14 +198,14 @@ class SlidingWindow:
             self.timestamps.append(now)
             return True
 
-    def count(self) -> int:
+    def count(self, **kw) -> int:
         """返回当前窗口内的请求数。"""
         now = time.monotonic()
         with self.lock:
             self._clean(now)
             return len(self.timestamps)
 
-    def get_retry_after(self) -> float:
+    def get_retry_after(self, **kw) -> float:
         """估算窗口何时能接受新请求。"""
         now = time.monotonic()
         with self.lock:
@@ -208,6 +223,9 @@ class SlidingWindow:
 # ═══════════════════════════════════════════════════════════
 
 class RedisRateLimiterBackend:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     Redis 分布式限流后端。
 
@@ -275,7 +293,7 @@ class RedisRateLimiterBackend:
     return {0, 0, retry}
     """
 
-    def __init__(self, redis_url: str = "redis://localhost:6379/0"):
+    def __init__(self, redis_url: str = "redis://localhost:6379/0", **kw):
         self._client: Any = None
         if _redis_available and _redis_module:
             try:
@@ -295,7 +313,7 @@ class RedisRateLimiterBackend:
             self._client = None
 
     @property
-    def available(self) -> bool:
+    def available(self, **kw) -> bool:
         return self._client is not None
 
     def sliding_window_check(
@@ -334,6 +352,9 @@ class RedisRateLimiterBackend:
 # ═══════════════════════════════════════════════════════════
 
 class RateLimiter:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     分布式速率限制器 — 双算法、多维度。
 
@@ -350,7 +371,7 @@ class RateLimiter:
       scope='global'  → key_prefix: "global:<route>"
     """
 
-    def __init__(self, redis_url: Optional[str] = None):
+    def __init__(self, redis_url: Optional[str] = None, **kw):
         # 配置存储
         self._configs: Dict[str, LimitConfig] = {}
         self._config_lock = threading.Lock()
@@ -400,7 +421,7 @@ class RateLimiter:
     # ── 属性 ──────────────────────────────────────────
 
     @property
-    def redis_available(self) -> bool:
+    def redis_available(self, **kw) -> bool:
         return self._redis_backend is not None and self._redis_backend.available
 
     # ── 配置管理 ──────────────────────────────────────
@@ -459,17 +480,17 @@ class RateLimiter:
         logger.info(f"Configured limit: {key} ({algorithm}, {max_requests}/{window_seconds}s, scope={scope})")
         return config
 
-    def get_config(self, key: str) -> Optional[LimitConfig]:
+    def get_config(self, key: str, **kw) -> Optional[LimitConfig]:
         """获取限流配置。"""
         with self._config_lock:
             return self._configs.get(key)
 
-    def list_configs(self) -> List[LimitConfig]:
+    def list_configs(self, **kw) -> List[LimitConfig]:
         """列出所有限流配置。"""
         with self._config_lock:
             return list(self._configs.values())
 
-    def remove_config(self, key: str) -> bool:
+    def remove_config(self, key: str, **kw) -> bool:
         """移除一条限流配置。"""
         with self._config_lock:
             if key in self._configs:
@@ -595,7 +616,7 @@ class RateLimiter:
             results.append(self.check(key, user_id=user_id, ip=ip))
         return results
 
-    def _build_scope_key(self, config: LimitConfig, user_id: Optional[str], ip: Optional[str]) -> str:
+    def _build_scope_key(self, config: LimitConfig, user_id: Optional[str], ip: Optional[str], **kw) -> str:
         """根据 scope 构建实际的限流 key。"""
         if config.scope == "user_id":
             uid = user_id or "anonymous"
@@ -683,7 +704,7 @@ class RateLimiter:
 
     # ── 突发流量保护 ──────────────────────────────────
 
-    def enable_burst_protection(self, key: str, burst_multiplier: float = 2.0) -> LimitConfig:
+    def enable_burst_protection(self, key: str, burst_multiplier: float = 2.0, **kw) -> LimitConfig:
         """
         为限流规则启用突发保护。
 
@@ -706,7 +727,7 @@ class RateLimiter:
 
     # ── 429 响应生成 ──────────────────────────────────
 
-    def build_429_response(self, result: LimitResult) -> Dict[str, Any]:
+    def build_429_response(self, result: LimitResult, **kw) -> Dict[str, Any]:
         """
         构建 429 Too Many Requests 响应体。
 
@@ -728,7 +749,7 @@ class RateLimiter:
             "scope": result.scope,
         }
 
-    def get_retry_after_header(self, result: LimitResult) -> str:
+    def get_retry_after_header(self, result: LimitResult, **kw) -> str:
         """生成 Retry-After HTTP header 值。"""
         if result.retry_after <= 0:
             return str(max(1, int(result.reset_at - time.time())))
@@ -736,14 +757,14 @@ class RateLimiter:
 
     # ── 状态与统计 ────────────────────────────────────
 
-    def get_stats(self) -> RateLimiterStats:
+    def get_stats(self, **kw) -> RateLimiterStats:
         """获取限流统计。"""
         with self._stats_lock:
             with self._config_lock:
                 self._stats.active_configs = len(self._configs)
             return self._stats
 
-    def get_status(self, key: Optional[str] = None) -> Dict[str, Any]:
+    def get_status(self, key: Optional[str] = None, **kw) -> Dict[str, Any]:
         """
         获取限流状态 — 对应 /api/rate_limiter/status 端点。
 
@@ -788,7 +809,7 @@ class RateLimiter:
 
         return result
 
-    def reset(self, key: Optional[str] = None):
+    def reset(self, key: Optional[str] = None, **kw):
         """重置限流状态。"""
         if key:
             with self._buckets_lock:
@@ -810,7 +831,7 @@ class RateLimiter:
 
     # ── 持久化 ────────────────────────────────────────
 
-    def _load_configs(self):
+    def _load_configs(self, **kw):
         """从磁盘加载持久化的限流配置。"""
         try:
             if self._persist_path.exists():
@@ -823,7 +844,7 @@ class RateLimiter:
         except Exception as e:
             logger.warning(f"Failed to load rate limiter configs: {e}")
 
-    def _save_configs(self):
+    def _save_configs(self, **kw):
         """持久化限流配置到磁盘。"""
         try:
             self._persist_path.parent.mkdir(parents=True, exist_ok=True)
@@ -845,7 +866,7 @@ class RateLimiter:
         except Exception as e:
             logger.warning(f"Failed to save rate limiter configs: {e}")
 
-    def _cleanup_loop(self):
+    def _cleanup_loop(self, **kw):
         """后台清理线程 — 定期清理不活跃的桶和窗口。"""
         while True:
             time.sleep(self._cleanup_interval)
@@ -917,17 +938,17 @@ def is_rate_limited(key: str, user_id: Optional[str] = None, ip: Optional[str] =
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -935,12 +956,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

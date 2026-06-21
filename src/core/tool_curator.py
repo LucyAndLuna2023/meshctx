@@ -61,6 +61,9 @@ logger = logging.getLogger("meshctx.tool_curator")
 # ═══════════════════════════════════════════════════════════
 
 class ToolStatus(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     ACTIVE = "active"           # 正常可用
     DEPRECATED = "deprecated"   # 已弃用但保留
     DISABLED = "disabled"       # 已禁用
@@ -68,6 +71,9 @@ class ToolStatus(str, Enum):
 
 
 class Permission(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """标准权限"""
     FILESYSTEM_READ = "filesystem:read"
     FILESYSTEM_WRITE = "filesystem:write"
@@ -90,6 +96,9 @@ class Permission(str, Enum):
 
 @dataclass
 class ToolParameter:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """工具参数定义"""
     name: str
     param_type: str = "string"          # string, number, boolean, object, array
@@ -101,7 +110,7 @@ class ToolParameter:
     maximum: Optional[float] = None     # number 类型的最大值
     pattern: Optional[str] = None       # string 类型的正则模式
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         d = {"type": self.param_type, "description": self.description}
         if self.enum:
             d["enum"] = self.enum
@@ -118,6 +127,9 @@ class ToolParameter:
 
 @dataclass
 class ToolSchema:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """工具完整定义"""
     name: str
     description: str = ""
@@ -140,7 +152,7 @@ class ToolSchema:
     total_errors: int = 0
     avg_duration_ms: float = 0.0
 
-    def to_openai_function(self) -> Dict[str, Any]:
+    def to_openai_function(self, **kw) -> Dict[str, Any]:
         """转换为 OpenAI Function Calling 格式"""
         properties = {}
         required = []
@@ -162,7 +174,7 @@ class ToolSchema:
             },
         }
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "name": self.name,
             "description": self.description,
@@ -179,6 +191,9 @@ class ToolSchema:
 
 @dataclass
 class ToolRecommendation:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """工具推荐结果"""
     tool_name: str
     score: float                # 0.0-1.0 相关度评分
@@ -186,7 +201,7 @@ class ToolRecommendation:
     category: str = ""
     tags_matched: List[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "tool": self.tool_name,
             "score": round(self.score, 4),
@@ -198,6 +213,9 @@ class ToolRecommendation:
 
 @dataclass
 class ToolCallRecord:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """工具调用记录"""
     call_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     tool_name: str = ""
@@ -211,7 +229,7 @@ class ToolCallRecord:
     permission_checks: List[str] = field(default_factory=list)
     retry_count: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "call_id": self.call_id,
             "tool_name": self.tool_name,
@@ -227,6 +245,9 @@ class ToolCallRecord:
 # ═══════════════════════════════════════════════════════════
 
 class ToolCurator:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     工具策展引擎。
 
@@ -243,7 +264,7 @@ class ToolCurator:
       - get_call_history(tool_name) → List[ToolCallRecord]
     """
 
-    def __init__(self, max_history: int = 1000):
+    def __init__(self, max_history: int = 1000, **kw):
         self._tools: Dict[str, ToolSchema] = {}
         self._call_history: List[ToolCallRecord] = []
         self._max_history = max_history
@@ -256,7 +277,7 @@ class ToolCurator:
 
     # ── 工具注册 ──────────────────────────────────────────
 
-    def register(self, schema: ToolSchema) -> ToolSchema:
+    def register(self, schema: ToolSchema, **kw) -> ToolSchema:
         """
         注册工具。
 
@@ -282,7 +303,7 @@ class ToolCurator:
         self._index_tool(schema)
         return schema
 
-    def unregister(self, name: str) -> bool:
+    def unregister(self, name: str, **kw) -> bool:
         """注销工具"""
         if name in self._tools:
             del self._tools[name]
@@ -295,7 +316,7 @@ class ToolCurator:
             return True
         return False
 
-    def get(self, name: str) -> Optional[ToolSchema]:
+    def get(self, name: str, **kw) -> Optional[ToolSchema]:
         """获取工具定义"""
         return self._tools.get(name)
 
@@ -315,7 +336,7 @@ class ToolCurator:
             results = [t for t in results if t.status == status]
         return results
 
-    def set_status(self, name: str, status: ToolStatus) -> bool:
+    def set_status(self, name: str, status: ToolStatus, **kw) -> bool:
         """设置工具状态"""
         tool = self._tools.get(name)
         if tool:
@@ -325,7 +346,7 @@ class ToolCurator:
 
     # ── 搜索索引 ──────────────────────────────────────────
 
-    def _index_tool(self, schema: ToolSchema):
+    def _index_tool(self, schema: ToolSchema, **kw):
         """为工具建立关键词索引"""
         keywords = set()
 
@@ -359,7 +380,7 @@ class ToolCurator:
 
     # ── 工具搜索 ──────────────────────────────────────────
 
-    def search(self, query: str, limit: int = 10) -> List[ToolSchema]:
+    def search(self, query: str, limit: int = 10, **kw) -> List[ToolSchema]:
         """
         按关键词搜索工具。
 
@@ -610,16 +631,16 @@ class ToolCurator:
 
     # ── 权限控制 ──────────────────────────────────────────
 
-    def grant_permission(self, permission: str):
+    def grant_permission(self, permission: str, **kw):
         """授予权限"""
         self._granted_permissions.add(permission)
         logger.debug(f"Granted permission: {permission}")
 
-    def revoke_permission(self, permission: str):
+    def revoke_permission(self, permission: str, **kw):
         """撤销权限"""
         self._granted_permissions.discard(permission)
 
-    def has_permission(self, permission: str) -> bool:
+    def has_permission(self, permission: str, **kw) -> bool:
         """检查是否持有某权限"""
         if "*" in self._granted_permissions or "system:admin" in self._granted_permissions:
             return True
@@ -652,7 +673,7 @@ class ToolCurator:
 
         return True, None
 
-    def grant_default_permissions(self):
+    def grant_default_permissions(self, **kw):
         """授予安全的默认权限"""
         safe_perms = [
             Permission.FILESYSTEM_READ,
@@ -812,7 +833,7 @@ class ToolCurator:
 
     # ── 调用追踪 ──────────────────────────────────────────
 
-    def _add_to_history(self, record: ToolCallRecord):
+    def _add_to_history(self, record: ToolCallRecord, **kw):
         self._call_history.append(record)
         if len(self._call_history) > self._max_history:
             self._call_history = self._call_history[-self._max_history:]
@@ -843,7 +864,7 @@ class ToolCurator:
 
     # ── OpenAPI / Function Calling 转换 ───────────────────
 
-    def to_openai_functions(self, tool_names: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    def to_openai_functions(self, tool_names: Optional[List[str]] = None, **kw) -> List[Dict[str, Any]]:
         """
         将工具转换为 OpenAI Function Calling 格式。
 
@@ -889,7 +910,7 @@ class ToolCurator:
 
     # ── 统计 ──────────────────────────────────────────────
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, **kw) -> Dict[str, Any]:
         """获取统计信息"""
         recent = self._call_history[-100:] if self._call_history else []
         success_count = sum(1 for r in recent if r.success)
@@ -907,7 +928,7 @@ class ToolCurator:
             "categories": sorted(set(t.category for t in self._tools.values())),
         }
 
-    def get_tool_stats(self, tool_name: str) -> Optional[Dict[str, Any]]:
+    def get_tool_stats(self, tool_name: str, **kw) -> Optional[Dict[str, Any]]:
         """获取单个工具的统计"""
         tool = self._tools.get(tool_name)
         if tool is None:
@@ -922,7 +943,7 @@ class ToolCurator:
             "version": tool.version,
         }
 
-    def clear_history(self):
+    def clear_history(self, **kw):
         """清除调用历史"""
         self._call_history.clear()
 

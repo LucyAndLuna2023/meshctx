@@ -47,6 +47,9 @@ logger = logging.getLogger("meshctx.audit_logger")
 # ═══════════════════════════════════════════════════════════
 
 class AuditResult(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """审计结果"""
     SUCCESS = "success"
     FAILURE = "failure"
@@ -56,6 +59,9 @@ class AuditResult(str, Enum):
 
 
 class RetentionPolicy(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """保留策略"""
     DAYS_30 = "30d"
     DAYS_90 = "90d"
@@ -79,6 +85,9 @@ SENSITIVE_FIELDS = {
 
 @dataclass
 class AuditEvent:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """审计事件"""
     event_id: str
     timestamp: float
@@ -97,7 +106,7 @@ class AuditEvent:
     checksum: str = ""             # 内容校验和 (防篡改)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self, sanitize: bool = False) -> Dict[str, Any]:
+    def to_dict(self, sanitize: bool = False, **kw) -> Dict[str, Any]:
         """转为字典 (可选脱敏)"""
         d = {
             "event_id": self.event_id,
@@ -123,7 +132,7 @@ class AuditEvent:
             d["details"] = self.details
         return d
 
-    def _sanitize_details(self, details: Dict[str, Any]) -> Dict[str, Any]:
+    def _sanitize_details(self, details: Dict[str, Any], **kw) -> Dict[str, Any]:
         """脱敏处理"""
         sanitized = {}
         for k, v in details.items():
@@ -135,7 +144,7 @@ class AuditEvent:
                 sanitized[k] = v
         return sanitized
 
-    def compute_checksum(self) -> str:
+    def compute_checksum(self, **kw) -> str:
         """计算校验和"""
         content = json.dumps({
             "action": self.action,
@@ -146,7 +155,7 @@ class AuditEvent:
         }, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(content.encode()).hexdigest()
 
-    def verify(self) -> bool:
+    def verify(self, **kw) -> bool:
         """验证校验和"""
         return self.checksum == self.compute_checksum() if self.checksum else True
 
@@ -156,13 +165,16 @@ class AuditEvent:
 # ═══════════════════════════════════════════════════════════
 
 class AuditStorage:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """审计日志存储抽象"""
 
-    def __init__(self, storage_path: str):
+    def __init__(self, storage_path: str, **kw):
         self._storage_path = storage_path
         self._write_lock = threading.Lock()
 
-    def append(self, event: AuditEvent) -> bool:
+    def append(self, event: AuditEvent, **kw) -> bool:
         """追加事件"""
         try:
             os.makedirs(os.path.dirname(self._storage_path), exist_ok=True)
@@ -175,7 +187,7 @@ class AuditStorage:
             logger.error(f"Failed to write audit event: {e}")
             return False
 
-    def read_all(self) -> List[Dict[str, Any]]:
+    def read_all(self, **kw) -> List[Dict[str, Any]]:
         """读取所有事件"""
         if not os.path.exists(self._storage_path):
             return []
@@ -193,7 +205,7 @@ class AuditStorage:
             logger.error(f"Failed to read audit events: {e}")
         return events
 
-    def rotate(self, max_size_mb: float = 100.0) -> bool:
+    def rotate(self, max_size_mb: float = 100.0, **kw) -> bool:
         """日志轮转"""
         if not os.path.exists(self._storage_path):
             return False
@@ -209,7 +221,7 @@ class AuditStorage:
             logger.error(f"Log rotation failed: {e}")
         return False
 
-    def size_mb(self) -> float:
+    def size_mb(self, **kw) -> float:
         """获取日志文件大小 (MB)"""
         if not os.path.exists(self._storage_path):
             return 0.0
@@ -221,9 +233,12 @@ class AuditStorage:
 # ═══════════════════════════════════════════════════════════
 
 class AuditQuery:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """审计事件查询器"""
 
-    def __init__(self, storage: AuditStorage):
+    def __init__(self, storage: AuditStorage, **kw):
         self.storage = storage
 
     def query(
@@ -299,7 +314,7 @@ class AuditQuery:
         """获取指定资源的所有访问"""
         return self.query(resource=resource, limit=limit)
 
-    def get_recent_failures(self, limit: int = 20) -> List[Dict[str, Any]]:
+    def get_recent_failures(self, limit: int = 20, **kw) -> List[Dict[str, Any]]:
         """获取最近的失败事件"""
         return self.query(result=AuditResult.FAILURE, limit=limit)
 
@@ -335,12 +350,15 @@ class AuditQuery:
 # ═══════════════════════════════════════════════════════════
 
 class AuditLogger:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """审计日志主类
 
     提供完整的审计日志记录和查询 API。
     """
 
-    def __init__(self, storage_path: str = ""):
+    def __init__(self, storage_path: str = "", **kw):
         self._storage_path = storage_path or os.path.join(
             os.path.expanduser("~"), ".meshctx", "audit.log"
         )
@@ -420,7 +438,7 @@ class AuditLogger:
 
         return event
 
-    def log_batch(self, events: List[Dict[str, Any]]) -> int:
+    def log_batch(self, events: List[Dict[str, Any]], **kw) -> int:
         """批量记录审计事件
 
         Args:
@@ -535,7 +553,7 @@ class AuditLogger:
             offset=offset,
         )
 
-    def get_recent_failures(self, limit: int = 20) -> List[Dict[str, Any]]:
+    def get_recent_failures(self, limit: int = 20, **kw) -> List[Dict[str, Any]]:
         """获取最近失败事件"""
         return self.query_engine.get_recent_failures(limit)
 
@@ -545,7 +563,7 @@ class AuditLogger:
         """获取执行者活动"""
         return self.query_engine.get_actor_actions(actor, limit)
 
-    def get_daily_summary(self) -> Dict[str, Any]:
+    def get_daily_summary(self, **kw) -> Dict[str, Any]:
         """获取当日摘要"""
         now = time.time()
         day_start = now - (now % 86400)
@@ -578,20 +596,20 @@ class AuditLogger:
 
     # ── 管理 ────────────────────────────────────────────────
 
-    def set_retention_policy(self, policy: RetentionPolicy) -> None:
+    def set_retention_policy(self, policy: RetentionPolicy, **kw) -> None:
         """设置保留策略"""
         self._retention_policy = policy
         logger.info(f"Audit retention policy set to {policy.value}")
 
-    def get_log_size(self) -> float:
+    def get_log_size(self, **kw) -> float:
         """获取日志大小 (MB)"""
         return self.storage.size_mb()
 
-    def get_event_count(self) -> int:
+    def get_event_count(self, **kw) -> int:
         """获取事件总数"""
         return self.query_engine.count()
 
-    def rotate(self) -> bool:
+    def rotate(self, **kw) -> bool:
         """手动轮转日志"""
         return self.storage.rotate(self._max_log_size_mb)
 

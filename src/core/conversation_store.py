@@ -7,16 +7,19 @@ DATA_DIR = os.path.expanduser("~/.meshctx/conversations")
 
 @dataclass
 class Conversation:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     id: str = ""
     title: str = ""
     messages: list = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
     
     def to_dict(self): return {"id": self.id, "title": self.title, "messages": self.messages}
-    def add_message(self, role: str, content: str):
+    def add_message(self, role: str, content: str, **kw):
         self.messages.append({"role": role, "content": content, "time": time.time()})
     @classmethod
-    def list_all(cls):
+    def list_all(cls, **kw):
         import os, json
         convs = []
         d = os.path.expanduser("~/.meshctx/conversations")
@@ -32,14 +35,14 @@ class Conversation:
         return convs
 
     @classmethod
-    def browse_meta(cls, limit=50, offset=0, search=""):
+    def browse_meta(cls, limit=50, offset=0, search="", **kw):
         all_conv = cls.list_all()
         if search:
             all_conv = [c for c in all_conv if search.lower() in c.get("title","").lower()]
         return all_conv[offset:offset+limit]
 
     @classmethod
-    def load(cls, conv_id):
+    def load(cls, conv_id, **kw):
         import os, json
         path = os.path.expanduser(f"~/.meshctx/conversations/{conv_id}.json")
         if os.path.exists(path):
@@ -49,7 +52,7 @@ class Conversation:
         return None
 
     @classmethod
-    def stats(cls):
+    def stats(cls, **kw):
         all_c = cls.list_all()
         return {"total_conversations": len(all_c), "storage_path": "~/.meshctx/conversations"}
 

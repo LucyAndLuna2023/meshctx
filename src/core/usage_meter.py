@@ -44,6 +44,9 @@ logger = logging.getLogger("meshctx.usage_meter")
 # ═══════════════════════════════════════════════════════════
 
 class UsagePeriod(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """时间周期"""
     HOURLY = "hourly"
     DAILY = "daily"
@@ -53,6 +56,9 @@ class UsagePeriod(str, Enum):
 
 
 class UsageMetric(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """用量指标"""
     TOKENS_INPUT = "tokens_input"
     TOKENS_OUTPUT = "tokens_output"
@@ -87,6 +93,9 @@ DEFAULT_UNIT_COST = 0.0
 
 @dataclass
 class MeterEntry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """计量条目"""
     tenant: str
     metric: str
@@ -97,7 +106,7 @@ class MeterEntry:
     request_id: str = ""
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "tenant": self.tenant,
             "metric": self.metric,
@@ -111,6 +120,9 @@ class MeterEntry:
 
 @dataclass
 class QuotaRule:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """配额规则"""
     tenant: str
     metric: str
@@ -124,6 +136,9 @@ class QuotaRule:
 
 @dataclass
 class UsageWindow:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """时间窗口聚合"""
     start: float                     # 窗口起始时间戳
     end: float                       # 窗口结束时间戳
@@ -132,14 +147,14 @@ class UsageWindow:
     min_value: float = float("inf")
     max_value: float = 0.0
 
-    def add(self, value: float):
+    def add(self, value: float, **kw):
         self.total += value
         self.count += 1
         self.min_value = min(self.min_value, value)
         self.max_value = max(self.max_value, value)
 
     @property
-    def avg(self) -> float:
+    def avg(self, **kw) -> float:
         return self.total / max(1, self.count)
 
 
@@ -148,14 +163,17 @@ class UsageWindow:
 # ═══════════════════════════════════════════════════════════
 
 class UsageAggregator:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """用量聚合引擎"""
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._entries: List[MeterEntry] = []
         self._lock = threading.RLock()
         self._max_entries = 100000  # 最多保留 10 万条
 
-    def add(self, entry: MeterEntry) -> None:
+    def add(self, entry: MeterEntry, **kw) -> None:
         """添加计量条目"""
         with self._lock:
             self._entries.append(entry)
@@ -251,7 +269,7 @@ class UsageAggregator:
 
         return windows
 
-    def clear(self, before_time: float = None) -> int:
+    def clear(self, before_time: float = None, **kw) -> int:
         """清除旧条目"""
         if before_time is None:
             before_time = time.time()
@@ -269,9 +287,12 @@ class UsageAggregator:
 # ═══════════════════════════════════════════════════════════
 
 class CostCalculator:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """成本计算器"""
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._pricing = dict(KNOWN_UNIT_COSTS)
         self._lock = threading.RLock()
 
@@ -312,7 +333,7 @@ class CostCalculator:
         unit_cost = self.get_unit_cost(metric, provider, model)
         return usage_value * unit_cost
 
-    def calculate_total_cost(self, entries: List[MeterEntry]) -> float:
+    def calculate_total_cost(self, entries: List[MeterEntry], **kw) -> float:
         """计算总花费"""
         total = 0.0
         for entry in entries:
@@ -327,12 +348,15 @@ class CostCalculator:
 # ═══════════════════════════════════════════════════════════
 
 class UsageMeter:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """用量计量主类
 
     提供用量追踪、配额检查、成本计算和报告生成。
     """
 
-    def __init__(self, storage_path: str = ""):
+    def __init__(self, storage_path: str = "", **kw):
         self.aggregator = UsageAggregator()
         self.calculator = CostCalculator()
         self._quotas: Dict[str, QuotaRule] = {}
@@ -404,7 +428,7 @@ class UsageMeter:
         logger.debug(f"Usage recorded: {tenant}/{model}/{metric} +{value}")
         return entry
 
-    def record_batch(self, entries: List[Dict[str, Any]]) -> int:
+    def record_batch(self, entries: List[Dict[str, Any]], **kw) -> int:
         """批量记录用量"""
         count = 0
         for e in entries:
@@ -578,12 +602,12 @@ class UsageMeter:
         logger.info(f"Quota set: {key} = {limit} / {period.value}")
         return quota
 
-    def get_quota(self, tenant: str, metric: str, model: str = "") -> Optional[QuotaRule]:
+    def get_quota(self, tenant: str, metric: str, model: str = "", **kw) -> Optional[QuotaRule]:
         """获取配额"""
         key = f"{tenant}:{metric}:{model}"
         return self._quotas.get(key)
 
-    def check_quota(self, tenant: str, metric: str, model: str = "") -> Dict[str, Any]:
+    def check_quota(self, tenant: str, metric: str, model: str = "", **kw) -> Dict[str, Any]:
         """检查配额使用情况"""
         key = f"{tenant}:{metric}:{model}"
         quota = self._quotas.get(key)
@@ -608,7 +632,7 @@ class UsageMeter:
             "exceeded": current >= quota.limit,
         }
 
-    def list_quotas(self, tenant: str = None) -> List[Dict[str, Any]]:
+    def list_quotas(self, tenant: str = None, **kw) -> List[Dict[str, Any]]:
         """列出配额"""
         quotas = []
         for key, q in self._quotas.items():
@@ -626,7 +650,7 @@ class UsageMeter:
 
     # ── 统计 ────────────────────────────────────────────────
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, **kw) -> Dict[str, Any]:
         """获取统计"""
         tenants = set()
         total_entries = 0
@@ -641,14 +665,14 @@ class UsageMeter:
             "tenants": sorted(tenants),
         }
 
-    def clear_old_data(self, days: int = 90) -> int:
+    def clear_old_data(self, days: int = 90, **kw) -> int:
         """清除旧数据 (默认 90 天)"""
         before = time.time() - days * 86400
         return self.aggregator.clear(before_time=before)
 
     # ── 持久化 ──────────────────────────────────────────────
 
-    def _save_to_disk(self) -> None:
+    def _save_to_disk(self, **kw) -> None:
         """持久化配额 (用量数据仅内存)"""
         try:
             os.makedirs(os.path.dirname(self._storage_path), exist_ok=True)
@@ -673,7 +697,7 @@ class UsageMeter:
         except Exception as e:
             logger.error(f"Failed to save usage meter: {e}")
 
-    def _load_from_disk(self) -> None:
+    def _load_from_disk(self, **kw) -> None:
         if not os.path.exists(self._storage_path):
             return
         try:

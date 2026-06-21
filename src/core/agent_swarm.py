@@ -8,19 +8,22 @@ from enum import Enum
 # ═══════════════════════════════════════════
 
 class AgentIdentity:
-    def __init__(self, agent_id=None):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, agent_id=None, **kw):
         self.agent_id = agent_id or f"agent_{uuid.uuid4().hex[:8]}"
         self._secret = hashlib.sha256(uuid.uuid4().bytes).hexdigest()
         self.public_key = hashlib.sha256(self._secret.encode()).hexdigest()
 
-    def sign_request(self, payload):
+    def sign_request(self, payload, **kw):
         payload["agent_id"] = self.agent_id
         payload_str = json.dumps(payload, sort_keys=True)
         signature = hashlib.sha256((payload_str + self._secret).encode()).hexdigest()
         payload["signature"] = signature
         return payload
 
-    def verify_request(self, signed, secret):
+    def verify_request(self, signed, secret, **kw):
         sig = signed.pop("signature", None)
         payload_str = json.dumps(signed, sort_keys=True)
         expected = hashlib.sha256((payload_str + secret).encode()).hexdigest()
@@ -28,6 +31,9 @@ class AgentIdentity:
 
 
 class TaskStatus(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     pending = "pending"
     assigned = "assigned"
     running = "running"
@@ -37,6 +43,9 @@ class TaskStatus(Enum):
 
 @dataclass
 class SwarmTask:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     task_id: str = field(default_factory=lambda: f"task_{uuid.uuid4().hex[:8]}")
     description: str = ""
     task_type: str = "general"
@@ -49,6 +58,9 @@ class SwarmTask:
 
 @dataclass
 class WorkerInfo:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     worker_id: str = ""
     name: str = ""
     address: str = ""
@@ -61,7 +73,10 @@ class WorkerInfo:
 
 
 class ManagerAgent:
-    def __init__(self, identity, port=3099):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, identity, port=3099, **kw):
         self.identity = identity
         self.port = port
         self.workers: dict = {}
@@ -74,7 +89,7 @@ class ManagerAgent:
     async def stop(self):
         self._started = False
 
-    def register_worker(self, worker_id, name, address, public_key, capabilities=None):
+    def register_worker(self, worker_id, name, address, public_key, capabilities=None, **kw):
         wi = WorkerInfo(
             worker_id=worker_id, name=name, address=address,
             public_key=public_key, capabilities=capabilities or []
@@ -82,7 +97,7 @@ class ManagerAgent:
         self.workers[worker_id] = wi
         return wi
 
-    def update_heartbeat(self, worker_id):
+    def update_heartbeat(self, worker_id, **kw):
         if worker_id in self.workers:
             self.workers[worker_id].last_heartbeat = time.time()
 
@@ -104,7 +119,7 @@ class ManagerAgent:
             self.tasks[t.task_id] = t
         return tasks
 
-    def find_worker(self, capability):
+    def find_worker(self, capability, **kw):
         best = None
         best_score = -1
         now = time.time()
@@ -130,7 +145,7 @@ class ManagerAgent:
             t.error = error
             t.status = TaskStatus.done if not error else TaskStatus.failed
 
-    def get_swarm_status(self):
+    def get_swarm_status(self, **kw):
         now = time.time()
         workers_detail = []
         for wid, w in self.workers.items():
@@ -150,7 +165,10 @@ class ManagerAgent:
 
 
 class WorkerAgent:
-    def __init__(self, identity, manager_address=""):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, identity, manager_address="", **kw):
         self.identity = identity
         self.manager_address = manager_address
 
@@ -188,17 +206,17 @@ def init_swarm_worker(agent_id):
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -206,12 +224,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

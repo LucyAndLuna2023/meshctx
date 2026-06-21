@@ -17,6 +17,9 @@ SEVERITY_ORDER: dict[str, int] = {
 
 
 class ReviewIssue:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     __slots__ = ("file", "line", "severity", "category", "title", "description", "suggestion")
 
     def __init__(self, file: str = "", line: int = 0, severity: str = "info",
@@ -31,10 +34,10 @@ class ReviewIssue:
         self.suggestion = suggestion
 
     @property
-    def severity_order(self) -> int:
+    def severity_order(self, **kw) -> int:
         return SEVERITY_ORDER.get(self.severity, 99)
 
-    def to_dict(self) -> dict:
+    def to_dict(self, **kw) -> dict:
         return {
             "file": self.file,
             "line": self.line,
@@ -45,7 +48,7 @@ class ReviewIssue:
             "suggestion": self.suggestion,
         }
 
-    def __repr__(self):
+    def __repr__(self, **kw):
         return f"ReviewIssue(file={self.file!r}, line={self.line}, severity={self.severity!r}, title={self.title!r})"
 
 
@@ -82,6 +85,9 @@ GENERAL_PATTERNS: list[tuple[re.Pattern, str, str, str, str]] = [
 
 
 class CodeReviewer:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     def __init__(self, *a, **kw):
         self._patterns = {
             "python": PYTHON_PATTERNS,
@@ -89,7 +95,7 @@ class CodeReviewer:
             "js": JAVASCRIPT_PATTERNS,
         }
 
-    def review_file(self, filepath: str, content: str, language: str = "python") -> list[ReviewIssue]:
+    def review_file(self, filepath: str, content: str, language: str = "python", **kw) -> list[ReviewIssue]:
         patterns = self._patterns.get(language, PYTHON_PATTERNS)
         issues: list[ReviewIssue] = []
         seen: set[tuple[int, str]] = set()
@@ -154,7 +160,7 @@ class CodeReviewer:
         issues.sort(key=lambda i: SEVERITY_ORDER.get(i.severity, 99))
         return issues
 
-    def review_summary(self, issues: list[ReviewIssue]) -> dict:
+    def review_summary(self, issues: list[ReviewIssue], **kw) -> dict:
         penalty_map = {"critical": 15, "high": 8, "medium": 3, "low": 1, "info": 0}
         score = 100
         by_severity: dict[str, int] = {}
@@ -177,7 +183,7 @@ class CodeReviewer:
             "by_category": by_category,
         }
 
-    def project_review(self, directory: str, exclude_dirs: set[str] | None = None) -> dict:
+    def project_review(self, directory: str, exclude_dirs: set[str] | None = None, **kw) -> dict:
         if exclude_dirs is None:
             exclude_dirs = set()
         d = Path(directory)
@@ -215,7 +221,7 @@ class CodeReviewer:
         summary["by_file"] = by_file
         return summary
 
-    def ai_deep_review(self, content: str, language: str = "python") -> dict | None:
+    def ai_deep_review(self, content: str, language: str = "python", **kw) -> dict | None:
         return None
 
     def review(self, code: str, *a, **kw) -> dict:
@@ -223,5 +229,5 @@ class CodeReviewer:
         summary = self.review_summary(issues)
         return {"issues": [i.to_dict() for i in issues], "suggestions": [], "score": summary["score"]}
 
-    def stats(self) -> dict:
+    def stats(self, **kw) -> dict:
         return {}

@@ -57,6 +57,9 @@ except ImportError:
 # ═══════════════════════════════════════════════════════════
 
 class LockGranularity(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """锁粒度。"""
     GLOBAL = "global"        # 全系统互斥
     RESOURCE = "resource"    # 资源级互斥 (e.g. "db")
@@ -64,6 +67,9 @@ class LockGranularity(Enum):
 
 
 class LockState(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """锁状态。"""
     ACQUIRED = auto()
     RELEASED = auto()
@@ -73,6 +79,9 @@ class LockState(Enum):
 
 @dataclass
 class Lock:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """分布式锁实例。"""
     resource: str                      # 锁资源标识
     token: str                         # 唯一持有者 token (UUID-like)
@@ -89,6 +98,9 @@ class Lock:
 
 @dataclass
 class LockStats:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """锁统计信息。"""
     total_acquired: int = 0
     total_released: int = 0
@@ -169,6 +181,9 @@ return result
 # ═══════════════════════════════════════════════════════════
 
 class RedlockManager:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     Redlock 算法 — 多 Redis 实例分布式锁。
 
@@ -183,7 +198,7 @@ class RedlockManager:
     引用: https://redis.io/topics/distlock
     """
 
-    def __init__(self, redis_urls: List[str], quorum: Optional[int] = None):
+    def __init__(self, redis_urls: List[str], quorum: Optional[int] = None, **kw):
         """
         Args:
             redis_urls: Redis 实例 URL 列表
@@ -203,11 +218,11 @@ class RedlockManager:
                 logger.warning(f"Redlock: failed to connect to {url}: {e}")
 
     @property
-    def available(self) -> bool:
+    def available(self, **kw) -> bool:
         """Redlock 是否可用 (至少 quorum 个实例在线)。"""
         return len(self._clients) >= self._quorum
 
-    def acquire(self, resource: str, token: str, ttl: float) -> bool:
+    def acquire(self, resource: str, token: str, ttl: float, **kw) -> bool:
         """
         尝试获取 Redlock。
 
@@ -246,7 +261,7 @@ class RedlockManager:
         logger.debug(f"Redlock acquire failed: {acquired_count}/{self._quorum} required")
         return False
 
-    def release(self, resource: str, token: str) -> bool:
+    def release(self, resource: str, token: str, **kw) -> bool:
         """释放 Redlock (在所有实例上)。"""
         success_count = 0
         for client in self._clients:
@@ -260,7 +275,7 @@ class RedlockManager:
                 logger.debug(f"Redlock release error: {e}")
         return success_count > 0
 
-    def renew(self, resource: str, token: str, new_ttl: float) -> bool:
+    def renew(self, resource: str, token: str, new_ttl: float, **kw) -> bool:
         """续期 Redlock (在所有实例上)。"""
         success_count = 0
         for client in self._clients:
@@ -279,14 +294,17 @@ class RedlockManager:
 # ═══════════════════════════════════════════════════════════
 
 class LocalLockBackend:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """本地线程锁回退 — 使用 threading.Lock。"""
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._locks: Dict[str, threading.Lock] = {}
         self._owners: Dict[str, str] = {}
         self._lock = threading.Lock()
 
-    def acquire(self, resource: str, token: str, ttl: float, blocking: bool = True, timeout: Optional[float] = None) -> bool:
+    def acquire(self, resource: str, token: str, ttl: float, blocking: bool = True, timeout: Optional[float] = None, **kw) -> bool:
         """获取本地锁。"""
         with self._lock:
             if resource not in self._locks:
@@ -298,7 +316,7 @@ class LocalLockBackend:
             self._owners[resource] = token
         return acquired
 
-    def release(self, resource: str, token: str) -> bool:
+    def release(self, resource: str, token: str, **kw) -> bool:
         """释放本地锁。"""
         with self._lock:
             if resource not in self._locks:
@@ -313,7 +331,7 @@ class LocalLockBackend:
                 # 未持有锁
                 return False
 
-    def renew(self, resource: str, token: str) -> bool:
+    def renew(self, resource: str, token: str, **kw) -> bool:
         """续期 — 本地锁总是持有直到 release。无需操作。"""
         return self._owners.get(resource) == token
 
@@ -323,6 +341,9 @@ class LocalLockBackend:
 # ═══════════════════════════════════════════════════════════
 
 class DistributedLockManager:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     分布式锁管理器 — SETNX + Lua + Redlock + Watchdog。
 
@@ -386,13 +407,13 @@ class DistributedLockManager:
         )
 
     @property
-    def available(self) -> bool:
+    def available(self, **kw) -> bool:
         """分布式锁是否可用。"""
         return self._redis is not None or self._redlock is not None
 
     # ── Lua 脚本注册 ──────────────────────────────────
 
-    def _register_scripts(self):
+    def _register_scripts(self, **kw):
         """向 Redis 注册 Lua 脚本。"""
         if self._redis and _redis_module:
             try:
@@ -494,7 +515,7 @@ class DistributedLockManager:
             # 轮询等待
             time.sleep(0.05)
 
-    def _try_acquire(self, lock_key: str, token: str, ttl: float) -> bool:
+    def _try_acquire(self, lock_key: str, token: str, ttl: float, **kw) -> bool:
         """尝试获取锁 (Redis 优先 → Redlock → 本地)。"""
         # 1) Redlock
         if self._redlock and self._redlock.available:
@@ -515,7 +536,7 @@ class DistributedLockManager:
 
     # ── 锁释放 ────────────────────────────────────────
 
-    def release(self, lock: Lock) -> bool:
+    def release(self, lock: Lock, **kw) -> bool:
         """
         释放分布式锁。
 
@@ -546,7 +567,7 @@ class DistributedLockManager:
         logger.debug(f"Lock {'released' if released else 'stolen'}: {lock_key}")
         return released
 
-    def release_resource(self, resource: str, granularity: LockGranularity = LockGranularity.KEY) -> bool:
+    def release_resource(self, resource: str, granularity: LockGranularity = LockGranularity.KEY, **kw) -> bool:
         """根据资源标识释放锁 (便捷方法)。"""
         lock_key = self.build_lock_key(resource, granularity)
         # 查找对应的活跃 lock
@@ -557,7 +578,7 @@ class DistributedLockManager:
         # 直接强制释放
         return self._try_force_release(lock_key)
 
-    def _try_release(self, lock_key: str, token: str) -> bool:
+    def _try_release(self, lock_key: str, token: str, **kw) -> bool:
         """尝试释放锁。"""
         # 1) Redlock
         if self._redlock and self._redlock.available:
@@ -575,7 +596,7 @@ class DistributedLockManager:
         # 3) 本地回退
         return self._local_backend.release(lock_key, token)
 
-    def _try_force_release(self, lock_key: str) -> bool:
+    def _try_force_release(self, lock_key: str, **kw) -> bool:
         """强制释放锁 (死锁恢复)。"""
         if self._redis and self._force_release_script:
             try:
@@ -588,14 +609,14 @@ class DistributedLockManager:
 
     # ── 锁续期 (Watchdog) ─────────────────────────────
 
-    def _start_watchdog(self, lock: Lock, lock_key: str):
+    def _start_watchdog(self, lock: Lock, lock_key: str, **kw):
         """启动 watchdog 线程, 自动续期。"""
         if lock._watchdog_active:
             return
 
         lock._watchdog_active = True
 
-        def _watchdog_loop():
+        def _watchdog_loop(**kw):
             """每隔 watchdog_interval 续期一次。"""
             renew_at = ttl * 0.6  # TTL 的 60% 时续期
             while lock._watchdog_active and lock.state == LockState.ACQUIRED:
@@ -621,13 +642,13 @@ class DistributedLockManager:
         )
         lock._watchdog_thread.start()
 
-    def _stop_watchdog(self, lock: Lock):
+    def _stop_watchdog(self, lock: Lock, **kw):
         """停止 watchdog 线程。"""
         lock._watchdog_active = False
         if lock._watchdog_thread and lock._watchdog_thread.is_alive():
             lock._watchdog_thread.join(timeout=1.0)
 
-    def _try_renew(self, lock_key: str, token: str, ttl: float) -> bool:
+    def _try_renew(self, lock_key: str, token: str, ttl: float, **kw) -> bool:
         """尝试续期。"""
         # 1) Redlock
         if self._redlock and self._redlock.available:
@@ -645,7 +666,7 @@ class DistributedLockManager:
         # 3) 本地回退
         return self._local_backend.renew(lock_key, token)
 
-    def renew(self, lock: Lock, new_ttl: Optional[float] = None) -> bool:
+    def renew(self, lock: Lock, new_ttl: Optional[float] = None, **kw) -> bool:
         """手动续期。"""
         lock_key = self.build_lock_key(lock.resource, lock.granularity)
         ttl_to_use = new_ttl or lock.ttl
@@ -656,7 +677,7 @@ class DistributedLockManager:
 
     # ── 死锁检测 ──────────────────────────────────────
 
-    def detect_deadlocks(self, ttl_threshold: float = 5.0) -> List[Dict[str, Any]]:
+    def detect_deadlocks(self, ttl_threshold: float = 5.0, **kw) -> List[Dict[str, Any]]:
         """
         检测即将过期的锁 (潜在死锁)。
 
@@ -702,7 +723,7 @@ class DistributedLockManager:
 
         return deadlocks
 
-    def recover_deadlocks(self, ttl_threshold: float = 5.0) -> int:
+    def recover_deadlocks(self, ttl_threshold: float = 5.0, **kw) -> int:
         """
         自动恢复死锁 — 强制释放 TTL 即将过期的锁。
 
@@ -751,7 +772,7 @@ class DistributedLockManager:
 
     # ── 查询 ──────────────────────────────────────────
 
-    def is_locked(self, resource: str, granularity: LockGranularity = LockGranularity.KEY) -> bool:
+    def is_locked(self, resource: str, granularity: LockGranularity = LockGranularity.KEY, **kw) -> bool:
         """检查资源是否被锁定。"""
         lock_key = self.build_lock_key(resource, granularity)
 
@@ -769,7 +790,7 @@ class DistributedLockManager:
                     return lock.state == LockState.ACQUIRED
         return False
 
-    def get_lock_info(self, resource: str, granularity: LockGranularity = LockGranularity.KEY) -> Optional[Dict[str, Any]]:
+    def get_lock_info(self, resource: str, granularity: LockGranularity = LockGranularity.KEY, **kw) -> Optional[Dict[str, Any]]:
         """获取锁的详细信息。"""
         lock_key = self.build_lock_key(resource, granularity)
 
@@ -801,7 +822,7 @@ class DistributedLockManager:
                     }
         return None
 
-    def list_active_locks(self) -> List[Dict[str, Any]]:
+    def list_active_locks(self, **kw) -> List[Dict[str, Any]]:
         """列出所有活跃锁。"""
         with self._active_locks_lock:
             return [
@@ -820,21 +841,21 @@ class DistributedLockManager:
 
     # ── 统计 ──────────────────────────────────────────
 
-    def get_stats(self) -> LockStats:
+    def get_stats(self, **kw) -> LockStats:
         """获取锁统计信息。"""
         with self._active_locks_lock:
             self._stats.active_locks = len(self._active_locks)
             self._stats.last_updated = time.time()
             return self._stats
 
-    def reset_stats(self):
+    def reset_stats(self, **kw):
         """重置统计信息。"""
         self._stats = LockStats()
 
     # ── 工具 ──────────────────────────────────────────
 
     @staticmethod
-    def _generate_token() -> str:
+    def _generate_token(**kw) -> str:
         """生成唯一 token。"""
         return secrets.token_hex(32)
 

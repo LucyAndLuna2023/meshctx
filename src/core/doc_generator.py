@@ -42,6 +42,9 @@ logger = logging.getLogger("meshctx.doc_generator")
 # ═══════════════════════════════════════════════════════════
 
 class ParamLocation(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """参数位置。"""
     QUERY = "query"
     PATH = "path"
@@ -52,6 +55,9 @@ class ParamLocation(str, Enum):
 
 
 class HttpMethod(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """HTTP 方法。"""
     GET = "GET"
     POST = "POST"
@@ -63,6 +69,9 @@ class HttpMethod(str, Enum):
 
 
 class ContentType(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """内容类型。"""
     JSON = "application/json"
     FORM = "application/x-www-form-urlencoded"
@@ -74,6 +83,9 @@ class ContentType(str, Enum):
 
 @dataclass
 class ParamDoc:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """参数文档。"""
     name: str
     type: str = "string"
@@ -87,7 +99,7 @@ class ParamDoc:
     deprecated: bool = False
     since: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         d = {
             "name": self.name,
             "type": self.type,
@@ -112,6 +124,9 @@ class ParamDoc:
 
 @dataclass
 class ResponseDoc:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """返回值文档。"""
     status_code: int
     description: str = ""
@@ -120,7 +135,7 @@ class ResponseDoc:
     example: Any = None
     headers: Dict[str, str] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         d = {
             "status_code": self.status_code,
             "description": self.description,
@@ -137,6 +152,9 @@ class ResponseDoc:
 
 @dataclass
 class RouteDoc:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """API 路由文档。"""
     method: HttpMethod
     path: str
@@ -154,7 +172,7 @@ class RouteDoc:
     handler_name: str = ""
     examples: List[Dict[str, Any]] = field(default_factory=list)  # [{"lang": "python", "code": "..."}]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "method": self.method.value,
             "path": self.path,
@@ -174,7 +192,7 @@ class RouteDoc:
         }
 
     @property
-    def operation_id(self) -> str:
+    def operation_id(self, **kw) -> str:
         """生成 OpenAPI operationId。"""
         base = re.sub(r'[^a-zA-Z0-9]', '_', self.path.strip("/"))
         return f"{self.method.value.lower()}_{base}" if base else self.method.value.lower()
@@ -182,6 +200,9 @@ class RouteDoc:
 
 @dataclass
 class ChangeLogEntry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """API 变更日志条目。"""
     version: str
     date: str = ""
@@ -189,7 +210,7 @@ class ChangeLogEntry:
     breaking: bool = False
     description: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "version": self.version,
             "date": self.date,
@@ -201,6 +222,9 @@ class ChangeLogEntry:
 
 @dataclass
 class DocMeta:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """文档元信息。"""
     title: str = "API Documentation"
     version: str = "1.0.0"
@@ -216,6 +240,9 @@ class DocMeta:
 # ═══════════════════════════════════════════════════════════
 
 class DocGenerator:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     meshctx API 文档自动生成器。
 
@@ -223,7 +250,7 @@ class DocGenerator:
     包括参数、返回值、示例代码和变更日志追踪。
     """
 
-    def __init__(self, output_dir: Optional[str] = None):
+    def __init__(self, output_dir: Optional[str] = None, **kw):
         self._output_dir = output_dir or os.path.join(
             os.environ.get("MESHCTX_DATA", os.path.expanduser("~/.meshctx")),
             "docs",
@@ -332,7 +359,7 @@ class DocGenerator:
         logger.debug(f"Registered route: {key}")
         return route
 
-    def register_routes_from_module(self, module) -> int:
+    def register_routes_from_module(self, module, **kw) -> int:
         """从 Python 模块自动注册路由。
 
         扫描模块中标记了 @route 装饰器的函数。
@@ -361,7 +388,7 @@ class DocGenerator:
         logger.info(f"Registered {count} routes from module")
         return count
 
-    def get_route(self, method: str, path: str) -> Optional[RouteDoc]:
+    def get_route(self, method: str, path: str, **kw) -> Optional[RouteDoc]:
         """获取指定路由的文档。"""
         with self._routes_lock:
             return self._routes.get(f"{method.upper()} {path}")
@@ -385,7 +412,7 @@ class DocGenerator:
             routes = [r for r in routes if tag in r.tags]
         return routes
 
-    def remove_route(self, method: str, path: str) -> bool:
+    def remove_route(self, method: str, path: str, **kw) -> bool:
         """移除路由文档。"""
         key = f"{method.upper()} {path}"
         with self._routes_lock:
@@ -397,7 +424,7 @@ class DocGenerator:
 
     # ── 文档生成 ─────────────────────────────────────────
 
-    def generate_markdown(self, output_path: Optional[str] = None) -> str:
+    def generate_markdown(self, output_path: Optional[str] = None, **kw) -> str:
         """生成 Markdown 格式的 API 文档。
 
         Args:
@@ -468,7 +495,7 @@ class DocGenerator:
 
         return md
 
-    def generate_html(self, output_path: Optional[str] = None) -> str:
+    def generate_html(self, output_path: Optional[str] = None, **kw) -> str:
         """生成 HTML 格式的 API 文档。
 
         Args:
@@ -594,7 +621,7 @@ class DocGenerator:
 
         return html
 
-    def generate_openapi(self, output_path: Optional[str] = None) -> str:
+    def generate_openapi(self, output_path: Optional[str] = None, **kw) -> str:
         """生成 OpenAPI 3.0 JSON。
 
         Args:
@@ -674,7 +701,7 @@ class DocGenerator:
 
         return json_str
 
-    def export_json(self, output_path: Optional[str] = None) -> str:
+    def export_json(self, output_path: Optional[str] = None, **kw) -> str:
         """导出完整路由文档为 JSON。
 
         Args:
@@ -711,7 +738,7 @@ class DocGenerator:
 
     # ── 示例代码生成 ────────────────────────────────────
 
-    def generate_curl_example(self, route: RouteDoc) -> str:
+    def generate_curl_example(self, route: RouteDoc, **kw) -> str:
         """生成 curl 请求示例。
 
         Args:
@@ -751,7 +778,7 @@ class DocGenerator:
         parts.append(f'"{url}"')
         return " \\\n  ".join(parts)
 
-    def generate_python_example(self, route: RouteDoc) -> str:
+    def generate_python_example(self, route: RouteDoc, **kw) -> str:
         """生成 Python 请求示例。
 
         Args:
@@ -820,7 +847,7 @@ class DocGenerator:
 
         return "\n".join(lines)
 
-    def _generate_examples(self, route: RouteDoc) -> List[Dict[str, Any]]:
+    def _generate_examples(self, route: RouteDoc, **kw) -> List[Dict[str, Any]]:
         """为路由自动生成示例代码。"""
         examples = []
         curl = self.generate_curl_example(route)
@@ -876,7 +903,7 @@ class DocGenerator:
         logger.info(f"Recorded change: [{version}] {change}")
         return entry
 
-    def get_changelog(self, last_n: int = 0) -> List[ChangeLogEntry]:
+    def get_changelog(self, last_n: int = 0, **kw) -> List[ChangeLogEntry]:
         """获取变更日志。
 
         Args:
@@ -891,7 +918,7 @@ class DocGenerator:
             log = log[:last_n]
         return log
 
-    def generate_changelog_markdown(self, output_path: Optional[str] = None) -> str:
+    def generate_changelog_markdown(self, output_path: Optional[str] = None, **kw) -> str:
         """单独生成变更日志 Markdown。
 
         Args:
@@ -927,7 +954,7 @@ class DocGenerator:
         if license_info:
             self._meta.license_info = license_info
 
-    def on(self, event: str, callback: Callable) -> None:
+    def on(self, event: str, callback: Callable, **kw) -> None:
         """注册事件回调。
 
         Events:
@@ -940,7 +967,7 @@ class DocGenerator:
 
     # ── 内部方法 ─────────────────────────────────────────
 
-    def _group_by_tag(self, routes: List[RouteDoc]) -> Dict[str, List[RouteDoc]]:
+    def _group_by_tag(self, routes: List[RouteDoc], **kw) -> Dict[str, List[RouteDoc]]:
         """按 tag 分组路由。无 tag 的放入 'General'。"""
         grouped: Dict[str, List[RouteDoc]] = OrderedDict()
         for route in routes:
@@ -949,7 +976,7 @@ class DocGenerator:
                 grouped.setdefault(tag, []).append(route)
         return grouped
 
-    def _render_route_markdown(self, route: RouteDoc) -> List[str]:
+    def _render_route_markdown(self, route: RouteDoc, **kw) -> List[str]:
         """将单个路由渲染为 Markdown。"""
         lines = []
 
@@ -1022,7 +1049,7 @@ class DocGenerator:
         lines.append("")
         return lines
 
-    def _render_route_html(self, route: RouteDoc) -> str:
+    def _render_route_html(self, route: RouteDoc, **kw) -> str:
         """将单个路由渲染为 HTML。"""
         parts = [f'<div class="route-card" id="{route.operation_id}">']
 
@@ -1088,7 +1115,7 @@ class DocGenerator:
         parts.append('</div>')
         return "\n".join(parts)
 
-    def _render_changelog_markdown(self) -> List[str]:
+    def _render_changelog_markdown(self, **kw) -> List[str]:
         """渲染变更日志为 Markdown 行。"""
         if not self._changelog:
             return []
@@ -1106,7 +1133,7 @@ class DocGenerator:
             lines.append("")
         return lines
 
-    def _extract_params_from_handler(self, handler: Callable) -> List[ParamDoc]:
+    def _extract_params_from_handler(self, handler: Callable, **kw) -> List[ParamDoc]:
         """从函数签名自动提取参数文档。"""
         try:
             sig = inspect.signature(handler)
@@ -1144,7 +1171,7 @@ class DocGenerator:
             ))
         return params
 
-    def _extract_response_from_handler(self, handler: Callable) -> List[ResponseDoc]:
+    def _extract_response_from_handler(self, handler: Callable, **kw) -> List[ResponseDoc]:
         """尝试从 handler docstring 提取响应信息。"""
         return [
             ResponseDoc(status_code=200, description="OK"),
@@ -1152,7 +1179,7 @@ class DocGenerator:
             ResponseDoc(status_code=500, description="Internal Server Error"),
         ]
 
-    def _persist_changelog(self) -> None:
+    def _persist_changelog(self, **kw) -> None:
         """持久化变更日志。"""
         try:
             fpath = os.path.join(self._output_dir, "changelog.json")
@@ -1161,7 +1188,7 @@ class DocGenerator:
         except Exception as e:
             logger.warning(f"Failed to persist changelog: {e}")
 
-    def _load_changelog(self) -> None:
+    def _load_changelog(self, **kw) -> None:
         """加载持久化的变更日志。"""
         fpath = os.path.join(self._output_dir, "changelog.json")
         if not os.path.exists(fpath):
@@ -1185,7 +1212,7 @@ class DocGenerator:
             logger.warning(f"Failed to load changelog: {e}")
 
     @staticmethod
-    def _escape_html(text: str) -> str:
+    def _escape_html(text: str, **kw) -> str:
         return (text
                 .replace("&", "&amp;")
                 .replace("<", "&lt;")
@@ -1214,10 +1241,10 @@ def route(method: str = "GET", path: str = "/",
 
     Example:
         @route("GET", "/api/health", summary="Health check", tags=["System"])
-        def health():
+        def health(**kw):
             return {"status": "ok"}
     """
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable, **kw) -> Callable:
         func._meshctx_route = {
             "method": method,
             "path": path,
@@ -1292,7 +1319,7 @@ if __name__ == "__main__":
         ],
     )
 
-    def chat_handler(message: str, model: str = "default") -> dict:
+    def chat_handler(message: str, model: str = "default", **kw) -> dict:
         """Send a chat message to the AI model.
 
         Args:

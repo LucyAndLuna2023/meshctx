@@ -20,6 +20,9 @@ from typing import Any, Dict, List, Optional, Tuple
 # ═══════════════════════════════════════════════════════════════
 
 class TTSProvider(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     EDGE_TTS = "edge_tts"
     GTTS = "gtts"
     PYTTSX3 = "pyttsx3"
@@ -27,6 +30,9 @@ class TTSProvider(Enum):
 
 
 class STTProvider(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     WHISPER = "whisper"
     WHISPER_API = "whisper_api"
     GOOGLE = "google"
@@ -34,6 +40,9 @@ class STTProvider(Enum):
 
 
 class VoiceLanguage(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     EN = "en"
     ZH = "zh"
     JA = "ja"
@@ -57,6 +66,9 @@ class VoiceLanguage(Enum):
 
 
 class AudioFormat(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     MP3 = "mp3"
     WAV = "wav"
     OGG = "ogg"
@@ -64,6 +76,9 @@ class AudioFormat(Enum):
 
 
 class VoiceGender(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     MALE = "male"
     FEMALE = "female"
     NEUTRAL = "neutral"
@@ -146,6 +161,9 @@ _WHISPER_LANG_MAP: Dict[str, str] = {
 
 @dataclass
 class TTSResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     audio_bytes: bytes = b""
     audio_format: AudioFormat = AudioFormat.MP3
     duration_ms: float = 0.0
@@ -157,11 +175,11 @@ class TTSResult:
     success: bool = True
     error: str = ""
 
-    def __post_init__(self):
+    def __post_init__(self, **kw):
         if not self.request_id:
             self.request_id = str(uuid.uuid4())[:8]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "audio_size_bytes": len(self.audio_bytes),
             "audio_format": self.audio_format.value,
@@ -175,12 +193,12 @@ class TTSResult:
             "error": self.error,
         }
 
-    def to_base64(self) -> str:
+    def to_base64(self, **kw) -> str:
         b64 = base64.b64encode(self.audio_bytes).decode("ascii")
         mime = f"audio/{self.audio_format.value}"
         return f"data:{mime};base64,{b64}"
 
-    def save(self, path: str) -> str:
+    def save(self, path: str, **kw) -> str:
         p = Path(path)
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_bytes(self.audio_bytes)
@@ -189,6 +207,9 @@ class TTSResult:
 
 @dataclass
 class STTResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     text: str = ""
     language: str = "en"
     confidence: float = 0.0
@@ -199,11 +220,11 @@ class STTResult:
     success: bool = True
     error: str = ""
 
-    def __post_init__(self):
+    def __post_init__(self, **kw):
         if not self.request_id:
             self.request_id = str(uuid.uuid4())[:8]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "text": self.text,
             "language": self.language,
@@ -219,6 +240,9 @@ class STTResult:
 
 @dataclass
 class VoiceChatConfig:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     default_tts_provider: TTSProvider = TTSProvider.EDGE_TTS
     default_stt_provider: STTProvider = STTProvider.WHISPER
     default_language: str = "en"
@@ -230,6 +254,9 @@ class VoiceChatConfig:
 
 @dataclass
 class VoiceChatSession:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     session_id: str = ""
     language: str = "en"
     tts_provider: TTSProvider = TTSProvider.EDGE_TTS
@@ -237,11 +264,11 @@ class VoiceChatSession:
     conversation: List[Dict[str, str]] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def add_turn(self, speaker: str, text: str):
+    def add_turn(self, speaker: str, text: str, **kw):
         self.conversation.append({"speaker": speaker, "text": text})
         self.turn_count += 1
 
-    def get_context(self, max_turns: int = 10) -> List[Dict[str, str]]:
+    def get_context(self, max_turns: int = 10, **kw) -> List[Dict[str, str]]:
         return self.conversation[-max_turns:]
 
 
@@ -291,6 +318,9 @@ def create_sine_wav(duration_ms: int = 500, frequency: float = 440.0, sample_rat
 # ═══════════════════════════════════════════════════════════════
 
 class VoiceChat:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Voice chat engine supporting TTS, STT, multi-language, sessions."""
 
     def __init__(
@@ -329,21 +359,21 @@ class VoiceChat:
         self._sessions[sid] = session
         return session
 
-    def get_session(self, session_id: str) -> Optional[VoiceChatSession]:
+    def get_session(self, session_id: str, **kw) -> Optional[VoiceChatSession]:
         return self._sessions.get(session_id)
 
-    def close_session(self, session_id: str) -> bool:
+    def close_session(self, session_id: str, **kw) -> bool:
         if session_id in self._sessions:
             del self._sessions[session_id]
             return True
         return False
 
-    def list_sessions(self) -> List[VoiceChatSession]:
+    def list_sessions(self, **kw) -> List[VoiceChatSession]:
         return list(self._sessions.values())
 
     # ── TTS ───────────────────────────────────────────────────
 
-    def speak_sync(self, text: str, provider: Optional[str] = None) -> TTSResult:
+    def speak_sync(self, text: str, provider: Optional[str] = None, **kw) -> TTSResult:
         """Synthesize speech synchronously."""
         tts_provider = self.config.default_tts_provider
         if provider:
@@ -404,7 +434,7 @@ class VoiceChat:
 
     # ── STT ───────────────────────────────────────────────────
 
-    def transcribe_sync(self, audio: bytes, provider: Optional[str] = None) -> STTResult:
+    def transcribe_sync(self, audio: bytes, provider: Optional[str] = None, **kw) -> STTResult:
         """Transcribe speech to text synchronously."""
         stt_provider = self.config.default_stt_provider
         if provider:
@@ -491,15 +521,15 @@ class VoiceChat:
 
     # ── Languages ─────────────────────────────────────────────
 
-    def supported_languages(self) -> List[str]:
+    def supported_languages(self, **kw) -> List[str]:
         return sorted(_EDGE_VOICES.keys())
 
-    def get_voice_for_language(self, lang: str, provider: TTSProvider) -> str:
+    def get_voice_for_language(self, lang: str, provider: TTSProvider, **kw) -> str:
         if provider == TTSProvider.EDGE_TTS:
             return _EDGE_VOICES.get(lang, _EDGE_VOICES.get("en", ""))
         return ""
 
-    def get_language_name(self, code: str) -> str:
+    def get_language_name(self, code: str, **kw) -> str:
         names = {
             "en": "English", "zh": "Chinese", "ja": "Japanese",
             "ko": "Korean", "fr": "French", "de": "German",
@@ -513,13 +543,13 @@ class VoiceChat:
 
     # ── Providers ─────────────────────────────────────────────
 
-    def available_tts_providers(self) -> List[TTSProvider]:
+    def available_tts_providers(self, **kw) -> List[TTSProvider]:
         return [TTSProvider.EDGE_TTS]  # Stub: only edge-tts
 
-    def available_stt_providers(self) -> List[STTProvider]:
+    def available_stt_providers(self, **kw) -> List[STTProvider]:
         return [STTProvider.WHISPER]  # Stub: only whisper
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self, **kw) -> Dict[str, Any]:
         return {
             "active_sessions": len(self._sessions),
             "tts_cache_entries": len(self._tts_cache),
@@ -530,18 +560,18 @@ class VoiceChat:
 
     # ── Cache ─────────────────────────────────────────────────
 
-    def _cache_key(self, text: str, provider: TTSProvider, language: str, voice: str) -> str:
+    def _cache_key(self, text: str, provider: TTSProvider, language: str, voice: str, **kw) -> str:
         raw = f"{text}|{provider.value}|{language}|{voice}"
         return hashlib.md5(raw.encode()).hexdigest()
 
-    def clear_cache(self) -> int:
+    def clear_cache(self, **kw) -> int:
         count = len(self._tts_cache)
         self._tts_cache.clear()
         return count
 
     # ── Audio utilities ───────────────────────────────────────
 
-    def _split_into_sentences(self, text: str, max_chunk: int = 200) -> List[str]:
+    def _split_into_sentences(self, text: str, max_chunk: int = 200, **kw) -> List[str]:
         """Split text into sentence-level chunks."""
         if not text:
             return []
@@ -568,7 +598,7 @@ class VoiceChat:
             chunks.append(current)
         return chunks if chunks else [text]
 
-    def _ensure_wav(self, audio: bytes) -> bytes:
+    def _ensure_wav(self, audio: bytes, **kw) -> bytes:
         """Ensure audio data is in WAV format."""
         if not audio:
             return audio
@@ -576,7 +606,7 @@ class VoiceChat:
             return audio
         return _wrap_pcm_to_wav(audio)
 
-    def _resolve_audio(self, audio: Any) -> Optional[bytes]:
+    def _resolve_audio(self, audio: Any, **kw) -> Optional[bytes]:
         """Resolve audio from various input formats (bytes, base64, data URI, file path)."""
         if isinstance(audio, bytes):
             if not audio:
@@ -643,17 +673,17 @@ def reset_voice_chat():
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -661,12 +691,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

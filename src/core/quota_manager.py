@@ -41,6 +41,9 @@ logger = logging.getLogger("meshctx.quota_manager")
 # ═══════════════════════════════════════════════════════════
 
 class QuotaLevel(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """配额层级。"""
     GLOBAL = "global"     # 全局配额
     ORG = "org"           # 组织配额
@@ -48,6 +51,9 @@ class QuotaLevel(Enum):
 
 
 class QuotaWindow(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """时间窗口。"""
     MINUTE = "minute"     # 60 秒
     HOUR = "hour"         # 3600 秒
@@ -66,6 +72,9 @@ WINDOW_SECONDS = {
 
 
 class QuotaLimitType(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """限制类型。"""
     HARD = "hard"         # 硬限制 — 达到后拒绝
     SOFT = "soft"         # 软限制 — 达到后告警但不拒绝
@@ -74,6 +83,9 @@ class QuotaLimitType(Enum):
 
 @dataclass
 class QuotaConfig:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """配额配置 — 定义一条配额规则。"""
     key: str                              # 配额标识 (e.g. "user:alice", "org:acme")
     level: QuotaLevel = QuotaLevel.USER
@@ -89,6 +101,9 @@ class QuotaConfig:
 
 @dataclass
 class QuotaUsage:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """配额使用记录。"""
     key: str
     used: int = 0                        # 已使用量
@@ -101,6 +116,9 @@ class QuotaUsage:
 
 @dataclass
 class QuotaResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """配额检查结果。"""
     allowed: bool
     key: str
@@ -118,6 +136,9 @@ class QuotaResult:
 
 @dataclass
 class QuotaAlert:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """配额告警。"""
     key: str
     level: QuotaLevel
@@ -133,6 +154,9 @@ class QuotaAlert:
 
 @dataclass
 class QuotaStats:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """配额管理器统计。"""
     total_checks: int = 0
     total_allowed: int = 0
@@ -148,6 +172,9 @@ class QuotaStats:
 # ═══════════════════════════════════════════════════════════
 
 class QuotaManager:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     多层级配额管理器 — 用户/组织/全局 + 弹性配额。
 
@@ -167,7 +194,7 @@ class QuotaManager:
       - burst: 额外突发额度, 超出主配额时消耗 burst
     """
 
-    def __init__(self, persist_path: Optional[str] = None):
+    def __init__(self, persist_path: Optional[str] = None, **kw):
         # 配置存储
         self._configs: Dict[str, QuotaConfig] = {}
         self._config_lock = threading.Lock()
@@ -273,17 +300,17 @@ class QuotaManager:
         logger.info(f"Quota set: {key} ({level.value}, {max_units}/{window.value}, {limit_type.value})")
         return config
 
-    def get_quota_config(self, key: str) -> Optional[QuotaConfig]:
+    def get_quota_config(self, key: str, **kw) -> Optional[QuotaConfig]:
         """获取配额配置。"""
         with self._config_lock:
             return self._configs.get(key)
 
-    def list_quota_configs(self) -> List[QuotaConfig]:
+    def list_quota_configs(self, **kw) -> List[QuotaConfig]:
         """列出所有配额配置。"""
         with self._config_lock:
             return list(self._configs.values())
 
-    def remove_quota(self, key: str) -> bool:
+    def remove_quota(self, key: str, **kw) -> bool:
         """移除配额配置。"""
         with self._config_lock:
             if key in self._configs:
@@ -360,7 +387,7 @@ class QuotaManager:
         self._stats.total_allowed += 1
         return result.used, result.remaining, True
 
-    def _check_single(self, config: QuotaConfig, units: int) -> QuotaResult:
+    def _check_single(self, config: QuotaConfig, units: int, **kw) -> QuotaResult:
         """检查单条配额规则。"""
         if not config.enabled or config.max_units == 0:
             return QuotaResult(
@@ -480,7 +507,7 @@ class QuotaManager:
 
         return used, remaining, allowed
 
-    def _consume_single(self, key: str, units: int):
+    def _consume_single(self, key: str, units: int, **kw):
         """消费单条配额。"""
         config = self.get_quota_config(key)
         if config is None or not config.enabled or config.max_units == 0:
@@ -505,12 +532,12 @@ class QuotaManager:
 
     # ── 配额查询 ──────────────────────────────────────
 
-    def get_usage(self, key: str) -> Optional[QuotaUsage]:
+    def get_usage(self, key: str, **kw) -> Optional[QuotaUsage]:
         """获取配额使用量。"""
         with self._usage_lock:
             return self._usages.get(key)
 
-    def get_remaining(self, key: str) -> int:
+    def get_remaining(self, key: str, **kw) -> int:
         """获取剩余配额。"""
         config = self.get_quota_config(key)
         if config is None or config.max_units == 0:
@@ -519,7 +546,7 @@ class QuotaManager:
         self._refresh_window(config, usage)
         return max(0, config.max_units + config.burst_units - usage.used)
 
-    def get_usage_pct(self, key: str) -> float:
+    def get_usage_pct(self, key: str, **kw) -> float:
         """获取使用率百分比 (0.0 - 1.0+)。"""
         config = self.get_quota_config(key)
         if config is None or config.max_units == 0:
@@ -530,7 +557,7 @@ class QuotaManager:
 
     # ── 弹性配额 ──────────────────────────────────────
 
-    def set_burst(self, key: str, burst_units: int) -> bool:
+    def set_burst(self, key: str, burst_units: int, **kw) -> bool:
         """设置突发额度。"""
         config = self.get_quota_config(key)
         if config is None:
@@ -541,7 +568,7 @@ class QuotaManager:
         logger.info(f"Burst set: {key} +{burst_units}")
         return True
 
-    def set_soft_limit(self, key: str, pct: float) -> bool:
+    def set_soft_limit(self, key: str, pct: float, **kw) -> bool:
         """设置软限制百分比。"""
         config = self.get_quota_config(key)
         if config is None:
@@ -553,7 +580,7 @@ class QuotaManager:
         logger.info(f"Soft limit set: {key} at {pct*100}%")
         return True
 
-    def set_hard_limit(self, key: str) -> bool:
+    def set_hard_limit(self, key: str, **kw) -> bool:
         """将配额设为硬限制。"""
         config = self.get_quota_config(key)
         if config is None:
@@ -565,7 +592,7 @@ class QuotaManager:
 
     # ── 告警 ──────────────────────────────────────────
 
-    def _maybe_alert(self, config: QuotaConfig, usage: QuotaUsage, units: int):
+    def _maybe_alert(self, config: QuotaConfig, usage: QuotaUsage, units: int, **kw):
         """检查是否需要发出告警。"""
         if config.max_units == 0:
             return
@@ -602,21 +629,21 @@ class QuotaManager:
 
             logger.warning(alert.message)
 
-    def on_alert(self, callback: Callable[[QuotaAlert], None]):
+    def on_alert(self, callback: Callable[[QuotaAlert], None], **kw):
         """注册告警回调。"""
         self._alert_callbacks.append(callback)
 
-    def get_alerts(self, limit: int = 50) -> List[QuotaAlert]:
+    def get_alerts(self, limit: int = 50, **kw) -> List[QuotaAlert]:
         """获取最近告警。"""
         return self._alerts[-limit:]
 
-    def clear_alerts(self):
+    def clear_alerts(self, **kw):
         """清除告警历史。"""
         self._alerts.clear()
 
     # ── 配额恢复 ──────────────────────────────────────
 
-    def reset_usage(self, key: str) -> bool:
+    def reset_usage(self, key: str, **kw) -> bool:
         """手动重置配额使用量。"""
         with self._usage_lock:
             if key in self._usages:
@@ -636,7 +663,7 @@ class QuotaManager:
                 return True
         return False
 
-    def reset_all_usages(self):
+    def reset_all_usages(self, **kw):
         """重置所有配额使用量。"""
         count = 0
         for key in list(self._configs.keys()):
@@ -644,7 +671,7 @@ class QuotaManager:
                 count += 1
         logger.info(f"Reset {count} quota usages")
 
-    def add_units(self, key: str, units: int) -> bool:
+    def add_units(self, key: str, units: int, **kw) -> bool:
         """手动补充配额 (减少已使用量)。"""
         with self._usage_lock:
             if key in self._usages:
@@ -657,7 +684,7 @@ class QuotaManager:
                 return True
         return False
 
-    def set_usage(self, key: str, used: int) -> bool:
+    def set_usage(self, key: str, used: int, **kw) -> bool:
         """手动设置已使用量。"""
         with self._usage_lock:
             if key in self._usages:
@@ -669,7 +696,7 @@ class QuotaManager:
     # ── 窗口管理 ──────────────────────────────────────
 
     @staticmethod
-    def _compute_window(window: QuotaWindow, now: float) -> Tuple[float, float]:
+    def _compute_window(window: QuotaWindow, now: float, **kw) -> Tuple[float, float]:
         """计算窗口起止时间 (按自然周期对齐)。"""
         import datetime
 
@@ -695,7 +722,7 @@ class QuotaManager:
 
         return start.timestamp(), end.timestamp()
 
-    def _refresh_window(self, config: QuotaConfig, usage: QuotaUsage):
+    def _refresh_window(self, config: QuotaConfig, usage: QuotaUsage, **kw):
         """检查窗口是否过期, 必要时重置使用量。"""
         now = time.time()
         if now >= usage.window_end:
@@ -709,7 +736,7 @@ class QuotaManager:
             usage.last_updated = now
             logger.debug(f"Quota window reset: {config.key} ({config.window.value})")
 
-    def _get_or_create_usage(self, config: QuotaConfig) -> QuotaUsage:
+    def _get_or_create_usage(self, config: QuotaConfig, **kw) -> QuotaUsage:
         """获取或创建使用记录。"""
         with self._usage_lock:
             if config.key not in self._usages:
@@ -723,14 +750,14 @@ class QuotaManager:
                 )
             return self._usages[config.key]
 
-    def _get_config_keys(self) -> Set[str]:
+    def _get_config_keys(self, **kw) -> Set[str]:
         """获取所有配置 key。"""
         with self._config_lock:
             return set(self._configs.keys())
 
     # ── 统计 ──────────────────────────────────────────
 
-    def get_stats(self) -> QuotaStats:
+    def get_stats(self, **kw) -> QuotaStats:
         """获取配额管理器统计。"""
         with self._config_lock:
             self._stats.active_configs = len(self._configs)
@@ -739,7 +766,7 @@ class QuotaManager:
         self._stats.last_updated = time.time()
         return self._stats
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self, **kw) -> Dict[str, Any]:
         """
         获取配额管理器完整状态 — 用于监控端点。
 
@@ -802,7 +829,7 @@ class QuotaManager:
 
     # ── 持久化 ────────────────────────────────────────
 
-    def _save(self):
+    def _save(self, **kw):
         """持久化配额配置。"""
         try:
             self._persist_path.parent.mkdir(parents=True, exist_ok=True)
@@ -828,7 +855,7 @@ class QuotaManager:
         except Exception as e:
             logger.warning(f"Failed to save quota configs: {e}")
 
-    def _load(self):
+    def _load(self, **kw):
         """从磁盘加载配置。"""
         try:
             if self._persist_path.exists():
@@ -864,7 +891,7 @@ class QuotaManager:
         except Exception as e:
             logger.warning(f"Failed to load quota configs: {e}")
 
-    def _cleanup_loop(self):
+    def _cleanup_loop(self, **kw):
         """后台清理 — 清理过期使用记录和旧历史。"""
         while True:
             time.sleep(self._cleanup_interval)

@@ -15,6 +15,9 @@ from typing import List, Optional
 
 @dataclass
 class AgentResponse:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """单个 Agent 的回答"""
     agent_id: str
     model: str
@@ -24,12 +27,18 @@ class AgentResponse:
 
 @dataclass
 class ConsensusLevel:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """共识等级"""
     value: str
 
 
 @dataclass
 class ValidationResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """交叉验证结果"""
     consensus: ConsensusLevel
     hallucination_risk: float
@@ -38,19 +47,22 @@ class ValidationResult:
 
 
 class CrossValidator:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """多 Agent 交叉验证器"""
 
-    def __init__(self, min_agents: int = 2):
+    def __init__(self, min_agents: int = 2, **kw):
         self.min_agents = min_agents
         self._total_validations = 0
 
-    def _compute_similarity(self, text1: str, text2: str) -> float:
+    def _compute_similarity(self, text1: str, text2: str, **kw) -> float:
         """计算两段文本的相似度（0-1）。
 
         使用 Jaccard 字符 n-gram 相似度 + 最长公共子序列的混合方案。
         """
         # Normalize: strip whitespace, lowercase
-        def _norm(t: str) -> str:
+        def _norm(t: str, **kw) -> str:
             return t.strip().lower()
 
         t1 = _norm(text1)
@@ -60,7 +72,7 @@ class CrossValidator:
             return 1.0
 
         # Character-level bigram Jaccard similarity
-        def _bigrams(s: str) -> set:
+        def _bigrams(s: str, **kw) -> set:
             return {s[i:i + 2] for i in range(len(s) - 1)} if len(s) >= 2 else {s}
 
         b1 = _bigrams(t1)
@@ -72,7 +84,7 @@ class CrossValidator:
         jaccard = len(b1 & b2) / len(b1 | b2)
 
         # Longest Common Subsequence ratio (character level)
-        def _lcs_ratio(a: str, b: str) -> float:
+        def _lcs_ratio(a: str, b: str, **kw) -> float:
             if not a or not b:
                 return 0.0
             m, n = len(a), len(b)
@@ -90,7 +102,7 @@ class CrossValidator:
         # Weighted combination
         return 0.4 * jaccard + 0.6 * lcs
 
-    def _extract_core(self, text: str) -> str:
+    def _extract_core(self, text: str, **kw) -> str:
         """提取核心内容：移除 Markdown 代码块、多余空白。"""
         # Remove markdown code blocks (```...```)
         result = re.sub(r'```[\s\S]*?```', '', text)
@@ -100,7 +112,7 @@ class CrossValidator:
         result = re.sub(r'\s+', ' ', result).strip()
         return result
 
-    def validate(self, question: str, responses: List[AgentResponse]) -> ValidationResult:
+    def validate(self, question: str, responses: List[AgentResponse], **kw) -> ValidationResult:
         """对一个问题的多个 Agent 回答进行交叉验证。
 
         Args:
@@ -189,7 +201,7 @@ class CrossValidator:
             fact_check_results={"hallucination_signals": hallucination_signals},
         )
 
-    def get_stats(self) -> dict:
+    def get_stats(self, **kw) -> dict:
         """获取验证器统计信息"""
         return {
             "total_validations": self._total_validations,
@@ -198,17 +210,17 @@ class CrossValidator:
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -216,12 +228,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

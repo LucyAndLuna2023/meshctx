@@ -48,6 +48,9 @@ logger = logging.getLogger("meshctx.load_balancer")
 # ═══════════════════════════════════════════════════════════
 
 class BackendState(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """后端状态。"""
     HEALTHY = "healthy"           # 正常
     DEGRADED = "degraded"         # 性能下降, 仍可服务
@@ -57,6 +60,9 @@ class BackendState(Enum):
 
 
 class CircuitState(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """熔断器状态。"""
     CLOSED = auto()               # 正常 (熔断关闭)
     OPEN = auto()                 # 熔断打开, 拒绝请求
@@ -64,6 +70,9 @@ class CircuitState(Enum):
 
 
 class LoadBalanceStrategy(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """负载均衡策略。"""
     LEAST_CONNECTIONS = "least_connections"
     WEIGHTED_ROUND_ROBIN = "weighted_round_robin"
@@ -73,6 +82,9 @@ class LoadBalanceStrategy(Enum):
 
 @dataclass
 class Backend:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """后端服务节点。"""
     name: str
     address: str                         # host:port or URL
@@ -96,6 +108,9 @@ class Backend:
 
 @dataclass
 class SelectionResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """选择结果。"""
     backend: Optional[Backend]
     strategy: str
@@ -105,6 +120,9 @@ class SelectionResult:
 
 @dataclass
 class BalancerStats:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """负载均衡器统计。"""
     total_selections: int = 0
     total_failures: int = 0
@@ -122,6 +140,9 @@ class BalancerStats:
 # ═══════════════════════════════════════════════════════════
 
 class ConsistentHashRing:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     一致性哈希环 — 虚拟节点实现。
 
@@ -129,17 +150,17 @@ class ConsistentHashRing:
     使用 MD5 哈希计算在环上的位置。
     """
 
-    def __init__(self, virtual_nodes: int = 150):
+    def __init__(self, virtual_nodes: int = 150, **kw):
         self.virtual_nodes = virtual_nodes
         self._ring: Dict[int, str] = {}     # hash → backend_name
         self._sorted_keys: List[int] = []    # 排序的哈希值
         self._lock = threading.Lock()
 
-    def _hash(self, key: str) -> int:
+    def _hash(self, key: str, **kw) -> int:
         """MD5 哈希 → 32-bit 无符号整数。"""
         return int(hashlib.md5(key.encode()).hexdigest(), 16) & 0xFFFFFFFF
 
-    def add(self, backend_name: str, weight: int = 10):
+    def add(self, backend_name: str, weight: int = 10, **kw):
         """将后端加入哈希环。"""
         with self._lock:
             # 虚拟节点数按权重比例调整
@@ -150,7 +171,7 @@ class ConsistentHashRing:
                 self._ring[h] = backend_name
             self._sorted_keys = sorted(self._ring.keys())
 
-    def remove(self, backend_name: str):
+    def remove(self, backend_name: str, **kw):
         """从哈希环移除后端。"""
         with self._lock:
             to_remove = [
@@ -160,7 +181,7 @@ class ConsistentHashRing:
                 del self._ring[h]
             self._sorted_keys = sorted(self._ring.keys())
 
-    def get(self, key: str) -> Optional[str]:
+    def get(self, key: str, **kw) -> Optional[str]:
         """
         根据 key 查找对应的后端。
 
@@ -181,7 +202,7 @@ class ConsistentHashRing:
             # 回绕到环的起始
             return self._ring[self._sorted_keys[0]]
 
-    def get_with_replicas(self, key: str, count: int = 3) -> List[str]:
+    def get_with_replicas(self, key: str, count: int = 3, **kw) -> List[str]:
         """获取 key 对应的 count 个后端 (用于故障转移)。"""
         with self._lock:
             if not self._ring:
@@ -207,12 +228,12 @@ class ConsistentHashRing:
                             break
             return results
 
-    def get_backend_names(self) -> Set[str]:
+    def get_backend_names(self, **kw) -> Set[str]:
         """获取环上所有唯一的后端名称。"""
         with self._lock:
             return set(self._ring.values())
 
-    def clear(self):
+    def clear(self, **kw):
         """清空哈希环。"""
         with self._lock:
             self._ring.clear()
@@ -224,6 +245,9 @@ class ConsistentHashRing:
 # ═══════════════════════════════════════════════════════════
 
 class CircuitBreaker:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     熔断器 — 防止级联故障。
 
@@ -251,7 +275,7 @@ class CircuitBreaker:
         self.half_open_requests = 0
         self._lock = threading.Lock()
 
-    def allow_request(self) -> bool:
+    def allow_request(self, **kw) -> bool:
         """是否允许请求通过。"""
         with self._lock:
             now = time.time()
@@ -276,7 +300,7 @@ class CircuitBreaker:
 
             return True
 
-    def record_success(self):
+    def record_success(self, **kw):
         """记录成功。"""
         with self._lock:
             if self.state == CircuitState.HALF_OPEN:
@@ -288,7 +312,7 @@ class CircuitBreaker:
             elif self.state == CircuitState.CLOSED:
                 self.failure_count = 0
 
-    def record_failure(self):
+    def record_failure(self, **kw):
         """记录失败。"""
         with self._lock:
             self.failure_count += 1
@@ -307,7 +331,7 @@ class CircuitBreaker:
                     f"({self.failure_count} failures, will retry in {self.recovery_timeout}s)"
                 )
 
-    def reset(self):
+    def reset(self, **kw):
         """手动重置熔断器。"""
         with self._lock:
             self.state = CircuitState.CLOSED
@@ -321,6 +345,9 @@ class CircuitBreaker:
 # ═══════════════════════════════════════════════════════════
 
 class HealthChecker:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     健康检查器 — HTTP/TCP 探活。
 
@@ -343,16 +370,16 @@ class HealthChecker:
         self._running = False
         self._thread: Optional[threading.Thread] = None
 
-    def register(self, backend_name: str, check_func: Callable[[], bool]):
+    def register(self, backend_name: str, check_func: Callable[[], bool], **kw):
         """注册自定义健康检查函数。"""
         self._callbacks[backend_name] = check_func
 
-    def unregister(self, backend_name: str):
+    def unregister(self, backend_name: str, **kw):
         """取消注册。"""
         self._callbacks.pop(backend_name, None)
 
     @staticmethod
-    def http_check(url: str, path: str = "/health", timeout: float = 3.0) -> bool:
+    def http_check(url: str, path: str = "/health", timeout: float = 3.0, **kw) -> bool:
         """HTTP 健康检查 — 对指定 URL 发 GET 请求。"""
         try:
             full_url = url.rstrip("/") + "/" + path.lstrip("/")
@@ -364,7 +391,7 @@ class HealthChecker:
             return False
 
     @staticmethod
-    def tcp_check(host: str, port: int, timeout: float = 3.0) -> bool:
+    def tcp_check(host: str, port: int, timeout: float = 3.0, **kw) -> bool:
         """TCP 健康检查 — 尝试建立 socket 连接。"""
         try:
             sock = socket.create_connection((host, port), timeout=timeout)
@@ -374,7 +401,7 @@ class HealthChecker:
             logger.debug(f"TCP health check failed for {host}:{port}: {e}")
             return False
 
-    def start(self, backends: Dict[str, Backend]):
+    def start(self, backends: Dict[str, Backend], **kw):
         """启动后台健康检查线程。"""
         if self._running:
             return
@@ -388,12 +415,12 @@ class HealthChecker:
         self._thread.start()
         logger.info(f"Health checker started (interval={self.check_interval}s)")
 
-    def stop(self):
+    def stop(self, **kw):
         """停止健康检查线程。"""
         self._running = False
         logger.info("Health checker stopped")
 
-    def _check_loop(self, backends: Dict[str, Backend]):
+    def _check_loop(self, backends: Dict[str, Backend], **kw):
         """健康检查主循环。"""
         consecutive_failures: Dict[str, int] = defaultdict(int)
         consecutive_successes: Dict[str, int] = defaultdict(int)
@@ -438,7 +465,7 @@ class HealthChecker:
                                 f"({consecutive_failures[name]} consecutive failures)"
                             )
 
-    def _try_default_check(self, backend: Backend) -> bool:
+    def _try_default_check(self, backend: Backend, **kw) -> bool:
         """默认健康检查 — 尝试 TCP 连接或 HTTP GET。"""
         addr = backend.address
         # 判断是否为 HTTP URL
@@ -463,6 +490,9 @@ class HealthChecker:
 # ═══════════════════════════════════════════════════════════
 
 class LoadBalancer:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     智能负载均衡器 — 多策略 + 健康检查 + 故障转移 + 熔断。
 
@@ -580,7 +610,7 @@ class LoadBalancer:
             logger.info(f"Backend added: {name} ({address}, weight={weight})")
             return backend
 
-    def remove_backend(self, name: str) -> bool:
+    def remove_backend(self, name: str, **kw) -> bool:
         """移除后端。"""
         with self._backends_lock:
             if name not in self._backends:
@@ -621,17 +651,17 @@ class LoadBalancer:
                 b.state = state
             return b
 
-    def get_backend(self, name: str) -> Optional[Backend]:
+    def get_backend(self, name: str, **kw) -> Optional[Backend]:
         """获取后端信息。"""
         with self._backends_lock:
             return self._backends.get(name)
 
-    def list_backends(self) -> List[Backend]:
+    def list_backends(self, **kw) -> List[Backend]:
         """列出所有后端。"""
         with self._backends_lock:
             return list(self._backends.values())
 
-    def get_healthy_backends(self) -> List[Backend]:
+    def get_healthy_backends(self, **kw) -> List[Backend]:
         """获取所有健康后端 (含 degraded)。"""
         with self._backends_lock:
             return [
@@ -729,7 +759,7 @@ class LoadBalancer:
 
     # ── 内部选择算法 ──────────────────────────────────
 
-    def _select_least_connections(self) -> Optional[Backend]:
+    def _select_least_connections(self, **kw) -> Optional[Backend]:
         """最少连接选择 — 选 active_connections 最少且健康的。"""
         with self._backends_lock:
             candidates = [
@@ -745,7 +775,7 @@ class LoadBalancer:
             self._increment_connections(selected)
             return selected
 
-    def _select_weighted_round_robin(self) -> Optional[Backend]:
+    def _select_weighted_round_robin(self, **kw) -> Optional[Backend]:
         """加权轮询 — 平滑加权轮询 (Smooth Weighted Round Robin)。"""
         with self._backends_lock:
             candidates = [
@@ -769,7 +799,7 @@ class LoadBalancer:
             self._increment_connections(selected)
             return selected
 
-    def _select_consistent_hash(self, hash_key: Optional[str]) -> Optional[Backend]:
+    def _select_consistent_hash(self, hash_key: Optional[str], **kw) -> Optional[Backend]:
         """一致性哈希选择。"""
         key = hash_key or str(time.time())
         name = self._hash_ring.get(key)
@@ -788,7 +818,7 @@ class LoadBalancer:
                 return b
         return None
 
-    def _select_random(self) -> Optional[Backend]:
+    def _select_random(self, **kw) -> Optional[Backend]:
         """随机选择 — 带权重。"""
         import random
         with self._backends_lock:
@@ -818,7 +848,7 @@ class LoadBalancer:
 
     # ── 熔断器集成 ────────────────────────────────────
 
-    def _is_available(self, backend: Backend) -> bool:
+    def _is_available(self, backend: Backend, **kw) -> bool:
         """检查后端是否可用 (熔断器状态)。"""
         if backend.name not in self._circuits:
             return True
@@ -829,13 +859,13 @@ class LoadBalancer:
 
     # ── 连接追踪 ──────────────────────────────────────
 
-    def _increment_connections(self, backend: Backend):
+    def _increment_connections(self, backend: Backend, **kw):
         """增加后端活跃连接数。"""
         backend.active_connections += 1
         backend.total_requests += 1
         backend.last_used = time.time()
 
-    def release_connection(self, backend_name: str):
+    def release_connection(self, backend_name: str, **kw):
         """释放连接 (请求完成时调用)。"""
         backend = self.get_backend(backend_name)
         if backend and backend.active_connections > 0:
@@ -921,7 +951,7 @@ class LoadBalancer:
 
     # ── 应急功能 ──────────────────────────────────────
 
-    def drain_backend(self, name: str) -> bool:
+    def drain_backend(self, name: str, **kw) -> bool:
         """排空后端 — 停止接受新连接, 但不中断现有连接。"""
         backend = self.get_backend(name)
         if backend:
@@ -930,7 +960,7 @@ class LoadBalancer:
             return True
         return False
 
-    def reset_circuit(self, name: str) -> bool:
+    def reset_circuit(self, name: str, **kw) -> bool:
         """手动重置后端熔断器。"""
         if name in self._circuits:
             self._circuits[name].reset()
@@ -942,7 +972,7 @@ class LoadBalancer:
             return True
         return False
 
-    def reset_all_circuits(self):
+    def reset_all_circuits(self, **kw):
         """重置所有熔断器。"""
         for cb in self._circuits.values():
             cb.reset()
@@ -953,15 +983,15 @@ class LoadBalancer:
 
     # ── 健康检查 ──────────────────────────────────────
 
-    def start_health_checks(self):
+    def start_health_checks(self, **kw):
         """启动后台健康检查。"""
         self._health_checker.start(self._backends)
 
-    def stop_health_checks(self):
+    def stop_health_checks(self, **kw):
         """停止后台健康检查。"""
         self._health_checker.stop()
 
-    def run_health_check(self, name: str) -> bool:
+    def run_health_check(self, name: str, **kw) -> bool:
         """手动触发单次健康检查。返回是否健康。"""
         backend = self.get_backend(name)
         if backend is None:
@@ -976,21 +1006,21 @@ class LoadBalancer:
 
     # ── 回调 ──────────────────────────────────────────
 
-    def on_failover(self, callback: Callable):
+    def on_failover(self, callback: Callable, **kw):
         """注册故障转移回调。"""
         self._on_failover.append(callback)
 
-    def on_circuit_trip(self, callback: Callable):
+    def on_circuit_trip(self, callback: Callable, **kw):
         """注册熔断器触发回调。"""
         self._on_circuit_trip.append(callback)
 
-    def on_backend_change(self, callback: Callable):
+    def on_backend_change(self, callback: Callable, **kw):
         """注册后端变更回调。"""
         self._on_backend_change.append(callback)
 
     # ── 统计 ──────────────────────────────────────────
 
-    def get_stats(self) -> BalancerStats:
+    def get_stats(self, **kw) -> BalancerStats:
         """获取负载均衡器统计。"""
         with self._stats_lock:
             with self._backends_lock:
@@ -1009,7 +1039,7 @@ class LoadBalancer:
                 )
             return self._stats
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self, **kw) -> Dict[str, Any]:
         """
         获取负载均衡器完整状态 — 用于监控/调试端点。
 
@@ -1066,12 +1096,15 @@ class LoadBalancer:
 # ═══════════════════════════════════════════════════════════
 
 class defaultdict(dict):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """简易 defaultdict 替代, 避免 import 问题。"""
     def __init__(self, default_factory=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.default_factory = default_factory
 
-    def __missing__(self, key):
+    def __missing__(self, key, **kw):
         if self.default_factory is None:
             raise KeyError(key)
         value = self.default_factory()

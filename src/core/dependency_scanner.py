@@ -49,6 +49,9 @@ logger = logging.getLogger("meshctx.dependency_scanner")
 # ═══════════════════════════════════════════════════════════
 
 class Severity(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """严重级别"""
     CRITICAL = "critical"
     HIGH = "high"
@@ -58,6 +61,9 @@ class Severity(str, Enum):
 
 
 class LicenseType(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """许可证类型"""
     MIT = "MIT"
     APACHE2 = "Apache-2.0"
@@ -139,6 +145,9 @@ DEPRECATED_PACKAGES = {
 
 @dataclass
 class DependencyInfo:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """依赖信息"""
     name: str
     version: str = ""
@@ -153,18 +162,18 @@ class DependencyInfo:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     @property
-    def is_outdated(self) -> bool:
+    def is_outdated(self, **kw) -> bool:
         """是否过时"""
         if not self.version or not self.latest_version:
             return False
         return self.version != self.latest_version
 
     @property
-    def has_vulnerabilities(self) -> bool:
+    def has_vulnerabilities(self, **kw) -> bool:
         return len(self.vulnerabilities) > 0
 
     @property
-    def max_severity(self) -> Optional[Severity]:
+    def max_severity(self, **kw) -> Optional[Severity]:
         if not self.vulnerabilities:
             return None
         severities = [Severity(v["severity"].value if hasattr(v["severity"], "value") else v["severity"])
@@ -176,6 +185,9 @@ class DependencyInfo:
 
 @dataclass
 class ScanResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """扫描结果"""
     project_path: str
     total_dependencies: int = 0
@@ -193,6 +205,9 @@ class ScanResult:
 
 @dataclass
 class LicenseReport:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """许可证报告"""
     total_packages: int
     by_license: Dict[str, int]  # license_category → count
@@ -206,10 +221,13 @@ class LicenseReport:
 # ═══════════════════════════════════════════════════════════
 
 class DependencyExtractor:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """从 Python 项目中提取依赖信息"""
 
     @staticmethod
-    def extract_from_requirements(path: str) -> List[DependencyInfo]:
+    def extract_from_requirements(path: str, **kw) -> List[DependencyInfo]:
         """从 requirements.txt 提取"""
         if not os.path.exists(path):
             return []
@@ -230,7 +248,7 @@ class DependencyExtractor:
         return deps
 
     @staticmethod
-    def extract_from_pyproject(path: str) -> List[DependencyInfo]:
+    def extract_from_pyproject(path: str, **kw) -> List[DependencyInfo]:
         """从 pyproject.toml 提取"""
         deps = []
         if not os.path.exists(path):
@@ -267,7 +285,7 @@ class DependencyExtractor:
         return deps
 
     @staticmethod
-    def extract_from_setup_py(path: str) -> List[DependencyInfo]:
+    def extract_from_setup_py(path: str, **kw) -> List[DependencyInfo]:
         """从 setup.py 提取 (AST 解析)"""
         if not os.path.exists(path):
             return []
@@ -297,7 +315,7 @@ class DependencyExtractor:
         return deps
 
     @staticmethod
-    def extract_imports(python_file: str) -> List[str]:
+    def extract_imports(python_file: str, **kw) -> List[str]:
         """提取 Python 文件中的导入"""
         if not os.path.exists(python_file):
             return []
@@ -321,7 +339,7 @@ class DependencyExtractor:
         return sorted(set(imports))
 
     @staticmethod
-    def discover_dependency_files(project_path: str) -> Dict[str, str]:
+    def discover_dependency_files(project_path: str, **kw) -> Dict[str, str]:
         """发现项目中的依赖文件"""
         files = {}
         candidates = {
@@ -344,18 +362,21 @@ class DependencyExtractor:
 # ═══════════════════════════════════════════════════════════
 
 class DependencyScanner:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """依赖扫描器
 
     对 Python 项目执行全面的依赖分析。
     """
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._lock = threading.RLock()
         self._scan_cache: Dict[str, ScanResult] = {}
 
     # ── 项目扫描 ────────────────────────────────────────────
 
-    def scan_project(self, project_path: str, recursive: bool = False) -> ScanResult:
+    def scan_project(self, project_path: str, recursive: bool = False, **kw) -> ScanResult:
         """扫描项目依赖
 
         Args:
@@ -428,7 +449,7 @@ class DependencyScanner:
         )
         return result
 
-    def _enrich_dependency(self, dep: DependencyInfo) -> None:
+    def _enrich_dependency(self, dep: DependencyInfo, **kw) -> None:
         """补充依赖信息"""
         # 检查已知漏洞
         if dep.name in KNOWN_VULNERABILITIES:
@@ -456,7 +477,7 @@ class DependencyScanner:
 
     # ── 漏洞检查 ────────────────────────────────────────────
 
-    def check_vulnerabilities(self, package_name: str) -> List[Dict[str, Any]]:
+    def check_vulnerabilities(self, package_name: str, **kw) -> List[Dict[str, Any]]:
         """检查包的已知漏洞
 
         Args:
@@ -490,7 +511,7 @@ class DependencyScanner:
 
     # ── 许可证分析 ──────────────────────────────────────────
 
-    def analyze_licenses(self, project_path: str) -> LicenseReport:
+    def analyze_licenses(self, project_path: str, **kw) -> LicenseReport:
         """分析许可证兼容性"""
         result = self.scan_project(project_path)
         by_category = {}
@@ -525,7 +546,7 @@ class DependencyScanner:
 
     # ── 过时检测 ────────────────────────────────────────────
 
-    def check_outdated(self, project_path: str) -> List[Dict[str, str]]:
+    def check_outdated(self, project_path: str, **kw) -> List[Dict[str, str]]:
         """检查过时包"""
         result = self.scan_project(project_path)
         outdated = []
@@ -539,7 +560,7 @@ class DependencyScanner:
                 })
         return sorted(outdated, key=lambda x: x["name"])
 
-    def check_deprecated(self, project_path: str) -> List[Dict[str, str]]:
+    def check_deprecated(self, project_path: str, **kw) -> List[Dict[str, str]]:
         """检查已弃用包"""
         result = self.scan_project(project_path)
         deprecated = []
@@ -554,7 +575,7 @@ class DependencyScanner:
 
     # ── 导入分析 ────────────────────────────────────────────
 
-    def analyze_imports(self, project_path: str) -> Dict[str, List[str]]:
+    def analyze_imports(self, project_path: str, **kw) -> Dict[str, List[str]]:
         """分析项目中的导入依赖"""
         imports_map: Dict[str, Set[str]] = {}
         py_files = []
@@ -577,7 +598,7 @@ class DependencyScanner:
 
     # ── 报告生成 ────────────────────────────────────────────
 
-    def generate_report(self, project_path: str, output_format: str = "json") -> str:
+    def generate_report(self, project_path: str, output_format: str = "json", **kw) -> str:
         """生成依赖扫描报告
 
         Args:
@@ -645,11 +666,11 @@ class DependencyScanner:
 
     # ── 缓存 ────────────────────────────────────────────────
 
-    def get_cached_scan(self, project_path: str) -> Optional[ScanResult]:
+    def get_cached_scan(self, project_path: str, **kw) -> Optional[ScanResult]:
         """获取缓存扫描结果"""
         return self._scan_cache.get(os.path.abspath(project_path))
 
-    def invalidate_cache(self, project_path: str = None) -> int:
+    def invalidate_cache(self, project_path: str = None, **kw) -> int:
         """失效缓存"""
         if project_path:
             removed = self._scan_cache.pop(os.path.abspath(project_path), None)

@@ -52,6 +52,9 @@ MAX_HISTORY = 50
 
 
 class ConfigFormat(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """配置文件格式"""
     JSON = "json"
     YAML = "yaml"
@@ -62,6 +65,9 @@ class ConfigFormat(str, Enum):
 
 
 class ConfigSource(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """配置来源"""
     FILE = "file"
     ENV = "env"
@@ -70,6 +76,9 @@ class ConfigSource(str, Enum):
 
 
 class ValidationLevel(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """验证级别"""
     STRICT = "strict"      # 严格的 Schema 验证
     WARN = "warn"          # 警告但不阻止
@@ -82,6 +91,9 @@ class ValidationLevel(str, Enum):
 
 @dataclass
 class ConfigEntry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """配置条目 (带来源追踪)"""
     key: str
     value: Any
@@ -92,13 +104,16 @@ class ConfigEntry:
 
 @dataclass
 class ConfigSnapshot:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """配置快照"""
     data: Dict[str, Any]
     timestamp: float = field(default_factory=time.time)
     version: int = 1
     comment: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "timestamp": self.timestamp,
             "version": self.version,
@@ -110,6 +125,9 @@ class ConfigSnapshot:
 
 @dataclass
 class WatchDescriptor:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """文件监听描述符"""
     file_path: str
     callback: Callable[[Dict[str, Any]], None]
@@ -121,6 +139,9 @@ class WatchDescriptor:
 
 @dataclass
 class ValidationRule:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """验证规则"""
     key_pattern: str              # 键模式 (支持 * 通配)
     required: bool = False
@@ -136,18 +157,21 @@ class ValidationRule:
 # ═══════════════════════════════════════════════════════════
 
 class ConfigStore:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """配置存储核心
 
     线程安全的配置存储, 支持原子更新和版本历史。
     """
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._data: Dict[str, ConfigEntry] = {}
         self._lock = threading.RLock()
         self._history: List[ConfigSnapshot] = []
         self._version: int = 0
 
-    def get(self, key: str, default: Any = None) -> Any:
+    def get(self, key: str, default: Any = None, **kw) -> Any:
         """获取配置值
 
         支持点号分隔的嵌套键: "model.gpt.temperature"
@@ -175,13 +199,13 @@ class ConfigStore:
                     return value
             return default
 
-    def set(self, key: str, value: Any, source: ConfigSource = ConfigSource.OVERRIDE) -> None:
+    def set(self, key: str, value: Any, source: ConfigSource = ConfigSource.OVERRIDE, **kw) -> None:
         """设置配置值"""
         with self._lock:
             self._data[key] = ConfigEntry(key=key, value=value, source=source)
             logger.debug(f"Config set: {key} = {value}")
 
-    def delete(self, key: str) -> bool:
+    def delete(self, key: str, **kw) -> bool:
         """删除配置"""
         with self._lock:
             if key in self._data:
@@ -190,7 +214,7 @@ class ConfigStore:
                 return True
         return False
 
-    def set_nested(self, key: str, value: Any) -> None:
+    def set_nested(self, key: str, value: Any, **kw) -> None:
         """设置嵌套配置值
 
         e.g. set_nested("model.gpt.temperature", 0.7)
@@ -212,14 +236,14 @@ class ConfigStore:
                 current = current[part]
             current[parts[-1]] = value
 
-    def load_dict(self, data: Dict[str, Any], source: ConfigSource = ConfigSource.FILE) -> None:
+    def load_dict(self, data: Dict[str, Any], source: ConfigSource = ConfigSource.FILE, **kw) -> None:
         """批量加载配置 (原子)"""
         with self._lock:
             for key, value in data.items():
                 self._data[key] = ConfigEntry(key=key, value=value, source=source)
             logger.info(f"Loaded {len(data)} config keys from {source.value}")
 
-    def to_dict(self, include_metadata: bool = False) -> Dict[str, Any]:
+    def to_dict(self, include_metadata: bool = False, **kw) -> Dict[str, Any]:
         """导出为字典"""
         with self._lock:
             if include_metadata:
@@ -229,7 +253,7 @@ class ConfigStore:
                 }
             return {k: v.value for k, v in self._data.items()}
 
-    def keys(self, prefix: str = None) -> List[str]:
+    def keys(self, prefix: str = None, **kw) -> List[str]:
         """列出键"""
         with self._lock:
             keys = list(self._data.keys())
@@ -237,7 +261,7 @@ class ConfigStore:
                 keys = [k for k in keys if k.startswith(prefix)]
             return sorted(keys)
 
-    def search(self, pattern: str) -> Dict[str, Any]:
+    def search(self, pattern: str, **kw) -> Dict[str, Any]:
         """模糊搜索配置键"""
         with self._lock:
             results = {}
@@ -247,7 +271,7 @@ class ConfigStore:
                     results[key] = entry.value
             return results
 
-    def snapshot(self, comment: str = "") -> ConfigSnapshot:
+    def snapshot(self, comment: str = "", **kw) -> ConfigSnapshot:
         """创建快照"""
         with self._lock:
             self._version += 1
@@ -261,7 +285,7 @@ class ConfigStore:
                 self._history = self._history[-MAX_HISTORY:]
             return snapshot
 
-    def rollback(self, version: int = None) -> bool:
+    def rollback(self, version: int = None, **kw) -> bool:
         """回滚配置"""
         with self._lock:
             if not self._history:
@@ -283,12 +307,12 @@ class ConfigStore:
             logger.info(f"Rolled back config to version {target.version}")
             return True
 
-    def get_history(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_history(self, limit: int = 10, **kw) -> List[Dict[str, Any]]:
         """获取版本历史"""
         with self._lock:
             return [s.to_dict() for s in self._history[-limit:]]
 
-    def diff(self, version_a: int, version_b: int = None) -> Dict[str, Any]:
+    def diff(self, version_a: int, version_b: int = None, **kw) -> Dict[str, Any]:
         """对比两个版本"""
         with self._lock:
             snap_a = next((s for s in self._history if s.version == version_a), None)
@@ -337,9 +361,12 @@ class ConfigStore:
 # ═══════════════════════════════════════════════════════════
 
 class FileWatcher:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """文件监听器 (轮询)"""
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._watches: Dict[str, WatchDescriptor] = {}
         self._running = False
         self._thread: Optional[threading.Thread] = None
@@ -374,7 +401,7 @@ class FileWatcher:
             logger.info(f"Watching file: {abs_path}")
         return watch
 
-    def remove_watch(self, file_path: str) -> bool:
+    def remove_watch(self, file_path: str, **kw) -> bool:
         """移除文件监听"""
         abs_path = os.path.abspath(file_path)
         with self._lock:
@@ -384,7 +411,7 @@ class FileWatcher:
                 return True
         return False
 
-    def start(self) -> None:
+    def start(self, **kw) -> None:
         """启动监听线程"""
         if self._running:
             return
@@ -395,14 +422,14 @@ class FileWatcher:
         self._thread.start()
         logger.info("File watcher started")
 
-    def stop(self) -> None:
+    def stop(self, **kw) -> None:
         """停止监听"""
         self._running = False
         if self._thread:
             self._thread.join(timeout=5)
         logger.info("File watcher stopped")
 
-    def _watch_loop(self) -> None:
+    def _watch_loop(self, **kw) -> None:
         """监听循环"""
         while self._running:
             with self._lock:
@@ -435,7 +462,7 @@ class FileWatcher:
             time.sleep(DEFAULT_WATCH_INTERVAL)
 
     @property
-    def active_watches(self) -> int:
+    def active_watches(self, **kw) -> int:
         with self._lock:
             return sum(1 for w in self._watches.values() if w.enabled)
 
@@ -445,16 +472,19 @@ class FileWatcher:
 # ═══════════════════════════════════════════════════════════
 
 class ConfigValidator:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """配置验证器"""
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._rules: List[ValidationRule] = []
 
-    def add_rule(self, rule: ValidationRule) -> None:
+    def add_rule(self, rule: ValidationRule, **kw) -> None:
         """添加验证规则"""
         self._rules.append(rule)
 
-    def validate(self, data: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    def validate(self, data: Dict[str, Any], **kw) -> Tuple[bool, List[str]]:
         """验证配置
 
         Returns:
@@ -507,13 +537,16 @@ class ConfigValidator:
 # ═══════════════════════════════════════════════════════════
 
 class ConfigHotReload:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """配置热加载管理器
 
     组合配置存储、文件监听和验证。
     支持从多种格式文件加载配置, 并提供热更新能力。
     """
 
-    def __init__(self):
+    def __init__(self, **kw):
         self.store = ConfigStore()
         self.watcher = FileWatcher()
         self.validator = ConfigValidator()
@@ -522,7 +555,7 @@ class ConfigHotReload:
 
     # ── 加载配置 ────────────────────────────────────────────
 
-    def load(self, file_path: str, format: ConfigFormat = ConfigFormat.AUTO) -> Dict[str, Any]:
+    def load(self, file_path: str, format: ConfigFormat = ConfigFormat.AUTO, **kw) -> Dict[str, Any]:
         """加载配置文件
 
         Args:
@@ -548,7 +581,7 @@ class ConfigHotReload:
         logger.info(f"Loaded config from {file_path}: {len(data)} keys")
         return data
 
-    def load_env(self, prefix: str = "MESHCTX_") -> Dict[str, Any]:
+    def load_env(self, prefix: str = "MESHCTX_", **kw) -> Dict[str, Any]:
         """从环境变量加载配置
 
         MESHCTX_MODEL_TEMPERATURE → model.temperature
@@ -571,23 +604,23 @@ class ConfigHotReload:
             logger.info(f"Loaded {len(data)} config keys from environment (prefix={prefix})")
         return data
 
-    def load_defaults(self, defaults: Dict[str, Any]) -> None:
+    def load_defaults(self, defaults: Dict[str, Any], **kw) -> None:
         """加载默认值"""
         self.store.load_dict(defaults, source=ConfigSource.DEFAULT)
 
     # ── 配置访问 ────────────────────────────────────────────
 
-    def get(self, key: str, default: Any = None) -> Any:
+    def get(self, key: str, default: Any = None, **kw) -> Any:
         """获取配置值"""
         return self.store.get(key, default)
 
-    def get_int(self, key: str, default: int = 0) -> int:
+    def get_int(self, key: str, default: int = 0, **kw) -> int:
         return int(self.get(key, default))
 
-    def get_float(self, key: str, default: float = 0.0) -> float:
+    def get_float(self, key: str, default: float = 0.0, **kw) -> float:
         return float(self.get(key, default))
 
-    def get_bool(self, key: str, default: bool = False) -> bool:
+    def get_bool(self, key: str, default: bool = False, **kw) -> bool:
         val = self.get(key, default)
         if isinstance(val, bool):
             return val
@@ -595,10 +628,10 @@ class ConfigHotReload:
             return val.lower() in ("true", "1", "yes", "on")
         return bool(val)
 
-    def get_str(self, key: str, default: str = "") -> str:
+    def get_str(self, key: str, default: str = "", **kw) -> str:
         return str(self.get(key, default))
 
-    def get_list(self, key: str, default: List = None) -> List:
+    def get_list(self, key: str, default: List = None, **kw) -> List:
         val = self.get(key, default or [])
         if isinstance(val, list):
             return val
@@ -606,26 +639,26 @@ class ConfigHotReload:
             return [v.strip() for v in val.split(",") if v.strip()]
         return [val] if val is not None else []
 
-    def set(self, key: str, value: Any) -> None:
+    def set(self, key: str, value: Any, **kw) -> None:
         """设置配置值 (运行时覆盖)"""
         self.store.set(key, value, source=ConfigSource.OVERRIDE)
         self._notify_change()
 
-    def set_nested(self, key: str, value: Any) -> None:
+    def set_nested(self, key: str, value: Any, **kw) -> None:
         """设置嵌套配置值"""
         self.store.set_nested(key, value)
         self._notify_change()
 
-    def delete(self, key: str) -> bool:
+    def delete(self, key: str, **kw) -> bool:
         return self.store.delete(key)
 
-    def keys(self, prefix: str = None) -> List[str]:
+    def keys(self, prefix: str = None, **kw) -> List[str]:
         return self.store.keys(prefix)
 
-    def search(self, pattern: str) -> Dict[str, Any]:
+    def search(self, pattern: str, **kw) -> Dict[str, Any]:
         return self.store.search(pattern)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return self.store.to_dict()
 
     # ── 热加载 ──────────────────────────────────────────────
@@ -642,7 +675,7 @@ class ConfigHotReload:
             interval: 轮询间隔
         """
         if on_change is None:
-            def auto_reload(data):
+            def auto_reload(data, **kw):
                 self.store.load_dict(data, source=ConfigSource.FILE)
                 self._notify_change()
                 logger.info(f"Auto-reloaded config from {file_path}")
@@ -652,14 +685,14 @@ class ConfigHotReload:
         self.watcher.start()
         return watch
 
-    def unwatch(self, file_path: str) -> bool:
+    def unwatch(self, file_path: str, **kw) -> bool:
         return self.watcher.remove_watch(file_path)
 
-    def on_change(self, callback: Callable[[], None]) -> None:
+    def on_change(self, callback: Callable[[], None], **kw) -> None:
         """注册配置变更回调"""
         self._on_change_callbacks.append(callback)
 
-    def _notify_change(self) -> None:
+    def _notify_change(self, **kw) -> None:
         """通知所有变更回调"""
         self.store.snapshot(comment="auto")
         for cb in self._on_change_callbacks:
@@ -670,19 +703,19 @@ class ConfigHotReload:
 
     # ── 版本管理 ────────────────────────────────────────────
 
-    def snapshot(self, comment: str = "") -> ConfigSnapshot:
+    def snapshot(self, comment: str = "", **kw) -> ConfigSnapshot:
         return self.store.snapshot(comment)
 
-    def rollback(self, version: int = None) -> bool:
+    def rollback(self, version: int = None, **kw) -> bool:
         result = self.store.rollback(version)
         if result:
             self._notify_change()
         return result
 
-    def history(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def history(self, limit: int = 10, **kw) -> List[Dict[str, Any]]:
         return self.store.get_history(limit)
 
-    def diff(self, v1: int, v2: int = None) -> Dict[str, Any]:
+    def diff(self, v1: int, v2: int = None, **kw) -> Dict[str, Any]:
         return self.store.diff(v1, v2)
 
     # ── 验证 ────────────────────────────────────────────────
@@ -705,13 +738,13 @@ class ConfigHotReload:
         )
         self.validator.add_rule(rule)
 
-    def validate_current(self) -> Tuple[bool, List[str]]:
+    def validate_current(self, **kw) -> Tuple[bool, List[str]]:
         """验证当前配置"""
         return self.validator.validate(self.to_dict())
 
     # ── 导出 ────────────────────────────────────────────────
 
-    def export(self, file_path: str, format: ConfigFormat = ConfigFormat.JSON) -> None:
+    def export(self, file_path: str, format: ConfigFormat = ConfigFormat.JSON, **kw) -> None:
         """导出配置到文件"""
         data = self.to_dict()
         if format == ConfigFormat.JSON:

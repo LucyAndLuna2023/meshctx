@@ -46,6 +46,9 @@ logger = logging.getLogger("meshctx.error_recovery")
 # ═══════════════════════════════════════════════════════════
 
 class ErrorCategory(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """错误分类。"""
     RETRYABLE = "retryable"        # 可重试 (网络超时, 临时故障)
     FATAL = "fatal"                # 致命 (配置错误, 认证失败)
@@ -53,6 +56,9 @@ class ErrorCategory(str, Enum):
 
 
 class RecoveryStepType(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """恢复步骤类型。"""
     RETRY = "retry"                # 重试原操作
     BACKOFF_WAIT = "backoff_wait"  # 等待指数退避
@@ -64,6 +70,9 @@ class RecoveryStepType(str, Enum):
 
 
 class RecoveryStatus(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """恢复计划状态。"""
     PENDING = "pending"
     RUNNING = "running"
@@ -84,6 +93,9 @@ DEFAULT_JITTER_FACTOR = 0.1        # 抖动因子 (10%)
 
 @dataclass
 class RecoveryStep:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """单个恢复步骤。
 
     Attributes:
@@ -107,7 +119,7 @@ class RecoveryStep:
     started_at: float = field(default=0.0, repr=False)
     completed_at: float = field(default=0.0, repr=False)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "step_type": self.step_type.value,
             "description": self.description,
@@ -120,6 +132,9 @@ class RecoveryStep:
 
 @dataclass
 class RecoveryPlan:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """恢复计划 — 面对错误的完整恢复策略。
 
     Attributes:
@@ -145,7 +160,7 @@ class RecoveryPlan:
     created_at: float = field(default_factory=time.time)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "id": self.id,
             "error_category": self.error_category.value,
@@ -159,19 +174,19 @@ class RecoveryPlan:
         }
 
     @property
-    def completed_steps(self) -> int:
+    def completed_steps(self, **kw) -> int:
         return sum(
             1 for s in self.steps if s.status == RecoveryStatus.COMPLETED
         )
 
     @property
-    def failed_steps(self) -> int:
+    def failed_steps(self, **kw) -> int:
         return sum(
             1 for s in self.steps if s.status == RecoveryStatus.FAILED
         )
 
     @property
-    def progress_pct(self) -> float:
+    def progress_pct(self, **kw) -> float:
         if not self.steps:
             return 100.0
         return round((self.completed_steps / len(self.steps)) * 100, 1)
@@ -179,6 +194,9 @@ class RecoveryPlan:
 
 @dataclass
 class StateCheckpoint:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """状态快照 — 用于回滚。
 
     Attributes:
@@ -198,6 +216,9 @@ class StateCheckpoint:
 # ═══════════════════════════════════════════════════════════
 
 class ErrorClassifier:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """错误分类器 — 将异常归入 retryable/fatal/degradable。
 
     内置常见异常分类规则, 支持注册自定义分类函数。
@@ -237,10 +258,10 @@ class ErrorClassifier:
         "ValidationError": ErrorCategory.FATAL,
     }
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._custom_rules: List[Tuple[str, Callable[[Exception], Optional[ErrorCategory]]]] = []
 
-    def classify(self, error: Exception, context: str = "") -> ErrorCategory:
+    def classify(self, error: Exception, context: str = "", **kw) -> ErrorCategory:
         """分类异常。
 
         优先级: 自定义规则 > 内置规则 > 默认 FATAL
@@ -294,7 +315,7 @@ class ErrorClassifier:
         self._custom_rules.append((context_pattern, rule_func))
         logger.info(f"Registered custom error rule for context: {context_pattern}")
 
-    def unregister_rules(self, context_pattern: str = None) -> int:
+    def unregister_rules(self, context_pattern: str = None, **kw) -> int:
         """注销自定义规则。"""
         if context_pattern is None:
             count = len(self._custom_rules)
@@ -309,7 +330,7 @@ class ErrorClassifier:
         return count
 
     @staticmethod
-    def _match_context(context: str, pattern: str) -> bool:
+    def _match_context(context: str, pattern: str, **kw) -> bool:
         """简单通配符匹配。"""
         if pattern == "*":
             return True
@@ -355,6 +376,9 @@ def calculate_backoff(
 # ═══════════════════════════════════════════════════════════
 
 class ErrorRecovery:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """错误恢复引擎。
 
     核心职责:
@@ -367,7 +391,7 @@ class ErrorRecovery:
     线程安全: 内部使用 asyncio.Lock + threading.Lock。
     """
 
-    def __init__(self):
+    def __init__(self, **kw):
         self.classifier = ErrorClassifier()
         self._strategies: Dict[str, Dict[str, Any]] = {}
         self._strategies_lock = threading.Lock()
@@ -437,7 +461,7 @@ class ErrorRecovery:
             f"max_retries={max_retries}, base_delay={base_delay}s"
         )
 
-    def unregister_strategy(self, context: str) -> bool:
+    def unregister_strategy(self, context: str, **kw) -> bool:
         """注销策略。"""
         removed = False
         with self._strategies_lock:
@@ -547,7 +571,7 @@ class ErrorRecovery:
             ))
         return steps
 
-    def _build_degrade_steps(self, context: str, error: Exception) -> List[RecoveryStep]:
+    def _build_degrade_steps(self, context: str, error: Exception, **kw) -> List[RecoveryStep]:
         """构建降级步骤。"""
         steps = [
             RecoveryStep(
@@ -569,7 +593,7 @@ class ErrorRecovery:
             ))
         return steps
 
-    def _build_fatal_steps(self, error: Exception) -> List[RecoveryStep]:
+    def _build_fatal_steps(self, error: Exception, **kw) -> List[RecoveryStep]:
         """构建致命错误步骤 (仅记录日志 + 通知)。"""
         return [
             RecoveryStep(
@@ -717,7 +741,7 @@ class ErrorRecovery:
 
     # ── 状态回滚 ───────────────────────────────────────────
 
-    def save_checkpoint(self, context: str, state: Any) -> StateCheckpoint:
+    def save_checkpoint(self, context: str, state: Any, **kw) -> StateCheckpoint:
         """保存状态快照 (用于后续回滚)。
 
         Args:
@@ -744,7 +768,7 @@ class ErrorRecovery:
         logger.debug(f"Saved checkpoint for '{context}': {len(self._checkpoints[context])} total")
         return checkpoint
 
-    def restore_checkpoint(self, context: str, index: int = -1) -> Optional[Any]:
+    def restore_checkpoint(self, context: str, index: int = -1, **kw) -> Optional[Any]:
         """恢复到指定 checkpoint。
 
         Args:
@@ -769,7 +793,7 @@ class ErrorRecovery:
             logger.info(f"Restored checkpoint for '{context}': {checkpoint.timestamp}")
             return copy.deepcopy(checkpoint.state)
 
-    def clear_checkpoints(self, context: str = None) -> int:
+    def clear_checkpoints(self, context: str = None, **kw) -> int:
         """清除 checkpoint。
 
         Args:
@@ -787,7 +811,7 @@ class ErrorRecovery:
         logger.info(f"Cleared {count} checkpoints")
         return count
 
-    def _create_rollback_handler(self, context: str, checkpoint: StateCheckpoint):
+    def _create_rollback_handler(self, context: str, checkpoint: StateCheckpoint, **kw):
         """创建回滚 handler 闭包。"""
         async def _rollback():
             self.restore_checkpoint(context)
@@ -795,7 +819,7 @@ class ErrorRecovery:
 
     # ── 部分成功处理 ───────────────────────────────────────
 
-    def record_partial_result(self, context: str, result: Any) -> None:
+    def record_partial_result(self, context: str, result: Any, **kw) -> None:
         """记录部分成功的结果。"""
         with self._partial_lock:
             if context not in self._partial_results:
@@ -803,12 +827,12 @@ class ErrorRecovery:
             self._partial_results[context].append(result)
         logger.debug(f"Recorded partial result for '{context}': {len(self._partial_results[context])} total")
 
-    def get_partial_results(self, context: str) -> List[Any]:
+    def get_partial_results(self, context: str, **kw) -> List[Any]:
         """获取部分成功的结果。"""
         with self._partial_lock:
             return list(self._partial_results.get(context, []))
 
-    def clear_partial_results(self, context: str = None) -> int:
+    def clear_partial_results(self, context: str = None, **kw) -> int:
         """清除部分成功记录。"""
         with self._partial_lock:
             if context is None:
@@ -820,7 +844,7 @@ class ErrorRecovery:
 
     # ── 统计 ───────────────────────────────────────────────
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, **kw) -> Dict[str, Any]:
         """获取恢复统计。"""
         with self._stats_lock:
             total = self.total_recoveries
@@ -840,17 +864,17 @@ class ErrorRecovery:
 
     # ── 内部 ───────────────────────────────────────────────
 
-    def _get_strategy(self, context: str) -> Dict[str, Any]:
+    def _get_strategy(self, context: str, **kw) -> Dict[str, Any]:
         """获取上下文策略 (带默认值)。"""
         with self._strategies_lock:
             return self._strategies.get(context, {})
 
-    def _record_success(self) -> None:
+    def _record_success(self, **kw) -> None:
         with self._stats_lock:
             self.total_recoveries += 1
             self.successful_recoveries += 1
 
-    def _record_failure(self) -> None:
+    def _record_failure(self, **kw) -> None:
         with self._stats_lock:
             self.total_recoveries += 1
             self.failed_recoveries += 1

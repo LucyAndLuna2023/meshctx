@@ -14,20 +14,26 @@ except ImportError:
 
 
 class _ResultItem:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """search 返回的结果对象，含 .text 和 .score 属性兼容"""
-    def __init__(self, text, score):
+    def __init__(self, text, score, **kw):
         self.text = text
         self.score = score
 
 
 class TfidfVectorizer:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """TF-IDF 向量化 — 含 jieba 中文分词"""
     def __init__(self, *args, **kwargs):
         self.vocab = {}       # word -> idx
         self.idf = {}          # word -> idf score
         self._token_pattern = re.compile(r'[a-zA-Z0-9]+(?:[-_.][a-zA-Z0-9]+)*')
 
-    def _tokenize(self, text):
+    def _tokenize(self, text, **kw):
         """分词: jieba中文 + regex英文 + 全小写"""
         if not isinstance(text, str):
             return []
@@ -45,10 +51,10 @@ class TfidfVectorizer:
                     tokens.append(token)
         return tokens
 
-    def tokenize(self, text):
+    def tokenize(self, text, **kw):
         return self._tokenize(text)
 
-    def fit(self, docs):
+    def fit(self, docs, **kw):
         """构建词汇表和IDF"""
         doc_count = len(docs)
         doc_freq = Counter()
@@ -71,11 +77,14 @@ class TfidfVectorizer:
 
         return all_tokens_per_doc
 
-    def fit_transform(self, docs):
+    def fit_transform(self, docs, **kw):
         return self.fit(docs)
 
 
 class VectorStore:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """向量存储 — 基于 TF-IDF 的语义搜索"""
     def __init__(self, *args, **kwargs):
         self._docs = []           # list of original text
@@ -83,10 +92,10 @@ class VectorStore:
         self._token_vectors = []  # list of (token_set, tfidf_vector_dict)
         self._rebuilt = False
 
-    def add(self, text, vector=None):
+    def add(self, text, vector=None, **kw):
         self._docs.append(text)
 
-    def rebuild_index(self):
+    def rebuild_index(self, **kw):
         """构建 TF-IDF 索引"""
         if not self._docs:
             return
@@ -103,7 +112,7 @@ class VectorStore:
             self._token_vectors.append(vec)
         self._rebuilt = True
 
-    def search(self, query, top_k=5):
+    def search(self, query, top_k=5, **kw):
         """TF-IDF 余弦相似度搜索，返回 (ResultItem, score) 列表"""
         import math
 

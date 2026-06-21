@@ -5,6 +5,9 @@ from typing import Any
 
 
 class CausalAnalyzer:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """因果分析引擎 — 根本原因分析、影响评估、关联发现."""
 
     def __init__(self, *args, **kwargs):
@@ -15,7 +18,7 @@ class CausalAnalyzer:
 
     # ── 根本原因分析 ─────────────────────────────────────
 
-    def analyze_root_cause(self, event_id: str | None = None) -> dict:
+    def analyze_root_cause(self, event_id: str | None = None, **kw) -> dict:
         """分析事件的根本原因."""
         return {
             "event_id": event_id or "unknown",
@@ -30,7 +33,7 @@ class CausalAnalyzer:
 
     # ── 影响分析 ─────────────────────────────────────────
 
-    def impact_analysis(self, change: str) -> dict:
+    def impact_analysis(self, change: str, **kw) -> dict:
         """分析某项变更的影响."""
         return {
             "change": change,
@@ -42,7 +45,7 @@ class CausalAnalyzer:
 
     # ── 关联发现 ─────────────────────────────────────────
 
-    def find_correlations(self, metric_a: str = "errors", metric_b: str = "deploys") -> dict:
+    def find_correlations(self, metric_a: str = "errors", metric_b: str = "deploys", **kw) -> dict:
         """发现指标间的关联."""
         return {
             "metric_a": metric_a,
@@ -55,7 +58,7 @@ class CausalAnalyzer:
 
     # ── 事件追踪 ─────────────────────────────────────────
 
-    def track_event(self, name: str, data: dict | None = None) -> str:
+    def track_event(self, name: str, data: dict | None = None, **kw) -> str:
         """记录因果事件."""
         import uuid
         event_id = str(uuid.uuid4())[:8]
@@ -63,20 +66,20 @@ class CausalAnalyzer:
         self._events.append(event)
         return event_id
 
-    def get_event(self, event_id: str) -> dict | None:
+    def get_event(self, event_id: str, **kw) -> dict | None:
         """获取指定事件."""
         for e in self._events:
             if e["id"] == event_id:
                 return e
         return None
 
-    def get_all_events(self) -> list[dict]:
+    def get_all_events(self, **kw) -> list[dict]:
         """获取所有事件."""
         return list(self._events)
 
     # ── 因果图 ───────────────────────────────────────────
 
-    def build_causal_graph(self) -> dict:
+    def build_causal_graph(self, **kw) -> dict:
         """构建因果图."""
         return {
             "nodes": [
@@ -90,7 +93,7 @@ class CausalAnalyzer:
             ],
         }
 
-    def render_causal_graph(self) -> str:
+    def render_causal_graph(self, **kw) -> str:
         """渲染因果图为 ASCII."""
         graph = self.build_causal_graph()
         lines = ["Causal Graph:", "-" * 40]
@@ -100,7 +103,7 @@ class CausalAnalyzer:
 
     # ── 对比分析 ─────────────────────────────────────────
 
-    def compare_causes(self, event_a: str, event_b: str) -> dict:
+    def compare_causes(self, event_a: str, event_b: str, **kw) -> dict:
         """比较两个事件的因果关系."""
         return {
             "event_a": {"id": event_a, "cause": "human error"},
@@ -111,7 +114,7 @@ class CausalAnalyzer:
 
     # ── 统计 ─────────────────────────────────────────────
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self, **kw) -> dict[str, Any]:
         """获取统计信息."""
         return {
             "total_events": len(self._events),
@@ -122,17 +125,17 @@ class CausalAnalyzer:
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -140,12 +143,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

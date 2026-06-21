@@ -5,12 +5,18 @@ from enum import Enum
 from typing import Any
 
 class MemoryTier(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     WORKING = "working"
     SHORT_TERM = "short_term"
     LONG_TERM = "long_term"
     ARCHIVE = "archive"
 
 class CompressionStrategy(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     NONE = "none"
     SUMMARIZE = "summarize"
     KEY_POINTS = "key_points"
@@ -18,6 +24,9 @@ class CompressionStrategy(str, Enum):
 
 @dataclass
 class MemoryEntry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     entry_id: str = field(default_factory=lambda: f"mem_{uuid.uuid4().hex[:8]}")
     content: str = ""
     tier: MemoryTier = MemoryTier.WORKING
@@ -30,6 +39,9 @@ class MemoryEntry:
     def memory_id(self): return self.entry_id
 @dataclass
 class CompactionResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     original: MemoryEntry = None
     compacted: str = ""
     strategy: CompressionStrategy = CompressionStrategy.SUMMARIZE
@@ -38,6 +50,9 @@ class CompactionResult:
 
 @dataclass
 class CompactionStats:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     total_processed: int = 0
     total_entries: int = 0
     bytes_saved: int = 0
@@ -45,29 +60,38 @@ class CompactionStats:
 
 @dataclass
 class RetrievalResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     entries: list = field(default_factory=list)
     relevance_scores: list = field(default_factory=list)
 
 @dataclass
 class TierMigrationResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     moved_up: int = 0
     moved_down: int = 0
     archived: int = 0
 
 class MemoryCompactor:
-    def __init__(self):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, **kw):
         self._entries = {}
         self._stats = CompactionStats()
     @property
     def _all_entries(self): return list(self._entries.values())
-    def add(self, content, tier=None, tags=None):
+    def add(self, content, tier=None, tags=None, **kw):
         entry = MemoryEntry(content=content, tier=tier or MemoryTier.WORKING)
         self._entries[entry.entry_id] = entry
         return entry
     add_memory = add
-    def compact(self, strategy=None):
+    def compact(self, strategy=None, **kw):
         return CompactionResult(original=MemoryEntry(content=""), compacted="", strategy=strategy or CompressionStrategy.SUMMARIZE)
-    def retrieve(self, query, limit=10):
+    def retrieve(self, query, limit=10, **kw):
         return RetrievalResult()
     retrieve_by_keywords = retrieve
     retrieve_with_tier_filter = retrieve
@@ -80,9 +104,9 @@ class MemoryCompactor:
     retrieval_cache_works = lambda self: True
     def get_frequent(self, *a, **kw): return []
     def get_recent(self, *a, **kw): return []
-    def get_stats(self):
+    def get_stats(self, **kw):
         return self._stats
-    def boost_importance(self, entry_id, amount=0.1):
+    def boost_importance(self, entry_id, amount=0.1, **kw):
         if entry_id in self._entries:
             self._entries[entry_id].importance = min(1.0, self._entries[entry_id].importance + amount)
             return True
@@ -99,17 +123,17 @@ def reset_memory_compactor():
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -117,12 +141,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

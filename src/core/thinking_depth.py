@@ -11,6 +11,9 @@ _DEPTH_RANGE = range(5)
 
 @dataclass
 class ThinkParseResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     raw_input: str = ""
     clean_text: str = ""
     think_depth: int = 2
@@ -18,11 +21,11 @@ class ThinkParseResult:
     parse_errors: list = field(default_factory=list)
 
     @property
-    def depth_name(self):
+    def depth_name(self, **kw):
         return _DEPTH_NAMES.get(self.think_depth, "unknown")
 
     @property
-    def is_valid(self):
+    def is_valid(self, **kw):
         return len(self.parse_errors) == 0
 
 
@@ -75,31 +78,34 @@ _INSTRUCTION_SUFFIX = {
 # ── Controller ─────────────────────────────────────────────
 
 class ThinkingDepthController:
-    def __init__(self, default_depth=2):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, default_depth=2, **kw):
         self._default_depth = self._validate_depth(default_depth, "default_depth")
         self._last_result: ThinkParseResult = ThinkParseResult(think_depth=self._default_depth)
 
-    def _validate_depth(self, depth, name="depth"):
+    def _validate_depth(self, depth, name="depth", **kw):
         if not isinstance(depth, int) or depth < 0 or depth > 4:
             raise ValueError(f"{name} must be 0-4, got {depth}")
         return depth
 
-    def _clamp(self, depth):
+    def _clamp(self, depth, **kw):
         return max(0, min(4, depth))
 
     @property
-    def default_depth(self):
+    def default_depth(self, **kw):
         return self._default_depth
 
     @default_depth.setter
-    def default_depth(self, val):
+    def default_depth(self, val, **kw):
         self._default_depth = self._validate_depth(val, "default_depth")
 
     @property
-    def last_result(self):
+    def last_result(self, **kw):
         return self._last_result
 
-    def parse(self, text):
+    def parse(self, text, **kw):
         """解析 @think=N 标签"""
         text = text or ""
         errors = []
@@ -140,24 +146,24 @@ class ThinkingDepthController:
         self._last_result = result
         return result
 
-    def get_model_params(self, depth=None):
+    def get_model_params(self, depth=None, **kw):
         """获取模型参数"""
         if depth is None:
             depth = self._last_result.think_depth
         depth = self._clamp(depth)
         return dict(_PARAMS[depth])
 
-    def get_system_prompt(self, depth):
+    def get_system_prompt(self, depth, **kw):
         """获取系统提示词"""
         depth = self._clamp(depth)
         return _SYSTEM_PROMPTS[depth]
 
-    def get_instruction_suffix(self, depth):
+    def get_instruction_suffix(self, depth, **kw):
         """获取指令后缀"""
         depth = self._clamp(depth)
         return _INSTRUCTION_SUFFIX[depth]
 
-    def build_agent_context(self, depth=None, base_system_prompt=None, user_message=""):
+    def build_agent_context(self, depth=None, base_system_prompt=None, user_message="", **kw):
         """构建 agent 上下文"""
         if depth is None:
             depth = self._last_result.think_depth
@@ -174,7 +180,7 @@ class ThinkingDepthController:
 
         return {"system": system, "user": user}
 
-    def get_depth_info(self, depth):
+    def get_depth_info(self, depth, **kw):
         """获取深度元信息"""
         depth = self._clamp(depth)
         return {
@@ -184,11 +190,11 @@ class ThinkingDepthController:
             "prompt_preview": self.get_system_prompt(depth)[:100],
         }
 
-    def list_all_depths(self):
+    def list_all_depths(self, **kw):
         """列出所有深度"""
         return [self.get_depth_info(d) for d in range(5)]
 
-    def compute_token_budget(self, depth=None):
+    def compute_token_budget(self, depth=None, **kw):
         """计算 token 预算"""
         if depth is None:
             depth = self._last_result.think_depth
@@ -217,17 +223,17 @@ def quick_parse(text, default_depth=2):
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -235,12 +241,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

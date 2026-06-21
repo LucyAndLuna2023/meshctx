@@ -11,6 +11,9 @@ from typing import Optional
 
 @dataclass
 class ResponseInfo:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     model: str = ""
     response: str = ""
     blind_id: str = ""
@@ -22,12 +25,15 @@ class ResponseInfo:
     latency_ms: float = 0.0
 
     @property
-    def text(self):
+    def text(self, **kw):
         """兼容旧 API"""
         return self.response
 
 @dataclass
 class CompareResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     model_count: int = 0
     responses: list = field(default_factory=list)
     total_time_ms: float = 0.0
@@ -88,7 +94,10 @@ def _make_leaderboard(responses):
 # ── 引擎 ──────────────────────────────────────────────────
 
 class ModelCompareEngine:
-    def __init__(self, max_workers=5, blind=True, scoring_weights=None):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, max_workers=5, blind=True, scoring_weights=None, **kw):
         self.max_workers = max_workers
         self._blind = blind
         self._weights = scoring_weights or {"speed": 0.4, "quality": 0.4, "cost": 0.2}
@@ -98,16 +107,16 @@ class ModelCompareEngine:
         self._blind_counter = 0
         self._blind_map = {}
 
-    def _normalize_weights(self):
+    def _normalize_weights(self, **kw):
         total = sum(self._weights.values())
         if total > 0:
             self._weights = {k: v / total for k, v in self._weights.items()}
 
     @property
-    def weights(self):
+    def weights(self, **kw):
         return self._weights
 
-    def compare(self, prompt, models=None, executor=None, parallel=True, blind=None):
+    def compare(self, prompt, models=None, executor=None, parallel=True, blind=None, **kw):
         """并行/串行对比多个模型"""
         models = models or []
         t0 = time.time()
@@ -167,12 +176,12 @@ class ModelCompareEngine:
         self._history.append(result)
         return result
 
-    def compare_and_rank(self, prompt, models=None, executor=None, parallel=True, blind=None):
+    def compare_and_rank(self, prompt, models=None, executor=None, parallel=True, blind=None, **kw):
         """compare 的别名"""
         return self.compare(prompt, models=models, executor=executor,
                            parallel=parallel, blind=blind)
 
-    def reveal_blind_mapping(self, responses):
+    def reveal_blind_mapping(self, responses, **kw):
         """揭露盲测映射"""
         mapping = {}
         blind_counter = 0
@@ -182,13 +191,13 @@ class ModelCompareEngine:
             mapping[bid] = r.model
         return mapping
 
-    def get_leaderboard(self):
+    def get_leaderboard(self, **kw):
         """获取最新排行榜"""
         if self._last_result:
             return self._last_result.leaderboard
         return []
 
-    def format_leaderboard(self, blind=False):
+    def format_leaderboard(self, blind=False, **kw):
         """格式化排行榜"""
         lb = self.get_leaderboard()
         if not lb:
@@ -199,7 +208,7 @@ class ModelCompareEngine:
             lines.append(f"  {i}. {name} — {r.score:.1f}")
         return "\n".join(lines)
 
-    def get_stats(self):
+    def get_stats(self, **kw):
         """获取统计信息"""
         return {
             "comparisons": len(self._history),
@@ -208,12 +217,12 @@ class ModelCompareEngine:
             "parallel_enabled": True,
         }
 
-    def get_history(self):
+    def get_history(self, **kw):
         """获取历史记录"""
         return [{"model_count": r.model_count, "error_count": r.error_count,
                  "total_time_ms": r.total_time_ms} for r in self._history]
 
-    def list_known_models(self):
+    def list_known_models(self, **kw):
         """列出已知模型"""
         return list(_KNOWN_MODELS)
 
@@ -246,17 +255,17 @@ def compare_models_stream(prompt, models=None, executor=None, **kwargs):
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -264,12 +273,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

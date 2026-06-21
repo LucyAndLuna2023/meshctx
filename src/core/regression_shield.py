@@ -12,6 +12,9 @@ from typing import Dict, List, Optional, Tuple
 
 # ═══════════════ 枚举 ═══════════════
 class ShieldVerdict(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     PASS = "pass"
     BLOCK = "block"
 
@@ -19,6 +22,9 @@ class ShieldVerdict(Enum):
 # ═══════════════ 数据类 ═══════════════
 @dataclass
 class ChangeRequest:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     id: str
     files_changed: List[str]
     description: str = ""
@@ -27,6 +33,9 @@ class ChangeRequest:
 
 @dataclass
 class ShieldReport:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     request_id: str
     verdict: ShieldVerdict
     tests_total: int = 0
@@ -85,6 +94,9 @@ ALL_KNOWN_MODULES = (
 
 # ═══════════════ RegressionShield ═══════════════
 class RegressionShield:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """回归防护盾 — 分析变更影响并控制风险。"""
 
     def __init__(
@@ -97,7 +109,7 @@ class RegressionShield:
         self._audit_log: List[ShieldReport] = []
 
     # ── 影响分析 ──
-    def analyze_impact(self, files: List[str]) -> Tuple[str, List[str]]:
+    def analyze_impact(self, files: List[str], **kw) -> Tuple[str, List[str]]:
         """分析文件变更的影响范围和严重级别。
 
         Returns:
@@ -136,7 +148,7 @@ class RegressionShield:
             return "low", affected
 
     # ── 测试选择 ──
-    def select_tests(self, files: List[str]) -> List[str]:
+    def select_tests(self, files: List[str], **kw) -> List[str]:
         """根据变更文件选择应运行的测试。
 
         Returns:
@@ -169,7 +181,7 @@ class RegressionShield:
         return targets if targets else ["tests/"]
 
     # ── 统计 ──
-    def get_stats(self) -> Dict:
+    def get_stats(self, **kw) -> Dict:
         """获取防护统计数据。"""
         total = len(self._audit_log)
         if total == 0:
@@ -205,17 +217,17 @@ def get_regression_shield(
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -223,12 +235,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

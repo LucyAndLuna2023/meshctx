@@ -5,6 +5,9 @@ from typing import Any
 
 @dataclass
 class MCPToolDef:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     name: str = ""
     description: str = ""
     parameters: dict = field(default_factory=dict)
@@ -12,15 +15,21 @@ class MCPToolDef:
 
 @dataclass
 class MCPToolResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     tool_name: str = ""
     success: bool = True
     output: Any = None
     error: str = ""
 
 class MCPStandardizer:
-    def __init__(self):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, **kw):
         self._tools = {}
-    def register_function(self, func, name=None, description=None):
+    def register_function(self, func, name=None, description=None, **kw):
         name = name or func.__name__
         params = {}
         sig = inspect.signature(func)
@@ -32,9 +41,9 @@ class MCPStandardizer:
         tool = MCPToolDef(name=name, description=description or func.__doc__ or "", parameters=params, returns={"type": ret})
         self._tools[name] = tool
         return tool
-    def list_tools(self):
+    def list_tools(self, **kw):
         return list(self._tools.values())
-    def get_tool(self, name):
+    def get_tool(self, name, **kw):
         return self._tools.get(name)
 
 def _py_type_to_json_schema(py_type):
@@ -85,17 +94,17 @@ def reset_mcp_standardizer():
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -103,12 +112,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

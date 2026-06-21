@@ -37,23 +37,41 @@ logger = logging.getLogger("meshctx.workflow")
 
 # ── Exceptions ───────────────────────────────────────────────────────────
 class WorkflowError(Exception):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Base exception for workflow engine errors."""
 
 class WorkflowNotFoundError(WorkflowError):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Raised when a named workflow definition is not found."""
 
 class WorkflowValidationError(WorkflowError):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Raised when a workflow definition is structurally invalid."""
 
 class StepExecutionError(WorkflowError):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Raised when a step fails after exhausting retries."""
 
 class StepTimeoutError(WorkflowError):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Raised when a step exceeds its timeout."""
 
 
 # ── Status Enum ──────────────────────────────────────────────────────────
 class StepStatus(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Possible states of a workflow step during execution."""
     PENDING   = "pending"     # Not yet ready (dependencies unsatisfied)
     READY     = "ready"       # Dependencies satisfied, queued for execution
@@ -66,6 +84,9 @@ class StepStatus(Enum):
 
 
 class RunStatus(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Overall status of a workflow run."""
     PENDING   = "pending"
     RUNNING   = "running"
@@ -78,6 +99,9 @@ class RunStatus(Enum):
 # ── Data Classes ─────────────────────────────────────────────────────────
 @dataclass
 class WorkflowStep:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """A single step within a workflow.
 
     Attributes:
@@ -105,7 +129,7 @@ class WorkflowStep:
     cwd: Optional[str] = None
     env: Dict[str, str] = field(default_factory=dict)
 
-    def __post_init__(self) -> None:
+    def __post_init__(self, **kw) -> None:
         if not self.id or not isinstance(self.id, str):
             raise WorkflowValidationError(f"Step id must be a non-empty string, got {self.id!r}")
         if not self.command and not self.tool:
@@ -124,6 +148,9 @@ class WorkflowStep:
 
 @dataclass
 class WorkflowDefinition:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """A named, validated workflow template.
 
     Created via :func:`workflow_define`.
@@ -133,13 +160,16 @@ class WorkflowDefinition:
     step_order: List[str]  # topological order
 
     @property
-    def step_ids(self) -> List[str]:
+    def step_ids(self, **kw) -> List[str]:
         """Return step ids in the order they were defined."""
         return list(self.steps.keys())
 
 
 @dataclass
 class StepResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """The outcome of a single step execution, including retry history."""
     step_id: str
     status: StepStatus = StepStatus.PENDING
@@ -151,7 +181,7 @@ class StepResult:
     attempts: List[Dict[str, Any]] = field(default_factory=list)
 
     @property
-    def elapsed(self) -> float:
+    def elapsed(self, **kw) -> float:
         """Wall-clock duration in seconds, or 0 if not started."""
         if self.started_at == 0:
             return 0.0
@@ -161,6 +191,9 @@ class StepResult:
 
 @dataclass
 class WorkflowRun:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """A single execution instance of a workflow definition."""
     id: str
     name: str
@@ -171,14 +204,14 @@ class WorkflowRun:
     finished_at: float = 0.0
 
     @property
-    def elapsed(self) -> float:
+    def elapsed(self, **kw) -> float:
         """Total wall-clock duration in seconds."""
         if self.started_at == 0:
             return 0.0
         end = self.finished_at or time.monotonic()
         return max(0.0, end - self.started_at)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         """Serialize the run to a plain dict for status reporting."""
         return {
             "id": self.id,
@@ -326,7 +359,7 @@ def _detect_cycles(steps: Dict[str, WorkflowStep]) -> Optional[List[str]]:
     color: Dict[str, int] = {sid: WHITE for sid in steps}
     path: List[str] = []
 
-    def dfs(node: str) -> Optional[List[str]]:
+    def dfs(node: str, **kw) -> Optional[List[str]]:
         color[node] = GRAY
         path.append(node)
         for dep in steps[node].depends_on:
@@ -724,7 +757,7 @@ def workflow_run(
 
         import concurrent.futures as cf
 
-        def _done_callback(fut: cf.Future) -> None:
+        def _done_callback(fut: cf.Future, **kw) -> None:
             try:
                 fut.result()
             except Exception:

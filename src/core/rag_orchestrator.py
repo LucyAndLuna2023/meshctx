@@ -50,6 +50,9 @@ logger = logging.getLogger("meshctx.rag_orchestrator")
 
 @dataclass
 class TextChunk:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """文本块"""
     id: str
     text: str
@@ -61,7 +64,7 @@ class TextChunk:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     @property
-    def citation(self) -> str:
+    def citation(self, **kw) -> str:
         """生成引用字符串"""
         if self.source:
             return f"[{self.source}:{self.index + 1}]"
@@ -70,6 +73,9 @@ class TextChunk:
 
 @dataclass
 class RetrievedChunk:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """检索到的文本块 (带分数)"""
     chunk: TextChunk
     score: float
@@ -79,6 +85,9 @@ class RetrievedChunk:
 
 @dataclass
 class AugmentedContext:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """增强上下文"""
     chunks: List[RetrievedChunk]
     assembled_text: str                # 组装后的上下文字符串
@@ -93,6 +102,9 @@ class AugmentedContext:
 
 @dataclass
 class ConversationTurn:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """对话轮次"""
     role: str                          # "user" / "assistant" / "system"
     content: str
@@ -106,6 +118,9 @@ class ConversationTurn:
 # ═══════════════════════════════════════════════════════════
 
 class TokenEstimator:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Token 数量估算器
 
     使用字符数近似 (保守估计):
@@ -125,7 +140,7 @@ class TokenEstimator:
     }
 
     @classmethod
-    def estimate(cls, text: str, lang: str = "default") -> int:
+    def estimate(cls, text: str, lang: str = "default", **kw) -> int:
         """估算文本的 token 数"""
         if not text:
             return 0
@@ -133,12 +148,12 @@ class TokenEstimator:
         return max(1, int(len(text) / ratio))
 
     @classmethod
-    def estimate_batch(cls, texts: List[str], lang: str = "default") -> List[int]:
+    def estimate_batch(cls, texts: List[str], lang: str = "default", **kw) -> List[int]:
         """批量估算 token 数"""
         return [cls.estimate(t, lang) for t in texts]
 
     @classmethod
-    def try_tiktoken(cls, text: str, model: str = "gpt-4") -> Optional[int]:
+    def try_tiktoken(cls, text: str, model: str = "gpt-4", **kw) -> Optional[int]:
         """尝试使用 tiktoken 精确计数"""
         try:
             import tiktoken
@@ -155,6 +170,9 @@ class TokenEstimator:
 # ═══════════════════════════════════════════════════════════
 
 class TextChunker:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """文本分块器 — 多种分块策略"""
 
     def __init__(self, chunk_size: int = 512, chunk_overlap: int = 50,
@@ -365,6 +383,9 @@ class TextChunker:
 # ═══════════════════════════════════════════════════════════
 
 class ContextWindowManager:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """上下文窗口管理器
 
     管理 Token 预算分配:
@@ -396,7 +417,7 @@ class ContextWindowManager:
         self.max_history_tokens = max_history_tokens
 
     @property
-    def retrieval_budget(self) -> int:
+    def retrieval_budget(self, **kw) -> int:
         """检索可用 token 预算"""
         return self.max_tokens - (
             self.system_prompt_tokens +
@@ -470,7 +491,7 @@ class ContextWindowManager:
 
         return selected
 
-    def _truncate_text(self, text: str, max_tokens: int) -> str:
+    def _truncate_text(self, text: str, max_tokens: int, **kw) -> str:
         """截断文本到指定 token 数"""
         max_chars = max_tokens * 4  # 粗略估算
         if len(text) <= max_chars:
@@ -506,13 +527,16 @@ class ContextWindowManager:
 # ═══════════════════════════════════════════════════════════
 
 class CitationTracker:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """引用追踪 — 管理检索块与来源的映射"""
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._citations: Dict[str, Dict[str, Any]] = {}  # chunk_id → citation_info
         self._source_docs: Dict[str, str] = {}            # source → title/name
 
-    def register(self, chunk: TextChunk):
+    def register(self, chunk: TextChunk, **kw):
         """注册 chunk 引用"""
         self._citations[chunk.id] = {
             "chunk_id": chunk.id,
@@ -522,11 +546,11 @@ class CitationTracker:
             "citation": chunk.citation,
         }
 
-    def register_source(self, source: str, title: str = ""):
+    def register_source(self, source: str, title: str = "", **kw):
         """注册来源文档"""
         self._source_docs[source] = title or source
 
-    def get_formatted_citations(self, chunk_ids: Optional[List[str]] = None) -> List[str]:
+    def get_formatted_citations(self, chunk_ids: Optional[List[str]] = None, **kw) -> List[str]:
         """获取格式化的引用列表
 
         Returns:
@@ -543,7 +567,7 @@ class CitationTracker:
                 )
         return citations
 
-    def get_citation_map(self) -> Dict[str, str]:
+    def get_citation_map(self, **kw) -> Dict[str, str]:
         """获取引用标记 → 文本预览 映射"""
         return {
             cit["citation"]: cit["text_preview"]
@@ -556,6 +580,9 @@ class CitationTracker:
 # ═══════════════════════════════════════════════════════════
 
 class RAGOrchestrator:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """RAG 编排引擎
 
     完整的 RAG 流水线:
@@ -763,7 +790,7 @@ class RAGOrchestrator:
 
         return unique
 
-    def _assemble_context(self, chunks: List[RetrievedChunk]) -> str:
+    def _assemble_context(self, chunks: List[RetrievedChunk], **kw) -> str:
         """组装上下文文本"""
         sections = []
         for i, rc in enumerate(chunks):
@@ -881,13 +908,13 @@ class RAGOrchestrator:
             with self._lock:
                 self._history = self._history[-self.max_history_turns * 2:]
 
-    def get_history(self, n: Optional[int] = None) -> List[ConversationTurn]:
+    def get_history(self, n: Optional[int] = None, **kw) -> List[ConversationTurn]:
         """获取历史"""
         if n:
             return self._history[-n:]
         return list(self._history)
 
-    def clear_history(self):
+    def clear_history(self, **kw):
         """清空对话历史"""
         with self._lock:
             self._history.clear()
@@ -944,18 +971,18 @@ class RAGOrchestrator:
 
     # ── 工具方法 ────────────────────────────────────────
 
-    def get_chunk(self, chunk_id: str) -> Optional[TextChunk]:
+    def get_chunk(self, chunk_id: str, **kw) -> Optional[TextChunk]:
         """获取已索引的 chunk"""
         return self._indexed_chunks.get(chunk_id)
 
-    def get_chunks_by_source(self, source: str) -> List[TextChunk]:
+    def get_chunks_by_source(self, source: str, **kw) -> List[TextChunk]:
         """按来源获取所有 chunk"""
         return [
             c for c in self._indexed_chunks.values()
             if c.source == source
         ]
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self, **kw) -> Dict[str, Any]:
         """获取统计信息"""
         with self._lock:
             return {
@@ -969,7 +996,7 @@ class RAGOrchestrator:
                 "reranking_enabled": self.enable_reranking,
             }
 
-    def reset(self):
+    def reset(self, **kw):
         """重置编排器状态"""
         with self._lock:
             self._history.clear()

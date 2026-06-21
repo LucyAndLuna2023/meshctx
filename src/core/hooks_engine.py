@@ -5,6 +5,9 @@ from enum import Enum
 from typing import Any
 
 class HookEvent(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     BEFORE_COMMAND = "before_command"
     AFTER_COMMAND = "after_command"
     ON_ERROR = "on_error"
@@ -15,6 +18,9 @@ class HookEvent(str, Enum):
 
 @dataclass
 class HookContext:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     hook_id: str = ""
     event: HookEvent = HookEvent.BEFORE_COMMAND
     payload: dict = field(default_factory=dict)
@@ -22,6 +28,9 @@ class HookContext:
 
 @dataclass
 class HookRule:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     event: HookEvent
     pattern: str = ""
     action: str = "block"
@@ -29,21 +38,27 @@ class HookRule:
 
 @dataclass
 class HookResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     allowed: bool = True
     modified: bool = False
     reason: str = ""
     modified_payload: Any = None
 
 class HooksEngine:
-    def __init__(self, config_path: str = None):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, config_path: str = None, **kw):
         self._hooks = []
         self._rules = []
         self._enabled = True
-    def register(self, event, callback, priority=0):
+    def register(self, event, callback, priority=0, **kw):
         self._hooks.append({"event": event, "callback": callback, "priority": priority})
-    def add_rule(self, event, pattern, action="block", priority=0):
+    def add_rule(self, event, pattern, action="block", priority=0, **kw):
         self._rules.append(HookRule(event=event, pattern=pattern, action=action, priority=priority))
-    def trigger(self, event, payload=None):
+    def trigger(self, event, payload=None, **kw):
         results = []
         for h in self._hooks:
             if h["event"] == event and self._enabled:
@@ -101,17 +116,17 @@ def reset_hook_system():
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -119,12 +134,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

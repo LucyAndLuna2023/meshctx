@@ -7,9 +7,12 @@ import json
 
 
 class AgentsConfig:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Parsed AGENTS.md / CLAUDE.md configuration."""
 
-    def __init__(self):
+    def __init__(self, **kw):
         self.project_name: str = ""
         self.description: str = ""
         self.build_command: str = ""
@@ -19,15 +22,18 @@ class AgentsConfig:
 
 
 class AgentsMDProtocol:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """AGENTS.md 协议 — 解析/生成/自动检测/双向同步."""
 
-    def __init__(self, workspace: Path | None = None):
+    def __init__(self, workspace: Path | None = None, **kw):
         self.workspace = Path(workspace) if workspace else Path.cwd()
         self.config: AgentsConfig | None = None
 
     # ── 解析 ──────────────────────────────────────────────
 
-    def parse(self, path: Path | None = None) -> AgentsConfig:
+    def parse(self, path: Path | None = None, **kw) -> AgentsConfig:
         """解析 AGENTS.md 文件."""
         config = AgentsConfig()
         if path is None:
@@ -82,12 +88,12 @@ class AgentsMDProtocol:
         self.config = config
         return config
 
-    def _get_config_class(self):
+    def _get_config_class(self, **kw):
         return AgentsConfig
 
     # ── 生成 ──────────────────────────────────────────────
 
-    def generate(self, output_path: Path | None = None) -> str:
+    def generate(self, output_path: Path | None = None, **kw) -> str:
         """生成 AGENTS.md 内容."""
         content = """# AGENTS.md — meshctx generated
 
@@ -113,7 +119,7 @@ class AgentsMDProtocol:
 
     # ── 自动检测 ──────────────────────────────────────────
 
-    def _auto_detect(self) -> AgentsConfig:
+    def _auto_detect(self, **kw) -> AgentsConfig:
         """自动检测项目配置."""
         config = AgentsConfig()
 
@@ -140,7 +146,7 @@ class AgentsMDProtocol:
 
     # ── 发现 ──────────────────────────────────────────────
 
-    def discover_all(self, root: Path | None = None) -> list[dict]:
+    def discover_all(self, root: Path | None = None, **kw) -> list[dict]:
         """发现所有 AGENTS.md 文件."""
         root = Path(root) if root else self.workspace
         results = []
@@ -152,7 +158,7 @@ class AgentsMDProtocol:
 
     # ── Claude Code 对比 ─────────────────────────────────
 
-    def vs_claude_code_agents(self) -> str:
+    def vs_claude_code_agents(self, **kw) -> str:
         """对比 Claude Code 的 AGENTS.md 实现."""
         return (
             "Claude Code vs meshctx AGENTS.md 对比：\n"
@@ -163,7 +169,7 @@ class AgentsMDProtocol:
 
     # ── 统计 ──────────────────────────────────────────────
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self, **kw) -> dict[str, Any]:
         """获取统计信息."""
         return {
             "claude_code_feature_request": True,
@@ -173,7 +179,7 @@ class AgentsMDProtocol:
 
     # ── Claude 兼容层 ─────────────────────────────────────
 
-    def export_claude_format(self) -> str:
+    def export_claude_format(self, **kw) -> str:
         """导出为 CLAUDE.md 格式."""
         content = """# CLAUDE.md — meshctx exported
 
@@ -189,7 +195,7 @@ class AgentsMDProtocol:
         claude_file.write_text(content)
         return content
 
-    def import_claude_format(self, path: Path) -> AgentsConfig | None:
+    def import_claude_format(self, path: Path, **kw) -> AgentsConfig | None:
         """从 CLAUDE.md 导入配置."""
         content = Path(path).read_text()
         config = AgentsConfig()
@@ -210,7 +216,7 @@ class AgentsMDProtocol:
                     config.language = val
         return config
 
-    def sync_all_formats(self) -> dict[str, Any]:
+    def sync_all_formats(self, **kw) -> dict[str, Any]:
         """双向同步 AGENTS.md 和 CLAUDE.md."""
         agents_file = self.workspace / "AGENTS.md"
         claude_file = self.workspace / "CLAUDE.md"
@@ -229,23 +235,23 @@ class AgentsMDProtocol:
 
     # ── MCP 加载器 ────────────────────────────────────────
 
-    def load_claude_mcp_config(self) -> list[dict]:
+    def load_claude_mcp_config(self, **kw) -> list[dict]:
         """加载 Claude MCP 配置."""
         return []
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -253,12 +259,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

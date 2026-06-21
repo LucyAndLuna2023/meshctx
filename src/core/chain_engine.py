@@ -48,6 +48,9 @@ logger = logging.getLogger("meshctx.chain_engine")
 # ═══════════════════════════════════════════════════════════
 
 class StepStatus(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     PENDING = "pending"
     RUNNING = "running"
     SUCCESS = "success"
@@ -57,6 +60,9 @@ class StepStatus(str, Enum):
 
 
 class ChainMode(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     SEQUENTIAL = "sequential"        # 严格顺序执行
     CONDITIONAL = "conditional"      # 带条件分支
     PARALLEL = "parallel"            # 无依赖步骤并行
@@ -66,6 +72,9 @@ class ChainMode(str, Enum):
 
 
 class ErrorPolicy(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     RETRY = "retry"         # 重试后继续
     SKIP = "skip"           # 跳过该步骤
     ABORT = "abort"         # 中止整条链
@@ -78,6 +87,9 @@ class ErrorPolicy(str, Enum):
 
 @dataclass
 class StepResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """单步执行结果"""
     step_id: str
     step_name: str
@@ -91,10 +103,10 @@ class StepResult:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     @property
-    def ok(self) -> bool:
+    def ok(self, **kw) -> bool:
         return self.status in (StepStatus.SUCCESS, StepStatus.SKIPPED)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         d = asdict(self)
         d["status"] = self.status.value
         return d
@@ -102,6 +114,9 @@ class StepResult:
 
 @dataclass
 class Step:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """链中的单个执行步骤"""
     step_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     name: str = ""
@@ -119,6 +134,9 @@ class Step:
 
 @dataclass
 class ChainDefinition:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """链定义 — 描述一条完整的执行链"""
     chain_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     name: str = ""
@@ -133,6 +151,9 @@ class ChainDefinition:
 
 @dataclass
 class ChainRunResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """链执行完整结果"""
     chain_id: str
     chain_name: str
@@ -145,7 +166,7 @@ class ChainRunResult:
     started_at: float = 0.0
     finished_at: float = 0.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "chain_id": self.chain_id,
             "chain_name": self.chain_name,
@@ -163,6 +184,9 @@ class ChainRunResult:
 # ═══════════════════════════════════════════════════════════
 
 class ChainEngine:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     链式推理执行引擎。
 
@@ -175,7 +199,7 @@ class ChainEngine:
       - plan_execute(goal, tools, context) → ChainRunResult
     """
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._chains: Dict[str, ChainDefinition] = {}
         self._run_history: List[ChainRunResult] = []
         self._max_history: int = 200
@@ -204,18 +228,18 @@ class ChainEngine:
         logger.debug(f"Created chain '{name}' (id={chain.chain_id}, mode={mode.value})")
         return chain
 
-    def get_chain(self, chain_id: str) -> Optional[ChainDefinition]:
+    def get_chain(self, chain_id: str, **kw) -> Optional[ChainDefinition]:
         """获取链定义"""
         return self._chains.get(chain_id)
 
-    def delete_chain(self, chain_id: str) -> bool:
+    def delete_chain(self, chain_id: str, **kw) -> bool:
         """删除链定义"""
         if chain_id in self._chains:
             del self._chains[chain_id]
             return True
         return False
 
-    def list_chains(self) -> List[Dict[str, Any]]:
+    def list_chains(self, **kw) -> List[Dict[str, Any]]:
         """列出所有链"""
         return [
             {
@@ -664,16 +688,16 @@ class ChainEngine:
 
     # ── 历史与统计 ─────────────────────────────────────────
 
-    def _add_to_history(self, result: ChainRunResult):
+    def _add_to_history(self, result: ChainRunResult, **kw):
         self._run_history.append(result)
         if len(self._run_history) > self._max_history:
             self._run_history = self._run_history[-self._max_history:]
 
-    def get_history(self, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_history(self, limit: int = 50, **kw) -> List[Dict[str, Any]]:
         """获取最近的链执行历史"""
         return [r.to_dict() for r in self._run_history[-limit:]]
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, **kw) -> Dict[str, Any]:
         """获取引擎统计信息"""
         recent = self._run_history[-100:] if self._run_history else []
         success_count = sum(1 for r in recent if r.success)
@@ -687,7 +711,7 @@ class ChainEngine:
             ) if recent else 0,
         }
 
-    def clear_history(self):
+    def clear_history(self, **kw):
         """清除运行历史"""
         self._run_history.clear()
 

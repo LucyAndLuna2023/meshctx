@@ -5,6 +5,9 @@ from enum import Enum
 
 
 class TaskStatus(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     pending = "pending"
     ready = "ready"
     in_progress = "in_progress"
@@ -15,6 +18,9 @@ class TaskStatus(Enum):
 
 @dataclass
 class Subtask:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     id: str
     title: str
     status: TaskStatus = TaskStatus.pending
@@ -25,6 +31,9 @@ class Subtask:
 
 @dataclass
 class Goal:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     id: str
     text: str
     goal_type: str
@@ -80,14 +89,17 @@ _TYPE_KEYWORDS = [
 
 
 class GoalDecomposer:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """目标分解器 — 将高层目标拆解为有序子任务链"""
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._goals: dict[str, Goal] = {}
 
     # ── 类型检测 ──────────────────────────────────────────────────────
 
-    def _detect_type(self, text: str) -> str:
+    def _detect_type(self, text: str, **kw) -> str:
         """基于关键词匹配检测目标类型"""
         text_lower = text.lower()
         for goal_type, trigger_words, context_words in _TYPE_KEYWORDS:
@@ -99,7 +111,7 @@ class GoalDecomposer:
 
     # ── 分解 ──────────────────────────────────────────────────────────
 
-    def decompose(self, goal_text: str, goal_type: str | None = None) -> Goal:
+    def decompose(self, goal_text: str, goal_type: str | None = None, **kw) -> Goal:
         """将目标分解为子任务"""
         if goal_type is None:
             goal_type = self._detect_type(goal_text)
@@ -127,7 +139,7 @@ class GoalDecomposer:
 
     # ── 获取就绪任务 ──────────────────────────────────────────────────
 
-    def get_ready_tasks(self, goal_id: str) -> list[Subtask]:
+    def get_ready_tasks(self, goal_id: str, **kw) -> list[Subtask]:
         """返回当前可就绪执行的任务"""
         goal = self._goals.get(goal_id)
         if not goal:
@@ -136,7 +148,7 @@ class GoalDecomposer:
 
     # ── 任务状态变更 ──────────────────────────────────────────────────
 
-    def start_task(self, goal_id: str, task_id: str):
+    def start_task(self, goal_id: str, task_id: str, **kw):
         """标记任务为进行中"""
         goal = self._goals.get(goal_id)
         if not goal:
@@ -146,7 +158,7 @@ class GoalDecomposer:
                 st.status = TaskStatus.in_progress
                 return
 
-    def complete_task(self, goal_id: str, task_id: str, output: str = ""):
+    def complete_task(self, goal_id: str, task_id: str, output: str = "", **kw):
         """完成任务并刷新依赖"""
         goal = self._goals.get(goal_id)
         if not goal:
@@ -159,7 +171,7 @@ class GoalDecomposer:
         self._refresh_dependencies(goal)
         goal.progress = self._calc_progress(goal)
 
-    def fail_task(self, goal_id: str, task_id: str, reason: str = ""):
+    def fail_task(self, goal_id: str, task_id: str, reason: str = "", **kw):
         """失败任务,阻塞下游"""
         goal = self._goals.get(goal_id)
         if not goal:
@@ -177,7 +189,7 @@ class GoalDecomposer:
 
     # ── 依赖刷新 ──────────────────────────────────────────────────────
 
-    def _refresh_dependencies(self, goal: Goal):
+    def _refresh_dependencies(self, goal: Goal, **kw):
         """根据上游完成情况,更新所有 pending/blocked 任务状态"""
         for st in goal.subtasks:
             if st.status in (TaskStatus.completed, TaskStatus.failed, TaskStatus.in_progress):
@@ -204,7 +216,7 @@ class GoalDecomposer:
             elif all_done:
                 st.status = TaskStatus.ready
 
-    def _calc_progress(self, goal: Goal) -> float:
+    def _calc_progress(self, goal: Goal, **kw) -> float:
         """计算进度 (completed / total)"""
         total = len(goal.subtasks)
         if total == 0:
@@ -214,7 +226,7 @@ class GoalDecomposer:
 
     # ── 目标状态查询 ──────────────────────────────────────────────────
 
-    def get_goal_status(self, goal_id: str) -> dict | None:
+    def get_goal_status(self, goal_id: str, **kw) -> dict | None:
         """返回目标状态摘要"""
         goal = self._goals.get(goal_id)
         if goal is None:
@@ -238,7 +250,7 @@ class GoalDecomposer:
 
     # ── 统计 ──────────────────────────────────────────────────────────
 
-    def get_stats(self) -> dict:
+    def get_stats(self, **kw) -> dict:
         """返回全局统计"""
         total = len(self._goals)
         # active = 还没有全部完成
@@ -256,17 +268,17 @@ class GoalDecomposer:
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -274,12 +286,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

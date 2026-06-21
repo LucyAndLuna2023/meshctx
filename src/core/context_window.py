@@ -53,6 +53,9 @@ logger = logging.getLogger("meshctx.context_window")
 # ═══════════════════════════════════════════════════════════
 
 class Priority(IntEnum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """消息优先级 (数值越低越优先保留)"""
     CRITICAL = 0   # 系统提示, 必须保留
     HIGH = 1       # 重要上下文
@@ -61,6 +64,9 @@ class Priority(IntEnum):
 
 
 class OverflowStrategy(str):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """窗口溢出处理策略"""
     TRUNCATE = "truncate"       # 截断最早的消息 (保留高优先级)
     DROP_OLDEST = "drop_oldest" # 无条件丢弃最旧消息
@@ -111,6 +117,9 @@ def estimate_tokens(text: str) -> int:
 
 @dataclass
 class WindowMessage:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """窗口中的一条消息"""
     role: str                                   # system / user / assistant / tool
     content: str
@@ -120,14 +129,14 @@ class WindowMessage:
     metadata: Dict[str, Any] = field(default_factory=dict)
     message_id: str = ""
 
-    def __post_init__(self):
+    def __post_init__(self, **kw):
         if not self.message_id:
             import uuid
             self.message_id = str(uuid.uuid4())[:8]
         if self.token_estimate == 0:
             self.token_estimate = estimate_tokens(self.content)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "role": self.role,
             "content": self.content,
@@ -139,7 +148,7 @@ class WindowMessage:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "WindowMessage":
+    def from_dict(cls, d: Dict[str, Any], **kw) -> "WindowMessage":
         return cls(
             role=d["role"],
             content=d["content"],
@@ -156,6 +165,9 @@ class WindowMessage:
 # ═══════════════════════════════════════════════════════════
 
 class ContextWindow:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """滑动上下文窗口管理器
 
     管理消息队列, 跟踪 Token 消耗, 在窗口溢出时执行智能截断。
@@ -182,7 +194,7 @@ class ContextWindow:
 
     # ── Token 计数 ────────────────────────────────────────
 
-    def set_token_counter(self, counter: Callable[[str], int]):
+    def set_token_counter(self, counter: Callable[[str], int], **kw):
         """注入自定义 Token 计数器 (如 tiktoken)
 
         Args:
@@ -190,37 +202,37 @@ class ContextWindow:
         """
         self._token_counter = counter
 
-    def _count_tokens(self, text: str) -> int:
+    def _count_tokens(self, text: str, **kw) -> int:
         """计算文本 Token 数"""
         if self._token_counter:
             return self._token_counter(text)
         return estimate_tokens(text)
 
     @property
-    def token_count(self) -> int:
+    def token_count(self, **kw) -> int:
         """当前窗口总 Token 数"""
         with self._lock:
             return sum(msg.token_estimate for msg in self._messages)
 
     @property
-    def effective_limit(self) -> int:
+    def effective_limit(self, **kw) -> int:
         """有效 Token 上限 (扣除预留)"""
         return int(self.max_tokens * (1 - self.reserve_ratio))
 
     @property
-    def remaining_tokens(self) -> int:
+    def remaining_tokens(self, **kw) -> int:
         """剩余可用 Token"""
         return max(0, self.effective_limit - self.token_count)
 
     @property
-    def usage_ratio(self) -> float:
+    def usage_ratio(self, **kw) -> float:
         """Token 使用率 (0-1)"""
         if self.max_tokens == 0:
             return 0.0
         return self.token_count / self.max_tokens
 
     @property
-    def message_count(self) -> int:
+    def message_count(self, **kw) -> int:
         """消息数量"""
         with self._lock:
             return len(self._messages)
@@ -294,19 +306,19 @@ class ContextWindow:
                 msgs = [m for m in msgs if m.role in roles]
             return msgs
 
-    def get_last_n(self, n: int) -> List[WindowMessage]:
+    def get_last_n(self, n: int, **kw) -> List[WindowMessage]:
         """获取最后 N 条消息"""
         with self._lock:
             return self._messages[-n:] if n > 0 else []
 
-    def pop_last(self) -> Optional[WindowMessage]:
+    def pop_last(self, **kw) -> Optional[WindowMessage]:
         """弹出最后一条消息"""
         with self._lock:
             if self._messages:
                 return self._messages.pop()
             return None
 
-    def clear(self):
+    def clear(self, **kw):
         """清空窗口"""
         with self._lock:
             count = len(self._messages)
@@ -315,7 +327,7 @@ class ContextWindow:
 
     # ── 智能截断 ──────────────────────────────────────────
 
-    def trim(self, target_tokens: Optional[int] = None) -> int:
+    def trim(self, target_tokens: Optional[int] = None, **kw) -> int:
         """智能截断: 保留头部 + 尾部, 从中间裁剪低优先级消息
 
         Args:
@@ -339,7 +351,7 @@ class ContextWindow:
             logger.info(f"Trimmed {dropped} messages (tokens: target={target})")
             return dropped
 
-    def _smart_trim(self, target_tokens: int):
+    def _smart_trim(self, target_tokens: int, **kw):
         """智能截断实现: 保留 CRITICAL/HIGH 头部 + 最新尾部"""
         # 将消息分为三类
         critical = []   # CRITICAL 优先级 (系统提示)
@@ -371,7 +383,7 @@ class ContextWindow:
         result.extend(body_tail)
         self._messages = result
 
-    def _trim_to_fit(self, needed_tokens: int):
+    def _trim_to_fit(self, needed_tokens: int, **kw):
         """为新消息腾出空间
 
         根据策略裁剪消息:
@@ -398,7 +410,7 @@ class ContextWindow:
 
     # ── 优先级操作 ───────────────────────────────────────
 
-    def set_priority(self, message_id: str, priority: Priority) -> bool:
+    def set_priority(self, message_id: str, priority: Priority, **kw) -> bool:
         """修改指定消息的优先级
 
         Returns:
@@ -411,20 +423,20 @@ class ContextWindow:
                     return True
         return False
 
-    def promote_last_n(self, n: int, to_priority: Priority = Priority.HIGH):
+    def promote_last_n(self, n: int, to_priority: Priority = Priority.HIGH, **kw):
         """提升最后 N 条消息的优先级"""
         with self._lock:
             for msg in self._messages[-n:]:
                 msg.priority = min(msg.priority, to_priority)
 
-    def get_messages_by_priority(self, priority: Priority) -> List[WindowMessage]:
+    def get_messages_by_priority(self, priority: Priority, **kw) -> List[WindowMessage]:
         """按优先级获取消息"""
         with self._lock:
             return [m for m in self._messages if m.priority == priority]
 
     # ── 窗口状态 ──────────────────────────────────────────
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, **kw) -> Dict[str, Any]:
         """获取窗口统计"""
         with self._lock:
             priority_dist = {
@@ -445,7 +457,7 @@ class ContextWindow:
                 **self._stats,
             }
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         """序列化为字典"""
         with self._lock:
             return {
@@ -457,7 +469,7 @@ class ContextWindow:
                 "exported_at": time.time(),
             }
 
-    def export_json(self, path: Optional[str] = None) -> str:
+    def export_json(self, path: Optional[str] = None, **kw) -> str:
         """导出为 JSON"""
         data = self.to_dict()
         json_str = json.dumps(data, ensure_ascii=False, indent=2)
@@ -469,7 +481,7 @@ class ContextWindow:
 
         return json_str
 
-    def import_json(self, data: Union[str, Dict[str, Any]]):
+    def import_json(self, data: Union[str, Dict[str, Any]], **kw):
         """从 JSON 导入"""
         if isinstance(data, str):
             data = json.loads(data)
@@ -484,7 +496,7 @@ class ContextWindow:
 
         logger.info(f"Context window imported: {len(self._messages)} messages")
 
-    def snapshot(self) -> "ContextWindow":
+    def snapshot(self, **kw) -> "ContextWindow":
         """创建窗口快照 (浅拷贝消息列表的副本)"""
         with self._lock:
             snap = ContextWindow(
@@ -496,10 +508,10 @@ class ContextWindow:
             snap._stats = dict(self._stats)
             return snap
 
-    def __len__(self) -> int:
+    def __len__(self, **kw) -> int:
         return self.message_count
 
-    def __contains__(self, message_id: str) -> bool:
+    def __contains__(self, message_id: str, **kw) -> bool:
         with self._lock:
             return any(m.message_id == message_id for m in self._messages)
 

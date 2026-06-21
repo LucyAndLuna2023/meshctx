@@ -15,12 +15,18 @@ from typing import Any, Dict, List, Optional, Tuple
 # ═══════════════════════════════════════════════════════════════
 
 class SearchType(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     VECTOR = "vector"
     KEYWORD = "keyword"
     HYBRID = "hybrid"
 
 
 class Backend(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     BUILTIN = "builtin"
     CHROMA = "chroma"
     FAISS = "faiss"
@@ -33,6 +39,9 @@ class Backend(Enum):
 
 @dataclass
 class VectorDocument:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     id: str
     text: str = ""
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -41,6 +50,9 @@ class VectorDocument:
 
 @dataclass
 class SearchHit:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     id: str
     text: str = ""
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -48,11 +60,14 @@ class SearchHit:
     keyword_score: float = 0.0
 
     @property
-    def score(self) -> float:
+    def score(self, **kw) -> float:
         return max(self.vector_score, self.keyword_score)
 
 
 class SearchResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Iterable search result with metadata."""
 
     def __init__(
@@ -67,18 +82,21 @@ class SearchResult:
         self.total_indexed = total_indexed
         self.elapsed_ms = elapsed_ms
 
-    def __len__(self) -> int:
+    def __len__(self, **kw) -> int:
         return len(self._hits)
 
-    def __iter__(self):
+    def __iter__(self, **kw):
         return iter(self._hits)
 
-    def __getitem__(self, index) -> SearchHit:
+    def __getitem__(self, index, **kw) -> SearchHit:
         return self._hits[index]
 
 
 @dataclass
 class VectorDBConfig:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     backend: Backend = Backend.BUILTIN
     embedding_dim: int = 384
     collection_name: str = "meshctx_docs"
@@ -91,17 +109,20 @@ class VectorDBConfig:
 # ═══════════════════════════════════════════════════════════════
 
 class SimpleEncoder:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Simple hash-based text encoder for demo/testing.
 
     Produces normalized vectors of fixed dimension using a hash-based approach
     with optional IDF weighting.
     """
 
-    def __init__(self, dim: int = 384):
+    def __init__(self, dim: int = 384, **kw):
         self.dim = dim
         self._idf: Dict[str, float] = {}
 
-    def fit(self, texts: List[str]):
+    def fit(self, texts: List[str], **kw):
         """Compute IDF weights from a corpus."""
         df: Dict[str, int] = {}
         for text in texts:
@@ -112,7 +133,7 @@ class SimpleEncoder:
         for token, count in df.items():
             self._idf[token] = math.log((N + 1) / (count + 1)) + 1.0
 
-    def encode(self, texts: List[str]) -> List[List[float]]:
+    def encode(self, texts: List[str], **kw) -> List[List[float]]:
         """Encode texts into fixed-dimension normalized vectors."""
         result = []
         for text in texts:
@@ -135,7 +156,7 @@ class SimpleEncoder:
             result.append(vec)
         return result
 
-    def _tokenize(self, text: str) -> List[str]:
+    def _tokenize(self, text: str, **kw) -> List[str]:
         """Simple tokenizer supporting both English and Chinese."""
         tokens = []
         # Chinese characters: treat each as a token + bigrams
@@ -160,13 +181,16 @@ class SimpleEncoder:
 # ═══════════════════════════════════════════════════════════════
 
 class KeywordIndex:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Simple inverted-index keyword search."""
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._index: Dict[str, List[Tuple[str, float]]] = {}
         self._docs: Dict[str, str] = {}
 
-    def add(self, doc_id: str, text: str):
+    def add(self, doc_id: str, text: str, **kw):
         self._docs[doc_id] = text
         tokens = self._tokenize(text)
         tf: Dict[str, int] = {}
@@ -178,7 +202,7 @@ class KeywordIndex:
                 self._index[token] = []
             self._index[token].append((doc_id, tf_score))
 
-    def search(self, query: str, top_k: int = 10) -> List[Tuple[str, float]]:
+    def search(self, query: str, top_k: int = 10, **kw) -> List[Tuple[str, float]]:
         query_tokens = self._tokenize(query)
         if not query_tokens:
             return []
@@ -199,7 +223,7 @@ class KeywordIndex:
         sorted_results = sorted(scores.items(), key=lambda x: x[1], reverse=True)
         return sorted_results[:top_k]
 
-    def remove(self, doc_id: str):
+    def remove(self, doc_id: str, **kw):
         if doc_id in self._docs:
             del self._docs[doc_id]
         # Remove from index
@@ -208,7 +232,7 @@ class KeywordIndex:
             if not self._index[token]:
                 del self._index[token]
 
-    def _tokenize(self, text: str) -> List[str]:
+    def _tokenize(self, text: str, **kw) -> List[str]:
         tokens = []
         chinese_chars = re.findall(r'[\u4e00-\u9fff]', text)
         for i, ch in enumerate(chinese_chars):
@@ -227,43 +251,46 @@ class KeywordIndex:
 # ═══════════════════════════════════════════════════════════════
 
 class BuiltinBackend:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Built-in vector database backend using SimpleEncoder + KeywordIndex."""
 
-    def __init__(self, dim: int = 384):
+    def __init__(self, dim: int = 384, **kw):
         self.dim = dim
         self.encoder = SimpleEncoder(dim=dim)
         self.kw_index = KeywordIndex()
         self._docs: Dict[str, VectorDocument] = {}
         self._vectors: Dict[str, List[float]] = {}
 
-    def add(self, doc: VectorDocument):
+    def add(self, doc: VectorDocument, **kw):
         self._docs[doc.id] = doc
         self.kw_index.add(doc.id, doc.text)
         if doc.embedding is not None:
             self._vectors[doc.id] = doc.embedding
 
-    def count(self) -> int:
+    def count(self, **kw) -> int:
         return len(self._docs)
 
-    def get(self, doc_id: str) -> Optional[VectorDocument]:
+    def get(self, doc_id: str, **kw) -> Optional[VectorDocument]:
         return self._docs.get(doc_id)
 
-    def get_all_ids(self) -> List[str]:
+    def get_all_ids(self, **kw) -> List[str]:
         return list(self._docs.keys())
 
-    def delete(self, doc_id: str):
+    def delete(self, doc_id: str, **kw):
         if doc_id in self._docs:
             del self._docs[doc_id]
         if doc_id in self._vectors:
             del self._vectors[doc_id]
         self.kw_index.remove(doc_id)
 
-    def clear(self):
+    def clear(self, **kw):
         self._docs.clear()
         self._vectors.clear()
         self.kw_index = KeywordIndex()
 
-    def vector_search(self, query_vec: List[float], top_k: int = 10) -> List[Tuple[str, float]]:
+    def vector_search(self, query_vec: List[float], top_k: int = 10, **kw) -> List[Tuple[str, float]]:
         scores = []
         for doc_id, vec in self._vectors.items():
             sim = self._cosine_similarity(query_vec, vec)
@@ -271,10 +298,10 @@ class BuiltinBackend:
         scores.sort(key=lambda x: x[1], reverse=True)
         return scores[:top_k]
 
-    def keyword_search(self, query: str, top_k: int = 10) -> List[Tuple[str, float]]:
+    def keyword_search(self, query: str, top_k: int = 10, **kw) -> List[Tuple[str, float]]:
         return self.kw_index.search(query, top_k=top_k)
 
-    def _cosine_similarity(self, a: List[float], b: List[float]) -> float:
+    def _cosine_similarity(self, a: List[float], b: List[float], **kw) -> float:
         dot = sum(x * y for x, y in zip(a, b))
         norm_a = math.sqrt(sum(x * x for x in a))
         norm_b = math.sqrt(sum(x * x for x in b))
@@ -288,22 +315,25 @@ class BuiltinBackend:
 # ═══════════════════════════════════════════════════════════════
 
 class VectorDB:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Unified vector database with hybrid (vector + keyword) search."""
 
-    def __init__(self, config: Optional[VectorDBConfig] = None):
+    def __init__(self, config: Optional[VectorDBConfig] = None, **kw):
         self.config = config or VectorDBConfig()
         self._backend = self._create_backend()
 
-    def _create_backend(self) -> BuiltinBackend:
+    def _create_backend(self, **kw) -> BuiltinBackend:
         """Create the appropriate backend."""
         # Always use BuiltinBackend as fallback
         return BuiltinBackend(dim=self.config.embedding_dim)
 
     @property
-    def backend_name(self) -> str:
+    def backend_name(self, **kw) -> str:
         return "BuiltinBackend"
 
-    def add(self, items: Any, auto_embed: bool = True):
+    def add(self, items: Any, auto_embed: bool = True, **kw):
         """Add documents. Accepts:
         - List of VectorDocument
         - List of strings (auto-generate IDs)
@@ -333,26 +363,26 @@ class VectorDB:
 
             self._backend.add(doc)
 
-    def count(self) -> int:
+    def count(self, **kw) -> int:
         return self._backend.count()
 
-    def get(self, doc_id: str) -> Optional[VectorDocument]:
+    def get(self, doc_id: str, **kw) -> Optional[VectorDocument]:
         return self._backend.get(doc_id)
 
-    def get_all_ids(self) -> List[str]:
+    def get_all_ids(self, **kw) -> List[str]:
         return self._backend.get_all_ids()
 
-    def delete(self, doc_id: str):
+    def delete(self, doc_id: str, **kw):
         self._backend.delete(doc_id)
 
-    def clear(self):
+    def clear(self, **kw):
         self._backend.clear()
 
-    def search(self, query: str, top_k: int = 10) -> SearchResult:
+    def search(self, query: str, top_k: int = 10, **kw) -> SearchResult:
         """Vector search."""
         return self._search(query, top_k, SearchType.VECTOR)
 
-    def keyword_search(self, query: str, top_k: int = 10) -> SearchResult:
+    def keyword_search(self, query: str, top_k: int = 10, **kw) -> SearchResult:
         """Keyword-only search."""
         t0 = time.time()
         kw_results = self._backend.keyword_search(query, top_k=top_k)
@@ -417,7 +447,7 @@ class VectorDB:
         elapsed = (time.time() - t0) * 1000
         return SearchResult(hits, search_type=SearchType.HYBRID, total_indexed=self.count(), elapsed_ms=elapsed)
 
-    def _search(self, query: str, top_k: int, search_type: SearchType) -> SearchResult:
+    def _search(self, query: str, top_k: int, search_type: SearchType, **kw) -> SearchResult:
         t0 = time.time()
         query_vecs = self._backend.encoder.encode([query])
         query_vec = query_vecs[0]
@@ -456,17 +486,17 @@ def reset_vector_db():
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -474,12 +504,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

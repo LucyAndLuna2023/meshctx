@@ -3,29 +3,41 @@ import numpy as np
 from enum import Enum
 
 class ActionType(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     EXPLORE = "explore"
     EXPLOIT = "exploit"
     WAIT = "wait"
 
 class Policy:
-    def __init__(self, actions=None):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, actions=None, **kw):
         self.actions = actions or []
 
 class GenerativeModel:
-    def __init__(self, state_dim=4, obs_dim=4):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, state_dim=4, obs_dim=4, **kw):
         self.state_dim = state_dim
         self.obs_dim = obs_dim
         self._A = np.eye(obs_dim, state_dim) * 0.9
-    def generate_observation(self, state):
+    def generate_observation(self, state, **kw):
         s = np.asarray(state, dtype=float)
         return self._A[:self.obs_dim, :len(s)].dot(s) + np.random.randn(self.obs_dim) * 0.01
 
 class ActiveInferenceEngine:
-    def __init__(self, state_dim=8, obs_dim=8):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, state_dim=8, obs_dim=8, **kw):
         self.state_dim = state_dim
         self.obs_dim = obs_dim
         self._state = np.ones(state_dim) / state_dim
-    def step(self, observation, goal):
+    def step(self, observation, goal, **kw):
         obs = np.asarray(observation, dtype=float)
         g = np.asarray(goal, dtype=float)
         pred_error = float(np.sum((obs - self._state)**2))
@@ -33,30 +45,33 @@ class ActiveInferenceEngine:
         return {"state": self._state, "actions": [ActionType.EXPLOIT], "prediction_error": pred_error}
 
 class DualProcessDecision:
-    def __init__(self):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, **kw):
         self.system1_weight = 0.5
         self.system2_weight = 0.5
-    def decide(self, intuition, reasoning):
+    def decide(self, intuition, reasoning, **kw):
         i = np.asarray(intuition, dtype=float)
         r = np.asarray(reasoning, dtype=float)
         return self.system1_weight * i + self.system2_weight * r
-    def adapt_weights(self, system2_fraction):
+    def adapt_weights(self, system2_fraction, **kw):
         self.system2_weight = max(0.0, min(1.0, system2_fraction))
         self.system1_weight = 1.0 - self.system2_weight
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -64,12 +79,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

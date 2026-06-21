@@ -59,6 +59,9 @@ logger = logging.getLogger("meshctx.advanced_inference")
 # ═══════════════════════════════════════════════════════════
 
 class InferenceStrategy(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     COT = "cot"                         # Chain of Thought
     TOT = "tot"                         # Tree of Thought
     REACT = "react"                     # Reasoning + Acting
@@ -69,6 +72,9 @@ class InferenceStrategy(str, Enum):
 
 
 class TraceLevel(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     MINIMAL = "minimal"     # 仅记录最终结果
     STEP = "step"           # 记录每步
     DETAILED = "detailed"   # 记录每步 + 中间状态
@@ -81,6 +87,9 @@ class TraceLevel(str, Enum):
 
 @dataclass
 class InferenceStep:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """单步推理记录"""
     step_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     step_index: int = 0
@@ -94,6 +103,9 @@ class InferenceStep:
 
 @dataclass
 class InferenceTrace:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """完整推理追踪"""
     trace_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     strategy: InferenceStrategy = InferenceStrategy.COT
@@ -110,7 +122,7 @@ class InferenceTrace:
     error: Optional[str] = None
     alternatives: List[Dict[str, Any]] = field(default_factory=list)  # 备选答案
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "trace_id": self.trace_id,
             "strategy": self.strategy.value,
@@ -129,6 +141,9 @@ class InferenceTrace:
 
 @dataclass
 class InferenceResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """推理结果 (对外暴露)"""
     answer: Any
     confidence: float
@@ -137,7 +152,7 @@ class InferenceResult:
     alternatives: List[Dict[str, Any]] = field(default_factory=list)
     cached: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "answer": self.answer,
             "confidence": self.confidence,
@@ -150,6 +165,9 @@ class InferenceResult:
 
 @dataclass
 class TotNode:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Tree of Thought 节点"""
     node_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     thought: str = ""
@@ -165,6 +183,9 @@ class TotNode:
 # ═══════════════════════════════════════════════════════════
 
 class AdvancedInference:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     高级推理引擎。
 
@@ -211,23 +232,23 @@ class AdvancedInference:
 
     # ── Cache ──────────────────────────────────────────────
 
-    def _cache_key(self, query: str, strategy: InferenceStrategy) -> str:
+    def _cache_key(self, query: str, strategy: InferenceStrategy, **kw) -> str:
         raw = f"{query}|{strategy.value}"
         return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
-    def _cache_put(self, key: str, result: InferenceResult):
+    def _cache_put(self, key: str, result: InferenceResult, **kw):
         if len(self._cache) >= self._cache_max_size:
             # 移除最老的条目
             oldest = next(iter(self._cache))
             del self._cache[oldest]
         self._cache[key] = result
 
-    def clear_cache(self):
+    def clear_cache(self, **kw):
         self._cache.clear()
 
     # ── Token / Cost 追踪 ─────────────────────────────────
 
-    def _track_tokens(self, input_tokens: int, output_tokens: int):
+    def _track_tokens(self, input_tokens: int, output_tokens: int, **kw):
         self._total_input_tokens += input_tokens
         self._total_output_tokens += output_tokens
         cost = (
@@ -236,7 +257,7 @@ class AdvancedInference:
         )
         self._total_cost += cost
 
-    def _estimate_tokens(self, text: str) -> int:
+    def _estimate_tokens(self, text: str, **kw) -> int:
         """简易 token 估算: ~4 字符/token (英文), ~1.5 字符/token (中文)"""
         if not text:
             return 0
@@ -909,18 +930,18 @@ class AdvancedInference:
 
     # ── 历史管理 ──────────────────────────────────────────
 
-    def _add_to_history(self, trace: InferenceTrace):
+    def _add_to_history(self, trace: InferenceTrace, **kw):
         self._history.append(trace)
         if len(self._history) > self._max_history:
             self._history = self._history[-self._max_history:]
 
-    def get_history(self, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_history(self, limit: int = 50, **kw) -> List[Dict[str, Any]]:
         """获取最近的推理历史"""
         return [t.to_dict() for t in self._history[-limit:]]
 
     # ── 统计与报告 ────────────────────────────────────────
 
-    def get_cost_report(self) -> Dict[str, Any]:
+    def get_cost_report(self, **kw) -> Dict[str, Any]:
         """获取成本报告"""
         return {
             "total_inferences": self._total_inferences,
@@ -934,7 +955,7 @@ class AdvancedInference:
             "strategies_used": list(set(t.strategy.value for t in self._history)),
         }
 
-    def get_cache_stats(self) -> Dict[str, Any]:
+    def get_cache_stats(self, **kw) -> Dict[str, Any]:
         """获取缓存统计"""
         return {
             "cache_size": len(self._cache),
@@ -942,7 +963,7 @@ class AdvancedInference:
             "cache_usage_pct": round(len(self._cache) / max(self._cache_max_size, 1) * 100, 1),
         }
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, **kw) -> Dict[str, Any]:
         """获取综合统计"""
         recent = self._history[-100:] if self._history else []
         success_rate = sum(1 for t in recent if t.success) / max(len(recent), 1)
@@ -957,7 +978,7 @@ class AdvancedInference:
             "history_size": len(self._history),
         }
 
-    def reset_stats(self):
+    def reset_stats(self, **kw):
         """重置统计数据"""
         self._total_inferences = 0
         self._llm_call_count = 0

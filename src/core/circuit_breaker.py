@@ -45,6 +45,9 @@ logger = logging.getLogger("meshctx.circuit_breaker")
 # ═══════════════════════════════════════════════════════════
 
 class CBState(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """熔断器状态。
 
     CLOSED:    正常 — 请求正常通过, 统计失败/成功
@@ -69,14 +72,20 @@ DEFAULT_CALL_TIMEOUT = 30.0           # 单次调用超时
 # ═══════════════════════════════════════════════════════════
 
 class CircuitBreakerOpenError(Exception):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """熔断器开启 — 请求被快速失败。"""
-    def __init__(self, context: str, message: str = ""):
+    def __init__(self, context: str, message: str = "", **kw):
         self.context = context
         self.message = message or f"Circuit breaker '{context}' is OPEN"
         super().__init__(self.message)
 
 
 class CircuitBreakerError(Exception):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """熔断器通用异常。"""
     pass
 
@@ -87,6 +96,9 @@ class CircuitBreakerError(Exception):
 
 @dataclass
 class WindowEntry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """滑动窗口中的单次调用记录。"""
     success: bool
     timestamp: float = field(default_factory=time.time)
@@ -96,6 +108,9 @@ class WindowEntry:
 
 @dataclass
 class CBConfig:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """熔断器配置。
 
     Attributes:
@@ -115,7 +130,7 @@ class CBConfig:
     call_timeout: float = DEFAULT_CALL_TIMEOUT
     half_open_success_threshold: int = 1
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "failure_threshold": self.failure_threshold,
             "failure_rate_threshold": self.failure_rate_threshold,
@@ -128,6 +143,9 @@ class CBConfig:
 
 @dataclass
 class CBStats:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """熔断器统计信息。"""
     state: CBState = CBState.CLOSED
     total_calls: int = 0
@@ -145,7 +163,7 @@ class CBStats:
     current_half_open_requests: int = 0
     consecutive_half_open_successes: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "state": self.state.value,
             "total_calls": self.total_calls,
@@ -168,6 +186,9 @@ class CBStats:
 # ═══════════════════════════════════════════════════════════
 
 class CircuitBreaker:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """单个熔断器实例 (绑定到一个 context)。
 
     管理单个上下文的熔断逻辑: 滑动窗口计数、三态转换、
@@ -176,7 +197,7 @@ class CircuitBreaker:
     线程安全: 内部使用 threading.Lock 保护窗口和统计。
     """
 
-    def __init__(self, context: str, config: CBConfig = None):
+    def __init__(self, context: str, config: CBConfig = None, **kw):
         self.context = context
         self.config = config or CBConfig()
         self.state: CBState = CBState.CLOSED
@@ -202,15 +223,15 @@ class CircuitBreaker:
 
     # ── 状态查询 ──────────────────────────────────────────
 
-    def is_open(self) -> bool:
+    def is_open(self, **kw) -> bool:
         """熔断器是否 OPEN。"""
         return self.state == CBState.OPEN
 
-    def is_closed(self) -> bool:
+    def is_closed(self, **kw) -> bool:
         """熔断器是否 CLOSED。"""
         return self.state == CBState.CLOSED
 
-    def is_half_open(self) -> bool:
+    def is_half_open(self, **kw) -> bool:
         """熔断器是否 HALF_OPEN。"""
         return self.state == CBState.HALF_OPEN
 
@@ -287,19 +308,19 @@ class CircuitBreaker:
 
     # ── 手动控制 ──────────────────────────────────────────
 
-    def force_open(self) -> None:
+    def force_open(self, **kw) -> None:
         """强制 OPEN (手动熔断)。"""
         self._transition_to(CBState.OPEN)
 
-    def force_close(self) -> None:
+    def force_close(self, **kw) -> None:
         """强制 CLOSE (手动恢复)。"""
         self._transition_to(CBState.CLOSED)
 
-    def force_half_open(self) -> None:
+    def force_half_open(self, **kw) -> None:
         """强制 HALF_OPEN (手动探测)。"""
         self._transition_to(CBState.HALF_OPEN)
 
-    def reset(self) -> None:
+    def reset(self, **kw) -> None:
         """重置熔断器 (回到 CLOSED, 清空窗口和统计)。"""
         self.state = CBState.CLOSED
         self.stats = CBStats()
@@ -310,7 +331,7 @@ class CircuitBreaker:
 
     # ── 自定义判定 ────────────────────────────────────────
 
-    def set_trip_check(self, checker: Callable[[CBStats], bool]) -> None:
+    def set_trip_check(self, checker: Callable[[CBStats], bool], **kw) -> None:
         """设置自定义熔断判定函数。
 
         Args:
@@ -318,7 +339,7 @@ class CircuitBreaker:
         """
         self._custom_trip_check = checker
 
-    def set_recover_check(self, checker: Callable[[CBStats], bool]) -> None:
+    def set_recover_check(self, checker: Callable[[CBStats], bool], **kw) -> None:
         """设置自定义恢复判定函数。
 
         Args:
@@ -328,21 +349,21 @@ class CircuitBreaker:
 
     # ── 回调 ──────────────────────────────────────────────
 
-    def on_open(self, callback: Callable[[str, CBStats], None]) -> None:
+    def on_open(self, callback: Callable[[str, CBStats], None], **kw) -> None:
         """注册 OPEN 回调。"""
         self._on_open_callbacks.append(callback)
 
-    def on_close(self, callback: Callable[[str, CBStats], None]) -> None:
+    def on_close(self, callback: Callable[[str, CBStats], None], **kw) -> None:
         """注册 CLOSE 回调。"""
         self._on_close_callbacks.append(callback)
 
-    def on_half_open(self, callback: Callable[[str, CBStats], None]) -> None:
+    def on_half_open(self, callback: Callable[[str, CBStats], None], **kw) -> None:
         """注册 HALF_OPEN 回调。"""
         self._on_half_open_callbacks.append(callback)
 
     # ── 统计 ──────────────────────────────────────────────
 
-    def get_stats(self) -> CBStats:
+    def get_stats(self, **kw) -> CBStats:
         """获取统计快照。"""
         self._prune_window()
         with self._window_lock:
@@ -384,7 +405,7 @@ class CircuitBreaker:
                 self._transition_to(CBState.OPEN)
                 raise CircuitBreakerOpenError(self.context, "Circuit breaker re-tripped")
 
-    def _should_trip(self) -> bool:
+    def _should_trip(self, **kw) -> bool:
         """判定是否应触发熔断。"""
         self._prune_window()
 
@@ -408,7 +429,7 @@ class CircuitBreaker:
                     return True
         return False
 
-    def _should_attempt_recovery(self) -> bool:
+    def _should_attempt_recovery(self, **kw) -> bool:
         """判定是否应尝试恢复 (OPEN → HALF_OPEN)。"""
         if self.state != CBState.OPEN:
             return False
@@ -416,7 +437,7 @@ class CircuitBreaker:
         elapsed = time.time() - self.stats.opened_at
         return elapsed >= self.config.recovery_timeout
 
-    def _should_re_trip(self) -> bool:
+    def _should_re_trip(self, **kw) -> bool:
         """HALF_OPEN 中是否应重新熔断。"""
         self._prune_window()
 
@@ -440,12 +461,12 @@ class CircuitBreaker:
 
         return False
 
-    def _time_until_recovery(self) -> float:
+    def _time_until_recovery(self, **kw) -> float:
         """距离 HALF_OPEN 还有多少秒。"""
         elapsed = time.time() - self.stats.opened_at
         return max(0, self.config.recovery_timeout - elapsed)
 
-    def _transition_to(self, new_state: CBState) -> None:
+    def _transition_to(self, new_state: CBState, **kw) -> None:
         """状态转换 + 回调触发。"""
         if self.state == new_state:
             return
@@ -485,7 +506,7 @@ class CircuitBreaker:
                 except Exception as e:
                     logger.error(f"on_half_open callback error: {e}")
 
-    def _record_success(self, duration: float) -> None:
+    def _record_success(self, duration: float, **kw) -> None:
         """记录成功调用。"""
         entry = WindowEntry(success=True, duration_seconds=duration)
         with self._window_lock:
@@ -495,7 +516,7 @@ class CircuitBreaker:
         self.stats.total_successes += 1
         self.stats.last_success_time = time.time()
 
-    def _record_failure(self, duration: float, error: str) -> None:
+    def _record_failure(self, duration: float, error: str, **kw) -> None:
         """记录失败调用。"""
         entry = WindowEntry(success=False, duration_seconds=duration, error=error)
         with self._window_lock:
@@ -505,7 +526,7 @@ class CircuitBreaker:
         self.stats.total_failures += 1
         self.stats.last_failure_time = time.time()
 
-    def _prune_window(self) -> None:
+    def _prune_window(self, **kw) -> None:
         """清理滑动窗口中的过期条目。"""
         cutoff = time.time() - self.config.window_size
         with self._window_lock:
@@ -523,6 +544,9 @@ class CircuitBreaker:
 # ═══════════════════════════════════════════════════════════
 
 class CircuitBreakerManager:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """熔断器管理器 — 管理多个 context 独立的熔断器实例。
 
     核心职责:
@@ -534,7 +558,7 @@ class CircuitBreakerManager:
     线程安全: 内部使用 threading.Lock。
     """
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._breakers: Dict[str, CircuitBreaker] = {}
         self._lock = threading.Lock()
 
@@ -568,7 +592,7 @@ class CircuitBreakerManager:
 
         return self._breakers[context]
 
-    def get(self, context: str) -> Optional[CircuitBreaker]:
+    def get(self, context: str, **kw) -> Optional[CircuitBreaker]:
         """获取熔断器实例。"""
         with self._lock:
             return self._breakers.get(context)
@@ -585,7 +609,7 @@ class CircuitBreakerManager:
                 logger.info(f"Auto-created circuit breaker for '{context}'")
             return self._breakers[context]
 
-    def remove(self, context: str) -> bool:
+    def remove(self, context: str, **kw) -> bool:
         """移除熔断器实例。"""
         with self._lock:
             if context in self._breakers:
@@ -594,7 +618,7 @@ class CircuitBreakerManager:
                 return True
         return False
 
-    def list_contexts(self) -> List[str]:
+    def list_contexts(self, **kw) -> List[str]:
         """列出所有 context。"""
         with self._lock:
             return list(self._breakers.keys())
@@ -630,7 +654,7 @@ class CircuitBreakerManager:
 
     # ── 批量操作 ──────────────────────────────────────────
 
-    def reset_all(self) -> int:
+    def reset_all(self, **kw) -> int:
         """重置所有熔断器。"""
         with self._lock:
             count = len(self._breakers)
@@ -639,7 +663,7 @@ class CircuitBreakerManager:
         logger.info(f"Reset {count} circuit breakers")
         return count
 
-    def reset(self, context: str) -> bool:
+    def reset(self, context: str, **kw) -> bool:
         """重置单个熔断器。"""
         breaker = self.get(context)
         if breaker:
@@ -649,7 +673,7 @@ class CircuitBreakerManager:
 
     # ── 统计 ──────────────────────────────────────────────
 
-    def get_all_stats(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_stats(self, **kw) -> Dict[str, Dict[str, Any]]:
         """获取所有熔断器统计。"""
         with self._lock:
             return {
@@ -657,7 +681,7 @@ class CircuitBreakerManager:
                 for ctx, b in self._breakers.items()
             }
 
-    def get_global_stats(self) -> Dict[str, Any]:
+    def get_global_stats(self, **kw) -> Dict[str, Any]:
         """获取全局统计摘要。"""
         with self._lock:
             total = len(self._breakers)

@@ -53,6 +53,9 @@ logger = logging.getLogger("meshctx.token_budget")
 # ═══════════════════════════════════════════════════════════
 
 class BudgetLevel(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """预算层级"""
     TOTAL = "total"       # 全局总预算
     MODEL = "model"       # 按模型 (e.g. "model:gpt-4")
@@ -61,6 +64,9 @@ class BudgetLevel(str, Enum):
 
 
 class BudgetWindow(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """预算重置窗口"""
     MINUTE = "minute"     # 每分钟重置
     HOUR = "hour"         # 每小时重置
@@ -79,6 +85,9 @@ WINDOW_SECONDS = {
 
 
 class BudgetStatus(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """预算检查结果"""
     OK = "ok"                   # 预算充足
     WARNING = "warning"         # 接近上限 (>80%)
@@ -94,6 +103,9 @@ class BudgetStatus(str, Enum):
 
 @dataclass
 class BudgetConfig:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """预算配置"""
     key: str                                    # 预算标识 (e.g. "user:alice")
     level: BudgetLevel
@@ -106,7 +118,7 @@ class BudgetConfig:
     metadata: Dict[str, Any] = field(default_factory=dict)
     created_at: float = field(default_factory=time.time)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "key": self.key,
             "level": self.level.value,
@@ -121,7 +133,7 @@ class BudgetConfig:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "BudgetConfig":
+    def from_dict(cls, d: Dict[str, Any], **kw) -> "BudgetConfig":
         return cls(
             key=d["key"],
             level=BudgetLevel(d["level"]),
@@ -138,6 +150,9 @@ class BudgetConfig:
 
 @dataclass
 class BudgetUsage:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """预算使用追踪"""
     key: str
     used_tokens: int = 0
@@ -148,11 +163,11 @@ class BudgetUsage:
     history: List[Tuple[float, int]] = field(default_factory=list)  # (timestamp, cumulative)
 
     @property
-    def total_committed(self) -> int:
+    def total_committed(self, **kw) -> int:
         """总共已承诺的 Token (已消费 + 已预留)"""
         return self.used_tokens + self.reserved_tokens
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "key": self.key,
             "used_tokens": self.used_tokens,
@@ -165,6 +180,9 @@ class BudgetUsage:
 
 @dataclass
 class BudgetCheckResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """预算检查结果"""
     status: BudgetStatus
     key: str
@@ -175,7 +193,7 @@ class BudgetCheckResult:
     message: str = ""
     details: Dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "status": self.status.value,
             "key": self.key,
@@ -193,13 +211,16 @@ class BudgetCheckResult:
 # ═══════════════════════════════════════════════════════════
 
 class TokenBudget:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """多维度 Token 预算管理器
 
     管理全局/模型/用户/Session 四级预算, 支持 consume/reserve/release、
     窗口重置、告警回调和使用统计。
     """
 
-    def __init__(self, persist_path: Optional[str] = None):
+    def __init__(self, persist_path: Optional[str] = None, **kw):
         self.persist_path = persist_path
         self._configs: Dict[str, BudgetConfig] = {}
         self._usages: Dict[str, BudgetUsage] = {}
@@ -252,7 +273,7 @@ class TokenBudget:
             logger.info(f"Budget set: {key} = {max_tokens:,} tokens / {window.value}")
         return config
 
-    def _infer_level(self, key: str) -> BudgetLevel:
+    def _infer_level(self, key: str, **kw) -> BudgetLevel:
         """从 key 推断层级"""
         if key == "total":
             return BudgetLevel.TOTAL
@@ -264,12 +285,12 @@ class TokenBudget:
             return BudgetLevel.SESSION
         return BudgetLevel.USER  # 默认
 
-    def get_budget(self, key: str) -> Optional[BudgetConfig]:
+    def get_budget(self, key: str, **kw) -> Optional[BudgetConfig]:
         """获取预算配置"""
         with self._lock:
             return self._configs.get(key)
 
-    def remove_budget(self, key: str) -> bool:
+    def remove_budget(self, key: str, **kw) -> bool:
         """删除预算配置"""
         with self._lock:
             removed = self._configs.pop(key, None) is not None
@@ -280,7 +301,7 @@ class TokenBudget:
 
     # ── 预算检查 ──────────────────────────────────────────
 
-    def check(self, key: str, tokens: int = 0) -> BudgetCheckResult:
+    def check(self, key: str, tokens: int = 0, **kw) -> BudgetCheckResult:
         """检查预算是否允许消费
 
         Args:
@@ -343,7 +364,7 @@ class TokenBudget:
 
             return result
 
-    def check_multi(self, keys: List[str], tokens: int = 0) -> Dict[str, BudgetCheckResult]:
+    def check_multi(self, keys: List[str], tokens: int = 0, **kw) -> Dict[str, BudgetCheckResult]:
         """检查多个预算维度
 
         Args:
@@ -427,7 +448,7 @@ class TokenBudget:
                          f"(model={model}, session={session_id})")
             return True, results[key]
 
-    def reserve(self, reservation_id: str, key: str, tokens: int) -> BudgetCheckResult:
+    def reserve(self, reservation_id: str, key: str, tokens: int, **kw) -> BudgetCheckResult:
         """预留 Token 预算 (不实际消费, 但占用配额)
 
         用于异步操作前的预算锁定。
@@ -457,7 +478,7 @@ class TokenBudget:
             logger.debug(f"Reserved {tokens} tokens for {reservation_id} on {key}")
             return result
 
-    def release(self, reservation_id: str):
+    def release(self, reservation_id: str, **kw):
         """释放预留的 Token 预算
 
         Args:
@@ -475,7 +496,7 @@ class TokenBudget:
             del self._reservations[reservation_id]
             logger.debug(f"Released reservation: {reservation_id}")
 
-    def commit_reservation(self, reservation_id: str):
+    def commit_reservation(self, reservation_id: str, **kw):
         """将预留转为实际消费
 
         Args:
@@ -500,7 +521,7 @@ class TokenBudget:
 
     # ── 预算重置 ──────────────────────────────────────────
 
-    def _maybe_reset_window(self, key: str):
+    def _maybe_reset_window(self, key: str, **kw):
         """检查并执行窗口重置"""
         config = self._configs.get(key)
         if not config:
@@ -522,7 +543,7 @@ class TokenBudget:
             usage.history = []
             logger.info(f"Budget window reset: {key} ({config.window.value})")
 
-    def reset_budget(self, key: str):
+    def reset_budget(self, key: str, **kw):
         """手动重置指定预算的窗口"""
         with self._lock:
             if key in self._usages:
@@ -533,7 +554,7 @@ class TokenBudget:
                 usage.history.clear()
                 logger.info(f"Budget manually reset: {key}")
 
-    def reset_all(self):
+    def reset_all(self, **kw):
         """重置所有预算窗口"""
         with self._lock:
             now = time.time()
@@ -547,7 +568,7 @@ class TokenBudget:
 
     # ── 告警回调 ──────────────────────────────────────────
 
-    def on_alert(self, callback: Callable[[BudgetCheckResult], None]):
+    def on_alert(self, callback: Callable[[BudgetCheckResult], None], **kw):
         """注册告警回调
 
         Args:
@@ -555,7 +576,7 @@ class TokenBudget:
         """
         self._alert_callbacks.append(callback)
 
-    def _fire_alerts(self, result: BudgetCheckResult):
+    def _fire_alerts(self, result: BudgetCheckResult, **kw):
         """触发所有告警回调"""
         for cb in self._alert_callbacks:
             try:
@@ -565,7 +586,7 @@ class TokenBudget:
 
     # ── 辅助 ──────────────────────────────────────────────
 
-    def _ensure_default_budget(self, key: str):
+    def _ensure_default_budget(self, key: str, **kw):
         """为未配置的预算 key 创建默认配置"""
         if key == "total":
             self.set_budget(key, max_tokens=1_000_000, level=BudgetLevel.TOTAL)
@@ -578,12 +599,12 @@ class TokenBudget:
 
     # ── 统计 ──────────────────────────────────────────────
 
-    def get_usage(self, key: str) -> Optional[BudgetUsage]:
+    def get_usage(self, key: str, **kw) -> Optional[BudgetUsage]:
         """获取使用记录"""
         with self._lock:
             return self._usages.get(key)
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, **kw) -> Dict[str, Any]:
         """获取全局统计"""
         with self._lock:
             total_configured = len(self._configs)
@@ -613,7 +634,7 @@ class TokenBudget:
                 "budget_summary": budget_summary,
             }
 
-    def get_usage_history(self, key: str, limit: int = 100) -> List[Tuple[float, int]]:
+    def get_usage_history(self, key: str, limit: int = 100, **kw) -> List[Tuple[float, int]]:
         """获取预算使用历史
 
         Returns:
@@ -627,7 +648,7 @@ class TokenBudget:
 
     # ── JSON 持久化 ───────────────────────────────────────
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         """序列化为字典"""
         with self._lock:
             return {
@@ -637,7 +658,7 @@ class TokenBudget:
                 "exported_at": time.time(),
             }
 
-    def save(self, path: Optional[str] = None):
+    def save(self, path: Optional[str] = None, **kw):
         """持久化到 JSON 文件"""
         target = path or self.persist_path
         if not target:
@@ -648,7 +669,7 @@ class TokenBudget:
             json.dump(data, f, ensure_ascii=False, indent=2)
         logger.info(f"Token budget saved to {target}")
 
-    def load(self, path: Optional[str] = None):
+    def load(self, path: Optional[str] = None, **kw):
         """从 JSON 文件加载"""
         target = path or self.persist_path
         if not target:

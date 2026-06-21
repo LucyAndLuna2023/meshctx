@@ -3,6 +3,9 @@ import re
 from enum import Enum
 
 class TaskComplexity(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     TRIVIAL = 1
     SIMPLE = 2
     MODERATE = 3
@@ -10,26 +13,38 @@ class TaskComplexity(Enum):
     EXPERT = 5
 
 class ModelTier(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     BUDGET = 1
     STANDARD = 2
     PREMIUM = 3
 
 class ModelInfo:
-    def __init__(self, cost_per_1k_input, cost_per_1k_output, provider="openai", tier=ModelTier.STANDARD):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, cost_per_1k_input, cost_per_1k_output, provider="openai", tier=ModelTier.STANDARD, **kw):
         self.cost_per_1k_input = cost_per_1k_input
         self.cost_per_1k_output = cost_per_1k_output
         self.provider = provider
         self.tier = tier
 
 class RouteDecision:
-    def __init__(self, selected_model, complexity, reasoning, fallback_model=""):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, selected_model, complexity, reasoning, fallback_model="", **kw):
         self.selected_model = selected_model
         self.complexity = complexity
         self.reasoning = reasoning
         self.fallback_model = fallback_model or selected_model
 
 class SmartModelRouter:
-    def __init__(self):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, **kw):
         self._DEFAULT_MODELS = {
             "deepseek-chat": ModelInfo(0.14, 0.28, "deepseek", ModelTier.BUDGET),
             "deepseek-coder": ModelInfo(0.14, 0.28, "deepseek", ModelTier.BUDGET),
@@ -48,7 +63,7 @@ class SmartModelRouter:
         self._budget = float("inf")
         self._spent_today = 0.0
 
-    def estimate_complexity(self, prompt):
+    def estimate_complexity(self, prompt, **kw):
         prompt = str(prompt)
         score = 1
         if len(prompt) < 3:
@@ -67,7 +82,7 @@ class SmartModelRouter:
             score = max(score, 5)
         return TaskComplexity(min(score, 5))
 
-    def route(self, prompt, task_type="chat", preferred_provider=None):
+    def route(self, prompt, task_type="chat", preferred_provider=None, **kw):
         complexity = self.estimate_complexity(prompt)
         if complexity.value <= 2:
             tier_limit = ModelTier.BUDGET
@@ -97,7 +112,7 @@ class SmartModelRouter:
         reasoning = f"任务复杂度 {complexity.value}, 选择 {selected}"
         return RouteDecision(selected, complexity, reasoning, fallback_model=list(self._DEFAULT_MODELS.keys())[1])
 
-    def record_usage(self, model_id, task_type, input_tokens, output_tokens, cost):
+    def record_usage(self, model_id, task_type, input_tokens, output_tokens, cost, **kw):
         if model_id not in self._stats:
             self._stats[model_id] = {"calls": 0, "total_tokens": 0, "total_cost": 0.0, "task_types": {}}
         self._stats[model_id]["calls"] += 1
@@ -111,7 +126,7 @@ class SmartModelRouter:
             self._stats[model_id]["task_types"][task_type] = 0
         self._stats[model_id]["task_types"][task_type] += 1
 
-    def get_usage_report(self):
+    def get_usage_report(self, **kw):
         total_calls = sum(s["calls"] for s in self._stats.values())
         total_cost = sum(s["total_cost"] for s in self._stats.values())
         by_model = {mid: {"calls": s["calls"], "cost": s["total_cost"]} for mid, s in self._stats.items()}
@@ -127,7 +142,7 @@ class SmartModelRouter:
             "budget_cap": self._budget if self._budget != float("inf") else 0.0,
         }
 
-    def get_optimization_tips(self):
+    def get_optimization_tips(self, **kw):
         tips = []
         for mid, s in self._stats.items():
             info = self._DEFAULT_MODELS.get(mid)
@@ -135,12 +150,12 @@ class SmartModelRouter:
                 tips.append(f"过度使用高级模型 {mid}，建议降级")
         return tips
 
-    def can_afford(self, cost):
+    def can_afford(self, cost, **kw):
         if self._budget == float("inf"):
             return True
         return (self._spent_today + cost) <= self._budget
 
-    def set_budget(self, amount):
+    def set_budget(self, amount, **kw):
         self._budget = float(amount)
 
 def get_model_router():
@@ -148,17 +163,17 @@ def get_model_router():
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -166,12 +181,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

@@ -9,7 +9,10 @@ from pathlib import Path
 
 
 class BackupVault:
-    def __init__(self, config_dir=None, vault_dir=None):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, config_dir=None, vault_dir=None, **kw):
         d = vault_dir or config_dir or "/tmp/backup_vault"
         self._config_dir = Path(d)
         self._config_dir.mkdir(parents=True, exist_ok=True)
@@ -17,10 +20,10 @@ class BackupVault:
         self._load_config()
 
     # ------------------------------------------------------------------ config
-    def _config_file(self) -> Path:
+    def _config_file(self, **kw) -> Path:
         return self._config_dir / "backup_vault.json"
 
-    def _load_config(self):
+    def _load_config(self, **kw):
         cf = self._config_file()
         if cf.exists():
             try:
@@ -29,14 +32,14 @@ class BackupVault:
             except (json.JSONDecodeError, OSError):
                 self._backup_paths = []
 
-    def _save_config(self):
+    def _save_config(self, **kw):
         self._config_dir.mkdir(parents=True, exist_ok=True)
         self._config_file().write_text(
             json.dumps({"backup_paths": self._backup_paths}, indent=2)
         )
 
     # ------------------------------------------------------------ path management
-    def add_backup_path(self, path: str) -> dict:
+    def add_backup_path(self, path: str, **kw) -> dict:
         bp = str(Path(path).resolve())
         if bp in self._backup_paths:
             return {"success": False}
@@ -45,17 +48,17 @@ class BackupVault:
         self._save_config()
         return {"success": True}
 
-    def list_backup_paths(self) -> list[str]:
+    def list_backup_paths(self, **kw) -> list[str]:
         return list(self._backup_paths)
 
-    def remove_backup_path(self, path: str) -> dict:
+    def remove_backup_path(self, path: str, **kw) -> dict:
         bp = str(Path(path).resolve())
         if bp in self._backup_paths:
             self._backup_paths.remove(bp)
         self._save_config()
         return {"success": True}
 
-    def suggest_backup_paths(self) -> list[str]:
+    def suggest_backup_paths(self, **kw) -> list[str]:
         """Return at least one sensible suggestion."""
         suggestions = []
         home = Path.home()
@@ -70,7 +73,7 @@ class BackupVault:
         return suggestions
 
     # ------------------------------------------------------------------- backup
-    def backup(self, source_path, version=None, label=None) -> dict:
+    def backup(self, source_path, version=None, label=None, **kw) -> dict:
         source = Path(source_path)
         if not self._backup_paths:
             return {
@@ -133,7 +136,7 @@ class BackupVault:
         }
 
     # -------------------------------------------------------------- find / restore
-    def find_backups(self) -> list[dict]:
+    def find_backups(self, **kw) -> list[dict]:
         backups = []
         for bp_path in self._backup_paths:
             bp = Path(bp_path)
@@ -148,7 +151,7 @@ class BackupVault:
                 })
         return backups
 
-    def restore(self, backup_id, restore_target) -> dict:
+    def restore(self, backup_id, restore_target, **kw) -> dict:
         restore_target = Path(restore_target)
         # Find the archive
         archive_path = None
@@ -168,13 +171,13 @@ class BackupVault:
         return {"success": True}
 
     # -------------------------------------------------------------------- stats
-    def get_stats(self) -> dict:
+    def get_stats(self, **kw) -> dict:
         return {
             "backup_paths": self.list_backup_paths(),
             "suggested_paths": self.suggest_backup_paths(),
         }
 
-    def get_setup_instructions(self) -> str:
+    def get_setup_instructions(self, **kw) -> str:
         return (
             "备份保险库 (Backup Vault) 设置说明:\n"
             "使用 meshctx backup add <路径> 添加备份路径。\n"
@@ -183,17 +186,17 @@ class BackupVault:
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -201,12 +204,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

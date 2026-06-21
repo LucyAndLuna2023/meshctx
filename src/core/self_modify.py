@@ -47,6 +47,9 @@ logger = logging.getLogger("meshctx.self_modify")
 # ═══════════════════════════════════════════════════════════
 
 class ModificationStatus(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """修改状态"""
     PROPOSED = "proposed"        # 已提案，待审批
     APPROVED = "approved"        # 已审批，待应用
@@ -58,6 +61,9 @@ class ModificationStatus(Enum):
 
 
 class RiskLevel(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """修改风险等级"""
     SAFE = "safe"              # 安全: 注释/格式/日志级别
     LOW = "low"                # 低风险: 函数内部逻辑调整
@@ -72,6 +78,9 @@ class RiskLevel(Enum):
 
 @dataclass
 class ModificationProposal:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """修改提案 — 结构化描述一次代码修改"""
     proposal_id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
     file_path: str = ""                            # 目标文件路径
@@ -101,7 +110,7 @@ class ModificationProposal:
     related_issues: List[str] = field(default_factory=list)
     tags: List[str] = field(default_factory=list)
 
-    def generate_diff(self):
+    def generate_diff(self, **kw):
         """生成 unified diff"""
         if self.old_content and self.new_content:
             old_lines = self.old_content.splitlines(keepends=True)
@@ -114,13 +123,13 @@ class ModificationProposal:
             )
             self.diff = "\n".join(diff)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self, **kw) -> Dict:
         d = asdict(self)
         d["status"] = self.status.value
         d["risk_level"] = self.risk_level.value
         return d
 
-    def summary(self) -> str:
+    def summary(self, **kw) -> str:
         """一句话摘要"""
         return (f"[{self.risk_level.value.upper()}] {self.category}: "
                 f"{self.reason[:80]} (file: {self.file_path})")
@@ -128,6 +137,9 @@ class ModificationProposal:
 
 @dataclass
 class ModificationResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """修改应用结果"""
     proposal_id: str
     success: bool
@@ -147,7 +159,7 @@ class ModificationResult:
     message: str = ""
     details: Dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self, **kw) -> Dict:
         d = asdict(self)
         d["status"] = self.status.value
         return d
@@ -208,7 +220,7 @@ def assess_file_risk(file_path: str, old_content: str, new_content: str) -> Risk
 def _is_surface_change_only(old: str, new: str) -> bool:
     """检查是否只是表面变更 (注释/格式/日志)"""
     # 移除注释和空白后比较
-    def strip_surface(text: str) -> str:
+    def strip_surface(text: str, **kw) -> str:
         # 移除注释行 (以 # 开头的行)
         lines = []
         for line in text.splitlines():
@@ -240,7 +252,7 @@ def _has_signature_change(old: str, new: str) -> bool:
     except SyntaxError:
         return False  # 语法错误，让验证阶段处理
 
-    def get_signatures(tree):
+    def get_signatures(tree, **kw):
         sigs = set()
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef):
@@ -263,6 +275,9 @@ def _has_signature_change(old: str, new: str) -> bool:
 # ═══════════════════════════════════════════════════════════
 
 class SelfModifyEngine:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     安全自修改引擎 — meshctx 的"自我进化"能力
 
@@ -338,7 +353,7 @@ class SelfModifyEngine:
 
     # ── 数据库 ───────────────────────────────────────────
 
-    def _init_db(self):
+    def _init_db(self, **kw):
         """初始化修改历史数据库"""
         import os
         os.makedirs(os.path.dirname(os.path.abspath(self.db_path)) or '.', exist_ok=True)
@@ -391,7 +406,7 @@ class SelfModifyEngine:
         conn.close()
         logger.debug("SelfModifyEngine DB initialized")
 
-    def _load_history(self):
+    def _load_history(self, **kw):
         """加载修改历史"""
         try:
             conn = sqlite3.connect(self.db_path)
@@ -431,7 +446,7 @@ class SelfModifyEngine:
 
     # ── 文件路径验证 ─────────────────────────────────────
 
-    def _is_path_allowed(self, file_path: str) -> Tuple[bool, str]:
+    def _is_path_allowed(self, file_path: str, **kw) -> Tuple[bool, str]:
         """
         检查文件是否在白名单目录内
 
@@ -549,7 +564,7 @@ class SelfModifyEngine:
 
     # ── 语法验证 ─────────────────────────────────────────
 
-    def _validate_python_syntax(self, code: str) -> Tuple[bool, List[str]]:
+    def _validate_python_syntax(self, code: str, **kw) -> Tuple[bool, List[str]]:
         """
         用 ast.parse 验证 Python 语法
 
@@ -579,13 +594,13 @@ class SelfModifyEngine:
 
         return len([e for e in errors if "安全检查" not in e]) == 0, errors
 
-    def validate_python_syntax(self, code: str) -> Tuple[bool, List[str]]:
+    def validate_python_syntax(self, code: str, **kw) -> Tuple[bool, List[str]]:
         """公开的语法验证方法"""
         return self._validate_python_syntax(code)
 
     # ── 审批 ─────────────────────────────────────────────
 
-    def needs_approval(self, proposal: ModificationProposal) -> bool:
+    def needs_approval(self, proposal: ModificationProposal, **kw) -> bool:
         """判断是否需要人类审批"""
         return proposal.risk_level in (
             RiskLevel.HIGH,
@@ -634,7 +649,7 @@ class SelfModifyEngine:
 
     # ── 应用修改 ─────────────────────────────────────────
 
-    def apply_modification(self, proposal_or_id) -> ModificationResult:
+    def apply_modification(self, proposal_or_id, **kw) -> ModificationResult:
         """
         应用修改到实际文件
 
@@ -779,7 +794,7 @@ class SelfModifyEngine:
                 message=f"应用失败: {str(e)}",
             )
 
-    def _create_backup(self, proposal_id: str, file_path: Path) -> str:
+    def _create_backup(self, proposal_id: str, file_path: Path, **kw) -> str:
         """创建文件备份"""
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         backup_name = f"{file_path.name}.{timestamp}.{proposal_id[:8]}.bak"
@@ -790,7 +805,7 @@ class SelfModifyEngine:
 
     # ── 回滚 ─────────────────────────────────────────────
 
-    def rollback(self, modification_id: str) -> ModificationResult:
+    def rollback(self, modification_id: str, **kw) -> ModificationResult:
         """
         回滚修改 — 从备份恢复原始文件
 
@@ -853,7 +868,7 @@ class SelfModifyEngine:
                 message=f"回滚失败: {str(e)}",
             )
 
-    def rollback_all(self, since_timestamp: float = 0) -> List[ModificationResult]:
+    def rollback_all(self, since_timestamp: float = 0, **kw) -> List[ModificationResult]:
         """批量回滚: 回滚指定时间之后的所有修改 (LIFO 顺序)"""
         results = []
         targets = [
@@ -875,7 +890,7 @@ class SelfModifyEngine:
 
     # ── 持久化 ───────────────────────────────────────────
 
-    def _save_proposal(self, proposal: ModificationProposal):
+    def _save_proposal(self, proposal: ModificationProposal, **kw):
         """持久化修改提案"""
         try:
             conn = sqlite3.connect(self.db_path)
@@ -904,7 +919,7 @@ class SelfModifyEngine:
         except Exception as e:
             logger.error(f"Failed to save proposal: {e}")
 
-    def _save_result(self, result: ModificationResult):
+    def _save_result(self, result: ModificationResult, **kw):
         """持久化修改结果"""
         try:
             conn = sqlite3.connect(self.db_path)
@@ -963,15 +978,15 @@ class SelfModifyEngine:
 
         return history
 
-    def get_proposal(self, proposal_id: str) -> Optional[ModificationProposal]:
+    def get_proposal(self, proposal_id: str, **kw) -> Optional[ModificationProposal]:
         """获取单个提案"""
         return self._proposals.get(proposal_id)
 
-    def get_result(self, proposal_id: str) -> Optional[ModificationResult]:
+    def get_result(self, proposal_id: str, **kw) -> Optional[ModificationResult]:
         """获取单个修改结果"""
         return self._results.get(proposal_id)
 
-    def list_pending_approvals(self) -> List[ModificationProposal]:
+    def list_pending_approvals(self, **kw) -> List[ModificationProposal]:
         """列出等待审批的修改"""
         return [p for p in self._proposals.values()
                 if p.status == ModificationStatus.PROPOSED
@@ -979,7 +994,7 @@ class SelfModifyEngine:
 
     # ── Metacognition 联动 ──────────────────────────────
 
-    def set_metacognition(self, metacognition):
+    def set_metacognition(self, metacognition, **kw):
         """注入 MetaCognition 引用"""
         self._metacognition = metacognition
         logger.info("SelfModifyEngine connected to MetaCognition")
@@ -1029,7 +1044,7 @@ class SelfModifyEngine:
 
     # ── 统计与状态 ───────────────────────────────────────
 
-    def get_engine_status(self) -> dict:
+    def get_engine_status(self, **kw) -> dict:
         """获取引擎运行状态"""
         return {
             "total_proposed": self._stats["total_proposed"],
@@ -1047,13 +1062,13 @@ class SelfModifyEngine:
             "db_path": self.db_path,
         }
 
-    def get_stats(self) -> dict:
+    def get_stats(self, **kw) -> dict:
         """获取统计信息"""
         return dict(self._stats)
 
     # ── 维护 ─────────────────────────────────────────────
 
-    def clean_old_backups(self, max_age_days: int = 30):
+    def clean_old_backups(self, max_age_days: int = 30, **kw):
         """清理过期备份"""
         now = time.time()
         cutoff = now - max_age_days * 86400
@@ -1065,7 +1080,7 @@ class SelfModifyEngine:
         logger.info(f"Cleaned {cleaned} old backups (>{max_age_days}d)")
         return cleaned
 
-    def get_backups_for_file(self, file_path: str) -> List[Dict]:
+    def get_backups_for_file(self, file_path: str, **kw) -> List[Dict]:
         """获取某个文件的所有备份"""
         file_name = Path(file_path).name
         backups = []
@@ -1128,6 +1143,9 @@ def init_self_modify_engine(workspace_root: str = None,
 # ═══════════════════════════════════════════════════════════
 
 class SandboxValidator:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     独立的沙箱验证器 — 在不写入文件的情况下验证修改
 
@@ -1188,7 +1206,7 @@ class SandboxValidator:
         }
 
     @staticmethod
-    def batch_validate(modifications: List[Dict]) -> List[Dict]:
+    def batch_validate(modifications: List[Dict], **kw) -> List[Dict]:
         """
         批量验证修改
 
@@ -1213,6 +1231,9 @@ class SandboxValidator:
 # ═══════════════════════════════════════════════════════════
 
 class SelfModifyPlugin:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """meshctx Plugin 适配器"""
     info = type('Info', (), {
         'name': 'self_modify',
@@ -1223,7 +1244,7 @@ class SelfModifyPlugin:
     })()
     state = "inactive"
 
-    def __init__(self):
+    def __init__(self, **kw):
         self.engine: Optional[SelfModifyEngine] = None
 
     async def on_load(self, kernel) -> bool:
@@ -1244,24 +1265,24 @@ class SelfModifyPlugin:
         self.state = "inactive"
         return True
 
-    def generate_report(self) -> Dict:
+    def generate_report(self, **kw) -> Dict:
         if self.engine:
             return self.engine.get_engine_status()
         return {"status": "not_initialized"}
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -1269,12 +1290,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

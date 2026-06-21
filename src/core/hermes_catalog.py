@@ -31,6 +31,9 @@ from dataclasses import dataclass, field
 
 @dataclass
 class SkillEntry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     name: str
     category: str
     description: str
@@ -42,6 +45,9 @@ class SkillEntry:
 
 @dataclass
 class ToolEntry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     name: str
     toolset: str
     description: str
@@ -50,6 +56,9 @@ class ToolEntry:
 
 @dataclass
 class ProviderEntry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     name: str
     env_var: str
     type: str  # api_key | oauth | token
@@ -592,9 +601,12 @@ PLATFORMS = [
 # ═══════════════════════════════════════════════════════════════════════
 
 class CapabilityCatalog:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Hermes 能力目录 — 技能发现、工具查询、供应商管理。"""
 
-    def __init__(self):
+    def __init__(self, **kw):
         self.skills: dict[str, SkillEntry] = SKILLS
         self.tools: dict[str, ToolEntry] = TOOLS
         self.providers: dict[str, ProviderEntry] = PROVIDERS
@@ -602,20 +614,20 @@ class CapabilityCatalog:
 
     # ── 技能查询 ──────────────────────────────────────────────────
 
-    def list_categories(self) -> list[str]:
+    def list_categories(self, **kw) -> list[str]:
         """列出所有技能类别。"""
         return sorted(set(s.category for s in self.skills.values()))
 
-    def get_by_category(self, category: str) -> list[SkillEntry]:
+    def get_by_category(self, category: str, **kw) -> list[SkillEntry]:
         """获取某类别下的所有技能。"""
         return [s for s in self.skills.values() if s.category == category]
 
-    def get_by_tag(self, tag: str) -> list[SkillEntry]:
+    def get_by_tag(self, tag: str, **kw) -> list[SkillEntry]:
         """按标签搜索技能。"""
         tag_lower = tag.lower()
         return [s for s in self.skills.values() if tag_lower in [t.lower() for t in s.tags]]
 
-    def find_skills(self, query: str, top_k: int = 10) -> list[tuple[SkillEntry, float]]:
+    def find_skills(self, query: str, top_k: int = 10, **kw) -> list[tuple[SkillEntry, float]]:
         """基于关键词匹配搜索技能。返回 (SkillEntry, score)。"""
         query_lower = query.lower()
         query_words = set(query_lower.split())
@@ -645,13 +657,13 @@ class CapabilityCatalog:
         scored.sort(key=lambda x: x[1], reverse=True)
         return scored[:top_k]
 
-    def skill_info(self, name: str) -> Optional[SkillEntry]:
+    def skill_info(self, name: str, **kw) -> Optional[SkillEntry]:
         """获取技能详情。"""
         return self.skills.get(name)
 
     # ── 工具查询 ──────────────────────────────────────────────────
 
-    def find_tools(self, query: str, top_k: int = 10) -> list[tuple[ToolEntry, float]]:
+    def find_tools(self, query: str, top_k: int = 10, **kw) -> list[tuple[ToolEntry, float]]:
         """搜索工具。"""
         query_lower = query.lower()
         scored = []
@@ -671,7 +683,7 @@ class CapabilityCatalog:
 
     # ── 统计 ──────────────────────────────────────────────────────
 
-    def stats(self) -> dict:
+    def stats(self, **kw) -> dict:
         return {
             "skills_total": len(self.skills),
             "categories": len(self.list_categories()),
@@ -680,7 +692,7 @@ class CapabilityCatalog:
             "platforms": len(self.platforms),
         }
 
-    def export_skill_index(self) -> list[dict]:
+    def export_skill_index(self, **kw) -> list[dict]:
         """导出技能索引（供前端/API使用）。"""
         return [
             {

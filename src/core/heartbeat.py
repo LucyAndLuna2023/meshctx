@@ -32,7 +32,7 @@ def heartbeat_start(name: str, interval_seconds: int = 60,
         _heartbeats[name] = hb
     
     # 后台监控线程
-    def _monitor():
+    def _monitor(**kw):
         while hb["running"]:
             time.sleep(interval_seconds)
             if not hb["running"]:

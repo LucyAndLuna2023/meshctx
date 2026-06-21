@@ -58,6 +58,9 @@ logger = logging.getLogger("meshctx.semantic_index")
 
 @dataclass
 class SemanticEntry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """语义索引条目"""
     id: str
     vector: np.ndarray
@@ -65,7 +68,7 @@ class SemanticEntry:
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "id": self.id,
             "vector": self.vector.tolist(),
@@ -75,7 +78,7 @@ class SemanticEntry:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "SemanticEntry":
+    def from_dict(cls, d: Dict[str, Any], **kw) -> "SemanticEntry":
         return cls(
             id=d["id"],
             vector=np.array(d["vector"], dtype=np.float32),
@@ -87,12 +90,15 @@ class SemanticEntry:
 
 @dataclass
 class SearchResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """搜索结果"""
     id: str
     score: float
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "id": self.id,
             "score": self.score,
@@ -105,10 +111,13 @@ class SearchResult:
 # ═══════════════════════════════════════════════════════════
 
 class DistanceMetric:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """距离度量函数集"""
 
     @staticmethod
-    def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+    def cosine_similarity(a: np.ndarray, b: np.ndarray, **kw) -> float:
         """余弦相似度 [−1, 1], 越高越相似"""
         norm_a = np.linalg.norm(a)
         norm_b = np.linalg.norm(b)
@@ -117,22 +126,22 @@ class DistanceMetric:
         return float(np.dot(a, b) / (norm_a * norm_b))
 
     @staticmethod
-    def cosine_distance(a: np.ndarray, b: np.ndarray) -> float:
+    def cosine_distance(a: np.ndarray, b: np.ndarray, **kw) -> float:
         """余弦距离 [0, 2], 越低越相似"""
         return 1.0 - DistanceMetric.cosine_similarity(a, b)
 
     @staticmethod
-    def euclidean_distance(a: np.ndarray, b: np.ndarray) -> float:
+    def euclidean_distance(a: np.ndarray, b: np.ndarray, **kw) -> float:
         """欧氏距离 (L2), 越低越相似"""
         return float(np.linalg.norm(a - b))
 
     @staticmethod
-    def dot_product(a: np.ndarray, b: np.ndarray) -> float:
+    def dot_product(a: np.ndarray, b: np.ndarray, **kw) -> float:
         """点积, 越高越相似"""
         return float(np.dot(a, b))
 
     @staticmethod
-    def compute(a: np.ndarray, b: np.ndarray, metric: str = "cosine") -> float:
+    def compute(a: np.ndarray, b: np.ndarray, metric: str = "cosine", **kw) -> float:
         """统一距离计算接口
 
         Args:
@@ -158,9 +167,12 @@ class DistanceMetric:
 # ═══════════════════════════════════════════════════════════
 
 class IndexShard:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """单个索引分片"""
 
-    def __init__(self, shard_id: int, dim: int, metric: str = "cosine"):
+    def __init__(self, shard_id: int, dim: int, metric: str = "cosine", **kw):
         self.shard_id = shard_id
         self.dim = dim
         self.metric = metric
@@ -172,15 +184,15 @@ class IndexShard:
         self._lock = threading.Lock()
 
     @property
-    def size(self) -> int:
+    def size(self, **kw) -> int:
         return len(self._entries)
 
-    def add(self, entry: SemanticEntry):
+    def add(self, entry: SemanticEntry, **kw):
         with self._lock:
             self._entries[entry.id] = entry
             self._dirty = True
 
-    def delete(self, entry_id: str) -> bool:
+    def delete(self, entry_id: str, **kw) -> bool:
         with self._lock:
             if entry_id in self._entries:
                 del self._entries[entry_id]
@@ -188,11 +200,11 @@ class IndexShard:
                 return True
             return False
 
-    def get(self, entry_id: str) -> Optional[SemanticEntry]:
+    def get(self, entry_id: str, **kw) -> Optional[SemanticEntry]:
         with self._lock:
             return self._entries.get(entry_id)
 
-    def _rebuild_matrix(self):
+    def _rebuild_matrix(self, **kw):
         """重建向量矩阵和 ID 列表"""
         if not self._dirty:
             return
@@ -284,7 +296,7 @@ class IndexShard:
 
             return results
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         with self._lock:
             return {
                 "shard_id": self.shard_id,
@@ -294,7 +306,7 @@ class IndexShard:
             }
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "IndexShard":
+    def from_dict(cls, d: Dict[str, Any], **kw) -> "IndexShard":
         shard = cls(
             shard_id=d["shard_id"],
             dim=d["dim"],
@@ -312,6 +324,9 @@ class IndexShard:
 # ═══════════════════════════════════════════════════════════
 
 class SemanticIndex:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """语义向量索引引擎
 
     管理多个分片、提供统一的 add/search/delete 接口。
@@ -347,13 +362,13 @@ class SemanticIndex:
         self._stats: Dict[str, int] = {"adds": 0, "searches": 0, "deletes": 0, "shards": 1}
 
     @property
-    def size(self) -> int:
+    def size(self, **kw) -> int:
         """总条目数"""
         with self._lock:
             return sum(shard.size for shard in self._shards)
 
     @property
-    def shard_count(self) -> int:
+    def shard_count(self, **kw) -> int:
         """分片数量"""
         with self._lock:
             return len(self._shards)
@@ -433,7 +448,7 @@ class SemanticIndex:
             ids.append(self.add(eid, vec, meta))
         return ids
 
-    def delete(self, entry_id: str) -> bool:
+    def delete(self, entry_id: str, **kw) -> bool:
         """删除条目
 
         Returns:
@@ -447,7 +462,7 @@ class SemanticIndex:
                     return True
         return False
 
-    def get(self, entry_id: str) -> Optional[Dict[str, Any]]:
+    def get(self, entry_id: str, **kw) -> Optional[Dict[str, Any]]:
         """获取条目信息
 
         Returns:
@@ -527,7 +542,7 @@ class SemanticIndex:
                             results.append(entry_id)
             return results
 
-    def similarity(self, id_a: str, id_b: str) -> Optional[float]:
+    def similarity(self, id_a: str, id_b: str, **kw) -> Optional[float]:
         """计算两个已索引条目之间的相似度
 
         Returns:
@@ -606,7 +621,7 @@ class SemanticIndex:
 
     # ── 统计 ──────────────────────────────────────────────
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, **kw) -> Dict[str, Any]:
         """获取索引统计"""
         with self._lock:
             total_size = sum(s.size for s in self._shards)
@@ -622,7 +637,7 @@ class SemanticIndex:
 
     # ── JSON 持久化 ───────────────────────────────────────
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         """序列化为字典"""
         with self._lock:
             return {
@@ -634,7 +649,7 @@ class SemanticIndex:
                 "exported_at": time.time(),
             }
 
-    def save(self, path: Optional[str] = None):
+    def save(self, path: Optional[str] = None, **kw):
         """持久化到 JSON 文件
 
         Args:
@@ -649,7 +664,7 @@ class SemanticIndex:
             json.dump(data, f, ensure_ascii=False, indent=2, default=str)
         logger.info(f"SemanticIndex saved to {target} ({self.size} entries)")
 
-    def load(self, path: Optional[str] = None):
+    def load(self, path: Optional[str] = None, **kw):
         """从 JSON 文件加载
 
         Args:
@@ -666,7 +681,7 @@ class SemanticIndex:
 
         self._load_from_dict(data)
 
-    def _load_from_dict(self, data: Dict[str, Any]):
+    def _load_from_dict(self, data: Dict[str, Any], **kw):
         """从字典加载"""
         with self._lock:
             self.dim = data.get("dim", self.dim)
@@ -683,7 +698,7 @@ class SemanticIndex:
 
         logger.info(f"SemanticIndex loaded: {self.size} entries, {len(self._shards)} shards")
 
-    def clear(self):
+    def clear(self, **kw):
         """清空索引"""
         with self._lock:
             self._shards = [IndexShard(0, self.dim, self.metric)]

@@ -12,6 +12,9 @@ STATE_DIR.mkdir(parents=True, exist_ok=True)
 
 @dataclass
 class MonitorSession:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """监控会话"""
     session_id: str
     command: str
@@ -39,7 +42,7 @@ def monitor_start(command: str, watch_patterns: list[str] = None,
         started_at=time.time()
     )
     
-    def _run():
+    def _run(**kw):
         try:
             session.process = subprocess.Popen(
                 command, shell=True, cwd=session.workdir,

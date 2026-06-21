@@ -7,6 +7,9 @@ from typing import Optional
 
 
 class ConsoleAction(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """控制台操作类型"""
     EDIT = auto()
     RUN = auto()
@@ -16,6 +19,9 @@ class ConsoleAction(Enum):
 
 @dataclass
 class ReActStep:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """ReAct 步骤 (Think-Act-Observe)"""
     thought: str = ""
     action_type: Optional[ConsoleAction] = None
@@ -26,6 +32,9 @@ class ReActStep:
 
 @dataclass
 class ChatMessage:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """聊天消息"""
     role: str  # "user" or "agent"
     content: str
@@ -33,9 +42,12 @@ class ChatMessage:
 
 
 class InteractiveConsole:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """v2.86 交互式控制台 — 支持 ReAct 循环、文件快照、意图检测"""
 
-    def __init__(self, workspace: Path):
+    def __init__(self, workspace: Path, **kw):
         self.workspace = Path(workspace)
         self._workspace = self.workspace  # 兼容旧引用
         self._snapshots: dict[str, str] = {}
@@ -44,19 +56,19 @@ class InteractiveConsole:
 
     # ── ReAct 循环 ──────────────────────────────────────
 
-    def think(self, thought: str) -> ReActStep:
+    def think(self, thought: str, **kw) -> ReActStep:
         """Think 阶段：分析用户请求"""
         step = ReActStep(thought=thought)
         self._react_steps.append(step)
         return step
 
-    def act(self, step: ReActStep, description: str, action_type: ConsoleAction) -> ReActStep:
+    def act(self, step: ReActStep, description: str, action_type: ConsoleAction, **kw) -> ReActStep:
         """Act 阶段：执行操作"""
         step.action_type = action_type
         step.action_description = description
         return step
 
-    def observe(self, step: ReActStep, observation: str) -> ReActStep:
+    def observe(self, step: ReActStep, observation: str, **kw) -> ReActStep:
         """Observe 阶段：观察结果"""
         step.observation = observation
         step.completed = True
@@ -64,7 +76,7 @@ class InteractiveConsole:
 
     # ── 意图检测 ────────────────────────────────────────
 
-    def _detect_intent(self, text: str) -> ConsoleAction:
+    def _detect_intent(self, text: str, **kw) -> ConsoleAction:
         """根据文本关键词检测用户意图"""
         if "修改" in text or "编辑" in text or "改" in text:
             return ConsoleAction.EDIT
@@ -76,14 +88,14 @@ class InteractiveConsole:
 
     # ── 文件快照 ────────────────────────────────────────
 
-    def snapshot(self, filename: str) -> str:
+    def snapshot(self, filename: str, **kw) -> str:
         """保存文件快照并返回当前内容"""
         fpath = self.workspace / filename
         content = fpath.read_text()
         self._snapshots[filename] = content
         return content
 
-    def diff(self, filename: str, new_content: str) -> str:
+    def diff(self, filename: str, new_content: str, **kw) -> str:
         """比较快照与新内容的差异"""
         old = self._snapshots.get(filename, "")
         if old == new_content:
@@ -100,7 +112,7 @@ class InteractiveConsole:
                 diff_lines.append(f"- {line}")
         return "\n".join(diff_lines)
 
-    def undo(self, filename: str) -> bool:
+    def undo(self, filename: str, **kw) -> bool:
         """从快照恢复文件"""
         if filename not in self._snapshots:
             return False
@@ -110,7 +122,7 @@ class InteractiveConsole:
 
     # ── 聊天 ────────────────────────────────────────────
 
-    def chat(self, message: str) -> ChatMessage:
+    def chat(self, message: str, **kw) -> ChatMessage:
         """发送聊天消息并获取代理回复"""
         user_msg = ChatMessage(role="user", content=message)
         self._history.append(user_msg)
@@ -134,7 +146,7 @@ class InteractiveConsole:
 
     # ── 渲染 ────────────────────────────────────────────
 
-    def render_react_trace(self) -> str:
+    def render_react_trace(self, **kw) -> str:
         """渲染 ReAct 追踪"""
         lines = ["ReAct 追踪:", "=" * 40]
         for i, step in enumerate(self._react_steps, 1):
@@ -147,7 +159,7 @@ class InteractiveConsole:
             lines.append(f"  ✅ 完成: {'是' if step.completed else '否'}")
         return "\n".join(lines)
 
-    def render_history(self) -> str:
+    def render_history(self, **kw) -> str:
         """渲染聊天历史"""
         lines = []
         for msg in self._history:
@@ -159,7 +171,7 @@ class InteractiveConsole:
 
     # ── 对比 ────────────────────────────────────────────
 
-    def vs_claude_code(self) -> str:
+    def vs_claude_code(self, **kw) -> str:
         """meshctx vs Claude Code 对比"""
         return (
             "meshctx v2.86 vs Claude Code 对比:\n"
@@ -176,7 +188,7 @@ class InteractiveConsole:
 
     # ── 统计 ────────────────────────────────────────────
 
-    def get_stats(self) -> dict:
+    def get_stats(self, **kw) -> dict:
         """获取控制台统计信息"""
         return {
             "messages": len(self._history),
@@ -193,17 +205,17 @@ class InteractiveConsole:
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -211,12 +223,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

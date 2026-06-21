@@ -44,6 +44,9 @@ logger = logging.getLogger("meshctx.hybrid_search")
 # ═══════════════════════════════════════════════════════════
 
 class TextNormalizer:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """文本标准化 + 分词"""
 
     # 英文分词正则: 单词 + 连字符保留
@@ -62,7 +65,7 @@ class TextNormalizer:
     }
 
     @classmethod
-    def tokenize(cls, text: str, remove_stopwords: bool = True) -> List[str]:
+    def tokenize(cls, text: str, remove_stopwords: bool = True, **kw) -> List[str]:
         """英文分词 + 小写化 + 停用词移除"""
         tokens = cls._WORD_PATTERN.findall(text.lower())
         if remove_stopwords:
@@ -76,6 +79,9 @@ class TextNormalizer:
 
 @dataclass
 class BM25Stats:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """BM25 文档统计"""
     doc_id: str
     doc_length: int
@@ -83,6 +89,9 @@ class BM25Stats:
 
 
 class BM25Scorer:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """BM25 (Okapi BM25) 精确实现
 
     BM25 公式:
@@ -97,7 +106,7 @@ class BM25Scorer:
       b = 长度归一化参数 (默认 0.75)
     """
 
-    def __init__(self, k1: float = 1.5, b: float = 0.75):
+    def __init__(self, k1: float = 1.5, b: float = 0.75, **kw):
         self.k1 = k1
         self.b = b
         self._docs: Dict[str, BM25Stats] = {}
@@ -107,7 +116,7 @@ class BM25Scorer:
         self._avgdl: float = 0.0
         self._lock = threading.RLock()
 
-    def index(self, docs: Dict[str, str]):
+    def index(self, docs: Dict[str, str], **kw):
         """索引文档集合
 
         Args:
@@ -136,11 +145,11 @@ class BM25Scorer:
             logger.info(f"BM25 indexed {self._total_docs} docs, "
                         f"vocab={len(self._doc_freqs)}, avgdl={self._avgdl:.1f}")
 
-    def add_doc(self, doc_id: str, text: str):
+    def add_doc(self, doc_id: str, text: str, **kw):
         """增量添加文档"""
         self.index({doc_id: text})
 
-    def remove_doc(self, doc_id: str):
+    def remove_doc(self, doc_id: str, **kw):
         """移除文档"""
         with self._lock:
             if doc_id not in self._docs:
@@ -155,7 +164,7 @@ class BM25Scorer:
             self._total_length = sum(d.doc_length for d in self._docs.values())
             self._avgdl = self._total_length / max(1, self._total_docs)
 
-    def score(self, doc_id: str, query_terms: List[str]) -> float:
+    def score(self, doc_id: str, query_terms: List[str], **kw) -> float:
         """计算文档的 BM25 分数
 
         Args:
@@ -191,7 +200,7 @@ class BM25Scorer:
 
             return score
 
-    def search(self, query: str, k: int = 10) -> List[Tuple[str, float]]:
+    def search(self, query: str, k: int = 10, **kw) -> List[Tuple[str, float]]:
         """BM25 搜索
 
         Returns:
@@ -211,10 +220,10 @@ class BM25Scorer:
         scores.sort(key=lambda x: x[1], reverse=True)
         return scores[:k]
 
-    def size(self) -> int:
+    def size(self, **kw) -> int:
         return self._total_docs
 
-    def clear(self):
+    def clear(self, **kw):
         with self._lock:
             self._docs.clear()
             self._doc_freqs.clear()
@@ -228,6 +237,9 @@ class BM25Scorer:
 # ═══════════════════════════════════════════════════════════
 
 class RRFFusion:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Reciprocal Rank Fusion (RRF)
 
     RRF 公式:
@@ -238,10 +250,10 @@ class RRFFusion:
       rank_r(d) = 文档 d 在排名 r 中的位置 (1-indexed)
     """
 
-    def __init__(self, k: int = 60):
+    def __init__(self, k: int = 60, **kw):
         self.k = k
 
-    def fuse(self, rankings: List[List[Tuple[str, float]]]) -> List[Tuple[str, float]]:
+    def fuse(self, rankings: List[List[Tuple[str, float]]], **kw) -> List[Tuple[str, float]]:
         """融合多个排名列表
 
         Args:
@@ -287,6 +299,9 @@ class RRFFusion:
 # ═══════════════════════════════════════════════════════════
 
 class FusionStrategy:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """融合策略工厂"""
 
     @staticmethod
@@ -352,6 +367,9 @@ class FusionStrategy:
 # ═══════════════════════════════════════════════════════════
 
 class DiversityReranker:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Maximal Marginal Relevance (MMR) 多样性重排
 
     MMR 公式:
@@ -388,7 +406,7 @@ class DiversityReranker:
         scores = dict(results)
 
         # 相似度函数
-        def _similarity(a: str, b: str) -> float:
+        def _similarity(a: str, b: str, **kw) -> float:
             va = doc_vectors.get(a)
             vb = doc_vectors.get(b)
             if va is not None and vb is not None:
@@ -438,6 +456,9 @@ class DiversityReranker:
 
 @dataclass
 class HybridSearchResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """混合搜索结果"""
     id: str
     score: float
@@ -447,12 +468,15 @@ class HybridSearchResult:
     metadata: Dict[str, Any] = field(default_factory=dict)
     rank_sources: Dict[str, int] = field(default_factory=dict)  # source → rank
 
-    def __repr__(self) -> str:
+    def __repr__(self, **kw) -> str:
         return (f"HybridResult(id={self.id!r}, score={self.score:.4f}, "
                 f"kw={self.keyword_score:.4f}, vec={self.vector_score:.4f})")
 
 
 class HybridSearcher:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """混合搜索引擎
 
     组合 BM25 关键词搜索 + 向量语义搜索，通过 RRF 或凸组合融合。
@@ -541,7 +565,7 @@ class HybridSearcher:
         self.index([{"id": doc_id, "text": text, "metadata": metadata or {}}],
                    embedding_fn=embedding_fn)
 
-    def remove_document(self, doc_id: str):
+    def remove_document(self, doc_id: str, **kw):
         """移除文档"""
         with self._lock:
             self.bm25.remove_doc(doc_id)
@@ -638,7 +662,7 @@ class HybridSearcher:
 
         return results
 
-    def _match_filters(self, metadata: Dict, filters: Dict) -> bool:
+    def _match_filters(self, metadata: Dict, filters: Dict, **kw) -> bool:
         """元数据过滤匹配"""
         for key, value in filters.items():
             if key not in metadata:
@@ -673,10 +697,10 @@ class HybridSearcher:
     # ── 信息 ────────────────────────────────────────────
 
     @property
-    def size(self) -> int:
+    def size(self, **kw) -> int:
         return self.bm25.size()
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self, **kw) -> Dict[str, Any]:
         return {
             "doc_count": self.bm25.size(),
             "avg_doc_length": self.bm25._avgdl,
@@ -686,7 +710,7 @@ class HybridSearcher:
             "diversity_enabled": self.reranker is not None,
         }
 
-    def clear(self):
+    def clear(self, **kw):
         with self._lock:
             self.bm25.clear()
             self._doc_texts.clear()

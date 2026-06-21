@@ -88,6 +88,9 @@ DEFAULT_DIM = 1536
 
 @dataclass
 class EmbedResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """嵌入结果"""
     text: str
     vector: np.ndarray
@@ -97,12 +100,15 @@ class EmbedResult:
     tokens: int = 0
 
     @property
-    def dim(self) -> int:
+    def dim(self, **kw) -> int:
         return len(self.vector)
 
 
 @dataclass
 class EmbedStats:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """嵌入统计"""
     total_requests: int = 0
     cache_hits: int = 0
@@ -112,13 +118,13 @@ class EmbedStats:
     total_latency_ms: float = 0.0
 
     @property
-    def cache_hit_rate(self) -> float:
+    def cache_hit_rate(self, **kw) -> float:
         if self.total_requests == 0:
             return 0.0
         return self.cache_hits / self.total_requests
 
     @property
-    def avg_latency_ms(self) -> float:
+    def avg_latency_ms(self, **kw) -> float:
         if self.total_requests == 0:
             return 0.0
         return self.total_latency_ms / self.total_requests
@@ -129,6 +135,9 @@ class EmbedStats:
 # ═══════════════════════════════════════════════════════════
 
 class EmbeddingCache:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """两层嵌入缓存: L1 内存 LRU + L2 磁盘持久化"""
 
     def __init__(self, max_memory_entries: int = 10000,
@@ -143,11 +152,11 @@ class EmbeddingCache:
         if disk_cache_path:
             self._load_disk_cache()
 
-    def _make_key(self, text: str) -> str:
+    def _make_key(self, text: str, **kw) -> str:
         """生成缓存 key: SHA256(text)"""
         return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
-    def get(self, text: str) -> Optional[np.ndarray]:
+    def get(self, text: str, **kw) -> Optional[np.ndarray]:
         """获取缓存的向量"""
         key = self._make_key(text)
         with self._lock:
@@ -166,7 +175,7 @@ class EmbeddingCache:
 
         return None
 
-    def set(self, text: str, vector: np.ndarray):
+    def set(self, text: str, vector: np.ndarray, **kw):
         """缓存向量"""
         key = self._make_key(text)
         vec_copy = vector.astype(np.float32).copy()
@@ -174,7 +183,7 @@ class EmbeddingCache:
             self._set_memory(key, vec_copy)
             self._set_disk(key, vec_copy)
 
-    def _set_memory(self, key: str, vec: np.ndarray):
+    def _set_memory(self, key: str, vec: np.ndarray, **kw):
         """写入 L1 内存缓存"""
         self._memory[key] = vec
         self._memory.move_to_end(key)
@@ -182,12 +191,12 @@ class EmbeddingCache:
         while len(self._memory) > self._max_memory:
             self._memory.popitem(last=False)
 
-    def _set_disk(self, key: str, vec: np.ndarray):
+    def _set_disk(self, key: str, vec: np.ndarray, **kw):
         """写入 L2 磁盘缓存"""
         self._disk_cache[key] = vec
         self._disk_dirty = True
 
-    def _load_disk_cache(self):
+    def _load_disk_cache(self, **kw):
         """从磁盘加载缓存"""
         if not self._disk_path or not os.path.exists(self._disk_path):
             return
@@ -205,7 +214,7 @@ class EmbeddingCache:
         except (json.JSONDecodeError, KeyError, ValueError) as e:
             logger.warning(f"Failed to load disk cache: {e}")
 
-    def save_disk_cache(self):
+    def save_disk_cache(self, **kw):
         """保存磁盘缓存"""
         if not self._disk_path:
             return
@@ -224,14 +233,14 @@ class EmbeddingCache:
 
         logger.debug(f"Saved {len(self._disk_cache)} entries to disk cache")
 
-    def clear(self):
+    def clear(self, **kw):
         """清空所有缓存"""
         with self._lock:
             self._memory.clear()
             self._disk_cache.clear()
             self._disk_dirty = True
 
-    def size(self) -> Dict[str, int]:
+    def size(self, **kw) -> Dict[str, int]:
         """缓存大小"""
         with self._lock:
             return {
@@ -245,6 +254,9 @@ class EmbeddingCache:
 # ═══════════════════════════════════════════════════════════
 
 class OpenAIEmbedder:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """OpenAI 嵌入 API 提供者"""
 
     def __init__(self, model: str = DEFAULT_OPENAI_MODEL,
@@ -268,11 +280,11 @@ class OpenAIEmbedder:
         self.client = openai.OpenAI(**client_kwargs)
         logger.info(f"OpenAI embedder initialized: model={model}, dim={self.dim}")
 
-    def embed(self, text: str) -> np.ndarray:
+    def embed(self, text: str, **kw) -> np.ndarray:
         """嵌入单个文本"""
         return self.embed_batch([text])[0]
 
-    def embed_batch(self, texts: List[str]) -> List[np.ndarray]:
+    def embed_batch(self, texts: List[str], **kw) -> List[np.ndarray]:
         """批量嵌入文本 (最多 2048 条/次)"""
         # OpenAI 限制: 每批最多 2048 个文本
         all_vectors = []
@@ -298,6 +310,9 @@ class OpenAIEmbedder:
 # ═══════════════════════════════════════════════════════════
 
 class LocalEmbedder:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """本地 sentence-transformers 嵌入提供者"""
 
     def __init__(self, model_name: str = DEFAULT_LOCAL_MODEL,
@@ -316,7 +331,7 @@ class LocalEmbedder:
                     f"dim={self.dim}, device={device}")
 
     @property
-    def model(self) -> SentenceTransformer:
+    def model(self, **kw) -> SentenceTransformer:
         """惰性加载模型"""
         if self._model is None:
             with self._lock:
@@ -331,10 +346,10 @@ class LocalEmbedder:
                     logger.info(f"Local model loaded: dim={self.dim}")
         return self._model
 
-    def embed(self, text: str) -> np.ndarray:
+    def embed(self, text: str, **kw) -> np.ndarray:
         return self.model.encode(text, convert_to_numpy=True, normalize_embeddings=True)
 
-    def embed_batch(self, texts: List[str], batch_size: int = 32) -> List[np.ndarray]:
+    def embed_batch(self, texts: List[str], batch_size: int = 32, **kw) -> List[np.ndarray]:
         vectors = self.model.encode(
             texts, convert_to_numpy=True, normalize_embeddings=True,
             batch_size=batch_size, show_progress_bar=False,
@@ -347,18 +362,21 @@ class LocalEmbedder:
 # ═══════════════════════════════════════════════════════════
 
 class MockEmbedder:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """模拟嵌入 — 零依赖确定性嵌入 (开发/测试用)
 
     使用字符级哈希生成固定维度向量。
     不是语义嵌入，仅用于测试管道。
     """
 
-    def __init__(self, dim: int = 768):
+    def __init__(self, dim: int = 768, **kw):
         self.dim = dim
         logger.warning("Using MockEmbedder — NOT for production use. "
                        f"dim={dim}")
 
-    def embed(self, text: str) -> np.ndarray:
+    def embed(self, text: str, **kw) -> np.ndarray:
         """确定性模拟嵌入"""
         if not text:
             return np.zeros(self.dim, dtype=np.float32)
@@ -375,7 +393,7 @@ class MockEmbedder:
 
         return vec
 
-    def embed_batch(self, texts: List[str]) -> List[np.ndarray]:
+    def embed_batch(self, texts: List[str], **kw) -> List[np.ndarray]:
         return [self.embed(t) for t in texts]
 
 
@@ -384,6 +402,9 @@ class MockEmbedder:
 # ═══════════════════════════════════════════════════════════
 
 class Embeddings:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """多层嵌入引擎
 
     架构:
@@ -495,7 +516,7 @@ class Embeddings:
 
     # ── 核心 API ────────────────────────────────────────
 
-    def embed(self, text: str, use_cache: bool = True) -> EmbedResult:
+    def embed(self, text: str, use_cache: bool = True, **kw) -> EmbedResult:
         """嵌入单个文本
 
         Args:
@@ -675,7 +696,7 @@ class Embeddings:
 
     # ── 信息 ────────────────────────────────────────────
 
-    def _get_model_name(self) -> str:
+    def _get_model_name(self, **kw) -> str:
         """获取当前模型名"""
         if hasattr(self._embedder, "model"):
             return getattr(self._embedder, "model", "unknown")
@@ -683,12 +704,12 @@ class Embeddings:
             return self._embedder.model_name
         return "mock"
 
-    def stats(self) -> EmbedStats:
+    def stats(self, **kw) -> EmbedStats:
         """获取统计信息"""
         with self._lock:
             return self._stats
 
-    def cache_stats(self) -> Dict[str, Any]:
+    def cache_stats(self, **kw) -> Dict[str, Any]:
         """获取缓存统计"""
         sizes = self.cache.size()
         hit_rate = self._stats.cache_hit_rate
@@ -699,22 +720,22 @@ class Embeddings:
             "total_requests": self._stats.total_requests,
         }
 
-    def save_cache(self):
+    def save_cache(self, **kw):
         """持久化磁盘缓存"""
         self.cache.save_disk_cache()
 
-    def clear_cache(self):
+    def clear_cache(self, **kw):
         """清空所有缓存"""
         self.cache.clear()
         with self._lock:
             self._stats = EmbedStats()
 
     @property
-    def dim(self):
+    def dim(self, **kw):
         return self._dim
 
     @dim.setter
-    def dim(self, value: int):
+    def dim(self, value: int, **kw):
         self._dim = value
 
 

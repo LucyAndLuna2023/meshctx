@@ -191,7 +191,7 @@ def _take_screenshot_windows() -> bytes:
     import struct
     import zlib
 
-    def _make_png(raw_bgra: bytes, w: int, h: int) -> bytes:
+    def _make_png(raw_bgra: bytes, w: int, h: int, **kw) -> bytes:
         """Encode raw BGRA pixels as a PNG byte string (minimal valid PNG)."""
         # Process rows: BGRA -> RGBA, and flip vertical
         row_size = w * 4
@@ -206,7 +206,7 @@ def _take_screenshot_windows() -> bytes:
 
         raw_data = b"".join(scanlines)
 
-        def _chunk(chunk_type: bytes, data: bytes) -> bytes:
+        def _chunk(chunk_type: bytes, data: bytes, **kw) -> bytes:
             chunk = chunk_type + data
             crc = struct.pack(">I", zlib.crc32(chunk) & 0xFFFFFFFF)
             return struct.pack(">I", len(data)) + chunk + crc

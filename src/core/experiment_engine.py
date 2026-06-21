@@ -47,6 +47,9 @@ logger = logging.getLogger("meshctx.experiment_engine")
 # ═══════════════════════════════════════════════════════════
 
 class ExperimentType(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """实验类型"""
     AB_TEST = "ab_test"               # 经典 A/B/N 测试
     MULTI_ARM_BANDIT = "multi_arm_bandit"  # 多臂老虎机
@@ -54,6 +57,9 @@ class ExperimentType(str, Enum):
 
 
 class ExperimentState(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """实验生命周期"""
     DRAFT = "draft"             # 草稿
     RUNNING = "running"         # 运行中
@@ -63,6 +69,9 @@ class ExperimentState(str, Enum):
 
 
 class BanditAlgorithm(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Bandit 算法"""
     THOMPSON_SAMPLING = "thompson_sampling"   # 汤普森采样
     EPSILON_GREEDY = "epsilon_greedy"          # Epsilon-贪婪
@@ -70,6 +79,9 @@ class BanditAlgorithm(str, Enum):
 
 
 class SignificanceLevel(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """显著性水平"""
     P90 = "0.10"
     P95 = "0.05"
@@ -83,6 +95,9 @@ class SignificanceLevel(str, Enum):
 
 @dataclass
 class VariantStats:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """变体统计"""
     name: str
     impressions: int = 0             # 展示次数 (分配)
@@ -93,20 +108,20 @@ class VariantStats:
     created_at: float = field(default_factory=time.time)
 
     @property
-    def conversion_rate(self) -> float:
+    def conversion_rate(self, **kw) -> float:
         """转化率"""
         if self.trials == 0:
             return 0.0
         return self.successes / self.trials
 
     @property
-    def mean_value(self) -> float:
+    def mean_value(self, **kw) -> float:
         """平均值"""
         if self.trials == 0:
             return 0.0
         return self.total_value / self.trials
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "name": self.name,
             "impressions": self.impressions,
@@ -119,6 +134,9 @@ class VariantStats:
 
 @dataclass
 class ExperimentConfig:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """实验配置"""
     name: str                                     # 唯一名称
     description: str = ""
@@ -139,6 +157,9 @@ class ExperimentConfig:
 
 @dataclass
 class Experiment:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """实验实例"""
     config: ExperimentConfig
     state: ExperimentState = ExperimentState.DRAFT
@@ -149,12 +170,12 @@ class Experiment:
     ended_at: float = 0.0
     winner: Optional[str] = None
 
-    def __post_init__(self):
+    def __post_init__(self, **kw):
         if not self.variant_stats:
             for v in self.config.variants:
                 self.variant_stats[v] = VariantStats(name=v)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "name": self.config.name,
             "state": self.state.value,
@@ -173,6 +194,9 @@ class Experiment:
 # ═══════════════════════════════════════════════════════════
 
 class Statistics:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """统计检验工具"""
 
     @staticmethod
@@ -202,7 +226,7 @@ class Statistics:
         return z, p_value
 
     @staticmethod
-    def chi_squared(observed: List[List[float]]) -> Tuple[float, float]:
+    def chi_squared(observed: List[List[float]], **kw) -> Tuple[float, float]:
         """卡方检验
 
         Args:
@@ -236,13 +260,13 @@ class Statistics:
         return chi2, max(0.0, min(1.0, p_value))
 
     @staticmethod
-    def is_significant(p_value: float, level: SignificanceLevel) -> bool:
+    def is_significant(p_value: float, level: SignificanceLevel, **kw) -> bool:
         """判断是否显著"""
         alpha = float(level.value)
         return p_value < alpha
 
     @staticmethod
-    def _normal_cdf(x: float) -> float:
+    def _normal_cdf(x: float, **kw) -> float:
         """标准正态分布 CDF (近似)"""
         # Abramowitz and Stegun 近似
         if x < 0:
@@ -253,7 +277,7 @@ class Statistics:
         return 1 - pdf * (b1 * t + b2 * t ** 2 + b3 * t ** 3 + b4 * t ** 4 + b5 * t ** 5)
 
     @staticmethod
-    def _chi2_cdf(x: float, df: int) -> float:
+    def _chi2_cdf(x: float, df: int, **kw) -> float:
         """卡方分布 CDF (近似, df=1)"""
         if x <= 0:
             return 0.0
@@ -262,7 +286,7 @@ class Statistics:
         return Statistics._normal_cdf(z)
 
     @staticmethod
-    def _gamma_inc(a: float, x: float) -> float:
+    def _gamma_inc(a: float, x: float, **kw) -> float:
         """不完全 gamma 函数 (简化)"""
         # 使用级数展开 (对于小 x)
         if x < a + 1:
@@ -301,6 +325,9 @@ class Statistics:
 # ═══════════════════════════════════════════════════════════
 
 class BanditSelector:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """多臂老虎机选择器"""
 
     @staticmethod
@@ -376,12 +403,15 @@ class BanditSelector:
 # ═══════════════════════════════════════════════════════════
 
 class ExperimentEngine:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """实验引擎
 
     管理所有实验的生命周期、用户分配和结果统计。
     """
 
-    def __init__(self, storage_path: str = ""):
+    def __init__(self, storage_path: str = "", **kw):
         self._experiments: Dict[str, Experiment] = {}
         self._lock = threading.RLock()
         self._storage_path = storage_path or os.path.join(
@@ -433,7 +463,7 @@ class ExperimentEngine:
         self._save_to_disk()
         return exp
 
-    def start_experiment(self, name: str) -> bool:
+    def start_experiment(self, name: str, **kw) -> bool:
         """启动实验"""
         with self._lock:
             exp = self._experiments.get(name)
@@ -445,7 +475,7 @@ class ExperimentEngine:
         self._save_to_disk()
         return True
 
-    def pause_experiment(self, name: str) -> bool:
+    def pause_experiment(self, name: str, **kw) -> bool:
         """暂停实验"""
         with self._lock:
             exp = self._experiments.get(name)
@@ -455,7 +485,7 @@ class ExperimentEngine:
             logger.info(f"Paused experiment: {name}")
         return True
 
-    def resume_experiment(self, name: str) -> bool:
+    def resume_experiment(self, name: str, **kw) -> bool:
         """恢复实验"""
         with self._lock:
             exp = self._experiments.get(name)
@@ -465,7 +495,7 @@ class ExperimentEngine:
             logger.info(f"Resumed experiment: {name}")
         return True
 
-    def complete_experiment(self, name: str) -> Optional[Dict[str, Any]]:
+    def complete_experiment(self, name: str, **kw) -> Optional[Dict[str, Any]]:
         """完成实验并返回结果分析"""
         with self._lock:
             exp = self._experiments.get(name)
@@ -483,7 +513,7 @@ class ExperimentEngine:
         self._save_to_disk()
         return results
 
-    def archive_experiment(self, name: str) -> bool:
+    def archive_experiment(self, name: str, **kw) -> bool:
         """归档实验"""
         with self._lock:
             exp = self._experiments.get(name)
@@ -495,7 +525,7 @@ class ExperimentEngine:
 
     # ── 用户分配 ────────────────────────────────────────────
 
-    def assign(self, experiment_name: str, user_id: str) -> Optional[str]:
+    def assign(self, experiment_name: str, user_id: str, **kw) -> Optional[str]:
         """将用户分配到实验变体
 
         使用一致性哈希保证同一用户总是分配到相同变体。
@@ -593,7 +623,7 @@ class ExperimentEngine:
 
     # ── 分析 ────────────────────────────────────────────────
 
-    def get_results(self, experiment_name: str) -> Optional[Dict[str, Any]]:
+    def get_results(self, experiment_name: str, **kw) -> Optional[Dict[str, Any]]:
         """获取实验结果分析"""
         with self._lock:
             exp = self._experiments.get(experiment_name)
@@ -635,7 +665,7 @@ class ExperimentEngine:
                 ),
             }
 
-    def _select_winner(self, exp: Experiment) -> Optional[str]:
+    def _select_winner(self, exp: Experiment, **kw) -> Optional[str]:
         """自动选择优胜者"""
         best_variant = None
         best_rate = -1.0
@@ -646,7 +676,7 @@ class ExperimentEngine:
                     best_variant = name
         return best_variant
 
-    def _check_auto_stop(self, experiment_name: str) -> None:
+    def _check_auto_stop(self, experiment_name: str, **kw) -> None:
         """检查是否应该自动停止实验"""
         exp = self._experiments.get(experiment_name)
         if not exp or exp.state != ExperimentState.RUNNING:
@@ -668,7 +698,7 @@ class ExperimentEngine:
                         self.complete_experiment(experiment_name)
                         return
 
-    def get_experiment(self, name: str) -> Optional[Experiment]:
+    def get_experiment(self, name: str, **kw) -> Optional[Experiment]:
         """获取实验"""
         with self._lock:
             return self._experiments.get(name)
@@ -683,14 +713,14 @@ class ExperimentEngine:
                 exps = [e for e in exps if e.state == state]
             return sorted(exps, key=lambda e: e.created_at, reverse=True)
 
-    def _get_user_bucket(self, user_id: str, salt: str) -> float:
+    def _get_user_bucket(self, user_id: str, salt: str, **kw) -> float:
         """计算用户哈希桶 (0-100)"""
         key = f"{salt}:{user_id}".encode("utf-8")
         hash_hex = hashlib.md5(key).hexdigest()
         hash_int = int(hash_hex[:8], 16)
         return (hash_int / 0xFFFFFFFF) * 100.0
 
-    def _save_to_disk(self) -> None:
+    def _save_to_disk(self, **kw) -> None:
         try:
             os.makedirs(os.path.dirname(self._storage_path), exist_ok=True)
             with self._lock:
@@ -723,7 +753,7 @@ class ExperimentEngine:
         except Exception as e:
             logger.error(f"Failed to save experiments: {e}")
 
-    def _load_from_disk(self) -> None:
+    def _load_from_disk(self, **kw) -> None:
         if not os.path.exists(self._storage_path):
             return
         try:

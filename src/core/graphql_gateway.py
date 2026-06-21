@@ -51,6 +51,9 @@ MAX_QUERY_SIZE = 1024 * 1024  # 1MB
 
 
 class OperationType(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """GraphQL 操作类型"""
     QUERY = "query"
     MUTATION = "mutation"
@@ -63,6 +66,9 @@ class OperationType(str, Enum):
 
 @dataclass
 class SchemaRegistration:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """注册的 GraphQL Schema"""
     name: str                          # 服务名称
     sdl: str                           # Schema Definition Language
@@ -74,6 +80,9 @@ class SchemaRegistration:
 
 @dataclass
 class QueryAnalysis:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """查询分析结果"""
     operation_type: OperationType
     depth: int
@@ -86,6 +95,9 @@ class QueryAnalysis:
 
 @dataclass
 class ExecutionResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """执行结果"""
     data: Optional[Dict[str, Any]] = None
     errors: List[Dict[str, Any]] = field(default_factory=list)
@@ -93,7 +105,7 @@ class ExecutionResult:
     cached: bool = False
     execution_time_ms: float = 0.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         result = {}
         if self.data is not None:
             result["data"] = self.data
@@ -106,6 +118,9 @@ class ExecutionResult:
 
 @dataclass
 class CacheEntry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """缓存条目"""
     result: Dict[str, Any]
     created_at: float
@@ -117,6 +132,9 @@ class CacheEntry:
 # ═══════════════════════════════════════════════════════════
 
 class QueryAnalyzer:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """GraphQL 查询静态分析器
 
     解析查询文档, 计算深度、复杂度和字段列表。
@@ -128,7 +146,7 @@ class QueryAnalyzer:
     DIRECTIVES = {"@include", "@skip", "@deprecated", "@specifiedBy"}
 
     @staticmethod
-    def analyze(query: str) -> QueryAnalysis:
+    def analyze(query: str, **kw) -> QueryAnalysis:
         """分析 GraphQL 查询
 
         Args:
@@ -178,7 +196,7 @@ class QueryAnalyzer:
         )
 
     @staticmethod
-    def _calculate_depth(query: str) -> int:
+    def _calculate_depth(query: str, **kw) -> int:
         """计算查询嵌套深度"""
         max_depth = 0
         current_depth = 0
@@ -201,7 +219,7 @@ class QueryAnalyzer:
         return max_depth
 
     @staticmethod
-    def _calculate_complexity(query: str) -> int:
+    def _calculate_complexity(query: str, **kw) -> int:
         """计算查询复杂度 (字段总数)"""
         # 简化: 计算顶层的字段数 * 嵌套字段
         score = 0
@@ -228,7 +246,7 @@ class QueryAnalyzer:
         return max(1, score)
 
     @staticmethod
-    def _extract_fields(query: str) -> List[str]:
+    def _extract_fields(query: str, **kw) -> List[str]:
         """提取字段名列表"""
         fields = []
         # 简化: 匹配不在字符串内的标识符
@@ -246,19 +264,22 @@ class QueryAnalyzer:
 # ═══════════════════════════════════════════════════════════
 
 class SchemaRegistry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """GraphQL Schema 注册表
 
     管理多个后端服务的 Schema 和 Resolver,
     支持 Schema Stitching (拼接)。
     """
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._schemas: Dict[str, SchemaRegistration] = {}
         self._merged_sdl: str = ""
         self._field_to_schema: Dict[str, str] = {}  # field → schema_name
         self._lock = threading.RLock()
 
-    def register(self, schema: SchemaRegistration) -> None:
+    def register(self, schema: SchemaRegistration, **kw) -> None:
         """注册 Schema"""
         with self._lock:
             self._schemas[schema.name] = schema
@@ -274,7 +295,7 @@ class SchemaRegistry:
             logger.info(f"Registered GraphQL schema: {schema.name}")
         self._rebuild_merged_sdl()
 
-    def unregister(self, name: str) -> None:
+    def unregister(self, name: str, **kw) -> None:
         """注销 Schema"""
         with self._lock:
             schema = self._schemas.pop(name, None)
@@ -288,17 +309,17 @@ class SchemaRegistry:
                     del self._field_to_schema[k]
         self._rebuild_merged_sdl()
 
-    def get_schema(self, name: str) -> Optional[SchemaRegistration]:
+    def get_schema(self, name: str, **kw) -> Optional[SchemaRegistration]:
         """获取 Schema"""
         with self._lock:
             return self._schemas.get(name)
 
-    def resolve_schema_for_field(self, field: str) -> Optional[str]:
+    def resolve_schema_for_field(self, field: str, **kw) -> Optional[str]:
         """根据字段名解析所属 Schema"""
         with self._lock:
             return self._field_to_schema.get(field)
 
-    def list_schemas(self) -> List[Dict[str, Any]]:
+    def list_schemas(self, **kw) -> List[Dict[str, Any]]:
         """列出所有 Schema"""
         with self._lock:
             return [
@@ -311,12 +332,12 @@ class SchemaRegistry:
                 for s in self._schemas.values()
             ]
 
-    def get_merged_sdl(self) -> str:
+    def get_merged_sdl(self, **kw) -> str:
         """获取合并后的 SDL"""
         with self._lock:
             return self._merged_sdl
 
-    def _rebuild_merged_sdl(self) -> None:
+    def _rebuild_merged_sdl(self, **kw) -> None:
         """重建合并的 SDL"""
         parts = []
         with self._lock:
@@ -333,9 +354,12 @@ class SchemaRegistry:
 # ═══════════════════════════════════════════════════════════
 
 class QueryCache:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """GraphQL 查询响应缓存"""
 
-    def __init__(self, max_size: int = 1000, default_ttl: float = DEFAULT_CACHE_TTL):
+    def __init__(self, max_size: int = 1000, default_ttl: float = DEFAULT_CACHE_TTL, **kw):
         self._cache: Dict[str, CacheEntry] = {}
         self._max_size = max_size
         self._default_ttl = default_ttl
@@ -343,14 +367,14 @@ class QueryCache:
         self._hits = 0
         self._misses = 0
 
-    def _hash_query(self, query: str, variables: Dict = None) -> str:
+    def _hash_query(self, query: str, variables: Dict = None, **kw) -> str:
         """计算查询哈希"""
         key = query.strip()
         if variables:
             key += json.dumps(variables, sort_keys=True)
         return hashlib.sha256(key.encode()).hexdigest()[:32]
 
-    def get(self, query: str, variables: Dict = None) -> Optional[Dict[str, Any]]:
+    def get(self, query: str, variables: Dict = None, **kw) -> Optional[Dict[str, Any]]:
         """从缓存获取结果"""
         key = self._hash_query(query, variables)
         with self._lock:
@@ -387,7 +411,7 @@ class QueryCache:
                 ttl=ttl or self._default_ttl,
             )
 
-    def invalidate(self, query_pattern: str = None) -> int:
+    def invalidate(self, query_pattern: str = None, **kw) -> int:
         """失效缓存"""
         count = 0
         with self._lock:
@@ -405,7 +429,7 @@ class QueryCache:
         return count
 
     @property
-    def stats(self) -> Dict[str, Any]:
+    def stats(self, **kw) -> Dict[str, Any]:
         with self._lock:
             total = self._hits + self._misses
             return {
@@ -421,9 +445,12 @@ class QueryCache:
 # ═══════════════════════════════════════════════════════════
 
 class ExecutionEngine:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """GraphQL 查询执行引擎"""
 
-    def __init__(self, registry: SchemaRegistry):
+    def __init__(self, registry: SchemaRegistry, **kw):
         self.registry = registry
 
     def execute(
@@ -508,12 +535,15 @@ class ExecutionEngine:
 # ═══════════════════════════════════════════════════════════
 
 class GraphQLGateway:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """GraphQL API 网关
 
     统一入口, 组合 Schema 注册、查询分析、缓存和执行。
     """
 
-    def __init__(self):
+    def __init__(self, **kw):
         self.registry = SchemaRegistry()
         self.cache = QueryCache()
         self.executor = ExecutionEngine(self.registry)
@@ -549,15 +579,15 @@ class GraphQLGateway:
         )
         self.registry.register(schema)
 
-    def unregister_schema(self, name: str) -> None:
+    def unregister_schema(self, name: str, **kw) -> None:
         """注销 Schema"""
         self.registry.unregister(name)
 
-    def list_schemas(self) -> List[Dict[str, Any]]:
+    def list_schemas(self, **kw) -> List[Dict[str, Any]]:
         """列出所有 Schema"""
         return self.registry.list_schemas()
 
-    def get_sdl(self) -> str:
+    def get_sdl(self, **kw) -> str:
         """获取合并的 SDL"""
         return self.registry.get_merged_sdl()
 
@@ -640,7 +670,7 @@ class GraphQLGateway:
 
     # ── 持久化查询 ──────────────────────────────────────────
 
-    def register_persisted_query(self, query: str) -> str:
+    def register_persisted_query(self, query: str, **kw) -> str:
         """注册持久化查询
 
         Args:
@@ -655,7 +685,7 @@ class GraphQLGateway:
         logger.info(f"Registered persisted query: {query_hash[:8]}...")
         return query_hash
 
-    def list_persisted_queries(self) -> List[Dict[str, str]]:
+    def list_persisted_queries(self, **kw) -> List[Dict[str, str]]:
         """列出持久化查询"""
         with self._lock:
             return [
@@ -665,7 +695,7 @@ class GraphQLGateway:
 
     # ── 查询验证 ────────────────────────────────────────────
 
-    def validate_query(self, query: str) -> Dict[str, Any]:
+    def validate_query(self, query: str, **kw) -> Dict[str, Any]:
         """验证查询
 
         Returns:
@@ -684,15 +714,15 @@ class GraphQLGateway:
 
     # ── 缓存管理 ────────────────────────────────────────────
 
-    def invalidate_cache(self, pattern: str = None) -> int:
+    def invalidate_cache(self, pattern: str = None, **kw) -> int:
         """失效缓存"""
         return self.cache.invalidate(pattern)
 
-    def get_cache_stats(self) -> Dict[str, Any]:
+    def get_cache_stats(self, **kw) -> Dict[str, Any]:
         """获取缓存统计"""
         return self.cache.stats
 
-    def get_query_stats(self) -> Dict[str, Any]:
+    def get_query_stats(self, **kw) -> Dict[str, Any]:
         """获取查询统计"""
         with self._lock:
             top_queries = sorted(
@@ -776,10 +806,10 @@ def _cli_main():
     }
     """
 
-    def resolve_user(variables, context):
+    def resolve_user(variables, context, **kw):
         return {"id": variables.get("id", "1"), "name": "Alice", "email": "alice@example.com"}
 
-    def resolve_users(variables, context):
+    def resolve_users(variables, context, **kw):
         return [
             {"id": "1", "name": "Alice"},
             {"id": "2", "name": "Bob"},

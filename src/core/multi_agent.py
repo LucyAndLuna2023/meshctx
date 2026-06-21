@@ -51,6 +51,9 @@ logger = logging.getLogger("meshctx.multi_agent")
 # ═══════════════════════════════════════════════════════════
 
 class AgentStatus(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     IDLE = "idle"
     BUSY = "busy"
     OFFLINE = "offline"
@@ -59,6 +62,9 @@ class AgentStatus(str, Enum):
 
 
 class MessagePriority(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
@@ -67,6 +73,9 @@ class MessagePriority(str, Enum):
 
 @dataclass
 class AgentHandle:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Agent 句柄 — 指向注册的 specialist agent"""
     agent_id: str
     name: str = ""
@@ -83,7 +92,7 @@ class AgentHandle:
     max_context_size: int = 50             # 上下文窗口上限
     metadata: Dict = field(default_factory=dict)  # 扩展元数据
 
-    def to_dict(self) -> Dict:
+    def to_dict(self, **kw) -> Dict:
         return {
             "agent_id": self.agent_id,
             "name": self.name,
@@ -102,12 +111,15 @@ class AgentHandle:
         }
 
     @classmethod
-    def from_dict(cls, d: Dict) -> "AgentHandle":
+    def from_dict(cls, d: Dict, **kw) -> "AgentHandle":
         return cls(**{k: d.get(k) for k in cls.__dataclass_fields__})
 
 
 @dataclass
 class AgentMessage:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Agent 间传递的消息"""
     message_id: str = ""
     from_agent: str = ""                  # 发送者 agent_id
@@ -119,7 +131,7 @@ class AgentMessage:
     created_at: float = field(default_factory=time.time)
     ttl: int = 300                         # 消息存活秒数 (0=永久)
 
-    def is_expired(self) -> bool:
+    def is_expired(self, **kw) -> bool:
         if self.ttl <= 0:
             return False
         return (time.time() - self.created_at) > self.ttl
@@ -127,6 +139,9 @@ class AgentMessage:
 
 @dataclass
 class AgentResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Agent 处理结果"""
     agent_id: str
     message_id: str = ""
@@ -137,7 +152,7 @@ class AgentResult:
     metadata: Dict = field(default_factory=dict)
     created_at: float = field(default_factory=time.time)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self, **kw) -> Dict:
         return {
             "agent_id": self.agent_id,
             "message_id": self.message_id,
@@ -152,6 +167,9 @@ class AgentResult:
 
 @dataclass
 class RouteDecision:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """路由决策结果"""
     target_agent: Optional[AgentHandle] = None
     confidence: float = 0.0
@@ -165,6 +183,9 @@ class RouteDecision:
 # ═══════════════════════════════════════════════════════════
 
 class IntentRouter:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     意图路由器 — 根据消息内容和上下文决定路由到哪个 specialist
 
@@ -224,7 +245,7 @@ class IntentRouter:
         "sql": "data",
     }
 
-    def __init__(self):
+    def __init__(self, **kw):
         # 路由规则 (用户可配置)
         self.rules: List[Dict] = []
         # 路由历史, 用于学习
@@ -427,7 +448,7 @@ class IntentRouter:
         })
         logger.info(f"Added routing rule: {name} → {target}")
 
-    def remove_rule(self, name: str) -> bool:
+    def remove_rule(self, name: str, **kw) -> bool:
         """删除路由规则"""
         for i, rule in enumerate(self.rules):
             if rule["name"] == name:
@@ -435,7 +456,7 @@ class IntentRouter:
                 return True
         return False
 
-    def get_routing_stats(self) -> Dict:
+    def get_routing_stats(self, **kw) -> Dict:
         return dict(self._stats)
 
 
@@ -444,6 +465,9 @@ class IntentRouter:
 # ═══════════════════════════════════════════════════════════
 
 class MessageBus:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     Agent 间异步消息总线
 
@@ -454,7 +478,7 @@ class MessageBus:
       - TTL 过期机制
     """
 
-    def __init__(self, max_queue_size: int = 100):
+    def __init__(self, max_queue_size: int = 100, **kw):
         self.max_queue_size = max_queue_size
         # 每个 agent 的消息队列
         self._inboxes: Dict[str, deque] = defaultdict(deque)
@@ -468,7 +492,7 @@ class MessageBus:
             "total_dropped": 0,
         }
 
-    def send(self, message: AgentMessage) -> bool:
+    def send(self, message: AgentMessage, **kw) -> bool:
         """
         发送消息到指定 agent 的 inbox
 
@@ -498,7 +522,7 @@ class MessageBus:
         logger.debug(f"Message {message.message_id}: {message.from_agent} → {message.to_agent} [{message.priority.value}]")
         return True
 
-    def _broadcast(self, message: AgentMessage) -> bool:
+    def _broadcast(self, message: AgentMessage, **kw) -> bool:
         """广播消息到所有 agent"""
         sent_count = 0
         for agent_id in list(self._inboxes.keys()):
@@ -524,7 +548,7 @@ class MessageBus:
         self._stats["total_delivered"] += sent_count
         return sent_count > 0
 
-    def receive(self, agent_id: str, limit: int = 10) -> List[AgentMessage]:
+    def receive(self, agent_id: str, limit: int = 10, **kw) -> List[AgentMessage]:
         """
         从 agent 的 inbox 接收消息
 
@@ -553,7 +577,7 @@ class MessageBus:
         self._stats["total_expired"] += expired_count
         return messages
 
-    def peek(self, agent_id: str, limit: int = 10) -> List[AgentMessage]:
+    def peek(self, agent_id: str, limit: int = 10, **kw) -> List[AgentMessage]:
         """查看 inbox 但不消费消息"""
         inbox = self._inboxes.get(agent_id)
         if not inbox:
@@ -563,21 +587,21 @@ class MessageBus:
             if not msg.is_expired()
         ]
 
-    def get_inbox_size(self, agent_id: str) -> int:
+    def get_inbox_size(self, agent_id: str, **kw) -> int:
         """获取 inbox 大小"""
         inbox = self._inboxes.get(agent_id)
         return len(inbox) if inbox else 0
 
-    def clear_inbox(self, agent_id: str):
+    def clear_inbox(self, agent_id: str, **kw):
         """清空 agent 的 inbox"""
         if agent_id in self._inboxes:
             self._inboxes[agent_id].clear()
 
-    def remove_agent(self, agent_id: str):
+    def remove_agent(self, agent_id: str, **kw):
         """移除 agent 的消息队列"""
         self._inboxes.pop(agent_id, None)
 
-    def get_bus_stats(self) -> Dict:
+    def get_bus_stats(self, **kw) -> Dict:
         return {
             "total_sent": self._stats["total_sent"],
             "total_delivered": self._stats["total_delivered"],
@@ -594,6 +618,9 @@ class MessageBus:
 # ═══════════════════════════════════════════════════════════
 
 class ContextManager:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     Agent 上下文管理器 — 每个 agent 独立上下文窗口
 
@@ -603,7 +630,7 @@ class ContextManager:
       - 上下文摘要: 当消息被裁剪时，生成摘要保留关键信息
     """
 
-    def __init__(self):
+    def __init__(self, **kw):
         # {agent_id: [messages]}
         self._contexts: Dict[str, List[Dict]] = defaultdict(list)
         # 上下文摘要
@@ -635,15 +662,15 @@ class ContextManager:
                     f"{summary}\n{new_summary}" if summary else new_summary
                 )[-1000:]  # 摘要上限 1000 字符
 
-    def get_context(self, agent_id: str) -> List[Dict]:
+    def get_context(self, agent_id: str, **kw) -> List[Dict]:
         """获取 agent 的完整上下文"""
         return self._contexts.get(agent_id, [])
 
-    def get_summary(self, agent_id: str) -> str:
+    def get_summary(self, agent_id: str, **kw) -> str:
         """获取 agent 上下文摘要"""
         return self._summaries.get(agent_id, "")
 
-    def get_full_context(self, agent_id: str) -> Dict:
+    def get_full_context(self, agent_id: str, **kw) -> Dict:
         """
         获取 agent 完整上下文 (当前消息 + 摘要)
 
@@ -657,12 +684,12 @@ class ContextManager:
             "message_count": len(context),
         }
 
-    def clear_context(self, agent_id: str):
+    def clear_context(self, agent_id: str, **kw):
         """清空 agent 上下文"""
         self._contexts.pop(agent_id, None)
         self._summaries.pop(agent_id, None)
 
-    def _summarize(self, messages: List[Dict]) -> str:
+    def _summarize(self, messages: List[Dict], **kw) -> str:
         """从被裁剪的消息中提取摘要"""
         if not messages:
             return ""
@@ -677,7 +704,7 @@ class ContextManager:
 
         return " | ".join(parts[-5:])  # 只保留最近5条
 
-    def get_all_context_stats(self) -> Dict:
+    def get_all_context_stats(self, **kw) -> Dict:
         """获取所有 agent 的上下文统计"""
         return {
             aid: {
@@ -694,6 +721,9 @@ class ContextManager:
 # ═══════════════════════════════════════════════════════════
 
 class MultiAgentOrchestrator:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     多 Agent 编排器
 
@@ -705,7 +735,7 @@ class MultiAgentOrchestrator:
       - 聚合多 agent 并行处理结果
     """
 
-    def __init__(self, max_agents: int = 20, default_timeout: float = 300.0):
+    def __init__(self, max_agents: int = 20, default_timeout: float = 300.0, **kw):
         self.max_agents = max_agents
         self.default_timeout = default_timeout
 
@@ -824,7 +854,7 @@ class MultiAgentOrchestrator:
         logger.info(f"Agent registered: {agent_id} ({name}) — {role}")
         return handle
 
-    def unregister_agent(self, agent_id: str) -> bool:
+    def unregister_agent(self, agent_id: str, **kw) -> bool:
         """
         注销 agent
 
@@ -849,18 +879,18 @@ class MultiAgentOrchestrator:
         logger.info(f"Agent unregistered: {agent_id}")
         return True
 
-    def get_agent(self, agent_id: str) -> Optional[AgentHandle]:
+    def get_agent(self, agent_id: str, **kw) -> Optional[AgentHandle]:
         """获取 agent 句柄"""
         return self._agents.get(agent_id)
 
-    def list_agents(self, status: AgentStatus = None) -> List[AgentHandle]:
+    def list_agents(self, status: AgentStatus = None, **kw) -> List[AgentHandle]:
         """列出所有 agent"""
         agents = list(self._agents.values())
         if status:
             agents = [a for a in agents if a.status == status]
         return agents
 
-    def set_agent_status(self, agent_id: str, status: AgentStatus):
+    def set_agent_status(self, agent_id: str, status: AgentStatus, **kw):
         """设置 agent 状态"""
         if agent_id in self._agents:
             self._agents[agent_id].status = status
@@ -1061,13 +1091,13 @@ class MultiAgentOrchestrator:
 
         return self.message_bus.send(msg)
 
-    def get_agent_messages(self, agent_id: str, limit: int = 10) -> List[AgentMessage]:
+    def get_agent_messages(self, agent_id: str, limit: int = 10, **kw) -> List[AgentMessage]:
         """获取 agent 的待处理消息"""
         return self.message_bus.receive(agent_id, limit=limit)
 
     # ── 结果聚合 ──────────────────────────────────────────
 
-    def aggregate_results(self, results: List[AgentResult]) -> Dict:
+    def aggregate_results(self, results: List[AgentResult], **kw) -> Dict:
         """
         聚合多个 agent 的结果
 
@@ -1115,7 +1145,7 @@ class MultiAgentOrchestrator:
 
     # ── 状态/统计 ─────────────────────────────────────────
 
-    def get_orchestrator_status(self) -> Dict:
+    def get_orchestrator_status(self, **kw) -> Dict:
         """获取编排器完整状态"""
         agent_summary = []
         for agent in self._agents.values():
@@ -1144,7 +1174,7 @@ class MultiAgentOrchestrator:
             "contexts": self.context_manager.get_all_context_stats(),
         }
 
-    def get_agent_status(self, agent_id: str) -> Optional[Dict]:
+    def get_agent_status(self, agent_id: str, **kw) -> Optional[Dict]:
         """获取单个 agent 的详细状态"""
         agent = self._agents.get(agent_id)
         if not agent:
@@ -1158,17 +1188,17 @@ class MultiAgentOrchestrator:
 
     # ── 上下文管理 ────────────────────────────────────────
 
-    def add_context(self, agent_id: str, message: Dict):
+    def add_context(self, agent_id: str, message: Dict, **kw):
         """向 agent 添加上下文消息"""
         agent = self._agents.get(agent_id)
         max_size = agent.max_context_size if agent else 50
         self.context_manager.add_message(agent_id, message, max_size)
 
-    def get_context(self, agent_id: str) -> List[Dict]:
+    def get_context(self, agent_id: str, **kw) -> List[Dict]:
         """获取 agent 上下文"""
         return self.context_manager.get_context(agent_id)
 
-    def clear_agent_context(self, agent_id: str):
+    def clear_agent_context(self, agent_id: str, **kw):
         """清空 agent 上下文"""
         self.context_manager.clear_context(agent_id)
 
@@ -1342,10 +1372,10 @@ class MultiAgentOrchestrator:
         logger.info(f"Result collected: {task_id} <- {agent_id}: {status}")
         return result
 
-    def get_task_result(self, task_id: str):
+    def get_task_result(self, task_id: str, **kw):
         return self._task_results.get(task_id)
 
-    def get_cluster_status(self):
+    def get_cluster_status(self, **kw):
         base = self.get_orchestrator_status()
         base["tasks"] = {
             "total_dispatched": self._task_counter,
@@ -1362,6 +1392,9 @@ class MultiAgentOrchestrator:
 # ═══════════════════════════════════════════════════════════
 
 class MultiAgentPlugin:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """meshctx Plugin 适配器"""
     info = type('Info', (), {
         'name': 'multi_agent',
@@ -1372,7 +1405,7 @@ class MultiAgentPlugin:
     })()
     state = "inactive"
 
-    def __init__(self):
+    def __init__(self, **kw):
         self.orchestrator: Optional[MultiAgentOrchestrator] = None
 
     async def on_load(self, kernel) -> bool:
@@ -1396,7 +1429,7 @@ class MultiAgentPlugin:
         self.state = "inactive"
         return True
 
-    def generate_report(self) -> Dict:
+    def generate_report(self, **kw) -> Dict:
         if self.orchestrator:
             return self.orchestrator.get_orchestrator_status()
         return {"status": "not_initialized"}
@@ -1441,17 +1474,17 @@ def init_multi_agent(
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -1459,12 +1492,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

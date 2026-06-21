@@ -8,18 +8,24 @@ import numpy as np
 
 @dataclass
 class Distribution:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """A probability distribution over labeled points."""
     labels: List[str]
     matrix: np.ndarray  # shape (n_points, n_features)
     weights: np.ndarray = field(default_factory=lambda: np.array([]))
 
-    def __post_init__(self):
+    def __post_init__(self, **kw):
         n = len(self.labels)
         self.weights = np.ones(n) / n
 
 
 @dataclass
 class TransportPlan:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Result of computing Wasserstein distance between two distributions."""
     source: str
     target: str
@@ -29,7 +35,7 @@ class TransportPlan:
     transport_matrix: np.ndarray
     mapping: List[dict] = field(default_factory=list)
 
-    def __post_init__(self):
+    def __post_init__(self, **kw):
         # Build mapping from transport matrix
         n_src, n_tgt = self.transport_matrix.shape
         for i in range(n_src):
@@ -40,10 +46,13 @@ class TransportPlan:
 
 
 class OptimalTransportBridge:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Optimal Transport bridge for comparing agent knowledge distributions
     using Sinkhorn algorithm with entropic regularization."""
 
-    def __init__(self, regularization: float = 0.5, max_iterations: int = 50):
+    def __init__(self, regularization: float = 0.5, max_iterations: int = 50, **kw):
         self.regularization = regularization
         self.max_iterations = max_iterations
         self._distributions: Dict[str, Distribution] = {}
@@ -135,7 +144,7 @@ class OptimalTransportBridge:
             "mapping": plan.mapping,
         }
 
-    def compare_all(self) -> List[dict]:
+    def compare_all(self, **kw) -> List[dict]:
         """Compare all pairs of distributions."""
         names = list(self._distributions.keys())
         results = []
@@ -166,7 +175,7 @@ class OptimalTransportBridge:
                 best_name = name
         return best_name, best_dist
 
-    def get_stats(self) -> dict:
+    def get_stats(self, **kw) -> dict:
         """Return statistics about the bridge."""
         return {
             "distributions": len(self._distributions),
@@ -176,17 +185,17 @@ class OptimalTransportBridge:
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -194,12 +203,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

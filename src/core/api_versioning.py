@@ -56,6 +56,9 @@ SEMVER_PATTERN = re.compile(
 
 
 class VersionSource(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """版本号来源"""
     URI_PATH = "uri_path"        # /v1/users
     HEADER = "header"            # API-Version: v1
@@ -65,6 +68,9 @@ class VersionSource(str, Enum):
 
 
 class DeprecationLevel(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """弃用级别"""
     NONE = "none"               # 正常
     WARNING = "warning"         # 有更新的版本可用
@@ -79,6 +85,9 @@ class DeprecationLevel(str, Enum):
 
 @dataclass
 class SemVer:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """语义化版本号"""
     major: int
     minor: int
@@ -87,7 +96,7 @@ class SemVer:
     build: str = ""
 
     @classmethod
-    def parse(cls, version_str: str) -> Optional["SemVer"]:
+    def parse(cls, version_str: str, **kw) -> Optional["SemVer"]:
         """解析语义化版本字符串"""
         match = SEMVER_PATTERN.match(version_str.strip())
         if not match:
@@ -100,7 +109,7 @@ class SemVer:
             build=match.group("build") or "",
         )
 
-    def __str__(self) -> str:
+    def __str__(self, **kw) -> str:
         v = f"{self.major}.{self.minor}.{self.patch}"
         if self.prerelease:
             v += f"-{self.prerelease}"
@@ -108,7 +117,7 @@ class SemVer:
             v += f"+{self.build}"
         return v
 
-    def __lt__(self, other: "SemVer") -> bool:
+    def __lt__(self, other: "SemVer", **kw) -> bool:
         if self.major != other.major:
             return self.major < other.major
         if self.minor != other.minor:
@@ -122,23 +131,26 @@ class SemVer:
             return False
         return self.prerelease < other.prerelease
 
-    def __eq__(self, other: "SemVer") -> bool:
+    def __eq__(self, other: "SemVer", **kw) -> bool:
         return (self.major, self.minor, self.patch, self.prerelease) == (
             other.major, other.minor, other.patch, other.prerelease,
         )
 
-    def is_compatible(self, other: "SemVer") -> bool:
+    def is_compatible(self, other: "SemVer", **kw) -> bool:
         """检查是否兼容 (相同 major)"""
         return self.major == other.major
 
     @property
-    def version_key(self) -> str:
+    def version_key(self, **kw) -> str:
         """生成 v{major} 格式的版本键"""
         return f"v{self.major}"
 
 
 @dataclass
 class VersionInfo:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """版本信息"""
     version_key: str              # e.g. "v1", "v2"
     semver: Optional[SemVer] = None
@@ -154,7 +166,7 @@ class VersionInfo:
     metadata: Dict[str, Any] = field(default_factory=dict)
     created_at: float = field(default_factory=time.time)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "version_key": self.version_key,
             "semver": str(self.semver) if self.semver else None,
@@ -173,6 +185,9 @@ class VersionInfo:
 
 @dataclass
 class RouteMapping:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """路由映射"""
     path: str                     # API 路径
     version: str                  # 版本键
@@ -187,14 +202,17 @@ class RouteMapping:
 # ═══════════════════════════════════════════════════════════
 
 class VersionRegistry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """版本注册表"""
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._versions: Dict[str, VersionInfo] = {}
         self._version_aliases: Dict[str, str] = {}  # alias → version_key
         self._lock = threading.RLock()
 
-    def register(self, version: VersionInfo) -> None:
+    def register(self, version: VersionInfo, **kw) -> None:
         """注册版本"""
         with self._lock:
             if version.version_key in self._versions:
@@ -202,21 +220,21 @@ class VersionRegistry:
             self._versions[version.version_key] = version
             logger.info(f"Registered API version: {version.version_key}")
 
-    def get(self, version_key: str) -> Optional[VersionInfo]:
+    def get(self, version_key: str, **kw) -> Optional[VersionInfo]:
         """获取版本"""
         with self._lock:
             # 检查别名
             resolved = self._version_aliases.get(version_key, version_key)
             return self._versions.get(resolved)
 
-    def set_alias(self, alias: str, version_key: str) -> None:
+    def set_alias(self, alias: str, version_key: str, **kw) -> None:
         """设置版本别名"""
         with self._lock:
             if version_key not in self._versions and version_key != LATEST_VERSION:
                 raise ValueError(f"Version '{version_key}' not found")
             self._version_aliases[alias] = version_key
 
-    def resolve(self, version_hint: str) -> str:
+    def resolve(self, version_hint: str, **kw) -> str:
         """解析版本提示到具体版本键"""
         with self._lock:
             # 检查别名
@@ -234,7 +252,7 @@ class VersionRegistry:
                 return version_hint
         return DEFAULT_VERSION
 
-    def _get_latest_version(self) -> str:
+    def _get_latest_version(self, **kw) -> str:
         """获取最新版本键"""
         if not self._versions:
             return DEFAULT_VERSION
@@ -249,7 +267,7 @@ class VersionRegistry:
             return DEFAULT_VERSION
         return sorted(version_items, key=lambda x: x[0], reverse=True)[0][1]
 
-    def list_active_versions(self) -> List[VersionInfo]:
+    def list_active_versions(self, **kw) -> List[VersionInfo]:
         """列出活跃版本 (未移除)"""
         with self._lock:
             return [
@@ -257,7 +275,7 @@ class VersionRegistry:
                 if v.deprecation_level != DeprecationLevel.REMOVED
             ]
 
-    def list_deprecated_versions(self) -> List[VersionInfo]:
+    def list_deprecated_versions(self, **kw) -> List[VersionInfo]:
         """列出已弃用版本"""
         with self._lock:
             return [
@@ -265,7 +283,7 @@ class VersionRegistry:
                 if v.deprecation_level in (DeprecationLevel.DEPRECATED, DeprecationLevel.SUNSET)
             ]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         """导出所有版本信息"""
         with self._lock:
             return {
@@ -280,13 +298,16 @@ class VersionRegistry:
 # ═══════════════════════════════════════════════════════════
 
 class VersionRouter:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """版本路由器
 
     根据请求信息将流量路由到正确的 API 版本。
     支持多种版本来源解析策略。
     """
 
-    def __init__(self, registry: VersionRegistry):
+    def __init__(self, registry: VersionRegistry, **kw):
         self.registry = registry
         self._routes: List[RouteMapping] = []
         self._lock = threading.RLock()
@@ -404,7 +425,7 @@ class VersionRouter:
 
         return None
 
-    def list_routes(self, version: str = None) -> List[Dict[str, Any]]:
+    def list_routes(self, version: str = None, **kw) -> List[Dict[str, Any]]:
         """列出路由"""
         with self._lock:
             routes = self._routes
@@ -427,13 +448,16 @@ class VersionRouter:
 # ═══════════════════════════════════════════════════════════
 
 class ApiVersioningManager:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """API 版本管理器
 
     中枢类, 组合版本注册表和路由器,
     提供完整版本管理 API。
     """
 
-    def __init__(self):
+    def __init__(self, **kw):
         self.registry = VersionRegistry()
         self.router = VersionRouter(self.registry)
         self._default_version_source_order = [
@@ -509,24 +533,24 @@ class ApiVersioningManager:
         logger.warning(f"Version '{version_key}' marked as {level.value}: {message}")
         return True
 
-    def set_latest_alias(self) -> None:
+    def set_latest_alias(self, **kw) -> None:
         """设置 latest → 最新版本别名"""
         latest = self.registry._get_latest_version()
         self.registry.set_alias("latest", latest)
         self.registry.set_alias(LATEST_VERSION, latest)
 
-    def get_version_info(self, version_key: str) -> Optional[Dict[str, Any]]:
+    def get_version_info(self, version_key: str, **kw) -> Optional[Dict[str, Any]]:
         """获取版本详细信息"""
         info = self.registry.get(version_key)
         if not info:
             return None
         return info.to_dict()
 
-    def list_versions(self) -> List[Dict[str, Any]]:
+    def list_versions(self, **kw) -> List[Dict[str, Any]]:
         """列出所有版本"""
         return [v.to_dict() for v in self.registry._versions.values()]
 
-    def get_deprecation_warnings(self) -> List[Dict[str, str]]:
+    def get_deprecation_warnings(self, **kw) -> List[Dict[str, str]]:
         """获取所有弃用警告"""
         warnings = []
         for v in self.registry.list_deprecated_versions():
@@ -539,7 +563,7 @@ class ApiVersioningManager:
             })
         return warnings
 
-    def check_compatibility(self, version_a: str, version_b: str) -> bool:
+    def check_compatibility(self, version_a: str, version_b: str, **kw) -> bool:
         """检查两个版本是否兼容"""
         if version_a == version_b:
             return True
@@ -723,9 +747,9 @@ def _cli_main():
     av.set_latest_alias()
 
     # 注册端点
-    def get_users_v1():
+    def get_users_v1(**kw):
         return {"users": ["alice", "bob"], "version": "v1"}
-    def get_users_v2():
+    def get_users_v2(**kw):
         return {"users": [{"name": "alice", "avatar": "/img/a.png"},
                           {"name": "bob", "avatar": "/img/b.png"}], "version": "v2"}
 

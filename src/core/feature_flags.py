@@ -47,6 +47,9 @@ logger = logging.getLogger("meshctx.feature_flags")
 # ═══════════════════════════════════════════════════════════
 
 class FlagState(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """标志生命周期状态"""
     DEVELOPMENT = "development"     # 开发中
     TESTING = "testing"             # 测试中
@@ -57,6 +60,9 @@ class FlagState(str, Enum):
 
 
 class FlagType(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """标志类型"""
     RELEASE = "release"            # 发布开关 (一次性)
     EXPERIMENT = "experiment"      # 实验开关 (A/B 测试)
@@ -65,6 +71,9 @@ class FlagType(str, Enum):
 
 
 class MatchOperator(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """规则匹配运算符"""
     EQ = "eq"           # 等于
     NEQ = "neq"         # 不等于
@@ -78,6 +87,9 @@ class MatchOperator(str, Enum):
 
 
 class RolloutStrategy(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """放量策略"""
     PERCENTAGE = "percentage"    # 百分比放量
     USER_LIST = "user_list"      # 白名单
@@ -91,6 +103,9 @@ class RolloutStrategy(str, Enum):
 
 @dataclass
 class FlagRule:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """单条匹配规则"""
     attribute: str                    # 属性名, e.g. "country", "tier"
     operator: MatchOperator          # 匹配运算符
@@ -100,6 +115,9 @@ class FlagRule:
 
 @dataclass
 class RolloutConfig:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """放量配置"""
     strategy: RolloutStrategy = RolloutStrategy.USER_LIST
     percentage: float = 0.0          # 0.0 - 100.0
@@ -112,6 +130,9 @@ class RolloutConfig:
 
 @dataclass
 class FlagDefinition:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """标志完整定义"""
     key: str                          # 唯一标识, e.g. "new_dashboard"
     name: str = ""                    # 人类可读名称
@@ -130,6 +151,9 @@ class FlagDefinition:
 
 @dataclass
 class FlagEvaluation:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """标志评估结果"""
     key: str
     enabled: bool
@@ -143,6 +167,9 @@ class FlagEvaluation:
 # ═══════════════════════════════════════════════════════════
 
 class RuleEngine:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """规则评估引擎
 
     根据用户上下文评估一组规则是否匹配。
@@ -150,7 +177,7 @@ class RuleEngine:
     """
 
     @staticmethod
-    def evaluate_rule(rule: FlagRule, context: Dict[str, Any]) -> bool:
+    def evaluate_rule(rule: FlagRule, context: Dict[str, Any], **kw) -> bool:
         """评估单条规则"""
         attr_value = context.get(rule.attribute)
         target = rule.value
@@ -213,6 +240,9 @@ class RuleEngine:
 # ═══════════════════════════════════════════════════════════
 
 class HashSplitter:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """一致性哈希分流器
 
     使用 MD5 哈希将用户 ID 映射到 [0, 100) 区间,
@@ -220,7 +250,7 @@ class HashSplitter:
     """
 
     @staticmethod
-    def get_bucket(user_id: str, salt: str = "") -> float:
+    def get_bucket(user_id: str, salt: str = "", **kw) -> float:
         """计算用户哈希桶 (0.0 - 100.0)
 
         Args:
@@ -237,7 +267,7 @@ class HashSplitter:
         return (hash_int / 0xFFFFFFFF) * 100.0
 
     @staticmethod
-    def is_in_percentage(user_id: str, percentage: float, salt: str = "") -> bool:
+    def is_in_percentage(user_id: str, percentage: float, salt: str = "", **kw) -> bool:
         """判断用户是否在百分比放量范围内
 
         Args:
@@ -257,6 +287,9 @@ class HashSplitter:
 # ═══════════════════════════════════════════════════════════
 
 class FeatureFlags:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """特性开关管理器
 
     核心 API:
@@ -267,7 +300,7 @@ class FeatureFlags:
       - list_flags(): 列出所有标志
     """
 
-    def __init__(self, storage_path: str = ""):
+    def __init__(self, storage_path: str = "", **kw):
         self._flags: Dict[str, FlagDefinition] = {}
         self._lock = threading.RLock()
         self._storage_path = storage_path or os.path.join(
@@ -283,7 +316,7 @@ class FeatureFlags:
 
     # ── 标志注册与管理 ──────────────────────────────────────
 
-    def register(self, definition: FlagDefinition) -> None:
+    def register(self, definition: FlagDefinition, **kw) -> None:
         """注册新标志"""
         with self._lock:
             if definition.key in self._flags:
@@ -296,12 +329,12 @@ class FeatureFlags:
             logger.info(f"Registered flag: {definition.key} (type={definition.flag_type.value})")
         self._save_to_disk()
 
-    def get_definition(self, key: str) -> Optional[FlagDefinition]:
+    def get_definition(self, key: str, **kw) -> Optional[FlagDefinition]:
         """获取标志定义"""
         with self._lock:
             return self._flags.get(key)
 
-    def update_state(self, key: str, state: FlagState) -> bool:
+    def update_state(self, key: str, state: FlagState, **kw) -> bool:
         """更新标志状态"""
         with self._lock:
             flag = self._flags.get(key)
@@ -315,7 +348,7 @@ class FeatureFlags:
         self._fire_hook("on_change", key=key, old_state=old_state, new_state=state)
         return True
 
-    def kill(self, key: str, reason: str = "") -> bool:
+    def kill(self, key: str, reason: str = "", **kw) -> bool:
         """紧急关停标志 (Kill Switch)
 
         将标志状态设为 KILLED, 所有评估立即返回 False。
@@ -333,7 +366,7 @@ class FeatureFlags:
         self._fire_hook("on_kill", key=key, reason=reason)
         return True
 
-    def revive(self, key: str) -> bool:
+    def revive(self, key: str, **kw) -> bool:
         """恢复已关停的标志"""
         with self._lock:
             flag = self._flags.get(key)
@@ -347,7 +380,7 @@ class FeatureFlags:
         self._save_to_disk()
         return True
 
-    def retire(self, key: str) -> bool:
+    def retire(self, key: str, **kw) -> bool:
         """退役标志"""
         return self.update_state(key, FlagState.RETIRED)
 
@@ -371,7 +404,7 @@ class FeatureFlags:
         result = self.evaluate(key, context)
         return result.enabled
 
-    def evaluate(self, key: str, context: Dict[str, Any] = None) -> FlagEvaluation:
+    def evaluate(self, key: str, context: Dict[str, Any] = None, **kw) -> FlagEvaluation:
         """完整评估标志, 返回详细结果"""
         context = context or {}
 
@@ -502,12 +535,12 @@ class FeatureFlags:
                 flags = [f for f in flags if f.state == state]
             return sorted(flags, key=lambda f: f.updated_at, reverse=True)
 
-    def get_evaluation_stats(self) -> Dict[str, int]:
+    def get_evaluation_stats(self, **kw) -> Dict[str, int]:
         """获取评估统计"""
         with self._lock:
             return dict(self._evaluation_count)
 
-    def search_flags(self, query: str) -> List[FlagDefinition]:
+    def search_flags(self, query: str, **kw) -> List[FlagDefinition]:
         """模糊搜索标志"""
         query_lower = query.lower()
         with self._lock:
@@ -521,7 +554,7 @@ class FeatureFlags:
 
     # ── 钩子系统 ────────────────────────────────────────────
 
-    def add_hook(self, event: str, callback: Callable) -> None:
+    def add_hook(self, event: str, callback: Callable, **kw) -> None:
         """注册事件钩子
 
         Args:
@@ -541,7 +574,7 @@ class FeatureFlags:
 
     # ── 持久化 ──────────────────────────────────────────────
 
-    def _save_to_disk(self) -> None:
+    def _save_to_disk(self, **kw) -> None:
         """保存标志到磁盘"""
         try:
             os.makedirs(os.path.dirname(self._storage_path), exist_ok=True)
@@ -584,7 +617,7 @@ class FeatureFlags:
         except Exception as e:
             logger.error(f"Failed to save feature flags: {e}")
 
-    def _load_from_disk(self) -> None:
+    def _load_from_disk(self, **kw) -> None:
         """从磁盘加载标志"""
         if not os.path.exists(self._storage_path):
             return

@@ -60,12 +60,18 @@ CHINESE_CHAR_PATTERN = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf]')
 # ═══════════════════════════════════════════════════════════
 
 class PromptRole(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     SYSTEM = "system"
     USER = "user"
     ASSISTANT = "assistant"
 
 
 class TemplateTag(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """模板标签"""
     GENERAL = "general"
     CODE = "code"
@@ -80,6 +86,9 @@ class TemplateTag(str, Enum):
 
 @dataclass
 class FewShotExample:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """少样本示例"""
     example_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     input_data: Dict[str, Any] = field(default_factory=dict)
@@ -89,7 +98,7 @@ class FewShotExample:
     tags: List[str] = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "example_id": self.example_id,
             "input": self.input_data,
@@ -102,6 +111,9 @@ class FewShotExample:
 
 @dataclass
 class PromptTemplate:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """提示模板定义"""
     template_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     name: str = ""
@@ -118,7 +130,7 @@ class PromptTemplate:
     few_shot_examples: List[FewShotExample] = field(default_factory=list)
     max_few_shot: int = 5                  # 渲染时最多插入几个 few-shot
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "template_id": self.template_id,
             "name": self.name,
@@ -134,6 +146,9 @@ class PromptTemplate:
 
 @dataclass
 class PromptVersion:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """模板版本快照"""
     version: int
     system_prompt: str
@@ -144,6 +159,9 @@ class PromptVersion:
 
 @dataclass
 class RenderedPrompt:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """渲染结果"""
     template_name: str
     system_prompt: str
@@ -153,7 +171,7 @@ class RenderedPrompt:
     variables_used: Dict[str, Any] = field(default_factory=dict)
     few_shot_count: int = 0
 
-    def to_openai_messages(self) -> List[Dict[str, str]]:
+    def to_openai_messages(self, **kw) -> List[Dict[str, str]]:
         """转换为 OpenAI ChatCompletion 消息格式"""
         msgs = []
         if self.system_prompt:
@@ -169,6 +187,9 @@ class RenderedPrompt:
 # ═══════════════════════════════════════════════════════════
 
 class PromptEngine:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     提示模板引擎。
 
@@ -182,7 +203,7 @@ class PromptEngine:
       - rollback(name, version)
     """
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._templates: Dict[str, PromptTemplate] = {}       # name → template
         self._versions: Dict[str, List[PromptVersion]] = {}   # name → [versions]
         self._render_count: int = 0
@@ -252,11 +273,11 @@ class PromptEngine:
         self._cache.pop(name, None)
         return tmpl
 
-    def get_template(self, name: str) -> Optional[PromptTemplate]:
+    def get_template(self, name: str, **kw) -> Optional[PromptTemplate]:
         """获取模板"""
         return self._templates.get(name)
 
-    def list_templates(self, tag: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_templates(self, tag: Optional[str] = None, **kw) -> List[Dict[str, Any]]:
         """列出模板"""
         result = []
         for tmpl in self._templates.values():
@@ -265,7 +286,7 @@ class PromptEngine:
             result.append(tmpl.to_dict())
         return result
 
-    def delete_template(self, name: str) -> bool:
+    def delete_template(self, name: str, **kw) -> bool:
         """删除模板"""
         if name in self._templates:
             del self._templates[name]
@@ -276,7 +297,7 @@ class PromptEngine:
 
     # ── 变量提取 ───────────────────────────────────────────
 
-    def _extract_variables(self, template_str: str) -> Set[str]:
+    def _extract_variables(self, template_str: str, **kw) -> Set[str]:
         """从模板字符串提取 {{ variable }} 变量名"""
         pattern = re.compile(r'\{\{\s*(\w+(?:\.\w+)*)\s*(?:\|[^}]*)?\}\}')
         return set(pattern.findall(template_str))
@@ -386,7 +407,7 @@ class PromptEngine:
         finally:
             tmpl.few_shot_examples = original_examples
 
-    def _render_string(self, template: str, variables: Dict[str, Any]) -> str:
+    def _render_string(self, template: str, variables: Dict[str, Any], **kw) -> str:
         """
         渲染字符串模板。
 
@@ -404,7 +425,7 @@ class PromptEngine:
         result = self._render_conditionals(result, variables)
 
         # 2. 处理变量替换 {{ ... }}
-        def replace_var(match):
+        def replace_var(match, **kw):
             inner = match.group(1).strip()
             # 检查是否有过滤器 (|)
             if '|' in inner:
@@ -432,7 +453,7 @@ class PromptEngine:
         result = re.sub(r'\{\{\s*(.+?)\s*\}\}', replace_var, result)
         return result
 
-    def _render_conditionals(self, template: str, variables: Dict[str, Any]) -> str:
+    def _render_conditionals(self, template: str, variables: Dict[str, Any], **kw) -> str:
         """渲染 {% if ... %} ... {% endif %} 条件块"""
         # 匹配完整的 if/else/endif 块
         pattern = re.compile(
@@ -443,7 +464,7 @@ class PromptEngine:
             re.DOTALL
         )
 
-        def replace_conditional(match):
+        def replace_conditional(match, **kw):
             negate = match.group(1) is not None
             var_name = match.group(2)
             if_block = match.group(3)
@@ -505,7 +526,7 @@ class PromptEngine:
         logger.debug(f"Added few-shot example to '{template_name}' (total: {len(tmpl.few_shot_examples)})")
         return example
 
-    def remove_few_shot(self, template_name: str, example_id: str) -> bool:
+    def remove_few_shot(self, template_name: str, example_id: str, **kw) -> bool:
         """移除 few-shot 示例"""
         tmpl = self._templates.get(template_name)
         if tmpl is None:
@@ -517,21 +538,21 @@ class PromptEngine:
             return True
         return False
 
-    def clear_few_shots(self, template_name: str):
+    def clear_few_shots(self, template_name: str, **kw):
         """清除模板的所有 few-shot 示例"""
         tmpl = self._templates.get(template_name)
         if tmpl:
             tmpl.few_shot_examples.clear()
             self._cache.pop(template_name, None)
 
-    def get_few_shots(self, template_name: str) -> List[FewShotExample]:
+    def get_few_shots(self, template_name: str, **kw) -> List[FewShotExample]:
         """获取模板的 few-shot 示例"""
         tmpl = self._templates.get(template_name)
         return tmpl.few_shot_examples if tmpl else []
 
     # ── 版本管理 ───────────────────────────────────────────
 
-    def _save_version(self, name: str, system_prompt: str, user_template: str, note: str = ""):
+    def _save_version(self, name: str, system_prompt: str, user_template: str, note: str = "", **kw):
         """保存模板版本"""
         if name not in self._versions:
             self._versions[name] = []
@@ -545,7 +566,7 @@ class PromptEngine:
         )
         self._versions[name].append(pv)
 
-    def save_version(self, name: str, note: str = "") -> Optional[PromptVersion]:
+    def save_version(self, name: str, note: str = "", **kw) -> Optional[PromptVersion]:
         """手动保存当前模板版本"""
         tmpl = self._templates.get(name)
         if tmpl is None:
@@ -562,11 +583,11 @@ class PromptEngine:
         logger.info(f"Saved version {pv.version} for template '{name}'")
         return pv
 
-    def get_versions(self, name: str) -> List[PromptVersion]:
+    def get_versions(self, name: str, **kw) -> List[PromptVersion]:
         """获取模板的所有版本"""
         return self._versions.get(name, [])
 
-    def rollback(self, name: str, version: int) -> bool:
+    def rollback(self, name: str, version: int, **kw) -> bool:
         """回滚到指定版本"""
         versions = self._versions.get(name, [])
         target = None
@@ -596,7 +617,7 @@ class PromptEngine:
 
     # ── Token 估算 ─────────────────────────────────────────
 
-    def estimate_tokens(self, text: str) -> int:
+    def estimate_tokens(self, text: str, **kw) -> int:
         """
         估算文本的 token 数量。
 
@@ -621,7 +642,7 @@ class PromptEngine:
         est_en = int(en_chars * TOKEN_ESTIMATE_EN)
         return max(1, est_zh + est_en)
 
-    def estimate_messages_tokens(self, messages: List[Dict[str, str]]) -> int:
+    def estimate_messages_tokens(self, messages: List[Dict[str, str]], **kw) -> int:
         """
         估算 OpenAI 消息格式的总 token 数。
 
@@ -654,7 +675,7 @@ class PromptEngine:
 
     # ── 统计 ───────────────────────────────────────────────
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, **kw) -> Dict[str, Any]:
         """获取引擎统计"""
         total_few_shots = sum(len(t.few_shot_examples) for t in self._templates.values())
         total_versions = sum(len(v) for v in self._versions.values())
@@ -667,7 +688,7 @@ class PromptEngine:
             "all_variables": sorted(set().union(*(t.variables for t in self._templates.values()))),
         }
 
-    def clear_cache(self):
+    def clear_cache(self, **kw):
         """清除渲染缓存"""
         self._cache.clear()
 

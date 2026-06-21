@@ -35,7 +35,7 @@ def schedule_wakeup(task_id: str, callback: Callable,
             "thread": None
         }
         
-        def _loop():
+        def _loop(**kw):
             if immediate:
                 try:
                     callback()

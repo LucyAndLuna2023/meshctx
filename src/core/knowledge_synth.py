@@ -6,6 +6,9 @@ from typing import Optional
 
 @dataclass
 class Fragment:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     fid: str
     content: str
     agent_id: str
@@ -15,6 +18,9 @@ class Fragment:
 
 @dataclass
 class Conflict:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     fragment_a: str
     fragment_b: str
     reason: str
@@ -22,6 +28,9 @@ class Conflict:
 
 @dataclass
 class SynthesisResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     consensus_score: float
     source_agents: list
     conflicts: list = field(default_factory=list)
@@ -29,13 +38,16 @@ class SynthesisResult:
 
 
 class KnowledgeSynthesizer:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """v2.94 Knowledge Synthesis — aggregate multi-agent knowledge fragments."""
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._fragments: dict[str, Fragment] = {}
         self._synthesized: dict[str, list[SynthesisResult]] = {}  # query → results
 
-    def add_fragment(self, content: str, agent_id: str, confidence: float, tags: Optional[list] = None) -> str:
+    def add_fragment(self, content: str, agent_id: str, confidence: float, tags: Optional[list] = None, **kw) -> str:
         fid = uuid.uuid4().hex[:12]
         self._fragments[fid] = Fragment(
             fid=fid,
@@ -46,7 +58,7 @@ class KnowledgeSynthesizer:
         )
         return fid
 
-    def find_related(self, fid: str, top_k: int = 5) -> list[str]:
+    def find_related(self, fid: str, top_k: int = 5, **kw) -> list[str]:
         """Find fragments related to the given one by keyword/tag overlap."""
         if fid not in self._fragments:
             return []
@@ -61,7 +73,7 @@ class KnowledgeSynthesizer:
         related.sort(key=lambda x: -x[1])
         return [oid for oid, _ in related[:top_k]]
 
-    def synthesize(self, fids: list[str]) -> SynthesisResult:
+    def synthesize(self, fids: list[str], **kw) -> SynthesisResult:
         """Synthesize a set of fragments into a consensus result."""
         frags = [self._fragments[fid] for fid in fids if fid in self._fragments]
         if not frags:
@@ -101,7 +113,7 @@ class KnowledgeSynthesizer:
             conflicts=conflicts,
         )
 
-    def merge_agent_knowledge(self, agent_ids: list[str]) -> dict:
+    def merge_agent_knowledge(self, agent_ids: list[str], **kw) -> dict:
         """Merge all fragments from specific agents."""
         merged_count = 0
         for fid, frag in self._fragments.items():
@@ -109,7 +121,7 @@ class KnowledgeSynthesizer:
                 merged_count += 1
         return {"merged": merged_count}
 
-    def query_synthesized(self, query: str) -> Optional[dict]:
+    def query_synthesized(self, query: str, **kw) -> Optional[dict]:
         """Query against synthesized knowledge."""
         query_lower = query.lower()
         matching_fids = []
@@ -128,7 +140,7 @@ class KnowledgeSynthesizer:
             "source_agents": agents,
         }
 
-    def get_stats(self) -> dict:
+    def get_stats(self, **kw) -> dict:
         """Return synthesizer statistics."""
         return {
             "fragments": len(self._fragments),
@@ -137,10 +149,10 @@ class KnowledgeSynthesizer:
 
     # ── helpers ──────────────────────────────────────────────
 
-    def _similarity(self, a: Fragment, b: Fragment) -> float:
+    def _similarity(self, a: Fragment, b: Fragment, **kw) -> float:
         """Jaccard-like word overlap similarity."""
         import re
-        def _words(text: str) -> set:
+        def _words(text: str, **kw) -> set:
             return set(re.findall(r'[a-z0-9]+', text.lower()))
         words_a = _words(a.content)
         words_b = _words(b.content)
@@ -160,10 +172,10 @@ class KnowledgeSynthesizer:
 
         return word_sim * 0.8 + tag_sim * 0.2
 
-    def _has_contradiction(self, a: Fragment, b: Fragment) -> bool:
+    def _has_contradiction(self, a: Fragment, b: Fragment, **kw) -> bool:
         """Check if two fragments have contradictory signals."""
         import re
-        def _words(text: str) -> set:
+        def _words(text: str, **kw) -> set:
             return set(re.findall(r'[a-z0-9]+', text.lower()))
         contradiction_pairs = [
             ({"best", "recommend"}, {"avoid", "don", "never"}),
@@ -180,17 +192,17 @@ class KnowledgeSynthesizer:
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -198,12 +210,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

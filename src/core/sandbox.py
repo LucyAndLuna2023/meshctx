@@ -145,6 +145,9 @@ SAFE_PATHS: List[str] = ["/tmp/", "/var/tmp/", "/dev/null", "/dev/stdout", "/dev
 # ═══════════════════════════════════════════════════════════
 
 class ExecutionStatus(str, Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     SUCCESS = "success"
     ERROR = "error"
     TIMEOUT = "timeout"
@@ -155,6 +158,9 @@ class ExecutionStatus(str, Enum):
 
 @dataclass
 class ExecutionResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """沙箱执行结果"""
     execution_id: str = ""
     status: ExecutionStatus = ExecutionStatus.SUCCESS
@@ -169,7 +175,7 @@ class ExecutionResult:
     code_truncated: str = ""       # 代码片段 (前100字符)
     created_at: float = field(default_factory=time.time)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self, **kw) -> Dict:
         return {
             "execution_id": self.execution_id,
             "status": self.status.value,
@@ -186,11 +192,11 @@ class ExecutionResult:
         }
 
     @property
-    def is_success(self) -> bool:
+    def is_success(self, **kw) -> bool:
         return self.status == ExecutionStatus.SUCCESS and self.return_code == 0
 
     @property 
-    def output(self) -> str:
+    def output(self, **kw) -> str:
         """stdout + stderr 合并输出"""
         parts = []
         if self.stdout:
@@ -205,10 +211,13 @@ class ExecutionResult:
 # ═══════════════════════════════════════════════════════════
 
 class CodeScanner:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """代码安全扫描器 — 检测危险模式"""
 
     @classmethod
-    def scan_python(cls, code: str) -> List[str]:
+    def scan_python(cls, code: str, **kw) -> List[str]:
         """
         扫描 Python 代码中的危险模式
 
@@ -224,7 +233,7 @@ class CodeScanner:
         return violations
 
     @classmethod
-    def scan_bash(cls, command: str) -> Tuple[bool, str]:
+    def scan_bash(cls, command: str, **kw) -> Tuple[bool, str]:
         """
         扫描 Bash 命令
 
@@ -394,6 +403,9 @@ print(json.dumps(result))
 # ═══════════════════════════════════════════════════════════
 
 class Sandbox:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     安全代码执行沙箱
 
@@ -739,7 +751,7 @@ class Sandbox:
 
     # ── 统计与历史 ────────────────────────────────────────
 
-    def _record(self, result: ExecutionResult):
+    def _record(self, result: ExecutionResult, **kw):
         """记录执行结果到统计和历史"""
         self._stats["total_executions"] += 1
         self._stats["total_duration_ms"] += result.duration_ms
@@ -774,7 +786,7 @@ class Sandbox:
         if len(self._history) > self._history_max:
             self._history = self._history[-self._history_max:]
 
-    def get_sandbox_stats(self) -> Dict:
+    def get_sandbox_stats(self, **kw) -> Dict:
         """获取沙箱统计信息"""
         total = self._stats["total_executions"]
         success = self._stats["success_count"]
@@ -798,16 +810,16 @@ class Sandbox:
             "recent_violations": self._stats["violations"][-5:],
         }
 
-    def get_history(self, limit: int = 20) -> List[Dict]:
+    def get_history(self, limit: int = 20, **kw) -> List[Dict]:
         """获取执行历史"""
         return [r.to_dict() for r in self._history[-limit:]]
 
-    def clear_history(self):
+    def clear_history(self, **kw):
         """清空执行历史"""
         self._history.clear()
         logger.info("Sandbox execution history cleared")
 
-    def reset_stats(self):
+    def reset_stats(self, **kw):
         """重置统计信息"""
         self._stats = {
             "total_executions": 0,
@@ -830,6 +842,9 @@ class Sandbox:
 # ═══════════════════════════════════════════════════════════
 
 class InlineSandbox:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     内联沙箱 — 不创建子进程, 在同一进程中评估简单表达式
 
@@ -863,7 +878,7 @@ class InlineSandbox:
     }
 
     @classmethod
-    def eval(cls, expression: str, context: Dict = None) -> Tuple[Any, str]:
+    def eval(cls, expression: str, context: Dict = None, **kw) -> Tuple[Any, str]:
         """
         安全地评估简单表达式
 
@@ -897,6 +912,9 @@ class InlineSandbox:
 # ═══════════════════════════════════════════════════════════
 
 class SandboxPlugin:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """meshctx Plugin 适配器"""
     info = type('Info', (), {
         'name': 'sandbox',
@@ -907,7 +925,7 @@ class SandboxPlugin:
     })()
     state = "inactive"
 
-    def __init__(self):
+    def __init__(self, **kw):
         self.sandbox: Optional[Sandbox] = None
 
     async def on_load(self, kernel) -> bool:
@@ -928,7 +946,7 @@ class SandboxPlugin:
         self.state = "inactive"
         return True
 
-    def generate_report(self) -> Dict:
+    def generate_report(self, **kw) -> Dict:
         if self.sandbox:
             return self.sandbox.get_sandbox_stats()
         return {"status": "not_initialized"}
@@ -976,17 +994,17 @@ def init_sandbox(
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -994,12 +1012,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

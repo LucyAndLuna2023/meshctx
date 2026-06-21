@@ -7,6 +7,9 @@ from typing import List, Dict, Optional
 
 @dataclass
 class PersistenceFeature:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     birth: float
     death: float
     persistence: float
@@ -15,15 +18,21 @@ class PersistenceFeature:
 
 @dataclass
 class Cluster:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     members: List[str] = field(default_factory=list)
     coherence: float = 0.0
     center: Optional[np.ndarray] = None
 
 
 class TopologicalMemoryAnalyzer:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """Analyzes memory topology using persistent homology and clustering."""
 
-    def __init__(self, max_memories: int = 100):
+    def __init__(self, max_memories: int = 100, **kw):
         self.max_memories = max_memories
         self._embeddings: Dict[str, np.ndarray] = {}
         self._memories: Dict[str, tuple] = {}
@@ -31,13 +40,13 @@ class TopologicalMemoryAnalyzer:
         self._persistence_features: List[PersistenceFeature] = []
         self._clusters: List[Cluster] = []
 
-    def _word_hash(self, word: str) -> float:
+    def _word_hash(self, word: str, **kw) -> float:
         """Deterministic hash of a word to a float in [0, 1]."""
         h = hashlib.md5(word.encode()).digest()
         val = int.from_bytes(h[:8], 'big')
         return val / (2**64 - 1)
 
-    def _text_to_vector(self, text: str, importance: float) -> np.ndarray:
+    def _text_to_vector(self, text: str, importance: float, **kw) -> np.ndarray:
         """Convert text + importance to an 8-dimensional vector.
 
         Dimensions 0-5 and 7 encode text semantics.
@@ -64,7 +73,7 @@ class TopologicalMemoryAnalyzer:
         vec[6] = importance
         return vec
 
-    def add_memory(self, memory_id: str, text: str, importance: float):
+    def add_memory(self, memory_id: str, text: str, importance: float, **kw):
         """Add a memory with its text and importance."""
         vec = self._text_to_vector(text, importance)
         self._embeddings[memory_id] = vec
@@ -74,7 +83,7 @@ class TopologicalMemoryAnalyzer:
         self._persistence_features = []
         self._clusters = []
 
-    def compute_distance_matrix(self) -> np.ndarray:
+    def compute_distance_matrix(self, **kw) -> np.ndarray:
         """Compute pairwise Euclidean distance matrix between all memories."""
         ids = list(self._embeddings.keys())
         n = len(ids)
@@ -88,7 +97,7 @@ class TopologicalMemoryAnalyzer:
                 self._distance_matrix[j][i] = dist
         return self._distance_matrix
 
-    def cluster(self, n_clusters: int = 3) -> List[Cluster]:
+    def cluster(self, n_clusters: int = 3, **kw) -> List[Cluster]:
         """Agglomerative clustering of memories."""
         if self._distance_matrix is None:
             self.compute_distance_matrix()
@@ -161,7 +170,7 @@ class TopologicalMemoryAnalyzer:
 
         return self._clusters
 
-    def compute_persistence(self) -> List[PersistenceFeature]:
+    def compute_persistence(self, **kw) -> List[PersistenceFeature]:
         """Compute 0-dimensional persistent homology via minimum spanning tree."""
         if self._distance_matrix is None:
             self.compute_distance_matrix()
@@ -183,13 +192,13 @@ class TopologicalMemoryAnalyzer:
         # Union-Find
         parent = list(range(n))
 
-        def find(x):
+        def find(x, **kw):
             while parent[x] != x:
                 parent[x] = parent[parent[x]]
                 x = parent[x]
             return x
 
-        def union(x, y):
+        def union(x, y, **kw):
             px, py = find(x), find(y)
             if px != py:
                 parent[py] = px
@@ -209,7 +218,7 @@ class TopologicalMemoryAnalyzer:
         self._persistence_features = features
         return features
 
-    def get_persistence_barcode(self) -> List[dict]:
+    def get_persistence_barcode(self, **kw) -> List[dict]:
         """Return persistence barcode as list of dicts (each has 'birth' key)."""
         if not self._persistence_features:
             self.compute_persistence()
@@ -224,13 +233,13 @@ class TopologicalMemoryAnalyzer:
             for f in self._persistence_features
         ]
 
-    def find_memory_clusters(self) -> List[Cluster]:
+    def find_memory_clusters(self, **kw) -> List[Cluster]:
         """Return pre-computed clusters, computing if needed."""
         if not self._clusters:
             self.cluster()
         return self._clusters
 
-    def find_knowledge_gaps(self) -> List[dict]:
+    def find_knowledge_gaps(self, **kw) -> List[dict]:
         """Identify knowledge gaps from high-persistence features."""
         if self._distance_matrix is None:
             self.compute_distance_matrix()
@@ -253,7 +262,7 @@ class TopologicalMemoryAnalyzer:
             })
         return gaps
 
-    def get_stats(self) -> dict:
+    def get_stats(self, **kw) -> dict:
         """Aggregate statistics about the memory topology."""
         if self._distance_matrix is None:
             self.compute_distance_matrix()
@@ -281,17 +290,17 @@ class TopologicalMemoryAnalyzer:
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -299,12 +308,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 

@@ -45,6 +45,9 @@ logger = logging.getLogger("meshctx.event_system")
 # ═══════════════════════════════════════════════════════════
 
 class EventPriority(IntEnum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """事件优先级 — 数值越小优先级越高。"""
     CRITICAL = 0
     HIGH = 10
@@ -65,6 +68,9 @@ DEFAULT_HANDLER_TIMEOUT = 30.0  # 秒
 
 @dataclass
 class Event:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """事件数据结构。
 
     Attributes:
@@ -86,7 +92,7 @@ class Event:
     correlation_id: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "id": self.id,
             "type": self.type,
@@ -101,6 +107,9 @@ class Event:
 
 @dataclass(order=True)
 class _PrioritizedEvent:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """内部优先级队列条目 (按 priority + timestamp 排序)。"""
     priority: int
     timestamp: float
@@ -109,6 +118,9 @@ class _PrioritizedEvent:
 
 @dataclass
 class DeadLetterEntry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """死信队列条目 — 记录处理失败的事件。"""
     event: Event
     error: str                          # 错误信息
@@ -118,10 +130,10 @@ class DeadLetterEntry:
     max_retries: int = DEFAULT_DEAD_LETTER_RETRY_MAX
     next_retry_at: float = 0.0          # 下次重试时间
 
-    def can_retry(self) -> bool:
+    def can_retry(self, **kw) -> bool:
         return self.retry_count < self.max_retries
 
-    def schedule_retry(self, delay: float = None) -> None:
+    def schedule_retry(self, delay: float = None, **kw) -> None:
         """排定下次重试 (指数退避)。"""
         delay = delay or DEFAULT_DEAD_LETTER_RETRY_DELAY * (2 ** self.retry_count)
         self.next_retry_at = time.time() + delay
@@ -130,6 +142,9 @@ class DeadLetterEntry:
 
 @dataclass
 class EventSystemStats:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """EventSystem 统计信息。"""
     total_emitted: int = 0
     total_delivered: int = 0
@@ -141,7 +156,7 @@ class EventSystemStats:
     events_per_second: float = 0.0
     last_updated: float = 0.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, **kw) -> Dict[str, Any]:
         return {
             "total_emitted": self.total_emitted,
             "total_delivered": self.total_delivered,
@@ -160,6 +175,9 @@ class EventSystemStats:
 # ═══════════════════════════════════════════════════════════
 
 class EventBus:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """事件总线 — 发布/订阅引擎。
 
     核心职责:
@@ -172,7 +190,7 @@ class EventBus:
     线程安全: 内部使用 asyncio.Lock + threading.Lock 保护共享状态。
     """
 
-    def __init__(self):
+    def __init__(self, **kw):
         # type → list of (handler, is_async, priority)
         self._exact_subscriptions: Dict[str, List[Tuple[Callable, bool, EventPriority]]] = defaultdict(list)
         # wildcard_pattern → list of (handler, is_async, priority)
@@ -245,7 +263,7 @@ class EventBus:
         )
         return subscription_id
 
-    def unsubscribe(self, subscription_id: str) -> bool:
+    def unsubscribe(self, subscription_id: str, **kw) -> bool:
         """取消订阅。
 
         Args:
@@ -280,7 +298,7 @@ class EventBus:
         logger.warning(f"Subscription not found: {subscription_id}")
         return False
 
-    def unsubscribe_all(self, event_type: str = None) -> int:
+    def unsubscribe_all(self, event_type: str = None, **kw) -> int:
         """批量取消订阅。
 
         Args:
@@ -438,7 +456,7 @@ class EventBus:
 
     # ── 死信队列 ───────────────────────────────────────────
 
-    def get_dead_letter_entries(self, limit: int = 100) -> List[DeadLetterEntry]:
+    def get_dead_letter_entries(self, limit: int = 100, **kw) -> List[DeadLetterEntry]:
         """获取死信队列条目。
 
         Args:
@@ -447,12 +465,12 @@ class EventBus:
         with self._dead_letter_lock:
             return list(self._dead_letter_queue)[:limit]
 
-    def dead_letter_count(self) -> int:
+    def dead_letter_count(self, **kw) -> int:
         """死信队列当前长度。"""
         with self._dead_letter_lock:
             return len(self._dead_letter_queue)
 
-    def purge_dead_letters(self) -> int:
+    def purge_dead_letters(self, **kw) -> int:
         """清空死信队列。
 
         Returns:
@@ -464,7 +482,7 @@ class EventBus:
         logger.info(f"Purged {count} dead-letter entries")
         return count
 
-    def retry_dead_letters(self, max_entries: int = 50) -> int:
+    def retry_dead_letters(self, max_entries: int = 50, **kw) -> int:
         """重试死信队列中的事件 (同步, 重新入队)。
 
         Args:
@@ -523,7 +541,7 @@ class EventBus:
 
         return events[-limit:]
 
-    def get_event_by_id(self, event_id: str) -> Optional[Event]:
+    def get_event_by_id(self, event_id: str, **kw) -> Optional[Event]:
         """按 ID 查找事件。"""
         with self._event_history_lock:
             for e in self._event_history:
@@ -533,7 +551,7 @@ class EventBus:
 
     # ── 统计 ───────────────────────────────────────────────
 
-    def get_stats(self) -> EventSystemStats:
+    def get_stats(self, **kw) -> EventSystemStats:
         """获取统计快照。"""
         with self._stats_lock:
             # 计算 events_per_second
@@ -651,7 +669,7 @@ class EventBus:
         results.sort(key=lambda x: x[2])
         return results
 
-    def _record_event(self, event: Event) -> None:
+    def _record_event(self, event: Event, **kw) -> None:
         """记录事件到溯源日志。"""
         with self._event_history_lock:
             self._event_history.append(event)
@@ -677,13 +695,13 @@ class EventBus:
             f"Dead-letter: event={event.type} handler={entry.handler_name} error={error[:100]}"
         )
 
-    def _increment_delivered(self) -> None:
+    def _increment_delivered(self, **kw) -> None:
         """记录一次成功投递 (用于速率计算)。"""
         with self._stats_lock:
             self.stats.total_delivered += 1
             self._emit_count_window.append(time.time())
 
-    def _count_subscriptions(self) -> int:
+    def _count_subscriptions(self, **kw) -> int:
         """统计活跃订阅数。"""
         count = 0
         for handlers in self._exact_subscriptions.values():
@@ -692,7 +710,7 @@ class EventBus:
             count += len(handlers)
         return count
 
-    def _update_subscription_stats(self) -> None:
+    def _update_subscription_stats(self, **kw) -> None:
         """更新订阅统计。"""
         with self._stats_lock:
             self.stats.active_subscriptions = self._count_subscriptions()

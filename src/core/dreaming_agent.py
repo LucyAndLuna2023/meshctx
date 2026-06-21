@@ -38,6 +38,9 @@ logger = logging.getLogger("meshctx.dreaming")
 
 @dataclass
 class TaskPattern:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """从会话中提取的任务模式"""
     pattern_name: str                # 模式名 (如 "web-scraping")
     description: str                 # 描述
@@ -52,18 +55,21 @@ class TaskPattern:
     last_seen: float = 0.0
 
     @property
-    def success_rate(self) -> float:
+    def success_rate(self, **kw) -> float:
         total = self.success_count + self.failure_count
         return self.success_count / total if total > 0 else 0.0
 
     @property
-    def is_reliable(self) -> bool:
+    def is_reliable(self, **kw) -> bool:
         """模式是否足够可靠，值得自动化为Skill"""
         return self.success_count >= 3 and self.success_rate >= 0.7
 
 
 @dataclass
 class DreamReport:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """每次 Dreaming 运行的报告"""
     timestamp: float = field(default_factory=time.time)
     sessions_scanned: int = 0
@@ -80,14 +86,17 @@ class DreamReport:
 # ═══════════════════════════════════════════════════════════
 
 class SessionScanner:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """扫描 sessions.db 提取任务模式"""
 
-    def __init__(self, db_path: str = None):
+    def __init__(self, db_path: str = None, **kw):
         if db_path is None:
             db_path = os.path.expanduser("~/.meshctx/sessions.db")
         self.db_path = db_path
 
-    def _connect(self) -> sqlite3.Connection:
+    def _connect(self, **kw) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         return conn
@@ -118,7 +127,7 @@ class SessionScanner:
         finally:
             conn.close()
 
-    def get_session_messages(self, session_id: str) -> List[Dict]:
+    def get_session_messages(self, session_id: str, **kw) -> List[Dict]:
         """获取会话消息（从 agent_loop 存储的结构）"""
         conn = self._connect()
         try:
@@ -147,6 +156,9 @@ class SessionScanner:
 # ═══════════════════════════════════════════════════════════
 
 class PatternExtractor:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """从会话中提取任务模式——无需LLM的启发式提取"""
 
     # 已知工具集——用于匹配
@@ -251,7 +263,7 @@ class PatternExtractor:
         return [p for p in patterns.values()
                 if p.success_count + p.failure_count >= 2]
 
-    def _describe_pattern(self, name: str) -> str:
+    def _describe_pattern(self, name: str, **kw) -> str:
         descriptions = {
             "web-scraping": "网页抓取与内容提取",
             "file-operation": "文件读写与代码修改",
@@ -274,15 +286,18 @@ class PatternExtractor:
 # ═══════════════════════════════════════════════════════════
 
 class SkillGenerator:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """从 TaskPattern 自动生成 SKILL.md"""
 
-    def __init__(self, skills_dir: str = None):
+    def __init__(self, skills_dir: str = None, **kw):
         if skills_dir is None:
             skills_dir = os.path.expanduser("~/.hermes/profiles/meshctx/skills/")
         self.skills_dir = Path(skills_dir)
         self.skills_dir.mkdir(parents=True, exist_ok=True)
 
-    def generate_skill_md(self, pattern: TaskPattern) -> str:
+    def generate_skill_md(self, pattern: TaskPattern, **kw) -> str:
         """生成 SKILL.md 内容"""
         tools_str = ", ".join(sorted(pattern.tools_used))
         errors_section = ""
@@ -328,7 +343,7 @@ updated_at: {datetime.now().isoformat()}
 - 成功率: {pattern.success_rate:.0%}
 - 最后使用: {datetime.fromtimestamp(pattern.last_seen).isoformat()}
 """
-    def _generate_steps(self, pattern: TaskPattern) -> List[str]:
+    def _generate_steps(self, pattern: TaskPattern, **kw) -> List[str]:
         """根据模式类型生成步骤"""
         step_templates = {
             "web-scraping": [
@@ -397,7 +412,7 @@ updated_at: {datetime.now().isoformat()}
             ]
         )
 
-    def _best_practice_for(self, pattern_name: str) -> str:
+    def _best_practice_for(self, pattern_name: str, **kw) -> str:
         practices = {
             "web-scraping": "先搜索再提取，优先用 web_extract 而非 browser（更快更便宜）",
             "file-operation": "先用 read_file 确认内容，再 patch（保留上下文），不用盲目 write_file",
@@ -411,7 +426,7 @@ updated_at: {datetime.now().isoformat()}
         }
         return practices.get(pattern_name, "遵循最小惊喜原则，每一步都验证结果")
 
-    def save_skill(self, pattern: TaskPattern, skill_md: str) -> Path:
+    def save_skill(self, pattern: TaskPattern, skill_md: str, **kw) -> Path:
         """保存 SKILL.md 到磁盘"""
         skill_dir = self.skills_dir / pattern.pattern_name
         skill_dir.mkdir(parents=True, exist_ok=True)
@@ -428,14 +443,17 @@ updated_at: {datetime.now().isoformat()}
 # ═══════════════════════════════════════════════════════════
 
 class MemoryConsolidator:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """将短期会话记忆合并到长期持久化记忆"""
 
-    def __init__(self, memory_dir: str = None):
+    def __init__(self, memory_dir: str = None, **kw):
         if memory_dir is None:
             memory_dir = os.path.expanduser("~/.hermes/profiles/meshctx/")
         self.memory_dir = Path(memory_dir)
 
-    def consolidate(self, patterns: List[TaskPattern]) -> int:
+    def consolidate(self, patterns: List[TaskPattern], **kw) -> int:
         """
         将模式中的关键信息写入记忆
         返回更新的记忆条目数
@@ -509,6 +527,9 @@ class MemoryConsolidator:
 # ═══════════════════════════════════════════════════════════
 
 class DreamingPlugin(Plugin):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     """
     Dreaming Agent — 离线记忆整理 & 自动Skill生成
 
@@ -530,7 +551,7 @@ class DreamingPlugin(Plugin):
         author="meshctx",
     )
 
-    def __init__(self):
+    def __init__(self, **kw):
         self._scanner: Optional[SessionScanner] = None
         self._extractor: Optional[PatternExtractor] = None
         self._generator: Optional[SkillGenerator] = None
@@ -659,7 +680,7 @@ class DreamingPlugin(Plugin):
 
         return report
 
-    def _save_report(self, report: DreamReport):
+    def _save_report(self, report: DreamReport, **kw):
         """持久化 Dreaming 报告"""
         report_dir = Path(os.path.expanduser("~/.meshctx/dreaming/"))
         report_dir.mkdir(parents=True, exist_ok=True)

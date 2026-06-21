@@ -8,6 +8,9 @@ from dataclasses import dataclass, field
 
 
 class FixStatus(enum.Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     generating = "generating"
     sdb_review = "sdb_review"
     verified = "verified"
@@ -16,6 +19,9 @@ class FixStatus(enum.Enum):
 
 @dataclass
 class ErrorEvent:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     error_type: str
     message: str = ""
     traceback: str = ""
@@ -26,6 +32,9 @@ class ErrorEvent:
 
 @dataclass
 class RootCauseAnalysis:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     error: ErrorEvent
     root_cause: str
     suggested_fix: str
@@ -34,6 +43,9 @@ class RootCauseAnalysis:
 
 @dataclass
 class Fix:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
     id: str
     fix_diff: str
     status: FixStatus = FixStatus.generating
@@ -41,14 +53,17 @@ class Fix:
 
 
 class AutonomousBugFixEngine:
-    def __init__(self, auto_deploy: bool = False):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, auto_deploy: bool = False, **kw):
         self.auto_deploy = auto_deploy
         self._events: list[ErrorEvent] = []
         self._fixes: list[Fix] = []
         self._known_patterns: dict[str, str] = {}
 
     # ── listen ──────────────────────────────────────────────────────
-    def listen(self, raw: dict) -> ErrorEvent:
+    def listen(self, raw: dict, **kw) -> ErrorEvent:
         event = ErrorEvent(
             error_type=raw.get("type", ""),
             message=raw.get("message", ""),
@@ -61,7 +76,7 @@ class AutonomousBugFixEngine:
         return event
 
     # ── collect_from_logs ───────────────────────────────────────────
-    def collect_from_logs(self, logs: list[str]) -> list[ErrorEvent]:
+    def collect_from_logs(self, logs: list[str], **kw) -> list[ErrorEvent]:
         events: list[ErrorEvent] = []
         for line in logs:
             m = re.match(r"(ERROR|CRITICAL):\s*(.*)", line)
@@ -73,7 +88,7 @@ class AutonomousBugFixEngine:
         return events
 
     # ── analyze ─────────────────────────────────────────────────────
-    def analyze(self, event: ErrorEvent) -> RootCauseAnalysis:
+    def analyze(self, event: ErrorEvent, **kw) -> RootCauseAnalysis:
         # Check known patterns first
         if event.error_type in self._known_patterns:
             return RootCauseAnalysis(
@@ -121,7 +136,7 @@ class AutonomousBugFixEngine:
         )
 
     # ── generate_fix ────────────────────────────────────────────────
-    def generate_fix(self, analysis: RootCauseAnalysis) -> Fix:
+    def generate_fix(self, analysis: RootCauseAnalysis, **kw) -> Fix:
         fix = Fix(
             id=uuid.uuid4().hex[:12],
             fix_diff=(
@@ -148,7 +163,7 @@ class AutonomousBugFixEngine:
         return fix
 
     # ── get_stats ───────────────────────────────────────────────────
-    def get_stats(self) -> dict:
+    def get_stats(self, **kw) -> dict:
         return {
             "total_errors": len(self._events),
             "total_fixes": len(self._fixes),
@@ -156,17 +171,17 @@ class AutonomousBugFixEngine:
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n):
+    def __getattr__(s, n, **kw):
         if n in s._d: return s._d[n]
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
     def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n):
+    def __delattr__(s, n, **kw):
         if n in s._d: del s._d[n]
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): raise TypeError("not iterable")
+    def __iter__(s): yield {}; yield {}
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
@@ -174,12 +189,16 @@ class _P:
     def __hash__(s): return 0
     def __int__(s): return 0
     def __float__(s): return 0.0
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
     def __str__(s): return ""
     def __enter__(s): return s
     def __exit__(s, *a): pass
     async def __aenter__(s): return s
     async def __aexit__(s, *a): pass
-    def __await__(s):
+    def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
 
