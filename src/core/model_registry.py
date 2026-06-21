@@ -437,6 +437,10 @@ class ModelRegistry:
 
             return sorted(results, key=lambda e: e.name)
 
+    def list_all(self):
+        """兼容别名: 返回所有模型名 -> ModelEntry 的映射"""
+        return self.list_models()
+
     def list_all_versions(self, model_name: str) -> List[ModelVersion]:
         """列出模型的所有版本"""
         entry = self.get_model(model_name)

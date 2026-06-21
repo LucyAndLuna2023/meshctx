@@ -4,6 +4,8 @@ TOOL_PRINCIPLE_MAP = {}
 class _ActionGate:
     def check(self, *a, **kw) -> bool: return True
     def stats(self): return {}
+    def get_stats(self): return self.stats()
+    def get_recent_events(self, limit=10): return []
 
 _gate = _ActionGate()
 def get_gate(): return _gate

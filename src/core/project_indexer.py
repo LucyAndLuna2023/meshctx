@@ -1,11 +1,21 @@
 """Project Indexer — 开源版 (stub)"""
 class _Indexer:
+    def __init__(self, root="."): self.project_root = root
     def index(self, *a, **kw): pass
     def search(self, *a, **kw): return []
     def stats(self): return {}
+    def scan(self):
+        class ScanResult:
+            total_files = 0
+            total_size = 0
+            total_lines = 0
+            languages = {}
+            scan_duration_ms = 0
+            last_scan = ""
+        return ScanResult()
 
 _indexer = _Indexer()
-def get_indexer(): return _indexer
+def get_indexer(root="."): return _Indexer(root)
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
@@ -19,7 +29,7 @@ class _P:
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): return iter([_P("i0")])
+    def __iter__(s): raise TypeError("not iterable")
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True

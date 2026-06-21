@@ -3,6 +3,7 @@ class CognitiveHealthMonitor:
     def __init__(self, *a, **kw): pass
     def check(self, *a, **kw) -> bool: return True
     def stats(self): return {"status": "healthy"}
+    def get_diagnosis(self): return {"status": "healthy", "score": 0.95, "issues": []}
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
@@ -16,7 +17,7 @@ class _P:
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): return iter([_P("i0")])
+    def __iter__(s): raise TypeError("not iterable")
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True

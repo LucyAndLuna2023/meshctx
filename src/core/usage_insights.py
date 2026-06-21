@@ -6,6 +6,12 @@ class UsageInsights:
     def track(self, *a, **kw): pass
     def report(self) -> dict: return {"total_tokens": 0, "total_calls": 0}
     def stats(self): return {}
+    def get_provider_stats(self): return {}
+    def get_model_stats(self): return {}
+    def record_session_start(self): pass
+    def get_weekly(self): return {"period": "weekly", "calls": 0, "tokens": 0}
+    def get_monthly(self): return {"period": "monthly", "calls": 0, "tokens": 0}
+    def get_summary(self, days=30): return {"period": f"{days}d", "calls": 0, "tokens": 0, "models": []}
 
 def get_usage_insights(): return UsageInsights()
 
@@ -21,7 +27,7 @@ class _P:
     def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
     def __bool__(s): return True
     def __len__(s): return 1
-    def __iter__(s): return iter([_P("i0")])
+    def __iter__(s): raise TypeError("not iterable")
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
     def __contains__(s, i): return True
     def __eq__(s, o): return True
