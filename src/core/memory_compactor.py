@@ -8,6 +8,9 @@ class MemoryTier(str, Enum):
     def __getattr__(self, name, **kw):
         if name.startswith("_"): raise AttributeError(name)
         return _P(name)
+    HOT = "hot"
+    WARM = "warm"
+    COLD = "cold"
     WORKING = "working"
     SHORT_TERM = "short_term"
     LONG_TERM = "long_term"
@@ -29,7 +32,7 @@ class MemoryEntry:
         return _P(name)
     entry_id: str = field(default_factory=lambda: f"mem_{uuid.uuid4().hex[:8]}")
     content: str = ""
-    tier: MemoryTier = MemoryTier.WORKING
+    tier: MemoryTier = MemoryTier.HOT
     timestamp: float = field(default_factory=time.time)
     access_count: int = 0
     importance: float = 0.5
@@ -84,11 +87,18 @@ class MemoryCompactor:
         self._stats = CompactionStats()
     @property
     def _all_entries(self): return list(self._entries.values())
-    def add(self, content, tier=None, tags=None, **kw):
-        entry = MemoryEntry(content=content, tier=tier or MemoryTier.WORKING)
+    def add(self, content, tier=None, tags=None, memory_id=None, **kw):
+        kwargs = dict(content=content, tier=tier or MemoryTier.HOT, tags=tags or [])
+        if memory_id:
+            kwargs['entry_id'] = memory_id
+        entry = MemoryEntry(**kwargs)
         self._entries[entry.entry_id] = entry
         return entry
     add_memory = add
+    def get_memory(self, entry_id, **kw):
+        return self._entries.get(entry_id)
+    def get(self, entry_id, **kw):
+        return self._entries.get(entry_id)
     def compact(self, strategy=None, **kw):
         return CompactionResult(original=MemoryEntry(content=""), compacted="", strategy=strategy or CompressionStrategy.SUMMARIZE)
     def retrieve(self, query, limit=10, **kw):
