@@ -100,6 +100,8 @@ class ChannelConfig:
     channel: str = "default"
     channel_type: ChannelType = None
     enabled: bool = True
+    endpoint: str = ""
+    webhook_url: str = ""
     min_priority: NotificationPriority = NotificationPriority.LOW
     config: Dict[str, Any] = field(default_factory=dict)  # 通道特定配置
     metadata: Dict[str, Any] = field(default_factory=dict)

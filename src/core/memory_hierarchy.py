@@ -7,6 +7,9 @@ class MemoryLevel(Enum):
     L2 = 2  # working
     L3 = 3  # long-term
     L4 = 4  # archival
+    WORKING = 2  # alias for L2
+    SHORT_TERM = 1  # alias for L1
+    LONG_TERM = 3  # alias for L3
 
 class MemoryItem:
     def __init__(self, content="", level=MemoryLevel.L1, **kw):

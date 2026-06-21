@@ -24,6 +24,7 @@ class MemoryEntry:
     timestamp: float = field(default_factory=time.time)
     access_count: int = 0
     importance: float = 0.5
+    tags: list = field(default_factory=list)
 
 @dataclass
 class CompactionResult:
@@ -57,7 +58,7 @@ class MemoryCompactor:
         self._stats = CompactionStats()
     @property
     def _all_entries(self): return list(self._entries.values())
-    def add(self, content, tier=None):
+    def add(self, content, tier=None, tags=None):
         entry = MemoryEntry(content=content, tier=tier or MemoryTier.WORKING)
         self._entries[entry.entry_id] = entry
         return entry
