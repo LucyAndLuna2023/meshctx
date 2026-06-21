@@ -1,4 +1,6 @@
-"""meshctx evolution_tracker — 开源版 (stub)"""
-class _Stub:
-    def __init__(self, *a, **kw): pass
-    def __getattr__(self, n): return lambda *a,**kw: None
+"""meshctx evolution_tracker — auto-generated stub"""
+
+
+def get_evolution_tracker(*args, **kwargs):
+    """Stub function"""
+    pass

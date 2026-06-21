@@ -1,7 +1,7 @@
-"""Agent Governance — 开源版 (stub)"""
-class _Governance:
-    def check(self, *a, **kw): return True
-    def stats(self): return {}
+"""meshctx agent_governance — auto-generated stub"""
 
-_gov = _Governance()
-def get_governance(): return _gov
+
+class AgentGovernance:
+    """Stub class"""
+    def __init__(self, *args, **kwargs):
+        pass

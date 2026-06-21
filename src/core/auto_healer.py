@@ -1,8 +1,7 @@
-"""Auto Healer — 开源版 (stub)"""
-class _Healer:
-    def start(self, *a, **kw): pass
-    def check(self, *a, **kw): return True
-    def heal(self, *a, **kw): pass
-    def stats(self): return {}
+"""meshctx auto_healer — auto-generated stub"""
 
-healer = _Healer()
+
+class AutoHealerV2:
+    """Stub class"""
+    def __init__(self, *args, **kwargs):
+        pass

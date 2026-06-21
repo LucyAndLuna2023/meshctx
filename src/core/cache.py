@@ -1,4 +1,6 @@
-"""meshctx cache — 开源版 (stub)"""
-class _Stub:
-    def __init__(self, *a, **kw): pass
-    def __getattr__(self, n): return lambda *a,**kw: None
+"""meshctx cache — auto-generated stub"""
+
+
+def get_semantic_cache(*args, **kwargs):
+    """Stub function"""
+    pass

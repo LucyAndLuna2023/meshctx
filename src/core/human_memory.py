@@ -1,15 +1,7 @@
-"""Human Memory — 开源版 (stub)"""
-from enum import Enum
+"""meshctx human_memory — auto-generated stub"""
 
-class EmotionIntensity(Enum):
-    LOW = 1
-    MEDIUM = 2
-    HIGH = 3
 
-class _HumanMemory:
-    def store(self, *a, **kw): pass
-    def recall(self, *a, **kw): return []
-    def stats(self): return {}
-
-_memory = _HumanMemory()
-def get_human_memory(): return _memory
+class MemoryChunk:
+    """Stub class"""
+    def __init__(self, *args, **kwargs):
+        pass

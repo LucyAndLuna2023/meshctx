@@ -1,4 +1,12 @@
-"""meshctx active_inference — 开源版 (stub)"""
-class _Stub:
-    def __init__(self, *a, **kw): pass
-    def __getattr__(self, n): return lambda *a,**kw: None
+"""meshctx active_inference — auto-generated stub"""
+
+
+class ActiveInferenceEngine:
+    """Stub class"""
+    def __init__(self, *args, **kwargs):
+        pass
+
+class DualProcessDecision:
+    """Stub class"""
+    def __init__(self, *args, **kwargs):
+        pass

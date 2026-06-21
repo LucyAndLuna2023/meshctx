@@ -1,4 +1,7 @@
-"""meshctx benchmark_engine — 开源版 (stub)"""
-class _Stub:
-    def __init__(self, *a, **kw): pass
-    def __getattr__(self, n): return lambda *a,**kw: None
+"""meshctx benchmark_engine — auto-generated stub"""
+
+
+class BenchmarkEngine:
+    """Stub class"""
+    def __init__(self, *args, **kwargs):
+        pass

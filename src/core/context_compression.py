@@ -1,4 +1,6 @@
-"""meshctx context_compression — 开源版 (stub)"""
-class _Stub:
-    def __init__(self, *a, **kw): pass
-    def __getattr__(self, n): return lambda *a,**kw: None
+"""meshctx context_compression — auto-generated stub"""
+
+
+def get_context_compressor(*args, **kwargs):
+    """Stub function"""
+    pass

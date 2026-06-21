@@ -1,4 +1,12 @@
-"""meshctx auto_tuner — 开源版 (stub)"""
-class _Stub:
-    def __init__(self, *a, **kw): pass
-    def __getattr__(self, n): return lambda *a,**kw: None
+"""meshctx auto_tuner — auto-generated stub"""
+
+
+class AutoTuner:
+    """Stub class"""
+    def __init__(self, *args, **kwargs):
+        pass
+
+class PerformanceAutoTuner:
+    """Stub class"""
+    def __init__(self, *args, **kwargs):
+        pass
