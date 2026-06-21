@@ -9,8 +9,9 @@ from pathlib import Path
 
 
 class BackupVault:
-    def __init__(self, config_dir):
-        self._config_dir = Path(config_dir)
+    def __init__(self, config_dir=None, vault_dir=None):
+        d = vault_dir or config_dir or "/tmp/backup_vault"
+        self._config_dir = Path(d)
         self._config_dir.mkdir(parents=True, exist_ok=True)
         self._backup_paths: list[str] = []
         self._load_config()
