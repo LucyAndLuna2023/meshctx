@@ -55,7 +55,7 @@ class InboxStats:
     spam_count: int = 0
 
 class EmailEngine:
-    def __init__(self, imap_host: str = "", smtp_host: str = "", classifier_fn=None, summarizer_fn=None, reply_fn=None):
+    def __init__(self, imap_host: str = "", smtp_host: str = "", classifier_fn=None, summarizer_fn=None, reply_fn=None, username: str = "", password: str = ""):
         self._emails = {}
         self._labels = {}
         self._stats = InboxStats()
