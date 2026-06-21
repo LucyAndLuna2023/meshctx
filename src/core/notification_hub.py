@@ -53,6 +53,7 @@ class NotificationPriority(str, Enum):
     MEDIUM = "medium"           # 中
     LOW = "low"                 # 低
     INFO = "info"               # 信息
+    NORMAL = "medium"           # alias
 
 
 class NotificationStatus(str, Enum):
@@ -102,6 +103,8 @@ class ChannelConfig:
     enabled: bool = True
     endpoint: str = ""
     webhook_url: str = ""
+    max_retries: int = 3
+    ntfy_topic: str = ""
     min_priority: NotificationPriority = NotificationPriority.LOW
     config: Dict[str, Any] = field(default_factory=dict)  # 通道特定配置
     metadata: Dict[str, Any] = field(default_factory=dict)
