@@ -292,7 +292,9 @@ class SelfModifyEngine:
 
     def __init__(self, workspace_root: str = None, db_path: str = None,
                  approval_callback: Callable = None,
-                 allowed_dirs: List[str] = None):
+                 allowed_dirs: List[str] = None,
+                 auto_apply: bool = False,
+                 safety_level: str = "high"):
         """
         Args:
             workspace_root: 项目根目录 (用于白名单验证)
