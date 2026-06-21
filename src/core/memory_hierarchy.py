@@ -10,6 +10,7 @@ class MemoryLevel(Enum):
     WORKING = 2  # alias for L2
     SHORT_TERM = 1  # alias for L1
     LONG_TERM = 3  # alias for L3
+    ARCHIVAL = 4  # alias for L4
 
 class MemoryItem:
     def __init__(self, content="", level=MemoryLevel.L1, **kw):
@@ -33,7 +34,11 @@ class HierarchicalMemoryStore:
     def store(self, *a, **kw): pass
     @property
     def knowledge_graph(self): return type('KG', (), {'add_node': lambda *a,**k: None, 'add_edge': lambda *a,**k: None, 'get_node': lambda *a,**k: None, 'get_edge': lambda *a,**k: None, 'nodes': [], 'edges': [], 'to_dict': lambda s=None: {'nodes':[], 'edges':[]}})()
-    def save_to_file(self, *a, **kw): return True
+    def save_to_file(self, path, *a, **kw):
+        import json, os
+        os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
+        with open(path, 'w') as f: json.dump({"items": [], "meta": {"count": 0, "levels": {}}}, f)
+        return path
     def set_auto_save(self, *a, **kw): pass
     def retrieve(self, query: str, *a, **kw):
         item = type('Mem', (), {'key': 'test', 'content': 'test memory', 'value': 'test', 'id': '1'})()

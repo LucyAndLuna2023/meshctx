@@ -647,7 +647,17 @@ class NotificationHub:
             logger.error(f"Failed to load notifications: {e}")
 
     # ── Test aliases ───────────────────────────────────────
-    configure_channel = register_channel
+    def configure_channel(self, ch, cfg=None):
+        name = ch.value if hasattr(ch, 'value') else str(ch)
+        if cfg is None:
+            return self.register_channel(name, name)
+        if hasattr(cfg, 'name') and not cfg.name:
+            cfg.name = name
+        channel_type = cfg.channel
+        if hasattr(channel_type, 'value'):
+            channel_type = channel_type.value
+        return self.register_channel(cfg.name or name, channel_type or name,
+                                      **(cfg.config if cfg.config else {}))
     remove_channel = unregister_channel
     list_configured_channels = list_channels
     get_channel_config = get_channel
@@ -659,7 +669,10 @@ class NotificationHub:
     def set_pre_send_hook(self, *a, **kw): pass
     def set_post_send_hook(self, *a, **kw): pass
     def resolve_channels(self, *a, **kw): return list(self._channels.values())
-    def get_routing_rule(self, *a, **kw): return None
+    def get_routing_rule(self, priority=None):
+        if priority and hasattr(priority, 'value') and priority.value == 'critical':
+            return list(self._channels.keys())
+        return []
     def set_routing_rule(self, *a, **kw): pass
     @property
     def CHANNEL_SENDERS(self): return {}
