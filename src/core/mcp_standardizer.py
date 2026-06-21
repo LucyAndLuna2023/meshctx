@@ -48,7 +48,7 @@ class MCPStandardizer:
 
 def _py_type_to_json_schema(py_type):
     mapping = {str: "string", int: "integer", float: "number", bool: "boolean", list: "array", dict: "object"}
-    return mapping.get(py_type, "string")
+    return {"type": mapping.get(py_type, "string")}
 
 def generate_json_schema_from_func(func):
     sig = inspect.signature(func)
@@ -56,7 +56,7 @@ def generate_json_schema_from_func(func):
     required = []
     for pname, param in sig.parameters.items():
         pt = param.annotation if param.annotation != inspect.Parameter.empty else str
-        props[pname] = {"type": _py_type_to_json_schema(pt)}
+        props[pname] = _py_type_to_json_schema(pt)
         if param.default == inspect.Parameter.empty:
             required.append(pname)
     return {"type": "object", "properties": props, "required": required}
