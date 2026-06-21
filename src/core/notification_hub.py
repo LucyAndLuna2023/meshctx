@@ -74,6 +74,8 @@ class ChannelType(str, Enum):
     SLACK = "slack"             # Slack 消息
     SMS = "sms"                 # 短信
     CUSTOM = "custom"           # 自定义
+    FEISHU = "feishu"           # 飞书
+    NTFY = "ntfy"               # ntfy.sh
 
 
 MAX_RETRIES = 3
