@@ -133,6 +133,14 @@ _known = {
 def __getattr__(name):
     if name.startswith('_'):
         raise AttributeError(name)
+    # 如果 name 本身是已知子模块名, 直接返回模块 (而非模块内符号)
+    if name in _known:
+        try:
+            mod = __import__(f'src.core.{name}', fromlist=['__name__'])
+            globals()[name] = mod
+            return mod
+        except ImportError:
+            pass
     for mod_name, symbols in _known.items():
         if name in symbols:
             try:

@@ -4628,6 +4628,14 @@ async def terminal_exec(request: Request):
         cmd = body.get("cmd", "")
         if not cmd:
             return {"error": "cmd不能为空"}
+        # 危险命令检测
+        import re
+        dangerous = ["rm -rf /", "mkfs\\.", "dd if=", "fork bomb",
+                      "shutdown", "reboot", "chmod 777 /",
+                      "curl.*\\|.*sh", "wget.*\\|.*sh"]
+        for pattern in dangerous:
+            if re.search(pattern, cmd, re.IGNORECASE):
+                return {"error": "危险命令已被拦截", "blocked": True}
         result = subprocess.run(
             cmd, shell=True,
             capture_output=True, text=True, timeout=30,

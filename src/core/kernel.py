@@ -147,6 +147,8 @@ class ResourceGovernor:
 class Kernel:
     """微内核 — 开源版"""
     def __init__(self):
+        self._started = False
+        self._plugins: Dict[str, Any] = {}
         self.event_bus = EventBus()
         self.plugin_manager = PluginManager()
         self.governor = ResourceGovernor()
@@ -154,6 +156,7 @@ class Kernel:
         self.config = {"kernel": {"worker_count": 4}, "gateway": {"enabled": True}}
     
     async def start(self, **kwargs):
+        self._started = True
         await self.event_bus.start()
         await self.plugin_manager.activate_all(self)
         logger.info("Kernel started (open-source stub mode)")
