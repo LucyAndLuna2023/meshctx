@@ -1,273 +1,585 @@
-"""meshctx workflow_engine — v2.75 Workflow Engine"""
+"""meshctx workflow_engine — v3.107 DAG Workflow Engine"""
 
 import asyncio
+import inspect
 import time
-import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 
-class StepStatus(Enum):
-    pending = "pending"
-    running = "running"
-    passed = "passed"
-    failed = "failed"
-    skipped = "skipped"
-    blocked = "blocked"
+# ═══════════════════════════════════════════════════════════════
+# Enums
+# ═══════════════════════════════════════════════════════════════
 
+class NodeStatus(Enum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+    LOOPING = "looping"
+
+
+class NodeType(Enum):
+    TASK = "task"
+    CONDITION = "condition"
+    LOOP = "loop"
+    GATEWAY = "gateway"
+
+
+# ═══════════════════════════════════════════════════════════════
+# Data classes
+# ═══════════════════════════════════════════════════════════════
 
 @dataclass
-class StepResult:
-    name: str
-    status: StepStatus = StepStatus.pending
-    duration_ms: int = 0
-    output: Dict[str, Any] = field(default_factory=dict)
+class WorkflowNode:
+    id: str
+    func: Optional[Callable] = None
+    inputs: List[str] = field(default_factory=list)
+    type: NodeType = NodeType.TASK
+    status: NodeStatus = NodeStatus.PENDING
+    result: Any = None
     error: Optional[str] = None
+    iteration_count: int = 0
+    retries: int = 0
+    _max_retries: int = 0
 
 
 @dataclass
-class ExecutionResult:
-    request_id: str
-    steps: List[StepResult] = field(default_factory=list)
-    total_duration_ms: int = 0
-    success: bool = False
+class WorkflowEdge:
+    source: str
+    target: str
+    label: Optional[str] = None
+
+
+@dataclass
+class ExecutionContext:
+    variables: Dict[str, Any] = field(default_factory=dict)
+
+
+# ═══════════════════════════════════════════════════════════════
+# WorkflowEngine
+# ═══════════════════════════════════════════════════════════════
+
+@dataclass
+class _ConditionalDef:
+    source_node: str
+    condition_fn: Callable
+    true_branch: str
+    false_branch: str
+
+
+@dataclass
+class _LoopDef:
+    source_node: str
+    loop_body_fn: Callable
+    while_condition: Optional[Callable] = None
+    max_iterations: int = 100
 
 
 class WorkflowEngine:
-    """v2.75 工作流引擎 — 标准流水线执行"""
+    """DAG-based workflow execution engine."""
 
-    # 标准流水线定义：至少 8 步，支持依赖关系
-    STANDARD_PIPELINE: List[Dict[str, Any]] = [
-        {"name": "安全扫描",    "handler": "_handle_shield",     "depends": []},
-        {"name": "路由决策",    "handler": "_handle_router",     "depends": []},
-        {"name": "合规检查",    "handler": "_handle_compliance", "depends": []},
-        {"name": "意图理解",    "handler": "_handle_intent",     "depends": ["路由决策"]},
-        {"name": "上下文增强",  "handler": "_handle_context",    "depends": ["意图理解"]},
-        {"name": "推理规划",    "handler": "_handle_reasoning",  "depends": ["上下文增强"]},
-        {"name": "任务执行",    "handler": "_handle_execution",  "depends": ["推理规划"]},
-        {"name": "结果验证",    "handler": "_handle_validation", "depends": ["任务执行"]},
-        {"name": "输出格式化",  "handler": "_handle_format",     "depends": ["结果验证"]},
-        {"name": "日志记录",    "handler": "_handle_logging",    "depends": ["输出格式化"]},
-    ]
+    def __init__(self, name: str = "workflow", max_workers: int = 8):
+        self.name = name
+        self.max_workers = max_workers
+        self._nodes: Dict[str, WorkflowNode] = {}
+        self._edges: List[WorkflowEdge] = []
+        self._conditionals: Dict[str, _ConditionalDef] = {}
+        self._loops: Dict[str, _LoopDef] = {}
 
-    # 危险关键词列表
-    DANGEROUS_PATTERNS = [
-        "ignore all previous instructions",
-        "delete everything",
-        "bypass",
-        "jailbreak",
-        "system prompt",
-        "override",
-    ]
+    # ── Construction ──────────────────────────────────────────
 
-    def __init__(self):
-        self._execution_count: int = 0
-        self._total_steps_run: int = 0
-        self._recent_executions: List[ExecutionResult] = []
+    @property
+    def node_count(self) -> int:
+        return len(self._nodes)
 
-    # ── pipeline visual ──────────────────────────────────────────
+    @property
+    def edge_count(self) -> int:
+        return len(self._edges)
 
-    def get_pipeline_visual(self) -> str:
-        """返回流水线的可视化文本。"""
-        lines = ["Workflow Pipeline v2.75", "=" * 40]
-        for step in self.STANDARD_PIPELINE:
-            deps = " → ".join(step.get("depends", [])) or "入口"
-            lines.append(f"  [{step['name']}]  ← {deps}")
-        return "\n".join(lines)
-
-    # ── execution ────────────────────────────────────────────────
-
-    async def execute(self, request: Dict[str, Any]) -> ExecutionResult:
-        """执行完整流水线。"""
-        request_id = str(uuid.uuid4())[:8]
-        result = ExecutionResult(request_id=request_id)
-        start = time.time()
-
-        # 收集所有已完成的步骤名，用于依赖检查
-        completed: set = set()
-        step_outputs: Dict[str, Dict[str, Any]] = {}
-
-        for step_def in self.STANDARD_PIPELINE:
-            step_name = step_def["name"]
-            handler_name = step_def["handler"]
-            depends = step_def.get("depends", [])
-
-            step_result = StepResult(name=step_name)
-
-            # 检查依赖是否全部满足
-            deps_met = all(d in completed for d in depends)
-            if not deps_met:
-                missing = [d for d in depends if d not in completed]
-                step_result.status = StepStatus.skipped
-                step_result.error = f"依赖未满足: {missing}"
-                result.steps.append(step_result)
-                continue
-
-            # 调用处理器
-            handler = getattr(self, handler_name, None)
-            if handler is None:
-                step_result.status = StepStatus.failed
-                step_result.error = f"处理器不存在: {handler_name}"
-                result.steps.append(step_result)
-                continue
-
-            try:
-                t0 = time.time()
-                output = handler(request, step_outputs)
-                step_result.duration_ms = int((time.time() - t0) * 1000)
-                step_result.output = output
-
-                if output.get("blocked"):
-                    step_result.status = StepStatus.blocked
-                else:
-                    step_result.status = StepStatus.passed
-            except Exception as e:
-                step_result.status = StepStatus.failed
-                step_result.error = str(e)
-
-            result.steps.append(step_result)
-            if step_result.status in (StepStatus.passed, StepStatus.skipped):
-                completed.add(step_name)
-                step_outputs[step_name] = step_result.output
-
-        result.total_duration_ms = int((time.time() - start) * 1000)
-        # 确保即使极快执行也有 > 0 的耗时记录
-        if result.total_duration_ms == 0:
-            await asyncio.sleep(0.001)
-            result.total_duration_ms = max(1, int((time.time() - start) * 1000))
-        result.success = all(
-            s.status in (StepStatus.passed, StepStatus.skipped)
-            for s in result.steps
+    def add_node(
+        self,
+        node_id: str,
+        func: Optional[Callable] = None,
+        inputs: Optional[List[str]] = None,
+        retries: int = 0,
+    ) -> WorkflowNode:
+        if node_id in self._nodes:
+            raise ValueError(f"Node '{node_id}' already exists")
+        node = WorkflowNode(
+            id=node_id,
+            func=func,
+            inputs=inputs or [],
+            _max_retries=retries,
+            retries=retries,
         )
+        self._nodes[node_id] = node
+        # Auto-create edges from inputs
+        if inputs:
+            for src in inputs:
+                self._edges.append(WorkflowEdge(source=src, target=node_id))
+        return node
 
-        self._execution_count += 1
-        self._total_steps_run += len(result.steps)
-        self._recent_executions.append(result)
-        if len(self._recent_executions) > 100:
-            self._recent_executions.pop(0)
+    def add_edge(self, source: str, target: str, label: Optional[str] = None):
+        self._edges.append(WorkflowEdge(source=source, target=target, label=label))
+
+    def add_conditional(
+        self,
+        node_id: str,
+        condition_fn: Callable,
+        source_node: str,
+        true_branch: str,
+        false_branch: str,
+    ):
+        self._conditionals[node_id] = _ConditionalDef(
+            source_node=source_node,
+            condition_fn=condition_fn,
+            true_branch=true_branch,
+            false_branch=false_branch,
+        )
+        self._nodes[node_id] = WorkflowNode(
+            id=node_id,
+            type=NodeType.CONDITION,
+        )
+        # Edges: source → conditional, conditional → branches
+        self._edges.append(WorkflowEdge(source=source_node, target=node_id))
+        self._edges.append(WorkflowEdge(source=node_id, target=true_branch, label="True"))
+        self._edges.append(WorkflowEdge(source=node_id, target=false_branch, label="False"))
+
+    def add_loop(
+        self,
+        node_id: str,
+        loop_body_fn: Callable,
+        source_node: str,
+        while_condition: Optional[Callable] = None,
+        max_iterations: int = 100,
+    ):
+        self._loops[node_id] = _LoopDef(
+            source_node=source_node,
+            loop_body_fn=loop_body_fn,
+            while_condition=while_condition,
+            max_iterations=max_iterations,
+        )
+        self._nodes[node_id] = WorkflowNode(
+            id=node_id,
+            type=NodeType.LOOP,
+        )
+        self._edges.append(WorkflowEdge(source=source_node, target=node_id))
+
+    # ── Query ─────────────────────────────────────────────────
+
+    def get_node(self, node_id: str) -> Optional[WorkflowNode]:
+        return self._nodes.get(node_id)
+
+    def get_predecessors(self, node_id: str) -> List[str]:
+        return [e.source for e in self._edges if e.target == node_id]
+
+    def get_successors(self, node_id: str) -> List[str]:
+        return [e.target for e in self._edges if e.source == node_id]
+
+    # ── Validation ────────────────────────────────────────────
+
+    def validate(self) -> Tuple[bool, List[str]]:
+        errors: List[str] = []
+
+        # Check for cycles
+        if self._has_cycle():
+            errors.append("Cycle detected in workflow graph")
+
+        # Check all edge targets exist (if not conditional/loop)
+        for edge in self._edges:
+            if edge.target not in self._nodes:
+                errors.append(f"Edge target '{edge.target}' not found")
+            if edge.source not in self._nodes:
+                # Source might be a conditional/loop
+                if edge.source not in self._conditionals and edge.source not in self._loops:
+                    errors.append(f"Edge source '{edge.source}' not found")
+
+        return len(errors) == 0, errors
+
+    def _has_cycle(self) -> bool:
+        """DFS cycle detection."""
+        WHITE, GRAY, BLACK = 0, 1, 2
+        colors: Dict[str, int] = {nid: WHITE for nid in self._nodes}
+
+        def dfs(nid: str) -> bool:
+            colors[nid] = GRAY
+            for succ in self.get_successors(nid):
+                if succ not in colors:
+                    continue
+                if colors[succ] == GRAY:
+                    return True
+                if colors[succ] == WHITE and dfs(succ):
+                    return True
+            colors[nid] = BLACK
+            return False
+
+        for nid in self._nodes:
+            if colors[nid] == WHITE and dfs(nid):
+                return True
+        return False
+
+    def topological_sort(self) -> List[str]:
+        """Return nodes in topological order."""
+        in_degree: Dict[str, int] = {nid: 0 for nid in self._nodes}
+        for edge in self._edges:
+            if edge.target in in_degree:
+                in_degree[edge.target] += 1
+
+        queue = [nid for nid, deg in in_degree.items() if deg == 0]
+        result = []
+
+        while queue:
+            nid = queue.pop(0)
+            result.append(nid)
+            for succ in self.get_successors(nid):
+                if succ in in_degree:
+                    in_degree[succ] -= 1
+                    if in_degree[succ] == 0:
+                        queue.append(succ)
+
+        # Add any remaining nodes not reached (e.g. disconnected)
+        for nid in self._nodes:
+            if nid not in result:
+                result.append(nid)
 
         return result
 
-    # ── stats ────────────────────────────────────────────────────
+    # ── Execution ─────────────────────────────────────────────
 
-    def get_stats(self) -> Dict[str, Any]:
-        """获取引擎统计信息。"""
+    def run(self) -> Dict[str, Any]:
+        """Execute the workflow DAG."""
+        valid, errors = self.validate()
+        if not valid:
+            raise ValueError(f"Workflow validation failed: {'; '.join(errors)}")
+
+        # Reset all nodes
+        for node in self._nodes.values():
+            node.status = NodeStatus.PENDING
+            node.result = None
+            node.error = None
+            node.iteration_count = 0
+
+        results: Dict[str, Any] = {}
+        completed: Set[str] = set()
+
+        # Process nodes in topological order, with parallel execution
+        # for nodes at the same depth
+        order = self.topological_sort()
+
+        # Build dependency graph: node → nodes that depend on it
+        dependents: Dict[str, Set[str]] = {}
+        for edge in self._edges:
+            if edge.target in self._nodes:
+                dependents.setdefault(edge.source, set()).add(edge.target)
+
+        # Ready queue: nodes whose inputs are all satisfied
+        # Exclude conditional/loop nodes — they are triggered by their source nodes.
+        # All inputs (including conditionals/loops) must be in completed.
+        ready: List[str] = [
+            nid for nid in order
+            if nid not in self._conditionals and nid not in self._loops
+            and all(
+                src in completed
+                for src in self._nodes[nid].inputs
+            )
+        ]
+
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            while ready:
+                # Submit all ready nodes in parallel
+                futures: Dict[Any, str] = {}
+                for nid in ready:
+                    futures[executor.submit(self._execute_node, nid, results)] = nid
+
+                ready = []
+
+                for future in as_completed(futures):
+                    nid = futures[future]
+                    result = None
+                    try:
+                        result = future.result()
+                        results[nid] = result
+                    except Exception:
+                        results[nid] = None
+
+                    node = self._nodes[nid]
+                    if node.status == NodeStatus.COMPLETED:
+                        completed.add(nid)
+                        # Check which dependent nodes become ready
+                        for dep in dependents.get(nid, set()):
+                            dep_node = self._nodes[dep]
+                            if all(
+                                src in completed
+                                for src in dep_node.inputs
+                            ):
+                                if dep not in ready and dep_node.status == NodeStatus.PENDING:
+                                    ready.append(dep)
+
+                    # Handle conditionals that point to this node
+                    for cid, cdef in self._conditionals.items():
+                        if cdef.source_node == nid and cid not in completed:
+                            cnode = self._nodes[cid]
+                            if cnode.status == NodeStatus.PENDING:
+                                try:
+                                    cond_result = cdef.condition_fn(result)
+                                except Exception as e:
+                                    cnode.status = NodeStatus.FAILED
+                                    cnode.error = str(e)
+                                    cond_result = False
+                                cnode.result = cond_result
+                                cnode.status = NodeStatus.COMPLETED
+                                completed.add(cid)
+                                results[cid] = cond_result
+
+                                # Activate the chosen branch
+                                chosen = cdef.true_branch if cond_result else cdef.false_branch
+                                if chosen in self._nodes:
+                                    branch_node = self._nodes[chosen]
+                                    if all(
+                                        src in completed
+                                        for src in branch_node.inputs
+                                    ):
+                                        if chosen not in ready and branch_node.status == NodeStatus.PENDING:
+                                            ready.append(chosen)
+
+                    # Handle loops that source from this node
+                    for lid, ldef in self._loops.items():
+                        if ldef.source_node == nid and lid not in completed:
+                            lnode = self._nodes[lid]
+                            if lnode.status == NodeStatus.PENDING:
+                                lnode.status = NodeStatus.LOOPING
+                                # Execute loop
+                                val = result
+                                for i in range(ldef.max_iterations):
+                                    lnode.iteration_count = i + 1
+                                    try:
+                                        if inspect.iscoroutinefunction(ldef.loop_body_fn):
+                                            val = asyncio.get_event_loop().run_until_complete(
+                                                ldef.loop_body_fn(val)
+                                            )
+                                        else:
+                                            val = ldef.loop_body_fn(val)
+                                    except Exception as e:
+                                        lnode.status = NodeStatus.FAILED
+                                        lnode.error = str(e)
+                                        break
+                                    if ldef.while_condition and not ldef.while_condition(val):
+                                        break
+                                else:
+                                    # Reached max_iterations
+                                    pass
+                                if lnode.status == NodeStatus.LOOPING:
+                                    lnode.status = NodeStatus.COMPLETED
+                                lnode.result = val
+                                completed.add(lid)
+                                results[lid] = val
+
+                                # Activate dependents
+                                for dep in dependents.get(lid, set()):
+                                    dep_node = self._nodes[dep]
+                                    if all(
+                                        src in completed
+                                        for src in dep_node.inputs
+                                    ):
+                                        if dep not in ready and dep_node.status == NodeStatus.PENDING:
+                                            ready.append(dep)
+
+        return results
+
+    def _execute_node(self, node_id: str, previous_results: Dict[str, Any]) -> Any:
+        """Execute a single node with retries."""
+        node = self._nodes[node_id]
+        if node.func is None:
+            node.status = NodeStatus.COMPLETED
+            node.result = None
+            return None
+
+        # Build kwargs from input dependencies
+        kwargs = {}
+        for inp in node.inputs:
+            if inp in previous_results:
+                kwargs[inp] = previous_results[inp]
+
+        remaining_retries = node._max_retries
+        while True:
+            node.status = NodeStatus.RUNNING
+            try:
+                if inspect.iscoroutinefunction(node.func):
+                    loop = asyncio.new_event_loop()
+                    try:
+                        result = loop.run_until_complete(
+                            node.func(**kwargs) if kwargs else node.func()
+                        )
+                    finally:
+                        loop.close()
+                elif inspect.signature(node.func).parameters:
+                    result = node.func(**kwargs)
+                else:
+                    result = node.func()
+                node.result = result
+                node.status = NodeStatus.COMPLETED
+                return result
+            except Exception as e:
+                if remaining_retries > 0:
+                    remaining_retries -= 1
+                    time.sleep(0.01)
+                    continue
+                node.status = NodeStatus.FAILED
+                node.error = str(e)
+                node.result = None
+                return None
+
+    # ── Mermaid Visualization ─────────────────────────────────
+
+    def to_mermaid(self, direction: str = "TD", show_status: bool = False) -> str:
+        lines = ["```mermaid", f"graph {direction}"]
+        for node in self._nodes.values():
+            label = node.id
+            if show_status and node.status != NodeStatus.PENDING:
+                label += f"[{node.status.value}]"
+            if node.type == NodeType.CONDITION:
+                label = f"{{{label}}}"
+            lines.append(f"    {node.id}[{label}]")
+
+        for edge in self._edges:
+            arrow = f"{edge.source} -->"
+            if edge.label:
+                arrow += f"|{edge.label}|"
+            arrow += f" {edge.target}"
+            lines.append(f"    {arrow}")
+
+        # Add conditional labels
+        for cid, cdef in self._conditionals.items():
+            lines.append(f"    {cid} -->|True| {cdef.true_branch}")
+            lines.append(f"    {cid} -->|False| {cdef.false_branch}")
+
+        # Add loop labels
+        for lid, ldef in self._loops.items():
+            lines.append(
+                f"    {lid}[{lid}<br/>iter={self._nodes[lid].iteration_count}]"
+            )
+
+        lines.append("```")
+        return "\n".join(lines)
+
+    def to_mermaid_raw(self, direction: str = "TD") -> str:
+        md = self.to_mermaid(direction=direction)
+        # Strip ```mermaid and final ```
+        lines = md.split("\n")
+        return "\n".join(lines[1:-1])
+
+    # ── Serialization ─────────────────────────────────────────
+
+    def to_dict(self) -> Dict[str, Any]:
         return {
-            "total_executions": self._execution_count,
-            "total_steps_run": self._total_steps_run,
-            "pipeline": {
-                "steps": len(self.STANDARD_PIPELINE),
-                "names": [s["name"] for s in self.STANDARD_PIPELINE],
+            "name": self.name,
+            "max_workers": self.max_workers,
+            "nodes": [
+                {
+                    "id": n.id,
+                    "type": n.type.value,
+                    "inputs": n.inputs,
+                    "retries": n._max_retries,
+                }
+                for n in self._nodes.values()
+            ],
+            "edges": [
+                {"source": e.source, "target": e.target, "label": e.label}
+                for e in self._edges
+            ],
+            "conditionals": {
+                cid: {
+                    "source_node": cd.source_node,
+                    "true_branch": cd.true_branch,
+                    "false_branch": cd.false_branch,
+                }
+                for cid, cd in self._conditionals.items()
+            },
+            "loops": {
+                lid: {
+                    "source_node": ld.source_node,
+                    "max_iterations": ld.max_iterations,
+                }
+                for lid, ld in self._loops.items()
             },
         }
 
-    # ── step handlers ────────────────────────────────────────────
+    @classmethod
+    def from_dict(
+        cls, data: Dict[str, Any], node_funcs: Optional[Dict[str, Callable]] = None
+    ) -> "WorkflowEngine":
+        engine = cls(name=data.get("name", "workflow"), max_workers=data.get("max_workers", 8))
+        node_funcs = node_funcs or {}
 
-    def _handle_shield(
-        self, request: Dict[str, Any], _outputs: Optional[Dict] = None
-    ) -> Dict[str, Any]:
-        """安全扫描：检测危险 / 注入 / 越狱提示词。"""
-        prompt = request.get("prompt", "")
-        prompt_lower = prompt.lower()
+        for ndata in data.get("nodes", []):
+            nid = ndata["id"]
+            ntype = NodeType(ndata["type"])
+            func = node_funcs.get(nid)
+            engine._nodes[nid] = WorkflowNode(
+                id=nid,
+                func=func,
+                inputs=ndata.get("inputs", []),
+                type=ntype,
+                _max_retries=ndata.get("retries", 0),
+                retries=ndata.get("retries", 0),
+            )
 
-        for pattern in self.DANGEROUS_PATTERNS:
-            if pattern.lower() in prompt_lower:
-                return {
-                    "status": "dangerous",
-                    "blocked": True,
-                    "reason": f"检测到危险模式: {pattern}",
-                }
+        for edata in data.get("edges", []):
+            engine._edges.append(WorkflowEdge(
+                source=edata["source"],
+                target=edata["target"],
+                label=edata.get("label"),
+            ))
 
-        return {"status": "safe", "blocked": False}
+        # Reconstruct conditionals
+        for cid, cdata in data.get("conditionals", {}).items():
+            # The conditional func needs to be provided by caller in node_funcs
+            cond_fn = node_funcs.get(cid)
+            engine._conditionals[cid] = _ConditionalDef(
+                source_node=cdata["source_node"],
+                condition_fn=cond_fn if cond_fn else (lambda x: True),
+                true_branch=cdata["true_branch"],
+                false_branch=cdata["false_branch"],
+            )
+            if cid not in engine._nodes:
+                engine._nodes[cid] = WorkflowNode(id=cid, type=NodeType.CONDITION)
 
-    def _handle_router(
-        self, request: Dict[str, Any], _outputs: Optional[Dict] = None
-    ) -> Dict[str, Any]:
-        """路由决策：根据提示词和任务类型选择模型/策略。"""
-        task_type = request.get("task_type", "general")
-        model_map = {
-            "code": "deepseek-coder-v4",
-            "math": "deepseek-math",
-            "vision": "deepseek-vision",
-            "general": "deepseek-v4-pro",
-        }
-        return {
-            "model": model_map.get(task_type, "deepseek-v4-pro"),
-            "task_type": task_type,
-            "strategy": "standard",
-        }
+        for lid, ldata in data.get("loops", {}).items():
+            loop_fn = node_funcs.get(lid)
+            engine._loops[lid] = _LoopDef(
+                source_node=ldata["source_node"],
+                loop_body_fn=loop_fn if loop_fn else (lambda x: x),
+                max_iterations=ldata.get("max_iterations", 100),
+            )
+            if lid not in engine._nodes:
+                engine._nodes[lid] = WorkflowNode(id=lid, type=NodeType.LOOP)
 
-    def _handle_compliance(
-        self, request: Dict[str, Any], _outputs: Optional[Dict] = None
-    ) -> Dict[str, Any]:
-        """合规检查：确保请求符合使用策略。"""
-        return {
-            "status": "compliant",
-            "checks_passed": ["content_policy", "usage_limits", "rate_limit"],
-        }
+        return engine
 
-    def _handle_intent(
-        self, request: Dict[str, Any], outputs: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """意图理解：分析用户意图。"""
-        prompt = request.get("prompt", "")
-        return {
-            "status": "analyzed",
-            "intent": "general_task",
-            "complexity": "medium" if len(prompt) > 50 else "low",
-        }
+    # ── Repr ──────────────────────────────────────────────────
 
-    def _handle_context(
-        self, request: Dict[str, Any], outputs: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """上下文增强：补充上下文信息。"""
-        return {
-            "status": "enriched",
-            "context_added": ["user_profile", "session_history"],
-        }
+    def __repr__(self) -> str:
+        return f"WorkflowEngine(name={self.name!r}, nodes={self.node_count}, edges={self.edge_count})"
 
-    def _handle_reasoning(
-        self, request: Dict[str, Any], outputs: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """推理规划：生成执行计划。"""
-        return {
-            "status": "planned",
-            "plan": ["analyze", "generate", "validate"],
-        }
 
-    def _handle_execution(
-        self, request: Dict[str, Any], outputs: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """任务执行：执行推理产生的计划。"""
-        return {
-            "status": "executed",
-            "result": "任务执行完成",
-        }
+# ═══════════════════════════════════════════════════════════════
+# Singleton
+# ═══════════════════════════════════════════════════════════════
 
-    def _handle_validation(
-        self, request: Dict[str, Any], outputs: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """结果验证：校验输出质量。"""
-        return {
-            "status": "validated",
-            "quality_score": 0.95,
-        }
+_workflow_engine_instance: Optional[WorkflowEngine] = None
 
-    def _handle_format(
-        self, request: Dict[str, Any], outputs: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """输出格式化：统一输出格式。"""
-        return {
-            "status": "formatted",
-            "format": "markdown",
-        }
 
-    def _handle_logging(
-        self, request: Dict[str, Any], outputs: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """日志记录：记录执行日志。"""
-        return {
-            "status": "logged",
-            "log_id": str(uuid.uuid4())[:8],
-        }
+def get_workflow_engine(name: Optional[str] = None) -> WorkflowEngine:
+    global _workflow_engine_instance
+    if _workflow_engine_instance is None:
+        _workflow_engine_instance = WorkflowEngine(name=name or "default")
+    return _workflow_engine_instance
+
+
+def reset_workflow_engine():
+    global _workflow_engine_instance
+    _workflow_engine_instance = None
