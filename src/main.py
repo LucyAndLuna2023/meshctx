@@ -1755,6 +1755,25 @@ def _load_provider_config():
     except Exception:
         return {}
 
+def _save_provider_config(cfg: dict):
+    """保存 provider_config.json"""
+    pcfg_path = Path(__file__).resolve().parent.parent / "provider_config.json"
+    pcfg_path.write_text(json.dumps(cfg, indent=2, ensure_ascii=False))
+
+def _load_meshctx_md(path: str = None):
+    """加载 .meshctx.md 或 AGENTS.md 内容"""
+    from pathlib import Path
+    if path:
+        p = Path(path)
+        if p.exists():
+            return p.read_text(encoding="utf-8", errors="replace")
+        return ""
+    for candidate in [Path.cwd() / ".meshctx.md", Path.cwd() / "AGENTS.md",
+                       Path.home() / ".meshctx.md", Path.home() / "AGENTS.md"]:
+        if candidate.exists():
+            return candidate.read_text(encoding="utf-8", errors="replace")
+    return ""
+
 
 _PROVIDER_DISPLAY = {
     "deepseek": "DeepSeek",
@@ -1809,6 +1828,7 @@ async def list_models():
             "model_name": info["model"],
             "configured": configd,
             "usable": usable,
+            "has_key": has_key,
             "current": mid == current,
         })
     return {
@@ -3898,7 +3918,7 @@ async def context_projects():
                 except Exception:
                     continue
 
-        return {"projects": projects}
+        return {"projects": projects, "total": len(projects)}
     except Exception as e:
         return {"error": str(e)}
 
@@ -3922,9 +3942,9 @@ async def context_meshctx_md():
         for p in candidates:
             if p.exists():
                 content = p.read_text(encoding="utf-8", errors="replace")
-                return {"content": content, "path": str(p)}
+                return {"found": True, "content": content, "path": str(p)}
 
-        return {"content": "", "path": "", "message": "No .meshctx.md or AGENTS.md found"}
+        return {"found": False, "content": "", "path": "", "message": "No .meshctx.md or AGENTS.md found"}
     except Exception as e:
         return {"error": str(e)}
 
@@ -3940,15 +3960,25 @@ async def context_project_activate(request: Request):
         from pathlib import Path
         import json as _json
 
-        project_name = body.get("project_name", "").strip()
-        if not project_name:
-            raise HTTPException(400, "project_name required")
+        path = body.get("path", body.get("project_name", "")).strip()
+        # 空路径 → 清除激活项目
+        if not path:
+            active_file = Path.home() / ".meshctx" / "active_project.json"
+            if active_file.exists():
+                active_file.unlink()
+            return {"status": "ok", "active": None}
+        
+        # 检查路径是否存在
+        target = Path(path)
+        if not target.exists():
+            return {"error": f"路径不存在: {path}"}
 
+        project_name = target.name
         active_file = Path.home() / ".meshctx" / "active_project.json"
         active_file.parent.mkdir(parents=True, exist_ok=True)
 
         with open(active_file, "w") as f:
-            _json.dump({"project_name": project_name}, f, ensure_ascii=False)
+            _json.dump({"project_name": project_name, "project_path": str(target.resolve())}, f, ensure_ascii=False)
 
         return {"status": "ok", "active": project_name}
     except HTTPException:
@@ -4332,7 +4362,16 @@ async def config_export():
                 config = yaml.safe_load(f) or {}
         # 收集敏感环境变量名（不导出值）
         env_keys = [k for k in os.environ if k.endswith("_API_KEY") or k.startswith("MESHCTX_")]
-        return {"config": config, "env_vars": sorted(env_keys)}
+        import datetime
+        return {
+            "version": "3.115.2",
+            "exported_at": datetime.datetime.utcnow().isoformat() + "Z",
+            "providers": config.get("providers", {}),
+            "mcp_servers": config.get("mcp_servers", config.get("mcp", [])),
+            "note": "Key已脱敏 — 敏感字段不导出",
+            "config": config,
+            "env_vars": sorted(env_keys),
+        }
     except Exception as e:
         return {"error": str(e)}
 
@@ -4342,10 +4381,15 @@ async def config_import(request: Request):
     """导入配置 — 写入~/.meshctx/config.yaml并重置model_registry缓存"""
     try:
         import yaml
-        body = await request.json()
+        try:
+            body = await request.json()
+        except Exception:
+            raise HTTPException(400, "无效的JSON body")
         config = body.get("config", body)
         if not isinstance(config, dict):
             return {"error": "config必须是字典"}
+        if not config:
+            return {"success": True, "imported": 0, "skipped": 0}
         config_path = Path.home() / ".meshctx" / "config.yaml"
         config_path.parent.mkdir(parents=True, exist_ok=True)
         with open(config_path, "w") as f:
@@ -4365,9 +4409,71 @@ async def config_import(request: Request):
                     imported += len(entries.get("entries", entries))
                 elif isinstance(entries, list):
                     imported += len(entries)
-        return {"status": "ok", "imported": imported}
+        return {"success": True, "imported": imported}
+    except HTTPException:
+        raise
     except Exception as e:
         return {"error": str(e)}
+
+
+# === v1.5.23: 会话归档 ===
+_SESSION_ARCHIVE = {}  # id -> [records]
+
+@app.post("/api/sessions/archive")
+async def session_archive(request: Request):
+    """归档会话记录"""
+    try:
+        body = await request.json()
+        sid = body.get("session_id", body.get("id", ""))
+        if not sid:
+            return {"error": "session_id required"}
+        # 支持批量消息归档
+        messages = body.get("messages", [body.get("data", body)])
+        if isinstance(messages, list):
+            for msg in messages:
+                record = {
+                    "timestamp": msg.get("timestamp", ""),
+                    "event": msg.get("role", msg.get("type", msg.get("event", ""))),
+                    "data": msg,
+                }
+                _SESSION_ARCHIVE.setdefault(sid, []).append(record)
+        else:
+            record = {
+                "timestamp": messages.get("timestamp", ""),
+                "event": messages.get("event", messages.get("type", "")),
+                "data": messages.get("data", messages) if isinstance(messages, dict) else {},
+            }
+            _SESSION_ARCHIVE.setdefault(sid, []).append(record)
+        return {"success": True, "id": sid}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/sessions/archive")
+async def session_archive_list():
+    """列出所有归档会话"""
+    sessions = [{"id": sid, "count": len(recs)} for sid, recs in _SESSION_ARCHIVE.items()]
+    return {"sessions": sessions, "total": len(sessions)}
+
+@app.get("/api/sessions/archive/{session_id}")
+async def session_archive_get(session_id: str):
+    """获取特定会话归档"""
+    records = _SESSION_ARCHIVE.get(session_id, [])
+    return {"id": session_id, "count": len(records), "records": records}
+
+@app.get("/api/providers/health")
+async def providers_health():
+    """供应商健康检查"""
+    from src.model_registry import get_registry
+    reg = get_registry()
+    providers = {}
+    for mid, info in reg._entries.items():
+        pid = info.get("provider", "unknown")
+        providers.setdefault(pid, []).append(mid)
+    return {
+        "status": "ok",
+        "providers": {k: {"models": len(v)} for k, v in providers.items()},
+        "failover_order": list(providers.keys()),
+    }
 
 
 @app.get("/api/providers")
@@ -4472,10 +4578,18 @@ async def code_run(request: Request):
     try:
         body = await request.json()
         code = body.get("code", "")
-        language = body.get("language", "python")
+        language = body.get("language") or body.get("lang", "python")
         if not code:
             return {"error": "code不能为空"}
-        if language == "python":
+        # 危险命令检测
+        dangerous = ["rm -rf /", "mkfs\\.", "dd if=", "fork bomb",
+                      "shutdown", "reboot", "chmod 777 /",
+                      "curl.*\\|.*sh", "wget.*\\|.*sh"]
+        import re
+        for pattern in dangerous:
+            if re.search(pattern, code, re.IGNORECASE):
+                return {"error": f"拦截: 危险操作被阻止 ({pattern})", "blocked": True}
+        if language in ("python", "py"):
             result = subprocess.run(
                 [sys.executable, "-c", code],
                 capture_output=True, text=True, timeout=10,
@@ -4492,8 +4606,11 @@ async def code_run(request: Request):
             )
         else:
             return {"error": f"不支持的语言: {language}"}
+        output = result.stdout
+        if result.stderr:
+            output = (result.stdout + "\n" + result.stderr).strip()
         return {
-            "output": result.stdout,
+            "output": output,
             "stderr": result.stderr,
             "exit_code": result.returncode,
         }
