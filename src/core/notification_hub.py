@@ -107,6 +107,9 @@ class ChannelConfig:
     webhook_url: str = ""
     max_retries: int = 3
     ntfy_topic: str = ""
+    credentials: dict = field(default_factory=dict)
+    from_addr: str = ""
+    to_addrs: list = field(default_factory=list)
     min_priority: NotificationPriority = NotificationPriority.LOW
     config: Dict[str, Any] = field(default_factory=dict)  # 通道特定配置
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -672,10 +675,17 @@ class NotificationHub:
     def set_post_send_hook(self, *a, **kw): pass
     def resolve_channels(self, *a, **kw): return list(self._channels.values())
     def get_routing_rule(self, priority=None):
+        if hasattr(self, '_routing_rules'):
+            for rule_name, ch_list in self._routing_rules.items():
+                if priority and priority in (rule_name, getattr(rule_name, 'value', None)):
+                    return ch_list
         if priority and hasattr(priority, 'value') and priority.value == 'critical':
             return list(self._channels.keys())
         return []
-    def set_routing_rule(self, *a, **kw): pass
+    def set_routing_rule(self, channel_name, channels, *a, **kw):
+        if not hasattr(self, '_routing_rules'):
+            self._routing_rules = {}
+        self._routing_rules[channel_name] = channels
     @property
     def CHANNEL_SENDERS(self): return {}
     @property
