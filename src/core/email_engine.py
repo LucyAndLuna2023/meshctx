@@ -30,6 +30,7 @@ class EmailLabel:
 class EmailAttachment:
     filename: str = ""
     size: int = 0
+    size_bytes: int = 0
     content_type: str = ""
 
 @dataclass
@@ -54,7 +55,7 @@ class InboxStats:
     spam_count: int = 0
 
 class EmailEngine:
-    def __init__(self):
+    def __init__(self, imap_host: str = "", smtp_host: str = "", classifier_fn=None, summarizer_fn=None, reply_fn=None):
         self._emails = {}
         self._labels = {}
         self._stats = InboxStats()
@@ -85,9 +86,9 @@ def _score_spam_rules(text):
     return 0.0
 
 _engine = None
-def get_email_engine():
+def get_email_engine(imap_host: str = None, **kwargs):
     global _engine
-    if _engine is None: _engine = EmailEngine()
+    if _engine is None: _engine = EmailEngine(imap_host=imap_host or "", **kwargs)
     return _engine
 def reset_email_engine():
     global _engine

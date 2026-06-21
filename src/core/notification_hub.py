@@ -96,8 +96,9 @@ class NotificationTemplate:
 @dataclass
 class ChannelConfig:
     """通道配置"""
-    name: str                       # 通道名称 (唯一)
-    channel_type: ChannelType
+    name: str = ""
+    channel: str = "default"
+    channel_type: ChannelType = None
     enabled: bool = True
     min_priority: NotificationPriority = NotificationPriority.LOW
     config: Dict[str, Any] = field(default_factory=dict)  # 通道特定配置
@@ -107,8 +108,11 @@ class ChannelConfig:
 @dataclass
 class Notification:
     """通知实例"""
-    notification_id: str
-    channel_name: str               # 目标通道名
+    notification_id: str = ""
+    channel_name: str = ""
+    title: str = ""
+    body: str = ""
+    level: str = "info"               # 目标通道名
     title: str
     body: str
     priority: NotificationPriority = NotificationPriority.MEDIUM
@@ -757,6 +761,8 @@ class NotificationStats:
 @dataclass
 class QuietHoursConfig:
     enabled: bool = False
+    start_time: str = "22:00"
+    end_time: str = "07:00"
     start_hour: int = 22
     end_hour: int = 7
     timezone: str = "UTC"

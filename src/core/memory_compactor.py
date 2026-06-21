@@ -58,6 +58,7 @@ class MemoryCompactor:
         entry = MemoryEntry(content=content, tier=tier or MemoryTier.WORKING)
         self._entries[entry.entry_id] = entry
         return entry
+    add_memory = add
     def compact(self, strategy=None):
         return CompactionResult(original=MemoryEntry(content=""), compacted="", strategy=strategy or CompressionStrategy.SUMMARIZE)
     def retrieve(self, query, limit=10):

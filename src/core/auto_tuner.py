@@ -47,7 +47,7 @@ class ABTest:
         return best[0]
 
 class PerformanceAutoTuner:
-    def __init__(self):
+    def __init__(self, window_size: int = 100):
         self._tuners = {}
         self._pid = PIDController()
     def get_pid(self): return self._pid

@@ -35,7 +35,7 @@ class HookResult:
     modified_payload: Any = None
 
 class HooksEngine:
-    def __init__(self):
+    def __init__(self, config_path: str = None):
         self._hooks = []
         self._rules = []
         self._enabled = True
