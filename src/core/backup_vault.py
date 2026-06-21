@@ -1,7 +1,6 @@
-"""meshctx backup_vault — auto-generated stub"""
-
+"""meshctx backup_vault"""
 
 class BackupVault:
-    """Stub class"""
     def __init__(self, *args, **kwargs):
         pass
+

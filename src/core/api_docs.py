@@ -1,7 +1,6 @@
-"""meshctx api_docs — auto-generated stub"""
-
+"""meshctx api_docs"""
 
 class APIDiscoveryEngine:
-    """Stub class"""
     def __init__(self, *args, **kwargs):
         pass
+

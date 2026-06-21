@@ -1,7 +1,6 @@
-"""meshctx agent_benchmark — auto-generated stub"""
-
+"""meshctx agent_benchmark"""
 
 class AgentBenchmarkEngine:
-    """Stub class"""
     def __init__(self, *args, **kwargs):
         pass
+

@@ -1,7 +1,6 @@
-"""meshctx autonomous_action — auto-generated stub"""
-
+"""meshctx autonomous_action"""
 
 class ActionEngine:
-    """Stub class"""
     def __init__(self, *args, **kwargs):
         pass
+

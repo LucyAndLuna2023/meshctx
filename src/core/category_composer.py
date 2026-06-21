@@ -1,7 +1,6 @@
-"""meshctx category_composer — auto-generated stub"""
+"""meshctx category_composer"""
 
-
-class AgentResult:
-    """Stub class"""
+class AgentComposer:
     def __init__(self, *args, **kwargs):
         pass
+

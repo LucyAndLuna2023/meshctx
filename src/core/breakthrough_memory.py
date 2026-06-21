@@ -1,7 +1,6 @@
-"""meshctx breakthrough_memory — auto-generated stub"""
+"""meshctx breakthrough_memory"""
 
-
-class PredictiveMemoryActivator:
-    """Stub class"""
+class SparseDistributedMemory:
     def __init__(self, *args, **kwargs):
         pass
+

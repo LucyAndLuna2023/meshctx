@@ -1,7 +1,6 @@
-"""meshctx autonomous_bugfix — auto-generated stub"""
-
+"""meshctx autonomous_bugfix"""
 
 class AutonomousBugFixEngine:
-    """Stub class"""
     def __init__(self, *args, **kwargs):
         pass
+

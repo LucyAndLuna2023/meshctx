@@ -1,7 +1,6 @@
-"""meshctx agent_teams — auto-generated stub"""
-
+"""meshctx agent_teams"""
 
 class AgentTeamManager:
-    """Stub class"""
     def __init__(self, *args, **kwargs):
         pass
+

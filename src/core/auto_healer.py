@@ -1,7 +1,6 @@
-"""meshctx auto_healer — auto-generated stub"""
-
+"""meshctx auto_healer"""
 
 class AutoHealerV2:
-    """Stub class"""
     def __init__(self, *args, **kwargs):
         pass
+

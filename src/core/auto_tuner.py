@@ -1,12 +1,10 @@
-"""meshctx auto_tuner — auto-generated stub"""
-
+"""meshctx auto_tuner"""
 
 class AutoTuner:
-    """Stub class"""
     def __init__(self, *args, **kwargs):
         pass
 
 class PerformanceAutoTuner:
-    """Stub class"""
     def __init__(self, *args, **kwargs):
         pass
+

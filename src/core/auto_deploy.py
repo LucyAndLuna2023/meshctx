@@ -1,7 +1,10 @@
-"""meshctx auto_deploy — auto-generated stub"""
+"""meshctx auto_deploy"""
 
-
-class DeployResult:
-    """Stub class"""
+class AutoDeployPipeline:
     def __init__(self, *args, **kwargs):
         pass
+
+class DeployResult:
+    def __init__(self, *args, **kwargs):
+        pass
+

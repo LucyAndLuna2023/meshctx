@@ -1,7 +1,6 @@
-"""meshctx agent_factory — auto-generated stub"""
+"""meshctx agent_factory"""
 
-
-class AgentComposer:
-    """Stub class"""
+class AgentFactory:
     def __init__(self, *args, **kwargs):
         pass
+

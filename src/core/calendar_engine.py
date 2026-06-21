@@ -1,7 +1,6 @@
-"""meshctx calendar_engine — auto-generated stub"""
+"""meshctx calendar_engine"""
 
-
-class CalendarEvent:
-    """Stub class"""
+class CalendarEngine:
     def __init__(self, *args, **kwargs):
         pass
+

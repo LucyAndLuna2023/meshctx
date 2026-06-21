@@ -1,7 +1,6 @@
-"""meshctx brain_validator — auto-generated stub"""
+"""meshctx brain_validator"""
 
-
-class BrainDimension:
-    """Stub class"""
+class BrainStateValidator:
     def __init__(self, *args, **kwargs):
         pass
+

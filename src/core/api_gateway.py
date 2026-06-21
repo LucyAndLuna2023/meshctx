@@ -1,7 +1,6 @@
-"""meshctx api_gateway — auto-generated stub"""
-
+"""meshctx api_gateway"""
 
 class APIGateway:
-    """Stub class"""
     def __init__(self, *args, **kwargs):
         pass
+
