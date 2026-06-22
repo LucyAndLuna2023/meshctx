@@ -1,9 +1,14 @@
 """Agent Loop — 开源版 (stub)"""
+class PluginInfo:
+    def __init__(self, name="agent_loop", version="0.1.0", description=""):
+        self.name = name; self.version = version; self.description = description
+
 class AgentLoopPlugin:
+    def __init__(self, *a, **kw):
+        self.info = PluginInfo()
     def __getattr__(self, name, **kw):
         if name.startswith("_"): raise AttributeError(name)
         return _P(name)
-    def __init__(self, *a, **kw): pass
     async def on_load(self, kernel) -> bool: return True
     def start(self): pass
     def stop(self): pass

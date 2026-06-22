@@ -125,7 +125,10 @@ class PluginManager:
     
     def register(self, plugin: Plugin, **kw):
         name = getattr(plugin, "info", None)
-        name = name.name if name else type(plugin).__name__
+        name = name.name if name and hasattr(name, 'name') else None
+        # 防御：如果 name 不是合法字符串（如 stub 中的 _P 代理对象），回退到类名
+        if not isinstance(name, str) or not name:
+            name = type(plugin).__name__
         self._plugins[name] = plugin
         try: plugin.state = PluginState.LOADED
         except: pass
