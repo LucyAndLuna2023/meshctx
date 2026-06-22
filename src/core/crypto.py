@@ -6,7 +6,7 @@ def get_crypto(*args, **kwargs):
     pass
 
 class _P:
-    __slots__ = ("_n", "_d")
+    # 不用 __slots__，保持 __dict__ 可用（与其他模块 _P 一致）
     def __init__(s, n=""):
         object.__setattr__(s, "_n", n)
         object.__setattr__(s, "_d", {})

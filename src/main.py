@@ -3264,7 +3264,7 @@ async def profile_list():
     """多实例Profile列表"""
     from src.core.profile_manager import ProfileManager
     pm = ProfileManager()
-    return {"profiles": pm.list(), "active": pm.active}
+    return {"profiles": pm.list_profiles(), "active": "default"}
 
 
 @app.get("/api/approval/status")
