@@ -6,8 +6,10 @@ def get_crypto(*args, **kwargs):
     pass
 
 class _P:
-    __slots__ = ("_n",)
-    def __init__(s, n=""): object.__setattr__(s, "_n", n)
+    __slots__ = ("_n", "_d")
+    def __init__(s, n=""):
+        object.__setattr__(s, "_n", n)
+        object.__setattr__(s, "_d", {})
     def __getattr__(s, n, **kw):
         if n.startswith("__"): raise AttributeError(n)
         return _P(f"{s._n}.{n}" if s._n else n)
