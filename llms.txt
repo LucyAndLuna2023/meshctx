@@ -1,0 +1,42 @@
+# MeshCtx — llms.txt
+# AI Agent accessibility for MeshCtx documentation
+
+## MeshCtx
+MeshCtx is the world's first self-evolving AI agent platform with full-brain emulation architecture (10 brain regions).
+
+## Core Features
+- Super Brain Architecture: 10 brain regions (Hippocampal Replay, Amygdala, DMN, Thalamus, Cerebellum, Basal Ganglia, ACC, Mirror Neurons, Insula)
+- Hierarchical Memory (L0-L4) with Ebbinghaus Forgetting Curve
+- Meta-Cognition loop: evaluate → extract patterns → update knowledge graph
+- Multi-Agent Orchestra with DAG task decomposition
+- MCP Protocol native
+- 7-language support (EN/ZH/JA/KO/FR/DE/ES)
+- Windows/macOS/Linux cross-platform
+
+## Quick Links
+- Homepage: https://meshctx.com
+- GitHub: https://github.com/LucyAndLuna2023/meshctx
+- Download: https://meshctx.com/#download
+- Setup: https://meshctx.com/ui/setup
+- Chat: https://meshctx.com/ui/chat
+- Desktop Monitor: https://meshctx.com/ui/desktop
+
+## Installation
+- Windows: Download meshctx-setup.exe from GitHub Releases
+- macOS: brew install meshctx or DMG from Releases
+- Linux: git clone + python3 -m venv .venv + pip install
+
+## API Endpoints
+- GET /api/models — List all models
+- POST /api/models — Add model
+- PUT /api/models/{id} — Update model
+- DELETE /api/models/{id} — Delete model
+- PATCH /api/models/{id}/default — Set default
+- POST /api/models/{id}/test — Test connection
+- POST /api/chat — Chat with AI
+- POST /api/chat/stream — Streaming chat
+- POST /api/chat/upload — Upload file for context
+
+## Optional
+- Documentation: https://meshctx.com/docs
+- Benchmark: https://github.com/LucyAndLuna2023/meshctx/blob/main/tests/benchmark_v19.py

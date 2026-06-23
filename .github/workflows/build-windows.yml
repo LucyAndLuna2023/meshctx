@@ -1,0 +1,120 @@
+name: Build Windows Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+    paths:
+      - 'src/**'
+      - 'meshctx_desktop.py'
+      - 'meshctx_desktop.spec'
+      - 'meshctx_setup.nsi'
+      - 'version_info.txt'
+      - 'requirements.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller pycryptodome pywebview
+
+      - name: Verify logo files
+        run: |
+          if (-not (Test-Path logo.ico)) {
+            Write-Host "FATAL: logo.ico missing!"
+            exit 1
+          }
+          if (-not (Test-Path logo.png)) {
+            Write-Host "WARN: logo.png missing, copying from .ico"
+            Copy-Item logo.ico logo.png
+          }
+          $icoSize = (Get-Item logo.ico).Length
+          Write-Host "OK: logo.ico = $icoSize bytes"
+          if ($icoSize -lt 1000) {
+            Write-Host "FATAL: logo.ico too small — appears to be fake!"
+            exit 1
+          }
+
+      - name: Build Desktop .exe
+        run: pyinstaller meshctx_desktop.spec
+
+      - name: Inject version info
+        run: |
+          python -m PyInstaller.utils.win32.versioninfo version_info.txt dist\meshctx-desktop.exe
+          Write-Host "Version info injected"
+
+      - name: Verify build
+        run: |
+          if (Test-Path dist\meshctx-desktop.exe) {
+            Write-Host "OK: meshctx-desktop.exe"
+            Get-Item dist\meshctx-desktop.exe | Select-Object Name, Length
+          } else {
+            Write-Host "FAIL: .exe not found"
+            exit 1
+          }
+
+      - name: Verify exe size (防9B损坏)
+        run: |
+          $size = (Get-Item dist\meshctx-desktop.exe).Length
+          if ($size -lt 1048576) {
+            Write-Host "FATAL: exe too small ($size bytes) — build failed!"
+            exit 1
+          }
+          Write-Host "OK: exe size = $size bytes ($([math]::Round($size/1MB,1)) MB)"
+
+      - name: Install NSIS
+        run: |
+          choco install nsis -y --no-progress
+          echo "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: Build Installer
+        run: |
+          & "C:\Program Files (x86)\NSIS\makensis.exe" meshctx_setup.nsi
+          if (Test-Path dist\meshctx-setup.exe) {
+            Get-Item dist\meshctx-setup.exe | Select-Object Name, Length
+          } else {
+            Write-Host "WARN: NSIS build may have failed, continuing..."
+          }
+
+      - name: Package portable
+        run: |
+          copy dist\meshctx-desktop.exe dist\meshctx.exe
+          copy README.md dist\
+          Compress-Archive -Path dist\meshctx.exe,dist\README.md -DestinationPath meshctx-portable.zip
+
+      - name: Upload Artifact (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: meshctx-windows
+          path: |
+            dist/meshctx.exe
+            dist/meshctx-setup.exe
+            meshctx-portable.zip
+          retention-days: 7
+
+      - name: Upload to Release (tag only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/meshctx.exe
+            dist/meshctx-setup.exe
+            meshctx-portable.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

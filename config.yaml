@@ -1,0 +1,20 @@
+models:
+  default: test:local
+  entries:
+    test-model:
+      model: test-model
+      provider: openai
+    test:local:
+      base_url: http://localhost:8080/v1
+      key: !!python/object:src.core.crypto._P
+        _d: {}
+        _n: encrypt_key()
+      model: local-model
+      provider: local
+providers:
+  openai:
+    api_key: sk-test
+server:
+  host: 0.0.0.0
+  port: 3002
+version: '3.0'

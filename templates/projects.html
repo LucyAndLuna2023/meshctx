@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}项目管理 | meshctx{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <h1>📁 项目管理</h1>
+    <p class="subtitle">创建和管理上下文记忆项目</p>
+</section>
+
+<!-- 创建项目表单 -->
+<div class="card create-card">
+    <h3>➕ 创建新项目</h3>
+    <form method="POST" action="/ui/projects/create" class="inline-form">
+        <div class="form-row">
+            <div class="form-group flex-2">
+                <label for="name">项目名称 *</label>
+                <input type="text" id="name" name="name" placeholder="例如: AI助手项目" required>
+            </div>
+            <div class="form-group flex-3">
+                <label for="description">描述</label>
+                <input type="text" id="description" name="description" placeholder="项目简要描述">
+            </div>
+            <div class="form-group flex-2">
+                <label for="tags">标签 (逗号分隔)</label>
+                <input type="text" id="tags" name="tags" placeholder="AI, 助手, 对话">
+            </div>
+            <div class="form-group flex-1 form-btn">
+                <button type="submit" class="btn btn-primary">创建</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- 项目列表 -->
+<div class="section">
+    {% if projects %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>项目名称</th>
+                    <th>状态</th>
+                    <th>会话数</th>
+                    <th>记忆数</th>
+                    <th>连续性</th>
+                    <th>更新时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in projects %}
+                <tr>
+                    <td>
+                        <a href="/ui/projects/{{ item.project.id }}" class="project-link">
+                            {{ item.project.name }}
+                        </a>
+                        <div class="cell-desc">{{ truncate(item.project.description, 50) }}</div>
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ item.project.status }}">{{ item.project.status }}</span>
+                    </td>
+                    <td>{{ item.conv_count }}</td>
+                    <td>{{ item.mem_count }}</td>
+                    <td>
+                        <span style="color:{{ continuity_color(item.continuity.continuity_score) }}; font-weight:600;">
+                            {{ "%.2f"|format(item.continuity.continuity_score) }}
+                        </span>
+                    </td>
+                    <td class="text-sm">{{ format_dt(item.project.updated_at) }}</td>
+                    <td class="actions-cell">
+                        <a href="/ui/projects/{{ item.project.id }}" class="btn btn-xs">详情</a>
+                        <form method="POST" action="/ui/projects/{{ item.project.id }}/delete"
+                              style="display:inline"
+                              onsubmit="return confirm('确定要删除项目「{{ item.project.name }}」及其所有数据吗？')">
+                            <button type="submit" class="btn btn-xs btn-danger">删除</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>🎉 还没有项目，使用上方表单创建第一个项目吧！</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{
+  "name": "meshctx",
+  "version": "3.115.4",
+  "description": "World's First Self-Evolving Agent Platform — 161 core modules, 1713 tests, 46+ models",
+  "main": "src/cli.js",
+  "bin": {
+    "meshctx": "./src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/cli.js",
+    "test": "echo 'Run Python tests: pytest tests/'",
+    "build": "echo 'See build.bat for Windows exe build'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LucyAndLuna2023/meshctx.git"
+  },
+  "keywords": [
+    "ai-agent",
+    "self-evolving",
+    "agent",
+    "meshctx",
+    "multi-agent",
+    "brain-inspired",
+    "sdm",
+    "fractal-memory"
+  ],
+  "author": "Jason Liu <jason.liu@meshctx.com>",
+  "license": "AGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/LucyAndLuna2023/meshctx/issues"
+  },
+  "homepage": "https://meshctx.com",
+  "files": [
+    "src/",
+    "docs/",
+    "plugins/",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

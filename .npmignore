@@ -1,0 +1,14 @@
+dist/
+build/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.git/
+tests/
+node_modules/
+.env
+*.spec
+*.nsi
+logo.*
+meshctx.yaml

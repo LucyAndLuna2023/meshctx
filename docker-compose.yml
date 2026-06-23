@@ -1,0 +1,50 @@
+# MeshCtx docker-compose — One-command deploy
+# docker-compose up -d
+version: '3.8'
+
+services:
+  meshctx:
+    build: .
+    container_name: meshctx
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persistent data (conversations, config, keys)
+      - meshctx_data:/home/meshctx/.meshctx
+    environment:
+      # Model API keys — set in .env or export before running
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - BAILIAN_API_KEY=${BAILIAN_API_KEY:-}
+      - SILICONFLOW_API_KEY=${SILICONFLOW_API_KEY:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # Auto-update (optional: docker-compose --profile auto-update up)
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 3600 meshctx
+    profiles:
+      - auto-update
+
+volumes:
+  meshctx_data:
+
+# ═══════════════════════════════════════════════
+# Quick Start:
+#   1. export DEEPSEEK_API_KEY=sk-xxx
+#   2. docker-compose up -d
+#   3. Open http://localhost:3000/ui/chat
+#
+# With optional auto-update:
+#   docker-compose --profile auto-update up -d
+# ═══════════════════════════════════════════════

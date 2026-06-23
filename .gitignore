@@ -1,0 +1,48 @@
+# 敏感文件
+*.bak
+*.log
+.env
+*.pem
+*secret*
+*password*
+*credential*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.eggs/
+*.egg-info/
+dist/
+build/
+
+# 数据
+data/
+logs/
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 部署敏感文件
+deploy.sh
+install.sh
+venv/
+
+# 🔴 Core Brain modules — now implemented as public stubs (v3.35+)
+# (Previously proprietary, now open-source stubs)
+__pycache__/
+build/
+dist/
+build/
+manager_key.json
+provider_config.json
+
+# === meshctx-core stubs (open-source) ===
+# src/core/ now contains open-source stubs — safe to publish

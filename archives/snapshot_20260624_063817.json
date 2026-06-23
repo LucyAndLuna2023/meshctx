@@ -1,0 +1,37 @@
+{
+  "session_id": "session_1782253697",
+  "started_at": 1782253697.7495656,
+  "version": "3.115.4",
+  "decisions": [],
+  "rules": [],
+  "memory_snapshot": {},
+  "progress": [
+    {
+      "time": 1782253697.7495673,
+      "type": "session_start",
+      "detail": "会话开始 v3.115.4",
+      "category": "info"
+    },
+    {
+      "time": 1782253697.753118,
+      "type": "server_start",
+      "detail": "v3.115.4",
+      "category": "info"
+    },
+    {
+      "time": 1782253997.7546558,
+      "type": "auto_save",
+      "detail": "自动存档",
+      "category": "info"
+    },
+    {
+      "time": 1782254297.7562137,
+      "type": "auto_save",
+      "detail": "自动存档",
+      "category": "info"
+    }
+  ],
+  "errors": [],
+  "saved_at": 1782254297.7562807,
+  "saved_at_human": "2026-06-24T06:38:17.756283"
+}

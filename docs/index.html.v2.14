@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeshCtx — World\'s First Self-Evolving Agent System</title>
+    <meta name="description" content="MeshCtx is an open-core, self-evolving agent platform — AGPLv3 framework + source-available brain. Remembers everything, learns from every task, orchestrates multiple AI agents in parallel.">
+    <meta name="keywords" content="AI agent, self-evolving, brain-inspired, code sandbox, project indexing, multi-agent, open-core, AGPLv3, MeshCtx">
+    <meta name="author" content="MeshCtx">
+    <meta property="og:title" content="MeshCtx — World's First Self-Evolving Agent System">
+    <meta property="og:description" content="13 brain regions, code sandbox, project indexing, Feishu notifications. Open-core AI agent platform.">
+    <meta property="og:url" content="https://meshctx.com">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="MeshCtx — Self-Evolving AI Agent">
+    <meta name="twitter:description" content="World's first full-brain emulation AI agent. Code sandbox, project indexing, 13 brain regions.">
+    <link rel="canonical" href="https://meshctx.com">
+    <script type="application/ld+json">
+    {"@context":"https://schema.org","@type":"SoftwareApplication","name":"MeshCtx","operatingSystem":"Windows, Linux","applicationCategory":"DeveloperApplication","description":"Self-evolving AI agent platform with full-brain emulation","url":"https://meshctx.com","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+    </script>
+    <style>
+        :root {
+            --bg: #0a0a14; --bg2: #111122; --fg: #e2e8f0; --muted: #94a3b8;
+            --purple: #8b5cf6; --cyan: #06b6d4; --green: #22c55e; --border: #1e293b;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:var(--bg); color:var(--fg); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; line-height:1.6; }
+        a { color:var(--cyan); text-decoration:none; } a:hover { text-decoration:underline; }
+        .lang { display:none; }
+        .lang.active { display:block; }
+
+        nav { position:fixed; top:0; width:100%; background:rgba(10,10,20,0.92); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); z-index:100; }
+        .nav-inner { max-width:1200px; margin:0 auto; padding:14px 24px; display:flex; justify-content:space-between; align-items:center; }
+        .logo { font-size:1.4rem; font-weight:700; } .logo span { color:var(--purple); }
+        .nav-links { display:flex; gap:20px; align-items:center; }
+        .nav-links a { color:var(--muted); font-size:0.9rem; } .nav-links a:hover { color:var(--fg); text-decoration:none; }
+
+        .lang-dropdown { position:relative; margin-left:12px; display:inline-block; }
+        .lang-dropdown-toggle { background:transparent; color:var(--muted); border:1px solid var(--border); padding:4px 10px; border-radius:4px; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; gap:4px; }
+        .lang-dropdown-toggle::after { content:'▾'; font-size:0.6rem; margin-left:2px; }
+        .lang-dropdown-toggle:hover { color:var(--fg); border-color:var(--purple); }
+        .lang-dropdown-menu { display:none; position:absolute; top:100%; right:0; margin-top:4px; background:var(--bg2); border:1px solid var(--border); border-radius:6px; min-width:100px; z-index:200; box-shadow:0 8px 24px rgba(0,0,0,0.4); }
+        .lang-dropdown-menu.show { display:block; }
+        .lang-dropdown-menu button { display:block; width:100%; padding:6px 14px; background:transparent; border:none; color:var(--muted); font-size:0.8rem; cursor:pointer; text-align:left; }
+        .lang-dropdown-menu button:hover,.lang-dropdown-menu button.active { color:var(--fg); background:rgba(139,92,246,0.15); }
+
+        .btn { display:inline-block; padding:10px 24px; border-radius:8px; font-weight:600; font-size:0.95rem; transition:all .2s; cursor:pointer; border:none; }
+        .btn-primary { background:var(--purple); color:white; } .btn-primary:hover { background:#7c3aed; transform:translateY(-1px); text-decoration:none; }
+        .btn-ghost { background:transparent; color:var(--fg); border:1px solid var(--border); } .btn-ghost:hover { border-color:var(--purple); text-decoration:none; }
+
+        .hero { padding:160px 24px 100px; text-align:center; background:radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.15), transparent 60%); }
+        .hero h1 { font-size:3.2rem; font-weight:800; letter-spacing:-0.02em; margin-bottom:16px; }
+        .hero h1 span { background:linear-gradient(135deg,var(--purple),var(--cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .hero p { font-size:1.15rem; color:var(--muted); max-width:600px; margin:0 auto 32px; }
+        .hero-buttons { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+
+        section { padding:80px 24px; }
+        .section-inner { max-width:1200px; margin:0 auto; }
+        .section-title { font-size:2rem; font-weight:700; text-align:center; margin-bottom:48px; }
+        .section-title span { color:var(--purple); }
+
+        .feature-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:24px; }
+        .feature-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:28px; transition:border-color .2s; }
+        .feature-card:hover { border-color:var(--purple); }
+        .feature-icon { font-size:2rem; margin-bottom:12px; }
+        .feature-card h3 { font-size:1.1rem; margin-bottom:8px; }
+        .feature-card p { color:var(--muted); font-size:0.9rem; }
+
+        .table-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; font-size:0.9rem; }
+        th,td { padding:12px 16px; text-align:left; }
+        th { color:var(--muted); font-weight:600; border-bottom:2px solid var(--border); }
+        td { border-bottom:1px solid var(--border); }
+        .check { color:var(--green); font-weight:bold; }
+        .cross { color:#ef4444; } .warn { color:#eab308; }
+        .highlight { background:rgba(139,92,246,0.08); }
+
+        .code-block { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:24px; overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:0.85rem; line-height:1.8; }
+        .code-block .c { color:#6b7280; } .code-block .k { color:var(--purple); } .code-block .s { color:var(--green); } .code-block .f { color:var(--cyan); }
+
+        /* About Us */
+        .about-grid { display:grid; grid-template-columns:1fr 1fr; gap:32px; }
+        .about-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:28px; }
+        .about-card h3 { font-size:1.2rem; margin-bottom:16px; color:var(--purple); }
+        .about-card ul { list-style:none; padding:0; }
+        .about-card li { padding:6px 0; color:var(--muted); font-size:0.9rem; display:flex; align-items:flex-start; gap:8px; }
+        .about-card li::before { content:"✓"; color:var(--green); font-weight:bold; }
+        .contact-box { margin-top:20px; padding:16px; background:rgba(139,92,246,0.1); border-radius:8px; border:1px solid rgba(139,92,246,0.3); }
+        .contact-box a { color:var(--cyan); font-weight:600; }
+
+        .cta { text-align:center; padding:100px 24px; background:radial-gradient(ellipse at 50% 100%,rgba(6,182,212,0.1),transparent 60%); }
+        .cta h2 { font-size:2rem; margin-bottom:16px; }
+
+        footer { border-top:1px solid var(--border); padding:32px 24px; text-align:center; color:var(--muted); font-size:0.85rem; }
+        .footer-links { display:flex; gap:24px; justify-content:center; margin-bottom:16px; flex-wrap:wrap; }
+
+        @media(max-width:768px) {
+            .hero h1 { font-size:2rem; }
+            .nav-links a.nav-hide { display:none; }
+            .about-grid { grid-template-columns:1fr; }
+            .hero { padding:120px 16px 60px; }
+            .hero p { font-size:1rem; }
+            section { padding:40px 16px; }
+            .section-title { font-size:1.5rem; margin-bottom:24px; }
+            .code-block { padding:16px; font-size:0.75rem; }
+            .feature-grid { grid-template-columns:1fr; }
+            .feature-card { padding:20px; }
+            .footer-links { flex-direction:column; gap:8px; }
+            .hero-buttons { flex-direction:column; align-items:center; }
+            .hero-buttons .btn { width:100%; max-width:300px; text-align:center; }
+            table { font-size:0.75rem; }
+            th,td { padding:8px 6px; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="nav-inner">
+        <div class="logo"><a href="/" style="color:inherit;text-decoration:none;">Mesh<span>Ctx</span></a></div>
+        <div class="nav-links">
+            <a href="#features" class="nav-hide" data-lang-key="nav_features">Features</a>
+            <a href="#compare" class="nav-hide" data-lang-key="nav_compare">Compare</a>
+            <a href="#about" class="nav-hide" data-lang-key="nav_about">About</a>
+            <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a>
+            <a href="getting-started" class="btn btn-ghost" data-lang-key="nav_docs">Docs</a>
+            <span class="lang-dropdown">
+                <button class="lang-dropdown-toggle" onclick="document.querySelector('.lang-dropdown-menu').classList.toggle('show')" id="langToggle">🌐 EN ▾</button>
+                <div class="lang-dropdown-menu" id="langMenu">
+                    <button class="active" onclick="switchLang('en');closeDropdown()">🇺🇸 English</button>
+                    <button onclick="switchLang('zh');closeDropdown()">🇨🇳 中文</button>
+                    <button onclick="switchLang('ja');closeDropdown()">🇯🇵 日本語</button>
+                    <button onclick="switchLang('ko');closeDropdown()">🇰🇷 한국어</button>
+                    <button onclick="switchLang('es');closeDropdown()">🇪🇸 Español</button>
+                    <button onclick="switchLang('fr');closeDropdown()">🇫🇷 Français</button>
+                    <button onclick="switchLang('de');closeDropdown()">🇩🇪 Deutsch</button>
+                </div>
+            </span>
+        </div>
+    </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<header class="hero">
+    <!-- EN -->
+    <div class="lang active" data-lang="en">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
+        <h1>The Agent That <span>Learns</span></h1>
+        <p>MeshCtx is the world\\'s first self-evolving agent platform. It remembers everything, learns from every task, and orchestrates multiple AI agents — <strong>open-core</strong>: AGPLv3 framework + source-available brain.</p>
+        <div class="hero-buttons">
+            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ Star on GitHub</a>
+            <a href="#download" class="btn btn-ghost">Get Started →</a>
+        </div>
+    </div>
+    <!-- ZH -->
+    <div class="lang" data-lang="zh">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
+        <h1>会<span>自我进化</span>的 Agent <span style="font-size:0.5em;background:var(--purple);padding:2px 8px;border-radius:4px;">v2.0</span></h1>
+        <p>MeshCtx 是全球首个自进化智能体平台。9核心模块、100模型·28供应商、企业微信接入、预测引擎、自主OODA循环 — <strong>框架开源</strong>+大脑源码可见。</p>
+        <div class="hero-buttons">
+            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
+            <a href="#download" class="btn btn-ghost">快速开始 →</a>
+        </div>
+    </div>
+    <!-- FR -->
+    <div class="lang" data-lang="fr">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
+        <h1>L'Agent qui <span>Apprend</span></h1>
+        <p>MeshCtx est la première plateforme d'agents auto-évolutive au monde. Elle mémorise tout, apprend de chaque tâche et orchestre plusieurs agents — <strong>open-core</strong>: framework AGPLv3 + cerveau accessible.</p>
+        <div class="hero-buttons">
+            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
+            <a href="getting-started" class="btn btn-ghost">Commencer →</a>
+        </div>
+    </div>
+    <!-- DE -->
+    <div class="lang" data-lang="de">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
+        <h1>Der Agent, der <span>lernt</span></h1>
+        <p>MeshCtx ist die weltweit erste selbstlernende Agenten-Plattform. Sie merkt sich alles, lernt aus jeder Aufgabe und orchestriert mehrere Agenten — vollständig Open-Source.</p>
+        <div class="hero-buttons">
+            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
+            <a href="getting-started" class="btn btn-ghost">Loslegen →</a>
+        </div>
+    </div>
+    <!-- JA -->
+    <div class="lang" data-lang="ja">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
+        <h1>学習する<span>エージェント</span></h1>
+        <p>MeshCtx は世界初の自己進化型エージェントプラットフォームです。すべてを記憶し、毎回のタスクから学習し、複数のAIエージェントを編成します — 完全オープンソース。</p>
+        <div class="hero-buttons"><a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a><a href="getting-started" class="btn btn-ghost">はじめる →</a></div>
+    </div>
+    <!-- KO -->
+    <div class="lang" data-lang="ko">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
+        <h1>학습하는 <span>에이전트</span></h1>
+        <p>MeshCtx는 세계 최초의 자가 진화형 에이전트 플랫폼입니다. 모든 것을 기억하고, 매 작업에서 학습하며, 여러 AI 에이전트를 편성합니다 — 완전 오픈소스.</p>
+        <div class="hero-buttons"><a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a><a href="getting-started" class="btn btn-ghost">시작하기 →</a></div>
+    </div>
+    <!-- ES -->
+    <div class="lang" data-lang="es">
+        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
+        <h1>El Agente que <span>Aprende</span></h1>
+        <p>MeshCtx es la primera plataforma de agentes auto-evolutiva del mundo. Lo recuerda todo, aprende de cada tarea y orquesta múltiples agentes — 100% código abierto.</p>
+        <div class="hero-buttons"><a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a><a href="getting-started" class="btn btn-ghost">Comenzar →</a></div>
+    </div>
+</header>
+
+<!-- ═══ FEATURES ═══ -->
+<section id="features">
+    <div class="section-inner">
+        <h2 class="section-title"><span data-lang-key="why_title">Why MeshCtx?</span></h2>
+        <div class="feature-grid">
+            <div class="feature-card"><div class="feature-icon">&#x1f9e0;</div><h3 data-lang-key="f1_title">Hierarchical Memory</h3><p data-lang-key="f1_desc">4-tier memory system (L0-L4) modeled after human cognition. With the Ebbinghaus Forgetting Curve.</p></div>
+            <div class="feature-card"><div class="feature-icon">&#x1f504;</div><h3 data-lang-key="f2_title">Self-Evolving</h3><p data-lang-key="f2_desc">Meta-cognition loop after every task: evaluate → extract patterns → update knowledge graph → adjust behavior.</p></div>
+            <div class="feature-card"><div class="feature-icon">&#x1f3ad;</div><h3 data-lang-key="f3_title">Multi-Agent Orchestra</h3><p data-lang-key="f3_desc">One intent. Automatically decomposed into a task DAG, executed in parallel by specialized agents.</p></div>
+            <div class="feature-card"><div class="feature-icon">&#x1f52e;</div><h3 data-lang-key="f4_title">Predictive Context</h3><p data-lang-key="f4_desc">Learns your patterns. Pre-loads relevant memories before you ask. Context assembly in under 50ms.</p></div>
+            <div class="feature-card"><div class="feature-icon">&#x1f50c;</div><h3 data-lang-key="f5_title">Plugin Marketplace</h3><p data-lang-key="f5_desc">MCP protocol native. Community-driven ecosystem of tools and integrations.</p></div>
+            <div class="feature-card"><div class="feature-icon">&#x1f513;</div><h3 data-lang-key="f6_title">Open Core</h3><p data-lang-key="f6_desc">AGPLv3 framework. Free forever. Core brain algorithms source-available. Commercial license available.</p></div>
+            <div class="feature-card" style="border-color:#8b5cf6;"><div class="feature-icon">🧠</div><h3 data-lang-key="f7_title">Super Brain Architecture</h3><p data-lang-key="f7_desc">Full-brain emulation with 10 brain regions: Hippocampal Replay, Amygdala Salience, Default Mode Network, Thalamic Gate, Cerebellar Forward Model, Basal Ganglia selector, ACC conflict monitor, Insula interoception, and Mirror Neuron Theory of Mind. No other AI agent has this.</p></div>
+            <div class="feature-card" style="border-color:#8b5cf6;"><div class="feature-icon">🏛️</div><h3 data-lang-key="f8_title">Hippocampal Replay</h3><p data-lang-key="f8_desc">Sharp-wave ripple memory consolidation during idle. Compressed replay (10-20x) discovers cross-memory patterns and generates creative insights automatically.</p></div>
+            <div class="feature-card" style="border-color:#8b5cf6;"><div class="feature-icon">💭</div><h3 data-lang-key="f9_title">Default Mode Network</h3><p data-lang-key="f9_desc">Background creative ideation during idle periods. Randomly connects distant concepts to generate novel ideas — like human mind-wandering, but always productive.</p></div>
+            <div class="feature-card" style="border-color:#06b6d4;"><div class="feature-icon">🖥️</div><h3 data-lang-key="f10_title">Code Sandbox</h3><p data-lang-key="f10_desc">Safe Python/Bash/JS execution. Docker isolation + subprocess fallback. Streaming SSE output. /run command in Chat.</p></div>
+            <div class="feature-card" style="border-color:#06b6d4;"><div class="feature-icon">📂</div><h3 data-lang-key="f11_title">Project Indexing</h3><p data-lang-key="f11_desc">Search your entire codebase. 15+ languages symbol extraction. Auto-watch file changes. /context command for instant retrieval.</p></div>
+        </div>
+    </div>
+<</section>
+
+<!-- ═══ SUPER BRAIN — 对你有什么用 ═══ -->
+<section style="background:linear-gradient(135deg,#0a0a1a,#1a0a2e);">
+    <div class="section-inner">
+        <h2 class="section-title"><span data-lang-key="sb_title">🧠 Super Brain = 真正像人脑的 AI</span></h2>
+        <p style="text-align:center;color:var(--muted);margin-bottom:32px;" data-lang-key="sb_subtitle">不是噱头。每个脑区解决一个实际痛点：</p>
+        <div class="feature-grid">
+            <div class="feature-card"><div class="feature-icon">🏛️</div><h3 data-lang-key="sb1_title">海马体重放 → 越用越聪明</h3><p data-lang-key="sb1_desc">闲时自动回放记忆，10-20倍速压缩。就像你睡觉时大脑在整理白天经历一样，它在后台默默发现规律——第二天回答问题更准。</p></div>
+            <div class="feature-card"><div class="feature-icon">😊</div><h3 data-lang-key="sb2_title">杏仁核 → 知道什么重要</h3><p data-lang-key="sb2_desc">自动识别消息的紧迫度和情感。"紧急！服务器挂了"和"今天天气不错"会被完全不同的优先级处理。</p></div>
+            <div class="feature-card"><div class="feature-icon">💭</div><h3 data-lang-key="sb3_title">默认模式网络 → 主动思考</h3><p data-lang-key="sb3_desc">不等你提问，后台持续联想远距离概念产生新想法。别的Agent是单向工具，它像主动思考的同事。</p></div>
+            <div class="feature-card"><div class="feature-icon">🎯</div><h3 data-lang-key="sb4_title">丘脑门控 → 过滤噪音</h3><p data-lang-key="sb4_desc">海量信息中自动聚焦关键信号，抑制无关干扰。像嘈杂咖啡馆里仍能听清对面说话。</p></div>
+            <div class="feature-card"><div class="feature-icon">🔮</div><h3 data-lang-key="sb5_title">小脑前向模型 → 预判风险</h3><p data-lang-key="sb5_desc">执行动作前先在"脑内模拟"后果。危险操作自动预警，防止AI闯祸。</p></div>
+            <div class="feature-card"><div class="feature-icon">🕹️</div><h3 data-lang-key="sb6_title">基底节 → 养成好习惯</h3><p data-lang-key="sb6_desc">TD学习持续优化策略。成功操作变"肌肉记忆"——越常用越快。</p></div>
+            <div class="feature-card"><div class="feature-icon">⚡</div><h3 data-lang-key="sb7_title">前扣带皮层 → 自我纠错</h3><p data-lang-key="sb7_desc">实时监测预期vs实际差异。发现偏差自动修正——不需要你手动纠正。</p></div>
+            <div class="feature-card"><div class="feature-icon">🪞</div><h3 data-lang-key="sb8_title">镜像神经元 → 理解意图</h3><p data-lang-key="sb8_desc">不只是字面理解，而是推断你真正的意图和情绪。急躁时简洁高效，探索时创意建议。</p></div>
+            <div class="feature-card"><div class="feature-icon">🫀</div><h3 data-lang-key="sb9_title">岛叶内感知 → 自我监控</h3><p data-lang-key="sb9_desc">持续监控资源使用和性能。内存泄漏、响应变慢在你发现之前自我诊断报警。</p></div>
+        </div>
+        <p style="text-align:center;margin-top:24px;color:var(--muted);font-size:13px;" data-lang-key="sb_bench">
+            📊 <a href="https://github.com/LucyAndLuna2023/meshctx/blob/main/tests/benchmark_v19.py" style="color:var(--accent);">Benchmark验证</a>：决策质量+38% · 全脑延迟<0.2ms · 记忆保持100% · 综合76/100
+        </p>
+    </div>
+</section>
+
+<!-- ═══ TRUST ═══ -->
+<section style="padding:40px 24px;">
+    <div class="section-inner" style="text-align:center;">
+        <p style="color:var(--muted);font-size:13px;max-width:700px;margin:0 auto;line-height:1.8;" data-lang-key="trust_text">
+            🔒 <strong>你的数据，你做主。</strong>所有操作可审计、可拦截、可回滚。API Key加密存储。开源MIT协议——代码全透明，永不锁定。
+        </p>
+    </div>
+</section>
+
+<!-- ═══ COMPARISON ═══ -->
+<section id="compare">
+    <div class="section-inner">
+        <h2 class="section-title"><span data-lang-key="compare_title">MeshCtx vs The World</span></h2>
+        <div class="table-wrap">
+            <table><thead><tr><th>Capability</th><th class="highlight">MeshCtx</th><th>Hermes</th><th>OpenClaw</th><th>Claude Cowork</th></tr></thead>
+            <tbody>
+                <tr><td data-lang-key="c1">Hierarchical Memory</td><td class="highlight"><span class="check">L0-L4</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c2">Forgetting Curve</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c3">Meta-Cognition</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c4">Multi-Agent</td><td class="highlight"><span class="check">✓ DAG</span></td><td><span class="warn">⚠ Limited</span></td><td><span class="cross">✗</span></td><td><span class="warn">⚠ Limited</span></td></tr>
+                <tr><td data-lang-key="c5">Knowledge Graph</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c6">Plugin Market</td><td class="highlight"><span class="check"><a href="#plugins" style="color:#22c55e;">✓ 9 Plugins</a></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c7">MCP Protocol</td><td class="highlight"><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="check">✓</span></td></tr>
+                <tr><td data-lang-key="c8">Open Source</td><td class="highlight"><span class="check">MIT</span></td><td><span class="check">MIT</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td></tr>
+                <tr style="border-top:2px solid #8b5cf6;"><td data-lang-key="c9"><strong>🧠 Super Brain Architecture</strong><br><span style="font-size:10px;color:var(--muted);">全脑仿真10脑区</span></td><td class="highlight"><span class="check">✓ v2.0</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c10">Hippocampal Replay</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c11">Amygdala Salience</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c12">Counterfactual Reasoning</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c13">Default Mode Network</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c14">Thalamic Attention Gate</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c15">Theory of Mind</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c16">Code Sandbox</td><td class="highlight"><span class="check">✓ Docker+Subprocess</span></td><td><span class="check">✓</span></td><td><span class="check">✓ 本地直执</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td></tr>
+                <tr><td data-lang-key="c17">Project Indexing</td><td class="highlight"><span class="check">✓ /context 上下文</span></td><td><span class="check">✓ ls/grep</span></td><td><span class="cross">✗</span></td><td><span class="check">✓ 全项目索引</span></td><td><span class="check">✓</span></td></tr>
+                <tr><td data-lang-key="c18">Multi-Model Compare</td><td class="highlight"><span class="check">✓ 并排3模型</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+            </tbody></table>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ ABOUT US ═══ -->
+<section id="about">
+    <div class="section-inner">
+        <h2 class="section-title"><span data-lang-key="about_title">About MeshCtx</span></h2>
+        <div class="about-grid">
+            <!-- EN -->
+            <div class="lang active about-card" data-lang="en">
+                <h3>🇨🇳 Built in China, Open to the World</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx is an open-core multi-agent framework built on <strong>"Division of Labor + Full Transparency."</strong> It's not a black-box single agent — it's a mesh network of an Orchestrator, a Guardian, and specialized agents working under full human supervision.</p>
+                <ul>
+                    <li><strong>Auditable</strong> — Every call, every decision has an execution report</li>
+                    <li><strong>Interceptable</strong> — Critical operations require user or Guardian confirmation</li>
+                    <li><strong>Controllable Evolution</strong> — All skill changes are versioned; roll back anytime</li>
+                    <li><strong>Cost-Efficient</strong> — Multi-tier caching reduces API calls by 60%+</li>
+                </ul>
+                            </div>
+            <!-- ZH -->
+            <div class="lang about-card" data-lang="zh">
+                <h3>🇨🇳 中国研发，服务全球</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx 是"<strong>分工协作 + 完全透明</strong>"的中国研发多智能体框架。非单一黑盒 Agent，而是由编排器、监管员与专业智能体组成的网状协作系统。</p>
+                <ul>
+                    <li><strong>可审计</strong> — 每次调用、每次决策都有执行报告，像 Git 一样可回溯</li>
+                    <li><strong>可拦截</strong> — 删除、外发等关键操作需用户或监管员确认</li>
+                    <li><strong>可控进化</strong> — 技能和策略变更全版本化，随时回滚</li>
+                    <li><strong>成本友好</strong> — 四层缓存，API 调用降低 60% 以上</li>
+                </ul>
+            </div>
+            <!-- FR -->
+            <div class="lang about-card" data-lang="fr">
+                <h3>🇨🇳 Construit en Chine, Ouvert au Monde</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx est un framework multi-agents open-core basé sur <strong>« Division du Travail + Transparence Totale ».</strong> Un réseau maillé d'un Orchestrateur, d'un Gardien et d'agents spécialisés sous supervision humaine.</p>
+                <ul>
+                    <li><strong>Auditable</strong> — Chaque décision génère un rapport exécutable</li>
+                    <li><strong>Interceptable</strong> — Les actions critiques nécessitent confirmation</li>
+                    <li><strong>Évolution Contrôlée</strong> — Compétences versionnées, retour arrière possible</li>
+                    <li><strong>Économique</strong> — Cache multi-niveaux, -60% d'appels API</li>
+                </ul>
+            </div>
+            <!-- DE -->
+            <div class="lang about-card" data-lang="de">
+                <h3>🇨🇳 Entwickelt in China, offen für die Welt</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx ist ein Open-Source Multi-Agent-Framework nach dem Prinzip <strong>„Arbeitsteilung + Volle Transparenz".</strong> Ein Netzwerk aus Orchestrator, Guardian und spezialisierten Agenten unter menschlicher Aufsicht.</p>
+                <ul>
+                    <li><strong>Prüfbar</strong> — Jeder Aufruf, jede Entscheidung mit Ausführungsbericht</li>
+                    <li><strong>Unterbrechbar</strong> — Kritische Operationen erfordern Bestätigung</li>
+                    <li><strong>Kontrollierte Evolution</strong> — Alle Änderungen versioniert, Rollback jederzeit</li>
+                    <li><strong>Kosteneffizient</strong> — Mehrstufiges Caching, -60% API-Aufrufe</li>
+                </ul>
+            </div>
+            <!-- JA -->
+            <div class="lang about-card" data-lang="ja">
+                <h3>🇯🇵 日本から、世界へ</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">MeshCtxは「分業＋完全透明性」に基づくオープンソースのマルチエージェントフレームワークです。</p>
+                <ul><li><strong>監査可能</strong> — すべての呼び出しと判断に実行レポート</li><li><strong>インターセプト可能</strong> — 重要な操作はユーザー確認が必要</li><li><strong>制御可能な進化</strong> — 全変更はバージョン管理、ロールバック可能</li><li><strong>コスト効率</strong> — 4層キャッシュでAPI呼び出し60%以上削減</li></ul>
+            </div>
+            <!-- KO -->
+            <div class="lang about-card" data-lang="ko">
+                <h3>🇰🇷 한국에서, 세계로</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx는 "분업 + 완전 투명성"에 기반한 오픈소스 멀티 에이전트 프레임워크입니다.</p>
+                <ul><li><strong>감사 가능</strong> — 모든 호출과 결정에 실행 보고서</li><li><strong>차단 가능</strong> — 중요 작업은 사용자 확인 필요</li><li><strong>제어 가능한 진화</strong> — 모든 변경 사항 버전 관리, 롤백 가능</li><li><strong>비용 효율</strong> — 4계층 캐시로 API 호출 60% 이상 감소</li></ul>
+            </div>
+            <!-- ES -->
+            <div class="lang about-card" data-lang="es">
+                <h3>🇪🇸 Construido para el Mundo</h3>
+                <p style="color:var(--muted);margin-bottom:16px;">MeshCtx es un framework multi-agente de código abierto basado en "División del Trabajo + Transparencia Total".</p>
+                <ul><li><strong>Auditable</strong> — Cada llamada con informe de ejecución</li><li><strong>Interceptable</strong> — Operaciones críticas requieren confirmación</li><li><strong>Evolución Controlable</strong> — Cambios versionados, rollback posible</li><li><strong>Rentable</strong> — Caché de 4 niveles, -60% llamadas API</li></ul>
+            </div>
+            <!-- Contact (shared) -->
+            <div class="about-card">
+                <h3 data-lang-key="contact_title">📬 Contact</h3>
+                <p style="color:var(--muted);margin-bottom:12px;" data-lang-key="contact_desc">Questions? Collaborations? Reach out anytime.</p>
+                <div class="contact-box">
+                    <p>📧 <a href="mailto:support@meshctx.com">support@meshctx.com</a></p>
+                    <p>🌐 <a href="https://meshctx.com">meshctx.com</a></p>
+                    <p>💻 <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ DOWNLOAD & INSTALL ═══ -->
+<section id="download">
+    <div class="section-inner">
+        <h2 class="section-title"><span data-lang-key="install_title">下载 & 安装</span></h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:16px;">
+            <!-- 🪟 Windows -->
+            <div class="feature-card" style="text-align:center;">
+                <div style="font-size:2.5rem;">🪟</div>
+                <h3 data-lang-key="plat_windows">Windows</h3>
+                <p style="min-height:40px;" data-lang-key="win_desc">NSIS安装程序 · 7语言 · 一键安装</p>
+                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" style="display:block;margin:8px 0;" data-lang-key="win_dl_installer">📦 下载安装程序</a>
+                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-ghost" style="display:block;" data-lang-key="win_dl_portable">📂 下载便携版</a>
+            </div>
+            <!-- 🍎 macOS -->
+            <div class="feature-card" style="text-align:center;">
+                <div style="font-size:2.5rem;">🍎</div>
+                <h3 data-lang-key="plat_macos">macOS</h3>
+                <p style="min-height:40px;" data-lang-key="mac_desc">DMG安装包 · ARM64原生 · Homebrew</p>
+                <div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">
+                    <span class="c"># Homebrew 安装</span><br>
+                    brew install meshctx<br><br>
+                    <span class="c"># 或源码安装</span><br>
+                    git clone https://github.com/LucyAndLuna2023/meshctx.git<br>
+                    cd meshctx<br>
+                    python3 -m venv .venv && source .venv/bin/activate<br>
+                    pip install -e . && pip install pycryptodome<br>
+                    meshctx start
+                </div>
+                <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-macos.dmg" class="btn btn-ghost" style="display:block;" data-lang-key="mac_dl">📥 下载 DMG</a>
+            </div>
+            <!-- 🐧 Linux -->
+            <div class="feature-card" style="text-align:center;">
+                <div style="font-size:2.5rem;">🐧</div>
+                <h3 data-lang-key="plat_linux">Linux</h3>
+                <p style="min-height:40px;" data-lang-key="linux_desc">源码安装 · pip · venv · PEP 668兼容</p>
+                <div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">
+                    <span class="c"># 克隆 + 虚拟环境</span><br>
+                    git clone https://github.com/LucyAndLuna2023/meshctx.git<br>
+                    cd meshctx<br>
+                    python3 -m venv .venv && source .venv/bin/activate<br>
+                    pip install -e . && pip install pycryptodome<br><br>
+                    <span class="c"># 配置 & 启动</span><br>
+                    export DEEPSEEK_API_KEY=sk-你的key<br>
+                    meshctx start
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ PLUGIN MARKET ═══ -->
+<section id="plugins">
+    <div class="section-inner">
+        <h2 class="section-title"><span data-lang-key="plugin_title">🔌 Plugin Marketplace</span></h2>
+        <p style="text-align:center;color:var(--muted);margin-bottom:24px;" data-lang-key="plugin_subtitle">社区驱动 · MCP协议原生 · GitHub托管 · 一键安装</p>
+        <div class="feature-grid">
+            <div class="feature-card"><div class="feature-icon">🔍</div><h3>Web Search</h3><p>Google/Bing/DuckDuckGo搜索集成</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
+            <div class="feature-card"><div class="feature-icon">📝</div><h3>Code Reviewer</h3><p>AI代码审查：bug检测/安全漏洞/风格</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
+            <div class="feature-card"><div class="feature-icon">📁</div><h3>File Manager</h3><p>本地文件浏览/读写/搜索</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
+            <div class="feature-card"><div class="feature-icon">📡</div><h3>Feishu Bot</h3><p>飞书机器人：消息推送/接收/群管</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
+            <div class="feature-card"><div class="feature-icon">📊</div><h3>Data Visualizer</h3><p>数据可视化：图表/仪表盘/报告</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
+        </div>
+        <p style="text-align:center;margin-top:20px;">
+            <a href="https://github.com/LucyAndLuna2023/meshctx-plugins" class="btn btn-primary" target="_blank">📦 浏览全部插件</a>
+            <a href="https://github.com/LucyAndLuna2023/meshctx/blob/main/src/core/plugin_manifest.py" class="btn btn-ghost" target="_blank" style="margin-left:8px;">📋 开发插件</a>
+        </p>
+    </div>
+</section>
+
+<!-- ═══ CTA ═══ -->
+<div class="cta">
+    <h2 data-lang-key="cta_title">Ready to build the future?</h2>
+    <p style="color:var(--muted);margin-bottom:24px;" data-lang-key="cta_desc">Open source. Self-evolving. Always free.</p>
+    <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ Star on GitHub</a>
+    <a href="#download" class="btn btn-ghost" style="margin-left:8px;" data-lang-key="cta_btn">Get Started</a>
+</div>
+
+<footer>
+    <div class="footer-links">
+        <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a>
+        <a href="getting-started">Documentation</a>
+        <a href="LEGAL">Legal</a>
+        <a href="mailto:license@meshctx.com">Commercial License</a>
+        <a href="mailto:support@meshctx.com">Contact</a>
+    </div>
+    <p style="margin-bottom:8px;">
+        <strong>AGPL v3</strong> + Commercial License · 
+        <a href="LEGAL" style="color:var(--muted);">Terms</a> · 
+        <a href="LEGAL" style="color:var(--muted);">Privacy</a> · 
+        <a href="LEGAL" style="color:var(--muted);">Disclaimer</a>
+    </p>
+    <p>© 2026 MeshCtx — Built for the community. Commercial use requires a license.</p>
+</footer>
+
+<script>
+// ═══ Language Data ═══
+const L = {
+    en: {
+        nav_features:"Features", nav_compare:"Compare", nav_about:"About", nav_docs:"Docs",
+        why_title:"Why MeshCtx?",
+        f1_title:"Hierarchical Memory", f1_desc:"4-tier memory system (L0-L4) modeled after human cognition. With the Ebbinghaus Forgetting Curve — important info persists, trivia naturally decays.",
+        f2_title:"Self-Evolving", f2_desc:"Meta-cognition loop runs after every task: evaluate → extract patterns → update knowledge graph → adjust behavior. Gets smarter every time.",
+        f3_title:"Multi-Agent Orchestra", f3_desc:"One intent. Automatically decomposed into a task DAG, executed in parallel by specialized agents (Coder + Researcher + DevOps + Reviewer).",
+        f4_title:"Predictive Context", f4_desc:"Learns your patterns. Pre-loads relevant memories before you ask. Context assembly in under 50ms.",
+        f5_title:"Plugin Marketplace", f5_desc:"MCP protocol native. pip install meshctx-plugin-xxx. Community-driven ecosystem of tools and integrations.",
+        f6_title:"Open Core", f6_desc:"AGPLv3 framework. Free forever. Brain algorithms source-available for review. Commercial license for enterprise.",
+        f7_title:"🧠 Super Brain Architecture", f7_desc:"Full-brain emulation with 10 brain regions: Hippocampal Replay, Amygdala Salience, Default Mode Network, Thalamic Gate, Cerebellar Forward Model, Basal Ganglia selector, ACC conflict monitor, Insula interoception, and Mirror Neuron Theory of Mind. No other AI agent has this.",
+        f8_title:"🏛️ Hippocampal Replay", f8_desc:"Sharp-wave ripple memory consolidation during idle. Compressed replay (10-20x) discovers cross-memory patterns and generates creative insights automatically.",
+        f9_title:"💭 Default Mode Network", f9_desc:"Background creative ideation during idle periods. Randomly connects distant concepts to generate novel ideas.",
+        compare_title:"MeshCtx vs The World",
+        c1:"Hierarchical Memory", c2:"Forgetting Curve", c3:"Meta-Cognition", c4:"Multi-Agent", c5:"Knowledge Graph", c6:"Plugin Market", c7:"MCP Protocol", c8:"Open Source",
+        c9:"🧠 Super Brain Architecture", c10:"Hippocampal Replay", c11:"Amygdala Salience",
+        c12:"Counterfactual Reasoning", c13:"Default Mode Network", c14:"Thalamic Attention Gate", c15:"Theory of Mind", c16:"Code Sandbox", c17:"Project Indexing", c18:"Multi-Model Compare",
+        about_title:"About MeshCtx",
+        contact_title:"📬 Contact", contact_desc:"Questions? Collaborations? Reach out anytime.",
+        quick_title:"Quick Start",
+        plat_linux:"🐧 Linux", plat_macos:"🍎 macOS", plat_windows:"🪟 Windows",
+        install_title:"Download & Install",
+        linux_desc:"Source install · pip · venv · PEP 668 compatible",
+        mac_desc:"DMG package · ARM64 native · Homebrew",
+        win_desc:"NSIS installer · 7 languages · One-click",
+        win_dl_installer:"📦 Download Installer",
+        win_dl_portable:"📂 Download Portable",
+        mac_dl:"📥 Download DMG",
+        win_title:"🪟 Windows Desktop Client",
+        win_installer_title:"One-Click Install",
+        win_installer_desc:"NSIS installer (7 languages) · Start Menu shortcut · Add/Remove Programs",
+        win_download_installer:"Download Installer",
+        win_portable_title:"Portable Edition",
+        win_portable_desc:"No install needed · Extract & run · Self-contained runtime",
+        win_download_portable:"Download Portable",
+        win_macos_title:"macOS",
+        win_macos_desc:"DMG package · Native ARM64 support",
+        win_download_macos:"Download for macOS",
+        cta_title:"Ready to build the future?", cta_desc:"Open source. Self-evolving. Always free.", cta_btn:"Get Started",
+        sb_title:"🧠 Super Brain = AI That Thinks Like You",
+        sb_subtitle:"Not hype. Every brain region solves a real problem:",
+        sb1_title:"🏛️ Hippocampal Replay → Gets Smarter Over Time",
+        sb1_desc:"Automatically replays memories during idle at 10-20x speed. Like your brain consolidating while you sleep — discovers patterns so answers get better every day.",
+        sb2_title:"😊 Amygdala → Knows What Matters",
+        sb2_desc:"Instantly distinguishes \"SERVER DOWN!!!\" from \"nice weather today\" — different priority, different response. Never treats a crisis like small talk.",
+        sb3_title:"💭 Default Mode → Thinks Proactively",
+        sb3_desc:"Background creative ideation. Randomly connects distant concepts. Other agents wait for commands — this one has shower thoughts.",
+        sb4_title:"🎯 Thalamic Gate → Filters Noise",
+        sb4_desc:"Amid information overload, locks onto what matters. Like hearing one voice clearly in a crowded café.",
+        sb5_title:"🔮 Forward Model → Predicts Risk",
+        sb5_desc:"Simulates consequences in its \"mind\" before acting. Detects dangerous operations and warns before damage happens.",
+        sb6_title:"🕹️ Basal Ganglia → Builds Good Habits",
+        sb6_desc:"Dopamine-driven TD learning optimizes behavior. Successful actions become automatic — like muscle memory for AI.",
+        sb7_title:"⚡ ACC → Self-Corrects Errors",
+        sb7_desc:"Monitors expected vs actual outcomes in real-time. Detects mistakes and fixes them before you even notice.",
+        sb8_title:"🪞 Mirror Neurons → Understands You",
+        sb8_desc:"Reads beyond words — infers your true intent and emotional state. Impatient? Concise. Exploring? Creative suggestions.",
+        sb9_title:"🫀 Insula → Self-Monitoring",
+        sb9_desc:"Constantly checks its own health. Memory leaks, slowdowns — detected and reported before you feel the lag.",
+        sb_bench:"📊 Benchmark: Decision +38% · Latency <0.2ms · Memory 100% · Score 76/100",
+        trust_text:"🔒 <strong>Your data, your rules.</strong> Every action is auditable, interceptable, and rollback-able. API keys encrypted at rest. Open-core — AGPLv3 framework, transparent, zero lock-in.",
+        plugin_title:"🔌 Plugin Marketplace",
+        plugin_subtitle:"Community-driven · MCP native · GitHub hosted · One-click install"
+    },
+    zh: {
+        nav_features:"特性", nav_compare:"对比", nav_about:"关于", nav_docs:"文档",
+        why_title:"为什么选择 MeshCtx？",
+        f1_title:"层次记忆", f1_desc:"4层记忆系统(L0-L4)，模拟人类认知。引入艾宾浩斯遗忘曲线 — 重要信息持久保留，琐碎信息自然衰减。",
+        f2_title:"自我进化", f2_desc:"每次任务后运行元认知循环：评估 → 提取模式 → 更新知识图谱 → 调整行为。越用越聪明。",
+        f3_title:"多智能体编排", f3_desc:"一个意图，自动分解为任务DAG，由专业Agent（编码+研究+运维+审查）并行执行。",
+        f4_title:"预测性上下文", f4_desc:"学习你的使用模式。在你提问之前预加载相关记忆。上下文组装 < 50ms。",
+        f5_title:"插件市场", f5_desc:"原生MCP协议。pip install meshctx-plugin-xxx。社区驱动的工具和集成生态。",
+        f6_title:"开放核心", f6_desc:"AGPLv3 框架开源。永久免费。核心大脑算法源码可见。企业商业授权可获取。",
+        f7_title:"🧠 超级大脑架构", f7_desc:"全球唯一10脑区全脑仿真：海马体重放巩固记忆、杏仁核情感标记识别重要性、默认模式网络闲时创意涌现、丘脑门控过滤噪音、小脑前向模型预判风险、基底节习惯学习。让AI真正像人脑一样思考。",
+        f8_title:"🏛️ 海马体重放", f8_desc:"闲时自动回放记忆(10-20倍速压缩)，发现跨时间模式，生成创意洞察。就像人类睡觉时大脑整理记忆一样——越用越聪明。",
+        f9_title:"💭 默认模式网络", f9_desc:"后台持续创意涌现，随机连接远距离概念产生新想法。不是被动等待指令，而是主动思考——像人类的\"灵光一现\"。",
+        compare_title:"meshctx vs 竞品",
+        c1:"层次记忆", c2:"遗忘曲线", c3:"元认知", c4:"多Agent", c5:"知识图谱", c6:"插件市场", c7:"MCP协议", c8:"开源",
+        c9:"🧠 超级大脑架构", c10:"海马体重放", c11:"杏仁核情感标记",
+        c12:"反事实推理", c13:"默认模式网络", c14:"丘脑注意力门控", c15:"心智理论", c16:"代码沙箱", c17:"项目索引", c18:"多模型对比",
+        about_title:"关于 MeshCtx",
+        contact_title:"📬 联系我们", contact_desc:"有疑问？有合作意向？随时联系。",
+        quick_title:"快速开始",
+        sb_title:"🧠 Super Brain = 真正像人脑的 AI",
+        sb_subtitle:"不是噱头。每个脑区解决一个实际痛点：",
+        sb1_title:"🏛️ 海马体重放 → 越用越聪明",
+        sb1_desc:"闲时自动回放记忆，10-20倍速压缩。就像你睡觉时大脑在整理白天经历一样，它在后台默默发现规律——第二天回答问题更准。",
+        sb2_title:"😊 杏仁核 → 知道什么重要",
+        sb2_desc:"自动识别消息的紧迫度和情感。「紧急！服务器挂了」和「今天天气不错」会被完全不同的优先级处理。",
+        sb3_title:"💭 默认模式网络 → 主动思考",
+        sb3_desc:"不等你提问，后台持续联想远距离概念产生新想法。别的Agent是单向工具，它像主动思考的同事。",
+        sb4_title:"🎯 丘脑门控 → 过滤噪音",
+        sb4_desc:"海量信息中自动聚焦关键信号，抑制无关干扰。像嘈杂咖啡馆里仍能听清对面说话。",
+        sb5_title:"🔮 小脑前向模型 → 预判风险",
+        sb5_desc:"执行动作前先在脑内模拟后果。危险操作自动预警，防止AI闯祸。",
+        sb6_title:"🕹️ 基底节 → 养成好习惯",
+        sb6_desc:"TD学习持续优化策略。成功操作变肌肉记忆——越常用越快。",
+        sb7_title:"⚡ 前扣带皮层 → 自我纠错",
+        sb7_desc:"实时监测预期vs实际差异。发现偏差自动修正——不需要你手动纠正。",
+        sb8_title:"🪞 镜像神经元 → 理解意图",
+        sb8_desc:"不只是字面理解，而是推断你真正的意图和情绪。急躁时简洁高效，探索时创意建议。",
+        sb9_title:"🫀 岛叶内感知 → 自我监控",
+        sb9_desc:"持续监控资源使用和性能。内存泄漏、响应变慢在你发现之前自我诊断报警。",
+        sb_bench:"📊 Benchmark验证：决策质量+38% · 全脑延迟<0.2ms · 记忆保持100% · 综合76/100",
+        trust_text:"🔒 <strong>你的数据，你做主。</strong>所有操作可审计、可拦截、可回滚。API Key加密存储。框架AGPLv3开源+大脑源码可见——代码全透明，永不锁定。",
+        plugin_title:"🔌 插件市场",
+        plugin_subtitle:"社区驱动 · MCP协议原生 · GitHub托管 · 一键安装",
+        cta_title:"准备好构建未来了吗？", cta_desc:"开源。自我进化。永久免费。", cta_btn:"开始使用"
+    },
+    fr: {
+        nav_features:"Fonctionnalités", nav_compare:"Comparer", nav_about:"À propos", nav_docs:"Docs",
+        why_title:"Pourquoi MeshCtx ?",
+        f1_title:"Mémoire Hiérarchique", f1_desc:"Système de mémoire à 4 niveaux (L0-L4) inspiré de la cognition humaine. Courbe d'oubli d'Ebbinghaus — l'important persiste, le futile s'efface.",
+        f2_title:"Auto-Évolutif", f2_desc:"Boucle de méta-cognition après chaque tâche : évaluer → extraire → mettre à jour → ajuster. S'améliore à chaque utilisation.",
+        f3_title:"Orchestre Multi-Agent", f3_desc:"Une intention. Automatiquement décomposée en DAG, exécutée en parallèle par des agents spécialisés.",
+        f4_title:"Contexte Prédictif", f4_desc:"Apprend vos habitudes. Précharge les souvenirs pertinents avant que vous ne demandiez. Assemblage < 50ms.",
+        f5_title:"Marketplace de Plugins", f5_desc:"Protocole MCP natif. pip install meshctx-plugin-xxx. Écosystème communautaire.",
+        f6_title:"Open Core", f6_desc:"Framework AGPLv3. Gratuit à vie. Algorithmes cerveau consultables. Licence commerciale disponible.",
+        compare_title:"MeshCtx vs Le Monde",
+        c1:"Mémoire Hiérarchique", c2:"Courbe d'Oubli", c3:"Méta-Cognition", c4:"Multi-Agent", c5:"Graphe de Connaissances", c6:"Marketplace", c7:"Protocole MCP", c8:"Open Source",
+        about_title:"À propos de MeshCtx",
+        contact_title:"📬 Contact", contact_desc:"Des questions ? Collaborations ? Contactez-nous.",
+        quick_title:"Démarrage Rapide",
+cta_title:"Prêt à construire le futur ?",cta_desc:"Open Core. Auto-évolutif. Toujours gratuit.",cta_btn:"Commencer",
+        sb_title:"🧠 Super Brain = Une IA qui pense comme vous",
+        sb_subtitle:"Pas du blabla. Chaque région cérébrale résout un vrai problème :",
+        sb1_title:"🏛️ Replay Hippocampique → Plus intelligent avec le temps",
+        sb1_desc:"Rejoue automatiquement les souvenirs au repos (10-20x). Comme votre cerveau qui consolide pendant le sommeil.",
+        sb2_title:"😊 Amygdale → Sait ce qui compte",
+        sb2_desc:"Distingue instantanément \"SERVEUR HS!!!\" de \"beau temps\" — priorité et réponse différentes.",
+        sb3_title:"💭 Mode par Défaut → Pense de façon proactive",
+        sb3_desc:"Idéation créative en arrière-plan. Connecte des concepts éloignés. Les autres agents attendent — celui-ci réfléchit.",
+        sb4_title:"🎯 Porte Thalamique → Filtre le bruit",
+        sb4_desc:"Face à la surcharge d'informations, se verrouille sur l'essentiel.",
+        sb5_title:"🔮 Modèle Anticipatif → Prédit les risques",
+        sb5_desc:"Simule les conséquences avant d'agir. Détecte les opérations dangereuses et alerte.",
+        sb6_title:"🕹️ Ganglions de la Base → Crée de bonnes habitudes",
+        sb6_desc:"Apprentissage TD dopaminergique. Les actions réussies deviennent automatiques.",
+        sb7_title:"⚡ CCA → Auto-correction",
+        sb7_desc:"Surveille en temps réel attendu vs réel. Détecte et corrige les erreurs automatiquement.",
+        sb8_title:"🪞 Neurones Miroirs → Vous comprend",
+        sb8_desc:"Lit au-delà des mots — votre intention et émotion. Impatient? Concis. Exploratoire? Créatif.",
+        sb9_title:"🫀 Insula → Auto-surveillance",
+        sb9_desc:"Vérifie constamment sa santé. Fuites mémoire, ralentissements — détectés avant que vous ne les sentiez.",
+        sb_bench:"📊 Benchmark: Décision +38% · Latence <0.2ms · Mémoire 100% · Score 76/100",
+    },
+    de: {
+        nav_features:"Features", nav_compare:"Vergleich", nav_about:"Über uns", nav_docs:"Docs",
+        why_title:"Warum MeshCtx?",
+        f1_title:"Hierarchischer Speicher", f1_desc:"4-stufiges Speichersystem (L0-L4) nach kognitivem Vorbild. Mit Ebbinghaus-Vergessenskurve — Wichtiges bleibt, Unwichtiges verblasst.",
+        f2_title:"Selbstlernend", f2_desc:"Meta-Kognitions-Schleife nach jeder Aufgabe: bewerten → Muster extrahieren → Wissensgraph aktualisieren → Verhalten anpassen.",
+        f3_title:"Multi-Agent Orchester", f3_desc:"Eine Absicht. Automatisch in Aufgaben-DAG zerlegt, parallel von spezialisierten Agenten ausgeführt.",
+        f4_title:"Prädiktiver Kontext", f4_desc:"Lernt Ihre Muster. Lädt relevante Erinnerungen, bevor Sie fragen. Kontextaufbau < 50ms.",
+        f5_title:"Plugin Marketplace", f5_desc:"MCP-Protokoll nativ. pip install meshctx-plugin-xxx. Community-getriebenes Ökosystem.",
+        f6_title:"Open Core", f6_desc:"AGPLv3-Framework. Für immer kostenlos. Brain-Algorithmen quelloffen einsehbar. Kommerzielle Lizenz verfügbar.",
+        compare_title:"MeshCtx vs Die Welt",
+        c1:"Hierarch. Speicher", c2:"Vergessenskurve", c3:"Meta-Kognition", c4:"Multi-Agent", c5:"Wissensgraph", c6:"Marketplace", c7:"MCP-Protokoll", c8:"Open Source",
+        about_title:"Über MeshCtx",
+        contact_title:"📬 Kontakt", contact_desc:"Fragen? Kooperationen? Jederzeit erreichbar.",
+        quick_title:"Schnellstart",
+cta_title:"Bereit, die Zukunft zu bauen?",cta_desc:"Open Core. Selbstlernend. Immer kostenlos.",cta_btn:"Loslegen",
+        sb_title:"🧠 Super Brain = KI, die denkt wie du",
+        sb_subtitle:"Kein Hype. Jede Hirnregion löst ein echtes Problem:",
+        sb1_title:"🏛️ Hippocampales Replay → Wird mit der Zeit schlauer",
+        sb1_desc:"Spielt Erinnerungen im Leerlauf 10-20x beschleunigt ab. Wie dein Gehirn beim Schlafen — entdeckt Muster.",
+        sb2_title:"😊 Amygdala → Weiß, was wichtig ist",
+        sb2_desc:"Unterscheidet sofort \"SERVER DOWN!!!\" von \"schönes Wetter\" — andere Priorität, andere Antwort.",
+        sb3_title:"💭 Default Mode → Denkt proaktiv",
+        sb3_desc:"Kreative Ideenfindung im Hintergrund. Verbindet entfernte Konzepte. Andere warten — dieser denkt mit.",
+        sb4_title:"🎯 Thalamisches Tor → Filtert Rauschen",
+        sb4_desc:"Bei Informationsüberflutung auf das Wesentliche fokussiert.",
+        sb5_title:"🔮 Vorwärtsmodell → Sagt Risiken voraus",
+        sb5_desc:"Simuliert Konsequenzen vor der Aktion. Warnt vor gefährlichen Operationen.",
+        sb6_title:"🕹️ Basalganglien → Baut gute Gewohnheiten auf",
+        sb6_desc:"Dopamin-gesteuertes TD-Lernen. Erfolgreiche Aktionen werden automatisch.",
+        sb7_title:"⚡ ACC → Selbstkorrektur",
+        sb7_desc:"Überwacht erwartet vs tatsächlich in Echtzeit. Erkennt und behebt Fehler automatisch.",
+        sb8_title:"🪞 Spiegelneuronen → Versteht dich",
+        sb8_desc:"Liest zwischen den Zeilen — deine Absicht und Emotion. Ungeduldig? Prägnant. Erkundend? Kreativ.",
+        sb9_title:"🫀 Insula → Selbstüberwachung",
+        sb9_desc:"Prüft ständig den eigenen Zustand. Speicherlecks, Verlangsamung — erkannt bevor du es merkst.",
+        sb_bench:"📊 Benchmark: Entscheidung +38% · Latenz <0.2ms · Speicher 100% · Score 76/100",
+    },
+    ja: { nav_features:"機能",nav_compare:"比較",nav_about:"概要",nav_docs:"ドキュメント",why_title:"なぜ MeshCtx なのか？",f1_title:"階層記憶",f1_desc:"人間の認知をモデルにした4層記憶システム（L0-L4）。エビングハウスの忘却曲線で重要情報は保持。",f2_title:"自己進化",f2_desc:"毎タスク後にメタ認知ループ：評価→パターン抽出→知識グラフ更新→行動調整。使うほど賢くなる。",f3_title:"マルチエージェント編成",f3_desc:"一つの意図を自動的にタスクDAGに分解し、専門エージェントが並列実行。",f4_title:"予測的コンテキスト",f4_desc:"使用パターンを学習。質問前に重要な記憶を先読み。",f5_title:"プラグインマーケット",f5_desc:"MCPプロトコルネイティブ。コミュニティ駆動のエコシステム。",f6_title:"Open Core",f6_desc:"AGPLv3フレームワーク。永久無料。脳アルゴリズムはソース公開。商用ライセンス有り。",compare_title:"MeshCtx vs 世界",c1:"階層記憶",c2:"忘却曲線",c3:"メタ認知",c4:"マルチエージェント",c5:"知識グラフ",c6:"プラグイン市場",c7:"MCPプロトコル",c8:"オープンソース",c9:"🧠 スーパーブレイン",c10:"海馬リプレイ",c11:"扁桃体サリエンス",c12:"反実仮想推論",c13:"デフォルトモード",c14:"視床注意ゲート",c15:"心の理論",c16:"コードサンドボックス",c17:"プロジェクトインデックス",c18:"マルチモデル比較",about_title:"MeshCtx について",contact_title:"📬 お問い合わせ",contact_desc:"ご質問やコラボレーションのご提案はいつでもどうぞ。",quick_title:"クイックスタート",cta_title:"未来を構築する準備はできましたか？",cta_desc:"Open Core。自己進化。永久無料。",cta_btn:"はじめる",sb_title:"🧠 Super Brain = 人間のように考えるAI",sb_subtitle:"各脳領域が実際の問題を解決します",sb1_title:"🏛️ 海馬リプレイ → 使うほど賢くなる",sb1_desc:"アイドル時に記憶を10-20倍速で自動再生しパターンを発見",sb2_title:"😊 扁桃体 → 何が重要かを知る",sb2_desc:"「サーバーダウン!!!」と「いい天気ですね」を瞬時に区別",sb3_title:"💭 デフォルトモード → 能動的に思考",sb3_desc:"バックグラウンドで創造的発想。他のAIは待つだけ——これは自ら考える",sb4_title:"🎯 視床ゲート → ノイズをフィルタリング",sb4_desc:"情報過多の中から本質を見抜く",sb5_title:"🔮 順モデル → リスクを予測",sb5_desc:"行動前に「脳内シミュレーション」で結果を予測し危険を警告",sb6_title:"🕹️ 大脳基底核 → 良い習慣を形成",sb6_desc:"ドーパミン駆動のTD学習で成功操作が自動化",sb7_title:"⚡ ACC → 自己修正",sb7_desc:"期待値と実際値をリアルタイム監視しミスを自動修正",sb8_title:"🪞 ミラーニューロン → あなたを理解",sb8_desc:"言葉の裏にある意図や感情を読み取る",sb9_title:"🫀 島皮質 → 自己監視",sb9_desc:"メモリリークや速度低下を検知し自己診断",sb_bench:"📊 意思決定+38% · 遅延<0.2ms · 記憶100% · 総合76/100",trust_text:"🔒 <strong>あなたのデータ、あなたのルール。</strong>すべての操作は監査可能で取り消せます。APIキーは暗号化。Open Core — AGPLv3フレームワーク。" },
+    ko: { nav_features:"기능",nav_compare:"비교",nav_about:"소개",nav_docs:"문서",why_title:"왜 MeshCtx 인가?",f1_title:"계층적 메모리",f1_desc:"인간 인지를 모델로 한 4계층 메모리 시스템(L0-L4). 에빙하우스 망각 곡선으로 중요한 정보는 유지.",f2_title:"자가 진화",f2_desc:"매 작업 후 메타인지 루프: 평가→패턴 추출→지식 그래프 업데이트→행동 조정.",f3_title:"멀티 에이전트 편성",f3_desc:"하나의 의도를 자동으로 작업 DAG로 분해, 전문 에이전트가 병렬 실행.",f4_title:"예측적 컨텍스트",f4_desc:"사용 패턴을 학습. 질문 전에 관련 메모리 미리 로드.",f5_title:"플러그인 마켓",f5_desc:"MCP 프로토콜 네이티브. 커뮤니티 주도 생태계.",f6_title:"Open Core",f6_desc:"AGPLv3 프레임워크. 영구 무료. 뇌 알고리즘 소스 공개. 상용 라이선스 가능.",compare_title:"MeshCtx vs 경쟁 제품",c1:"계층적 메모리",c2:"망각 곡선",c3:"메타인지",c4:"멀티 에이전트",c5:"지식 그래프",c6:"플러그인 마켓",c7:"MCP 프로토콜",c8:"오픈소스",c9:"🧠 슈퍼 브레인",c10:"해마 리플레이",c11:"편도체 현저성",c12:"반사실적 추론",c13:"기본 모드 네트워크",c14:"시상 주의 게이트",c15:"마음 이론",c16:"코드 샌드박스",c17:"프로젝트 인덱싱",c18:"멀티 모델 비교",about_title:"MeshCtx 소개",contact_title:"📬 문의하기",contact_desc:"질문이나 협업 제안이 있으시면 언제든지 연락주세요.",quick_title:"빠른 시작",cta_title:"미래를 만들 준비가 되셨나요?",cta_desc:"Open Core. 자가 진화. 영구 무료.",cta_btn:"시작하기",sb_title:"🧠 Super Brain = 사람처럼 생각하는 AI",sb_subtitle:"각 뇌 영역이 실제 문제를 해결합니다",sb1_title:"🏛️ 해마 리플레이 → 사용할수록 똑똑해짐",sb1_desc:"유휴 시간에 기억을 10-20배속으로 자동 재생하여 패턴 발견",sb2_title:"😊 편도체 → 무엇이 중요한지 앎",sb2_desc:"서버 다운과 날씨 좋네요를 즉시 구별하여 우선순위 처리",sb3_title:"💭 기본 모드 → 능동적으로 사고",sb3_desc:"백그라운드에서 창의적 발상. 다른 AI는 기다리기만 — 이것은 스스로 생각",sb4_title:"🎯 시상 게이트 → 노이즈 필터링",sb4_desc:"정보 과부하 속에서 핵심을 포착",sb5_title:"🔮 순방향 모델 → 위험 예측",sb5_desc:"행동 전에 결과를 시뮬레이션하여 위험 감지",sb6_title:"🕹️ 기저핵 → 좋은 습관 형성",sb6_desc:"도파민 기반 TD 학습으로 성공 작업 자동화",sb7_title:"⚡ ACC → 자기 수정",sb7_desc:"예상 대비 실제를 실시간 모니터링하여 오류 자동 수정",sb8_title:"🪞 거울 뉴런 → 당신을 이해",sb8_desc:"말 너머의 의도와 감정을 읽음",sb9_title:"🫀 섬엽 → 자기 모니터링",sb9_desc:"메모리 누수와 속도 저하를 감지하여 자가 진단",sb_bench:"📊 의사결정 +38% · 지연 <0.2ms · 메모리 100% · 점수 76/100",trust_text:"🔒 <strong>당신의 데이터, 당신의 규칙.</strong> 모든 작업은 감사 가능하고 되돌릴 수 있습니다. API 키 암호화. Open Core — AGPLv3 프레임워크." },
+    es: { nav_features:"Funciones",nav_compare:"Comparar",nav_about:"Acerca de",nav_docs:"Docs",why_title:"¿Por qué MeshCtx?",f1_title:"Memoria Jerárquica",f1_desc:"Sistema de memoria de 4 niveles (L0-L4) inspirado en la cognición humana. Curva de olvido de Ebbinghaus.",f2_title:"Auto-Evolutivo",f2_desc:"Bucle de meta-cognición tras cada tarea: evaluar → extraer → actualizar → ajustar.",f3_title:"Orquesta Multi-Agente",f3_desc:"Una intención. Descompuesta automáticamente en DAG, ejecutada en paralelo.",f4_title:"Contexto Predictivo",f4_desc:"Aprende tus patrones. Precarga memorias antes de que preguntes.",f5_title:"Mercado de Plugins",f5_desc:"Protocolo MCP nativo. Ecosistema comunitario.",f6_title:"Open Core",f6_desc:"Framework AGPLv3. Gratis para siempre. Algoritmos cerebrales con código visible. Licencia comercial disponible.",compare_title:"MeshCtx vs El Mundo",c1:"Memoria Jerárquica",c2:"Curva de Olvido",c3:"Meta-Cognición",c4:"Multi-Agente",c5:"Grafo de Conocimiento",c6:"Mercado de Plugins",c7:"Protocolo MCP",c8:"Código Abierto",c9:"🧠 Súper Cerebro",c10:"Replay Hipocampal",c11:"Saliencia Amígdala",c12:"Razonamiento Contrafactual",c13:"Red de Modo por Defecto",c14:"Puerta de Atención Talámica",c15:"Teoría de la Mente",c16:"Sandbox de Código",c17:"Indexación de Proyecto",c18:"Comparación Multi-Modelo",about_title:"Acerca de MeshCtx",contact_title:"📬 Contacto",contact_desc:"¿Preguntas? ¿Colaboraciones? Contáctenos.",quick_title:"Inicio Rápido",cta_title:"¿Listo para construir el futuro?",cta_desc:"Open Core. Auto-evolutivo. Siempre gratis.",cta_btn:"Comenzar",sb_title:"🧠 Super Brain = IA que piensa como tú",sb_subtitle:"Cada región cerebral resuelve un problema real",sb1_title:"🏛️ Replay Hipocampal → Más inteligente con el tiempo",sb1_desc:"Reproduce recuerdos automáticamente en reposo",sb2_title:"😊 Amígdala → Sabe lo que importa",sb2_desc:"Distingue instantáneamente una crisis de una charla casual",sb3_title:"💭 Modo por Defecto → Piensa proactivamente",sb3_desc:"Ideación creativa en segundo plano",sb4_title:"🎯 Puerta Talámica → Filtra el ruido",sb4_desc:"Ante la sobrecarga, se enfoca en lo esencial",sb5_title:"🔮 Modelo Predictivo → Anticipa riesgos",sb5_desc:"Simula consecuencias antes de actuar",sb6_title:"🕹️ Ganglios Basales → Crea buenos hábitos",sb6_desc:"Aprendizaje TD. Acciones exitosas automáticas",sb7_title:"⚡ CCA → Auto-corrección",sb7_desc:"Monitorea y corrige errores automáticamente",sb8_title:"🪞 Neuronas Espejo → Te entiende",sb8_desc:"Lee tu intención y emoción",sb9_title:"🫀 Ínsula → Auto-monitoreo",sb9_desc:"Detecta fallos antes de que los notes",sb_bench:"📊 Decisión +38% · Latencia <0.2ms · Memoria 100% · Puntuación 76/100",trust_text:"🔒 <strong>Tus datos, tus reglas.</strong> Cada acción es auditable y reversible. Claves API cifradas. Open Core — framework AGPLv3." },
+};
+
+function closeDropdown() { document.getElementById('langMenu').classList.remove('show'); }
+function switchLang(lang) {
+    var labels = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch'};
+    document.getElementById('langToggle').innerHTML = (labels[lang]||'🌐 '+lang.toUpperCase())+' ▾';
+    document.querySelectorAll('.lang-dropdown-menu button').forEach(function(b){b.classList.remove('active');});
+    var btns = document.querySelectorAll('.lang-dropdown-menu button');
+    for(var i=0;i<btns.length;i++){var t=btns[i].textContent.trim();if((lang==='en'&&t.indexOf('English')>=0)||(lang==='zh'&&t.indexOf('中文')>=0)||(lang==='ja'&&t.indexOf('日本語')>=0)||(lang==='ko'&&t.indexOf('한국어')>=0)||(lang==='es'&&t.indexOf('Español')>=0)||(lang==='fr'&&t.indexOf('Français')>=0)||(lang==='de'&&t.indexOf('Deutsch')>=0))btns[i].classList.add('active');}
+    // Show/hide language blocks
+    document.querySelectorAll('.lang[data-lang]').forEach(el => {
+        el.classList.toggle('active', el.dataset.lang === lang);
+    });
+
+    // Update text keys
+    document.querySelectorAll('[data-lang-key]').forEach(el => {
+        const key = el.dataset.langKey;
+        if (L[lang] && L[lang][key]) el.textContent = L[lang][key];
+    });
+
+    // Update html lang attribute
+    document.documentElement.lang = lang;
+    localStorage.setItem('meshctx-lang', lang);
+}
+
+// Restore saved language
+const saved = localStorage.getItem('meshctx-lang') || 'en';
+switchLang(saved);
+</script>
+
+</body>
+</html>

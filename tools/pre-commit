@@ -1,0 +1,26 @@
+#!/bin/bash
+# pre-commit hook — 提交前强制通过测试
+# 安装: cp tools/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+echo "🔍 pre-commit: 运行测试..."
+
+# 快速回归测试 (必需)
+source /home/administrator/meshctx-venv/bin/activate 2>/dev/null
+python -m pytest tests/test_nsis_validation.py tests/test_project_integrity.py tests/test_real_behavior.py -q --tb=line 2>&1
+RC=$?
+
+if [ $RC -ne 0 ]; then
+    echo ""
+    echo "🔴 测试失败！提交已阻止。"
+    echo "   修复后重试: git commit ..."
+    exit 1
+fi
+
+# 版本号一致性检查
+python3 tools/sync_version.py 2>&1 | grep -q "OK" || {
+    echo "🔴 版本号不一致！运行: python3 tools/sync_version.py"
+    exit 1
+}
+
+echo "✅ 测试通过，允许提交"
+exit 0

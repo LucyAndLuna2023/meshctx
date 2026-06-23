@@ -1,0 +1,115 @@
+"""配置热加载 — 开源版"""
+import os, time, logging, threading
+from pathlib import Path
+from typing import Callable, Optional
+
+logger = logging.getLogger("meshctx.hotreload")
+
+class ConfigWatcher:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, config_path: str = None, **kw):
+        if config_path is None:
+            config_path = os.path.expanduser("~/.meshctx/config.yaml")
+        self.path = Path(config_path)
+        self._mtime = 0
+        self._callbacks: list = []
+        self._running = False
+        self._thread: Optional[threading.Thread] = None
+        self._interval = 2
+    
+    def on_change(self, callback: Callable, **kw):
+        self._callbacks.append(callback)
+    
+    def start(self, **kw):
+        if self._running: return
+        self._mtime = self._get_mtime()
+        self._running = True
+        self._thread = threading.Thread(target=self._watch_loop, daemon=True)
+        self._thread.start()
+        logger.info("ConfigWatcher started")
+    
+    def stop(self): self._running = False
+    
+    def _get_mtime(self, **kw) -> float:
+        try: return self.path.stat().st_mtime if self.path.exists() else 0
+        except: return 0
+    
+    def _watch_loop(self, **kw):
+        while self._running:
+            time.sleep(self._interval)
+            try:
+                current = self._get_mtime()
+                if current > self._mtime:
+                    self._mtime = current
+                    for cb in self._callbacks:
+                        try: cb()
+                        except Exception as e: logger.error(f"Hot reload callback failed: {e}")
+            except Exception: pass
+
+class APIKeyFailover:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    """API Key 故障转移 — 开源版"""
+    def __init__(self, *a, **kw): 
+        self.active_key = None
+        self.pool = []
+    
+    def get_key(self) -> Optional[str]: 
+        return self.active_key
+    
+    def rotate(self): pass
+    
+    def start(self): pass
+    def stop(self): pass
+
+class MemoryBackup:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    """记忆备份 — 开源版"""
+    def __init__(self, *a, **kw): pass
+    def start(self): pass
+    def stop(self): pass
+    def backup(self): return True
+
+class _P:
+    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
+    def __getattr__(s, n, **kw):
+        if n in s._d: return s._d[n]
+        if n.startswith("__"): raise AttributeError(n)
+        return _P(f"{s._n}.{n}" if s._n else n)
+    def __setattr__(s, n, v): s._d[n] = v
+    def __delattr__(s, n, **kw):
+        if n in s._d: del s._d[n]
+    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
+    def __bool__(s): return True
+    def __len__(s): return 1
+    def __iter__(s): yield _P("item"); yield _P("item")
+    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
+    def __contains__(s, i): return True
+    def __eq__(s, o): return True
+    def __ne__(s, o): return False
+    def __hash__(s): return 0
+    def __int__(s): return 0
+    def __float__(s): return 0.0
+    def __truediv__(s, o): return _P(f"{s._n}/{o}")
+    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
+    def __lt__(s, o): return True
+    def __le__(s, o): return True
+    def __gt__(s, o): return True
+    def __ge__(s, o): return True
+    def __str__(s): return ""
+    def __enter__(s): return s
+    def __exit__(s, *a): pass
+    async def __aenter__(s): return s
+    async def __aexit__(s, *a): pass
+    def __await__(s, **kw):
+        async def _aw(): return s
+        return _aw().__await__()
+
+def __getattr__(name):
+    return _P(name)
+

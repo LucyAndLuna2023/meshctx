@@ -1,0 +1,13 @@
+{
+  "patterns": [
+    {"category":"crash","symptom":"console=False in spec","root_cause":"Windows GUI应用无stdin","fix":"console=True","occurrences":3},
+    {"category":"crash","symptom":"open() without encoding='utf-8'","root_cause":"Windows默认GBK编码","fix":"encoding='utf-8'","occurrences":2},
+    {"category":"missing","symptom":"exe属性无版本号","root_cause":"PyInstaller 6.20不嵌入+缺pyi-set_version","fix":"CI加pyi-set_version步骤","occurrences":4},
+    {"category":"missing","symptom":"NSIS无语言选择","root_cause":"CI的choco nsis缺LangDLL.dll","fix":"内置LangDLL.dll+!addplugindir","occurrences":3},
+    {"category":"inconsistency","symptom":"版本号散落多个文件","root_cause":"手动sed漏改","fix":"sync_version.py一键同步","occurrences":2},
+    {"category":"crash","symptom":"desktop.py input()崩溃","root_cause":"console=False+未保护的input()","fix":"恢复console=True","occurrences":2},
+    {"category":"build","symptom":"exe大小异常(22MB或154MB)","root_cause":"依赖不全或torch污染","fix":"干净venv+spec排除torch/tf","occurrences":3},
+    {"category":"build","symptom":"SPECPATH解析为E:\\","root_cause":"WSL cmd.exe下SPECPATH路径异常","fix":"_here=r'E:\\Meshctx'硬编码","occurrences":2}
+  ],
+  "updated": "2026-05-28T23:00:00"
+}

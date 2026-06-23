@@ -1,0 +1,99 @@
+{
+  "name": "meshctx-vscode",
+  "displayName": "MeshCtx AI Agent",
+  "version": "3.33.0",
+  "description": "World's First Self-Evolving Agent — right inside VS Code",
+  "publisher": "meshctx",
+  "icon": "icon.png",
+  "repository": "https://github.com/LucyAndLuna2023/meshctx",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Machine Learning",
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "ai",
+    "agent",
+    "meshctx",
+    "self-evolving",
+    "multi-agent",
+    "coding-assistant"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "meshctx.start",
+        "title": "MeshCtx: Start Agent"
+      },
+      {
+        "command": "meshctx.chat",
+        "title": "MeshCtx: Open Chat"
+      },
+      {
+        "command": "meshctx.explain",
+        "title": "MeshCtx: Explain Code"
+      },
+      {
+        "command": "meshctx.fix",
+        "title": "MeshCtx: Fix Bug"
+      },
+      {
+        "command": "meshctx.dashboard",
+        "title": "MeshCtx: Open Dashboard"
+      },
+      {
+        "command": "meshctx.status",
+        "title": "MeshCtx: Show Status"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "meshctx.chat",
+        "key": "ctrl+shift+m",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "meshctx.explain",
+        "key": "ctrl+shift+e",
+        "when": "editorTextFocus && editorHasSelection"
+      }
+    ],
+    "configuration": {
+      "title": "MeshCtx",
+      "properties": {
+        "meshctx.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "MeshCtx server URL"
+        },
+        "meshctx.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-start meshctx agent on VS Code launch"
+        },
+        "meshctx.model": {
+          "type": "string",
+          "default": "deepseek-v4-pro",
+          "description": "Default AI model"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.0.0"
+  }
+}

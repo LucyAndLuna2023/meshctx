@@ -1,0 +1,118 @@
+MeshCtx — Open-Source, Auditable Multi-Agent Framework from China
+═══════════════════════════════════════════════════════════
+
+[ENGLISH]
+
+MeshCtx is an open-source multi-agent framework built on the principles of 
+"Division of Labor + Full Transparency." It's not a black-box single agent — 
+it's a mesh network of an Orchestrator, a Guardian, and specialized agents 
+working together under full human supervision.
+
+WHY MeshCtx?
+
+Current agents (OpenClaw, Hermes, etc.) proved "AI can work," but exposed 
+three fatal flaws:
+
+  1. UNCONTROLLED — Deleting files, crashing systems, flagged by regulators
+  2. BLACK BOX — You never know why it did what it did
+  3. UNTRACEABLE GROWTH — Self-evolution without audit trails means 
+     enterprises can't trust it
+
+MeshCtx redesigns from the ground up:
+
+  ✅ AUDITABLE — Every call, every decision has an execution report; 
+     traceable like Git history
+  ✅ INTERCEPTABLE — Critical operations (delete, external data sending) 
+     require user or Guardian confirmation
+  ✅ CONTROLLABLE EVOLUTION — All skill and strategy changes are versioned; 
+     roll back anytime
+  ✅ COST-EFFICIENT — Multi-tier caching reduces API calls by 60%+
+
+CONTACT: support@meshctx.com
+WEBSITE: https://meshctx.com
+GITHUB: https://github.com/LucyAndLuna2023/meshctx
+
+───────────────────────────────────────────────────────────
+
+[中文]
+
+MeshCtx 是一个以"分工协作 + 完全透明"为核心的中国开源多智能体框架。
+它不是单一超级 Agent 的黑盒执行，而是由编排器(Orchestrator)、
+监管员(Guardian)与多个专业智能体组成的网状协作系统。
+
+为什么选择 MeshCtx？
+
+当前主流 Agent（Hermes、OpenClaw 等）证明了"AI 能干活"，但暴露三大死穴：
+
+  1. 失控 — 频繁删文件、崩系统，缺乏安全边界
+  2. 黑盒 — 决策过程不透明，结果无法追溯
+  3. 进化不可控 — 自我学习后的行为无法审计，企业不敢部署
+
+MeshCtx 从架构层解决：
+
+  ✅ 可审计 — 每次调用、每次决策都生成执行报告，像 Git 一样可回溯
+  ✅ 可拦截 — 删除、外发数据等关键操作必须经用户或监管员确认
+  ✅ 可控进化 — 技能和策略变更全版本化，随时回滚任意历史版本
+  ✅ 成本友好 — 四层缓存机制，API 调用量降低 60% 以上
+
+联系: support@meshctx.com
+官网: https://meshctx.com
+GitHub: https://github.com/LucyAndLuna2023/meshctx
+
+───────────────────────────────────────────────────────────
+
+[FRANÇAIS]
+
+MeshCtx est un framework multi-agents open-source construit sur les principes
+de « Division du Travail + Transparence Totale ». Ce n'est pas un agent 
+unique en boîte noire — c'est un réseau maillé composé d'un Orchestrateur, 
+d'un Gardien et d'agents spécialisés, collaborant sous supervision humaine.
+
+POURQUOI MeshCtx ?
+
+Les agents actuels (OpenClaw, Hermes, etc.) ont prouvé que l'IA peut 
+travailler, mais ont exposé trois défauts fatals :
+
+  1. INCONTRÔLABLE — Suppression de fichiers, plantages système
+  2. BOÎTE NOIRE — Décisions opaques, résultats inexplicables
+  3. ÉVOLUTION INTRACABLE — L'auto-apprentissage sans audit empêche 
+     l'adoption en entreprise
+
+MeshCtx repense l'architecture depuis zéro :
+
+  ✅ AUDITABLE — Chaque appel, chaque décision génère un rapport exécutable
+  ✅ INTERCEPTABLE — Les actions critiques nécessitent une confirmation
+  ✅ ÉVOLUTION CONTRÔLÉE — Compétences et stratégies versionnées, 
+     retour arrière possible à tout moment
+  ✅ ÉCONOMIQUE — Cache multi-niveaux, réduction de 60%+ des appels API
+
+CONTACT: support@meshctx.com
+
+───────────────────────────────────────────────────────────
+
+[DEUTSCH]
+
+MeshCtx ist ein Open-Source Multi-Agent-Framework, basierend auf den 
+Prinzipien „Arbeitsteilung + Volle Transparenz". Es ist kein Black-Box-
+Einzelagent — es ist ein Netzwerk aus einem Orchestrator, einem Guardian 
+und spezialisierten Agenten, die unter menschlicher Aufsicht zusammenarbeiten.
+
+WARUM MeshCtx?
+
+Aktuelle Agenten (OpenClaw, Hermes, etc.) haben bewiesen, dass KI arbeiten 
+kann, aber drei fatale Schwächen offenbart:
+
+  1. UNKONTROLLIERT — Löscht Dateien, legt Systeme lahm
+  2. BLACK BOX — Entscheidungen sind nicht nachvollziehbar
+  3. NICHT PRÜFBARE ENTWICKLUNG — Selbstoptimierung ohne Audit-Trail 
+     macht Unternehmen misstrauisch
+
+MeshCtx wurde von Grund auf neu konzipiert:
+
+  ✅ PRÜFBAR — Jeder Aufruf, jede Entscheidung hat einen Ausführungsbericht
+  ✅ UNTERBRECHBAR — Kritische Operationen erfordern Bestätigung
+  ✅ KONTROLLIERTE EVOLUTION — Alle Änderungen sind versioniert, 
+     Rollback jederzeit möglich
+  ✅ KOSTENEFFIZIENT — Mehrstufiges Caching reduziert API-Aufrufe um 60%+
+
+KONTAKT: support@meshctx.com
