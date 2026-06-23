@@ -122,8 +122,12 @@ if [ -n "$CONFIG_BACKUP" ] && [ -d "$CONFIG_BACKUP" ]; then
         cp "${CONFIG_BACKUP}/provider_config.json" "${INSTALL_DIR}/provider_config.json" 2>/dev/null || true
         RESTORED=1
     fi
+    # 🔒 安全: 永远不恢复旧密码，新安装默认无需密码
+    if [ -f "${INSTALL_DIR}/.env" ]; then
+        sed -i '/^MESHCTX_PASSWORD=/d' "${INSTALL_DIR}/.env" 2>/dev/null || true
+    fi
     rm -rf "$CONFIG_BACKUP"
-    [ "$RESTORED" = "0" ] || echo -e "  ${GREEN}✓${NC} 用户配置已恢复（API Key / 模型配置不丢失）"
+    [ "$RESTORED" = "0" ] || echo -e "  ${GREEN}✓${NC} 用户配置已恢复（API Key / 模型配置不丢失，密码已重置）"
 fi
 
 cd "${INSTALL_DIR}"

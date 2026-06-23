@@ -497,6 +497,64 @@ def cmd_stop(args):
     print("meshctx 已停止" if r.returncode == 0 else "未找到运行中的 meshctx")
 
 
+def cmd_password(args):
+    """Web UI 登录密码管理（对标 OpenClaw/Hermes 开箱即用）"""
+    import os
+    env_path = os.path.expanduser("~/.meshctx/.env")
+    action = args.password_action
+
+    # 读取当前 .env
+    env_lines = []
+    if os.path.exists(env_path):
+        with open(env_path) as f:
+            env_lines = f.readlines()
+
+    if action == "status":
+        # 先检查环境变量，再检查 .env 文件
+        password = os.environ.get("MESHCTX_PASSWORD", "")
+        if not password:
+            for line in env_lines:
+                if line.startswith("MESHCTX_PASSWORD="):
+                    password = line.split("=", 1)[1].strip()
+                    break
+        if password:
+            print(f"🔐 Web UI 密码已设置 (长度 {len(password)} 字符)")
+            print(f"   登录地址: http://localhost:3001/ui")
+            print(f"   清除密码: meshctx password clear")
+        else:
+            print("🔓 Web UI 无需密码（默认，开箱即用）")
+            print(f"   设置密码: meshctx password set")
+        return
+
+    elif action == "set":
+        import getpass
+        pw = args.password or getpass.getpass("新密码: ")
+        if not pw.strip():
+            print("❌ 密码不能为空")
+            return
+        # 写入或更新
+        found = False
+        for i, line in enumerate(env_lines):
+            if line.startswith("MESHCTX_PASSWORD="):
+                env_lines[i] = f"MESHCTX_PASSWORD={pw.strip()}\n"
+                found = True
+                break
+        if not found:
+            env_lines.append(f"MESHCTX_PASSWORD={pw.strip()}\n")
+        os.makedirs(os.path.dirname(env_path), exist_ok=True)
+        with open(env_path, "w") as f:
+            f.writelines(env_lines)
+        print(f"✅ 密码已设置。重启生效: meshctx stop && meshctx start")
+        return
+
+    elif action == "clear":
+        env_lines = [l for l in env_lines if not l.startswith("MESHCTX_PASSWORD=")]
+        with open(env_path, "w") as f:
+            f.writelines(env_lines)
+        print("🔓 密码已清除。重启生效: meshctx stop && meshctx start")
+        return
+
+
 def cmd_status(args):
     try:
         import requests
@@ -1327,6 +1385,12 @@ def main():
 
     sub.add_parser("stop", help="停止服务").set_defaults(func=cmd_stop)
     sub.add_parser("status", help="状态").set_defaults(func=cmd_status)
+
+    # password
+    pw = sub.add_parser("password", help="Web UI 登录密码管理 (set/clear/status)")
+    pw.add_argument("password_action", choices=["set","clear","status"], help="set|clear|status")
+    pw.add_argument("password", nargs="?", help="新密码 (仅 set 需要)")
+    pw.set_defaults(func=cmd_password)
 
     sub.add_parser("setup", help="首次配置向导 (交互式)").set_defaults(func=cmd_setup)
 
