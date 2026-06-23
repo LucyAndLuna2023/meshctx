@@ -289,11 +289,12 @@ async def lifespan(app: FastAPI):
     watcher.on_change(_reload_config)
     watcher.start()
 
+    port = int(os.environ.get("MESHCTX_PORT", "3000"))
     logger.info("═══════════════════════════════════════════")
     logger.info("  meshctx v1.0 已就绪!")
-    logger.info(f"  API: http://0.0.0.0:8000")
-    logger.info(f"  Docs: http://0.0.0.0:8000/docs")
-    logger.info(f"  Web UI: http://0.0.0.0:8000/ui")
+    logger.info(f"  API: http://0.0.0.0:{port}")
+    logger.info(f"  Docs: http://0.0.0.0:{port}/docs")
+    logger.info(f"  Web UI: http://0.0.0.0:{port}/ui")
     logger.info("═══════════════════════════════════════════")
 
     # v2.18: 会话自动存档
@@ -411,6 +412,8 @@ app = FastAPI(
 # to add custom origins, or defaults to the standard list below.
 _default_cors_origins = [
     "https://meshctx.com",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
 ]
