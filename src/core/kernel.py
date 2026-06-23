@@ -139,6 +139,25 @@ class PluginManager:
     def list(self, **kw) -> List[str]:
         return list(self._plugins.keys())
     
+    def list_all(self, **kw) -> List[Dict[str, Any]]:
+        """返回所有插件详情列表，兼容 /v1/plugins 端点"""
+        result = []
+        for name, p in self._plugins.items():
+            info = getattr(p, "info", None)
+            result.append({
+                "name": name,
+                "version": info.version if info and hasattr(info, "version") else "0.0.0",
+                "description": info.description if info and hasattr(info, "description") else "",
+                "state": p.state.value if hasattr(p, "state") else "unknown",
+                "category": info.category if info and hasattr(info, "category") else "general",
+            })
+        return result
+    
+    def list_active(self, **kw) -> List[str]:
+        """返回已激活的插件名称列表，兼容 /kernel/stats 端点"""
+        return [name for name, p in self._plugins.items()
+                if hasattr(p, "state") and getattr(p.state, "value", None) == "active"]
+    
     @property
     def plugin_count(self, **kw) -> int:
         return len(self._plugins)
