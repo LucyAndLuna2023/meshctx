@@ -183,6 +183,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"HermesConnectorPlugin 加载失败: {e}")
 
+    # v3.115.4: TokenSaver — 原生 token 节约引擎，自动适配所有供应商
+    try:
+        from .core.token_saver import TokenSaverPlugin
+        ts_plugin = TokenSaverPlugin()
+        _kernel.plugins.register(ts_plugin)
+        logger.info("TokenSaverPlugin 已注册")
+    except Exception as e:
+        logger.warning(f"TokenSaverPlugin 加载失败: {e}")
+
     config = load_config()
     worker_count = config.get("kernel", {}).get("worker_count", 4)
     await _kernel.start(worker_count=worker_count)
@@ -976,7 +985,7 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "3.115.3",
+        "version": "3.115.4",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -1022,6 +1031,188 @@ async def hermes_cluster_status():
     except Exception as e:
         import traceback
         return {"error": str(e), "traceback": traceback.format_exc(), "hermes_instances": 0, "instances": []}
+
+# ═══════════════════════════════════════════════════════════════
+# TokenSaver API — meshctx 原生 token 节约引擎 v3.115.4
+# ═══════════════════════════════════════════════════════════════
+
+@app.get("/api/token-saver/stats")
+async def token_saver_stats(model: str = None):
+    """获取 TokenSaver 统计和当前状态"""
+    try:
+        k = get_kernel()
+        if not k or not k._started:
+            return {"status": "kernel_not_started"}
+        plugin = k.plugins.get("token_saver")
+        if not plugin:
+            return {"status": "plugin_not_loaded"}
+        return plugin.get_cluster_status()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/token-saver/optimize")
+async def token_saver_optimize(request: dict):
+    """
+    优化消息列表，减少 token 使用。
+
+    POST body:
+    {
+        "messages": [{"role": "user", "content": "..."}, ...],
+        "model": "gpt-4o",           // 自动匹配对应 tokenizer
+        "max_tokens": 8000,          // 目标最大 token 数
+        "strategy": "hybrid",        // hybrid|sliding_window|truncate_head|context_compaction|token_budget
+        "system_prompt": "..."       // 可选
+    }
+    """
+    try:
+        k = get_kernel()
+        if not k or not k._started:
+            return {"status": "kernel_not_started"}
+        plugin = k.plugins.get("token_saver")
+        if not plugin:
+            return {"status": "plugin_not_loaded"}
+
+        messages = request.get("messages", [])
+        if not messages:
+            return {"error": "messages is required"}
+
+        model = request.get("model", "gpt-4o")
+        max_tokens = request.get("max_tokens")
+        strategy = request.get("strategy")
+        system_prompt = request.get("system_prompt")
+
+        result = plugin.optimize(
+            messages=messages,
+            model=model,
+            max_tokens=max_tokens,
+            strategy=strategy,
+        )
+        # 附加 system prompt 优化
+        if system_prompt:
+            result["system_prompt_tokens"] = plugin.get_saver(model)._counter.count(system_prompt)
+
+        return result
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "traceback": traceback.format_exc()}
+
+
+@app.post("/api/token-saver/count")
+async def token_saver_count(request: dict):
+    """
+    精确 token 计数 — 自动根据模型选择正确 tokenizer。
+
+    POST body:
+    {
+        "text": "...",
+        "model": "gpt-4o"       // 自动识别 tokenizer
+    }
+
+    支持所有供应商: OpenAI / Anthropic / Google / DeepSeek / Groq / xAI / 百炼 / Mistral / Cohere ...
+    """
+    try:
+        k = get_kernel()
+        if not k or not k._started:
+            return {"status": "kernel_not_started"}
+
+        text = request.get("text", "")
+        model = request.get("model", "gpt-4o")
+
+        plugin = k.plugins.get("token_saver")
+        if plugin:
+            result = plugin.count_tokens(text, model)
+        else:
+            # 独立计数器 (不依赖插件)
+            from .core.token_saver import TokenCounter, TokenizerRegistry
+            counter = TokenCounter(model)
+            info = TokenizerRegistry.resolve(model)
+            result = {
+                "tokens": counter.count(text),
+                "model": model,
+                "type": counter.info()["type"],
+                "encoding": counter.info()["encoding"],
+                "provider": info.provider,
+                "context_limit": info.context_limit,
+                "cost_per_1k_input": info.cost_per_1k_input,
+                "cost_per_1k_output": info.cost_per_1k_output,
+            }
+
+        return result
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/api/token-saver/compress")
+async def token_saver_compress(request: dict):
+    """
+    压缩指定消息列表并返回优化后消息（轻量端点）。
+
+    POST body: 同 /optimize
+    """
+    try:
+        k = get_kernel()
+        if not k or not k._started:
+            return {"status": "kernel_not_started"}
+
+        messages = request.get("messages", [])
+        if not messages:
+            return {"error": "messages is required"}
+
+        model = request.get("model", "gpt-4o")
+        max_tokens = request.get("max_tokens")
+        strategy = request.get("strategy")
+
+        plugin = k.plugins.get("token_saver")
+        if plugin:
+            result = plugin.optimize(messages=messages, model=model,
+                                     max_tokens=max_tokens, strategy=strategy)
+            return {
+                "messages": result["messages"],
+                "count_before": len(messages),
+                "count_after": len(result["messages"]),
+                "tokens_before": result["tokens_before"],
+                "tokens_after": result["tokens_after"],
+                "tokens_saved": result["tokens_saved"],
+                "strategy": result["strategy"],
+            }
+        else:
+            from .core.token_saver import TokenSaver
+            saver = TokenSaver(model=model, strategy=strategy or "hybrid")
+            result = saver.optimize(messages, max_tokens, strategy=strategy)
+            return {
+                "messages": result.messages,
+                "count_before": len(messages),
+                "count_after": len(result.messages),
+                "tokens_before": result.tokens_before,
+                "tokens_after": result.tokens_after,
+                "tokens_saved": result.tokens_saved,
+                "strategy": result.strategy,
+            }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/token-saver/providers")
+async def token_saver_providers():
+    """列出所有支持的 Token 供应商及其信息"""
+    from .core.token_saver import TOKENIZER_REGISTRY
+    providers = {}
+    for name, info in TOKENIZER_REGISTRY.items():
+        if name == "__default__":
+            continue
+        provider = info.provider
+        if provider not in providers:
+            providers[provider] = []
+        providers[provider].append({
+            "model": name,
+            "context_limit": info.context_limit,
+            "cost_input": info.cost_per_1k_input,
+            "cost_output": info.cost_per_1k_output,
+            "tokenizer_type": info.type,
+        })
+    return {"providers": providers, "total_models": sum(len(v) for v in providers.values())}
+
 
 @app.post("/orchestrator/execute")
 async def execute_intent(request: IntentRequest):
