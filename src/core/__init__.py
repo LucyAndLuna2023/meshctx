@@ -145,6 +145,7 @@ _known = {
     'healer': ['HealerPlugin','HealthStatus','CircuitBreaker'],
     'performance': ['PerformancePlugin','CacheStats','StreamStats'],
     'websocket_plugin': ['WebSocketPlugin','create_ws_routes'],
+    'hermes_connector': ['HermesConnectorPlugin','HermesDiscovery','EventBridge','HermesInstance'],
 }
 
 def __getattr__(name):

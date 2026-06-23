@@ -174,6 +174,15 @@ async def lifespan(app: FastAPI):
     _kernel.plugins.register(ws_plugin)
     create_ws_routes(app, ws_plugin)
 
+    # v3.115.3: Hermes 集群连接器 — 发现并与 Hermes agents 协同
+    try:
+        from .core.hermes_connector import HermesConnectorPlugin
+        hermes_plugin = HermesConnectorPlugin()
+        _kernel.plugins.register(hermes_plugin)
+        logger.info("HermesConnectorPlugin 已注册")
+    except Exception as e:
+        logger.warning(f"HermesConnectorPlugin 加载失败: {e}")
+
     config = load_config()
     worker_count = config.get("kernel", {}).get("worker_count", 4)
     await _kernel.start(worker_count=worker_count)
@@ -967,10 +976,52 @@ async def kernel_stats():
         return {"status": "not_started"}
     return {
         "status": "running",
-        "version": "3.115.2",
+        "version": "3.115.3",
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
+
+@app.get("/api/hermes/cluster")
+async def hermes_cluster_status():
+    """Hermes Agent 集群状态 — v3.115.3 新增"""
+    try:
+        # 始终使用 HermesDiscovery 直接扫描（避免插件加载时序问题）
+        from .core.hermes_connector import HermesDiscovery, HERMES_HOME
+        d = HermesDiscovery()
+        await d.scan()
+        instances_raw = d.get_all()
+        instances = [
+            {
+                "profile": i.profile,
+                "status": i.status,
+                "pid": i.pid,
+                "channels": i.connected_channels,
+                "skills": i.skills_count,
+            }
+            for i in instances_raw
+        ]
+
+        # 尝试获取桥接状态（如果插件已加载）
+        bridge_rules = {"forward": 0, "receive": 0}
+        try:
+            k = get_kernel()
+            if k and k._started:
+                plugin = k.plugins.get("hermes_connector")
+                if plugin and hasattr(plugin, "bridge_rules"):
+                    bridge_rules = {"forward": len(plugin.bridge_rules.get("forward", [])),
+                                   "receive": len(plugin.bridge_rules.get("receive", []))}
+        except Exception:
+            pass
+
+        return {
+            "hermes_instances": len(instances),
+            "instances": instances,
+            "hermes_home": str(HERMES_HOME),
+            "bridge_rules": bridge_rules,
+        }
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "traceback": traceback.format_exc(), "hermes_instances": 0, "instances": []}
 
 @app.post("/orchestrator/execute")
 async def execute_intent(request: IntentRequest):
