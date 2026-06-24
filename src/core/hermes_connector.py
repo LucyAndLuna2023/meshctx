@@ -297,7 +297,7 @@ class HermesConnectorPlugin(Plugin):
         if bus:
             # 订阅需要转发到 Hermes 的事件
             for rule_type in {"system.health_alert", "plugin.error", "memory.critical"}:
-                await bus.subscribe(rule_type, self.bridge.forward_to_hermes)
+                bus.subscribe(rule_type, self.bridge.forward_to_hermes)
 
             # 启动 Hub inbox 轮询
             await self.bridge.start_watching(bus, interval=3.0)

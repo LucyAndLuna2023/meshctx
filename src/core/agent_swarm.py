@@ -195,7 +195,7 @@ def get_swarm_worker():
     return _swarm_worker
 
 
-def init_swarm_manager(agent_id):
+async def init_swarm_manager(agent_id):
     global _swarm_manager
     _swarm_manager = ManagerAgent(AgentIdentity(agent_id))
 
