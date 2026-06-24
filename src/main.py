@@ -116,6 +116,19 @@ class MetricsCollector:
 _metrics = MetricsCollector()
 
 # ═══════════════════════════════════════════════════════════
+# YAML 兼容层 (v3.115.8)
+# ═══════════════════════════════════════════════════════════
+import yaml
+
+def _yaml_load(stream):
+    """safe_load + 降级: 兼容旧 !!python/object 标签"""
+    try:
+        return yaml.safe_load(stream)
+    except yaml.constructor.ConstructorError:
+        return yaml.load(stream, Loader=yaml.Loader)
+
+
+# ═══════════════════════════════════════════════════════════
 # FastAPI 应用
 # ═══════════════════════════════════════════════════════════
 
@@ -1310,7 +1323,7 @@ async def install_plugin(request: Request):
     config = {}
     if config_path.exists():
         with open(config_path) as f:
-            config = yaml.safe_load(f) or {}
+            config = _yaml_load(f) or {}
     
     config.setdefault("plugins", {}).setdefault("installed", {})
     config["plugins"]["installed"][name] = {
@@ -1337,7 +1350,7 @@ async def uninstall_plugin(request: Request):
     config_path = Path.home() / ".meshctx" / "config.yaml"
     if config_path.exists():
         with open(config_path) as f:
-            config = yaml.safe_load(f) or {}
+            config = _yaml_load(f) or {}
         installed = config.get("plugins", {}).get("installed", {})
         if name in installed:
             del installed[name]
@@ -1356,7 +1369,7 @@ async def installed_plugins():
     installed = {}
     if config_path.exists():
         with open(config_path) as f:
-            config = yaml.safe_load(f) or {}
+            config = _yaml_load(f) or {}
         installed = config.get("plugins", {}).get("installed", {})
     return {"installed": installed}
 
@@ -2150,7 +2163,7 @@ async def add_model(request: Request):
     config = {}
     if config_path.exists():
         with open(config_path) as f:
-            config = yaml.safe_load(f) or {}
+            config = _yaml_load(f) or {}
     
     config.setdefault("models", {})
     config["models"].setdefault("entries", {})
@@ -2203,7 +2216,7 @@ async def update_model(model_id: str, request: Request):
         raise HTTPException(404, "配置文件不存在，请先添加模型")
     
     with open(config_path) as f:
-        config = yaml.safe_load(f) or {}
+        config = _yaml_load(f) or {}
     
     entries = config.setdefault("models", {}).setdefault("entries", {})
 
@@ -2265,7 +2278,7 @@ async def rename_model(model_id: str, request: Request):
         raise HTTPException(404, "配置文件不存在")
     
     with open(config_path) as f:
-        config = yaml.safe_load(f) or {}
+        config = _yaml_load(f) or {}
     
     entries = config.setdefault("models", {}).setdefault("entries", {})
     if model_id not in entries:
@@ -2312,7 +2325,7 @@ async def delete_model(model_id: str):
         raise HTTPException(404, "无配置文件")
     
     with open(config_path) as f:
-        config = yaml.safe_load(f) or {}
+        config = _yaml_load(f) or {}
     
     entries = config.setdefault("models", {}).setdefault("entries", {})
     from src.model_registry import BUILTIN_MODELS
@@ -2351,7 +2364,7 @@ async def clean_unconfigured_models():
         return {"deleted": 0, "message": "无配置文件"}
     
     with open(config_path) as f:
-        config = yaml.safe_load(f) or {}
+        config = _yaml_load(f) or {}
     
     entries = config.setdefault("models", {}).setdefault("entries", {})
     default_id = config.get("models", {}).get("default", "")
@@ -2385,7 +2398,7 @@ async def set_default_model(model_id: str):
         raise HTTPException(404, "无配置文件")
     
     with open(config_path) as f:
-        config = yaml.safe_load(f) or {}
+        config = _yaml_load(f) or {}
     
     entries = config.setdefault("models", {}).setdefault("entries", {})
     # Allow builtin models even if not in entries (env var configured)
@@ -3113,7 +3126,7 @@ async def config_backup():
     config_path = Path.home() / ".meshctx" / "config.yaml"
     if config_path.exists():
         with open(config_path) as f:
-            raw = yaml.safe_load(f) or {}
+            raw = _yaml_load(f) or {}
         # Mask keys
         if "models" in raw and "entries" in raw["models"]:
             for k, v in raw["models"]["entries"].items():
@@ -3719,7 +3732,7 @@ async def system_status():
     configured_ids = set()
     if cp.exists():
         with open(cp) as f:
-            cfg = yaml.safe_load(f) or {}
+            cfg = _yaml_load(f) or {}
         entries = cfg.get("models", {}).get("entries", {})
         for eid, info in entries.items():
             if info.get("key") or info.get("base_url"):
@@ -3851,7 +3864,7 @@ async def gateway_status():
     gateway = {}
     if cp.exists():
         with open(cp) as f:
-            cfg = yaml.safe_load(f) or {}
+            cfg = _yaml_load(f) or {}
         gateway = cfg.get("gateway", {})
     return {
         "status": "ok" if gateway.get("enabled") else "disabled",
@@ -4626,7 +4639,7 @@ async def config_export():
         if config_path.exists():
             import yaml
             with open(config_path) as f:
-                config = yaml.safe_load(f) or {}
+                config = _yaml_load(f) or {}
         # 收集敏感环境变量名（不导出值）
         env_keys = [k for k in os.environ if k.endswith("_API_KEY") or k.startswith("MESHCTX_")]
         import datetime
@@ -4759,7 +4772,7 @@ async def list_providers():
         if config_path.exists():
             import yaml
             with open(config_path) as f:
-                cfg = yaml.safe_load(f) or {}
+                cfg = _yaml_load(f) or {}
             configured_ids = set(cfg.get("models", {}).get("entries", {}).keys())
         providers = []
         for pid, models in sorted(provider_map.items()):
@@ -4786,10 +4799,10 @@ async def list_mcp_servers():
         mcp_data = {}
         if mcp_path.exists():
             with open(mcp_path) as f:
-                mcp_data = yaml.safe_load(f) or {}
+                mcp_data = _yaml_load(f) or {}
         elif config_path.exists():
             with open(config_path) as f:
-                cfg = yaml.safe_load(f) or {}
+                cfg = _yaml_load(f) or {}
             mcp_data = cfg.get("mcp", {})
         # 解析servers
         raw = mcp_data.get("servers", mcp_data)
@@ -5045,7 +5058,7 @@ async def list_prompts():
         for f in sorted(pdir.glob("*.yaml")):
             try:
                 import yaml
-                data = yaml.safe_load(f.read_text()) or {}
+                data = _yaml_load(f.read_text()) or {}
             except Exception:
                 data = {"name": f.stem, "raw": f.read_text()}
             data.setdefault("name", f.stem)
@@ -5065,7 +5078,7 @@ async def get_prompt(name: str):
             raise HTTPException(404, f"Prompt template '{name}' not found")
         try:
             import yaml
-            data = yaml.safe_load(fpath.read_text()) or {}
+            data = _yaml_load(fpath.read_text()) or {}
         except Exception:
             data = {"name": name, "raw": fpath.read_text()}
         data.setdefault("name", name)
