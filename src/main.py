@@ -2859,7 +2859,7 @@ async def api_chat_stream(request: Request):
             model_id = "deepseek:v4-pro"
 
     # ── 工具定义 ──
-    SENSITIVE_TOOLS = {"read_file", "write_file", "search_files"}
+    SENSITIVE_TOOLS = {"read_file", "write_file", "search_files", "remote_read", "remote_write", "remote_exec"}
     TOOLS = [
         {
             "type": "function",
@@ -2932,6 +2932,52 @@ async def api_chat_stream(request: Request):
                         "dir": {"type": "string", "description": "搜索目录，默认用户 HOME"}
                     },
                     "required": ["pattern"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "remote_read",
+                "description": "🔒[需授权] 通过 SSH 读取远程服务器文件。参数: path(远程路径), host(服务器地址)",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string", "description": "远程服务器文件路径"},
+                        "host": {"type": "string", "description": "服务器地址(默认 8.130.179.205)"}
+                    },
+                    "required": ["path"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "remote_write",
+                "description": "🔒[需授权] 通过 SSH 写入远程服务器文件。参数: path(远程路径), content(内容), host(服务器地址)",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string", "description": "远程文件路径"},
+                        "content": {"type": "string", "description": "要写入的内容"},
+                        "host": {"type": "string", "description": "服务器地址(默认 8.130.179.205)"}
+                    },
+                    "required": ["path", "content"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "remote_exec",
+                "description": "🔒[需授权] 通过 SSH 在远程服务器执行命令。参数: cmd(命令), host(服务器地址)",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "cmd": {"type": "string", "description": "要执行的 shell 命令"},
+                        "host": {"type": "string", "description": "服务器地址(默认 8.130.179.205)"}
+                    },
+                    "required": ["cmd"]
                 }
             }
         }
@@ -3011,6 +3057,12 @@ async def api_chat_stream(request: Request):
                             result = _do_write_file(args.get("path", ""), args.get("content", ""))
                         elif name == "search_files":
                             result = _do_search_files(args.get("pattern", ""), args.get("dir", str(Path.home())))
+                        elif name == "remote_read":
+                            result = _do_remote_read(args.get("path", ""), args.get("host", ""))
+                        elif name == "remote_write":
+                            result = _do_remote_write(args.get("path", ""), args.get("content", ""), args.get("host", ""))
+                        elif name == "remote_exec":
+                            result = _do_remote_exec(args.get("cmd", ""), args.get("host", ""))
                         else:
                             result = f"未知工具: {name}"
 
@@ -3134,6 +3186,71 @@ def _do_search_files(pattern: str, directory: str = "") -> str:
         return f"按内容找到 {len(files2)} 个文件:\n" + '\n'.join(files2[:20]) if files2 else f"未找到匹配 '{pattern}' 的文件"
     except Exception as e:
         return f"搜索失败: {e}"
+
+
+# ── 远程文件工具 (通过 SSH 桥接 agent↔服务器) ──
+
+def _ssh_creds(host_override: str = ""):
+    """从 secrets.env 读取 SSH 凭据"""
+    host = host_override or os.environ.get("SERVER_HOST", "8.130.179.205")
+    user = os.environ.get("SERVER_USER", "root")
+    pw = os.environ.get("SERVER_PASS", "")
+    return host, user, pw
+
+
+def _do_remote_read(path: str, host: str = "") -> str:
+    """通过 sshpass + ssh cat 读取远程文件"""
+    import subprocess
+    try:
+        h, u, pw = _ssh_creds(host)
+        if not pw:
+            return "远程访问失败: SERVER_PASS 未配置 (请在 ~/.hermes/secrets.env 中设置)"
+        result = subprocess.run(
+            ["sshpass", "-p", pw, "ssh", "-o", "StrictHostKeyChecking=no", f"{u}@{h}", "cat", path],
+            capture_output=True, text=True, timeout=15
+        )
+        if result.returncode == 0:
+            lines = result.stdout.split('\n')
+            return f"远程文件: {h}:{path} ({len(lines)} 行)\n" + '\n'.join(f"{i+1}|{l}" for i, l in enumerate(lines[:500]))
+        return f"远程读取失败: {result.stderr.strip()}"
+    except Exception as e:
+        return f"远程读取失败: {e}"
+
+
+def _do_remote_write(path: str, content: str, host: str = "") -> str:
+    """通过 sshpass + ssh tee 写入远程文件"""
+    import subprocess
+    try:
+        h, u, pw = _ssh_creds(host)
+        if not pw:
+            return "远程访问失败: SERVER_PASS 未配置"
+        result = subprocess.run(
+            ["sshpass", "-p", pw, "ssh", "-o", "StrictHostKeyChecking=no", f"{u}@{h}",
+             f"cat > {path}"],
+            input=content, capture_output=True, text=True, timeout=15
+        )
+        if result.returncode == 0:
+            return f"已写入远程文件: {h}:{path} ({len(content)} 字符)"
+        return f"远程写入失败: {result.stderr.strip()}"
+    except Exception as e:
+        return f"远程写入失败: {e}"
+
+
+def _do_remote_exec(cmd: str, host: str = "") -> str:
+    """通过 SSH 在远程服务器执行命令"""
+    import subprocess
+    try:
+        h, u, pw = _ssh_creds(host)
+        if not pw:
+            return "远程执行失败: SERVER_PASS 未配置"
+        result = subprocess.run(
+            ["sshpass", "-p", pw, "ssh", "-o", "StrictHostKeyChecking=no", f"{u}@{h}", cmd],
+            capture_output=True, text=True, timeout=30
+        )
+        out = result.stdout.strip() or result.stderr.strip()
+        return f"远程执行 [{h}]:\n{out[:4000]}" if out else f"远程执行完成 (无输出, exit={result.returncode})"
+    except Exception as e:
+        return f"远程执行失败: {e}"
 
 
 # ═══════════════════════════════════════════════════
