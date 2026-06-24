@@ -2860,6 +2860,7 @@ async def api_chat_stream(request: Request):
 
     # ── 工具定义 ──
     SENSITIVE_TOOLS = {"read_file", "write_file", "search_files", "remote_read", "remote_write", "remote_exec"}
+    _page_cache = {}  # 浏览器页面缓存: {url: {title, links, text, html}}
     TOOLS = [
         {
             "type": "function",
@@ -2980,6 +2981,31 @@ async def api_chat_stream(request: Request):
                     "required": ["cmd"]
                 }
             }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "browser_navigate",
+                "description": "抓取网页并提取可读文本（纯Python，无需Playwright）。参数: url",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "url": {"type": "string", "description": "网页URL"}
+                    },
+                    "required": ["url"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "browser_snapshot",
+                "description": "获取当前已抓取页面的结构化内容（标题、链接、文本）。需先调用 browser_navigate",
+                "parameters": {
+                    "type": "object",
+                    "properties": {}
+                }
+            }
         }
     ]
 
@@ -3063,6 +3089,10 @@ async def api_chat_stream(request: Request):
                             result = _do_remote_write(args.get("path", ""), args.get("content", ""), args.get("host", ""))
                         elif name == "remote_exec":
                             result = _do_remote_exec(args.get("cmd", ""), args.get("host", ""))
+                        elif name == "browser_navigate":
+                            result = _do_browser_navigate(args.get("url", ""), _page_cache)
+                        elif name == "browser_snapshot":
+                            result = _do_browser_snapshot(_page_cache)
                         else:
                             result = f"未知工具: {name}"
 
@@ -3251,6 +3281,72 @@ def _do_remote_exec(cmd: str, host: str = "") -> str:
         return f"远程执行 [{h}]:\n{out[:4000]}" if out else f"远程执行完成 (无输出, exit={result.returncode})"
     except Exception as e:
         return f"远程执行失败: {e}"
+
+
+# ── 浏览器工具 (纯 Python, requests + bs4, 零版本依赖) ──
+
+def _do_browser_navigate(url: str, cache: dict) -> str:
+    """抓取网页并缓存"""
+    import re
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        resp = requests.get(url, headers=headers, timeout=15)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, 'html.parser')
+
+        # 提取
+        title = soup.title.string.strip() if soup.title else "无标题"
+        # 去掉 script/style
+        for tag in soup(['script', 'style', 'nav', 'footer', 'header']):
+            tag.decompose()
+        text = soup.get_text(separator='\n')
+        lines = [l.strip() for l in text.split('\n') if l.strip()]
+        text = '\n'.join(lines[:200])
+
+        links = []
+        for a in soup.find_all('a', href=True):
+            href = a['href']
+            if href.startswith('http'):
+                links.append(f"[{a.get_text(strip=True)[:60]}] {href}")
+        links = links[:30]
+
+        cache['_last_url'] = url
+        cache['_last'] = {'title': title, 'text': text, 'links': links}
+        return f"页面: {title}\nURL: {url}\n链接数: {len(links)}\n\n文本预览:\n{text[:3000]}"
+    except ImportError:
+        # 回退 urllib
+        import urllib.request
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                html = resp.read().decode(errors='ignore')
+            text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL)
+            text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL)
+            text = re.sub(r'<[^>]+>', ' ', text)
+            text = re.sub(r'\s+', ' ', text).strip()
+            title_match = re.search(r'<title>(.*?)</title>', html, re.IGNORECASE)
+            title = title_match.group(1).strip() if title_match else "无标题"
+            cache['_last_url'] = url
+            cache['_last'] = {'title': title, 'text': text[:5000], 'links': []}
+            return f"页面: {title}\nURL: {url}\n\n{text[:3000]}"
+        except Exception as e:
+            return f"抓取失败: {e}"
+    except Exception as e:
+        return f"抓取失败: {e}"
+
+
+def _do_browser_snapshot(cache: dict) -> str:
+    """返回缓存的页面结构"""
+    if '_last' not in cache:
+        return "请先调用 browser_navigate 抓取页面"
+    p = cache['_last']
+    out = f"页面: {p['title']}\nURL: {cache['_last_url']}\n\n"
+    if p['links']:
+        out += "链接:\n" + '\n'.join(p['links'][:20]) + "\n\n"
+    out += "文本内容:\n" + p['text'][:4000]
+    return out
 
 
 # ═══════════════════════════════════════════════════
