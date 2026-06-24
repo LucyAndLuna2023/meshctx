@@ -2859,6 +2859,7 @@ async def api_chat_stream(request: Request):
             model_id = "deepseek:v4-pro"
 
     # ── 工具定义 ──
+    SENSITIVE_TOOLS = {"read_file", "write_file", "search_files"}
     TOOLS = [
         {
             "type": "function",
@@ -2994,7 +2995,11 @@ async def api_chat_stream(request: Request):
                     for tc in msg.tool_calls:
                         name = tc.function.name
                         args = _json.loads(tc.function.arguments)
-                        yield f"data: {_json.dumps({'tool_start': name, 'args': args})}\n\n"
+                        sensitive = name in SENSITIVE_TOOLS
+                        yield f"data: {_json.dumps({'tool_start': name, 'args': args, 'require_approval': sensitive})}\n\n"
+
+                        # 敏感工具: 等待前端确认 (TODO: 前端弹窗后回传 approve 事件)
+                        # 当前版本: 发送授权提示后自动执行，前端可展示 "[已授权]" 标记
 
                         if name == "web_search":
                             result = _do_web_search(args.get("query", ""))
