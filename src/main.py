@@ -3038,16 +3038,39 @@ async def api_chat_stream(request: Request):
                 return
 
             max_rounds = 5
+            _tools_ok = True  # 模型是否支持 tools
             for _round in range(max_rounds):
-                # 发送请求给模型
-                resp = client.client.chat.completions.create(
-                    model=client.model_name,
-                    messages=msgs,
-                    temperature=0.7,
-                    max_tokens=4096,
-                    tools=TOOLS,
-                    tool_choice="auto",
-                )
+                # 发送请求给模型 (尝试 tools，失败则降级)
+                try:
+                    if _tools_ok:
+                        resp = client.client.chat.completions.create(
+                            model=client.model_name,
+                            messages=msgs,
+                            temperature=0.7,
+                            max_tokens=4096,
+                            tools=TOOLS,
+                            tool_choice="auto",
+                        )
+                    else:
+                        resp = client.client.chat.completions.create(
+                            model=client.model_name,
+                            messages=msgs,
+                            temperature=0.7,
+                            max_tokens=4096,
+                        )
+                except Exception as tool_err:
+                    err_msg = str(tool_err)
+                    # 如果模型不支持 tools，降级重试
+                    if 'tool' in err_msg.lower() or 'not support' in err_msg.lower() or 'invalid' in err_msg.lower():
+                        _tools_ok = False
+                        resp = client.client.chat.completions.create(
+                            model=client.model_name,
+                            messages=msgs,
+                            temperature=0.7,
+                            max_tokens=4096,
+                        )
+                    else:
+                        raise
                 choice = resp.choices[0]
                 msg = choice.message
 
