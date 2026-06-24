@@ -7,7 +7,7 @@ set -e
 
 GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[0;33m'; RED='\033[0;31m'; NC='\033[0m'
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.115.6"
+VERSION="3.115.7"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/releases/download/v${VERSION}/meshctx-src.tar.gz"
 PORT=3001
@@ -213,11 +213,18 @@ if ! echo "$PATH" | grep -q "$HOME/bin"; then
 fi
 export PATH="$HOME/bin:$PATH"
 
-# 系统级 symlink (需要 sudo 时自动跳过)
-if [ -w /usr/local/bin ]; then
-    ln -sf "$HOME/bin/meshctx" /usr/local/bin/meshctx 2>/dev/null && SYSTEM_PATH=1
-elif command -v sudo &>/dev/null; then
-    sudo ln -sf "$HOME/bin/meshctx" /usr/local/bin/meshctx 2>/dev/null && SYSTEM_PATH=1
+# 系统级 symlink — 不强制 sudo，优先用 ~/.local/bin（用户可写）
+SYMLINK_OK=0
+for _dir in "$HOME/.local/bin" "$HOME/bin"; do
+    if [ -d "$_dir" ] && [ -w "$_dir" ]; then
+        ln -sf "$HOME/bin/meshctx" "$_dir/meshctx" 2>/dev/null && SYMLINK_OK=1 && break
+    fi
+done
+# 兜底：/usr/local/bin 可写则写，否则跳过（不再弹 sudo）
+if [ "$SYMLINK_OK" = "0" ]; then
+    if [ -w /usr/local/bin ]; then
+        ln -sf "$HOME/bin/meshctx" /usr/local/bin/meshctx 2>/dev/null && SYMLINK_OK=1
+    fi
 fi
 
 echo -e "  ${GREEN}✓${NC} 安装完成"
@@ -259,6 +266,6 @@ echo ""
 echo -e "  ${YELLOW}💡 提示：${NC}如果页面显示异常，按 Ctrl+Shift+R 强制刷新浏览器缓存"
 echo ""
 echo -e "  ${GREEN}👉 现在运行:${NC}  meshctx start    # 启动服务"
-[ -n "$SYSTEM_PATH" ] && echo -e "  ${GREEN}✓${NC} 已创建系统级命令 /usr/local/bin/meshctx"
+[ "$SYMLINK_OK" = "1" ] && echo -e "  ${GREEN}✓${NC} meshctx 命令已加入 PATH（无需 sudo）"
 echo -e "  ${YELLOW}💡${NC} 新终端窗口需执行: source $SHELL_RC    # 或重新打开终端"
 echo ""
