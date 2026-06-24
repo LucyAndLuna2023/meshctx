@@ -2825,7 +2825,7 @@ async def win_software():
 
 @app.post("/api/chat/stream")
 async def api_chat_stream(request: Request):
-    """流式Chat API — SSE逐token推送"""
+    """流式Chat API — SSE逐token推送 + web_search 工具"""
     from src.model_registry import get_registry
     from src.config import load_config
     import json as _json
@@ -2858,6 +2858,103 @@ async def api_chat_stream(request: Request):
         except:
             model_id = "deepseek:v4-pro"
 
+    # ── 工具定义 ──
+    TOOLS = [
+        {
+            "type": "function",
+            "function": {
+                "name": "web_search",
+                "description": "搜索网页获取实时信息（价格、新闻、天气等）。返回搜索结果摘要。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "搜索关键词"}
+                    },
+                    "required": ["query"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "web_extract",
+                "description": "抓取指定 URL 的网页内容，返回纯文本。用于获取搜索结果的详细信息。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "url": {"type": "string", "description": "要抓取的网页 URL"}
+                    },
+                    "required": ["url"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "read_file",
+                "description": "读取本机文件。参数: path(文件路径), offset(起始行,默认1), limit(行数,默认200)",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string", "description": "文件路径，如 /home/user/data.csv"},
+                        "offset": {"type": "integer", "description": "起始行号", "default": 1},
+                        "limit": {"type": "integer", "description": "读取行数", "default": 200}
+                    },
+                    "required": ["path"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "write_file",
+                "description": "写入本机文件（覆盖）。参数: path(文件路径), content(内容)",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string", "description": "文件路径"},
+                        "content": {"type": "string", "description": "要写入的内容"}
+                    },
+                    "required": ["path", "content"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "search_files",
+                "description": "搜索本机文件（按名称或内容）。参数: pattern(搜索模式), dir(目录,默认HOME)",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "pattern": {"type": "string", "description": "搜索关键词或文件通配符"},
+                        "dir": {"type": "string", "description": "搜索目录，默认用户 HOME"}
+                    },
+                    "required": ["pattern"]
+                }
+            }
+        }
+    ]
+
+    SYSTEM_PROMPT = """你是 meshctx AI 助手，运行在用户本机。你可以使用以下工具：
+
+| 工具 | 用途 |
+|------|------|
+| web_search | 搜索网页获取实时数据（价格、新闻、天气、股票等） |
+| web_extract | 抓取指定网页的完整内容 |
+| read_file  | 读取本机文件 |
+| write_file | 写入本机文件 |
+| search_files | 搜索本机文件（按名称或内容） |
+
+重要规则：
+- 查询实时信息必须先调用 web_search
+- 读取/分析本机文件用 read_file
+- 最终回复用中文，数据用表格呈现"""
+
+    # 确保 system prompt 在最前面
+    if not msgs or msgs[0].get("role") != "system":
+        msgs.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
+
     async def generate():
         try:
             reg = get_registry()
@@ -2867,14 +2964,171 @@ async def api_chat_stream(request: Request):
                 yield "data: [DONE]\n\n"
                 return
 
-            for token in client.chat_stream(msgs):
-                yield f"data: {_json.dumps({'token': token})}\n\n"
+            max_rounds = 5
+            for _round in range(max_rounds):
+                # 发送请求给模型
+                resp = client.client.chat.completions.create(
+                    model=client.model_name,
+                    messages=msgs,
+                    temperature=0.7,
+                    max_tokens=4096,
+                    tools=TOOLS,
+                    tool_choice="auto",
+                )
+                choice = resp.choices[0]
+                msg = choice.message
+
+                # 如果模型要调用工具
+                if msg.tool_calls:
+                    # 先输出模型文本(如有)
+                    if msg.content:
+                        yield f"data: {_json.dumps({'token': msg.content})}\n\n"
+
+                    # 记录 assistant 消息
+                    msgs.append({"role": "assistant", "content": msg.content or "", "tool_calls": [
+                        {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+                        for tc in msg.tool_calls
+                    ]})
+
+                    # 执行工具调用
+                    for tc in msg.tool_calls:
+                        name = tc.function.name
+                        args = _json.loads(tc.function.arguments)
+                        yield f"data: {_json.dumps({'tool_start': name, 'args': args})}\n\n"
+
+                        if name == "web_search":
+                            result = _do_web_search(args.get("query", ""))
+                        elif name == "web_extract":
+                            result = _do_web_extract(args.get("url", ""))
+                        elif name == "read_file":
+                            result = _do_read_file(args.get("path", ""), args.get("offset", 1), args.get("limit", 200))
+                        elif name == "write_file":
+                            result = _do_write_file(args.get("path", ""), args.get("content", ""))
+                        elif name == "search_files":
+                            result = _do_search_files(args.get("pattern", ""), args.get("dir", str(Path.home())))
+                        else:
+                            result = f"未知工具: {name}"
+
+                        yield f"data: {_json.dumps({'tool_result': result[:200]})}\n\n"
+                        msgs.append({"role": "tool", "tool_call_id": tc.id, "content": result[:4000]})
+
+                    continue  # 下一轮，让模型基于工具结果回复
+
+                # 模型直接回复文本
+                if msg.content:
+                    yield f"data: {_json.dumps({'token': msg.content})}\n\n"
+
+                yield "data: [DONE]\n\n"
+                return
+
+            yield f"data: {_json.dumps({'error': '达到最大工具调用轮次'})}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as e:
             yield f"data: {_json.dumps({'error': str(e)})}\n\n"
             yield "data: [DONE]\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+def _do_web_search(query: str) -> str:
+    """执行网页搜索"""
+    import urllib.parse, urllib.request, re
+    try:
+        url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
+        req = urllib.request.Request(url, headers={"User-Agent": "meshctx/1.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            html = resp.read().decode()
+        snippets = re.findall(r'class="result__snippet"[^>]*>(.*?)<', html, re.DOTALL)
+        results = [re.sub(r'<[^>]+>', '', s).strip()[:200] for s in snippets[:8]]
+        if results:
+            return "\n".join(f"{i+1}. {r}" for i, r in enumerate(results))
+    except Exception:
+        pass
+    try:
+        url = f"https://cn.bing.com/search?q={urllib.parse.quote(query)}"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            html = resp.read().decode()
+        snippets = re.findall(r'<p[^>]* class="b_lineclamp[^"]*"[^>]*>(.*?)</p>', html, re.DOTALL)
+        if not snippets:
+            snippets = re.findall(r'<div class="b_caption"[^>]*>.*?<p>(.*?)</p>', html, re.DOTALL)
+        results = [re.sub(r'<[^>]+>', '', s).strip()[:200] for s in snippets[:5] if s.strip()]
+        return "\n".join(f"{i+1}. {r}" for i, r in enumerate(results)) if results else "无搜索结果"
+    except Exception as e:
+        return f"搜索失败: {e}"
+
+
+def _do_web_extract(url: str) -> str:
+    """抓取网页内容"""
+    import urllib.request
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            html = resp.read().decode(errors='ignore')
+        import re
+        text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL)
+        text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL)
+        text = re.sub(r'<[^>]+>', ' ', text)
+        text = re.sub(r'\s+', ' ', text).strip()
+        return text[:8000]
+    except Exception as e:
+        return f"抓取失败: {e}"
+
+
+def _do_read_file(path: str, offset: int = 1, limit: int = 200) -> str:
+    """读取本机文件"""
+    try:
+        p = Path(path).expanduser().resolve()
+        if not p.exists():
+            return f"文件不存在: {path}"
+        if p.stat().st_size > 10 * 1024 * 1024:
+            return f"文件过大({p.stat().st_size}字节)，请用 offset/limit 分段读取"
+        lines = p.read_text(errors='replace').split('\n')
+        total = len(lines)
+        start = max(1, offset) - 1
+        end = min(start + limit, total)
+        result = '\n'.join(f"{i+1}|{l}" for i, l in enumerate(lines[start:end], start))
+        header = f"文件: {path} (行 {start+1}-{end} / 共 {total} 行)\n"
+        return header + result
+    except Exception as e:
+        return f"读取失败: {e}"
+
+
+def _do_write_file(path: str, content: str) -> str:
+    """写入本机文件"""
+    try:
+        p = Path(path).expanduser().resolve()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(content, encoding='utf-8')
+        return f"已写入: {path} ({len(content)} 字符)"
+    except Exception as e:
+        return f"写入失败: {e}"
+
+
+def _do_search_files(pattern: str, directory: str = "") -> str:
+    """搜索本机文件"""
+    import subprocess
+    try:
+        d = Path(directory).expanduser().resolve() if directory else Path.home()
+        if not d.exists():
+            d = Path.home()
+        # 用 find + grep 快速搜索
+        result = subprocess.run(
+            ["find", str(d), "-maxdepth", "4", "-type", "f", "-iname", f"*{pattern}*", "-not", "-path", "*/.git/*", "-not", "-path", "*/node_modules/*", "-not", "-path", "*/__pycache__/*"],
+            capture_output=True, text=True, timeout=10
+        )
+        files = [l for l in result.stdout.strip().split('\n') if l]
+        if files:
+            return f"找到 {len(files)} 个文件:\n" + '\n'.join(files[:30])
+        # 按内容搜索
+        result2 = subprocess.run(
+            ["grep", "-rl", "--max-depth=3", pattern, str(d)],
+            capture_output=True, text=True, timeout=10
+        )
+        files2 = [l for l in result2.stdout.strip().split('\n') if l]
+        return f"按内容找到 {len(files2)} 个文件:\n" + '\n'.join(files2[:20]) if files2 else f"未找到匹配 '{pattern}' 的文件"
+    except Exception as e:
+        return f"搜索失败: {e}"
 
 
 # ═══════════════════════════════════════════════════
