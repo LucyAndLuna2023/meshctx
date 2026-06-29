@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -32,13 +32,13 @@ a{{color:var(--cyan);}}
 <div class="top-bar"><div class="nav-inner">
   <a href="/" class="logo">Mesh<span>Ctx</span> Docs</a>
   <select class="lang-select" onchange="switchLang(this.value)">
-    <option value="zh">中文</option>
-    <option value="en">English</option>
-    <option value="fr">Français</option>
-    <option value="de">Deutsch</option>
-    <option value="ja">日本語</option>
-    <option value="ko">한국어</option>
-    <option value="es">Español</option>
+    <option value="zh" data-lang-key="opt_zh">中文</option>
+    <option value="en" data-lang-key="opt_en">English</option>
+    <option value="fr" data-lang-key="opt_fr">Français</option>
+    <option value="de" data-lang-key="opt_de">Deutsch</option>
+    <option value="ja" data-lang-key="opt_ja">日本語</option>
+    <option value="ko" data-lang-key="opt_ko">한국어</option>
+    <option value="es" data-lang-key="opt_es">Español</option>
   </select>
 </div></div>
 
@@ -80,7 +80,7 @@ docker-compose up -d
 <div class="card">
 <table style="width:100%;border-collapse:collapse;font-size:13px;">
 <tr style="color:var(--muted);"><th style="text-align:left;padding:6px;" data-lang-key="api_col_endpoint">端点</th><th style="text-align:left;padding:6px;" data-lang-key="api_col_desc">说明</th></tr>
-<tr><td style="padding:6px;"><code>POST /api/chat</code></td><td>Chat对话</td></tr>
+<tr><td style="padding:6px;"><code>POST /api/chat</code></td><td data-lang-key="api_chat">Chat对话</td></tr>
 <tr><td style="padding:6px;"><code>POST /api/chat/compare</code></td><td>多模型对比 <span class="tag">v2.11</span></td></tr>
 <tr><td style="padding:6px;"><code>POST /api/sandbox/execute</code></td><td>代码沙箱 <span class="tag">v2.7</span></td></tr>
 <tr><td style="padding:6px;"><code>GET /api/project/context</code></td><td>项目索引 <span class="tag">v2.7</span></td></tr>
@@ -144,7 +144,63 @@ const L = {
         "arch_models": "Model Layer",
         "arch_models_desc": "100 Models · 28 Providers · OpenAI Compatible",
         "footer_back": "← Back to Home",
-        "footer_github": "GitHub"
+        "footer_github": "GitHub",
+        "opt_en": "🇺🇸 English",,
+        "opt_zh": "🇨🇳 中文",,
+        "opt_fr": "🇫🇷 Français",,
+        "opt_de": "🇩🇪 Deutsch",,
+        "opt_ja": "🇯🇵 日本語",,
+        "opt_ko": "🇰🇷 한국어",,
+        "opt_es": "🇪🇸 Español",,
+        "api_chat": "Chat",,
+        "opt_en": "🇺🇸 English",,
+        "opt_zh": "🇨🇳 中文",,
+        "opt_fr": "🇫🇷 Français",,
+        "opt_de": "🇩🇪 Deutsch",,
+        "opt_ja": "🇯🇵 日本語",,
+        "opt_ko": "🇰🇷 한국어",,
+        "opt_es": "🇪🇸 Español",,
+        "api_chat": "채팅",,
+        "opt_en": "🇺🇸 English",,
+        "opt_zh": "🇨🇳 中文",,
+        "opt_fr": "🇫🇷 Français",,
+        "opt_de": "🇩🇪 Deutsch",,
+        "opt_ja": "🇯🇵 日本語",,
+        "opt_ko": "🇰🇷 한국어",,
+        "opt_es": "🇪🇸 Español",,
+        "api_chat": "チャット",,
+        "opt_en": "🇺🇸 English",,
+        "opt_zh": "🇨🇳 中文",,
+        "opt_fr": "🇫🇷 Français",,
+        "opt_de": "🇩🇪 Deutsch",,
+        "opt_ja": "🇯🇵 日本語",,
+        "opt_ko": "🇰🇷 한국어",,
+        "opt_es": "🇪🇸 Español",,
+        "api_chat": "Chat",,
+        "opt_en": "🇺🇸 English",,
+        "opt_zh": "🇨🇳 中文",,
+        "opt_fr": "🇫🇷 Français",,
+        "opt_de": "🇩🇪 Deutsch",,
+        "opt_ja": "🇯🇵 日本語",,
+        "opt_ko": "🇰🇷 한국어",,
+        "opt_es": "🇪🇸 Español",,
+        "api_chat": "Chat",,
+        "opt_en": "🇺🇸 English",,
+        "opt_zh": "🇨🇳 中文",,
+        "opt_fr": "🇫🇷 Français",,
+        "opt_de": "🇩🇪 Deutsch",,
+        "opt_ja": "🇯🇵 日本語",,
+        "opt_ko": "🇰🇷 한국어",,
+        "opt_es": "🇪🇸 Español",,
+        "api_chat": "Chat对话",,
+        "opt_en": "🇺🇸 English",,
+        "opt_zh": "🇨🇳 中文",,
+        "opt_fr": "🇫🇷 Français",,
+        "opt_de": "🇩🇪 Deutsch",,
+        "opt_ja": "🇯🇵 日本語",,
+        "opt_ko": "🇰🇷 한국어",,
+        "opt_es": "🇪🇸 Español",,
+        "api_chat": "Chat",
     },
     "zh": {
         "meta_title": "MeshCtx 文档 — 入门指南",
@@ -301,7 +357,7 @@ function switchLang(lang) {
     localStorage.setItem('meshctx-lang', lang);
 }
 document.addEventListener('DOMContentLoaded', function() {
-    var saved = localStorage.getItem('meshctx-lang') || 'zh';
+    var saved = localStorage.getItem('meshctx-lang') || 'en';
     switchLang(saved);
     var sel = document.querySelector('.lang-select');
     if (sel) sel.value = saved;
