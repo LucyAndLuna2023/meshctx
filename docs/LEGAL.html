@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeshCtx Legal</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0b0e1a;--bg2:#1a1f35;--fg:#e0e4f0;--muted:#8090b0;--purple:#6c5ce7;--cyan:#00cec9;--green:#00b894;--border:rgba(255,255,255,0.08);--card-bg:rgba(255,255,255,0.03)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#0b0e1a,#1a1f35);color:var(--fg);min-height:100vh;line-height:1.7}
+.top-bar{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:12px 24px;background:rgba(11,14,26,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.top-bar a{color:#a78bfa;text-decoration:none;font-size:.9rem}.top-bar a:hover{color:#6c5ce7}
+.lang-select{background:var(--bg2);color:var(--fg);border:1px solid var(--border);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:.85rem}
+.lang-select:hover{border-color:var(--purple)}.lang-select option{background:var(--bg2);color:var(--fg)}
+.container{max-width:900px;margin:0 auto;padding:80px 24px 48px}
+h1{font-size:2.2em;font-weight:700;background:linear-gradient(135deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+.subtitle{color:var(--muted);margin-bottom:40px}
+h2{font-size:1.3em;color:#a78bfa;margin:32px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px}
+.card h4{color:var(--cyan);margin-bottom:12px}
+.card table{width:100%;border-collapse:collapse;font-size:.85rem;margin:12px 0}
+.card th,.card td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.card th{color:var(--muted);font-weight:500}
+ul,ol{padding-left:24px;margin:12px 0}
+ul li,ol li{margin:6px 0;color:#c4c8e0}
+p{margin:12px 0;color:#c4c8e0}
+a{color:var(--purple);text-decoration:none}a:hover{color:var(--cyan)}
+.contact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.contact-item{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center}
+.contact-item strong{color:var(--cyan);display:block;margin-bottom:8px}
+footer{text-align:center;padding:40px 24px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--border);margin-top:40px}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a href="index.html" data-lang-key="nav_home">← Home</a>
+  <select class="lang-select" onchange="switchLang(this.value)">
+    <option value="en">English</option>
+    <option value="zh">简体中文</option>
+    <option value="fr">Français</option>
+    <option value="de">Deutsch</option>
+    <option value="ja">日本語</option>
+    <option value="ko">한국어</option>
+    <option value="es">Español</option>
+  </select>
+</div>
+
+<div class="container">
+  <h1 data-lang-key="meta_title">MeshCtx Legal</h1>
+  <p class="subtitle">Open-Core License Structure</p>
+
+  <section><h2 data-lang-key="section1_title">1. Open Source License (AGPLv3)</h2><div data-lang-key="legal_license_text"></div></section>
+  <section><h2 data-lang-key="section2_title">2. Disclaimer</h2><div data-lang-key="legal_disclaimer_text"></div></section>
+  <section><h2 data-lang-key="section3_title">3. Intellectual Property</h2><div data-lang-key="legal_ip_text"></div></section>
+  <section><h2 data-lang-key="section4_title">4. Terms of Service</h2><div data-lang-key="legal_tos_text"></div></section>
+  <section><h2 data-lang-key="section5_title">5. Privacy Policy</h2><div data-lang-key="legal_privacy_text"></div></section>
+  <section><h2 data-lang-key="section6_title">6. Contact</h2><div data-lang-key="legal_contact_text"></div></section>
+</div>
+
+<footer>
+  <p data-lang-key="footer">Last updated: May 14, 2026</p>
+  <p data-lang-key="footer_copy">© 2026 MeshCtx. All rights reserved.</p>
+</footer>
+
+<script>
+const L = {
+  "en": {
+    "meta_title": "MeshCtx Legal — Terms, Privacy & License",
+    "nav_home": "← Home",
+    "footer": "Last updated: May 14, 2026",
+    "footer_copy": "© 2026 MeshCtx. All rights reserved.",
+    "section1_title": "1. Open Source License (AGPLv3)",
+    "section2_title": "2. Disclaimer",
+    "section3_title": "3. Intellectual Property",
+    "section4_title": "4. Terms of Service",
+    "section5_title": "5. Privacy Policy",
+    "section6_title": "6. Contact",
+    "legal_license_text": "<p>MeshCtx uses a <strong>Dual License</strong> structure:</p><div class=\"card\"><h4>Framework Layer — AGPLv3 Open Source</h4><p>Web UI, API Router, Plugin System, Chat UI, Installer.</p><p>✅ Free to use, modify, distribute<br>✅ View all source code<br>✅ Submit Pull Requests<br>⚠️ If modified AGPLv3 code is offered as a service, changes must be public</p><p><a href=\"https://www.gnu.org/licenses/agpl-3.0.html\" target=\"_blank\">Full license text →</a></p></div><div class=\"card\"><h4>Core Brain — Proprietary (Source Available)</h4><p>Super Brain, Free Energy, Active Inference, Global Workspace, Metacognition, Hybrid Reasoning.</p><table><tr><th>Module</th><th>Algorithm</th><th>Reason</th></tr><tr><td>super_brain.py</td><td>13-region full-brain simulation</td><td>Core orchestration</td></tr><tr><td>free_energy.py</td><td>Friston Free Energy Principle</td><td>Surprise & belief updating</td></tr><tr><td>active_inference.py</td><td>Active Inference Engine</td><td>Explore-exploit balance</td></tr><tr><td>global_workspace.py</td><td>Baars-Dehaene GWT</td><td>Multi-agent competition</td></tr><tr><td>metacognition.py</td><td>Metacognitive Monitor</td><td>Self-evaluation</td></tr></table><p>✅ Source public — audit & learn<br>✅ Non-commercial free<br>❌ Commercial use requires license<br>❌ Do not strip copyright<br>❌ Do not extract core algorithms</p></div><p>Commercial license: <a href=\"mailto:license@meshctx.com\">license@meshctx.com</a></p>",
+    "legal_disclaimer_text": "<p>MeshCtx is provided <strong>\"AS IS\"</strong>, without warranty of any kind, express or implied, including but not limited to:</p><ul><li>Merchantability</li><li>Fitness for a particular purpose</li><li>Security</li><li>Non-infringement</li><li>Availability</li></ul><p>Users assume all risks. In no event shall project contributors be liable for damages including data loss, system crash, business interruption, third-party claims, agent actions, or third-party plugins.</p><p><strong>Third-Party Plugins:</strong> MeshCtx supports third-party plugins. These are not audited by the project team. Users should evaluate risks before installation.</p><p><strong>AI Agent Behavior:</strong> MeshCtx is an AI agent framework. Behavior depends on model, config, and user instructions. The project team is not responsible for specific agent outputs or decisions.</p>",
+    "legal_ip_text": "<p>MeshCtx code copyright belongs to the MeshCtx project, protected by PRC Copyright Law and international treaties.</p><ul><li>Copyright notices in source must not be removed or modified</li><li>\"MeshCtx\" name and logo are project trademarks — unauthorized commercial use prohibited</li><li>Core brain modules (see §1) are protected by proprietary license</li><li>Commercial license requires written agreement with copyright holder</li></ul>",
+    "legal_tos_text": "<h4>Website Use</h4><p>Accessing meshctx.com constitutes acceptance of these terms:</p><ol><li>Content is reference only — not professional advice</li><li>No availability guarantee — site may be down for maintenance</li><li>Prohibited: reverse engineering, scraping (except search engines), DDoS</li><li>Third-party links — project not responsible</li></ol><h4>Community Code of Conduct</h4><ul><li>Respect others — no harassment, discrimination</li><li>No spam, ads, malware</li><li>Violators may be removed from community access</li></ul>",
+    "legal_privacy_text": "<h4>What We Collect</h4><ul><li><strong>GitHub public info:</strong> username & avatar when submitting Issues/PRs</li><li><strong>Email:</strong> when subscribing to mailing list or contacting commercial license</li><li><strong>Server logs:</strong> standard logs (IP, User-Agent, timestamp)</li></ul><h4>What We Don't Collect</h4><ul><li>❌ No browsing behavior tracking</li><li>❌ No data sold to third parties</li><li>❌ No tracking cookies (except necessary session cookies)</li></ul><h4>Data Use</h4><ul><li>Improve project and services</li><li>Respond to inquiries</li><li>Comply with legal obligations</li></ul>",
+    "legal_contact_text": "<div class=\"contact-grid\"><div class=\"contact-item\"><strong>Commercial License</strong><br><a href=\"mailto:license@meshctx.com\">license@meshctx.com</a></div><div class=\"contact-item\"><strong>General Inquiries</strong><br><a href=\"mailto:support@meshctx.com\">support@meshctx.com</a></div><div class=\"contact-item\"><strong>Legal Affairs</strong><br><a href=\"mailto:legal@meshctx.com\">legal@meshctx.com</a></div></div>"
+  }
+};
+
+const HTML_KEYS = new Set(['legal_license_text','legal_disclaimer_text','legal_ip_text','legal_tos_text','legal_privacy_text','legal_contact_text']);
+
+function switchLang(lang) {
+  if (!L[lang]) return;
+  document.querySelectorAll('[data-lang-key]').forEach(el => {
+    const key = el.getAttribute('data-lang-key');
+    if (L[lang][key]) {
+      if (HTML_KEYS.has(key)) el.innerHTML = L[lang][key];
+      else el.textContent = L[lang][key];
+    }
+  });
+  document.title = L[lang].meta_title || 'MeshCtx Legal';
+  document.documentElement.lang = lang;
+  localStorage.setItem('meshctx-lang', lang);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('meshctx-lang') || 'en';
+  document.querySelector('.lang-select').value = saved;
+  switchLang(saved);
+});
+</script>
+</body>
+</html>
