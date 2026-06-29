@@ -38,13 +38,13 @@ td:last-child{color:#00cec9;font-weight:600}
   <div class="top-bar">
     <div class="version-badge" data-lang-key="version_badge">✨ Latest Release</div>
     <select class="lang-select" onchange="switchLang(this.value)">
-      <option value="en">English</option>
-      <option value="zh">中文</option>
-      <option value="fr">Français</option>
-      <option value="de">Deutsch</option>
-      <option value="ja">日本語</option>
-      <option value="ko">한국어</option>
-      <option value="es">Español</option>
+      <option value="en" data-lang-key="opt_en">English</option>
+      <option value="zh" data-lang-key="opt_zh">中文</option>
+      <option value="fr" data-lang-key="opt_fr">Français</option>
+      <option value="de" data-lang-key="opt_de">Deutsch</option>
+      <option value="ja" data-lang-key="opt_ja">日本語</option>
+      <option value="ko" data-lang-key="opt_ko">한국어</option>
+      <option value="es" data-lang-key="opt_es">Español</option>
     </select>
   </div>
   <h1 data-lang-key="meta_title">Download MeshCtx</h1>
@@ -81,11 +81,11 @@ td:last-child{color:#00cec9;font-weight:600}
     <h3 data-lang-key="bench_title">📊 Benchmark Results</h3>
     <table>
       <tr><th data-lang-key="bench_scenario">Scenario</th><th data-lang-key="bench_metric">Metric</th><th>v2.16</th><th>v2.17</th><th data-lang-key="bench_improvement">Improvement</th></tr>
-      <tr><td>Decision Quality</td><td>FreeEnergy F</td><td>15.2%</td><td>18.8%</td><td>+24%</td></tr>
-      <tr><td>Resource Survival</td><td>100 tasks</td><td>100%</td><td>100%</td><td>—</td></tr>
-      <tr><td>Convergence</td><td>Avg Reward</td><td>462</td><td>518</td><td>+12%</td></tr>
-      <tr><td>Models</td><td>Supported</td><td>100</td><td>100</td><td>—</td></tr>
-      <tr><td>Brain Regions</td><td>Simulated</td><td>10</td><td>13</td><td>+30%</td></tr>
+      <tr><td data-lang-key="bench_dq">Decision Quality</td><td data-lang-key="bench_fef">FreeEnergy F</td><td>15.2%</td><td>18.8%</td><td>+24%</td></tr>
+      <tr><td data-lang-key="bench_rs">Resource Survival</td><td data-lang-key="bench_100t">100 tasks</td><td>100%</td><td>100%</td><td>—</td></tr>
+      <tr><td data-lang-key="bench_conv">Convergence</td><td data-lang-key="bench_ar">Avg Reward</td><td>462</td><td>518</td><td>+12%</td></tr>
+      <tr><td data-lang-key="bench_models">Models</td><td data-lang-key="bench_supported">Supported</td><td>100</td><td>100</td><td>—</td></tr>
+      <tr><td data-lang-key="bench_br">Brain Regions</td><td data-lang-key="bench_sim">Simulated</td><td>10</td><td>13</td><td>+30%</td></tr>
     </table>
   </div>
 
@@ -119,6 +119,23 @@ const L = {
         bench_scenario: "Scenario",
         bench_metric: "Metric",
         bench_improvement: "Improvement",
+        opt_en: "🇺🇸 English",
+        opt_zh: "🇨🇳 中文",
+        opt_fr: "🇫🇷 Français",
+        opt_de: "🇩🇪 Deutsch",
+        opt_ja: "🇯🇵 日本語",
+        opt_ko: "🇰🇷 한국어",
+        opt_es: "🇪🇸 Español",
+        bench_dq: "Decision Quality",
+        bench_fef: "FreeEnergy F",
+        bench_rs: "Resource Survival",
+        bench_100t: "100 tasks",
+        bench_conv: "Convergence",
+        bench_ar: "Avg Reward",
+        bench_models: "Models",
+        bench_supported: "Supported",
+        bench_br: "Brain Regions",
+        bench_sim: "Simulated",
     },
     zh: {
         meta_title: "下载 MeshCtx",
@@ -144,6 +161,23 @@ const L = {
         bench_scenario: "场景",
         bench_metric: "指标",
         bench_improvement: "提升",
+        opt_en: "🇺🇸 English",
+        opt_zh: "🇨🇳 中文",
+        opt_fr: "🇫🇷 Français",
+        opt_de: "🇩🇪 Deutsch",
+        opt_ja: "🇯🇵 日本語",
+        opt_ko: "🇰🇷 한국어",
+        opt_es: "🇪🇸 Español",
+        bench_dq: "决策质量",
+        bench_fef: "自由能F",
+        bench_rs: "资源生存",
+        bench_100t: "100个任务",
+        bench_conv: "收敛性",
+        bench_ar: "平均奖励",
+        bench_models: "模型数",
+        bench_supported: "支持",
+        bench_br: "脑区数",
+        bench_sim: "仿真",
     },
     fr: {
         meta_title: "Télécharger MeshCtx",
@@ -169,6 +203,23 @@ const L = {
         bench_scenario: "Scénario",
         bench_metric: "Métrique",
         bench_improvement: "Amélioration",
+        opt_en: "🇺🇸 English",
+        opt_zh: "🇨🇳 中文",
+        opt_fr: "🇫🇷 Français",
+        opt_de: "🇩🇪 Deutsch",
+        opt_ja: "🇯🇵 日本語",
+        opt_ko: "🇰🇷 한국어",
+        opt_es: "🇪🇸 Español",
+        bench_dq: "Qualité décision",
+        bench_fef: "FreeEnergy F",
+        bench_rs: "Survie ressources",
+        bench_100t: "100 tâches",
+        bench_conv: "Convergence",
+        bench_ar: "Récompense moy.",
+        bench_models: "Modèles",
+        bench_supported: "Supportés",
+        bench_br: "Régions cérébrales",
+        bench_sim: "Simulées",
     },
     de: {
         meta_title: "MeshCtx herunterladen",
@@ -194,10 +245,78 @@ const L = {
         bench_scenario: "Szenario",
         bench_metric: "Metrik",
         bench_improvement: "Verbesserung",
+        opt_en: "🇺🇸 English",
+        opt_zh: "🇨🇳 中文",
+        opt_fr: "🇫🇷 Français",
+        opt_de: "🇩🇪 Deutsch",
+        opt_ja: "🇯🇵 日本語",
+        opt_ko: "🇰🇷 한국어",
+        opt_es: "🇪🇸 Español",
+        bench_dq: "Entscheidungsqual.",
+        bench_fef: "FreeEnergy F",
+        bench_rs: "Ressourcenüberl.",
+        bench_100t: "100 Aufgaben",
+        bench_conv: "Konvergenz",
+        bench_ar: "Durchschn. Belohnung",
+        bench_models: "Modelle",
+        bench_supported: "Unterstützt",
+        bench_br: "Gehirnregionen",
+        bench_sim: "Simuliert",
     },
-    ja: { meta_title:"MeshCtx ダウンロード", version_badge:"✨ 最新リリース", dl_subtitle:"世界初の自己進化型Agentシステム", installer_title:"📦 インストーラー", installer_desc:"7言語対応NSISインストーラー", installer_size:"~212 MB", installer_btn:"ダウンロード", portable_title:"📂 ポータブル", portable_desc:"自己完結型ZIP — 解凍して実行", portable_size:"~210 MB", portable_btn:"ZIPダウンロード", exe_title:"⚙️ スタンドアロンEXE", exe_desc:"単一実行ファイル ランタイム内蔵", exe_size:"~215 MB", exe_btn:"EXEダウンロード", dmg_title:"🍎 macOS DMG", dmg_desc:"ネイティブmacOSアプリ", dmg_size:"~211 MB", dmg_btn:"DMGダウンロード", bench_title:"📊 ベンチマーク結果", bench_scenario:"シナリオ", bench_metric:"指標", bench_improvement:"改善" },
-    ko: { meta_title:"MeshCtx 다운로드", version_badge:"✨ 최신 릴리스", dl_subtitle:"세계 최초의 자가 진화 Agent 시스템", installer_title:"📦 설치 프로그램", installer_desc:"7개 언어 NSIS 설치 프로그램", installer_size:"~212 MB", installer_btn:"다운로드", portable_title:"📂 휴대용", portable_desc:"자체 포함 ZIP — 압축 해제 후 실행", portable_size:"~210 MB", portable_btn:"ZIP 다운로드", exe_title:"⚙️ 독립형 EXE", exe_desc:"단일 실행 파일 런타임 내장", exe_size:"~215 MB", exe_btn:"EXE 다운로드", dmg_title:"🍎 macOS DMG", dmg_desc:"네이티브 macOS 앱", dmg_size:"~211 MB", dmg_btn:"DMG 다운로드", bench_title:"📊 벤치마크 결과", bench_scenario:"시나리오", bench_metric:"지표", bench_improvement:"개선" },
-    es: { meta_title:"Descargar MeshCtx", version_badge:"✨ Última Versión", dl_subtitle:"Primer sistema de agente auto-evolutivo del mundo", installer_title:"📦 Instalador", installer_desc:"Instalador NSIS con 7 idiomas", installer_size:"~212 MB", installer_btn:"Descargar", portable_title:"📂 Portátil", portable_desc:"ZIP autocontenido — extraer y ejecutar", portable_size:"~210 MB", portable_btn:"Descargar ZIP", exe_title:"⚙️ EXE Independiente", exe_desc:"Ejecutable único, runtime integrado", exe_size:"~215 MB", exe_btn:"Descargar EXE", dmg_title:"🍎 macOS DMG", dmg_desc:"Paquete macOS nativo", dmg_size:"~211 MB", dmg_btn:"Descargar DMG", bench_title:"📊 Resultados Benchmark", bench_scenario:"Escenario", bench_metric:"Métrica", bench_improvement:"Mejora" }
+    ja: { meta_title:"MeshCtx ダウンロード", version_badge:"✨ 最新リリース", dl_subtitle:"世界初の自己進化型Agentシステム", installer_title:"📦 インストーラー", installer_desc:"7言語対応NSISインストーラー", installer_size:"~212 MB", installer_btn:"ダウンロード", portable_title:"📂 ポータブル", portable_desc:"自己完結型ZIP — 解凍して実行", portable_size:"~210 MB", portable_btn:"ZIPダウンロード", exe_title:"⚙️ スタンドアロンEXE", exe_desc:"単一実行ファイル ランタイム内蔵", exe_size:"~215 MB", exe_btn:"EXEダウンロード", dmg_title:"🍎 macOS DMG", dmg_desc:"ネイティブmacOSアプリ", dmg_size:"~211 MB", dmg_btn:"DMGダウンロード", bench_title:"📊 ベンチマーク結果", bench_scenario:"シナリオ", bench_metric:"指標", bench_improvement:"改善"
+        opt_en: "🇺🇸 English",
+        opt_zh: "🇨🇳 中文",
+        opt_fr: "🇫🇷 Français",
+        opt_de: "🇩🇪 Deutsch",
+        opt_ja: "🇯🇵 日本語",
+        opt_ko: "🇰🇷 한국어",
+        opt_es: "🇪🇸 Español",
+        bench_dq: "決定品質",
+        bench_fef: "自由エネルギーF",
+        bench_rs: "リソース生存",
+        bench_100t: "100タスク",
+        bench_conv: "収束性",
+        bench_ar: "平均報酬",
+        bench_models: "モデル数",
+        bench_supported: "サポート",
+        bench_br: "脳領域",
+        bench_sim: "シミュレート", },
+    ko: { meta_title:"MeshCtx 다운로드", version_badge:"✨ 최신 릴리스", dl_subtitle:"세계 최초의 자가 진화 Agent 시스템", installer_title:"📦 설치 프로그램", installer_desc:"7개 언어 NSIS 설치 프로그램", installer_size:"~212 MB", installer_btn:"다운로드", portable_title:"📂 휴대용", portable_desc:"자체 포함 ZIP — 압축 해제 후 실행", portable_size:"~210 MB", portable_btn:"ZIP 다운로드", exe_title:"⚙️ 독립형 EXE", exe_desc:"단일 실행 파일 런타임 내장", exe_size:"~215 MB", exe_btn:"EXE 다운로드", dmg_title:"🍎 macOS DMG", dmg_desc:"네이티브 macOS 앱", dmg_size:"~211 MB", dmg_btn:"DMG 다운로드", bench_title:"📊 벤치마크 결과", bench_scenario:"시나리오", bench_metric:"지표", bench_improvement:"개선"
+        opt_en: "🇺🇸 English",
+        opt_zh: "🇨🇳 中文",
+        opt_fr: "🇫🇷 Français",
+        opt_de: "🇩🇪 Deutsch",
+        opt_ja: "🇯🇵 日本語",
+        opt_ko: "🇰🇷 한국어",
+        opt_es: "🇪🇸 Español",
+        bench_dq: "의사결정 품질",
+        bench_fef: "자유에너지 F",
+        bench_rs: "자원 생존",
+        bench_100t: "100개 작업",
+        bench_conv: "수렴성",
+        bench_ar: "평균 보상",
+        bench_models: "모델 수",
+        bench_supported: "지원",
+        bench_br: "뇌 영역",
+        bench_sim: "시뮬레이션", },
+    es: { meta_title:"Descargar MeshCtx", version_badge:"✨ Última Versión", dl_subtitle:"Primer sistema de agente auto-evolutivo del mundo", installer_title:"📦 Instalador", installer_desc:"Instalador NSIS con 7 idiomas", installer_size:"~212 MB", installer_btn:"Descargar", portable_title:"📂 Portátil", portable_desc:"ZIP autocontenido — extraer y ejecutar", portable_size:"~210 MB", portable_btn:"Descargar ZIP", exe_title:"⚙️ EXE Independiente", exe_desc:"Ejecutable único, runtime integrado", exe_size:"~215 MB", exe_btn:"Descargar EXE", dmg_title:"🍎 macOS DMG", dmg_desc:"Paquete macOS nativo", dmg_size:"~211 MB", dmg_btn:"Descargar DMG", bench_title:"📊 Resultados Benchmark", bench_scenario:"Escenario", bench_metric:"Métrica", bench_improvement:"Mejora"
+        opt_en: "🇺🇸 English",
+        opt_zh: "🇨🇳 中文",
+        opt_fr: "🇫🇷 Français",
+        opt_de: "🇩🇪 Deutsch",
+        opt_ja: "🇯🇵 日本語",
+        opt_ko: "🇰🇷 한국어",
+        opt_es: "🇪🇸 Español",
+        bench_dq: "Calidad decisión",
+        bench_fef: "FreeEnergy F",
+        bench_rs: "Supervivencia rec.",
+        bench_100t: "100 tareas",
+        bench_conv: "Convergencia",
+        bench_ar: "Recompensa media",
+        bench_models: "Modelos",
+        bench_supported: "Soportados",
+        bench_br: "Regiones cerebrales",
+        bench_sim: "Simuladas", }
 };
 
 function switchLang(lang) {
