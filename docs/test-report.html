@@ -26,13 +26,13 @@ tr:hover{background:#1e293b}
 <div class="top-bar">
   <div class="refresh"><span data-lang-key="refresh_label">Auto-refresh every 30s</span> | <span id="time"></span></div>
   <select class="lang-select" onchange="switchLang(this.value)">
-    <option value="en">English</option>
-    <option value="zh">中文</option>
-    <option value="fr">Français</option>
-    <option value="de">Deutsch</option>
-    <option value="ja">日本語</option>
-    <option value="ko">한국어</option>
-    <option value="es">Español</option>
+    <option value="en" data-lang-key="opt_en">English</option>
+    <option value="zh" data-lang-key="opt_zh">中文</option>
+    <option value="fr" data-lang-key="opt_fr">Français</option>
+    <option value="de" data-lang-key="opt_de">Deutsch</option>
+    <option value="ja" data-lang-key="opt_ja">日本語</option>
+    <option value="ko" data-lang-key="opt_ko">한국어</option>
+    <option value="es" data-lang-key="opt_es">Español</option>
   </select>
 </div>
 
@@ -61,7 +61,14 @@ const L = {
         th_test: "Test",
         th_status: "Status",
         th_detail: "Detail",
-        error_msg: "Server not running",
+        error_msg: "Server not running",,
+        opt_en: "🇺🇸 English",,
+        opt_zh: "🇨🇳 中文",,
+        opt_fr: "🇫🇷 Français",,
+        opt_de: "🇩🇪 Deutsch",,
+        opt_ja: "🇯🇵 日本語",,
+        opt_ko: "🇰🇷 한국어",,
+        opt_es: "🇪🇸 Español",
     },
     zh: {
         meta_title: "\u{1F9EA} 测试报告",
@@ -74,7 +81,14 @@ const L = {
         th_test: "测试",
         th_status: "状态",
         th_detail: "详情",
-        error_msg: "服务器未运行",
+        error_msg: "服务器未运行",,
+        opt_en: "🇺🇸 English",,
+        opt_zh: "🇨🇳 中文",,
+        opt_fr: "🇫🇷 Français",,
+        opt_de: "🇩🇪 Deutsch",,
+        opt_ja: "🇯🇵 日本語",,
+        opt_ko: "🇰🇷 한국어",,
+        opt_es: "🇪🇸 Español",
     },
     fr: {
         meta_title: "\u{1F9EA} Rapport de Test",
@@ -87,7 +101,14 @@ const L = {
         th_test: "Test",
         th_status: "Statut",
         th_detail: "Détail",
-        error_msg: "Serveur non démarré",
+        error_msg: "Serveur non démarré",,
+        opt_en: "🇺🇸 English",,
+        opt_zh: "🇨🇳 中文",,
+        opt_fr: "🇫🇷 Français",,
+        opt_de: "🇩🇪 Deutsch",,
+        opt_ja: "🇯🇵 日本語",,
+        opt_ko: "🇰🇷 한국어",,
+        opt_es: "🇪🇸 Español",
     },
     de: {
         meta_title: "\u{1F9EA} Testbericht",
@@ -100,7 +121,14 @@ const L = {
         th_test: "Test",
         th_status: "Status",
         th_detail: "Detail",
-        error_msg: "Server läuft nicht",
+        error_msg: "Server läuft nicht",,
+        opt_en: "🇺🇸 English",,
+        opt_zh: "🇨🇳 中文",,
+        opt_fr: "🇫🇷 Français",,
+        opt_de: "🇩🇪 Deutsch",,
+        opt_ja: "🇯🇵 日本語",,
+        opt_ko: "🇰🇷 한국어",,
+        opt_es: "🇪🇸 Español",
     },
     ja: {
         meta_title: "\u{1F9EA} テストレポート",
@@ -113,7 +141,14 @@ const L = {
         th_test: "テスト",
         th_status: "ステータス",
         th_detail: "詳細",
-        error_msg: "サーバー停止中",
+        error_msg: "サーバー停止中",,
+        opt_en: "🇺🇸 English",,
+        opt_zh: "🇨🇳 中文",,
+        opt_fr: "🇫🇷 Français",,
+        opt_de: "🇩🇪 Deutsch",,
+        opt_ja: "🇯🇵 日本語",,
+        opt_ko: "🇰🇷 한국어",,
+        opt_es: "🇪🇸 Español",
     },
     ko: {
         meta_title: "\u{1F9EA} 테스트 보고서",
@@ -126,7 +161,14 @@ const L = {
         th_test: "테스트",
         th_status: "상태",
         th_detail: "세부사항",
-        error_msg: "서버 중지됨",
+        error_msg: "서버 중지됨",,
+        opt_en: "🇺🇸 English",,
+        opt_zh: "🇨🇳 中文",,
+        opt_fr: "🇫🇷 Français",,
+        opt_de: "🇩🇪 Deutsch",,
+        opt_ja: "🇯🇵 日本語",,
+        opt_ko: "🇰🇷 한국어",,
+        opt_es: "🇪🇸 Español",
     },
     es: {
         meta_title: "\u{1F9EA} Informe de Pruebas",
@@ -139,7 +181,14 @@ const L = {
         th_test: "Prueba",
         th_status: "Estado",
         th_detail: "Detalle",
-        error_msg: "Servidor detenido",
+        error_msg: "Servidor detenido",,
+        opt_en: "🇺🇸 English",,
+        opt_zh: "🇨🇳 中文",,
+        opt_fr: "🇫🇷 Français",,
+        opt_de: "🇩🇪 Deutsch",,
+        opt_ja: "🇯🇵 日本語",,
+        opt_ko: "🇰🇷 한국어",,
+        opt_es: "🇪🇸 Español",
     },
 };
 
@@ -152,6 +201,8 @@ function switchLang(lang) {
     var root = document.getElementById("html-root");
     if (root) root.setAttribute("lang", lang);
     localStorage.setItem("meshctx-lang", lang);
+    var sel2 = document.querySelector(".lang-select");
+    if (sel2) sel2.value = lang;
 }
 
 (function(){
