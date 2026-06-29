@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MeshCtx Legal</title>
-<style>
+<title data-lang-key="meta_title">MeshCtx Legal</title>
+<style>:root{--bg:#0b0e1a;--bg2:#1a1f35;--fg:#e0e4f0;--muted:#8090b0;--purple:#6c5ce7;--cyan:#00cec9;--green:#00b894;--border:rgba(255,255,255,0.08);--card-bg:rgba(255,255,255,0.03)}
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#0b0e1a;--bg2:#1a1f35;--fg:#e0e4f0;--muted:#8090b0;--purple:#6c5ce7;--cyan:#00cec9;--green:#00b894;--border:rgba(255,255,255,0.08);--card-bg:rgba(255,255,255,0.03)}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#0b0e1a,#1a1f35);color:var(--fg);min-height:100vh;line-height:1.7}
 .top-bar{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:12px 24px;background:rgba(11,14,26,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
 .top-bar a{color:#a78bfa;text-decoration:none;font-size:.9rem}.top-bar a:hover{color:#6c5ce7}
@@ -28,82 +27,842 @@ a{color:var(--purple);text-decoration:none}a:hover{color:var(--cyan)}
 .contact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
 .contact-item{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center}
 .contact-item strong{color:var(--cyan);display:block;margin-bottom:8px}
-footer{text-align:center;padding:40px 24px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--border);margin-top:40px}
-</style>
+footer{text-align:center;padding:40px 24px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--border);margin-top:40px}</style>
 </head>
 <body>
-<div class="top-bar">
-  <a href="index.html" data-lang-key="nav_home">← Home</a>
-  <select class="lang-select" onchange="switchLang(this.value)">
-    <option value="en">English</option>
-    <option value="zh">简体中文</option>
-    <option value="fr">Français</option>
-    <option value="de">Deutsch</option>
-    <option value="ja">日本語</option>
-    <option value="ko">한국어</option>
-    <option value="es">Español</option>
-  </select>
-</div>
+<div class="top-bar"><a href="index.html" data-lang-key="nav_home">← Home</a>
+<select class="lang-select" onchange="switchLang(this.value)">
+<option value="en" data-lang-key="opt_en">English</option>
+<option value="zh" data-lang-key="opt_zh">中文</option>
+<option value="fr" data-lang-key="opt_fr">Français</option>
+<option value="de" data-lang-key="opt_de">Deutsch</option>
+<option value="ja" data-lang-key="opt_ja">日本語</option>
+<option value="ko" data-lang-key="opt_ko">한국어</option>
+<option value="es" data-lang-key="opt_es">Español</option>
+</select></div>
 
 <div class="container">
-  <h1 data-lang-key="meta_title">MeshCtx Legal</h1>
-  <p class="subtitle">Open-Core License Structure</p>
+<h1 data-lang-key="meta_title">MeshCtx Legal</h1>
+<p class="subtitle" data-lang-key="subtitle">Open-Core License Structure</p>
 
-  <section><h2 data-lang-key="section1_title">1. Open Source License (AGPLv3)</h2><div data-lang-key="legal_license_text"></div></section>
-  <section><h2 data-lang-key="section2_title">2. Disclaimer</h2><div data-lang-key="legal_disclaimer_text"></div></section>
-  <section><h2 data-lang-key="section3_title">3. Intellectual Property</h2><div data-lang-key="legal_ip_text"></div></section>
-  <section><h2 data-lang-key="section4_title">4. Terms of Service</h2><div data-lang-key="legal_tos_text"></div></section>
-  <section><h2 data-lang-key="section5_title">5. Privacy Policy</h2><div data-lang-key="legal_privacy_text"></div></section>
-  <section><h2 data-lang-key="section6_title">6. Contact</h2><div data-lang-key="legal_contact_text"></div></section>
+<section><h2 data-lang-key="s1">1. Open Source License (AGPLv3)</h2>
+<p><strong data-lang-key="dual">Dual License</strong>:</p>
+<div class="card"><h4 data-lang-key="fw_title">Framework Layer — AGPLv3 Open Source</h4>
+<p data-lang-key="fw_desc">Web UI, API Router, Plugin System, Chat UI, Installer.</p>
+<p><span data-lang-key="fw_free">✅ Free to use, modify, distribute</span><br>
+<span data-lang-key="fw_view">✅ View all source code</span><br>
+<span data-lang-key="fw_pr">✅ Submit Pull Requests</span><br>
+<span data-lang-key="fw_warn">⚠️ If modified AGPLv3 code is offered as a service, changes must be public</span></p>
+<p><a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" data-lang-key="fw_link">Full license text →</a></p></div>
+<div class="card"><h4 data-lang-key="core_title">Core Brain — Proprietary (Source Available)</h4>
+<p data-lang-key="core_desc">Super Brain, Free Energy, Active Inference, Global Workspace, Metacognition, Hybrid Reasoning.</p>
+<table><tr><th data-lang-key="th_mod">Module</th><th data-lang-key="th_algo">Algorithm</th><th data-lang-key="th_reason">Reason</th></tr>
+<tr><td>super_brain.py</td><td data-lang-key="sb">13-region full-brain simulation</td><td data-lang-key="sb_r">Core orchestration</td></tr>
+<tr><td>free_energy.py</td><td data-lang-key="fe">Friston Free Energy Principle</td><td data-lang-key="fe_r">Surprise & belief updating</td></tr>
+<tr><td>active_inference.py</td><td data-lang-key="ai">Active Inference Engine</td><td data-lang-key="ai_r">Explore-exploit balance</td></tr>
+<tr><td>global_workspace.py</td><td data-lang-key="gw">Baars-Dehaene GWT</td><td data-lang-key="gw_r">Multi-agent competition</td></tr>
+<tr><td>metacognition.py</td><td data-lang-key="mc">Metacognitive Monitor</td><td data-lang-key="mc_r">Self-evaluation</td></tr></table>
+<p><span data-lang-key="core_open">✅ Source public — audit & learn</span><br>
+<span data-lang-key="core_nc">✅ Non-commercial free</span><br>
+<span data-lang-key="core_no1">❌ Commercial use requires license</span><br>
+<span data-lang-key="core_no2">❌ Do not strip copyright</span><br>
+<span data-lang-key="core_no3">❌ Do not extract core algorithms</span></p>
+<p><a href="mailto:license@meshctx.com" data-lang-key="core_lic">Commercial license: license@meshctx.com</a></p></div>
+</section>
+
+<section><h2 data-lang-key="s2">2. Disclaimer</h2>
+<p data-lang-key="disc_as_is">MeshCtx is provided "AS IS", without warranty of any kind.</p>
+<ul id="disc_li"></ul>
+<p data-lang-key="disc_risk">Users assume all risks.</p>
+<p data-lang-key="disc_plugins">Third-Party Plugins.</p>
+<p data-lang-key="disc_ai">AI Agent Behavior.</p>
+</section>
+
+<section><h2 data-lang-key="s3">3. Intellectual Property</h2>
+<p data-lang-key="ip_intro">MeshCtx code copyright belongs to the MeshCtx project.</p>
+<ul id="ip_li"></ul>
+</section>
+
+<section><h2 data-lang-key="s4">4. Terms of Service</h2>
+<h4 data-lang-key="tos_web">Website Use</h4>
+<p data-lang-key="tos_acc">Accessing meshctx.com constitutes acceptance of these terms:</p>
+<ol id="tos_ol"></ol>
+<h4 data-lang-key="tos_coc">Community Code of Conduct</h4>
+<ul id="tos_coc_li"></ul>
+</section>
+
+<section><h2 data-lang-key="s5">5. Privacy Policy</h2>
+<h4 data-lang-key="pr_what">What We Collect</h4>
+<ul id="pr_what_li"></ul>
+<h4 data-lang-key="pr_not">What We Don't Collect</h4>
+<ul id="pr_not_li"></ul>
+<h4 data-lang-key="pr_use">Data Use</h4>
+<ul id="pr_use_li"></ul>
+</section>
+
+<section><h2 data-lang-key="s6">6. Contact</h2>
+<div class="contact-grid">
+<div class="contact-item"><strong data-lang-key="ct_comm">Commercial License</strong><br><a href="mailto:license@meshctx.com">license@meshctx.com</a></div>
+<div class="contact-item"><strong data-lang-key="ct_gen">General Inquiries</strong><br><a href="mailto:support@meshctx.com">support@meshctx.com</a></div>
+<div class="contact-item"><strong data-lang-key="ct_legal">Legal Affairs</strong><br><a href="mailto:legal@meshctx.com">legal@meshctx.com</a></div>
+</div>
+</section>
 </div>
 
 <footer>
-  <p data-lang-key="footer">Last updated: May 14, 2026</p>
-  <p data-lang-key="footer_copy">© 2026 MeshCtx. All rights reserved.</p>
+<p data-lang-key="footer">Last updated: May 14, 2026</p>
+<p data-lang-key="footer_copy">© 2026 MeshCtx. All rights reserved.</p>
 </footer>
 
 <script>
-const L = {
+var L = {
   "en": {
-    "meta_title": "MeshCtx Legal — Terms, Privacy & License",
     "nav_home": "← Home",
+    "meta_title": "MeshCtx Legal",
+    "subtitle": "Open-Core License Structure",
+    "s1": "1. Open Source License (AGPLv3)",
+    "s2": "2. Disclaimer",
+    "s3": "3. Intellectual Property",
+    "s4": "4. Terms of Service",
+    "s5": "5. Privacy Policy",
+    "s6": "6. Contact",
+    "dual": "Dual License",
+    "fw_title": "Framework Layer — AGPLv3 Open Source",
+    "fw_desc": "Web UI, API Router, Plugin System, Chat UI, Installer.",
+    "fw_free": "✅ Free to use, modify, distribute",
+    "fw_view": "✅ View all source code",
+    "fw_pr": "✅ Submit Pull Requests",
+    "fw_warn": "⚠️ If modified AGPLv3 code is offered as a service, changes must be public",
+    "fw_link": "Full license text →",
+    "core_title": "Core Brain — Proprietary (Source Available)",
+    "core_desc": "Super Brain, Free Energy, Active Inference, Global Workspace, Metacognition, Hybrid Reasoning.",
+    "th_mod": "Module",
+    "th_algo": "Algorithm",
+    "th_reason": "Reason",
+    "sb": "13-region full-brain simulation",
+    "sb_r": "Core orchestration",
+    "fe": "Friston Free Energy Principle",
+    "fe_r": "Surprise & belief updating",
+    "ai": "Active Inference Engine",
+    "ai_r": "Explore-exploit balance",
+    "gw": "Baars-Dehaene GWT",
+    "gw_r": "Multi-agent competition",
+    "mc": "Metacognitive Monitor",
+    "mc_r": "Self-evaluation",
+    "core_open": "✅ Source public — audit & learn",
+    "core_nc": "✅ Non-commercial free",
+    "core_no1": "❌ Commercial use requires license",
+    "core_no2": "❌ Do not strip copyright",
+    "core_no3": "❌ Do not extract core algorithms",
+    "core_lic": "Commercial license: license@meshctx.com",
+    "disc_as_is": "MeshCtx is provided \"AS IS\", without warranty of any kind, express or implied, including but not limited to:",
+    "disc_li": [
+      "Merchantability",
+      "Fitness for a particular purpose",
+      "Security",
+      "Non-infringement",
+      "Availability"
+    ],
+    "disc_risk": "Users assume all risks. In no event shall project contributors be liable for damages including data loss, system crash, business interruption, third-party claims, agent actions, or third-party plugins.",
+    "disc_plugins": "Third-Party Plugins: MeshCtx supports third-party plugins. These are not audited by the project team. Users should evaluate risks before installation.",
+    "disc_ai": "AI Agent Behavior: MeshCtx is an AI agent framework. Behavior depends on model, config, and user instructions. The project team is not responsible for specific agent outputs or decisions.",
+    "ip_intro": "MeshCtx code copyright belongs to the MeshCtx project, protected by PRC Copyright Law and international treaties.",
+    "ip_li": [
+      "Copyright notices in source must not be removed or modified",
+      "\"MeshCtx\" name and logo are project trademarks — unauthorized commercial use prohibited",
+      "Core brain modules (see §1) are protected by proprietary license",
+      "Commercial license requires written agreement with copyright holder"
+    ],
+    "tos_web": "Website Use",
+    "tos_acc": "Accessing meshctx.com constitutes acceptance of these terms:",
+    "tos_ol": [
+      "Content is reference only — not professional advice",
+      "No availability guarantee — site may be down for maintenance",
+      "Prohibited: reverse engineering, scraping (except search engines), DDoS",
+      "Third-party links — project not responsible"
+    ],
+    "tos_coc": "Community Code of Conduct",
+    "tos_coc_li": [
+      "Respect others — no harassment, discrimination",
+      "No spam, ads, malware",
+      "Violators may be removed from community access"
+    ],
+    "pr_what": "What We Collect",
+    "pr_what_li": [
+      "GitHub public info: username & avatar when submitting Issues/PRs",
+      "Email: when subscribing to mailing list or contacting commercial license",
+      "Server logs: standard logs (IP, User-Agent, timestamp)"
+    ],
+    "pr_not": "What We Don't Collect",
+    "pr_not_li": [
+      "No browsing behavior tracking",
+      "No data sold to third parties",
+      "No tracking cookies (except necessary session cookies)"
+    ],
+    "pr_use": "Data Use",
+    "pr_use_li": [
+      "Improve project and services",
+      "Respond to inquiries",
+      "Comply with legal obligations"
+    ],
+    "ct_comm": "Commercial License",
+    "ct_gen": "General Inquiries",
+    "ct_legal": "Legal Affairs",
     "footer": "Last updated: May 14, 2026",
     "footer_copy": "© 2026 MeshCtx. All rights reserved.",
-    "section1_title": "1. Open Source License (AGPLv3)",
-    "section2_title": "2. Disclaimer",
-    "section3_title": "3. Intellectual Property",
-    "section4_title": "4. Terms of Service",
-    "section5_title": "5. Privacy Policy",
-    "section6_title": "6. Contact",
-    "legal_license_text": "<p>MeshCtx uses a <strong>Dual License</strong> structure:</p><div class=\"card\"><h4>Framework Layer — AGPLv3 Open Source</h4><p>Web UI, API Router, Plugin System, Chat UI, Installer.</p><p>✅ Free to use, modify, distribute<br>✅ View all source code<br>✅ Submit Pull Requests<br>⚠️ If modified AGPLv3 code is offered as a service, changes must be public</p><p><a href=\"https://www.gnu.org/licenses/agpl-3.0.html\" target=\"_blank\">Full license text →</a></p></div><div class=\"card\"><h4>Core Brain — Proprietary (Source Available)</h4><p>Super Brain, Free Energy, Active Inference, Global Workspace, Metacognition, Hybrid Reasoning.</p><table><tr><th>Module</th><th>Algorithm</th><th>Reason</th></tr><tr><td>super_brain.py</td><td>13-region full-brain simulation</td><td>Core orchestration</td></tr><tr><td>free_energy.py</td><td>Friston Free Energy Principle</td><td>Surprise & belief updating</td></tr><tr><td>active_inference.py</td><td>Active Inference Engine</td><td>Explore-exploit balance</td></tr><tr><td>global_workspace.py</td><td>Baars-Dehaene GWT</td><td>Multi-agent competition</td></tr><tr><td>metacognition.py</td><td>Metacognitive Monitor</td><td>Self-evaluation</td></tr></table><p>✅ Source public — audit & learn<br>✅ Non-commercial free<br>❌ Commercial use requires license<br>❌ Do not strip copyright<br>❌ Do not extract core algorithms</p></div><p>Commercial license: <a href=\"mailto:license@meshctx.com\">license@meshctx.com</a></p>",
-    "legal_disclaimer_text": "<p>MeshCtx is provided <strong>\"AS IS\"</strong>, without warranty of any kind, express or implied, including but not limited to:</p><ul><li>Merchantability</li><li>Fitness for a particular purpose</li><li>Security</li><li>Non-infringement</li><li>Availability</li></ul><p>Users assume all risks. In no event shall project contributors be liable for damages including data loss, system crash, business interruption, third-party claims, agent actions, or third-party plugins.</p><p><strong>Third-Party Plugins:</strong> MeshCtx supports third-party plugins. These are not audited by the project team. Users should evaluate risks before installation.</p><p><strong>AI Agent Behavior:</strong> MeshCtx is an AI agent framework. Behavior depends on model, config, and user instructions. The project team is not responsible for specific agent outputs or decisions.</p>",
-    "legal_ip_text": "<p>MeshCtx code copyright belongs to the MeshCtx project, protected by PRC Copyright Law and international treaties.</p><ul><li>Copyright notices in source must not be removed or modified</li><li>\"MeshCtx\" name and logo are project trademarks — unauthorized commercial use prohibited</li><li>Core brain modules (see §1) are protected by proprietary license</li><li>Commercial license requires written agreement with copyright holder</li></ul>",
-    "legal_tos_text": "<h4>Website Use</h4><p>Accessing meshctx.com constitutes acceptance of these terms:</p><ol><li>Content is reference only — not professional advice</li><li>No availability guarantee — site may be down for maintenance</li><li>Prohibited: reverse engineering, scraping (except search engines), DDoS</li><li>Third-party links — project not responsible</li></ol><h4>Community Code of Conduct</h4><ul><li>Respect others — no harassment, discrimination</li><li>No spam, ads, malware</li><li>Violators may be removed from community access</li></ul>",
-    "legal_privacy_text": "<h4>What We Collect</h4><ul><li><strong>GitHub public info:</strong> username & avatar when submitting Issues/PRs</li><li><strong>Email:</strong> when subscribing to mailing list or contacting commercial license</li><li><strong>Server logs:</strong> standard logs (IP, User-Agent, timestamp)</li></ul><h4>What We Don't Collect</h4><ul><li>❌ No browsing behavior tracking</li><li>❌ No data sold to third parties</li><li>❌ No tracking cookies (except necessary session cookies)</li></ul><h4>Data Use</h4><ul><li>Improve project and services</li><li>Respond to inquiries</li><li>Comply with legal obligations</li></ul>",
-    "legal_contact_text": "<div class=\"contact-grid\"><div class=\"contact-item\"><strong>Commercial License</strong><br><a href=\"mailto:license@meshctx.com\">license@meshctx.com</a></div><div class=\"contact-item\"><strong>General Inquiries</strong><br><a href=\"mailto:support@meshctx.com\">support@meshctx.com</a></div><div class=\"contact-item\"><strong>Legal Affairs</strong><br><a href=\"mailto:legal@meshctx.com\">legal@meshctx.com</a></div></div>"
+    "opt_en": "🇺🇸 English",
+    "opt_zh": "🇨🇳 中文",
+    "opt_fr": "🇫🇷 Français",
+    "opt_de": "🇩🇪 Deutsch",
+    "opt_ja": "🇯🇵 日本語",
+    "opt_ko": "🇰🇷 한국어",
+    "opt_es": "🇪🇸 Español"
+  },
+  "zh": {
+    "nav_home": "← 首页",
+    "meta_title": "MeshCtx 法律声明",
+    "subtitle": "开源核心许可架构",
+    "s1": "1. 开源许可 (AGPLv3)",
+    "s2": "2. 免责声明",
+    "s3": "3. 知识产权",
+    "s4": "4. 服务条款",
+    "s5": "5. 隐私政策",
+    "s6": "6. 联系方式",
+    "dual": "双许可架构",
+    "fw_title": "框架层 — AGPLv3 开源",
+    "fw_desc": "Web UI、API路由、插件系统、Chat界面、安装程序。",
+    "fw_free": "✅ 自由使用、修改、分发",
+    "fw_view": "✅ 查看全部源代码",
+    "fw_pr": "✅ 提交Pull Request",
+    "fw_warn": "⚠️ 若修改后的AGPLv3代码作为服务提供，变更必须公开",
+    "fw_link": "完整许可文本 →",
+    "core_title": "核心脑 — 专有（源码可阅）",
+    "core_desc": "超级大脑、自由能、主动推理、全局工作空间、元认知、混合推理。",
+    "th_mod": "模块",
+    "th_algo": "算法",
+    "th_reason": "原因",
+    "sb": "13脑区全脑仿真",
+    "sb_r": "核心编排",
+    "fe": "Friston自由能原理",
+    "fe_r": "意外与信念更新",
+    "ai": "主动推理引擎",
+    "ai_r": "探索-利用平衡",
+    "gw": "Baars-Dehaene全局工作空间",
+    "gw_r": "多Agent竞争",
+    "mc": "元认知监控器",
+    "mc_r": "自我评估",
+    "core_open": "✅ 源码公开 — 审计与学习",
+    "core_nc": "✅ 非商业用途免费",
+    "core_no1": "❌ 商业使用需授权",
+    "core_no2": "❌ 不得删除版权声明",
+    "core_no3": "❌ 不得提取核心算法",
+    "core_lic": "商业授权: license@meshctx.com",
+    "disc_as_is": "MeshCtx 按\"原样\"提供，不提供任何明示或暗示的担保，包括但不限于：",
+    "disc_li": [
+      "适销性",
+      "特定用途适用性",
+      "安全性",
+      "不侵权",
+      "可用性"
+    ],
+    "disc_risk": "用户自行承担所有风险。项目贡献者在任何情况下均不对数据丢失、系统崩溃、业务中断、第三方索赔、Agent行为或第三方插件造成的损害承担责任。",
+    "disc_plugins": "第三方插件：MeshCtx 支持第三方插件，这些插件未经项目团队审计。用户安装前应自行评估风险。",
+    "disc_ai": "AI Agent行为：MeshCtx 是AI Agent框架。行为取决于模型、配置和用户指令。项目团队不对具体Agent输出或决策负责。",
+    "ip_intro": "MeshCtx 代码版权归 MeshCtx 项目所有，受中华人民共和国著作权法及国际条约保护。",
+    "ip_li": [
+      "源代码中的版权声明不得删除或修改",
+      "\"MeshCtx\"名称和标志为项目商标 — 未经授权禁止商业使用",
+      "核心脑模块（见§1）受专有许可保护",
+      "商业授权需与版权持有人签署书面协议"
+    ],
+    "tos_web": "网站使用",
+    "tos_acc": "访问 meshctx.com 即表示接受以下条款：",
+    "tos_ol": [
+      "内容仅供参考 — 非专业建议",
+      "不保证可用性 — 网站可能因维护下线",
+      "禁止：逆向工程、爬虫（搜索引擎除外）、DDoS攻击",
+      "第三方链接 — 项目不负责"
+    ],
+    "tos_coc": "社区行为准则",
+    "tos_coc_li": [
+      "尊重他人 — 不得骚扰、歧视",
+      "禁止垃圾信息、广告、恶意软件",
+      "违规者可能被移除社区访问权限"
+    ],
+    "pr_what": "我们收集什么",
+    "pr_what_li": [
+      "GitHub公开信息：提交Issue/PR时的用户名和头像",
+      "电子邮件：订阅邮件列表或联系商业授权时",
+      "服务器日志：标准日志（IP、User-Agent、时间戳）"
+    ],
+    "pr_not": "我们不收集什么",
+    "pr_not_li": [
+      "不追踪浏览行为",
+      "不向第三方出售数据",
+      "不使用追踪Cookie（必要的会话Cookie除外）"
+    ],
+    "pr_use": "数据用途",
+    "pr_use_li": [
+      "改进项目和服务",
+      "回复咨询",
+      "遵守法律义务"
+    ],
+    "ct_comm": "商业授权",
+    "ct_gen": "一般咨询",
+    "ct_legal": "法律事务",
+    "footer": "最后更新：2026年5月14日",
+    "footer_copy": "© 2026 MeshCtx. 保留所有权利。",
+    "opt_en": "🇺🇸 English",
+    "opt_zh": "🇨🇳 中文",
+    "opt_fr": "🇫🇷 Français",
+    "opt_de": "🇩🇪 Deutsch",
+    "opt_ja": "🇯🇵 日本語",
+    "opt_ko": "🇰🇷 한국어",
+    "opt_es": "🇪🇸 Español"
+  },
+  "fr": {
+    "nav_home": "← Accueil",
+    "meta_title": "MeshCtx — Informations Légales",
+    "subtitle": "Structure de Licence Open-Core",
+    "s1": "1. Open Source License (AGPLv3)",
+    "s2": "2. Disclaimer",
+    "s3": "3. Intellectual Property",
+    "s4": "4. Terms of Service",
+    "s5": "5. Privacy Policy",
+    "s6": "6. Contact",
+    "dual": "Dual License",
+    "fw_title": "Framework Layer — AGPLv3 Open Source",
+    "fw_desc": "Web UI, API Router, Plugin System, Chat UI, Installer.",
+    "fw_free": "✅ Free to use, modify, distribute",
+    "fw_view": "✅ View all source code",
+    "fw_pr": "✅ Submit Pull Requests",
+    "fw_warn": "⚠️ If modified AGPLv3 code is offered as a service, changes must be public",
+    "fw_link": "Full license text →",
+    "core_title": "Core Brain — Proprietary (Source Available)",
+    "core_desc": "Super Brain, Free Energy, Active Inference, Global Workspace, Metacognition, Hybrid Reasoning.",
+    "th_mod": "Module",
+    "th_algo": "Algorithm",
+    "th_reason": "Reason",
+    "sb": "13-region full-brain simulation",
+    "sb_r": "Core orchestration",
+    "fe": "Friston Free Energy Principle",
+    "fe_r": "Surprise & belief updating",
+    "ai": "Active Inference Engine",
+    "ai_r": "Explore-exploit balance",
+    "gw": "Baars-Dehaene GWT",
+    "gw_r": "Multi-agent competition",
+    "mc": "Metacognitive Monitor",
+    "mc_r": "Self-evaluation",
+    "core_open": "✅ Source public — audit & learn",
+    "core_nc": "✅ Non-commercial free",
+    "core_no1": "❌ Commercial use requires license",
+    "core_no2": "❌ Do not strip copyright",
+    "core_no3": "❌ Do not extract core algorithms",
+    "core_lic": "Commercial license: license@meshctx.com",
+    "disc_as_is": "MeshCtx is provided \"AS IS\", without warranty of any kind, express or implied, including but not limited to:",
+    "disc_li": [
+      "Merchantability",
+      "Fitness for a particular purpose",
+      "Security",
+      "Non-infringement",
+      "Availability"
+    ],
+    "disc_risk": "Users assume all risks. In no event shall project contributors be liable for damages including data loss, system crash, business interruption, third-party claims, agent actions, or third-party plugins.",
+    "disc_plugins": "Third-Party Plugins: MeshCtx supports third-party plugins. These are not audited by the project team. Users should evaluate risks before installation.",
+    "disc_ai": "AI Agent Behavior: MeshCtx is an AI agent framework. Behavior depends on model, config, and user instructions. The project team is not responsible for specific agent outputs or decisions.",
+    "ip_intro": "MeshCtx code copyright belongs to the MeshCtx project, protected by PRC Copyright Law and international treaties.",
+    "ip_li": [
+      "Copyright notices in source must not be removed or modified",
+      "\"MeshCtx\" name and logo are project trademarks — unauthorized commercial use prohibited",
+      "Core brain modules (see §1) are protected by proprietary license",
+      "Commercial license requires written agreement with copyright holder"
+    ],
+    "tos_web": "Website Use",
+    "tos_acc": "Accessing meshctx.com constitutes acceptance of these terms:",
+    "tos_ol": [
+      "Content is reference only — not professional advice",
+      "No availability guarantee — site may be down for maintenance",
+      "Prohibited: reverse engineering, scraping (except search engines), DDoS",
+      "Third-party links — project not responsible"
+    ],
+    "tos_coc": "Community Code of Conduct",
+    "tos_coc_li": [
+      "Respect others — no harassment, discrimination",
+      "No spam, ads, malware",
+      "Violators may be removed from community access"
+    ],
+    "pr_what": "What We Collect",
+    "pr_what_li": [
+      "GitHub public info: username & avatar when submitting Issues/PRs",
+      "Email: when subscribing to mailing list or contacting commercial license",
+      "Server logs: standard logs (IP, User-Agent, timestamp)"
+    ],
+    "pr_not": "What We Don't Collect",
+    "pr_not_li": [
+      "No browsing behavior tracking",
+      "No data sold to third parties",
+      "No tracking cookies (except necessary session cookies)"
+    ],
+    "pr_use": "Data Use",
+    "pr_use_li": [
+      "Improve project and services",
+      "Respond to inquiries",
+      "Comply with legal obligations"
+    ],
+    "ct_comm": "Commercial License",
+    "ct_gen": "General Inquiries",
+    "ct_legal": "Legal Affairs",
+    "footer": "Last updated: May 14, 2026",
+    "footer_copy": "© 2026 MeshCtx. All rights reserved.",
+    "opt_en": "🇺🇸 English",
+    "opt_zh": "🇨🇳 中文",
+    "opt_fr": "🇫🇷 Français",
+    "opt_de": "🇩🇪 Deutsch",
+    "opt_ja": "🇯🇵 日本語",
+    "opt_ko": "🇰🇷 한국어",
+    "opt_es": "🇪🇸 Español"
+  },
+  "de": {
+    "nav_home": "← Startseite",
+    "meta_title": "MeshCtx — Rechtliches",
+    "subtitle": "Open-Core Lizenzstruktur",
+    "s1": "1. Open Source License (AGPLv3)",
+    "s2": "2. Disclaimer",
+    "s3": "3. Intellectual Property",
+    "s4": "4. Terms of Service",
+    "s5": "5. Privacy Policy",
+    "s6": "6. Contact",
+    "dual": "Dual License",
+    "fw_title": "Framework Layer — AGPLv3 Open Source",
+    "fw_desc": "Web UI, API Router, Plugin System, Chat UI, Installer.",
+    "fw_free": "✅ Free to use, modify, distribute",
+    "fw_view": "✅ View all source code",
+    "fw_pr": "✅ Submit Pull Requests",
+    "fw_warn": "⚠️ If modified AGPLv3 code is offered as a service, changes must be public",
+    "fw_link": "Full license text →",
+    "core_title": "Core Brain — Proprietary (Source Available)",
+    "core_desc": "Super Brain, Free Energy, Active Inference, Global Workspace, Metacognition, Hybrid Reasoning.",
+    "th_mod": "Module",
+    "th_algo": "Algorithm",
+    "th_reason": "Reason",
+    "sb": "13-region full-brain simulation",
+    "sb_r": "Core orchestration",
+    "fe": "Friston Free Energy Principle",
+    "fe_r": "Surprise & belief updating",
+    "ai": "Active Inference Engine",
+    "ai_r": "Explore-exploit balance",
+    "gw": "Baars-Dehaene GWT",
+    "gw_r": "Multi-agent competition",
+    "mc": "Metacognitive Monitor",
+    "mc_r": "Self-evaluation",
+    "core_open": "✅ Source public — audit & learn",
+    "core_nc": "✅ Non-commercial free",
+    "core_no1": "❌ Commercial use requires license",
+    "core_no2": "❌ Do not strip copyright",
+    "core_no3": "❌ Do not extract core algorithms",
+    "core_lic": "Commercial license: license@meshctx.com",
+    "disc_as_is": "MeshCtx is provided \"AS IS\", without warranty of any kind, express or implied, including but not limited to:",
+    "disc_li": [
+      "Merchantability",
+      "Fitness for a particular purpose",
+      "Security",
+      "Non-infringement",
+      "Availability"
+    ],
+    "disc_risk": "Users assume all risks. In no event shall project contributors be liable for damages including data loss, system crash, business interruption, third-party claims, agent actions, or third-party plugins.",
+    "disc_plugins": "Third-Party Plugins: MeshCtx supports third-party plugins. These are not audited by the project team. Users should evaluate risks before installation.",
+    "disc_ai": "AI Agent Behavior: MeshCtx is an AI agent framework. Behavior depends on model, config, and user instructions. The project team is not responsible for specific agent outputs or decisions.",
+    "ip_intro": "MeshCtx code copyright belongs to the MeshCtx project, protected by PRC Copyright Law and international treaties.",
+    "ip_li": [
+      "Copyright notices in source must not be removed or modified",
+      "\"MeshCtx\" name and logo are project trademarks — unauthorized commercial use prohibited",
+      "Core brain modules (see §1) are protected by proprietary license",
+      "Commercial license requires written agreement with copyright holder"
+    ],
+    "tos_web": "Website Use",
+    "tos_acc": "Accessing meshctx.com constitutes acceptance of these terms:",
+    "tos_ol": [
+      "Content is reference only — not professional advice",
+      "No availability guarantee — site may be down for maintenance",
+      "Prohibited: reverse engineering, scraping (except search engines), DDoS",
+      "Third-party links — project not responsible"
+    ],
+    "tos_coc": "Community Code of Conduct",
+    "tos_coc_li": [
+      "Respect others — no harassment, discrimination",
+      "No spam, ads, malware",
+      "Violators may be removed from community access"
+    ],
+    "pr_what": "What We Collect",
+    "pr_what_li": [
+      "GitHub public info: username & avatar when submitting Issues/PRs",
+      "Email: when subscribing to mailing list or contacting commercial license",
+      "Server logs: standard logs (IP, User-Agent, timestamp)"
+    ],
+    "pr_not": "What We Don't Collect",
+    "pr_not_li": [
+      "No browsing behavior tracking",
+      "No data sold to third parties",
+      "No tracking cookies (except necessary session cookies)"
+    ],
+    "pr_use": "Data Use",
+    "pr_use_li": [
+      "Improve project and services",
+      "Respond to inquiries",
+      "Comply with legal obligations"
+    ],
+    "ct_comm": "Commercial License",
+    "ct_gen": "General Inquiries",
+    "ct_legal": "Legal Affairs",
+    "footer": "Last updated: May 14, 2026",
+    "footer_copy": "© 2026 MeshCtx. All rights reserved.",
+    "opt_en": "🇺🇸 English",
+    "opt_zh": "🇨🇳 中文",
+    "opt_fr": "🇫🇷 Français",
+    "opt_de": "🇩🇪 Deutsch",
+    "opt_ja": "🇯🇵 日本語",
+    "opt_ko": "🇰🇷 한국어",
+    "opt_es": "🇪🇸 Español"
+  },
+  "ja": {
+    "nav_home": "← ホーム",
+    "meta_title": "MeshCtx 法的情報",
+    "subtitle": "オープンコアライセンス構造",
+    "s1": "1. Open Source License (AGPLv3)",
+    "s2": "2. Disclaimer",
+    "s3": "3. Intellectual Property",
+    "s4": "4. Terms of Service",
+    "s5": "5. Privacy Policy",
+    "s6": "6. Contact",
+    "dual": "Dual License",
+    "fw_title": "Framework Layer — AGPLv3 Open Source",
+    "fw_desc": "Web UI, API Router, Plugin System, Chat UI, Installer.",
+    "fw_free": "✅ Free to use, modify, distribute",
+    "fw_view": "✅ View all source code",
+    "fw_pr": "✅ Submit Pull Requests",
+    "fw_warn": "⚠️ If modified AGPLv3 code is offered as a service, changes must be public",
+    "fw_link": "Full license text →",
+    "core_title": "Core Brain — Proprietary (Source Available)",
+    "core_desc": "Super Brain, Free Energy, Active Inference, Global Workspace, Metacognition, Hybrid Reasoning.",
+    "th_mod": "Module",
+    "th_algo": "Algorithm",
+    "th_reason": "Reason",
+    "sb": "13-region full-brain simulation",
+    "sb_r": "Core orchestration",
+    "fe": "Friston Free Energy Principle",
+    "fe_r": "Surprise & belief updating",
+    "ai": "Active Inference Engine",
+    "ai_r": "Explore-exploit balance",
+    "gw": "Baars-Dehaene GWT",
+    "gw_r": "Multi-agent competition",
+    "mc": "Metacognitive Monitor",
+    "mc_r": "Self-evaluation",
+    "core_open": "✅ Source public — audit & learn",
+    "core_nc": "✅ Non-commercial free",
+    "core_no1": "❌ Commercial use requires license",
+    "core_no2": "❌ Do not strip copyright",
+    "core_no3": "❌ Do not extract core algorithms",
+    "core_lic": "Commercial license: license@meshctx.com",
+    "disc_as_is": "MeshCtx is provided \"AS IS\", without warranty of any kind, express or implied, including but not limited to:",
+    "disc_li": [
+      "Merchantability",
+      "Fitness for a particular purpose",
+      "Security",
+      "Non-infringement",
+      "Availability"
+    ],
+    "disc_risk": "Users assume all risks. In no event shall project contributors be liable for damages including data loss, system crash, business interruption, third-party claims, agent actions, or third-party plugins.",
+    "disc_plugins": "Third-Party Plugins: MeshCtx supports third-party plugins. These are not audited by the project team. Users should evaluate risks before installation.",
+    "disc_ai": "AI Agent Behavior: MeshCtx is an AI agent framework. Behavior depends on model, config, and user instructions. The project team is not responsible for specific agent outputs or decisions.",
+    "ip_intro": "MeshCtx code copyright belongs to the MeshCtx project, protected by PRC Copyright Law and international treaties.",
+    "ip_li": [
+      "Copyright notices in source must not be removed or modified",
+      "\"MeshCtx\" name and logo are project trademarks — unauthorized commercial use prohibited",
+      "Core brain modules (see §1) are protected by proprietary license",
+      "Commercial license requires written agreement with copyright holder"
+    ],
+    "tos_web": "Website Use",
+    "tos_acc": "Accessing meshctx.com constitutes acceptance of these terms:",
+    "tos_ol": [
+      "Content is reference only — not professional advice",
+      "No availability guarantee — site may be down for maintenance",
+      "Prohibited: reverse engineering, scraping (except search engines), DDoS",
+      "Third-party links — project not responsible"
+    ],
+    "tos_coc": "Community Code of Conduct",
+    "tos_coc_li": [
+      "Respect others — no harassment, discrimination",
+      "No spam, ads, malware",
+      "Violators may be removed from community access"
+    ],
+    "pr_what": "What We Collect",
+    "pr_what_li": [
+      "GitHub public info: username & avatar when submitting Issues/PRs",
+      "Email: when subscribing to mailing list or contacting commercial license",
+      "Server logs: standard logs (IP, User-Agent, timestamp)"
+    ],
+    "pr_not": "What We Don't Collect",
+    "pr_not_li": [
+      "No browsing behavior tracking",
+      "No data sold to third parties",
+      "No tracking cookies (except necessary session cookies)"
+    ],
+    "pr_use": "Data Use",
+    "pr_use_li": [
+      "Improve project and services",
+      "Respond to inquiries",
+      "Comply with legal obligations"
+    ],
+    "ct_comm": "Commercial License",
+    "ct_gen": "General Inquiries",
+    "ct_legal": "Legal Affairs",
+    "footer": "Last updated: May 14, 2026",
+    "footer_copy": "© 2026 MeshCtx. All rights reserved.",
+    "opt_en": "🇺🇸 English",
+    "opt_zh": "🇨🇳 中文",
+    "opt_fr": "🇫🇷 Français",
+    "opt_de": "🇩🇪 Deutsch",
+    "opt_ja": "🇯🇵 日本語",
+    "opt_ko": "🇰🇷 한국어",
+    "opt_es": "🇪🇸 Español"
+  },
+  "ko": {
+    "nav_home": "← 홈",
+    "meta_title": "MeshCtx 법적 고지",
+    "subtitle": "오픈코어 라이선스 구조",
+    "s1": "1. Open Source License (AGPLv3)",
+    "s2": "2. Disclaimer",
+    "s3": "3. Intellectual Property",
+    "s4": "4. Terms of Service",
+    "s5": "5. Privacy Policy",
+    "s6": "6. Contact",
+    "dual": "Dual License",
+    "fw_title": "Framework Layer — AGPLv3 Open Source",
+    "fw_desc": "Web UI, API Router, Plugin System, Chat UI, Installer.",
+    "fw_free": "✅ Free to use, modify, distribute",
+    "fw_view": "✅ View all source code",
+    "fw_pr": "✅ Submit Pull Requests",
+    "fw_warn": "⚠️ If modified AGPLv3 code is offered as a service, changes must be public",
+    "fw_link": "Full license text →",
+    "core_title": "Core Brain — Proprietary (Source Available)",
+    "core_desc": "Super Brain, Free Energy, Active Inference, Global Workspace, Metacognition, Hybrid Reasoning.",
+    "th_mod": "Module",
+    "th_algo": "Algorithm",
+    "th_reason": "Reason",
+    "sb": "13-region full-brain simulation",
+    "sb_r": "Core orchestration",
+    "fe": "Friston Free Energy Principle",
+    "fe_r": "Surprise & belief updating",
+    "ai": "Active Inference Engine",
+    "ai_r": "Explore-exploit balance",
+    "gw": "Baars-Dehaene GWT",
+    "gw_r": "Multi-agent competition",
+    "mc": "Metacognitive Monitor",
+    "mc_r": "Self-evaluation",
+    "core_open": "✅ Source public — audit & learn",
+    "core_nc": "✅ Non-commercial free",
+    "core_no1": "❌ Commercial use requires license",
+    "core_no2": "❌ Do not strip copyright",
+    "core_no3": "❌ Do not extract core algorithms",
+    "core_lic": "Commercial license: license@meshctx.com",
+    "disc_as_is": "MeshCtx is provided \"AS IS\", without warranty of any kind, express or implied, including but not limited to:",
+    "disc_li": [
+      "Merchantability",
+      "Fitness for a particular purpose",
+      "Security",
+      "Non-infringement",
+      "Availability"
+    ],
+    "disc_risk": "Users assume all risks. In no event shall project contributors be liable for damages including data loss, system crash, business interruption, third-party claims, agent actions, or third-party plugins.",
+    "disc_plugins": "Third-Party Plugins: MeshCtx supports third-party plugins. These are not audited by the project team. Users should evaluate risks before installation.",
+    "disc_ai": "AI Agent Behavior: MeshCtx is an AI agent framework. Behavior depends on model, config, and user instructions. The project team is not responsible for specific agent outputs or decisions.",
+    "ip_intro": "MeshCtx code copyright belongs to the MeshCtx project, protected by PRC Copyright Law and international treaties.",
+    "ip_li": [
+      "Copyright notices in source must not be removed or modified",
+      "\"MeshCtx\" name and logo are project trademarks — unauthorized commercial use prohibited",
+      "Core brain modules (see §1) are protected by proprietary license",
+      "Commercial license requires written agreement with copyright holder"
+    ],
+    "tos_web": "Website Use",
+    "tos_acc": "Accessing meshctx.com constitutes acceptance of these terms:",
+    "tos_ol": [
+      "Content is reference only — not professional advice",
+      "No availability guarantee — site may be down for maintenance",
+      "Prohibited: reverse engineering, scraping (except search engines), DDoS",
+      "Third-party links — project not responsible"
+    ],
+    "tos_coc": "Community Code of Conduct",
+    "tos_coc_li": [
+      "Respect others — no harassment, discrimination",
+      "No spam, ads, malware",
+      "Violators may be removed from community access"
+    ],
+    "pr_what": "What We Collect",
+    "pr_what_li": [
+      "GitHub public info: username & avatar when submitting Issues/PRs",
+      "Email: when subscribing to mailing list or contacting commercial license",
+      "Server logs: standard logs (IP, User-Agent, timestamp)"
+    ],
+    "pr_not": "What We Don't Collect",
+    "pr_not_li": [
+      "No browsing behavior tracking",
+      "No data sold to third parties",
+      "No tracking cookies (except necessary session cookies)"
+    ],
+    "pr_use": "Data Use",
+    "pr_use_li": [
+      "Improve project and services",
+      "Respond to inquiries",
+      "Comply with legal obligations"
+    ],
+    "ct_comm": "Commercial License",
+    "ct_gen": "General Inquiries",
+    "ct_legal": "Legal Affairs",
+    "footer": "Last updated: May 14, 2026",
+    "footer_copy": "© 2026 MeshCtx. All rights reserved.",
+    "opt_en": "🇺🇸 English",
+    "opt_zh": "🇨🇳 中文",
+    "opt_fr": "🇫🇷 Français",
+    "opt_de": "🇩🇪 Deutsch",
+    "opt_ja": "🇯🇵 日本語",
+    "opt_ko": "🇰🇷 한국어",
+    "opt_es": "🇪🇸 Español"
+  },
+  "es": {
+    "nav_home": "← Inicio",
+    "meta_title": "MeshCtx — Información Legal",
+    "subtitle": "Estructura de Licencia Open-Core",
+    "s1": "1. Open Source License (AGPLv3)",
+    "s2": "2. Disclaimer",
+    "s3": "3. Intellectual Property",
+    "s4": "4. Terms of Service",
+    "s5": "5. Privacy Policy",
+    "s6": "6. Contact",
+    "dual": "Dual License",
+    "fw_title": "Framework Layer — AGPLv3 Open Source",
+    "fw_desc": "Web UI, API Router, Plugin System, Chat UI, Installer.",
+    "fw_free": "✅ Free to use, modify, distribute",
+    "fw_view": "✅ View all source code",
+    "fw_pr": "✅ Submit Pull Requests",
+    "fw_warn": "⚠️ If modified AGPLv3 code is offered as a service, changes must be public",
+    "fw_link": "Full license text →",
+    "core_title": "Core Brain — Proprietary (Source Available)",
+    "core_desc": "Super Brain, Free Energy, Active Inference, Global Workspace, Metacognition, Hybrid Reasoning.",
+    "th_mod": "Module",
+    "th_algo": "Algorithm",
+    "th_reason": "Reason",
+    "sb": "13-region full-brain simulation",
+    "sb_r": "Core orchestration",
+    "fe": "Friston Free Energy Principle",
+    "fe_r": "Surprise & belief updating",
+    "ai": "Active Inference Engine",
+    "ai_r": "Explore-exploit balance",
+    "gw": "Baars-Dehaene GWT",
+    "gw_r": "Multi-agent competition",
+    "mc": "Metacognitive Monitor",
+    "mc_r": "Self-evaluation",
+    "core_open": "✅ Source public — audit & learn",
+    "core_nc": "✅ Non-commercial free",
+    "core_no1": "❌ Commercial use requires license",
+    "core_no2": "❌ Do not strip copyright",
+    "core_no3": "❌ Do not extract core algorithms",
+    "core_lic": "Commercial license: license@meshctx.com",
+    "disc_as_is": "MeshCtx is provided \"AS IS\", without warranty of any kind, express or implied, including but not limited to:",
+    "disc_li": [
+      "Merchantability",
+      "Fitness for a particular purpose",
+      "Security",
+      "Non-infringement",
+      "Availability"
+    ],
+    "disc_risk": "Users assume all risks. In no event shall project contributors be liable for damages including data loss, system crash, business interruption, third-party claims, agent actions, or third-party plugins.",
+    "disc_plugins": "Third-Party Plugins: MeshCtx supports third-party plugins. These are not audited by the project team. Users should evaluate risks before installation.",
+    "disc_ai": "AI Agent Behavior: MeshCtx is an AI agent framework. Behavior depends on model, config, and user instructions. The project team is not responsible for specific agent outputs or decisions.",
+    "ip_intro": "MeshCtx code copyright belongs to the MeshCtx project, protected by PRC Copyright Law and international treaties.",
+    "ip_li": [
+      "Copyright notices in source must not be removed or modified",
+      "\"MeshCtx\" name and logo are project trademarks — unauthorized commercial use prohibited",
+      "Core brain modules (see §1) are protected by proprietary license",
+      "Commercial license requires written agreement with copyright holder"
+    ],
+    "tos_web": "Website Use",
+    "tos_acc": "Accessing meshctx.com constitutes acceptance of these terms:",
+    "tos_ol": [
+      "Content is reference only — not professional advice",
+      "No availability guarantee — site may be down for maintenance",
+      "Prohibited: reverse engineering, scraping (except search engines), DDoS",
+      "Third-party links — project not responsible"
+    ],
+    "tos_coc": "Community Code of Conduct",
+    "tos_coc_li": [
+      "Respect others — no harassment, discrimination",
+      "No spam, ads, malware",
+      "Violators may be removed from community access"
+    ],
+    "pr_what": "What We Collect",
+    "pr_what_li": [
+      "GitHub public info: username & avatar when submitting Issues/PRs",
+      "Email: when subscribing to mailing list or contacting commercial license",
+      "Server logs: standard logs (IP, User-Agent, timestamp)"
+    ],
+    "pr_not": "What We Don't Collect",
+    "pr_not_li": [
+      "No browsing behavior tracking",
+      "No data sold to third parties",
+      "No tracking cookies (except necessary session cookies)"
+    ],
+    "pr_use": "Data Use",
+    "pr_use_li": [
+      "Improve project and services",
+      "Respond to inquiries",
+      "Comply with legal obligations"
+    ],
+    "ct_comm": "Commercial License",
+    "ct_gen": "General Inquiries",
+    "ct_legal": "Legal Affairs",
+    "footer": "Last updated: May 14, 2026",
+    "footer_copy": "© 2026 MeshCtx. All rights reserved.",
+    "opt_en": "🇺🇸 English",
+    "opt_zh": "🇨🇳 中文",
+    "opt_fr": "🇫🇷 Français",
+    "opt_de": "🇩🇪 Deutsch",
+    "opt_ja": "🇯🇵 日本語",
+    "opt_ko": "🇰🇷 한국어",
+    "opt_es": "🇪🇸 Español"
   }
 };
 
-const HTML_KEYS = new Set(['legal_license_text','legal_disclaimer_text','legal_ip_text','legal_tos_text','legal_privacy_text','legal_contact_text']);
+var LIST_KEYS = {"disc_li": true, "ip_li": true, "tos_ol": true, "tos_coc_li": true, "pr_what_li": true, "pr_not_li": true, "pr_use_li": true};
 
-function switchLang(lang) {
-  if (!L[lang]) return;
-  document.querySelectorAll('[data-lang-key]').forEach(el => {
-    const key = el.getAttribute('data-lang-key');
-    if (L[lang][key]) {
-      if (HTML_KEYS.has(key)) el.innerHTML = L[lang][key];
-      else el.textContent = L[lang][key];
+function renderLists(lang) {
+    for (var id in LIST_KEYS) {
+        var el = document.getElementById(id);
+        if (!el) continue;
+        var items = L[lang] && L[lang][id];
+        if (items && items.length) {
+            el.innerHTML = items.map(function(x){ return '<li>'+x+'</li>'; }).join('');
+        }
     }
-  });
-  document.title = L[lang].meta_title || 'MeshCtx Legal';
-  document.documentElement.lang = lang;
-  localStorage.setItem('meshctx-lang', lang);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('meshctx-lang') || 'en';
-  document.querySelector('.lang-select').value = saved;
-  switchLang(saved);
+function switchLang(lang) {
+    if (!L[lang]) return;
+    document.querySelectorAll('[data-lang-key]').forEach(function(el) {
+        var k = el.getAttribute('data-lang-key');
+        if (!k || LIST_KEYS[k]) return;
+        if (L[lang][k]) el.textContent = L[lang][k];
+    });
+    document.title = L[lang].meta_title || 'MeshCtx Legal';
+    document.documentElement.lang = lang;
+    localStorage.setItem('meshctx-lang', lang);
+    renderLists(lang);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var saved = localStorage.getItem('meshctx-lang') || 'en';
+    var sel = document.querySelector('.lang-select');
+    if (sel) sel.value = saved;
+    switchLang(saved);
 });
 </script>
 </body>
