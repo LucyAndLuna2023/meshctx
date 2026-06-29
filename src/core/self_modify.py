@@ -53,6 +53,7 @@ class ModificationStatus(Enum):
     """修改状态"""
     PROPOSED = "proposed"        # 已提案，待审批
     APPROVED = "approved"        # 已审批，待应用
+    AUTO_APPROVED = "auto_approved"  # 自动审批通过
     APPLIED = "applied"          # 已应用
     VERIFIED = "verified"        # 已验证通过
     FAILED = "failed"            # 应用失败
@@ -309,6 +310,7 @@ class SelfModifyEngine:
                  approval_callback: Callable = None,
                  allowed_dirs: List[str] = None,
                  auto_apply: bool = False,
+                 auto_approve: bool = False,
                  safety_level: str = "high"):
         """
         Args:
@@ -316,6 +318,7 @@ class SelfModifyEngine:
             db_path: 修改历史数据库路径
             approval_callback: 人类审批回调 async fn(proposal) → bool
             allowed_dirs: 允许修改的目录白名单 (相对于 workspace_root)
+            auto_approve: 自动审批 LOW/MEDIUM 风险修改 (HIGH/CRITICAL 仍需审批)
         """
         if workspace_root is None:
             workspace_root = os.path.expanduser("~/meshctx-local")
@@ -327,6 +330,9 @@ class SelfModifyEngine:
 
         self.approval_callback = approval_callback
         self.allowed_dirs = allowed_dirs or self.DEFAULT_ALLOWED_DIRS
+        self.auto_apply = auto_apply
+        self.auto_approve = auto_approve
+        self.safety_level = safety_level
 
         # 备份目录
         self._backup_dir = self.workspace_root / ".meshctx_backups"
@@ -554,6 +560,15 @@ class SelfModifyEngine:
                 self._stats["total_syntax_errors"] += 1
                 logger.warning(f"Syntax validation failed for {file_path}: {errors}")
 
+        # auto_approve 模式: LOW/MEDIUM 风险自动审批
+        if (self.auto_approve
+                and proposal.status == ModificationStatus.PROPOSED
+                and risk in (RiskLevel.LOW, RiskLevel.MEDIUM)):
+            proposal.status = ModificationStatus.AUTO_APPROVED
+            proposal.approved_by = "auto_approve"
+            proposal.approved_at = time.time()
+            logger.info(f"Auto-approved: {proposal.summary()}")
+
         # 持久化
         self._save_proposal(proposal)
         self._proposals[proposal.proposal_id] = proposal
@@ -601,7 +616,9 @@ class SelfModifyEngine:
     # ── 审批 ─────────────────────────────────────────────
 
     def needs_approval(self, proposal: ModificationProposal, **kw) -> bool:
-        """判断是否需要人类审批"""
+        """判断是否需要人类审批。auto_approve 模式下 LOW/MEDIUM 不需要审批"""
+        if self.auto_approve and proposal.risk_level in (RiskLevel.LOW, RiskLevel.MEDIUM):
+            return False
         return proposal.risk_level in (
             RiskLevel.HIGH,
             RiskLevel.CRITICAL,
@@ -611,6 +628,9 @@ class SelfModifyEngine:
     async def request_approval(self, proposal_id: str) -> bool:
         """
         请求人类审批
+
+        当 auto_approve=True 且风险为 LOW/MEDIUM 时自动批准。
+        HIGH/CRITICAL 仍需人类审批。
 
         Returns:
             是否获得批准
@@ -622,8 +642,13 @@ class SelfModifyEngine:
         proposal = self._proposals[proposal_id]
 
         if not self.needs_approval(proposal):
-            proposal.status = ModificationStatus.APPROVED
-            proposal.approved_by = "auto"
+            # auto_approve 模式: LOW/MEDIUM 自动批准
+            if self.auto_approve:
+                proposal.status = ModificationStatus.AUTO_APPROVED
+                proposal.approved_by = "auto_approve"
+            else:
+                proposal.status = ModificationStatus.APPROVED
+                proposal.approved_by = "auto"
             proposal.approved_at = time.time()
             self._save_proposal(proposal)
             return True
@@ -999,6 +1024,16 @@ class SelfModifyEngine:
         self._metacognition = metacognition
         logger.info("SelfModifyEngine connected to MetaCognition")
 
+    def set_auto_approve(self, enabled: bool, **kw):
+        """
+        设置自动审批模式
+
+        Args:
+            enabled: True 开启自动审批 (LOW/MEDIUM 风险自动通过)
+        """
+        self.auto_approve = enabled
+        logger.info(f"SelfModifyEngine auto_approve {'enabled' if enabled else 'disabled'}")
+
     def should_self_modify(self, task_description: str,
                            error_context: str = "") -> Tuple[bool, str, float]:
         """
@@ -1053,6 +1088,7 @@ class SelfModifyEngine:
             "total_rejected": self._stats["total_rejected"],
             "total_syntax_errors": self._stats["total_syntax_errors"],
             "pending_approvals": len(self.list_pending_approvals()),
+            "auto_approve": self.auto_approve,
             "backup_dir": str(self._backup_dir),
             "backup_count": len(list(self._backup_dir.iterdir()))
             if self._backup_dir.exists() else 0,

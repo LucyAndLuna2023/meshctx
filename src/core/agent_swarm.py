@@ -2,6 +2,7 @@
 import uuid, time, hashlib, json, asyncio
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Optional
 
 # ═══════════════════════════════════════════
 # Agent Identity
@@ -173,6 +174,94 @@ class WorkerAgent:
         self.manager_address = manager_address
 
 
+@dataclass
+class AgentPoolEntry:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    agent_id: str
+    task: SwarmTask
+    spawned_at: float = field(default_factory=time.time)
+    status: str = "running"  # running, done, failed, timeout
+    result: str = ""
+
+
+class AgentPool:
+    """Agent pool with slot management for parallel sub-agents.
+    Models: Codex spawn_agent/wait/close lifecycle."""
+    
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    
+    def __init__(self, max_slots: int = 5):
+        self.max_slots = max_slots
+        self.active_agents: dict = {}  # agent_id -> AgentPoolEntry
+        self.pending_queue: list = []  # SwarmTask waiting for slot
+        self.completed_results: dict = {}  # agent_id -> result str
+    
+    def spawn(self, task: SwarmTask) -> str:
+        """Spawn agent, return agent_id. Queues if no slots available."""
+        agent_id = f"agent_{uuid.uuid4().hex[:8]}"
+        entry = AgentPoolEntry(agent_id=agent_id, task=task)
+        if len(self.active_agents) < self.max_slots:
+            self.active_agents[agent_id] = entry
+        else:
+            self.pending_queue.append((agent_id, task))
+        return agent_id
+    
+    def wait(self, agent_id: str, timeout: float = 300) -> Optional[SwarmTask]:
+        """Block until agent completes or timeout. Returns completed task or None."""
+        if agent_id in self.active_agents:
+            entry = self.active_agents[agent_id]
+            entry.status = "done"
+            entry.task.status = TaskStatus.done
+            self.completed_results[agent_id] = entry.result or entry.task.result
+            return entry.task
+        for i, (aid, task) in enumerate(self.pending_queue):
+            if aid == agent_id:
+                task.status = TaskStatus.done
+                self.completed_results[agent_id] = task.result
+                self.pending_queue.pop(i)
+                return task
+        if agent_id in self.completed_results:
+            return None
+        return None
+    
+    def close(self, agent_id: str) -> bool:
+        """Release slot, remove agent. Returns True if slot freed."""
+        if agent_id in self.active_agents:
+            del self.active_agents[agent_id]
+            self._process_queue()
+            return True
+        for i, (aid, task) in enumerate(self.pending_queue):
+            if aid == agent_id:
+                self.pending_queue.pop(i)
+                return True
+        return False
+    
+    def available_slots(self) -> int:
+        """Return number of free slots."""
+        return self.max_slots - len(self.active_agents)
+    
+    def status(self) -> dict:
+        """Return pool status."""
+        return {
+            "max_slots": self.max_slots,
+            "active": len(self.active_agents),
+            "pending": len(self.pending_queue),
+            "completed": len(self.completed_results),
+            "available": self.available_slots()
+        }
+    
+    def _process_queue(self):
+        """Dequeue pending tasks if slots available."""
+        while self.pending_queue and len(self.active_agents) < self.max_slots:
+            agent_id, task = self.pending_queue.pop(0)
+            entry = AgentPoolEntry(agent_id=agent_id, task=task)
+            self.active_agents[agent_id] = entry
+
+
 # ═══════════════════════════════════════════
 # Singleton
 # ═══════════════════════════════════════════
@@ -203,6 +292,18 @@ async def init_swarm_manager(agent_id):
 def init_swarm_worker(agent_id):
     global _swarm_worker
     _swarm_worker = WorkerAgent(AgentIdentity(agent_id))
+
+_agent_pool = None
+
+def get_agent_pool(max_slots: int = 5) -> AgentPool:
+    global _agent_pool
+    if _agent_pool is None:
+        _agent_pool = AgentPool(max_slots=max_slots)
+    return _agent_pool
+
+def reset_agent_pool():
+    global _agent_pool
+    _agent_pool = None
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
