@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Download MeshCtx v2.18.0</title>
+<title>Download MeshCtx</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#0b0e1a 0%,#1a1f35 100%);color:#e0e4f0;min-height:100vh;display:flex;align-items:center;justify-content:center}
@@ -28,45 +28,59 @@ th{padding:8px 12px;color:#8090b0;text-align:left;border-bottom:1px solid rgba(2
 td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04)}
 td:last-child{color:#00cec9;font-weight:600}
 .sha{margin-top:24px;font-size:0.75em;color:#5a6a8a;word-break:break-all}
+.lang-select{background:var(--bg2,#1a1f35);color:var(--fg,#e0e4f0);border:1px solid var(--border,rgba(255,255,255,0.12));padding:5px 10px;border-radius:6px;cursor:pointer;font-size:0.85rem}
+.lang-select:hover{border-color:#6c5ce7}.lang-select option{background:var(--bg2,#1a1f35);color:var(--fg,#e0e4f0)}
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="version-badge">✨ v2.18.0.0 — Latest Release</div>
-  <h1>Download MeshCtx</h1>
-  <p class="subtitle">World's First Self-Evolving Agent System for Windows</p>
+  <div class="top-bar">
+    <div class="version-badge" data-lang-key="version_badge">✨ Latest Release</div>
+    <select class="lang-select" onchange="switchLang(this.value)">
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+      <option value="fr">Français</option>
+      <option value="de">Deutsch</option>
+      <option value="ja">日本語</option>
+      <option value="ko">한국어</option>
+      <option value="es">Español</option>
+    </select>
+  </div>
+  <h1 data-lang-key="meta_title">Download MeshCtx</h1>
+  <p class="subtitle" data-lang-key="dl_subtitle">World's First Self-Evolving Agent System</p>
 
   <div class="cards">
     <div class="card">
-      <h2>📦 Installer</h2>
-      <p>NSIS installer with 7 languages, start menu shortcuts, add/remove programs support</p>
-      <div class="size">~212 MB</div>
-      <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary">Download Setup</a>
+      <h2 data-lang-key="installer_title">📦 Installer</h2>
+      <p data-lang-key="installer_desc">NSIS installer with 7 languages</p>
+      <div class="size" data-lang-key="installer_size">~212 MB</div>
+      <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" data-lang-key="installer_btn">Download Setup</a>
     </div>
     <div class="card">
-      <h2>📂 Portable</h2>
-      <p>Self-contained ZIP — no installation required, just extract and run</p>
-      <div class="size">~210 MB</div>
-      <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-secondary">Download ZIP</a>
+      <h2 data-lang-key="portable_title">📂 Portable</h2>
+      <p data-lang-key="portable_desc">Self-contained ZIP — extract and run</p>
+      <div class="size" data-lang-key="portable_size">~210 MB</div>
+      <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-secondary" data-lang-key="portable_btn">Download ZIP</a>
     </div>
     <div class="card">
-      <h2>⚙️ Standalone EXE</h2>
-      <p>Single executable file with embedded runtime. Configure API keys on first launch</p>
-      <div class="size">~215 MB</div>
-      <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx.exe" class="btn btn-secondary">Download EXE</a>
+      <h2 data-lang-key="exe_title">⚙️ Standalone EXE</h2>
+      <p data-lang-key="exe_desc">Single executable, embedded runtime</p>
+      <div class="size" data-lang-key="exe_size">~215 MB</div>
+      <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx.exe" class="btn btn-secondary" data-lang-key="exe_btn">Download EXE</a>
     </div>
     <div class="card">
-      <h2>🍎 macOS DMG</h2>
-      <p>Native macOS application bundle with embedded runtime</p>
-      <div class="size">~211 MB</div>
-      <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-desktop.dmg" class="btn btn-secondary">Download DMG</a>
+      <h2 data-lang-key="dmg_title">🍎 macOS DMG</h2>
+      <p data-lang-key="dmg_desc">Native macOS application bundle</p>
+      <div class="size" data-lang-key="dmg_size">~211 MB</div>
+      <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-desktop.dmg" class="btn btn-secondary" data-lang-key="dmg_btn">Download DMG</a>
     </div>
   </div>
 
   <div class="benchmarks">
-    <h3>📊 v2.17 Smart Upgrade — Benchmark Results</h3>
+    <h3 data-lang-key="bench_title">📊 Benchmark Results</h3>
     <table>
-      <tr><th>Scenario</th><th>Metric</th><th>v2.16</th><th>v2.17</th><th>Improvement</th></tr>
+      <tr><th data-lang-key="bench_scenario">Scenario</th><th data-lang-key="bench_metric">Metric</th><th>v2.16</th><th>v2.17</th><th data-lang-key="bench_improvement">Improvement</th></tr>
       <tr><td>Decision Quality</td><td>FreeEnergy F</td><td>15.2%</td><td>18.8%</td><td>+24%</td></tr>
       <tr><td>Resource Survival</td><td>100 tasks</td><td>100%</td><td>100%</td><td>—</td></tr>
       <tr><td>Convergence</td><td>Avg Reward</td><td>462</td><td>518</td><td>+12%</td></tr>
@@ -80,6 +94,128 @@ td:last-child{color:#00cec9;font-weight:600}
   </div>
 </div>
 <script>
+const L = {
+    en: {
+        meta_title: "Download MeshCtx",
+        version_badge: "✨ Latest Release",
+        dl_subtitle: "World's First Self-Evolving Agent System",
+        installer_title: "📦 Installer",
+        installer_desc: "NSIS installer with 7 languages",
+        installer_size: "~212 MB",
+        installer_btn: "Download Setup",
+        portable_title: "📂 Portable",
+        portable_desc: "Self-contained ZIP — extract and run",
+        portable_size: "~210 MB",
+        portable_btn: "Download ZIP",
+        exe_title: "⚙️ Standalone EXE",
+        exe_desc: "Single executable, embedded runtime",
+        exe_size: "~215 MB",
+        exe_btn: "Download EXE",
+        dmg_title: "🍎 macOS DMG",
+        dmg_desc: "Native macOS application bundle",
+        dmg_size: "~211 MB",
+        dmg_btn: "Download DMG",
+        bench_title: "📊 Benchmark Results",
+        bench_scenario: "Scenario",
+        bench_metric: "Metric",
+        bench_improvement: "Improvement",
+    },
+    zh: {
+        meta_title: "下载 MeshCtx",
+        version_badge: "✨ 最新版本",
+        dl_subtitle: "全球首个自进化Agent系统",
+        installer_title: "📦 安装程序",
+        installer_desc: "NSIS安装程序 支持7种语言",
+        installer_size: "~212 MB",
+        installer_btn: "下载安装程序",
+        portable_title: "📂 便携版",
+        portable_desc: "自包含ZIP — 解压即用",
+        portable_size: "~210 MB",
+        portable_btn: "下载 ZIP",
+        exe_title: "⚙️ 独立EXE",
+        exe_desc: "单文件可执行 内嵌运行环境",
+        exe_size: "~215 MB",
+        exe_btn: "下载 EXE",
+        dmg_title: "🍎 macOS DMG",
+        dmg_desc: "原生macOS应用包",
+        dmg_size: "~211 MB",
+        dmg_btn: "下载 DMG",
+        bench_title: "📊 基准测试",
+        bench_scenario: "场景",
+        bench_metric: "指标",
+        bench_improvement: "提升",
+    },
+    fr: {
+        meta_title: "Télécharger MeshCtx",
+        version_badge: "✨ Dernière Version",
+        dl_subtitle: "Premier système d'agent auto-évolutif",
+        installer_title: "📦 Installateur",
+        installer_desc: "Installateur NSIS avec 7 langues",
+        installer_size: "~212 MB",
+        installer_btn: "Télécharger",
+        portable_title: "📂 Portable",
+        portable_desc: "ZIP autonome — extraire et lancer",
+        portable_size: "~210 MB",
+        portable_btn: "Télécharger ZIP",
+        exe_title: "⚙️ EXE Autonome",
+        exe_desc: "Exécutable unique, runtime intégré",
+        exe_size: "~215 MB",
+        exe_btn: "Télécharger EXE",
+        dmg_title: "🍎 macOS DMG",
+        dmg_desc: "Bundle macOS natif",
+        dmg_size: "~211 MB",
+        dmg_btn: "Télécharger DMG",
+        bench_title: "📊 Résultats Benchmark",
+        bench_scenario: "Scénario",
+        bench_metric: "Métrique",
+        bench_improvement: "Amélioration",
+    },
+    de: {
+        meta_title: "MeshCtx herunterladen",
+        version_badge: "✨ Neueste Version",
+        dl_subtitle: "Weltweit erstes selbstentwickelndes Agent-System",
+        installer_title: "📦 Installationsprogramm",
+        installer_desc: "NSIS-Installationsprogramm mit 7 Sprachen",
+        installer_size: "~212 MB",
+        installer_btn: "Herunterladen",
+        portable_title: "📂 Portable",
+        portable_desc: "Eigenständiges ZIP — entpacken und starten",
+        portable_size: "~210 MB",
+        portable_btn: "ZIP herunterladen",
+        exe_title: "⚙️ Eigenständige EXE",
+        exe_desc: "Einzelne EXE, eingebettete Laufzeit",
+        exe_size: "~215 MB",
+        exe_btn: "EXE herunterladen",
+        dmg_title: "🍎 macOS DMG",
+        dmg_desc: "Natives macOS-Anwendungspaket",
+        dmg_size: "~211 MB",
+        dmg_btn: "DMG herunterladen",
+        bench_title: "📊 Benchmark-Ergebnisse",
+        bench_scenario: "Szenario",
+        bench_metric: "Metrik",
+        bench_improvement: "Verbesserung",
+    },
+    ja: { meta_title:"MeshCtx ダウンロード", version_badge:"✨ 最新リリース", dl_subtitle:"世界初の自己進化型Agentシステム", installer_title:"📦 インストーラー", installer_desc:"7言語対応NSISインストーラー", installer_size:"~212 MB", installer_btn:"ダウンロード", portable_title:"📂 ポータブル", portable_desc:"自己完結型ZIP — 解凍して実行", portable_size:"~210 MB", portable_btn:"ZIPダウンロード", exe_title:"⚙️ スタンドアロンEXE", exe_desc:"単一実行ファイル ランタイム内蔵", exe_size:"~215 MB", exe_btn:"EXEダウンロード", dmg_title:"🍎 macOS DMG", dmg_desc:"ネイティブmacOSアプリ", dmg_size:"~211 MB", dmg_btn:"DMGダウンロード", bench_title:"📊 ベンチマーク結果", bench_scenario:"シナリオ", bench_metric:"指標", bench_improvement:"改善" },
+    ko: { meta_title:"MeshCtx 다운로드", version_badge:"✨ 최신 릴리스", dl_subtitle:"세계 최초의 자가 진화 Agent 시스템", installer_title:"📦 설치 프로그램", installer_desc:"7개 언어 NSIS 설치 프로그램", installer_size:"~212 MB", installer_btn:"다운로드", portable_title:"📂 휴대용", portable_desc:"자체 포함 ZIP — 압축 해제 후 실행", portable_size:"~210 MB", portable_btn:"ZIP 다운로드", exe_title:"⚙️ 독립형 EXE", exe_desc:"단일 실행 파일 런타임 내장", exe_size:"~215 MB", exe_btn:"EXE 다운로드", dmg_title:"🍎 macOS DMG", dmg_desc:"네이티브 macOS 앱", dmg_size:"~211 MB", dmg_btn:"DMG 다운로드", bench_title:"📊 벤치마크 결과", bench_scenario:"시나리오", bench_metric:"지표", bench_improvement:"개선" },
+    es: { meta_title:"Descargar MeshCtx", version_badge:"✨ Última Versión", dl_subtitle:"Primer sistema de agente auto-evolutivo del mundo", installer_title:"📦 Instalador", installer_desc:"Instalador NSIS con 7 idiomas", installer_size:"~212 MB", installer_btn:"Descargar", portable_title:"📂 Portátil", portable_desc:"ZIP autocontenido — extraer y ejecutar", portable_size:"~210 MB", portable_btn:"Descargar ZIP", exe_title:"⚙️ EXE Independiente", exe_desc:"Ejecutable único, runtime integrado", exe_size:"~215 MB", exe_btn:"Descargar EXE", dmg_title:"🍎 macOS DMG", dmg_desc:"Paquete macOS nativo", dmg_size:"~211 MB", dmg_btn:"Descargar DMG", bench_title:"📊 Resultados Benchmark", bench_scenario:"Escenario", bench_metric:"Métrica", bench_improvement:"Mejora" }
+};
+
+function switchLang(lang) {
+    document.querySelectorAll('[data-lang-key]').forEach(el => {
+        const key = el.dataset.langKey;
+        if (L[lang] && L[lang][key]) el.textContent = L[lang][key];
+    });
+    document.title = L[lang] && L[lang].meta_title ? L[lang].meta_title : 'Download MeshCtx';
+    document.documentElement.lang = lang;
+    localStorage.setItem('meshctx-lang', lang);
+    document.querySelector('.lang-select').value = lang;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var saved = localStorage.getItem('meshctx-lang') || 'en';
+    switchLang(saved);
+});
+
 fetch('/static/dl/v2.17/sha256.txt').then(r=>r.text()).then(t=>{document.getElementById('sha').textContent=t.split(' ')[0]}).catch(()=>{})
 </script>
 </body>

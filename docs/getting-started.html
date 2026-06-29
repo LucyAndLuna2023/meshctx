@@ -3,50 +3,64 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MeshCtx Docs — 入门指南</title>
+<title data-lang-key="meta_title">MeshCtx 文档 — 入门指南</title>
 <style>
-:root{--bg:#0a0a14;--bg2:#111122;--fg:#e2e8f0;--muted:#94a3b8;--purple:#8b5cf6;--cyan:#06b6d4;--green:#22c55e;--border:#1e293b;}
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;line-height:1.7;}
-nav{position:fixed;top:0;width:100%;background:rgba(10,10,20,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);z-index:100;padding:12px 24px;}
-.nav-inner{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;}
-.logo{font-size:1.3rem;font-weight:700}.logo span{color:var(--purple)}
-.container{max-width:1100px;margin:80px auto 0;padding:40px 24px;}
-h1{font-size:2.5rem;margin-bottom:8px;background:linear-gradient(135deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-h2{font-size:1.6rem;margin:32px 0 12px;color:var(--cyan);}
-h3{font-size:1.1rem;margin:16px 0 8px;}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin:16px 0;}
-code{background:#1e293b;color:var(--green);padding:2px 6px;border-radius:4px;font-size:0.9em;}
-pre{background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-size:13px;line-height:1.5;}
-pre code{background:none;padding:0;color:#e2e8f0;}
-a{color:var(--cyan);}
-.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;}
-.tag{display:inline-block;background:var(--purple);color:#fff;font-size:10px;padding:2px 8px;border-radius:4px;margin-right:4px;}
+:root{{--bg:#0a0a14;--bg2:#111122;--fg:#e2e8f0;--muted:#94a3b8;--purple:#8b5cf6;--cyan:#06b6d4;--green:#22c55e;--border:#1e293b;}}
+*{{margin:0;padding:0;box-sizing:border-box;}}
+body{{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;line-height:1.7;}}
+.top-bar{{position:fixed;top:0;width:100%;background:rgba(10,10,20,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);z-index:100;padding:12px 24px;}}
+.top-bar .nav-inner{{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;}}
+.lang-select{{background:var(--bg2);color:var(--fg);border:1px solid var(--purple);padding:6px 14px;border-radius:6px;font-size:0.85rem;font-weight:500;cursor:pointer;outline:none;}}
+.lang-select:hover{{background:var(--purple);color:#fff;}}
+.lang-select:focus{{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(6,182,212,0.3);}}
+.lang-select option{{background:var(--bg2);color:var(--fg);}}
+.logo{{font-size:1.3rem;font-weight:700}}.logo span{{color:var(--purple)}}
+.container{{max-width:1100px;margin:80px auto 0;padding:40px 24px;}}
+h1{{font-size:2.5rem;margin-bottom:8px;background:linear-gradient(135deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}}
+h2{{font-size:1.6rem;margin:32px 0 12px;color:var(--cyan);}}
+h3{{font-size:1.1rem;margin:16px 0 8px;}}
+.card{{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin:16px 0;}}
+code{{background:#1e293b;color:var(--green);padding:2px 6px;border-radius:4px;font-size:0.9em;}}
+pre{{background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;font-size:13px;line-height:1.5;}}
+pre code{{background:none;padding:0;color:#e2e8f0;}}
+a{{color:var(--cyan);}}
+.grid2{{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;}}
+.tag{{display:inline-block;background:var(--purple);color:#fff;font-size:10px;padding:2px 8px;border-radius:4px;margin-right:4px;}}
 </style>
 </head>
 <body>
-<nav><div class="nav-inner"><a href="/" class="logo">Mesh<span>Ctx</span> Docs</a></div></nav>
+<div class="top-bar"><div class="nav-inner">
+  <a href="/" class="logo">Mesh<span>Ctx</span> Docs</a>
+  <select class="lang-select" onchange="switchLang(this.value)">
+    <option value="zh">中文</option>
+    <option value="en">English</option>
+    <option value="fr">Français</option>
+    <option value="de">Deutsch</option>
+    <option value="ja">日本語</option>
+    <option value="ko">한국어</option>
+    <option value="es">Español</option>
+  </select>
+</div></div>
 
 <div class="container">
 
-<h1>🚀 快速开始</h1>
-<p style="color:var(--muted);font-size:1.1rem;">3分钟上手全球首个全脑仿真AI Agent平台</p>
+<h1 data-lang-key="gs_title">🚀 快速开始</h1>
+<p style="color:var(--muted);font-size:1.1rem;" data-lang-key="gs_subtitle">3分钟上手</p>
 
 <div class="grid2">
 <div class="card">
-<h3>🐧 Linux / WSL</h3>
+<h3 data-lang-key="linux_title">🐧 Linux / WSL</h3>
 <pre><code>git clone https://github.com/LucyAndLuna2023/meshctx.git
 cd meshctx
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
 # 配置API Key
-export DEEPSEEK_API_KEY=sk-xxx
-# 启动
+export DEEPSEEK_API_KEY=*** 启动
 mesctx start</code></pre>
 </div>
 
 <div class="card">
-<h3>🪟 Windows</h3>
+<h3 data-lang-key="win_title">🪟 Windows</h3>
 <pre><code># 下载安装程序
 # https://github.com/LucyAndLuna2023/meshctx/releases
 # 双击 meshctx-setup-v2.15.3.exe
@@ -54,18 +68,18 @@ mesctx start</code></pre>
 </div>
 
 <div class="card">
-<h3>🐳 Docker</h3>
+<h3 data-lang-key="docker_title">🐳 Docker</h3>
 <pre><code># 一键部署
-echo "DEEPSEEK_API_KEY=sk-xxx" > .env
+echo "DEEPSEEK_API_KEY=*** > .env
 docker-compose up -d
 # 访问 http://localhost:8000</code></pre>
 </div>
 </div>
 
-<h2>📡 API 端点速查</h2>
+<h2 data-lang-key="api_title">📡 API 端点速查</h2>
 <div class="card">
 <table style="width:100%;border-collapse:collapse;font-size:13px;">
-<tr style="color:var(--muted);"><th style="text-align:left;padding:6px;">端点</th><th style="text-align:left;padding:6px;">说明</th></tr>
+<tr style="color:var(--muted);"><th style="text-align:left;padding:6px;" data-lang-key="api_col_endpoint">端点</th><th style="text-align:left;padding:6px;" data-lang-key="api_col_desc">说明</th></tr>
 <tr><td style="padding:6px;"><code>POST /api/chat</code></td><td>Chat对话</td></tr>
 <tr><td style="padding:6px;"><code>POST /api/chat/compare</code></td><td>多模型对比 <span class="tag">v2.11</span></td></tr>
 <tr><td style="padding:6px;"><code>POST /api/sandbox/execute</code></td><td>代码沙箱 <span class="tag">v2.7</span></td></tr>
@@ -79,7 +93,7 @@ docker-compose up -d
 </table>
 </div>
 
-<h2>💬 Chat 命令</h2>
+<h2 data-lang-key="chat_title">💬 Chat 命令</h2>
 <div class="card">
 <pre><code>/read &lt;路径&gt;         读取本地文件
 /ls &lt;路径&gt;          列出目录
@@ -90,20 +104,208 @@ docker-compose up -d
 /win exec &lt;PS命令&gt;   执行PowerShell</code></pre>
 </div>
 
-<h2>🧠 架构</h2>
+<h2 data-lang-key="arch_title">🧠 架构</h2>
 <div class="card">
-<p style="color:var(--muted);">MeshCtx采用13脑区全脑仿真架构，融合AGPLv3开源框架和专有核心大脑算法。</p>
+<p style="color:var(--muted);" data-lang-key="arch_desc">13脑区全脑仿真，AGPLv3开源+专有核心</p>
 <div class="grid2" style="margin-top:12px;">
-<div><strong>框架层 (AGPLv3)</strong><br><span style="color:var(--muted);">Web UI · API路由 · 插件系统 · Chat界面 · 安装程序</span></div>
-<div><strong>核心大脑 (专有)</strong><br><span style="color:var(--muted);">Super Brain · Free Energy · Active Inference · Global Workspace · Metacognition</span></div>
-<div><strong>工具层</strong><br><span style="color:var(--muted);">代码沙箱 · 项目索引 · Web搜索 · Windows管理 · 飞书通知</span></div>
-<div><strong>模型层</strong><br><span style="color:var(--muted);">100模型 · 28供应商 · OpenAI兼容 · 零配置</span></div>
+<div><strong data-lang-key="arch_framework">框架层 (AGPLv3)</strong><br><span style="color:var(--muted);" data-lang-key="arch_framework_desc">Web UI · API路由 · 插件系统 · Chat界面 · 安装程序</span></div>
+<div><strong data-lang-key="arch_core">核心大脑 (专有)</strong><br><span style="color:var(--muted);" data-lang-key="arch_core_desc">Super Brain · Free Energy · Active Inference · Global Workspace · Metacognition</span></div>
+<div><strong data-lang-key="arch_tools">工具层</strong><br><span style="color:var(--muted);" data-lang-key="arch_tools_desc">代码沙箱 · 项目索引 · Web搜索 · Windows管理 · 飞书通知</span></div>
+<div><strong data-lang-key="arch_models">模型层</strong><br><span style="color:var(--muted);" data-lang-key="arch_models_desc">100模型 · 28供应商 · OpenAI兼容</span></div>
 </div>
 </div>
 
 <p style="text-align:center;color:var(--muted);margin-top:40px;padding:20px;">
-  <a href="/">← 返回首页</a> · <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a>
+  <a href="/" data-lang-key="footer_back">← 返回首页</a> · <a href="https://github.com/LucyAndLuna2023/meshctx" data-lang-key="footer_github">GitHub</a>
 </p>
 </div>
+
+<script>
+const L = {
+    "en": {
+        "meta_title": "MeshCtx — Getting Started",
+        "gs_title": "🚀 Quick Start",
+        "gs_subtitle": "Get started in 3 minutes",
+        "linux_title": "🐧 Linux / WSL",
+        "win_title": "🪟 Windows",
+        "docker_title": "🐳 Docker",
+        "api_title": "📡 API Reference",
+        "api_col_endpoint": "Endpoint",
+        "api_col_desc": "Description",
+        "chat_title": "💬 Chat Commands",
+        "arch_title": "🧠 Architecture",
+        "arch_desc": "13-region full-brain simulation, AGPLv3 open-source + proprietary core",
+        "arch_framework": "Framework (AGPLv3)",
+        "arch_framework_desc": "Web UI · API Router · Plugin System · Chat UI · Installer",
+        "arch_core": "Core Brain (Proprietary)",
+        "arch_core_desc": "Super Brain · Free Energy · Active Inference · Global Workspace · Metacognition",
+        "arch_tools": "Tool Layer",
+        "arch_tools_desc": "Code Sandbox · Project Index · Web Search · Windows Mgmt · Feishu Notify",
+        "arch_models": "Model Layer",
+        "arch_models_desc": "100 Models · 28 Providers · OpenAI Compatible",
+        "footer_back": "← Back to Home",
+        "footer_github": "GitHub"
+    },
+    "zh": {
+        "meta_title": "MeshCtx 文档 — 入门指南",
+        "gs_title": "🚀 快速开始",
+        "gs_subtitle": "3分钟上手",
+        "linux_title": "🐧 Linux / WSL",
+        "win_title": "🪟 Windows",
+        "docker_title": "🐳 Docker",
+        "api_title": "📡 API 端点速查",
+        "api_col_endpoint": "端点",
+        "api_col_desc": "说明",
+        "chat_title": "💬 Chat 命令",
+        "arch_title": "🧠 架构",
+        "arch_desc": "13脑区全脑仿真，AGPLv3开源+专有核心",
+        "arch_framework": "框架层 (AGPLv3)",
+        "arch_framework_desc": "Web UI · API路由 · 插件系统 · Chat界面 · 安装程序",
+        "arch_core": "核心大脑 (专有)",
+        "arch_core_desc": "Super Brain · Free Energy · Active Inference · Global Workspace · Metacognition",
+        "arch_tools": "工具层",
+        "arch_tools_desc": "代码沙箱 · 项目索引 · Web搜索 · Windows管理 · 飞书通知",
+        "arch_models": "模型层",
+        "arch_models_desc": "100模型 · 28供应商 · OpenAI兼容",
+        "footer_back": "← 返回首页",
+        "footer_github": "GitHub"
+    },
+    "fr": {
+        "meta_title": "MeshCtx — Guide de Démarrage",
+        "gs_title": "🚀 Démarrage Rapide",
+        "gs_subtitle": "Démarrez en 3 minutes",
+        "linux_title": "🐧 Linux / WSL",
+        "win_title": "🪟 Windows",
+        "docker_title": "🐳 Docker",
+        "api_title": "📡 Référence API",
+        "api_col_endpoint": "Endpoint",
+        "api_col_desc": "Description",
+        "chat_title": "💬 Commandes Chat",
+        "arch_title": "🧠 Architecture",
+        "arch_desc": "Simulation cérébrale 13 régions, open-source AGPLv3 + noyau propriétaire",
+        "arch_framework": "Framework (AGPLv3)",
+        "arch_framework_desc": "Web UI · API Router · Plugin System · Chat UI · Installer",
+        "arch_core": "Cerveau Central (Propriétaire)",
+        "arch_core_desc": "Super Brain · Free Energy · Active Inference · Global Workspace · Metacognition",
+        "arch_tools": "Couche Outils",
+        "arch_tools_desc": "Code Sandbox · Project Index · Web Search · Windows Mgmt · Feishu Notify",
+        "arch_models": "Couche Modèles",
+        "arch_models_desc": "100 Models · 28 Providers · OpenAI Compatible",
+        "footer_back": "← Retour à l'accueil",
+        "footer_github": "GitHub"
+    },
+    "de": {
+        "meta_title": "MeshCtx — Erste Schritte",
+        "gs_title": "🚀 Schnellstart",
+        "gs_subtitle": "In 3 Minuten starten",
+        "linux_title": "🐧 Linux / WSL",
+        "win_title": "🪟 Windows",
+        "docker_title": "🐳 Docker",
+        "api_title": "📡 API-Referenz",
+        "api_col_endpoint": "Endpunkt",
+        "api_col_desc": "Beschreibung",
+        "chat_title": "💬 Chat-Befehle",
+        "arch_title": "🧠 Architektur",
+        "arch_desc": "13-Regionen-Vollhirnsimulation, AGPLv3 Open-Source + proprietärer Kern",
+        "arch_framework": "Framework (AGPLv3)",
+        "arch_framework_desc": "Web UI · API Router · Plugin System · Chat UI · Installer",
+        "arch_core": "Kern-Gehirn (Proprietär)",
+        "arch_core_desc": "Super Brain · Free Energy · Active Inference · Global Workspace · Metacognition",
+        "arch_tools": "Werkzeugschicht",
+        "arch_tools_desc": "Code Sandbox · Project Index · Web Search · Windows Mgmt · Feishu Notify",
+        "arch_models": "Modellschicht",
+        "arch_models_desc": "100 Models · 28 Providers · OpenAI Compatible",
+        "footer_back": "← Zurück zur Startseite",
+        "footer_github": "GitHub"
+    },
+    "ja": {
+        "meta_title": "MeshCtx ドキュメント — 入門",
+        "gs_title": "🚀 クイックスタート",
+        "gs_subtitle": "3分で始める",
+        "linux_title": "🐧 Linux / WSL",
+        "win_title": "🪟 Windows",
+        "docker_title": "🐳 Docker",
+        "api_title": "📡 APIリファレンス",
+        "api_col_endpoint": "エンドポイント",
+        "api_col_desc": "説明",
+        "chat_title": "💬 チャットコマンド",
+        "arch_title": "🧠 アーキテクチャ",
+        "arch_desc": "13脳領域全脳シミュレーション AGPLv3+独自コア",
+        "arch_framework": "Framework (AGPLv3)",
+        "arch_framework_desc": "Web UI · API Router · Plugin System · Chat UI · Installer",
+        "arch_core": "コア脳 (独自)",
+        "arch_core_desc": "Super Brain · Free Energy · Active Inference · Global Workspace · Metacognition",
+        "arch_tools": "ツール層",
+        "arch_tools_desc": "Code Sandbox · Project Index · Web Search · Windows Mgmt · Feishu Notify",
+        "arch_models": "モデル層",
+        "arch_models_desc": "100 Models · 28 Providers · OpenAI Compatible",
+        "footer_back": "← ホームに戻る",
+        "footer_github": "GitHub"
+    },
+    "ko": {
+        "meta_title": "MeshCtx — 시작 가이드",
+        "gs_title": "🚀 빠른 시작",
+        "gs_subtitle": "3분 만에 시작",
+        "linux_title": "🐧 Linux / WSL",
+        "win_title": "🪟 Windows",
+        "docker_title": "🐳 Docker",
+        "api_title": "📡 API 참조",
+        "api_col_endpoint": "엔드포인트",
+        "api_col_desc": "설명",
+        "chat_title": "💬 채팅 명령어",
+        "arch_title": "🧠 아키텍처",
+        "arch_desc": "13개 뇌 영역 전뇌 시뮬레이션 AGPLv3+독점 코어",
+        "arch_framework": "Framework (AGPLv3)",
+        "arch_framework_desc": "Web UI · API Router · Plugin System · Chat UI · Installer",
+        "arch_core": "코어 뇌 (독점)",
+        "arch_core_desc": "Super Brain · Free Energy · Active Inference · Global Workspace · Metacognition",
+        "arch_tools": "도구 레이어",
+        "arch_tools_desc": "Code Sandbox · Project Index · Web Search · Windows Mgmt · Feishu Notify",
+        "arch_models": "모델 레이어",
+        "arch_models_desc": "100 Models · 28 Providers · OpenAI Compatible",
+        "footer_back": "← 홈으로",
+        "footer_github": "GitHub"
+    },
+    "es": {
+        "meta_title": "MeshCtx — Guía de Inicio",
+        "gs_title": "🚀 Inicio Rápido",
+        "gs_subtitle": "Comience en 3 minutos",
+        "linux_title": "🐧 Linux / WSL",
+        "win_title": "🪟 Windows",
+        "docker_title": "🐳 Docker",
+        "api_title": "📡 Referencia API",
+        "api_col_endpoint": "Endpoint",
+        "api_col_desc": "Descripción",
+        "chat_title": "💬 Comandos Chat",
+        "arch_title": "🧠 Arquitectura",
+        "arch_desc": "Simulación cerebral 13 regiones, AGPLv3 + núcleo propietario",
+        "arch_framework": "Framework (AGPLv3)",
+        "arch_framework_desc": "Web UI · API Router · Plugin System · Chat UI · Installer",
+        "arch_core": "Cerebro Central (Propietario)",
+        "arch_core_desc": "Super Brain · Free Energy · Active Inference · Global Workspace · Metacognition",
+        "arch_tools": "Capa de Herramientas",
+        "arch_tools_desc": "Code Sandbox · Project Index · Web Search · Windows Mgmt · Feishu Notify",
+        "arch_models": "Capa de Modelos",
+        "arch_models_desc": "100 Models · 28 Providers · OpenAI Compatible",
+        "footer_back": "← Volver",
+        "footer_github": "GitHub"
+    }
+};
+function switchLang(lang) {
+    document.querySelectorAll('[data-lang-key]').forEach(function(el) {
+        var key = el.dataset.langKey;
+        if (L[lang] && L[lang][key]) el.textContent = L[lang][key];
+    });
+    if (L[lang] && L[lang].meta_title) document.title = L[lang].meta_title;
+    document.documentElement.lang = lang;
+    localStorage.setItem('meshctx-lang', lang);
+}
+document.addEventListener('DOMContentLoaded', function() {
+    var saved = localStorage.getItem('meshctx-lang') || 'zh';
+    switchLang(saved);
+    var sel = document.querySelector('.lang-select');
+    if (sel) sel.value = saved;
+});
+</script>
 </body>
 </html>
