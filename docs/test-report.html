@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="html-root">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MeshCtx Test Report</title>
+<title data-lang-key="meta_title">🧪 Test Report</title>
 <style>
 body{font-family:-apple-system,monospace;background:#0f172a;color:#e2e8f0;padding:20px;max-width:1200px;margin:auto}
 h1{color:#38bdf8}
@@ -16,40 +16,171 @@ tr:hover{background:#1e293b}
 .card{background:#1e293b;padding:16px;border-radius:8px;flex:1;text-align:center}
 .card .num{font-size:2em;font-weight:bold}
 .refresh{color:#94a3b8;font-size:12px}
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.lang-select{background:#1e293b;color:#e2e8f0;border:1px solid #38bdf8;padding:4px 10px;border-radius:4px;font-size:12px;cursor:pointer}
+.lang-select:hover{background:#334155}
 </style>
 </head>
 <body>
-<h1>🧪 MeshCtx Test Report</h1>
-<div class="refresh">Auto-refresh every 30s | <span id="time"></span></div>
-
-<div class="summary">
-  <div class="card"><div class="num pass" id="passed">-</div>Passed</div>
-  <div class="card"><div class="num fail" id="failed">-</div>Failed</div>
-  <div class="card"><div class="num warn" id="total">-</div>Total</div>
+<h1 data-lang-key="meta_title">🧪 Test Report</h1>
+<div class="top-bar">
+  <div class="refresh"><span data-lang-key="refresh_label">Auto-refresh every 30s</span> | <span id="time"></span></div>
+  <select class="lang-select" onchange="switchLang(this.value)">
+    <option value="en">English</option>
+    <option value="zh">中文</option>
+    <option value="fr">Français</option>
+    <option value="de">Deutsch</option>
+    <option value="ja">日本語</option>
+    <option value="ko">한국어</option>
+    <option value="es">Español</option>
+  </select>
 </div>
 
-<h2>Test Results</h2>
+<div class="summary">
+  <div class="card"><div class="num pass" id="passed">-</div><span data-lang-key="col_passed">Passed</span></div>
+  <div class="card"><div class="num fail" id="failed">-</div><span data-lang-key="col_failed">Failed</span></div>
+  <div class="card"><div class="num warn" id="total">-</div><span data-lang-key="col_total">Total</span></div>
+</div>
+
+<h2 data-lang-key="results_title">Test Results</h2>
 <table>
-<thead><tr><th>#</th><th>Test</th><th>Status</th><th>Detail</th></tr></thead>
+<thead><tr><th data-lang-key="th_num">#</th><th data-lang-key="th_test">Test</th><th data-lang-key="th_status">Status</th><th data-lang-key="th_detail">Detail</th></tr></thead>
 <tbody id="results"></tbody>
 </table>
 
 <script>
+const L = {
+    en: {
+        meta_title: "\u{1F9EA} Test Report",
+        refresh_label: "Auto-refresh every 30s",
+        col_passed: "Passed",
+        col_failed: "Failed",
+        col_total: "Total",
+        results_title: "Test Results",
+        th_num: "#",
+        th_test: "Test",
+        th_status: "Status",
+        th_detail: "Detail",
+        error_msg: "Server not running",
+    },
+    zh: {
+        meta_title: "\u{1F9EA} 测试报告",
+        refresh_label: "每30秒自动刷新",
+        col_passed: "通过",
+        col_failed: "失败",
+        col_total: "总计",
+        results_title: "测试结果",
+        th_num: "#",
+        th_test: "测试",
+        th_status: "状态",
+        th_detail: "详情",
+        error_msg: "服务器未运行",
+    },
+    fr: {
+        meta_title: "\u{1F9EA} Rapport de Test",
+        refresh_label: "Actu. auto toutes les 30s",
+        col_passed: "Réussi",
+        col_failed: "Échoué",
+        col_total: "Total",
+        results_title: "Résultats",
+        th_num: "#",
+        th_test: "Test",
+        th_status: "Statut",
+        th_detail: "Détail",
+        error_msg: "Serveur non démarré",
+    },
+    de: {
+        meta_title: "\u{1F9EA} Testbericht",
+        refresh_label: "Auto-Aktualisierung alle 30s",
+        col_passed: "Bestanden",
+        col_failed: "Fehlgeschlagen",
+        col_total: "Gesamt",
+        results_title: "Testergebnisse",
+        th_num: "#",
+        th_test: "Test",
+        th_status: "Status",
+        th_detail: "Detail",
+        error_msg: "Server läuft nicht",
+    },
+    ja: {
+        meta_title: "\u{1F9EA} テストレポート",
+        refresh_label: "30秒ごとに自動更新",
+        col_passed: "合格",
+        col_failed: "不合格",
+        col_total: "合計",
+        results_title: "テスト結果",
+        th_num: "#",
+        th_test: "テスト",
+        th_status: "ステータス",
+        th_detail: "詳細",
+        error_msg: "サーバー停止中",
+    },
+    ko: {
+        meta_title: "\u{1F9EA} 테스트 보고서",
+        refresh_label: "30초마다 자동 새로고침",
+        col_passed: "통과",
+        col_failed: "실패",
+        col_total: "총계",
+        results_title: "테스트 결과",
+        th_num: "#",
+        th_test: "테스트",
+        th_status: "상태",
+        th_detail: "세부사항",
+        error_msg: "서버 중지됨",
+    },
+    es: {
+        meta_title: "\u{1F9EA} Informe de Pruebas",
+        refresh_label: "Actualización cada 30s",
+        col_passed: "Aprobado",
+        col_failed: "Fallido",
+        col_total: "Total",
+        results_title: "Resultados",
+        th_num: "#",
+        th_test: "Prueba",
+        th_status: "Estado",
+        th_detail: "Detalle",
+        error_msg: "Servidor detenido",
+    },
+};
+
+function switchLang(lang) {
+    document.querySelectorAll("[data-lang-key]").forEach(function(el) {
+        var key = el.dataset.langKey;
+        if (L[lang] && L[lang][key]) el.textContent = L[lang][key];
+    });
+    document.title = L[lang] ? (L[lang].meta_title || document.title) : document.title;
+    var root = document.getElementById("html-root");
+    if (root) root.setAttribute("lang", lang);
+    localStorage.setItem("meshctx-lang", lang);
+}
+
+(function(){
+    var bl = (navigator.language||navigator.userLanguage||"").slice(0,2).toLowerCase();
+    var supported = ["zh","ja","ko","es","fr","de"];
+    var saved = localStorage.getItem("meshctx-lang");
+    var lang = saved || (supported.indexOf(bl) >= 0 ? bl : "en");
+    switchLang(lang);
+    var sel = document.querySelector(".lang-select");
+    if (sel) sel.value = lang;
+})();
+
 async function load() {
   try {
-    const r = await fetch('/api/test-report');
+    const r = await fetch("/api/test-report");
     const data = await r.json();
-    document.getElementById('passed').textContent = data.passed;
-    document.getElementById('failed').textContent = data.failed;
-    document.getElementById('total').textContent = data.total;
-    document.getElementById('time').textContent = new Date().toLocaleTimeString();
-    
-    const tbody = document.getElementById('results');
-    tbody.innerHTML = data.tests.map((t,i) => 
-      `<tr><td>${i+1}</td><td>${t.name}</td><td class="${t.status.toLowerCase()}">${t.status}</td><td>${t.detail||''}</td></tr>`
-    ).join('');
+    document.getElementById("passed").textContent = data.passed;
+    document.getElementById("failed").textContent = data.failed;
+    document.getElementById("total").textContent = data.total;
+    document.getElementById("time").textContent = new Date().toLocaleTimeString();
+
+    const tbody = document.getElementById("results");
+    tbody.innerHTML = data.tests.map(function(t,i) {
+      return "<tr><td>" + (i+1) + "</td><td>" + t.name + "</td><td class=\"" + t.status.toLowerCase() + "\">" + t.status + "</td><td>" + (t.detail||"") + "</td></tr>";
+    }).join("");
   } catch(e) {
-    document.getElementById('results').innerHTML = '<tr><td colspan="4">Server not running</td></tr>';
+    var lang = localStorage.getItem("meshctx-lang") || "en";
+    var msg = (L[lang] && L[lang].error_msg) ? L[lang].error_msg : "Server not running";
+    document.getElementById("results").innerHTML = "<tr><td colspan=\"4\">" + msg + "</td></tr>";
   }
 }
 load();
