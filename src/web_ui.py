@@ -1461,7 +1461,7 @@ function toggleCompare(){
   } else {
     btn.style.background = '#8b5cf6';
     btn.textContent = '⚡ 对比';
-    input.placeholder = '/read /ls /search /run /context /win 命令大全';
+    input.placeholder = '/read /ls /search /run /context /win /diff 命令大全';
   }
 }
 
@@ -2043,7 +2043,31 @@ async function send() {
             return;
         }
     }
-    
+
+    // v2.17: Diff 预览 /diff 文件1 文件2
+    if (msg.startsWith('/diff ')) {
+        var parts = msg.substring(6).trim();
+        var spaceIdx = parts.indexOf(' ');
+        if (spaceIdx === -1) { alert('用法: /diff 文件1路径 文件2路径'); return; }
+        var file1 = parts.substring(0, spaceIdx);
+        var file2 = parts.substring(spaceIdx + 1);
+        try {
+            var diffRes = await fetch('/api/diff?file1=' + encodeURIComponent(file1) + '&file2=' + encodeURIComponent(file2) + '&format=compact');
+            if (!diffRes.ok) { var de = await diffRes.json(); alert('Diff失败: ' + (de.detail || de)); return; }
+            var diffData = await diffRes.json();
+            // 在消息区插入 diff 预览卡片
+            var diffCard = document.createElement('div');
+            diffCard.style.cssText = 'margin:8px 0;background:#0a1628;border:1px solid #6366f1;border-radius:10px;overflow:hidden;';
+            diffCard.innerHTML = '<div style="background:#1e1b4b;padding:6px 14px;font-size:12px;color:#a5b4fc;display:flex;justify-content:space-between;align-items:center;"><span>📊 Diff: <b>' + file1 + '</b> ←→ <b>' + file2 + '</b> (' + diffData.hunks + ' hunks)</span><span style="font-size:10px;color:#818cf8;cursor:pointer;" onclick="this.parentElement.nextElementSibling.style.display=this.parentElement.nextElementSibling.style.display==\'none\'?\'\':\'none\';this.textContent=this.parentElement.nextElementSibling.style.display==\'none\'?\'展开 ▸\':\'收起 ▾\'">收起 ▾</span></div><div style="max-height:400px;overflow-y:auto;padding:4px;">' + diffData.html + '</div>';
+            document.getElementById('messages').appendChild(diffCard);
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+            // 发送给 AI 分析
+            var diffBlock = '[Diff: ' + file1 + ' ←→ ' + file2 + ' (' + diffData.hunks + ' hunks)]';
+            fullMsg = diffBlock + '\n用户消息: 请分析以上diff';
+            msg = '/diff ' + file1 + ' ' + file2;
+        } catch(e) { alert('Diff失败: ' + e.message); return; }
+    }
+
     // v2.12: Agent统计 /stats 命令
     if (msg === '/stats') {
         try {

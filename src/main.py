@@ -3848,6 +3848,33 @@ async def read_local_file(path: str = ""):
     }
 
 
+@app.get("/api/diff")
+async def diff_local_files(file1: str = "", file2: str = "", format: str = "side"):
+    """并排/紧凑 diff 预览 — 比较两个本地文件"""
+    from src.diff_preview import DiffEngine, DiffRenderer
+    fp1 = _validate_file_path(file1)
+    fp2 = _validate_file_path(file2)
+    if not fp1.exists():
+        raise HTTPException(404, f"文件1不存在: {fp1}")
+    if not fp2.exists():
+        raise HTTPException(404, f"文件2不存在: {fp2}")
+    try:
+        t1 = fp1.read_text(encoding="utf-8")
+    except:
+        t1 = fp1.read_bytes().decode("latin-1")
+    try:
+        t2 = fp2.read_text(encoding="utf-8")
+    except:
+        t2 = fp2.read_bytes().decode("latin-1")
+    engine = DiffEngine()
+    hunks = engine.compute_diff(t1, t2, fp1.name, fp2.name)
+    if format == "compact":
+        html = DiffRenderer.render_compact_summary(hunks, fp1.name, fp2.name)
+    else:
+        html = DiffRenderer.render_side_side(hunks, fp1.name, fp2.name)
+    return {"file1": str(fp1), "file2": str(fp2), "format": format, "html": html, "hunks": len(hunks)}
+
+
 @app.post("/api/file/write")
 async def write_local_file(req: Request, path: str = ""):
     """写入本地文件 (POST body: {"content":"..."})"""
