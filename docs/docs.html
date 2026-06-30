@@ -129,7 +129,7 @@
    129|    <div class="lang" data-lang="zh">
    130|        <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
    131|        <h1>会<span>自我进化</span>的 Agent</h1>
-   132|        <p>MeshCtx v2.15.3 — All-in-One 桌面客户端 + 脑启发AI算法。记忆一切、多Agent协同、多语言 — 完全开源。</p>
+   132|        <p>MeshCtx v3.115.14 — All-in-One 桌面客户端 + 脑启发AI算法。记忆一切、多Agent协同、多语言 — 完全开源。</p>
    133|        <div class="hero-buttons">
    134|            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-primary">⭐ GitHub</a>
    135|            <a href="getting-started" class="btn btn-ghost">快速开始 →</a>
@@ -200,10 +200,18 @@
    200|            <div class="feature-card"><div class="feature-icon">🖥️</div><h3 data-lang-key="f7_title">Desktop Client</h3><p data-lang-key="f7_desc">All-in-One native desktop app. Double-click to launch. System tray, no browser needed. Windows + macOS.</p></div>
    201|            <div class="feature-card"><div class="feature-icon">🧠</div><h3 data-lang-key="f8_title">Brain-Inspired AI</h3><p data-lang-key="f8_desc">Free Energy Principle + Active Inference + Global Workspace + Neuromodulators. P0+P1 algorithms from cognitive neuroscience.</p></div>
    202|            <div class="feature-card"><div class="feature-icon">🌍</div><h3 data-lang-key="f9_title">7 Languages</h3><p data-lang-key="f9_desc">中文 · English · 日本語 · 한국어 · Deutsch · Français · Español. Full i18n with language switcher.</p></div>
-   203|            <div class="feature-card"><div class="feature-icon">🔓</div><h3 data-lang-key="f6_title">100% Open Source</h3><p data-lang-key="f6_desc">MIT license. Free forever. Self-host on your own infrastructure. No vendor lock-in.</p></div>
-   204|        </div>
-   205|    </div>
-   206|</section>
+   <div class="feature-card"><div class="feature-icon">🔓</div><h3 data-lang-key="f6_title">100% Open Source</h3><p data-lang-key="f6_desc">MIT license. Free forever. Self-host on your own infrastructure. No vendor lock-in.</p></div>
+   <div class="feature-card"><div class="feature-icon">🔍</div><h3>Inline Diff Preview</h3><p>Cursor-grade diff viewer — inline apply/reject/undo per hunk. HTML + terminal renderer. Batch multi-file edits.</p></div>
+   <div class="feature-card"><div class="feature-icon">🧪</div><h3>Test Generator</h3><p>Auto-generate pytest/unittest from source. Coverage analyzer. Mutation testing. Risk-based test prioritization.</p></div>
+   <div class="feature-card"><div class="feature-icon">🔀</div><h3>PR Agent</h3><p>Auto-create PRs from git diff. Diff summarizer with breaking-change detection. Reviewer recommender. PR validation.</p></div>
+   <div class="feature-card"><div class="feature-icon">💭</div><h3>Thinking Pad</h3><p>Full thought-chain visualization. Decision tree + confidence scoring. Session replay. Branching & merge tracking.</p></div>
+   <div class="feature-card"><div class="feature-icon">🔧</div><h3>Refactor Agent</h3><p>Safe rename with cross-file ref tracking. Duplicate detection. Complexity reduction. Extract method suggestions.</p></div>
+   <div class="feature-card"><div class="feature-icon">📝</div><h3>Code Reviewer</h3><p>60+ regex patterns + Python AST deep review. Per-line annotations. Security-sensitive pattern detection.</p></div>
+   <div class="feature-card"><div class="feature-icon">🛡️</div><h3>Prompt Shield</h3><p>Prompt injection detection — 6 categories: jailbreak, bypass, data extraction, DDoS, role manipulation, encoding.</p></div>
+   <div class="feature-card"><div class="feature-icon">⚡</div><h3>Prompt Optimizer</h3><p>Token estimation + compression + template library. Token-aware truncation. Claude Code parity optimization engine.</p></div>
+   </div>
+   </div>
+   </section>
    207|
    208|<!-- ═══ COMPARISON ═══ -->
    209|<section id="compare">
@@ -227,6 +235,11 @@
    227|                <tr><td>Decision Quality (F)</td><td class="highlight"><span class="check"><b>F15.2%</b></span></td><td>—</td><td>—</td><td>—</td><td>F8.7%</td></tr>
    228|                <tr><td>Resource Survival</td><td class="highlight"><span class="check"><b>+61%</b></span></td><td>—</td><td>—</td><td>—</td><td>+23%</td></tr>
    229|                <tr><td>Convergence Reward</td><td class="highlight"><span class="check"><b>462.1</b></span></td><td>—</td><td>—</td><td>—</td><td>218.6</td></tr>
+                <tr><td>Inline Diff Preview</td><td class="highlight"><span class="check">✅ Cursor-grade</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="check">✅ Basic</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>Auto Test Generator</td><td class="highlight"><span class="check">✅ Mutation+Coverage</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>PR Agent</td><td class="highlight"><span class="check">✅ Auto PR+Reviewer</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>Thinking Pad</td><td class="highlight"><span class="check">✅ Chain Viz+Replay</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="check">✅ Internal</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td>Safe Refactor</td><td class="highlight"><span class="check">✅ Cross-file AST</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="check">✅</span></td><td><span class="cross">✗</span></td></tr>
    230|            </tbody></table>
    231|        </div>
    232|    </div>
