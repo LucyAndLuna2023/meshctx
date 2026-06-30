@@ -216,6 +216,72 @@ body {
 .messages::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } }
+
+/* ---- @mention dropdown ---- */
+.mention-dropdown {
+  position: absolute; bottom: 100%; left: 0;
+  margin-bottom: 6px; min-width: 280px; max-width: 400px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  max-height: 260px; overflow-y: auto; z-index: 200;
+  display: none;
+}
+.mention-dropdown.show { display: block; }
+.mention-item {
+  padding: 8px 12px; cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid #ffffff08;
+}
+.mention-item:last-child { border-bottom: none; }
+.mention-item:hover, .mention-item.active {
+  background: #1f6feb22;
+}
+.mention-item .mi-icon { font-size: 14px; flex-shrink: 0; }
+.mention-item .mi-path { color: var(--text); font-family: monospace; font-size: 12px; }
+.mention-item .mi-type { color: var(--muted); font-size: 11px; margin-left: auto; }
+.mention-item .mi-empty { color: var(--muted); font-style: italic; font-size: 12px; padding: 8px 12px; }
+
+/* ---- Ctrl+K command palette ---- */
+.cmd-palette-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  z-index: 300; display: none; align-items: flex-start;
+  justify-content: center; padding-top: 15vh;
+  backdrop-filter: blur(2px);
+}
+.cmd-palette-overlay.show { display: flex; }
+.cmd-palette {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; width: 520px; max-width: 90vw;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+.cmd-palette-input {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.cmd-palette-input input {
+  flex: 1; background: transparent; border: none; color: var(--text);
+  font-size: 15px; outline: none; font-family: inherit;
+}
+.cmd-palette-input input::placeholder { color: var(--muted); }
+.cmd-palette-hint {
+  color: var(--muted); font-size: 11px;
+  background: var(--bg); padding: 3px 7px; border-radius: 4px;
+  font-family: monospace;
+}
+.cmd-palette-list { max-height: 320px; overflow-y: auto; padding: 6px; }
+.cmd-item {
+  padding: 10px 14px; border-radius: 6px; cursor: pointer;
+  display: flex; align-items: center; gap: 10px; font-size: 14px;
+}
+.cmd-item:hover, .cmd-item.active { background: #1f6feb22; }
+.cmd-item .cmd-icon { font-size: 16px; width: 22px; text-align: center; }
+.cmd-item .cmd-label { color: var(--text); }
+.cmd-item .cmd-desc { color: var(--muted); font-size: 12px; margin-left: auto; }
+.cmd-item .cmd-shortcut {
+  color: var(--muted); font-size: 11px; background: var(--bg);
+  padding: 2px 7px; border-radius: 4px; font-family: monospace;
+}
 </style>
 </head>
 <body>
@@ -244,7 +310,7 @@ body {
 </div>
 <div class="input-area">
   <textarea id="input" data-lang-key="chat_placeholder" placeholder="输入消息... (Enter 发送, Shift+Enter 换行)" rows="1"
-    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"></textarea>
+    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}; handleInputKeydown(event)"></textarea>
   <button id="sendBtn" onclick="send()" data-lang-key="chat_send">发送</button>
 </div>
 <div class="info-bar">
@@ -285,6 +351,21 @@ body {
 </div>
 <div class="status-toggle hidden-btn" id="statusToggleBtn" onclick="toggleStatusPanel()">
   📊
+</div>
+<!-- @mention file reference dropdown -->
+<div class="mention-dropdown" id="mentionDropdown"></div>
+
+<!-- Ctrl+K command palette -->
+<div class="cmd-palette-overlay" id="cmdPaletteOverlay">
+  <div class="cmd-palette">
+    <div class="cmd-palette-input">
+      <span style="font-size:16px">🔍</span>
+      <input type="text" id="cmdPaletteInput" placeholder="输入指令... 或输入关键词搜索"
+        autocomplete="off" autofocus>
+      <span class="cmd-palette-hint">Esc</span>
+    </div>
+    <div class="cmd-palette-list" id="cmdPaletteList"></div>
+  </div>
 </div>
 
 <script>
@@ -650,12 +731,299 @@ function toggleStatusPanel() {
   }
 }
 
+// ══════════════════ @mention autocomplete ══════════════════
+let mentionFiles = [];
+let mentionIndex = -1;
+let mentionQuery = '';
+let mentionStart = -1;
+
+const FILE_ICONS = {
+  '.py': '🐍', '.js': '🟨', '.ts': '🔷', '.html': '🌐', '.css': '🎨',
+  '.json': '📋', '.md': '📝', '.yaml': '⚙️', '.yml': '⚙️', '.toml': '⚙️',
+  '.sh': '💻', '.bash': '💻', '.rs': '🦀', '.go': '🔵', '.java': '☕',
+  '.c': '⚙️', '.cpp': '⚙️', '.h': '📄', '.svg': '🖼️', '.png': '🖼️',
+  '.txt': '📄', '.lock': '🔒', '.cfg': '⚙️', '.ini': '⚙️'
+};
+
+function fileIcon(path) {
+  const ext = path.split('.').pop();
+  return FILE_ICONS['.' + ext] || '📄';
+}
+
+async function fetchFileList() {
+  try {
+    const resp = await fetch('/api/files?limit=200');
+    const data = await resp.json();
+    mentionFiles = (data.files || []).map(f => typeof f === 'string' ? f : f.path || f.name || '');
+  } catch(e) {
+    // Fallback: empty list; mention won't show results
+    mentionFiles = [];
+  }
+}
+
+function showMentionDropdown() {
+  const dd = document.getElementById('mentionDropdown');
+  const input = document.getElementById('input');
+  const rect = input.getBoundingClientRect();
+  dd.style.left = rect.left + 'px';
+  dd.style.bottom = (window.innerHeight - rect.top) + 'px';
+  dd.style.minWidth = Math.min(400, rect.width) + 'px';
+  dd.classList.add('show');
+}
+
+function hideMentionDropdown() {
+  document.getElementById('mentionDropdown').classList.remove('show');
+  mentionIndex = -1;
+}
+
+function filterMentionFiles(query) {
+  const q = query.toLowerCase();
+  if (!q) return mentionFiles.slice(0, 20);
+  return mentionFiles
+    .filter(f => f.toLowerCase().includes(q))
+    .slice(0, 20);
+}
+
+function renderMentionDropdown(query) {
+  const dd = document.getElementById('mentionDropdown');
+  const files = filterMentionFiles(query);
+  if (files.length === 0) {
+    dd.innerHTML = '<div class="mi-empty">No files found — try a different search</div>';
+  } else {
+    dd.innerHTML = files.map((f, i) => {
+      const idx = f.toLowerCase().indexOf(query.toLowerCase());
+      let display = f;
+      if (idx >= 0 && query) {
+        display = f.slice(0, idx) + '<b style="color:#58a6ff">' + f.slice(idx, idx + query.length) + '</b>' + f.slice(idx + query.length);
+      }
+      const active = i === mentionIndex ? ' active' : '';
+      return `<div class="mention-item${active}" data-index="${i}" data-path="${f.replace(/"/g,'&quot;')}">
+        <span class="mi-icon">${fileIcon(f)}</span>
+        <span class="mi-path">${display}</span>
+        <span class="mi-type">.${f.split('.').pop()}</span>
+      </div>`;
+    }).join('');
+    // Add click handlers
+    dd.querySelectorAll('.mention-item').forEach(item => {
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        selectMention(item.dataset.path);
+      });
+    });
+  }
+  showMentionDropdown();
+}
+
+function selectMention(filepath) {
+  const input = document.getElementById('input');
+  const before = input.value.slice(0, mentionStart);
+  const after = input.value.slice(input.selectionStart);
+  input.value = before + '@' + filepath + ' ' + after;
+  // Place cursor after inserted path
+  const newPos = before.length + filepath.length + 2;
+  input.setSelectionRange(newPos, newPos);
+  hideMentionDropdown();
+  input.focus();
+}
+
+function handleInputKeydown(e) {
+  // --- Ctrl+K command palette ---
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    showCommandPalette();
+    return;
+  }
+
+  // --- @mention navigation ---
+  const dd = document.getElementById('mentionDropdown');
+  if (dd.classList.contains('show')) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      mentionIndex = Math.min(mentionIndex + 1, dd.querySelectorAll('.mention-item').length - 1);
+      refreshMentionSelection();
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      mentionIndex = Math.max(mentionIndex - 1, -1);
+      refreshMentionSelection();
+      return;
+    }
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      const active = dd.querySelector('.mention-item.active');
+      if (active) {
+        e.preventDefault();
+        selectMention(active.dataset.path);
+      } else if (dd.querySelectorAll('.mention-item').length > 0) {
+        e.preventDefault();
+        selectMention(dd.querySelector('.mention-item').dataset.path);
+      }
+      return;
+    }
+    if (e.key === 'Escape') {
+      hideMentionDropdown();
+      return;
+    }
+  }
+}
+
+function refreshMentionSelection() {
+  const dd = document.getElementById('mentionDropdown');
+  dd.querySelectorAll('.mention-item').forEach((item, i) => {
+    item.classList.toggle('active', i === mentionIndex);
+  });
+}
+
+// Detect @ typing
+document.addEventListener('input', function(e) {
+  if (e.target.id !== 'input') return;
+  const input = e.target;
+  const pos = input.selectionStart;
+  const text = input.value;
+
+  // Find the last @ before cursor
+  let atPos = -1;
+  for (let i = pos - 1; i >= 0; i--) {
+    if (text[i] === '@') {
+      // Ensure @ is at start or preceded by whitespace
+      if (i === 0 || /\s/.test(text[i - 1])) {
+        atPos = i;
+        break;
+      }
+    } else if (/\s/.test(text[i])) {
+      break;
+    }
+  }
+
+  if (atPos >= 0) {
+    mentionStart = atPos;
+    mentionQuery = text.slice(atPos + 1, pos);
+    mentionIndex = -1;
+    renderMentionDropdown(mentionQuery);
+  } else {
+    hideMentionDropdown();
+  }
+});
+
+// Close mention dropdown on click outside
+document.addEventListener('click', function(e) {
+  const dd = document.getElementById('mentionDropdown');
+  if (!dd.classList.contains('show')) return;
+  if (!dd.contains(e.target) && e.target.id !== 'input') {
+    hideMentionDropdown();
+  }
+});
+
+// ══════════════════ Ctrl+K command palette ══════════════════
+const COMMANDS = [
+  { id:'new', icon:'➕', label:'新对话', desc:'清除历史，开始新对话', shortcut:'Ctrl+N', action: newChat },
+  { id:'model-v4pro', icon:'🏆', label:'切换模型: V4-Pro', desc:'DeepSeek V4-Pro — 最强推理', action: ()=>{ document.getElementById('modelSelect').value='deepseek:v4-pro'; switchModel(); } },
+  { id:'model-v4flash', icon:'⚡', label:'切换模型: V4-Flash', desc:'DeepSeek V4-Flash — 快速响应', action: ()=>{ document.getElementById('modelSelect').value='deepseek:v4-flash'; switchModel(); } },
+  { id:'model-chat', icon:'💬', label:'切换模型: V3 Chat', desc:'DeepSeek V3 Chat', action: ()=>{ document.getElementById('modelSelect').value='deepseek:chat'; switchModel(); } },
+  { id:'model-r1', icon:'🧠', label:'切换模型: R1', desc:'DeepSeek R1 — 深度推理', action: ()=>{ document.getElementById('modelSelect').value='deepseek:reasoner'; switchModel(); } },
+  { id:'console', icon:'🏠', label:'返回控制台', desc:'打开 meshctx 仪表盘', action: ()=>{ window.location.href='/ui/'; } },
+  { id:'docs', icon:'📚', label:'文档', desc:'打开 meshctx 文档', action: ()=>{ window.location.href='/docs/'; } },
+  { id:'focus', icon:'🎯', label:'聚焦输入框', desc:'跳转到聊天输入框', shortcut:'Ctrl+L', action: ()=>{ document.getElementById('input').focus(); } },
+  { id:'copy-last', icon:'📋', label:'复制最后回复', desc:'复制 AI 最后一条回复', action: ()=>{
+    const msgs = document.querySelectorAll('.msg.ai');
+    if (msgs.length > 0) {
+      const last = msgs[msgs.length - 1].querySelector('.collapsed-content');
+      if (last) { navigator.clipboard.writeText(last.textContent.trim()); showToast('📋 已复制'); }
+    }
+  }},
+];
+
+function showCommandPalette() {
+  const overlay = document.getElementById('cmdPaletteOverlay');
+  const input = document.getElementById('cmdPaletteInput');
+  overlay.classList.add('show');
+  input.value = '';
+  input.focus();
+  renderCommandList('');
+}
+
+function hideCommandPalette() {
+  document.getElementById('cmdPaletteOverlay').classList.remove('show');
+}
+
+function renderCommandList(query) {
+  const list = document.getElementById('cmdPaletteList');
+  const q = query.toLowerCase();
+  const filtered = COMMANDS.filter(c =>
+    !q || c.label.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q) || c.id.includes(q)
+  );
+  list.innerHTML = filtered.map((c, i) => {
+    const sc = c.shortcut ? `<span class="cmd-shortcut">${c.shortcut}</span>` : '';
+    return `<div class="cmd-item" data-cmd="${c.id}" data-index="${i}">
+      <span class="cmd-icon">${c.icon}</span>
+      <span class="cmd-label">${c.label}</span>
+      <span class="cmd-desc">${c.desc}</span>
+      ${sc}
+    </div>`;
+  }).join('');
+
+  // Click handlers
+  list.querySelectorAll('.cmd-item').forEach(item => {
+    item.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const cmd = COMMANDS.find(c => c.id === item.dataset.cmd);
+      if (cmd) { hideCommandPalette(); cmd.action(); }
+    });
+  });
+}
+
+// Command palette keyboard navigation
+document.getElementById('cmdPaletteInput').addEventListener('keydown', function(e) {
+  const list = document.getElementById('cmdPaletteList');
+  const items = list.querySelectorAll('.cmd-item');
+  let activeIdx = Array.from(items).findIndex(el => el.classList.contains('active'));
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    activeIdx = Math.min(activeIdx + 1, items.length - 1);
+    updateCmdSelection(items, activeIdx);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    activeIdx = Math.max(activeIdx - 1, 0);
+    updateCmdSelection(items, activeIdx);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (activeIdx >= 0 && activeIdx < items.length) {
+      const cmd = COMMANDS.find(c => c.id === items[activeIdx].dataset.cmd);
+      if (cmd) { hideCommandPalette(); cmd.action(); }
+    } else if (items.length > 0) {
+      const cmd = COMMANDS.find(c => c.id === items[0].dataset.cmd);
+      if (cmd) { hideCommandPalette(); cmd.action(); }
+    }
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    hideCommandPalette();
+    document.getElementById('input').focus();
+  }
+});
+
+document.getElementById('cmdPaletteInput').addEventListener('input', function(e) {
+  renderCommandList(e.target.value);
+});
+
+function updateCmdSelection(items, activeIdx) {
+  items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+  if (items[activeIdx]) items[activeIdx].scrollIntoView({block: 'nearest'});
+}
+
+// Close command palette on overlay click
+document.getElementById('cmdPaletteOverlay').addEventListener('mousedown', function(e) {
+  if (e.target === this) hideCommandPalette();
+});
+
 // Fix timestamp on initial welcome message
 document.addEventListener('DOMContentLoaded', function() {
   const firstMsg = document.querySelector('.msg.ai .timestamp');
   if (firstMsg) firstMsg.textContent = getTimestamp();
   // Init panel model
   document.getElementById('panelModel').textContent = model;
+  // Pre-fetch file list for @mention autocomplete
+  fetchFileList();
 });
 </script>
 </body>
