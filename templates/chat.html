@@ -1024,7 +1024,131 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('panelModel').textContent = model;
   // Pre-fetch file list for @mention autocomplete
   fetchFileList();
+  // Init WebSocket realtime connection
+  initRealtime();
 });
+
+// ══════════════════ WebSocket realtime ══════════════════
+let ws = null;
+let wsReconnectTimer = null;
+let wsPingTimer = null;
+
+function initRealtime() {
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${location.host}/ws`;
+
+  function connect() {
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+
+    ws = new WebSocket(wsUrl);
+    ws.onopen = () => {
+      console.log('[WS] connected');
+      updateStatusDot('online');
+      // Start heartbeat
+      wsPingTimer = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({type: 'ping'}));
+        }
+      }, 30000);
+    };
+
+    ws.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        handleWsMessage(msg);
+      } catch(ex) { /* ignore malformed */ }
+    };
+
+    ws.onclose = () => {
+      console.log('[WS] disconnected');
+      updateStatusDot('idle');
+      clearInterval(wsPingTimer);
+      // Auto-reconnect after 3s
+      wsReconnectTimer = setTimeout(connect, 3000);
+    };
+
+    ws.onerror = () => { /* onclose will fire next, triggering reconnect */ };
+  }
+
+  connect();
+}
+
+function handleWsMessage(msg) {
+  switch (msg.type) {
+    case 'system.connected':
+      break;
+
+    case 'agent.status':
+      if (msg.status === 'thinking') {
+        updateStatusDot('thinking');
+      } else if (msg.status === 'online') {
+        updateStatusDot('online');
+      } else {
+        updateStatusDot('idle');
+      }
+      break;
+
+    case 'chat.message':
+      // If agent responds while we're on the page, append it
+      if (msg.role === 'assistant' && msg.content) {
+        const msgs = document.getElementById('messages');
+        // Avoid duplicating if user just sent and we're streaming
+        if (streamingAbortController) break;
+        // Check last message isn't already this one
+        const lastMsg = msgs.lastElementChild;
+        if (lastMsg && lastMsg.classList.contains('ai')) {
+          const content = lastMsg.querySelector('.collapsed-content');
+          if (content && content.textContent.trim() === msg.content.trim()) break;
+        }
+        appendMessage('ai', msg.content);
+      }
+      if (msg.role === 'system' && msg.content) {
+        showToast(msg.content);
+      }
+      break;
+
+    case 'system.event':
+      if (msg.event === 'model.switched' && msg.data) {
+        showToast(`🔄 模型已切换: ${msg.data.model || msg.data}`);
+      }
+      break;
+
+    case 'hybrid.info':
+      showToast(`🧠 混合推理: ${msg.mode || 'active'}`);
+      break;
+
+    case 'pong':
+      break;
+  }
+}
+
+function updateStatusDot(status) {
+  const dot = document.getElementById('statusDot');
+  if (dot) {
+    dot.className = 'status-dot ' + status;
+  }
+}
+
+function showToast(text) {
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.style.cssText = 'position:fixed;top:16px;right:16px;background:var(--surface);color:var(--text);padding:10px 18px;border-radius:8px;border:1px solid var(--border);font-size:13px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.3);animation:fadeInOut 3s forwards;';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = text;
+  toast.style.animation = 'none';
+  toast.offsetHeight; // trigger reflow
+  toast.style.animation = 'fadeInOut 3s forwards';
+}
+
+// Add toast animation
+(function() {
+  const style = document.createElement('style');
+  style.textContent = '@keyframes fadeInOut{0%{opacity:0;transform:translateY(-8px)}10%{opacity:1;transform:translateY(0)}80%{opacity:1}100%{opacity:0}}';
+  document.head.appendChild(style);
+})();
 </script>
 </body>
 </html>

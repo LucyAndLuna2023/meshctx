@@ -145,7 +145,8 @@ _known = {
     'predictor': ['PredictorPlugin','TemporalPatternLearner','ContextPreloader','PredictionResult','ActivityPattern','TimeSlot'],
     'healer': ['HealerPlugin','HealthStatus','CircuitBreaker'],
     'performance': ['PerformancePlugin','CacheStats','StreamStats'],
-    'websocket_plugin': ['WebSocketPlugin','create_ws_routes'],
+    'websocket': ['WebSocketPlugin', '_P', 'create_ws_routes'],
+    'realtime_push': ['RealtimePush', 'ConnectionManager', 'create_realtime_router', 'get_realtime'],
     'hermes_connector': ['HermesConnectorPlugin','HermesDiscovery','EventBridge','HermesInstance'],
     'token_saver': ['TokenSaverPlugin','TokenSaver','TokenCounter','TokenizerRegistry','CompactionResult'],
 }

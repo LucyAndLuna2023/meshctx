@@ -434,6 +434,49 @@ document.addEventListener('keydown', function(e) {
         if (overlay.classList.contains('open')) { closeCmdPalette(); } else { openCmdPalette(); }
     }
 });
+
+// ═══ WebSocket realtime ═══
+(function() {
+    var ws = null;
+    var pingTimer = null;
+    var reconnectTimer = null;
+
+    function connect() {
+        if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+        var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(proto + '//' + location.host + '/ws');
+        ws.onopen = function() {
+            pingTimer = setInterval(function() {
+                if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({type:'ping'}));
+            }, 30000);
+        };
+        ws.onmessage = function(e) {
+            try {
+                var msg = JSON.parse(e.data);
+                if (msg.type === 'system.event' && msg.event) {
+                    var toast = document.getElementById('wsToast');
+                    if (!toast) {
+                        toast = document.createElement('div');
+                        toast.id = 'wsToast';
+                        toast.style.cssText = 'position:fixed;top:16px;right:16px;background:var(--surface);color:var(--text);padding:10px 18px;border-radius:8px;border:1px solid var(--border);font-size:13px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;';
+                        document.body.appendChild(toast);
+                    }
+                    var icons = { 'model.switched': '🔄', 'agent.online': '🟢', 'agent.offline': '🔴', 'file.changed': '📝' };
+                    toast.textContent = (icons[msg.event] || '📡') + ' ' + (msg.data && msg.data.model || msg.event);
+                    toast.style.opacity = '1';
+                    clearTimeout(toast._timeout);
+                    toast._timeout = setTimeout(function(){ toast.style.opacity = '0'; }, 3000);
+                }
+            } catch(ex) {}
+        };
+        ws.onclose = function() {
+            clearInterval(pingTimer);
+            reconnectTimer = setTimeout(connect, 5000);
+        };
+        ws.onerror = function() {};
+    }
+    connect();
+})();
 </script>
 </body>
 </html>"""

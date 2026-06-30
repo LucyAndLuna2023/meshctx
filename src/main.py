@@ -685,6 +685,10 @@ from .core.session_archiver import get_archiver, SessionArchiver
 from .core.watchdog import WatchdogDaemon, get_daemon, HEARTBEAT_FILE
 app.include_router(web_ui_router)
 
+# ─── WebSocket 实时推送路由 ──────────────────────────────
+from .core.realtime_push import create_realtime_router
+app.include_router(create_realtime_router())
+
 # ─── i18n 语言切换 ─────────────────────────────────────
 from .i18n import set_lang, get_lang
 
