@@ -77,7 +77,7 @@ class ChurnAnalyzer:
 
         try:
             result = subprocess.run(
-                ["git", "log", f"-{max_commits}", "--format=%H %aI %an", "--numstat"],
+                ["git", "log", f"-{max_commits}", "--format=%H %aI %an %s", "--numstat"],
                 cwd=repo_path, capture_output=True, text=True, timeout=30,
             )
             if result.returncode != 0:
@@ -94,14 +94,16 @@ class ChurnAnalyzer:
             if not line:
                 continue
 
-            # Commit header: <hash> <date> <author>
+            # Commit header: <hash> <date> <author> <subject>
             if re.match(r'^[0-9a-f]{40}\s', line):
-                parts = line.split(None, 2)
+                parts = line.split(None, 3)
                 current_commit = parts[0]
                 current_author = parts[2] if len(parts) > 2 else "unknown"
+                # Bugfix detection on commit SUBJECT (parts[3]), not author
+                subject = parts[3] if len(parts) > 3 else ""
                 is_bugfix = bool(re.search(
                     r'\b(?:fix|bug|patch|hotfix|workaround)\b',
-                    line, re.IGNORECASE,
+                    subject, re.IGNORECASE,
                 ))
                 continue
 

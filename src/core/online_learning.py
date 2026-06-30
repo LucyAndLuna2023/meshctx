@@ -141,10 +141,39 @@ class PreferenceProfile:
             self.total_accepts / max(1, self.total_accepts + self.total_rejects)
         )
 
+    # Library → category mapping
+    _LIB_CATEGORIES: Dict[str, str] = {
+        "react": "frontend", "vue": "frontend", "angular": "frontend",
+        "svelte": "frontend", "next": "frontend", "nuxt": "frontend",
+        "fastapi": "backend", "flask": "backend", "django": "backend",
+        "express": "backend", "gin": "backend", "actix": "backend",
+        "pytest": "testing", "jest": "testing", "vitest": "testing",
+        "unittest": "testing", "mocha": "testing",
+        "torch": "ml", "tensorflow": "ml", "scikit-learn": "ml",
+        "jax": "ml", "transformers": "ml",
+        "sqlalchemy": "database", "prisma": "database", "drizzle": "database",
+        "redis": "database", "pymongo": "database",
+        "tailwind": "css", "bootstrap": "css", "sass": "css",
+    }
+
     def get_preferred_library(self, category: str = "") -> Optional[str]:
         """Get the most preferred library, optionally filtered by category."""
         if not self.preferred_libraries:
             return None
+        if category:
+            candidates = {
+                lib: score for lib, score in self.preferred_libraries.items()
+                if self._LIB_CATEGORIES.get(lib, "") == category
+            }
+            if not candidates:
+                # Fallback: partial match on library name
+                candidates = {
+                    lib: score for lib, score in self.preferred_libraries.items()
+                    if category.lower() in lib.lower()
+                }
+            if not candidates:
+                return None
+            return max(candidates, key=candidates.get)
         return max(self.preferred_libraries, key=self.preferred_libraries.get)
 
     def get_avoided_libraries(self, threshold: float = 0.3) -> List[str]:
@@ -410,6 +439,148 @@ class StyleDetector:
         return style
 
 
+# ── Markov Predictor ───────────────────────────────────────────────────────
+
+@dataclass
+class MarkovState:
+    """A state in the Markov chain: context + last signal type."""
+    context_hash: str      # hash of context string
+    signal_idx: int        # index into SIGNAL_ORDER
+    count: int = 0
+
+    @property
+    def key(self) -> str:
+        return f"{self.context_hash}:{self.signal_idx}"
+
+    def __hash__(self) -> int:
+        return hash(self.key)
+
+
+class MarkovPredictor:
+    """First-order Markov chain for predicting user acceptance.
+
+    Builds a state transition matrix from feedback history.
+    States: (context_hash, last_signal_idx) pairs.
+    Transitions: probability distribution over next signal types.
+
+    Unlike simple counting, this captures the sequential structure of
+    user behavior — e.g., a reject after a reject signals strong dislike,
+    an accept after accept signals strong approval.
+    """
+
+    SIGNAL_ORDER = ["explicit_reject", "implicit_reject", "implicit_accept", "explicit_accept"]
+
+    def __init__(self):
+        # transition[from_state_key][to_signal_idx] = count
+        self.transitions: Dict[str, Dict[int, int]] = defaultdict(lambda: defaultdict(int))
+        # state_count[state_key] = total occurrences of that state
+        self.state_counts: Dict[str, int] = defaultdict(int)
+        # last_state per context_hash
+        self.last_state: Dict[str, str] = {}  # context_hash → last_signal
+        self._built = False
+
+    def train(self, history: List[Dict[str, Any]]) -> None:
+        """Train the Markov chain from feedback history.
+
+        Args:
+            history: List of {"signal": str, "context": str, "ts": float} dicts
+        """
+        if len(history) < 3:
+            return
+
+        # Sort by timestamp
+        sorted_history = sorted(history, key=lambda h: h.get("ts", 0))
+
+        # Build transition counts
+        for i in range(1, len(sorted_history)):
+            prev = sorted_history[i - 1]
+            curr = sorted_history[i]
+
+            prev_ctx = hashlib.md5(prev.get("context", "").encode()).hexdigest()[:8]
+            curr_ctx = hashlib.md5(curr.get("context", "").encode()).hexdigest()[:8]
+
+            # Use previous context as state context
+            prev_sig = prev.get("signal", "implicit_accept")
+            curr_sig = curr.get("signal", "implicit_accept")
+
+            prev_idx = self._signal_index(prev_sig)
+            curr_idx = self._signal_index(curr_sig)
+
+            from_key = f"{prev_ctx}:{prev_idx}"
+            self.transitions[from_key][curr_idx] += 1
+            self.state_counts[from_key] += 1
+
+        # Record last state per context
+        for h in sorted_history:
+            ctx_hash = hashlib.md5(h.get("context", "").encode()).hexdigest()[:8]
+            self.last_state[ctx_hash] = h.get("signal", "implicit_accept")
+
+        self._built = True
+
+    def predict_acceptance(self, context: str, default: float = 0.5) -> float:
+        """Predict acceptance probability using Markov chain.
+
+        Given a context, looks up the transition probabilities from
+        the last observed state for that context.
+
+        Returns:
+            float: Predicted acceptance probability [0.0, 1.0]
+        """
+        if not self._built:
+            return default
+
+        ctx_hash = hashlib.md5(context.encode()).hexdigest()[:8]
+
+        # Find the best matching context hash (exact or prefix)
+        from_key = None
+        last_sig = self.last_state.get(ctx_hash)
+        if last_sig:
+            from_key = f"{ctx_hash}:{self._signal_index(last_sig)}"
+        else:
+            # Try partial match on context hashes
+            for known_ctx in self.last_state:
+                if ctx_hash[:4] == known_ctx[:4]:
+                    ls = self.last_state[known_ctx]
+                    from_key = f"{known_ctx}:{self._signal_index(ls)}"
+                    break
+
+        if not from_key or from_key not in self.transitions:
+            return default
+
+        trans = self.transitions[from_key]
+        total = self.state_counts[from_key]
+        if total == 0:
+            return default
+
+        # Compute acceptance probability: weighted sum of positive signal probabilities
+        accept_weight = 0.0
+        for sig_idx, count in trans.items():
+            prob = count / total
+            # Weight: implicit_accept=0.7, explicit_accept=1.0
+            if sig_idx == self._signal_index("explicit_accept"):
+                accept_weight += prob * 1.0
+            elif sig_idx == self._signal_index("implicit_accept"):
+                accept_weight += prob * 0.7
+
+        # Blend with prior (0.5) when data is sparse
+        alpha = min(total / 50.0, 0.8)  # Up to 0.8 weight to Markov as data grows
+        return alpha * accept_weight + (1.0 - alpha) * default
+
+    def _signal_index(self, signal: str) -> int:
+        """Map signal name to index."""
+        for i, name in enumerate(self.SIGNAL_ORDER):
+            if name in signal:
+                return i
+        return 2  # Default: implicit_accept
+
+    def stats(self) -> Dict[str, Any]:
+        return {
+            "states": len(self.state_counts),
+            "transitions": sum(len(t) for t in self.transitions.values()),
+            "built": self._built,
+        }
+
+
 # ── Main Online Learner ───────────────────────────────────────────────────
 
 class OnlineLearner:
@@ -427,6 +598,7 @@ class OnlineLearner:
         self.history: deque = deque(maxlen=history_size)
         self._session_signals: List[FeedbackSignal] = []
         self._session_start = time.time()
+        self._markov = MarkovPredictor()
 
     # ── Signal Processing ──────────────────────────────────────────────
 
@@ -489,6 +661,10 @@ class OnlineLearner:
             "ts": signal.timestamp,
         })
 
+        # Train Markov chain periodically
+        if len(self.history) >= 3 and len(self.history) % 5 == 0:
+            self._markov.train(list(self.history))
+
         return signal
 
     def accept(self, context: str, input_text: str = "", output_text: str = "",
@@ -547,24 +723,21 @@ class OnlineLearner:
         return len(async_patterns) > 0
 
     def predict_acceptance(self, context: str, language: str = "") -> float:
-        """Predict the probability the user will accept output in this context."""
-        # Simple heuristic based on history
-        if self.profile.total_interactions < 5:
-            return 0.5  # Default — not enough data
+        """Predict acceptance probability using Markov chain model.
 
-        # Context-specific rate
-        context_signals = [
-            s for s in self.history
-            if s["context"] == context
-        ]
-        if not context_signals:
-            return self.profile.acceptance_rate
+        First-order Markov chain captures sequential user behavior patterns:
+        - reject→reject = strong dislike (low acceptance)
+        - accept→accept = strong approval (high acceptance)
+        - reject→accept = correction was good
 
-        context_accepts = sum(
-            1 for s in context_signals
-            if s["signal"] in ("explicit_accept", "implicit_accept")
-        )
-        return context_accepts / len(context_signals)
+        Falls back to simple rate when Markov isn't trained.
+        """
+        # Try Markov prediction first
+        if self._markov._built:
+            markov_pred = self._markov.predict_acceptance(context, default=self.profile.acceptance_rate)
+            # Blend: 70% Markov, 30% simple rate (anchor against overfitting)
+            return 0.7 * markov_pred + 0.3 * self.profile.acceptance_rate
+        return self.profile.acceptance_rate
 
     def improve_output(self, code: str, context: str = "") -> str:
         """Apply learned preferences to improve code before presenting to user."""

@@ -11,14 +11,13 @@ Key capabilities:
 from __future__ import annotations
 
 import heapq
-import json
 import threading
 import time
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional
 
 
 # ── Enums ──────────────────────────────────────────────────────────────────
@@ -119,8 +118,9 @@ class TaskQueue:
 
     def peek(self) -> Optional[AgentTask]:
         """Peek at the highest-priority ready task without removing."""
-        ready = self._get_ready()
-        return ready[0] if ready else None
+        with self._lock:
+            ready = self._get_ready()
+            return ready[0] if ready else None
 
     def get(self, task_id: str) -> Optional[AgentTask]:
         """Get a task by ID."""
