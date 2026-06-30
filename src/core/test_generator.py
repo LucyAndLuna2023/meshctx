@@ -635,6 +635,8 @@ class TestGenerator:
         """Generate tests for expected exceptions."""
         tests: List[TestCase] = []
         # If function declares raises, generate explicit exception tests
+        # Build a call expression that includes args if the function has required params
+        arg_str = ", ".join(call_args) if call_args else ""
         if func.raises:
             for exc in sorted(func.raises):
                 if self.format == TestFormat.PYTEST:
@@ -644,7 +646,7 @@ class TestGenerator:
                             from {module_name} import {func.name}
                             import pytest
                             with pytest.raises({exc}):
-                                {func.name}()
+                                {func.name}({arg_str})
                     """)
                 else:
                     code = textwrap.dedent(f"""\
@@ -652,7 +654,7 @@ class TestGenerator:
                             \"\"\"Verify {func.name} raises {exc}.\"\"\"
                             from {module_name} import {func.name}
                             with self.assertRaises({exc}):
-                                {func.name}()
+                                {func.name}({arg_str})
                     """)
                 tests.append(TestCase(
                     name=f"test_{func.name}_raises_{exc}",
@@ -1311,7 +1313,10 @@ class MutationTester:
                     old_val = str(node.value)
                     new_val = "1" if node.value == 0 else ("0" if isinstance(node.value, int) else "0.0")
                     old = self.sl[node.lineno - 1]
-                    new = old.replace(old_val, new_val, 1)
+                    # Use regex with digit boundaries to avoid substring mismatches
+                    # e.g. replacing "0" in "x = 10" should NOT match
+                    escaped = re.escape(old_val)
+                    new = re.sub(rf"(?<![\d.]){escaped}(?![\d.])", new_val, old, count=1)
                     if new != old:
                         mutant = "".join(self.sl[:node.lineno-1] + [new] + self.sl[node.lineno:])
                         self.n += 1
@@ -1323,7 +1328,7 @@ class MutationTester:
         return coll
 
     def _mutate_delete_line(
-        self, src_lines: List[str]
+        self, source: str, src_lines: List[str]
     ) -> List[Tuple[str, MutationKind, int, str, str]]:
         """Remove non-essential lines one at a time."""
         mutants: List[Tuple[str, MutationKind, int, str, str]] = []
