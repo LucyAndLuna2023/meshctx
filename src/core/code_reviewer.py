@@ -171,11 +171,19 @@ class ASTAnalyzer(ast.NodeVisitor):
 
         # Too many arguments
         args = [a for a in node.args.args if a.arg != 'self']
-        if len(args) > 5:
+        arg_count = len(args)
+        if arg_count > 10:
+            self.issues.append(ReviewIssue(
+                line=node.lineno, severity="high", category="complexity",
+                title="参数严重过多",
+                description=f"函数 '{node.name}' 有 {arg_count} 个参数 (>10)，严重违反单一职责",
+                suggestion="立即重构：拆分为多个函数或使用配置对象封装",
+            ))
+        elif arg_count > 5:
             self.issues.append(ReviewIssue(
                 line=node.lineno, severity="low", category="style",
                 title="参数过多",
-                description=f"函数 '{node.name}' 有 {len(args)} 个参数 (>5)",
+                description=f"函数 '{node.name}' 有 {arg_count} 个参数 (>5)",
                 suggestion="考虑使用 dataclass 或配置对象封装参数",
             ))
 

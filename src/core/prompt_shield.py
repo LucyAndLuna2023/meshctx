@@ -86,6 +86,10 @@ INJECTION_PATTERNS: list[dict] = [
      "pattern": r"(?:output|print|display|show|repeat)\s+(?:your|the)\s+(?:system\s+)?(?:prompt|instruction|rules?)\s*(?:verbatim|exactly|in\s+full)",
      "description": "Request to output the system prompt verbatim",
      "suggestion": "Reject input."},
+    {"id": "JAIL-005", "severity": "high", "category": "jailbreak",
+     "pattern": r"(?:translate|rewrite|rephrase|convert)\s+(?:the\s+)?(?:following|above|this)\s+(?:to|into)\s+(?:a\s+)?(?:jailbreak|unfiltered|evil|malicious|unethical)\s+(?:prompt|instruction|response)",
+     "description": "Translation-based jailbreak — disguise malicious intent as translation task",
+     "suggestion": "Reject input."},
 
     # ── SQL injection ──
     {"id": "SQLI-001", "severity": "critical", "category": "sql_injection",
@@ -100,6 +104,10 @@ INJECTION_PATTERNS: list[dict] = [
      "pattern": r"(?:;\s*(?:DROP|DELETE|UPDATE|INSERT|ALTER|CREATE)\s|--\s*$|/\*.*\*/)",
      "description": "SQL injection — statement chaining or comment truncation",
      "suggestion": "Use parameterized queries."},
+    {"id": "SQLI-004", "severity": "medium", "category": "sql_injection",
+     "pattern": r"(?:LIKE|ORDER\s+BY|GROUP\s+BY|LIMIT|OFFSET)\s+['\"%]",
+     "description": "SQL injection — LIKE/ORDER BY/GROUP BY with user-controlled literals",
+     "suggestion": "Use parameterized queries with placeholders."},
 
     # ── Shell injection ──
     {"id": "SHLI-001", "severity": "critical", "category": "shell_injection",
@@ -124,6 +132,10 @@ INJECTION_PATTERNS: list[dict] = [
      "pattern": r'javascript\s*:',
      "description": "XSS — javascript: protocol URI",
      "suggestion": "Strip javascript: URIs from user input."},
+    {"id": "XSS-004", "severity": "medium", "category": "xss",
+     "pattern": r'<iframe[^>]*src\s*=\s*["\']\s*(?:javascript|data|vbscript):',
+     "description": "XSS — iframe with javascript:/data:/vbscript: src",
+     "suggestion": "Strip or sandbox iframes in user input."},
 
     # ── Path traversal ──
     {"id": "PATH-001", "severity": "high", "category": "path_traversal",
