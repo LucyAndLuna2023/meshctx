@@ -979,6 +979,178 @@ class DiffRenderer:
         )
 
 
+    @staticmethod
+    def render_side_by_side(diff_text: str, filepath: str = "",
+                            old_label: str = "Before", new_label: str = "After") -> str:
+        """Render a unified diff as a side-by-side HTML view.
+
+        Two columns: left=old (removals), right=new (additions).
+        Context lines span both columns. Suitable for web review UIs.
+        """
+        import html as html_mod
+        rows = []
+        i = 0
+        diff_lines = diff_text.splitlines()
+        while i < len(diff_lines):
+            line = diff_lines[i]
+            escaped = html_mod.escape(line)
+            if line.startswith("@@ "):
+                rows.append((
+                    f'<div class="sb-gutter" style="grid-column:1/3;background:#1e3a5f;'
+                    f'color:#06b6d4;font-weight:bold;padding:4px 12px;font-size:12px">{escaped}</div>',
+                ))
+                i += 1
+            elif line.startswith("-") and not line.startswith("---"):
+                removed_lines = []
+                while i < len(diff_lines) and diff_lines[i].startswith("-") and not diff_lines[i].startswith("---"):
+                    removed_lines.append(html_mod.escape(diff_lines[i]))
+                    i += 1
+                added_lines = []
+                while i < len(diff_lines) and diff_lines[i].startswith("+") and not diff_lines[i].startswith("+++"):
+                    added_lines.append(html_mod.escape(diff_lines[i]))
+                    i += 1
+                max_len = max(len(removed_lines), len(added_lines))
+                while len(removed_lines) < max_len:
+                    removed_lines.append("")
+                while len(added_lines) < max_len:
+                    added_lines.append("")
+                for rl, al in zip(removed_lines, added_lines):
+                    rows.append((
+                        f'<div class="sb-left" style="background:#7f1d1d;color:#fca5a5;'
+                        f'padding:2px 8px;font-family:monospace;font-size:12px;white-space:pre;overflow:hidden">{rl}</div>',
+                        f'<div class="sb-right" style="background:#064e3b;color:#6ee7b7;'
+                        f'padding:2px 8px;font-family:monospace;font-size:12px;white-space:pre;overflow:hidden">{al}</div>',
+                    ))
+            elif line.startswith("+") and not line.startswith("+++"):
+                rows.append((
+                    f'<div class="sb-left" style="background:#1e293b;padding:2px 8px;'
+                    f'font-family:monospace;font-size:12px"></div>',
+                    f'<div class="sb-right" style="background:#064e3b;color:#6ee7b7;'
+                    f'padding:2px 8px;font-family:monospace;font-size:12px;white-space:pre;overflow:hidden">{escaped}</div>',
+                ))
+                i += 1
+            elif line.startswith("diff ") or line.startswith("index ") or \
+                 line.startswith("--- ") or line.startswith("+++ "):
+                rows.append((
+                    f'<div class="sb-gutter" style="grid-column:1/3;color:#fbbf24;'
+                    f'padding:2px 12px;font-size:11px;font-family:monospace">{escaped}</div>',
+                ))
+                i += 1
+            else:
+                rows.append((
+                    f'<div class="sb-left" style="background:#0f172a;color:#94a3b8;'
+                    f'padding:2px 8px;font-family:monospace;font-size:12px;white-space:pre;overflow:hidden">{escaped}</div>',
+                    f'<div class="sb-right" style="background:#0f172a;color:#94a3b8;'
+                    f'padding:2px 8px;font-family:monospace;font-size:12px;white-space:pre;overflow:hidden">{escaped}</div>',
+                ))
+                i += 1
+
+        cells = []
+        for row in rows:
+            if len(row) == 1:
+                cells.append(row[0])
+            else:
+                cells.append(row[0])
+                cells.append(row[1])
+
+        fp_html = f'<div style="color:#8b5cf6;font-weight:bold;margin-bottom:8px">{html_mod.escape(filepath)}</div>' if filepath else ""
+
+        return (
+            f'<div style="background:#0f172a;color:#e2e8f0;border-radius:8px;overflow:hidden;font-size:13px">'
+            f'<div style="display:flex;background:#1e293b;border-bottom:1px solid #334155">'
+            f'<div style="flex:1;padding:8px 12px;font-weight:bold;color:#fca5a5">{html_mod.escape(old_label)}</div>'
+            f'<div style="flex:1;padding:8px 12px;font-weight:bold;color:#6ee7b7">{html_mod.escape(new_label)}</div>'
+            f'</div>'
+            f'{fp_html}'
+            f'<div style="display:grid;grid-template-columns:1fr 1fr;overflow-x:auto">'
+            f'{"".join(cells)}'
+            f'</div>'
+            f'</div>'
+        )
+
+    @staticmethod
+    def render_compact_summary(stats: dict) -> str:
+        """Render a compact diff summary card for dashboards and notifications.
+
+        Args:
+            stats: dict with insertions, deletions, files, chunks, filepath, description.
+
+        Returns:
+            HTML string for a compact summary card.
+        """
+        import html as html_mod
+        insertions = stats.get("insertions", 0)
+        deletions = stats.get("deletions", 0)
+        files = stats.get("files", stats.get("file_count", 1))
+        chunks = stats.get("chunks", stats.get("chunk_count", 0))
+        filepath = stats.get("filepath", "")
+        description = stats.get("description", "")
+        net = insertions - deletions
+        net_color = "#3fb950" if net >= 0 else "#f85149"
+        net_sign = "+" if net >= 0 else ""
+        desc_html = f'<span style="color:#8b949e;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">{html_mod.escape(description)}</span>' if description else ""
+        return (
+            f'<div style="display:inline-flex;align-items:center;gap:12px;'
+            f'background:#161b22;border:1px solid #30363d;border-radius:8px;'
+            f'padding:10px 16px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;'
+            f'font-size:13px;color:#e6edf3;max-width:100%">'
+            f'<span style="color:#8b5cf6;font-weight:600;white-space:nowrap">'
+            f'\U0001f4c4 {html_mod.escape(filepath) if filepath else f"{files} file(s)"}</span>'
+            f'<span style="display:flex;gap:8px;align-items:center">'
+            f'<span style="color:#3fb950;font-weight:600">+{insertions}</span>'
+            f'<span style="color:#f85149;font-weight:600">-{deletions}</span>'
+            f'<span style="color:{net_color};font-weight:600">{net_sign}{net}</span>'
+            f'</span>'
+            f'<span style="color:#8b949e;font-size:12px">{chunks} chunks</span>'
+            + desc_html
+            + f'</div>'
+        )
+
+    @staticmethod
+    def render_ansi_terminal(diff_text: str, filepath: str = "",
+                             width: int = 80, show_line_numbers: bool = True) -> str:
+        """Render diff as rich ANSI terminal output with line numbers and summary.
+
+        More feature-rich than terminal() — adds line numbers, truncation,
+        and a summary footer.
+        """
+        import re
+        lines = []
+        if filepath:
+            lines.append(f"{DiffRenderer._BOLD}\u2550\u2550\u2550 {filepath} \u2550\u2550\u2550{DiffRenderer._RESET}")
+        old_ln = 0
+        new_ln = 0
+        for line in diff_text.splitlines():
+            if line.startswith("@@ "):
+                m = re.match(r"@@ -(\d+),?\d* \+(\d+),?\d* @@", line)
+                if m:
+                    old_ln = int(m.group(1))
+                    new_ln = int(m.group(2))
+                lines.append(f"{DiffRenderer._CYAN}{DiffRenderer._BOLD}{line}{DiffRenderer._RESET}")
+            elif line.startswith("+") and not line.startswith("+++"):
+                ln = f"{new_ln:4d} " if show_line_numbers else ""
+                content = line[:width-8] + "\u2026" if len(line) > width - 7 else line
+                lines.append(f"{DiffRenderer._GREEN}{ln}{content}{DiffRenderer._RESET}")
+                new_ln += 1
+            elif line.startswith("-") and not line.startswith("---"):
+                ln = f"{old_ln:4d} " if show_line_numbers else ""
+                content = line[:width-8] + "\u2026" if len(line) > width - 7 else line
+                lines.append(f"{DiffRenderer._RED}{ln}{content}{DiffRenderer._RESET}")
+                old_ln += 1
+            elif line.startswith("diff ") or line.startswith("index ") or \
+                 line.startswith("--- ") or line.startswith("+++ "):
+                lines.append(f"{DiffRenderer._YELLOW}{line}{DiffRenderer._RESET}")
+            else:
+                if show_line_numbers:
+                    lines.append(f"     {line}")
+                else:
+                    lines.append(line)
+                old_ln += 1
+                new_ln += 1
+        return "\n".join(lines)
+
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Singleton accessor (kept from v3.48+)
 # ═══════════════════════════════════════════════════════════════════════════════

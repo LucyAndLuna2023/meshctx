@@ -76,7 +76,7 @@ _known = {
     'approval': ['ApprovalEngine'],
     'credential_pool': ['CredentialPoolManager'],
     'usage_insights': ['UsageInsights','get_usage_insights'],
-    'diff_preview': ['DiffEngine','DiffChunkAction','DiffFile','DiffChunk','InlineDiffViewer','DiffApplicator','BatchDiffManager','get_diff_engine','create_proposal'],
+    'diff_preview': ['DiffEngine','DiffChunkAction','DiffFile','DiffChunk','InlineDiffViewer','DiffRenderer','DiffApplicator','BatchDiffManager','get_diff_engine','create_proposal','render_side_by_side','render_compact_summary'],
     'thinking_pad': ['ThinkingPad','ThinkingPadManager','ThoughtNode','ThoughtCategory','ThoughtStatus','ThinkingSession'],
     'gateway_connectors': ['get_gateway'],
     'feishu_notify': ['FeishuNotifier','FeishuPlugin'],
