@@ -35,23 +35,24 @@ class PlanStep:
 class AgentLoopPlugin:
     """Plan/Act/Reflect agent cycle plugin."""
 
-    def __init__(self, *a, **kw):
+    def __init__(self, objective: str = "", context: dict | None = None,
+                 max_iterations: int = 10, pool_max_slots: int = 5):
         self.info = PluginInfo(
             name="agent_loop", version="0.2.0",
             description="Plan/Act/Reflect agent cycle with AgentPool delegation")
         self.kernel = None
         self._running = False
         self._phase = LoopPhase.plan
-        self.objective: str = kw.get("objective", "")
-        self.context: dict = kw.get("context", {}) or {}
+        self.objective: str = objective
+        self.context: dict = context or {}
         self.steps: list = []
         self._current_step_idx: int = 0
         self._iteration: int = 0
-        self._max_iterations: int = kw.get("max_iterations", 10)
+        self._max_iterations: int = max_iterations
         self._started_at: Optional[float] = None
         self._last_step_at: Optional[float] = None
         self._pool: Optional[AgentPool] = None
-        self._pool_max_slots: int = kw.get("pool_max_slots", 5)
+        self._pool_max_slots: int = pool_max_slots
         self._reflection_log: list = []
         self._outcome: str = ""
 
