@@ -17,6 +17,7 @@ import collections
 import dataclasses
 import enum
 import json
+import logging
 import os
 import re
 import shlex
@@ -787,7 +788,9 @@ class PRAgent:
                 )
                 return proc2.stdout
             return proc.stdout
-        except (subprocess.TimeoutExpired, FileNotFoundError, OSError): return ""
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as exc:
+            logging.warning("PRAgent: git diff failed: %s", exc)
+            return ""
 
     def _git_log(self) -> list[str]:
         mb = self._merge_base()

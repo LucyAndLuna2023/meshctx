@@ -366,15 +366,21 @@ class ThinkingPad:
         return [self._nodes[cid] for cid in node.children if cid in self._nodes]
 
     def get_path(self, node_id: str) -> List[ThoughtNode]:
-        """Get the full path from root to this node."""
+        """Get the full path from root to this node (cycle-safe)."""
         path = []
         current = node_id
+        seen: set[str] = set()
         while current:
+            if current in seen:
+                break
+            seen.add(current)
             node = self._nodes.get(current)
             if not node:
                 break
             path.append(node)
             current = node.parent_id or ""
+            if current is None:
+                break
         path.reverse()
         return path
 
@@ -401,8 +407,13 @@ class ThinkingPad:
             return "(empty)"
 
         lines = []
+        visited: set[str] = set()
 
         def _render(node_id: str, prefix: str, is_last: bool):
+            if node_id in visited:
+                lines.append(f"{prefix}{chr(9492)+chr(9472)+' ' if is_last else chr(9500)+chr(9472)+' '}[cycle: {node_id}]")
+                return
+            visited.add(node_id)
             node = self._nodes.get(node_id)
             if not node:
                 return
@@ -474,7 +485,13 @@ class ThinkingPad:
         if not self._root_id:
             return '<div style="color:#94a3b8">(empty)</div>'
 
+        seen: set[str] = set()
+
         def _render_node(node: ThoughtNode) -> str:
+            if node.id in seen:
+                return (f'<div style="margin-left:{node.depth * 24}px;color:#dc2626">'
+                        f'[cycle: {node.id}]</div>')
+            seen.add(node.id)
             children_html = ""
             for cid in node.children:
                 if cid in self._nodes:
@@ -602,10 +619,11 @@ class ThinkingPadManager:
     strategies work, where the agent tends to get stuck, etc.
     """
 
-    def __init__(self, max_sessions: int = 100):
+    def __init__(self, max_sessions: int = 100, max_completed: int = 200):
         self._sessions: Dict[str, ThinkingPad] = {}
         self._completed: List[ThinkingSession] = []
         self._max_sessions = max_sessions
+        self._max_completed = max_completed
 
     def create(self, session_id: str = "") -> ThinkingPad:
         """Create a new thinking session."""
@@ -623,6 +641,8 @@ class ThinkingPadManager:
         if pad:
             session = pad.finish_session()
             self._completed.append(session)
+            while len(self._completed) > self._max_completed:
+                self._completed.pop(0)
             return session
         return None
 

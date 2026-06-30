@@ -528,7 +528,7 @@ class InlineDiffViewer:
     def _was_accepted(self, filepath: str, chunk_index: int) -> bool:
         for fp, ci, action in self._action_log:
             if fp == filepath and ci == chunk_index:
-                return action == DiffChunkAction.ACCEPT
+                return action in (DiffChunkAction.ACCEPT, DiffChunkAction.ACCEPT_ALL)
         return False
 
     # ── Session summary ─────────────────────────────────────────────────
@@ -810,10 +810,9 @@ class BatchDiffManager:
             result = self._applicator.apply(filepath, old_text, new_text, dry_run)
             self._results.append(result)
             if result.status == ApplyStatus.FAILED and not dry_run:
-                # Stop on first failure — rollback previous
                 self.undo_all()
                 break
-        return self._results
+        return list(self._results)
 
     def undo_all(self) -> int:
         """Undo all applied edits. Returns count of successful rollbacks."""

@@ -18,6 +18,7 @@ import ast
 import difflib
 import hashlib
 import io
+import textwrap
 import os
 import re
 import tokenize as _tokenize_module
@@ -401,6 +402,16 @@ class SafeRenamer:
             def visit_Lambda(self, lb: ast.Lambda) -> None:
                 nonlocal scope
                 scope = _Scope(parent=scope, kind="lambda")
+                for a in lb.args.args:
+                    scope.define(a.arg, a)
+                if lb.args.vararg:
+                    scope.define(lb.args.vararg.arg, lb.args.vararg)
+                if lb.args.kwarg:
+                    scope.define(lb.args.kwarg.arg, lb.args.kwarg)
+                for a in lb.args.kwonlyargs:
+                    scope.define(a.arg, a)
+                for a in lb.args.posonlyargs:
+                    scope.define(a.arg, a)
                 self.generic_visit(lb)
                 scope = scope.parent or scope
 
@@ -777,8 +788,12 @@ class ExtractMethod:
         else:
             rp = ""
         sig = f"def extracted({params_str}){rp}:"
-        block_src = "    " + _node_text_for_lines(source, start_line, end_line).replace(
-            "\n", "\n    ").rstrip("    ")
+        raw_lines = _node_text_for_lines(source, start_line, end_line).splitlines(True)
+        dedented = textwrap.dedent("".join(raw_lines))
+        block_src = "".join(
+            f"    {line}" if line.rstrip("\n") else line
+            for line in dedented.splitlines(True)
+        )
 
         return RefactorSuggestion(
             severity=Severity.LOW, kind=RefactorKind.EXTRACT_METHOD,
