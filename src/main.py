@@ -3867,12 +3867,15 @@ async def diff_local_files(file1: str = "", file2: str = "", format: str = "side
     except:
         t2 = fp2.read_bytes().decode("latin-1")
     engine = DiffEngine()
-    hunks = engine.compute_diff(t1, t2, fp1.name, fp2.name)
+    diff_text = engine.generate(t1, t2, fp1.name)
     if format == "compact":
-        html = DiffRenderer.render_compact_summary(hunks, fp1.name, fp2.name)
+        stats = engine.statistics([diff_text])
+        html = DiffRenderer.render_compact_summary(stats)
+    elif format == "ansi":
+        html = DiffRenderer.render_ansi_terminal(diff_text, fp1.name)
     else:
-        html = DiffRenderer.render_side_side(hunks, fp1.name, fp2.name)
-    return {"file1": str(fp1), "file2": str(fp2), "format": format, "html": html, "hunks": len(hunks)}
+        html = DiffRenderer.render_side_by_side(diff_text, fp1.name)
+    return {"file1": str(fp1), "file2": str(fp2), "format": format, "html": html}
 
 
 @app.post("/api/file/write")
