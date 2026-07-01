@@ -227,6 +227,8 @@ class DiffEngine:
                     deletions += 1
         return {
             "files_changed": files_changed,
+            "files": files_changed,
+            "file_count": files_changed,
             "insertions": insertions,
             "deletions": deletions,
         }
