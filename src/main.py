@@ -2824,6 +2824,70 @@ async def win_software():
 
 
 # ═══════════════════════════════════════════════════
+# 非流式Chat API (v3.115.14 — BUG-048修复)
+# ═══════════════════════════════════════════════════
+
+@app.post("/api/chat")
+async def api_chat(request: Request):
+    """非流式Chat API — 返回完整JSON响应。用于前端chat.html"""
+    from src.model_registry import get_registry
+    from src.config import load_config
+    import json as _json
+
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "无效请求"}, status_code=400)
+
+    msgs = body.get("messages", [])
+    if not msgs:
+        msg = body.get("message", "")
+        if msg:
+            msgs = [{"role": "user", "content": msg}]
+
+    if not msgs:
+        return JSONResponse({"error": "请输入消息"}, status_code=400)
+
+    model_id = body.get("model")
+    if not model_id:
+        try:
+            config = load_config()
+            model_id = config.get("models", {}).get("default", "deepseek:v4-pro")
+        except Exception:
+            model_id = "deepseek:v4-pro"
+
+    try:
+        reg = get_registry()
+        client = reg.get(model_id) or reg.get(None)
+        if not client:
+            return JSONResponse({
+                "error": "模型未配置，请在Setup页面设置API Key"
+            }, status_code=503)
+
+        resp = client.client.chat.completions.create(
+            model=client.model_name,
+            messages=msgs,
+            temperature=0.7,
+            max_tokens=4096,
+        )
+        choice = resp.choices[0]
+        content = choice.message.content or ""
+
+        return JSONResponse({
+            "content": content,
+            "tool_result": None,
+            "tokens": choice.usage.total_tokens if hasattr(choice, 'usage') and choice.usage else 0,
+            "hybrid_info": None,
+        })
+    except Exception as e:
+        logger.error(f"Chat API error: {e}")
+        return JSONResponse({
+            "error": f"模型调用失败: {str(e)}",
+            "content": ""
+        }, status_code=500)
+
+
+# ═══════════════════════════════════════════════════
 # 流式Chat API (v1.4.0)
 # ═══════════════════════════════════════════════════
 
