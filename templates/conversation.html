@@ -7,20 +7,20 @@
         <div>
             <h1>💬 {{ conversation.title }}</h1>
             <p class="subtitle">
-                项目:
+                <span data-lang-key="conv_project_label">项目:</span>
                 <a href="/ui/projects/{{ project.id }}" class="link">{{ project.name }}</a>
                 {% if conversation.summary %}
                 <span class="divider">|</span> 摘要: {{ truncate(conversation.summary, 80) }}
                 {% endif %}
             </p>
         </div>
-        <a href="/ui/projects/{{ project.id }}" class="btn">← 返回项目</a>
+        <a href="/ui/projects/{{ project.id }}" class="btn"><span data-lang-key="conv_back">← 返回项目</span></a>
     </div>
 </section>
 
 <div class="section">
     <div class="section-header">
-        <h2>📝 消息记录 ({{ messages|length }})</h2>
+        <h2><span data-lang-key="conv_messages">📝 消息记录</span> ({{ messages|length }})</h2>
         <span class="text-sm text-muted">conversation_id: {{ conversation.id }}</span>
     </div>
 
@@ -30,9 +30,9 @@
         <div class="message-item message-{{ msg.role }}">
             <div class="message-header">
                 <span class="message-role">
-                    {% if msg.role == 'user' %}👤 用户
-                    {% elif msg.role == 'assistant' %}🤖 助手
-                    {% elif msg.role == 'system' %}⚙️ 系统
+                    {% if msg.role == 'user' %}<span data-lang-key="conv_role_user">👤 用户</span>
+                    {% elif msg.role == 'assistant' %}<span data-lang-key="conv_role_ai">🤖 助手</span>
+                    {% elif msg.role == 'system' %}<span data-lang-key="conv_role_system">⚙️ 系统</span>
                     {% else %}{{ msg.role }}
                     {% endif %}
                 </span>
@@ -50,7 +50,7 @@
         {% endfor %}
     </div>
     {% else %}
-    <div class="empty-state"><p>暂无消息</p></div>
+    <div class="empty-state"><p><span data-lang-key="conv_no_messages">暂无消息</span></p></div>
     {% endif %}
 </div>
 {% endblock %}

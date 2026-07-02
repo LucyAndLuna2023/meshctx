@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}meshctx{% endblock %}</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v={{ version }}">
     <style>
         .lang-switch { position:fixed; top:10px; right:20px; z-index:1000; }
         .lang-switch select { background:#1a1a2e; color:#e0e0e0; border:1px solid #333; padding:4px 8px; border-radius:4px; font-size:12px; cursor:pointer; }
@@ -26,7 +26,7 @@
     <nav class="navbar">
         <div class="nav-brand">
             <a href="/ui/" class="nav-logo">🕸 meshctx</a>
-            <span class="nav-version">v3.37</span>
+            <span class="nav-version">v{{ version }}</span>
         </div>
         <div class="nav-links">
             <a href="/ui/" class="nav-link" data-lang-key="nav_dashboard">仪表板</a>
@@ -59,6 +59,7 @@ const LANG = {
         projects_title:"Projects", projects_search:"Search projects...",
         memories_title:"Memories", memories_search:"Search memories...",
         continuity_title:"Continuity", continuity_desc:"Cross-session context preservation",
+        conv_project_label:"Project:", conv_back:"← Back to project", conv_messages:"📝 Messages", conv_role_user:"👤 User", conv_role_ai:"🤖 Assistant", conv_role_system:"⚙️ System", conv_no_messages:"No messages yet",
         no_data:"No data", loading:"Loading...", error:"Error",
         save:"Save", cancel:"Cancel", delete:"Delete", confirm:"Confirm",
         search:"Search", filter:"Filter", sort:"Sort", refresh:"Refresh"
@@ -75,6 +76,7 @@ const LANG = {
         projects_title:"项目", projects_search:"搜索项目...",
         memories_title:"记忆", memories_search:"搜索记忆...",
         continuity_title:"连续性", continuity_desc:"跨会话上下文保持",
+        conv_project_label:"项目:", conv_back:"← 返回项目", conv_messages:"📝 消息记录", conv_role_user:"👤 用户", conv_role_ai:"🤖 助手", conv_role_system:"⚙️ 系统", conv_no_messages:"暂无消息",
         no_data:"无数据", loading:"加载中...", error:"错误",
         save:"保存", cancel:"取消", delete:"删除", confirm:"确认",
         search:"搜索", filter:"筛选", sort:"排序", refresh:"刷新"
@@ -90,7 +92,8 @@ const LANG = {
         dashboard_models:"モデル", dashboard_plugins:"プラグイン",
         projects_title:"プロジェクト", projects_search:"プロジェクト検索...",
         memories_title:"記憶", memories_search:"記憶検索...",
-        continuity_title:"連続性", continuity_desc:"セッション間コンテキスト保持",
+        continuity_title:"連続性", continuity_desc:"セッション間の文脈保持",
+        conv_project_label:"プロジェクト:", conv_back:"← プロジェクトに戻る", conv_messages:"📝 メッセージ履歴", conv_role_user:"👤 ユーザー", conv_role_ai:"🤖 アシスタント", conv_role_system:"⚙️ システム", conv_no_messages:"メッセージがありません",
         no_data:"データなし", loading:"読み込み中...", error:"エラー",
         save:"保存", cancel:"キャンセル", delete:"削除", confirm:"確認",
         search:"検索", filter:"フィルター", sort:"並べ替え", refresh:"更新"
@@ -106,7 +109,8 @@ const LANG = {
         dashboard_models:"모델", dashboard_plugins:"플러그인",
         projects_title:"프로젝트", projects_search:"프로젝트 검색...",
         memories_title:"메모리", memories_search:"메모리 검색...",
-        continuity_title:"연속성", continuity_desc:"세션 간 컨텍스트 유지",
+        continuity_title:"연속성", continuity_desc:"세션 간 컨텍스트 보존",
+        conv_project_label:"프로젝트:", conv_back:"← 프로젝트로 돌아가기", conv_messages:"📝 메시지 기록", conv_role_user:"👤 사용자", conv_role_ai:"🤖 어시스턴트", conv_role_system:"⚙️ 시스템", conv_no_messages:"메시지 없음",
         no_data:"데이터 없음", loading:"로딩 중...", error:"오류",
         save:"저장", cancel:"취소", delete:"삭제", confirm:"확인",
         search:"검색", filter:"필터", sort:"정렬", refresh:"새로고침"
@@ -123,6 +127,7 @@ const LANG = {
         projects_title:"Projekte", projects_search:"Projekte durchsuchen...",
         memories_title:"Erinnerungen", memories_search:"Erinnerungen durchsuchen...",
         continuity_title:"Kontinuität", continuity_desc:"Sitzungsübergreifende Kontexterhaltung",
+        conv_project_label:"Projekt:", conv_back:"← Zurück zum Projekt", conv_messages:"📝 Nachrichtenverlauf", conv_role_user:"👤 Benutzer", conv_role_ai:"🤖 Assistent", conv_role_system:"⚙️ System", conv_no_messages:"Keine Nachrichten",
         no_data:"Keine Daten", loading:"Lädt...", error:"Fehler",
         save:"Speichern", cancel:"Abbrechen", delete:"Löschen", confirm:"Bestätigen",
         search:"Suchen", filter:"Filter", sort:"Sortieren", refresh:"Aktualisieren"
@@ -139,6 +144,7 @@ const LANG = {
         projects_title:"Projets", projects_search:"Rechercher des projets...",
         memories_title:"Souvenirs", memories_search:"Rechercher des souvenirs...",
         continuity_title:"Continuité", continuity_desc:"Préservation du contexte inter-sessions",
+        conv_project_label:"Projet:", conv_back:"← Retour au projet", conv_messages:"📝 Historique", conv_role_user:"👤 Utilisateur", conv_role_ai:"🤖 Assistant", conv_role_system:"⚙️ Système", conv_no_messages:"Aucun message",
         no_data:"Aucune donnée", loading:"Chargement...", error:"Erreur",
         save:"Enregistrer", cancel:"Annuler", delete:"Supprimer", confirm:"Confirmer",
         search:"Rechercher", filter:"Filtrer", sort:"Trier", refresh:"Actualiser"
@@ -155,6 +161,7 @@ const LANG = {
         projects_title:"Proyectos", projects_search:"Buscar proyectos...",
         memories_title:"Recuerdos", memories_search:"Buscar recuerdos...",
         continuity_title:"Continuidad", continuity_desc:"Preservación de contexto entre sesiones",
+        conv_project_label:"Proyecto:", conv_back:"← Volver al proyecto", conv_messages:"📝 Historial", conv_role_user:"👤 Usuario", conv_role_ai:"🤖 Asistente", conv_role_system:"⚙️ Sistema", conv_no_messages:"Sin mensajes",
         no_data:"Sin datos", loading:"Cargando...", error:"Error",
         save:"Guardar", cancel:"Cancelar", delete:"Eliminar", confirm:"Confirmar",
         search:"Buscar", filter:"Filtrar", sort:"Ordenar", refresh:"Actualizar"
