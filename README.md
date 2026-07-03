@@ -1,17 +1,16 @@
 <p align="center">
   <img src="docs/assets/logo.png" alt="MeshCtx" width="200">
-  <h1 align="center">🧠 MeshCtx v3.48</h1>
-  <h3 align="center">世界第一全脑仿真自进化AI Agent · SDM突破性记忆 · 自修改代码 · 1279测试 · 123模型 · 37供应商 · 13脑区 · 1177测试</h3>
+  <h1 align="center">🧠 MeshCtx v3.115.15</h1>
+  <h3 align="center">世界第一全脑仿真自进化AI Agent · SDM突破性记忆 · 自修改代码 · 130全量测试 · 9脑区 · 9模块 · DeepSeek TUI竞品对标</h3>
 </p>
 
 <p align="center">
   <a href="LEGAL.md"><img src="https://img.shields.io/badge/license-AGPLv3+Commercial-blue"></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.10+-green"></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-1279-brightgreen"></a>
-  <a href="#"><img src="https://img.shields.io/badge/models-123-purple"></a>
-  <a href="#"><img src="https://img.shields.io/badge/providers-37-orange"></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-130-brightgreen"></a>
+  <a href="#"><img src="https://img.shields.io/badge/modules-9-purple"></a>
+  <a href="#"><img src="https://img.shields.io/badge/brain_regions-9-orange"></a>
   <a href="#"><img src="https://img.shields.io/badge/languages-7-red"></a>
-  <a href="#"><img src="https://img.shields.io/badge/modules-83-yellow"></a>
   <a href="#"><img src="https://img.shields.io/badge/papers-3-blue"></a>
 </p>
 
@@ -59,7 +58,7 @@ meshctx desktop        # Windows桌面客户端
 ## 🧠 核心特性
 
 ### 脑启发AI引擎
-- **13脑区全脑仿真**: 自由能原理 · 主动推理 · 全局工作空间 · 稳态调节
+- **9脑区全脑仿真**: 自由能原理 · 主动推理 · 全局工作空间 · 稳态调节
 - **混合推理调度**: 自由能驱动的探索vs直出决策
 - **超级大脑**: 海马回放 · 杏仁核情绪标记 · 默认模式网络 · 丘脑门控
 - **元认知**: 自我评估 · 错误分类 · 行为调整
@@ -140,7 +139,8 @@ curl -X POST http://manager:3001/swarm/execute \
 | v2.40 | **类人记忆系统** (6机制) | 916 |
 | v2.41 | **自主运维引擎** (自愈+进化) | 935 |
 | v2.42 | **Hooks引擎** (8事件) | 956 |
-| v2.43 | **Agent团队** (6角色+4模式) | **975** |
+| v2.43 | **Agent团队** (6角色+4模式) | 975 |
+| v3.115 | **DeepSeek TUI竞品对标** (9模块·4200行) | **130** |
 
 ---
 
@@ -149,69 +149,58 @@ curl -X POST http://manager:3001/swarm/execute \
 ```
 meshctx/
 ├── src/
-│   ├── main.py              # FastAPI 主应用 (5600行)
-│   ├── web_ui.py            # Web UI 模板 (6200行)
-│   ├── cli.py               # CLI 命令行 (1100行)
-│   ├── model_registry.py    # 123模型/37供应商
-│   └── core/                # 72个核心模块
-│       ├── human_memory.py  # 类人记忆 (650行)
-│       ├── autonomous_engine.py # 自主运维 (600行)
-│       ├── hooks_engine.py  # Hooks系统 (350行)
-│       ├── agent_teams.py   # Agent团队 (320行)
-│       ├── gateway_connectors.py # 多平台Gateway (525行)
-│       ├── credential_pool.py   # 凭证池 (300行)
-│       ├── usage_insights.py    # 使用洞察 (350行)
-│       ├── super_brain.py       # 13脑区超级大脑
-│       ├── free_energy.py       # 自由能原理
-│       ├── active_inference.py  # 主动推理
-│       └── ... (60+ 更多)
-├── tests/                   # 975个测试 (55个文件)
+│   ├── main.py              # FastAPI 主应用
+│   ├── web_ui.py            # Web UI 模板
+│   ├── cli.py               # CLI 命令行
+│   ├── i18n.py              # 7语言国际化
+│   └── core/                # 9个核心模块
+│       ├── dual_session.py      # Planner/Executor 双session引擎
+│       ├── prompt_registry.py   # YAML模板注册表 + 版本化
+│       ├── subagent_isolated.py # 子进程真隔离 subagent
+│       ├── cost_router.py       # flash/pro 成本分级路由
+│       ├── config_chain.py      # 4级TOML配置链覆盖
+│       ├── identity_guard.py    # System prompt身份固化
+│       ├── tui_format.py        # 6种TUI输出格式注入
+│       ├── tool_repair.py       # 7策略JSON修复层
+│       └── memory_v5.py         # 4级分级内存注入
+├── tests/                   # 130个测试
 ├── docs/                    # 文档站点
 ├── install.sh               # Linux一键安装
 ├── install.bat              # Windows安装脚本
-├── meshctx_setup.nsi        # NSIS安装程序 (7语言)
-└── meshctx_desktop.spec     # PyInstaller打包配置
+└── index.html               # 7语言主页 (gh-pages)
 ```
-
-## 🔌 API 端点 (100+)
+## 🔌 API 端点
 
 ### 聊天
-- `POST /api/chat` — 对话
+- `POST /api/chat` — 对话 (非流式JSON)
 - `POST /api/chat/stream` — 流式对话 (SSE)
 
+### 双Session
+- `POST /api/dual/plan` — Planner规划
+- `POST /api/dual/execute` — Executor执行
+- `GET /api/dual/stats` — Session统计
+
+### Prompt注册表
+- `GET /api/prompts` — 列出模板
+- `POST /api/prompts` — 创建模板
+- `POST /api/prompts/{id}/publish` — 发布版本
+- `POST /api/prompts/render` — 渲染模板
+
+### Subagent隔离
+- `POST /api/subagent/run` — 启动隔离subagent
+- `GET /api/subagent/{id}/status` — 查询状态
+- `POST /api/subagent/{id}/storm_break` — 强制终止
+
 ### 记忆
-- `GET /api/memory/human/stats` — 类人记忆诊断
-- `POST /api/memory/human/encode` — 编码记忆
-- `POST /api/memory/human/recall` — 联想回忆
-- `POST /api/memory/human/replay` — 海马回放
+- `GET /api/memory/stats` — 记忆诊断
+- `POST /api/memory/add` — 添加记忆
+- `POST /api/memory/search` — 搜索记忆
+- `POST /api/memory/set_level` — 设置注入级别
 
-### 自主运维
-- `GET /api/autonomous/health` — 健康报告
-- `GET /api/autonomous/metrics` — 实时指标
-
-### Hooks
-- `GET /api/hooks/rules` — 查看规则
-- `POST /api/hooks/fire` — 触发事件
-
-### Agent团队
-- `GET /api/teams/agents` — 所有Agent
-- `POST /api/teams/dispatch` — 分配任务
-- `POST /api/teams/patterns/review` — Review模式
-- `POST /api/teams/patterns/brainstorm` — Brainstorm模式
-
-### Gateway
-- `GET /api/gateway/connectors` — 连接器状态
-- `POST /api/gateway/connectors/{platform}/send` — 发送消息
-- `POST /api/gateway/broadcast` — 多平台广播
-
-### 凭证池
-- `GET /api/auth/pool` — 查看Key池
-- `POST /api/auth/pool` — 添加Key
-- `POST /api/auth/pool/test-rotate` — 测试轮转
-
-### 洞察
-- `GET /api/insights?period=today` — 今日统计
-- `GET /api/insights/providers` — Provider排行
+### 成本路由
+- `POST /api/cost/select` — 选择路由
+- `GET /api/cost/metrics` — 成本度量
+- `POST /api/cost/report_error` — 上报错误
 
 ---
 
