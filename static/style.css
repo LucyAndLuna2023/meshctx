@@ -596,3 +596,37 @@ a:hover { text-decoration: underline; }
     border-top: 1px solid var(--border);
     margin-top: auto;
 }
+
+/* ============================================
+   Responsive Design — @media 断点
+   ============================================ */
+
+/* ── Tablet (≤1024px) ─────────────────────── */
+@media (max-width: 1024px) {
+    .hero h1 { font-size: 36px; }
+    .hero p { font-size: 16px; }
+    .features-grid { grid-template-columns: repeat(2, 1fr); }
+    .container { padding: 0 24px; }
+}
+
+/* ── Mobile (≤768px) ──────────────────────── */
+@media (max-width: 768px) {
+    .hero h1 { font-size: 28px; }
+    .hero p { font-size: 14px; }
+    .hero-buttons { flex-direction: column; gap: 12px; }
+    .hero-buttons .btn { width: 100%; text-align: center; }
+    .features-grid { grid-template-columns: 1fr; }
+    .nav { flex-wrap: wrap; gap: 8px; }
+    .lang-switcher { justify-content: center; }
+    .container { padding: 0 16px; }
+    .code-block { font-size: 13px; padding: 16px; }
+    .section-header h2 { font-size: 16px; }
+}
+
+/* ── Small Mobile (≤480px) ────────────────── */
+@media (max-width: 480px) {
+    .hero h1 { font-size: 22px; }
+    .hero img { width: 220px; }
+    .hero { padding: 40px 0 24px; }
+    .footer { font-size: 11px; padding: 12px; }
+}
