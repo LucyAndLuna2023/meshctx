@@ -141,16 +141,35 @@ def add_compare_keys(html):
     return html
 
 def add_feature_keys(html):
-    """在JS块中安全添加f18-f22"""
+    """在JS块中安全添加f18-f22 — 按语言块隔离，防止跨语言污染"""
     for lang, keys in FEATURE_NEW.items():
-        # 找到该语言块中 f17_desc 的位置，在其后插入
-        f17_pattern = rf'(f17_desc:"[^"]*")'
-        def replacer(m, l=lang, k=keys):
-            insert = ',' + ','.join(f'{key}:"{val}"' for key, val in k.items())
-            return m.group(0) + insert
+        # 找到该语言块在 L 对象中的位置
+        # 匹配: "    lang: {" 开头（缩进4空格的标准格式）
+        lang_start = html.find(f'\n    {lang}: {{')
+        if lang_start < 0:
+            # 兼容紧凑格式: "lang: {"
+            lang_start = html.find(f'\n{lang}: {{')
+        if lang_start < 0:
+            print(f"  {lang}: block not found!")
+            continue
         
-        html = re.sub(f17_pattern, replacer, html, count=1)
-        print(f"  {lang}: feature keys added")
+        # 找到该语言块的结束位置（下一个顶级语言块或 L 对象的 }）
+        # 搜索下一个 "\n    xx: {" 或 "\nxx: {" 模式
+        next_block = html.find('\n    ', lang_start + len(lang) + 5)
+        if next_block < 0:
+            next_block = len(html)
+        block = html[lang_start:next_block]
+        
+        # 在该块内查找 f17_desc 并在其后插入新keys
+        f17_pattern = rf'(f17_desc:"[^"]*")'
+        match = re.search(f17_pattern, block)
+        if match:
+            insert = ',' + ','.join(f'{key}:"{val}"' for key, val in keys.items())
+            new_block = block[:match.end()] + insert + block[match.end():]
+            html = html[:lang_start] + new_block + html[next_block:]
+            print(f"  {lang}: feature keys added (isolated)")
+        else:
+            print(f"  {lang}: f17_desc not found in block!")
     return html
 
 def add_feature_cards(html):
@@ -190,6 +209,75 @@ def add_compare_rows(html):
     return html
 
 # ═══ Main ═══
+def validate_languages(html):
+    """验证所有7种语言的i18n键完整性，检测跨语言污染"""
+    LANGS = ['en', 'zh', 'ja', 'ko', 'es', 'fr', 'de']
+    
+    # 提取 L 对象中的语言块
+    lang_blocks = {}
+    for lang in LANGS:
+        start = html.find(f'\n    {lang}: {{')
+        if start < 0:
+            start = html.find(f'\n{lang}: {{')
+        if start < 0:
+            print(f"  ❌ {lang}: language block NOT FOUND in L object!")
+            continue
+        
+        # 找下一个语言块边界
+        rest = html[start + len(lang) + 4:]
+        # 匹配下一个语言块: \n    xx: { 或 L对象的结束 }
+        next_marker = re.search(r'\n    [a-z]{2}: \{', rest)
+        if next_marker:
+            block = html[start:start + len(lang) + 4 + next_marker.start()]
+        else:
+            block = html[start:start + len(lang) + 4 + len(rest)]
+        lang_blocks[lang] = block
+    
+    # 收集每种语言的键
+    all_keys = {}
+    for lang, block in lang_blocks.items():
+        keys = set(re.findall(r'(\w+):', block))
+        # 过滤掉非翻译键（如f1, c1, cv_a等才是翻译键）
+        trans_keys = {k for k in keys if re.match(r'^(nav_|f\d+|c\d+|cv_|why_|about_|contact_|quick_|cta_|sb\d*_|trust_|pl\d*_|plat_|install_|win_|mac|linux|capability|compare|Benchmark|problem|regions|task|plugin_)', k)}
+        all_keys[lang] = trans_keys
+        print(f"  {lang}: {len(trans_keys)} i18n keys")
+    
+    # 交叉比较
+    ref_lang = 'en'
+    ref_keys = all_keys.get(ref_lang, set())
+    if not ref_keys:
+        print("  ❌ Cannot validate: en block not found!")
+        return False
+    
+    all_ok = True
+    for lang in LANGS:
+        if lang not in all_keys:
+            continue
+        missing = ref_keys - all_keys[lang]
+        extra = all_keys[lang] - ref_keys
+        if missing:
+            print(f"  ⚠️  {lang}: MISSING keys vs en: {sorted(missing)[:5]}...")
+            all_ok = False
+        if extra:
+            print(f"  ⚠️  {lang}: EXTRA keys vs en: {sorted(extra)[:5]}...")
+    
+    if all_ok:
+        print("  ✅ All 7 languages have consistent key sets")
+    else:
+        print("  ❌ LANGUAGE COMPLETENESS CHECK FAILED!")
+    
+    # 检查 switchLang 函数是否存在
+    if 'function switchLang' not in html:
+        print("  ❌ CRITICAL: switchLang() function NOT FOUND!")
+        all_ok = False
+    
+    # 检查 localStorage 初始化
+    if "localStorage.getItem('meshctx-lang')" not in html:
+        print("  ❌ CRITICAL: localStorage language init NOT FOUND!")
+        all_ok = False
+    
+    return all_ok
+
 def main():
     with open(HTML_PATH, 'r', encoding='utf-8') as f:
         html = f.read()
@@ -210,6 +298,11 @@ def main():
         f.write(html)
     
     # Validate
+    print("\n=== i18n Language Completeness Check ===")
+    if not validate_languages(html):
+        print("❌ LANGUAGE VALIDATION FAILED!")
+        sys.exit(1)
+    
     print("\n=== Node.js Validation ===")
     r = subprocess.run(['node', 'tools/validate_i18n.js'], capture_output=True, text=True)
     print(r.stdout)
