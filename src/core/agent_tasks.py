@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 """
 meshctx agent_tasks — asynchronous task queue & scheduling for agent workflows.
 Manages task CRUD, scheduling, dependencies, prioritization, and work stealing.
@@ -534,6 +535,18 @@ def get_task_manager(max_workers: int = 4) -> TaskManager:
 
 
 # ── _P Compatibility ──────────────────────────────────────────────────────
+=======
+"""meshctx agent_tasks — auto-generated stub"""
+
+
+class AgentTask:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    """Stub class"""
+    def __init__(self, *args, **kwargs):
+        pass
+>>>>>>> Stashed changes
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
@@ -570,6 +583,12 @@ class _P:
         async def _aw(): return s
         return _aw().__await__()
 
+<<<<<<< Updated upstream
 
 def __getattr__(name):
     return _P(name)
+=======
+def __getattr__(name):
+    return _P(name)
+
+>>>>>>> Stashed changes

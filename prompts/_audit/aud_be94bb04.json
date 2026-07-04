@@ -1,0 +1,11 @@
+{
+  "audit_id": "aud_be94bb04",
+  "template_name": "t1",
+  "version": 1,
+  "variables": {
+    "name": "World"
+  },
+  "rendered_at": 1783037238.79905,
+  "estimated_tokens": 2,
+  "sha256": "a591a6d40bf42040"
+}

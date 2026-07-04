@@ -1,0 +1,24 @@
+# meshctx Prompt Template: refactor
+# Status: published | Version: 1
+template_id: "tpl_b3de78e8"
+name: "refactor"
+description: ""
+category: "code"
+status: "published"
+current_version: 1
+tags: []
+created_at: 1783037238.8605006
+published_at: 1783037238.8606093
+
+system_prompt: |
+  
+
+template_text: |
+  Refactor `{{file}}` to improve {{aspect}}. Keep behavior identical.
+
+versions:
+  - version: 1
+    sha256: "18e8d95753faf365"
+    created_at: 1783037238.860502
+    change_note: "Initial draft"
+    rendered_count: 0

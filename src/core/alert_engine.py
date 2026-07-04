@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 """
 meshctx alert_engine — alert management with deduplication, routing, and escalation.
 Generates, routes, deduplicates, and manages alert lifecycle.
@@ -24,11 +25,21 @@ from typing import Any, Callable, Dict, List, Optional
 # ── Enums ──────────────────────────────────────────────────────────────────
 
 class AlertLevel(Enum):
+=======
+"""Alert Engine — 开源版 (stub)"""
+from enum import Enum
+
+class AlertLevel(Enum):
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+>>>>>>> Stashed changes
     INFO = 0
     WARNING = 1
     ERROR = 2
     CRITICAL = 3
 
+<<<<<<< Updated upstream
     def __ge__(self, other):
         if isinstance(other, AlertLevel):
             return self.value >= other.value
@@ -505,6 +516,25 @@ def get_alert_engine() -> AlertEngine:
 
 
 # ── _P Compatibility ──────────────────────────────────────────────────────
+=======
+class Alert:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, *a, **kw): 
+        self.level = kw.get("level", AlertLevel.INFO)
+        self.message = kw.get("message", "")
+
+class AlertEngine:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, *a, **kw): pass
+    def alert(self, *a, **kw): pass
+    def stats(self): return {"alerts": 0}
+
+def get_alert_engine(): return AlertEngine()
+>>>>>>> Stashed changes
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
@@ -541,6 +571,12 @@ class _P:
         async def _aw(): return s
         return _aw().__await__()
 
+<<<<<<< Updated upstream
 
 def __getattr__(name):
     return _P(name)
+=======
+def __getattr__(name):
+    return _P(name)
+
+>>>>>>> Stashed changes

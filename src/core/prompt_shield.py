@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 """Prompt Shield — injection detection, sanitization, policy enforcement (v3.115+)
 
 Claude Code 对标: 多层prompt注入防护。检测: prompt leakage, SQL注入, shell注入,
@@ -330,6 +331,12 @@ class PromptShield:
 
 
 # ── _P compatibility ────────────────────────────────────────────────────
+=======
+"""meshctx prompt_shield — 开源版 (stub)"""
+class _Stub:
+    def __init__(self, *a, **kw): pass
+    def __getattr__(self, n): return lambda *a,**kw: None
+>>>>>>> Stashed changes
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
@@ -366,6 +373,12 @@ class _P:
         async def _aw(): return s
         return _aw().__await__()
 
+<<<<<<< Updated upstream
 
 def __getattr__(name):
     return _P(name)
+=======
+def __getattr__(name):
+    return _P(name)
+
+>>>>>>> Stashed changes

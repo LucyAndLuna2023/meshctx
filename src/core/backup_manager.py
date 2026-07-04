@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 """backup_manager — Backup snapshot management with policy-based rotation.
 
 Creates compressed archives (tar.gz) of directories, tracks metadata as JSON,
@@ -313,6 +314,9 @@ class BackupManager:
 # needed.  Module-level __getattr__ returns a _P proxy for any undefined name.
 # ---------------------------------------------------------------------------
 
+=======
+"""backup_manager — 开源版 (stub)"""
+>>>>>>> Stashed changes
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
     def __getattr__(s, n, **kw):

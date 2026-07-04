@@ -1,0 +1,28 @@
+# meshctx Prompt Template: bug_fix
+# Status: published | Version: 1
+template_id: "tpl_c2d7e311"
+name: "bug_fix"
+description: ""
+category: "code"
+status: "published"
+current_version: 1
+tags: []
+created_at: 1783037238.86032
+published_at: 1783037238.8604038
+
+system_prompt: |
+  
+
+template_text: |
+  Fix this bug:
+  ```
+  {{code}}
+  ```
+  Error: {{error}}
+
+versions:
+  - version: 1
+    sha256: "7a429ea2b9c524db"
+    created_at: 1783037238.8603218
+    change_note: "Initial draft"
+    rendered_count: 0

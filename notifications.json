@@ -1,0 +1,34 @@
+{
+  "channels": {
+    "webhook": {
+      "name": "webhook",
+      "channel_type": "webhook",
+      "enabled": true,
+      "min_priority": "low",
+      "config": {}
+    },
+    "ntfy": {
+      "name": "ntfy",
+      "channel_type": "ntfy",
+      "enabled": true,
+      "min_priority": "low",
+      "config": {}
+    },
+    "feishu": {
+      "name": "feishu",
+      "channel_type": "feishu",
+      "enabled": true,
+      "min_priority": "low",
+      "config": {}
+    },
+    "email": {
+      "name": "email",
+      "channel_type": "email",
+      "enabled": true,
+      "min_priority": "low",
+      "config": {}
+    }
+  },
+  "templates": {},
+  "saved_at": 1782774024.9546382
+}

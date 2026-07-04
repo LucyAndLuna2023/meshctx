@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 """Security Auditor — dep scan, CVE detection, secret scan, permission check (v3.115+)
 
 Codex 对标: 依赖扫描 + CVE检测 + 密钥泄露检测。零pip依赖。
@@ -530,6 +531,12 @@ class SecurityAuditor:
 
 
 # ── _P compatibility ────────────────────────────────────────────────────
+=======
+"""meshctx security_audit — 开源版 (stub)"""
+class _Stub:
+    def __init__(self, *a, **kw): pass
+    def __getattr__(self, n): return lambda *a,**kw: None
+>>>>>>> Stashed changes
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
@@ -566,6 +573,12 @@ class _P:
         async def _aw(): return s
         return _aw().__await__()
 
+<<<<<<< Updated upstream
 
 def __getattr__(name):
     return _P(name)
+=======
+def __getattr__(name):
+    return _P(name)
+
+>>>>>>> Stashed changes

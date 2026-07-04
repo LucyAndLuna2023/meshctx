@@ -434,6 +434,7 @@ document.addEventListener('keydown', function(e) {
         if (overlay.classList.contains('open')) { closeCmdPalette(); } else { openCmdPalette(); }
     }
 });
+<<<<<<< Updated upstream
 
 // ═══ WebSocket realtime ═══
 (function() {
@@ -477,6 +478,8 @@ document.addEventListener('keydown', function(e) {
     }
     connect();
 })();
+=======
+>>>>>>> Stashed changes
 </script>
 </body>
 </html>"""
@@ -1461,7 +1464,11 @@ function toggleCompare(){
   } else {
     btn.style.background = '#8b5cf6';
     btn.textContent = '⚡ 对比';
+<<<<<<< Updated upstream
     input.placeholder = '/read /ls /search /run /context /win /diff 命令大全';
+=======
+    input.placeholder = '/read /ls /search /run /context /win 命令大全';
+>>>>>>> Stashed changes
   }
 }
 
@@ -2043,6 +2050,7 @@ async function send() {
             return;
         }
     }
+<<<<<<< Updated upstream
 
     // v2.17: Diff 预览 /diff 文件1 文件2
     if (msg.startsWith('/diff ')) {
@@ -2068,6 +2076,9 @@ async function send() {
         } catch(e) { alert('Diff失败: ' + e.message); return; }
     }
 
+=======
+    
+>>>>>>> Stashed changes
     // v2.12: Agent统计 /stats 命令
     if (msg === '/stats') {
         try {

@@ -1,4 +1,5 @@
 models:
+<<<<<<< Updated upstream
   default: test:local
   entries:
     test-model:
@@ -18,3 +19,12 @@ server:
   host: 0.0.0.0
   port: 3002
 version: '3.0'
+=======
+  default: deepseek:v4-pro
+  entries:
+    deepseek:v4-pro:
+      base_url: https://api.deepseek.com
+      key: enc:sk-b6cf01ad718f4bbbbfe162df85b9613f
+      model: ''
+      provider: deepseek
+>>>>>>> Stashed changes

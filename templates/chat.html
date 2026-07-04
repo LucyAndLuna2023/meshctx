@@ -216,6 +216,7 @@ body {
 .messages::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } }
+<<<<<<< Updated upstream
 
 /* ---- @mention dropdown ---- */
 .mention-dropdown {
@@ -282,6 +283,8 @@ body {
   color: var(--muted); font-size: 11px; background: var(--bg);
   padding: 2px 7px; border-radius: 4px; font-family: monospace;
 }
+=======
+>>>>>>> Stashed changes
 </style>
 </head>
 <body>
@@ -310,7 +313,11 @@ body {
 </div>
 <div class="input-area">
   <textarea id="input" data-lang-key="chat_placeholder" placeholder="输入消息... (Enter 发送, Shift+Enter 换行)" rows="1"
+<<<<<<< Updated upstream
     onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}; handleInputKeydown(event)"></textarea>
+=======
+    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"></textarea>
+>>>>>>> Stashed changes
   <button id="sendBtn" onclick="send()" data-lang-key="chat_send">发送</button>
 </div>
 <div class="info-bar">
@@ -352,6 +359,7 @@ body {
 <div class="status-toggle hidden-btn" id="statusToggleBtn" onclick="toggleStatusPanel()">
   📊
 </div>
+<<<<<<< Updated upstream
 <!-- @mention file reference dropdown -->
 <div class="mention-dropdown" id="mentionDropdown"></div>
 
@@ -367,6 +375,8 @@ body {
     <div class="cmd-palette-list" id="cmdPaletteList"></div>
   </div>
 </div>
+=======
+>>>>>>> Stashed changes
 
 <script>
 // ===== i18n =====
@@ -731,6 +741,7 @@ function toggleStatusPanel() {
   }
 }
 
+<<<<<<< Updated upstream
 // ══════════════════ @mention autocomplete ══════════════════
 let mentionFiles = [];
 let mentionIndex = -1;
@@ -1016,12 +1027,15 @@ document.getElementById('cmdPaletteOverlay').addEventListener('mousedown', funct
   if (e.target === this) hideCommandPalette();
 });
 
+=======
+>>>>>>> Stashed changes
 // Fix timestamp on initial welcome message
 document.addEventListener('DOMContentLoaded', function() {
   const firstMsg = document.querySelector('.msg.ai .timestamp');
   if (firstMsg) firstMsg.textContent = getTimestamp();
   // Init panel model
   document.getElementById('panelModel').textContent = model;
+<<<<<<< Updated upstream
   // Pre-fetch file list for @mention autocomplete
   fetchFileList();
   // Init WebSocket realtime connection
@@ -1149,6 +1163,9 @@ function showToast(text) {
   style.textContent = '@keyframes fadeInOut{0%{opacity:0;transform:translateY(-8px)}10%{opacity:1;transform:translateY(0)}80%{opacity:1}100%{opacity:0}}';
   document.head.appendChild(style);
 })();
+=======
+});
+>>>>>>> Stashed changes
 </script>
 </body>
 </html>

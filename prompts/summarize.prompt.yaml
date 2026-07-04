@@ -1,0 +1,28 @@
+# meshctx Prompt Template: summarize
+# Status: published | Version: 1
+template_id: "tpl_afeefdf6"
+name: "summarize"
+description: ""
+category: "general"
+status: "published"
+current_version: 1
+tags: []
+created_at: 1783037238.8609505
+published_at: 1783037238.8610287
+
+system_prompt: |
+  
+
+template_text: |
+  Summarize the following:
+  
+  {{content}}
+  
+  Format: {{format}}
+
+versions:
+  - version: 1
+    sha256: "0225786c06514e9c"
+    created_at: 1783037238.8609524
+    change_note: "Initial draft"
+    rendered_count: 0

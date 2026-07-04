@@ -478,6 +478,11 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+<<<<<<< Updated upstream
+=======
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+>>>>>>> Stashed changes
     return response
 
 # ── Rate Limiting Middleware (MEDIUM-001) ─────────────────────
@@ -654,6 +659,10 @@ if _static_dir.exists():
 _docs_dir = Path(__file__).resolve().parent.parent / "docs"
 
 @app.get("/getting-started")
+<<<<<<< Updated upstream
+=======
+@app.get("/getting-started.html")
+>>>>>>> Stashed changes
 async def serve_getting_started():
     """serve getting-started.html"""
     gs_path = _docs_dir / "getting-started.html"
@@ -661,6 +670,27 @@ async def serve_getting_started():
         return FileResponse(str(gs_path), media_type="text/html")
     return HTMLResponse("<h1>404 - Not Found</h1>", status_code=404)
 
+<<<<<<< Updated upstream
+=======
+# ─── LEGAL 页面 ────────────────────────────────────────
+@app.get("/LEGAL")
+async def serve_legal():
+    """serve LEGAL.md as HTML"""
+    legal_path = _docs_dir / "LEGAL.md"
+    if legal_path.exists():
+        with open(legal_path, "r", encoding="utf-8") as f:
+            md_content = f.read()
+        import markdown
+        html = markdown.markdown(md_content, extensions=['extra', 'codehilite'])
+        return HTMLResponse(f"""<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Legal - meshctx</title>
+<link rel="stylesheet" href="/static/style.css"><style>body{{max-width:800px;margin:0 auto;padding:20px}}</style></head>
+<body><nav style="padding:12px 0;margin-bottom:24px;border-bottom:1px solid #30363d">
+<a href="/" style="color:#58a6ff;text-decoration:none">← meshctx</a></nav>{html}</body></html>""")
+    return HTMLResponse("<h1>404 - Not Found</h1>", status_code=404)
+
+>>>>>>> Stashed changes
 # ─── 安装脚本 ────────────────────────────────────────
 from fastapi.responses import FileResponse
 
@@ -685,10 +715,13 @@ from .core.session_archiver import get_archiver, SessionArchiver
 from .core.watchdog import WatchdogDaemon, get_daemon, HEARTBEAT_FILE
 app.include_router(web_ui_router)
 
+<<<<<<< Updated upstream
 # ─── WebSocket 实时推送路由 ──────────────────────────────
 from .core.realtime_push import create_realtime_router
 app.include_router(create_realtime_router())
 
+=======
+>>>>>>> Stashed changes
 # ─── i18n 语言切换 ─────────────────────────────────────
 from .i18n import set_lang, get_lang
 
@@ -2824,6 +2857,7 @@ async def win_software():
 
 
 # ═══════════════════════════════════════════════════
+<<<<<<< Updated upstream
 # 非流式Chat API (v3.115.14 — BUG-048修复)
 # ═══════════════════════════════════════════════════
 
@@ -2833,11 +2867,28 @@ async def api_chat(request: Request):
     from src.model_registry import get_registry
     from src.config import load_config
     import json as _json
+=======
+# Chat API — 非流式JSON (v3.49) + 流式SSE (v1.4.0)
+# ═══════════════════════════════════════════════════
+
+@app.post("/api/chat")
+async def api_chat_json(request: Request):
+    """🔧 BUG-048-fix: 非流式Chat API — 返回JSON而非SSE。
+
+    chat.html 前端请求此端点获取 {content, tool_result, tokens, hybrid_info}。
+    """
+    from src.model_registry import get_registry
+    from src.config import load_config
+>>>>>>> Stashed changes
 
     try:
         body = await request.json()
     except Exception:
+<<<<<<< Updated upstream
         return JSONResponse({"error": "无效请求"}, status_code=400)
+=======
+        raise HTTPException(400, "请求body需为JSON")
+>>>>>>> Stashed changes
 
     msgs = body.get("messages", [])
     if not msgs:
@@ -2846,7 +2897,11 @@ async def api_chat(request: Request):
             msgs = [{"role": "user", "content": msg}]
 
     if not msgs:
+<<<<<<< Updated upstream
         return JSONResponse({"error": "请输入消息"}, status_code=400)
+=======
+        raise HTTPException(400, "请提供 messages 或 message")
+>>>>>>> Stashed changes
 
     model_id = body.get("model")
     if not model_id:
@@ -2857,6 +2912,7 @@ async def api_chat(request: Request):
             model_id = "deepseek:v4-pro"
 
     try:
+<<<<<<< Updated upstream
         reg = get_registry()
         client = reg.get(model_id) or reg.get(None)
         if not client:
@@ -2891,6 +2947,27 @@ async def api_chat(request: Request):
 # 流式Chat API (v1.4.0)
 # ═══════════════════════════════════════════════════
 
+=======
+        registry = get_registry()
+        model = registry.get(model_id)
+        if model is None:
+            raise HTTPException(404, f"模型 {model_id} 未找到")
+        resp = await model.chat(messages=msgs)
+        content = resp.get("content", "") if isinstance(resp, dict) else str(resp)
+        return {
+            "content": content,
+            "tool_result": resp.get("tool_result", "") if isinstance(resp, dict) else "",
+            "tokens": resp.get("usage", {}).get("total_tokens", 0) if isinstance(resp, dict) else 0,
+            "hybrid_info": resp.get("hybrid_info", {}) if isinstance(resp, dict) else {},
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"/api/chat error: {e}")
+        raise HTTPException(500, f"模型调用失败: {e}")
+
+
+>>>>>>> Stashed changes
 @app.post("/api/chat/stream")
 async def api_chat_stream(request: Request):
     """流式Chat API — SSE逐token推送 + web_search 工具"""
@@ -3912,6 +3989,7 @@ async def read_local_file(path: str = ""):
     }
 
 
+<<<<<<< Updated upstream
 @app.get("/api/diff")
 async def diff_local_files(file1: str = "", file2: str = "", format: str = "side"):
     """并排/紧凑 diff 预览 — 比较两个本地文件"""
@@ -3942,6 +4020,8 @@ async def diff_local_files(file1: str = "", file2: str = "", format: str = "side
     return {"file1": str(fp1), "file2": str(fp2), "format": format, "html": html}
 
 
+=======
+>>>>>>> Stashed changes
 @app.post("/api/file/write")
 async def write_local_file(req: Request, path: str = ""):
     """写入本地文件 (POST body: {"content":"..."})"""

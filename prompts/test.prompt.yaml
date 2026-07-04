@@ -1,0 +1,23 @@
+# meshctx Prompt Template: test
+# Status: draft | Version: 1
+template_id: "tpl_8187750b"
+name: "test"
+description: ""
+category: "general"
+status: "draft"
+current_version: 1
+tags: []
+created_at: 1783037299.3860366
+
+system_prompt: |
+  
+
+template_text: |
+  Hello
+
+versions:
+  - version: 1
+    sha256: "185f8db32271fe25"
+    created_at: 1783037299.3860393
+    change_note: "Initial draft"
+    rendered_count: 0

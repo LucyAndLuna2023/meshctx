@@ -76,8 +76,12 @@ _known = {
     'approval': ['ApprovalEngine'],
     'credential_pool': ['CredentialPoolManager'],
     'usage_insights': ['UsageInsights','get_usage_insights'],
+<<<<<<< Updated upstream
     'diff_preview': ['DiffEngine','DiffChunkAction','DiffFile','DiffChunk','InlineDiffViewer','DiffRenderer','DiffApplicator','BatchDiffManager','get_diff_engine','create_proposal','render_side_by_side','render_compact_summary'],
     'thinking_pad': ['ThinkingPad','ThinkingPadManager','ThoughtNode','ThoughtCategory','ThoughtStatus','ThinkingSession'],
+=======
+    'diff_preview': ['get_diff_engine'],
+>>>>>>> Stashed changes
     'gateway_connectors': ['get_gateway'],
     'feishu_notify': ['FeishuNotifier','FeishuPlugin'],
     'telegram_router': ['TelegramRouter','TgBot','get_telegram_router'],
@@ -145,10 +149,26 @@ _known = {
     'predictor': ['PredictorPlugin','TemporalPatternLearner','ContextPreloader','PredictionResult','ActivityPattern','TimeSlot'],
     'healer': ['HealerPlugin','HealthStatus','CircuitBreaker'],
     'performance': ['PerformancePlugin','CacheStats','StreamStats'],
+<<<<<<< Updated upstream
     'websocket': ['WebSocketPlugin', '_P', 'create_ws_routes'],
     'realtime_push': ['RealtimePush', 'ConnectionManager', 'create_realtime_router', 'get_realtime'],
     'hermes_connector': ['HermesConnectorPlugin','HermesDiscovery','EventBridge','HermesInstance'],
     'token_saver': ['TokenSaverPlugin','TokenSaver','TokenCounter','TokenizerRegistry','CompactionResult'],
+=======
+    'websocket_plugin': ['WebSocketPlugin','create_ws_routes'],
+    'hermes_connector': ['HermesConnectorPlugin','HermesDiscovery','EventBridge','HermesInstance'],
+    'token_saver': ['TokenSaverPlugin','TokenSaver','TokenCounter','TokenizerRegistry','CompactionResult'],
+    # ── v3.115.15 DeepSeek TUI improvements ──
+    'dual_session': ['DualSessionEngine','ExecutionPlan','ExecutionResult','PlanStep','PlanStatus','get_dual_session'],
+    'prompt_registry': ['PromptRegistry','PromptTemplate','TemplateStatus','TemplateVersion','RenderAudit','get_prompt_registry'],
+    'subagent_isolated': ['SubagentEngine','SubagentResult','SubagentStatus','SubagentSessionSummary','get_subagent_engine'],
+    'cost_router': ['CostRouter','CostMetrics','RouteDecision','RouteReason','get_cost_router'],
+    'config_chain': ['ConfigChain','get_config_chain','get_config'],
+    'identity_guard': ['IdentityGuard','get_identity_guard'],
+    'tui_format': ['TUIFormatEngine','FormatRule','get_tui_format_engine'],
+    'tool_repair': ['ToolRepair','get_tool_repair'],
+    'memory_v5': ['MemoryV5Engine','MemoryItem','MemoryLevel','MemoryTierSummary','get_memory_v5'],
+>>>>>>> Stashed changes
 }
 
 def __getattr__(name):

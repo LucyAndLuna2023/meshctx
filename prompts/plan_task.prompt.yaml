@@ -1,0 +1,28 @@
+# meshctx Prompt Template: plan_task
+# Status: published | Version: 1
+template_id: "tpl_6924e82a"
+name: "plan_task"
+description: ""
+category: "analysis"
+status: "published"
+current_version: 1
+tags: []
+created_at: 1783037238.8611224
+published_at: 1783037238.8611975
+
+system_prompt: |
+  
+
+template_text: |
+  Plan the execution of:
+  
+  {{task}}
+  
+  Break into {{granularity}}-grained steps.
+
+versions:
+  - version: 1
+    sha256: "8892751dd2387c6e"
+    created_at: 1783037238.8611238
+    change_note: "Initial draft"
+    rendered_count: 0

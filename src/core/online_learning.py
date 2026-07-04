@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 """
 meshctx online_learning — online learning from user feedback.
 Vibe Coding core differentiator: learns your style, preferences, and patterns
@@ -827,6 +828,12 @@ def reset_online_learner() -> None:
 
 
 # ── _P Compatibility ──────────────────────────────────────────────────────
+=======
+"""meshctx online_learning — 开源版 (stub)"""
+class _Stub:
+    def __init__(self, *a, **kw): pass
+    def __getattr__(self, n): return lambda *a,**kw: None
+>>>>>>> Stashed changes
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
@@ -863,6 +870,12 @@ class _P:
         async def _aw(): return s
         return _aw().__await__()
 
+<<<<<<< Updated upstream
 
 def __getattr__(name):
     return _P(name)
+=======
+def __getattr__(name):
+    return _P(name)
+
+>>>>>>> Stashed changes

@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 """Project Indexer — Real code indexer with scan/search/stats (v3.115+)
 
 Scans directory trees, classifies files by language, builds searchable index.
@@ -373,6 +374,29 @@ get_index = _Indexer.search  # backward compat alias
 
 
 # ── _P universal proxy (backward compat) ──────────────────────────────
+=======
+"""Project Indexer — 开源版 (stub)"""
+class _Indexer:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, root="."): self.project_root = root
+    def index(self, *a, **kw): pass
+    def search(self, *a, **kw): return []
+    def stats(self): return {}
+    def scan(self, **kw):
+        class ScanResult:
+            total_files = 0
+            total_size = 0
+            total_lines = 0
+            languages = {}
+            scan_duration_ms = 0
+            last_scan = ""
+        return ScanResult()
+
+_indexer = _Indexer()
+def get_indexer(root="."): return _Indexer(root)
+>>>>>>> Stashed changes
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
@@ -409,6 +433,13 @@ class _P:
         async def _aw(): return s
         return _aw().__await__()
 
+<<<<<<< Updated upstream
 
 def __getattr__(name):
     return _P(name)
+=======
+def __getattr__(name):
+    return _P(name)
+
+get_index = _Indexer.search
+>>>>>>> Stashed changes

@@ -1,0 +1,28 @@
+# meshctx Prompt Template: code_review
+# Status: published | Version: 1
+template_id: "tpl_4b9019d6"
+name: "code_review"
+description: ""
+category: "code"
+status: "published"
+current_version: 1
+tags: []
+created_at: 1783037238.8601062
+published_at: 1783037238.8602118
+
+system_prompt: |
+  
+
+template_text: |
+  Review the following code:
+  ```
+  {{file_content}}
+  ```
+  Focus on: {{focus}}
+
+versions:
+  - version: 1
+    sha256: "7b099db29fb3ca6b"
+    created_at: 1783037238.8601093
+    change_note: "Initial draft"
+    rendered_count: 0

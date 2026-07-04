@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 """Predictor — Prediction engine with temporal pattern learning (v3.115+)
 
 Learns user activity patterns over time, preloads likely-needed context.
@@ -303,6 +304,50 @@ class PredictorPlugin:
 
 
 # ── _P universal proxy (backward compat) ──────────────────────────────
+=======
+"""Predictor — 开源版 (stub)"""
+class PredictionResult:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, *a, **kw):
+        self.confidence = kw.get("confidence", 0.0)
+    def to_dict(self): return {"confidence": self.confidence}
+
+class ActivityPattern:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, *a, **kw): pass
+class TimeSlot:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, *a, **kw): pass
+
+class TemporalPatternLearner:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, *a, **kw): pass
+    def learn(self, *a, **kw): pass
+
+class ContextPreloader:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, *a, **kw): pass
+    def preload(self, *a, **kw): return []
+
+class PredictorPlugin:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    info = type('Info', (), {'name': 'predictor', 'version': '0.1', 'dependencies': [], 'category': 'prediction', 'description': 'Predictor stub'})()
+    state = "active"
+    async def on_load(self, kernel): return True
+    def generate_report(self): return {"status": "stub"}
+>>>>>>> Stashed changes
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
@@ -339,6 +384,12 @@ class _P:
         async def _aw(): return s
         return _aw().__await__()
 
+<<<<<<< Updated upstream
 
 def __getattr__(name):
     return _P(name)
+=======
+def __getattr__(name):
+    return _P(name)
+
+>>>>>>> Stashed changes

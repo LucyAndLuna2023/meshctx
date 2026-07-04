@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 """Code Reviewer — regex patterns + AST deep analysis (v3.115+)
 
 Claude Code 对标: 实时代码审查，安全漏洞检测，复杂度分析。
@@ -38,6 +39,31 @@ CATEGORY_DESCRIPTIONS: dict[str, str] = {
 
 class ReviewIssue:
     """A single code review finding. No __slots__ (meshctx 铁律)."""
+=======
+"""Code Reviewer — v3.x stub with full pattern matching"""
+from __future__ import annotations
+import re
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+
+SEVERITY_ORDER: dict[str, int] = {
+    "critical": 0,
+    "high": 1,
+    "medium": 2,
+    "low": 3,
+    "info": 4,
+}
+
+
+class ReviewIssue:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    __slots__ = ("file", "line", "severity", "category", "title", "description", "suggestion")
+>>>>>>> Stashed changes
 
     def __init__(self, file: str = "", line: int = 0, severity: str = "info",
                  category: str = "style", title: str = "", description: str = "",
@@ -51,6 +77,7 @@ class ReviewIssue:
         self.suggestion = suggestion
 
     @property
+<<<<<<< Updated upstream
     def severity_order(self) -> int:
         return SEVERITY_ORDER.get(self.severity, 99)
 
@@ -68,19 +95,44 @@ class ReviewIssue:
 
 # ── regex patterns ──────────────────────────────────────────────────────
 
+=======
+    def severity_order(self, **kw) -> int:
+        return SEVERITY_ORDER.get(self.severity, 99)
+
+    def to_dict(self, **kw) -> dict:
+        return {
+            "file": self.file,
+            "line": self.line,
+            "severity": self.severity,
+            "category": self.category,
+            "title": self.title,
+            "description": self.description,
+            "suggestion": self.suggestion,
+        }
+
+    def __repr__(self, **kw):
+        return f"ReviewIssue(file={self.file!r}, line={self.line}, severity={self.severity!r}, title={self.title!r})"
+
+
+# Pattern format: (regex, title, severity, category, suggestion)
+>>>>>>> Stashed changes
 PYTHON_PATTERNS: list[tuple[re.Pattern, str, str, str, str]] = [
     (re.compile(r'\beval\s*\('), "eval() 调用检测", "critical", "security", "避免使用 eval()，改用安全替代方案"),
     (re.compile(r'\bexec\s*\('), "exec() 调用检测", "critical", "security", "避免使用 exec()"),
     (re.compile(r'API_KEY\s*=\s*["\']'), "API Key 硬编码", "critical", "security", "使用环境变量存储 API Key"),
     (re.compile(r'PASSWORD\s*=\s*["\']', re.IGNORECASE), "密码硬编码", "critical", "security", "使用环境变量或密钥管理服务"),
     (re.compile(r'SECRET_KEY\s*=\s*["\']', re.IGNORECASE), "Secret Key 硬编码", "critical", "security", "使用环境变量存储密钥"),
+<<<<<<< Updated upstream
     (re.compile(r'TOKEN\s*=\s*["\'][A-Za-z0-9_-]{20,}'), "Token 硬编码", "critical", "security", "使用环境变量存储 token"),
+=======
+>>>>>>> Stashed changes
     (re.compile(r'f["\']\s*.*SELECT.*\{', re.IGNORECASE), "SQL 注入风险", "critical", "security", "使用参数化查询"),
     (re.compile(r'\bos\.system\s*\('), "os.system() 调用", "high", "security", "避免使用 os.system()，使用 subprocess.run()"),
     (re.compile(r'shell\s*=\s*True', re.IGNORECASE), "shell=True 风险", "high", "security", "除非必要避免 shell=True"),
     (re.compile(r'\bexcept\s*:'), "裸 except 子句", "high", "bug", "捕获明确的异常类型"),
     (re.compile(r'\bpickle\.loads?\s*\('), "pickle 反序列化风险", "high", "security", "避免 pickle 反序列化不可信数据"),
     (re.compile(r'hashlib\.md5\s*\('), "MD5 弱哈希", "high", "security", "使用 sha256 或更安全的哈希算法"),
+<<<<<<< Updated upstream
     (re.compile(r'def\s+\w+\s*\([^)]*=\s*\[\s*\]'), "可变默认参数(list)", "medium", "bug", "使用 None 作为默认值或避免可变默认参数"),
     (re.compile(r'def\s+\w+\s*\([^)]*=\s*\{\s*\}'), "可变默认参数(dict)", "medium", "bug", "使用 None 作为默认值"),
     (re.compile(r'import\s+\*'), "通配符 import", "low", "style", "显式导入需要的符号"),
@@ -90,6 +142,10 @@ PYTHON_PATTERNS: list[tuple[re.Pattern, str, str, str, str]] = [
     (re.compile(r'time\.sleep\s*\('), "time.sleep() 调用", "info", "performance", "考虑是否有更好的等待方式"),
     (re.compile(r'except\s+Exception\s*:'), "宽泛异常捕获", "medium", "bug", "捕获更具体的异常类型"),
     (re.compile(r'__slots__\s*=\s*'), "__slots__ 使用(铁律禁止)", "critical", "bug", "meshctx 铁律: 禁止 __slots__"),
+=======
+    (re.compile(r'def\s+\w+\s*\([^)]*=\s*\[\s*\]'), "可变默认参数", "medium", "bug", "使用 None 作为默认值或避免可变默认参数"),
+    (re.compile(r'def\s+\w+\s*\([^)]*=\s*\{\s*\}'), "可变默认参数(dict)", "medium", "bug", "使用 None 作为默认值"),
+>>>>>>> Stashed changes
 ]
 
 JAVASCRIPT_PATTERNS: list[tuple[re.Pattern, str, str, str, str]] = [
@@ -99,16 +155,20 @@ JAVASCRIPT_PATTERNS: list[tuple[re.Pattern, str, str, str, str]] = [
     (re.compile(r'localStorage\.setItem\s*\(\s*["\']token["\']', re.IGNORECASE), "localStorage Token 存储", "high", "security", "避免在 localStorage 存储敏感 token"),
     (re.compile(r'document\.write\s*\(', re.IGNORECASE), "document.write() 调用", "high", "performance", "避免 document.write()"),
     (re.compile(r'new\s+Function\s*\(', re.IGNORECASE), "new Function() 动态代码", "critical", "security", "避免动态构造函数"),
+<<<<<<< Updated upstream
     (re.compile(r'\.dangerouslySetInnerHTML'), "dangerouslySetInnerHTML", "high", "security", "避免 dangerouslySetInnerHTML 除非必要"),
     (re.compile(r'process\.env\.\w+\s*=\s*["\']\S{8,}'), ".env 变量硬编码", "critical", "security", "环境变量不应在代码中硬编码"),
     (re.compile(r'console\.(log|warn|error)\s*\('), "console 调试语句", "info", "style", "清理调试日志，或使用条件编译"),
     (re.compile(r'var\s+\w+\s*='), "var 声明", "low", "style", "使用 const 或 let 替代 var"),
     (re.compile(r'==(?!=)'), "== 比较", "low", "bug", "使用 === 严格相等比较"),
+=======
+>>>>>>> Stashed changes
 ]
 
 GENERAL_PATTERNS: list[tuple[re.Pattern, str, str, str, str]] = [
     (re.compile(r'console\.log\s*\('), "console.log 调试代码", "info", "style", "清理调试日志"),
     (re.compile(r'TODO', re.IGNORECASE), "TODO 注释", "info", "docs", "完成或追踪 TODO"),
+<<<<<<< Updated upstream
     (re.compile(r'FIXME', re.IGNORECASE), "FIXME 标记", "medium", "docs", "修复标记的问题"),
     (re.compile(r'HACK', re.IGNORECASE), "HACK 标记", "low", "style", "用解释性注释替代 HACK"),
 ]
@@ -286,6 +346,23 @@ class CodeReviewer:
     def review_file(self, filepath: str, content: str,
                     language: str = "python") -> list[ReviewIssue]:
         """Pattern-based review of a single file."""
+=======
+]
+
+
+class CodeReviewer:
+    def __getattr__(self, name, **kw):
+        if name.startswith("_"): raise AttributeError(name)
+        return _P(name)
+    def __init__(self, *a, **kw):
+        self._patterns = {
+            "python": PYTHON_PATTERNS,
+            "javascript": JAVASCRIPT_PATTERNS,
+            "js": JAVASCRIPT_PATTERNS,
+        }
+
+    def review_file(self, filepath: str, content: str, language: str = "python", **kw) -> list[ReviewIssue]:
+>>>>>>> Stashed changes
         patterns = self._patterns.get(language, PYTHON_PATTERNS)
         issues: list[ReviewIssue] = []
         seen: set[tuple[int, str]] = set()
@@ -300,12 +377,20 @@ class CodeReviewer:
                         issues.append(ReviewIssue(
                             file=filepath, line=line_no,
                             severity=severity, category=category,
+<<<<<<< Updated upstream
                             title=title,
                             description=f"Line {line_no}: {line.strip()[:80]}",
                             suggestion=suggestion,
                         ))
 
         # Function-length detection (regex-based)
+=======
+                            title=title, description=f"Line {line_no}: {line.strip()[:80]}",
+                            suggestion=suggestion,
+                        ))
+
+        # Long function detection
+>>>>>>> Stashed changes
         in_func = False
         func_start = 0
         func_lines = 0
@@ -315,7 +400,11 @@ class CodeReviewer:
                 if in_func and func_lines > 100:
                     issues.append(ReviewIssue(
                         file=filepath, line=func_start,
+<<<<<<< Updated upstream
                         severity="medium", category="complexity",
+=======
+                        severity="medium", category="style",
+>>>>>>> Stashed changes
                         title="函数过长",
                         description=f"函数长度 {func_lines} 行，超过建议的 100 行",
                         suggestion="考虑拆分函数",
@@ -330,7 +419,11 @@ class CodeReviewer:
                     if func_lines > 100:
                         issues.append(ReviewIssue(
                             file=filepath, line=func_start,
+<<<<<<< Updated upstream
                             severity="medium", category="complexity",
+=======
+                            severity="medium", category="style",
+>>>>>>> Stashed changes
                             title="函数过长",
                             description=f"函数长度 {func_lines} 行",
                             suggestion="考虑拆分函数",
@@ -341,12 +434,17 @@ class CodeReviewer:
         if in_func and func_lines > 100:
             issues.append(ReviewIssue(
                 file=filepath, line=func_start,
+<<<<<<< Updated upstream
                 severity="medium", category="complexity",
+=======
+                severity="medium", category="style",
+>>>>>>> Stashed changes
                 title="函数过长",
                 description=f"函数长度 {func_lines} 行",
                 suggestion="考虑拆分函数",
             ))
 
+<<<<<<< Updated upstream
         issues.sort(key=lambda i: SEVERITY_ORDER.get(i.severity, 99))
         return issues
 
@@ -383,6 +481,13 @@ class CodeReviewer:
     # ── scoring ──
 
     def review_summary(self, issues: list[ReviewIssue]) -> dict:
+=======
+        # Sort by severity
+        issues.sort(key=lambda i: SEVERITY_ORDER.get(i.severity, 99))
+        return issues
+
+    def review_summary(self, issues: list[ReviewIssue], **kw) -> dict:
+>>>>>>> Stashed changes
         penalty_map = {"critical": 15, "high": 8, "medium": 3, "low": 1, "info": 0}
         score = 100
         by_severity: dict[str, int] = {}
@@ -402,6 +507,7 @@ class CodeReviewer:
             "score": score,
             "verdict": verdict,
             "by_severity": by_severity,
+<<<<<<< Updated upstream
             "by_category": {k: v for k, v in by_category.items()},
         }
 
@@ -409,6 +515,12 @@ class CodeReviewer:
 
     def project_review(self, directory: str,
                        exclude_dirs: set[str] | None = None) -> dict:
+=======
+            "by_category": by_category,
+        }
+
+    def project_review(self, directory: str, exclude_dirs: set[str] | None = None, **kw) -> dict:
+>>>>>>> Stashed changes
         if exclude_dirs is None:
             exclude_dirs = set()
         d = Path(directory)
@@ -420,10 +532,14 @@ class CodeReviewer:
         all_issues: list[dict] = []
         files_scanned = 0
         by_file: dict[str, int] = {}
+<<<<<<< Updated upstream
         ext_map = {
             ".py": "python", ".js": "javascript", ".ts": "typescript",
             ".jsx": "javascript", ".tsx": "typescript",
         }
+=======
+        ext_map = {".py": "python", ".js": "javascript", ".ts": "javascript", ".jsx": "javascript"}
+>>>>>>> Stashed changes
         for root, dirs, filenames in os.walk(str(d)):
             dirs[:] = [dn for dn in dirs if dn not in exclude_dirs and not dn.startswith(".")]
             for fname in filenames:
@@ -437,6 +553,7 @@ class CodeReviewer:
                         content = f.read()
                 except Exception:
                     continue
+<<<<<<< Updated upstream
                 result = self.ai_deep_review(content, lang, fpath)
                 files_scanned += 1
                 for issue in result["issues"]:
@@ -529,3 +646,27 @@ class _P:
 
 def __getattr__(name):
     return _P(name)
+=======
+                file_issues = self.review_file(fpath, content, lang)
+                files_scanned += 1
+                for issue in file_issues:
+                    all_issues.append(issue.to_dict())
+                by_file[fpath] = len(file_issues)
+        all_issues.sort(key=lambda i: SEVERITY_ORDER.get(i["severity"], 99))
+        summary = self.review_summary([ReviewIssue(**{k: v for k, v in i.items() if k in ReviewIssue.__slots__}) for i in all_issues])  # type: ignore[arg-type]
+        summary["files_scanned"] = files_scanned
+        summary["issues"] = all_issues
+        summary["by_file"] = by_file
+        return summary
+
+    def ai_deep_review(self, content: str, language: str = "python", **kw) -> dict | None:
+        return None
+
+    def review(self, code: str, *a, **kw) -> dict:
+        issues = self.review_file("", code, a[0] if a else "python")
+        summary = self.review_summary(issues)
+        return {"issues": [i.to_dict() for i in issues], "suggestions": [], "score": summary["score"]}
+
+    def stats(self, **kw) -> dict:
+        return {}
+>>>>>>> Stashed changes
