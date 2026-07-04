@@ -1,0 +1,23 @@
+name: i18n Guard
+
+on:
+  push:
+    paths:
+      - 'docs/index.html'
+      - 'src/i18n.py'
+  pull_request:
+    paths:
+      - 'docs/index.html'
+      - 'src/i18n.py'
+
+jobs:
+  i18n-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check 7-language completeness
+        run: python3 tools/i18n_guard.py docs/index.html
+
+      - name: Verify JSON split (dry-run)
+        run: python3 tools/split_i18n.py docs/index.html
