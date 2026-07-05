@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 """
 meshctx evolution_tracker — tracks codebase evolution over time.
 Monitors git history, churn patterns, tech debt accumulation, and suggests refactoring.
@@ -345,14 +344,6 @@ def get_evolution_tracker(repo_path: str = ".") -> EvolutionTracker:
 
 
 # ── _P Compatibility ──────────────────────────────────────────────────────
-=======
-"""meshctx evolution_tracker — auto-generated stub"""
-
-
-def get_evolution_tracker(*args, **kwargs):
-    """Stub function"""
-    pass
->>>>>>> Stashed changes
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
@@ -389,12 +380,6 @@ class _P:
         async def _aw(): return s
         return _aw().__await__()
 
-<<<<<<< Updated upstream
 
 def __getattr__(name):
     return _P(name)
-=======
-def __getattr__(name):
-    return _P(name)
-
->>>>>>> Stashed changes

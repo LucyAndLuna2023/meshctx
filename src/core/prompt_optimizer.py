@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 """Prompt Optimizer — token estimation, compression, template library (v3.115+)
 
 Claude Code 对标: 自动prompt优化 + token节省。无pip依赖。
@@ -342,12 +341,6 @@ class PromptOptimizer:
 
 
 # ── _P compatibility ────────────────────────────────────────────────────
-=======
-"""meshctx prompt_optimizer — 开源版 (stub)"""
-class _Stub:
-    def __init__(self, *a, **kw): pass
-    def __getattr__(self, n): return lambda *a,**kw: None
->>>>>>> Stashed changes
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
@@ -384,12 +377,6 @@ class _P:
         async def _aw(): return s
         return _aw().__await__()
 
-<<<<<<< Updated upstream
 
 def __getattr__(name):
     return _P(name)
-=======
-def __getattr__(name):
-    return _P(name)
-
->>>>>>> Stashed changes

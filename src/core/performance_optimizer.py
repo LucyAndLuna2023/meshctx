@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 """
 meshctx performance_optimizer — code performance analysis & optimization suggestions.
 Analyzes Python/JS/TS code for performance bottlenecks and suggests fixes.
@@ -477,18 +476,6 @@ def get_perf_optimizer() -> PerformanceOptimizer:
 
 
 # ── _P Compatibility ──────────────────────────────────────────────────────
-=======
-"""Performance Optimizer — 开源版 (stub)"""
-class _PerfOptimizer:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-    def optimize(self, *a, **kw): pass
-    def stats(self): return {"cpu": 0, "memory": 0}
-
-optimizer = _PerfOptimizer()
-def get_perf_optimizer(): return optimizer
->>>>>>> Stashed changes
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
@@ -525,12 +512,6 @@ class _P:
         async def _aw(): return s
         return _aw().__await__()
 
-<<<<<<< Updated upstream
 
 def __getattr__(name):
     return _P(name)
-=======
-def __getattr__(name):
-    return _P(name)
-
->>>>>>> Stashed changes

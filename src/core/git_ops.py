@@ -16,10 +16,7 @@ def _run_git(*args: str, cwd: Optional[Path] = None) -> subprocess.CompletedProc
         capture_output=True,
         text=True,
         cwd=str(cwd) if cwd else None,
-<<<<<<< Updated upstream
         timeout=30,
-=======
->>>>>>> Stashed changes
     )
 
 

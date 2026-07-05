@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 """Agent Loop — Plan/Act/Reflect cycle plugin with AgentPool delegation"""
 
 import time
@@ -246,23 +245,6 @@ class AgentLoopPlugin:
         if len(self._reflection_log) > 100:
             self._reflection_log = self._reflection_log[-50:]
 
-=======
-"""Agent Loop — 开源版 (stub)"""
-class PluginInfo:
-    def __init__(self, name="agent_loop", version="0.1.0", description=""):
-        self.name = name; self.version = version; self.description = description
-
-class AgentLoopPlugin:
-    def __init__(self, *a, **kw):
-        self.info = PluginInfo()
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-    async def on_load(self, kernel) -> bool: return True
-    def start(self): pass
-    def stop(self): pass
-    def stats(self): return {}
->>>>>>> Stashed changes
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
@@ -299,12 +281,6 @@ class _P:
         async def _aw(): return s
         return _aw().__await__()
 
-<<<<<<< Updated upstream
 
 def __getattr__(name):
     return _P(name)
-=======
-def __getattr__(name):
-    return _P(name)
-
->>>>>>> Stashed changes
