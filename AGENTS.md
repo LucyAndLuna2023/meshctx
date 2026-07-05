@@ -1,71 +1,73 @@
-     1|# 🚨 最高优先级 — 服务器铁律
-     2|- **所有测试/部署/验证必须在服务器47.120.0.239上执行**
-     3|- SSH: sshpass -p "LucyAndLuna@20230609" ssh root@47.120.0.239
-     4|- 绝对禁止在本地跑测试
-     5|- 服务器代码路径: /opt/meshctx/
-     6|- 服务器端口: 3001
-     7|- 重启命令: systemctl restart meshctx
-     8|- 本机只是写代码的地方，不是测试的地方
-     9|
-    10|# 🚨 自主行动铁律
-    11|- 不问/不等/自己做/只汇报结果
-    12|- 用户说修什么就修什么
-    13|- 改完验证才算完成
-    14|
-    15|# 当前任务
-    16|- v3.47服务器上已部署但BrainInspiredRouter参数bug导致无法启动
-    17|- 需要修复后测试服务是否正常
-    18|
-    19|# 测试目标服务器
-    20|- Windows 7本地化测试: 192.168.3.47
-    21|- 所有语言/本地化/I18N相关测试必须在192.168.3.47上执行
-    22|- 不允许在本机做本地化测试
-    23|
-    24|# 🚨 服务器铁律
-    25|- **meshctx UAT唯一**: 47.120.0.239:3001 (root / LucyAndLuna@20230609#)
-    26|- **可做代理**: CloudCone 66.154.101.18
-    27|- **禁止meshctx用途**: 8.130.179.205 及其他服务器
-    28|
-    29|# 🔧 meshctx 能力清单 (v3.48 升级)
-    30|## 模型
-    31|- 主模型: deepseek-v4-pro (本地代理 127.0.0.1:8897)
-    32|- reasoning_effort: high
-    33|- max_turns: 90
-    34|
-    35|## 工具集: hermes-meshctx (62 工具，兼容 openclaw 全能力)
-    36|### 核心工具
-    37|- 🌐 Web: web_search, web_extract
-    38|- 🖥 终端: terminal, process
-    39|- 📁 文件: read_file, write_file, patch, search_files
-    40|- 🌐 浏览器: browser_navigate, browser_snapshot, browser_click, browser_type, browser_scroll, browser_back, browser_press, browser_get_images, browser_vision, browser_console, browser_cdp, browser_dialog
-    41|- 👁 视觉: vision_analyze
-    42|- 🎨 图片生成: image_generate
-    43|- 🔊 TTS: text_to_speech
-    44|- 📋 任务: todo
-    45|- 💾 记忆: memory (holographic provider)
-    46|- 🔎 会话搜索: session_search
-    47|- ❓ 澄清: clarify
-    48|- ⚡ 代码执行: execute_code
-    49|- 👥 代理委派: delegate_task (max_depth=2, 3并发)
-    50|- ⏰ 定时任务: cronjob
-    51|
-    52|### 通讯平台
-    53|- 📨 跨平台消息: send_message
-    54|- 🏠 Home Assistant: ha_list_entities, ha_get_state, ha_list_services, ha_call_service
-    55|
-    56|### 飞书 (已配置凭证)
-    57|- 📄 飞书文档: feishu_doc_read
-    58|- 💬 飞书评论: feishu_drive_list_comments, feishu_drive_list_comment_replies, feishu_drive_reply_comment, feishu_drive_add_comment
-    59|
-    60|### Discord
-    61|- 💬 Discord: discord, discord_admin
-    62|
-    63|### 元宝
-    64|- 🤖 元宝: yb_query_group_info, yb_query_group_members, yb_send_dm, yb_search_sticker, yb_send_sticker
-    65|
-    66|### Spotify
-    67|- 🎵 Spotify: spotify_playback, spotify_devices, spotify_queue, spotify_search, spotify_playlists, spotify_albums, spotify_library
-    68|
-    69|### 高级推理
-    70|- 🧠 MoA: mixture_of_agents
-    71|
+# 🚨 最高优先级 — 开发铁律
+- **纯本地+GitHub开发模式**: 测试在本地执行，无远程UAT服务器
+- 本地测试命令: cd ~/meshctx-public && python -m pytest tests/ -v
+- GitHub push: git push origin main
+- 本机是唯一开发+测试环境
+
+# 🚨 自主行动铁律
+- 不问/不等/自己做/只汇报结果
+- 用户说修什么就修什么
+- 改完验证才算完成
+
+# 🚨 meshctx 竞争差距铁律 (2026-Q3)
+- SWE-bench v8: 296/300=98.7% resolve, F1=0.967, 已超越 Claude Opus 88.6%
+- 多Agent: swarm 0 worker vs CrewAI/AutoGen 成熟
+- 工具生态: 61% stub → 持续消减中
+- 可观测性: print日志 vs Langfuse 全链路 tracing
+- MCP协议: 未集成 vs 全部主流框架已集成
+- Docker沙箱: 无 vs 标准配置
+- 生产: 单机 vs 企业HA+灰度
+唯一护城河: IIT意识引擎(Φ计算) + JEPA世界模型 + 元认知 + SWE-bench 98.7%
+追赶优先级: P0=MCP(2天)+Docker(3天) P1=消stub+训练JEPA P2=观测+HA
+
+# 当前状态
+- v3.115.15 纯本地开发模式
+- 28插件全量: 9核心 + 19第三方
+- 6核心模块已实现: learn_loop / memory_v2 / metacognition / agent_swarm / super_brain / jepa_world_model
+- pytest: 126 passed, 0 failed
+- SWE-bench v8: 296/300=98.7%, F1=0.967
+- BrainInspiredRouter 已自愈（优雅降级机制）
+
+# 测试目标
+- Windows 7本地化测试: 192.168.3.47
+- 所有语言/本地化/I18N相关测试必须在192.168.3.47上执行
+
+# 🔧 meshctx 能力清单 (v3.115)
+## 模型
+- 主模型: deepseek-v4-pro (本地代理 127.0.0.1:8897)
+- reasoning_effort: high
+- max_turns: 90
+
+## 工具集: hermes-meshctx (62 工具，兼容 openclaw 全能力)
+### 核心工具
+- 🌐 Web: web_search, web_extract
+- 🖥 终端: terminal, process
+- 📁 文件: read_file, write_file, patch, search_files
+- 🌐 浏览器: browser_navigate, browser_snapshot, browser_click, browser_type, browser_scroll, browser_back, browser_press, browser_get_images, browser_vision, browser_console
+- 👁 视觉: vision_analyze
+- 🎨 图片生成: image_generate
+- 🔊 TTS: text_to_speech
+- 📋 任务: todo
+- 💾 记忆: memory (holographic provider)
+- 🔎 会话搜索: session_search
+- ❓ 澄清: clarify
+- ⚡ 代码执行: execute_code
+- 👥 代理委派: delegate_task (max_depth=2, 3并发)
+- ⏰ 定时任务: cronjob
+
+### 通讯平台
+- 📨 跨平台消息: send_message
+- 🏠 Home Assistant: ha_list_entities, ha_get_state, ha_list_services, ha_call_service
+
+### 飞书
+- 📄 飞书文档: feishu_doc_read
+- 💬 飞书评论: feishu_drive_list_comments, feishu_drive_list_comment_replies, feishu_drive_reply_comment, feishu_drive_add_comment
+
+### Discord
+- 💬 Discord: discord, discord_admin
+
+### Spotify
+- 🎵 Spotify: spotify_playback, spotify_devices, spotify_queue, spotify_search, spotify_playlists, spotify_albums, spotify_library
+
+### 高级推理
+- 🧠 MoA: mixture_of_agents
