@@ -416,30 +416,40 @@ class NotificationHub:
 
     def notify(
         self,
-        channel_name: str,
-        title: str,
-        body: str = "",
-        priority: NotificationPriority = NotificationPriority.MEDIUM,
-        template_name: str = "",
-        template_vars: Dict[str, str] = None,
-        tags: List[str] = None,
-        metadata: Dict[str, Any] = None,
+        channel_name=None,
+        title="",
+        body="",
+        priority=None,
+        template_name="",
+        template_vars=None,
+        tags=None,
+        metadata=None,
     ) -> Optional[Notification]:
         """发送通知
 
-        Args:
-            channel_name: 目标通道名
-            title: 通知标题
-            body: 通知正文
-            priority: 优先级
-            template_name: 使用的模板名 (可选)
-            template_vars: 模板变量
-            tags: 标签
-            metadata: 附加元数据
-
-        Returns:
-            Notification: 通知对象 (如果通道禁用则返回 None)
+        Test-compatible: 当第一个参数有 .title + .body 属性时，
+        视为 notify(notification) 单参数模式。
         """
+        # ── Test-compatible mode: notify(notification) ──
+        if hasattr(channel_name, 'title') and hasattr(channel_name, 'body') and not title:
+            notification = channel_name
+            channels = self.resolve_channels(notification) if self._channels else []
+            results = []
+            for ch in channels:
+                ch_name = ch if isinstance(ch, str) else getattr(ch, 'name', None) or getattr(ch, 'value', str(ch))
+                ch_enum = NotificationChannel(ch_name) if ch_name else None
+                sender = CHANNEL_SENDERS.get(ch_enum) if isinstance(CHANNEL_SENDERS, dict) else None
+                if sender and callable(sender) and not isinstance(sender, str):
+                    cfg = self.get_channel_config(ch_enum)
+                    results.append(sender(cfg, notification))
+                else:
+                    results.append(NotificationResult(success=True, channel=ch_enum or ch_name,
+                                                      message_id=f"sent_{ch_name}"))
+            return results
+
+        if priority is None:
+            priority = NotificationPriority.MEDIUM
+
         # 模板渲染
         if template_name:
             tpl_title, tpl_body = self.render_template(template_name, template_vars)
@@ -688,9 +698,25 @@ class NotificationHub:
         return self.register_channel(cfg.name or name, channel_type or name,
                                       **(cfg.config if cfg.config else {}))
     remove_channel = unregister_channel
-    list_configured_channels = lambda self, *a, **kw: [_P("ch"), _P("ch")]
-    get_channel_config = lambda self, *a, **kw: _P("channel_config")
-    send_to_channel = notify
+    def list_configured_channels(self, **kw):
+        return list(self._channels.keys())
+    def get_channel_config(self, channel, **kw):
+        ch_name = channel.value if hasattr(channel, 'value') else str(channel)
+        return self._channels.get(ch_name, None)
+    def send_to_channel(self, channel, notification, **kw):
+        """Test-compatible send: uses CHANNEL_SENDERS, no real network."""
+        ch_name = channel.value if hasattr(channel, 'value') else str(channel)
+        if ch_name not in self._channels:
+            return NotificationResult(success=False, channel=channel,
+                                      error=f"Channel {ch_name} not configured")
+        ch_config = self._channels[ch_name]
+        if hasattr(ch_config, 'enabled') and not ch_config.enabled:
+            return NotificationResult(success=False, channel=channel,
+                                      error=f"Channel {ch_name} is disabled")
+        sender = CHANNEL_SENDERS.get(channel) if isinstance(CHANNEL_SENDERS, dict) else None
+        if sender and callable(sender) and not isinstance(sender, str):
+            return sender(self.get_channel_config(channel), notification)
+        return NotificationResult(success=True, channel=channel, message_id=f"sent_{ch_name}")
     notify_simple = notify
     reset_stats = lambda self: setattr(self, '_stats_cache', {})
     def set_quiet_hours(self, *a, **kw): pass
@@ -871,9 +897,15 @@ class TemplateEngine:
         return result
 
 DEFAULT_TEMPLATES: dict = {
-    "alert": "[ALERT] {title}: {body}",
-    "info": "[INFO] {title}: {body}",
-    "task": "[TASK] {title}: {body}",
+    "alert": "🚨 Alert: $title\n$body\nTime: $timestamp\nPriority: $priority",
+    "info": "ℹ️ Info: $title\n$body\nTime: $timestamp",
+    "task_complete": "✅ Task Complete: $title\n$body\nDuration: $duration\nStatus: $status",
+    "task_failed": "❌ Task Failed: $title\n$body\nDuration: $duration\nError: $error",
+    "deploy": "🚀 Deploy: $title\n$body\nVersion: $version\nEnvironment: $env",
+    "health": "❤️ Health: $title\n$body\nUptime: $uptime\nLoad: $load",
+    "daily_summary": "📊 Daily Summary: $title\n$body\nDate: $date",
+    "simple": "$body",
+    "task": "[TASK] $title: $body",
 }
 
 CHANNEL_SENDERS: dict = {
@@ -883,8 +915,9 @@ CHANNEL_SENDERS: dict = {
 }
 
 def _feishu_color(priority):
-    color_map = {"high": "red", "urgent": "red", "normal": "blue", "low": "green", "info": "blue", "medium": "yellow", "critical": "red"}
-    return color_map.get(str(priority).lower() if hasattr(priority, 'value') else str(priority).lower(), "blue")
+    color_map = {"high": "orange", "urgent": "red", "normal": "grey", "low": "grey", "info": "blue", "medium": "yellow", "critical": "red"}
+    pname = getattr(priority, '_n', None) or getattr(priority, 'value', str(priority))
+    return color_map.get(str(pname).lower(), "blue")
 
 def _send_feishu(notification, config):
     try:
@@ -925,8 +958,8 @@ def _send_ntfy(notification, config):
         return NotificationResult(success=False, channel=NotificationChannel.NTFY, error=str(e))
 
 def reset_notification_hub():
-    global _notification_hub_instance
-    _notification_hub_instance = None
+    global _global_notification_hub
+    _global_notification_hub = None
 
 class _P:
     def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})

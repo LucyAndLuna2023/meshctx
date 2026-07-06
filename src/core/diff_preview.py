@@ -177,6 +177,9 @@ class EditProposal:
 class DiffEngine:
     """Generates unified diffs using Python's stdlib difflib."""
 
+    def __init__(self, freeze_mode=False, **kw):
+        self.freeze_mode = freeze_mode
+
     def generate(self, old_text: str, new_text: str, filename: str = "",
                  context_lines: int = 3) -> str:
         """Return a unified-diff string between *old_text* and *new_text*.
@@ -1191,3 +1194,6 @@ def create_proposal(
         diff=preview_result["diff"],
         stats=preview_result["stats"],
     )
+
+DiffPreviewEngine = DiffEngine  # test compatibility alias
+BACKUP_DIR = os.path.join(tempfile.gettempdir(), "meshctx_diff_backups")
