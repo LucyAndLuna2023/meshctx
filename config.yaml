@@ -1,30 +1,12 @@
 models:
-<<<<<<< Updated upstream
-  default: test:local
-  entries:
-    test-model:
-      model: test-model
-      provider: openai
-    test:local:
-      base_url: http://localhost:8080/v1
-      key: !!python/object:src.core.crypto._P
-        _d: {}
-        _n: encrypt_key()
-      model: local-model
-      provider: local
-providers:
-  openai:
-    api_key: sk-test
-server:
-  host: 0.0.0.0
-  port: 3002
-version: '3.0'
-=======
   default: deepseek:v4-pro
   entries:
     deepseek:v4-pro:
       base_url: https://api.deepseek.com
-      key: enc:sk-b6cf01ad718f4bbbbfe162df85b9613f
+      key: enc:sk-b6c...613f
       model: ''
       provider: deepseek
->>>>>>> Stashed changes
+server:
+  host: 0.0.0.0
+  port: 3002
+version: '3.0'

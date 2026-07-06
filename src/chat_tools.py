@@ -4,7 +4,7 @@ meshctx Chat 工具执行引擎
 
 工具集对标 Hermes: read_file, write_file, search_files, terminal, web
 """
-import os, re, json, subprocess, urllib.request, urllib.parse
+import os, re, json, shlex, subprocess, urllib.request, urllib.parse
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -82,7 +82,7 @@ def _run_cmd(cmd: str) -> str:
         # 确保PATH包含基本工具路径(WSL/Docker/最小环境)
         env = os.environ.copy()
         env['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:' + env.get('PATH', '')
-        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30, cwd=os.getcwd(), env=env)
+        r = subprocess.run(shlex.split(cmd), shell=False, capture_output=True, text=True, timeout=30, cwd=os.getcwd(), env=env)
         out = r.stdout[:3000]
         if r.stderr:
             out += "\n[stderr]\n" + r.stderr[:500]

@@ -19,7 +19,7 @@ import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Tuple
 
 
 # ── Enums ──────────────────────────────────────────────────────────────────
@@ -142,7 +142,7 @@ class PreferenceProfile:
         )
 
     # Library → category mapping
-    _LIB_CATEGORIES: Dict[str, str] = {
+    _LIB_CATEGORIES: ClassVar[Dict[str, str]] = {
         "react": "frontend", "vue": "frontend", "angular": "frontend",
         "svelte": "frontend", "next": "frontend", "nuxt": "frontend",
         "fastapi": "backend", "flask": "backend", "django": "backend",

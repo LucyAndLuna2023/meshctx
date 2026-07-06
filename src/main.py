@@ -121,11 +121,8 @@ _metrics = MetricsCollector()
 import yaml
 
 def _yaml_load(stream):
-    """safe_load + 降级: 兼容旧 !!python/object 标签"""
-    try:
-        return yaml.safe_load(stream)
-    except yaml.constructor.ConstructorError:
-        return yaml.load(stream, Loader=yaml.Loader)
+    """Safe YAML loader: 仅 safe_load（已移除不安全降级）"""
+    return yaml.safe_load(stream)
 
 
 # ═══════════════════════════════════════════════════════════

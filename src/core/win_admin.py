@@ -2,7 +2,6 @@
 
 class _P:
     """Lazy proxy placeholder for Linux stub"""
-    __slots__ = ("_n", "_d")
     def __init__(s, n=""):
         object.__setattr__(s, "_n", n)
         object.__setattr__(s, "_d", {})
