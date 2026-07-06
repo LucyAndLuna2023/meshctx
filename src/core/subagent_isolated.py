@@ -276,12 +276,14 @@ class SubagentEngine:
         self, run_id: str, task: str, messages: List[dict],
         llm_call_fn: Callable, start: float
     ) -> SubagentResult:
-        """Run the actual agent loop with storm-breaker."""
+        """Run the actual agent loop with storm-breaker + loop detection."""
         turns = 0
         final_response = ""
         completion_estimate = 0
         storm_broke = False
-        
+        loop_detect_window: list = []  # 循环检测窗口
+        LOOP_THRESHOLD = 3             # 连续3次相同响应判定循环
+
         while turns < self.max_turns:
             turns += 1
             
@@ -309,7 +311,18 @@ class SubagentEngine:
             
             completion_estimate += len(response) // 4
             messages.append({"role": "assistant", "content": response})
-            
+
+            # 循环检测: 比较当前响应与历史
+            resp_stripped = response.strip()[:200]
+            loop_detect_window.append(resp_stripped)
+            if len(loop_detect_window) > LOOP_THRESHOLD:
+                loop_detect_window = loop_detect_window[-LOOP_THRESHOLD:]
+            if len(loop_detect_window) >= LOOP_THRESHOLD:
+                if all(w == loop_detect_window[0] for w in loop_detect_window):
+                    logger.warning(f"Subagent {run_id}: loop detected (same response x{LOOP_THRESHOLD})")
+                    final_response = response
+                    storm_broke = True  # 复用 break 逻辑
+
             if storm_broke:
                 final_response = response
                 break

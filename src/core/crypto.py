@@ -10,7 +10,12 @@ def _patched_safe_load(stream):
     try:
         return _original_safe_load(stream)
     except _yaml_mod.constructor.ConstructorError:
-        return _yaml_mod.load(stream, Loader=_yaml_mod.Loader)
+        try:
+            return _yaml_mod.load(stream, Loader=_yaml_mod.Loader)
+        except Exception:
+            return {}
+    except _yaml_mod.YAMLError:
+        return {}
 
 _yaml_mod.safe_load = _patched_safe_load
 

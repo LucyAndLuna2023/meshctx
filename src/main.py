@@ -121,11 +121,18 @@ _metrics = MetricsCollector()
 import yaml
 
 def _yaml_load(stream):
-    """safe_load + 降级: 兼容旧 !!python/object 标签"""
+    """safe_load + 降级: 兼容旧 !!python/object 标签 + 损坏文件保护"""
     try:
         return yaml.safe_load(stream)
     except yaml.constructor.ConstructorError:
-        return yaml.load(stream, Loader=yaml.Loader)
+        try:
+            return yaml.load(stream, Loader=yaml.Loader)
+        except Exception:
+            logger.error(f"config.yaml 损坏，无法解析，返回空配置")
+            return {}
+    except yaml.YAMLError:
+        logger.error(f"config.yaml YAML 语法错误（可能含 Git 冲突标记），返回空配置")
+        return {}
 
 
 # ═══════════════════════════════════════════════════════════
@@ -3105,7 +3112,9 @@ async def api_chat_stream(request: Request):
                 yield "data: [DONE]\n\n"
                 return
 
-            max_rounds = 5
+            max_rounds = int(body.get("max_rounds", 30))
+            loop_detect_window: list = []  # 循环检测: 记录最近工具调用签名
+            LOOP_DETECT_THRESHOLD = 3       # 连续N次相同调用即判定循环
             _tools_ok = True  # 模型是否支持 tools
             for _round in range(max_rounds):
                 # 发送请求给模型 (尝试 tools，失败则降级)
@@ -3153,6 +3162,21 @@ async def api_chat_stream(request: Request):
                         {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
                         for tc in msg.tool_calls
                     ]})
+
+                    # 循环检测: 构建工具调用签名
+                    call_signatures = [(tc.function.name, tc.function.arguments[:100]) for tc in msg.tool_calls]
+                    loop_detect_window.append(call_signatures)
+                    if len(loop_detect_window) > LOOP_DETECT_THRESHOLD:
+                        loop_detect_window = loop_detect_window[-LOOP_DETECT_THRESHOLD:]
+                    # 检测是否连续N次完全相同的工具调用序列
+                    if len(loop_detect_window) >= LOOP_DETECT_THRESHOLD:
+                        all_same = all(
+                            w == loop_detect_window[0] for w in loop_detect_window
+                        )
+                        if all_same:
+                            yield f"data: {_json.dumps({'error': '检测到工具调用循环: 连续3次相同调用 ' + loop_detect_window[0][0][0]})}\n\n"
+                            yield "data: [DONE]\n\n"
+                            return
 
                     # 执行工具调用
                     for tc in msg.tool_calls:
