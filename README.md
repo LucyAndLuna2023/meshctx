@@ -30,7 +30,7 @@
 
 ### Linux / WSL
 ```bash
-curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash
+curl -fsSL https://cdn.jsdelivr.net/gh/LucyAndLuna2023/meshctx@main/install.sh | bash
 # 安装完成后配置API密钥
 meshctx setup
 ```
