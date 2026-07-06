@@ -3112,7 +3112,7 @@ async def api_chat_stream(request: Request):
                 yield "data: [DONE]\n\n"
                 return
 
-            max_rounds = int(body.get("max_rounds", 30))
+            max_rounds = int(body.get("max_rounds", 150))
             loop_detect_window: list = []  # 循环检测: 记录最近工具调用签名
             LOOP_DETECT_THRESHOLD = 3       # 连续N次相同调用即判定循环
             _tools_ok = True  # 模型是否支持 tools
