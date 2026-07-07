@@ -129,7 +129,11 @@ class TestInstallScriptE2E:
         assert "meshctx" in install_content
 
     def test_uses_raw_github_url(self, install_content):
-        assert "raw.githubusercontent.com" in install_content
+        # v3.115.15: 改用 CDN 镜像避免 429 限流
+        assert any(url in install_content for url in [
+            "raw.githubusercontent.com",
+            "cdn.jsdelivr.net",
+        ]), "install.sh 必须包含下载 URL"
 
     def test_wrapper_script_correct(self, install_content):
         assert "python" in install_content and "src.cli" in install_content

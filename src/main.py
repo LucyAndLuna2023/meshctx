@@ -130,12 +130,25 @@ def _yaml_load(stream):
 # ═══════════════════════════════════════════════════════════
 
 def _load_api_keys_on_startup():
-    """v2.33: 从 .env 和 provider_config.json 加载 API Key"""
+    """v2.33: 从 .env 和 provider_config.json 加载 API Key
+    
+    Returns:
+        int: 加载的 key 数量
+    """
     import dotenv
+    loaded = 0
     env_path = Path(__file__).resolve().parent.parent / ".env"
     if env_path.exists():
         dotenv.load_dotenv(env_path)
         logger.info(f"  .env loaded: {env_path}")
+    
+    # 也尝试从 HOME/.env 和 HOME/.meshctx/.env 加载 (profile 级别)
+    home_env = Path(os.environ.get("HOME", "~")) / ".env"
+    meshctx_env = Path(os.environ.get("HOME", "~")) / ".meshctx" / ".env"
+    for p in (home_env, meshctx_env):
+        if p.exists() and p != env_path:
+            dotenv.load_dotenv(p)
+            loaded += 1
     
     pcfg = _load_provider_config()
     for provider, cfg in pcfg.items():
@@ -145,6 +158,15 @@ def _load_api_keys_on_startup():
                     env_key = f"{provider.upper().replace('-','_')}_API_KEY"
                     if not os.environ.get(env_key):
                         os.environ[env_key] = str(cfg[key_name])
+                        loaded += 1
+    
+    # 统计已经加载的 key
+    for k in list(os.environ.keys()):
+        if k.endswith("_API_KEY") and os.environ[k]:
+            loaded += 1
+            break  # 只算一次 — 只要有一个有效 key
+    
+    return max(loaded, 1) if os.environ.get("DEEPSEEK_API_KEY") else loaded
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
