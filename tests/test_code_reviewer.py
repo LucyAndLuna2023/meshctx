@@ -451,15 +451,16 @@ class TestAIDeepReview:
     """ai_deep_review() 深度审查测试。"""
 
     def test_returns_none_without_llm(self, reviewer):
-        """无 LLM 配置时返回 None（优雅降级）。"""
+        """无 LLM 配置时返回 dict（regex+AST 分析始终可用）。"""
         result = reviewer.ai_deep_review("print(1)", language="python")
-        # 无模型配置时应返回 None，不抛异常
-        assert result is None
+        assert isinstance(result, dict)
+        assert "issues" in result
+        assert "summary" in result
 
     def test_handles_empty_content(self, reviewer):
         """空内容不崩溃。"""
         result = reviewer.ai_deep_review("", language="python")
-        assert result is None
+        assert isinstance(result, dict)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

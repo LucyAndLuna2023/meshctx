@@ -11,17 +11,11 @@ from typing import Any, Callable
 
 
 class ProcessingMode(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     BATCH = "batch"
     STREAM = "stream"
 
 
 class PipelineState(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     IDLE = "idle"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -30,18 +24,12 @@ class PipelineState(Enum):
 
 
 class DataSourceType(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     MEMORY = "memory"
     FILE = "file"
     HTTP = "http"
 
 
 class ValidationLevel(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     ERROR = "error"
     WARNING = "warning"
     INFO = "info"
@@ -49,9 +37,6 @@ class ValidationLevel(Enum):
 
 @dataclass
 class ValidationResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     check_name: str = ""
     level: ValidationLevel = ValidationLevel.ERROR
     passed: bool = True
@@ -63,9 +48,6 @@ class ValidationResult:
 
 @dataclass
 class DataRecord:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     data: dict[str, Any] = field(default_factory=dict)
     source: str = ""
     source_type: str = ""
@@ -77,9 +59,6 @@ class DataRecord:
 
 @dataclass
 class PipelineStats:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     total_records: int = 0
     valid_records: int = 0
     invalid_records: int = 0
@@ -107,9 +86,6 @@ class PipelineStats:
 # ── Connectors ─────────────────────────────────────────────
 
 class DataSourceConnector:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, *args, **kwargs):
         pass
 
@@ -118,9 +94,6 @@ class DataSourceConnector:
 
 
 class MemoryConnector(DataSourceConnector):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, data: list[dict], name: str = "memory", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._data = data
@@ -138,9 +111,6 @@ class MemoryConnector(DataSourceConnector):
 
 
 class FileConnector(DataSourceConnector):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     SUPPORTED_EXTENSIONS = {".csv", ".tsv", ".json", ".jsonl", ".txt"}
 
     def __init__(self, filepath: str, *args, **kwargs):
@@ -214,9 +184,6 @@ class FileConnector(DataSourceConnector):
 
 
 class HttpConnector(DataSourceConnector):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, url: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._url = url
@@ -228,9 +195,6 @@ class HttpConnector(DataSourceConnector):
 # ── Data Quality Validator ─────────────────────────────────
 
 class DataQualityValidator:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self._rules: list[Callable] = []
 
@@ -337,9 +301,6 @@ class DataQualityValidator:
 # ── DataPipeline ───────────────────────────────────────────
 
 class DataPipeline:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, name: str = "", *args, **kwargs):
         self.name = name
         self._sources: list[DataSourceConnector] = []
@@ -406,7 +367,7 @@ class DataPipeline:
         self._stats.total_records = len(records)
         self._stats.valid_records = sum(1 for r in records if r.is_valid)
         self._stats.invalid_records = self._stats.total_records - self._stats.valid_records
-        self._stats.success_rate = self._stats.valid_records / max(self._stats.total_records, 1)
+        self._stats.success_rate = self._stats.valid_records / max(self._stats.total_records, 1) if self._stats.total_records > 0 else 1.0
         self._stats.total_loaded = len(records)
         self._stats.elapsed_seconds = time.time() - t0
         self.state = PipelineState.COMPLETED
@@ -438,7 +399,7 @@ class DataPipeline:
         self._stats.total_records = len(records)
         self._stats.valid_records = sum(1 for r in records if r.is_valid)
         self._stats.invalid_records = self._stats.total_records - self._stats.valid_records
-        self._stats.success_rate = self._stats.valid_records / max(self._stats.total_records, 1)
+        self._stats.success_rate = self._stats.valid_records / max(self._stats.total_records, 1) if self._stats.total_records > 0 else 1.0
         self._stats.total_loaded = len(records)
         self._stats.elapsed_seconds = time.time() - t0
         self.state = PipelineState.COMPLETED
@@ -521,41 +482,4 @@ def reset_data_pipeline():
     global _data_pipeline_instance
     _data_pipeline_instance = None
 
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
-
-def __getattr__(name):
-    return _P(name)
 

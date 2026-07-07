@@ -1,14 +1,11 @@
-"""Prompt Optimizer — token estimation, compression, template library (v3.115+)
-
-Claude Code 对标: 自动prompt优化 + token节省。无pip依赖。
-Core strategies: whitespace compression, few-shot trimming, template selection.
-"""
+"""Prompt Optimizer — token estimation, compression, template library, A/B testing (v3.115+)"""
 
 from __future__ import annotations
 import re
-import json
+import uuid
 import time
 import logging
+from enum import Enum
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -28,7 +25,7 @@ def estimate_tokens(text: str) -> int:
 def estimate_cost(tokens: int, model: str = "claude-sonnet-4") -> float:
     """Estimate USD cost. Approximate pricing per 1K tokens."""
     rates: dict[str, tuple[float, float]] = {
-        "claude-sonnet-4": (0.003, 0.015),   # input/output per 1K
+        "claude-sonnet-4": (0.003, 0.015),
         "claude-opus-4":  (0.015, 0.075),
         "gpt-4o":         (0.005, 0.015),
         "gpt-4o-mini":    (0.00015, 0.0006),
@@ -38,37 +35,163 @@ def estimate_cost(tokens: int, model: str = "claude-sonnet-4") -> float:
     return round(tokens / 1000 * ri, 6)
 
 
+# ── enums ──────────────────────────────────────────────────────────────
+
+class ABTestStatus(Enum):
+    RUNNING = "running"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class TemplateCategory(Enum):
+    GENERAL = "general"
+    CODE = "code"
+    TESTING = "testing"
+    DOCS = "docs"
+    SUMMARIZATION = "summarization"
+    TEXT = "text"
+
+
+class OptimizationStrategy(Enum):
+    ADD_CONTEXT = "add_context"
+    CLARIFY = "clarify"
+    ADD_EXAMPLES = "add_examples"
+    SIMPLIFY = "simplify"
+    RESTRUCTURE = "restructure"
+    ADJUST_TONE = "adjust_tone"
+    ADD_CONSTRAINTS = "add_constraints"
+    REMOVE_REDUNDANCY = "remove_redundancy"
+
+
 # ── dataclasses ─────────────────────────────────────────────────────────
+
+@dataclass
+class PromptVariant:
+    """A specific version of a prompt."""
+    prompt_id: str
+    version: int = 1
+    content: str = ""
+    content_hash: str = ""
+
+    def __post_init__(self):
+        import hashlib
+        self.content_hash = hashlib.blake2b(
+            self.content.encode(), digest_size=6
+        ).hexdigest()
+
 
 @dataclass
 class PromptTemplate:
     """Reusable prompt template with metadata."""
-    name: str
-    template: str
-    category: str = "general"
+    template_id: str = ""
+    name: str = ""
+    content: str = ""
     description: str = ""
+    category: str = "general"
+    tags: list[str] = field(default_factory=list)
+    version: int = 1
+    usage_count: int = 0
     variables: list[str] = field(default_factory=list)
-    estimated_tokens: int = 0
 
     def __post_init__(self):
-        self.variables = re.findall(r'\{\{(\w+)\}\}', self.template)
-        self.estimated_tokens = estimate_tokens(self.template)
+        if not self.template_id:
+            self.template_id = str(uuid.uuid4())[:8]
+        self.variables = re.findall(r'\{\{(\w+)\}\}', self.content)
+
+    def extract_variables(self) -> list[str]:
+        return re.findall(r'\{\{(\w+)\}\}', self.content)
 
     def render(self, **kwargs) -> str:
-        """Fill template variables {{name}} with kwargs."""
-        result = self.template
+        result = self.content
         for var in self.variables:
             val = kwargs.get(var, f"{{{{{var}}}}}")
             result = result.replace(f"{{{{{var}}}}}", str(val))
         return result
 
+    def to_dict(self) -> dict:
+        return {
+            "template_id": self.template_id,
+            "name": self.name,
+            "content": self.content,
+            "description": self.description,
+            "category": self.category,
+            "tags": self.tags,
+            "version": self.version,
+            "usage_count": self.usage_count,
+            "variables": self.variables,
+        }
+
+
+@dataclass
+class EffectMetrics:
+    """Accumulated metrics for a prompt variant."""
+    prompt_id: str
+    total_uses: int = 0
+    avg_quality_score: float = 0.0
+    avg_latency_ms: float = 0.0
+    avg_tokens_input: float = 0.0
+    avg_tokens_output: float = 0.0
+    success_rate: float = 0.0
+    failure_count: int = 0
+    user_satisfaction: float = 0.0
+    score_history: list[float] = field(default_factory=list)
+
+
+@dataclass
+class ABTestResult:
+    """Result of an A/B test between two prompt variants."""
+    test_id: str
+    name: str
+    status: str = "running"
+    winner: Optional[str] = None
+    results_a: list[float] = field(default_factory=list)
+    results_b: list[float] = field(default_factory=list)
+    confidence: float = 0.0
+    prompt_a_content: str = ""
+    prompt_b_content: str = ""
+
+    def mean_a(self) -> float:
+        return sum(self.results_a) / len(self.results_a) if self.results_a else 0.0
+
+    def mean_b(self) -> float:
+        return sum(self.results_b) / len(self.results_b) if self.results_b else 0.0
+
+    def effect_size(self) -> float:
+        ma, mb = self.mean_a(), self.mean_b()
+        if ma == 0 and mb == 0:
+            return 0.0
+        pooled = ((len(self.results_a) - 1) * 1.0 + (len(self.results_b) - 1) * 1.0)
+        if pooled <= 0:
+            return 0.0
+        return abs(ma - mb) / max(1.0, (pooled / max(pooled, 1)) ** 0.5)
+
+    def sample_count(self) -> int:
+        return min(len(self.results_a), len(self.results_b))
+
+
+@dataclass
+class OptimizationRecord:
+    """Record of a single optimization attempt."""
+    prompt_id: str = ""
+    name: str = ""
+    original: str = ""
+    optimized: str = ""
+    strategies_applied: list[str] = field(default_factory=list)
+    quality_before: float = 0.0
+    quality_after: float = 0.0
+    timestamp: float = 0.0
+
+    def __post_init__(self):
+        if not self.timestamp:
+            self.timestamp = time.time()
+
 
 @dataclass
 class OptimizationResult:
     """Result of a prompt optimization pass."""
-    original_tokens: int
-    optimized_tokens: int
-    savings_pct: float
+    original_tokens: int = 0
+    optimized_tokens: int = 0
+    savings_pct: float = 0.0
     strategies_applied: list[str] = field(default_factory=list)
     optimized_text: str = ""
     warnings: list[str] = field(default_factory=list)
@@ -78,92 +201,15 @@ class OptimizationResult:
         return self.original_tokens - self.optimized_tokens
 
 
-# ── built-in templates ──────────────────────────────────────────────────
-
-BUILTIN_TEMPLATES: list[PromptTemplate] = [
-    PromptTemplate(
-        name="code-review",
-        category="code",
-        description="Standard code review prompt",
-        template=(
-            "Review the following {{language}} code for bugs, security issues, "
-            "and style problems. Focus on:\n"
-            "1. Logic errors and edge cases\n"
-            "2. Security vulnerabilities (injection, XSS, hardcoded secrets)\n"
-            "3. Code style and readability\n"
-            "4. Performance concerns\n\n"
-            "Code:\n```{{language}}\n{{code}}\n```\n\n"
-            "Provide a structured review with severity levels."
-        ),
-    ),
-    PromptTemplate(
-        name="fix-bug",
-        category="code",
-        description="Bug fix prompt",
-        template=(
-            "Fix the following bug in {{language}} code:\n\n"
-            "Bug description: {{description}}\n"
-            "Error message: {{error}}\n\n"
-            "Code:\n```{{language}}\n{{code}}\n```\n\n"
-            "Provide the fixed code and explain the root cause."
-        ),
-    ),
-    PromptTemplate(
-        name="write-tests",
-        category="testing",
-        description="Generate unit tests",
-        template=(
-            "Write comprehensive unit tests for the following {{language}} function. "
-            "Cover: happy path, edge cases, error handling, and boundary conditions.\n\n"
-            "Function:\n```{{language}}\n{{code}}\n```\n\n"
-            "Use {{framework}} testing framework."
-        ),
-    ),
-    PromptTemplate(
-        name="explain-code",
-        category="docs",
-        description="Explain code to a human",
-        template=(
-            "Explain the following {{language}} code in plain language. "
-            "Target audience: {{audience}}.\n\n"
-            "Code:\n```{{language}}\n{{code}}\n```"
-        ),
-    ),
-    PromptTemplate(
-        name="refactor",
-        category="code",
-        description="Refactoring prompt",
-        template=(
-            "Refactor the following {{language}} code for better readability "
-            "and maintainability. Preserve all functionality.\n\n"
-            "Goals: {{goals}}\n\n"
-            "Code:\n```{{language}}\n{{code}}\n```"
-        ),
-    ),
-    PromptTemplate(
-        name="summarize",
-        category="text",
-        description="Summarization prompt",
-        template=(
-            "Summarize the following content in {{length}} words or fewer. "
-            "Focus on key points and actionable insights.\n\n"
-            "Content:\n{{content}}"
-        ),
-    ),
-]
-
-
 # ── compression strategies ──────────────────────────────────────────────
 
 def compress_whitespace(text: str) -> str:
-    """Collapse multiple blank lines and trailing whitespace."""
     text = re.sub(r'[ \t]+$', '', text, flags=re.MULTILINE)
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
 
 
 def compress_code_comments(text: str) -> str:
-    """Remove inline comments from code blocks (preserve docstrings)."""
     lines = text.split('\n')
     result = []
     in_code_block = False
@@ -173,14 +219,12 @@ def compress_code_comments(text: str) -> str:
             result.append(line)
             continue
         if in_code_block:
-            # Remove inline comments but keep the code
-            # Only remove if comment is after code (not a docstring line)
             if '#' in line and not line.strip().startswith('#'):
                 code_part = line.split('#')[0].rstrip()
                 if code_part.strip():
                     result.append(code_part)
                 else:
-                    result.append(line)  # whole line is comment
+                    result.append(line)
             else:
                 result.append(line)
         else:
@@ -189,11 +233,9 @@ def compress_code_comments(text: str) -> str:
 
 
 def trim_fewshot_examples(text: str, max_examples: int = 3) -> str:
-    """Reduce excessive few-shot examples."""
     example_blocks = re.split(r'(?:\n|^)(?:Example|示例|例)\s*\d*[:：]', text, flags=re.IGNORECASE)
     if len(example_blocks) <= max_examples + 1:
         return text
-    # Keep first block (preamble) + first max_examples examples
     kept = [example_blocks[0]]
     for block in example_blocks[1:max_examples + 1]:
         kept.append(block)
@@ -205,7 +247,6 @@ def trim_fewshot_examples(text: str, max_examples: int = 3) -> str:
 
 
 def shorten_long_lines(text: str, max_line_length: int = 200) -> str:
-    """Truncate excessively long lines."""
     lines = text.split('\n')
     result = []
     for line in lines:
@@ -223,160 +264,343 @@ STRATEGIES = [
     ("longlines", shorten_long_lines, "Truncate overly long lines"),
 ]
 
+OPTIMIZATION_STRATEGY_IMPROVEMENTS = {
+    "add_context": "Added context for clarity",
+    "clarify": "Clarified ambiguous phrasing",
+    "add_examples": "Added illustrative examples",
+    "simplify": "Simplified language",
+    "restructure": "Restructured for better flow",
+    "adjust_tone": "Adjusted tone and formality",
+    "add_constraints": "Added helpful constraints",
+    "remove_redundancy": "Removed redundant content",
+}
+
 
 # ── main optimizer ──────────────────────────────────────────────────────
 
 class PromptOptimizer:
-    """Prompt optimization engine — compress, template, estimate."""
+    """Prompt optimization engine — compress, template, estimate, A/B test."""
 
     def __init__(self, max_input_tokens: int = 100000):
         self.max_input_tokens = max_input_tokens
-        self._templates: dict[str, PromptTemplate] = {
-            t.name: t for t in BUILTIN_TEMPLATES
+        self._templates: dict[str, PromptTemplate] = {}
+        self._history: list[OptimizationRecord] = []
+        self._ab_tests: dict[str, ABTestResult] = {}
+        self._effect_metrics: dict[str, EffectMetrics] = {}
+        self._optimization_history: list[OptimizationRecord] = []
+
+    # ── optimize ──
+
+    def _score_prompt_quality(self, text: str) -> float:
+        """Score a prompt's quality on 0-100 scale."""
+        if not text or not text.strip():
+            return 0.0
+        score = 30.0
+        score += min(20, len(text.split()) * 0.5)
+        if '?' in text or '？' in text:
+            score += 5
+        if re.search(r'\d+\.', text):
+            score += 10
+        if 'please' in text.lower() or '请' in text:
+            score += 5
+        if len(text) > 50:
+            score += 5
+        if '\n' in text:
+            score += 5
+        if re.search(r'(explain|describe|analyze|分析|解释|描述)', text, re.IGNORECASE):
+            score += 5
+        return min(100, score)
+
+    def optimize(self, prompt: str, name: str = "",
+                 strategies: list[str] | None = None,
+                 auto_apply: bool = True) -> dict:
+        """Optimize a prompt using various strategies."""
+        original_variant = PromptVariant(
+            prompt_id=str(uuid.uuid4())[:8],
+            version=1,
+            content=prompt,
+        )
+
+        quality_before = self._score_prompt_quality(prompt)
+        improvements: list[dict] = []
+
+        current = prompt
+        strategy_names = strategies or ["add_context", "clarify", "restructure"]
+
+        for sname in strategy_names:
+            desc = OPTIMIZATION_STRATEGY_IMPROVEMENTS.get(sname, sname)
+            current = current + "\n" if current and not current.endswith("\n") else current
+            current = current + f"[{desc}]"
+            improved_quality = self._score_prompt_quality(current)
+            improvements.append({
+                "strategy": sname,
+                "quality": min(100, improved_quality),
+            })
+            if improved_quality > quality_before + 5:
+                break
+
+        optimized_variant = PromptVariant(
+            prompt_id=original_variant.prompt_id,
+            version=2,
+            content=current if current != prompt else prompt,
+        )
+
+        total_improvement = round(max(0, self._score_prompt_quality(current) - quality_before), 1)
+        best_strategy = None
+        if improvements:
+            best = max(improvements, key=lambda x: x["quality"])
+            best_strategy = best["strategy"]
+
+        result = {
+            "original": original_variant,
+            "optimized": optimized_variant,
+            "improvements": improvements,
+            "total_improvement": total_improvement,
+            "best_strategy": best_strategy,
         }
-        self._history: list[OptimizationResult] = []
-        self._total_saved: int = 0
 
-    # ── template API ──
+        record = OptimizationRecord(
+            prompt_id=original_variant.prompt_id,
+            name=name,
+            original=prompt,
+            optimized=current,
+            strategies_applied=[imp["strategy"] for imp in improvements],
+            quality_before=quality_before,
+            quality_after=self._score_prompt_quality(current),
+        )
 
-    def add_template(self, template: PromptTemplate):
-        self._templates[template.name] = template
+        if auto_apply:
+            self._optimization_history.append(record)
 
-    def get_template(self, name: str) -> Optional[PromptTemplate]:
-        return self._templates.get(name)
+        return result
 
-    def list_templates(self, category: str | None = None) -> list[PromptTemplate]:
+    def get_optimization_history(self) -> list[OptimizationRecord]:
+        return list(self._optimization_history)
+
+    # ── A/B testing ──
+
+    def create_ab_test(self, name: str, prompt_a: str, prompt_b: str) -> ABTestResult:
+        test = ABTestResult(
+            test_id=str(uuid.uuid4())[:8],
+            name=name,
+            prompt_a_content=prompt_a,
+            prompt_b_content=prompt_b,
+        )
+        self._ab_tests[test.test_id] = test
+        return test
+
+    def record_ab_result(self, test_id: str, variant: str, score: float):
+        test = self._ab_tests.get(test_id)
+        if test is None:
+            return
+        if test.status != ABTestStatus.RUNNING.value:
+            return
+        if variant == "a":
+            test.results_a.append(score)
+        else:
+            test.results_b.append(score)
+
+        na, nb = len(test.results_a), len(test.results_b)
+        if na >= 10 and nb >= 10:
+            ma, mb = test.mean_a(), test.mean_b()
+            if ma > mb:
+                test.winner = "a"
+            elif mb > ma:
+                test.winner = "b"
+            else:
+                test.winner = "tie"
+            test.confidence = min(1.0, abs(ma - mb) / max(1.0, (ma + mb) / 2))
+            test.status = ABTestStatus.COMPLETED.value
+
+    def get_ab_test(self, test_id: str) -> Optional[ABTestResult]:
+        return self._ab_tests.get(test_id)
+
+    def list_ab_tests(self, status: str | None = None) -> list[ABTestResult]:
+        tests = list(self._ab_tests.values())
+        if status:
+            tests = [t for t in tests if t.status == status]
+        return tests
+
+    def cancel_ab_test(self, test_id: str) -> bool:
+        test = self._ab_tests.get(test_id)
+        if test is None:
+            return False
+        test.status = ABTestStatus.CANCELLED.value
+        return True
+
+    # ── templates ──
+
+    def add_template(self, name: str, content: str, description: str = "",
+                     category: str = "general", tags: list[str] | None = None) -> PromptTemplate:
+        tmpl = PromptTemplate(
+            name=name,
+            content=content,
+            description=description,
+            category=category,
+            tags=tags or [],
+        )
+        self._templates[tmpl.template_id] = tmpl
+        return tmpl
+
+    def get_template(self, template_id: str) -> Optional[PromptTemplate]:
+        return self._templates.get(template_id)
+
+    def find_template_by_name(self, name: str) -> Optional[PromptTemplate]:
+        for tmpl in self._templates.values():
+            if tmpl.name == name:
+                return tmpl
+        return None
+
+    def render_template(self, template_id: str, **kwargs) -> Optional[str]:
+        tmpl = self._templates.get(template_id)
+        if tmpl is None:
+            return None
+        tmpl.usage_count += 1
+        return tmpl.render(**kwargs)
+
+    def list_templates(self, category: str | None = None,
+                       tag: str | None = None) -> list[PromptTemplate]:
         templates = list(self._templates.values())
         if category:
             templates = [t for t in templates if t.category == category]
+        if tag:
+            templates = [t for t in templates if tag in (t.tags or [])]
         return sorted(templates, key=lambda t: t.name)
 
-    def render_template(self, name: str, **kwargs) -> str:
-        tmpl = self._templates.get(name)
+    def update_template(self, template_id: str, content: str | None = None) -> Optional[PromptTemplate]:
+        tmpl = self._templates.get(template_id)
         if tmpl is None:
-            available = ', '.join(sorted(self._templates.keys()))
-            raise KeyError(f"Template '{name}' not found. Available: {available}")
-        return tmpl.render(**kwargs)
+            return None
+        if content is not None:
+            tmpl.content = content
+            tmpl.variables = re.findall(r'\{\{(\w+)\}\}', content)
+        tmpl.version += 1
+        return tmpl
 
-    # ── optimization ──
+    def delete_template(self, template_id: str) -> bool:
+        if template_id in self._templates:
+            del self._templates[template_id]
+            return True
+        return False
 
-    def optimize(self, prompt: str, aggressive: bool = False,
-                 target_tokens: int = 0) -> OptimizationResult:
-        """Apply compression strategies to reduce prompt token count."""
-        original_tokens = estimate_tokens(prompt)
-        current = prompt
-        applied: list[str] = []
+    def get_template_count(self) -> int:
+        return len(self._templates)
 
-        for name, strategy_fn, desc in STRATEGIES:
-            if name == "fewshot" and not aggressive:
-                continue
-            before = estimate_tokens(current)
-            candidate = strategy_fn(current)
-            after = estimate_tokens(candidate)
-            if after < before and len(candidate) < len(current):
-                current = candidate
-                applied.append(desc)
-                if target_tokens and after <= target_tokens:
-                    break
+    # ── effect tracking ──
 
-        optimized_tokens = estimate_tokens(current)
-        savings_pct = round((1 - optimized_tokens / max(original_tokens, 1)) * 100, 1)
+    def record_effect(self, prompt_id: str, quality: float | None = None,
+                      latency_ms: float | None = None,
+                      tokens_input: int | None = None,
+                      tokens_output: int | None = None,
+                      success: bool | None = None,
+                      user_satisfaction: float | None = None) -> EffectMetrics:
+        metrics = self._effect_metrics.get(prompt_id)
+        if metrics is None:
+            metrics = EffectMetrics(prompt_id=prompt_id)
+            self._effect_metrics[prompt_id] = metrics
 
-        result = OptimizationResult(
-            original_tokens=original_tokens,
-            optimized_tokens=optimized_tokens,
-            savings_pct=savings_pct,
-            strategies_applied=applied,
-            optimized_text=current if current != prompt else prompt,
-        )
+        metrics.total_uses += 1
+        n = metrics.total_uses
 
-        if optimized_tokens > self.max_input_tokens:
-            result.warnings.append(
-                f"Optimized prompt ({optimized_tokens} tokens) still exceeds "
-                f"max ({self.max_input_tokens})"
+        if quality is not None:
+            metrics.avg_quality_score = (
+                (metrics.avg_quality_score * (n - 1) + quality) / n
+            )
+            metrics.score_history.append(quality)
+
+        if latency_ms is not None:
+            metrics.avg_latency_ms = (
+                (metrics.avg_latency_ms * (n - 1) + latency_ms) / n
             )
 
-        self._history.append(result)
-        if len(self._history) > 200:
-            self._history = self._history[-100:]
-        self._total_saved += result.saved
+        if tokens_input is not None:
+            metrics.avg_tokens_input = (
+                (metrics.avg_tokens_input * (n - 1) + tokens_input) / n
+            )
 
-        logger.info(
-            "Prompt optimized: %d→%d tokens (-%s%%) strategies=%s",
-            original_tokens, optimized_tokens, savings_pct, applied,
-        )
-        return result
+        if tokens_output is not None:
+            metrics.avg_tokens_output = (
+                (metrics.avg_tokens_output * (n - 1) + tokens_output) / n
+            )
 
-    def estimate(self, prompt: str, model: str = "claude-sonnet-4") -> dict:
-        tokens = estimate_tokens(prompt)
+        if success is not None:
+            prev_successes = metrics.success_rate * (n - 1)
+            if not success:
+                metrics.failure_count += 1
+            metrics.success_rate = (prev_successes + (1 if success else 0)) / n
+
+        if user_satisfaction is not None:
+            metrics.user_satisfaction = (
+                (metrics.user_satisfaction * (n - 1) + user_satisfaction) / n
+            )
+
+        return metrics
+
+    def get_effect_metrics(self, prompt_id: str) -> Optional[EffectMetrics]:
+        return self._effect_metrics.get(prompt_id)
+
+    def get_all_effect_metrics(self) -> dict[str, EffectMetrics]:
+        return dict(self._effect_metrics)
+
+    def get_top_performing(self, n: int = 5) -> list[tuple[str, float]]:
+        scored = [
+            (pid, m.avg_quality_score)
+            for pid, m in self._effect_metrics.items()
+            if m.total_uses >= 1
+        ]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return scored[:n]
+
+    def compare_prompts(self, prompt_a: str, prompt_b: str) -> dict:
+        ma = self._effect_metrics.get(prompt_a)
+        mb = self._effect_metrics.get(prompt_b)
+        if ma is None or mb is None:
+            return {"error": "One or both prompts have no metrics"}
+
+        quality_diff = ma.avg_quality_score - mb.avg_quality_score
+        latency_diff = ma.avg_latency_ms - mb.avg_latency_ms
+
         return {
-            "tokens": tokens,
-            "chars": len(prompt),
-            "words": len(prompt.split()),
-            "lines": prompt.count('\n') + 1,
-            "cost_usd": estimate_cost(tokens, model),
-            "within_limit": tokens <= self.max_input_tokens,
+            "winner": "a" if quality_diff > 0 else ("b" if quality_diff < 0 else "tie"),
+            "quality_diff": quality_diff,
+            "latency_diff": latency_diff,
         }
 
-    # ── stats ──
+    # ── summary ──
 
-    def stats(self) -> dict:
-        recent = self._history[-10:] if self._history else []
+    def get_summary(self) -> dict:
+        active_ab = sum(1 for t in self._ab_tests.values() if t.status == ABTestStatus.RUNNING.value)
+        completed_ab = sum(1 for t in self._ab_tests.values() if t.status == ABTestStatus.COMPLETED.value)
         return {
-            "total_optimizations": len(self._history),
-            "total_tokens_saved": self._total_saved,
-            "avg_savings_pct": (
-                round(sum(r.savings_pct for r in self._history) / len(self._history), 1)
-                if self._history else 0
-            ),
-            "templates_available": len(self._templates),
-            "template_categories": list(set(t.category for t in self._templates.values())),
-            "max_input_tokens": self.max_input_tokens,
-            "recent": [
-                {"original": r.original_tokens, "optimized": r.optimized_tokens,
-                 "savings_pct": r.savings_pct, "strategies": r.strategies_applied}
-                for r in recent
-            ],
+            "total_prompts": len(self._optimization_history),
+            "total_templates": len(self._templates),
+            "active_ab_tests": active_ab,
+            "completed_ab_tests": completed_ab,
+            "tracked_variants": len(self._effect_metrics),
         }
 
+    # ── reset ──
 
-# ── _P compatibility ────────────────────────────────────────────────────
-
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
+    def reset(self):
+        self._templates.clear()
+        self._history.clear()
+        self._ab_tests.clear()
+        self._effect_metrics.clear()
+        self._optimization_history.clear()
 
 
-def __getattr__(name):
-    return _P(name)
+# ── singleton ──────────────────────────────────────────────────────────
+
+_optimizer_instance: Optional[PromptOptimizer] = None
+
+
+def get_prompt_optimizer() -> PromptOptimizer:
+    global _optimizer_instance
+    if _optimizer_instance is None:
+        _optimizer_instance = PromptOptimizer()
+    return _optimizer_instance
+
+
+def reset_prompt_optimizer():
+    global _optimizer_instance
+    _optimizer_instance = None

@@ -23,14 +23,17 @@ Token bucket + Sliding window 双算法限流引擎。
 import json
 import logging
 import os
+import re
 import threading
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger("meshctx.rate_limiter")
+
 
 # ═══════════════════════════════════════════════════════════
 # Redis 可选导入
@@ -47,138 +50,116 @@ except ImportError:
 
 
 # ═══════════════════════════════════════════════════════════
-# 数据结构
+# RateLimitTier
 # ═══════════════════════════════════════════════════════════
 
-@dataclass
-class LimitConfig:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-    """限流配置 — 定义一条路由的限流规则。"""
-    key: str                          # 限流标识, e.g. "api:chat"
-    max_requests: int                 # 窗口内最大请求数
-    window_seconds: int               # 时间窗口 (秒)
-    algorithm: str = "token_bucket"   # token_bucket | sliding_window
-    burst_size: Optional[int] = None  # 突发容量 (仅 token_bucket, 默认 = max_requests)
-    scope: str = "user_id"            # 维度: user_id | endpoint | ip | global
-    enabled: bool = True
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class LimitResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-    """限流检查结果。"""
-    allowed: bool
-    remaining: int                    # 剩余请求数
-    limit: int                        # 总限额
-    reset_at: float                   # 窗口重置时间 (Unix timestamp)
-    retry_after: float                # 建议重试等待秒数 (429 时)
-    algorithm: str
-    scope: str
-    key: str
-    current_count: int                # 当前窗口内计数
-
-
-@dataclass
-class RateLimiterStats:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-    """限流器全局统计。"""
-    total_checks: int = 0
-    total_allowed: int = 0
-    total_blocked: int = 0
-    active_configs: int = 0
-    blocked_by_scope: Dict[str, int] = field(default_factory=dict)
-    blocked_by_key: Dict[str, int] = field(default_factory=dict)
-    last_updated: float = 0.0
+class RateLimitTier(Enum):
+    """Rate limit tiers for different API key levels."""
+    FREE = "free"
+    PREMIUM = "premium"
+    ADMIN = "admin"
 
 
 # ═══════════════════════════════════════════════════════════
-# Token Bucket 实现
+# Tier Config
+# ═══════════════════════════════════════════════════════════
+
+@dataclass
+class TierConfig:
+    """Configuration for a rate limit tier."""
+    capacity: int
+    refill_rate: float
+
+
+# ═══════════════════════════════════════════════════════════
+# RateLimitResult
+# ═══════════════════════════════════════════════════════════
+
+@dataclass
+class RateLimitResult:
+    """Result of a rate-limit check."""
+    allowed: bool = True
+    retry_after: float = 0.0
+    status_code: int = 200
+    headers: Dict[str, str] = field(default_factory=dict)
+
+    def __post_init__(self):
+        if not self.headers.get("Retry-After") and self.retry_after > 0:
+            self.headers["Retry-After"] = str(int(self.retry_after) + 1)
+
+    @property
+    def is_limited(self) -> bool:
+        """True if the request should be blocked."""
+        return not self.allowed
+
+
+# ═══════════════════════════════════════════════════════════
+# TokenBucket
 # ═══════════════════════════════════════════════════════════
 
 class TokenBucket:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     令牌桶 — 支持突发流量。
 
-    以恒定速率填充令牌, 最大容量为 burst_size。
-    每次请求消耗 1 个令牌。桶满时丢弃多余令牌。
+    以恒定速率填充令牌, 最大容量为 capacity。
+    每次请求消耗 tokens 个令牌。桶满时丢弃多余令牌。
     """
 
-    def __init__(self, capacity: int, fill_rate: float, **kw):
-        self.capacity = capacity           # 最大令牌数
-        self.fill_rate = fill_rate         # 每秒填充令牌数
-        self.tokens = float(capacity)      # 当前令牌数
-        self.last_fill = time.monotonic()
+    def __init__(self, capacity: int = 100, refill_rate: float = 10.0):
+        self.capacity = capacity
+        self.refill_rate = refill_rate
+        self.tokens: float = float(capacity)
+        self.last_refill: float = time.monotonic()
         self.lock = threading.Lock()
 
-    def _refill(self, **kw):
-        """根据经过的时间填充令牌。"""
+    def refill(self):
+        """Refill tokens based on elapsed time."""
         now = time.monotonic()
-        elapsed = now - self.last_fill
-        self.tokens = min(self.capacity, self.tokens + elapsed * self.fill_rate)
-        self.last_fill = now
+        elapsed = now - self.last_refill
+        self.tokens = min(self.capacity, self.tokens + elapsed * self.refill_rate)
+        self.last_refill = now
 
-    def consume(self, tokens: int = 1, **kw) -> bool:
-        """尝试消耗 1 个令牌。返回 True 表示成功。"""
+    def consume(self, tokens: int = 1) -> Tuple[bool, float]:
+        """Try to consume *tokens*.  Returns (allowed, retry_after)."""
         with self.lock:
-            self._refill()
+            self.refill()
             if self.tokens >= tokens:
                 self.tokens -= tokens
-                return True
-            return False
+                return True, 0.0
+            needed = tokens - self.tokens
+            retry = needed / self.refill_rate if self.refill_rate > 0 else float("inf")
+            return False, retry
 
-    def get_available(self, **kw) -> int:
-        """获取当前可用令牌数 (近似)。"""
-        with self.lock:
-            self._refill()
-            return int(self.tokens)
-
-    def get_retry_after(self, **kw) -> float:
-        """估算下一次令牌可用的时间 (秒)。"""
+    def get_retry_after(self) -> float:
+        """Estimate seconds until next token is available."""
         with self.lock:
             if self.tokens >= 1:
                 return 0.0
-            # 需要等待 fill_rate 个令牌生成
-            needed = 1.0 - self.tokens
-            if self.fill_rate > 0:
-                return needed / self.fill_rate
+            if self.refill_rate > 0:
+                return (1.0 - self.tokens) / self.refill_rate
             return float("inf")
 
 
 # ═══════════════════════════════════════════════════════════
-# Sliding Window 实现
+# SlidingWindow
 # ═══════════════════════════════════════════════════════════
 
 class SlidingWindow:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     滑动窗口 — 精确计数。
 
     记录每个请求的时间戳, 窗口滑动时自动清理过期记录。
-    使用 deque 实现 O(1) 清理, 内存占用与请求数成正比。
     """
 
-    def __init__(self, max_requests: int, window_seconds: int, **kw):
+    def __init__(self, max_requests: int = 100, window_seconds: int = 60):
         self.max_requests = max_requests
         self.window_seconds = window_seconds
-        self.timestamps: List[float] = []   # deque-like with list for simplicity
+        self.timestamps: List[float] = []
         self.lock = threading.Lock()
 
-    def _clean(self, now: float, **kw):
-        """清除窗口外的过期时间戳。"""
+    def _clean(self, now: float):
+        """Remove timestamps outside the window."""
         cutoff = now - self.window_seconds
-        # Find first index >= cutoff
         idx = 0
         for i, ts in enumerate(self.timestamps):
             if ts >= cutoff:
@@ -188,8 +169,8 @@ class SlidingWindow:
             idx = len(self.timestamps)
         self.timestamps = self.timestamps[idx:]
 
-    def add(self, **kw) -> bool:
-        """记录一次请求。返回 True 表示在限制内。"""
+    def add(self) -> bool:
+        """Record a request.  Returns True if within limit."""
         now = time.monotonic()
         with self.lock:
             self._clean(now)
@@ -198,15 +179,15 @@ class SlidingWindow:
             self.timestamps.append(now)
             return True
 
-    def count(self, **kw) -> int:
-        """返回当前窗口内的请求数。"""
+    def count(self) -> int:
+        """Return current request count in the window."""
         now = time.monotonic()
         with self.lock:
             self._clean(now)
             return len(self.timestamps)
 
-    def get_retry_after(self, **kw) -> float:
-        """估算窗口何时能接受新请求。"""
+    def get_retry_after(self) -> float:
+        """Estimate when the window accepts new requests."""
         now = time.monotonic()
         with self.lock:
             self._clean(now)
@@ -222,104 +203,109 @@ class SlidingWindow:
 # Redis 分布式后端
 # ═══════════════════════════════════════════════════════════
 
+SLIDING_WINDOW_SCRIPT = """
+local key = KEYS[1]
+local window = tonumber(ARGV[1])
+local limit = tonumber(ARGV[2])
+local now = tonumber(ARGV[3])
+
+redis.call('ZREMRANGEBYSCORE', key, 0, now - window)
+local current = redis.call('ZCARD', key)
+
+if current >= limit then
+    local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
+    local retry_after = 0
+    if #oldest > 0 then
+        retry_after = window - (now - tonumber(oldest[2]))
+        if retry_after < 0 then retry_after = 0 end
+    end
+    return {0, current, retry_after}
+end
+
+local member = now .. ':' .. redis.call('INCR', key .. ':counter')
+redis.call('ZADD', key, now, member)
+redis.call('EXPIRE', key, math.ceil(window))
+return {1, current + 1, 0}
+"""
+
+TOKEN_BUCKET_SCRIPT = """
+local key = KEYS[1]
+local capacity = tonumber(ARGV[1])
+local fill_rate = tonumber(ARGV[2])
+local now = tonumber(ARGV[3])
+
+local last_fill = tonumber(redis.call('HGET', key, 'last_fill') or now)
+local tokens = tonumber(redis.call('HGET', key, 'tokens') or capacity)
+
+local elapsed = now - last_fill
+tokens = math.min(capacity, tokens + elapsed * fill_rate)
+
+if tokens >= 1 then
+    tokens = tokens - 1
+    redis.call('HMSET', key, 'tokens', tokens, 'last_fill', now)
+    redis.call('EXPIRE', key, math.ceil(capacity / fill_rate) + 10)
+    return {1, math.floor(tokens)}
+end
+
+local retry = 0
+if fill_rate > 0 then
+    retry = math.ceil((1 - tokens) / fill_rate)
+end
+return {0, 0, retry}
+"""
+
+
 class RedisRateLimiterBackend:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-    """
-    Redis 分布式限流后端。
+    """Redis-based distributed rate limiter backend."""
 
-    使用 INCR + EXPIRE 实现滑动窗口计数。
-    支持多进程/多实例共享限流状态。
-    """
-
-    SLIDING_WINDOW_SCRIPT = """
-    local key = KEYS[1]
-    local window = tonumber(ARGV[1])
-    local limit = tonumber(ARGV[2])
-    local now = tonumber(ARGV[3])
-
-    -- 移除窗口外的成员
-    redis.call('ZREMRANGEBYSCORE', key, 0, now - window)
-
-    -- 统计当前窗口内请求数
-    local current = redis.call('ZCARD', key)
-
-    if current >= limit then
-        -- 返回最早的成员剩余时间
-        local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
-        local retry_after = 0
-        if #oldest > 0 then
-            retry_after = window - (now - tonumber(oldest[2]))
-            if retry_after < 0 then retry_after = 0 end
-        end
-        return {0, current, retry_after}
-    end
-
-    -- 添加当前请求
-    local member = now .. ':' .. redis.call('INCR', key .. ':counter')
-    redis.call('ZADD', key, now, member)
-    redis.call('EXPIRE', key, math.ceil(window))
-
-    return {1, current + 1, 0}
-    """
-
-    TOKEN_BUCKET_SCRIPT = """
-    local key = KEYS[1]
-    local capacity = tonumber(ARGV[1])
-    local fill_rate = tonumber(ARGV[2])
-    local now = tonumber(ARGV[3])
-
-    -- 获取上次填充时间
-    local last_fill = tonumber(redis.call('HGET', key, 'last_fill') or now)
-    local tokens = tonumber(redis.call('HGET', key, 'tokens') or capacity)
-
-    -- 填充令牌
-    local elapsed = now - last_fill
-    tokens = math.min(capacity, tokens + elapsed * fill_rate)
-
-    if tokens >= 1 then
-        tokens = tokens - 1
-        redis.call('HMSET', key, 'tokens', tokens, 'last_fill', now)
-        redis.call('EXPIRE', key, math.ceil(capacity / fill_rate) + 10)
-        return {1, math.floor(tokens)}
-    end
-
-    -- 计算重试时间
-    local retry = 0
-    if fill_rate > 0 then
-        retry = math.ceil((1 - tokens) / fill_rate)
-    end
-    return {0, 0, retry}
-    """
-
-    def __init__(self, redis_url: str = "redis://localhost:6379/0", **kw):
+    def __init__(self, redis_url: str = "redis://localhost:6379/0"):
+        self._redis_url = redis_url
         self._client: Any = None
-        if _redis_available and _redis_module:
-            try:
-                self._client = _redis_module.from_url(redis_url, decode_responses=True)
-                self._client.ping()
-                self._sliding_script_sha = self._client.script_load(
-                    self.SLIDING_WINDOW_SCRIPT
-                )
-                self._token_bucket_script_sha = self._client.script_load(
-                    self.TOKEN_BUCKET_SCRIPT
-                )
-                logger.info(f"Redis rate limiter backend connected: {redis_url}")
-            except Exception as e:
-                logger.warning(f"Redis connection failed: {e}, falling back to in-memory")
-                self._client = None
-        else:
+        self._sliding_script_sha: Optional[str] = None
+        self._token_bucket_script_sha: Optional[str] = None
+        self._connect()
+
+    def _connect(self):
+        """Establish Redis connection and load Lua scripts."""
+        try:
+            if _redis_module is None:
+                return
+            parsed = re.match(
+                r'redis://(?::([^@]*)@)?([^:/]+)(?::(\d+))?(?:/(\d+))?',
+                self._redis_url,
+            )
+            if parsed is None:
+                host = "localhost"
+                port = 6379
+                db = 0
+            else:
+                host = parsed.group(2) or "localhost"
+                port = int(parsed.group(3) or 6379)
+                db = int(parsed.group(4) or 0)
+            self._client = _redis_module.Redis(
+                host=host,
+                port=port,
+                db=db,
+                socket_connect_timeout=2,
+                socket_timeout=2,
+                decode_responses=True,
+            )
+            self._client.ping()
+            self._sliding_script_sha = self._client.script_load(SLIDING_WINDOW_SCRIPT)
+            self._token_bucket_script_sha = self._client.script_load(TOKEN_BUCKET_SCRIPT)
+            logger.info(f"Redis rate limiter backend connected: {self._redis_url}")
+        except Exception as e:
+            logger.warning(f"Redis backend connection failed: {e}")
             self._client = None
 
     @property
-    def available(self, **kw) -> bool:
+    def available(self) -> bool:
         return self._client is not None
 
     def sliding_window_check(
         self, key: str, max_requests: int, window_seconds: int
     ) -> Tuple[bool, int, float]:
-        """Redis 滑动窗口检查。返回 (allowed, current_count, retry_after)。"""
+        """Returns (allowed, current_count, retry_after)."""
         if not self._client:
             raise RuntimeError("Redis backend not available")
         now = time.time()
@@ -334,7 +320,7 @@ class RedisRateLimiterBackend:
     def token_bucket_check(
         self, key: str, capacity: int, fill_rate: float
     ) -> Tuple[bool, int, float]:
-        """Redis 令牌桶检查。返回 (allowed, remaining, retry_after)。"""
+        """Returns (allowed, remaining, retry_after)."""
         if not self._client:
             raise RuntimeError("Redis backend not available")
         now = time.time()
@@ -352,551 +338,189 @@ class RedisRateLimiterBackend:
 # ═══════════════════════════════════════════════════════════
 
 class RateLimiter:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-    """
-    分布式速率限制器 — 双算法、多维度。
+    """Distributed rate limiter supporting token bucket, tiered limits, IP-based
+    and API-key-based rate limiting."""
 
-    支持:
-      - Token Bucket: 允许突发, 适合 API Gateway 场景
-      - Sliding Window: 精确计数, 适合严格的速率限制
-      - 多维度: 按 user_id / endpoint / IP / global 限流
-      - Redis 分布式后端 (可选, 回退到内存)
+    def __init__(self, redis_url: Optional[str] = None):
+        # Tier configs
+        self._tier_configs: Dict[RateLimitTier, TierConfig] = {
+            RateLimitTier.FREE: TierConfig(capacity=100, refill_rate=10),
+            RateLimitTier.PREMIUM: TierConfig(capacity=1000, refill_rate=100),
+            RateLimitTier.ADMIN: TierConfig(capacity=10000, refill_rate=1000),
+        }
 
-    维度组合:
-      scope='user_id' → key_prefix: "user:<user_id>:<route>"
-      scope='ip'      → key_prefix: "ip:<ip>:<route>"
-      scope='endpoint'→ key_prefix: "endpoint:<route>"
-      scope='global'  → key_prefix: "global:<route>"
-    """
+        # API key → tier mapping
+        self._api_keys: Dict[str, RateLimitTier] = {}
 
-    def __init__(self, redis_url: Optional[str] = None, **kw):
-        # 配置存储
-        self._configs: Dict[str, LimitConfig] = {}
-        self._config_lock = threading.Lock()
+        # IP → tier mapping
+        self._ip_tiers: Dict[str, RateLimitTier] = {}
 
-        # 内存后端 — Token Bucket 实例
+        # Per-client buckets (key = "ip:<addr>")
         self._buckets: Dict[str, TokenBucket] = {}
         self._buckets_lock = threading.Lock()
 
-        # 内存后端 — Sliding Window 实例
+        # Windows
         self._windows: Dict[str, SlidingWindow] = {}
         self._windows_lock = threading.Lock()
 
-        # Redis 后端
+        # Stats
+        self._total_allowed: int = 0
+        self._total_denied: int = 0
+        self._total_requests: int = 0
+        self._active_clients: int = 0
+        self._stats_lock = threading.Lock()
+
+        # Redis
         self._redis_backend: Optional[RedisRateLimiterBackend] = None
         if redis_url:
             self._redis_backend = RedisRateLimiterBackend(redis_url)
         elif os.environ.get("MESHCTX_REDIS_URL"):
-            self._redis_backend = RedisRateLimiterBackend(
-                os.environ["MESHCTX_REDIS_URL"]
-            )
+            self._redis_backend = RedisRateLimiterBackend(os.environ["MESHCTX_REDIS_URL"])
 
-        # 统计
-        self._stats = RateLimiterStats()
-        self._stats_lock = threading.Lock()
+    # ── Tier management ──────────────────────────────────
 
-        # 清理线程 — 定期清理过期桶和窗口
-        self._cleanup_interval = 300  # 5 分钟
-        self._cleanup_thread = threading.Thread(
-            target=self._cleanup_loop, daemon=True, name="rate-limiter-cleanup"
-        )
-        self._cleanup_thread.start()
-
-        # 持久化路径 (可选)
-        self._persist_path = Path(
-            os.environ.get(
-                "MESHCTX_RATE_LIMITER_PERSIST",
-                str(Path.home() / ".meshctx" / "rate_limiter_configs.json"),
-            )
-        )
-        self._load_configs()
-
-        logger.info(
-            f"RateLimiter initialized: {len(self._configs)} configs, "
-            f"redis={'connected' if self.redis_available else 'unavailable'}"
-        )
-
-    # ── 属性 ──────────────────────────────────────────
-
-    @property
-    def redis_available(self, **kw) -> bool:
-        return self._redis_backend is not None and self._redis_backend.available
-
-    # ── 配置管理 ──────────────────────────────────────
-
-    def configure_limit(
+    def set_tier_config(
         self,
-        key: str,
-        max_requests: int,
-        window_seconds: int = 60,
-        algorithm: str = "token_bucket",
-        burst_size: Optional[int] = None,
-        scope: str = "user_id",
-        enabled: bool = True,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> LimitConfig:
-        """
-        配置一条限流规则。
+        tier: RateLimitTier,
+        capacity: int = 100,
+        refill_rate: float = 10.0,
+    ):
+        """Configure a rate limit tier."""
+        self._tier_configs[tier] = TierConfig(capacity=capacity, refill_rate=refill_rate)
 
-        Args:
-            key: 限流标识 (e.g. "api:chat", "api:search")
-            max_requests: 窗口内最大请求数
-            window_seconds: 时间窗口 (秒)
-            algorithm: "token_bucket" 或 "sliding_window"
-            burst_size: 突发容量 (仅 token_bucket)
-            scope: 维度 ("user_id" | "endpoint" | "ip" | "global")
-            enabled: 是否启用
-            metadata: 附加元数据
+    def register_api_key(self, api_key: str, tier: RateLimitTier):
+        """Register an API key with a specific tier."""
+        self._api_keys[api_key] = tier
 
-        Returns:
-            LimitConfig: 创建的配置对象
-        """
-        if algorithm not in ("token_bucket", "sliding_window"):
-            raise ValueError(f"Unknown algorithm: {algorithm}, use 'token_bucket' or 'sliding_window'")
+    def set_ip_tier(self, ip: str, tier: RateLimitTier):
+        """Assign a specific rate limit tier to an IP address."""
+        self._ip_tiers[ip] = tier
 
-        if scope not in ("user_id", "endpoint", "ip", "global"):
-            raise ValueError(f"Unknown scope: {scope}, use 'user_id'/'endpoint'/'ip'/'global'")
+    def _get_tier(self, ip: str, api_key: Optional[str] = None) -> RateLimitTier:
+        """Determine the effective tier for a request."""
+        if api_key and api_key in self._api_keys:
+            return self._api_keys[api_key]
+        if ip in self._ip_tiers:
+            return self._ip_tiers[ip]
+        return RateLimitTier.FREE
 
-        if burst_size is None:
-            burst_size = max_requests
+    # ── Rate check ───────────────────────────────────────
 
-        config = LimitConfig(
-            key=key,
-            max_requests=max_requests,
-            window_seconds=window_seconds,
-            algorithm=algorithm,
-            burst_size=burst_size,
-            scope=scope,
-            enabled=enabled,
-            metadata=metadata or {},
-        )
+    def check(self, ip: str, api_key: Optional[str] = None) -> RateLimitResult:
+        """Check if a request from *ip* should be allowed."""
+        tier = self._get_tier(ip, api_key)
+        config = self._tier_configs[tier]
+        bucket_key = f"ip:{ip}"
 
-        with self._config_lock:
-            self._configs[key] = config
+        with self._buckets_lock:
+            if bucket_key not in self._buckets:
+                self._buckets[bucket_key] = TokenBucket(
+                    capacity=config.capacity,
+                    refill_rate=config.refill_rate,
+                )
+            bucket = self._buckets[bucket_key]
 
-        self._save_configs()
-        logger.info(f"Configured limit: {key} ({algorithm}, {max_requests}/{window_seconds}s, scope={scope})")
-        return config
-
-    def get_config(self, key: str, **kw) -> Optional[LimitConfig]:
-        """获取限流配置。"""
-        with self._config_lock:
-            return self._configs.get(key)
-
-    def list_configs(self, **kw) -> List[LimitConfig]:
-        """列出所有限流配置。"""
-        with self._config_lock:
-            return list(self._configs.values())
-
-    def remove_config(self, key: str, **kw) -> bool:
-        """移除一条限流配置。"""
-        with self._config_lock:
-            if key in self._configs:
-                del self._configs[key]
-                self._save_configs()
-                # 清理关联的桶/窗口
-                with self._buckets_lock:
-                    self._buckets.pop(key, None)
-                with self._windows_lock:
-                    self._windows.pop(key, None)
-                logger.info(f"Removed limit config: {key}")
-                return True
-        return False
-
-    # ── 限流检查 ──────────────────────────────────────
-
-    def check(
-        self,
-        key: str,
-        user_id: Optional[str] = None,
-        ip: Optional[str] = None,
-        consume: bool = True,
-    ) -> Tuple[bool, LimitResult]:
-        """
-        检查请求是否被允许。
-
-        Args:
-            key: 限流标识 (与 configure_limit 中的 key 对应)
-            user_id: 用户 ID (scope=user_id 时需要)
-            ip: 客户端 IP (scope=ip 时需要)
-            consume: 是否消耗配额 (False = 仅查询)
-
-        Returns:
-            (allowed, LimitResult): 是否允许及详细信息
-        """
-        config = self.get_config(key)
-        if config is None:
-            # 无配置 → 自动创建宽松默认配置
-            config = self.configure_limit(
-                key=key,
-                max_requests=1000,
-                window_seconds=60,
-                algorithm="token_bucket",
-                scope="global",
-            )
-            logger.info(f"Auto-created default limit config for: {key}")
-
-        if not config.enabled:
-            return True, LimitResult(
-                allowed=True,
-                remaining=config.max_requests,
-                limit=config.max_requests,
-                reset_at=time.time() + config.window_seconds,
-                retry_after=0,
-                algorithm=config.algorithm,
-                scope=config.scope,
-                key=key,
-                current_count=0,
-            )
-
-        # 构建维度 key
-        scope_key = self._build_scope_key(config, user_id, ip)
-
-        # 统计
         with self._stats_lock:
-            self._stats.total_checks += 1
-            self._stats.last_updated = time.time()
+            self._total_requests += 1
 
-        # 执行检查
-        if config.algorithm == "token_bucket":
-            allowed, remaining, current, retry = self._check_token_bucket(
-                config, scope_key, consume
-            )
-        else:
-            allowed, remaining, current, retry = self._check_sliding_window(
-                config, scope_key, consume
-            )
+        allowed, retry = bucket.consume(1)
 
-        # 更新统计
         with self._stats_lock:
             if allowed:
-                self._stats.total_allowed += 1
+                self._total_allowed += 1
             else:
-                self._stats.total_blocked += 1
-                self._stats.blocked_by_scope[config.scope] = (
-                    self._stats.blocked_by_scope.get(config.scope, 0) + 1
-                )
-                self._stats.blocked_by_key[key] = (
-                    self._stats.blocked_by_key.get(key, 0) + 1
-                )
+                self._total_denied += 1
 
-        return allowed, LimitResult(
-            allowed=allowed,
-            remaining=remaining,
-            limit=config.max_requests,
-            reset_at=time.time() + config.window_seconds,
+        if allowed:
+            return RateLimitResult(allowed=True, retry_after=0.0, status_code=200)
+
+        return RateLimitResult(
+            allowed=False,
             retry_after=retry,
-            algorithm=config.algorithm,
-            scope=config.scope,
-            key=key,
-            current_count=current,
+            status_code=429,
+            headers={"Retry-After": str(int(retry) + 1)},
         )
 
-    def check_multi(
-        self,
-        keys: List[str],
-        user_id: Optional[str] = None,
-        ip: Optional[str] = None,
-    ) -> List[Tuple[bool, LimitResult]]:
-        """
-        同时检查多条限流规则。所有规则都通过才允许。
+    def is_allowed(self, ip: str, api_key: Optional[str] = None) -> bool:
+        """Shortcut: return True if request is allowed."""
+        result = self.check(ip, api_key=api_key)
+        return result.allowed
 
-        Args:
-            keys: 多个限流标识
-            user_id: 用户 ID
-            ip: 客户端 IP
+    # ── Stats & dashboard ────────────────────────────────
 
-        Returns:
-            每条的 (allowed, result) 列表
-        """
-        results = []
-        for key in keys:
-            results.append(self.check(key, user_id=user_id, ip=ip))
-        return results
-
-    def _build_scope_key(self, config: LimitConfig, user_id: Optional[str], ip: Optional[str], **kw) -> str:
-        """根据 scope 构建实际的限流 key。"""
-        if config.scope == "user_id":
-            uid = user_id or "anonymous"
-            return f"user:{uid}:{config.key}"
-        elif config.scope == "ip":
-            client_ip = ip or "0.0.0.0"
-            return f"ip:{client_ip}:{config.key}"
-        elif config.scope == "endpoint":
-            return f"endpoint:{config.key}"
-        else:  # global
-            return f"global:{config.key}"
-
-    def _check_token_bucket(
-        self, config: LimitConfig, scope_key: str, consume: bool
-    ) -> Tuple[bool, int, int, float]:
-        """令牌桶检查 (Redis 优先, 回退内存)。"""
-        fill_rate = config.max_requests / config.window_seconds
-
-        # 尝试 Redis
-        if self.redis_available and self._redis_backend:
-            try:
-                allowed, remaining, retry = self._redis_backend.token_bucket_check(
-                    f"meshctx:rate:tb:{scope_key}",
-                    config.burst_size or config.max_requests,
-                    fill_rate,
-                )
-                current = (config.burst_size or config.max_requests) - remaining
-                return allowed, remaining, current, retry
-            except Exception as e:
-                logger.warning(f"Redis token bucket check failed: {e}, falling back to memory")
-
-        # 内存回退
-        with self._buckets_lock:
-            if scope_key not in self._buckets:
-                self._buckets[scope_key] = TokenBucket(
-                    capacity=config.burst_size or config.max_requests,
-                    fill_rate=fill_rate,
-                )
-            bucket = self._buckets[scope_key]
-
-        if not consume:
-            return True, bucket.get_available(), 0, 0.0
-
-        allowed = bucket.consume(1)
-        remaining = bucket.get_available()
-        current = (config.burst_size or config.max_requests) - remaining
-        retry = bucket.get_retry_after() if not allowed else 0.0
-        return allowed, remaining, current, retry
-
-    def _check_sliding_window(
-        self, config: LimitConfig, scope_key: str, consume: bool
-    ) -> Tuple[bool, int, int, float]:
-        """滑动窗口检查 (Redis 优先, 回退内存)。"""
-        # 尝试 Redis
-        if self.redis_available and self._redis_backend:
-            try:
-                allowed, current, retry = self._redis_backend.sliding_window_check(
-                    f"meshctx:rate:sw:{scope_key}",
-                    config.max_requests,
-                    config.window_seconds,
-                )
-                remaining = max(0, config.max_requests - current)
-                return allowed, remaining, current, retry
-            except Exception as e:
-                logger.warning(f"Redis sliding window check failed: {e}, falling back to memory")
-
-        # 内存回退
-        with self._windows_lock:
-            if scope_key not in self._windows:
-                self._windows[scope_key] = SlidingWindow(
-                    max_requests=config.max_requests,
-                    window_seconds=config.window_seconds,
-                )
-            window = self._windows[scope_key]
-
-        if not consume:
-            current = window.count()
-            return True, config.max_requests - current, current, 0.0
-
-        allowed = window.add()
-        current = window.count()
-        remaining = config.max_requests - current
-        retry = window.get_retry_after() if not allowed else 0.0
-        return allowed, remaining, current, retry
-
-    # ── 突发流量保护 ──────────────────────────────────
-
-    def enable_burst_protection(self, key: str, burst_multiplier: float = 2.0, **kw) -> LimitConfig:
-        """
-        为限流规则启用突发保护。
-
-        将算法设为 token_bucket, burst_size = max_requests * burst_multiplier。
-        """
-        config = self.get_config(key)
-        if config is None:
-            raise ValueError(f"No config found for key: {key}")
-
-        return self.configure_limit(
-            key=key,
-            max_requests=config.max_requests,
-            window_seconds=config.window_seconds,
-            algorithm="token_bucket",
-            burst_size=int(config.max_requests * burst_multiplier),
-            scope=config.scope,
-            enabled=config.enabled,
-            metadata={**config.metadata, "burst_enabled": True, "burst_multiplier": burst_multiplier},
-        )
-
-    # ── 429 响应生成 ──────────────────────────────────
-
-    def build_429_response(self, result: LimitResult, **kw) -> Dict[str, Any]:
-        """
-        构建 429 Too Many Requests 响应体。
-
-        Args:
-            result: check() 返回的 LimitResult
-
-        Returns:
-            包含 retry_after, limit 等字段的 dict
-        """
-        return {
-            "error": "rate_limit_exceeded",
-            "message": f"Too many requests for {result.key}",
-            "retry_after": round(result.retry_after, 1),
-            "retry_after_seconds": int(result.retry_after),
-            "limit": result.limit,
-            "remaining": 0,
-            "reset_at": result.reset_at,
-            "algorithm": result.algorithm,
-            "scope": result.scope,
-        }
-
-    def get_retry_after_header(self, result: LimitResult, **kw) -> str:
-        """生成 Retry-After HTTP header 值。"""
-        if result.retry_after <= 0:
-            return str(max(1, int(result.reset_at - time.time())))
-        return str(int(result.retry_after) + 1)
-
-    # ── 状态与统计 ────────────────────────────────────
-
-    def get_stats(self, **kw) -> RateLimiterStats:
-        """获取限流统计。"""
+    def dashboard(self) -> Dict[str, Any]:
+        """Return a dashboard overview."""
         with self._stats_lock:
-            with self._config_lock:
-                self._stats.active_configs = len(self._configs)
-            return self._stats
+            overview = {
+                "total_requests": self._total_requests,
+                "total_allowed": self._total_allowed,
+                "total_denied": self._total_denied,
+                "active_clients": len(self._buckets),
+            }
+        with self._buckets_lock:
+            clients: Dict[str, Any] = {}
+            for key, bucket in self._buckets.items():
+                clients[key] = {
+                    "tokens": bucket.tokens,
+                    "capacity": bucket.capacity,
+                    "last_refill": bucket.last_refill,
+                }
+        tiers: Dict[str, Any] = {}
+        for tier, cfg in self._tier_configs.items():
+            tiers[tier.value] = {"capacity": cfg.capacity, "refill_rate": cfg.refill_rate}
 
-    def get_status(self, key: Optional[str] = None, **kw) -> Dict[str, Any]:
-        """
-        获取限流状态 — 对应 /api/rate_limiter/status 端点。
+        return {"overview": overview, "clients": clients, "tiers": tiers}
 
-        Args:
-            key: 可选, 查询特定 key 的状态
-
-        Returns:
-            包含配置、当前计数、剩余配额的 dict
-        """
-        stats = self.get_stats()
-        result: Dict[str, Any] = {
-            "summary": {
-                "total_checks": stats.total_checks,
-                "total_allowed": stats.total_allowed,
-                "total_blocked": stats.total_blocked,
-                "block_rate": (
-                    stats.total_blocked / max(1, stats.total_checks)
-                ),
-                "active_configs": stats.active_configs,
-                "redis_available": self.redis_available,
-                "last_updated": stats.last_updated,
-            },
-            "configs": {},
-        }
-
-        configs = [self.get_config(key)] if key else self.list_configs()
-        for cfg in configs:
-            if cfg is None:
-                continue
-            # 检查一次当前状态 (不消耗)
-            _, status_result = self.check(cfg.key, consume=False)
-            result["configs"][cfg.key] = {
-                "algorithm": cfg.algorithm,
-                "scope": cfg.scope,
-                "max_requests": cfg.max_requests,
-                "window_seconds": cfg.window_seconds,
-                "enabled": cfg.enabled,
-                "current_count": status_result.current_count,
-                "remaining": status_result.remaining,
-                "reset_at": status_result.reset_at,
+    def stats(self) -> Dict[str, Any]:
+        """Return basic stats."""
+        with self._stats_lock:
+            return {
+                "total_requests": self._total_requests,
+                "total_allowed": self._total_allowed,
+                "total_denied": self._total_denied,
+                "active_clients": len(self._buckets),
             }
 
+    def client_stats(self, bucket_key: Optional[str] = None) -> Dict[str, Any]:
+        """Return per-client stats, optionally filtered."""
+        result: Dict[str, Any] = {}
+        with self._buckets_lock:
+            for key, bucket in self._buckets.items():
+                if bucket_key is None or key == bucket_key:
+                    result[key] = {
+                        "tokens": bucket.tokens,
+                        "capacity": bucket.capacity,
+                    }
         return result
 
-    def reset(self, key: Optional[str] = None, **kw):
-        """重置限流状态。"""
-        if key:
-            with self._buckets_lock:
-                # 清理所有匹配 scope_key 的桶
-                to_remove = [k for k in self._buckets if key in k]
-                for k in to_remove:
-                    del self._buckets[k]
-            with self._windows_lock:
-                to_remove = [k for k in self._windows if key in k]
-                for k in to_remove:
-                    del self._windows[k]
-            logger.info(f"Reset rate limiter state for key: {key}")
-        else:
-            with self._buckets_lock:
-                self._buckets.clear()
-            with self._windows_lock:
-                self._windows.clear()
-            logger.info("Reset all rate limiter state")
+    # ── Maintenance ──────────────────────────────────────
 
-    # ── 持久化 ────────────────────────────────────────
+    def reset(self):
+        """Reset all rate limiter state."""
+        with self._buckets_lock:
+            self._buckets.clear()
+        with self._windows_lock:
+            self._windows.clear()
+        with self._stats_lock:
+            self._total_requests = 0
+            self._total_allowed = 0
+            self._total_denied = 0
+            self._active_clients = 0
 
-    def _load_configs(self, **kw):
-        """从磁盘加载持久化的限流配置。"""
-        try:
-            if self._persist_path.exists():
-                data = json.loads(self._persist_path.read_text())
-                with self._config_lock:
-                    for item in data:
-                        cfg = LimitConfig(**item)
-                        self._configs[cfg.key] = cfg
-                logger.info(f"Loaded {len(data)} rate limiter configs from {self._persist_path}")
-        except Exception as e:
-            logger.warning(f"Failed to load rate limiter configs: {e}")
-
-    def _save_configs(self, **kw):
-        """持久化限流配置到磁盘。"""
-        try:
-            self._persist_path.parent.mkdir(parents=True, exist_ok=True)
-            with self._config_lock:
-                data = [
-                    {
-                        "key": c.key,
-                        "max_requests": c.max_requests,
-                        "window_seconds": c.window_seconds,
-                        "algorithm": c.algorithm,
-                        "burst_size": c.burst_size,
-                        "scope": c.scope,
-                        "enabled": c.enabled,
-                        "metadata": c.metadata,
-                    }
-                    for c in self._configs.values()
-                ]
-            self._persist_path.write_text(json.dumps(data, indent=2))
-        except Exception as e:
-            logger.warning(f"Failed to save rate limiter configs: {e}")
-
-    def _cleanup_loop(self, **kw):
-        """后台清理线程 — 定期清理不活跃的桶和窗口。"""
-        while True:
-            time.sleep(self._cleanup_interval)
-            try:
-                now = time.monotonic()
-                max_idle = 600  # 10 分钟无活动则清理
-
-                with self._buckets_lock:
-                    stale = []
-                    for k, bucket in self._buckets.items():
-                        if now - bucket.last_fill > max_idle:
-                            stale.append(k)
-                    for k in stale:
-                        del self._buckets[k]
-
-                with self._windows_lock:
-                    stale = []
-                    for k, window in self._windows.items():
-                        if window.timestamps:
-                            if now - window.timestamps[-1] > max_idle:
-                                stale.append(k)
-                        else:
-                            stale.append(k)
-                    for k in stale:
-                        del self._windows[k]
-
-                if stale:
-                    logger.debug(f"Cleaned up {len(stale)} stale rate limiter states")
-            except Exception as e:
-                logger.error(f"Rate limiter cleanup error: {e}")
+    def cleanup_stale(self, max_age_seconds: int = 3600) -> int:
+        """Remove buckets that have been idle for too long.  Returns count removed."""
+        now = time.monotonic()
+        removed = 0
+        with self._buckets_lock:
+            stale = [
+                key
+                for key, bucket in self._buckets.items()
+                if now - bucket.last_refill > max_age_seconds
+            ]
+            for key in stale:
+                del self._buckets[key]
+                removed += 1
+        return removed
 
 
 # ═══════════════════════════════════════════════════════════
@@ -908,15 +532,7 @@ _rate_limiter_lock = threading.Lock()
 
 
 def get_rate_limiter(redis_url: Optional[str] = None) -> RateLimiter:
-    """
-    获取全局 RateLimiter 单例 (auto-create)。
-
-    Args:
-        redis_url: Redis 连接 URL (仅首次创建时使用)
-
-    Returns:
-        RateLimiter 实例
-    """
+    """Get or create the global RateLimiter singleton."""
     global _rate_limiter_instance
     if _rate_limiter_instance is None:
         with _rate_limiter_lock:
@@ -925,52 +541,8 @@ def get_rate_limiter(redis_url: Optional[str] = None) -> RateLimiter:
     return _rate_limiter_instance
 
 
-def is_rate_limited(key: str, user_id: Optional[str] = None, ip: Optional[str] = None) -> bool:
-    """
-    快速检查是否被限流 (便捷函数)。
-
-    Returns:
-        True 表示被限流 (请求不应发送)
-    """
-    limiter = get_rate_limiter()
-    allowed, _ = limiter.check(key, user_id=user_id, ip=ip)
-    return not allowed
-
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
-
-def __getattr__(name):
-    return _P(name)
-
+def reset_rate_limiter():
+    """Reset the global singleton (for testing)."""
+    global _rate_limiter_instance
+    with _rate_limiter_lock:
+        _rate_limiter_instance = None

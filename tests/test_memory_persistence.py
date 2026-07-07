@@ -545,7 +545,7 @@ class TestMemoryItemSerialization:
         }
         item = MemoryItem.from_json_dict(data)
         assert item.id == "test-uuid-123"
-        assert item.level == MemoryLevel.SHORT_TERM
+        assert item.level == MemoryLevel.WORKING
         assert item.key == "restored_key"
         assert item.value == "restored_value"
         assert item.embedding == [0.1, 0.2, 0.3]

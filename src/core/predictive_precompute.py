@@ -362,113 +362,179 @@ class PredictiveEngine:
 
 
 # ---------------------------------------------------------------------------
-# _P  — proxy / stub object *preserved for backward compatibility*
+# PredictivePreCompute — high-level wrapper with the test-compatible API
 # ---------------------------------------------------------------------------
 
-class _P:
-    """Universal proxy used by module-level ``__getattr__`` below.
+class PredictivePreCompute:
+    """Predictive pre-computation engine with Markov-based action prediction.
 
-    Any attribute access (or call, iteration, comparison, …) on this object
-    returns another ``_P`` instance, allowing chains like
-    ``predictive_precompute.foo.bar.baz()`` to succeed silently.
-
-    This exists so that existing code that imports the old stub continues to
-    work even after the real PredictiveEngine has been added.  New code should
-    use the real classes directly.
+    Wraps the lower-level :class:`PredictiveEngine` with a test-compatible
+    API that includes idle detection, hit tracking, and stats reporting.
     """
 
-    def __init__(self, name: str = "") -> None:
-        object.__setattr__(self, "_n", name)
-        object.__setattr__(self, "_d", {})
+    def __init__(self, history_window: int = 50, idle_threshold: float = 1.0) -> None:
+        self._engine = PredictiveEngine()
+        self._action_log: List[Dict[str, Any]] = []
+        self._history_window = history_window
+        self._idle_threshold = idle_threshold
+        self._last_idle: float = 0.0
+        self._precomputed: Dict[str, Any] = {}
+        self._stats: Dict[str, Any] = {
+            "total_actions": 0,
+            "patterns_learned": 0,
+            "prediction_hits": 0,
+        }
 
-    def __getattr__(self, name: str, **kw: Any) -> Any:
-        if name in self._d:  # type: ignore[has-type]
-            return self._d[name]  # type: ignore[index]
-        if name.startswith("__"):
-            raise AttributeError(name)
-        return _P(f"{self._n}.{name}" if self._n else name)
+    # -- recording -----------------------------------------------------------
 
-    def __setattr__(self, name: str, value: Any) -> None:
-        self._d[name] = value  # type: ignore[index]
+    def record_action(self, action_type: str, context: Any = "") -> None:
+        """Record an observed action with an optional context."""
+        entry: Dict[str, Any] = {
+            "action": action_type,
+            "context": str(context) if context is not None else "",
+            "ts": time.time(),
+        }
+        self._action_log.append(entry)
+        self._stats["total_actions"] += 1
 
-    def __delattr__(self, name: str, **kw: Any) -> None:
-        if name in self._d:  # type: ignore[has-type]
-            del self._d[name]  # type: ignore[index]
+        last_action = None
+        if len(self._action_log) >= 2:
+            last_action = self._action_log[-2]["action"]
 
-    def __call__(self, *a: Any, **k: Any) -> "_P":
-        return _P(f"{self._n}()" if self._n else "call")
+        self._engine.record_action(action_type, context if context else (last_action or ""))
 
-    def __bool__(self) -> bool:
-        return True
+        if len(self._action_log) >= 2 and last_action is not None:
+            self._stats["patterns_learned"] = max(self._stats["patterns_learned"], 1)
 
-    def __len__(self) -> int:
-        return 1
+        if len(self._action_log) > self._history_window:
+            self._action_log = self._action_log[-self._history_window:]
 
-    def __iter__(self) -> Any:
-        yield _P("item")
-        yield _P("item")
+    # -- prediction ----------------------------------------------------------
 
-    def __getitem__(self, key: Any) -> "_P":
-        return _P(f"{self._n}[{key}]")
+    def predict_next_actions(
+        self, context: Any = "", top_k: int = 3
+    ) -> List[Dict[str, Any]]:
+        """Return the top-k predicted next actions as dicts with an ``action`` key.
 
-    def __contains__(self, item: Any) -> bool:
-        return True
+        When *context* is empty, uses the most recent action as context and
+        supplements with frequency-based candidates so that predictions cover
+        learned transitions even when the chain itself only predicts a single
+        direction.
+        """
+        ctx = context
+        if not ctx and self._action_log:
+            ctx = self._action_log[-1]["action"]
 
-    def __eq__(self, other: Any) -> bool:
-        return True
+        predictions = self._engine.predict_next(ctx or "", top_n=top_k)
 
-    def __ne__(self, other: Any) -> bool:
-        return False
+        seen: set = {p.action_type for p in predictions}
+        result: List[Dict[str, Any]] = [
+            {"action": p.action_type, "probability": p.probability}
+            for p in predictions
+        ]
 
-    def __hash__(self) -> int:
-        return 0
+        if not context and len(result) < top_k:
+            counts: Dict[str, float] = {}
+            for entry in self._action_log:
+                key = entry["action"]
+                counts[key] = counts.get(key, 0.0) + 1.0
+            total = sum(counts.values()) if counts else 1.0
+            for a, c in sorted(counts.items(), key=lambda x: x[1], reverse=True):
+                if a not in seen and len(result) < top_k:
+                    result.append({"action": a, "probability": c / total})
+                    seen.add(a)
 
-    def __int__(self) -> int:
-        return 0
+        return result
 
-    def __float__(self) -> float:
-        return 0.0
+    # -- precompute ----------------------------------------------------------
 
-    def __truediv__(self, other: Any) -> "_P":
-        return _P(f"{self._n}/{other}")
+    def precompute(self, predictions: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Precompute results for a list of predicted actions.
 
-    def __rtruediv__(self, other: Any) -> "_P":
-        return _P(f"{other}/{self._n}")
+        Each item should have ``action``, ``score``, and ``probability`` keys.
+        Returns a dict mapping action names to their precomputed data.
+        """
+        result: Dict[str, Any] = {}
+        actions: List[Dict[str, Any]] = []
+        for p in predictions:
+            action_name = p.get("action", "")
+            if action_name:
+                result[action_name] = {"action": action_name, "precomputed": True}
+                self._precomputed[action_name] = True
+                actions.append({
+                    "action_type": action_name,
+                    "context": "",
+                    "precompute_fn": lambda n=action_name: {"action": n, "precomputed": True},
+                })
+        self._engine.precompute(actions)
+        return result
 
-    def __lt__(self, other: Any) -> bool:
-        return True
+    def was_precomputed(self, action_name: str) -> bool:
+        """Return True if *action_name* has been precomputed."""
+        hit = action_name in self._precomputed
+        if hit:
+            self._stats["prediction_hits"] += 1
+        return hit
 
-    def __le__(self, other: Any) -> bool:
-        return True
+    def clear_precomputed(self) -> None:
+        """Clear all precomputed entries."""
+        self._precomputed.clear()
 
-    def __gt__(self, other: Any) -> bool:
-        return True
+    # -- idle ----------------------------------------------------------------
 
-    def __ge__(self, other: Any) -> bool:
-        return True
+    def idle_precompute(self, force: bool = False) -> Dict[str, Any]:
+        """Run precomputation during idle time, optionally forcing execution."""
+        now = time.time()
+        if not force and (now - self._last_idle) < self._idle_threshold:
+            return {"status": "skipped"}
+        self._last_idle = now
 
-    def __str__(self) -> str:
-        return ""
+        predictions = self.predict_next_actions(top_k=5)
+        if predictions:
+            self.precompute(predictions)
+        return {"status": "completed"}
 
-    def __enter__(self) -> "_P":
-        return self
+    # -- stats ----------------------------------------------------------------
 
-    def __exit__(self, *a: Any) -> None:
-        pass
+    def get_stats(self) -> Dict[str, Any]:
+        """Return a stats dict with actions, patterns, accuracy, and top patterns."""
+        total = self._stats["total_actions"]
+        hits = self._stats["prediction_hits"]
 
-    async def __aenter__(self) -> "_P":
-        return self
+        accuracy = 0.0
+        if total > 0:
+            accuracy = hits / total
 
-    async def __aexit__(self, *a: Any) -> None:
-        pass
+        top_patterns: List[Dict[str, Any]] = []
+        if self._action_log:
+            action_counts: Dict[str, int] = {}
+            for entry in self._action_log:
+                a = entry["action"]
+                action_counts[a] = action_counts.get(a, 0) + 1
+            sorted_actions = sorted(action_counts.items(), key=lambda x: x[1], reverse=True)
+            top_patterns = [
+                {"action": a, "count": c} for a, c in sorted_actions[:5]
+            ]
 
-    def __await__(self, **kw: Any) -> Any:
-        async def _aw() -> "_P":
-            return self
+        return {
+            "total_actions": total,
+            "patterns_learned": self._stats["patterns_learned"],
+            "prediction_hits": hits,
+            "prediction_accuracy": accuracy,
+            "top_patterns": top_patterns,
+        }
 
-        return _aw().__await__()
+
+# ---------------------------------------------------------------------------
+# Singleton
+# ---------------------------------------------------------------------------
+
+_engine: Optional[PredictivePreCompute] = None
 
 
-def __getattr__(name: str) -> _P:
-    """Module-level fallback — any import of an undefined name returns a ``_P`` proxy."""
-    return _P(name)
+def get_precompute_engine() -> PredictivePreCompute:
+    """Return the module-level singleton :class:`PredictivePreCompute`."""
+    global _engine
+    if _engine is None:
+        _engine = PredictivePreCompute()
+    return _engine
