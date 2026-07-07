@@ -1,53 +1,108 @@
-"""meshctx desktop_agent — auto-generated stub"""
+"""meshctx desktop_agent — desktop automation agent"""
+
+import platform
+import subprocess
+from dataclasses import dataclass, field
 
 
+@dataclass
+class WindowInfo:
+    """Window metadata."""
+    title: str = ""
+    pid: int = 0
+    handle: str = ""
+    visible: bool = True
+
+
+@dataclass
 class DesktopAction:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-    """Stub class"""
-    def __init__(self, *args, **kwargs):
-        pass
+    """Desktop automation action."""
+    action: str = ""
+    target: str = ""
+    params: dict = field(default_factory=dict)
+    result: str | None = None
+    error: str = ""
 
-def get_desktop_agent(*args, **kwargs):
-    """Stub function"""
-    pass
 
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
+class DesktopAgent:
+    """Cross-platform desktop automation agent.
 
-def __getattr__(name):
-    return _P(name)
+    Provides window management and command execution
+    across Windows, macOS, and Linux.
+    """
 
+    def __init__(self):
+        self._platform = platform.system()
+        self._command_count = 0
+
+    def list_windows(self):
+        """List currently open windows.
+
+        Returns a list of window title strings.
+        Falls back gracefully on unsupported platforms.
+        """
+        windows = []
+        try:
+            if self._platform == "Linux":
+                result = subprocess.run(
+                    ["wmctrl", "-l"],
+                    capture_output=True, text=True, timeout=5
+                )
+                for line in result.stdout.strip().split("\n"):
+                    if line.strip():
+                        parts = line.split(None, 3)
+                        if len(parts) >= 4:
+                            windows.append(parts[3])
+            elif self._platform == "Windows":
+                result = subprocess.run(
+                    ["powershell", "-Command",
+                     "(Get-Process | Where-Object {$_.MainWindowTitle -ne ''}).MainWindowTitle"],
+                    capture_output=True, text=True, timeout=5
+                )
+                for line in result.stdout.strip().split("\n"):
+                    if line.strip():
+                        windows.append(line.strip())
+            elif self._platform == "Darwin":
+                result = subprocess.run(
+                    ["osascript", "-e",
+                     'tell application "System Events" to get name of every process whose visible is true'],
+                    capture_output=True, text=True, timeout=5
+                )
+                for item in result.stdout.strip().split(", "):
+                    if item.strip():
+                        windows.append(item.strip())
+        except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+            pass
+        return windows
+
+    def run_command(self, command):
+        """Execute a shell command and return its output."""
+        try:
+            result = subprocess.run(
+                command, shell=True,
+                capture_output=True, text=True, timeout=30
+            )
+            self._command_count += 1
+            return result.stdout + result.stderr
+        except subprocess.TimeoutExpired:
+            return ""
+
+    def get_stats(self):
+        """Return desktop agent statistics."""
+        return {
+            "platform": self._platform,
+            "commands_executed": self._command_count,
+            "actions": self._command_count,
+            "supported": self._platform in ("Linux", "Windows", "Darwin"),
+        }
+
+
+_agent = None
+
+
+def get_desktop_agent():
+    """Singleton accessor for DesktopAgent."""
+    global _agent
+    if _agent is None:
+        _agent = DesktopAgent()
+    return _agent

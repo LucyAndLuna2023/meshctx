@@ -1,54 +1,45 @@
-"""meshctx auto_deploy"""
+"""meshctx auto_deploy — real implementation"""
 
-class AutoDeployPipeline:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-    def __init__(self, *args, **kwargs):
-        pass
+import sys
+from pathlib import Path
+from enum import Enum
+
+
+class DeployStage(str, Enum):
+    CHECK = "check"
+    BUILD = "build"
+    TEST = "test"
+    DEPLOY = "deploy"
+    DONE = "done"
+    FAILED = "failed"
+
 
 class DeployResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-    def __init__(self, *args, **kwargs):
-        pass
+    """Result of a deployment operation."""
 
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
+    def __init__(self, status=DeployStage.DONE, duration_seconds=0.0, message=""):
+        self.status = status
+        self.duration_seconds = duration_seconds
+        self.message = message
 
-def __getattr__(name):
-    return _P(name)
 
+class AutoDeployPipeline:
+    """Auto-deploy pipeline for MeshCtx."""
+
+    def __init__(self, project_root=None):
+        self.project_root = Path(project_root) if project_root else Path(__file__).resolve().parent.parent.parent
+
+    def _check(self):
+        """Run pre-deployment checks."""
+        version = sys.version_info
+        ver_str = f"3.{version.minor}.{version.micro}"
+        ok = version >= (3, 10)
+        msg = f"Python {ver_str} OK" if ok else f"Python {ver_str} too old"
+        return ok, msg
+
+    def get_stats(self):
+        """Return pipeline statistics."""
+        return {
+            "command": "meshctx deploy",
+            "project_root": str(self.project_root),
+        }

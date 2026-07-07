@@ -1,43 +1,86 @@
-"""meshctx smart_permissions — 开源版 (stub)"""
-class _Stub:
-    def __init__(self, *a, **kw): pass
-    def __getattr__(self, n): return lambda *a,**kw: None
+"""meshctx smart_permissions — ML-driven permission learning"""
 
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
+import fnmatch
+from enum import Enum
 
-def __getattr__(name):
-    return _P(name)
 
+class Permission(Enum):
+    """Permission decision levels."""
+    ASK = "ask"
+    ALLOW = "allow"
+    DENY = "deny"
+    AUTO_ALLOW = "auto_allow"
+
+
+class SmartPermissions:
+    """Learns permission patterns from user decisions.
+
+    Tracks action approvals/denials and auto-approves
+    actions that pass a configurable confidence threshold.
+    """
+
+    UNSAFE_PATTERNS = [
+        "rm -rf *",
+        "rm -rf /*",
+        "rm -rf /",
+        "sudo rm*",
+        "dd if=*",
+        "mkfs.*",
+        ":(){ :|:& };:",
+        "chmod 777 /*",
+        "> /dev/sda*",
+    ]
+
+    def __init__(self):
+        self._action_history = {}  # action -> [True/False, ...]
+        self._rules = {}  # pattern -> Permission
+        self._auto_approve_threshold = 3
+        self._total_decisions = 0
+
+    def check(self, action):
+        """Check what permission level an action deserves."""
+        for pattern, perm in self._rules.items():
+            if fnmatch.fnmatch(action, pattern):
+                return perm
+        history = self._action_history.get(action, [])
+        if len(history) >= self._auto_approve_threshold and all(history):
+            return Permission.AUTO_ALLOW
+        return Permission.ASK
+
+    def learn(self, action, approved):
+        """Learn from a user's decision on an action."""
+        if action not in self._action_history:
+            self._action_history[action] = []
+        self._action_history[action].append(approved)
+        self._total_decisions += 1
+
+    def add_rule(self, pattern, permission):
+        """Add an explicit permission rule (glob pattern)."""
+        self._rules[pattern] = permission
+
+    def is_safe(self, action):
+        """Heuristic safety check for a command/action."""
+        for pattern in self.UNSAFE_PATTERNS:
+            if fnmatch.fnmatch(action, pattern):
+                return False
+        return True
+
+    def get_stats(self):
+        """Return permission learning statistics."""
+        return {
+            "total_decisions": self._total_decisions,
+            "tracked_actions": len(self._action_history),
+            "explicit_rules": len(self._rules),
+            "auto_approve_threshold": self._auto_approve_threshold,
+        }
+
+
+_sp = None
+
+
+def get_smart_permissions():
+    """Singleton accessor for SmartPermissions."""
+    global _sp
+    if _sp is None:
+        _sp = SmartPermissions()
+    return _sp

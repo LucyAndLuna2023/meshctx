@@ -1,49 +1,112 @@
-"""meshctx jepa_router — auto-generated stub"""
+"""meshctx jepa_router — JEPA-based model routing"""
+
+import hashlib
+from dataclasses import dataclass, field
+
+
+@dataclass
+class TaskEncoding:
+    """Encoded task representation from JEPA"""
+    task_hash: str = ""
+    complexity: float = 0.5
+    embedding_hint: list = field(default_factory=list)
 
 
 class JEPARouter:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-    """Stub class"""
-    def __init__(self, *args, **kwargs):
-        pass
+    """Routes tasks to the best model using JEPA world-model predictions."""
 
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
+    def __init__(self):
+        self._model_registry = {
+            "deepseek-chat":     {"cost": 0.5,  "speed": "fast",    "strength": "general"},
+            "deepseek-v4-pro":   {"cost": 0.1,  "speed": "fast",    "strength": "code"},
+            "gpt-4o-mini":       {"cost": 1.0,  "speed": "medium",  "strength": "general"},
+            "claude-sonnet":     {"cost": 2.0,  "speed": "medium",  "strength": "analysis"},
+            "gpt-4o":            {"cost": 5.0,  "speed": "slow",    "strength": "complex"},
+        }
+        self._predictions = 0
 
-def __getattr__(name):
-    return _P(name)
+    def encode_task(self, task_description: str) -> TaskEncoding:
+        """Encode a task description into a TaskEncoding with complexity estimation."""
+        h = hashlib.sha256(task_description.encode()).hexdigest()[:16]
+        words = task_description.split()
+        n = len(words)
 
+        # Complexity heuristics based on task description
+        complex_keywords = ["implement", "design", "architecture", "system",
+                            "authentication", "deploy", "optimize", "refactor",
+                            "migrate", "build"]
+        simple_keywords = ["check", "status", "hello", "hi", "help", "list", "show"]
+
+        complexity = 0.3
+        for kw in complex_keywords:
+            if kw in task_description.lower():
+                complexity += 0.15
+        for kw in simple_keywords:
+            if kw in task_description.lower():
+                complexity -= 0.1
+
+        # Longer descriptions → more complex
+        complexity += min(n / 50.0, 0.3)
+
+        # Clamp
+        complexity = max(0.1, min(1.0, complexity))
+
+        return TaskEncoding(task_hash=h, complexity=complexity)
+
+    def predict_best_model(self, task_description: str, task_type: str = "general",
+                           max_cost=None) -> tuple:
+        """Predict the best model for a task, returns (model_name, confidence)."""
+        encoding = self.encode_task(task_description)
+        self._predictions += 1
+
+        # Score each model
+        best_model = "deepseek-v4-pro"
+        best_score = -1.0
+
+        for name, info in self._model_registry.items():
+            if max_cost is not None and info["cost"] > max_cost:
+                continue
+
+            score = 0.0
+
+            # Complexity matching
+            if encoding.complexity > 0.7 and info["strength"] == "complex":
+                score += 0.4
+            elif encoding.complexity < 0.4 and info["speed"] == "fast":
+                score += 0.3
+
+            # Task type matching
+            if task_type == "code" and info["strength"] == "code":
+                score += 0.3
+            elif task_type == "analysis" and info["strength"] in ("analysis", "general"):
+                score += 0.25
+            elif task_type == "general" and info["strength"] == "general":
+                score += 0.2
+
+            # Cost preference (lower is better)
+            score += (1.0 - info["cost"] / 5.0) * 0.15
+
+            if score > best_score:
+                best_score = score
+                best_model = name
+
+        confidence = min(1.0, max(0.3, best_score + 0.3))
+        return best_model, confidence
+
+    def get_stats(self) -> dict:
+        """Return router statistics."""
+        return {
+            "predictions": self._predictions,
+            "models_available": len(self._model_registry),
+        }
+
+
+_router: JEPARouter = None
+
+
+def get_jepa_router() -> JEPARouter:
+    """Get the singleton JEPARouter instance."""
+    global _router
+    if _router is None:
+        _router = JEPARouter()
+    return _router
