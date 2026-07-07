@@ -6,9 +6,6 @@ from typing import Any, Dict, List, Optional
 
 @dataclass
 class WebAPIConfig:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     name: str
     base_url: str = ""
     cookie: str = ""
@@ -25,9 +22,6 @@ class WebAPIConfig:
 
 @dataclass
 class ProxyRequest:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     model: str
     messages: List[Dict[str, str]] = field(default_factory=list)
     stream: bool = False
@@ -37,9 +31,6 @@ class ProxyRequest:
 
 @dataclass
 class ProxyResponse:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     content: str = ""
     model: str = ""
     usage: Dict[str, int] = field(default_factory=dict)
@@ -48,9 +39,6 @@ class ProxyResponse:
 
 
 class Web2APIProxy:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Proxy that wraps web-based AI APIs into a unified OpenAI-compatible interface."""
 
     def __init__(self, **kw):

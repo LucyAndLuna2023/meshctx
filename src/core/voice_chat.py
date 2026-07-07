@@ -20,9 +20,6 @@ from typing import Any, Dict, List, Optional, Tuple
 # ═══════════════════════════════════════════════════════════════
 
 class TTSProvider(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     EDGE_TTS = "edge_tts"
     GTTS = "gtts"
     PYTTSX3 = "pyttsx3"
@@ -30,9 +27,6 @@ class TTSProvider(Enum):
 
 
 class STTProvider(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     WHISPER = "whisper"
     WHISPER_API = "whisper_api"
     GOOGLE = "google"
@@ -40,9 +34,6 @@ class STTProvider(Enum):
 
 
 class VoiceLanguage(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     EN = "en"
     ZH = "zh"
     JA = "ja"
@@ -66,9 +57,6 @@ class VoiceLanguage(Enum):
 
 
 class AudioFormat(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     MP3 = "mp3"
     WAV = "wav"
     OGG = "ogg"
@@ -76,9 +64,6 @@ class AudioFormat(Enum):
 
 
 class VoiceGender(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     MALE = "male"
     FEMALE = "female"
     NEUTRAL = "neutral"
@@ -161,9 +146,6 @@ _WHISPER_LANG_MAP: Dict[str, str] = {
 
 @dataclass
 class TTSResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     audio_bytes: bytes = b""
     audio_format: AudioFormat = AudioFormat.MP3
     duration_ms: float = 0.0
@@ -207,9 +189,6 @@ class TTSResult:
 
 @dataclass
 class STTResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     text: str = ""
     language: str = "en"
     confidence: float = 0.0
@@ -240,9 +219,6 @@ class STTResult:
 
 @dataclass
 class VoiceChatConfig:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     default_tts_provider: TTSProvider = TTSProvider.EDGE_TTS
     default_stt_provider: STTProvider = STTProvider.WHISPER
     default_language: str = "en"
@@ -254,9 +230,6 @@ class VoiceChatConfig:
 
 @dataclass
 class VoiceChatSession:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     session_id: str = ""
     language: str = "en"
     tts_provider: TTSProvider = TTSProvider.EDGE_TTS
@@ -318,9 +291,6 @@ def create_sine_wav(duration_ms: int = 500, frequency: float = 440.0, sample_rat
 # ═══════════════════════════════════════════════════════════════
 
 class VoiceChat:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Voice chat engine supporting TTS, STT, multi-language, sessions."""
 
     def __init__(
