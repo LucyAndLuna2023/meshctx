@@ -23,8 +23,22 @@ class TestSwitchLangBehavior:
             html = f.read()
         
         # 提取L对象 (所有语言翻译)
-        js_match = re.search(r'const L = (\{.*?\n\});', html, re.DOTALL)
-        assert js_match, "L对象未找到!"
+        # Find const L = { and match braces to find the closing };
+        start_pos = html.index("const L = ")
+        brace_start = html.index("{", start_pos)
+        depth = 0
+        pos = brace_start
+        while pos < len(html):
+            if html[pos] == "{":
+                depth += 1
+            elif html[pos] == "}":
+                depth -= 1
+                if depth == 0:
+                    end_pos = pos + 1
+                    break
+            pos += 1
+        js_obj_str = html[brace_start:end_pos]
+        assert js_obj_str, "L对象未找到!"
         
         # 提取switchLang函数
         func_match = re.search(r'function switchLang\(lang\) \{.*?\n\}', html, re.DOTALL)
@@ -38,8 +52,7 @@ class TestSwitchLangBehavior:
             if text:  # 只记录有默认文本的元素
                 key_elements[key] = text
         
-        # 将JS对象解析为Python dict (简化)
-        js_obj_str = js_match.group(1)
+        # js_obj_str already extracted via brace-counting above
         
         return {
             "html": html,

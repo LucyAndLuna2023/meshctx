@@ -145,9 +145,6 @@ SAFE_PATHS: List[str] = ["/tmp/", "/var/tmp/", "/dev/null", "/dev/stdout", "/dev
 # ═══════════════════════════════════════════════════════════
 
 class ExecutionStatus(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     SUCCESS = "success"
     ERROR = "error"
     TIMEOUT = "timeout"
@@ -158,9 +155,6 @@ class ExecutionStatus(str, Enum):
 
 @dataclass
 class ExecutionResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """沙箱执行结果"""
     execution_id: str = ""
     status: ExecutionStatus = ExecutionStatus.SUCCESS
@@ -174,6 +168,15 @@ class ExecutionResult:
     mode: str = "python"           # python / bash
     code_truncated: str = ""       # 代码片段 (前100字符)
     created_at: float = field(default_factory=time.time)
+
+    @property
+    def exit_code(self): return self.return_code
+
+    @property
+    def output(self): return self.stdout
+
+    @property
+    def error(self): return self.stderr
 
     def to_dict(self, **kw) -> Dict:
         return {
@@ -211,9 +214,6 @@ class ExecutionResult:
 # ═══════════════════════════════════════════════════════════
 
 class CodeScanner:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """代码安全扫描器 — 检测危险模式"""
 
     @classmethod
@@ -293,11 +293,11 @@ def safe_open(file, mode='r', *args, **kwargs):
         if not os.path.isabs(file_path):
             is_safe = True
         else:
-            raise PermissionError(f"文件访问被拒绝: {file_path}")
+            raise PermissionError(f"文件访问被拒绝: {{file_path}}")
     return _original_open(file, mode, *args, **kwargs)
 
 # 沙箱环境
-__builtins__ = dict(__builtins__)
+__builtins__ = dict(vars(__builtins__))
 __builtins__['open'] = safe_open
 # 移除危险函数
 for _danger in ['exec', 'eval', 'compile', '__import__']:
@@ -403,9 +403,6 @@ print(json.dumps(result))
 # ═══════════════════════════════════════════════════════════
 
 class Sandbox:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     安全代码执行沙箱
 
@@ -427,7 +424,10 @@ class Sandbox:
         bash_mem_limit: int = 256 * 1024 * 1024,    # 256 MB
         max_output_bytes: int = 10 * 1024 * 1024,   # 10 MB
         safe_dirs: List[str] = None,
+        timeout: float = None,  # backward-compat alias for default_timeout
     ):
+        if timeout is not None:
+            default_timeout = timeout
         self.default_timeout = default_timeout
         self.max_timeout = max_timeout
         self.python_cpu_limit = python_cpu_limit
@@ -458,6 +458,16 @@ class Sandbox:
 
         logger.info(f"Sandbox initialized: timeout={default_timeout}s, "
                    f"cpu_limit={python_cpu_limit}s, mem_limit={python_mem_limit//1024//1024}MB")
+
+    # ── 同步便捷方法 (backward-compat) ─────────────────────
+
+    def run_python(self, code: str, timeout: float = None):
+        """同步执行 Python 代码（backward-compat）"""
+        return asyncio.run(self.execute(code, mode="python", timeout=timeout))
+
+    def run_bash(self, code: str, timeout: float = None):
+        """同步执行 Bash 命令（backward-compat）"""
+        return asyncio.run(self.execute(code, mode="bash", timeout=timeout))
 
     # ── 主入口 ────────────────────────────────────────────
 
@@ -579,7 +589,7 @@ class Sandbox:
                     await proc.wait()
                 except Exception:
                     pass
-                stdout_bytes, stderr_bytes = b"", f"执行超时 ({timeout}s)".encode()
+                stdout_bytes, stderr_bytes = b"", f"TIMEOUT 执行超时 ({timeout}s)".encode()
                 status = ExecutionStatus.TIMEOUT
 
             duration = (time.time() - started_at) * 1000
@@ -700,7 +710,7 @@ class Sandbox:
                     await proc.wait()
                 except Exception:
                     pass
-                stdout_bytes, stderr_bytes = b"", f"执行超时 ({timeout}s)".encode()
+                stdout_bytes, stderr_bytes = b"", f"TIMEOUT 执行超时 ({timeout}s)".encode()
                 status = ExecutionStatus.TIMEOUT
 
             duration = (time.time() - started_at) * 1000
@@ -842,9 +852,6 @@ class Sandbox:
 # ═══════════════════════════════════════════════════════════
 
 class InlineSandbox:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     内联沙箱 — 不创建子进程, 在同一进程中评估简单表达式
 
@@ -912,9 +919,6 @@ class InlineSandbox:
 # ═══════════════════════════════════════════════════════════
 
 class SandboxPlugin:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """meshctx Plugin 适配器"""
     info = type('Info', (), {
         'name': 'sandbox',
@@ -992,41 +996,8 @@ def init_sandbox(
         )
     return _sandbox
 
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
+# Backwards-compat aliases (tested by v74 sandbox tests)
+CodeSandboxV2 = Sandbox
+SandboxResult = ExecutionResult
 
-def __getattr__(name):
-    return _P(name)
 

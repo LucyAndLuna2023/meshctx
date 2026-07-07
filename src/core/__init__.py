@@ -11,23 +11,6 @@ __version__ = "3.115.14"
 import sys, logging
 from types import ModuleType
 
-# ═══════════════ 全局 Enum stub 补丁 ═══════════════
-import enum
-from types import SimpleNamespace
-
-def _stub_enum_getattr(cls, name):
-    if name.startswith('_'):
-        raise AttributeError(name)
-    val = name.lower()
-    member = SimpleNamespace(value=val, name=name.upper())
-    try:
-        setattr(cls, name, member)
-    except (TypeError, AttributeError):
-        pass
-    return member
-
-type(enum.Enum).__getattr__ = _stub_enum_getattr
-
 # ═══════════════ 通用 Stub ═══════════════
 class _StubClass:
     def __init__(self, *a, **kw): pass
@@ -150,7 +133,7 @@ _known = {
     'predictor': ['PredictorPlugin','TemporalPatternLearner','ContextPreloader','PredictionResult','ActivityPattern','TimeSlot'],
     'healer': ['HealerPlugin','HealthStatus','CircuitBreaker'],
     'performance': ['PerformancePlugin','CacheStats','StreamStats'],
-    'websocket': ['WebSocketPlugin', '_P', 'create_ws_routes'],
+    'websocket': ['WebSocketPlugin', 'create_ws_routes'],
     'realtime_push': ['RealtimePush', 'ConnectionManager', 'create_realtime_router', 'get_realtime'],
     'hermes_connector': ['HermesConnectorPlugin','HermesDiscovery','EventBridge','HermesInstance'],
     'token_saver': ['TokenSaverPlugin','TokenSaver','TokenCounter','TokenizerRegistry','CompactionResult'],

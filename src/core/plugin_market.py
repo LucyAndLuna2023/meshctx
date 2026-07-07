@@ -280,10 +280,9 @@ class PluginMarket:
         if entry is None:
             return {"success": False, "error": f"Plugin '{plugin_id}' not found in market"}
 
+        # Already installed → reject duplicate
         if entry.installed:
-            self._install_counts[plugin_id] = self._install_counts.get(plugin_id, 0) + 1
-            self._save_state()
-            return {"success": True, "version_installed": self._installed_versions.get(plugin_id, str(entry.latest_version) if entry.latest_version else "v1.0.0"), "message": f"Plugin '{plugin_id}' re-installed (download count incremented)"}
+            return {"success": False, "error": f"Plugin '{plugin_id}' is already installed"}
 
         # Skip install if install_command is empty (test mode)
         info = self._OFFICIAL_PLUGINS.get(plugin_id)

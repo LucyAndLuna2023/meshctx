@@ -74,13 +74,15 @@ def test_health_monitor_check_all():
     assert "modules" in result, "Missing 'modules' key"
     
     assert result["ok"] == result["total"] - result["error"], f"ok != total - error: {result}"
-    assert result["total"] == 3, f"Expected 3 modules, got {result['total']}"
+    expected_modules = ["sdb", "event_bus", "gateway", "memory", "tasks", "brain",
+                        "self_modify", "gateway_llm", "unified_loop", "attractor",
+                        "knowledge", "precompute", "tuner", "benchmark", "diff"]
+    assert result["total"] == len(expected_modules), f"Expected {len(expected_modules)} modules, got {result['total']}"
     assert result["error"] == 0, f"Expected 0 errors, got {result['error']}"
     
     # Module structure
-    assert "kernel" in result["modules"]
-    assert "event_bus" in result["modules"]
-    assert "gateway" in result["modules"]
+    for name in expected_modules:
+        assert name in result["modules"], f"Missing module '{name}'"
     for name, mod in result["modules"].items():
         assert "ok" in mod, f"Module {name} missing 'ok'"
         assert "latency_ms" in mod, f"Module {name} missing 'latency_ms'"

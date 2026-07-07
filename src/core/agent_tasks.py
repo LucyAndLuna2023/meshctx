@@ -11,6 +11,7 @@ Key capabilities:
 from __future__ import annotations
 
 import heapq
+import pathlib
 import threading
 import time
 import uuid
@@ -18,6 +19,9 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
+
+TASKS_DIR = pathlib.Path.home() / ".meshctx" / "tasks"
+TASKS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ── Enums ──────────────────────────────────────────────────────────────────
@@ -50,6 +54,7 @@ class AgentTask:
     # non-sortable fields
     id: str = field(default_factory=lambda: uuid.uuid4().hex[:12], compare=False)
     name: str = ""
+    title: str = ""
     description: str = ""
     status: TaskStatus = field(default=TaskStatus.PENDING, compare=False)
     priority: TaskPriority = field(default=TaskPriority.NORMAL, compare=False)
@@ -65,6 +70,8 @@ class AgentTask:
     updated_at: float = field(default_factory=time.time, compare=False)
 
     def __post_init__(self):
+        if self.title and not self.name:
+            self.name = self.title
         self._priority_val = -self.priority.value  # Negate for max-heap
         self._created_at = self._created_at or time.time()
 

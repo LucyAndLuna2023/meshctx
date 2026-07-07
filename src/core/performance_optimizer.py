@@ -391,6 +391,7 @@ class PerformanceOptimizer:
         self.strings = StringOptimizer()
         self.parallel = ParallelDetector()
         self.io = IOAnalyzer()
+        self._profiles: Dict[str, Any] = {}
 
     def analyze(self, code: str, file_path: str = "") -> OptimizationReport:
         """Run full performance analysis on code."""
@@ -461,6 +462,54 @@ class PerformanceOptimizer:
             }
         }
 
+    def profile(self, name: str, fn, iterations: int = 10):
+        """Profile a function and return timing results."""
+        import time as _time
+        times = []
+        for _ in range(iterations):
+            start = _time.perf_counter()
+            fn()
+            elapsed = (_time.perf_counter() - start) * 1000
+            times.append(elapsed)
+        avg_ms = sum(times) / len(times) if times else 0.0
+        result = _ProfileResult(
+            name=name,
+            calls=iterations,
+            total_ms=sum(times),
+            avg_ms=avg_ms,
+            min_ms=min(times) if times else 0.0,
+            max_ms=max(times) if times else 0.0,
+        )
+        self._profiles[name] = result
+        return result
+
+    def compare(self, a: str, b: str):
+        """Compare two profiled functions."""
+        pa = self._profiles.get(a)
+        pb = self._profiles.get(b)
+        if pa is None or pb is None:
+            return None
+        ratio = pa.avg_ms / pb.avg_ms if pb.avg_ms > 0 else float('inf')
+        return _ProfileCompare(name_a=a, name_b=b, ratio=ratio, faster=b if ratio >= 1 else a)
+
+
+class _ProfileResult:
+    def __init__(self, name, calls, total_ms, avg_ms, min_ms, max_ms):
+        self.name = name
+        self.calls = calls
+        self.total_ms = total_ms
+        self.avg_ms = avg_ms
+        self.min_ms = min_ms
+        self.max_ms = max_ms
+
+
+class _ProfileCompare:
+    def __init__(self, name_a, name_b, ratio, faster):
+        self.name_a = name_a
+        self.name_b = name_b
+        self.ratio = ratio
+        self.faster = faster
+
 
 # ── Global instance ───────────────────────────────────────────────────────
 
@@ -473,45 +522,3 @@ def get_perf_optimizer() -> PerformanceOptimizer:
     if _default_optimizer is None:
         _default_optimizer = PerformanceOptimizer()
     return _default_optimizer
-
-
-# ── _P Compatibility ──────────────────────────────────────────────────────
-
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
-
-
-def __getattr__(name):
-    return _P(name)

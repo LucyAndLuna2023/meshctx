@@ -174,13 +174,13 @@ class TestWebCrawler:
     def test_fetch_single_httpbin(self):
         """Integration: fetch a known-good public URL."""
         c = WebCrawler()
-        result = c.fetch_single("https://httpbin.org/html")
+        result = c.fetch_single("https://example.com")
         assert result.status_code == 200
         assert len(result.raw_html) > 0
 
     def test_fetch_single_without_markdown(self):
         c = WebCrawler()
-        result = c.fetch_single("https://httpbin.org/html", convert_to_markdown=False)
+        result = c.fetch_single("https://example.com", convert_to_markdown=False)
         assert result.status_code == 200
         assert len(result.raw_html) > 0
         assert result.markdown == ""
@@ -254,7 +254,7 @@ class TestCrawlDepthControl:
         """Crawl finishes gracefully when no valid links."""
         c = WebCrawler()
         results = c.crawl(
-            "https://httpbin.org/html",
+            "https://example.com",
             max_depth=0,
             max_pages=1,
             respect_robots=False,
@@ -267,14 +267,14 @@ class TestCrawlDepthControl:
         """When allow_external=False, only same-domain links are crawled."""
         c = WebCrawler()
         results = c.crawl(
-            "https://httpbin.org/html",
+            "https://example.com",
             max_depth=0,
             max_pages=1,
             respect_robots=False,
         )
-        # Should only have httpbin.org URLs
+        # Should only have example.com URLs
         for r in results:
-            assert "httpbin.org" in r.url
+            assert "example.com" in r.url
 
 
 # ──────────────────────────────────────────────

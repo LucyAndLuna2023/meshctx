@@ -1,60 +1,74 @@
-"""Task Progress — 开源版 (stub)"""
-class _ProgressEngine:
+"""Task Progress — task queue with priority, async processing, and singleton."""
+from __future__ import annotations
+
+import asyncio
+import heapq
+import time
+import uuid
+from enum import IntEnum
+from dataclasses import dataclass, field
+from typing import Any, Callable, List, Optional
+
+
+class Priority(IntEnum):
+    LOW = 0
+    NORMAL = 1
+    HIGH = 2
+    CRITICAL = 3
+
+
+@dataclass(order=True)
+class _Task:
+    sort_key: Any = field(compare=True)
+    id: str = field(compare=False)
+    name: str = field(compare=False)
+    priority: Priority = field(compare=False, default=Priority.NORMAL)
+    created_at: float = field(compare=False, default_factory=time.time)
+
+
+class TaskQueue:
+    """Priority task queue with enqueue/dequeue/process."""
+
     def __init__(self):
-        object.__setattr__(self, '_tasks', {})
-        object.__setattr__(self, '_last_update', {})
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-    def update(self, task_id: str = "", status: str = "", progress: float = 0.0, **kw):
-        """更新任务进度"""
-        if task_id:
-            self._tasks[task_id] = {"status": status, "progress": progress, **kw}
-        self._last_update = {"task_id": task_id, "status": status, "progress": progress}
-    def get(self, task_id: str = "", *a, **kw):
-        if task_id and task_id in self._tasks:
-            return self._tasks[task_id]
-        return self._last_update or {"progress": 0}
-    def stats(self): return {"total_tasks": len(self._tasks)}
+        self._heap: List[_Task] = []
+        self._counter = 0
 
-_engine = _ProgressEngine()
-def get_progress_engine(): return _engine
+    def enqueue(self, name: str, priority: Priority = Priority.NORMAL) -> str:
+        task_id = f"task-{uuid.uuid4().hex[:8]}"
+        task = _Task(
+            sort_key=(-priority.value, self._counter),
+            id=task_id,
+            name=name,
+            priority=priority,
+        )
+        self._counter += 1
+        heapq.heappush(self._heap, task)
+        return task_id
 
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
+    def dequeue(self) -> Optional[_Task]:
+        if not self._heap:
+            return None
+        return heapq.heappop(self._heap)
 
-def __getattr__(name):
-    return _P(name)
+    async def process(self, handler: Callable, max_tasks: int = 100) -> List[Any]:
+        results = []
+        count = 0
+        while self._heap and count < max_tasks:
+            task = self.dequeue()
+            if task is None:
+                break
+            result = handler(task)
+            results.append(result)
+            count += 1
+            await asyncio.sleep(0)
+        return results
 
+
+_queue: Optional[TaskQueue] = None
+
+
+def get_task_queue() -> TaskQueue:
+    global _queue
+    if _queue is None:
+        _queue = TaskQueue()
+    return _queue

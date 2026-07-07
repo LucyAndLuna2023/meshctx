@@ -1,62 +1,70 @@
-"""Usage Insights — 开源版 (stub)"""
+"""Usage Insights — tracks API usage records and provides analytics."""
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional
+
+
 class UsageInsights:
+    """Tracks API call records with token/cost data and provides insights."""
+
     def __init__(self):
-        object.__setattr__(self, '_sessions', [])
-        object.__setattr__(self, '_usages', [])
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
+        self._records: List[Dict[str, Any]] = []
+
+    def record(self, category: str, tokens: int = 0, cost: float = 0.0, success: bool = True) -> None:
+        self._records.append({
+            "category": category,
+            "tokens": tokens,
+            "cost": cost,
+            "success": success,
+        })
+
     def track(self, event_type: str = "", **kw):
-        self._usages.append({"type": event_type, **kw})
-        return {"tracked": len(self._usages)}
+        self._records.append({"type": event_type, **kw})
+        return {"tracked": len(self._records)}
+
+    def insights(self) -> Dict[str, Any]:
+        if not self._records:
+            return {"status": "no_data"}
+        total_tokens = sum(r.get("tokens", 0) for r in self._records)
+        total_cost = sum(r.get("cost", 0.0) for r in self._records)
+        total_calls = len(self._records)
+        return {
+            "status": "ok",
+            "total_tokens": total_tokens,
+            "total_cost": total_cost,
+            "total_calls": total_calls,
+        }
+
     def record_session_start(self, **kw):
-        self._sessions.append({"started": kw.get("timestamp", 0), **kw})
-        return {"sessions": len(self._sessions)}
-    def stats(self): return {"sessions": len(self._sessions), "events": len(self._usages)}
-    def report(self) -> dict: return {"total_tokens": 0, "total_calls": 0}
-    def get_provider_stats(self): return {}
-    def get_model_stats(self): return {}
-    def get_weekly(self): return {"period": "weekly", "calls": 0, "tokens": 0}
-    def get_monthly(self): return {"period": "monthly", "calls": 0, "tokens": 0}
-    def get_summary(self, days=30): return {"period": f"{days}d", "calls": 0, "tokens": 0, "models": []}
+        return {"sessions": 0}
 
-def get_usage_insights(): return UsageInsights()
+    def stats(self):
+        return {"sessions": 0, "events": len(self._records)}
 
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
+    def report(self) -> dict:
+        return self.insights()
 
-def __getattr__(name):
-    return _P(name)
+    def get_provider_stats(self):
+        return {}
 
+    def get_model_stats(self):
+        return {}
+
+    def get_weekly(self):
+        return {"period": "weekly", "calls": len(self._records), "tokens": 0}
+
+    def get_monthly(self):
+        return {"period": "monthly", "calls": len(self._records), "tokens": 0}
+
+    def get_summary(self, days=30):
+        return {"period": f"{days}d", "calls": len(self._records), "tokens": 0, "models": []}
+
+
+_insights: Optional[UsageInsights] = None
+
+
+def get_usage_insights() -> UsageInsights:
+    global _insights
+    if _insights is None:
+        _insights = UsageInsights()
+    return _insights

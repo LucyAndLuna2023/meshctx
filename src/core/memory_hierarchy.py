@@ -312,6 +312,8 @@ class HierarchicalMemoryStore:
                 score += 2.0
             if qlower in item.value.lower():
                 score += 1.0
+            if qlower in (item.content or "").lower():
+                score += 1.0
             if qlower in (item.summary or "").lower():
                 score += 1.5
             if score > 0:
@@ -462,6 +464,20 @@ class MemoryPlugin:
         self.store = HierarchicalMemoryStore()
 
     async def on_load(self, kernel) -> bool:
+        return True
+
+    async def on_event(self, event):
+        """Handle events like message.added → store in memory."""
+        if event.type == "message.added":
+            content = event.data.get("content", "")
+            speaker = event.data.get("role", "unknown")
+            ts = event.data.get("timestamp", "")
+            self.store.store(MemoryItem(
+                content=content[:200],
+                source=event.source,
+                importance=0.8,
+                tags=["conversation"],
+            ))
         return True
 
     def generate_report(self) -> dict:

@@ -4820,6 +4820,36 @@ async def download_page(request: Request):
     return _render("download.html", {"request": request, "title": "Download", "version": __import__("src").__version__}, request)
 
 
+# ── Chat 页面模板 ────────────────────────────────────────────
+
+_TEMPLATES["chat.html"] = r"""<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>meshctx Chat</title></head>
+<body>
+<div id="chat"></div>
+<script>
+function runCodeBlock(block) {
+    const code = block.textContent || block.innerText;
+    return fetch("/api/code/run", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({code: code, language: "python"})
+    }).then(r => r.json());
+}
+function addCodeRunButtons() {
+    document.querySelectorAll("pre code").forEach(block => {
+        const btn = document.createElement("button");
+        btn.textContent = "▶ Run";
+        btn.className = "code-run-btn";
+        btn.onclick = () => runCodeBlock(block);
+        block.parentElement.insertBefore(btn, block);
+    });
+}
+</script>
+</body>
+</html>"""
+
+
 # ── 模型列表页面 ────────────────────────────────────────────
 
 _TEMPLATES["models.html"] = r"""{% extends "base.html" %}
