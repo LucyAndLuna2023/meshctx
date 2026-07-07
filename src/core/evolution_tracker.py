@@ -50,6 +50,15 @@ class Hotspot:
 
 
 @dataclass
+class EvolutionSnapshot:
+    """A snapshot of the codebase evolution at a point in time."""
+    version: str
+    modules: int = 0
+    tests: int = 0
+    timestamp: float = field(default_factory=time.time)
+
+
+@dataclass
 class EvolutionReport:
     """Full evolution analysis report."""
     repo_path: str
@@ -262,10 +271,30 @@ class EvolutionTracker:
 
     def __init__(self, repo_path: str = "."):
         self.repo_path = repo_path
+        self._snapshots: List[EvolutionSnapshot] = []
         self.churn_analyzer = ChurnAnalyzer()
         self.hotspot_detector = HotspotDetector()
         self.suggester = RefactorSuggester()
         self.debt_estimator = TechDebtEstimator()
+
+    def snapshot(self, version: str, modules: int = 0, tests: int = 0) -> None:
+        """Record a snapshot of the codebase state."""
+        snap = EvolutionSnapshot(version=version, modules=modules, tests=tests)
+        self._snapshots.append(snap)
+
+    def latest(self) -> Optional[EvolutionSnapshot]:
+        """Get the most recent snapshot, or None if no snapshots."""
+        return self._snapshots[-1] if self._snapshots else None
+
+    def trend(self) -> Dict[str, Any]:
+        """Analyze the trend across snapshots."""
+        if not self._snapshots:
+            return {}
+        return {
+            "versions": [s.version for s in self._snapshots],
+            "count": len(self._snapshots),
+            "latest": self._snapshots[-1].version,
+        }
 
     def analyze(self, max_commits: int = 500) -> EvolutionReport:
         """Run full evolution analysis."""
@@ -338,9 +367,15 @@ class EvolutionTracker:
 
 # ── Global instance ───────────────────────────────────────────────────────
 
+_evolution_tracker_instance: Optional[EvolutionTracker] = None
+
+
 def get_evolution_tracker(repo_path: str = ".") -> EvolutionTracker:
-    """Get or create an EvolutionTracker instance."""
-    return EvolutionTracker(repo_path)
+    """Get or create an EvolutionTracker singleton instance."""
+    global _evolution_tracker_instance
+    if _evolution_tracker_instance is None:
+        _evolution_tracker_instance = EvolutionTracker(repo_path)
+    return _evolution_tracker_instance
 
 
 # ── _P Compatibility ──────────────────────────────────────────────────────
