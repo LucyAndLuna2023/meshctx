@@ -39,6 +39,7 @@ from .core import (
     TaskEvaluation, TaskStatus, PatternEngine,
 )
 from .gateway import GatewayPlugin
+from .core.auth_v2 import auth_middleware_v2
 from .core.hotreload import ConfigWatcher, APIKeyFailover, MemoryBackup
 
 # ═══════════════════════════════════════════════════════════
@@ -552,27 +553,10 @@ if _AUTH_ENABLED:
     import base64
     logger.info(f"🔐 Web UI 认证已启用 (密码保护)")
 
-@app.middleware("http")
-async def auth_middleware(request: Request, call_next):
-    """Web UI 基础认证 — 保护 /ui/* 路由"""
-    if not _AUTH_ENABLED:
-        return await call_next(request)
-    
-    path = request.url.path
-    
-    # Public endpoints (API, static, login)
-    if not path.startswith("/ui/") or path == "/ui/login":
-        return await call_next(request)
-    
-    # Check auth cookie
-    session = request.cookies.get("meshctx_session", "")
-    expected = hashlib.sha256(f"{_AUTH_PASSWORD}:{_AUTH_SECRET}".encode()).hexdigest()
-    
-    if session == expected:
-        return await call_next(request)
-    
-    # Redirect to login
-    return RedirectResponse(url=f"/ui/login?next={path}", status_code=302)
+# ── 认证中间件 v2（API Key + Session 双通道）
+# 使用 auth_v2 中间件替换旧版，但登录/登出路由保留 main.py 的
+# 暴力破解防护版本
+app.middleware("http")(auth_middleware_v2)
 
 @app.get("/ui/login", response_class=HTMLResponse)
 async def login_page(request: Request, next: str = ""):
@@ -2204,9 +2188,9 @@ async def add_model(request: Request):
     try:
         from src.core.crypto import encrypt_key
         config["models"]["entries"][model_id]["key"] = encrypt_key(api_key)
-    except:
-        pass
-    
+    except Exception:
+        logger.warning(f"加密 API key 失败，将明文存储: {model_id}")
+
     # 如果这是第一个模型，设为默认
     if not config["models"].get("default"):
         config["models"]["default"] = model_id
@@ -2266,9 +2250,9 @@ async def update_model(model_id: str, request: Request):
         try:
             from src.core.crypto import encrypt_key
             entries[model_id]["key"] = encrypt_key(body["key"])
-        except:
-            pass
-    
+        except Exception:
+            logger.warning(f"更新 API key 加密失败: {model_id}")
+
     with open(config_path, "w") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
     
@@ -2317,8 +2301,8 @@ async def rename_model(model_id: str, request: Request):
         try:
             from src.core.crypto import encrypt_key
             current["key"] = encrypt_key(body["key"])
-        except:
-            pass
+        except Exception:
+            logger.warning(f"重命名模型时加密 API key 失败: {current.get('id', 'unknown')}")
     
     # Rename
     new_id = rename_to or model_id
@@ -2946,7 +2930,9 @@ async def api_chat_stream(request: Request):
             model_id = "deepseek:v4-pro"
 
     # ── 工具定义 ──
-    SENSITIVE_TOOLS = {"read_file", "write_file", "search_files", "remote_read", "remote_write", "remote_exec"}
+    SENSITIVE_TOOLS = {"write_file", "remote_write", "remote_exec"}
+    DESTRUCTIVE_TOOLS = {"write_file", "remote_write", "remote_exec"}
+    _approved_tools = set()  # 本次流中已批准的工具
     _page_cache = {}  # 浏览器页面缓存: {url: {title, links, text, html}}
     TOOLS = [
         {
@@ -3180,8 +3166,12 @@ async def api_chat_stream(request: Request):
                         sensitive = name in SENSITIVE_TOOLS
                         yield f"data: {_json.dumps({'tool_start': name, 'args': args, 'require_approval': sensitive})}\n\n"
 
-                        # 敏感工具: 等待前端确认 (TODO: 前端弹窗后回传 approve 事件)
-                        # 当前版本: 发送授权提示后自动执行，前端可展示 "[已授权]" 标记
+                        # 敏感工具: 需显式批准
+                        if name in DESTRUCTIVE_TOOLS and name not in _approved_tools:
+                            if not args.get("__approved"):
+                                yield f"data: {_json.dumps({'tool_result': name, 'error': 'refused: 敏感工具需要确认。前端需弹窗后回传 __approved: true'})}\n\n"
+                                continue
+                            _approved_tools.add(name)
 
                         if name == "web_search":
                             result = _do_web_search(args.get("query", ""))
@@ -3280,12 +3270,20 @@ def _do_read_file(path: str, offset: int = 1, limit: int = 200) -> str:
             return f"文件不存在: {path}"
         if p.stat().st_size > 10 * 1024 * 1024:
             return f"文件过大({p.stat().st_size}字节)，请用 offset/limit 分段读取"
+        # 敏感路径告警
+        sensitive_prefixes = (
+            str(Path.home() / ".ssh"), "/etc/shadow", "/etc/passwd",
+            "/var/run/secrets", "/proc/self/environ"
+        )
+        warning = ""
+        if str(p).startswith(sensitive_prefixes):
+            warning = "⚠️ 警告: 正在读取敏感文件\n"
         lines = p.read_text(errors='replace').split('\n')
         total = len(lines)
         start = max(1, offset) - 1
         end = min(start + limit, total)
         result = '\n'.join(f"{i+1}|{l}" for i, l in enumerate(lines[start:end], start))
-        header = f"文件: {path} (行 {start+1}-{end} / 共 {total} 行)\n"
+        header = warning + f"文件: {path} (行 {start+1}-{end} / 共 {total} 行)\n"
         return header + result
     except Exception as e:
         return f"读取失败: {e}"
@@ -3295,6 +3293,10 @@ def _do_write_file(path: str, content: str) -> str:
     """写入本机文件"""
     try:
         p = Path(path).expanduser().resolve()
+        # 禁止写入系统关键路径
+        forbidden = ("/etc/", "/boot/", "/sys/", "/proc/", "/dev/")
+        if str(p).startswith(forbidden):
+            return f"写入拒绝: {path} 位于系统保护目录，禁止写入"
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content, encoding='utf-8')
         return f"已写入: {path} ({len(content)} 字符)"
@@ -3345,9 +3347,11 @@ def _do_remote_read(path: str, host: str = "") -> str:
         h, u, pw = _ssh_creds(host)
         if not pw:
             return "远程访问失败: SERVER_PASS 未配置 (请在 ~/.hermes/secrets.env 中设置)"
+        env = os.environ.copy()
+        env["SSHPASS"] = pw  # 用 env var 而非 -p 避免明文暴露在 cmdline
         result = subprocess.run(
-            ["sshpass", "-p", pw, "ssh", "-o", "StrictHostKeyChecking=no", f"{u}@{h}", "cat", path],
-            capture_output=True, text=True, timeout=15
+            ["sshpass", "-e", "ssh", "-o", "StrictHostKeyChecking=no", f"{u}@{h}", "cat", path],
+            capture_output=True, text=True, timeout=15, env=env
         )
         if result.returncode == 0:
             lines = result.stdout.split('\n')
@@ -3358,16 +3362,18 @@ def _do_remote_read(path: str, host: str = "") -> str:
 
 
 def _do_remote_write(path: str, content: str, host: str = "") -> str:
-    """通过 sshpass + ssh tee 写入远程文件"""
+    """通过 SSH 写入远程文件"""
     import subprocess
     try:
         h, u, pw = _ssh_creds(host)
         if not pw:
             return "远程访问失败: SERVER_PASS 未配置"
+        env = os.environ.copy()
+        env["SSHPASS"] = pw
         result = subprocess.run(
-            ["sshpass", "-p", pw, "ssh", "-o", "StrictHostKeyChecking=no", f"{u}@{h}",
+            ["sshpass", "-e", "ssh", "-o", "StrictHostKeyChecking=no", f"{u}@{h}",
              f"cat > {path}"],
-            input=content, capture_output=True, text=True, timeout=15
+            input=content, capture_output=True, text=True, timeout=15, env=env
         )
         if result.returncode == 0:
             return f"已写入远程文件: {h}:{path} ({len(content)} 字符)"
@@ -3383,9 +3389,11 @@ def _do_remote_exec(cmd: str, host: str = "") -> str:
         h, u, pw = _ssh_creds(host)
         if not pw:
             return "远程执行失败: SERVER_PASS 未配置"
+        env = os.environ.copy()
+        env["SSHPASS"] = pw
         result = subprocess.run(
-            ["sshpass", "-p", pw, "ssh", "-o", "StrictHostKeyChecking=no", f"{u}@{h}", cmd],
-            capture_output=True, text=True, timeout=30
+            ["sshpass", "-e", "ssh", "-o", "StrictHostKeyChecking=no", f"{u}@{h}", cmd],
+            capture_output=True, text=True, timeout=30, env=env
         )
         out = result.stdout.strip() or result.stderr.strip()
         return f"远程执行 [{h}]:\n{out[:4000]}" if out else f"远程执行完成 (无输出, exit={result.returncode})"
