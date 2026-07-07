@@ -8,7 +8,7 @@ import os
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
 from pathlib import Path
-from jinja2 import Environment, DictLoader
+from jinja2 import Environment, DictLoader, FileSystemLoader, ChoiceLoader
 
 # ── 内嵌模板（绕过 PyInstaller 文件系统问题）───────────────────
 _TEMPLATES = {}
@@ -3592,7 +3592,10 @@ function refreshProjectIndex(){
 
 # ── DictLoader 初始化 ───────────────────────────────────────────
 from src.i18n import t as i18n_t, get_lang as i18n_get_lang, TRANSLATIONS as i18n_translations
-_jinja_env = Environment(loader=DictLoader(_TEMPLATES), autoescape=False)
+_jinja_env = Environment(loader=ChoiceLoader([
+    DictLoader(_TEMPLATES),
+    FileSystemLoader(os.path.join(os.path.dirname(__file__), '..', 'templates')),
+]), autoescape=False)
 _jinja_env.globals['t'] = i18n_t
 _jinja_env.globals['lang'] = i18n_get_lang
 

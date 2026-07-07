@@ -42,10 +42,50 @@ class FeedbackEntry:
 
 @dataclass
 class ActionProfile:
+    """Profile of an action with reliability statistics."""
+    name: str = ""
     action: str = ""
+    total_runs: int = 0
+    successes: int = 0
+    failures: int = 0
     success_count: int = 0
     failure_count: int = 0
+    total_duration_ms: float = 0.0
     avg_rating: float = 0.0
+    last_error: str = ""
+
+    @property
+    def success_rate(self) -> float:
+        return self.successes / max(self.total_runs, 1) if self.total_runs > 0 else 0.0
+
+    @property
+    def avg_duration_ms(self) -> float:
+        return self.total_duration_ms / max(self.total_runs, 1)
+
+    @property
+    def is_reliable(self) -> bool:
+        return self.success_rate >= 0.8
+
+    def record(self, status: str, duration_ms: float = 0.0, error: str = ""):
+        self.total_runs += 1
+        if status == "success":
+            self.successes += 1
+        else:
+            self.failures += 1
+            self.last_error = error
+        self.total_duration_ms += duration_ms
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "action": self.action,
+            "total_runs": self.total_runs,
+            "successes": self.successes,
+            "failures": self.failures,
+            "success_rate": self.success_rate,
+            "avg_duration_ms": self.avg_duration_ms,
+            "is_reliable": self.is_reliable,
+        }
 
 @dataclass
 class FailurePattern:
@@ -89,6 +129,27 @@ class FeedbackLoopReport:
     recommendations: list = field(default_factory=list)
     top_failure_patterns: list = field(default_factory=list)
     recent_adjustments: list = field(default_factory=list)
+
+@dataclass
+class ExecutionRecord:
+    """Record of an action execution."""
+    action_name: str
+    status: str = "unknown"
+    duration_ms: float = 0.0
+    error: str = ""
+    metadata: dict = field(default_factory=dict)
+    timestamp: float = 0.0
+
+    def to_dict(self) -> dict:
+        return {
+            "action_name": self.action_name,
+            "status": self.status,
+            "duration_ms": self.duration_ms,
+            "error": self.error,
+            "metadata": self.metadata,
+            "timestamp": self.timestamp,
+        }
+
 
 class FeedbackLoopEngine:
     def __init__(self, **kw):

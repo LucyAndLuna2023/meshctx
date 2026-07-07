@@ -426,3 +426,5 @@ def get_plugin_market() -> PluginMarket:
 def reset_plugin_market() -> None:
     global _plugin_market
     _plugin_market = None
+
+PluginMarketplace = PluginMarket  # backwards compatibility alias

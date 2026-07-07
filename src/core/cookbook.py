@@ -9,9 +9,6 @@ from typing import Any
 
 @dataclass
 class GPUInfo:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     name: str = ""
     vendor: str = ""
     vram_mb: int = 0
@@ -35,9 +32,6 @@ class GPUInfo:
 
 @dataclass
 class CPUInfo:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     model: str = ""
     cores_physical: int = 0
     cores_logical: int = 0
@@ -56,9 +50,6 @@ class CPUInfo:
 
 @dataclass
 class HardwareProfile:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     gpu: GPUInfo = field(default_factory=GPUInfo)
     cpu: CPUInfo = field(default_factory=CPUInfo)
     ram_total_mb: int = 0
@@ -80,9 +71,6 @@ class HardwareProfile:
 
 @dataclass
 class ModelRecommendation:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     name: str = ""
     family: str = ""
     params_b: float = 0.0
@@ -97,9 +85,6 @@ class ModelRecommendation:
 
 @dataclass
 class CookbookResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     profile: HardwareProfile | None = None
     recommendations: list[ModelRecommendation] = field(default_factory=list)
     download_scripts: dict[str, str] = field(default_factory=dict)
@@ -149,9 +134,6 @@ QUANT_BYTES_PER_PARAM = {
 
 
 class CookbookRecommender:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, *args, **kwargs):
         pass
 
@@ -350,42 +332,4 @@ def get_cookbook() -> CookbookRecommender:
 def reset_cookbook():
     global _cookbook_instance
     _cookbook_instance = None
-
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
-
-def __getattr__(name):
-    return _P(name)
 

@@ -73,13 +73,18 @@ class TestSwitchLangBehavior:
         
         block = js_str[start:end-1]
         
-        # 解析为dict (简化: 假设格式正确)
+        # 解析为dict (简化: 支持单引号和双引号)
         translations = {}
-        # 匹配 key:"value" 或 key:"value with spaces"
-        for m in re.finditer(r'(\w+):"((?:[^"\\]|\\.)*)"', block):
+        # 匹配 key:"value" 或 key:'value' — 要求key前面是行首或逗号+空格(避免字符串内冒号误匹配)
+        for m in re.finditer(r'(?:^|\n|,\s*)(\w+):\s*"((?:[^"\\]|\\.)*)"', block):
             key = m.group(1)
             value = m.group(2)
             translations[key] = value
+        for m in re.finditer(r"(?:^|\n|,\s*)(\w+):\s*'((?:[^'\\]|\\.)*)'", block):
+            key = m.group(1)
+            value = m.group(2)
+            if key not in translations:
+                translations[key] = value
         
         return translations
     
@@ -126,15 +131,18 @@ class TestSwitchLangBehavior:
     def test_no_duplicate_keys_in_js(self, html_data):
         """🔴 回归: JS对象中每个语言块内部没有重复key"""
         js_str = html_data["js_obj_str"]
-        
+
         for lang in ['en', 'zh', 'ja', 'ko', 'de', 'fr', 'es']:
-            translations = self._extract_lang_block(js_str, lang)
-            # 每个key在原block中出现的次数
             block = self._get_lang_raw_block(js_str, lang)
-            
-            # 检查重复key
+
+            # 检查重复key — 使用与_extract_lang_block一致的锚定匹配，避免字符串内冒号误匹配
             key_positions = {}
-            for m in re.finditer(r'(\w+):"', block):
+            for m in re.finditer(r'(?:^|\n|,\s*)(\w+):\s*"', block):
+                k = m.group(1)
+                if k in key_positions:
+                    pytest.fail(f"🔴 {lang}语言块中key '{k}' 出现多次! 后面会覆盖前面!")
+                key_positions[k] = m.start()
+            for m in re.finditer(r"(?:^|\n|,\s*)(\w+):\s*'", block):
                 k = m.group(1)
                 if k in key_positions:
                     pytest.fail(f"🔴 {lang}语言块中key '{k}' 出现多次! 后面会覆盖前面!")

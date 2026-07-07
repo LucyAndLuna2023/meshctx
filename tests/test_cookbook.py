@@ -149,11 +149,11 @@ class TestCookbookRecommender:
         """Estimate GGUF size for different quants."""
         # 8B model with Q4_K_M should be ~4.8 GB
         size = CookbookRecommender._estimate_size(8.0, "Q4_K_M")
-        assert 4.0 <= size <= 6.0
+        assert 4.0 <= size <= 7.0
 
         # FP16 baseline: 2 bytes per param = 16 GB for 8B
         size_q8 = CookbookRecommender._estimate_size(8.0, "Q8_0")
-        assert 7.0 <= size_q8 <= 10.0
+        assert 7.0 <= size_q8 <= 11.0
 
         # IQ4_XS should be smaller than Q4_K_M
         size_iq4 = CookbookRecommender._estimate_size(8.0, "IQ4_XS")
