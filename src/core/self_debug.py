@@ -10,6 +10,7 @@ The .debug() method is the main entry point: error string + context dict -> FixR
 
 import hashlib
 import re
+import time
 import traceback
 from dataclasses import dataclass, field
 from enum import Enum
@@ -27,10 +28,6 @@ from . import git_ops
 
 class FixStatus(Enum):
     """Status of an autonomous fix attempt."""
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-
     UNKNOWN       = "unknown"
     CLASSIFIED    = "classified"
     PROPOSED      = "proposed"
@@ -42,6 +39,15 @@ class FixStatus(Enum):
     ALREADY_FIXED = "already_fixed"
 
 
+class DebugPhase(Enum):
+    """Phase of debug cycle for result reporting."""
+    ANALYZE = "analyze"
+    GENERATE = "generate"
+    APPLY = "apply"
+    VERIFY = "verify"
+    DONE = "done"
+
+
 # ============================================================================
 # Dataclasses
 # ============================================================================
@@ -49,10 +55,6 @@ class FixStatus(Enum):
 @dataclass
 class ErrorClassification:
     """Result of error classification step."""
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-
     error_type: str = "UnknownError"
     severity: str = "low"
     pattern: str = ""
@@ -65,10 +67,6 @@ class ErrorClassification:
 @dataclass
 class FixProposal:
     """A proposed fix with diff preview and risk assessment."""
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-
     filepath: str = ""
     description: str = ""
     risk_level: str = "safe"
@@ -82,10 +80,6 @@ class FixProposal:
 @dataclass
 class FixResult:
     """Complete result of a debug->fix->verify cycle."""
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-
     success: bool = False
     status: FixStatus = FixStatus.UNKNOWN
     classification: ErrorClassification = field(default_factory=ErrorClassification)
@@ -94,6 +88,26 @@ class FixResult:
     error_message: str = ""
     cycle_id: str = ""
     diagnostics: dict = field(default_factory=dict)
+
+
+@dataclass
+class DebugResult:
+    """Result from SelfDebugEngine.debug()."""
+    phase: DebugPhase = DebugPhase.ANALYZE
+    duration_ms: float = 0.0
+    success: bool = False
+    fix: str = ""
+    error_message: str = ""
+
+
+@dataclass
+class ErrorCapture:
+    """Error capture dataclass for test compatibility."""
+    error_type: str = ""
+    message: str = ""
+    traceback_str: str = ""
+    module: str = ""
+    line: int = 0
 
 
 # ============================================================================
@@ -186,7 +200,184 @@ def _generate_new_snippet(etype: str, error: str, heuristic: Optional[dict], fil
 
 
 # ============================================================================
-# SelfDebugger
+# RootCauseAnalyzer
+# ============================================================================
+
+_ROOT_CAUSE_PATTERNS = {
+    "ModuleNotFoundError": {
+        "causes": [{"cause": "Missing Python package or module not in sys.path"}],
+        "fixes": ["pip install the missing package", "add the directory to sys.path"],
+    },
+    "AttributeError": {
+        "causes": [{"cause": "Object does not have the requested attribute"}],
+        "fixes": ["check with hasattr() before access", "verify attribute name spelling"],
+    },
+    "TypeError": {
+        "causes": [{"cause": "Type mismatch or unexpected keyword argument"}],
+        "fixes": ["accept **kwargs to capture extra arguments", "add type coercion"],
+    },
+    "KeyError": {
+        "causes": [{"cause": "Dictionary key not found"}],
+        "fixes": ["use dict.get() with default value", "check key existence with 'in'"],
+    },
+    "ValueError": {
+        "causes": [{"cause": "Invalid value passed to function"}],
+        "fixes": ["validate input before use", "add try/except with fallback value"],
+    },
+}
+
+_DEFAULT_CAUSE = {
+    "causes": [{"cause": "unknown error type - manual investigation needed"}],
+    "fixes": ["review error message and traceback", "check documentation for error type"],
+}
+
+
+class RootCauseAnalyzer:
+    """Analyzes errors and suggests root causes and fixes."""
+
+    def analyze(self, capture: ErrorCapture) -> dict:
+        """Analyze an ErrorCapture and return root causes and suggested fixes."""
+        etype = capture.error_type
+        patterns = _ROOT_CAUSE_PATTERNS.get(etype, _DEFAULT_CAUSE)
+        return {
+            "error_type": etype,
+            "root_causes": patterns["causes"],
+            "suggested_fixes": patterns["fixes"],
+        }
+
+
+# ============================================================================
+# FixGenerator
+# ============================================================================
+
+_MODULE_FIX_RE = re.compile(r"No module named ['\"]?([a-zA-Z_][a-zA-Z0-9_.]*)['\"]?")
+
+_KWARG_FIX_RE = re.compile(r"(unexpected|got an unexpected) (keyword argument)", re.IGNORECASE)
+
+
+class FixGenerator:
+    """Generates fix suggestions based on error analysis."""
+
+    def generate(self, capture: ErrorCapture, analysis: dict) -> list:
+        """Generate fix suggestions from an error capture and its analysis."""
+        etype = capture.error_type
+        fixes = []
+
+        target_module = "unknown"
+        m = _MODULE_FIX_RE.search(capture.message)
+        if m:
+            target_module = m.group(1)
+
+        heuristic = _FIX_HEURISTICS.get(etype, {})
+
+        fixes.append({
+            "strategy": heuristic.get("strategy", "manual"),
+            "description": heuristic.get("desc", f"Auto-fix for {etype}"),
+            "fix": _generate_new_snippet(etype, capture.message, heuristic, capture.module),
+            "confidence": 0.8,
+        })
+
+        install_cmd = f"pip install {target_module}"
+        fixes.append({
+            "strategy": "install",
+            "description": f"Install missing module: {target_module}",
+            "fix": install_cmd,
+            "confidence": 0.7,
+        })
+
+        if _KWARG_FIX_RE.search(capture.message):
+            fixes.append({
+                "strategy": "add_kwargs",
+                "description": "Add **kwargs to function signature to accept extra keyword arguments",
+                "fix": "def func(**kwargs): ...",
+                "confidence": 0.9,
+            })
+
+        return fixes
+
+
+# ============================================================================
+# SelfDebugEngine
+# ============================================================================
+
+class SelfDebugEngine:
+    """Autonomous debug engine with fix evaluation."""
+
+    def __init__(self):
+        self.history: list[DebugResult] = []
+        self._analyzer = RootCauseAnalyzer()
+        self._generator = FixGenerator()
+        self._auto_fixed = 0
+
+    def debug(self, exc_type, exc_val, exc_tb) -> DebugResult:
+        """Run debug cycle on an exception."""
+        t0 = time.time()
+        capture = self.capture(exc_type, exc_val, exc_tb)
+        analysis = self._analyzer.analyze(capture)
+        fixes = self._generator.generate(capture, analysis)
+
+        result = DebugResult(
+            phase=DebugPhase.GENERATE if fixes else DebugPhase.ANALYZE,
+            duration_ms=(time.time() - t0) * 1000,
+            success=len(fixes) > 0,
+            fix=str(fixes[0]) if fixes else "",
+            error_message="" if fixes else "No fix generated",
+        )
+
+        fix_dict = fixes[0] if fixes else {}
+        if self.evaluate_fix(fix_dict):
+            self._auto_fixed += 1
+
+        self.history.append(result)
+        return result
+
+    def capture(self, exc_type, exc_val=None, exc_tb=None) -> ErrorCapture:
+        """Capture an exception into an ErrorCapture."""
+        error_type = exc_type.__name__ if hasattr(exc_type, '__name__') else str(exc_type)
+        message = str(exc_val) if exc_val is not None else ""
+        tb_str = "".join(traceback.format_tb(exc_tb)) if exc_tb else ""
+
+        module = ""
+        line = 0
+        if exc_tb:
+            tb_frames = traceback.extract_tb(exc_tb)
+            if tb_frames:
+                module = tb_frames[-1].filename
+                line = tb_frames[-1].lineno or 0
+
+        return ErrorCapture(
+            error_type=error_type,
+            message=message,
+            traceback_str=tb_str,
+            module=module,
+            line=line,
+        )
+
+    def evaluate_fix(self, fix_dict: dict) -> bool:
+        """Evaluate whether a fix should be auto-applied."""
+        strategy = fix_dict.get("strategy", "")
+        confidence = fix_dict.get("confidence", 0.0)
+
+        dangerous_strategies = ("execute", "shell", "rm", "delete", "sudo")
+        for ds in dangerous_strategies:
+            if ds in strategy:
+                return False
+
+        return confidence >= 0.5
+
+    def get_stats(self) -> dict:
+        """Return debug engine statistics."""
+        total = len(self.history)
+        rate = f"{self._auto_fixed / total * 100:.1f}%" if total else "0.0%"
+        return {
+            "total_errors": total,
+            "auto_fixed": self._auto_fixed,
+            "fix_rate": rate,
+        }
+
+
+# ============================================================================
+# SelfDebugger (original advanced version)
 # ============================================================================
 
 class SelfDebugger:
@@ -204,11 +395,7 @@ class SelfDebugger:
             print(f"Fixed and committed: {result.commit_sha}")
     """
 
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-
-    def __init__(self, workspace=None, data_dir=None, auto_commit=True, max_cycles=3, **kw):
+    def __init__(self, workspace=None, data_dir=None, auto_commit=True, max_cycles=3):
         self.workspace = Path(workspace) if workspace else Path.cwd()
         self.auto_commit = auto_commit
         self.max_cycles = max_cycles
@@ -219,7 +406,7 @@ class SelfDebugger:
         )
         self._differ = DiffEngine()
 
-    def debug(self, error: str, context=None, **kw) -> FixResult:
+    def debug(self, error: str, context=None) -> FixResult:
         """Run a full autonomous debug->fix->verify cycle."""
         ctx = context or {}
         cycle_id = _make_cycle_id(error, ctx)
@@ -281,7 +468,7 @@ class SelfDebugger:
         self._history.append(result)
         return result
 
-    def _classify(self, error: str, ctx: dict, **kw) -> ErrorClassification:
+    def _classify(self, error: str, ctx: dict) -> ErrorClassification:
         etype, severity = self._learner.classify_error(error)
         pattern = self._learner.extract_pattern(error)
         query = self._learner.query(error)
@@ -295,7 +482,7 @@ class SelfDebugger:
             occurrence_count=query.get("occurrence_count", 0),
         )
 
-    def _propose_fix(self, error, classification, ctx, **kw):
+    def _propose_fix(self, error, classification, ctx):
         etype = classification.error_type
         heuristic = _FIX_HEURISTICS.get(etype)
         filepath = ctx.get("file", "")
@@ -318,7 +505,7 @@ class SelfDebugger:
                            old_str=old_str, new_str=new_str, diff=prop.diff,
                            stats=prop.stats, proposal_id=proposal_id)
 
-    def _apply_fix(self, proposal, ctx, **kw):
+    def _apply_fix(self, proposal, ctx):
         if not proposal.new_str or not proposal.filepath:
             return False
         filepath = self.workspace / proposal.filepath
@@ -340,7 +527,7 @@ class SelfDebugger:
             proposal.description += f" [apply failed: {exc}]"
             return False
 
-    def _verify(self, error, proposal, ctx, **kw):
+    def _verify(self, error, proposal, ctx):
         filepath = self.workspace / proposal.filepath
         if filepath.exists() and filepath.suffix == ".py":
             try:
@@ -358,7 +545,7 @@ class SelfDebugger:
                 return True, "Partial fix verified"
         return True, "Fix written (no runtime verification)"
 
-    def _commit_fix(self, error, proposal, classification, ctx, **kw):
+    def _commit_fix(self, error, proposal, classification, ctx):
         issue_id = hashlib.md5(f"{classification.error_type}:{proposal.filepath}".encode()).hexdigest()[:8]
         branch_result = git_ops.create_fix_branch(issue_id)
         if branch_result.get("error"):
@@ -367,7 +554,7 @@ class SelfDebugger:
         return git_ops.commit_fix(issue_id=issue_id, message=proposal.description,
                                   files=[proposal.filepath])
 
-    def _rollback(self, proposal, ctx, **kw):
+    def _rollback(self, proposal, ctx):
         filepath = self.workspace / proposal.filepath
         if filepath.exists() and proposal.old_str:
             try:
@@ -377,13 +564,13 @@ class SelfDebugger:
             except Exception:
                 pass
 
-    def _is_already_fixed(self, classification, ctx, **kw):
+    def _is_already_fixed(self, classification, ctx):
         for past in self._history:
             if past.classification.lesson_id == classification.lesson_id and past.success:
                 return True
         return False
 
-    def get_stats(self, **kw):
+    def get_stats(self):
         total = len(self._history)
         successful = sum(1 for r in self._history if r.success)
         by_status = {}
@@ -395,10 +582,10 @@ class SelfDebugger:
                 "success_rate": f"{successful/total*100:.1f}%" if total else "N/A",
                 "by_status": by_status, "learner": learner_stats}
 
-    def get_last_result(self, **kw):
+    def get_last_result(self):
         return self._history[-1] if self._history else None
 
-    def clear_history(self, **kw):
+    def clear_history(self):
         self._history.clear()
         self._cycle_count = 0
 
@@ -409,69 +596,8 @@ class SelfDebugger:
 
 _self_debugger_instance = None
 
-def get_self_debugger(**kw) -> SelfDebugger:
+def get_self_debugger() -> SelfDebugger:
     global _self_debugger_instance
     if _self_debugger_instance is None:
-        _self_debugger_instance = SelfDebugger(**kw)
+        _self_debugger_instance = SelfDebugger()
     return _self_debugger_instance
-
-
-# ============================================================================
-# _P sentinel + module-level __getattr__
-# ============================================================================
-
-class _P:
-    def __init__(self, name=""):
-        object.__setattr__(self, "_n", name)
-        object.__setattr__(self, "_d", {})
-
-    def __getattr__(self, name, **kw):
-        if name in self._d:
-            return self._d[name]
-        if name.startswith("__"):
-            raise AttributeError(name)
-        return _P(f"{self._n}.{name}" if self._n else name)
-
-    def __setattr__(self, name, value):
-        self._d[name] = value
-
-    def __delattr__(self, name, **kw):
-        if name in self._d:
-            del self._d[name]
-
-    def __call__(self, *a, **k):
-        if a:
-            p = _P(f"{self._n}(...)" if self._n else "args")
-            object.__setattr__(p, "_d", {"args": list(a), "kwargs": k})
-            return p
-        return _P(f"{self._n}()" if self._n else "call")
-
-    def __bool__(self): return True
-    def __len__(self): return 1
-    def __iter__(self): yield _P("item"); yield _P("item")
-    def __getitem__(self, key): return _P(f"{self._n}[{key}]")
-    def __contains__(self, item): return True
-    def __eq__(self, other): return True
-    def __ne__(self, other): return False
-    def __hash__(self): return 0
-    def __int__(self): return 0
-    def __float__(self): return 0.0
-    def __truediv__(self, other): return _P(f"{self._n}/{other}")
-    def __rtruediv__(self, other): return _P(f"{other}/{self._n}")
-    def __lt__(self, other): return True
-    def __le__(self, other): return True
-    def __gt__(self, other): return True
-    def __ge__(self, other): return True
-    def __str__(self): return ""
-    def __repr__(self): return f"_P({self._n!r})"
-    def __enter__(self): return self
-    def __exit__(self, *a): pass
-    async def __aenter__(self): return self
-    async def __aexit__(self, *a): pass
-    def __await__(self, **kw):
-        async def _aw(): return self
-        return _aw().__await__()
-
-
-def __getattr__(name):
-    return _P(name)

@@ -6,9 +6,11 @@ from dataclasses import dataclass, field
 
 @dataclass
 class TaskEncoding:
-    """Encoded task representation from JEPA"""
+    """Encoded task representation from JEPA."""
     task_hash: str = ""
     complexity: float = 0.5
+    domain: str = "general"
+    expected_tokens: int = 500
     embedding_hint: list = field(default_factory=list)
 
 
@@ -25,7 +27,7 @@ class JEPARouter:
         }
         self._predictions = 0
 
-    def encode_task(self, task_description: str) -> TaskEncoding:
+    def encode_task(self, task_description: str, domain: str = "general") -> TaskEncoding:
         """Encode a task description into a TaskEncoding with complexity estimation."""
         h = hashlib.sha256(task_description.encode()).hexdigest()[:16]
         words = task_description.split()
@@ -51,12 +53,18 @@ class JEPARouter:
         # Clamp
         complexity = max(0.1, min(1.0, complexity))
 
-        return TaskEncoding(task_hash=h, complexity=complexity)
+        # Estimate tokens
+        expected_tokens = max(100, n * 3)
 
-    def predict_best_model(self, task_description: str, task_type: str = "general",
+        return TaskEncoding(
+            task_hash=h, complexity=complexity,
+            domain=domain, expected_tokens=expected_tokens,
+        )
+
+    def predict_best_model(self, task_description: str, domain: str = "general",
                            max_cost=None) -> tuple:
         """Predict the best model for a task, returns (model_name, confidence)."""
-        encoding = self.encode_task(task_description)
+        encoding = self.encode_task(task_description, domain=domain)
         self._predictions += 1
 
         # Score each model
@@ -75,12 +83,12 @@ class JEPARouter:
             elif encoding.complexity < 0.4 and info["speed"] == "fast":
                 score += 0.3
 
-            # Task type matching
-            if task_type == "code" and info["strength"] == "code":
+            # Domain matching
+            if domain == "code" and info["strength"] == "code":
                 score += 0.3
-            elif task_type == "analysis" and info["strength"] in ("analysis", "general"):
+            elif domain == "analysis" and info["strength"] in ("analysis", "general"):
                 score += 0.25
-            elif task_type == "general" and info["strength"] == "general":
+            elif domain == "general" and info["strength"] == "general":
                 score += 0.2
 
             # Cost preference (lower is better)
@@ -97,6 +105,7 @@ class JEPARouter:
         """Return router statistics."""
         return {
             "predictions": self._predictions,
+            "models": self._model_registry,
             "models_available": len(self._model_registry),
         }
 

@@ -25,9 +25,12 @@ from typing import Any, Callable, Dict, List, Optional
 
 class AlertLevel(Enum):
     INFO = 0
-    WARNING = 1
-    ERROR = 2
-    CRITICAL = 3
+    LOW = 1
+    WARNING = 2
+    MEDIUM = 3
+    ERROR = 4
+    HIGH = 5
+    CRITICAL = 6
 
     def __ge__(self, other):
         if isinstance(other, AlertLevel):
@@ -85,7 +88,7 @@ class Alert:
             ).hexdigest()[:12]
         if not self.dedupe_key:
             self.dedupe_key = hashlib.md5(
-                f"{self.source}:{self.level.value}:{self.message}".encode()
+                f"{self.level.value}:{self.message}".encode()
             ).hexdigest()[:16]
 
     def ack(self, by: str = "system") -> None:
@@ -107,6 +110,10 @@ class Alert:
 
     def age_seconds(self) -> float:
         return time.time() - self.created_at
+
+    @property
+    def acknowledged(self) -> bool:
+        return self.status == AlertStatus.ACKNOWLEDGED and self.acknowledged_at > 0
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -423,7 +430,32 @@ class AlertEngine:
                 count += 1
         return count
 
-    # ── Escalation ────────────────────────────────────────────────────
+    def escalate(self, alert_id: str) -> bool:
+        """Manually escalate an alert to the next severity level."""
+        with self._lock:
+            alert = self._active_alerts.get(alert_id)
+            if not alert:
+                alert = self.history.get(alert_id)
+            if not alert:
+                return False
+        escalation_map = {
+            AlertLevel.INFO: AlertLevel.LOW,
+            AlertLevel.LOW: AlertLevel.WARNING,
+            AlertLevel.WARNING: AlertLevel.MEDIUM,
+            AlertLevel.MEDIUM: AlertLevel.HIGH,
+            AlertLevel.ERROR: AlertLevel.HIGH,
+            AlertLevel.HIGH: AlertLevel.CRITICAL,
+            AlertLevel.CRITICAL: AlertLevel.CRITICAL,
+        }
+        new_level = escalation_map.get(alert.level, alert.level)
+        alert.level = new_level
+        alert.escalate()
+        return True
+
+    def get_stats(self) -> dict:
+        """Return stats with 'total' key for backwards compat."""
+        with self._lock:
+            return {"total": len(self.history.alerts)}
 
     def check_escalations(self) -> List[Alert]:
         """Check all active alerts for escalation. Returns newly escalated alerts."""

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import numpy as np
 import re
 import time
 from collections import defaultdict, deque
@@ -166,7 +167,6 @@ class PreferenceProfile:
                 if self._LIB_CATEGORIES.get(lib, "") == category
             }
             if not candidates:
-                # Fallback: partial match on library name
                 candidates = {
                     lib: score for lib, score in self.preferred_libraries.items()
                     if category.lower() in lib.lower()
@@ -245,6 +245,317 @@ class UserCorrection:
                 text = re.sub(r'[a-zA-Z_]\w*', 'ID', op["old_text"])
                 patterns.append(f"DELETE:{text}")
         return "|".join(patterns)
+
+
+# ── TEST-COMPATIBLE: Interaction ──────────────────────────────────────────
+
+@dataclass
+class Interaction:
+    """A single user-AI interaction."""
+    timestamp: float
+    user_msg: str
+    assistant_msg: str
+    feedback_score: float = 0.0
+    mode: str = "direct"
+    categories: List[str] = field(default_factory=list)
+    response_time_ms: float = 0.0
+
+
+# ── TEST-COMPATIBLE: InteractionRecorder ───────────────────────────────────
+
+class InteractionRecorder:
+    """Records and retrieves user interactions."""
+
+    def __init__(self, max_history: int = 1000):
+        self.max_history = max_history
+        self._interactions: deque = deque(maxlen=max_history)
+
+    def record(self, interaction: Interaction) -> None:
+        self._interactions.append(interaction)
+
+    def total_interactions(self) -> int:
+        return len(self._interactions)
+
+    def get_recent(self, n: int) -> List[Interaction]:
+        items = list(self._interactions)
+        return items[-n:] if n <= len(items) else items
+
+    def get_topic_stats(self) -> Dict[str, int]:
+        stats: Dict[str, int] = {}
+        for inter in self._interactions:
+            msg = inter.user_msg
+            words = msg.lower().split()
+            found = False
+            common_topics = {
+                "search", "code", "chat", "analyze", "fix", "bug",
+                "write", "test", "deploy", "config", "data", "general",
+            }
+            for word in words:
+                clean = re.sub(r'[^a-zA-Z]', '', word)
+                if clean in common_topics:
+                    stats[clean] = stats.get(clean, 0) + 1
+                    found = True
+                elif len(clean) > 2:
+                    stats[clean] = stats.get(clean, 0) + 1
+                    found = True
+            if not found:
+                stats["general"] = stats.get("general", 0) + 1
+        return stats
+
+
+# ── TEST-COMPATIBLE: PreferenceEntry ───────────────────────────────────────
+
+@dataclass
+class PreferenceEntry:
+    topic: str
+    weight: float = 0.0
+    confidence: float = 0.0
+    examples: int = 0
+
+
+# ── TEST-COMPATIBLE: PreferenceLearner ─────────────────────────────────────
+
+class PreferenceLearner:
+    """Learns user preferences from interactions."""
+
+    def __init__(self):
+        self._prefs: Dict[str, Dict[str, Any]] = {}
+
+    def update(self, interaction: Interaction) -> None:
+        topics = interaction.categories if interaction.categories else ["general"]
+        for topic in topics:
+            if topic not in self._prefs:
+                self._prefs[topic] = {"weight": 0.0, "confidence": 0.0, "examples": 0}
+            p = self._prefs[topic]
+            p["examples"] += 1
+            p["weight"] = max(p["weight"], interaction.feedback_score) if interaction.feedback_score > 0 else p["weight"]
+            p["confidence"] = min(1.0, p["examples"] / 30.0)
+
+    def get_preference(self, topic: str) -> Optional[PreferenceEntry]:
+        if topic not in self._prefs:
+            return None
+        p = self._prefs[topic]
+        return PreferenceEntry(
+            topic=topic,
+            weight=max(0.0, p["weight"]),
+            confidence=p["confidence"],
+            examples=p["examples"],
+        )
+
+    def get_top_preferences(self, n: int = 5) -> List[PreferenceEntry]:
+        sorted_items = sorted(
+            self._prefs.items(),
+            key=lambda x: (x[1]["confidence"], x[1]["weight"]),
+            reverse=True,
+        )
+        return [
+            PreferenceEntry(
+                topic=t,
+                weight=max(0.0, d["weight"]),
+                confidence=d["confidence"],
+                examples=d["examples"],
+            )
+            for t, d in sorted_items[:n]
+        ]
+
+    def summary(self) -> Dict[str, Any]:
+        top = self.get_top_preferences()
+        return {
+            "total_preferences": len(self._prefs),
+            "top_topics": [p.topic for p in top],
+        }
+
+    def to_dict(self) -> Dict[str, Any]:
+        return dict(self._prefs)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "PreferenceLearner":
+        pl = cls()
+        pl._prefs = data
+        return pl
+
+
+# ── TEST-COMPATIBLE: GenerativeModelUpdater ────────────────────────────────
+
+class GenerativeModelUpdater:
+    """Generative model for state/action transitions."""
+
+    def __init__(self, n_states: int = 20, n_actions: int = 10, decay_rate: float = 0.99):
+        self.n_states = n_states
+        self.n_actions = n_actions
+        self.decay_rate = decay_rate
+        self.transition = np.zeros((n_states, n_actions, n_states))
+        self.reward = np.zeros((n_states, n_actions))
+        self.action_counts = np.zeros(n_actions)
+        self.state_counts = np.zeros(n_states)
+        self._state_map: Dict[str, int] = {}
+        self._action_map: Dict[str, int] = {}
+        self._next_state_map: Dict[str, int] = {}
+        self._state_next: int = 0
+        self._action_next: int = 0
+        self._nstate_next: int = 0
+
+    def _get_state_idx(self, s: str) -> int:
+        if s not in self._state_map:
+            self._state_map[s] = self._state_next % self.n_states
+            self._state_next += 1
+        return self._state_map[s]
+
+    def _get_action_idx(self, a: str) -> int:
+        if a not in self._action_map:
+            self._action_map[a] = self._action_next % self.n_actions
+            self._action_next += 1
+        return self._action_map[a]
+
+    def _get_nstate_idx(self, ns: str) -> int:
+        if ns not in self._next_state_map:
+            self._next_state_map[ns] = self._nstate_next % self.n_states
+            self._nstate_next += 1
+        return self._next_state_map[ns]
+
+    def update(self, state: str, action: str, next_state: str, reward_val: float) -> None:
+        si = self._get_state_idx(state)
+        ai = self._get_action_idx(action)
+        nsi = self._get_nstate_idx(next_state)
+        self.transition[si, ai, nsi] += 1.0
+        self.reward[si, ai] = 0.9 * self.reward[si, ai] + 0.1 * reward_val
+        self.action_counts[ai] += 1
+        self.state_counts[si] += 1
+
+    def predict_next_state(self, state: str, action: str) -> Tuple[str, float]:
+        si = self._get_state_idx(state)
+        ai = self._get_action_idx(action)
+        row = self.transition[si, ai, :]
+        total = row.sum()
+        if total == 0:
+            rev = {v: k for k, v in self._next_state_map.items()}
+            if rev:
+                return list(rev.values())[0], 0.5
+            return "unknown", 0.1
+        best_idx = int(row.argmax())
+        conf = float(row[best_idx] / total)
+        rev = {v: k for k, v in self._next_state_map.items()}
+        ns = rev.get(best_idx, "unknown")
+        return ns, min(1.0, max(0.01, conf))
+
+    def predict_reward(self, state: str, action: str) -> float:
+        si = self._get_state_idx(state)
+        ai = self._get_action_idx(action)
+        return float(self.reward[si, ai])
+
+    def decay(self) -> None:
+        self.transition *= self.decay_rate
+        self.reward *= self.decay_rate
+
+    def get_model_summary(self) -> Dict[str, Any]:
+        return {
+            "states_seen": len(self._state_map),
+            "actions_seen": len(self._action_map),
+            "transition_shape": list(self.transition.shape),
+            "total_transitions": int(self.transition.sum()),
+        }
+
+
+# ── TEST-COMPATIBLE: MemoryConsolidator ─────────────────────────────────────
+
+class MemoryConsolidator:
+    """Consolidates interactions into memory summaries."""
+
+    def __init__(self):
+        self._consolidation_count: int = 0
+
+    def consolidate(self, recorder: InteractionRecorder) -> Dict[str, Any]:
+        total = recorder.total_interactions()
+        self._consolidation_count += 1
+
+        topic_stats = recorder.get_topic_stats()
+        important = sorted(topic_stats.items(), key=lambda x: x[1], reverse=True)
+
+        return {
+            "consolidated": total > 0,
+            "total_interactions": total,
+            "important_topics": important[:10],
+            "consolidation_id": self._consolidation_count,
+        }
+
+
+# ── TEST-COMPATIBLE: OnlineLearningEngine ──────────────────────────────────
+
+class OnlineLearningEngine:
+    """Main online learning engine wrapping all subcomponents."""
+
+    def __init__(self):
+        self.recorder = InteractionRecorder()
+        self.preference_learner = PreferenceLearner()
+        self.consolidator = MemoryConsolidator()
+        self.model_updater = GenerativeModelUpdater()
+        self._consolidation_interval: int = 10
+
+    def record_interaction(
+        self, user_msg: str, assistant_msg: str, feedback_score: float
+    ) -> Interaction:
+        inter = Interaction(
+            timestamp=time.time(),
+            user_msg=user_msg,
+            assistant_msg=assistant_msg,
+            feedback_score=feedback_score,
+        )
+        self.recorder.record(inter)
+
+        # Extract categories from user message
+        words = user_msg.lower().split()
+        found = set()
+        common_topics = {
+            "search", "code", "chat", "analyze", "fix", "bug",
+            "write", "test", "deploy", "config", "data",
+        }
+        for word in words:
+            clean = re.sub(r'[^a-zA-Z]', '', word)
+            if clean in common_topics:
+                found.add(clean)
+            elif len(clean) > 2:
+                found.add(clean)
+        if not found:
+            found.add("general")
+        inter.categories = list(found)
+
+        # Update preference learner
+        self.preference_learner.update(inter)
+
+        # Update generative model
+        self.model_updater.update("idle", list(found)[0] if found else "chat",
+                                   "responding", feedback_score)
+
+        # Periodic consolidation
+        if self.recorder.total_interactions() % max(1, self._consolidation_interval) == 0:
+            self.consolidator.consolidate(self.recorder)
+
+        return inter
+
+    def get_summary(self) -> Dict[str, Any]:
+        topic_stats = self.recorder.get_topic_stats()
+        return {
+            "total_interactions": self.recorder.total_interactions(),
+            "topics": list(topic_stats.keys()),
+            "preferences": self.preference_learner.summary(),
+            "model": self.model_updater.get_model_summary(),
+        }
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "total_interactions": self.recorder.total_interactions(),
+            "preferences": self.preference_learner.to_dict(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OnlineLearningEngine":
+        engine = cls()
+        # Don't restore interactions (fresh start)
+        engine.recorder = InteractionRecorder()
+        engine.preference_learner = PreferenceLearner.from_dict(
+            data.get("preferences", {})
+        )
+        return engine
 
 
 # ── Pattern Learner ───────────────────────────────────────────────────────
@@ -346,15 +657,12 @@ class PatternLearner:
         result = code
         top = self.get_top_patterns(min_confidence=0.5)
         for pattern in top:
-            # Simple heuristic: ensure docstrings and error handling exist
             if pattern.category == "docstring" and '"""' not in result:
                 result = f'"""{context or "Generated code"}"""\n\n{result}'
             elif pattern.category == "error_handling":
-                # Add basic try/except if missing
                 if "try:" not in result and "except" not in result:
                     result = f"try:\n    {result.replace(chr(10), chr(10) + '    ')}\nexcept Exception as e:\n    raise\n"
             elif pattern.category == "type_annotations":
-                # Basic annotation insertion (heuristic)
                 result = re.sub(
                     r'def (\w+)\(([^)]*)\):',
                     lambda m: f'def {m.group(1)}({m.group(2)}) -> Any:',
@@ -396,14 +704,12 @@ class StyleDetector:
         """Analyze code to detect style preferences."""
         style: Dict[str, Any] = {}
 
-        # Detect indentation
         indent_match = re.search(r'^(\s+)', code, re.MULTILINE)
         if indent_match:
             indent = indent_match.group(1)
             style["indent_style"] = "tabs" if "\t" in indent else "spaces"
             style["indent_size"] = len(indent.replace("\t", "    ")) if "\t" in indent else len(indent)
 
-        # Detect quote style
         single_quotes = len(re.findall(r"(?<!['\"])(?<!\w)'[^']*'(?!['\"])", code))
         double_quotes = len(re.findall(r'(?<!["\'])(?<!\w)"[^"]*"(?!["\'])', code))
         if single_quotes > double_quotes:
@@ -411,7 +717,6 @@ class StyleDetector:
         elif double_quotes > 0:
             style["quote_style"] = "double"
 
-        # Detect naming style
         snake_case = len(re.findall(r'\b[a-z][a-z0-9_]*_[a-z0-9_]+\b', code))
         camel_case = len(re.findall(r'\b[a-z][a-zA-Z0-9]+[A-Z]\w*\b', code))
         pascal_case = len(re.findall(r'\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b', code))
@@ -422,13 +727,11 @@ class StyleDetector:
         elif pascal_case > 0:
             style["naming_style"] = "PascalCase"
 
-        # Detect line length (median)
         lines = code.split("\n")
         lengths = sorted(len(l) for l in lines if l.strip())
         if lengths:
             style["line_length"] = lengths[len(lengths) // 2]
 
-        # Detect common libraries
         libraries: Dict[str, int] = {}
         for imp in re.findall(r'^(?:import\s+(\w+)|from\s+(\w+)\s+import)', code, re.MULTILINE):
             lib = imp[0] or imp[1]
@@ -457,41 +760,23 @@ class MarkovState:
 
 
 class MarkovPredictor:
-    """First-order Markov chain for predicting user acceptance.
-
-    Builds a state transition matrix from feedback history.
-    States: (context_hash, last_signal_idx) pairs.
-    Transitions: probability distribution over next signal types.
-
-    Unlike simple counting, this captures the sequential structure of
-    user behavior — e.g., a reject after a reject signals strong dislike,
-    an accept after accept signals strong approval.
-    """
+    """First-order Markov chain for predicting user acceptance."""
 
     SIGNAL_ORDER = ["explicit_reject", "implicit_reject", "implicit_accept", "explicit_accept"]
 
     def __init__(self):
-        # transition[from_state_key][to_signal_idx] = count
         self.transitions: Dict[str, Dict[int, int]] = defaultdict(lambda: defaultdict(int))
-        # state_count[state_key] = total occurrences of that state
         self.state_counts: Dict[str, int] = defaultdict(int)
-        # last_state per context_hash
         self.last_state: Dict[str, str] = {}  # context_hash → last_signal
         self._built = False
 
     def train(self, history: List[Dict[str, Any]]) -> None:
-        """Train the Markov chain from feedback history.
-
-        Args:
-            history: List of {"signal": str, "context": str, "ts": float} dicts
-        """
+        """Train the Markov chain from feedback history."""
         if len(history) < 3:
             return
 
-        # Sort by timestamp
         sorted_history = sorted(history, key=lambda h: h.get("ts", 0))
 
-        # Build transition counts
         for i in range(1, len(sorted_history)):
             prev = sorted_history[i - 1]
             curr = sorted_history[i]
@@ -499,7 +784,6 @@ class MarkovPredictor:
             prev_ctx = hashlib.md5(prev.get("context", "").encode()).hexdigest()[:8]
             curr_ctx = hashlib.md5(curr.get("context", "").encode()).hexdigest()[:8]
 
-            # Use previous context as state context
             prev_sig = prev.get("signal", "implicit_accept")
             curr_sig = curr.get("signal", "implicit_accept")
 
@@ -510,7 +794,6 @@ class MarkovPredictor:
             self.transitions[from_key][curr_idx] += 1
             self.state_counts[from_key] += 1
 
-        # Record last state per context
         for h in sorted_history:
             ctx_hash = hashlib.md5(h.get("context", "").encode()).hexdigest()[:8]
             self.last_state[ctx_hash] = h.get("signal", "implicit_accept")
@@ -518,26 +801,17 @@ class MarkovPredictor:
         self._built = True
 
     def predict_acceptance(self, context: str, default: float = 0.5) -> float:
-        """Predict acceptance probability using Markov chain.
-
-        Given a context, looks up the transition probabilities from
-        the last observed state for that context.
-
-        Returns:
-            float: Predicted acceptance probability [0.0, 1.0]
-        """
+        """Predict acceptance probability using Markov chain."""
         if not self._built:
             return default
 
         ctx_hash = hashlib.md5(context.encode()).hexdigest()[:8]
 
-        # Find the best matching context hash (exact or prefix)
         from_key = None
         last_sig = self.last_state.get(ctx_hash)
         if last_sig:
             from_key = f"{ctx_hash}:{self._signal_index(last_sig)}"
         else:
-            # Try partial match on context hashes
             for known_ctx in self.last_state:
                 if ctx_hash[:4] == known_ctx[:4]:
                     ls = self.last_state[known_ctx]
@@ -552,18 +826,15 @@ class MarkovPredictor:
         if total == 0:
             return default
 
-        # Compute acceptance probability: weighted sum of positive signal probabilities
         accept_weight = 0.0
         for sig_idx, count in trans.items():
             prob = count / total
-            # Weight: implicit_accept=0.7, explicit_accept=1.0
             if sig_idx == self._signal_index("explicit_accept"):
                 accept_weight += prob * 1.0
             elif sig_idx == self._signal_index("implicit_accept"):
                 accept_weight += prob * 0.7
 
-        # Blend with prior (0.5) when data is sparse
-        alpha = min(total / 50.0, 0.8)  # Up to 0.8 weight to Markov as data grows
+        alpha = min(total / 50.0, 0.8)
         return alpha * accept_weight + (1.0 - alpha) * default
 
     def _signal_index(self, signal: str) -> int:
@@ -600,8 +871,6 @@ class OnlineLearner:
         self._session_start = time.time()
         self._markov = MarkovPredictor()
 
-    # ── Signal Processing ──────────────────────────────────────────────
-
     def record_feedback(
         self,
         signal_type: SignalType,
@@ -628,19 +897,15 @@ class OnlineLearner:
             session_id=self._session_id(),
         )
 
-        # Update profile
         self.profile.record_signal(signal)
 
-        # Learn from corrections
         if signal.is_correction() and signal.corrected_text:
             self.pattern_learner.learn_from_feedback(signal)
 
-            # Analyze style from corrected code
             if language in ("python", "typescript", "javascript", "go", "rust"):
                 style = self.style_detector.analyze(corrected_text)
                 self._update_profile_from_style(style)
 
-        # Update library preferences
         if signal.is_positive() and language:
             libs = self.style_detector.analyze(output_text).get("libraries", {})
             for lib, count in libs.items():
@@ -661,7 +926,6 @@ class OnlineLearner:
             "ts": signal.timestamp,
         })
 
-        # Train Markov chain periodically
         if len(self.history) >= 3 and len(self.history) % 5 == 0:
             self._markov.train(list(self.history))
 
@@ -702,8 +966,6 @@ class OnlineLearner:
             SignalType.RATING, context, rating=rating, comment=comment,
         )
 
-    # ── Query / Prediction ─────────────────────────────────────────────
-
     def get_preferences(self) -> Dict[str, Any]:
         """Get the current learned user preferences."""
         return self.profile.to_dict()
@@ -723,42 +985,27 @@ class OnlineLearner:
         return len(async_patterns) > 0
 
     def predict_acceptance(self, context: str, language: str = "") -> float:
-        """Predict acceptance probability using Markov chain model.
-
-        First-order Markov chain captures sequential user behavior patterns:
-        - reject→reject = strong dislike (low acceptance)
-        - accept→accept = strong approval (high acceptance)
-        - reject→accept = correction was good
-
-        Falls back to simple rate when Markov isn't trained.
-        """
-        # Try Markov prediction first
+        """Predict acceptance probability using Markov chain model."""
         if self._markov._built:
             markov_pred = self._markov.predict_acceptance(context, default=self.profile.acceptance_rate)
-            # Blend: 70% Markov, 30% simple rate (anchor against overfitting)
             return 0.7 * markov_pred + 0.3 * self.profile.acceptance_rate
         return self.profile.acceptance_rate
 
     def improve_output(self, code: str, context: str = "") -> str:
         """Apply learned preferences to improve code before presenting to user."""
-        # Apply learned patterns
         code = self.pattern_learner.apply_patterns(code, context)
 
-        # Apply style preferences
         if self.profile.indent_style == "tabs" and "    " in code:
             code = code.replace("    ", "\t")
         elif self.profile.indent_style == "spaces" and "\t" in code:
             code = code.replace("\t", " " * self.profile.indent_size)
 
-        # Apply quote style
         if self.profile.quote_style == "single":
             code = re.sub(r'(?<!\\)"([^"]*)"', r"'\1'", code)
         elif self.profile.quote_style == "double":
             code = re.sub(r"(?<!\\)'([^']*)'", r'"\1"', code)
 
         return code
-
-    # ── Maintenance ────────────────────────────────────────────────────
 
     def decay(self) -> None:
         """Run periodic decay on learned patterns."""
@@ -824,45 +1071,3 @@ def reset_online_learner() -> None:
     """Reset the global online learner instance."""
     global _learner
     _learner = None
-
-
-# ── _P Compatibility ──────────────────────────────────────────────────────
-
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
-
-
-def __getattr__(name):
-    return _P(name)

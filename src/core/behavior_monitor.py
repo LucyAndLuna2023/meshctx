@@ -1,47 +1,124 @@
-"""meshctx behavior_monitor"""
+"""meshctx behavior_monitor — real implementation"""
+
+import enum
+from typing import Dict, Any, List
+
+
+class ComplianceStatus(enum.Enum):
+    COMPLIANT = "compliant"
+    VIOLATION = "violation"
+    CRITICAL = "critical"
+
+
+class PressureLevel(enum.Enum):
+    NORMAL = "normal"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class ComplianceEvent:
+    """A single compliance check result."""
+
+    def __init__(self, action: str, status: ComplianceStatus, reason: str = ""):
+        self.action = action
+        self.status = status
+        self.reason = reason
+
 
 class BehaviorMonitor:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-    def __init__(self, *args, **kwargs):
-        pass
+    """Monitors agent behavior for compliance with safety rules."""
 
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
+    DANGEROUS_PATTERNS = [
+        ("rm -rf /", ComplianceStatus.CRITICAL),
+        ("rm -rf", ComplianceStatus.VIOLATION),
+        ("/etc/passwd", ComplianceStatus.CRITICAL),
+        ("/etc/shadow", ComplianceStatus.CRITICAL),
+        ("sudo ", ComplianceStatus.VIOLATION),
+        ("chmod 777", ComplianceStatus.VIOLATION),
+        ("curl", ComplianceStatus.VIOLATION),
+        ("wget", ComplianceStatus.VIOLATION),
+        ("eval(", ComplianceStatus.VIOLATION),
+        ("exec(", ComplianceStatus.VIOLATION),
+        ("__import__", ComplianceStatus.VIOLATION),
+        ("subprocess", ComplianceStatus.VIOLATION),
+        ("os.system", ComplianceStatus.VIOLATION),
+    ]
 
-def __getattr__(name):
-    return _P(name)
+    def __init__(self):
+        self._violations: List[ComplianceEvent] = []
+        self._actions: List[ComplianceEvent] = []
+        self._pressure_level = PressureLevel.NORMAL
+        self._baseline: Dict[str, float] = {}
+        self._deviation_count = 0
+        self._safe_mode = False
 
+    def check_action(self, action: str) -> ComplianceEvent:
+        """Check if an action is compliant with safety rules."""
+        for pattern, severity in self.DANGEROUS_PATTERNS:
+            if pattern in action:
+                event = ComplianceEvent(action=action, status=severity, reason=f"Matched pattern: {pattern}")
+                self._violations.append(event)
+                self._actions.append(event)
+                return event
+        event = ComplianceEvent(action=action, status=ComplianceStatus.COMPLIANT, reason="Safe action")
+        self._actions.append(event)
+        return event
+
+    def update_pressure(self, metrics: Dict[str, float]) -> PressureLevel:
+        """Update system pressure level based on resource metrics."""
+        cpu = metrics.get("cpu_percent", 0)
+        mem = metrics.get("memory_percent", 0)
+        err = metrics.get("error_rate", 0)
+
+        if cpu > 90 or mem > 85 or err > 0.05:
+            self._pressure_level = PressureLevel.CRITICAL
+        elif cpu > 75 or mem > 65 or err > 0.02:
+            self._pressure_level = PressureLevel.HIGH
+        else:
+            self._pressure_level = PressureLevel.NORMAL
+        return self._pressure_level
+
+    def get_safe_mode_config(self) -> Dict[str, Any]:
+        """Get configuration for safe mode."""
+        return {
+            "require_human_approval": True,
+            "max_concurrent_tasks": 2,
+            "active": self._safe_mode,
+        }
+
+    def check_deviation(self, metrics: Dict[str, float]) -> Dict[str, Any]:
+        """Check if behavior deviates from established baseline."""
+        if not self._baseline:
+            # First run: establish baseline
+            self._baseline = dict(metrics)
+            return {"deviated": False, "baseline": self._baseline}
+
+        deviated = False
+        for key, value in metrics.items():
+            baseline_val = self._baseline.get(key, value)
+            if baseline_val > 0 and value / baseline_val > 3.0:
+                deviated = True
+                self._deviation_count += 1
+                break
+
+        return {"deviated": deviated, "deviation_count": self._deviation_count}
+
+    def get_compliance_report(self) -> Dict[str, Any]:
+        """Get a report on compliance status."""
+        total = len(self._actions)
+        compliant = sum(1 for a in self._actions if a.status == ComplianceStatus.COMPLIANT)
+        return {
+            "total_actions": total,
+            "compliance_rate": compliant / max(total, 1),
+            "violations": len(self._violations),
+        }
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get monitor statistics."""
+        report = self.get_compliance_report()
+        return {
+            "compliance_rate": report["compliance_rate"],
+            "pressure_level": self._pressure_level.value,
+            "total_actions": report["total_actions"],
+            "violations": report["violations"],
+        }

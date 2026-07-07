@@ -4778,6 +4778,8 @@ renderCommunity();
 document.getElementById('urlInput').addEventListener('keydown',function(e){
 if(e.key==='Enter') installFromUrl();
 });
+var paneHistory=document.createElement('div');paneHistory.id='pane-history';paneHistory.className='pane-history';paneHistory.style.display='none';document.body.appendChild(paneHistory);
+function renderHistory(id){var e=document.getElementById('pane-history');if(e){e.style.display='block';e.innerHTML='<h3>Session: '+id+'</h3>';}}
 </script></body></html>""")
 
 # ── v1.5.13 下载页面 ─────────────────────────────────────

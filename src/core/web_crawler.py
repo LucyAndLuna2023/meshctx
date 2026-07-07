@@ -17,9 +17,6 @@ from xml.dom import minidom
 
 @dataclass
 class CrawlResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     url: str
     status_code: int = 0
     title: str = ""
@@ -29,15 +26,12 @@ class CrawlResult:
     error: str = ""
 
     @property
-    def ok(self, **kw) -> bool:
+    def ok(self) -> bool:
         return 200 <= self.status_code < 300
 
 
 @dataclass
 class CrawlConfig:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     max_depth: int = 3
     max_pages: int = 100
     delay_seconds: float = 1.0
@@ -47,9 +41,6 @@ class CrawlConfig:
 
 @dataclass
 class SitemapEntry:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     url: str
     lastmod: str = ""
     changefreq: str = ""
@@ -57,7 +48,7 @@ class SitemapEntry:
     title: str = ""
     depth: int = 0
 
-    def to_xml_element(self, **kw) -> ET.Element:
+    def to_xml_element(self) -> ET.Element:
         url_el = ET.Element("url")
         loc = ET.SubElement(url_el, "loc")
         loc.text = self.url
@@ -233,23 +224,20 @@ def extract_title(html_text: str) -> str:
 # ═══════════════════════════════════════════════════════════════
 
 class RobotsChecker:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Simple robots.txt checker. Returns allowed by default on failure."""
 
-    def __init__(self, **kw):
+    def __init__(self):
         self._cache: Dict[str, Optional[str]] = {}
 
-    def is_allowed(self, url: str, **kw) -> bool:
+    def is_allowed(self, url: str) -> bool:
         """Check if URL is allowed by robots.txt. Default True."""
         return True
 
-    def get_delay(self, url: str, **kw) -> Optional[float]:
+    def get_delay(self, url: str) -> Optional[float]:
         """Get crawl delay from robots.txt. Returns None if not specified."""
         return None
 
-    def clear_cache(self, **kw):
+    def clear_cache(self):
         self._cache.clear()
 
 
@@ -258,17 +246,14 @@ class RobotsChecker:
 # ═══════════════════════════════════════════════════════════════
 
 class WebCrawler:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Web crawler with depth control, sitemap generation, and Markdown conversion."""
 
-    def __init__(self, config: Optional[CrawlConfig] = None, **kw):
+    def __init__(self, config: Optional[CrawlConfig] = None):
         self.config = config or CrawlConfig()
         self._crawled_hashes: int = 0
         self._crawled_urls: set = set()
 
-    def get_stats(self, **kw) -> Dict[str, Any]:
+    def get_stats(self) -> Dict[str, Any]:
         return {
             "crawled_hashes": self._crawled_hashes,
             "crawled_urls": len(self._crawled_urls),
@@ -357,7 +342,7 @@ class WebCrawler:
 
         return results
 
-    def generate_sitemap(self, results: List[CrawlResult], **kw) -> str:
+    def generate_sitemap(self, results: List[CrawlResult]) -> str:
         """Generate XML sitemap from crawl results."""
         urlset = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
         for r in results:
@@ -370,7 +355,7 @@ class WebCrawler:
                 urlset.append(entry.to_xml_element())
         return minidom.parseString(ET.tostring(urlset, encoding="unicode")).toprettyxml(indent="  ")
 
-    def generate_sitemap_from_urls(self, urls: List[Dict[str, Any]], **kw) -> str:
+    def generate_sitemap_from_urls(self, urls: List[Dict[str, Any]]) -> str:
         """Generate XML sitemap from a list of URL dicts."""
         urlset = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
         for u in urls:
@@ -401,42 +386,4 @@ def get_web_crawler() -> WebCrawler:
 def reset_web_crawler():
     global _web_crawler_instance
     _web_crawler_instance = None
-
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
-
-def __getattr__(name):
-    return _P(name)
 

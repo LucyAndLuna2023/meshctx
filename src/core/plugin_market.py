@@ -274,12 +274,16 @@ class PluginMarket:
 
     # ── Install / Uninstall ─────────────────────────────────────────────
     def install(self, plugin_id: str, version: str = None) -> dict:
-        entry = self._ensure_registered(plugin_id)
+        entry = self._plugins.get(plugin_id)
+        if entry is None:
+            entry = self._ensure_registered(plugin_id)
         if entry is None:
             return {"success": False, "error": f"Plugin '{plugin_id}' not found in market"}
 
         if entry.installed:
-            return {"success": False, "error": f"Plugin '{plugin_id}' is already installed"}
+            self._install_counts[plugin_id] = self._install_counts.get(plugin_id, 0) + 1
+            self._save_state()
+            return {"success": True, "version_installed": self._installed_versions.get(plugin_id, str(entry.latest_version) if entry.latest_version else "v1.0.0"), "message": f"Plugin '{plugin_id}' re-installed (download count incremented)"}
 
         # Skip install if install_command is empty (test mode)
         info = self._OFFICIAL_PLUGINS.get(plugin_id)

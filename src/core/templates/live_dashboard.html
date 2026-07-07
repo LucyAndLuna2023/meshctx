@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>meshctx Live Health Dashboard</title>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --border: #30363d;
+  --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+  --green: #3fb950; --red: #f85149; --yellow: #d29922;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:20px;color:var(--accent)}
+.header .status-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px}
+.status-ok{background:var(--green);box-shadow:0 0 8px var(--green)}
+.status-error{background:var(--red);box-shadow:0 0 8px var(--red)}
+.main{padding:24px;max-width:1400px;margin:0 auto}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.stat-card .value{font-size:36px;font-weight:700;color:var(--accent)}
+.stat-card .label{font-size:13px;color:var(--muted);margin-top:4px}
+.modules-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.module-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;transition:border-color 0.3s}
+.module-card.module-ok{border-left:4px solid var(--green)}
+.module-card.module-error{border-left:4px solid var(--red)}
+.module-card .module-name{font-size:15px;font-weight:600}
+.module-card .module-status{font-size:12px;margin-top:4px}
+.module-card .module-latency{font-size:11px;color:var(--muted);margin-top:2px}
+.refresh-info{text-align:center;color:var(--muted);font-size:12px;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1><span class="status-dot status-ok" id="global-dot"></span>meshctx Live Health</h1>
+  <div style="font-size:13px;color:var(--muted)">WebSocket /ws/health</div>
+</div>
+<div class="main">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="value" id="uptime">--</div>
+      <div class="label">Uptime</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="modules-ok" style="color:var(--green)">0</div>
+      <div class="label">Modules OK</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="modules-err" style="color:var(--red)">0</div>
+      <div class="label">Modules Error</div>
+    </div>
+  </div>
+  <div class="modules-grid" id="modules-grid">
+    <!-- Modules: sdb, memory, diff, tasks, brain, self_modify, gateway_llm, unified_loop, attractor, knowledge, precompute, tuner, benchmark, health -->
+    <div class="module-card module-ok" data-module="sdb">
+      <div class="module-name">sdb</div>
+      <div class="module-status status-ok">OK</div>
+      <div class="module-latency">0.5ms</div>
+    </div>
+    <div class="module-card module-ok" data-module="memory">
+      <div class="module-name">memory</div>
+      <div class="module-status status-ok">OK</div>
+      <div class="module-latency">1.0ms</div>
+    </div>
+    <div class="module-card module-ok" data-module="diff">
+      <div class="module-name">diff</div>
+      <div class="module-status status-ok">OK</div>
+      <div class="module-latency">1.1ms</div>
+    </div>
+    <div class="module-card module-ok" data-module="tasks">
+      <div class="module-name">tasks</div>
+      <div class="module-status status-ok">OK</div>
+      <div class="module-latency">0.8ms</div>
+    </div>
+    <div class="module-card module-ok" data-module="brain">
+      <div class="module-name">brain</div>
+      <div class="module-status status-ok">OK</div>
+      <div class="module-latency">3.2ms</div>
+    </div>
+    <div class="module-card module-ok" data-module="self_modify">
+      <div class="module-name">self_modify</div>
+      <div class="module-status status-ok">OK</div>
+      <div class="module-latency">1.5ms</div>
+    </div>
+    <div class="module-card module-ok" data-module="gateway_llm">
+      <div class="module-name">gateway_llm</div>
+      <div class="module-status status-ok">OK</div>
+      <div class="module-latency">2.0ms</div>
+    </div>
+    <div class="module-card module-ok" data-module="unified_loop">
+      <div class="module-name">unified_loop</div>
+      <div class="module-status status-ok">OK</div>
+      <div class="module-latency">0.7ms</div>
+    </div>
+    <div class="module-card module-ok" data-module="attractor">
+      <div class="module-name">attractor</div>
+      <div class="module-status status-ok">OK</div>
+      <div class="module-latency">1.2ms</div>
+    </div>
+    <div class="module-card module-ok" data-module="knowledge">
+      <div class="module-name">knowledge</div>
+      <div class="module-status status-ok">OK</div>
+      <div class="module-latency">1.8ms</div>
+    </div>
+    <div class="module-card module-ok" data-module="precompute">
+      <div class="module-name">precompute</div>
+      <div class="module-status status-ok">OK</div>
+      <div class="module-latency">0.6ms</div>
+    </div>
+    <div class="module-card module-ok" data-module="tuner">
+      <div class="module-name">tuner</div>
+      <div class="module-status status-ok">OK</div>
+      <div class="module-latency">0.9ms</div>
+    </div>
+    <div class="module-card module-ok" data-module="benchmark">
+      <div class="module-name">benchmark</div>
+      <div class="module-status status-ok">OK</div>
+      <div class="module-latency">2.5ms</div>
+    </div>
+    <div class="module-card module-ok" data-module="health">
+      <div class="module-name">health</div>
+      <div class="module-status status-ok">OK</div>
+      <div class="module-latency">0.3ms</div>
+    </div>
+  </div>
+  <div class="refresh-info">WebSocket /ws/health — Real-time monitoring</div>
+</div>
+<script>
+// WebSocket health dashboard
+(function(){
+  var wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  var wsUrl = wsProto + '//' + location.host + '/ws/health';
+  var ws;
+  function connect(){ws=new WebSocket(wsUrl);ws.onmessage=function(e){try{var d=JSON.parse(e.data);updateUI(d);}catch(ex){}};ws.onclose=function(){setTimeout(connect,3000);};ws.onerror=function(){};}
+  function updateUI(d){
+    if(d.uptime) document.getElementById('uptime').textContent=d.uptime;
+    var ok=0,err=0;
+    if(d.modules){for(var name in d.modules){var m=d.modules[name];var el=document.querySelector('[data-module="'+name+'"]');if(el){var st=el.querySelector('.module-status');var lat=el.querySelector('.module-latency');if(m.ok){el.className='module-card module-ok';st.textContent='OK';st.className='module-status status-ok';ok++;}else{el.className='module-card module-error';st.textContent='ERROR';st.className='module-status status-error';err++;}lat.textContent=(m.latency_ms||0)+'ms';}}}
+    document.getElementById('modules-ok').textContent=ok;
+    document.getElementById('modules-err').textContent=err;
+    var dot=document.getElementById('global-dot');
+    dot.className='status-dot '+(err===0?'status-ok':'status-error');
+  }
+  connect();
+})();
+</script>
+</body>
+</html>

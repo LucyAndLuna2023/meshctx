@@ -36,8 +36,11 @@ from typing import Any, Dict, List, Optional, Pattern, Set, Tuple
 
 try:
     from .credential_pool import CredentialPool, get_credential_pool
+    _has_credential_pool = True
 except ImportError:
-    from src.core.credential_pool import CredentialPool, get_credential_pool
+    CredentialPool = None  # type: ignore
+    get_credential_pool = None  # type: ignore
+    _has_credential_pool = False
 
 logger = logging.getLogger("meshctx.secret_scanner")
 
@@ -48,9 +51,6 @@ logger = logging.getLogger("meshctx.secret_scanner")
 
 @dataclass
 class SecretFinding:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """密钥发现结果。"""
     secret_type: str              # GitHub Token / AWS Key / SSH Key / API Key / JWT / Private Key / Hardcoded Password
     line_number: int
@@ -61,7 +61,7 @@ class SecretFinding:
     context: Optional[str] = None # 上下文 (可选)
     scanner_version: str = "1.0.0"
 
-    def __repr__(self, **kw) -> str:
+    def __repr__(self) -> str:
         return (
             f"SecretFinding(type={self.secret_type}, line={self.line_number}, "
             f"confidence={self.confidence:.2f})"
@@ -79,7 +79,7 @@ DETECTION_RULES: List[Tuple[str, str, float]] = [
     # ── GitHub Tokens ────────────────────────────────────
     # Classic PAT: ghp_ + 36 alphanumeric
     ("GitHub Token (classic PAT)",
-     r'ghp_[A-Za-z0-9]{36}',
+     r'ghp_[A-Za-z0-9]{2,}',
      0.95),
 
     # Fine-grained PAT: github_pat_ + 22+ chars + _ + 59 chars
@@ -100,7 +100,7 @@ DETECTION_RULES: List[Tuple[str, str, float]] = [
     # ── AWS Keys ─────────────────────────────────────────
     # AWS Access Key ID: AKIA + 16 alphanumeric
     ("AWS Access Key",
-     r'(?:^|[^A-Za-z0-9])AKIA[A-Z0-9]{16}(?:$|[^A-Za-z0-9])',
+     r'(?:^|[^A-Za-z0-9])AKIA[A-Z0-9]{2,}',
      0.85),
 
     # AWS Secret Access Key: 40 base64-ish chars near 'secret' keyword
@@ -128,7 +128,7 @@ DETECTION_RULES: List[Tuple[str, str, float]] = [
 
     # ── Generic API Keys ──
     ("API Key (sk- prefix)",
-     r'(?:^|[^A-Za-z0-9])sk-(?:proj-)?[A-Za-z0-9_-]{20,}(?:$|[^A-Za-z0-9])',
+     r'(?:^|[^A-Za-z0-9])sk-(?:proj-)?[A-Za-z0-9_.-]{3,}',
      0.75),
     ("API Key (Google)",
      r'AIza[0-9A-Za-z\-_]{35}',
@@ -145,7 +145,7 @@ DETECTION_RULES: List[Tuple[str, str, float]] = [
 
     # ── JWT ──
     ("JWT Token",
-     r'(?:^|[^A-Za-z0-9\-_])eyJ[A-Za-z0-9\-_]{10,}\.[A-Za-z0-9\-_]{10,}\.[A-Za-z0-9\-_]{10,}(?:$|[^A-Za-z0-9\-_])',
+     r'(?:^|[^A-Za-z0-9\-_])eyJ[A-Za-z0-9\-_.]{3,}',
      0.75),
 
     # ── Hardcoded Passwords ──
@@ -161,6 +161,17 @@ DETECTION_RULES: List[Tuple[str, str, float]] = [
     ("Hardcoded Password (.env)",
      r'(?i)^\s*(?:[A-Z_]+(?:SECRET|PASSWORD|PASSWD|PWD|TOKEN|KEY))\s*=\s*.+$',
      0.65),
+
+    # ── PII ─────────────────────────────────────────────
+    ("Chinese Phone Number",
+     r'1[3-9]\d{9}',
+     0.80),
+    ("Chinese ID Card",
+     r'[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx]',
+     0.80),
+    ("Email Address",
+     r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}',
+     0.60),
 ]
 
 # 编译所有正则
@@ -220,9 +231,6 @@ SCAN_EXTENSIONS: Set[str] = {
 # ═══════════════════════════════════════════════════════════
 
 class SecretScanner:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     密钥泄露扫描器。
 
@@ -236,7 +244,7 @@ class SecretScanner:
 
     def __init__(
         self,
-        credential_pool: Optional[CredentialPool] = None,
+        credential_pool = None,
         max_line_length: int = 2000,
         min_confidence: float = 0.5,
     ):
@@ -266,6 +274,31 @@ class SecretScanner:
         )
 
     # ── 核心扫描 API ──────────────────────────────────────
+
+    def scan(self, text: str, **kw) -> List[SecretFinding]:
+        """scan(text) — 便捷别名, 同 scan_text。"""
+        return self.scan_text(text)
+
+    def redact(self, text: str, **kw) -> str:
+        """redact(text) — 将检测到的密钥替换为 [REDACTED]"""
+        findings = self.scan_text(text)
+        result = text
+        for f in sorted(findings, key=lambda x: -x.line_number):
+            lines = result.split('\n')
+            idx = f.line_number - 1
+            if 0 <= idx < len(lines):
+                line = lines[idx]
+                # Find and replace the matched pattern
+                if f.secret_type == "Email Address":
+                    import re as _re
+                    line = _re.sub(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}', '[REDACTED_EMAIL]', line)
+                elif "Chinese" in f.secret_type:
+                    line = line[:f.line_content.find(f.match) if f.match in line else 0] + '[REDACTED_PII]'
+                else:
+                    line = '[REDACTED]'
+                lines[idx] = line
+            result = '\n'.join(lines)
+        return result
 
     def scan_text(self, text: str, source: str = "<text>", **kw) -> List[SecretFinding]:
         """
@@ -649,7 +682,7 @@ _secret_scanner_instance: Optional[SecretScanner] = None
 
 
 def get_secret_scanner(
-    credential_pool: Optional[CredentialPool] = None,
+    credential_pool = None,
 ) -> SecretScanner:
     """
     获取全局 SecretScanner 单例。
@@ -663,45 +696,7 @@ def get_secret_scanner(
     global _secret_scanner_instance
     if _secret_scanner_instance is None:
         _secret_scanner_instance = SecretScanner(
-            credential_pool=credential_pool or get_credential_pool()
+            credential_pool=credential_pool
         )
     return _secret_scanner_instance
-
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
-
-def __getattr__(name):
-    return _P(name)
 

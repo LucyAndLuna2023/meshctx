@@ -494,11 +494,12 @@ class WorkflowEngine:
                         completed.add(nid)
                         for dep in dependents.get(nid, set()):
                             dep_node = self._nodes[dep]
+                            dep_is_special = dep in self._conditionals or dep in self._loops
                             if all(
                                 src in completed
                                 for src in dep_node.inputs
                             ):
-                                if dep not in ready and dep_node.status == NodeStatus.PENDING:
+                                if dep not in ready and dep_node.status == NodeStatus.PENDING and not dep_is_special:
                                     ready.append(dep)
 
                     # Handle conditionals
