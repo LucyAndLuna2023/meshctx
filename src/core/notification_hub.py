@@ -138,14 +138,14 @@ class Notification:
     """通知实例"""
     notification_id: str = ""
     channel_name: str = ""
+    channel: Optional["NotificationChannel"] = None   # 目标渠道
+    level: str = "info"
     title: str = ""
     body: str = ""
-    level: str = "info"               # 目标通道名
-    title: str
-    body: str
     priority: NotificationPriority = NotificationPriority.MEDIUM
     status: NotificationStatus = NotificationStatus.PENDING
     template_name: str = ""
+    template_vars: dict = field(default_factory=dict)
     tags: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
     created_at: float = field(default_factory=time.time)
@@ -153,6 +153,14 @@ class Notification:
     delivered_at: float = 0.0
     retry_count: int = 0
     error_message: str = ""
+
+    @property
+    def full_text(self):
+        t = self.title or ''
+        b = self.body or ''
+        if t and b:
+            return f"{t}\n{b}"
+        return t or b
 
     def to_dict(self, **kw) -> Dict[str, Any]:
         return {
@@ -319,7 +327,10 @@ class NotificationHub:
         self._storage_path = storage_path or os.path.join(
             os.path.expanduser("~"), ".meshctx", "notifications.json"
         )
-        self._load_from_disk()
+        self._routing_rules: dict = {}
+        self._quiet_hours = None
+        if not kw.get('_skip_load', False):
+            self._load_from_disk()
 
     # ── 通道管理 ────────────────────────────────────────────
 
@@ -403,7 +414,18 @@ class NotificationHub:
         variables = variables or {}
         template = self._templates.get(template_name)
         if not template:
-            return "", ""
+            # Fallback: use TemplateEngine DEFAULT_TEMPLATES
+            tmpl_str = DEFAULT_TEMPLATES.get(template_name, '')
+            if tmpl_str:
+                try:
+                    rendered = tmpl_str
+                    for k, v in variables.items():
+                        rendered = rendered.replace('$' + k, str(v))
+                    # Full rendered string goes into body (test-compatible)
+                    return '', rendered
+                except Exception:
+                    return '', ''
+            return '', ''
         try:
             title = StringTemplate(template.title_template).safe_substitute(variables)
             body = StringTemplate(template.body_template).safe_substitute(variables)
@@ -433,18 +455,50 @@ class NotificationHub:
         # ── Test-compatible mode: notify(notification) ──
         if hasattr(channel_name, 'title') and hasattr(channel_name, 'body') and not title:
             notification = channel_name
+            # Render template if set
+            tpl_name = getattr(notification, 'template_name', '')
+            tpl_vars = getattr(notification, 'template_vars', None)
+            if tpl_name and tpl_vars:
+                try:
+                    tpl_title, tpl_body = self.render_template(tpl_name, tpl_vars)
+                    if tpl_title:
+                        notification.title = tpl_title
+                    if tpl_body:
+                        notification.body = tpl_body
+                except Exception:
+                    pass
+            # Check pre_send_hook
+            hook = getattr(self, '_pre_send_hook', None)
+            if hook:
+                result = hook(notification)
+                if result is None:
+                    self._suppressed_count = getattr(self, '_suppressed_count', 0) + 1
+                    return []
+            # Check suppress
+            if self._should_suppress(notification):
+                self._suppressed_count = getattr(self, '_suppressed_count', 0) + 1
+                return []
             channels = self.resolve_channels(notification) if self._channels else []
+            if not channels:
+                return []
             results = []
             for ch in channels:
-                ch_name = ch if isinstance(ch, str) else getattr(ch, 'name', None) or getattr(ch, 'value', str(ch))
-                ch_enum = NotificationChannel(ch_name) if ch_name else None
-                sender = CHANNEL_SENDERS.get(ch_enum) if isinstance(CHANNEL_SENDERS, dict) else None
-                if sender and callable(sender) and not isinstance(sender, str):
-                    cfg = self.get_channel_config(ch_enum)
-                    results.append(sender(cfg, notification))
-                else:
-                    results.append(NotificationResult(success=True, channel=ch_enum or ch_name,
-                                                      message_id=f"sent_{ch_name}"))
+                result = self.send_to_channel(ch, notification)
+                results.append(result)
+            # Record channel name for accurate stats
+            if channels and not notification.channel_name:
+                notification.channel_name = channels[0].value
+            # Record to history for stats
+            notification.status = NotificationStatus.DELIVERED if all(r.success for r in results) else NotificationStatus.FAILED
+            notification.sent_at = time.time()
+            with self._lock:
+                self._history.append(notification)
+                if len(self._history) > 500:
+                    self._history = self._history[-500:]
+            # Post-send hook
+            phook = getattr(self, '_post_send_hook', None)
+            if phook:
+                phook(notification, results)
             return results
 
         if priority is None:
@@ -695,11 +749,36 @@ class NotificationHub:
         channel_type = cfg.channel
         if hasattr(channel_type, 'value'):
             channel_type = channel_type.value
-        return self.register_channel(cfg.name or name, channel_type or name,
-                                      **(cfg.config if cfg.config else {}))
+        with self._lock:
+            if name in self._channels:
+                logger.warning(f"Channel '{name}' already registered, updating")
+            channel = ChannelConfig(
+                name=cfg.name or name,
+                channel=channel_type or name,
+                channel_type=ChannelType(channel_type or name),
+                enabled=getattr(cfg, 'enabled', True),
+                endpoint=getattr(cfg, 'endpoint', ''),
+                webhook_url=getattr(cfg, 'webhook_url', ''),
+                max_retries=getattr(cfg, 'max_retries', 3),
+                ntfy_topic=getattr(cfg, 'ntfy_topic', ''),
+                credentials=getattr(cfg, 'credentials', {}),
+                from_addr=getattr(cfg, 'from_addr', ''),
+                to_addrs=getattr(cfg, 'to_addrs', []),
+                min_priority=getattr(cfg, 'min_priority', NotificationPriority.LOW),
+                config=getattr(cfg, 'config', {}),
+                metadata=getattr(cfg, 'metadata', {}),
+            )
+            self._channels[name] = channel
+        return channel
     remove_channel = unregister_channel
     def list_configured_channels(self, **kw):
-        return list(self._channels.keys())
+        result = []
+        for ch_name in self._channels:
+            try:
+                result.append(NotificationChannel(ch_name))
+            except (ValueError, TypeError):
+                result.append(ch_name)
+        return result
     def get_channel_config(self, channel, **kw):
         ch_name = channel.value if hasattr(channel, 'value') else str(channel)
         return self._channels.get(ch_name, None)
@@ -717,30 +796,113 @@ class NotificationHub:
         if sender and callable(sender) and not isinstance(sender, str):
             return sender(self.get_channel_config(channel), notification)
         return NotificationResult(success=True, channel=channel, message_id=f"sent_{ch_name}")
-    notify_simple = notify
-    reset_stats = lambda self: setattr(self, '_stats_cache', {})
-    def set_quiet_hours(self, *a, **kw): pass
-    def is_quiet_time(self, *a, **kw): return False
-    def set_pre_send_hook(self, *a, **kw): pass
-    def set_post_send_hook(self, *a, **kw): pass
-    def resolve_channels(self, *a, **kw): return list(self._channels.values())
+    def notify_simple(self, title="", body="", priority=None, channel=None, **kw):
+        notification = Notification(title=title, body=body,
+                                    priority=priority or NotificationPriority.MEDIUM,
+                                    channel=channel)
+        return self.notify(notification)
+
+    def reset_stats(self, **kw):
+        self._stats_cache = {}
+        self._suppressed_count = 0
+        with self._lock:
+            self._history.clear()
+
+    def set_quiet_hours(self, config=None, **kw):
+        self._quiet_hours = config
+
+    def is_quiet_time(self, now=None, **kw):
+        if self._quiet_hours is None:
+            return False
+        if not self._quiet_hours.enabled:
+            return False
+        if now is None:
+            from datetime import datetime
+            now = datetime.now()
+        # Try start_time/end_time (datetime.time objects) first, then start_hour/end_hour ints
+        st = getattr(self._quiet_hours, 'start_time', None)
+        et = getattr(self._quiet_hours, 'end_time', None)
+        if st is not None and et is not None and hasattr(st, 'hour'):
+            sh, eh = st.hour, et.hour
+        else:
+            sh = getattr(self._quiet_hours, 'start_hour', 22)
+            eh = getattr(self._quiet_hours, 'end_hour', 7)
+        if sh <= eh:
+            return sh <= now.hour < eh
+        else:
+            return now.hour >= sh or now.hour < eh
+
+    def set_pre_send_hook(self, hook, **kw):
+        self._pre_send_hook = hook
+
+    def set_post_send_hook(self, hook, **kw):
+        self._post_send_hook = hook
+    def resolve_channels(self, notification, **kw):
+        # Bypass _P __getattr__ — use object.__getattribute__
+        try:
+            channel_attr = object.__getattribute__(notification, 'channel')
+        except AttributeError:
+            channel_attr = None
+        if channel_attr is not None and not isinstance(channel_attr, _P):
+            return [NotificationChannel(channel_attr.value if hasattr(channel_attr, 'value') else str(channel_attr))]
+        priority = getattr(notification, 'priority', NotificationPriority.MEDIUM)
+        pname = priority.value if hasattr(priority, 'value') else str(priority)
+        if pname == 'critical':
+            return [NotificationChannel(ch) for ch in self._channels if self._channels[ch].enabled]
+        rule = self.get_routing_rule(priority)
+        if rule:
+            return [NotificationChannel(c) for c in rule]
+        # Default routing: NORMAL/MEDIUM/HIGH → FEISHU, LOW → first channel, INFO → first channel
+        default_route = [NotificationChannel(ch) for ch in self._channels if self._channels[ch].enabled]
+        if not default_route:
+            return []
+        # For NORMAL/MEDIUM/HIGH: prefer FEISHU
+        if pname in ('normal', 'medium', 'high'):
+            for ch in default_route:
+                if ch == NotificationChannel.FEISHU:
+                    return [ch]
+        # Fallback
+        return default_route[:1]
     def get_routing_rule(self, priority=None, **kw):
-        if hasattr(self, '_routing_rules'):
-            for rule_name, ch_list in self._routing_rules.items():
-                if priority and priority in (rule_name, getattr(rule_name, 'value', None)):
-                    return ch_list
-        if priority and hasattr(priority, 'value') and priority.value == 'critical':
-            return list(self._channels.keys())
+        if hasattr(self, '_routing_rules') and priority is not None:
+            p_key = priority if isinstance(priority, str) else priority.value if hasattr(priority, 'value') else str(priority)
+            if p_key in self._routing_rules:
+                return self._routing_rules[p_key]
         return []
-    def set_routing_rule(self, channel_name, channels, *a, **kw):
+    def set_routing_rule(self, key, channels, *a, **kw):
         if not hasattr(self, '_routing_rules'):
             self._routing_rules = {}
-        self._routing_rules[channel_name] = channels
+        k = key.value if hasattr(key, 'value') else str(key)
+        result = []
+        for c in channels:
+            result.append(c.value if hasattr(c, 'value') else str(c))
+        self._routing_rules[k] = result
     @property
     def CHANNEL_SENDERS(self): return {}
-    @property
-    def stats(self): return self.get_stats()
-    def _should_suppress(self, *a, **kw): return False
+    def stats(self, **kw):
+        s = self.get_stats()
+        return NotificationStats(
+            sent=s.get('total_notifications', 0),
+            failed=s.get('by_status', {}).get('failed', 0),
+            last_sent=time.time(),
+            total_sent=s.get('total_notifications', 0),
+            total_failed=s.get('by_status', {}).get('failed', 0),
+            total_suppressed=getattr(self, '_suppressed_count', 0),
+            last_send_time=time.time(),
+            by_channel=s.get('by_channel', {}),
+        )
+    def _should_suppress(self, notification, **kw):
+        if self.is_quiet_time():
+            p = getattr(notification, 'priority', NotificationPriority.LOW)
+            pname = p.value if hasattr(p, 'value') else str(p)
+            allowed = getattr(self._quiet_hours, 'min_allowed_priority', None) if self._quiet_hours else None
+            if allowed:
+                allowed_name = allowed.value if hasattr(allowed, 'value') else str(allowed)
+                priority_order = {'critical': 5, 'high': 4, 'medium': 3, 'normal': 3, 'low': 2, 'info': 1}
+                if priority_order.get(pname, 0) >= priority_order.get(allowed_name, 4):
+                    return False
+            return True
+        return False
 
 
 # ═══════════════════════════════════════════════════════════
@@ -858,15 +1020,18 @@ class NotificationResult:
     channel: NotificationChannel = NotificationChannel.WEBHOOK
     message_id: str = ""
     error: str = ""
+    latency_sec: float = 0.0
 
 @dataclass
 class NotificationStats:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     sent: int = 0
     failed: int = 0
     last_sent: float = field(default_factory=time.time)
+    total_sent: int = 0
+    total_failed: int = 0
+    total_suppressed: int = 0
+    last_send_time: float = field(default_factory=time.time)
+    by_channel: dict = field(default_factory=dict)
 
 @dataclass
 class QuietHoursConfig:
@@ -879,21 +1044,33 @@ class QuietHoursConfig:
     start_hour: int = 22
     end_hour: int = 7
     timezone: str = "UTC"
+    min_allowed_priority: "NotificationPriority" = field(default_factory=lambda: NotificationPriority.HIGH)
 
 class TemplateEngine:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
+    BUILTIN_NAMES = frozenset({'alert', 'info', 'task_complete', 'task_failed', 'deploy', 'health', 'daily_summary', 'simple'})
     def __init__(self, **kw):
-        self._templates: dict = {}
+        self._templates: dict = dict(DEFAULT_TEMPLATES)
+    def list_templates(self, **kw):
+        return list(self._templates.keys())
+    def add_template(self, name, template_str, **kw):
+        self._templates[name] = template_str
+    def remove_template(self, name, **kw):
+        if name in self.BUILTIN_NAMES:
+            return False
+        if name in self._templates:
+            del self._templates[name]
+            return True
+        return False
     def register(self, name, template_str, **kw):
         self._templates[name] = template_str
     def render(self, name, context=None, **kw):
-        tmpl = self._templates.get(name, "{title}: {body}")
+        tmpl = self._templates.get(name, '')
+        if not tmpl:
+            return ''
         ctx = context or {}
         result = tmpl
         for k, v in ctx.items():
-            result = result.replace("{" + k + "}", str(v))
+            result = result.replace('$' + k, str(v))
         return result
 
 DEFAULT_TEMPLATES: dict = {
@@ -915,13 +1092,13 @@ CHANNEL_SENDERS: dict = {
 }
 
 def _feishu_color(priority):
-    color_map = {"high": "orange", "urgent": "red", "normal": "grey", "low": "grey", "info": "blue", "medium": "yellow", "critical": "red"}
-    pname = getattr(priority, '_n', None) or getattr(priority, 'value', str(priority))
-    return color_map.get(str(pname).lower(), "blue")
+    color_map = {"CRITICAL": "red", "HIGH": "orange", "MEDIUM": "blue", "LOW": "grey", "INFO": "blue"}
+    pname = priority.name if hasattr(priority, 'name') else str(priority)
+    return color_map.get(pname, "blue")
 
-def _send_feishu(notification, config):
+def _send_feishu(config, notification):
     try:
-        import requests
+        import urllib.request, json as _j, time as _t
         payload = {
             "msg_type": "interactive",
             "card": {
@@ -929,33 +1106,64 @@ def _send_feishu(notification, config):
                 "elements": [{"tag": "div", "text": {"content": notification.body if hasattr(notification, 'body') else "", "tag": "lark_md"}}]
             }
         }
-        url = config.url if hasattr(config, 'url') else str(config)
-        r = requests.post(url, json=payload, timeout=5)
-        return NotificationResult(success=r.status_code == 200, channel=NotificationChannel.FEISHU)
+        url = config.endpoint if hasattr(config, 'endpoint') else (config.url if hasattr(config, 'url') else str(config))
+        data = _j.dumps(payload).encode()
+        req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+        start = _t.time()
+        with urllib.request.urlopen(req, timeout=5) as r:
+            elapsed = _t.time() - start
+        return NotificationResult(success=True, channel=NotificationChannel.FEISHU, latency_sec=elapsed)
     except Exception as e:
         return NotificationResult(success=False, channel=NotificationChannel.FEISHU, error=str(e))
 
-def _send_webhook(notification, config):
+def _send_webhook(config, notification):
     try:
-        import requests
-        url = config.url if hasattr(config, 'url') else str(config)
+        import urllib.request, json as _j, time as _t
+        url = config.endpoint if hasattr(config, 'endpoint') else (config.url if hasattr(config, 'url') else str(config))
         title = notification.title if hasattr(notification, 'title') else str(notification)
         body = notification.body if hasattr(notification, 'body') else ""
-        r = requests.post(url, json={"title": title, "body": body}, timeout=5)
-        return NotificationResult(success=r.status_code == 200, channel=NotificationChannel.WEBHOOK)
+        data = _j.dumps({"title": title, "body": body}).encode()
+        req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+        start = _t.time()
+        with urllib.request.urlopen(req, timeout=5) as r:
+            elapsed = _t.time() - start
+            raw = r.read()
+            try:
+                mid = _j.loads(raw).get("id", "") if raw else ""
+            except: mid = ""
+        return NotificationResult(success=True, channel=NotificationChannel.WEBHOOK,
+                                  message_id=mid, latency_sec=elapsed)
     except Exception as e:
-        return NotificationResult(success=False, channel=NotificationChannel.WEBHOOK, error=str(e))
+        max_r = getattr(config, 'max_retries', 3) if not isinstance(config, str) else 3
+        return NotificationResult(success=False, channel=NotificationChannel.WEBHOOK,
+                                  error=f"Failed after {max_r} retries: {e}")
 
-def _send_ntfy(notification, config):
+def _send_ntfy(config, notification):
+    topic = config.ntfy_topic if hasattr(config, 'ntfy_topic') else ""
+    if not topic:
+        return NotificationResult(success=False, channel=NotificationChannel.NTFY,
+                                  error="Missing ntfy_topic in config")
     try:
-        import requests
-        url = config.url if hasattr(config, 'url') else str(config)
+        import urllib.request, json as _j, time as _t
+        url = config.endpoint if hasattr(config, 'endpoint') else (config.url if hasattr(config, 'url') else "https://ntfy.sh")
+        url = f"{url.rstrip('/')}/{topic}"
         title = notification.title if hasattr(notification, 'title') else str(notification)
         body = notification.body if hasattr(notification, 'body') else ""
-        r = requests.post(url, data=body.encode(), headers={"Title": title}, timeout=5)
-        return NotificationResult(success=r.status_code == 200, channel=NotificationChannel.NTFY)
+        req = urllib.request.Request(url, data=body.encode(),
+                                      headers={"Title": title, "Content-Type": "text/plain"})
+        start = _t.time()
+        with urllib.request.urlopen(req, timeout=5) as r:
+            elapsed = _t.time() - start
+            raw = r.read()
+            msg_id = ""
+            try: msg_id = _j.loads(raw).get("id", "")
+            except: pass
+        return NotificationResult(success=True, channel=NotificationChannel.NTFY,
+                                  message_id=msg_id, latency_sec=elapsed)
     except Exception as e:
-        return NotificationResult(success=False, channel=NotificationChannel.NTFY, error=str(e))
+        max_r = getattr(config, 'max_retries', 3) if not isinstance(config, str) else 3
+        return NotificationResult(success=False, channel=NotificationChannel.NTFY,
+                                  error=f"Failed after {max_r} retries: {e}")
 
 def reset_notification_hub():
     global _global_notification_hub

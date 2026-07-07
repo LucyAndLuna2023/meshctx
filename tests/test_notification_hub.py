@@ -34,7 +34,7 @@ from src.core.notification_hub import (
 @pytest.fixture
 def hub():
     """Fresh NotificationHub with no channels"""
-    h = NotificationHub()
+    h = NotificationHub(_skip_load=True)
     return h
 
 

@@ -179,6 +179,11 @@ class DiffEngine:
 
     def __init__(self, freeze_mode=False, **kw):
         self.freeze_mode = freeze_mode
+        self._changes: Dict[str, dict] = {}       # change_id → change_data
+        self._backups: Dict[str, str] = {}         # change_id → backup_path
+        self._pending: List[dict] = []             # pending changes
+        self._history: List[dict] = []             # applied history
+        self._counter = 0
 
     def generate(self, old_text: str, new_text: str, filename: str = "",
                  context_lines: int = 3) -> str:
@@ -304,9 +309,171 @@ class DiffEngine:
             return ChunkType.REMOVE
         return ChunkType.CONTEXT
 
+    # ── v2.44 test-compatible API ──────────────────────────────────────────
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# InlineDiffViewer — Cursor-level interactive chunk-by-chunk review
+    def generate_diff(self, filepath: str, new_content: str,
+                      context_lines: int = 3) -> dict:
+        """Generate diff between file on disk and proposed new content."""
+        import hashlib, time
+        filepath = str(filepath)
+        is_new = not os.path.exists(filepath)
+        old_content = "" if is_new else open(filepath, encoding="utf-8", errors="replace").read()
+
+        diff_text = self.generate(old_content, new_content, filepath, context_lines)
+        diff_lines = diff_text.splitlines() if diff_text else []
+        stats = self._compute_diff_stats(diff_text, old_content, new_content)
+        is_noop = (old_content == new_content)
+
+        if is_noop:
+            return {
+                "change_id": "",
+                "diff_text": "",
+                "diff_lines": [],
+                "stats": {"added": 0, "removed": 0, "modified": 0, "is_noop": True},
+                "is_new_file": False,
+                "original_hash": hashlib.md5(old_content.encode()).hexdigest(),
+                "new_hash": hashlib.md5(new_content.encode()).hexdigest(),
+                "message": "No changes detected",
+            }
+
+        self._counter += 1
+        change_id = f"diff_{int(time.time() * 1_000_000)}_{self._counter}"
+        entry = {
+            "change_id": change_id,
+            "filepath": filepath,
+            "old_content": old_content,
+            "new_content": new_content,
+            "diff_text": diff_text,
+            "diff_lines": diff_lines,
+            "stats": stats,
+            "is_new_file": is_new,
+            "original_hash": hashlib.md5(old_content.encode()).hexdigest(),
+            "new_hash": hashlib.md5(new_content.encode()).hexdigest(),
+            "context_lines": context_lines,
+        }
+        self._changes[change_id] = entry
+        self._pending.append({"change_id": change_id, "filepath": filepath, "stats": stats})
+        return {
+            "change_id": change_id,
+            "diff_text": diff_text,
+            "diff_lines": diff_lines,
+            "stats": stats,
+            "is_new_file": is_new,
+            "original_hash": entry["original_hash"],
+            "new_hash": entry["new_hash"],
+        }
+
+    def _compute_diff_stats(self, diff_text: str, old: str, new: str) -> dict:
+        added = removed = 0
+        for line in (diff_text or "").splitlines():
+            if line.startswith("+") and not line.startswith("+++"):
+                added += 1
+            elif line.startswith("-") and not line.startswith("---"):
+                removed += 1
+        return {"added": added, "removed": removed, "modified": added + removed, "is_noop": False}
+
+    def apply_change(self, change_id: str, create_backup: bool = True) -> dict:
+        """Write the new content to disk, optionally creating a backup."""
+        import time
+        if self.freeze_mode:
+            return {"success": False, "error": "冻结模式下不允许应用变更", "backup_path": None}
+
+        entry = self._changes.get(change_id)
+        if not entry:
+            return {"success": False, "error": f"未找到变更 {change_id}", "backup_path": None}
+
+        filepath = entry["filepath"]
+        backup_path = None
+        if create_backup and os.path.exists(filepath):
+            backup_dir = os.path.join(tempfile.gettempdir(), "meshctx_diff_backups")
+            os.makedirs(backup_dir, exist_ok=True)
+            backup_path = os.path.join(backup_dir, f"{change_id}.bak")
+            shutil.copy2(filepath, backup_path)
+            self._backups[change_id] = backup_path
+
+        os.makedirs(os.path.dirname(filepath) or ".", exist_ok=True)
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(entry["new_content"])
+
+        # Move from pending to history
+        self._pending = [p for p in self._pending if p["change_id"] != change_id]
+        self._history.append({
+            "change_id": change_id,
+            "filepath": filepath,
+            "backup_path": backup_path,
+            "timestamp": time.time(),
+        })
+        return {"success": True, "backup_path": backup_path, "error": None}
+
+    def rollback_change(self, change_id: str) -> dict:
+        """Restore file from backup."""
+        backup_path = self._backups.get(change_id)
+        if not backup_path or not os.path.exists(backup_path):
+            return {"success": False, "error": f"未找到备份 {change_id}"}
+
+        entry = self._changes.get(change_id)
+        if not entry:
+            return {"success": False, "error": f"未找到变更 {change_id}"}
+
+        shutil.copy2(backup_path, entry["filepath"])
+        os.remove(backup_path)
+        del self._backups[change_id]
+        return {"success": True}
+
+    def generate_batch_diff(self, changes: List[dict]) -> dict:
+        """Generate diffs for multiple files at once."""
+        import hashlib, time
+        change_ids = []
+        total_added = 0
+        for ch in changes:
+            result = self.generate_diff(ch["path"], ch["content"])
+            if result["change_id"]:
+                change_ids.append(result["change_id"])
+                total_added += result["stats"].get("added", 0)
+        return {"total_files": len(changes), "change_ids": change_ids, "total_added": total_added}
+
+    def apply_batch(self, change_ids: List[str]) -> dict:
+        """Apply multiple changes at once."""
+        success_count = 0
+        for cid in change_ids:
+            r = self.apply_change(cid)
+            if r["success"]:
+                success_count += 1
+        return {"success": success_count == len(change_ids), "total": len(change_ids), "applied": success_count}
+
+    def stream_diff_lines(self, change_id: str):
+        """Yield JSON-encoded diff events as a generator."""
+        import json
+        entry = self._changes.get(change_id)
+        if not entry:
+            yield json.dumps({"type": "error", "message": f"未找到变更 {change_id}"})
+            return
+        yield json.dumps({"type": "header", "change_id": change_id, "filepath": entry["filepath"]})
+        for line in entry["diff_lines"]:
+            yield json.dumps({"type": "line", "content": line})
+        yield json.dumps({"type": "done"})
+
+    def get_pending(self) -> List[dict]:
+        """Return list of pending (un-applied) changes."""
+        return list(self._pending)
+
+    def get_history(self) -> List[dict]:
+        """Return list of applied changes."""
+        return list(self._history)
+
+    def clear_pending(self) -> int:
+        """Clear all pending changes, return count cleared."""
+        count = len(self._pending)
+        self._pending.clear()
+        return count
+
+    def diff_between_files(self, path_a: str, path_b: str) -> dict:
+        """Diff two files on disk."""
+        a = open(path_a, encoding="utf-8", errors="replace").read()
+        b = open(path_b, encoding="utf-8", errors="replace").read()
+        diff_text = self.generate(a, b, path_a)
+        stats = self._compute_diff_stats(diff_text, a, b)
+        return {"diff_text": diff_text, "stats": stats, "file_a": path_a, "file_b": path_b}
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class InlineDiffViewer:
@@ -1161,13 +1328,15 @@ class DiffRenderer:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 _diff_engine_instance: Optional[DiffEngine] = None
+_diff_engine: Optional[DiffEngine] = None  # test compatibility alias
 
 
-def get_diff_engine() -> DiffEngine:
+def get_diff_engine(freeze_mode: bool = False) -> DiffEngine:
     """Return the module-level singleton DiffEngine instance."""
-    global _diff_engine_instance
-    if _diff_engine_instance is None:
-        _diff_engine_instance = DiffEngine()
+    global _diff_engine_instance, _diff_engine
+    if _diff_engine_instance is None or _diff_engine is None:
+        _diff_engine_instance = DiffEngine(freeze_mode=freeze_mode)
+        _diff_engine = _diff_engine_instance
     return _diff_engine_instance
 
 
@@ -1195,5 +1364,6 @@ def create_proposal(
         stats=preview_result["stats"],
     )
 
+from pathlib import Path
 DiffPreviewEngine = DiffEngine  # test compatibility alias
-BACKUP_DIR = os.path.join(tempfile.gettempdir(), "meshctx_diff_backups")
+BACKUP_DIR = Path(tempfile.gettempdir()) / "meshctx_diff_backups"
