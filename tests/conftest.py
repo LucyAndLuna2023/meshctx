@@ -33,3 +33,34 @@ def pytest_collection_modifyitems(items):
                 item.add_marker(
                     pytest.mark.skip(reason="UI测试需要浏览器环境 (WSL不支持)")
                 )
+
+
+@pytest.fixture(autouse=True)
+def _reset_global_state():
+    """每个测试后重置全局单例，防止测试间状态污染。"""
+    yield
+    import importlib
+    # 重置 kernel 全局实例
+    try:
+        from src.core.kernel import Kernel
+        Kernel._instance = None
+    except Exception:
+        pass
+    # 重置 notification_hub
+    try:
+        from src.core import notification_hub
+        notification_hub._global_notification_hub = None
+    except Exception:
+        pass
+    # 重置 healer
+    try:
+        from src.core.healer import AUTO_HEALER
+        AUTO_HEALER._instance = None
+    except Exception:
+        pass
+    # 重置 rate limiter（全量测试累积导致429）
+    try:
+        from src import main
+        main._rate_limit_store.clear()
+    except Exception:
+        pass

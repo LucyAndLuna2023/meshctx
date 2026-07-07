@@ -439,10 +439,14 @@ class TestStats:
         market.register(_make_entry("p1"))
         market.register(_make_entry("p2"))
         market.install("p2")
-        market.install("p2")  # install again increments count
+        # Duplicate install rejected (entry.installed guard)
+        result = market.install("p2")
+        assert not result["success"]  # already installed
         market.install("p1")
         top = market.top_downloaded()
-        assert top[0].plugin_id == "p2"  # 2 downloads
+        # Both have count=1, order by registration (p1 first)
+        assert top[0].plugin_id == "p1"
+        assert top[1].plugin_id == "p2"
 
     def test_reset(self):
         market = PluginMarket()
