@@ -1586,7 +1586,7 @@ function quickAction(action) {
 function addCodeRunButtons(container){
   enhanceCodeBlocks(container);
 }</script>
-{% endblock %}"""
+"""
 
 _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
 {% block content %}

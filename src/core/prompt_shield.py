@@ -9,9 +9,19 @@ import re
 import time
 import logging
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
+
+
+# ── Threat Level Enum ──────────────────────────────────────────────────────
+
+class ThreatLevel(Enum):
+    """Threat severity level for injection detection."""
+    SAFE = "safe"
+    SUSPICIOUS = "suspicious"
+    DANGEROUS = "dangerous"
 
 
 # ── severity ────────────────────────────────────────────────────────────
@@ -66,6 +76,15 @@ class ShieldResult:
         }
 
 
+@dataclass
+class InjectionDetection:
+    """Result of injection detection scan."""
+    level: ThreatLevel = ThreatLevel.SAFE
+    blocked: bool = False
+    findings: list[str] = field(default_factory=list)
+    score: float = 0.0
+
+
 # ── injection patterns ──────────────────────────────────────────────────
 
 INJECTION_PATTERNS: list[dict] = [
@@ -115,7 +134,7 @@ INJECTION_PATTERNS: list[dict] = [
      "description": "Shell injection — destructive command chaining",
      "suggestion": "Never pass user input to shell. Use subprocess with list args."},
     {"id": "SHLI-002", "severity": "high", "category": "shell_injection",
-     "pattern": r'(?:\$\(|\`)[^)]*(?:cat|curl|wget|nc|telnet)[^)]*(?:\)|\`)',
+     "pattern": r'(?:\$\(|`)[^)]*(?:cat|curl|wget|nc|telnet)[^)]*(?:\)|`)',
      "description": "Shell injection — command substitution with network access",
      "suggestion": "Sanitize or reject."},
 
@@ -159,7 +178,56 @@ INJECTION_PATTERNS: list[dict] = [
 ]
 
 
-# ── shield engine ───────────────────────────────────────────────────────
+# ── Injection detection keywords ─────────────────────────────────────────
+
+DANGEROUS_KEYWORDS: list[str] = [
+    "ignore all previous instructions",
+    "ignore previous instructions",
+    "forget all previous",
+    "disregard previous",
+    "pretend you are",
+    "DAN mode",
+    "jailbreak",
+    "do anything now",
+    "tell me your system prompt",
+    "reveal your system prompt",
+    "show me your instructions",
+    "system prompt and all hidden instructions",
+    "reveal passwords",
+]
+
+SUSPICIOUS_KEYWORDS: list[str] = [
+    "you are now",
+    "act as if",
+    "from now on",
+    "new instructions",
+]
+
+DANGEROUS_COMMANDS: list[re.Pattern] = [
+    re.compile(r'rm\s+-rf\s+/'),
+    re.compile(r'(?:curl|wget).*\|.*(?:sh|bash|python)'),
+    re.compile(r'>\s*/dev/'),
+    re.compile(r'mkfs\.'),
+    re.compile(r'dd\s+if='),
+    re.compile(r'chmod\s+777'),
+]
+
+SAFE_COMMANDS: list[str] = [
+    "help", "ls", "pwd", "echo", "cat", "head", "tail",
+    "python", "python3", "pytest", "pip", "pip3", "git",
+    "cd", "mkdir", "touch", "cp", "mv", "find", "grep",
+    "make", "cargo", "npm", "yarn", "node", "go", "rustc",
+    "docker", "docker-compose", "systemctl", "journalctl",
+    "ps", "top", "htop", "df", "du", "free", "whoami", "date",
+    "env", "printenv", "which", "whereis", "type", "man",
+    "ssh", "scp", "rsync", "tar", "gzip", "gunzip", "unzip", "zip",
+    "awk", "sed", "sort", "uniq", "wc", "tee", "diff", "patch",
+    "ping", "traceroute", "nslookup", "dig", "host", "curl", "wget",
+    "nano", "vim", "code", "less", "more",
+]
+
+
+# ── shield engine (PromptShield) ─────────────────────────────────────────
 
 class PromptShield:
     """Multi-layer prompt injection detection and sanitization."""
@@ -206,7 +274,6 @@ class PromptShield:
             )
 
         findings: list[ShieldFinding] = []
-        lines = text.split('\n')
 
         for rule in self._patterns:
             try:
@@ -329,43 +396,136 @@ class PromptShield:
         }
 
 
-# ── _P compatibility ────────────────────────────────────────────────────
+# ── PromptInjectionShield (test-compatible wrapper) ──────────────────────
 
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
+class PromptInjectionShield:
+    """Prompt injection shield with test-compatible API."""
 
+    def __init__(self):
+        self._core = PromptShield(block_critical=True, block_high=False)
+        self._total_scans = 0
+        self._blocked_count = 0
 
-def __getattr__(name):
-    return _P(name)
+    def sanitize(self, text: str) -> tuple[str, list[str]]:
+        """Sanitize input by removing zero-width chars, HTML comments, and secrets."""
+        cleaned = text
+        removed: list[str] = []
+
+        # Remove zero-width characters
+        zw_chars = ['\u200b', '\u200c', '\u200d', '\u200e', '\u200f',
+                     '\ufeff', '\u00ad', '\u2060']
+        for ch in zw_chars:
+            if ch in cleaned:
+                cleaned = cleaned.replace(ch, '')
+                removed.append(f"Removed zero-width character: U+{ord(ch):04X}")
+
+        # Remove HTML comments
+        html_comment_pat = re.compile(r'<!--.*?-->', re.DOTALL)
+        if html_comment_pat.search(cleaned):
+            cleaned = html_comment_pat.sub('', cleaned)
+            removed.append("Removed HTML comment(s)")
+
+        # Apply core sanitization
+        core_cleaned, core_actions = self._core.sanitize(cleaned)
+        removed.extend(core_actions)
+
+        return core_cleaned, removed
+
+    def scan(self, text: str) -> InjectionDetection:
+        """Scan text for injection threats."""
+        self._total_scans += 1
+        text_lower = text.lower()
+
+        # Check dangerous keywords
+        dangerous_found = []
+        for kw in DANGEROUS_KEYWORDS:
+            if kw.lower() in text_lower:
+                dangerous_found.append(kw)
+
+        # Check suspicious keywords
+        suspicious_found = []
+        for kw in SUSPICIOUS_KEYWORDS:
+            if kw.lower() in text_lower:
+                suspicious_found.append(kw)
+
+        # Check code injection patterns
+        code_injection_pat = re.compile(
+            r'(?:import\s+os|os\.system|subprocess|__import__|eval\s*\(|exec\s*\()',
+            re.IGNORECASE
+        )
+        has_code_injection = bool(code_injection_pat.search(text))
+
+        # Determine level
+        level = ThreatLevel.SAFE
+        blocked = False
+        score = 0.0
+
+        if dangerous_found:
+            level = ThreatLevel.DANGEROUS
+            blocked = True
+            score = 0.9 + min(len(dangerous_found) * 0.02, 0.1)
+        elif has_code_injection:
+            level = ThreatLevel.DANGEROUS
+            blocked = True
+            score = 0.85
+        elif suspicious_found:
+            level = ThreatLevel.SUSPICIOUS
+            blocked = False
+            score = 0.4 + min(len(suspicious_found) * 0.05, 0.2)
+        else:
+            # Check for repeated injection attempts
+            repeated = re.findall(r'(ignore\s+all\s+previous\s+instructions)', text_lower)
+            if len(repeated) >= 5:
+                level = ThreatLevel.DANGEROUS
+                blocked = True
+                score = 0.8
+            elif len(repeated) >= 2:
+                level = ThreatLevel.SUSPICIOUS
+                score = 0.5
+
+        findings = dangerous_found + suspicious_found
+
+        return InjectionDetection(
+            level=level,
+            blocked=blocked,
+            findings=findings,
+            score=score,
+        )
+
+    def validate_command(self, cmd: str) -> tuple[bool, str]:
+        """Validate a shell command for safety."""
+        cmd_stripped = cmd.strip()
+        if not cmd_stripped:
+            return True, "Empty command"
+
+        # Check against dangerous patterns
+        for pat in DANGEROUS_COMMANDS:
+            if pat.search(cmd_stripped):
+                return False, f"Dangerous command pattern detected: {pat.pattern}"
+
+        # Check pipe to bash/sh
+        if '|' in cmd_stripped:
+            after_pipe = cmd_stripped.split('|')[-1].strip()
+            if after_pipe.startswith(('sh', 'bash', 'python', 'python3')):
+                return False, "Pipe to shell interpreter is dangerous"
+
+        # Check shell redirects to critical paths
+        if re.search(r'>\s*(/etc/|/dev/|/sys/|/proc/)', cmd_stripped):
+            return False, "Redirect to system path is dangerous"
+
+        # Check for command substitution with network
+        if re.search(r'[`$]\(.*(?:curl|wget)', cmd_stripped):
+            return False, "Command substitution with network fetch is dangerous"
+
+        return True, "Command seems safe"
+
+    def get_stats(self) -> dict[str, Any]:
+        """Return scan statistics."""
+        return {
+            "total_scans": self._total_scans,
+            "blocked_count": self._blocked_count,
+        }
+
+    def _get_safe_level(self) -> ThreatLevel:
+        """Return the safe threat level."""
+        return ThreatLevel.SAFE

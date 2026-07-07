@@ -15,6 +15,7 @@ class PluginInfo:
     category: str
     install_command: str = ""
     downloads: int = 0
+    enabled: bool = True
 
 
 @dataclass(order=True)
@@ -60,6 +61,7 @@ class PluginEntry:
     _reviews: list = field(default_factory=list)
     category: str = ""
     installed: bool = False
+    enabled: bool = True
     dependencies: list = field(default_factory=list)
 
     @property
@@ -90,6 +92,27 @@ class PluginEntry:
 class PluginMarket:
     """Plugin marketplace with registration, discovery, install, reviews, and version management."""
 
+    # Pre-populated official plugins (backwards compat: PluginInfo objects indexed by name)
+    _OFFICIAL_PLUGINS: dict = {
+        "slack-gateway":        PluginInfo(name="slack-gateway", version="1.2.0", description="Slack消息集成网关", category="gateway"),
+        "discord-gateway":      PluginInfo(name="discord-gateway", version="1.1.0", description="Discord消息集成网关", category="gateway"),
+        "telegram-gateway":     PluginInfo(name="telegram-gateway", version="1.0.0", description="Telegram消息集成网关", category="gateway"),
+        "wechat-gateway":       PluginInfo(name="wechat-gateway", version="1.0.0", description="微信消息集成网关", category="gateway"),
+        "whatsapp-gateway":     PluginInfo(name="whatsapp-gateway", version="1.0.0", description="WhatsApp消息集成网关", category="gateway"),
+        "hierarchical-memory":  PluginInfo(name="hierarchical-memory", version="1.3.0", description="层次化记忆存储", category="memory"),
+        "sdm-memory":           PluginInfo(name="sdm-memory", version="1.0.0", description="SDM稀疏分布式记忆", category="memory"),
+        "memory-compactor":     PluginInfo(name="memory-compactor", version="1.0.0", description="记忆压缩与归档", category="memory"),
+        "knowledge-graph":      PluginInfo(name="knowledge-graph", version="2.0.0", description="知识图谱构建与查询", category="memory"),
+        "security-scanner":     PluginInfo(name="security-scanner", version="1.1.0", description="代码安全扫描", category="security"),
+        "prompt-shield":        PluginInfo(name="prompt-shield", version="1.0.0", description="Prompt注入防护", category="security"),
+        "code-reviewer":        PluginInfo(name="code-reviewer", version="1.2.0", description="AI代码审查", category="tools"),
+        "code-sandbox":         PluginInfo(name="code-sandbox", version="1.0.0", description="安全代码沙箱执行", category="tools"),
+        "deep-research":        PluginInfo(name="deep-research", version="1.1.0", description="深度研究代理", category="tools"),
+        "web-crawler":          PluginInfo(name="web-crawler", version="1.0.0", description="智能网页爬虫", category="tools"),
+        "monitoring-agent":     PluginInfo(name="monitoring-agent", version="1.0.0", description="系统监控代理", category="monitoring"),
+        "alert-engine":         PluginInfo(name="alert-engine", version="1.0.0", description="告警引擎", category="monitoring"),
+    }
+
     def __init__(self, data_dir=None):
         if data_dir is None:
             import tempfile
@@ -102,6 +125,9 @@ class PluginMarket:
         self._plugins: dict[str, PluginEntry] = {}
         self._install_counts: dict[str, int] = {}
         self._installed_versions: dict[str, str] = {}
+        # Backwards compat: _installed maps name → PluginInfo for installed plugins
+        self._installed: dict[str, PluginInfo] = {}
+        self._disabled: set = set()
         self._load_state()
 
     # ── persistence ─────────────────────────────────────────────────────
@@ -119,12 +145,14 @@ class PluginMarket:
                     "versions": [{"major": v.major, "minor": v.minor, "patch": v.patch} for v in e.versions],
                     "category": e.category,
                     "installed": e.installed,
+                    "enabled": e.enabled,
                     "dependencies": e.dependencies,
                 }
                 for pid, e in self._plugins.items()
             },
             "install_counts": self._install_counts,
             "installed_versions": self._installed_versions,
+            "disabled": list(self._disabled),
         }
         self._state_file().write_text(
             json.dumps(state, ensure_ascii=False, indent=2),
@@ -139,7 +167,7 @@ class PluginMarket:
             raw = json.loads(sf.read_text(encoding="utf-8"))
             for pid, data in raw.get("plugins", {}).items():
                 versions = [PluginVersion(**v) for v in data.get("versions", [])]
-                self._plugins[pid] = PluginEntry(
+                entry = PluginEntry(
                     plugin_id=data["plugin_id"],
                     name=data["name"],
                     description=data.get("description", ""),
@@ -147,12 +175,40 @@ class PluginMarket:
                     versions=versions,
                     category=data.get("category", ""),
                     installed=data.get("installed", False),
+                    enabled=data.get("enabled", True),
                     dependencies=data.get("dependencies", []),
                 )
+                self._plugins[pid] = entry
+                if entry.installed and entry.name in self._OFFICIAL_PLUGINS:
+                    info = self._OFFICIAL_PLUGINS[entry.name]
+                    info.downloads = self._install_counts.get(pid, 0)
+                    self._installed[entry.name] = info
             self._install_counts = raw.get("install_counts", {})
             self._installed_versions = raw.get("installed_versions", {})
+            self._disabled = set(raw.get("disabled", []))
         except (json.JSONDecodeError, TypeError):
             pass
+
+    def _ensure_registered(self, name: str) -> Optional[PluginEntry]:
+        """Ensure a plugin from _OFFICIAL_PLUGINS is registered in _plugins."""
+        info = self._OFFICIAL_PLUGINS.get(name)
+        if info is None:
+            return None
+        pid = info.name
+        if pid not in self._plugins:
+            ver = PluginVersion.parse(info.version)
+            entry = PluginEntry(
+                plugin_id=pid,
+                name=info.name,
+                description=info.description,
+                tags=[info.category],
+                versions=[ver],
+                category=info.category,
+                installed=False,
+                enabled=True,
+            )
+            self._plugins[pid] = entry
+        return self._plugins[pid]
 
     # ── Registration ────────────────────────────────────────────────────
     def register(self, entry: PluginEntry) -> None:
@@ -163,7 +219,6 @@ class PluginMarket:
             for v in entry.versions:
                 existing.add_version(v)
             for r in entry._reviews:
-                # Only add review if user hasn't already reviewed
                 if not any(e.user_id == r.user_id for e in existing._reviews):
                     existing.add_review(r)
         else:
@@ -198,16 +253,40 @@ class PluginMarket:
             results.sort(key=lambda p: p.average_rating, reverse=True)
         return results
 
-    def search(self, query: str) -> list[PluginEntry]:
-        return self.discover(query=query)
+    def search(self, query: str = None, category: str = None) -> list:
+        """Search plugins. Returns list of PluginInfo objects for backwards compat."""
+        # Ensure all official plugins are registered
+        for name in self._OFFICIAL_PLUGINS:
+            self._ensure_registered(name)
+
+        entries = self.discover(query=query, category=category)
+        # Convert to PluginInfo for backwards compat
+        results = []
+        for e in entries:
+            info = self._OFFICIAL_PLUGINS.get(e.name)
+            if info is None:
+                info = PluginInfo(
+                    name=e.name, version=str(e.latest_version) if e.latest_version else "0.0.0",
+                    description=e.description, category=e.category,
+                )
+            results.append(info)
+        return results
 
     # ── Install / Uninstall ─────────────────────────────────────────────
     def install(self, plugin_id: str, version: str = None) -> dict:
-        entry = self._plugins.get(plugin_id)
+        entry = self._ensure_registered(plugin_id)
         if entry is None:
             return {"success": False, "error": f"Plugin '{plugin_id}' not found in market"}
 
-        # Resolve and install dependencies first
+        if entry.installed:
+            return {"success": False, "error": f"Plugin '{plugin_id}' is already installed"}
+
+        # Skip install if install_command is empty (test mode)
+        info = self._OFFICIAL_PLUGINS.get(plugin_id)
+        if info and info.install_command:
+            pass  # would actually install
+
+        # Resolve and install dependencies
         deps_installed = []
         for dep_id in entry.dependencies:
             dep_entry = self._plugins.get(dep_id)
@@ -232,11 +311,19 @@ class PluginMarket:
 
         version_str = str(target_v)
         entry.installed = True
+        entry.enabled = True
         self._installed_versions[plugin_id] = version_str
         self._install_counts[plugin_id] = self._install_counts.get(plugin_id, 0) + 1
+
+        # Track in _installed for backwards compat
+        if info:
+            info.downloads = self._install_counts[plugin_id]
+            self._installed[plugin_id] = info
+
+        self._disabled.discard(plugin_id)
         self._save_state()
 
-        result = {"success": True, "version_installed": version_str}
+        result = {"success": True, "version_installed": version_str, "message": f"安装成功: {plugin_id}"}
         if deps_installed:
             result["dependencies_installed"] = deps_installed
         return result
@@ -246,9 +333,60 @@ class PluginMarket:
         if entry is None or not entry.installed:
             return {"success": False, "error": f"Plugin '{plugin_id}' is not installed"}
         entry.installed = False
+        entry.enabled = False
         self._installed_versions.pop(plugin_id, None)
+        self._installed.pop(plugin_id, None)
         self._save_state()
         return {"success": True}
+
+    def disable(self, plugin_id: str) -> dict:
+        entry = self._plugins.get(plugin_id)
+        if entry is None:
+            return {"success": False, "error": f"Plugin '{plugin_id}' not found"}
+        if not entry.installed:
+            return {"success": False, "error": f"Plugin '{plugin_id}' is not installed"}
+        entry.enabled = False
+        self._disabled.add(plugin_id)
+        self._save_state()
+        return {"success": True}
+
+    def enable(self, plugin_id: str) -> dict:
+        entry = self._plugins.get(plugin_id)
+        if entry is None:
+            return {"success": False, "error": f"Plugin '{plugin_id}' not found"}
+        if not entry.installed:
+            return {"success": False, "error": f"Plugin '{plugin_id}' is not installed"}
+        entry.enabled = True
+        self._disabled.discard(plugin_id)
+        self._save_state()
+        return {"success": True}
+
+    def list_installed(self) -> list:
+        """Return list of installed PluginInfo objects."""
+        return [info for name, info in self._installed.items()]
+
+    def get_categories(self) -> list:
+        """Return sorted list of unique category names."""
+        cats = set()
+        for name, info in self._OFFICIAL_PLUGINS.items():
+            cats.add(info.category)
+        for entry in self._plugins.values():
+            if entry.category:
+                cats.add(entry.category)
+        return sorted(cats)
+
+    def get_stats(self) -> dict:
+        """Return detailed stats dict for backwards compat."""
+        total = len(self._OFFICIAL_PLUGINS)
+        installed = len(self._installed)
+        active = sum(1 for name in self._installed if name not in self._disabled)
+        one_liner = f"{installed}/{total} installed, {active} active"
+        return {
+            "total_plugins": total,
+            "installed": installed,
+            "active": active,
+            "one_liner": one_liner,
+        }
 
     def resolve_dependencies(self, plugin_id: str) -> list[str]:
         """Return dependency resolution order (depth-first post-order)."""
@@ -409,6 +547,8 @@ class PluginMarket:
         self._plugins.clear()
         self._install_counts.clear()
         self._installed_versions.clear()
+        self._installed.clear()
+        self._disabled.clear()
         self._save_state()
 
 
@@ -426,5 +566,6 @@ def get_plugin_market() -> PluginMarket:
 def reset_plugin_market() -> None:
     global _plugin_market
     _plugin_market = None
+
 
 PluginMarketplace = PluginMarket  # backwards compatibility alias

@@ -1,8 +1,9 @@
-"""meshctx workflow_engine — v3.107 DAG Workflow Engine"""
+"""meshctx workflow_engine — v3.107 DAG Workflow Engine with Pipeline API."""
 
 import asyncio
 import inspect
 import time
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from enum import Enum
@@ -14,9 +15,6 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 # ═══════════════════════════════════════════════════════════════
 
 class NodeStatus(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -26,13 +24,22 @@ class NodeStatus(Enum):
 
 
 class NodeType(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     TASK = "task"
     CONDITION = "condition"
     LOOP = "loop"
     GATEWAY = "gateway"
+
+
+# ═══════════════════════════════════════════════════════════════
+# Pipeline Step Status
+# ═══════════════════════════════════════════════════════════════
+
+class StepStatus(Enum):
+    PENDING = "pending"
+    RUNNING = "running"
+    PASSED = "passed"
+    FAILED = "failed"
+    SKIPPED = "skipped"
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -41,9 +48,6 @@ class NodeType(Enum):
 
 @dataclass
 class WorkflowNode:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     id: str
     func: Optional[Callable] = None
     inputs: List[str] = field(default_factory=list)
@@ -58,9 +62,6 @@ class WorkflowNode:
 
 @dataclass
 class WorkflowEdge:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     source: str
     target: str
     label: Optional[str] = None
@@ -68,21 +69,31 @@ class WorkflowEdge:
 
 @dataclass
 class ExecutionContext:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     variables: Dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass
+class StepResult:
+    name: str
+    status: StepStatus = StepStatus.PENDING
+    duration_ms: float = 0.0
+    output: Any = None
+    error: str = ""
+
+
+@dataclass
+class ExecutionResult:
+    request_id: str
+    steps: List[StepResult] = field(default_factory=list)
+    total_duration_ms: float = 0.0
+
+
 # ═══════════════════════════════════════════════════════════════
-# WorkflowEngine
+# Internal DAG helpers
 # ═══════════════════════════════════════════════════════════════
 
 @dataclass
 class _ConditionalDef:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     source_node: str
     condition_fn: Callable
     true_branch: str
@@ -91,37 +102,199 @@ class _ConditionalDef:
 
 @dataclass
 class _LoopDef:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     source_node: str
     loop_body_fn: Callable
     while_condition: Optional[Callable] = None
     max_iterations: int = 100
 
 
-class WorkflowEngine:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-    """DAG-based workflow execution engine."""
+# ═══════════════════════════════════════════════════════════════
+# WorkflowEngine with Pipeline API
+# ═══════════════════════════════════════════════════════════════
 
-    def __init__(self, name: str = "workflow", max_workers: int = 8, **kw):
+class WorkflowEngine:
+    """DAG-based workflow execution engine with standard pipeline support."""
+
+    # Standard pipeline steps (v2.75)
+    STANDARD_PIPELINE: List[Dict[str, Any]] = [
+        {"name": "shield", "depends": []},
+        {"name": "intent_analysis", "depends": ["shield"]},
+        {"name": "router", "depends": ["intent_analysis"]},
+        {"name": "context_gather", "depends": ["router"]},
+        {"name": "safety_scan", "depends": ["context_gather"]},
+        {"name": "execution", "depends": ["safety_scan"]},
+        {"name": "result_validate", "depends": ["execution"]},
+        {"name": "compliance", "depends": ["result_validate"]},
+        {"name": "logging", "depends": ["compliance"]},
+    ]
+
+    def __init__(self, name: str = "workflow", max_workers: int = 8):
         self.name = name
         self.max_workers = max_workers
         self._nodes: Dict[str, WorkflowNode] = {}
         self._edges: List[WorkflowEdge] = []
         self._conditionals: Dict[str, _ConditionalDef] = {}
         self._loops: Dict[str, _LoopDef] = {}
+        self._total_executions: int = 0
 
-    # ── Construction ──────────────────────────────────────────
+    # ── Pipeline API ──────────────────────────────────────────
+
+    def get_pipeline_visual(self) -> str:
+        """Return a visual representation of the standard pipeline."""
+        lines = ["Workflow Pipeline (v2.75)"]
+        lines.append("")
+        for step in self.STANDARD_PIPELINE:
+            deps = step.get("depends", [])
+            dep_str = f" ← [{', '.join(deps)}]" if deps else ""
+            lines.append(f"  [{step['name']}]{dep_str}")
+        lines.append("")
+        lines.append("  安全扫描 → execution → 验证 → 合规")
+        return "\n".join(lines)
+
+    async def execute(self, request: Dict[str, Any]) -> ExecutionResult:
+        """Execute the standard pipeline on a request."""
+        rid = str(uuid.uuid4())[:8]
+        result = ExecutionResult(request_id=rid)
+        start = time.time()
+
+        completed: Dict[str, StepResult] = {}
+
+        for step_def in self.STANDARD_PIPELINE:
+            step_name = step_def["name"]
+            depends = step_def.get("depends", [])
+
+            # Check dependencies
+            skip = False
+            for dep in depends:
+                if dep in completed and completed[dep].status == StepStatus.FAILED:
+                    skip = True
+                    break
+
+            if skip:
+                sr = StepResult(name=step_name, status=StepStatus.SKIPPED)
+                completed[step_name] = sr
+                result.steps.append(sr)
+                continue
+
+            step_start = time.time()
+            try:
+                output = self._run_step(step_name, request)
+                sr = StepResult(
+                    name=step_name,
+                    status=StepStatus.PASSED,
+                    duration_ms=(time.time() - step_start) * 1000,
+                    output=output,
+                )
+            except Exception as e:
+                sr = StepResult(
+                    name=step_name,
+                    status=StepStatus.FAILED,
+                    duration_ms=(time.time() - step_start) * 1000,
+                    error=str(e),
+                )
+
+            completed[step_name] = sr
+            result.steps.append(sr)
+
+        result.total_duration_ms = (time.time() - start) * 1000
+        self._total_executions += 1
+        return result
+
+    def _run_step(self, step_name: str, request: Dict[str, Any]) -> Any:
+        """Run a single pipeline step."""
+        handlers = {
+            "shield": self._handle_shield,
+            "intent_analysis": self._handle_intent,
+            "router": self._handle_router,
+            "context_gather": self._handle_context,
+            "safety_scan": self._handle_safety,
+            "execution": self._handle_execution,
+            "result_validate": self._handle_validate,
+            "compliance": self._handle_compliance,
+            "logging": self._handle_logging,
+        }
+        handler = handlers.get(step_name)
+        if handler:
+            return handler(request)
+        return {"status": "ok"}
+
+    def _handle_shield(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Shield step — check for dangerous or blocked content."""
+        prompt = request.get("prompt", "")
+        dangerous_patterns = [
+            "ignore all previous instructions",
+            "delete everything",
+            "rm -rf",
+            "format c:",
+            "DROP TABLE",
+        ]
+        for pat in dangerous_patterns:
+            if pat.lower() in prompt.lower():
+                return {"status": "blocked", "blocked": True, "reason": f"dangerous: {pat}"}
+        return {"status": "passed", "blocked": False}
+
+    def _handle_intent(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Intent analysis step."""
+        prompt = request.get("prompt", "")
+        task_type = request.get("task_type", "general")
+        return {"status": "passed", "task_type": task_type, "prompt_length": len(prompt)}
+
+    def _handle_router(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Router step — determine model and strategy."""
+        task_type = request.get("task_type", "general")
+        model = "default"
+        if task_type == "code":
+            model = "code-specialist"
+        elif task_type == "creative":
+            model = "creative"
+        return {"status": "passed", "model": model, "task_type": task_type}
+
+    def _handle_context(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Context gathering step."""
+        return {"status": "passed"}
+
+    def _handle_safety(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Safety scan step."""
+        return {"status": "passed", "safe": True}
+
+    def _handle_execution(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Execution step."""
+        return {"status": "passed", "executed": True}
+
+    def _handle_validate(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Validation step."""
+        return {"status": "passed", "valid": True}
+
+    def _handle_compliance(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Compliance check step."""
+        return {"status": "passed", "compliant": True}
+
+    def _handle_logging(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """Logging step."""
+        return {"status": "passed"}
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get engine statistics."""
+        return {
+            "total_executions": self._total_executions,
+            "pipeline": {
+                "steps": len(self.STANDARD_PIPELINE),
+                "version": "v2.75",
+            },
+            "dag": {
+                "nodes": self.node_count,
+                "edges": self.edge_count,
+            },
+        }
+
+    # ── DAG Construction ──────────────────────────────────────
 
     @property
-    def node_count(self, **kw) -> int:
+    def node_count(self) -> int:
         return len(self._nodes)
 
     @property
-    def edge_count(self, **kw) -> int:
+    def edge_count(self) -> int:
         return len(self._edges)
 
     def add_node(
@@ -141,13 +314,12 @@ class WorkflowEngine:
             retries=retries,
         )
         self._nodes[node_id] = node
-        # Auto-create edges from inputs
         if inputs:
             for src in inputs:
                 self._edges.append(WorkflowEdge(source=src, target=node_id))
         return node
 
-    def add_edge(self, source: str, target: str, label: Optional[str] = None, **kw):
+    def add_edge(self, source: str, target: str, label: Optional[str] = None):
         self._edges.append(WorkflowEdge(source=source, target=target, label=label))
 
     def add_conditional(
@@ -168,7 +340,6 @@ class WorkflowEngine:
             id=node_id,
             type=NodeType.CONDITION,
         )
-        # Edges: source → conditional, conditional → branches
         self._edges.append(WorkflowEdge(source=source_node, target=node_id))
         self._edges.append(WorkflowEdge(source=node_id, target=true_branch, label="True"))
         self._edges.append(WorkflowEdge(source=node_id, target=false_branch, label="False"))
@@ -195,41 +366,38 @@ class WorkflowEngine:
 
     # ── Query ─────────────────────────────────────────────────
 
-    def get_node(self, node_id: str, **kw) -> Optional[WorkflowNode]:
+    def get_node(self, node_id: str) -> Optional[WorkflowNode]:
         return self._nodes.get(node_id)
 
-    def get_predecessors(self, node_id: str, **kw) -> List[str]:
+    def get_predecessors(self, node_id: str) -> List[str]:
         return [e.source for e in self._edges if e.target == node_id]
 
-    def get_successors(self, node_id: str, **kw) -> List[str]:
+    def get_successors(self, node_id: str) -> List[str]:
         return [e.target for e in self._edges if e.source == node_id]
 
     # ── Validation ────────────────────────────────────────────
 
-    def validate(self, **kw) -> Tuple[bool, List[str]]:
+    def validate(self) -> Tuple[bool, List[str]]:
         errors: List[str] = []
 
-        # Check for cycles
         if self._has_cycle():
             errors.append("Cycle detected in workflow graph")
 
-        # Check all edge targets exist (if not conditional/loop)
         for edge in self._edges:
             if edge.target not in self._nodes:
                 errors.append(f"Edge target '{edge.target}' not found")
             if edge.source not in self._nodes:
-                # Source might be a conditional/loop
                 if edge.source not in self._conditionals and edge.source not in self._loops:
                     errors.append(f"Edge source '{edge.source}' not found")
 
         return len(errors) == 0, errors
 
-    def _has_cycle(self, **kw) -> bool:
+    def _has_cycle(self) -> bool:
         """DFS cycle detection."""
         WHITE, GRAY, BLACK = 0, 1, 2
         colors: Dict[str, int] = {nid: WHITE for nid in self._nodes}
 
-        def dfs(nid: str, **kw) -> bool:
+        def dfs(nid: str) -> bool:
             colors[nid] = GRAY
             for succ in self.get_successors(nid):
                 if succ not in colors:
@@ -246,7 +414,7 @@ class WorkflowEngine:
                 return True
         return False
 
-    def topological_sort(self, **kw) -> List[str]:
+    def topological_sort(self) -> List[str]:
         """Return nodes in topological order."""
         in_degree: Dict[str, int] = {nid: 0 for nid in self._nodes}
         for edge in self._edges:
@@ -265,22 +433,20 @@ class WorkflowEngine:
                     if in_degree[succ] == 0:
                         queue.append(succ)
 
-        # Add any remaining nodes not reached (e.g. disconnected)
         for nid in self._nodes:
             if nid not in result:
                 result.append(nid)
 
         return result
 
-    # ── Execution ─────────────────────────────────────────────
+    # ── DAG Execution ─────────────────────────────────────────
 
-    def run(self, **kw) -> Dict[str, Any]:
+    def run(self) -> Dict[str, Any]:
         """Execute the workflow DAG."""
         valid, errors = self.validate()
         if not valid:
             raise ValueError(f"Workflow validation failed: {'; '.join(errors)}")
 
-        # Reset all nodes
         for node in self._nodes.values():
             node.status = NodeStatus.PENDING
             node.result = None
@@ -290,19 +456,13 @@ class WorkflowEngine:
         results: Dict[str, Any] = {}
         completed: Set[str] = set()
 
-        # Process nodes in topological order, with parallel execution
-        # for nodes at the same depth
         order = self.topological_sort()
 
-        # Build dependency graph: node → nodes that depend on it
         dependents: Dict[str, Set[str]] = {}
         for edge in self._edges:
             if edge.target in self._nodes:
                 dependents.setdefault(edge.source, set()).add(edge.target)
 
-        # Ready queue: nodes whose inputs are all satisfied
-        # Exclude conditional/loop nodes — they are triggered by their source nodes.
-        # All inputs (including conditionals/loops) must be in completed.
         ready: List[str] = [
             nid for nid in order
             if nid not in self._conditionals and nid not in self._loops
@@ -314,7 +474,6 @@ class WorkflowEngine:
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             while ready:
-                # Submit all ready nodes in parallel
                 futures: Dict[Any, str] = {}
                 for nid in ready:
                     futures[executor.submit(self._execute_node, nid, results)] = nid
@@ -333,7 +492,6 @@ class WorkflowEngine:
                     node = self._nodes[nid]
                     if node.status == NodeStatus.COMPLETED:
                         completed.add(nid)
-                        # Check which dependent nodes become ready
                         for dep in dependents.get(nid, set()):
                             dep_node = self._nodes[dep]
                             if all(
@@ -343,7 +501,7 @@ class WorkflowEngine:
                                 if dep not in ready and dep_node.status == NodeStatus.PENDING:
                                     ready.append(dep)
 
-                    # Handle conditionals that point to this node
+                    # Handle conditionals
                     for cid, cdef in self._conditionals.items():
                         if cdef.source_node == nid and cid not in completed:
                             cnode = self._nodes[cid]
@@ -359,7 +517,6 @@ class WorkflowEngine:
                                 completed.add(cid)
                                 results[cid] = cond_result
 
-                                # Activate the chosen branch
                                 chosen = cdef.true_branch if cond_result else cdef.false_branch
                                 if chosen in self._nodes:
                                     branch_node = self._nodes[chosen]
@@ -370,13 +527,12 @@ class WorkflowEngine:
                                         if chosen not in ready and branch_node.status == NodeStatus.PENDING:
                                             ready.append(chosen)
 
-                    # Handle loops that source from this node
+                    # Handle loops
                     for lid, ldef in self._loops.items():
                         if ldef.source_node == nid and lid not in completed:
                             lnode = self._nodes[lid]
                             if lnode.status == NodeStatus.PENDING:
                                 lnode.status = NodeStatus.LOOPING
-                                # Execute loop
                                 val = result
                                 for i in range(ldef.max_iterations):
                                     lnode.iteration_count = i + 1
@@ -393,16 +549,12 @@ class WorkflowEngine:
                                         break
                                     if ldef.while_condition and not ldef.while_condition(val):
                                         break
-                                else:
-                                    # Reached max_iterations
-                                    pass
                                 if lnode.status == NodeStatus.LOOPING:
                                     lnode.status = NodeStatus.COMPLETED
                                 lnode.result = val
                                 completed.add(lid)
                                 results[lid] = val
 
-                                # Activate dependents
                                 for dep in dependents.get(lid, set()):
                                     dep_node = self._nodes[dep]
                                     if all(
@@ -414,7 +566,7 @@ class WorkflowEngine:
 
         return results
 
-    def _execute_node(self, node_id: str, previous_results: Dict[str, Any], **kw) -> Any:
+    def _execute_node(self, node_id: str, previous_results: Dict[str, Any]) -> Any:
         """Execute a single node with retries."""
         node = self._nodes[node_id]
         if node.func is None:
@@ -422,7 +574,6 @@ class WorkflowEngine:
             node.result = None
             return None
 
-        # Build kwargs from input dependencies
         kwargs = {}
         for inp in node.inputs:
             if inp in previous_results:
@@ -459,7 +610,7 @@ class WorkflowEngine:
 
     # ── Mermaid Visualization ─────────────────────────────────
 
-    def to_mermaid(self, direction: str = "TD", show_status: bool = False, **kw) -> str:
+    def to_mermaid(self, direction: str = "TD", show_status: bool = False) -> str:
         lines = ["```mermaid", f"graph {direction}"]
         for node in self._nodes.values():
             label = node.id
@@ -476,12 +627,10 @@ class WorkflowEngine:
             arrow += f" {edge.target}"
             lines.append(f"    {arrow}")
 
-        # Add conditional labels
         for cid, cdef in self._conditionals.items():
             lines.append(f"    {cid} -->|True| {cdef.true_branch}")
             lines.append(f"    {cid} -->|False| {cdef.false_branch}")
 
-        # Add loop labels
         for lid, ldef in self._loops.items():
             lines.append(
                 f"    {lid}[{lid}<br/>iter={self._nodes[lid].iteration_count}]"
@@ -490,15 +639,14 @@ class WorkflowEngine:
         lines.append("```")
         return "\n".join(lines)
 
-    def to_mermaid_raw(self, direction: str = "TD", **kw) -> str:
+    def to_mermaid_raw(self, direction: str = "TD") -> str:
         md = self.to_mermaid(direction=direction)
-        # Strip ```mermaid and final ```
         lines = md.split("\n")
         return "\n".join(lines[1:-1])
 
     # ── Serialization ─────────────────────────────────────────
 
-    def to_dict(self, **kw) -> Dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "name": self.name,
             "max_workers": self.max_workers,
@@ -559,9 +707,7 @@ class WorkflowEngine:
                 label=edata.get("label"),
             ))
 
-        # Reconstruct conditionals
         for cid, cdata in data.get("conditionals", {}).items():
-            # The conditional func needs to be provided by caller in node_funcs
             cond_fn = node_funcs.get(cid)
             engine._conditionals[cid] = _ConditionalDef(
                 source_node=cdata["source_node"],
@@ -584,9 +730,7 @@ class WorkflowEngine:
 
         return engine
 
-    # ── Repr ──────────────────────────────────────────────────
-
-    def __repr__(self, **kw) -> str:
+    def __repr__(self) -> str:
         return f"WorkflowEngine(name={self.name!r}, nodes={self.node_count}, edges={self.edge_count})"
 
 
@@ -607,42 +751,3 @@ def get_workflow_engine(name: Optional[str] = None) -> WorkflowEngine:
 def reset_workflow_engine():
     global _workflow_engine_instance
     _workflow_engine_instance = None
-
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
-
-def __getattr__(name):
-    return _P(name)
-

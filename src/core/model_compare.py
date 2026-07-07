@@ -13,7 +13,7 @@ from typing import Optional
 class ResponseInfo:
     def __getattr__(self, name, **kw):
         if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
+        raise AttributeError(name)
     model: str = ""
     response: str = ""
     blind_id: str = ""
@@ -33,7 +33,7 @@ class ResponseInfo:
 class CompareResult:
     def __getattr__(self, name, **kw):
         if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
+        raise AttributeError(name)
     model_count: int = 0
     responses: list = field(default_factory=list)
     total_time_ms: float = 0.0
@@ -96,7 +96,7 @@ def _make_leaderboard(responses):
 class ModelCompareEngine:
     def __getattr__(self, name, **kw):
         if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
+        raise AttributeError(name)
     def __init__(self, max_workers=5, blind=True, scoring_weights=None, **kw):
         self.max_workers = max_workers
         self._blind = blind

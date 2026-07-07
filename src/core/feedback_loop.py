@@ -1,8 +1,10 @@
-"""meshctx feedback_loop"""
-import uuid, time
+"""meshctx feedback_loop — v3.50 Feedback Loop Engine with autonomous pipeline."""
+import time
+import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, Dict, List, Optional, Tuple
+
 
 class FeedbackPhase(str, Enum):
     COLLECT = "collect"
@@ -10,10 +12,12 @@ class FeedbackPhase(str, Enum):
     ADAPT = "adapt"
     VERIFY = "verify"
 
+
 class FeedbackSentiment(str, Enum):
     THUMBS_UP = "thumbs_up"
     THUMBS_DOWN = "thumbs_down"
     NEUTRAL = "neutral"
+
 
 @dataclass
 class FeedbackConfig:
@@ -21,6 +25,7 @@ class FeedbackConfig:
     min_confidence: float = 0.3
     max_history: int = 1000
     analysis_window: int = 100
+
 
 @dataclass
 class UserFeedback:
@@ -33,6 +38,7 @@ class UserFeedback:
     is_critical: bool = False
     timestamp: float = field(default_factory=time.time)
 
+
 @dataclass
 class FeedbackEntry:
     feedback_id: str = field(default_factory=lambda: f"fe_{uuid.uuid4().hex[:8]}")
@@ -40,52 +46,72 @@ class FeedbackEntry:
     content: dict = field(default_factory=dict)
     timestamp: float = field(default_factory=time.time)
 
+
+@dataclass
+class ExecutionRecord:
+    """Record of an action execution with error classification."""
+    action_name: str
+    status: str = "unknown"
+    duration_ms: float = 0.0
+    error: str = ""
+    error_type: str = ""
+    metadata: dict = field(default_factory=dict)
+    timestamp: float = field(default_factory=time.time)
+
+    def to_dict(self) -> dict:
+        return {
+            "action_name": self.action_name,
+            "status": self.status,
+            "duration_ms": self.duration_ms,
+            "error": self.error,
+            "error_type": self.error_type,
+            "metadata": self.metadata,
+            "timestamp": self.timestamp,
+        }
+
+
 @dataclass
 class ActionProfile:
     """Profile of an action with reliability statistics."""
     name: str = ""
-    action: str = ""
-    total_runs: int = 0
-    successes: int = 0
-    failures: int = 0
-    success_count: int = 0
-    failure_count: int = 0
+    total: int = 0
+    success: int = 0
+    failed: int = 0
+    consecutive_success: int = 0
+    consecutive_failure: int = 0
+    timeout_count: int = 0
     total_duration_ms: float = 0.0
-    avg_rating: float = 0.0
-    last_error: str = ""
+    avg_duration_ms: float = 0.0
 
     @property
     def success_rate(self) -> float:
-        return self.successes / max(self.total_runs, 1) if self.total_runs > 0 else 0.0
-
-    @property
-    def avg_duration_ms(self) -> float:
-        return self.total_duration_ms / max(self.total_runs, 1)
+        if self.total == 0:
+            return 1.0
+        return self.success / self.total
 
     @property
     def is_reliable(self) -> bool:
+        if self.total < 3:
+            return False
+        if self.consecutive_failure >= 2:
+            return False
         return self.success_rate >= 0.8
-
-    def record(self, status: str, duration_ms: float = 0.0, error: str = ""):
-        self.total_runs += 1
-        if status == "success":
-            self.successes += 1
-        else:
-            self.failures += 1
-            self.last_error = error
-        self.total_duration_ms += duration_ms
 
     def to_dict(self) -> dict:
         return {
             "name": self.name,
-            "action": self.action,
-            "total_runs": self.total_runs,
-            "successes": self.successes,
-            "failures": self.failures,
-            "success_rate": self.success_rate,
+            "total": self.total,
+            "success": self.success,
+            "failed": self.failed,
+            "consecutive_success": self.consecutive_success,
+            "consecutive_failure": self.consecutive_failure,
+            "timeout_count": self.timeout_count,
+            "total_duration_ms": self.total_duration_ms,
             "avg_duration_ms": self.avg_duration_ms,
+            "success_rate": self.success_rate,
             "is_reliable": self.is_reliable,
         }
+
 
 @dataclass
 class FailurePattern:
@@ -106,6 +132,7 @@ class FailurePattern:
     def is_active(self):
         return (time.time() - self.last_seen) < 86400
 
+
 @dataclass
 class StrategyAdjustment:
     strategy_name: str = ""
@@ -113,10 +140,47 @@ class StrategyAdjustment:
     new_value: Any = None
     reverted: bool = False
 
+
 @dataclass
 class AdaptiveConfig:
+    """Adaptive configuration that learns from profiles."""
     learning_rate: float = 0.1
     exploration_rate: float = 0.05
+    default_timeout: int = 30
+    max_retries: int = 2
+    auto_approve_threshold: float = 0.9
+    retry_cooldown_seconds: int = 60
+    max_retry_delay: int = 300
+
+    def adapt_from_profile(self, profiles: Dict[str, ActionProfile]):
+        """Adapt configuration based on action profiles."""
+        total = sum(p.total for p in profiles.values())
+        total_success = sum(p.success for p in profiles.values())
+        total_failed = sum(p.failed for p in profiles.values())
+
+        if total == 0:
+            return
+
+        success_rate = total_success / max(total, 1)
+
+        # Adjust auto_approve threshold based on overall reliability
+        if success_rate >= 0.95:
+            self.auto_approve_threshold = max(0.5, self.auto_approve_threshold - 0.05)
+        elif success_rate < 0.7:
+            self.auto_approve_threshold = min(1.0, self.auto_approve_threshold + 0.05)
+
+        # Adjust max_retries
+        high_failure = any(p.consecutive_failure >= 3 for p in profiles.values())
+        if high_failure:
+            self.max_retries = min(5, self.max_retries + 1)
+
+        # Adjust default_timeout based on avg durations
+        all_durations = [p.avg_duration_ms for p in profiles.values() if p.total > 0]
+        if all_durations:
+            avg_ms = sum(all_durations) / len(all_durations)
+            new_timeout = max(10, min(120, int(avg_ms / 1000 * 3)))
+            self.default_timeout = new_timeout
+
 
 @dataclass
 class FeedbackLoopReport:
@@ -130,43 +194,225 @@ class FeedbackLoopReport:
     top_failure_patterns: list = field(default_factory=list)
     recent_adjustments: list = field(default_factory=list)
 
-@dataclass
-class ExecutionRecord:
-    """Record of an action execution."""
-    action_name: str
-    status: str = "unknown"
-    duration_ms: float = 0.0
-    error: str = ""
-    metadata: dict = field(default_factory=dict)
-    timestamp: float = 0.0
 
-    def to_dict(self) -> dict:
+# ═══════════════════════════════════════════════════════════
+# FeedbackLoopEngine — core engine with record/analyze/adapt
+# ═══════════════════════════════════════════════════════════
+
+class FeedbackLoopEngine:
+    """Feedback loop engine that records executions, builds profiles, and adapts."""
+
+    def __init__(self):
+        self._records: List[ExecutionRecord] = []
+        self._profiles: Dict[str, ActionProfile] = {}
+        self._config = AdaptiveConfig()
+        self._total_executions: int = 0
+
+    def _classify_error(self, error: str, exit_code: int, duration_ms: float) -> str:
+        """Classify an error from execution result."""
+        if not error and exit_code == 0:
+            return "NONE"
+        error_upper = error.upper() if error else ""
+        if "TIMEOUT" in error_upper or duration_ms >= 30000:
+            return "TIMEOUT"
+        if "PERMISSION" in error_upper or "ACCESS" in error_upper:
+            return "PERMISSION"
+        if "NETWORK" in error_upper or "CONNECTION" in error_upper:
+            return "NETWORK"
+        if "SYNTAX" in error_upper or "PARSE" in error_upper:
+            return "SYNTAX"
+        if exit_code != 0:
+            return "RUNTIME"
+        return "UNKNOWN"
+
+    def record(self, result: dict) -> ExecutionRecord:
+        """Record an execution result and update profiles."""
+        action_name = result.get("name", "unknown")
+        status = result.get("status", "unknown")
+        duration_ms = result.get("duration_ms", 0.0)
+        error = result.get("error", "")
+        exit_code = result.get("exit_code", 0)
+        command = result.get("command", "")
+        output = result.get("output", "")
+
+        error_type = self._classify_error(error, exit_code, duration_ms)
+
+        record = ExecutionRecord(
+            action_name=action_name,
+            status=status,
+            duration_ms=duration_ms,
+            error=error,
+            error_type=error_type,
+            metadata={
+                "command": command,
+                "output": output,
+                "exit_code": exit_code,
+            },
+            timestamp=time.time(),
+        )
+        self._records.append(record)
+        self._total_executions += 1
+
+        # Update profile
+        if action_name not in self._profiles:
+            self._profiles[action_name] = ActionProfile(name=action_name)
+
+        profile = self._profiles[action_name]
+        profile.total += 1
+
+        if status == "success":
+            profile.success += 1
+            profile.consecutive_success += 1
+            profile.consecutive_failure = 0
+        else:
+            profile.failed += 1
+            profile.consecutive_failure += 1
+            profile.consecutive_success = 0
+
+        if error_type == "TIMEOUT":
+            profile.timeout_count += 1
+
+        profile.total_duration_ms += duration_ms
+        profile.avg_duration_ms = profile.total_duration_ms / max(profile.total, 1)
+
+        return record
+
+    def analyze(self) -> Dict[str, Any]:
+        """Analyze recorded data and return insights."""
+        if not self._records:
+            return {"status": "no_data"}
+
+        total = len(self._records)
+        successes = sum(1 for r in self._records if r.status == "success")
+        failures = total - successes
+
+        success_rate_str = f"{successes / max(total, 1) * 100:.1f}%"
+
+        top_errors = {}
+        for r in self._records:
+            if r.error_type and r.error_type != "NONE":
+                top_errors[r.error_type] = top_errors.get(r.error_type, 0) + 1
+
         return {
-            "action_name": self.action_name,
-            "status": self.status,
-            "duration_ms": self.duration_ms,
-            "error": self.error,
-            "metadata": self.metadata,
-            "timestamp": self.timestamp,
+            "status": "ok",
+            "total_records": total,
+            "successes": successes,
+            "failures": failures,
+            "success_rate": success_rate_str,
+            "top_errors": top_errors,
+            "profiles_count": len(self._profiles),
+        }
+
+    def adapt(self) -> Dict[str, Any]:
+        """Adapt configuration based on recorded data."""
+        self._config.adapt_from_profile(self._profiles)
+
+        changes = []
+        current = {
+            "default_timeout": self._config.default_timeout,
+            "max_retries": self._config.max_retries,
+            "auto_approve_threshold": round(self._config.auto_approve_threshold, 2),
+            "retry_cooldown_seconds": self._config.retry_cooldown_seconds,
+        }
+
+        return {"changes": changes, "current": current}
+
+    def should_retry(self, action_name: str) -> Tuple[bool, int]:
+        """Determine if an action should be retried, and after how many seconds."""
+        profile = self._profiles.get(action_name)
+        if profile is None:
+            return True, 5
+
+        # Check cooldown
+        recent_failures = [
+            r for r in self._records
+            if r.action_name == action_name and r.status == "failed"
+        ]
+        if recent_failures:
+            last_failure = max(r.timestamp for r in recent_failures)
+            cooldown = self._config.retry_cooldown_seconds
+            elapsed = time.time() - last_failure
+            if elapsed < cooldown:
+                return False, int(cooldown - elapsed)
+
+        max_retries = self._config.max_retries
+        recent_count = len([r for r in reversed(self._records[-50:])
+                           if r.action_name == action_name and r.status == "failed"])
+
+        if recent_count >= max_retries + 1:
+            delay = min(self._config.max_retry_delay, (recent_count - max_retries) * 30)
+            return False, delay
+
+        return True, 5
+
+    def get_optimal_timeout(self, action_name: str) -> int:
+        """Get the optimal timeout for an action based on historical data."""
+        profile = self._profiles.get(action_name)
+        if profile is None or profile.total == 0:
+            return self._config.default_timeout
+
+        if profile.avg_duration_ms > 0:
+            timeout = int(profile.avg_duration_ms / 1000 * 3 + 5)
+            return max(10, min(120, timeout))
+
+        return self._config.default_timeout
+
+    def generate_report(self) -> Dict[str, Any]:
+        """Generate a comprehensive feedback report."""
+        analysis = self.analyze()
+
+        recommendations = []
+        for name, profile in self._profiles.items():
+            if profile.is_reliable and profile.total >= 5:
+                recommendations.append(
+                    f"Auto-approve action '{name}': {profile.success_rate:.0%} success rate over {profile.total} runs"
+                )
+
+        # Sort profiles by total for top actions
+        sorted_profiles = sorted(
+            self._profiles.values(),
+            key=lambda p: p.total,
+            reverse=True
+        )
+        top_actions = [p.to_dict() for p in sorted_profiles[:10]]
+
+        return {
+            "analysis": analysis,
+            "recommendations": recommendations,
+            "top_actions": top_actions,
+            "config": {
+                "default_timeout": self._config.default_timeout,
+                "max_retries": self._config.max_retries,
+                "auto_approve_threshold": round(self._config.auto_approve_threshold, 2),
+            },
+        }
+
+    def add_feedback(self, entry=None, user_id="", action="", rating=0.0, comment=""):
+        """Add a feedback entry (legacy API)."""
+        fb = entry or FeedbackEntry(source=user_id, content={"action": action, "rating": rating, "comment": comment})
+        return fb
+
+    def run_cycle(self):
+        """Run one feedback cycle (legacy API)."""
+        return FeedbackLoopReport()
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get engine statistics."""
+        return {
+            "total_records": len(self._records),
+            "total_executions": self._total_executions,
+            "profiles_count": len(self._profiles),
+            "config": {
+                "default_timeout": self._config.default_timeout,
+                "max_retries": self._config.max_retries,
+                "auto_approve_threshold": round(self._config.auto_approve_threshold, 2),
+            },
         }
 
 
-class FeedbackLoopEngine:
-    def __init__(self, **kw):
-        self._feedback = []
-        self._profiles = {}
-
-    def add_feedback(self, entry=None, user_id="", action="", rating=0.0, comment="", **kw):
-        fb = entry or FeedbackEntry(source=user_id, content={"action": action, "rating": rating, "comment": comment})
-        self._feedback.append(fb)
-        return fb
-
-    def get_stats(self, **kw):
-        return {"total": len(self._feedback), "avg_rating": 0.0}
-
-    def run_cycle(self, **kw):
-        return FeedbackLoopReport()
-
+# ═══════════════════════════════════════════════════════════
+# FeedbackLoop — high-level feedback collection (legacy)
+# ═══════════════════════════════════════════════════════════
 
 class FeedbackLoop:
     _SIGNAL_PATTERNS = [
@@ -176,7 +422,7 @@ class FeedbackLoop:
         (["太简洁", "不够详细"], "too_concise"),
     ]
 
-    def __init__(self, config=None, **kw):
+    def __init__(self, config=None):
         self.config = config or FeedbackConfig()
         self.engine = FeedbackLoopEngine()
         self._feedbacks = []
@@ -213,7 +459,7 @@ class FeedbackLoop:
         self._extract_signals(comment)
         return fb
 
-    def collect_thumbs_up(self, category="", action_context="", comment="", **kw):
+    def collect_thumbs_up(self, category="", action_context="", comment=""):
         fb = self._make_feedback(
             sentiment=FeedbackSentiment.THUMBS_UP.value,
             category=category,
@@ -224,7 +470,7 @@ class FeedbackLoop:
         self._thumbs_up_categories[category] = self._thumbs_up_categories.get(category, 0) + 1
         return fb
 
-    def collect_thumbs_down(self, category="", action_context="", comment="", is_critical=False, **kw):
+    def collect_thumbs_down(self, category="", action_context="", comment="", is_critical=False):
         fb = self._make_feedback(
             sentiment=FeedbackSentiment.THUMBS_DOWN.value,
             category=category,
@@ -255,7 +501,7 @@ class FeedbackLoop:
     def add_feedback(self, **kwargs):
         return self.engine.add_feedback(**kwargs)
 
-    def run_cycle(self, **kw):
+    def run_cycle(self):
         return self.engine.run_cycle()
 
     def get_feedback_stats(self):
@@ -477,27 +723,74 @@ class FeedbackLoop:
         self._adjustments = []
         self._report_history = []
 
-_loop = None
-def get_feedback_loop():
+
+# ═══════════════════════════════════════════════════════════
+# AutonomousPipeline — autonomous feedback-driven pipeline
+# ═══════════════════════════════════════════════════════════
+
+class AutonomousPipeline:
+    """Autonomous pipeline that collects feedback and adapts automatically."""
+
+    def __init__(self):
+        self._phases: List[FeedbackPhase] = [
+            FeedbackPhase.COLLECT,
+            FeedbackPhase.ANALYZE,
+            FeedbackPhase.ADAPT,
+            FeedbackPhase.VERIFY,
+        ]
+        self._feedback_loop = FeedbackLoop()
+        self._nudge_count: int = 0
+        self._action_count: int = 0
+
+    async def cycle(self) -> Dict[str, Any]:
+        """Run one autonomous cycle."""
+        result = {
+            "phases_completed": 0,
+            "nudges": self._nudge_count,
+            "actions": self._action_count,
+            "adjustments_made": 0,
+        }
+
+        for phase in self._phases:
+            if phase == FeedbackPhase.COLLECT:
+                pass
+            elif phase == FeedbackPhase.ANALYZE:
+                self._feedback_loop.analyze_failure_patterns()
+            elif phase == FeedbackPhase.ADAPT:
+                adjustments = self._feedback_loop.auto_adjust_strategies()
+                result["adjustments_made"] = len(adjustments)
+            elif phase == FeedbackPhase.VERIFY:
+                pass
+            result["phases_completed"] += 1
+
+        return result
+
+    def run(self, input_data=None):
+        return {"phases_completed": 0, "adjustments_made": 0}
+
+
+# ═══════════════════════════════════════════════════════════
+# Singletons
+# ═══════════════════════════════════════════════════════════
+
+_loop: Optional[FeedbackLoop] = None
+_engine: Optional[FeedbackLoopEngine] = None
+
+
+def get_feedback_loop() -> FeedbackLoop:
     global _loop
     if _loop is None:
         _loop = FeedbackLoop()
     return _loop
 
-def get_feedback_engine():
+
+def get_feedback_engine() -> FeedbackLoopEngine:
     global _loop
     if _loop is None:
         _loop = FeedbackLoop()
     return _loop.engine
 
+
 def reset_feedback_loop():
     global _loop
     _loop = None
-
-class AutonomousPipeline:
-    def __init__(self, **kw):
-        self._phases = []
-        self._feedback_loop = FeedbackLoop()
-
-    def run(self, input_data=None, **kw):
-        return {"phases_completed": 0, "adjustments_made": 0}
