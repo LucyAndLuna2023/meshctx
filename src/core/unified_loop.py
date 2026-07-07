@@ -1,11 +1,17 @@
 """Unified Loop — 开源版 (stub)"""
 class _UnifiedLoop:
+    def __init__(self):
+        object.__setattr__(self, '_running', False)
+        object.__setattr__(self, '_iterations', 0)
     def __getattr__(self, name, **kw):
         if name.startswith("_"): raise AttributeError(name)
         return _P(name)
-    def start(self, *a, **kw): pass
-    def stop(self): pass
-    def stats(self): return {}
+    def start(self, *a, **kw):
+        self._running = True
+        return True
+    def stop(self):
+        self._running = False
+    def stats(self): return {"running": self._running, "iterations": self._iterations}
 
 _loop = _UnifiedLoop()
 def get_unified_loop(): return _loop

@@ -56,23 +56,34 @@ class APIKeyFailover:
     def __init__(self, *a, **kw): 
         self.active_key = None
         self.pool = []
+        self._running = False
     
     def get_key(self) -> Optional[str]: 
         return self.active_key
     
-    def rotate(self): pass
-    
-    def start(self): pass
-    def stop(self): pass
+    def rotate(self):
+        if len(self.pool) > 1:
+            current = self.pool.index(self.active_key) if self.active_key in self.pool else -1
+            self.active_key = self.pool[(current + 1) % len(self.pool)]
+            return self.active_key
+        return None
+    def start(self):
+        self._running = True
+    def stop(self):
+        self._running = False
 
 class MemoryBackup:
     def __getattr__(self, name, **kw):
         if name.startswith("_"): raise AttributeError(name)
         return _P(name)
     """记忆备份 — 开源版"""
-    def __init__(self, *a, **kw): pass
-    def start(self): pass
-    def stop(self): pass
+    def __init__(self, backup_dir: str = "~/.meshctx/backups", **kw):
+        self.backup_dir = os.path.expanduser(backup_dir)
+        self._running = False
+    def start(self):
+        self._running = True
+    def stop(self):
+        self._running = False
     def backup(self): return True
 
 class _P:

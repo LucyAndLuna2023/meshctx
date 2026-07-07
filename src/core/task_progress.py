@@ -1,11 +1,21 @@
 """Task Progress — 开源版 (stub)"""
 class _ProgressEngine:
+    def __init__(self):
+        object.__setattr__(self, '_tasks', {})
+        object.__setattr__(self, '_last_update', {})
     def __getattr__(self, name, **kw):
         if name.startswith("_"): raise AttributeError(name)
         return _P(name)
-    def update(self, *a, **kw): pass
-    def get(self, *a, **kw): return {"progress": 0}
-    def stats(self): return {}
+    def update(self, task_id: str = "", status: str = "", progress: float = 0.0, **kw):
+        """更新任务进度"""
+        if task_id:
+            self._tasks[task_id] = {"status": status, "progress": progress, **kw}
+        self._last_update = {"task_id": task_id, "status": status, "progress": progress}
+    def get(self, task_id: str = "", *a, **kw):
+        if task_id and task_id in self._tasks:
+            return self._tasks[task_id]
+        return self._last_update or {"progress": 0}
+    def stats(self): return {"total_tasks": len(self._tasks)}
 
 _engine = _ProgressEngine()
 def get_progress_engine(): return _engine

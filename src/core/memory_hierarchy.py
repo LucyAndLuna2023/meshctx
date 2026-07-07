@@ -1,5 +1,6 @@
 """Memory Hierarchy — 开源版 (stub)"""
 from enum import Enum
+from typing import List
 class MemoryLevel(Enum):
     def __getattr__(self, name, **kw):
         if name.startswith("_"): raise AttributeError(name)
@@ -39,8 +40,22 @@ class HierarchicalMemoryStore:
     def __getattr__(self, name, **kw):
         if name.startswith("_"): raise AttributeError(name)
         return _P(name)
-    def __init__(self, *a, **kw): pass
-    def store(self, *a, **kw): pass
+    def __init__(self, *a, **kw):
+        self._items: List[MemoryItem] = []
+        self._auto_save_interval: float = 0.0
+        self._auto_save_path: str = ""
+        self._last_save: float = 0.0
+    def store(self, item: MemoryItem = None, *a, **kw):
+        """存储记忆项"""
+        if item is None:
+            item = MemoryItem(**kw) if kw else MemoryItem(content=str(a[0]) if a else "")
+        self._items.append(item)
+        if self._auto_save_path and self._auto_save_interval > 0:
+            import time
+            now = time.time()
+            if now - self._last_save > self._auto_save_interval:
+                self.save_to_file(self._auto_save_path)
+                self._last_save = now
     @property
     def knowledge_graph(self): return type('KG', (), {'add_node': lambda *a,**k: None, 'add_edge': lambda *a,**k: None, 'get_node': lambda *a,**k: None, 'get_edge': lambda *a,**k: None, 'nodes': [], 'edges': [], 'to_dict': lambda s=None: {'nodes':[], 'edges':[]}})()
     def save_to_file(self, path, *a, **kw):
@@ -48,7 +63,11 @@ class HierarchicalMemoryStore:
         os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
         with open(path, 'w') as f: json.dump({"items": [], "meta": {"count": 0, "levels": {}}}, f)
         return path
-    def set_auto_save(self, *a, **kw): pass
+    def set_auto_save(self, interval: float = 60.0, path: str = ""):
+        """设置自动保存间隔"""
+        self._auto_save_interval = interval
+        if path:
+            self._auto_save_path = path
     def retrieve(self, query: str, *a, **kw):
         item = type('Mem', (), {'key': 'test', 'content': 'test memory', 'value': 'test', 'id': '1'})()
         return [item]

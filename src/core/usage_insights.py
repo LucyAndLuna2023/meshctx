@@ -1,17 +1,21 @@
 """Usage Insights — 开源版 (stub)"""
 class UsageInsights:
+    def __init__(self):
+        object.__setattr__(self, '_sessions', [])
+        object.__setattr__(self, '_usages', [])
     def __getattr__(self, name, **kw):
         if name.startswith("_"): raise AttributeError(name)
         return _P(name)
-    def get_today(self): return {"calls": 0, "tokens": 0, "models": []}
-    def record_call(self, *a, **kw): return {"recorded": True}
-    def __init__(self, *a, **kw): pass
-    def track(self, *a, **kw): pass
+    def track(self, event_type: str = "", **kw):
+        self._usages.append({"type": event_type, **kw})
+        return {"tracked": len(self._usages)}
+    def record_session_start(self, **kw):
+        self._sessions.append({"started": kw.get("timestamp", 0), **kw})
+        return {"sessions": len(self._sessions)}
+    def stats(self): return {"sessions": len(self._sessions), "events": len(self._usages)}
     def report(self) -> dict: return {"total_tokens": 0, "total_calls": 0}
-    def stats(self): return {}
     def get_provider_stats(self): return {}
     def get_model_stats(self): return {}
-    def record_session_start(self): pass
     def get_weekly(self): return {"period": "weekly", "calls": 0, "tokens": 0}
     def get_monthly(self): return {"period": "monthly", "calls": 0, "tokens": 0}
     def get_summary(self, days=30): return {"period": f"{days}d", "calls": 0, "tokens": 0, "models": []}

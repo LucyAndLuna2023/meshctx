@@ -48,8 +48,14 @@ class MetaCognitionPlugin:
         return _P(name)
     async def on_load(self, kernel) -> bool:
         self.kernel = kernel; return True
-    def start(self): pass
-    def stop(self): pass
+    def start(self):
+        """启动元认知引擎"""
+        self.state = "active"
+        self._running = True
+    def stop(self):
+        """停止元认知引擎"""
+        self._running = False
+        self.state = "idle"
     def stats(self): return {}
     def evaluate_task(self, *a, **kw): return TaskEvaluation()
     def generate_report(self): return {"status": "stub"}

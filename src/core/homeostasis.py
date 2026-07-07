@@ -45,7 +45,12 @@ class HomeostaticRegulator:
     def assess(self, **kw):
         return self._mode
     def regulate(self, **kw):
-        pass
+        """根据当前模式执行调节"""
+        if self._mode == SystemMode.OVERLOADED:
+            return {"action": "throttle", "factor": 0.5}
+        elif self._mode == SystemMode.IDLE:
+            return {"action": "relax", "factor": 1.2}
+        return {"action": "maintain", "factor": 1.0}
     def get_stats(self, **kw):
         return {"mode": self._mode.value}
 
