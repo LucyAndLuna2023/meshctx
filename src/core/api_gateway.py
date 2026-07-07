@@ -5,34 +5,22 @@ from enum import Enum
 from typing import Any
 
 class BackendHealth(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     HEALTHY = "healthy"
     UNHEALTHY = "unhealthy"
     UNKNOWN = "unknown"
 
 class CircuitState(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     CLOSED = "closed"
     OPEN = "open"
     HALF_OPEN = "half_open"
 
 class AuthMethod(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     API_KEY = "api_key"
     HMAC = "hmac"
     JWT = "jwt"
     NONE = "none"
 
 class Role(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     ADMIN = "admin"
     USER = "user"
     READONLY = "readonly"
@@ -41,9 +29,6 @@ class Role(str, Enum):
 
 @dataclass
 class BackendService:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     name: str = ""
     base_url: str = ""
     weight: int = 1
@@ -60,9 +45,6 @@ class Route:
 
 @dataclass
 class AuthCredential:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     api_key_id: str = ""
     secret: str = ""
     role: Role = Role.USER
@@ -70,9 +52,6 @@ class AuthCredential:
 
 @dataclass
 class AuthResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     authenticated: bool = False
     authorized: bool = True
     identity: str = ""
@@ -81,9 +60,6 @@ class AuthResult:
 
 @dataclass
 class RateLimitConfig:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     capacity: int = 100
     refill_rate: float = 10.0
 
@@ -164,9 +140,6 @@ class CircuitBreaker:
 CB = CircuitBreaker
 
 class APIGateway:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, name="default", **kw):
         self.name = name
         self._backends: dict = {}
@@ -204,9 +177,9 @@ class APIGateway:
     def add_route(self, path, backend_names, methods=None, auth_required=False,
                   allowed_roles=None, rate_limit_tier="", **kw):
         route = Route(path=path, backend_names=backend_names,
-                      methods=methods or ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+                      methods=methods if methods is not None else ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
                       auth_required=auth_required,
-                      allowed_roles=allowed_roles or set(),
+                      allowed_roles=allowed_roles if allowed_roles is not None else set(),
                       rate_limit_tier=rate_limit_tier)
         self._routes.append(route)
 
