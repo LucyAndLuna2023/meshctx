@@ -12,7 +12,7 @@ Agent间通信、上下文隔离和结果聚合。
 架构:
   1. AgentRegistry — 注册/管理 specialist agent 元数据
   2. IntentRouter — 根据消息意图路由到正确的 specialist
-  3. MessageBus — Agent 间异步消息传递
+  3. _Bus — Agent 间异步消息传递
   4. ContextManager — 每个 agent 独立的上下文窗口
   5. ResultAggregator — 多 agent 并行处理结果聚合
   6. MultiAgentOrchestrator — 顶层编排器
@@ -51,9 +51,6 @@ logger = logging.getLogger("meshctx.multi_agent")
 # ═══════════════════════════════════════════════════════════
 
 class AgentStatus(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     IDLE = "idle"
     BUSY = "busy"
     OFFLINE = "offline"
@@ -62,9 +59,6 @@ class AgentStatus(str, Enum):
 
 
 class MessagePriority(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
@@ -73,9 +67,6 @@ class MessagePriority(str, Enum):
 
 @dataclass
 class AgentHandle:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Agent 句柄 — 指向注册的 specialist agent"""
     agent_id: str
     name: str = ""
@@ -116,10 +107,7 @@ class AgentHandle:
 
 
 @dataclass
-class AgentMessage:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
+class _Msg:
     """Agent 间传递的消息"""
     message_id: str = ""
     from_agent: str = ""                  # 发送者 agent_id
@@ -139,9 +127,6 @@ class AgentMessage:
 
 @dataclass
 class AgentResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Agent 处理结果"""
     agent_id: str
     message_id: str = ""
@@ -167,9 +152,6 @@ class AgentResult:
 
 @dataclass
 class RouteDecision:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """路由决策结果"""
     target_agent: Optional[AgentHandle] = None
     confidence: float = 0.0
@@ -183,9 +165,6 @@ class RouteDecision:
 # ═══════════════════════════════════════════════════════════
 
 class IntentRouter:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     意图路由器 — 根据消息内容和上下文决定路由到哪个 specialist
 
@@ -461,13 +440,10 @@ class IntentRouter:
 
 
 # ═══════════════════════════════════════════════════════════
-# MessageBus — Agent 间消息总线
+# _Bus — Agent 间消息总线
 # ═══════════════════════════════════════════════════════════
 
-class MessageBus:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
+class _Bus:
     """
     Agent 间异步消息总线
 
@@ -492,7 +468,7 @@ class MessageBus:
             "total_dropped": 0,
         }
 
-    def send(self, message: AgentMessage, **kw) -> bool:
+    def send(self, message: _Msg, **kw) -> bool:
         """
         发送消息到指定 agent 的 inbox
 
@@ -522,11 +498,11 @@ class MessageBus:
         logger.debug(f"Message {message.message_id}: {message.from_agent} → {message.to_agent} [{message.priority.value}]")
         return True
 
-    def _broadcast(self, message: AgentMessage, **kw) -> bool:
+    def _broadcast(self, message: _Msg, **kw) -> bool:
         """广播消息到所有 agent"""
         sent_count = 0
         for agent_id in list(self._inboxes.keys()):
-            broadcast_msg = AgentMessage(
+            broadcast_msg = _Msg(
                 message_id=message.message_id,
                 from_agent=message.from_agent,
                 to_agent=agent_id,
@@ -548,7 +524,7 @@ class MessageBus:
         self._stats["total_delivered"] += sent_count
         return sent_count > 0
 
-    def receive(self, agent_id: str, limit: int = 10, **kw) -> List[AgentMessage]:
+    def receive(self, agent_id: str, limit: int = 10, **kw) -> List[_Msg]:
         """
         从 agent 的 inbox 接收消息
 
@@ -577,7 +553,7 @@ class MessageBus:
         self._stats["total_expired"] += expired_count
         return messages
 
-    def peek(self, agent_id: str, limit: int = 10, **kw) -> List[AgentMessage]:
+    def peek(self, agent_id: str, limit: int = 10, **kw) -> List[_Msg]:
         """查看 inbox 但不消费消息"""
         inbox = self._inboxes.get(agent_id)
         if not inbox:
@@ -618,9 +594,6 @@ class MessageBus:
 # ═══════════════════════════════════════════════════════════
 
 class ContextManager:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     Agent 上下文管理器 — 每个 agent 独立上下文窗口
 
@@ -721,9 +694,6 @@ class ContextManager:
 # ═══════════════════════════════════════════════════════════
 
 class MultiAgentOrchestrator:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     多 Agent 编排器
 
@@ -744,7 +714,7 @@ class MultiAgentOrchestrator:
 
         # 子模块
         self.router = IntentRouter()
-        self.message_bus = MessageBus()
+        self.message_bus = _Bus()
         self.context_manager = ContextManager()
 
         # 处理回调: 当消息被路由到 agent 时调用
@@ -1029,7 +999,7 @@ class MultiAgentOrchestrator:
         self._stats["total_broadcasts"] += 1
         exclude = exclude or []
 
-        msg = AgentMessage(
+        msg = _Msg(
             message_id=str(uuid.uuid4())[:12],
             from_agent="orchestrator",
             content=message,
@@ -1079,7 +1049,7 @@ class MultiAgentOrchestrator:
             logger.warning(f"Receiving agent not found: {to_agent}")
             return False
 
-        msg = AgentMessage(
+        msg = _Msg(
             message_id=str(uuid.uuid4())[:12],
             from_agent=from_agent,
             to_agent=to_agent,
@@ -1091,7 +1061,7 @@ class MultiAgentOrchestrator:
 
         return self.message_bus.send(msg)
 
-    def get_agent_messages(self, agent_id: str, limit: int = 10, **kw) -> List[AgentMessage]:
+    def get_agent_messages(self, agent_id: str, limit: int = 10, **kw) -> List[_Msg]:
         """获取 agent 的待处理消息"""
         return self.message_bus.receive(agent_id, limit=limit)
 
@@ -1238,7 +1208,7 @@ class MultiAgentOrchestrator:
 
         # 通知协作组
         for aid in valid_agents:
-            self.message_bus.send(AgentMessage(
+            self.message_bus.send(_Msg(
                 message_id=f"collab-{collaboration_id}",
                 from_agent="orchestrator",
                 to_agent=aid,
@@ -1296,7 +1266,7 @@ class MultiAgentOrchestrator:
         if strategy == "broadcast":
             for aid, agent in self._agents.items():
                 if agent.status in (AgentStatus.IDLE, AgentStatus.BUSY):
-                    self.message_bus.send(AgentMessage(
+                    self.message_bus.send(_Msg(
                         message_id=task_id,
                         from_agent="orchestrator",
                         to_agent=aid,
@@ -1307,7 +1277,7 @@ class MultiAgentOrchestrator:
                     ))
                     assigned.append(aid)
         elif target_agent and target_agent in self._agents:
-            self.message_bus.send(AgentMessage(
+            self.message_bus.send(_Msg(
                 message_id=task_id,
                 from_agent="orchestrator",
                 to_agent=target_agent,
@@ -1334,7 +1304,7 @@ class MultiAgentOrchestrator:
                 target = idle_agents[self._round_robin_index]
                 self._round_robin_index += 1
 
-            self.message_bus.send(AgentMessage(
+            self.message_bus.send(_Msg(
                 message_id=task_id,
                 from_agent="orchestrator",
                 to_agent=target,
@@ -1392,9 +1362,6 @@ class MultiAgentOrchestrator:
 # ═══════════════════════════════════════════════════════════
 
 class MultiAgentPlugin:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """meshctx Plugin 适配器"""
     info = type('Info', (), {
         'name': 'multi_agent',
@@ -1472,41 +1439,192 @@ def init_multi_agent(
         )
     return _orchestrator
 
-class _P:
-    def __init__(s, n=""): object.__setattr__(s, '_n', n); object.__setattr__(s, '_d', {})
-    def __getattr__(s, n, **kw):
-        if n in s._d: return s._d[n]
-        if n.startswith("__"): raise AttributeError(n)
-        return _P(f"{s._n}.{n}" if s._n else n)
-    def __setattr__(s, n, v): s._d[n] = v
-    def __delattr__(s, n, **kw):
-        if n in s._d: del s._d[n]
-    def __call__(s, *a, **k): return _P(f"{s._n}()" if s._n else "call")
-    def __bool__(s): return True
-    def __len__(s): return 1
-    def __iter__(s): yield _P("item"); yield _P("item")
-    def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
-    def __ne__(s, o): return False
-    def __hash__(s): return 0
-    def __int__(s): return 0
-    def __float__(s): return 0.0
-    def __truediv__(s, o): return _P(f"{s._n}/{o}")
-    def __rtruediv__(s, o): return _P(f"{o}/{s._n}")
-    def __lt__(s, o): return True
-    def __le__(s, o): return True
-    def __gt__(s, o): return True
-    def __ge__(s, o): return True
-    def __str__(s): return ""
-    def __enter__(s): return s
-    def __exit__(s, *a): pass
-    async def __aenter__(s): return s
-    async def __aexit__(s, *a): pass
-    def __await__(s, **kw):
-        async def _aw(): return s
-        return _aw().__await__()
 
-def __getattr__(name):
-    return _P(name)
 
+# ═══════════════════════════════════════════════════════════
+# v1.6.2 Compatible Classes — for legacy test compatibility
+# ═══════════════════════════════════════════════════════════
+
+class MessageType:
+    """v1.6 Message type enum (compat)"""
+    BROADCAST = "broadcast"
+    UNICAST = "unicast"
+    MULTICAST = "multicast"
+    RESPONSE = "response"
+    ERROR = "error"
+
+
+@dataclass
+class AgentCapability:
+    """v1.6 Agent capability descriptor"""
+    name: str
+    description: str = ""
+    inputs: List[str] = field(default_factory=list)
+    outputs: List[str] = field(default_factory=list)
+
+
+@dataclass
+class AgentMessage:
+    """v1.6 Agent message — unified with v3.50 fields for internal compat"""
+    sender_id: str = ""
+    target_id: str = ""
+    topic: str = ""
+    payload: Any = None
+    msg_id: str = ""
+    msg_type: str = MessageType.BROADCAST
+    timestamp: float = field(default_factory=time.time)
+    ttl: float = 60.0
+
+    def __post_init__(self):
+        if not self.msg_id:
+            self.msg_id = str(uuid.uuid4())[:12]
+
+    def is_expired(self) -> bool:
+        return (time.time() - self.timestamp) > self.ttl
+
+
+class AgentNode:
+    """v1.6 Agent node — async-capable agent with capabilities"""
+
+    def __init__(self, agent_id: str, name: str, capabilities: List[AgentCapability] = None):
+        self.agent_id = agent_id
+        self.name = name
+        self.capabilities: List[AgentCapability] = capabilities or []
+        self.status: str = "idle"
+        self._message_queue = asyncio.Queue()
+        self._task_count: int = 0
+        self._bus = None
+        self._running = False
+        self._processed_messages: int = 0
+
+    @property
+    def can_accept_tasks(self) -> bool:
+        return self.status == "idle"
+
+    def get_info(self) -> Dict:
+        return {
+            "agent_id": self.agent_id,
+            "name": self.name,
+            "status": self.status,
+            "capabilities": [c.name for c in self.capabilities],
+            "task_count": self._task_count,
+            "processed_messages": self._processed_messages,
+        }
+
+    async def send(self, target_id: str, topic: str, payload: Any = None):
+        msg = AgentMessage(
+            sender_id=self.agent_id,
+            target_id=target_id,
+            topic=topic,
+            payload=payload or {},
+        )
+        if self._bus:
+            await self._bus._deliver(msg)
+
+    async def broadcast(self, topic: str, payload: Any = None):
+        if self._bus:
+            for agent in self._bus._agents.values():
+                if agent.agent_id != self.agent_id:
+                    msg = AgentMessage(
+                        sender_id=self.agent_id,
+                        target_id=agent.agent_id,
+                        topic=topic,
+                        payload=payload or {},
+                    )
+                    await agent._message_queue.put(msg)
+
+    async def start(self):
+        self._running = True
+
+    async def stop(self):
+        self._running = False
+
+
+class MessageBus:
+    """v1.6 Message bus — async agent messaging"""
+
+    def __init__(self):
+        self._agents: Dict[str, AgentNode] = {}
+
+    def register(self, agent: AgentNode):
+        agent._bus = self
+        self._agents[agent.agent_id] = agent
+
+    def unregister(self, agent_id: str):
+        agent = self._agents.pop(agent_id, None)
+        if agent:
+            agent._bus = None
+
+    def get_agent(self, agent_id: str):
+        return self._agents.get(agent_id)
+
+    async def send(self, msg: AgentMessage) -> bool:
+        return await self._deliver(msg)
+
+    async def _deliver(self, msg: AgentMessage) -> bool:
+        target = self._agents.get(msg.target_id)
+        if target is None:
+            return False
+        await target._message_queue.put(msg)
+        target._processed_messages += 1
+        return True
+
+    def find_agents_by_capability(self, cap_name: str) -> List[AgentNode]:
+        return [
+            a for a in self._agents.values()
+            if any(c.name == cap_name for c in a.capabilities)
+        ]
+
+    def find_idle_agent(self, cap_name: str):
+        candidates = [
+            a for a in self.find_agents_by_capability(cap_name)
+            if a._task_count == 0
+        ]
+        return candidates[0] if candidates else None
+
+    def get_stats(self) -> Dict:
+        topics: Dict[str, int] = {}
+        for agent in self._agents.values():
+            for cap in agent.capabilities:
+                topics[cap.name] = topics.get(cap.name, 0) + 1
+        return {
+            "total_agents": len(self._agents),
+            "topics": topics,
+        }
+
+
+class CollaborationProtocol:
+    """v1.6 Collaboration protocol — delegate tasks to idle agents"""
+
+    def __init__(self, bus: MessageBus):
+        self._bus = bus
+
+    async def delegate(self, agent: AgentNode, capability: str,
+                       task: Dict) -> Optional[AgentNode]:
+        target = self._bus.find_idle_agent(capability)
+        if target is None:
+            return None
+        target._task_count += 1
+        return target
+
+
+class AgentManager:
+    """v1.6 Agent manager — create and manage agents"""
+
+    def __init__(self):
+        self._agents: Dict[str, AgentNode] = {}
+        self._bus = MessageBus()
+
+    def create_agent(self, agent_id: str, name: str,
+                     capabilities: List[AgentCapability] = None) -> AgentNode:
+        agent = AgentNode(agent_id, name, capabilities)
+        self._agents[agent_id] = agent
+        self._bus.register(agent)
+        return agent
+
+    def get_summary(self) -> Dict:
+        return {
+            "agent_count": len(self._agents),
+            "agents": {aid: a.get_info() for aid, a in self._agents.items()},
+            "bus": self._bus.get_stats(),
+        }

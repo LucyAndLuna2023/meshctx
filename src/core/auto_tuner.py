@@ -1,5 +1,7 @@
-"""meshctx auto_tuner"""
-import time, math, random
+"""meshctx auto_tuner — PID-based auto-tuning with performance monitoring."""
+import time
+import math
+import random
 from dataclasses import dataclass
 from enum import Enum
 
@@ -141,16 +143,90 @@ class AutoTuner:
         return False
 
 
+@dataclass
+class SnapShot:
+    latency_ms: float = 0.0
+    memory_mb: float = 0.0
+    error_count: int = 0
+
+
+@dataclass
+class ParamConfig:
+    name: str = ""
+    current_value: float = 0.0
+    min_value: float = 0.0
+    max_value: float = 0.0
+
+
 class PerformanceAutoTuner(AutoTuner):
-    """Legacy alias — renamed to AutoTuner."""
-    pass
+    """High-level performance auto-tuner with snapshot-based monitoring."""
+
+    def __init__(self, window_size=100, tune_interval=60):
+        super().__init__(window_size=int(window_size), tune_interval=int(tune_interval))
+        self._history: list[SnapShot] = []
+        self._stats: dict = {"total_snapshots": 0}
+        self._params: dict = {
+            "cache_size_mb": ParamConfig(name="cache_size_mb", current_value=128, min_value=32, max_value=512),
+            "batch_size": ParamConfig(name="batch_size", current_value=32, min_value=1, max_value=64),
+        }
+
+    def snapshot(self, latency_ms=0.0, memory_mb=0.0, error_count=0):
+        snap = SnapShot(latency_ms=latency_ms, memory_mb=memory_mb, error_count=error_count)
+        self._history.append(snap)
+        while len(self._history) > self._window_size:
+            self._history.pop(0)
+        self._stats["total_snapshots"] += 1
+        return snap
+
+    def auto_tune(self):
+        if len(self._history) < 5:
+            return {"status": "insufficient_data"}
+        avg_latency = sum(s.latency_ms for s in self._history) / len(self._history)
+        avg_errors = sum(s.error_count for s in self._history) / len(self._history)
+        avg_memory = sum(s.memory_mb for s in self._history) / len(self._history)
+        adjustments = {}
+        if avg_latency > 300:
+            adjustments["timeout_ms"] = max(100, int(avg_latency * 1.5))
+        if avg_latency > 100:
+            adjustments["timeout_budget"] = max(100, int(avg_latency * 1.2))
+        if avg_errors > 1:
+            adjustments["retry_count"] = min(5, int(avg_errors * 2))
+        if avg_memory > 200:
+            adjustments["cache_size_mb"] = max(32, int(avg_memory * 0.5))
+        return {"status": "tuned", "adjustments": adjustments}
+
+    def get_params(self):
+        return {k: v.current_value for k, v in self._params.items()}
+
+    def set_param(self, name, value):
+        if name not in self._params:
+            return False
+        p = self._params[name]
+        clamped = max(p.min_value, min(p.max_value, value))
+        p.current_value = clamped
+        return True
+
+    def _get_current_metrics(self):
+        if not self._history:
+            return {"avg_latency_ms": 0, "memory_mb": 0}
+        avg_latency = sum(s.latency_ms for s in self._history) / len(self._history)
+        avg_memory = sum(s.memory_mb for s in self._history) / len(self._history)
+        return {"avg_latency_ms": avg_latency, "memory_mb": avg_memory}
+
+    def get_stats(self):
+        return {
+            "total_snapshots": self._stats["total_snapshots"],
+            "current_metrics": self._get_current_metrics(),
+            "params": {k: v.current_value for k, v in self._params.items()},
+        }
 
 
 _auto_tuner = None
+_engine = None
 
 
 def get_auto_tuner():
-    global _auto_tuner
-    if _auto_tuner is None:
-        _auto_tuner = AutoTuner()
-    return _auto_tuner
+    global _engine
+    if _engine is None:
+        _engine = PerformanceAutoTuner()
+    return _engine
