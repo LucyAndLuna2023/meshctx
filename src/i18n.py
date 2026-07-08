@@ -3693,7 +3693,7 @@ TRANSLATIONS = {
         "updated_label": "Actualizado",
         "updated_time_label": "Actualizado",
         "upload_btn": "📎",
-        "usable": "Usable",
+        "usable": "Utilizable",
         "view_config_guide": "Ver guía de configuración",
         "welcome_desc": "Configure su clave API para comenzar.",
         "welcome_title": "¡Bienvenido a meshctx!",
