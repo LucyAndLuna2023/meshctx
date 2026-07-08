@@ -709,7 +709,7 @@ from .core.realtime_push import create_realtime_router
 app.include_router(create_realtime_router())
 
 # ─── i18n 语言切换 ─────────────────────────────────────
-from .i18n import set_lang, get_lang
+from .i18n import set_lang, get_lang, t
 
 # 挂载引擎到 app.state
 app.state.kernel = None
