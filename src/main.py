@@ -539,6 +539,39 @@ async def rate_limit_middleware(request: Request, call_next):
     response.headers["X-RateLimit-Remaining"] = str(max(0, remaining))
     return response
 
+
+# ── v3.115.16: Suspicious activity detection ──
+_suspicious_ips: Dict[str, List[float]] = {}  # IP → [timestamps of 403/404]
+_SUSPICIOUS_THRESHOLD = 5   # 5 errors in window
+_SUSPICIOUS_WINDOW = 30     # seconds
+
+@app.middleware("http")
+async def suspicious_activity_middleware(request: Request, call_next):
+    """Block IPs that trigger excessive 403/404 in a short window (port scanners)"""
+    client_ip = request.client.host if request.client else "unknown"
+    
+    # Check if already blocked
+    if client_ip in _suspicious_ips:
+        ts_list = [t for t in _suspicious_ips[client_ip] if time.time() - t < _SUSPICIOUS_WINDOW]
+        if len(ts_list) >= _SUSPICIOUS_THRESHOLD:
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "Access denied: suspicious activity detected"},
+                headers={"Retry-After": str(_SUSPICIOUS_WINDOW)}
+            )
+        _suspicious_ips[client_ip] = ts_list
+    
+    response = await call_next(request)
+    
+    # Track 403/404 responses
+    if response.status_code in (403, 404):
+        if client_ip not in _suspicious_ips:
+            _suspicious_ips[client_ip] = []
+        _suspicious_ips[client_ip] = [t for t in _suspicious_ips[client_ip] if time.time() - t < _SUSPICIOUS_WINDOW]
+        _suspicious_ips[client_ip].append(time.time())
+    
+    return response
+
 # GZip压缩 (v2.29) — 减少响应体积 60-80%
 from starlette.middleware.gzip import GZipMiddleware
 app.add_middleware(GZipMiddleware, minimum_size=500)
