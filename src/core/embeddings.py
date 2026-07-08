@@ -148,7 +148,4 @@ def _l2_normalize(vec: list[float]) -> list[float]:
 
 # ── module-level stub proxy (meshctx convention) ──────────
 
-def __getattr__(name: str):
-    if name.startswith("_"):
-        raise AttributeError(name)
-    return _P(name)
+
