@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}meshctx 管理面板{% endblock %}
+{% block title %}{{ t('dashboard_title') }}{% endblock %}
 
 {% block content %}
 <section class="page-header">
-    <h1>📊 系统仪表板</h1>
-    <p class="subtitle">智能助手连续上下文记忆平台</p>
+    <h1>📊 {{ t('dashboard_header') }}</h1>
+    <p class="subtitle">{{ t('dashboard_subtitle') }}</p>
 </section>
 
 <!-- 统计卡片 -->
@@ -12,27 +12,27 @@
     <div class="stat-card">
         <div class="stat-icon">📁</div>
         <div class="stat-value">{{ total_projects }}</div>
-        <div class="stat-label">项目</div>
+        <div class="stat-label">{{ t('projects_label') }}</div>
     </div>
     <div class="stat-card">
         <div class="stat-icon">💬</div>
         <div class="stat-value">{{ total_conversations }}</div>
-        <div class="stat-label">会话</div>
+        <div class="stat-label">{{ t('sessions_label') }}</div>
     </div>
     <div class="stat-card">
         <div class="stat-icon">🧠</div>
         <div class="stat-value">{{ total_memories }}</div>
-        <div class="stat-label">记忆</div>
+        <div class="stat-label">{{ t('memories_label') }}</div>
     </div>
     <div class="stat-card">
         <div class="stat-icon">🤖</div>
         <div class="stat-value">{{ total_agents }}</div>
-        <div class="stat-label">助手</div>
+        <div class="stat-label">{{ t('agent_label') }}</div>
     </div>
     <div class="stat-card">
         <div class="stat-icon">📡</div>
         <div class="stat-value">{{ total_sessions }}</div>
-        <div class="stat-label">会话</div>
+        <div class="stat-label">{{ t('active_sessions_label') }}</div>
     </div>
 </div>
 

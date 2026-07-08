@@ -574,7 +574,19 @@
     "消息平台接入配置": "cli_platform_config",
     "交互式配置消息平台接入": "cli_interactive_config",
     "像 Hermes 一样通过聊天配置": "cli_hermes_config",
-    "你本地有完整的文件系统访问权限，不是云端": "cli_local_fs"
+    "你本地有完整的文件系统访问权限，不是云端": "cli_local_fs",
+    "cli_scanning_env": "扫描环境变量...",
+    "cli_no_api_key_found": "未发现任何 API Key。请设置环境变量，例如:",
+    "cli_auto_configured": "自动配置",
+    "cli_no_models_hint": "暂无已配置模型。运行 'meshctx model scan' 自动扫描",
+    "cli_model_add_usage": "用法: meshctx model add <provider:model> [--key KEY] [--model MODEL] [--base-url URL]",
+    "cli_model_add_example": "示例: meshctx model add deepseek:chat --key sk-xxx",
+    "cli_no_skills_hint": "暂无 Skill。创建 ~/.meshctx/skills/ 目录并添加 skill 文件",
+    "cli_model_switched_to": "默认模型已切换为",
+    "cli_introduce_yourself": "用一句话介绍你自己",
+    "dashboard_title": "meshctx 管理面板",
+    "dashboard_header": "系统仪表板",
+    "dashboard_subtitle": "智能助手连续上下文记忆平台"
   },
   "en": {
     "2d": "2D",
@@ -1151,7 +1163,19 @@
     "消息平台接入配置": "[EN] cli_platform_config",
     "交互式配置消息平台接入": "[EN] cli_interactive_config",
     "像 Hermes 一样通过聊天配置": "[EN] cli_hermes_config",
-    "你本地有完整的文件系统访问权限，不是云端": "[EN] cli_local_fs"
+    "你本地有完整的文件系统访问权限，不是云端": "[EN] cli_local_fs",
+    "cli_scanning_env": "[EN] 扫描环境变量...",
+    "cli_no_api_key_found": "[EN] 未发现任何 API Key。请设置环境变量，例如:",
+    "cli_auto_configured": "[EN] 自动配置",
+    "cli_no_models_hint": "[EN] 暂无已配置模型。运行 'meshctx model scan' 自动扫描",
+    "cli_model_add_usage": "[EN] 用法: meshctx model add <provider:model> [--key KEY] [--model ",
+    "cli_model_add_example": "[EN] 示例: meshctx model add deepseek:chat --key sk-xxx",
+    "cli_no_skills_hint": "[EN] 暂无 Skill。创建 ~/.meshctx/skills/ 目录并添加 skill 文件",
+    "cli_model_switched_to": "[EN] 默认模型已切换为",
+    "cli_introduce_yourself": "[EN] 用一句话介绍你自己",
+    "dashboard_title": "meshctx Dashboard",
+    "dashboard_header": "System Dashboard",
+    "dashboard_subtitle": "AI Assistant Context Memory Platform"
   },
   "ja": {
     "2d": "2D",
@@ -1728,7 +1752,19 @@
     "消息平台接入配置": "[JA] cli_platform_config",
     "交互式配置消息平台接入": "[JA] cli_interactive_config",
     "像 Hermes 一样通过聊天配置": "[JA] cli_hermes_config",
-    "你本地有完整的文件系统访问权限，不是云端": "[JA] cli_local_fs"
+    "你本地有完整的文件系统访问权限，不是云端": "[JA] cli_local_fs",
+    "cli_scanning_env": "[JA] 扫描环境变量...",
+    "cli_no_api_key_found": "[JA] 未发现任何 API Key。请设置环境变量，例如:",
+    "cli_auto_configured": "[JA] 自动配置",
+    "cli_no_models_hint": "[JA] 暂无已配置模型。运行 'meshctx model scan' 自动扫描",
+    "cli_model_add_usage": "[JA] 用法: meshctx model add <provider:model> [--key KEY]",
+    "cli_model_add_example": "[JA] 示例: meshctx model add deepseek:chat --key sk-xxx",
+    "cli_no_skills_hint": "[JA] 暂无 Skill。创建 ~/.meshctx/skills/ 目录并添加 skill 文件",
+    "cli_model_switched_to": "[JA] 默认模型已切换为",
+    "cli_introduce_yourself": "[JA] 用一句话介绍你自己",
+    "dashboard_title": "[JA] meshctx 管理面板",
+    "dashboard_header": "[JA] 系统仪表板",
+    "dashboard_subtitle": "[JA] 智能助手连续上下文记忆平台"
   },
   "ko": {
     "2d": "2D",
@@ -2305,7 +2341,19 @@
     "消息平台接入配置": "[KO] cli_platform_config",
     "交互式配置消息平台接入": "[KO] cli_interactive_config",
     "像 Hermes 一样通过聊天配置": "[KO] cli_hermes_config",
-    "你本地有完整的文件系统访问权限，不是云端": "[KO] cli_local_fs"
+    "你本地有完整的文件系统访问权限，不是云端": "[KO] cli_local_fs",
+    "cli_scanning_env": "[KO] 扫描环境变量...",
+    "cli_no_api_key_found": "[KO] 未发现任何 API Key。请设置环境变量，例如:",
+    "cli_auto_configured": "[KO] 自动配置",
+    "cli_no_models_hint": "[KO] 暂无已配置模型。运行 'meshctx model scan' 自动扫描",
+    "cli_model_add_usage": "[KO] 用法: meshctx model add <provider:model> [--key KEY]",
+    "cli_model_add_example": "[KO] 示例: meshctx model add deepseek:chat --key sk-xxx",
+    "cli_no_skills_hint": "[KO] 暂无 Skill。创建 ~/.meshctx/skills/ 目录并添加 skill 文件",
+    "cli_model_switched_to": "[KO] 默认模型已切换为",
+    "cli_introduce_yourself": "[KO] 用一句话介绍你自己",
+    "dashboard_title": "[KO] meshctx 管理面板",
+    "dashboard_header": "[KO] 系统仪表板",
+    "dashboard_subtitle": "[KO] 智能助手连续上下文记忆平台"
   },
   "fr": {
     "2d": "2D",
@@ -2882,7 +2930,19 @@
     "消息平台接入配置": "[FR] cli_platform_config",
     "交互式配置消息平台接入": "[FR] cli_interactive_config",
     "像 Hermes 一样通过聊天配置": "[FR] cli_hermes_config",
-    "你本地有完整的文件系统访问权限，不是云端": "[FR] cli_local_fs"
+    "你本地有完整的文件系统访问权限，不是云端": "[FR] cli_local_fs",
+    "cli_scanning_env": "[FR] 扫描环境变量...",
+    "cli_no_api_key_found": "[FR] 未发现任何 API Key。请设置环境变量，例如:",
+    "cli_auto_configured": "[FR] 自动配置",
+    "cli_no_models_hint": "[FR] 暂无已配置模型。运行 'meshctx model scan' 自动扫描",
+    "cli_model_add_usage": "[FR] 用法: meshctx model add <provider:model> [--key KEY]",
+    "cli_model_add_example": "[FR] 示例: meshctx model add deepseek:chat --key sk-xxx",
+    "cli_no_skills_hint": "[FR] 暂无 Skill。创建 ~/.meshctx/skills/ 目录并添加 skill 文件",
+    "cli_model_switched_to": "[FR] 默认模型已切换为",
+    "cli_introduce_yourself": "[FR] 用一句话介绍你自己",
+    "dashboard_title": "[FR] meshctx 管理面板",
+    "dashboard_header": "[FR] 系统仪表板",
+    "dashboard_subtitle": "[FR] 智能助手连续上下文记忆平台"
   },
   "de": {
     "2d": "2D",
@@ -3459,7 +3519,19 @@
     "消息平台接入配置": "[DE] cli_platform_config",
     "交互式配置消息平台接入": "[DE] cli_interactive_config",
     "像 Hermes 一样通过聊天配置": "[DE] cli_hermes_config",
-    "你本地有完整的文件系统访问权限，不是云端": "[DE] cli_local_fs"
+    "你本地有完整的文件系统访问权限，不是云端": "[DE] cli_local_fs",
+    "cli_scanning_env": "[DE] 扫描环境变量...",
+    "cli_no_api_key_found": "[DE] 未发现任何 API Key。请设置环境变量，例如:",
+    "cli_auto_configured": "[DE] 自动配置",
+    "cli_no_models_hint": "[DE] 暂无已配置模型。运行 'meshctx model scan' 自动扫描",
+    "cli_model_add_usage": "[DE] 用法: meshctx model add <provider:model> [--key KEY]",
+    "cli_model_add_example": "[DE] 示例: meshctx model add deepseek:chat --key sk-xxx",
+    "cli_no_skills_hint": "[DE] 暂无 Skill。创建 ~/.meshctx/skills/ 目录并添加 skill 文件",
+    "cli_model_switched_to": "[DE] 默认模型已切换为",
+    "cli_introduce_yourself": "[DE] 用一句话介绍你自己",
+    "dashboard_title": "[DE] meshctx 管理面板",
+    "dashboard_header": "[DE] 系统仪表板",
+    "dashboard_subtitle": "[DE] 智能助手连续上下文记忆平台"
   },
   "es": {
     "2d": "2D",
@@ -4036,6 +4108,18 @@
     "消息平台接入配置": "[ES] cli_platform_config",
     "交互式配置消息平台接入": "[ES] cli_interactive_config",
     "像 Hermes 一样通过聊天配置": "[ES] cli_hermes_config",
-    "你本地有完整的文件系统访问权限，不是云端": "[ES] cli_local_fs"
+    "你本地有完整的文件系统访问权限，不是云端": "[ES] cli_local_fs",
+    "cli_scanning_env": "[ES] 扫描环境变量...",
+    "cli_no_api_key_found": "[ES] 未发现任何 API Key。请设置环境变量，例如:",
+    "cli_auto_configured": "[ES] 自动配置",
+    "cli_no_models_hint": "[ES] 暂无已配置模型。运行 'meshctx model scan' 自动扫描",
+    "cli_model_add_usage": "[ES] 用法: meshctx model add <provider:model> [--key KEY]",
+    "cli_model_add_example": "[ES] 示例: meshctx model add deepseek:chat --key sk-xxx",
+    "cli_no_skills_hint": "[ES] 暂无 Skill。创建 ~/.meshctx/skills/ 目录并添加 skill 文件",
+    "cli_model_switched_to": "[ES] 默认模型已切换为",
+    "cli_introduce_yourself": "[ES] 用一句话介绍你自己",
+    "dashboard_title": "[ES] meshctx 管理面板",
+    "dashboard_header": "[ES] 系统仪表板",
+    "dashboard_subtitle": "[ES] 智能助手连续上下文记忆平台"
   }
 }
