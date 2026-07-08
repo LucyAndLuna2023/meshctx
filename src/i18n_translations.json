@@ -708,7 +708,17 @@
     "cli_options": "选项",
     "cli_commands": "命令",
     "cli_description": "描述",
-    "cli_builtin_models": "内置模型目录"
+    "cli_builtin_models": "内置模型目录",
+    "error_description_required": "description 字段为必填项",
+    "error_id_provider_required": "id 和 provider 为必填项",
+    "error_path_traversal": "安全限制: 路径中禁止包含 ..",
+    "error_path_is_dir": "路径是目录无法写入",
+    "error_content_empty": "content 不能为空",
+    "error_use_post": "请使用 POST body",
+    "error_code_empty": "代码为空",
+    "error_invalid_json_short": "无效JSON",
+    "error_no_config_add": "配置文件不存在，请先添加模型",
+    "error_missing_desc": "请求体不能为空，需要提供 description 字段"
   },
   "en": {
     "2d": "2D",
@@ -1419,7 +1429,17 @@
     "cli_options": "Options",
     "cli_commands": "Commands",
     "cli_description": "Description",
-    "cli_builtin_models": "Built-in Models"
+    "cli_builtin_models": "Built-in Models",
+    "error_description_required": "description field is required",
+    "error_id_provider_required": "id and provider are required",
+    "error_path_traversal": "Security: path traversal blocked",
+    "error_path_is_dir": "Path is a directory, cannot write",
+    "error_content_empty": "content cannot be empty",
+    "error_use_post": "Please use POST body",
+    "error_code_empty": "Code is empty",
+    "error_invalid_json_short": "Invalid JSON",
+    "error_no_config_add": "Config not found, add a model first",
+    "error_missing_desc": "Request body required with description"
   },
   "ja": {
     "2d": "2D",
@@ -2130,7 +2150,17 @@
     "cli_options": "[JA] 选项",
     "cli_commands": "[JA] 命令",
     "cli_description": "[JA] 描述",
-    "cli_builtin_models": "[JA] 内置模型目录"
+    "cli_builtin_models": "[JA] 内置模型目录",
+    "error_description_required": "[JA] description 字段为必填项",
+    "error_id_provider_required": "[JA] id 和 provider 为必填项",
+    "error_path_traversal": "[JA] 安全限制: 路径中禁止包含 ..",
+    "error_path_is_dir": "[JA] 路径是目录无法写入",
+    "error_content_empty": "[JA] content 不能为空",
+    "error_use_post": "[JA] 请使用 POST body",
+    "error_code_empty": "[JA] 代码为空",
+    "error_invalid_json_short": "[JA] 无效JSON",
+    "error_no_config_add": "[JA] 配置文件不存在，请先添加模型",
+    "error_missing_desc": "[JA] 请求体不能为空，需要提供 description 字段"
   },
   "ko": {
     "2d": "2D",
@@ -2841,7 +2871,17 @@
     "cli_options": "[KO] 选项",
     "cli_commands": "[KO] 命令",
     "cli_description": "[KO] 描述",
-    "cli_builtin_models": "[KO] 内置模型目录"
+    "cli_builtin_models": "[KO] 内置模型目录",
+    "error_description_required": "[KO] description 字段为必填项",
+    "error_id_provider_required": "[KO] id 和 provider 为必填项",
+    "error_path_traversal": "[KO] 安全限制: 路径中禁止包含 ..",
+    "error_path_is_dir": "[KO] 路径是目录无法写入",
+    "error_content_empty": "[KO] content 不能为空",
+    "error_use_post": "[KO] 请使用 POST body",
+    "error_code_empty": "[KO] 代码为空",
+    "error_invalid_json_short": "[KO] 无效JSON",
+    "error_no_config_add": "[KO] 配置文件不存在，请先添加模型",
+    "error_missing_desc": "[KO] 请求体不能为空，需要提供 description 字段"
   },
   "fr": {
     "2d": "2D",
@@ -3552,7 +3592,17 @@
     "cli_options": "[FR] 选项",
     "cli_commands": "[FR] 命令",
     "cli_description": "[FR] 描述",
-    "cli_builtin_models": "[FR] 内置模型目录"
+    "cli_builtin_models": "[FR] 内置模型目录",
+    "error_description_required": "[FR] description 字段为必填项",
+    "error_id_provider_required": "[FR] id 和 provider 为必填项",
+    "error_path_traversal": "[FR] 安全限制: 路径中禁止包含 ..",
+    "error_path_is_dir": "[FR] 路径是目录无法写入",
+    "error_content_empty": "[FR] content 不能为空",
+    "error_use_post": "[FR] 请使用 POST body",
+    "error_code_empty": "[FR] 代码为空",
+    "error_invalid_json_short": "[FR] 无效JSON",
+    "error_no_config_add": "[FR] 配置文件不存在，请先添加模型",
+    "error_missing_desc": "[FR] 请求体不能为空，需要提供 description 字段"
   },
   "de": {
     "2d": "2D",
@@ -4263,7 +4313,17 @@
     "cli_options": "[DE] 选项",
     "cli_commands": "[DE] 命令",
     "cli_description": "[DE] 描述",
-    "cli_builtin_models": "[DE] 内置模型目录"
+    "cli_builtin_models": "[DE] 内置模型目录",
+    "error_description_required": "[DE] description 字段为必填项",
+    "error_id_provider_required": "[DE] id 和 provider 为必填项",
+    "error_path_traversal": "[DE] 安全限制: 路径中禁止包含 ..",
+    "error_path_is_dir": "[DE] 路径是目录无法写入",
+    "error_content_empty": "[DE] content 不能为空",
+    "error_use_post": "[DE] 请使用 POST body",
+    "error_code_empty": "[DE] 代码为空",
+    "error_invalid_json_short": "[DE] 无效JSON",
+    "error_no_config_add": "[DE] 配置文件不存在，请先添加模型",
+    "error_missing_desc": "[DE] 请求体不能为空，需要提供 description 字段"
   },
   "es": {
     "2d": "2D",
@@ -4974,6 +5034,16 @@
     "cli_options": "[ES] 选项",
     "cli_commands": "[ES] 命令",
     "cli_description": "[ES] 描述",
-    "cli_builtin_models": "[ES] 内置模型目录"
+    "cli_builtin_models": "[ES] 内置模型目录",
+    "error_description_required": "[ES] description 字段为必填项",
+    "error_id_provider_required": "[ES] id 和 provider 为必填项",
+    "error_path_traversal": "[ES] 安全限制: 路径中禁止包含 ..",
+    "error_path_is_dir": "[ES] 路径是目录无法写入",
+    "error_content_empty": "[ES] content 不能为空",
+    "error_use_post": "[ES] 请使用 POST body",
+    "error_code_empty": "[ES] 代码为空",
+    "error_invalid_json_short": "[ES] 无效JSON",
+    "error_no_config_add": "[ES] 配置文件不存在，请先添加模型",
+    "error_missing_desc": "[ES] 请求体不能为空，需要提供 description 字段"
   }
 }
