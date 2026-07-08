@@ -350,7 +350,7 @@ class KnowledgeSynthesizer(KnowledgeGraph):
         e = self.entities.get(fragment_id)
         if not e: return []
         text = e.properties.get('text', '')
-        results = self.search(text, top_k=10)
+        results = self.search(text)
         return [r.id for r in results if r.id != fragment_id] or [fid for fid in self._fragments if fid != fragment_id][:3]
     
     def synthesize(self, fragment_ids):
