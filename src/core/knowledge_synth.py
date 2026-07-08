@@ -332,16 +332,21 @@ class KnowledgeGraph:
 
 class KnowledgeSynthesizer(KnowledgeGraph):
     """Compatibility wrapper for v94 tests — delegates to KnowledgeGraph."""
-    def add_fragment(self, text, source="", tags=None):
-        return self.add_entity('fragment', {'text': text, 'source': source, 'tags': tags or []})
-    def find_related(self, text):
-        results = self.search(text)
-        return [r.id for r in results]
-    def synthesize(self, fragments, strategy="merge"):
-        eids = [self.add_entity('synthesis', {'text': f, 'strategy': strategy}) for f in fragments]
-        for i in range(len(eids)-1):
-            self.add_relation(eids[i], eids[i+1], 'synthesized_from')
-        return eids[-1] if eids else None
+    def add_fragment(self, text, source="", score=1.0, tags=None):
+        e = self.add_entity('fragment', {'text': text, 'source': source, 'score': score, 'tags': tags or []})
+        return e.id
+    def find_related(self, fragment_id):
+        e = self.entities.get(fragment_id)
+        if not e: return []
+        results = self.search(e.properties.get('text', ''))
+        return [r.id for r in results if r.id != fragment_id]
+    def synthesize(self, fragment_ids):
+        if not fragment_ids: return None
+        eid = self.add_entity('synthesis', {'fragments': fragment_ids})
+        for i, fid in enumerate(fragment_ids):
+            if fid in self.entities:
+                self.add_relation(fid, eid.id, 'contributes_to')
+        return eid.id
     def detect_conflicts(self, fragment_ids):
         return []
     def consensus_score(self, entity_id):
@@ -351,7 +356,9 @@ class KnowledgeSynthesizer(KnowledgeGraph):
             self.add_entity('agent_knowledge', kd)
         return len(knowledge_dicts)
     def query(self, query_text, top_k=5):
-        return [{'id': r.id, 'score': r.score} for r in self.search(query_text, top_k)]
+        return [r.entry for r in self.search(query_text, top_k)]
     def get_stats(self):
-        return {'entities': len(self), 'relations': self.edge_count}
+        return {'fragments': len([e for e in self.entities.values() if e.type=='fragment']),
+                'syntheses': len([e for e in self.entities.values() if e.type=='synthesis']),
+                'conflicts': 0}
 
