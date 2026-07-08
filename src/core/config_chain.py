@@ -66,7 +66,7 @@ DEFAULT_CONFIG = {
     "subagent": {"max_concurrent": 3, "max_turns": 20, "timeout_sec": 120},
     "prompts": {"directory": "~/.meshctx/prompts/", "audit_enabled": True},
     "plugins": {"builtin": ["memory", "metacognition"], "extra": []},
-    "gateway": {"enabled": False, "port": 3000},
+    "gateway": {"enabled": False, "port": 3001},
     "skills": {"auto_create": True, "directory": "~/.meshctx/skills/"},
 }
 

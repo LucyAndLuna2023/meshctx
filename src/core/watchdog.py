@@ -22,7 +22,8 @@ class WatchdogDaemon:
             try:
                 with open(HEARTBEAT_FILE, "w") as f:
                     f.write(str(time.time()))
-            except: pass
+            except Exception:
+                pass  # 心跳文件写入失败不影响守护进程（磁盘满/权限），非关键路径
             time.sleep(5)
     
     def stop(self): self._running = False

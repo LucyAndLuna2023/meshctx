@@ -1122,8 +1122,10 @@ def _send_ntfy(config, notification):
             elapsed = _t.time() - start
             raw = r.read()
             msg_id = ""
-            try: msg_id = _j.loads(raw).get("id", "")
-            except: pass
+            try:
+                msg_id = _j.loads(raw).get("id", "")
+            except Exception:
+                pass  # ntfy响应非JSON时msg_id保持空字符串，非关键路径
         return NotificationResult(success=True, channel=NotificationChannel.NTFY,
                                   message_id=msg_id, latency_sec=elapsed)
     except Exception as e:

@@ -769,7 +769,8 @@ class PRAgent:
             )
             if proc.returncode == 0 and proc.stdout.strip():
                 return proc.stdout.strip()
-        except (subprocess.TimeoutExpired, FileNotFoundError, OSError): pass
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            pass  # 非关键路径：git命令不可用，fallback 到默认值
         return self.head_branch
 
     def _git_diff(self) -> str:
@@ -802,7 +803,8 @@ class PRAgent:
             )
             if proc.returncode == 0:
                 return [m for m in proc.stdout.strip().splitlines() if m]
-        except (subprocess.TimeoutExpired, FileNotFoundError, OSError): pass
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            pass  # 非关键路径：git命令不可用，fallback 到默认值
         return []
 
     def _merge_base(self) -> str:
@@ -813,7 +815,8 @@ class PRAgent:
             )
             if proc.returncode == 0 and proc.stdout.strip():
                 return proc.stdout.strip()
-        except (subprocess.TimeoutExpired, FileNotFoundError, OSError): pass
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            pass  # 非关键路径：git命令不可用，fallback 到默认值
         return ""
 
 

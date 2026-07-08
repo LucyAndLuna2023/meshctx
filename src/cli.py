@@ -21,8 +21,8 @@ from pathlib import Path
 
 
 def _get_port() -> int:
-    """Get meshctx server port from env var (default 3000)"""
-    return int(os.environ.get("MESHCTX_PORT", "3000"))
+    """Get meshctx server port from env var (default 3001 — 与 install.sh 一致)"""
+    return int(os.environ.get("MESHCTX_PORT", "3001"))
 
 
 def _ensure_keys_loaded():
@@ -474,7 +474,7 @@ def cmd_start(args):
     import uvicorn
     from src.main import app
     
-    port = args.port or 3000
+    port = args.port or 3001  # 默认端口 — 与 install.sh 和 main.py 保持一致
     host = '0.0.0.0'
     from src.core import __version__
     

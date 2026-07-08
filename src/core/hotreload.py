@@ -46,7 +46,8 @@ class ConfigWatcher:
                     for cb in self._callbacks:
                         try: cb()
                         except Exception as e: logger.error(f"Hot reload callback failed: {e}")
-            except Exception: pass
+            except Exception:
+                logger.debug("Hot reload watcher loop interrupted (non-critical)")
 
 class APIKeyFailover:
     def __getattr__(self, name, **kw):
