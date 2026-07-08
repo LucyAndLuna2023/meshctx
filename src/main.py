@@ -554,6 +554,10 @@ async def rate_limit_middleware(request: Request, call_next):
 from starlette.middleware.gzip import GZipMiddleware
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
+# ── v3.115.16: Metrics middleware ─────────────────────────
+from .core.monitoring import MetricsMiddleware
+app.add_middleware(MetricsMiddleware)
+
 # ── v2.17: Web UI 认证中间件 ────────────────────────
 import hashlib, secrets
 _AUTH_PASSWORD = os.environ.get("MESHCTX_PASSWORD", "")
