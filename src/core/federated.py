@@ -45,4 +45,3 @@ def get_federated() -> FederatedAdapter:
         _singleton = FederatedAdapter()
     return _singleton
 
-from ._stub import _P

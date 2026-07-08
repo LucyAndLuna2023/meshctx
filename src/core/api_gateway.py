@@ -362,4 +362,3 @@ def reset_gateway():
     global _gateway
     _gateway = None
 
-from ._stub import _P

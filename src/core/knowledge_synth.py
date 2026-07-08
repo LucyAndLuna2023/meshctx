@@ -181,4 +181,3 @@ class KnowledgeSynthesizer:
                 return True
         return False
 
-from ._stub import _P

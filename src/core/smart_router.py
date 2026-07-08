@@ -155,4 +155,3 @@ class SmartModelRouter:
 def get_model_router():
     return SmartModelRouter()
 
-from ._stub import _P

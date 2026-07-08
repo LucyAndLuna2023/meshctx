@@ -21,7 +21,6 @@ def get_crypto(*args, **kwargs):
     pass
 
 
-from ._stub import _P
 
 # ── API Key 加密 (Fernet + 机器密钥) ──
 
@@ -93,7 +92,3 @@ _yaml_mod.SafeDumper.add_representer(_P, _P_representer)
 # 让 SafeLoader 也能解析旧标签（关键修复！）
 _yaml_mod.SafeLoader.add_constructor(_OLD_P_TAG, _legacy_P_constructor)
 _yaml_mod.Loader.add_constructor(_OLD_P_TAG, _legacy_P_constructor)
-
-
-def __getattr__(name):
-    return _P(name)

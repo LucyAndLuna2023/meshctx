@@ -4,6 +4,8 @@ Creates compressed archives (tar.gz) of directories, tracks metadata as JSON,
 and supports restore, delete, and smart rotation (daily/weekly/monthly retention).
 Uses only Python stdlib — shutil, tarfile, json, pathlib, datetime, os.
 """
+__all__ = ['BackupSnapshot', 'BackupManager']
+
 
 from __future__ import annotations
 
@@ -313,4 +315,3 @@ class BackupManager:
 # needed.  Module-level __getattr__ returns a _P proxy for any undefined name.
 # ---------------------------------------------------------------------------
 
-from ._stub import _P

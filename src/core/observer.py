@@ -207,4 +207,3 @@ def get_observer() -> SystemObserver:
                 _observer = SystemObserver()
     return _observer
 
-from ._stub import _P

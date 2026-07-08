@@ -111,4 +111,3 @@ class ROIAnalytics:
             "verdict": "meshctx is leading — keep shipping",
         }
 
-from ._stub import _P

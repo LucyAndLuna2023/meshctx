@@ -158,4 +158,3 @@ class ActionSelector:
         if name in self.action_values:
             self.action_values[name] = max(self.action_values[name], new_value)
 
-from ._stub import _P

@@ -194,4 +194,3 @@ class InteractiveConsole:
             "snapshots": len(self._snapshots),
         }
 
-from ._stub import _P

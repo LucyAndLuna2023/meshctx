@@ -230,4 +230,3 @@ def get_ha_bridge() -> HABridge:
                 _bridge = HABridge()
     return _bridge
 
-from ._stub import _P

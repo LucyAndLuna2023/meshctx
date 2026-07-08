@@ -69,4 +69,3 @@ class MarginalUtilityScheduler:
                 remaining -= task["cost"]
         return scheduled
 
-from ._stub import _P

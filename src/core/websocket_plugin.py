@@ -10,4 +10,3 @@ class WebSocketPlugin:
 def create_ws_routes(*a, **kw):
     return []
 
-from ._stub import _P

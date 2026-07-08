@@ -3,4 +3,3 @@ class _Stub:
     def __init__(self, *a, **kw): pass
     def __getattr__(self, n): return lambda *a,**kw: None
 
-from ._stub import _P

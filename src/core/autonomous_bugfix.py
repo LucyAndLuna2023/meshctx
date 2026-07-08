@@ -160,4 +160,3 @@ class AutonomousBugFixEngine:
             "total_fixes": len(self._fixes),
         }
 
-from ._stub import _P

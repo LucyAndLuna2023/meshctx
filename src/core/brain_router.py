@@ -61,4 +61,3 @@ class BrainInspiredRouter:
     def get_stats(self, **kw):
         return {"projector": "active", "routes": self._route_count}
 
-from ._stub import _P

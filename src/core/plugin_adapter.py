@@ -216,4 +216,3 @@ def get_plugin_adapter() -> UniversalPluginAdapter:
         _plugin_adapter_instance = UniversalPluginAdapter()
     return _plugin_adapter_instance
 
-from ._stub import _P

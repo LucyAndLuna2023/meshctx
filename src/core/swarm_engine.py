@@ -267,4 +267,3 @@ class SwarmEngine:
             ),
         }
 
-from ._stub import _P

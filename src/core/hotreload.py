@@ -87,4 +87,3 @@ class MemoryBackup:
         self._running = False
     def backup(self): return True
 
-from ._stub import _P

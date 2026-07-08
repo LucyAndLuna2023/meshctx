@@ -98,4 +98,3 @@ class VersionGuard:
             "total_versions_recorded": len(self._history),
         }
 
-from ._stub import _P

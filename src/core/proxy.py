@@ -141,4 +141,3 @@ class ProxyManager:
             "active_routes": len(self._routes),
         }
 
-from ._stub import _P

@@ -241,4 +241,3 @@ class AgentLoopPlugin:
             self._reflection_log = self._reflection_log[-50:]
 
 
-from ._stub import _P

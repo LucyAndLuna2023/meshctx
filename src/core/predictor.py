@@ -6,6 +6,8 @@ frequency by hour/day. ContextPreloader uses patterns to suggest files/tools.
 
 Zero pip dependencies — Python stdlib only.
 """
+__all__ = ['logger', 'ActivityPattern', 'TimeSlot', 'PredictionResult', 'TemporalPatternLearner', 'ContextPreloader', 'PredictorPlugin']
+
 
 import collections
 import json
@@ -304,4 +306,3 @@ class PredictorPlugin:
 
 # ── _P universal proxy (backward compat) ──────────────────────────────
 
-from ._stub import _P

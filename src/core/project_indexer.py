@@ -5,6 +5,8 @@ Bridges to semantic_index.py for vector search when numpy is available.
 
 Zero pip dependencies — Python stdlib only.
 """
+__all__ = ['logger', 'FileEntry', 'ScanResult', 'SearchResult', 'get_indexer', 'get_index']
+
 
 import fnmatch
 import json
@@ -374,4 +376,3 @@ get_index = _Indexer.search  # backward compat alias
 
 # ── _P universal proxy (backward compat) ──────────────────────────────
 
-from ._stub import _P

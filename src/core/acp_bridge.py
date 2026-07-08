@@ -6,6 +6,8 @@ tool_call/tool_result/error/session events.
 
 Zero pip dependencies — Python stdlib only.
 """
+__all__ = ['logger', 'ACPMessageType', 'ACPMessage', 'ACPError', 'MessageHandler', 'ACPRouter', 'ACPBridge', 'get_acp_bridge', 'reset_acp_bridge']
+
 
 import json
 import logging
@@ -322,4 +324,3 @@ def reset_acp_bridge():
 
 # ── _P universal proxy (backward compat) ──────────────────────────────
 
-from ._stub import _P

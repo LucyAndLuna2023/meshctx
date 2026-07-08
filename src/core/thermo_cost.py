@@ -173,4 +173,3 @@ class ThermodynamicCostAnalyzer:
             "energy_equivalent": self._energy_equivalent(self._total_actual_j),
         }
 
-from ._stub import _P

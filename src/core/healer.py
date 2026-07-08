@@ -23,4 +23,3 @@ class HealerPlugin:
     async def on_load(self, kernel): return True
     def generate_report(self): return {"status": "stub"}
 
-from ._stub import _P

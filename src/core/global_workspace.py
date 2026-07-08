@@ -45,4 +45,3 @@ class AttentionBottleneck:
         sorted_procs = sorted(processors, key=lambda p: p.salience * p.activation, reverse=True)
         return sorted_procs[:self.capacity]
 
-from ._stub import _P

@@ -282,4 +282,3 @@ class TopologicalMemoryAnalyzer:
             "max_memories": self.max_memories,
         }
 
-from ._stub import _P

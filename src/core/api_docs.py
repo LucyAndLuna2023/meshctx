@@ -91,4 +91,3 @@ def get_api_discovery() -> APIDiscoveryEngine:
                 _engine = APIDiscoveryEngine()
     return _engine
 
-from ._stub import _P

@@ -134,4 +134,3 @@ def get_self_updater(
         )
     return _self_updater_instance
 
-from ._stub import _P

@@ -119,4 +119,3 @@ def get_memory_health() -> MemoryHealthDashboard:
         _memory_health_instance = MemoryHealthDashboard()
     return _memory_health_instance
 
-from ._stub import _P

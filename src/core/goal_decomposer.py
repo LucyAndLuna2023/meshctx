@@ -257,4 +257,3 @@ class GoalDecomposer:
             "active_goals": active,
         }
 
-from ._stub import _P

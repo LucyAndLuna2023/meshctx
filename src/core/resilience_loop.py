@@ -110,4 +110,3 @@ def get_resilience() -> ResilienceLoop:
         _singleton = ResilienceLoop()
     return _singleton
 
-from ._stub import _P

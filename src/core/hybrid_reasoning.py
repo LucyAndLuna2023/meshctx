@@ -7,4 +7,3 @@ class HybridReasoningScheduler:
     def schedule(self, *a, **kw): return None
     def stats(self): return {}
 
-from ._stub import _P

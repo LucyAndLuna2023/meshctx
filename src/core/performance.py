@@ -19,4 +19,3 @@ class PerformancePlugin:
     async def on_load(self, kernel): return True
     def generate_report(self): return {"hits": 0, "misses": 0}
 
-from ._stub import _P

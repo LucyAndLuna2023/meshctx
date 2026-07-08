@@ -199,4 +199,3 @@ class CrossValidator:
             "min_agents": self.min_agents,
         }
 
-from ._stub import _P

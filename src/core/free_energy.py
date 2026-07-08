@@ -85,4 +85,3 @@ class FreeEnergyAgent:
     def get_stats(self, **kw):
         return {"num_beliefs": self._num_beliefs}
 
-from ._stub import _P

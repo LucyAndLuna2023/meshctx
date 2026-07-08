@@ -5,7 +5,6 @@ from threading import Lock
 from typing import Dict, List, Optional
 import time
 
-from ._stub import _P
 
 class BudgetLevel(Enum):
     GENEROUS = "generous"
@@ -85,6 +84,3 @@ class TokenBudget:
                        for n, w in self.windows.items()},
             "uptime": time.time() - self.created_at,
         }
-
-def __getattr__(name):
-    return _P(name)

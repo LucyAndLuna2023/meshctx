@@ -206,4 +206,3 @@ def get_regression_shield(
         )
     return _shield_instance
 
-from ._stub import _P

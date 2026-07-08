@@ -86,4 +86,3 @@ class MCPIntegrator:
             "protocol": "JSON-RPC 2.0",
         }
 
-from ._stub import _P

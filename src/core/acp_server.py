@@ -9,4 +9,3 @@ class ACPServer:
     def __init__(self, *args, **kwargs):
         pass
 
-from ._stub import _P

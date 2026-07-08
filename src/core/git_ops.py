@@ -248,9 +248,5 @@ def list_fix_branches() -> Dict[str, Any]:
 
 # ── _P stub class (backward compat) ─────────────────────────────────────────
 
-from ._stub import _P
 
 # ── module-level __getattr__ fallback ───────────────────────────────────────
-
-def __getattr__(name):
-    return _P(name)

@@ -6,6 +6,8 @@
 - 上下文关联: 基于标签和关联网络检索
 - 扩散激活: 关联记忆在 recall 时传播
 """
+__all__ = ['EmotionIntensity', 'MemoryChunk', 'HumanLikeMemory', 'get_human_memory']
+
 import hashlib
 import re
 import time
@@ -284,4 +286,3 @@ def get_human_memory() -> HumanLikeMemory:
 
 # ── Legacy stub support ──────────────────────────
 
-from ._stub import _P

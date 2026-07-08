@@ -1,3 +1,5 @@
+__all__ = ['ContextChunk', 'ProgressiveContextLoader', 'get_progressive_loader']
+
 """meshctx progressive_context — 渐进式上下文加载"""
 from typing import Any, Dict, List, Optional
 from dataclasses import dataclass
@@ -70,4 +72,3 @@ def get_progressive_loader() -> ProgressiveContextLoader:
     return _singleton
 
 
-from ._stub import _P

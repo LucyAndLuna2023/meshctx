@@ -56,4 +56,3 @@ class DualProcessDecision:
         self.system2_weight = max(0.0, min(1.0, system2_fraction))
         self.system1_weight = 1.0 - self.system2_weight
 
-from ._stub import _P

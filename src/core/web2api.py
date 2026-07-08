@@ -90,4 +90,3 @@ def get_web2api() -> Web2APIProxy:
         _web2api_instance = Web2APIProxy()
     return _web2api_instance
 
-from ._stub import _P

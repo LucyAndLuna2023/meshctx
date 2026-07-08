@@ -90,4 +90,3 @@ class PipelineBenchmark:
             "results": all_results,
         }
 
-from ._stub import _P

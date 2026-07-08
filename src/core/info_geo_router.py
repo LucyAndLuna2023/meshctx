@@ -240,4 +240,3 @@ class InformationGeometricRouter:
             "farthest_pairs": farthest_pairs,
         }
 
-from ._stub import _P

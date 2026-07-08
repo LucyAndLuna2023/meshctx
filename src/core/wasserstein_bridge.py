@@ -177,4 +177,3 @@ class OptimalTransportBridge:
             "distribution_names": list(self._distributions.keys()),
         }
 
-from ._stub import _P

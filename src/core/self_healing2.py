@@ -121,4 +121,3 @@ class SelfHealingEngine:
             "last_critical_remaining": self._last_critical_remaining,
         }
 
-from ._stub import _P

@@ -5,7 +5,6 @@ from typing import Dict, List, Optional, Set, Tuple
 import math
 import re
 
-from ._stub import _P
 
 @dataclass
 class SemanticEntry:
@@ -102,6 +101,3 @@ class SemanticIndex:
             "terms": len(self._inverted),
             "avg_doc_terms": sum(len(e.ngrams()) for e in self.entries.values()) / max(1, self._doc_count),
         }
-
-def __getattr__(name):
-    return _P(name)

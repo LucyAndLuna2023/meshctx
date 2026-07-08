@@ -70,4 +70,3 @@ class _SessionResume:
 _resume = _SessionResume()
 def get_session_resume(): return _resume
 
-from ._stub import _P

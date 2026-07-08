@@ -21,9 +21,6 @@ Design:
 import hashlib
 import math
 
-from ._stub import _P
-
-
 class EmbeddingEngine:
     """TF-IDF style embedding engine using character n-grams.
 

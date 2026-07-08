@@ -172,4 +172,3 @@ class AgentComposer:
             "reversible_count": sum(1 for m in self._morphisms.values() if m.reversible),
         }
 
-from ._stub import _P

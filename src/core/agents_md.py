@@ -239,4 +239,3 @@ class AgentsMDProtocol:
         """加载 Claude MCP 配置."""
         return []
 
-from ._stub import _P

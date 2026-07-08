@@ -641,4 +641,3 @@ def reset_voice_chat():
     global _voice_chat_instance
     _voice_chat_instance = None
 
-from ._stub import _P
