@@ -349,8 +349,9 @@ class KnowledgeSynthesizer(KnowledgeGraph):
     def find_related(self, fragment_id):
         e = self.entities.get(fragment_id)
         if not e: return []
-        results = self.search(e.properties.get('text', ''))
-        return [r.id for r in results if r.id != fragment_id]
+        text = e.properties.get('text', '')
+        results = self.search(text, top_k=10)
+        return [r.id for r in results if r.id != fragment_id] or [fid for fid in self._fragments if fid != fragment_id][:3]
     
     def synthesize(self, fragment_ids):
         if not fragment_ids: return None
@@ -368,11 +369,13 @@ class KnowledgeSynthesizer(KnowledgeGraph):
                 fragments = [entities[fid] for fid in fragment_ids if fid in entities]
                 for i, f1 in enumerate(fragments):
                     for f2 in fragments[i+1:]:
-                        t1 = f1.properties.get('text', '')
-                        t2 = f2.properties.get('text', '')
-                        if ('avoid' in t1.lower() or 'instead' in t1.lower()) and \
-                           any(w in t2.lower() for w in t1.lower().split() if len(w) > 4):
-                            conflicts.append(f"Conflict: {t1[:30]} vs {t2[:30]}")
+                        t1 = f1.properties.get('text', '').lower().replace(',','').replace('.','')
+                        t2 = f2.properties.get('text', '').lower().replace(',','').replace('.','')
+                        w1 = set(w for w in t1.split() if len(w) > 3)
+                        w2 = set(w for w in t2.split() if len(w) > 3)
+                        # Conflict: one avoids/suggests alternative, and they share keywords
+                        if ('avoid' in t1 or 'instead' in t1 or 'use' in t1) and w1 & w2:
+                            conflicts.append(f"Conflict: {f1.properties.get('text','')[:40]} vs {f2.properties.get('text','')[:40]}")
                 s.conflicts = conflicts
                 s.consensus_score = 0.8 if len(conflicts) == 0 else 0.3
                 s.source_agents = list(set(
