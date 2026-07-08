@@ -1481,11 +1481,29 @@ async def predictor_learn(task_type: str = "general", project_id: str = None):
 @app.get("/agent/status")
 async def agent_status():
     """Agent循环状态"""
-    k = get_kernel()
-    plugin = k.plugins.get("agent_loop") if k._started else None
-    if not plugin:
-        return {"status": "disabled"}
-    return plugin.generate_report()
+    try:
+        k = get_kernel()
+        plugin = k.plugins.get("agent_loop") if k._started else None
+        if not plugin:
+            return {"status": "disabled"}
+        # 绕过 __getattr__ 污染 — type().__dict__ 检查真实方法
+        if "generate_report" in type(plugin).__dict__:
+            return plugin.generate_report()
+        return {"status": "plugin_loaded", "loop": "unknown"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+@app.get("/api/agent/status")
+async def agent_status_api():
+    """Agent状态 (API别名)"""
+    return await agent_status()
+
+
+@app.get("/api/docker/status")
+async def docker_status():
+    """Docker状态 stub (v3.115.16)"""
+    return {"status": "unavailable", "message": "Docker not installed or not accessible"}
 
 
 @app.post("/agent/start")
