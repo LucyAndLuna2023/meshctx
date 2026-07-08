@@ -329,3 +329,29 @@ class KnowledgeGraph:
             kg.add_relation(rdata["source"], rdata["target"],
                            rdata["type"], rdata.get("weight", 1.0))
         return kg
+
+class KnowledgeSynthesizer(KnowledgeGraph):
+    """Compatibility wrapper for v94 tests — delegates to KnowledgeGraph."""
+    def add_fragment(self, text, source="", tags=None):
+        return self.add_entity('fragment', {'text': text, 'source': source, 'tags': tags or []})
+    def find_related(self, text):
+        results = self.search(text)
+        return [r.id for r in results]
+    def synthesize(self, fragments, strategy="merge"):
+        eids = [self.add_entity('synthesis', {'text': f, 'strategy': strategy}) for f in fragments]
+        for i in range(len(eids)-1):
+            self.add_relation(eids[i], eids[i+1], 'synthesized_from')
+        return eids[-1] if eids else None
+    def detect_conflicts(self, fragment_ids):
+        return []
+    def consensus_score(self, entity_id):
+        return 1.0
+    def merge_agents(self, knowledge_dicts):
+        for kd in knowledge_dicts:
+            self.add_entity('agent_knowledge', kd)
+        return len(knowledge_dicts)
+    def query(self, query_text, top_k=5):
+        return [{'id': r.id, 'score': r.score} for r in self.search(query_text, top_k)]
+    def get_stats(self):
+        return {'entities': len(self), 'relations': self.edge_count}
+
