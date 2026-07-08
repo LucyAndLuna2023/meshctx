@@ -374,7 +374,8 @@ class KnowledgeSynthesizer(KnowledgeGraph):
                         w1 = set(w for w in t1.split() if len(w) > 3)
                         w2 = set(w for w in t2.split() if len(w) > 3)
                         # Conflict: one avoids/suggests alternative, and they share keywords
-                        if ('avoid' in t1 or 'instead' in t1 or 'use' in t1) and w1 & w2:
+                        has_opposition = any(w in t1 for w in ['avoid', 'instead of', 'not', "don't"])
+                        if has_opposition and w1 & w2:
                             conflicts.append(f"Conflict: {f1.properties.get('text','')[:40]} vs {f2.properties.get('text','')[:40]}")
                 s.conflicts = conflicts
                 s.consensus_score = 0.8 if len(conflicts) == 0 else 0.3
