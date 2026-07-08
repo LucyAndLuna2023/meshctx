@@ -322,7 +322,7 @@ async def lifespan(app: FastAPI):
     watcher.on_change(_reload_config)
     watcher.start()
 
-    port = int(os.environ.get("MESHCTX_PORT", "3000"))
+    port = int(os.environ.get("MESHCTX_PORT", "3001"))  # 默认端口 — 与 install.sh 和 cli.py 保持一致
     logger.info("═══════════════════════════════════════════")
     logger.info("  meshctx v1.0 已就绪!")
     logger.info(f"  API: http://0.0.0.0:{port}")
@@ -2031,7 +2031,8 @@ async def system_resources():
                     parts = line.split()
                     if parts[0] == "MemTotal:": mem["total_kb"] = int(parts[1])
                     elif parts[0] == "MemAvailable:": mem["avail_kb"] = int(parts[1])
-        except: pass
+        except Exception:
+            pass  # 非关键路径：silent fallback 是预期行为
         total = mem.get("total_kb", 0)
         avail = mem.get("avail_kb", 0)
         used_pct = round((total - avail) / total * 100, 1) if total else 0
@@ -2635,6 +2636,13 @@ async def agent_loop_sse(req: Request):
                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
+# v3.115.16: P1防御 — QA报告中的别名端点，避免404
+@app.get("/api/agent-loop/stream")
+async def agent_loop_sse_alias(req: Request):
+    """代理循环SSE别名 (QA报告兼容)"""
+    return await agent_loop_sse(req)
+
+
 @app.get("/api/sandbox/stream")
 async def sandbox_stream_status(req: Request):
     """沙箱流式状态 (v3.115.15 — QA修复)"""
@@ -2663,6 +2671,13 @@ async def trace_stream(req: Request):
             yield "event: heartbeat\ndata: {\"ts\":\"" + __import__("datetime").datetime.now().isoformat() + "\"}\n\n"
     return StreamingResponse(generate(), media_type="text/event-stream",
                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+# v3.115.16: P1防御 — QA报告trace/live别名
+@app.get("/api/trace/live")
+async def trace_live_alias(req: Request):
+    """链路追踪SSE别名 (QA报告兼容)"""
+    return await trace_stream(req)
 
 
 @app.get("/api/project/index")
@@ -2825,7 +2840,8 @@ async def win_service_action(name: str, action: str, req: Request = None):
         try:
             body = await req.json()
             confirmed = body.get("confirmed", False)
-        except: pass
+        except Exception:
+            pass  # 非关键路径：silent fallback 是预期行为
     
     from src.core.win_admin import get_win_admin
     wa = get_win_admin()
@@ -3215,7 +3231,7 @@ async def api_chat_stream(request: Request):
                 yield "data: [DONE]\n\n"
                 return
 
-            max_rounds = 5
+            max_rounds = int(body.get("max_rounds", 150))  # 默认150轮（用户要求 ≥150）
             _tools_ok = True  # 模型是否支持 tools
             for _round in range(max_rounds):
                 # 发送请求给模型 (尝试 tools，失败则降级)
@@ -3637,7 +3653,8 @@ async def search_conversations(q: str = ""):
                         "content": msg.get("content", "")[:300],
                         "time": msg.get("time", 0),
                     })
-        except: pass
+        except Exception:
+            pass  # 非关键路径：silent fallback 是预期行为
     return {"results": results[:20], "query": q}
 
 
@@ -5586,39 +5603,68 @@ async def code_run(request: Request):
         language = body.get("language") or body.get("lang", "python")
         if not code:
             return {"error": "code不能为空"}
-        # 危险命令检测
+        # 🔒 P0-6: 危险命令检测（v3.115.15强化）
         dangerous = ["rm -rf /", "mkfs\\.", "dd if=", "fork bomb",
                       "shutdown", "reboot", "chmod 777 /",
-                      "curl.*\\|.*sh", "wget.*\\|.*sh"]
+                      "curl.*\\|.*sh", "wget.*\\|.*sh",
+                      ":(){ :|:& };:",  # fork bomb
+                      "/dev/sda", "/dev/nvme",  # 裸设备
+                      "> /etc/", ">> /etc/",  # 覆写系统配置
+                      "chattr", "mv /etc/", "rm -rf /etc",
+                      "cat /etc/shadow", "cat /etc/passwd",
+                      "cat ~/.hermes/secrets",  # 读取密钥
+                      "nc -l", "nc -e",  # 反向shell
+                      "socket.*connect", "socket.*socket",  # 后门socket
+                      "import.*subprocess.*rm", "import.*os.*system"
+                      ]
         import re
         for pattern in dangerous:
             if re.search(pattern, code, re.IGNORECASE):
-                return {"error": f"拦截: 危险操作被阻止 ({pattern})", "blocked": True}
+                return {"error": f"拦截: 危险操作被阻止 ({pattern})", "blocked": True, "severity": "critical"}
+
+        # 🔒 P1-4: 资源限制（memory=1GB, CPU=5s）— 仅子进程
+        def _sandbox_limits():
+            try:
+                import resource
+                resource.setrlimit(resource.RLIMIT_AS, (1024 * 1024 * 1024, 1536 * 1024 * 1024))
+                resource.setrlimit(resource.RLIMIT_CPU, (5, 8))
+            except Exception:
+                pass  # 非Linux平台fallback
+        _prelimit = _sandbox_limits if sys.platform == "linux" else None
+
         if language in ("python", "py"):
             result = subprocess.run(
                 [sys.executable, "-c", code],
                 capture_output=True, text=True, timeout=10,
+                preexec_fn=_prelimit,
             )
         elif language in ("bash", "shell", "sh"):
             result = subprocess.run(
                 ["bash", "-c", code],
                 capture_output=True, text=True, timeout=10,
+                preexec_fn=_prelimit,
             )
         elif language in ("js", "javascript", "node"):
             result = subprocess.run(
                 ["node", "-e", code],
                 capture_output=True, text=True, timeout=10,
+                preexec_fn=_prelimit,
             )
         else:
             return {"error": f"不支持的语言: {language}"}
         output = result.stdout
         if result.stderr:
             output = (result.stdout + "\n" + result.stderr).strip()
-        return {
+        response = {
             "output": output,
             "stderr": result.stderr,
             "exit_code": result.returncode,
         }
+        if result.returncode < 0:
+            sig = -result.returncode
+            response["error"] = f"代码被信号终止 (SIG={sig})"
+            response["output"] = ""  # 不返回可能巨大的 dump
+        return response
     except subprocess.TimeoutExpired:
         return {"error": "代码执行超时 (10秒)"}
     except Exception as e:

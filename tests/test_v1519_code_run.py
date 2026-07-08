@@ -118,9 +118,13 @@ class TestCodeBlockUIRendering:
     """前端代码块渲染测试 — 验证模板包含必要元素"""
 
     def test_chat_html_has_run_button_js(self):
-        """Chat页面模板包含代码运行JS"""
+        """Chat页面继承base.html，包含代码运行JS"""
         from src.web_ui import _TEMPLATES
-        assert "runCodeBlock" in _TEMPLATES.get("chat.html", "")
+        chat = _TEMPLATES.get("chat.html", "")
+        base = _TEMPLATES.get("base.html", "")
+        # v3.115.16: chat.html extends base.html — JS functions live in base
+        assert 'extends "base.html"' in chat
+        assert "runCodeBlock" in base
 
     def test_chat_html_has_marked_highlight(self):
         """Chat/Base页面有marked.js和highlight.js"""
@@ -130,11 +134,13 @@ class TestCodeBlockUIRendering:
         assert "highlight.min.js" in base
 
     def test_chat_html_has_code_run_api(self):
-        """Chat页面引用 /api/code/run"""
+        """Base页面引用 /api/code/run（chat.html 继承 base.html）"""
         from src.web_ui import _TEMPLATES
-        assert "/api/code/run" in _TEMPLATES.get("chat.html", "")
+        base = _TEMPLATES.get("base.html", "")
+        assert "/api/code/run" in base
 
     def test_chat_html_addCodeRunButtons(self):
-        """Chat页面有addCodeRunButtons函数"""
+        """Chat页面继承base.html，有addCodeRunButtons函数"""
         from src.web_ui import _TEMPLATES
-        assert "addCodeRunButtons" in _TEMPLATES.get("chat.html", "")
+        base = _TEMPLATES.get("base.html", "")
+        assert "addCodeRunButtons" in base

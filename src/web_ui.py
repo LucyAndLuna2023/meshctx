@@ -3660,6 +3660,8 @@ def _format_dt(dt):
 
 
 def _truncate(s: str, n: int = 60) -> str:
+    if s is None:
+        return ""
     if len(s) <= n:
         return s
     return s[:n] + "..."
@@ -3671,6 +3673,23 @@ def _truncate(s: str, n: int = 60) -> str:
 async def dashboard(request: Request):
     engine = _engine(request)
     projects = engine.list_projects()
+
+    # v3.115.16: N+1 optimization — single-pass grouping
+    convs_by_pid = {}
+    for c in engine.conversations.values():
+        pid = getattr(c, 'project_id', None)
+        if pid:
+            convs_by_pid.setdefault(pid, []).append(c)
+    mems_by_pid = {}
+    for m in engine.memories.values():
+        pid = getattr(m, 'project_id', None)
+        if pid:
+            mems_by_pid.setdefault(pid, []).append(m)
+    sessions_by_pid = {}
+    for s in getattr(engine, 'agent_sessions', {}).values():
+        pid = getattr(s, 'project_id', None)
+        if pid:
+            sessions_by_pid.setdefault(pid, []).append(s)
 
     project_data = []
     total_conversations = 0
@@ -3686,11 +3705,11 @@ async def dashboard(request: Request):
                           "conversation_count": 0, "memory_count": 0,
                           "active_session_count": 0, "total_session_count": 0,
                           "last_active": None}
-        convs = engine.list_conversations(p.id)
+        convs = convs_by_pid.get(p.id, [])
         total_conversations += len(convs)
-        memories = engine.get_memories(p.id)
+        memories = mems_by_pid.get(p.id, [])
         total_memories += len(memories)
-        sessions = engine.get_agent_sessions(project_id=p.id)
+        sessions = sessions_by_pid.get(p.id, [])
         total_sessions += len(sessions)
         project_data.append({
             "project": p,
@@ -3728,6 +3747,7 @@ async def dashboard(request: Request):
         "continuity_label": _continuity_label,
         "continuity_color": _continuity_color,
         "format_dt": _format_dt,
+        "truncate": _truncate,
     }, request)
 
 
@@ -3738,10 +3758,23 @@ async def project_list(request: Request):
     engine = _engine(request)
     projects = engine.list_projects()
 
+    # v3.115.16: N+1 optimization — single-pass grouping instead of per-project scans
+    conversations_by_project = {}
+    for c in engine.conversations.values():
+        pid = getattr(c, 'project_id', None)
+        if pid:
+            conversations_by_project.setdefault(pid, []).append(c)
+    
+    memories_by_project = {}
+    for m in engine.memories.values():
+        pid = getattr(m, 'project_id', None)
+        if pid:
+            memories_by_project.setdefault(pid, []).append(m)
+
     enriched = []
     for p in projects:
-        convs = engine.list_conversations(p.id)
-        mems = engine.get_memories(p.id)
+        convs = conversations_by_project.get(p.id, [])
+        mems = memories_by_project.get(p.id, [])
         try:
             cont = engine.detect_continuity(p.id)
         except Exception:
@@ -4822,32 +4855,110 @@ async def download_page(request: Request):
 
 # ── Chat 页面模板 ────────────────────────────────────────────
 
-_TEMPLATES["chat.html"] = r"""<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><title>meshctx Chat</title></head>
-<body>
-<div id="chat"></div>
+_TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
+{% block content %}
+<style>
+.chat-card {
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+  display: flex; flex-direction: column; height: calc(100vh - 140px); min-height: 400px;
+  overflow: hidden;
+}
+.chat-messages {
+  flex: 1; overflow-y: auto; padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.chat-input-area {
+  border-top: 1px solid var(--border); padding: 12px 16px;
+  display: flex; gap: 8px; align-items: flex-end;
+}
+.chat-input-area textarea {
+  flex: 1; background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px;
+  font-size: 14px; font-family: inherit; resize: none; min-height: 44px; max-height: 150px;
+  outline: none; line-height: 1.5;
+}
+.chat-input-area textarea:focus { border-color: var(--accent); }
+.msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.55; word-break: break-word; }
+.msg.user { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+.msg.assistant { align-self: flex-start; background: var(--surface); color: var(--text); border-bottom-left-radius: 4px; }
+.msg pre { background: #0f172a; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; font-size: 12px; }
+.msg code { font-size: 12px; background: rgba(108,92,231,0.2); padding: 2px 5px; border-radius: 3px; }
+.empty-chat { text-align: center; color: var(--muted); padding: 60px 20px; }
+.empty-chat h2 { font-size: 24px; margin-bottom: 8px; }
+.empty-chat p { font-size: 14px; }
+</style>
+<div class="chat-card">
+  <div class="chat-messages" id="chatMessages">
+    <div class="empty-chat">
+      <h2>💬 meshctx Chat</h2>
+      <p>输入消息开始对话</p>
+    </div>
+  </div>
+  <div class="chat-input-area">
+    <textarea id="userInput" rows="1" placeholder="输入消息... (Enter 发送, Shift+Enter 换行)"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"
+          oninput="this.style.height='';this.style.height=Math.min(this.scrollHeight,150)+'px';"></textarea>
+    <button onclick="send()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;
+          padding:10px 18px;cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap;">{{ t("send") }}</button>
+  </div>
+</div>
 <script>
-function runCodeBlock(block) {
-    const code = block.textContent || block.innerText;
-    return fetch("/api/code/run", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({code: code, language: "python"})
-    }).then(r => r.json());
+var _convId = null;
+var _projectId = null;
+var _msgContainer = document.getElementById('chatMessages');
+var _emptyState = _msgContainer.querySelector('.empty-chat');
+
+function addMessage(role, content) {
+  if (_emptyState) { _emptyState.remove(); _emptyState = null; }
+  var el = document.createElement('div');
+  el.className = 'msg ' + role;
+  el.textContent = content;
+  _msgContainer.appendChild(el);
+  _msgContainer.scrollTop = _msgContainer.scrollHeight;
+  return el;
 }
-function addCodeRunButtons() {
-    document.querySelectorAll("pre code").forEach(block => {
-        const btn = document.createElement("button");
-        btn.textContent = "▶ Run";
-        btn.className = "code-run-btn";
-        btn.onclick = () => runCodeBlock(block);
-        block.parentElement.insertBefore(btn, block);
+
+async function send() {
+  var input = document.getElementById('userInput');
+  var text = input.value.trim();
+  if (!text) return;
+  input.value = ''; input.style.height = '';
+  addMessage('user', text);
+  
+  try {
+    var res = await fetch('/api/chat/send', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        message: text,
+        project_id: _projectId || null,
+        conversation_id: _convId || null
+      })
     });
+    var data = await res.json();
+    if (data.error) {
+      addMessage('assistant', '⚠️ ' + data.error);
+    } else {
+      if (!_convId) _convId = data.conversation_id;
+      if (!_projectId) _projectId = data.project_id;
+      addMessage('assistant', data.response || data.content || '(empty response)');
+    }
+  } catch (err) {
+    addMessage('assistant', '⚠️ 网络错误: ' + err.message);
+  }
 }
+
+// v1.5.9: Desktop快速提问监听
+window.addEventListener('message', function(e){
+  var d = e.data;
+  if(d && d.type === 'meshctx-quick-ask' && d.message){
+    document.getElementById('userInput').value = d.message;
+    send();
+  }
+});
 </script>
-</body>
-</html>"""
+{% endblock %}
+"""
 
 
 # ── 模型列表页面 ────────────────────────────────────────────
@@ -5272,11 +5383,11 @@ async function loadPath(path){
 
 function renderBreadcrumb(fullPath){
  var parts = fullPath.split('/').filter(Boolean);
- var html = '<a onclick="loadPath(\\'\\')">🏠 /</a>';
+ var html = '<a onclick="loadPath(&quot;&quot;)">🏠 /</a>';
  var cum = '';
  for(var i=0;i<parts.length;i++){
   cum += '/'+parts[i];
-  html += '<span>/</span><a onclick="loadPath(\\''+cum+'\\')">'+parts[i]+'</a>';
+  html += '<span>/</span><a onclick="loadPath(&quot;'+escHtml(cum)+'&quot;)">'+escHtml(parts[i])+'</a>';
  }
  document.getElementById('breadcrumb').innerHTML = html;
 }
@@ -5292,9 +5403,10 @@ function renderFiles(items, parentPath){
    var size=f.is_dir?'--':formatSize(f.size);
    var mod=new Date(f.modified*1000).toLocaleString();
    var cls=f.error?'color:var(--red)':'';
-   html+='<tr style="'+cls+'" ondblclick="handleClick(\\''+f.path.replace(/\\\\/g,\\'\\\\\\\\\\')+'\\','+f.is_dir+')" onclick="selectFile(\\''+f.path.replace(/\\\\/g,\\'\\\\\\\\\\')+'\\','+f.is_dir+',this)">';
+   var sp=escHtml(f.path);
+   html+='<tr style="'+cls+'" data-path="'+sp+'" data-isdir="'+f.is_dir+'" class="fm-row">';
    html+='<td class="fm-icon">'+icon+'</td>';
-   html+='<td>'+escHtml(f.name)+(f.error?' ⚠️ '+f.error:'')+'</td>';
+   html+='<td>'+escHtml(f.name)+(f.error?' ⚠️ '+escHtml(f.error):'')+'</td>';
    html+='<td style="font-size:12px;color:var(--muted)">'+size+'</td>';
    html+='<td style="font-size:12px;color:var(--muted)">'+mod+'</td>';
    html+='</tr>';
@@ -5303,16 +5415,8 @@ function renderFiles(items, parentPath){
  document.getElementById('fileList').innerHTML = html;
 }
 
-function handleClick(path, isDir){
- if(isDir){ loadPath(path); }
- else{ openFileInTab(path, null); }
-}
-
-function selectFile(path, isDir, row){
- var prev = document.querySelector('.fm-file-table tr.selected');
- if(prev) prev.classList.remove('selected');
- row.classList.add('selected');
-}
+// handleClick/selectFile replaced by event delegation in DOMContentLoaded
+// (data-path + data-isdir attributes on .fm-row elements)
 
 function goUp(){
  var p = currentPath || '/opt';
@@ -5345,8 +5449,35 @@ function formatSize(bytes){
 
 function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-// ── Event listeners ──
+// ── Event delegation for file rows (replaces inline onclick/ondblclick) ──
 document.addEventListener('DOMContentLoaded', function(){
+  var table = document.getElementById('fileList');
+  if(table){
+    var clickTimer = null;
+    table.addEventListener('click', function(e){
+      var row = e.target.closest('.fm-row');
+      if(!row) return;
+      var path = row.getAttribute('data-path');
+      var isDir = row.getAttribute('data-isdir') === 'true';
+      
+      // Select
+      var prev = document.querySelector('.fm-file-table tr.selected');
+      if(prev) prev.classList.remove('selected');
+      row.classList.add('selected');
+      
+      // Double-click detection
+      if(clickTimer){
+        clearTimeout(clickTimer);
+        clickTimer = null;
+        // Double-click: open
+        if(isDir){ loadPath(path); }
+        else{ openEditor(path); }
+      } else {
+        clickTimer = setTimeout(function(){ clickTimer = null; }, 350);
+      }
+    });
+  }
+  
   var ta = document.getElementById('fileEditor');
   if(ta){
     ta.addEventListener('input', onEditorInput);
