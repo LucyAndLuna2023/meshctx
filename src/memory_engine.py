@@ -56,12 +56,20 @@ class MemoryEngine:
             except Exception as e:
                 logger.warning(f"Failed to initialize vector store: {e}")
 
-        # 加载现有数据到内存
-        self._load_existing_data()
+        # v3.115.16: 数据惰性加载 — 首次数据访问时才从磁盘读取
+        self._data_loaded = False
 
         # 插件系统
         self.plugin_manager = get_plugin_manager()
         logger.info(f"Plugin system loaded: {self.plugin_manager.active_count} active plugins")
+
+    # ── 数据懒加载 ──────────────────────────────────────────────
+
+    def _ensure_loaded(self):
+        """惰性加载 — 首次数据访问时从磁盘读取"""
+        if not self._data_loaded:
+            self._load_existing_data()
+            self._data_loaded = True
 
     # ── 数据加载 ──────────────────────────────────────────────
 
@@ -119,6 +127,7 @@ class MemoryEngine:
         return project
 
     def get_project(self, project_id: str) -> Optional[Project]:
+        self._ensure_loaded()
         return self.projects.get(project_id)
 
     def update_project(self, project_id: str, **kwargs) -> Optional[Project]:
@@ -150,6 +159,7 @@ class MemoryEngine:
         return True
 
     def list_projects(self) -> List[Project]:
+        self._ensure_loaded()
         return list(self.projects.values())
 
     # ── 会话管理 ──────────────────────────────────────────────
@@ -178,6 +188,7 @@ class MemoryEngine:
         return self.conversations.get(conversation_id)
 
     def list_conversations(self, project_id: str) -> List[Conversation]:
+        self._ensure_loaded()
         return [c for c in self.conversations.values()
                 if c.project_id == project_id]
 
