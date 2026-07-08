@@ -698,7 +698,17 @@
     "info_no_data": "暂无数据",
     "info_no_results": "无结果",
     "info_coming_soon": "即将推出",
-    "info_beta": "测试版"
+    "info_beta": "测试版",
+    "cli_model_id_col": "模型ID",
+    "cli_provider_col": "Provider",
+    "cli_actual_model_col": "实际模型",
+    "cli_status_col": "状态",
+    "cli_usage": "用法",
+    "cli_example": "示例",
+    "cli_options": "选项",
+    "cli_commands": "命令",
+    "cli_description": "描述",
+    "cli_builtin_models": "内置模型目录"
   },
   "en": {
     "2d": "2D",
@@ -1399,7 +1409,17 @@
     "info_no_data": "No data",
     "info_no_results": "No results",
     "info_coming_soon": "Coming soon",
-    "info_beta": "Beta"
+    "info_beta": "Beta",
+    "cli_model_id_col": "Model ID",
+    "cli_provider_col": "Provider",
+    "cli_actual_model_col": "Actual Model",
+    "cli_status_col": "Status",
+    "cli_usage": "Usage",
+    "cli_example": "Example",
+    "cli_options": "Options",
+    "cli_commands": "Commands",
+    "cli_description": "Description",
+    "cli_builtin_models": "Built-in Models"
   },
   "ja": {
     "2d": "2D",
@@ -2100,7 +2120,17 @@
     "info_no_data": "[JA] 暂无数据",
     "info_no_results": "[JA] 无结果",
     "info_coming_soon": "[JA] 即将推出",
-    "info_beta": "[JA] 测试版"
+    "info_beta": "[JA] 测试版",
+    "cli_model_id_col": "[JA] 模型ID",
+    "cli_provider_col": "[JA] Provider",
+    "cli_actual_model_col": "[JA] 实际模型",
+    "cli_status_col": "[JA] 状态",
+    "cli_usage": "[JA] 用法",
+    "cli_example": "[JA] 示例",
+    "cli_options": "[JA] 选项",
+    "cli_commands": "[JA] 命令",
+    "cli_description": "[JA] 描述",
+    "cli_builtin_models": "[JA] 内置模型目录"
   },
   "ko": {
     "2d": "2D",
@@ -2801,7 +2831,17 @@
     "info_no_data": "[KO] 暂无数据",
     "info_no_results": "[KO] 无结果",
     "info_coming_soon": "[KO] 即将推出",
-    "info_beta": "[KO] 测试版"
+    "info_beta": "[KO] 测试版",
+    "cli_model_id_col": "[KO] 模型ID",
+    "cli_provider_col": "[KO] Provider",
+    "cli_actual_model_col": "[KO] 实际模型",
+    "cli_status_col": "[KO] 状态",
+    "cli_usage": "[KO] 用法",
+    "cli_example": "[KO] 示例",
+    "cli_options": "[KO] 选项",
+    "cli_commands": "[KO] 命令",
+    "cli_description": "[KO] 描述",
+    "cli_builtin_models": "[KO] 内置模型目录"
   },
   "fr": {
     "2d": "2D",
@@ -3502,7 +3542,17 @@
     "info_no_data": "[FR] 暂无数据",
     "info_no_results": "[FR] 无结果",
     "info_coming_soon": "[FR] 即将推出",
-    "info_beta": "[FR] 测试版"
+    "info_beta": "[FR] 测试版",
+    "cli_model_id_col": "[FR] 模型ID",
+    "cli_provider_col": "[FR] Provider",
+    "cli_actual_model_col": "[FR] 实际模型",
+    "cli_status_col": "[FR] 状态",
+    "cli_usage": "[FR] 用法",
+    "cli_example": "[FR] 示例",
+    "cli_options": "[FR] 选项",
+    "cli_commands": "[FR] 命令",
+    "cli_description": "[FR] 描述",
+    "cli_builtin_models": "[FR] 内置模型目录"
   },
   "de": {
     "2d": "2D",
@@ -4203,7 +4253,17 @@
     "info_no_data": "[DE] 暂无数据",
     "info_no_results": "[DE] 无结果",
     "info_coming_soon": "[DE] 即将推出",
-    "info_beta": "[DE] 测试版"
+    "info_beta": "[DE] 测试版",
+    "cli_model_id_col": "[DE] 模型ID",
+    "cli_provider_col": "[DE] Provider",
+    "cli_actual_model_col": "[DE] 实际模型",
+    "cli_status_col": "[DE] 状态",
+    "cli_usage": "[DE] 用法",
+    "cli_example": "[DE] 示例",
+    "cli_options": "[DE] 选项",
+    "cli_commands": "[DE] 命令",
+    "cli_description": "[DE] 描述",
+    "cli_builtin_models": "[DE] 内置模型目录"
   },
   "es": {
     "2d": "2D",
@@ -4904,6 +4964,16 @@
     "info_no_data": "[ES] 暂无数据",
     "info_no_results": "[ES] 无结果",
     "info_coming_soon": "[ES] 即将推出",
-    "info_beta": "[ES] 测试版"
+    "info_beta": "[ES] 测试版",
+    "cli_model_id_col": "[ES] 模型ID",
+    "cli_provider_col": "[ES] Provider",
+    "cli_actual_model_col": "[ES] 实际模型",
+    "cli_status_col": "[ES] 状态",
+    "cli_usage": "[ES] 用法",
+    "cli_example": "[ES] 示例",
+    "cli_options": "[ES] 选项",
+    "cli_commands": "[ES] 命令",
+    "cli_description": "[ES] 描述",
+    "cli_builtin_models": "[ES] 内置模型目录"
   }
 }
