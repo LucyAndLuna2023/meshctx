@@ -8,7 +8,7 @@ class ACPServer:
         self.agents = {}
         self._handlers = {}
         self.protocol_version = "2025-01-01"
-        self.server_info = {"name": "meshctx-acp", "version": "1.0"}
+        self.server_info = {"name": "meshctx", "version": "1.0"}
     
     def register_agent(self, agent_id: str, capabilities: list):
         self.agents[agent_id] = {"id": agent_id, "capabilities": capabilities, "status": "ready"}
