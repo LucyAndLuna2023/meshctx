@@ -10,7 +10,7 @@ class Project(BaseModel):
     """项目基础信息"""
     id: str
     name: str
-    description: str
+    description: Optional[str] = None  # v3.115.15: 变为可选 (QA P2修复)
     created_at: datetime
     updated_at: datetime
     status: str  # active, completed, archived

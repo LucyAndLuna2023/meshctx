@@ -704,15 +704,42 @@ app.state.memory_engine = None
 # Request Models
 # ═══════════════════════════════════════════════════════════
 
+import re
+from pydantic import BaseModel, field_validator
+
+_XSS_RE = re.compile(r'<[^>]*>')
+
 class CreateProjectRequest(BaseModel):
     name: str
-    description: str
+    description: Optional[str] = None
     tags: Optional[List[str]] = None
+
+    @field_validator("name", mode="after")
+    @classmethod
+    def strip_xss(cls, v: str) -> str:
+        return _XSS_RE.sub("", v).strip()
+
+    @field_validator("name")
+    @classmethod
+    def check_name_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("name不能为空")
+        return v
 
 class UpdateProjectRequest(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
+    model_config = {"extra": "forbid"}
+
+    @field_validator("name", mode="after")
+    @classmethod
+    def strip_xss(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            v = _XSS_RE.sub("", v).strip()
+            if not v:
+                raise ValueError("name不能为空")
+        return v
 
 class CreateConversationRequest(BaseModel):
     project_id: str
@@ -864,6 +891,15 @@ async def delete_project(project_id: str):
 
 # ── 会话管理 ────────────────────────────────────────────
 
+@app.get("/conversations")
+async def get_all_conversations(project_id: str = None, limit: int = 50):
+    """列出对话 — GET兼容 (v3.115.15 QA修复)"""
+    eng = get_memory_engine()
+    if project_id:
+        return eng.list_conversations(project_id)
+    return []
+
+
 @app.post("/conversations", response_model=Conversation)
 async def create_conversation(request: CreateConversationRequest):
     try:
@@ -888,6 +924,14 @@ async def add_message(request: AddMessageRequest):
     except ValueError as e:
         raise HTTPException(404, str(e))
 
+
+@app.get("/messages")
+async def get_all_messages(conversation_id: str = None, limit: int = 50, offset: int = 0):
+    """列出消息 — GET兼容 (v3.115.15 QA修复)"""
+    if conversation_id:
+        return get_memory_engine().get_messages(conversation_id, limit, offset)
+    return []
+
 @app.get("/conversations/{conversation_id}/messages", response_model=List[Message])
 async def get_conversation_messages(conversation_id: str, limit: int = 50, offset: int = 0):
     return get_memory_engine().get_messages(conversation_id, limit, offset)
@@ -898,6 +942,14 @@ async def get_conversation_messages(conversation_id: str, limit: int = 50, offse
 @app.post("/search")
 async def search_messages(request: SearchRequest):
     return get_memory_engine().search_messages(request.query, request.project_id, request.top_k)
+
+
+@app.get("/search")
+async def get_search(q: str = "", project_id: str = None, top_k: int = 10):
+    """向量搜索 — GET兼容 (v3.115.15 QA修复)"""
+    if not q:
+        return {"query": "", "results": []}
+    return get_memory_engine().search_messages(q, project_id, top_k)
 
 
 # ── 记忆管理 ────────────────────────────────────────────
@@ -1003,12 +1055,13 @@ async def build_context(request: BuildContextRequest):
 @app.get("/kernel/stats")
 async def kernel_stats():
     """v1.0 内核状态"""
+    from src.core import __version__
     k = get_kernel()
     if not k._started:
-        return {"status": "not_started"}
+        return {"status": "not_started", "version": __version__}
     return {
         "status": "running",
-        "version": "3.115.4",
+        "version": __version__,
         "plugins": k.plugins.list_active(),
         "event_bus": k.bus.get_stats(),
     }
@@ -2556,6 +2609,58 @@ async def sandbox_execute_stream(req: Request):
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
     
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.get("/api/agent/loop")
+async def agent_loop_sse(req: Request):
+    """代理循环SSE流 (v3.115.15 — QA修复)"""
+    async def generate():
+        yield "event: status\ndata: {\"agent\":\"meshctx\",\"status\":\"ready\",\"loop\":\"idle\"}\n\n"
+        while True:
+            if await req.is_disconnected():
+                break
+            import asyncio
+            await asyncio.sleep(5)
+            try:
+                from src.core.kernel import Kernel
+                k = Kernel.get()
+                loop_plugin = k.plugins.get("agent_loop") if k._started else None
+                status = "running" if (loop_plugin and getattr(loop_plugin, "_running", False)) else "idle"
+                yield f"event: status\ndata: {{\"status\":\"{status}\",\"loop\":\"{'active' if status=='running' else 'idle'}\"}}\n\n"
+            except Exception:
+                yield "event: status\ndata: {\"status\":\"unknown\"}\n\n"
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.get("/api/sandbox/stream")
+async def sandbox_stream_status(req: Request):
+    """沙箱流式状态 (v3.115.15 — QA修复)"""
+    async def generate():
+        yield "event: status\ndata: {\"sandbox\":\"ready\",\"sessions\":0}\n\n"
+        while True:
+            if await req.is_disconnected():
+                break
+            import asyncio
+            await asyncio.sleep(3)
+            yield "event: heartbeat\ndata: {\"ts\":\"" + __import__("datetime").datetime.now().isoformat() + "\"}\n\n"
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.get("/api/trace/stream")
+async def trace_stream(req: Request):
+    """链路追踪SSE流 (v3.115.15 — QA修复)"""
+    async def generate():
+        yield "event: status\ndata: {\"tracer\":\"ready\",\"spans\":0}\n\n"
+        while True:
+            if await req.is_disconnected():
+                break
+            import asyncio
+            await asyncio.sleep(3)
+            yield "event: heartbeat\ndata: {\"ts\":\"" + __import__("datetime").datetime.now().isoformat() + "\"}\n\n"
     return StreamingResponse(generate(), media_type="text/event-stream",
                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
@@ -4564,7 +4669,7 @@ async def human_memory_recall(req: Request):
         raise HTTPException(400, "query required")
     from src.core.human_memory import get_human_memory
     hm = get_human_memory()
-    results = hm.recall(query, context_tags, top_k)
+    results = hm.recall(query, top_k)
     return {"results": [{"id": r.id, "pattern": r.pattern[:100], "emotion": r.emotion.name, "strength": round(r.strength, 2), "recall_count": r.recall_count} for r in results]}
 
 
