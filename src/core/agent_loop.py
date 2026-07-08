@@ -56,11 +56,6 @@ class AgentLoopPlugin:
         self._reflection_log: list = []
         self._outcome: str = ""
 
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"):
-            raise AttributeError(name)
-        return _P(name)
-
     async def on_load(self, kernel) -> bool:
         self.kernel = kernel
         pool = get_agent_pool(max_slots=self._pool_max_slots)
@@ -280,7 +275,3 @@ class _P:
     def __await__(s, **kw):
         async def _aw(): return s
         return _aw().__await__()
-
-
-def __getattr__(name):
-    return _P(name)
