@@ -31,8 +31,11 @@ class SessionIdentity:
     def set_preference(self, key: str, value):
         self.preferences[key] = value
     
-    def set_habit(self, key: str, value):
-        self.strategies.append({"name": key, "value": value})
+    def get_preference(self, key: str, default=None):
+        return self.preferences.get(key, default)
+    
+    def set_habit(self, key: str, value, count: int = 1):
+        self.strategies.append({"name": key, "value": value, "count": count})
     
     def to_dict(self) -> dict:
         return {
