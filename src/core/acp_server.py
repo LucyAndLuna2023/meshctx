@@ -7,7 +7,7 @@ class ACPServer:
     def __init__(self):
         self.agents = {}
         self._handlers = {}
-        self.protocol_version = "2024-11-05"
+        self.protocol_version = "2025-01-01"
         self.server_info = {"name": "meshctx-acp", "version": "1.0"}
     
     def register_agent(self, agent_id: str, capabilities: list):
@@ -16,7 +16,7 @@ class ACPServer:
     def on(self, event: str, handler):
         self._handlers[event] = handler
     
-    def handle_request(self, request: dict) -> dict:
+    def handle_request(self, request: dict, context: dict = None) -> dict:
         """Handle an ACP protocol request."""
         method = request.get("method", "")
         if method == "initialize":
