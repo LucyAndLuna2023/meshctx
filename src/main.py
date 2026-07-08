@@ -1112,7 +1112,7 @@ async def hermes_cluster_status():
                     bridge_rules = {"forward": len(plugin.bridge_rules.get("forward", [])),
                                    "receive": len(plugin.bridge_rules.get("receive", []))}
         except Exception:
-            pass
+            logger.debug("Suppressed except Exception:: {}", exc_info=True)
 
         return {
             "hermes_instances": len(instances),
@@ -3385,7 +3385,7 @@ def _do_web_search(query: str) -> str:
         if results:
             return "\n".join(f"{i+1}. {r}" for i, r in enumerate(results))
     except Exception:
-        pass
+        logger.debug("Suppressed except Exception:: {}", exc_info=True)
     try:
         url = f"https://cn.bing.com/search?q={urllib.parse.quote(query)}"
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
@@ -4174,7 +4174,7 @@ async def brain_status():
         from src.core.agent_loop import AgentLoopPlugin
         # 这里无法直接访问实例，返回模拟数据
     except:
-        pass
+        logger.debug("Suppressed except:: {}", exc_info=True)
     
     # 生成各脑区模拟激活值 (后续接入真实数据)
     regions = [
@@ -4227,7 +4227,7 @@ async def cognitive_health_status():
             chm = loop.cognitive_health
             return chm.get_diagnosis()
     except Exception:
-        pass
+        logger.debug("Suppressed except Exception:: {}", exc_info=True)
     chm = CognitiveHealthMonitor()
     return chm.get_diagnosis()
 
@@ -4243,7 +4243,7 @@ async def learn_loop_stats():
             ll = loop.learn_loop
             return ll.get_stats()
     except Exception:
-        pass
+        logger.debug("Suppressed except Exception:: {}", exc_info=True)
     return {"error": "LearnLoop not initialized"}
 
 
@@ -4476,7 +4476,7 @@ async def system_status():
                 if pinfo.get("key"):
                     configured_ids.add(f"provider:{pid}")
         except Exception:
-            pass
+            logger.debug("Suppressed except Exception:: {}", exc_info=True)
     configured = len(configured_ids)
     
     reg_path = Path(__file__).parent.parent / "plugins" / "registry.json"
@@ -4893,7 +4893,7 @@ async def context_projects():
                 with open(active_file) as f:
                     active_name = _json.load(f).get("project_name", "")
             except Exception:
-                pass
+                logger.debug("Suppressed except Exception:: {}", exc_info=True)
 
         # 扫描 projects 目录
         if proj_dir.exists():
@@ -5215,7 +5215,7 @@ async def archive_save(request: Request):
             if key in ["version", "decisions", "rules", "progress"]:
                 archiver._context[key] = body[key]
     except:
-        pass
+        logger.debug("Suppressed except:: {}", exc_info=True)
     path = archiver.save(force=True)
     return {"status": "ok", "path": path, "summary": archiver.get_summary()}
 
@@ -5409,7 +5409,7 @@ async def config_import(request: Request):
             import src.model_registry as mr
             mr._registry = None
         except Exception:
-            pass
+            logger.debug("Suppressed except Exception:: {}", exc_info=True)
         # 统计导入的条目数
         imported = 0
         for section in ("models", "plugins", "mcp"):

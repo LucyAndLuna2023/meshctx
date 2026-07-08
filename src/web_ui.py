@@ -3965,7 +3965,7 @@ async def memories_overview(request: Request):
                 "project_name": "🧠 Memory V2",
             })
     except Exception:
-        pass
+        logger.debug("Suppressed except Exception:: {}", exc_info=True)
 
     all_memories.sort(key=lambda x: x["memory"].importance, reverse=True)
 
@@ -3992,7 +3992,7 @@ async def delete_memory_ui(request: Request, memory_id: str):
             mgr = get_memory_manager()
             mgr.remove(memory_id)
         except Exception:
-            pass
+            logger.debug("Suppressed except Exception:: {}", exc_info=True)
     return RedirectResponse(url="/ui/memories", status_code=303)
 
 
@@ -4090,7 +4090,7 @@ async def setup_page(request: Request):
                     if pinfo.get("key"):
                         pcfg_keys[pid] = pinfo["key"]
             except:
-                pass
+                logger.debug("Suppressed except:: {}", exc_info=True)
         # 对于 provider_config 中有 key 但 config.yaml 中无 entry 的 provider，
         # 自动补全该 provider 下所有内置模型的 entries
         for pid, pkey in pcfg_keys.items():
@@ -4172,7 +4172,7 @@ async def setup_page(request: Request):
                     "key_masked": raw_key[:6] + "****" + raw_key[-4:] if len(raw_key) > 10 else ("****" if raw_key else ""),
                 })
     except:
-        pass
+        logger.debug("Suppressed except:: {}", exc_info=True)
     
     # 排序: 默认最前 → 已配置 → 按provider
     configured.sort(key=lambda m: (
@@ -4237,7 +4237,7 @@ async def save_api_key(
         from src.core.crypto import encrypt_key
         encrypted_key = encrypt_key(api_key)
     except:
-        pass
+        logger.debug("Suppressed except:: {}", exc_info=True)
     config["models"]["entries"][model_id] = {
         "key": encrypted_key,
         "model": actual_model,
@@ -4255,7 +4255,7 @@ async def save_api_key(
         from src.model_registry import reset_registry
         reset_registry()
     except:
-        pass
+        logger.debug("Suppressed except:: {}", exc_info=True)
 
     return RedirectResponse(url="/ui/setup?saved=1", status_code=303)
 
