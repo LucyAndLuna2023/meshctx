@@ -13,6 +13,22 @@ class SessionIdentity:
         self._fingerprint = self._compute_fingerprint()
         self.preferences = kw.get('preferences', {})
         self.strategies = kw.get('strategies', [])
+        
+        # Auto-load from storage_dir if it exists
+        if storage_dir:
+            path = os.path.join(storage_dir, "session_identity.json")
+            if os.path.exists(path):
+                try:
+                    with open(path) as f:
+                        data = json.load(f)
+                    self.session_id = data.get("session_id", self.session_id)
+                    self.created_at = data.get("created_at", self.created_at)
+                    self._last_active = data.get("last_active", self._last_active)
+                    self._fingerprint = data.get("fingerprint", self._fingerprint)
+                    self.preferences = data.get("preferences", self.preferences)
+                    self.strategies = data.get("strategies", self.strategies)
+                except Exception:
+                    pass
     
     def _compute_fingerprint(self) -> str:
         data = f"{self.session_id}:{self.created_at}"
@@ -25,8 +41,11 @@ class SessionIdentity:
     def validate(self, fingerprint: str) -> bool:
         return fingerprint == self._fingerprint
     
-    def set_strategy_belief(self, strategy_name: str, belief: float):
+    def set_strategy_belief(self, strategy_name: str, belief):
         self.preferences[strategy_name] = belief
+    
+    def get_strategy_belief(self, strategy_name: str, default=None):
+        return self.preferences.get(strategy_name, default)
     
     def set_preference(self, key: str, value):
         self.preferences[key] = value
