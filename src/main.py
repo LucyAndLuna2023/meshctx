@@ -642,7 +642,7 @@ async def auth_login(request: Request):
         ban_duration = min(300, 30 * (2 ** (len(_login_attempts[client_ip]) - LOGIN_MAX_ATTEMPTS)))  # 指数退避
         _login_bans[client_ip] = now + ban_duration
         raise HTTPException(429, f"登录尝试过多，已封禁{ban_duration}秒")
-    raise HTTPException(401, "密码错误")
+    raise HTTPException(401, t('error_wrong_password'))
 
 @app.post("/api/auth/logout")
 async def auth_logout():
@@ -1727,7 +1727,7 @@ async def summon_agent(request: dict = None):
     from src.core.summon_engine import get_summon_engine
 
     if not request:
-        raise HTTPException(400, "请求体不能为空，需要提供 description 字段")
+        raise HTTPException(400, t('error_missing_description'))
 
     description = request.get("description", "")
     if not description:
@@ -2241,7 +2241,7 @@ async def add_model(request: Request):
     try:
         body = await request.json()
     except:
-        raise HTTPException(400, "无效的JSON请求体")
+        raise HTTPException(400, t('error_invalid_json_body'))
     
     model_id = (body.get("id") or "").strip()
     provider = (body.get("provider") or "").strip()
@@ -2250,7 +2250,7 @@ async def add_model(request: Request):
     base_url = body.get("base_url", "")
     
     if not model_id or not provider:
-        raise HTTPException(400, "id 和 provider 为必填项")
+        raise HTTPException(400, t('error_id_provider_required'))
     
     config_path = Path.home() / ".meshctx" / "config.yaml"
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2304,11 +2304,11 @@ async def update_model(model_id: str, request: Request):
     try:
         body = await request.json()
     except:
-        raise HTTPException(400, "无效的JSON请求体")
+        raise HTTPException(400, t('error_invalid_json_body'))
     
     config_path = Path.home() / ".meshctx" / "config.yaml"
     if not config_path.exists():
-        raise HTTPException(404, "配置文件不存在，请先添加模型")
+        raise HTTPException(404, t('error_no_config_add_model'))
     
     with open(config_path) as f:
         config = _yaml_load(f) or {}
@@ -2365,12 +2365,12 @@ async def rename_model(model_id: str, request: Request):
     try:
         body = await request.json()
     except:
-        raise HTTPException(400, "无效的JSON请求体")
+        raise HTTPException(400, t('error_invalid_json_body'))
     
     rename_to = body.get("rename_to", "").strip()
     config_path = Path.home() / ".meshctx" / "config.yaml"
     if not config_path.exists():
-        raise HTTPException(404, "配置文件不存在")
+        raise HTTPException(404, t('error_config_not_found'))
     
     with open(config_path) as f:
         config = _yaml_load(f) or {}
@@ -2417,7 +2417,7 @@ async def delete_model(model_id: str):
     
     config_path = Path.home() / ".meshctx" / "config.yaml"
     if not config_path.exists():
-        raise HTTPException(404, "无配置文件")
+        raise HTTPException(404, t('error_no_config'))
     
     with open(config_path) as f:
         config = _yaml_load(f) or {}
@@ -2490,7 +2490,7 @@ async def set_default_model(model_id: str):
     
     config_path = Path.home() / ".meshctx" / "config.yaml"
     if not config_path.exists():
-        raise HTTPException(404, "无配置文件")
+        raise HTTPException(404, t('error_no_config'))
     
     with open(config_path) as f:
         config = _yaml_load(f) or {}
@@ -2556,7 +2556,7 @@ async def test_model_connection(model_id: str):
 async def web_search(q: str = "", engine: str = "duckduckgo"):
     """Web搜索 (v2.7 — 对标Perplexity/Claude Web Search)"""
     if not q:
-        raise HTTPException(400, "请提供搜索词 q 参数")
+        raise HTTPException(400, t('error_missing_search_q'))
     
     import urllib.request
     import urllib.parse
@@ -2588,14 +2588,14 @@ async def sandbox_execute(req: Request):
     try:
         body = await req.json()
     except Exception:
-        raise HTTPException(400, "请求body需为JSON")
+        raise HTTPException(400, t('error_body_must_be_json'))
     
     code = body.get("code", "")
     language = body.get("language", "python")
     timeout = min(int(body.get("timeout", 30)), 120)
     
     if not code or not code.strip():
-        raise HTTPException(400, "请提供 code 参数")
+        raise HTTPException(400, t('error_missing_code_param'))
     
     from src.core.sandbox import get_sandbox
     
@@ -2610,14 +2610,14 @@ async def sandbox_execute_stream(req: Request):
     try:
         body = await req.json()
     except Exception:
-        raise HTTPException(400, "请求body需为JSON")
+        raise HTTPException(400, t('error_body_must_be_json'))
     
     code = body.get("code", "")
     language = body.get("language", "python")
     timeout = min(int(body.get("timeout", 30)), 120)
     
     if not code or not code.strip():
-        raise HTTPException(400, "请提供 code 参数")
+        raise HTTPException(400, t('error_missing_code_param'))
     
     from src.core.sandbox import get_sandbox
     import asyncio
@@ -2735,7 +2735,7 @@ async def project_index(root: str = "."):
 async def project_search(q: str = "", root: str = ".", top_k: int = 10):
     """搜索项目文件 (v2.7)"""
     if not q:
-        raise HTTPException(400, "请提供 q 参数")
+        raise HTTPException(400, t('error_missing_q_param'))
     from src.core.project_indexer import get_indexer
     idx = get_indexer(root)
     results = idx.search(q, top_k)
@@ -2760,7 +2760,7 @@ async def project_search(q: str = "", root: str = ".", top_k: int = 10):
 async def project_context(q: str = "", root: str = ".", max_chars: int = 8000):
     """获取项目上下文 (v2.7 — 对标Cursor/Windsurf)"""
     if not q:
-        raise HTTPException(400, "请提供 q 参数")
+        raise HTTPException(400, t('error_missing_q_param'))
     from src.core.project_indexer import get_indexer
     idx = get_indexer(root)
     context = idx.get_context(q, max_chars)
@@ -2773,13 +2773,13 @@ async def feishu_test(req: Request):
     try:
         body = await req.json()
     except Exception:
-        raise HTTPException(400, "请求body需为JSON")
+        raise HTTPException(400, t('error_body_must_be_json'))
     
     webhook_url = body.get("webhook_url", "")
     secret = body.get("secret", "")
     
     if not webhook_url:
-        raise HTTPException(400, "请提供飞书webhook地址")
+        raise HTTPException(400, t('error_missing_feishu_webhook'))
     
     from src.core.feishu_notify import FeishuNotifier
     
@@ -2795,7 +2795,7 @@ async def feishu_notify(req: Request):
     try:
         body = await req.json()
     except Exception:
-        raise HTTPException(400, "请求body需为JSON")
+        raise HTTPException(400, t('error_body_must_be_json'))
     
     webhook_url = body.get("webhook_url", "")
     secret = body.get("secret", "")
@@ -2804,7 +2804,7 @@ async def feishu_notify(req: Request):
     title = body.get("title", "MeshCtx Notification")
     
     if not webhook_url or not content:
-        raise HTTPException(400, "请提供webhook_url和content")
+        raise HTTPException(400, t('error_missing_webhook_params'))
     
     from src.core.feishu_notify import FeishuNotifier
     
@@ -2841,14 +2841,14 @@ async def win_execute(req: Request):
     try:
         body = await req.json()
     except Exception:
-        raise HTTPException(400, "请求body需为JSON")
+        raise HTTPException(400, t('error_body_must_be_json'))
     
     command = body.get("command", "")
     timeout = min(int(body.get("timeout", 30)), 120)
     confirmed = body.get("confirmed", False)
     
     if not command:
-        raise HTTPException(400, "请提供 command 参数")
+        raise HTTPException(400, t('error_missing_command'))
     
     from src.core.win_admin import get_win_admin
     wa = get_win_admin()
@@ -2908,7 +2908,7 @@ async def win_processes():
 async def win_process_kill(req: Request):
     """终止Windows进程"""
     try: body = await req.json()
-    except: raise HTTPException(400, "请求body需为JSON")
+    except: raise HTTPException(400, t('error_body_must_be_json'))
     
     pid = body.get("pid", 0)
     name = body.get("name", "")
@@ -2940,14 +2940,14 @@ async def win_browsers():
 async def win_open(req: Request):
     """在浏览器中打开URL"""
     try: body = await req.json()
-    except: raise HTTPException(400, "请求body需为JSON")
+    except: raise HTTPException(400, t('error_body_must_be_json'))
     
     url = body.get("url", "")
     browser = body.get("browser", "default")
     confirmed = body.get("confirmed", False)
     
     if not url:
-        raise HTTPException(400, "请提供 url 参数")
+        raise HTTPException(400, t('error_missing_url'))
     
     from src.core.win_admin import get_win_admin
     wa = get_win_admin()
@@ -2959,7 +2959,7 @@ async def win_open(req: Request):
 async def win_registry(path: str = "", name: str = ""):
     """读取注册表"""
     if not path:
-        raise HTTPException(400, "请提供 path 参数")
+        raise HTTPException(400, t('error_missing_path'))
     from src.core.win_admin import get_win_admin
     wa = get_win_admin()
     return await wa.reg_read(path, name)
@@ -3630,13 +3630,13 @@ def _do_browser_snapshot(cache: dict) -> str:
 async def chat_compare(req: Request):
     """多模型对比 — 同一问题并发问3个模型"""
     try: body = await req.json()
-    except: raise HTTPException(400, "请求body需为JSON")
+    except: raise HTTPException(400, t('error_body_must_be_json'))
     
     message = body.get("message", "")
     model_ids = body.get("models", ["deepseek:chat", "openai:gpt-4o-mini", "anthropic:claude-haiku"])
     
     if not message:
-        raise HTTPException(400, "请提供 message")
+        raise HTTPException(400, t('error_missing_message'))
     
     from src.core.model_compare import compare_models
     result = await compare_models(message, model_ids[:5])
@@ -3647,13 +3647,13 @@ async def chat_compare(req: Request):
 async def chat_compare_stream(req: Request):
     """多模型对比流式 (SSE)"""
     try: body = await req.json()
-    except: raise HTTPException(400, "请求body需为JSON")
+    except: raise HTTPException(400, t('error_body_must_be_json'))
     
     message = body.get("message", "")
     model_ids = body.get("models", ["deepseek:chat", "openai:gpt-4o-mini"])
     
     if not message:
-        raise HTTPException(400, "请提供 message")
+        raise HTTPException(400, t('error_missing_message'))
     
     from src.core.model_compare import compare_models_stream
     return StreamingResponse(
@@ -3761,7 +3761,7 @@ async def rename_conversation(conv_id: str, req: Request):
     from src.core.conversation_store import Conversation
     ok = Conversation.rename(conv_id, new_title)
     if not ok:
-        raise HTTPException(404, "对话不存在")
+        raise HTTPException(404, t('error_conversation_not_found'))
     return {"status": "ok", "id": conv_id, "title": new_title}
 
 
@@ -3798,7 +3798,7 @@ async def get_conversation(conv_id: str):
     from src.core.conversation_store import Conversation
     conv = Conversation.load(conv_id)
     if not conv:
-        raise HTTPException(404, "对话不存在")
+        raise HTTPException(404, t('error_conversation_not_found'))
     return conv.to_dict()
 
 
@@ -3918,7 +3918,7 @@ async def code_review(req: Request):
     
     files = body.get("files", [])  # [{path, content, language}]
     if not files:
-        raise HTTPException(400, "请提供 files 参数")
+        raise HTTPException(400, t('error_missing_files'))
     
     from src.core.code_reviewer import CodeReviewer
     reviewer = CodeReviewer()
@@ -3952,7 +3952,7 @@ def _validate_file_path(path: str) -> "Path":
     import os
 
     if not path:
-        raise HTTPException(400, "请提供文件路径 path 参数")
+        raise HTTPException(400, t('error_missing_file_path'))
 
     # WSL/Windows路径翻译
     resolved = path
@@ -3999,7 +3999,7 @@ def _validate_file_path(path: str) -> "Path":
 
     # 双重校验: 拒绝 .. 遍历
     if ".." in path:
-        raise HTTPException(403, "安全限制: 路径中禁止包含 ..")
+        raise HTTPException(403, t('error_path_traversal_blocked'))
 
     # 拒绝敏感系统文件 (扩展: 含部署脚本/配置/密钥)
     sensitive_files = ["/etc/passwd", "/etc/shadow", "/etc/ssh", "/.ssh/",
@@ -4085,7 +4085,7 @@ async def write_local_file(req: Request, path: str = ""):
     file_path = _validate_file_path(path)
     
     if file_path.is_dir():
-        raise HTTPException(400, "路径是目录无法写入")
+        raise HTTPException(400, t('error_path_is_directory'))
     
     try:
         body = await req.json()
@@ -4094,7 +4094,7 @@ async def write_local_file(req: Request, path: str = ""):
         raise HTTPException(400, "请使用 POST body: {\"content\": \"...\"}")
     
     if not content:
-        raise HTTPException(400, "content 不能为空")
+        raise HTTPException(400, t('error_content_empty'))
     
     try:
         file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -4343,7 +4343,7 @@ async def get_plugin(plugin_name: str):
     
     registry_path = Path(__file__).resolve().parent.parent / "plugins" / "registry.json"
     if not registry_path.exists():
-        raise HTTPException(404, "插件注册表不存在")
+        raise HTTPException(404, t('error_plugin_registry_not_found'))
     
     with open(registry_path) as f:
         registry = json.load(f)
@@ -4363,7 +4363,7 @@ async def install_plugin(plugin_name: str):
     
     registry_path = Path(__file__).resolve().parent.parent / "plugins" / "registry.json"
     if not registry_path.exists():
-        raise HTTPException(404, "插件注册表不存在")
+        raise HTTPException(404, t('error_plugin_registry_not_found'))
     
     with open(registry_path) as f:
         registry = json.load(f)
@@ -4428,7 +4428,7 @@ async def install_plugin_url(req: Request):
     try: body = await req.json()
     except: raise HTTPException(400)
     url = (body.get("url") or "").strip()
-    if not url: raise HTTPException(400, "请提供 url")
+    if not url: raise HTTPException(400, t('error_missing_url_short'))
     # Validate URL before attempting request
     import urllib.parse as urlparse
     parsed = urlparse.urlparse(url)
@@ -5003,7 +5003,7 @@ async def sandbox_run(request: Request):
     except: raise HTTPException(400)
     code = body.get("code", "")
     language = body.get("language", "python")
-    if not code: raise HTTPException(400, "代码为空")
+    if not code: raise HTTPException(400, t('error_code_empty'))
     try:
         from src.core.sandbox import get_sandbox
         sandbox = get_sandbox()
@@ -5135,11 +5135,11 @@ async def sandbox_execute(req: Request):
     try:
         body = await req.json()
     except Exception:
-        raise HTTPException(400, "无效JSON")
+        raise HTTPException(400, t('error_invalid_json'))
     
     code = body.get("code", "").strip()
     if not code:
-        raise HTTPException(400, "请提供 code")
+        raise HTTPException(400, t('error_missing_code_short'))
     
     if len(code) > 50000:
         raise HTTPException(400, "代码过长 (最大50000字符)")
