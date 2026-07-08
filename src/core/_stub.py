@@ -45,7 +45,7 @@ class _P:
             del s._d[n]
     
     def __call__(s, *a, **k):
-        logger.debug(f"Stub called: {s._n or 'anonymous'}()")
+        logger.warning(f"Stub called: {s._n or 'anonymous'}() — SHELL module, real impl in meshctx-core")
         return _P(f"{s._n}()" if s._n else "call")
     
     def __bool__(s):
