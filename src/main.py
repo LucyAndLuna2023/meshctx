@@ -500,75 +500,53 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     return response
 
-# ── Rate Limiting Middleware (MEDIUM-001) ─────────────────────
-_rate_limit_store: Dict[str, List[float]] = {}
-RATE_LIMIT_WINDOW = 60  # seconds
-RATE_LIMIT_MAX = 60     # requests per window
-_rate_limit_cleanup_counter = 0
+# ── Rate Limiting Middleware (v3.115.16 统一版) ──────────────
+_rate_limits: Dict[str, List[float]] = {}
+RATE_WINDOW = 60
+RATE_MAX = 60
+_rate_limits_last_cleanup: float = time.time()
+RATE_CLEANUP_INTERVAL = 300
+
+_suspicious_ips: Dict[str, List[float]] = {}
+_SUSPICIOUS_THRESHOLD = 5
+_SUSPICIOUS_WINDOW = 30
 
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
-    """Simple in-memory rate limiter: 60 req/min per IP, returns 429 when exceeded"""
-    global _rate_limit_cleanup_counter
+    """统一限流: 60req/min + 可疑IP自动封禁 (5次403/404 in 30s)"""
     client_ip = request.client.host if request.client else "unknown"
     now = time.time()
-    if client_ip not in _rate_limit_store:
-        _rate_limit_store[client_ip] = []
-    _rate_limit_store[client_ip] = [
-        t for t in _rate_limit_store[client_ip] if now - t < RATE_LIMIT_WINDOW
-    ]
-    # Periodic cleanup: every 200 requests, purge inactive IPs
-    _rate_limit_cleanup_counter += 1
-    if _rate_limit_cleanup_counter >= 200:
-        _rate_limit_cleanup_counter = 0
-        stale_ips = [ip for ip, ts in _rate_limit_store.items()
-                     if not ts or now - ts[-1] > RATE_LIMIT_WINDOW]
-        for ip in stale_ips:
-            del _rate_limit_store[ip]
-    if len(_rate_limit_store[client_ip]) >= RATE_LIMIT_MAX:
-        retry_after = int(RATE_LIMIT_WINDOW - (now - _rate_limit_store[client_ip][0]))
-        return JSONResponse(
-            status_code=429,
-            content={"detail": f"Rate limit exceeded. Try again in {retry_after}s."},
-            headers={"Retry-After": str(max(1, retry_after))},
-        )
-    _rate_limit_store[client_ip].append(now)
-    response = await call_next(request)
-    remaining = RATE_LIMIT_MAX - len(_rate_limit_store[client_ip])
-    response.headers["X-RateLimit-Limit"] = str(RATE_LIMIT_MAX)
-    response.headers["X-RateLimit-Remaining"] = str(max(0, remaining))
-    return response
-
-
-# ── v3.115.16: Suspicious activity detection ──
-_suspicious_ips: Dict[str, List[float]] = {}  # IP → [timestamps of 403/404]
-_SUSPICIOUS_THRESHOLD = 5   # 5 errors in window
-_SUSPICIOUS_WINDOW = 30     # seconds
-
-@app.middleware("http")
-async def suspicious_activity_middleware(request: Request, call_next):
-    """Block IPs that trigger excessive 403/404 in a short window (port scanners)"""
-    client_ip = request.client.host if request.client else "unknown"
     
-    # Check if already blocked
+    # Periodic cleanup
+    if now - _rate_limits_last_cleanup > RATE_CLEANUP_INTERVAL:
+        _rate_limits.clear()
+        _suspicious_ips.clear()
+        _rate_limits_last_cleanup = now
+    
+    # Suspicious IP check
     if client_ip in _suspicious_ips:
-        ts_list = [t for t in _suspicious_ips[client_ip] if time.time() - t < _SUSPICIOUS_WINDOW]
-        if len(ts_list) >= _SUSPICIOUS_THRESHOLD:
-            return JSONResponse(
-                status_code=403,
-                content={"detail": "Access denied: suspicious activity detected"},
-                headers={"Retry-After": str(_SUSPICIOUS_WINDOW)}
-            )
-        _suspicious_ips[client_ip] = ts_list
+        _suspicious_ips[client_ip] = [t for t in _suspicious_ips[client_ip] if now - t < _SUSPICIOUS_WINDOW]
+        if len(_suspicious_ips[client_ip]) >= _SUSPICIOUS_THRESHOLD:
+            return JSONResponse(status_code=403,
+                content={"detail": "Access denied: suspicious activity detected"})
+    
+    # Rate limit check
+    if client_ip not in _rate_limits:
+        _rate_limits[client_ip] = []
+    _rate_limits[client_ip] = [t for t in _rate_limits[client_ip] if now - t < RATE_WINDOW]
+    if len(_rate_limits[client_ip]) >= RATE_MAX:
+        return JSONResponse(status_code=429,
+            content={"detail": "Rate limit exceeded. Try again later."},
+            headers={"Retry-After": "60"})
+    _rate_limits[client_ip].append(now)
     
     response = await call_next(request)
     
-    # Track 403/404 responses
+    # Track 403/404 for suspicious detection
     if response.status_code in (403, 404):
         if client_ip not in _suspicious_ips:
             _suspicious_ips[client_ip] = []
-        _suspicious_ips[client_ip] = [t for t in _suspicious_ips[client_ip] if time.time() - t < _SUSPICIOUS_WINDOW]
-        _suspicious_ips[client_ip].append(time.time())
+        _suspicious_ips[client_ip].append(now)
     
     return response
 
@@ -3958,54 +3936,8 @@ async def code_review(req: Request):
 
 
 # ═══════════════════════════════════════════════════
-# API 限流 (v2.11)
+# API 限流 — 已统一至 line 504 (v3.115.16)
 # ═══════════════════════════════════════════════════
-
-_rate_limits: Dict[str, List[float]] = {}
-RATE_WINDOW = 60  # 1 minute window
-RATE_MAX = 500     # 500 requests per minute per IP (test mode)
-_rate_limits_last_cleanup: float = 0.0
-RATE_CLEANUP_INTERVAL = 300  # cleanup every 5 minutes
-
-
-@app.middleware("http")
-async def rate_limit_middleware(request: Request, call_next):
-    """简易IP限流"""
-    client_ip = request.client.host if request.client else "unknown"
-    now = time.time()
-
-    # BUG-010: Periodic cleanup of stale entries to prevent memory leak
-    global _rate_limits_last_cleanup
-    if now - _rate_limits_last_cleanup > RATE_CLEANUP_INTERVAL:
-        _rate_limits_last_cleanup = now
-        expired = [ip for ip, ts in _rate_limits.items()
-                   if not ts or now - ts[-1] > RATE_WINDOW]
-        for ip in expired:
-            _rate_limits.pop(ip, None)
-    
-    if client_ip not in _rate_limits:
-        _rate_limits[client_ip] = []
-    
-    # Clean old entries (BUG-010: 清理空列表防止内存泄漏)
-    _rate_limits[client_ip] = [t for t in _rate_limits[client_ip] if now - t < RATE_WINDOW]
-    if not _rate_limits[client_ip]:
-        # 当前IP无活跃请求，清理key并放行
-        _rate_limits.pop(client_ip, None)
-        # 批量清理其他过期IP (限流字典膨胀防护)
-        if len(_rate_limits) > 1000:
-            expired = [ip for ip, ts in _rate_limits.items() if now - ts[-1] > RATE_WINDOW]
-            for ip in expired:
-                _rate_limits.pop(ip, None)
-        return await call_next(request)
-    
-    if len(_rate_limits[client_ip]) >= RATE_MAX:
-        return JSONResponse(
-            status_code=429,
-            content={"error": "rate_limited", "message": f"超过限制 ({RATE_MAX}次/{RATE_WINDOW}秒)", "retry_after": RATE_WINDOW}
-        )
-    
-    _rate_limits[client_ip].append(now)
-    return await call_next(request)
 
 
 def _validate_file_path(path: str) -> "Path":
