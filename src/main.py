@@ -514,6 +514,7 @@ _SUSPICIOUS_WINDOW = 30
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
     """统一限流: 60req/min + 可疑IP自动封禁 (5次403/404 in 30s)"""
+    global _rate_limits_last_cleanup
     client_ip = request.client.host if request.client else "unknown"
     now = time.time()
     
