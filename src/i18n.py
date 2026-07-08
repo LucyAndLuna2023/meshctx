@@ -1,6 +1,39 @@
 """
 meshctx i18n 多语言支持
 支持: 中文(zh) / English(en) / 日本語(ja) / 한국어(ko) / Français(fr) / Deutsch(de) / Español(es)
+
+── Key 命名规范 (v3.115.16 Phase 1) ──
+所有 key 使用 snake_case，按功能域分组，用 _ 分隔层级:
+
+  [domain]_[component]_[property]
+
+Domain    | 前缀         | 说明
+──────────┼──────────────┼──────────────────
+navigation| nav_         | 导航栏、标签页
+dashboard | dashboard_   | 仪表板/首页
+project   | project_     | 项目管理 CRUD
+chat      | chat_        | 聊天界面
+setup     | setup_       | 配置/API密钥
+memory    | memory_      | 记忆管理
+agent     | agent_       | Agent/会话
+files     | files_       | 文件管理器
+provider  | provider_    | 模型供应商
+common    | common_      | 通用UI(保存/取消/删除等)
+error     | error_       | 错误消息
+search    | search_      | 搜索功能
+continuity| continuity_  | 连续性检测
+
+Component  | 后缀       | 说明
+──────────┼────────────┼──────────────────
+title     | _title     | 标题/标题栏
+desc      | _desc      | 描述文本
+label     | _label     | 表单/字段标签
+btn       | _btn       | 按钮文本
+placeholder| _placeholder| 输入框占位符
+hint      | _hint      | 提示信息
+empty     | _empty     | 空状态文本
+
+示例: project_create_btn, chat_input_placeholder, common_delete_confirm
 """
 import json
 import os
@@ -1639,6 +1672,23 @@ def get_lang(request=None) -> str:
     if env_lang and env_lang in TRANSLATIONS:
         return env_lang
     return _current_lang or "zh"
+
+
+def validate_keys() -> dict:
+    """校验所有语言 key 一致性 (Phase 1 质量门禁)
+
+    Returns: {"ok": True} 或 {"missing": {lang: [missing_keys]}}
+    """
+    ref_keys = set(TRANSLATIONS.get("en", {}).keys())
+    if not ref_keys:
+        return {"ok": True, "total_keys": 0}
+    missing = {}
+    for lang in TRANSLATIONS:
+        lang_keys = set(TRANSLATIONS[lang].keys())
+        diff = ref_keys - lang_keys
+        if diff:
+            missing[lang] = sorted(diff)
+    return {"ok": len(missing) == 0, "total_keys": len(ref_keys), "missing": missing}
 
 
 def set_lang(lang: str):
