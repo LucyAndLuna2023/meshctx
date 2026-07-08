@@ -1,3 +1,12 @@
+## [3.115.16] - 2026-07-08
+### Fixed (QA R6 — 004meshctx)
+- **P0: Projects 500** — `_truncate(None)` TypeError, description 字段改为Optional后未处理null
+- **P0: Chat空白** — chat.html 是stub不继承base.html，重写为完整UI(extends base + send API + postMessage)
+- **P0: Files JS errors** — renderBreadcrumb/renderFiles 转义链破碎(\\'语法错误)，改用&quot;实体+data属性事件委托
+- **P0: Projects死锁(N+1)** — Dashboard和Projects列表 O(N×M)扫描优化为单次分组(7.8s→4.0s, 458项目)
+- **Dashboard 500** — `description[:40]` None切片改用`truncate()`
+- **P1: SSE别名** — `/api/agent-loop/stream` 和 `/api/trace/live` 防御别名
+
 ## [3.115.2] - 2026-06-11
 ### Added
 - **+20 新工具对标5大竞品**: Claude Code/OpenClaw 对标13工具(Monitor/Message/Workflow/Team/LSP/NotebookEdit/Worktree/PushNotify/ScheduleWakeup/ToolSearch/x_search/Goal/Heartbeat) + CoPaw/Coze/WorkBuddy 对标7工具(DesktopScreenshot/DesktopControl/SendFile/AgentsList/Spreadsheet/WebScraper/PPT/KnowledgeBase)。全部渐进降级 stub 模式,无依赖环境 0 错误导入。
