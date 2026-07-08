@@ -13,9 +13,6 @@ class CircuitState(Enum):
 
 
 class CircuitBreaker:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, name: str = "default", failure_threshold: int = 5,
                  recovery_timeout: float = 60.0):
         self.name = name
@@ -46,9 +43,6 @@ class ResilienceResult:
 
 
 class ResilienceLoop:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, max_retries: int = 0, **kw):
         self.max_retries = max_retries
 

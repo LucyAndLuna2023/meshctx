@@ -44,9 +44,6 @@ logger = logging.getLogger("meshctx.hybrid_search")
 # ═══════════════════════════════════════════════════════════
 
 class TextNormalizer:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """文本标准化 + 分词"""
 
     # 英文分词正则: 单词 + 连字符保留
@@ -86,9 +83,6 @@ class BM25Stats:
 
 
 class BM25Scorer:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """BM25 (Okapi BM25) 精确实现
 
     BM25 公式:
@@ -234,9 +228,6 @@ class BM25Scorer:
 # ═══════════════════════════════════════════════════════════
 
 class RRFFusion:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Reciprocal Rank Fusion (RRF)
 
     RRF 公式:
@@ -296,9 +287,6 @@ class RRFFusion:
 # ═══════════════════════════════════════════════════════════
 
 class FusionStrategy:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """融合策略工厂"""
 
     @staticmethod
@@ -364,9 +352,6 @@ class FusionStrategy:
 # ═══════════════════════════════════════════════════════════
 
 class DiversityReranker:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Maximal Marginal Relevance (MMR) 多样性重排
 
     MMR 公式:
@@ -468,9 +453,6 @@ class HybridSearchResult:
 
 
 class HybridSearcher:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """混合搜索引擎
 
     组合 BM25 关键词搜索 + 向量语义搜索，通过 RRF 或凸组合融合。

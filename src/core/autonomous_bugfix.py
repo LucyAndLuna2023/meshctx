@@ -8,9 +8,6 @@ from dataclasses import dataclass, field
 
 
 class FixStatus(enum.Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     generating = "generating"
     sdb_review = "sdb_review"
     verified = "verified"
@@ -44,9 +41,6 @@ class Fix:
 
 
 class AutonomousBugFixEngine:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, auto_deploy: bool = False, **kw):
         self.auto_deploy = auto_deploy
         self._events: list[ErrorEvent] = []

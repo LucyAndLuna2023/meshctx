@@ -3,9 +3,6 @@ import numpy as np
 import hashlib
 
 class SymbolicProjector:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, symbol_dim=32, vector_dim=128, **kw):
         self.symbol_dim = symbol_dim
         self.vector_dim = vector_dim
@@ -19,9 +16,6 @@ class SymbolicProjector:
         return ["decoded_symbol"] * min(top_k, 3)
 
 class SparseAttentionRouter:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, num_experts=8, sparsity=2, **kw):
         self.num_experts = num_experts
         self.sparsity = sparsity
@@ -36,9 +30,6 @@ class SparseAttentionRouter:
         return scores
 
 class PsiParameterizedComplexity:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         pass
     def estimate(self, model_name, params=0, **kw):
@@ -47,9 +38,6 @@ class PsiParameterizedComplexity:
         return models[0] if models else "unknown"
 
 class BrainInspiredRouter:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self._projector = SymbolicProjector()
         self._route_count = 0

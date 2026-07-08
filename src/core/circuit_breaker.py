@@ -69,9 +69,6 @@ DEFAULT_CALL_TIMEOUT = 30.0           # 单次调用超时
 # ═══════════════════════════════════════════════════════════
 
 class CircuitBreakerOpenError(Exception):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """熔断器开启 — 请求被快速失败。"""
     def __init__(self, context: str, message: str = "", **kw):
         self.context = context
@@ -80,9 +77,6 @@ class CircuitBreakerOpenError(Exception):
 
 
 class CircuitBreakerError(Exception):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """熔断器通用异常。"""
     pass
 
@@ -174,9 +168,6 @@ class CBStats:
 # ═══════════════════════════════════════════════════════════
 
 class CircuitBreaker:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """单个熔断器实例 (绑定到一个 context)。
 
     管理单个上下文的熔断逻辑: 滑动窗口计数、三态转换、
@@ -532,9 +523,6 @@ class CircuitBreaker:
 # ═══════════════════════════════════════════════════════════
 
 class CircuitBreakerManager:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """熔断器管理器 — 管理多个 context 独立的熔断器实例。
 
     核心职责:

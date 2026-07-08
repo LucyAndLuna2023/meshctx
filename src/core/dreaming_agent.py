@@ -80,9 +80,6 @@ class DreamReport:
 # ═══════════════════════════════════════════════════════════
 
 class SessionScanner:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """扫描 sessions.db 提取任务模式"""
 
     def __init__(self, db_path: str = None, **kw):
@@ -150,9 +147,6 @@ class SessionScanner:
 # ═══════════════════════════════════════════════════════════
 
 class PatternExtractor:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """从会话中提取任务模式——无需LLM的启发式提取"""
 
     # 已知工具集——用于匹配
@@ -280,9 +274,6 @@ class PatternExtractor:
 # ═══════════════════════════════════════════════════════════
 
 class SkillGenerator:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """从 TaskPattern 自动生成 SKILL.md"""
 
     def __init__(self, skills_dir: str = None, **kw):
@@ -437,9 +428,6 @@ updated_at: {datetime.now().isoformat()}
 # ═══════════════════════════════════════════════════════════
 
 class MemoryConsolidator:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """将短期会话记忆合并到长期持久化记忆"""
 
     def __init__(self, memory_dir: str = None, **kw):
@@ -521,9 +509,6 @@ class MemoryConsolidator:
 # ═══════════════════════════════════════════════════════════
 
 class DreamingPlugin(Plugin):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     Dreaming Agent — 离线记忆整理 & 自动Skill生成
 

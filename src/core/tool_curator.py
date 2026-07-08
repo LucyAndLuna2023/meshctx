@@ -227,9 +227,6 @@ class ToolCallRecord:
 # ═══════════════════════════════════════════════════════════
 
 class ToolCurator:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     工具策展引擎。
 

@@ -59,9 +59,6 @@ _BUILTIN_MODELS: List[Tuple[str, List[float], float, str]] = [
 
 
 class InformationGeometricRouter:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """基于信息几何的智能模型路由器。
 
     将每个模型嵌入到一个 8 维能力流形中，使用 Fisher 信息度量

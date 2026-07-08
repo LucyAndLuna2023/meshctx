@@ -169,9 +169,6 @@ return result
 # ═══════════════════════════════════════════════════════════
 
 class RedlockManager:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     Redlock 算法 — 多 Redis 实例分布式锁。
 
@@ -282,9 +279,6 @@ class RedlockManager:
 # ═══════════════════════════════════════════════════════════
 
 class LocalLockBackend:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """本地线程锁回退 — 使用 threading.Lock。"""
 
     def __init__(self, **kw):
@@ -329,9 +323,6 @@ class LocalLockBackend:
 # ═══════════════════════════════════════════════════════════
 
 class DistributedLockManager:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     分布式锁管理器 — SETNX + Lua + Redlock + Watchdog。
 

@@ -198,9 +198,6 @@ class StateCheckpoint:
 # ═══════════════════════════════════════════════════════════
 
 class ErrorClassifier:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """错误分类器 — 将异常归入 retryable/fatal/degradable。
 
     内置常见异常分类规则, 支持注册自定义分类函数。
@@ -358,9 +355,6 @@ def calculate_backoff(
 # ═══════════════════════════════════════════════════════════
 
 class ErrorRecovery:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """错误恢复引擎。
 
     核心职责:

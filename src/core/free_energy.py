@@ -9,9 +9,6 @@ class BeliefType(Enum):
     COUNTERFACTUAL = "counterfactual"
 
 class BeliefState:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, mean, precision, belief_type=BeliefType.PRIOR, **kw):
         self.mean = np.asarray(mean, dtype=float)
         self.precision = np.asarray(precision, dtype=float)
@@ -20,9 +17,6 @@ class BeliefState:
         return float(np.sum(self.precision * self.mean**2) * 0.5)
 
 class FreeEnergyComputer:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, temperature=1.0, **kw):
         self.temperature = temperature
         self.history = []
@@ -41,9 +35,6 @@ class FreeEnergyComputer:
         return "stable"
 
 class PrecisionWeighting:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, sensory_precision=1.0, prior_precision=1.0, **kw):
         self.sensory_precision = sensory_precision
         self.prior_precision = prior_precision
@@ -55,9 +46,6 @@ class PrecisionWeighting:
         self.prior_precision += delta
 
 class CriticalityRegulator:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, target_branching_ratio=1.0, **kw):
         self.target_branching_ratio = target_branching_ratio
         self._critical = False
@@ -71,9 +59,6 @@ class CriticalityRegulator:
         return self._critical
 
 class FreeEnergyAgent:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self._num_beliefs = 0
     def perceive(self, observation, **kw):

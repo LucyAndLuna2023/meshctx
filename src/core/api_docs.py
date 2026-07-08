@@ -5,9 +5,6 @@ from typing import Any, Dict, List, Optional
 
 
 class APIDiscoveryEngine:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Auto-discovers API endpoints and generates OpenAPI specs."""
 
     _endpoints: List[Dict[str, Any]]

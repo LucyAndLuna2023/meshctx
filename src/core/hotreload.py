@@ -6,9 +6,6 @@ from typing import Callable, Optional
 logger = logging.getLogger("meshctx.hotreload")
 
 class ConfigWatcher:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, config_path: str = None, **kw):
         if config_path is None:
             config_path = os.path.expanduser("~/.meshctx/config.yaml")
@@ -50,9 +47,6 @@ class ConfigWatcher:
                 logger.debug("Hot reload watcher loop interrupted (non-critical)")
 
 class APIKeyFailover:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """API Key 故障转移 — 开源版"""
     def __init__(self, *a, **kw): 
         self.active_key = None
@@ -74,9 +68,6 @@ class APIKeyFailover:
         self._running = False
 
 class MemoryBackup:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """记忆备份 — 开源版"""
     def __init__(self, backup_dir: str = "~/.meshctx/backups", **kw):
         self.backup_dir = os.path.expanduser(backup_dir)

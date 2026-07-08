@@ -592,9 +592,6 @@ PLATFORMS = [
 # ═══════════════════════════════════════════════════════════════════════
 
 class CapabilityCatalog:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Hermes 能力目录 — 技能发现、工具查询、供应商管理。"""
 
     def __init__(self, **kw):

@@ -19,9 +19,6 @@ class BenchmarkResult:
 
 
 class PipelineBenchmark:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """v2.79 Pipeline Benchmark — 测试全管道性能 vs baseline"""
 
     def bench_safety(self, **kw) -> List[BenchmarkResult]:

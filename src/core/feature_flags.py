@@ -143,9 +143,6 @@ class FlagEvaluation:
 # ═══════════════════════════════════════════════════════════
 
 class RuleEngine:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """规则评估引擎
 
     根据用户上下文评估一组规则是否匹配。
@@ -216,9 +213,6 @@ class RuleEngine:
 # ═══════════════════════════════════════════════════════════
 
 class HashSplitter:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """一致性哈希分流器
 
     使用 MD5 哈希将用户 ID 映射到 [0, 100) 区间,
@@ -263,9 +257,6 @@ class HashSplitter:
 # ═══════════════════════════════════════════════════════════
 
 class FeatureFlags:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """特性开关管理器
 
     核心 API:

@@ -40,9 +40,6 @@ class TransportPlan:
 
 
 class OptimalTransportBridge:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Optimal Transport bridge for comparing agent knowledge distributions
     using Sinkhorn algorithm with entropic regularization."""
 

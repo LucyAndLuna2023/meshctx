@@ -210,9 +210,6 @@ class Plan:
 # ═══════════════════════════════════════════════════════════
 
 class DAGError(Exception):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """DAG 操作错误 (循环依赖等)。"""
     pass
 
@@ -299,9 +296,6 @@ def _find_ready_tasks(tasks: Dict[str, TaskStep], running_ids: Set[str]) -> List
 # ═══════════════════════════════════════════════════════════
 
 class TaskPlanner:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """任务规划与执行引擎。
 
     核心职责:

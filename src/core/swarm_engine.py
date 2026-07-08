@@ -35,9 +35,6 @@ class Vote:
 
 
 class SwarmEngine:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """分布式代理集群引擎
 
     管理集群成员的发现、投票、任务分配、知识共享与领导者选举。

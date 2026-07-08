@@ -7,9 +7,6 @@ import json
 
 
 class AgentsConfig:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Parsed AGENTS.md / CLAUDE.md configuration."""
 
     def __init__(self, **kw):
@@ -22,9 +19,6 @@ class AgentsConfig:
 
 
 class AgentsMDProtocol:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """AGENTS.md 协议 — 解析/生成/自动检测/双向同步."""
 
     def __init__(self, workspace: Path | None = None, **kw):

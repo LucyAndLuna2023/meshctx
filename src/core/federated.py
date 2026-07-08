@@ -3,9 +3,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 
 class FederatedAdapter:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self._updates: Dict[str, dict] = {}
 

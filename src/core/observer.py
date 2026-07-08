@@ -37,9 +37,6 @@ class WatchEvent:
 
 
 class SystemObserver:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Observes system metrics, events, and health. Supports callbacks.
 
     v3.92 — provides system-wide observation with:

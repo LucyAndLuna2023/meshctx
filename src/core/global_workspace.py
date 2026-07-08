@@ -8,9 +8,6 @@ class ProcessorType(Enum):
     METACOGNITIVE = "metacognitive"
 
 class Processor:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, name, proc_type, activation=0.0, salience=0.0, **kw):
         self.name = name
         self.type = proc_type
@@ -18,9 +15,6 @@ class Processor:
         self.salience = salience
 
 class GlobalWorkspace:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self.processors = {}
         self._content = None
@@ -36,9 +30,6 @@ class GlobalWorkspace:
         return {"num_processors": len(self.processors), "broadcasts": self._num_broadcasts}
 
 class AttentionBottleneck:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, capacity=1, **kw):
         self.capacity = capacity
     def select(self, processors, **kw):

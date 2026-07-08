@@ -169,9 +169,6 @@ class RenderedPrompt:
 # ═══════════════════════════════════════════════════════════
 
 class PromptEngine:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     提示模板引擎。
 

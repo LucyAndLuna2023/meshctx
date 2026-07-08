@@ -173,9 +173,6 @@ class Experiment:
 # ═══════════════════════════════════════════════════════════
 
 class Statistics:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """统计检验工具"""
 
     @staticmethod
@@ -304,9 +301,6 @@ class Statistics:
 # ═══════════════════════════════════════════════════════════
 
 class BanditSelector:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """多臂老虎机选择器"""
 
     @staticmethod
@@ -382,9 +376,6 @@ class BanditSelector:
 # ═══════════════════════════════════════════════════════════
 
 class ExperimentEngine:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """实验引擎
 
     管理所有实验的生命周期、用户分配和结果统计。

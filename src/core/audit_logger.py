@@ -156,9 +156,6 @@ class AuditEvent:
 # ═══════════════════════════════════════════════════════════
 
 class AuditStorage:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """审计日志存储抽象"""
 
     def __init__(self, storage_path: str, **kw):
@@ -224,9 +221,6 @@ class AuditStorage:
 # ═══════════════════════════════════════════════════════════
 
 class AuditQuery:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """审计事件查询器"""
 
     def __init__(self, storage: AuditStorage, **kw):
@@ -341,9 +335,6 @@ class AuditQuery:
 # ═══════════════════════════════════════════════════════════
 
 class AuditLogger:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """审计日志主类
 
     提供完整的审计日志记录和查询 API。

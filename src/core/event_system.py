@@ -45,9 +45,6 @@ logger = logging.getLogger("meshctx.event_system")
 # ═══════════════════════════════════════════════════════════
 
 class EventPriority(IntEnum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """事件优先级 — 数值越小优先级越高。"""
     CRITICAL = 0
     HIGH = 10
@@ -104,9 +101,6 @@ class Event:
 
 @dataclass(order=True)
 class _PrioritizedEvent:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """内部优先级队列条目 (按 priority + timestamp 排序)。"""
     priority: int
     timestamp: float
@@ -166,9 +160,6 @@ class EventSystemStats:
 # ═══════════════════════════════════════════════════════════
 
 class EventBus:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """事件总线 — 发布/订阅引擎。
 
     核心职责:

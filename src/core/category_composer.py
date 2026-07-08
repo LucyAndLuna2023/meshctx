@@ -11,9 +11,6 @@ B = TypeVar("B")
 
 
 class AgentResult(Generic[T]):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Monadic result type for composable agent operations."""
 
     def __init__(self, is_success: bool, value: Optional[T] = None, error: Optional[str] = None, **kw):
@@ -55,9 +52,6 @@ class AgentResult(Generic[T]):
 
 
 class AgentMorphism(Generic[A, B]):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Category-theoretic morphism: A → B with cost and optional inverse."""
 
     def __init__(
@@ -83,9 +77,6 @@ class AgentMorphism(Generic[A, B]):
 
 
 class AgentComposer:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Composes agent morphisms into pipelines and monadic chains."""
 
     def __init__(self, **kw):

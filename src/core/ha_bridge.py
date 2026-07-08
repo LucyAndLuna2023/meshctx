@@ -5,9 +5,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 
 class HAEntity:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Represents a Home Assistant entity."""
 
     entity_id: str
@@ -36,9 +33,6 @@ class HAEntity:
 
 
 class HAService:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Represents a Home Assistant service."""
 
     domain: str
@@ -73,9 +67,6 @@ class HAService:
 
 
 class HABridge:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Bridge to Home Assistant — manages entities, states, and services.
 
     This is a local mock bridge for testing. In production it would connect

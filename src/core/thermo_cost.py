@@ -48,9 +48,6 @@ class CostResult:
 
 
 class ThermodynamicCostAnalyzer:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Analyze computational cost through the lens of thermodynamics.
 
     Parameters

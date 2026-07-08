@@ -14,9 +14,6 @@ except ImportError:
 
 
 class _ResultItem:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """search 返回的结果对象，含 .text 和 .score 属性兼容"""
     def __init__(self, text, score, **kw):
         self.text = text
@@ -24,9 +21,6 @@ class _ResultItem:
 
 
 class TfidfVectorizer:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """TF-IDF 向量化 — 含 jieba 中文分词"""
     def __init__(self, *args, **kwargs):
         self.vocab = {}       # word -> idx
@@ -82,9 +76,6 @@ class TfidfVectorizer:
 
 
 class VectorStore:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """向量存储 — 基于 TF-IDF 的语义搜索"""
     def __init__(self, *args, **kwargs):
         self._docs = []           # list of original text
@@ -151,4 +142,3 @@ class VectorStore:
 
 class _Stub:
     def __init__(self, *a, **kw): pass
-    def __getattr__(self, n): return lambda *a, **kw: None

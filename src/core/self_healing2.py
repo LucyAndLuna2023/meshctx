@@ -26,9 +26,6 @@ class HealthCheck:
 
 
 class SelfHealingEngine:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Self-Healing 2.0 Engine — 自主修复引擎"""
 
     def __init__(self, **kw):

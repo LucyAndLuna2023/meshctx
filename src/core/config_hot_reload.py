@@ -136,9 +136,6 @@ class ValidationRule:
 # ═══════════════════════════════════════════════════════════
 
 class ConfigStore:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """配置存储核心
 
     线程安全的配置存储, 支持原子更新和版本历史。
@@ -340,9 +337,6 @@ class ConfigStore:
 # ═══════════════════════════════════════════════════════════
 
 class FileWatcher:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """文件监听器 (轮询)"""
 
     def __init__(self, **kw):
@@ -451,9 +445,6 @@ class FileWatcher:
 # ═══════════════════════════════════════════════════════════
 
 class ConfigValidator:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """配置验证器"""
 
     def __init__(self, **kw):
@@ -516,9 +507,6 @@ class ConfigValidator:
 # ═══════════════════════════════════════════════════════════
 
 class ConfigHotReload:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """配置热加载管理器
 
     组合配置存储、文件监听和验证。

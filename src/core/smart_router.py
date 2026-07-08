@@ -15,9 +15,6 @@ class ModelTier(Enum):
     PREMIUM = 3
 
 class ModelInfo:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, cost_per_1k_input, cost_per_1k_output, provider="openai", tier=ModelTier.STANDARD, **kw):
         self.cost_per_1k_input = cost_per_1k_input
         self.cost_per_1k_output = cost_per_1k_output
@@ -25,9 +22,6 @@ class ModelInfo:
         self.tier = tier
 
 class RouteDecision:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, selected_model, complexity, reasoning, fallback_model="", **kw):
         self.selected_model = selected_model
         self.complexity = complexity
@@ -35,9 +29,6 @@ class RouteDecision:
         self.fallback_model = fallback_model or selected_model
 
 class SmartModelRouter:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self._DEFAULT_MODELS = {
             "deepseek-chat": ModelInfo(0.14, 0.28, "deepseek", ModelTier.BUDGET),

@@ -189,9 +189,6 @@ class ModelEntry:
 # ═══════════════════════════════════════════════════════════
 
 class ModelRegistry:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def clean_unconfigured(self): return {"removed": 0, "kept": []}
     """模型注册表
 

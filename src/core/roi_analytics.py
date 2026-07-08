@@ -7,9 +7,6 @@ from typing import Any
 
 
 class ROIAnalytics:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """ROI 分析引擎 — 跟踪 meshctx 的投资回报率和竞争力."""
 
     def __init__(self, data_dir: Path | None = None, **kw):

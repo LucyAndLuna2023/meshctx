@@ -23,9 +23,6 @@ class MCPServer:
 
 
 class MCPIntegrator:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """MCP 协议集成器 — 管理 MCP 服务器和工具"""
 
     def __init__(self, **kw):

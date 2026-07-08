@@ -38,9 +38,6 @@ class ValidationResult:
 
 
 class CrossValidator:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """多 Agent 交叉验证器"""
 
     def __init__(self, min_agents: int = 2, **kw):

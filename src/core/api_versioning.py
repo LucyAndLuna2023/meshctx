@@ -187,9 +187,6 @@ class RouteMapping:
 # ═══════════════════════════════════════════════════════════
 
 class VersionRegistry:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """版本注册表"""
 
     def __init__(self, **kw):
@@ -283,9 +280,6 @@ class VersionRegistry:
 # ═══════════════════════════════════════════════════════════
 
 class VersionRouter:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """版本路由器
 
     根据请求信息将流量路由到正确的 API 版本。
@@ -433,9 +427,6 @@ class VersionRouter:
 # ═══════════════════════════════════════════════════════════
 
 class ApiVersioningManager:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """API 版本管理器
 
     中枢类, 组合版本注册表和路由器,

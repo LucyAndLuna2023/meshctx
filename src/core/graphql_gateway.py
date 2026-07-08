@@ -117,9 +117,6 @@ class CacheEntry:
 # ═══════════════════════════════════════════════════════════
 
 class QueryAnalyzer:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """GraphQL 查询静态分析器
 
     解析查询文档, 计算深度、复杂度和字段列表。
@@ -249,9 +246,6 @@ class QueryAnalyzer:
 # ═══════════════════════════════════════════════════════════
 
 class SchemaRegistry:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """GraphQL Schema 注册表
 
     管理多个后端服务的 Schema 和 Resolver,
@@ -339,9 +333,6 @@ class SchemaRegistry:
 # ═══════════════════════════════════════════════════════════
 
 class QueryCache:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """GraphQL 查询响应缓存"""
 
     def __init__(self, max_size: int = 1000, default_ttl: float = DEFAULT_CACHE_TTL, **kw):
@@ -430,9 +421,6 @@ class QueryCache:
 # ═══════════════════════════════════════════════════════════
 
 class ExecutionEngine:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """GraphQL 查询执行引擎"""
 
     def __init__(self, registry: SchemaRegistry, **kw):
@@ -520,9 +508,6 @@ class ExecutionEngine:
 # ═══════════════════════════════════════════════════════════
 
 class GraphQLGateway:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """GraphQL API 网关
 
     统一入口, 组合 Schema 注册、查询分析、缓存和执行。

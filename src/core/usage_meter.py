@@ -148,9 +148,6 @@ class UsageWindow:
 # ═══════════════════════════════════════════════════════════
 
 class UsageAggregator:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """用量聚合引擎"""
 
     def __init__(self, **kw):
@@ -272,9 +269,6 @@ class UsageAggregator:
 # ═══════════════════════════════════════════════════════════
 
 class CostCalculator:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """成本计算器"""
 
     def __init__(self, **kw):
@@ -333,9 +327,6 @@ class CostCalculator:
 # ═══════════════════════════════════════════════════════════
 
 class UsageMeter:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """用量计量主类
 
     提供用量追踪、配额检查、成本计算和报告生成。

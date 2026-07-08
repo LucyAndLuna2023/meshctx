@@ -165,9 +165,6 @@ class TotNode:
 # ═══════════════════════════════════════════════════════════
 
 class AdvancedInference:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     高级推理引擎。
 

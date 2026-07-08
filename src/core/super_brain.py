@@ -3,9 +3,6 @@ import numpy as np
 from collections import defaultdict
 
 class HippocampalReplay:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, max_traces=50, **kw):
         self.max_traces = max_traces
         self.traces = []
@@ -19,9 +16,6 @@ class HippocampalReplay:
         return len(self.traces) > 5 and self._replay_count % 3 == 0
 
 class SalienceTagger:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self._tags = []
     def tag(self, item, novelty=0.0, emotion=0.0, relevance=0.0, **kw):
@@ -32,9 +26,6 @@ class SalienceTagger:
         return float(np.mean(self._tags)) if self._tags else 0.0
 
 class ThalamicGate:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self.gate_openness = 0.8
     def gate(self, signal_strength, priority, **kw):
@@ -44,9 +35,6 @@ class ThalamicGate:
             self.gate_openness = max(0.2, self.gate_openness - 0.3)
 
 class IITConsciousness:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self._phis = []
     def compute_phi(self, state, **kw):
@@ -58,9 +46,6 @@ class IITConsciousness:
         return float(np.mean(self._phis)) if self._phis else 0.0
 
 class SuperBrainOrchestrator:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self._step_count = 0
         self._internal_state = np.zeros(10)
@@ -76,9 +61,6 @@ class SuperBrainOrchestrator:
         return {"step_count": self._step_count, "avg_phi": self._iit.average_phi()}
 
 class EmotionalConsolidation:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self._memories = []
         self._valence_sum = 0.0
@@ -96,9 +78,6 @@ class EmotionalConsolidation:
         return {"valence": self._valence_sum / n, "arousal": self._arousal_sum / n}
 
 class STDPLearner:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self.weights = defaultdict(lambda: 0.5)
     def stdp(self, pre, post, delta_t=0.0, **kw):
@@ -112,9 +91,6 @@ class STDPLearner:
         self.weights[pre, post] += dw
 
 class DefaultModeNetwork:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self.self_model = {"confidence": 0.6, "competence": 0.5}
     def introspect(self, **kw):
@@ -126,9 +102,6 @@ class DefaultModeNetwork:
             self.self_model["confidence"] = min(1.0, self.self_model["confidence"] + 0.1)
 
 class ConflictMonitor:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         pass
     def detect(self, options, **kw):
@@ -141,9 +114,6 @@ class ConflictMonitor:
         return float(np.clip(1.0 - (top2[0] - top2[1]), 0.0, 1.0))
 
 class ActionSelector:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self.action_values = {}
         self._actions = {}

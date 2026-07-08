@@ -21,9 +21,6 @@ class Cluster:
 
 
 class TopologicalMemoryAnalyzer:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Analyzes memory topology using persistent homology and clustering."""
 
     def __init__(self, max_memories: int = 100, **kw):

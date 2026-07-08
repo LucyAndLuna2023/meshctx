@@ -148,9 +148,6 @@ class QuotaStats:
 # ═══════════════════════════════════════════════════════════
 
 class QuotaManager:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     多层级配额管理器 — 用户/组织/全局 + 弹性配额。
 

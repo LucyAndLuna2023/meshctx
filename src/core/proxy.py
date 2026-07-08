@@ -5,9 +5,6 @@ from typing import Any
 
 
 class ProxyManager:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """代理管理器 — 请求路由、负载均衡、健康检查."""
 
     def __init__(self, config_path: Path | None = None, **kw):

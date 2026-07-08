@@ -216,9 +216,6 @@ class DocMeta:
 # ═══════════════════════════════════════════════════════════
 
 class DocGenerator:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     meshctx API 文档自动生成器。
 

@@ -34,9 +34,6 @@ class UpdateResult:
 
 
 class SelfUpdater:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Self-updater for meshctx — checks local version and remote updates."""
 
     remote_host: str = "47.120.0.239"

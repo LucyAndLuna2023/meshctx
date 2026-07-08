@@ -53,9 +53,6 @@ def _parse_frontmatter(content: str) -> Optional[Dict[str, Any]]:
 
 
 class UniversalPluginAdapter:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """v2.80 通用插件适配器
 
     统一管理 Hermes Skill、Python Tool、Shell Script 等多种插件格式。

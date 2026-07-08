@@ -37,33 +37,18 @@ logger = logging.getLogger("meshctx.workflow")
 
 # ── Exceptions ───────────────────────────────────────────────────────────
 class WorkflowError(Exception):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Base exception for workflow engine errors."""
 
 class WorkflowNotFoundError(WorkflowError):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Raised when a named workflow definition is not found."""
 
 class WorkflowValidationError(WorkflowError):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Raised when a workflow definition is structurally invalid."""
 
 class StepExecutionError(WorkflowError):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Raised when a step fails after exhausting retries."""
 
 class StepTimeoutError(WorkflowError):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Raised when a step exceeds its timeout."""
 
 

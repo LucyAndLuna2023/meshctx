@@ -80,9 +80,6 @@ _TYPE_KEYWORDS = [
 
 
 class GoalDecomposer:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """目标分解器 — 将高层目标拆解为有序子任务链"""
 
     def __init__(self, **kw):

@@ -1,8 +1,5 @@
 """Dashboard — 开源版 (stub)"""
 class UnifiedDashboard:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, *a, **kw):
         object.__setattr__(self, '_running', False)
     def start(self, host: str = "0.0.0.0", port: int = 3001, **kw):

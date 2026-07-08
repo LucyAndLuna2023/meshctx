@@ -33,9 +33,6 @@ class ChatMessage:
 
 
 class InteractiveConsole:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """v2.86 交互式控制台 — 支持 ReAct 循环、文件快照、意图检测"""
 
     def __init__(self, workspace: Path, **kw):

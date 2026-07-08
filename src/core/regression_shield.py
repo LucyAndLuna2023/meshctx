@@ -85,9 +85,6 @@ ALL_KNOWN_MODULES = (
 
 # ═══════════════ RegressionShield ═══════════════
 class RegressionShield:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """回归防护盾 — 分析变更影响并控制风险。"""
 
     def __init__(

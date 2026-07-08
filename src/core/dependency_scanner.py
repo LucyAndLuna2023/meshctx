@@ -206,9 +206,6 @@ class LicenseReport:
 # ═══════════════════════════════════════════════════════════
 
 class DependencyExtractor:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """从 Python 项目中提取依赖信息"""
 
     @staticmethod
@@ -347,9 +344,6 @@ class DependencyExtractor:
 # ═══════════════════════════════════════════════════════════
 
 class DependencyScanner:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """依赖扫描器
 
     对 Python 项目执行全面的依赖分析。

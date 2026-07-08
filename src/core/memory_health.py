@@ -14,9 +14,6 @@ class MemoryStats:
 
 
 class MemoryHealthDashboard:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """内存健康仪表盘 — 监控记忆系统健康状态"""
 
     def __init__(self, **kw):

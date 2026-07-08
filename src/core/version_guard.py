@@ -6,9 +6,6 @@ from pathlib import Path
 
 
 class VersionGuard:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """检测版本变更，记录历史，持久化状态。"""
 
     STATE_FILE = ".meshctx_version_state.json"

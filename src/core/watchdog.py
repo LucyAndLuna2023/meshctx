@@ -4,9 +4,6 @@ logger = logging.getLogger("meshctx.watchdog")
 HEARTBEAT_FILE = "/tmp/.meshctx_heartbeat"
 
 class WatchdogDaemon:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, *a, **kw): 
         self._running = False
         self._thread = None

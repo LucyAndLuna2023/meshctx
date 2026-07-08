@@ -122,9 +122,6 @@ class BalancerStats:
 # ═══════════════════════════════════════════════════════════
 
 class ConsistentHashRing:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     一致性哈希环 — 虚拟节点实现。
 
@@ -227,9 +224,6 @@ class ConsistentHashRing:
 # ═══════════════════════════════════════════════════════════
 
 class CircuitBreaker:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     熔断器 — 防止级联故障。
 
@@ -327,9 +321,6 @@ class CircuitBreaker:
 # ═══════════════════════════════════════════════════════════
 
 class HealthChecker:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     健康检查器 — HTTP/TCP 探活。
 
@@ -472,9 +463,6 @@ class HealthChecker:
 # ═══════════════════════════════════════════════════════════
 
 class LoadBalancer:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """
     智能负载均衡器 — 多策略 + 健康检查 + 故障转移 + 熔断。
 
@@ -1078,9 +1066,6 @@ class LoadBalancer:
 # ═══════════════════════════════════════════════════════════
 
 class defaultdict(dict):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """简易 defaultdict 替代, 避免 import 问题。"""
     def __init__(self, default_factory=None, *args, **kwargs):
         super().__init__(*args, **kwargs)

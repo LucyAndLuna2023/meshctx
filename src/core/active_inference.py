@@ -8,16 +8,10 @@ class ActionType(Enum):
     WAIT = "wait"
 
 class Policy:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, actions=None, **kw):
         self.actions = actions or []
 
 class GenerativeModel:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, state_dim=4, obs_dim=4, **kw):
         self.state_dim = state_dim
         self.obs_dim = obs_dim
@@ -27,9 +21,6 @@ class GenerativeModel:
         return self._A[:self.obs_dim, :len(s)].dot(s) + np.random.randn(self.obs_dim) * 0.01
 
 class ActiveInferenceEngine:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, state_dim=8, obs_dim=8, **kw):
         self.state_dim = state_dim
         self.obs_dim = obs_dim
@@ -42,9 +33,6 @@ class ActiveInferenceEngine:
         return {"state": self._state, "actions": [ActionType.EXPLOIT], "prediction_error": pred_error}
 
 class DualProcessDecision:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self.system1_weight = 0.5
         self.system2_weight = 0.5

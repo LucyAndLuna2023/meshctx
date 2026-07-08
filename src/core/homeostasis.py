@@ -12,9 +12,6 @@ class SystemMode(Enum):
     OVERLOADED = "overloaded"
 
 class ResourceBudget:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, resource_type, total, **kw):
         self.resource_type = resource_type
         self.total = total
@@ -31,9 +28,6 @@ class ResourceBudget:
         return self._critical
 
 class HomeostaticRegulator:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self._mode = SystemMode.ACTIVE
     def assess(self, **kw):
@@ -49,9 +43,6 @@ class HomeostaticRegulator:
         return {"mode": self._mode.value}
 
 class MarginalUtilityScheduler:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def __init__(self, **kw):
         self._tasks = {}
     def register_task(self, name, value=0.0, cost=1.0, **kw):

@@ -52,9 +52,6 @@ class SessionResumeEngine:
 
 
 class _SessionResume:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     def resume(self, *a, **kw): return None
     def stats(self): return {}
     def detect_previous_session(self, **kw):

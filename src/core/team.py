@@ -21,9 +21,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 class TeamResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Single agent result placed on the shared result queue."""
 
     def __init__(self, team_id: str, agent_name: str, role: str,
@@ -55,9 +52,6 @@ class TeamResult:
 # ---------------------------------------------------------------------------
 
 class AgentContext:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Independent context for one agent inside a team.
 
     Each agent carries its own name, role description, tool set, and model
@@ -118,9 +112,6 @@ class AgentContext:
 # ---------------------------------------------------------------------------
 
 class Team:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """A named team of agents with a shared result queue."""
 
     def __init__(self, team_id: str, name: str,

@@ -75,9 +75,6 @@ def _generate_regression_test(msg: str, error_type: str) -> str:
 
 
 class AutonomousLearningEngine:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """自主错误学习引擎 — 从错误中提取模式、分类、学习、预防"""
 
     def __init__(self, data_dir: Path | None = None, **kw):
