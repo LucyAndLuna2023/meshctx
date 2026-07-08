@@ -309,9 +309,9 @@ body {
   </div>
 </div>
 <div class="input-area">
-  <textarea id="input" data-lang-key="chat_placeholder" placeholder="输入消息... (Enter 发送, Shift+Enter 换行)" rows="1"
+  <textarea id="input" data-lang-key="chat_placeholder" placeholder="{{ t('chat_placeholder') }}" rows="1"
     onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}; handleInputKeydown(event)"></textarea>
-  <button id="sendBtn" onclick="send()" data-lang-key="chat_send">发送</button>
+  <button id="sendBtn" onclick="send()" data-lang-key="chat_send">{{ t('chat_send') }}</button>
 </div>
 <div class="info-bar">
   <span id="modelInfo"><span data-lang-key="chat_model">模型</span>: deepseek:v4-flash</span>
@@ -388,8 +388,8 @@ const LANG = {
   zh: {
     chat_new:"➕ 新对话", chat_console:"← 控制台",
     chat_welcome:"你好！我是 meshctx。我可以读文件、搜代码、执行命令。<br>试试问我：读一下 README.md",
-    chat_placeholder:"输入消息... (Enter 发送, Shift+Enter 换行)",
-    chat_send:"发送", chat_model:"模型", chat_direct:"直出",
+    chat_placeholder:"{{ t('chat_placeholder') }}",
+    chat_send:"{{ t('chat_send') }}", chat_model:"模型", chat_direct:"直出",
     chat_status_panel:"状态面板", chat_mode:"当前模式",
     chat_free_energy:"自由能 F", chat_tests_passed:"测试通过",
     chat_agent_status:"Agent 状态", chat_model_label:"模型",

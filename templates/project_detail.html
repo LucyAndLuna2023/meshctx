@@ -12,7 +12,7 @@
             <span class="badge badge-{{ project.status }}">{{ project.status }}</span>
             <form method="POST" action="/ui/projects/{{ project.id }}/delete"
                   onsubmit="return confirm('确定要删除此项目吗？')">
-                <button type="submit" class="btn btn-danger">🗑 删除项目</button>
+                <button type="submit" class="btn btn-danger">🗑 {{ t('delete_project') }}</button>
             </form>
         </div>
     </div>
@@ -141,7 +141,7 @@
                     <th>Agent</th>
                     <th>开始时间</th>
                     <th>结束时间</th>
-                    <th>状态</th>
+                    <th>{{ t('project_status') }}</th>
                 </tr>
             </thead>
             <tbody>
