@@ -3599,6 +3599,18 @@ _jinja_env = Environment(loader=ChoiceLoader([
 _jinja_env.globals['t'] = i18n_t
 _jinja_env.globals['lang'] = i18n_get_lang
 
+# v3.115.16: 内存优化 — 缓存 i18n JSON 序列化结果 (避免每请求 json.dumps 73KB)
+_i18n_json_cache = {}
+
+def _get_i18n_json(lang: str) -> str:
+    """获取语言翻译 JSON 字符串（缓存，避免每请求序列化）"""
+    if lang not in _i18n_json_cache:
+        _i18n_json_cache[lang] = __import__('json').dumps(
+            i18n_translations.get(lang, i18n_translations.get('en', {})),
+            ensure_ascii=False
+        )
+    return _i18n_json_cache[lang]
+
 def _render(template_name: str, context: dict, request = None) -> HTMLResponse:
     """渲染 Jinja2 模板（从内嵌 DictLoader），自动检测浏览器语言"""
     lang = i18n_get_lang(request)
@@ -3606,15 +3618,23 @@ def _render(template_name: str, context: dict, request = None) -> HTMLResponse:
     def _scoped_t(key: str) -> str:
         return i18n_translations.get(lang, i18n_translations.get('en', {})).get(key, i18n_translations.get('en', {}).get(key, key))
     context['t'] = _scoped_t
-    context['__i18n_json'] = __import__('json').dumps(i18n_translations.get(lang, i18n_translations.get('en', {})), ensure_ascii=False)
+    context['__i18n_json'] = _get_i18n_json(lang)
     context['__lang'] = lang
     # Inject configurable local model hosts (BUG-005 fix)
     import os as _os
     context.setdefault('ollama_host', _os.environ.get('MESHCTX_OLLAMA_HOST', 'localhost'))
     context.setdefault('vllm_host', _os.environ.get('MESHCTX_VLLM_HOST', 'localhost'))
     context.setdefault('localai_host', _os.environ.get('MESHCTX_LOCALAI_HOST', 'localhost'))
-    # 注入支持的语言列表供 JS 使用
-    context['__languages'] = __import__('json').dumps(i18n_translations.get(lang, i18n_translations.get('en', {})).get('__available_langs__', [{"code":"zh","name":"中文","native":"中文"},{"code":"en","name":"English","native":"English"},{"code":"ja","name":"Japanese","native":"日本語"},{"code":"ko","name":"Korean","native":"한국어"},{"code":"fr","name":"French","native":"Français"},{"code":"de","name":"German","native":"Deutsch"},{"code":"es","name":"Spanish","native":"Español"}]))
+    # 注入支持的语言列表供 JS 使用（缓存）
+    if '_langs_json' not in _i18n_json_cache:
+        _i18n_json_cache['_langs_json'] = __import__('json').dumps(
+            i18n_translations.get('en', {}).get('__available_langs__',
+                [{"code":"zh","name":"中文","native":"中文"},{"code":"en","name":"English","native":"English"},
+                 {"code":"ja","name":"Japanese","native":"日本語"},{"code":"ko","name":"Korean","native":"한국어"},
+                 {"code":"fr","name":"French","native":"Français"},{"code":"de","name":"German","native":"Deutsch"},
+                 {"code":"es","name":"Spanish","native":"Español"}])
+        )
+    context['__languages'] = _i18n_json_cache['_langs_json']
     template = _jinja_env.get_template(template_name)
     html = template.render(**context)
     return HTMLResponse(html)
