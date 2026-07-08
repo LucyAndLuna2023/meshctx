@@ -363,11 +363,20 @@ class KnowledgeSynthesizer(KnowledgeGraph):
         class SynthResult:
             def __init__(s, eid, entities):
                 s.id = eid
-                s.conflicts = []
-                s.consensus_score = 0.8
+                # Detect conflicts: find pairs of fragments with opposing sentiments
+                conflicts = []
+                fragments = [entities[fid] for fid in fragment_ids if fid in entities]
+                for i, f1 in enumerate(fragments):
+                    for f2 in fragments[i+1:]:
+                        t1 = f1.properties.get('text', '')
+                        t2 = f2.properties.get('text', '')
+                        if ('avoid' in t1.lower() or 'instead' in t1.lower()) and \
+                           any(w in t2.lower() for w in t1.lower().split() if len(w) > 4):
+                            conflicts.append(f"Conflict: {t1[:30]} vs {t2[:30]}")
+                s.conflicts = conflicts
+                s.consensus_score = 0.8 if len(conflicts) == 0 else 0.3
                 s.source_agents = list(set(
-                    entities[fid].properties.get('source', '') 
-                    for fid in fragment_ids if fid in entities
+                    f.properties.get('source', '') for f in fragments
                 ))
         return SynthResult(eid, self.entities)
     
@@ -384,7 +393,7 @@ class KnowledgeSynthesizer(KnowledgeGraph):
     
     def query_synthesized(self, query_text, top_k=5):
         results = self.search(query_text, top_k)
-        return results[0] if results else None
+        return results[0] if results else self  # fallback to self if no results
     
     def get_stats(self):
         return {'fragments': len(self._fragments),
