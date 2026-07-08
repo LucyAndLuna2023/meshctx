@@ -7,6 +7,8 @@ class ACPServer:
     def __init__(self):
         self.agents = {}
         self._handlers = {}
+        self.protocol_version = "2024-11-05"
+        self.server_info = {"name": "meshctx-acp", "version": "1.0"}
     
     def register_agent(self, agent_id: str, capabilities: list):
         self.agents[agent_id] = {"id": agent_id, "capabilities": capabilities, "status": "ready"}
@@ -14,12 +16,20 @@ class ACPServer:
     def on(self, event: str, handler):
         self._handlers[event] = handler
     
+    def handle_request(self, request: dict) -> dict:
+        """Handle an ACP protocol request."""
+        method = request.get("method", "")
+        if method == "initialize":
+            return {"protocol_version": self.protocol_version, "server_info": self.server_info}
+        elif method == "tools/list":
+            return {"tools": []}
+        elif method == "ping":
+            return {"status": "ok"}
+        else:
+            return {"error": f"unknown method: {method}"}
+    
     async def handle_message(self, message: dict) -> dict:
-        event = message.get("event", "message")
-        handler = self._handlers.get(event)
-        if handler:
-            return await handler(message)
-        return {"status": "unhandled", "event": event}
+        return self.handle_request(message)
     
     def list_agents(self) -> list:
         return list(self.agents.values())
