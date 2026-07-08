@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}连续性检测 | meshctx{% endblock %}
+{% block title %}{{ t('continuity') }}检测 | meshctx{% endblock %}
 
 {% block content %}
 <section class="page-header">
-    <h1>🔗 连续性检测仪表板</h1>
+    <h1>🔗 {{ t('continuity') }}检测仪表板</h1>
     <p class="subtitle">
-        检测各项目的上下文连续性状态：
+        检测各项目的上下文{{ t('continuity') }}状态：
         <strong>{{ continuous_count }}</strong>/<strong>{{ total_count }}</strong> 个项目保持连续
     </p>
 </section>
@@ -83,7 +83,7 @@
 
 <!-- 评分说明 -->
 <div class="card info-card">
-    <h3>📖 连续性评分说明</h3>
+    <h3>📖 {{ t('continuity') }}评分说明</h3>
     <ul class="info-list">
         <li><strong>≥ 0.7 优秀:</strong> 有会话、记忆和活跃助手会话，24小时内有活动</li>
         <li><strong>0.5-0.7 良好:</strong> 有基本会话和记忆记录</li>

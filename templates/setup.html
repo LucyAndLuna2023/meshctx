@@ -33,7 +33,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 <p class="sub">30秒完成配置，开始使用世界最智能的AI助手</p>
 
 <div id="step1" class="step">
-  <div class="step-label">第1步: 选择AI模型提供商</div>
+  <div class="step-label">第1步: 选择AI{{ t('provider_label') }}</div>
   <div class="provider-card selected" onclick="selectProvider('deepseek')" id="card-deepseek">
     <div class="icon">🚀</div><div class="info"><div class="name">DeepSeek</div><div class="desc">免费额度 · 性价比最高 · 推荐</div></div>
   </div>
@@ -46,7 +46,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 </div>
 
 <div id="step2" class="step">
-  <div class="step-label">第2步: 输入API Key</div>
+  <div class="step-label">第2步: 输入{{ t('api_key_label') }}</div>
   <input type="password" id="apiKey" placeholder="sk-xxxxxxxxxxxxxxxx">
   <p style="font-size:0.8rem;color:var(--muted);margin-top:4px">
     没有Key? <a href="#" id="getKeyLink" target="_blank" style="color:var(--accent)">点击获取 →</a>
@@ -77,7 +77,7 @@ function selectProvider(p) {
 
 async function setup() {
   const key = document.getElementById('apiKey').value.trim();
-  if (!key) { alert('请输入API Key'); return; }
+  if (!key) { alert('请输入{{ t('api_key_label') }}'); return; }
   
   const result = document.getElementById('result');
   result.style.display = 'block';
