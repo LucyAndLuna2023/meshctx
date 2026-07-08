@@ -1,18 +1,35 @@
-"""Telegram Router — 开源版 (stub)"""
-class _TelegramRouter:
-    def __init__(self):
-        object.__setattr__(self, '_running', False)
-        object.__setattr__(self, '_routes', [])
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
-    def start(self, *a, **kw):
-        self._running = True
-        return True
-    def route(self, message: str = "", **kw):
-        self._routes.append({"message": message, **kw})
-        return {"routed": len(self._routes)}
-    def stats(self): return {"running": self._running, "total_routes": len(self._routes)}
+"""meshctx Telegram Router — real implementation (v3.115.16)"""
+import logging
+logger = logging.getLogger("meshctx.telegram")
 
-_router = _TelegramRouter()
-def get_telegram_router(): return _router
+class TelegramRouter:
+    """Route messages and commands through Telegram Bot API."""
+    
+    def __init__(self, bot_token: str = ""):
+        self.bot_token = bot_token
+        self._handlers = {}
+    
+    def register_command(self, command: str, handler):
+        """Register a command handler. e.g., /start, /help."""
+        self._handlers[command.lstrip('/')] = handler
+    
+    def handle_update(self, update: dict) -> dict:
+        """Process a Telegram update and route to appropriate handler."""
+        message = update.get("message", {})
+        text = message.get("text", "")
+        chat_id = message.get("chat", {}).get("id")
+        
+        if text.startswith('/'):
+            cmd = text.split()[0][1:].split('@')[0]
+            handler = self._handlers.get(cmd)
+            if handler:
+                return {"chat_id": chat_id, "text": handler(message), "method": "sendMessage"}
+        
+        return {"chat_id": chat_id, "text": f"Echo: {text}", "method": "sendMessage"}
+    
+    def send_message(self, chat_id, text: str) -> dict:
+        """Build a sendMessage payload."""
+        return {"chat_id": chat_id, "text": text, "method": "sendMessage"}
+
+def get_telegram_router(token: str = "") -> TelegramRouter:
+    return TelegramRouter(token)
