@@ -54,7 +54,16 @@ class SessionIdentity:
         return self.preferences.get(key, default)
     
     def set_habit(self, key: str, value, count: int = 1):
-        self.strategies.append({"name": key, "value": value, "count": count})
+        self.strategies.append({"name": key, "strategy": value, "count": count})
+    
+    def get_habit(self, key: str, default=None):
+        for s in self.strategies:
+            if s.get("name") == key:
+                return s
+        return default
+    
+    def is_habit_formed(self, key: str) -> bool:
+        return any(s.get("name") == key for s in self.strategies)
     
     def to_dict(self) -> dict:
         return {
