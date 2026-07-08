@@ -47,9 +47,6 @@ logger = logging.getLogger("meshctx.experiment_engine")
 # ═══════════════════════════════════════════════════════════
 
 class ExperimentType(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """实验类型"""
     AB_TEST = "ab_test"               # 经典 A/B/N 测试
     MULTI_ARM_BANDIT = "multi_arm_bandit"  # 多臂老虎机
@@ -57,9 +54,6 @@ class ExperimentType(str, Enum):
 
 
 class ExperimentState(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """实验生命周期"""
     DRAFT = "draft"             # 草稿
     RUNNING = "running"         # 运行中
@@ -69,9 +63,6 @@ class ExperimentState(str, Enum):
 
 
 class BanditAlgorithm(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Bandit 算法"""
     THOMPSON_SAMPLING = "thompson_sampling"   # 汤普森采样
     EPSILON_GREEDY = "epsilon_greedy"          # Epsilon-贪婪
@@ -79,9 +70,6 @@ class BanditAlgorithm(str, Enum):
 
 
 class SignificanceLevel(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """显著性水平"""
     P90 = "0.10"
     P95 = "0.05"
@@ -95,9 +83,6 @@ class SignificanceLevel(str, Enum):
 
 @dataclass
 class VariantStats:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """变体统计"""
     name: str
     impressions: int = 0             # 展示次数 (分配)
@@ -134,9 +119,6 @@ class VariantStats:
 
 @dataclass
 class ExperimentConfig:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """实验配置"""
     name: str                                     # 唯一名称
     description: str = ""
@@ -157,9 +139,6 @@ class ExperimentConfig:
 
 @dataclass
 class Experiment:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """实验实例"""
     config: ExperimentConfig
     state: ExperimentState = ExperimentState.DRAFT

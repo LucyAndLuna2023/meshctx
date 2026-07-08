@@ -48,9 +48,6 @@ logger = logging.getLogger("meshctx.chain_engine")
 # ═══════════════════════════════════════════════════════════
 
 class StepStatus(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     PENDING = "pending"
     RUNNING = "running"
     SUCCESS = "success"
@@ -60,9 +57,6 @@ class StepStatus(str, Enum):
 
 
 class ChainMode(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     SEQUENTIAL = "sequential"        # 严格顺序执行
     CONDITIONAL = "conditional"      # 带条件分支
     PARALLEL = "parallel"            # 无依赖步骤并行
@@ -72,9 +66,6 @@ class ChainMode(str, Enum):
 
 
 class ErrorPolicy(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     RETRY = "retry"         # 重试后继续
     SKIP = "skip"           # 跳过该步骤
     ABORT = "abort"         # 中止整条链
@@ -87,9 +78,6 @@ class ErrorPolicy(str, Enum):
 
 @dataclass
 class StepResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """单步执行结果"""
     step_id: str
     step_name: str
@@ -114,9 +102,6 @@ class StepResult:
 
 @dataclass
 class Step:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """链中的单个执行步骤"""
     step_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     name: str = ""
@@ -134,9 +119,6 @@ class Step:
 
 @dataclass
 class ChainDefinition:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """链定义 — 描述一条完整的执行链"""
     chain_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     name: str = ""
@@ -151,9 +133,6 @@ class ChainDefinition:
 
 @dataclass
 class ChainRunResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """链执行完整结果"""
     chain_id: str
     chain_name: str

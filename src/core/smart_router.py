@@ -3,9 +3,6 @@ import re
 from enum import Enum
 
 class TaskComplexity(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     TRIVIAL = 1
     SIMPLE = 2
     MODERATE = 3
@@ -13,9 +10,6 @@ class TaskComplexity(Enum):
     EXPERT = 5
 
 class ModelTier(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     BUDGET = 1
     STANDARD = 2
     PREMIUM = 3

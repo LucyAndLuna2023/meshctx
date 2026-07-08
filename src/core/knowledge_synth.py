@@ -6,9 +6,6 @@ from typing import Optional
 
 @dataclass
 class Fragment:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     fid: str
     content: str
     agent_id: str
@@ -18,9 +15,6 @@ class Fragment:
 
 @dataclass
 class Conflict:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     fragment_a: str
     fragment_b: str
     reason: str
@@ -28,9 +22,6 @@ class Conflict:
 
 @dataclass
 class SynthesisResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     consensus_score: float
     source_agents: list
     conflicts: list = field(default_factory=list)

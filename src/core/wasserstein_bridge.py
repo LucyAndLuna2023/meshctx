@@ -8,9 +8,6 @@ import numpy as np
 
 @dataclass
 class Distribution:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """A probability distribution over labeled points."""
     labels: List[str]
     matrix: np.ndarray  # shape (n_points, n_features)
@@ -23,9 +20,6 @@ class Distribution:
 
 @dataclass
 class TransportPlan:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Result of computing Wasserstein distance between two distributions."""
     source: str
     target: str

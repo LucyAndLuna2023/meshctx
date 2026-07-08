@@ -33,9 +33,6 @@ POWER_SOURCE_CO2: dict[str, float] = {
 
 @dataclass
 class CostResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Result of a single thermodynamic cost computation."""
     query: str
     input_tokens: int

@@ -5,9 +5,6 @@ from enum import Enum
 
 
 class TaskStatus(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     pending = "pending"
     ready = "ready"
     in_progress = "in_progress"
@@ -18,9 +15,6 @@ class TaskStatus(Enum):
 
 @dataclass
 class Subtask:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     id: str
     title: str
     status: TaskStatus = TaskStatus.pending
@@ -31,9 +25,6 @@ class Subtask:
 
 @dataclass
 class Goal:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     id: str
     text: str
     goal_type: str

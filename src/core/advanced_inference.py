@@ -59,9 +59,6 @@ logger = logging.getLogger("meshctx.advanced_inference")
 # ═══════════════════════════════════════════════════════════
 
 class InferenceStrategy(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     COT = "cot"                         # Chain of Thought
     TOT = "tot"                         # Tree of Thought
     REACT = "react"                     # Reasoning + Acting
@@ -72,9 +69,6 @@ class InferenceStrategy(str, Enum):
 
 
 class TraceLevel(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     MINIMAL = "minimal"     # 仅记录最终结果
     STEP = "step"           # 记录每步
     DETAILED = "detailed"   # 记录每步 + 中间状态
@@ -87,9 +81,6 @@ class TraceLevel(str, Enum):
 
 @dataclass
 class InferenceStep:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """单步推理记录"""
     step_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     step_index: int = 0
@@ -103,9 +94,6 @@ class InferenceStep:
 
 @dataclass
 class InferenceTrace:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """完整推理追踪"""
     trace_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     strategy: InferenceStrategy = InferenceStrategy.COT
@@ -141,9 +129,6 @@ class InferenceTrace:
 
 @dataclass
 class InferenceResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """推理结果 (对外暴露)"""
     answer: Any
     confidence: float
@@ -165,9 +150,6 @@ class InferenceResult:
 
 @dataclass
 class TotNode:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Tree of Thought 节点"""
     node_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     thought: str = ""

@@ -12,9 +12,6 @@ import numpy as np
 
 @dataclass
 class ModelPoint:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """流形上的模型点——携带 8 维能力特征与成本信息。"""
     model_id: str
     features: np.ndarray  # 8 维特征向量

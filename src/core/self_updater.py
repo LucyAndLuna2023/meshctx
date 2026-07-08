@@ -9,9 +9,6 @@ import subprocess
 
 
 class UpdateStatus(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Update status enumeration — at least 8 states."""
     UNKNOWN = "unknown"
     CHECKING = "checking"
@@ -26,9 +23,6 @@ class UpdateStatus(Enum):
 
 @dataclass
 class UpdateResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Result of an update check or operation."""
     status: UpdateStatus
     from_version: str = "0.0.0"

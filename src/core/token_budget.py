@@ -53,9 +53,6 @@ logger = logging.getLogger("meshctx.token_budget")
 # ═══════════════════════════════════════════════════════════
 
 class BudgetLevel(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """预算层级"""
     TOTAL = "total"       # 全局总预算
     MODEL = "model"       # 按模型 (e.g. "model:gpt-4")
@@ -64,9 +61,6 @@ class BudgetLevel(str, Enum):
 
 
 class BudgetWindow(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """预算重置窗口"""
     MINUTE = "minute"     # 每分钟重置
     HOUR = "hour"         # 每小时重置
@@ -85,9 +79,6 @@ WINDOW_SECONDS = {
 
 
 class BudgetStatus(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """预算检查结果"""
     OK = "ok"                   # 预算充足
     WARNING = "warning"         # 接近上限 (>80%)
@@ -103,9 +94,6 @@ class BudgetStatus(str, Enum):
 
 @dataclass
 class BudgetConfig:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """预算配置"""
     key: str                                    # 预算标识 (e.g. "user:alice")
     level: BudgetLevel
@@ -150,9 +138,6 @@ class BudgetConfig:
 
 @dataclass
 class BudgetUsage:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """预算使用追踪"""
     key: str
     used_tokens: int = 0
@@ -180,9 +165,6 @@ class BudgetUsage:
 
 @dataclass
 class BudgetCheckResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """预算检查结果"""
     status: BudgetStatus
     key: str

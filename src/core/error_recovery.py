@@ -46,9 +46,6 @@ logger = logging.getLogger("meshctx.error_recovery")
 # ═══════════════════════════════════════════════════════════
 
 class ErrorCategory(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """错误分类。"""
     RETRYABLE = "retryable"        # 可重试 (网络超时, 临时故障)
     FATAL = "fatal"                # 致命 (配置错误, 认证失败)
@@ -56,9 +53,6 @@ class ErrorCategory(str, Enum):
 
 
 class RecoveryStepType(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """恢复步骤类型。"""
     RETRY = "retry"                # 重试原操作
     BACKOFF_WAIT = "backoff_wait"  # 等待指数退避
@@ -70,9 +64,6 @@ class RecoveryStepType(str, Enum):
 
 
 class RecoveryStatus(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """恢复计划状态。"""
     PENDING = "pending"
     RUNNING = "running"
@@ -93,9 +84,6 @@ DEFAULT_JITTER_FACTOR = 0.1        # 抖动因子 (10%)
 
 @dataclass
 class RecoveryStep:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """单个恢复步骤。
 
     Attributes:
@@ -132,9 +120,6 @@ class RecoveryStep:
 
 @dataclass
 class RecoveryPlan:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """恢复计划 — 面对错误的完整恢复策略。
 
     Attributes:
@@ -194,9 +179,6 @@ class RecoveryPlan:
 
 @dataclass
 class StateCheckpoint:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """状态快照 — 用于回滚。
 
     Attributes:

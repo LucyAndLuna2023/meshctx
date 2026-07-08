@@ -44,9 +44,6 @@ logger = logging.getLogger("meshctx.usage_meter")
 # ═══════════════════════════════════════════════════════════
 
 class UsagePeriod(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """时间周期"""
     HOURLY = "hourly"
     DAILY = "daily"
@@ -56,9 +53,6 @@ class UsagePeriod(str, Enum):
 
 
 class UsageMetric(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """用量指标"""
     TOKENS_INPUT = "tokens_input"
     TOKENS_OUTPUT = "tokens_output"
@@ -93,9 +87,6 @@ DEFAULT_UNIT_COST = 0.0
 
 @dataclass
 class MeterEntry:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """计量条目"""
     tenant: str
     metric: str
@@ -120,9 +111,6 @@ class MeterEntry:
 
 @dataclass
 class QuotaRule:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """配额规则"""
     tenant: str
     metric: str
@@ -136,9 +124,6 @@ class QuotaRule:
 
 @dataclass
 class UsageWindow:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """时间窗口聚合"""
     start: float                     # 窗口起始时间戳
     end: float                       # 窗口结束时间戳

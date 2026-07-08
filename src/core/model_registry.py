@@ -45,9 +45,6 @@ logger = logging.getLogger("meshctx.model_registry")
 # ═══════════════════════════════════════════════════════════
 
 class ModelStage(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """模型部署阶段"""
     EXPERIMENTAL = "experimental"     # 实验阶段
     STAGING = "staging"               # 预发布
@@ -57,9 +54,6 @@ class ModelStage(str, Enum):
 
 
 class ModelTask(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """模型任务类型"""
     CHAT = "chat"                     # 对话
     COMPLETION = "completion"         # 文本补全
@@ -74,9 +68,6 @@ class ModelTask(str, Enum):
 
 
 class ModelFramework(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """模型框架"""
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
@@ -93,9 +84,6 @@ class ModelFramework(str, Enum):
 
 @dataclass
 class ModelPricing:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """模型定价"""
     input_price_per_1m: float = 0.0      # 每百万输入 token 价格
     output_price_per_1m: float = 0.0     # 每百万输出 token 价格
@@ -104,9 +92,6 @@ class ModelPricing:
 
 @dataclass
 class ModelBenchmark:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """模型基准测试"""
     benchmark_name: str
     score: float
@@ -117,9 +102,6 @@ class ModelBenchmark:
 
 @dataclass
 class ModelCapability:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """模型能力描述"""
     name: str
     description: str = ""
@@ -129,9 +111,6 @@ class ModelCapability:
 
 @dataclass
 class ModelVersion:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """模型版本"""
     version_id: str                  # e.g. "gpt-4o-2024-08-06"
     model_name: str                  # 所属模型名
@@ -152,9 +131,6 @@ class ModelVersion:
 
 @dataclass
 class ModelEntry:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """模型条目 (模型族)"""
     name: str                        # 模型名, e.g. "gpt-4o"
     provider: str                    # 提供商

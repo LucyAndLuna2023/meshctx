@@ -47,9 +47,6 @@ logger = logging.getLogger("meshctx.feature_flags")
 # ═══════════════════════════════════════════════════════════
 
 class FlagState(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """标志生命周期状态"""
     DEVELOPMENT = "development"     # 开发中
     TESTING = "testing"             # 测试中
@@ -60,9 +57,6 @@ class FlagState(str, Enum):
 
 
 class FlagType(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """标志类型"""
     RELEASE = "release"            # 发布开关 (一次性)
     EXPERIMENT = "experiment"      # 实验开关 (A/B 测试)
@@ -71,9 +65,6 @@ class FlagType(str, Enum):
 
 
 class MatchOperator(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """规则匹配运算符"""
     EQ = "eq"           # 等于
     NEQ = "neq"         # 不等于
@@ -87,9 +78,6 @@ class MatchOperator(str, Enum):
 
 
 class RolloutStrategy(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """放量策略"""
     PERCENTAGE = "percentage"    # 百分比放量
     USER_LIST = "user_list"      # 白名单
@@ -103,9 +91,6 @@ class RolloutStrategy(str, Enum):
 
 @dataclass
 class FlagRule:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """单条匹配规则"""
     attribute: str                    # 属性名, e.g. "country", "tier"
     operator: MatchOperator          # 匹配运算符
@@ -115,9 +100,6 @@ class FlagRule:
 
 @dataclass
 class RolloutConfig:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """放量配置"""
     strategy: RolloutStrategy = RolloutStrategy.USER_LIST
     percentage: float = 0.0          # 0.0 - 100.0
@@ -130,9 +112,6 @@ class RolloutConfig:
 
 @dataclass
 class FlagDefinition:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """标志完整定义"""
     key: str                          # 唯一标识, e.g. "new_dashboard"
     name: str = ""                    # 人类可读名称
@@ -151,9 +130,6 @@ class FlagDefinition:
 
 @dataclass
 class FlagEvaluation:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """标志评估结果"""
     key: str
     enabled: bool

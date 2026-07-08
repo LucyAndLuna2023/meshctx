@@ -49,9 +49,6 @@ logger = logging.getLogger("meshctx.dependency_scanner")
 # ═══════════════════════════════════════════════════════════
 
 class Severity(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """严重级别"""
     CRITICAL = "critical"
     HIGH = "high"
@@ -61,9 +58,6 @@ class Severity(str, Enum):
 
 
 class LicenseType(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """许可证类型"""
     MIT = "MIT"
     APACHE2 = "Apache-2.0"
@@ -145,9 +139,6 @@ DEPRECATED_PACKAGES = {
 
 @dataclass
 class DependencyInfo:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """依赖信息"""
     name: str
     version: str = ""
@@ -185,9 +176,6 @@ class DependencyInfo:
 
 @dataclass
 class ScanResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """扫描结果"""
     project_path: str
     total_dependencies: int = 0
@@ -205,9 +193,6 @@ class ScanResult:
 
 @dataclass
 class LicenseReport:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """许可证报告"""
     total_packages: int
     by_license: Dict[str, int]  # license_category → count

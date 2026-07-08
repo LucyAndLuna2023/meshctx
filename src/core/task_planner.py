@@ -44,9 +44,6 @@ logger = logging.getLogger("meshctx.task_planner")
 # ═══════════════════════════════════════════════════════════
 
 class TaskStatus(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """任务状态。"""
     PENDING = "pending"          # 等待依赖完成
     READY = "ready"              # 依赖满足, 可执行
@@ -58,9 +55,6 @@ class TaskStatus(str, Enum):
 
 
 class PlanStatus(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """计划整体状态。"""
     DRAFT = "draft"              # 草稿, 尚未执行
     RUNNING = "running"          # 执行中
@@ -81,9 +75,6 @@ DEFAULT_TASK_TIMEOUT = 300.0  # 秒
 
 @dataclass
 class TaskStep:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """任务步骤 — 计划中的单个可执行单元。
 
     Attributes:
@@ -153,9 +144,6 @@ class TaskStep:
 
 @dataclass
 class Plan:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """计划容器 — 一组有依赖关系的 TaskStep。
 
     Attributes:

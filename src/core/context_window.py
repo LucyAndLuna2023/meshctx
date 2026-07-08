@@ -117,9 +117,6 @@ def estimate_tokens(text: str) -> int:
 
 @dataclass
 class WindowMessage:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """窗口中的一条消息"""
     role: str                                   # system / user / assistant / tool
     content: str

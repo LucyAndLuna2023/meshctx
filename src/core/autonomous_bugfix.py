@@ -19,9 +19,6 @@ class FixStatus(enum.Enum):
 
 @dataclass
 class ErrorEvent:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     error_type: str
     message: str = ""
     traceback: str = ""
@@ -32,9 +29,6 @@ class ErrorEvent:
 
 @dataclass
 class RootCauseAnalysis:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     error: ErrorEvent
     root_cause: str
     suggested_fix: str
@@ -43,9 +37,6 @@ class RootCauseAnalysis:
 
 @dataclass
 class Fix:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     id: str
     fix_diff: str
     status: FixStatus = FixStatus.generating

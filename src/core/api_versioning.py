@@ -56,9 +56,6 @@ SEMVER_PATTERN = re.compile(
 
 
 class VersionSource(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """版本号来源"""
     URI_PATH = "uri_path"        # /v1/users
     HEADER = "header"            # API-Version: v1
@@ -68,9 +65,6 @@ class VersionSource(str, Enum):
 
 
 class DeprecationLevel(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """弃用级别"""
     NONE = "none"               # 正常
     WARNING = "warning"         # 有更新的版本可用
@@ -85,9 +79,6 @@ class DeprecationLevel(str, Enum):
 
 @dataclass
 class SemVer:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """语义化版本号"""
     major: int
     minor: int
@@ -148,9 +139,6 @@ class SemVer:
 
 @dataclass
 class VersionInfo:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """版本信息"""
     version_key: str              # e.g. "v1", "v2"
     semver: Optional[SemVer] = None
@@ -185,9 +173,6 @@ class VersionInfo:
 
 @dataclass
 class RouteMapping:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """路由映射"""
     path: str                     # API 路径
     version: str                  # 版本键

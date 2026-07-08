@@ -38,9 +38,6 @@ logger = logging.getLogger("meshctx.dreaming")
 
 @dataclass
 class TaskPattern:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """从会话中提取的任务模式"""
     pattern_name: str                # 模式名 (如 "web-scraping")
     description: str                 # 描述
@@ -67,9 +64,6 @@ class TaskPattern:
 
 @dataclass
 class DreamReport:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """每次 Dreaming 运行的报告"""
     timestamp: float = field(default_factory=time.time)
     sessions_scanned: int = 0

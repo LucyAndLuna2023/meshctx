@@ -31,9 +31,6 @@ from dataclasses import dataclass, field
 
 @dataclass
 class SkillEntry:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     name: str
     category: str
     description: str
@@ -45,9 +42,6 @@ class SkillEntry:
 
 @dataclass
 class ToolEntry:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     name: str
     toolset: str
     description: str
@@ -56,9 +50,6 @@ class ToolEntry:
 
 @dataclass
 class ProviderEntry:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     name: str
     env_var: str
     type: str  # api_key | oauth | token

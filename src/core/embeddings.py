@@ -88,9 +88,6 @@ DEFAULT_DIM = 1536
 
 @dataclass
 class EmbedResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """嵌入结果"""
     text: str
     vector: np.ndarray
@@ -106,9 +103,6 @@ class EmbedResult:
 
 @dataclass
 class EmbedStats:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """嵌入统计"""
     total_requests: int = 0
     cache_hits: int = 0

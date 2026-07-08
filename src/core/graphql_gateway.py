@@ -51,9 +51,6 @@ MAX_QUERY_SIZE = 1024 * 1024  # 1MB
 
 
 class OperationType(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """GraphQL 操作类型"""
     QUERY = "query"
     MUTATION = "mutation"
@@ -66,9 +63,6 @@ class OperationType(str, Enum):
 
 @dataclass
 class SchemaRegistration:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """注册的 GraphQL Schema"""
     name: str                          # 服务名称
     sdl: str                           # Schema Definition Language
@@ -80,9 +74,6 @@ class SchemaRegistration:
 
 @dataclass
 class QueryAnalysis:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """查询分析结果"""
     operation_type: OperationType
     depth: int
@@ -95,9 +86,6 @@ class QueryAnalysis:
 
 @dataclass
 class ExecutionResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """执行结果"""
     data: Optional[Dict[str, Any]] = None
     errors: List[Dict[str, Any]] = field(default_factory=list)
@@ -118,9 +106,6 @@ class ExecutionResult:
 
 @dataclass
 class CacheEntry:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """缓存条目"""
     result: Dict[str, Any]
     created_at: float

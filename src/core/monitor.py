@@ -12,9 +12,6 @@ STATE_DIR.mkdir(parents=True, exist_ok=True)
 
 @dataclass
 class MonitorSession:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """监控会话"""
     session_id: str
     command: str

@@ -60,18 +60,12 @@ CHINESE_CHAR_PATTERN = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf]')
 # ═══════════════════════════════════════════════════════════
 
 class PromptRole(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     SYSTEM = "system"
     USER = "user"
     ASSISTANT = "assistant"
 
 
 class TemplateTag(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """模板标签"""
     GENERAL = "general"
     CODE = "code"
@@ -86,9 +80,6 @@ class TemplateTag(str, Enum):
 
 @dataclass
 class FewShotExample:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """少样本示例"""
     example_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     input_data: Dict[str, Any] = field(default_factory=dict)
@@ -111,9 +102,6 @@ class FewShotExample:
 
 @dataclass
 class PromptTemplate:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """提示模板定义"""
     template_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     name: str = ""
@@ -146,9 +134,6 @@ class PromptTemplate:
 
 @dataclass
 class PromptVersion:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """模板版本快照"""
     version: int
     system_prompt: str
@@ -159,9 +144,6 @@ class PromptVersion:
 
 @dataclass
 class RenderedPrompt:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """渲染结果"""
     template_name: str
     system_prompt: str

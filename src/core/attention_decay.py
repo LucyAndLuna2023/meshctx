@@ -2,9 +2,6 @@
 from enum import Enum
 
 class AttentionLevel(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     HIGH = "high"
     MEDIUM = "medium"  
     LOW = "low"

@@ -16,9 +16,6 @@ except ImportError:
 
 
 class PluginFormat(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     hermes_skill = "hermes_skill"
     python_tool = "python_tool"
     shell_script = "shell_script"
@@ -27,9 +24,6 @@ class PluginFormat(Enum):
 
 @dataclass
 class LoadedPlugin:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     name: str = ""
     description: str = ""
     version: str = ""

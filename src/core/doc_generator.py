@@ -42,9 +42,6 @@ logger = logging.getLogger("meshctx.doc_generator")
 # ═══════════════════════════════════════════════════════════
 
 class ParamLocation(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """参数位置。"""
     QUERY = "query"
     PATH = "path"
@@ -55,9 +52,6 @@ class ParamLocation(str, Enum):
 
 
 class HttpMethod(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """HTTP 方法。"""
     GET = "GET"
     POST = "POST"
@@ -69,9 +63,6 @@ class HttpMethod(str, Enum):
 
 
 class ContentType(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """内容类型。"""
     JSON = "application/json"
     FORM = "application/x-www-form-urlencoded"
@@ -83,9 +74,6 @@ class ContentType(str, Enum):
 
 @dataclass
 class ParamDoc:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """参数文档。"""
     name: str
     type: str = "string"
@@ -124,9 +112,6 @@ class ParamDoc:
 
 @dataclass
 class ResponseDoc:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """返回值文档。"""
     status_code: int
     description: str = ""
@@ -152,9 +137,6 @@ class ResponseDoc:
 
 @dataclass
 class RouteDoc:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """API 路由文档。"""
     method: HttpMethod
     path: str
@@ -200,9 +182,6 @@ class RouteDoc:
 
 @dataclass
 class ChangeLogEntry:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """API 变更日志条目。"""
     version: str
     date: str = ""
@@ -222,9 +201,6 @@ class ChangeLogEntry:
 
 @dataclass
 class DocMeta:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """文档元信息。"""
     title: str = "API Documentation"
     version: str = "1.0.0"

@@ -41,9 +41,6 @@ logger = logging.getLogger("meshctx.quota_manager")
 # ═══════════════════════════════════════════════════════════
 
 class QuotaLevel(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """配额层级。"""
     GLOBAL = "global"     # 全局配额
     ORG = "org"           # 组织配额
@@ -51,9 +48,6 @@ class QuotaLevel(Enum):
 
 
 class QuotaWindow(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """时间窗口。"""
     MINUTE = "minute"     # 60 秒
     HOUR = "hour"         # 3600 秒
@@ -72,9 +66,6 @@ WINDOW_SECONDS = {
 
 
 class QuotaLimitType(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """限制类型。"""
     HARD = "hard"         # 硬限制 — 达到后拒绝
     SOFT = "soft"         # 软限制 — 达到后告警但不拒绝
@@ -83,9 +74,6 @@ class QuotaLimitType(Enum):
 
 @dataclass
 class QuotaConfig:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """配额配置 — 定义一条配额规则。"""
     key: str                              # 配额标识 (e.g. "user:alice", "org:acme")
     level: QuotaLevel = QuotaLevel.USER
@@ -101,9 +89,6 @@ class QuotaConfig:
 
 @dataclass
 class QuotaUsage:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """配额使用记录。"""
     key: str
     used: int = 0                        # 已使用量
@@ -116,9 +101,6 @@ class QuotaUsage:
 
 @dataclass
 class QuotaResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """配额检查结果。"""
     allowed: bool
     key: str
@@ -136,9 +118,6 @@ class QuotaResult:
 
 @dataclass
 class QuotaAlert:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """配额告警。"""
     key: str
     level: QuotaLevel
@@ -154,9 +133,6 @@ class QuotaAlert:
 
 @dataclass
 class QuotaStats:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """配额管理器统计。"""
     total_checks: int = 0
     total_allowed: int = 0

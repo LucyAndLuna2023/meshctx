@@ -7,9 +7,6 @@ from typing import Optional
 
 
 class ConsoleAction(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """控制台操作类型"""
     EDIT = auto()
     RUN = auto()
@@ -19,9 +16,6 @@ class ConsoleAction(Enum):
 
 @dataclass
 class ReActStep:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """ReAct 步骤 (Think-Act-Observe)"""
     thought: str = ""
     action_type: Optional[ConsoleAction] = None
@@ -32,9 +26,6 @@ class ReActStep:
 
 @dataclass
 class ChatMessage:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """聊天消息"""
     role: str  # "user" or "agent"
     content: str

@@ -79,9 +79,6 @@ class TextNormalizer:
 
 @dataclass
 class BM25Stats:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """BM25 文档统计"""
     doc_id: str
     doc_length: int
@@ -456,9 +453,6 @@ class DiversityReranker:
 
 @dataclass
 class HybridSearchResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """混合搜索结果"""
     id: str
     score: float

@@ -7,9 +7,6 @@ DATA_DIR = os.path.expanduser("~/.meshctx/conversations")
 
 @dataclass
 class Conversation:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     id: str = ""
     title: str = ""
     messages: list = field(default_factory=list)

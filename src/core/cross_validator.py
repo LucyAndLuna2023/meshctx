@@ -15,9 +15,6 @@ from typing import List, Optional
 
 @dataclass
 class AgentResponse:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """单个 Agent 的回答"""
     agent_id: str
     model: str
@@ -27,18 +24,12 @@ class AgentResponse:
 
 @dataclass
 class ConsensusLevel:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """共识等级"""
     value: str
 
 
 @dataclass
 class ValidationResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """交叉验证结果"""
     consensus: ConsensusLevel
     hallucination_risk: float

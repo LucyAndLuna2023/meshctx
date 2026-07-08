@@ -8,9 +8,6 @@ from typing import Any, Callable, Dict, List, Optional
 
 
 class WatchLevel(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Severity/importance level of a watch."""
 
     INFO = auto()
@@ -21,9 +18,6 @@ class WatchLevel(Enum):
 
 @dataclass
 class WatchEvent:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """An event observed by the SystemObserver."""
 
     name: str

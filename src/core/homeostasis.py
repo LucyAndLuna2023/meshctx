@@ -2,17 +2,11 @@
 from enum import Enum
 
 class ResourceType(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     CPU = "cpu"
     MEMORY = "memory"
     TOKENS = "tokens"
 
 class SystemMode(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     ACTIVE = "active"
     IDLE = "idle"
     OVERLOADED = "overloaded"

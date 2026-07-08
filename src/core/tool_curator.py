@@ -61,9 +61,6 @@ logger = logging.getLogger("meshctx.tool_curator")
 # ═══════════════════════════════════════════════════════════
 
 class ToolStatus(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     ACTIVE = "active"           # 正常可用
     DEPRECATED = "deprecated"   # 已弃用但保留
     DISABLED = "disabled"       # 已禁用
@@ -71,9 +68,6 @@ class ToolStatus(str, Enum):
 
 
 class Permission(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """标准权限"""
     FILESYSTEM_READ = "filesystem:read"
     FILESYSTEM_WRITE = "filesystem:write"
@@ -96,9 +90,6 @@ class Permission(str, Enum):
 
 @dataclass
 class ToolParameter:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """工具参数定义"""
     name: str
     param_type: str = "string"          # string, number, boolean, object, array
@@ -127,9 +118,6 @@ class ToolParameter:
 
 @dataclass
 class ToolSchema:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """工具完整定义"""
     name: str
     description: str = ""
@@ -191,9 +179,6 @@ class ToolSchema:
 
 @dataclass
 class ToolRecommendation:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """工具推荐结果"""
     tool_name: str
     score: float                # 0.0-1.0 相关度评分
@@ -213,9 +198,6 @@ class ToolRecommendation:
 
 @dataclass
 class ToolCallRecord:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """工具调用记录"""
     call_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     tool_name: str = ""

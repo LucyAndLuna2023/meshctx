@@ -6,9 +6,6 @@ from dataclasses import dataclass
 
 @dataclass
 class MemoryStats:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """内存统计数据"""
     total_memories: int = 0
     sdm_dimension: int = 1000

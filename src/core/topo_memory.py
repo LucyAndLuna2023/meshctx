@@ -7,9 +7,6 @@ from typing import List, Dict, Optional
 
 @dataclass
 class PersistenceFeature:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     birth: float
     death: float
     persistence: float
@@ -18,9 +15,6 @@ class PersistenceFeature:
 
 @dataclass
 class Cluster:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     members: List[str] = field(default_factory=list)
     coherence: float = 0.0
     center: Optional[np.ndarray] = None

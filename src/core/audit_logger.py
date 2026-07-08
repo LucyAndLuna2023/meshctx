@@ -47,9 +47,6 @@ logger = logging.getLogger("meshctx.audit_logger")
 # ═══════════════════════════════════════════════════════════
 
 class AuditResult(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """审计结果"""
     SUCCESS = "success"
     FAILURE = "failure"
@@ -59,9 +56,6 @@ class AuditResult(str, Enum):
 
 
 class RetentionPolicy(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """保留策略"""
     DAYS_30 = "30d"
     DAYS_90 = "90d"
@@ -85,9 +79,6 @@ SENSITIVE_FIELDS = {
 
 @dataclass
 class AuditEvent:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """审计事件"""
     event_id: str
     timestamp: float

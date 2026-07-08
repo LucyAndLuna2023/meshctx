@@ -48,9 +48,6 @@ logger = logging.getLogger("meshctx.load_balancer")
 # ═══════════════════════════════════════════════════════════
 
 class BackendState(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """后端状态。"""
     HEALTHY = "healthy"           # 正常
     DEGRADED = "degraded"         # 性能下降, 仍可服务
@@ -60,9 +57,6 @@ class BackendState(Enum):
 
 
 class CircuitState(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """熔断器状态。"""
     CLOSED = auto()               # 正常 (熔断关闭)
     OPEN = auto()                 # 熔断打开, 拒绝请求
@@ -70,9 +64,6 @@ class CircuitState(Enum):
 
 
 class LoadBalanceStrategy(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """负载均衡策略。"""
     LEAST_CONNECTIONS = "least_connections"
     WEIGHTED_ROUND_ROBIN = "weighted_round_robin"
@@ -82,9 +73,6 @@ class LoadBalanceStrategy(Enum):
 
 @dataclass
 class Backend:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """后端服务节点。"""
     name: str
     address: str                         # host:port or URL
@@ -108,9 +96,6 @@ class Backend:
 
 @dataclass
 class SelectionResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """选择结果。"""
     backend: Optional[Backend]
     strategy: str
@@ -120,9 +105,6 @@ class SelectionResult:
 
 @dataclass
 class BalancerStats:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """负载均衡器统计。"""
     total_selections: int = 0
     total_failures: int = 0

@@ -50,9 +50,6 @@ logger = logging.getLogger("meshctx.rag_orchestrator")
 
 @dataclass
 class TextChunk:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """文本块"""
     id: str
     text: str
@@ -73,9 +70,6 @@ class TextChunk:
 
 @dataclass
 class RetrievedChunk:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """检索到的文本块 (带分数)"""
     chunk: TextChunk
     score: float
@@ -85,9 +79,6 @@ class RetrievedChunk:
 
 @dataclass
 class AugmentedContext:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """增强上下文"""
     chunks: List[RetrievedChunk]
     assembled_text: str                # 组装后的上下文字符串
@@ -102,9 +93,6 @@ class AugmentedContext:
 
 @dataclass
 class ConversationTurn:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """对话轮次"""
     role: str                          # "user" / "assistant" / "system"
     content: str

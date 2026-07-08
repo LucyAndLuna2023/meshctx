@@ -12,9 +12,6 @@ from pathlib import Path
 
 
 class LessonSeverity(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """错误严重性级别"""
     LOW = "low"
     MEDIUM = "medium"
@@ -24,9 +21,6 @@ class LessonSeverity(Enum):
 
 @dataclass
 class Lesson:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """一条学到的教训"""
     id: str = ""
     error_pattern: str = ""

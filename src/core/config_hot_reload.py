@@ -52,9 +52,6 @@ MAX_HISTORY = 50
 
 
 class ConfigFormat(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """配置文件格式"""
     JSON = "json"
     YAML = "yaml"
@@ -65,9 +62,6 @@ class ConfigFormat(str, Enum):
 
 
 class ConfigSource(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """配置来源"""
     FILE = "file"
     ENV = "env"
@@ -76,9 +70,6 @@ class ConfigSource(str, Enum):
 
 
 class ValidationLevel(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """验证级别"""
     STRICT = "strict"      # 严格的 Schema 验证
     WARN = "warn"          # 警告但不阻止
@@ -91,9 +82,6 @@ class ValidationLevel(str, Enum):
 
 @dataclass
 class ConfigEntry:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """配置条目 (带来源追踪)"""
     key: str
     value: Any
@@ -104,9 +92,6 @@ class ConfigEntry:
 
 @dataclass
 class ConfigSnapshot:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """配置快照"""
     data: Dict[str, Any]
     timestamp: float = field(default_factory=time.time)
@@ -125,9 +110,6 @@ class ConfigSnapshot:
 
 @dataclass
 class WatchDescriptor:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """文件监听描述符"""
     file_path: str
     callback: Callable[[Dict[str, Any]], None]
@@ -139,9 +121,6 @@ class WatchDescriptor:
 
 @dataclass
 class ValidationRule:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """验证规则"""
     key_pattern: str              # 键模式 (支持 * 通配)
     required: bool = False

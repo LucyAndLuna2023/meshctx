@@ -138,9 +138,6 @@ def _parse_message(data: bytes) -> Optional[Tuple[Optional[Dict], int]]:
 
 @dataclass
 class LSPClient:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Manages a single LSP server process and its JSON-RPC communication."""
 
     language: str

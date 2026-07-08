@@ -7,9 +7,6 @@ from typing import Any, Dict, List, Optional
 
 @dataclass
 class MCPTool:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """MCP 工具描述"""
     name: str
     description: str
@@ -18,9 +15,6 @@ class MCPTool:
 
 @dataclass
 class MCPServer:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """MCP 服务器描述"""
     name: str
     command: str

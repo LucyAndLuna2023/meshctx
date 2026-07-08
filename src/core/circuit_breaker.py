@@ -45,9 +45,6 @@ logger = logging.getLogger("meshctx.circuit_breaker")
 # ═══════════════════════════════════════════════════════════
 
 class CBState(str, Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """熔断器状态。
 
     CLOSED:    正常 — 请求正常通过, 统计失败/成功
@@ -96,9 +93,6 @@ class CircuitBreakerError(Exception):
 
 @dataclass
 class WindowEntry:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """滑动窗口中的单次调用记录。"""
     success: bool
     timestamp: float = field(default_factory=time.time)
@@ -108,9 +102,6 @@ class WindowEntry:
 
 @dataclass
 class CBConfig:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """熔断器配置。
 
     Attributes:
@@ -143,9 +134,6 @@ class CBConfig:
 
 @dataclass
 class CBStats:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """熔断器统计信息。"""
     state: CBState = CBState.CLOSED
     total_calls: int = 0

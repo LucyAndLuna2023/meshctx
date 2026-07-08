@@ -56,9 +56,6 @@ except ImportError:
 
 @dataclass
 class VectorEntry:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """向量条目"""
     id: str
     vector: np.ndarray
@@ -88,9 +85,6 @@ class VectorEntry:
 
 @dataclass
 class SearchResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """搜索结果"""
     id: str
     score: float

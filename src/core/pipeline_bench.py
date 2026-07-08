@@ -5,9 +5,6 @@ from typing import List, Dict, Any
 
 
 class Phase(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     BASELINE = "baseline"
     INTERMEDIATE = "intermediate"
     PIPELINE = "pipeline"
@@ -15,9 +12,6 @@ class Phase(Enum):
 
 @dataclass
 class BenchmarkResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     phase: Phase
     value: float
     improvement_vs_baseline: float = 0.0

@@ -6,9 +6,6 @@ from typing import Dict, List, Optional
 
 
 class HealthLevel(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     OPTIMAL = "optimal"
     HEALTHY = "healthy"
     AT_RISK = "at_risk"
@@ -17,9 +14,6 @@ class HealthLevel(Enum):
 
 @dataclass
 class HealthCheck:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     module: str
     level: HealthLevel = HealthLevel.HEALTHY
     score: Optional[float] = None

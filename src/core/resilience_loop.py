@@ -7,9 +7,6 @@ from dataclasses import dataclass, field
 
 
 class CircuitState(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     CLOSED = "closed"
     OPEN = "open"
     HALF_OPEN = "half_open"
@@ -42,9 +39,6 @@ class CircuitBreaker:
 
 @dataclass
 class ResilienceResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     success: bool = False
     final_strategy: str = "primary"
     attempts: int = 0

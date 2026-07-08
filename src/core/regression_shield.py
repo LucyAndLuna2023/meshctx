@@ -12,9 +12,6 @@ from typing import Dict, List, Optional, Tuple
 
 # ═══════════════ 枚举 ═══════════════
 class ShieldVerdict(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     PASS = "pass"
     BLOCK = "block"
 
@@ -22,9 +19,6 @@ class ShieldVerdict(Enum):
 # ═══════════════ 数据类 ═══════════════
 @dataclass
 class ChangeRequest:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     id: str
     files_changed: List[str]
     description: str = ""
@@ -33,9 +27,6 @@ class ChangeRequest:
 
 @dataclass
 class ShieldReport:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     request_id: str
     verdict: ShieldVerdict
     tests_total: int = 0

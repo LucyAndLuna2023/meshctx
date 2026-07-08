@@ -3,9 +3,6 @@ import numpy as np
 from enum import Enum
 
 class ActionType(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     EXPLORE = "explore"
     EXPLOIT = "exploit"
     WAIT = "wait"

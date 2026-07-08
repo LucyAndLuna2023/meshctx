@@ -1,9 +1,6 @@
 """Orchestrator — 开源版 (stub)"""
 from enum import Enum
 class TaskNodeStatus(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     PENDING = "pending"
     RUNNING = "running"
     DONE = "done"

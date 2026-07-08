@@ -7,9 +7,6 @@ from collections import defaultdict
 
 @dataclass
 class SwarmMember:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """集群成员节点"""
     agent_id: str
     host: str
@@ -31,9 +28,6 @@ class SwarmMember:
 
 @dataclass
 class Vote:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """投票提案"""
     proposal: str
     votes: Dict[str, bool] = field(default_factory=dict)

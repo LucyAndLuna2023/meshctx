@@ -57,9 +57,6 @@ except ImportError:
 # ═══════════════════════════════════════════════════════════
 
 class LockGranularity(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """锁粒度。"""
     GLOBAL = "global"        # 全系统互斥
     RESOURCE = "resource"    # 资源级互斥 (e.g. "db")
@@ -67,9 +64,6 @@ class LockGranularity(Enum):
 
 
 class LockState(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """锁状态。"""
     ACQUIRED = auto()
     RELEASED = auto()
@@ -79,9 +73,6 @@ class LockState(Enum):
 
 @dataclass
 class Lock:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """分布式锁实例。"""
     resource: str                      # 锁资源标识
     token: str                         # 唯一持有者 token (UUID-like)
@@ -98,9 +89,6 @@ class Lock:
 
 @dataclass
 class LockStats:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """锁统计信息。"""
     total_acquired: int = 0
     total_released: int = 0

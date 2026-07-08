@@ -3,9 +3,6 @@ import numpy as np
 from enum import Enum
 
 class ProcessorType(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     SENSORY = "sensory"
     MEMORY = "memory"
     METACOGNITIVE = "metacognitive"

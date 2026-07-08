@@ -68,9 +68,6 @@ DEFAULT_HANDLER_TIMEOUT = 30.0  # 秒
 
 @dataclass
 class Event:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """事件数据结构。
 
     Attributes:
@@ -118,9 +115,6 @@ class _PrioritizedEvent:
 
 @dataclass
 class DeadLetterEntry:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """死信队列条目 — 记录处理失败的事件。"""
     event: Event
     error: str                          # 错误信息
@@ -142,9 +136,6 @@ class DeadLetterEntry:
 
 @dataclass
 class EventSystemStats:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """EventSystem 统计信息。"""
     total_emitted: int = 0
     total_delivered: int = 0

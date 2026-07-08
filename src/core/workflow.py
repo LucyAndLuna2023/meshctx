@@ -69,9 +69,6 @@ class StepTimeoutError(WorkflowError):
 
 # ── Status Enum ──────────────────────────────────────────────────────────
 class StepStatus(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Possible states of a workflow step during execution."""
     PENDING   = "pending"     # Not yet ready (dependencies unsatisfied)
     READY     = "ready"       # Dependencies satisfied, queued for execution
@@ -84,9 +81,6 @@ class StepStatus(Enum):
 
 
 class RunStatus(Enum):
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """Overall status of a workflow run."""
     PENDING   = "pending"
     RUNNING   = "running"
@@ -99,9 +93,6 @@ class RunStatus(Enum):
 # ── Data Classes ─────────────────────────────────────────────────────────
 @dataclass
 class WorkflowStep:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """A single step within a workflow.
 
     Attributes:
@@ -148,9 +139,6 @@ class WorkflowStep:
 
 @dataclass
 class WorkflowDefinition:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """A named, validated workflow template.
 
     Created via :func:`workflow_define`.
@@ -167,9 +155,6 @@ class WorkflowDefinition:
 
 @dataclass
 class StepResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """The outcome of a single step execution, including retry history."""
     step_id: str
     status: StepStatus = StepStatus.PENDING
@@ -191,9 +176,6 @@ class StepResult:
 
 @dataclass
 class WorkflowRun:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """A single execution instance of a workflow definition."""
     id: str
     name: str

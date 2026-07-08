@@ -260,8 +260,8 @@ class _P:
     def __len__(s): return 1
     def __iter__(s): yield _P("item"); yield _P("item")
     def __getitem__(s, k): return _P(f"{s._n}[{k}]")
-    def __contains__(s, i): return True
-    def __eq__(s, o): return True
+    def __contains__(s, i): return False  # v3.115.16: was True — 安全绕过
+    def __eq__(s, o): return NotImplemented  # v3.115.16: was True — 安全绕过，退化为identity比较
     def __ne__(s, o): return False
     def __hash__(s): return 0
     def __int__(s): return 0

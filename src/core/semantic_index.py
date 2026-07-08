@@ -58,9 +58,6 @@ logger = logging.getLogger("meshctx.semantic_index")
 
 @dataclass
 class SemanticEntry:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """语义索引条目"""
     id: str
     vector: np.ndarray
@@ -90,9 +87,6 @@ class SemanticEntry:
 
 @dataclass
 class SearchResult:
-    def __getattr__(self, name, **kw):
-        if name.startswith("_"): raise AttributeError(name)
-        return _P(name)
     """搜索结果"""
     id: str
     score: float
