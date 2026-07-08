@@ -71,30 +71,75 @@ class MemoryEngine:
             self._load_existing_data()
             self._data_loaded = True
 
+    # ── 懒加载会话/记忆/Agent ──────────────────────────────────
+
+    def _ensure_conversations_loaded(self):
+        """按需加载会话数据"""
+        if hasattr(self, '_convs_loaded') and self._convs_loaded:
+            return
+        p = self.storage.base_path / "conversations"
+        if p.exists():
+            for fp in p.glob("*.json"):
+                try:
+                    with open(fp, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    obj = Conversation.model_validate(data)
+                    self.conversations[obj.id] = obj
+                except Exception:
+                    pass
+        self._convs_loaded = True
+
+    def _ensure_memories_loaded(self):
+        """按需加载记忆数据"""
+        if hasattr(self, '_mems_loaded') and self._mems_loaded:
+            return
+        p = self.storage.base_path / "memories"
+        if p.exists():
+            for fp in p.glob("*.json"):
+                try:
+                    with open(fp, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    obj = Memory.model_validate(data)
+                    self.memories[obj.id] = obj
+                except Exception:
+                    pass
+        self._mems_loaded = True
+
+    def _ensure_agents_loaded(self):
+        """按需加载Agent数据"""
+        if hasattr(self, '_agents_loaded') and self._agents_loaded:
+            return
+        p = self.storage.base_path / "agents"
+        if p.exists():
+            for fp in p.glob("*.json"):
+                try:
+                    with open(fp, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    obj = Agent.model_validate(data)
+                    self.agents[obj.id] = obj
+                except Exception:
+                    pass
+        self._agents_loaded = True
+
     # ── 数据加载 ──────────────────────────────────────────────
 
     def _load_existing_data(self):
         """从磁盘加载现有数据到内存（Pydantic v2 兼容）"""
-        for dir_name, store, cls in [
-            ("projects", self.projects, Project),
-            ("conversations", self.conversations, Conversation),
-            ("memories", self.memories, Memory),
-            ("agents", self.agents, Agent),
-        ]:
-            p = self.storage.base_path / dir_name
-            if p.exists():
-                count = 0
-                for fp in p.glob("*.json"):
-                    try:
-                        with open(fp, "r", encoding="utf-8") as f:
-                            data = json.load(f)
-                        obj = cls.model_validate(data)
-                        store[obj.id] = obj
-                        count += 1
-                    except Exception:
-                        logger.debug(f"Skipped invalid entity file: {fp.name}")
-                if count:
-                    logger.info(f"Loaded {count} {dir_name} from disk")
+        # v3.115.16: 只加载项目列表(轻量), 会话/记忆/Agent按需加载
+        p = self.storage.base_path / "projects"
+        if p.exists():
+            for fp in p.glob("*.json"):
+                try:
+                    with open(fp, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    obj = Project.model_validate(data)
+                    self.projects[obj.id] = obj
+                except Exception:
+                    logger.debug(f"Skipped invalid project file: {fp.name}")
+            logger.info(f"Loaded {len(self.projects)} projects from disk")
+        
+        # Lazy: don't load conversations/memories/agents automatically
+        # They load on first access via _ensure_conversations_loaded() etc.
 
         # 加载消息（不占用主内存，通过 storage.get_messages 按需读取）
         msgs_dir = self.storage.base_path / "messages"
@@ -189,6 +234,7 @@ class MemoryEngine:
 
     def list_conversations(self, project_id: str) -> List[Conversation]:
         self._ensure_loaded()
+        self._ensure_conversations_loaded()
         return [c for c in self.conversations.values()
                 if c.project_id == project_id]
 
@@ -363,6 +409,7 @@ class MemoryEngine:
 
     def get_memories(self, project_id: str) -> List[Memory]:
         """获取项目的所有记忆（内存优先）"""
+        self._ensure_memories_loaded()
         in_memory = [m for m in self.memories.values()
                      if m.project_id == project_id]
         if in_memory:
