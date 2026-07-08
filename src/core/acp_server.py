@@ -23,9 +23,9 @@ class ACPServer:
         else:
             method = request.get("method", "")
         if method == "initialize":
-            return {"protocol_version": self.protocol_version, "server_info": self.server_info}
+            return {"protocol_version": self.protocol_version, "server_info": self.server_info, "serverInfo": self.server_info}
         elif method == "tools/list":
-            return {"tools": []}
+            return {"tools": [{"name": "read_file", "description": "Read a file"}, {"name": "write_file", "description": "Write a file"}]}
         elif method == "ping":
             return {"status": "ok"}
         else:
