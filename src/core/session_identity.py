@@ -28,6 +28,12 @@ class SessionIdentity:
     def set_strategy_belief(self, strategy_name: str, belief: float):
         self.preferences[strategy_name] = belief
     
+    def set_preference(self, key: str, value):
+        self.preferences[key] = value
+    
+    def set_habit(self, key: str, value):
+        self.strategies.append({"name": key, "value": value})
+    
     def to_dict(self) -> dict:
         return {
             "session_id": self.session_id, "created_at": self.created_at,
