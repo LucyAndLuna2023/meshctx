@@ -332,6 +332,14 @@ class KnowledgeGraph:
 
 class KnowledgeSynthesizer(KnowledgeGraph):
     """Compatibility wrapper for v94 tests — delegates to KnowledgeGraph."""
+    
+    @property
+    def _fragments(self):
+        return {eid: e for eid, e in self.entities.items() if e.type == 'fragment'}
+    
+    @property
+    def _syntheses(self):
+        return {eid: e for eid, e in self.entities.items() if e.type == 'synthesis'}
     def add_fragment(self, text, source="", score=1.0, tags=None):
         e = self.add_entity('fragment', {'text': text, 'source': source, 'score': score, 'tags': tags or []})
         return e.id
