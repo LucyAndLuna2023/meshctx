@@ -16,9 +16,12 @@ class ACPServer:
     def on(self, event: str, handler):
         self._handlers[event] = handler
     
-    def handle_request(self, request: dict, context: dict = None) -> dict:
-        """Handle an ACP protocol request."""
-        method = request.get("method", "")
+    def handle_request(self, request, context: dict = None) -> dict:
+        """Handle an ACP protocol request. Accepts string method or dict request."""
+        if isinstance(request, str):
+            method = request
+        else:
+            method = request.get("method", "")
         if method == "initialize":
             return {"protocol_version": self.protocol_version, "server_info": self.server_info}
         elif method == "tools/list":
