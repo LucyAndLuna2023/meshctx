@@ -1731,7 +1731,7 @@ async def summon_agent(request: dict = None):
 
     description = request.get("description", "")
     if not description:
-        raise HTTPException(400, "description 字段为必填项")
+        raise HTTPException(400, t('error_description_required'))
 
     task = request.get("task", "")
     timeout = request.get("timeout", 300)
