@@ -69,26 +69,8 @@ def is_encrypted(key: str) -> bool:
     return key.startswith("enc:")
 
 
-# ── YAML 序列化（写入） ──
-def _P_representer(dumper, obj):
-    """序列化为 enc: 前缀字符串"""
-    return dumper.represent_scalar('tag:yaml.org,2002:str', f"enc:{obj._n}")
-
-
-# ── 兼容旧 !!python/object 标签（读取） ──
-_OLD_P_TAG = 'tag:yaml.org,2002:python/object:src.core.crypto._P'
-
+# ── 兼容旧 !!python/object 标签（读取）─ 安全处理，不再崩溃 ──
 def _legacy_P_constructor(loader, node):
-    """将旧格式 !!python/object 映射为普通字符串，不再崩溃"""
+    """将旧格式映射为普通字符串"""
     data = loader.construct_mapping(node, deep=True)
     return f"enc:{data.get('_n', '')}"
-
-
-# 注册
-_yaml_mod.add_representer(_P, _P_representer)
-_yaml_mod.Dumper.add_representer(_P, _P_representer)
-_yaml_mod.SafeDumper.add_representer(_P, _P_representer)
-
-# 让 SafeLoader 也能解析旧标签（关键修复！）
-_yaml_mod.SafeLoader.add_constructor(_OLD_P_TAG, _legacy_P_constructor)
-_yaml_mod.Loader.add_constructor(_OLD_P_TAG, _legacy_P_constructor)

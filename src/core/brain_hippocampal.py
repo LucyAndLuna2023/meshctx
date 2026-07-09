@@ -190,7 +190,7 @@ class HippocampalReplay:
         idle_factor = min(1.0, self._idle_accumulator / 60.0)
         
         self._swr_probability = recent_ratio * idle_factor
-        self._swr_probability *= 1.0 + 0.1 * np.random.randn()  # noise
+        # v3.115.16: deterministic SWR — no random noise
         
         if self._swr_probability > self.swr_threshold:
             self._idle_accumulator = 0.0
@@ -213,9 +213,10 @@ class HippocampalReplay:
             weights.append(w)
         weights = np.array(weights) / sum(weights)
         
-        indices = np.random.choice(len(self.recent), 
-                                    size=min(n_replays, len(self.recent)),
-                                    p=weights, replace=False)
+        # v3.115.16: deterministic top-k selection (no random)
+        scored = [(w, i) for i, w in enumerate(weights)]
+        scored.sort(key=lambda x: -x[0])
+        indices = [i for _, i in scored[:min(n_replays, len(self.recent))]]
         
         for idx in sorted(indices):
             trace = self.recent[idx]

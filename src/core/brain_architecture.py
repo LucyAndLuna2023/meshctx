@@ -92,9 +92,10 @@ class BasalGanglia:
     def select(self, actions: List[str], temperature: float = 1.0) -> Tuple[str, float]:
         if not actions: return ('wait', 0.0)
         scores = np.array([self.evaluate(a) for a in actions])
+        # Deterministic selection with temperature (no randomness)
         probs = np.exp(scores / max(temperature, 0.01))
         probs /= probs.sum()
-        idx = np.random.choice(len(actions), p=probs)
+        idx = int(np.argmax(probs))  # deterministic argmax
         return actions[idx], float(scores[idx])
     def reinforce(self, action: str, reward: float):
         self._history.append((action, reward))

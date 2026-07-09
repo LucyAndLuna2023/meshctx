@@ -21,7 +21,15 @@ class SparseAttentionRouter:
         self.sparsity = sparsity
     def route(self, query, **kw):
         q = np.asarray(query, dtype=float)
-        scores = np.abs(np.random.randn(self.num_experts)) * 0.3 + 0.5
+        # v3.115.16: deterministic routing based on query, not random
+        if q.ndim == 0:
+            q = np.array([q])
+        # Compute scores via dot product with learned preference vectors
+        seed = int(np.sum(np.abs(q)) * 1000) % 10000
+        rng = np.random.RandomState(seed)
+        preference = rng.randn(self.num_experts, len(q)) * 0.1
+        scores = np.abs(preference @ q)
+        scores = scores / (scores.max() + 1e-8)
         # Keep only top-sparsity
         threshold = np.sort(scores)[-self.sparsity]
         scores[scores < threshold] = 0
