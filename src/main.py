@@ -414,7 +414,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="3.115.4",
+    version="3.115.16",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -5410,7 +5410,7 @@ async def config_export():
         env_keys = [k for k in os.environ if k.endswith("_API_KEY") or k.startswith("MESHCTX_")]
         import datetime
         return {
-            "version": "3.115.4",
+            "version": "3.115.16",
             "exported_at": datetime.datetime.utcnow().isoformat() + "Z",
             "providers": config.get("providers", {}),
             "mcp_servers": config.get("mcp_servers", config.get("mcp", [])),
