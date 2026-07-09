@@ -3090,6 +3090,12 @@ async def api_chat_stream(request: Request):
             if brain_result.get('enhanced_prompt'):
                 system_prompt = brain_result['enhanced_prompt']
             logger.info(f"🧠 CognitiveLoop: cache={brain_log['cache_hit']} ctx={brain_log['context_injected']} Φ={brain_log['phi']:.2f}")
+            # ═══ 缓存命中 → 直接返回，跳过LLM ═══
+            if brain_result.get('cache_hit') and brain_result.get('response'):
+                async def cached_stream():
+                    yield f"data: {brain_result['response']}\n\n"
+                    yield "data: [DONE]\n\n"
+                return StreamingResponse(cached_stream(), media_type="text/event-stream")
     except Exception as e:
         logger.warning(f"🧠 CognitiveLoop FAILED: {e}")
     # ═══ End CognitiveLoop ═══
