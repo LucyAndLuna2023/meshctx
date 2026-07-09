@@ -19,6 +19,12 @@ import os
 import sys
 from pathlib import Path
 
+# i18n support
+try:
+    from .i18n import t
+except ImportError:
+    def t(key: str) -> str: return key
+
 
 def _get_port() -> int:
     """Get meshctx server port from env var (default 3001 — 与 install.sh 一致)"""
