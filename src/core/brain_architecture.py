@@ -72,8 +72,13 @@ class BrainLoop:
             if not gated:
                 return self._empty_result('thalamus_gated')
             
-            # 2. Amygdala: 情感分析
-            emotion = self.amygdala.tag_emotional(observation)
+            # 2. Amygdala: 情感分析 (真实brain_amygdala)
+            threat = self.amygdala.detect_threat(observation)
+            emotion = {
+                'valence': -threat.score if hasattr(threat, 'score') else -0.3,
+                'arousal': threat.score if hasattr(threat, 'score') else 0.5,
+                'threat': threat.score if hasattr(threat, 'score') else 0.0,
+            }
             
             # 3. Hippocampus: 记忆检索
             recalled = self.hippocampus.recall(observation, top_k=3)
