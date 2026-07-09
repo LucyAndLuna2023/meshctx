@@ -60,7 +60,7 @@ def cmd_model(args):
             print("  export BAILIAN_API_KEY=sk-xxx")
             print("  export DEEPSEEK_API_KEY=sk-xxx")
         else:
-            print(f"✅ 自动配置 {len(entries)} 个模型:")
+            print(f"{t('i18n_config_6dd3e4')}{len(entries)}{t('i18n_model_188171')}")
             for e in entries:
                 print(f"   {e['id']:<30} {'✓' if e['ready'] else '⚠缺Key'}")
 
@@ -69,14 +69,14 @@ def cmd_model(args):
         if not entries:
             print(t("i18n_scan_dc8a62"))
         else:
-            print(f"\n{'模型ID':<30} {'Provider':<12} {'实际模型':<28} 状态")
+            print(f"\n{'模型ID':<30} {'Provider':<12} {'实际模型':<28}{t('i18n_common_3fea7c')}")
             print("-" * 85)
             for e in entries:
                 s = "✓ 就绪" if e['ready'] else "⚠ 缺Key"
                 print(f"{e['id']:<30} {e['provider']:<12} {e['model']:<28} {s}")
 
     elif args.model_action == "available":
-        print(f"\n内置模型目录 ({len(BUILTIN_MODELS)} 个):\n")
+        print(f"{t('i18n_model_6f955c')}{len(BUILTIN_MODELS)}{t('i18n_common_f4c83d')}")
         by_provider = {}
         for mid, info in BUILTIN_MODELS.items():
             p = info["provider"]
@@ -95,16 +95,16 @@ def cmd_model(args):
             return
         cfg = reg.add(model_id, key=args.key or "", model=args.model or "", base_url=args.base_url or "")
         status = "✓" if cfg.get("key") else "⚠ 需要 API Key"
-        print(f"模型已添加: {model_id} {status}")
+        print(f"{t('i18n_model_ca47bb')}{model_id} {status}")
 
     elif args.model_action == "test":
         client = reg.get(args.model_id)
         if not client:
-            print(f"模型 '{args.model_id or '默认'}' 未配置。")
+            print(f"{t('i18n_model_f6895a')}{args.model_id or '默认'}{t('i18n_config_600be0')}")
             print(t("i18n_scan_61d5ac"))
             return
         prompt = args.prompt or "用一句话介绍你自己"
-        print(f"🧪 测试 {client.model_id} ({client.model_name})...")
+        print(f"{t('i18n_test_39509f')}{client.model_id} ({client.model_name})...")
         print(f"Q: {prompt}")
         resp = client.chat([{"role": "user", "content": prompt}])
         print(f"A: {resp['content']}")
@@ -114,10 +114,10 @@ def cmd_model(args):
         # 设置默认模型(写到环境或配置)
         model_id = args.model_id
         if model_id not in reg._entries:
-            print(f"模型 '{model_id}' 未配置。先运行 'meshctx model add {model_id}'")
+            print(f"{t('i18n_model_f6895a')}{model_id}{t('i18n_config_4fde74')}{model_id}'")
             return
         os.environ["MESHCTX_MODEL"] = model_id
-        print(f"✅ 默认模型已切换为: {model_id}")
+        print(f"{t('i18n_model_24b934')}{model_id}")
 
 
 # ═══════════════════════════════════════════════════
@@ -140,7 +140,7 @@ def cmd_skill(args):
         if not skills:
             print(t("i18n_common_490583"))
         else:
-            print(f"\n{'Skill':<30} {'来源':<10} {'使用':<6} {'成功率':<8} 描述")
+            print(f"\n{'Skill':<30} {'来源':<10} {'使用':<6} {'成功率':<8}{t('i18n_common_3bdd08')}")
             print("-" * 85)
             for s in skills:
                 print(f"{s.name:<30} {s.source:<10} {s.usage_count:<6} {s.success_rate:.0%}     {s.description[:40]}")
@@ -153,13 +153,13 @@ def cmd_skill(args):
             steps=args.steps.split(",") if args.steps else [],
             tools=args.tools.split(",") if args.tools else [],
         )
-        print(f"✓ Skill 已创建: {args.name}")
+        print(f"{t('i18n_done_61cedf')}{args.name}")
 
     elif args.skill_action == "delete":
         if mgr.delete(args.name):
-            print(f"✓ 已删除: {args.name}")
+            print(f"{t('i18n_done_070cf9')}{args.name}")
         else:
-            print(f"✗ 不存在: {args.name}")
+            print(f"{t('i18n_common_6a016d')}{args.name}")
 
     elif args.skill_action == "auto":
         from src.model_registry import get_registry
@@ -173,7 +173,7 @@ def cmd_skill(args):
         }
         skill = mgr.auto_create_from_pattern(pattern, client)
         if skill:
-            print(f"✓ 自动生成 Skill: {skill.name}")
+            print(f"{t('i18n_auto_adf2fc')}{skill.name}")
 
 
 # ═══════════════════════════════════════════════════
@@ -269,7 +269,7 @@ def _cmd_gateway_setup():
             }
             with open(config_path, "w") as f:
                 yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
-            print(f"✅ 飞书已配置！重启后生效")
+            print(f"{t('i18n_config_695458')}")
     
     elif choice == "3":
         print(t("i18n_config_fce0f7"))
@@ -283,7 +283,7 @@ def _cmd_gateway_setup():
             config["gateway"]["telegram"] = {"bot_token": bot_token}
             with open(config_path, "w") as f:
                 yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
-            print(f"✅ Telegram 已配置！重启后生效")
+            print(f"{t('i18n_config_d30d41')}")
 
 
 def cmd_chat(args):
@@ -298,7 +298,7 @@ def cmd_chat(args):
         print(t("i18n_scan_6de16b"))
         return
 
-    print(f"🤖 meshctx → {client.model_id}  /quit退出 /models列表 /model<id>切换 /gateway配置平台 /verbose详情\n")
+    print(f"🤖 meshctx → {client.model_id}{t('i18n_config_34e2bd')}")
 
     verbose = False  # /verbose 切换详细模式
 
@@ -357,7 +357,7 @@ def cmd_chat(args):
             continue
         if user == "/models" or user == "/model":
             entries = reg.list_all()
-            print(f"\n  {'模型ID':<25} {'状态':<8} 说明")
+            print(f"\n  {'模型ID':<25} {'状态':<8}{t('i18n_common_f411d0')}")
             print(f"  {'-'*50}")
             for e in entries:
                 status = "✓" if e['ready'] else "✗"
@@ -370,13 +370,13 @@ def cmd_chat(args):
             new_client = reg.get(new_id)
             if new_client:
                 client = new_client
-                print(f"✅ 已切换 → {client.model_id} ({client.model_name})\n")
+                print(f"{t('i18n_done_b48c54')}{client.model_id} ({client.model_name})\n")
             else:
-                print(f"❌ 模型 '{new_id}' 不可用。输入 /models 查看可选模型\n")
+                print(f"{t('i18n_model_1bf634')}{new_id}{t('i18n_model_ec82c8')}")
             continue
         if user == "/verbose":
             verbose = not verbose
-            print(f"📋 详细模式: {'开启' if verbose else '关闭'} — {'显示所有工具调用和思考过程' if verbose else '仅显示最终结果'}\n")
+            print(f"{t('i18n_common_6a531f')}{'开启' if verbose else '关闭'} — {'显示所有工具调用和思考过程' if verbose else '仅显示最终结果'}\n")
             continue
 
         messages.append({"role": "user", "content": user})
@@ -518,12 +518,12 @@ def cmd_password(args):
                     password = line.split("=", 1)[1].strip()
                     break
         if password:
-            print(f"🔐 Web UI 密码已设置 (长度 {len(password)} 字符)")
-            print(f"   登录地址: http://localhost:3001/ui")
-            print(f"   清除密码: meshctx password clear")
+            print(f"{t('i18n_done_ff07ab')}{len(password)}{t('i18n_common_b76065')}")
+            print(f"{t('i18n_common_b6dfdc')}")
+            print(f"{t('i18n_common_a24d0b')}")
         else:
             print(t("i18n_common_168075"))
-            print(f"   设置密码: meshctx password set")
+            print(f"{t('i18n_common_87edca')}")
         return
 
     elif action == "set":
@@ -544,7 +544,7 @@ def cmd_password(args):
         os.makedirs(os.path.dirname(env_path), exist_ok=True)
         with open(env_path, "w") as f:
             f.writelines(env_lines)
-        print(f"✅ 密码已设置。重启生效: meshctx stop && meshctx start")
+        print(f"{t('i18n_done_d0b72e')}")
         return
 
     elif action == "clear":
@@ -584,9 +584,9 @@ def cmd_setup(args):
     print(t("i18n_common_5bd6dd"))
     for i, p in enumerate(providers):
         models = [k for k, v in BUILTIN_MODELS.items() if v["provider"] == p]
-        print(f"  [{i+1:2d}] {p:15s} ({len(models)} 模型)  — 如: {', '.join(models[:3])}")
+        print(f"  [{i+1:2d}] {p:15s} ({len(models)}{t('i18n_model_cc89e8')}{', '.join(models[:3])}")
     
-    print(f"\n  输入编号选择供应商 (1-{len(providers)}), 或直接输入模型名")
+    print(f"{t('i18n_common_d043da')}{len(providers)}{t('i18n_model_e63588')}")
     choice = input("  选择: ").strip()
     
     model_id = None
@@ -608,7 +608,7 @@ def cmd_setup(args):
     if not model_id and provider:
         # 列出该供应商的模型
         p_models = [(k, v) for k, v in BUILTIN_MODELS.items() if v["provider"] == provider]
-        print(f"\n  {provider} 可用模型:")
+        print(f"\n  {provider}{t('i18n_model_8b2a21')}")
         for i, (mid, _) in enumerate(p_models):
             print(f"  [{i+1}] {mid}")
         m_choice = input("  选择模型: ").strip()
@@ -616,7 +616,7 @@ def cmd_setup(args):
             model_id = p_models[int(m_choice)-1][0]
         except (ValueError, IndexError):
             model_id = p_models[0][0]
-            print(f"  使用默认: {model_id}")
+            print(f"{t('i18n_default_2d6270')}{model_id}")
     
     if not model_id:
         print(t("i18n_common_80d45f"))
@@ -624,7 +624,7 @@ def cmd_setup(args):
         provider = "deepseek"
     
     model_info = BUILTIN_MODELS.get(model_id, BUILTIN_MODELS["deepseek:chat"])
-    print(f"\n  ✅ 选定模型: {model_id} ({model_info['model']})")
+    print(f"{t('i18n_model_d1ae96')}{model_id} ({model_info['model']})")
     
     # Step 2: API Key
     key_env = model_info["key_env"]
@@ -633,13 +633,13 @@ def cmd_setup(args):
     
     print(f"\n🔑 API Key: {key_env}")
     if existing_key:
-        print(f"  已检测到环境变量 ({masked})")
+        print(f"{t('i18n_done_93a253')}{masked})")
         use_existing = input("  使用已有Key? [Y/n] ").strip().lower()
         if use_existing in ('n', 'no'):
             existing_key = ""
     
     if not existing_key:
-        print(f"  获取地址: https://platform.{provider}.com (或对应平台)")
+        print(f"{t('i18n_common_a88ca8')}{provider}{t('i18n_common_094df8')}")
         api_key = input(f"  请输入 {key_env}: ").strip()
         if api_key:
             os.environ[key_env] = api_key
@@ -654,7 +654,7 @@ def cmd_setup(args):
                         existing[k.strip()] = v.strip()
             existing[key_env] = api_key
             env_file.write_text("\n".join(f"{k}={v}" for k, v in existing.items()) + "\n")
-            print(f"  ✅ 已保存到 {env_file}")
+            print(f"{t('i18n_done_ecfc8e')}{env_file}")
     
     # Step 3: 保存配置
     config_dir = Path.home() / ".meshctx"
@@ -692,18 +692,18 @@ def cmd_evolve(args):
 
     print(t("i18n_common_310c0f"))
     stats = mgr.stats()
-    print(f"Skills: {stats['total']}个 (自动生成{stats['auto_created']})")
+    print(f"Skills: {stats['total']}{t('i18n_auto_d5b8d8')}{stats['auto_created']})")
 
     if reg._entries:
         client = reg.get(None)
         if client:
             resp = client.chat([{"role":"user","content":"根据这些Skill数据提出3条优化建议:" + json.dumps(stats,ensure_ascii=False)}])
-            print(f"💡 优化建议:\n{resp['content']}")
+            print(f"{t('i18n_common_3178d5')}{resp['content']}")
 
             if args.auto:
                 skill = mgr.auto_create_from_pattern({"task_pattern":"自动优化","avg_quality":0.8,"frequency":3})
                 if skill:
-                    print(f"✅ 自动创建: {skill.name}")
+                    print(f"{t('i18n_auto_069a82')}{skill.name}")
 
     print(t("i18n_common_fca356"))
 
@@ -734,7 +734,7 @@ def cmd_cron(args):
         print(t("i18n_common_8c9b1f"))
     elif args.cron_action == "add" and args.name:
         cron.add_job(args.name, args.schedule or "every 1h", args.action or "")
-        print(f"✓ 已添加: {args.name} ({args.schedule})")
+        print(f"{t('i18n_done_ff149d')}{args.name} ({args.schedule})")
 
 
 def cmd_search(args):
@@ -748,12 +748,12 @@ def cmd_search(args):
             print(t("i18n_common_8915aa"))
         else:
             for s in recent:
-                print(f"  {s['title'][:50]} ({s['message_count']}条消息)")
+                print(f"  {s['title'][:50]} ({s['message_count']}{t('i18n_common_9a045f')}")
         return
     
     results = engine.search(args.query, args.limit)
     if not results:
-        print(f"未找到: {args.query}")
+        print(f"{t('i18n_common_916964')}{args.query}")
     else:
         for r in results:
             print(f"  [{r.score:.0%}] {r.title[:50]}")
@@ -763,7 +763,7 @@ def cmd_browser(args):
     """Browser 工具"""
     print(t("i18n_common_a69c42"))
     if args.action == "open" and args.target:
-        print(f"打开: {args.target}")
+        print(f"{t('i18n_common_b0d841')}{args.target}")
 
 
 def cmd_profile(args):
@@ -782,20 +782,20 @@ def cmd_profile(args):
             print(t("i18n_common_cb4a08"))
             return
         pm.create(args.name)
-        print(f"✓ Profile '{args.name}' 已创建")
+        print(f"✓ Profile '{args.name}{t('i18n_done_f7d955')}")
     elif args.action == "use":
         if not args.name:
             print(t("i18n_common_f81f9b"))
             return
         pm.use(args.name)
-        print(f"✓ 已切换到 '{args.name}'")
+        print(f"{t('i18n_done_8af8ed')}{args.name}'")
     elif args.action == "delete":
         if not args.name:
             print(t("i18n_common_0278cb"))
             return
         try:
             pm.delete(args.name)
-            print(f"✓ Profile '{args.name}' 已删除")
+            print(f"✓ Profile '{args.name}{t('i18n_done_9d2cda')}")
         except ValueError as e:
             print(f"✗ {e}")
     elif args.action == "clone":
@@ -803,7 +803,7 @@ def cmd_profile(args):
             print(t("i18n_common_dd54f6"))
             return
         pm.clone(args.name, args.target)
-        print(f"✓ Profile '{args.name}' 已克隆为 '{args.target}'")
+        print(f"✓ Profile '{args.name}{t('i18n_done_a5d8a3')}{args.target}'")
     elif args.action == "path":
         name = args.name or pm.active
         print(pm.get_path(name))
@@ -816,15 +816,15 @@ def cmd_approve(args):
     ae = ApprovalEngine()
     
     if args.action == "status":
-        print(f"审批模式: {ae.mode}")
+        print(f"{t('i18n_common_887df5')}{ae.mode}")
         print(f"YOLO: {'开启' if ae.yolo else '关闭'}")
     elif args.action == "mode":
         if not args.mode:
-            print(f"当前模式: {ae.mode}")
+            print(f"{t('i18n_common_22c6aa')}{ae.mode}")
             print(t("i18n_common_cbcdea"))
             return
         ae.set_mode(args.mode)
-        print(f"✓ 审批模式已切换为: {args.mode}")
+        print(f"{t('i18n_done_a941df')}{args.mode}")
     elif args.action == "check":
         import sys
         cmd = " ".join(sys.argv[3:]) if len(sys.argv) > 3 else ""
@@ -832,11 +832,11 @@ def cmd_approve(args):
             print(t("i18n_common_ed4f71"))
             return
         result = ae.check(cmd)
-        print(f"命令: {cmd}")
-        print(f"需要审批: {'是' if result.requires_approval else '否'}")
-        print(f"风险等级: {result.risk_level}")
-        print(f"动作: {result.action}")
-        print(f"原因: {result.reason}")
+        print(f"{t('i18n_common_d56c0f')}{cmd}")
+        print(f"{t('i18n_common_a38b0c')}{'是' if result.requires_approval else '否'}")
+        print(f"{t('i18n_common_629589')}{result.risk_level}")
+        print(f"{t('i18n_common_3cf4dc')}{result.action}")
+        print(f"{t('i18n_common_b14d7a')}{result.reason}")
 
 
 def cmd_completion(args):
@@ -851,7 +851,7 @@ def cmd_completion(args):
         with open(shell_file) as f:
             print(f.read())
     else:
-        print(f"补全脚本不存在: {shell_file}")
+        print(f"{t('i18n_common_d82da2')}{shell_file}")
 
 
 def cmd_tts(args):
@@ -866,7 +866,7 @@ def cmd_tts(args):
     async def run():
         engine = TTSEngine("edge")
         path = await engine.synthesize(args.text, args.voice)
-        print(f"✓ 语音已生成: {path}")
+        print(f"{t('i18n_done_c25913')}{path}")
     
     asyncio.run(run())
 
@@ -877,7 +877,7 @@ def cmd_mcp(args):
 
     if args.action == "tools":
         server = MCPServer()
-        print(f"MCP 工具 ({len(server._tools)}个):")
+        print(f"{t('i18n_common_9639c4')}{len(server._tools)}{t('i18n_common_3fa102')}")
         for name, tool in server._tools.items():
             print(f"  {name}: {tool.description}")
     elif args.action == "serve":
@@ -896,10 +896,10 @@ def cmd_auth(args):
         if args.provider:
             keys = mgr.list_keys(args.provider)
             if not keys:
-                print(f"Provider '{args.provider}' 无凭证池")
+                print(f"Provider '{args.provider}{t('i18n_common_d8319c')}")
                 return
             strategy = mgr.pools.get(args.provider)
-            print(f"\n📋 {args.provider} — 策略: {strategy.strategy if strategy else 'round_robin'}")
+            print(f"\n📋 {args.provider}{t('i18n_common_dc1a6d')}{strategy.strategy if strategy else 'round_robin'}")
             for i, k in enumerate(keys):
                 icon = "🟢" if k["status"] == "active" else "🔴" if k["status"] == "revoked" else "🟡"
                 name = k.get("label") or (k["key"][:12] + "...")
@@ -910,7 +910,7 @@ def cmd_auth(args):
                 print(t("i18n_common_f54ed1"))
                 return
             stats = mgr.get_stats()
-            print(f"\n📊 凭证池 — {stats['total_pools']} providers, {stats['total_keys']} keys")
+            print(f"{t('i18n_common_a4ea52')}{stats['total_pools']} providers, {stats['total_keys']} keys")
             for prov in providers:
                 pool = mgr.pools[prov]
                 active = sum(1 for k in pool.keys if k.status == "active")
@@ -921,7 +921,7 @@ def cmd_auth(args):
             print(t("i18n_common_c09454"))
             return
         pk = mgr.add_key(args.provider, args.key, args.label)
-        print(f"✅ 已添加 {args.provider}: {pk.key[:12]}... — 当前池大小: {len(mgr.pools[args.provider].keys)}")
+        print(f"{t('i18n_done_acc478')}{args.provider}: {pk.key[:12]}{t('i18n_common_a0d484')}{len(mgr.pools[args.provider].keys)}")
 
     elif args.action == "remove":
         if not args.provider or args.index < 0:
@@ -936,9 +936,9 @@ def cmd_auth(args):
             return
         key = mgr.get_key(args.provider)
         if key:
-            print(f"🔑 轮转到: {key[:8]}...{key[-4:]}")
+            print(f"{t('i18n_common_346e07')}{key[:8]}...{key[-4:]}")
         else:
-            print(f"❌ {args.provider} 无可用Key")
+            print(f"❌ {args.provider}{t('i18n_common_d31419')}")
 
     elif args.action == "reset":
         if not args.provider:
@@ -949,11 +949,11 @@ def cmd_auth(args):
             print(f"{'✅ 已重置' if ok else '❌ 未找到'} index={args.index}")
         else:
             count = mgr.reset_provider(args.provider)
-            print(f"✅ 已重置 {count} 个Key")
+            print(f"{t('i18n_done_70ba1f')}{count}{t('i18n_common_ca3982')}")
 
     elif args.action == "stats":
         stats = mgr.get_stats(args.provider)
-        print(f"\n📊 凭证池统计:")
+        print(f"{t('i18n_common_7ce229')}")
         print(f"  Providers: {stats['total_pools']}")
         print(f"  Total keys: {stats['total_keys']}")
         print(f"  Active: {stats['active_keys']} | Exhausted: {stats['exhausted_keys']}")
@@ -981,7 +981,7 @@ def cmd_sessions(args):
         if not convs:
             print(t("i18n_common_cbdeb7"))
             return
-        print(f"\n📋 会话列表 ({len(convs)}):")
+        print(f"{t('i18n_common_d112b6')}{len(convs)}):")
         for c in convs:
             import datetime
             ts = datetime.datetime.fromtimestamp(c.get("updated_at", 0)).strftime("%m-%d %H:%M")
@@ -1005,24 +1005,24 @@ def cmd_sessions(args):
 
     elif args.action == "prune":
         result = Conversation.prune(args.days)
-        print(f"✅ 已清理 {result['deleted']} 个会话 (>{args.days}天前), 释放 {result['freed_bytes']} 字节")
+        print(f"{t('i18n_done_d1a678')}{result['deleted']}{t('i18n_common_198eb3')}{args.days}{t('i18n_common_f8890e')}{result['freed_bytes']}{t('i18n_common_55a8e9')}")
 
     elif args.action == "stats":
         stats = Conversation.stats()
-        print(f"\n📊 会话存储统计:")
-        print(f"  总会话: {stats['total_sessions']}")
-        print(f"  总消息: {stats['total_messages']}")
-        print(f"  总大小: {stats['total_size_mb']} MB")
-        print(f"  内存活跃: {stats['active_in_memory']}")
+        print(f"{t('i18n_common_f20ebf')}")
+        print(f"{t('i18n_common_a8b9f4')}{stats['total_sessions']}")
+        print(f"{t('i18n_common_75de8c')}{stats['total_messages']}")
+        print(f"{t('i18n_common_62c385')}{stats['total_size_mb']} MB")
+        print(f"{t('i18n_common_6ff1e5')}{stats['active_in_memory']}")
         if stats.get("model_distribution"):
-            print(f"  模型分布: {stats['model_distribution']}")
+            print(f"{t('i18n_model_4e58d0')}{stats['model_distribution']}")
 
     elif args.action == "browse":
         metas = Conversation.browse_meta(search=args.search)
         if not metas:
             print(t("i18n_common_f10c91"))
             return
-        print(f"\n🔍 搜索 '{args.search}' — {len(metas)} 结果:")
+        print(f"{t('i18n_common_1781f1')}{args.search}' — {len(metas)}{t('i18n_common_2e5a34')}")
         for m in metas:
             import datetime
             ts = datetime.datetime.fromtimestamp(m.get("updated_at", 0)).strftime("%m-%d %H:%M")
@@ -1038,40 +1038,40 @@ def cmd_insights(args):
 
     if args.period == "today":
         data = ins.get_today()
-        print(f"\n📊 今日使用 ({data['date']}):")
-        print(f"  会话: {data['sessions']} | 消息: {data['messages']}")
-        print(f"  Tokens: {data['total_tokens']} | 错误: {data['errors']} ({data['error_rate_pct']}%)")
-        print(f"  平均延迟: {data['avg_latency_ms']}ms | 峰值时段: {data['peak_hour']}h")
+        print(f"{t('i18n_common_d45944')}{data['date']}):")
+        print(f"{t('i18n_common_8a88f3')}{data['sessions']}{t('i18n_common_ac054e')}{data['messages']}")
+        print(f"  Tokens: {data['total_tokens']}{t('i18n_common_ebd81f')}{data['errors']} ({data['error_rate_pct']}%)")
+        print(f"{t('i18n_common_bfc6cd')}{data['avg_latency_ms']}{t('i18n_common_adb6ef')}{data['peak_hour']}h")
         if data.get("models_used"):
-            print(f"  模型: {data['models_used']}")
+            print(f"{t('i18n_model_c1fef6')}{data['models_used']}")
 
     elif args.period == "weekly":
         data = ins.get_weekly()
-        print(f"\n📊 最近7天:")
-        print(f"  会话: {data['total_sessions']} | 消息: {data['total_messages']}")
-        print(f"  日均: {data['avg_daily_sessions']}会话/{data['avg_daily_messages']}消息")
-        print(f"  Tokens: {data['total_tokens']} | 错误: {data['total_errors']}")
+        print(f"{t('i18n_common_cdb9c3')}")
+        print(f"{t('i18n_common_8a88f3')}{data['total_sessions']}{t('i18n_common_ac054e')}{data['total_messages']}")
+        print(f"{t('i18n_common_569d7b')}{data['avg_daily_sessions']}{t('i18n_common_c12fa3')}{data['avg_daily_messages']}{t('i18n_common_ff692f')}")
+        print(f"  Tokens: {data['total_tokens']}{t('i18n_common_ebd81f')}{data['total_errors']}")
         if data.get("daily_breakdown"):
             for d in data["daily_breakdown"]:
-                print(f"    {d['date']}: {d['sessions']}会话 {d['messages']}msg")
+                print(f"    {d['date']}: {d['sessions']}{t('i18n_common_9a834e')}{d['messages']}msg")
 
     elif args.period == "monthly":
         data = ins.get_monthly()
-        print(f"\n📊 最近30天:")
-        print(f"  总会话: {data['total_sessions']} | 总消息: {data['total_messages']}")
-        print(f"  日均: {data['avg_daily_sessions']}会话/{data['avg_daily_messages']}消息")
+        print(f"{t('i18n_common_8645ac')}")
+        print(f"{t('i18n_common_a8b9f4')}{data['total_sessions']}{t('i18n_common_eead76')}{data['total_messages']}")
+        print(f"{t('i18n_common_569d7b')}{data['avg_daily_sessions']}{t('i18n_common_c12fa3')}{data['avg_daily_messages']}{t('i18n_common_ff692f')}")
         print(f"  Tokens: {data['total_tokens']}")
 
     else:  # all
         data = ins.get_summary(args.days)
-        print(f"\n📊 使用洞察分析 ({args.days}天):")
+        print(f"{t('i18n_common_805f1d')}{args.days}{t('i18n_common_cef1fe')}")
         t = data.get("today", {})
-        print(f"  今日: {t.get('sessions',0)}会话 {t.get('messages',0)}消息")
+        print(f"{t('i18n_common_f256ef')}{t.get('sessions',0)}{t('i18n_common_9a834e')}{t.get('messages',0)}{t('i18n_common_ff692f')}")
         w = data.get("weekly", {})
-        print(f"  本周: {w.get('total_sessions',0)}会话 {w.get('total_messages',0)}消息")
+        print(f"{t('i18n_common_c02dc6')}{w.get('total_sessions',0)}{t('i18n_common_9a834e')}{w.get('total_messages',0)}{t('i18n_common_ff692f')}")
         m = data.get("monthly", {})
-        print(f"  本月: {m.get('total_sessions',0)}会话 {m.get('total_messages',0)}消息")
-        print(f"  追踪天数: {data.get('total_days_tracked',0)}")
+        print(f"{t('i18n_common_88121a')}{m.get('total_sessions',0)}{t('i18n_common_9a834e')}{m.get('total_messages',0)}{t('i18n_common_ff692f')}")
+        print(f"{t('i18n_common_a82f75')}{data.get('total_days_tracked',0)}")
         # Provider stats
         provs = data.get("providers", {}).get("providers", [])
         if provs:
@@ -1086,12 +1086,12 @@ def cmd_diff(args):
     engine = get_diff_engine()
     if hasattr(args, 'diff_cmd') and args.diff_cmd == "history":
         history = engine.get_history()
-        print(f"\n📝 Diff变更历史 ({len(history)}条):")
+        print(f"{t('i18n_common_0ac0eb')}{len(history)}{t('i18n_common_a38d69')}")
         for h in history[-10:]:
             print(f"  {h['change_id'][:20]}... {h['file_path']} (+{h.get('stats',{}).get('added',0)} -{h.get('stats',{}).get('removed',0)})")
     elif hasattr(args, 'diff_cmd') and args.diff_cmd == "backups":
         backups = engine.list_backups()
-        print(f"\n💾 回滚备份 ({len(backups)}个):")
+        print(f"{t('i18n_common_9c0e4e')}{len(backups)}{t('i18n_common_3fa102')}")
         for b in backups[:10]:
             print(f"  {b['filename']} ({b['size']}B)")
     else:
@@ -1104,15 +1104,15 @@ def cmd_tasks(args):
     engine = get_progress_engine()
     if hasattr(args, 'task_cmd') and args.task_cmd == "history":
         history = engine.get_history()
-        print(f"\n📋 任务历史 ({len(history)}条):")
+        print(f"{t('i18n_common_d3b84f')}{len(history)}{t('i18n_common_a38d69')}")
         for h in history[-10:]:
             print(f"  {h['name']}: {h['status']} ({h.get('progress',0)}%)")
     elif hasattr(args, 'task_cmd') and args.task_cmd == "stats":
         stats = engine.get_stats()
-        print(f"\n📊 任务统计: 活跃{stats['active']} 完成{stats['completed']} 失败{stats['failed']}")
+        print(f"{t('i18n_common_89bc06')}{stats['active']}{t('i18n_common_769d88')}{stats['completed']}{t('i18n_common_acd5cb')}{stats['failed']}")
     else:
         active = engine.list_active()
-        print(f"\n🔄 活跃任务 ({len(active)}):")
+        print(f"{t('i18n_common_a8f267')}{len(active)}):")
         for t in active:
             print(f"  {t.name}: {t.status} ({t.progress}%)")
 
@@ -1123,17 +1123,17 @@ def cmd_sdb(args):
     engine = get_sdb_engine()
     if hasattr(args, 'sdb_cmd') and args.sdb_cmd == "reliability":
         score = engine.get_reliability_score()
-        print(f"\n🛡️ SDB可靠性评分: {score['reliability_score']}/100 {score['grade']}")
+        print(f"{t('i18n_common_040287')}{score['reliability_score']}/100 {score['grade']}")
         print(f"  {score['recommendation']}")
     elif hasattr(args, 'sdb_cmd') and args.sdb_cmd == "test":
         record = engine.pipeline("cli", args.action, {},
             "test", ["check"], {"check": getattr(args, 'pass_check', True)})
-        print(f"\n🧪 SDB管道测试: {record.phase.value}")
-        print(f"  提交成功: {record.commit_success}")
+        print(f"{t('i18n_test_f5bdd3')}{record.phase.value}")
+        print(f"{t('i18n_common_4c6ba4')}{record.commit_success}")
     else:
         stats = engine.get_stats()
-        print(f"\n📊 SDB统计: 提案{stats['total_proposals']} 提交{stats['total_commits']} 拒绝{stats['total_rejects']}")
-        print(f"  提交率: {stats['commit_rate']:.1%} 重放分歧: {stats['replay_divergences']}")
+        print(f"{t('i18n_common_26bf60')}{stats['total_proposals']}{t('i18n_common_939d53')}{stats['total_commits']}{t('i18n_common_7173f8')}{stats['total_rejects']}")
+        print(f"{t('i18n_common_48c118')}{stats['commit_rate']:.1%}{t('i18n_common_63e3f1')}{stats['replay_divergences']}")
 
 
 def cmd_brain(args):
@@ -1141,9 +1141,9 @@ def cmd_brain(args):
     from src.core.brain_validator import get_brain_validator
     bv = get_brain_validator()
     profile = bv.get_recovery_profile()
-    print(f"\n🧠 脑状态恢复画像: {profile['recovery_grade']}")
-    print(f"  总体恢复率: {profile['overall_recovery']:.1%}")
-    print(f"  完全恢复: {profile['dimensions_recovered']}/{profile['total_dimensions']}维度")
+    print(f"{t('i18n_common_fc95ff')}{profile['recovery_grade']}")
+    print(f"{t('i18n_common_941e6d')}{profile['overall_recovery']:.1%}")
+    print(f"{t('i18n_common_b407a0')}{profile['dimensions_recovered']}/{profile['total_dimensions']}{t('i18n_common_f29c54')}")
     for cat, stats in profile.get('by_category', {}).items():
         print(f"  {cat}: {stats['mean']:.1%}")
 
@@ -1155,19 +1155,19 @@ def cmd_modify(args):
     if hasattr(args, 'modify_cmd') and args.modify_cmd == "analyze":
         target = getattr(args, 'path', 'src/')
         results = engine.analyze_src(pattern="*.py" if target.endswith('/') else target)
-        print(f"\n🔍 源码分析: {results['files_analyzed']}文件 {results['total_issues']}问题")
+        print(f"{t('i18n_common_297640')}{results['files_analyzed']}{t('i18n_common_2a0c47')}{results['total_issues']}{t('i18n_common_5dc99f')}")
         if results.get('files_with_issues'):
             for f in results['files_with_issues'][:5]:
                 print(f"  {f}")
     elif hasattr(args, 'modify_cmd') and args.modify_cmd == "history":
         history = engine.get_history()
-        print(f"\n📝 自修改历史 ({len(history)}条):")
+        print(f"{t('i18n_common_b2ea62')}{len(history)}{t('i18n_common_a38d69')}")
         for c in history[-10:]:
             print(f"  {c['file_path']}: {c['change_type']} ({c['status']})")
     else:
         stats = engine.get_stats()
-        print(f"\n🔧 自修改引擎: 提议{stats['total_proposed']} 应用{stats['total_applied']} 回滚{stats['total_rolled_back']}")
-        print(f"  Session已应用: {stats['applied_this_session']}/{stats['max_per_session']}")
+        print(f"{t('i18n_common_26e3b0')}{stats['total_proposed']}{t('i18n_common_5b0520')}{stats['total_applied']}{t('i18n_common_d00b48')}{stats['total_rolled_back']}")
+        print(f"{t('i18n_done_eab34f')}{stats['applied_this_session']}/{stats['max_per_session']}")
 
 
 def cmd_review(args):
@@ -1178,7 +1178,7 @@ def cmd_review(args):
     path = args.path
 
     if not os.path.exists(path):
-        print(f"❌ 路径不存在: {path}")
+        print(f"{t('i18n_common_1c26c5')}{path}")
         return
 
     if os.path.isfile(path):
@@ -1192,14 +1192,14 @@ def cmd_review(args):
             with open(path, "r", encoding="utf-8") as f:
                 content = f.read()
         except IOError as e:
-            print(f"❌ 无法读取文件: {e}")
+            print(f"{t('i18n_common_858b56')}{e}")
             return
 
         issues = reviewer.review_file(os.path.basename(path), content, language=language)
         summary = reviewer.review_summary(issues)
 
-        print(f"\n📋 代码审查: {os.path.basename(path)}")
-        print(f"   语言: {language} | 行数: {len(content.split(chr(10)))}")
+        print(f"{t('i18n_common_03d9ee')}{os.path.basename(path)}")
+        print(f"{t('i18n_common_5fc57e')}{language}{t('i18n_common_052409')}{len(content.split(chr(10)))}")
         _print_review_result(summary, issues, max_issues=getattr(args, 'max_issues', 30))
 
         # AI 深度审查（可选）
@@ -1207,14 +1207,14 @@ def cmd_review(args):
             print(t("i18n_common_c60595"))
             ai_result = reviewer.ai_deep_review(content, language=language)
             if ai_result:
-                print(f"   模型: {ai_result.get('model_used', '?')}")
+                print(f"{t('i18n_model_c1fef6')}{ai_result.get('model_used', '?')}")
                 print(f"   {ai_result.get('summary', '')[:300]}")
             else:
                 print(t("i18n_common_2a65bf"))
 
     else:
         # 目录审查
-        print(f"\n🔍 扫描目录: {path}")
+        print(f"{t('i18n_scan_3a67fc')}{path}")
         result = reviewer.project_review(path)
         _print_review_result(result, result.get("issues", []),
                             max_issues=getattr(args, 'max_issues', 30))
@@ -1249,10 +1249,10 @@ def _print_review_result(summary: dict, issues: list, max_issues: int = 30):
         icon = "🔴"
 
     print(f"\n{'='*60}")
-    print(f"  {icon} 评分: {score}/100 — {verdict}")
-    print(f"  总问题: {summary.get('total_issues', 0)}")
+    print(f"  {icon}{t('i18n_common_58a2f6')}{score}/100 — {verdict}")
+    print(f"{t('i18n_common_20e2dd')}{summary.get('total_issues', 0)}")
     if summary.get("files_scanned"):
-        print(f"  扫描文件: {summary['files_scanned']}")
+        print(f"{t('i18n_scan_f88d3b')}{summary['files_scanned']}")
 
     by_sev = summary.get("by_severity", {})
     if by_sev:
@@ -1260,7 +1260,7 @@ def _print_review_result(summary: dict, issues: list, max_issues: int = 30):
         for sev in ("critical", "high", "medium", "low", "info"):
             if by_sev.get(sev):
                 parts.append(f"{sev}={by_sev[sev]}")
-        print(f"  严重度: {', '.join(parts)}")
+        print(f"{t('i18n_common_3bdb88')}{', '.join(parts)}")
 
     by_cat = summary.get("by_category", {})
     if by_cat:
@@ -1268,7 +1268,7 @@ def _print_review_result(summary: dict, issues: list, max_issues: int = 30):
         for cat in ("security", "bug", "performance", "style", "docs"):
             if by_cat.get(cat):
                 parts.append(f"{cat}={by_cat[cat]}")
-        print(f"  类别: {', '.join(parts)}")
+        print(f"{t('i18n_common_c52d31')}{', '.join(parts)}")
 
     # 打印问题列表（最多显示30条）
     if issues:
@@ -1285,7 +1285,7 @@ def _print_review_result(summary: dict, issues: list, max_issues: int = 30):
                 print(f"     {desc[:100]}")
 
         if len(display_issues) > max_issues:
-            print(f"  ... 还有 {len(display_issues) - max_issues} 条问题。使用 --max-issues 查看更多。")
+            print(f"{t('i18n_common_dcf060')}{len(display_issues) - max_issues}{t('i18n_common_653ff0')}")
 
 
 def cmd_loop(args):
@@ -1297,7 +1297,7 @@ def cmd_loop(args):
     async def run():
         for i in range(args.iterations):
             result = await engine.run_once(f"{text} #{i+1}")
-            print(f"\n🔄 迭代{result['iteration']}: {result['total_ms']}ms")
+            print(f"{t('i18n_common_183972')}{result['iteration']}: {result['total_ms']}ms")
             for phase, t in result.get('phase_times', {}).items():
                 print(f"  {phase}: {t}ms")
     asyncio.run(run())
@@ -1311,18 +1311,18 @@ def cmd_image(args):
         # 无prompt时列出可用provider
         gen = ImageGenerator()
         providers = gen.list_providers()
-        print(f"\n  AI图片生成 — 可用Provider:\n")
+        print(f"{t('i18n_common_49a0f4')}")
         for p in providers:
             status = "✓ 可用" if p["available"] else "✗ 无Key"
             print(f"  [{p['id']}] {p['name']:30s} {status}")
-            print(f"       模型: {', '.join(p['models'])}")
-            print(f"       尺寸: {', '.join(p['valid_sizes'][:3])}...")
+            print(f"{t('i18n_model_c1fef6')}{', '.join(p['models'])}")
+            print(f"{t('i18n_common_1bbfef')}{', '.join(p['valid_sizes'][:3])}...")
             print()
         if not gen.has_provider:
             print(t("i18n_common_e6c0a1"))
             print("    export OPENAI_API_KEY=sk-...      # DALL-E")
             print("    export STABILITY_API_KEY=sk-...   # Stable Diffusion")
-        print(f"\n  用法: meshctx image '一只猫在太空' --size 1024x1024 --style vivid\n")
+        print(f"{t('i18n_common_059874')}")
         return
 
     gen = ImageGenerator(provider=args.provider)
@@ -1334,8 +1334,8 @@ def cmd_image(args):
         return
 
     cached = " (缓存)" if result.get("cached") else ""
-    print(f"✅ 已生成{cached}")
-    print(f"   提供方: {result['provider']}")
+    print(f"{t('i18n_done_700485')}{cached}")
+    print(f"{t('i18n_common_a127eb')}{result['provider']}")
     print(f"   URL:    {result['url']}")
 
 
