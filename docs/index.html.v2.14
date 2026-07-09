@@ -386,9 +386,6 @@
                 <h3 data-lang-key="plat_macos">macOS</h3>
                 <p style="min-height:40px;" data-lang-key="mac_desc">DMG安装包 · ARM64原生 · Homebrew</p>
                 <div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">
-                    <span class="c"># Homebrew 安装</span><br>
-                    brew install meshctx<br><br>
-                    <span class="c"># 或源码安装</span><br>
                     git clone https://github.com/LucyAndLuna2023/meshctx.git<br>
                     cd meshctx<br>
                     python3 -m venv .venv && source .venv/bin/activate<br>
