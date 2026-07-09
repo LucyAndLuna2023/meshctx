@@ -575,7 +575,7 @@
     "交互式配置消息平台接入": "cli_interactive_config",
     "像 Hermes 一样通过聊天配置": "cli_hermes_config",
     "你本地有完整的文件系统访问权限，不是云端": "cli_local_fs",
-    "cli_scanning_env": "扫描环境变量...",
+    "cli_scanning_env": "🔍 扫描环境变量...",
     "cli_no_api_key_found": "未发现任何 API Key。请设置环境变量，例如:",
     "cli_auto_configured": "自动配置",
     "cli_no_models_hint": "暂无已配置模型。运行 'meshctx model scan' 自动扫描",
@@ -753,7 +753,15 @@
     "msg_export_ready": "导出已就绪",
     "msg_import_complete": "导入完成",
     "msg_backup_created": "备份已创建",
-    "msg_restore_complete": "恢复完成"
+    "msg_restore_complete": "恢复完成",
+    "cli_no_api_key": "未发现任何 API Key。请设置环境变量，例如:",
+    "cli_no_models": "暂无已配置模型。运行",
+    "cli_no_skills": "暂无 Skill。创建: meshctx skill create <name> -d",
+    "cli_cancelled": "已取消",
+    "cli_corp_required": "❌ corp_id 和 corp_secret 不能为空",
+    "cli_feishu_config": "📱 飞书配置",
+    "cli_wechat_config": "📱 企业微信配置",
+    "cli_wechat_help": "请从企业微信管理后台获取以下参数："
   },
   "en": {
     "2d": "2D",
@@ -1331,7 +1339,7 @@
     "交互式配置消息平台接入": "[EN] cli_interactive_config",
     "像 Hermes 一样通过聊天配置": "[EN] cli_hermes_config",
     "你本地有完整的文件系统访问权限，不是云端": "[EN] cli_local_fs",
-    "cli_scanning_env": "[EN] 扫描环境变量...",
+    "cli_scanning_env": "🔍 Scanning environment variables...",
     "cli_no_api_key_found": "[EN] 未发现任何 API Key。请设置环境变量，例如:",
     "cli_auto_configured": "[EN] 自动配置",
     "cli_no_models_hint": "[EN] 暂无已配置模型。运行 'meshctx model scan' 自动扫描",
@@ -1509,7 +1517,15 @@
     "msg_export_ready": "Export ready",
     "msg_import_complete": "Import complete",
     "msg_backup_created": "Backup created",
-    "msg_restore_complete": "Restore complete"
+    "msg_restore_complete": "Restore complete",
+    "cli_no_api_key": "No API Key found. Set environment variables, e.g.:",
+    "cli_no_models": "No configured models. Run",
+    "cli_no_skills": "No skills. Create: meshctx skill create <name> -d",
+    "cli_cancelled": "Cancelled",
+    "cli_corp_required": "❌ corp_id and corp_secret required",
+    "cli_feishu_config": "📱 Feishu Configuration",
+    "cli_wechat_config": "📱 WeCom Configuration",
+    "cli_wechat_help": "Get these params from WeCom admin:"
   },
   "ja": {
     "2d": "2D",
@@ -2087,7 +2103,7 @@
     "交互式配置消息平台接入": "[JA] cli_interactive_config",
     "像 Hermes 一样通过聊天配置": "[JA] cli_hermes_config",
     "你本地有完整的文件系统访问权限，不是云端": "[JA] cli_local_fs",
-    "cli_scanning_env": "[JA] 扫描环境变量...",
+    "cli_scanning_env": "[JA] 🔍 扫描环境变量...",
     "cli_no_api_key_found": "[JA] 未发现任何 API Key。请设置环境变量，例如:",
     "cli_auto_configured": "[JA] 自动配置",
     "cli_no_models_hint": "[JA] 暂无已配置模型。运行 'meshctx model scan' 自动扫描",
@@ -2265,7 +2281,15 @@
     "msg_export_ready": "[JA] 导出已就绪",
     "msg_import_complete": "[JA] 导入完成",
     "msg_backup_created": "[JA] 备份已创建",
-    "msg_restore_complete": "[JA] 恢复完成"
+    "msg_restore_complete": "[JA] 恢复完成",
+    "cli_no_api_key": "[JA] 未发现任何 API Key。请设置环境变量，例如:",
+    "cli_no_models": "[JA] 暂无已配置模型。运行",
+    "cli_no_skills": "[JA] 暂无 Skill。创建: meshctx skill create <name> -d",
+    "cli_cancelled": "[JA] 已取消",
+    "cli_corp_required": "[JA] ❌ corp_id 和 corp_secret 不能为空",
+    "cli_feishu_config": "[JA] 📱 飞书配置",
+    "cli_wechat_config": "[JA] 📱 企业微信配置",
+    "cli_wechat_help": "[JA] 请从企业微信管理后台获取以下参数："
   },
   "ko": {
     "2d": "2D",
@@ -2843,7 +2867,7 @@
     "交互式配置消息平台接入": "[KO] cli_interactive_config",
     "像 Hermes 一样通过聊天配置": "[KO] cli_hermes_config",
     "你本地有完整的文件系统访问权限，不是云端": "[KO] cli_local_fs",
-    "cli_scanning_env": "[KO] 扫描环境变量...",
+    "cli_scanning_env": "[KO] 🔍 扫描环境变量...",
     "cli_no_api_key_found": "[KO] 未发现任何 API Key。请设置环境变量，例如:",
     "cli_auto_configured": "[KO] 自动配置",
     "cli_no_models_hint": "[KO] 暂无已配置模型。运行 'meshctx model scan' 自动扫描",
@@ -3021,7 +3045,15 @@
     "msg_export_ready": "[KO] 导出已就绪",
     "msg_import_complete": "[KO] 导入完成",
     "msg_backup_created": "[KO] 备份已创建",
-    "msg_restore_complete": "[KO] 恢复完成"
+    "msg_restore_complete": "[KO] 恢复完成",
+    "cli_no_api_key": "[KO] 未发现任何 API Key。请设置环境变量，例如:",
+    "cli_no_models": "[KO] 暂无已配置模型。运行",
+    "cli_no_skills": "[KO] 暂无 Skill。创建: meshctx skill create <name> -d",
+    "cli_cancelled": "[KO] 已取消",
+    "cli_corp_required": "[KO] ❌ corp_id 和 corp_secret 不能为空",
+    "cli_feishu_config": "[KO] 📱 飞书配置",
+    "cli_wechat_config": "[KO] 📱 企业微信配置",
+    "cli_wechat_help": "[KO] 请从企业微信管理后台获取以下参数："
   },
   "fr": {
     "2d": "2D",
@@ -3599,7 +3631,7 @@
     "交互式配置消息平台接入": "[FR] cli_interactive_config",
     "像 Hermes 一样通过聊天配置": "[FR] cli_hermes_config",
     "你本地有完整的文件系统访问权限，不是云端": "[FR] cli_local_fs",
-    "cli_scanning_env": "[FR] 扫描环境变量...",
+    "cli_scanning_env": "[FR] 🔍 扫描环境变量...",
     "cli_no_api_key_found": "[FR] 未发现任何 API Key。请设置环境变量，例如:",
     "cli_auto_configured": "[FR] 自动配置",
     "cli_no_models_hint": "[FR] 暂无已配置模型。运行 'meshctx model scan' 自动扫描",
@@ -3777,7 +3809,15 @@
     "msg_export_ready": "[FR] 导出已就绪",
     "msg_import_complete": "[FR] 导入完成",
     "msg_backup_created": "[FR] 备份已创建",
-    "msg_restore_complete": "[FR] 恢复完成"
+    "msg_restore_complete": "[FR] 恢复完成",
+    "cli_no_api_key": "[FR] 未发现任何 API Key。请设置环境变量，例如:",
+    "cli_no_models": "[FR] 暂无已配置模型。运行",
+    "cli_no_skills": "[FR] 暂无 Skill。创建: meshctx skill create <name> -d",
+    "cli_cancelled": "[FR] 已取消",
+    "cli_corp_required": "[FR] ❌ corp_id 和 corp_secret 不能为空",
+    "cli_feishu_config": "[FR] 📱 飞书配置",
+    "cli_wechat_config": "[FR] 📱 企业微信配置",
+    "cli_wechat_help": "[FR] 请从企业微信管理后台获取以下参数："
   },
   "de": {
     "2d": "2D",
@@ -4355,7 +4395,7 @@
     "交互式配置消息平台接入": "[DE] cli_interactive_config",
     "像 Hermes 一样通过聊天配置": "[DE] cli_hermes_config",
     "你本地有完整的文件系统访问权限，不是云端": "[DE] cli_local_fs",
-    "cli_scanning_env": "[DE] 扫描环境变量...",
+    "cli_scanning_env": "[DE] 🔍 扫描环境变量...",
     "cli_no_api_key_found": "[DE] 未发现任何 API Key。请设置环境变量，例如:",
     "cli_auto_configured": "[DE] 自动配置",
     "cli_no_models_hint": "[DE] 暂无已配置模型。运行 'meshctx model scan' 自动扫描",
@@ -4533,7 +4573,15 @@
     "msg_export_ready": "[DE] 导出已就绪",
     "msg_import_complete": "[DE] 导入完成",
     "msg_backup_created": "[DE] 备份已创建",
-    "msg_restore_complete": "[DE] 恢复完成"
+    "msg_restore_complete": "[DE] 恢复完成",
+    "cli_no_api_key": "[DE] 未发现任何 API Key。请设置环境变量，例如:",
+    "cli_no_models": "[DE] 暂无已配置模型。运行",
+    "cli_no_skills": "[DE] 暂无 Skill。创建: meshctx skill create <name> -d",
+    "cli_cancelled": "[DE] 已取消",
+    "cli_corp_required": "[DE] ❌ corp_id 和 corp_secret 不能为空",
+    "cli_feishu_config": "[DE] 📱 飞书配置",
+    "cli_wechat_config": "[DE] 📱 企业微信配置",
+    "cli_wechat_help": "[DE] 请从企业微信管理后台获取以下参数："
   },
   "es": {
     "2d": "2D",
@@ -5111,7 +5159,7 @@
     "交互式配置消息平台接入": "[ES] cli_interactive_config",
     "像 Hermes 一样通过聊天配置": "[ES] cli_hermes_config",
     "你本地有完整的文件系统访问权限，不是云端": "[ES] cli_local_fs",
-    "cli_scanning_env": "[ES] 扫描环境变量...",
+    "cli_scanning_env": "[ES] 🔍 扫描环境变量...",
     "cli_no_api_key_found": "[ES] 未发现任何 API Key。请设置环境变量，例如:",
     "cli_auto_configured": "[ES] 自动配置",
     "cli_no_models_hint": "[ES] 暂无已配置模型。运行 'meshctx model scan' 自动扫描",
@@ -5289,6 +5337,14 @@
     "msg_export_ready": "[ES] 导出已就绪",
     "msg_import_complete": "[ES] 导入完成",
     "msg_backup_created": "[ES] 备份已创建",
-    "msg_restore_complete": "[ES] 恢复完成"
+    "msg_restore_complete": "[ES] 恢复完成",
+    "cli_no_api_key": "[ES] 未发现任何 API Key。请设置环境变量，例如:",
+    "cli_no_models": "[ES] 暂无已配置模型。运行",
+    "cli_no_skills": "[ES] 暂无 Skill。创建: meshctx skill create <name> -d",
+    "cli_cancelled": "[ES] 已取消",
+    "cli_corp_required": "[ES] ❌ corp_id 和 corp_secret 不能为空",
+    "cli_feishu_config": "[ES] 📱 飞书配置",
+    "cli_wechat_config": "[ES] 📱 企业微信配置",
+    "cli_wechat_help": "[ES] 请从企业微信管理后台获取以下参数："
   }
 }
