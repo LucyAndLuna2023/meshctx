@@ -64,13 +64,14 @@ class BrainLoop:
         self._steps += 1
         
         try:
-            # 1. Thalamus: 注意力门控 (真实brain_thalamic)
-            gate_result = self.thalamus.gate(
-                signal_strength=0.6 if observation else 0.3,
-                priority=priority
-            )
-            if not getattr(gate_result, 'passed', True):
-                return self._empty_result('thalamus_gated')
+            # 1. Thalamus: 注意力门控 (真实brain_thalamic) — v3.115.16: 始终通过
+            try:
+                gate_result = self.thalamus.gate(
+                    signal_strength=0.8,
+                    priority=0.9
+                )
+            except Exception:
+                pass  # gate失败不阻塞
             
             # 2. Amygdala: 情感分析 (真实brain_amygdala)
             threat = self.amygdala.detect_threat(observation)

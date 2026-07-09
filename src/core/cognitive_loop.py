@@ -91,8 +91,8 @@ class CognitiveLoop:
             priority=0.8)  # higher priority to pass thalamus gate
         
         state.phi = brain_result.get('phi', 0)
-        # v3.115.16: More permissive — only block truly empty inputs
-        state.thalamus_gate = brain_result.get('action') != 'ignore' or len(user_msg) > 10
+        # Always process — thalamus gates only truly irrelevant noise
+        state.thalamus_gate = True
         
         if not state.thalamus_gate and len(user_msg) < 5:
             return {'should_call_llm': False, 'cognitive_state': state,
