@@ -17,6 +17,10 @@ class _StubClass:
     def __call__(self, *a, **kw): return self
     def __getattr__(self, name): return self
     def __getitem__(self, key): return self
+    def __gt__(self, other): return False
+    def __lt__(self, other): return False
+    def __ge__(self, other): return False
+    def __le__(self, other): return False
     def __bool__(self): return False
     def __repr__(self): return "<meshctx-core stub>"
     def __iter__(self): return iter([])

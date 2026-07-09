@@ -9,6 +9,9 @@ from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
 from pathlib import Path
 from jinja2 import Environment, DictLoader, FileSystemLoader, ChoiceLoader
+import logging
+
+logger = logging.getLogger("meshctx.webui")
 
 # ── 内嵌模板（绕过 PyInstaller 文件系统问题）───────────────────
 _TEMPLATES = {}
