@@ -126,9 +126,10 @@ class BrainLoop:
                 phi = 0.5
             
             # 11. Emotional: 情绪标记
-            self.emotion.tag(observation, 
-                           valence=emotion.get('valence', 0),
-                           arousal=emotion.get('arousal', 0))
+            try:
+                self.emotion.tag_experience(observation)
+            except Exception:
+                pass
             
             # 12. Hippocampus: 编码经验
             self.hippocampus.encode(
