@@ -34,7 +34,7 @@ class ThalamicGate:
         self._history = []
     def gate(self, signal_strength: float, priority: float) -> bool:
         self._history.append(signal_strength * priority)
-        return signal_strength * priority > 0.3 and self.openness > 0.3
+        return signal_strength * priority >= 0.3 and self.openness >= 0.3
     def adapt(self, overload: bool):
         self.openness = max(0.2, self.openness - 0.3) if overload else min(1.0, self.openness + 0.1)
 

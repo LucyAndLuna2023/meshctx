@@ -98,6 +98,9 @@ class PatternCompleter:
                 net_input = np.dot(self.weights[i], state)
                 state[i] = np.tanh(net_input / 100.0)
         
+        if not self.stored_patterns:
+            return partial, 0.0
+        
         # Compute similarity with stored patterns
         similarities = []
         for stored in self.stored_patterns:
