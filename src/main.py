@@ -3068,34 +3068,31 @@ async def api_chat_stream(request: Request):
             media_type="text/event-stream"
         )
 
-    # ═══ BrainLoop 脑区渗透 (v3.115.16) ═══
-    # 每次消息处理经过13脑区: 意图分析→记忆召回→动作选择→结果预测
+    # ═══ CognitiveLoop 脑区主决策 (v3.115.16) ═══
     user_msg = msgs[-1].get("content", "") if msgs else ""
-    brain_log = {}
+    brain_result = {}
     try:
-        from .core.brain_architecture import BrainLoop
-        brain = getattr(app.state, 'brain_loop', None)
+        from .core.cognitive_loop import CognitiveLoop
+        brain = getattr(app.state, 'cognitive_loop', None)
         if brain is None:
-            brain = BrainLoop()
-            app.state.brain_loop = brain
+            brain = CognitiveLoop()
+            app.state.cognitive_loop = brain
         
         if user_msg:
-            actions = ['respond','search','execute','clarify','delegate']
-            result = brain.think(user_msg, actions, priority=0.6)
+            brain_result = brain.think(user_msg, msgs, system_prompt=system_prompt or "")
             brain_log = {
-                'action': result['action'],
-                'confidence': result.get('confidence', 0),
-                'emotion_valence': result['emotion']['valence'],
-                'emotion_arousal': result['emotion']['arousal'],
-                'recalled': result.get('recalled_memories', [])[:2],
-                'conflict': result.get('conflict', 0),
-                'phi': result['phi'],
-                'prediction': result['prediction'].get('outcome', '?'),
+                'cache_hit': brain_result.get('cache_hit', False),
+                'action': brain_result.get('cognitive_state', type('',(),{'basal_ganglia_action':'?'})()).basal_ganglia_action if brain_result.get('cognitive_state') else '?',
+                'phi': brain_result.get('cognitive_state', type('',(),{'phi':0})()).phi if brain_result.get('cognitive_state') else 0,
+                'context_injected': '[Brain Context]' in brain_result.get('enhanced_prompt', ''),
             }
-            logger.info(f"🧠 BrainLoop: {brain_log['action']} (Φ={brain_log['phi']:.2f}, conf={brain_log['confidence']:.2f})")
+            # Inject brain-enhanced prompt
+            if brain_result.get('enhanced_prompt'):
+                system_prompt = brain_result['enhanced_prompt']
+            logger.info(f"🧠 CognitiveLoop: cache={brain_log['cache_hit']} ctx={brain_log['context_injected']} Φ={brain_log['phi']:.2f}")
     except Exception as e:
-        logger.warning(f"🧠 BrainLoop FAILED: {e}")
-    # ═══ End BrainLoop ═══
+        logger.warning(f"🧠 CognitiveLoop FAILED: {e}")
+    # ═══ End CognitiveLoop ═══
 
     model_id = body.get("model")
     if not model_id:
