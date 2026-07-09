@@ -4541,9 +4541,11 @@ async def system_summary():
 @app.get("/api/brain/stats")
 async def brain_stats(request: Request):
     """13脑区运行统计 — 002审计验证端点"""
-    brain = getattr(request.app.state, 'brain_loop', None)
+    brain = getattr(request.app.state, 'cognitive_loop', None)
     if brain is None:
-        return {"status": "not_initialized", "message": "BrainLoop未启动，首次chat请求后自动初始化"}
+        brain = getattr(request.app.state, 'brain_loop', None)
+    if brain is None:
+        return {"status": "not_initialized", "message": "CognitiveLoop未启动，首次chat请求后自动初始化"}
     return brain.stats()
 
 
