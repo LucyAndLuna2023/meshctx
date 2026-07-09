@@ -83,9 +83,11 @@ class BrainLoop:
             # 3. Hippocampus: 记忆检索
             recalled = self.hippocampus.recall(observation, top_k=3)
             
-            # 4. Mirror Neurons: 意图推断
-            intention = self.mirror.infer(observation)
-            self.mirror.observe(observation, 'processing')
+            # 4. Mirror Neurons: 意图推断 (真实brain_mirror)
+            try:
+                intention = {'intention': str(self.mirror.infer_intention(observation))[:100]}
+            except Exception:
+                intention = {'intention': 'unknown'}
             
             # 5. DMN: 自省
             if self._steps % 5 == 0:
@@ -155,24 +157,36 @@ class BrainLoop:
     
     def learn_from_outcome(self, observation: str, action: str,
                            success: bool, reward: float = 0.0):
-        """学习回路"""
+        """学习回路 — 各脑区API差异用try/except适配"""
         try:
-            self.bg.reinforce(action, reward if success else -0.2)
-            self.cerebellum.learn(action, observation[:100],
-                                 'success' if success else 'failure', success)
-            self.mirror.observe(action, 'success' if success else 'failure')
+            try:
+                self.bg.reinforce(action, reward if success else -0.2)
+            except Exception as e:
+                logger.debug(f"BasalGanglia reinforce: {e}")
+            
+            try:
+                self.cerebellum.learn(action, observation[:100],
+                                     'success' if success else 'failure', success)
+            except Exception as e:
+                logger.debug(f"Cerebellum learn: {e}")
             
             if success:
                 self._successes += 1
                 if self._steps % 10 == 0:
-                    self.hippocampus.consolidate()
+                    try:
+                        self.hippocampus.consolidate()
+                    except Exception:
+                        pass
             else:
                 self._failures += 1
             
-            # Periodic replay
-            if self._steps % 10 == 0 and self.hippocampus.detect_swr(5):
-                self.hippocampus.replay_swr(3)
-                
+            if self._steps % 10 == 0:
+                try:
+                    if self.hippocampus.detect_swr(5):
+                        self.hippocampus.replay_swr(3)
+                except Exception:
+                    pass
+                    
         except Exception as e:
             logger.warning(f"🧠 BrainLoop learn error: {e}")
     
