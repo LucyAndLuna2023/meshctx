@@ -60,10 +60,36 @@ _app_start_time = time.time()  # 用于 /api/agent/monitor uptime计算
 
 
 def get_kernel() -> Kernel:
-    """获取全局内核实例"""
+    """获取全局内核实例 — 懒加载插件"""
     global _kernel
     if _kernel is None:
         _kernel = Kernel()
+        # v3.115.16: 插件在首次get_kernel()时加载
+        _kernel.plugins.register(MemoryPlugin())
+        if MetaCognitionPlugin and callable(MetaCognitionPlugin):
+            _kernel.plugins.register(MetaCognitionPlugin())
+        _kernel.plugins.register(OrchestratorPlugin())
+        _kernel.plugins.register(PredictorPlugin())
+        _kernel.plugins.register(AgentLoopPlugin())
+        _kernel.plugins.register(PerformancePlugin())
+        _kernel.plugins.register(HealerPlugin())
+        # Hermes 集群连接器
+        try:
+            from .core.hermes_connector import HermesConnectorPlugin
+            _kernel.plugins.register(HermesConnectorPlugin())
+        except Exception as e:
+            logger.warning(f"HermesConnectorPlugin 加载失败: {e}")
+        # TokenSaver
+        try:
+            from .core.token_saver import TokenSaverPlugin
+            _kernel.plugins.register(TokenSaverPlugin())
+        except Exception as e:
+            logger.warning(f"TokenSaverPlugin 加载失败: {e}")
+        # WebSocket
+        try:
+            _kernel.plugins.register(WebSocketPlugin())
+        except Exception as e:
+            logger.warning(f"WebSocketPlugin 加载失败: {e}")
     return _kernel
 
 
@@ -187,52 +213,18 @@ async def lifespan(app: FastAPI):
     get_registry().auto_configure()
     logger.info(f"模型自动配置完成: {len(get_registry()._entries)} 个")
 
-    _kernel = Kernel()
-    logger.info("加载核心插件...")
-    _kernel.plugins.register(MemoryPlugin())
-    if MetaCognitionPlugin and callable(MetaCognitionPlugin):
-        _kernel.plugins.register(MetaCognitionPlugin())
-    else:
-        logger.warning("MetaCognitionPlugin 不可用 — 跳过")
-    _kernel.plugins.register(OrchestratorPlugin())
-    _kernel.plugins.register(PredictorPlugin())
-    _kernel.plugins.register(AgentLoopPlugin())
-    _kernel.plugins.register(PerformancePlugin())
-    _kernel.plugins.register(HealerPlugin())
-
-    gw_plugin = GatewayPlugin()
-    _kernel.plugins.register(gw_plugin)
-
-    ws_plugin = WebSocketPlugin()
-    _kernel.plugins.register(ws_plugin)
-    create_ws_routes(app, ws_plugin)
-
-    # v3.115.3: Hermes 集群连接器 — 发现并与 Hermes agents 协同
-    try:
-        from .core.hermes_connector import HermesConnectorPlugin
-        hermes_plugin = HermesConnectorPlugin()
-        _kernel.plugins.register(hermes_plugin)
-        logger.info("HermesConnectorPlugin 已注册")
-    except Exception as e:
-        logger.warning(f"HermesConnectorPlugin 加载失败: {e}")
-
-    # v3.115.4: TokenSaver — 原生 token 节约引擎，自动适配所有供应商
-    try:
-        from .core.token_saver import TokenSaverPlugin
-        ts_plugin = TokenSaverPlugin()
-        _kernel.plugins.register(ts_plugin)
-        logger.info("TokenSaverPlugin 已注册")
-    except Exception as e:
-        logger.warning(f"TokenSaverPlugin 加载失败: {e}")
+    # v3.115.16: Kernel插件懒加载 — 首次API访问时才创建
+    logger.info("Kernel插件将在首次API访问时按需加载")
 
     config = load_config()
     worker_count = config.get("kernel", {}).get("worker_count", 4)
-    await _kernel.start(worker_count=worker_count)
-    pc = getattr(_kernel.plugins, "plugin_count", getattr(_kernel.plugins, "count", len(getattr(_kernel.plugins, "_plugins", {}))))
+    k = get_kernel()  # lazily creates kernel + registers all plugins
+    await k.start(worker_count=worker_count)
+    pc = getattr(k.plugins, "plugin_count", len(getattr(k.plugins, "_plugins", {})))
     logger.info(f"插件: {pc} 已加载")
 
     _memory_engine = MemoryEngine(use_llm=False, use_vector_store=False)
-    app.state.kernel = _kernel
+    app.state.kernel = k
     app.state.memory_engine = _memory_engine
 
     # v1.5.26: 初始化混合推理调度器
