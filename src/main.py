@@ -3068,6 +3068,35 @@ async def api_chat_stream(request: Request):
             media_type="text/event-stream"
         )
 
+    # ═══ BrainLoop 脑区渗透 (v3.115.16) ═══
+    # 每次消息处理经过13脑区: 意图分析→记忆召回→动作选择→结果预测
+    user_msg = msgs[-1].get("content", "") if msgs else ""
+    brain_log = {}
+    try:
+        from .core.brain_architecture import BrainLoop
+        brain = getattr(app.state, 'brain_loop', None)
+        if brain is None:
+            brain = BrainLoop()
+            app.state.brain_loop = brain
+        
+        if user_msg:
+            actions = ['respond','search','execute','clarify','delegate']
+            result = brain.think(user_msg, actions, priority=0.6)
+            brain_log = {
+                'action': result['action'],
+                'confidence': result.get('confidence', 0),
+                'emotion_valence': result['emotion']['valence'],
+                'emotion_arousal': result['emotion']['arousal'],
+                'recalled': result.get('recalled_memories', [])[:2],
+                'conflict': result.get('conflict', 0),
+                'phi': result['phi'],
+                'prediction': result['prediction'].get('outcome', '?'),
+            }
+            logger.info(f"🧠 BrainLoop: {brain_log['action']} (Φ={brain_log['phi']:.2f}, conf={brain_log['confidence']:.2f})")
+    except Exception as e:
+        logger.debug(f"BrainLoop skipped: {e}")
+    # ═══ End BrainLoop ═══
+
     model_id = body.get("model")
     if not model_id:
         try:
@@ -4504,6 +4533,15 @@ async def system_summary():
         "agents": dashboard.get("agents", {}),
         "system": dashboard.get("system", {}),
     }
+
+
+@app.get("/api/brain/stats")
+async def brain_stats(request: Request):
+    """13脑区运行统计 — 002审计验证端点"""
+    brain = getattr(request.app.state, 'brain_loop', None)
+    if brain is None:
+        return {"status": "not_initialized", "message": "BrainLoop未启动，首次chat请求后自动初始化"}
+    return brain.stats()
 
 
 @app.get("/health")
