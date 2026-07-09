@@ -3070,6 +3070,7 @@ async def api_chat_stream(request: Request):
 
     # ═══ CognitiveLoop 脑区主决策 (v3.115.16) ═══
     user_msg = msgs[-1].get("content", "") if msgs else ""
+    system_prompt = body.get("system", body.get("system_prompt", ""))
     brain_result = {}
     try:
         from .core.cognitive_loop import CognitiveLoop
