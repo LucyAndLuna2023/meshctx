@@ -3094,7 +3094,7 @@ async def api_chat_stream(request: Request):
             }
             logger.info(f"🧠 BrainLoop: {brain_log['action']} (Φ={brain_log['phi']:.2f}, conf={brain_log['confidence']:.2f})")
     except Exception as e:
-        logger.debug(f"BrainLoop skipped: {e}")
+        logger.warning(f"🧠 BrainLoop FAILED: {e}")
     # ═══ End BrainLoop ═══
 
     model_id = body.get("model")
