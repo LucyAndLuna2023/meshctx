@@ -204,17 +204,18 @@ class EventBridge:
             if not inbox_path.exists():
                 continue
             try:
-                # 读取并清空
+                # 读取
                 lines = inbox_path.read_text().strip().split("\n")
-                inbox_path.write_text("")  # 清空
+                kept = []
 
                 for line in lines:
                     if not line.strip():
                         continue
                     try:
                         msg = json.loads(line)
-                        # 跳过自己发出的消息
+                        # 跳过滤自己发出的消息（不处理，但保留在inbox）
                         if msg.get("source") == "meshctx":
+                            kept.append(line)
                             continue
 
                         # 匹配转发规则
@@ -230,6 +231,8 @@ class EventBridge:
                                 break
                     except json.JSONDecodeError:
                         continue
+                # 过滤完成后清空inbox，只保留自己发出的消息
+                inbox_path.write_text("\n".join(kept) + "\n" if kept else "")
             except Exception as e:
                 logger.debug(f"Failed to read inbox {inbox_path}: {e}")
 
