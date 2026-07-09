@@ -64,12 +64,12 @@ class BrainLoop:
         self._steps += 1
         
         try:
-            # 1. Thalamus: 注意力门控 (真实算法)
-            gated = self.thalamus.gate(
+            # 1. Thalamus: 注意力门控 (真实brain_thalamic)
+            gate_result = self.thalamus.gate(
                 signal_strength=0.6 if observation else 0.3,
                 priority=priority
             )
-            if not gated:
+            if not getattr(gate_result, 'passed', True):
                 return self._empty_result('thalamus_gated')
             
             # 2. Amygdala: 情感分析 (真实brain_amygdala)
