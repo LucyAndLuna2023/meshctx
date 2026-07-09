@@ -142,3 +142,18 @@ class VectorStore:
 
 class _Stub:
     def __init__(self, *a, **kw): pass
+
+import logging
+logger = logging.getLogger("meshctx.memory_v2")
+
+class MemoryManager:
+    def __init__(self): self.items = []
+    def add(self, content, tags=None): self.items.append({"content": content, "tags": tags or []}); return len(self.items)-1
+    def search(self, query): return [i for i in self.items if query.lower() in i.get("content","").lower()]
+    def delete(self, idx): 
+        if 0 <= idx < len(self.items): self.items.pop(idx); return True
+        return False
+    def stats(self): return {"total": len(self.items)}
+
+def get_memory_manager(): return MemoryManager()
+
