@@ -89,15 +89,15 @@ def benchmark_brain_on_vs_off(n_trials: int = 30) -> dict:
     
     queries = [
         "Fix the login authentication bug",
+        "Database connection timeout error on production",  # urgent
+        "Fix the login authentication bug",  # repeat → cache
+        "URGENT: Security vulnerability in production! Fix immediately!",  # high emotion
         "Add pagination to the user list",
-        "Database connection timeout on production",
-        "Fix the login authentication bug",  # repeat
-        "API rate limit exceeded for payment endpoint",
-        "Memory leak in background worker process",
-        "Database connection timeout on production",  # repeat
-        "Security vulnerability in file upload handler",
-        "Add pagination to the user list",  # repeat
-        "Deploy new version to staging environment",
+        "Database connection timeout error on production",  # repeat → cache
+        "Critical memory leak causing server crash!!!",  # urgent + emotional
+        "How to deploy to staging environment?",
+        "Fix the login authentication bug",  # repeat → cache
+        "URGENT: Security vulnerability in production! Fix immediately!",  # repeat
     ]
     
     # ── Brain ON ──
