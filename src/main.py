@@ -5134,7 +5134,7 @@ async def sandbox_execute(req: Request):
         raise HTTPException(400, t('error_missing_code_short'))
     
     if len(code) > 50000:
-        raise HTTPException(400, "代码过长 (最大50000字符)")
+        raise HTTPException(400, t("i18n_err_6d8b81"))
     
     language = body.get("language", "python")
     timeout = body.get("timeout", 30)
@@ -5386,7 +5386,7 @@ async def config_import(request: Request):
         try:
             body = await request.json()
         except Exception:
-            raise HTTPException(400, "无效的JSON body")
+            raise HTTPException(400, t("i18n_err_2cce65"))
         config = body.get("config", body)
         if not isinstance(config, dict):
             return {"error": "config必须是字典"}
