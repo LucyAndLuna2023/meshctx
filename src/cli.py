@@ -53,10 +53,10 @@ def cmd_model(args):
     reg = get_registry(args.config)
 
     if args.model_action == "scan":
-        print("🔍 扫描环境变量...")
+        print(t("i18n_scan_931ee6"))
         entries = reg.auto_configure()
         if not entries:
-            print("未发现任何 API Key。请设置环境变量，例如:")
+            print(t("i18n_common_04b72e"))
             print("  export BAILIAN_API_KEY=sk-xxx")
             print("  export DEEPSEEK_API_KEY=sk-xxx")
         else:
@@ -67,7 +67,7 @@ def cmd_model(args):
     elif args.model_action == "list":
         entries = reg.list_all()
         if not entries:
-            print("暂无已配置模型。运行 'meshctx model scan' 自动扫描")
+            print(t("i18n_scan_dc8a62"))
         else:
             print(f"\n{'模型ID':<30} {'Provider':<12} {'实际模型':<28} 状态")
             print("-" * 85)
@@ -90,8 +90,8 @@ def cmd_model(args):
     elif args.model_action == "add":
         model_id = args.model_id
         if not model_id:
-            print("用法: meshctx model add <provider:model> [--key KEY] [--model MODEL] [--base-url URL]")
-            print("示例: meshctx model add deepseek:chat --key sk-xxx")
+            print(t("i18n_common_4fbe80"))
+            print(t("i18n_common_a0fd21"))
             return
         cfg = reg.add(model_id, key=args.key or "", model=args.model or "", base_url=args.base_url or "")
         status = "✓" if cfg.get("key") else "⚠ 需要 API Key"
@@ -101,7 +101,7 @@ def cmd_model(args):
         client = reg.get(args.model_id)
         if not client:
             print(f"模型 '{args.model_id or '默认'}' 未配置。")
-            print("运行 'meshctx model scan' 自动扫描，或 'meshctx model add' 手动添加")
+            print(t("i18n_scan_61d5ac"))
             return
         prompt = args.prompt or "用一句话介绍你自己"
         print(f"🧪 测试 {client.model_id} ({client.model_name})...")
@@ -138,7 +138,7 @@ def cmd_skill(args):
     if args.skill_action == "list":
         skills = mgr.list_all()
         if not skills:
-            print("暂无 Skill。创建: meshctx skill create <name> -d '描述'")
+            print(t("i18n_common_490583"))
         else:
             print(f"\n{'Skill':<30} {'来源':<10} {'使用':<6} {'成功率':<8} 描述")
             print("-" * 85)
@@ -217,18 +217,18 @@ def _cmd_gateway_setup():
         return
     
     if choice == "1":
-        print("\n📱 企业微信配置")
-        print("请从企业微信管理后台获取以下参数：")
-        print("  企业ID: 管理后台 → 我的企业 → 企业信息")
-        print("  应用Secret: 应用管理 → 自建应用 → 查看Secret")
-        print("  AgentId: 应用管理 → 自建应用 → AgentId\n")
+        print(t("i18n_config_7012b1"))
+        print(t("i18n_common_c86ded"))
+        print(t("i18n_common_8b5948"))
+        print(t("i18n_common_d1fc55"))
+        print(t("i18n_common_896fd3"))
         
         try:
             corp_id = input("企业ID (corp_id): ").strip()
             corp_secret = input("应用Secret (corp_secret): ").strip()
             agent_id = input("AgentId: ").strip()
         except (EOFError, KeyboardInterrupt):
-            print("已取消")
+            print(t("i18n_common_2111cc"))
             return
         
         if corp_id and corp_secret:
@@ -251,10 +251,10 @@ def _cmd_gateway_setup():
    meshctx stop && meshctx start
 """)
         else:
-            print("❌ corp_id 和 corp_secret 不能为空")
+            print(t("i18n_common_e7a95b"))
     
     elif choice == "2":
-        print("\n📱 飞书配置")
+        print(t("i18n_config_a34ed6"))
         try:
             app_id = input("App ID: ").strip()
             app_secret = input("App Secret: ").strip()
@@ -272,7 +272,7 @@ def _cmd_gateway_setup():
             print(f"✅ 飞书已配置！重启后生效")
     
     elif choice == "3":
-        print("\n📱 Telegram 配置")
+        print(t("i18n_config_fce0f7"))
         try:
             bot_token = input("Bot Token: ").strip()
         except (EOFError, KeyboardInterrupt):
@@ -295,7 +295,7 @@ def cmd_chat(args):
     client = reg.get(model_id)
 
     if not client:
-        print("无可用模型。运行 'meshctx model scan' 自动扫描")
+        print(t("i18n_scan_6de16b"))
         return
 
     print(f"🤖 meshctx → {client.model_id}  /quit退出 /models列表 /model<id>切换 /gateway配置平台 /verbose详情\n")
@@ -522,7 +522,7 @@ def cmd_password(args):
             print(f"   登录地址: http://localhost:3001/ui")
             print(f"   清除密码: meshctx password clear")
         else:
-            print("🔓 Web UI 无需密码（默认，开箱即用）")
+            print(t("i18n_common_168075"))
             print(f"   设置密码: meshctx password set")
         return
 
@@ -530,7 +530,7 @@ def cmd_password(args):
         import getpass
         pw = args.password or getpass.getpass("新密码: ")
         if not pw.strip():
-            print("❌ 密码不能为空")
+            print(t("i18n_common_dbd7f7"))
             return
         # 写入或更新
         found = False
@@ -551,7 +551,7 @@ def cmd_password(args):
         env_lines = [l for l in env_lines if not l.startswith("MESHCTX_PASSWORD=")]
         with open(env_path, "w") as f:
             f.writelines(env_lines)
-        print("🔓 密码已清除。重启生效: meshctx stop && meshctx start")
+        print(t("i18n_common_abc0d3"))
         return
 
 
@@ -563,7 +563,7 @@ def cmd_status(args):
         print(f"meshctx v{d.get('version','?')} 运行中  "
               f"项目:{d.get('projects_count',0)} 会话:{d.get('conversations_count',0)} 记忆:{d.get('memories_count',0)}")
     except Exception:
-        print("meshctx 未运行。meshctx start 启动")
+        print(t("i18n_common_bb772f"))
 
 
 def cmd_setup(args):
@@ -581,7 +581,7 @@ def cmd_setup(args):
     
     # Step 1: 选择模型
     providers = sorted(set(v["provider"] for v in BUILTIN_MODELS.values()))
-    print("📋 可用供应商:")
+    print(t("i18n_common_5bd6dd"))
     for i, p in enumerate(providers):
         models = [k for k, v in BUILTIN_MODELS.items() if v["provider"] == p]
         print(f"  [{i+1:2d}] {p:15s} ({len(models)} 模型)  — 如: {', '.join(models[:3])}")
@@ -619,7 +619,7 @@ def cmd_setup(args):
             print(f"  使用默认: {model_id}")
     
     if not model_id:
-        print("  未识别选择，使用默认 deepseek:chat")
+        print(t("i18n_common_80d45f"))
         model_id = "deepseek:chat"
         provider = "deepseek"
     
@@ -690,7 +690,7 @@ def cmd_evolve(args):
     mgr = SkillManager()
     reg = get_registry()
 
-    print("🧬 自进化循环\n")
+    print(t("i18n_common_310c0f"))
     stats = mgr.stats()
     print(f"Skills: {stats['total']}个 (自动生成{stats['auto_created']})")
 
@@ -705,7 +705,7 @@ def cmd_evolve(args):
                 if skill:
                     print(f"✅ 自动创建: {skill.name}")
 
-    print("✨ 完成")
+    print(t("i18n_common_fca356"))
 
 
 def cmd_web(args):
@@ -718,9 +718,9 @@ def cmd_desktop(args):
     import subprocess, sys
     desktop_script = Path(__file__).resolve().parent.parent / "meshctx_desktop.py"
     if not desktop_script.exists():
-        print("❌ meshctx_desktop.py 未找到")
+        print(t("i18n_common_99b947"))
         sys.exit(1)
-    print("🚀 启动 meshctx Desktop...")
+    print(t("i18n_common_2753f5"))
     subprocess.run([sys.executable, str(desktop_script)])
 
 
@@ -731,7 +731,7 @@ def cmd_cron(args):
     cron._jobs = {}  # 轻量实例
     
     if args.cron_action == "list":
-        print("暂无定时任务。添加: meshctx cron add <name> -s 'every 1h'")
+        print(t("i18n_common_8c9b1f"))
     elif args.cron_action == "add" and args.name:
         cron.add_job(args.name, args.schedule or "every 1h", args.action or "")
         print(f"✓ 已添加: {args.name} ({args.schedule})")
@@ -745,7 +745,7 @@ def cmd_search(args):
     if not args.query:
         recent = engine.get_recent(args.limit)
         if not recent:
-            print("暂无已索引会话")
+            print(t("i18n_common_8915aa"))
         else:
             for s in recent:
                 print(f"  {s['title'][:50]} ({s['message_count']}条消息)")
@@ -761,7 +761,7 @@ def cmd_search(args):
 
 def cmd_browser(args):
     """Browser 工具"""
-    print("Browser 工具需要: pip install playwright && playwright install chromium")
+    print(t("i18n_common_a69c42"))
     if args.action == "open" and args.target:
         print(f"打开: {args.target}")
 
@@ -779,19 +779,19 @@ def cmd_profile(args):
             print(f"  {'●' if p == pm.active else '○'} {p}{marker}")
     elif args.action == "create":
         if not args.name:
-            print("用法: meshctx profile create <name>")
+            print(t("i18n_common_cb4a08"))
             return
         pm.create(args.name)
         print(f"✓ Profile '{args.name}' 已创建")
     elif args.action == "use":
         if not args.name:
-            print("用法: meshctx profile use <name>")
+            print(t("i18n_common_f81f9b"))
             return
         pm.use(args.name)
         print(f"✓ 已切换到 '{args.name}'")
     elif args.action == "delete":
         if not args.name:
-            print("用法: meshctx profile delete <name>")
+            print(t("i18n_common_0278cb"))
             return
         try:
             pm.delete(args.name)
@@ -800,7 +800,7 @@ def cmd_profile(args):
             print(f"✗ {e}")
     elif args.action == "clone":
         if not args.name or not args.target:
-            print("用法: meshctx profile clone <src> --target <dst>")
+            print(t("i18n_common_dd54f6"))
             return
         pm.clone(args.name, args.target)
         print(f"✓ Profile '{args.name}' 已克隆为 '{args.target}'")
@@ -821,7 +821,7 @@ def cmd_approve(args):
     elif args.action == "mode":
         if not args.mode:
             print(f"当前模式: {ae.mode}")
-            print("可用: manual, smart, off")
+            print(t("i18n_common_cbcdea"))
             return
         ae.set_mode(args.mode)
         print(f"✓ 审批模式已切换为: {args.mode}")
@@ -829,7 +829,7 @@ def cmd_approve(args):
         import sys
         cmd = " ".join(sys.argv[3:]) if len(sys.argv) > 3 else ""
         if not cmd:
-            print("用法: meshctx approve check <命令>")
+            print(t("i18n_common_ed4f71"))
             return
         result = ae.check(cmd)
         print(f"命令: {cmd}")
@@ -860,7 +860,7 @@ def cmd_tts(args):
     import asyncio
     
     if not args.text:
-        print("用法: meshctx tts '要合成的文本'")
+        print(t("i18n_common_443129"))
         return
     
     async def run():
@@ -881,7 +881,7 @@ def cmd_mcp(args):
         for name, tool in server._tools.items():
             print(f"  {name}: {tool.description}")
     elif args.action == "serve":
-        print("MCP stdio 服务器启动中... (用于 Claude Desktop / Cursor)")
+        print(t("i18n_common_0fa497"))
         server = MCPServer()
         import asyncio
         asyncio.run(server.run_stdio())
@@ -907,7 +907,7 @@ def cmd_auth(args):
         else:
             providers = mgr.list_providers()
             if not providers:
-                print("凭证池为空。用 meshctx auth add --provider <name> --key <key> 添加")
+                print(t("i18n_common_f54ed1"))
                 return
             stats = mgr.get_stats()
             print(f"\n📊 凭证池 — {stats['total_pools']} providers, {stats['total_keys']} keys")
@@ -918,21 +918,21 @@ def cmd_auth(args):
 
     elif args.action == "add":
         if not args.provider or not args.key:
-            print("用法: meshctx auth add --provider <name> --key <sk-xxx> [--label <name>]")
+            print(t("i18n_common_c09454"))
             return
         pk = mgr.add_key(args.provider, args.key, args.label)
         print(f"✅ 已添加 {args.provider}: {pk.key[:12]}... — 当前池大小: {len(mgr.pools[args.provider].keys)}")
 
     elif args.action == "remove":
         if not args.provider or args.index < 0:
-            print("用法: meshctx auth remove --provider <name> --index <N>")
+            print(t("i18n_common_823fa7"))
             return
         ok = mgr.remove_key(args.provider, args.index)
         print(f"{'✅ 已移除' if ok else '❌ 未找到'} index={args.index}")
 
     elif args.action == "rotate":
         if not args.provider:
-            print("用法: meshctx auth rotate --provider <name>")
+            print(t("i18n_common_8fa22a"))
             return
         key = mgr.get_key(args.provider)
         if key:
@@ -942,7 +942,7 @@ def cmd_auth(args):
 
     elif args.action == "reset":
         if not args.provider:
-            print("用法: meshctx auth reset --provider <name> [--index N]")
+            print(t("i18n_common_4ccf54"))
             return
         if args.index >= 0:
             ok = mgr.reset_key(args.provider, args.index)
@@ -962,14 +962,14 @@ def cmd_auth(args):
 
     elif args.action == "strategy":
         if not args.provider or not args.strategy:
-            print("用法: meshctx auth strategy --provider <name> --strategy round_robin|least_used|random")
+            print(t("i18n_common_993dc2"))
             return
         ok = mgr.set_strategy(args.provider, args.strategy)
         print(f"{'✅ 策略已更新' if ok else '❌ 无效策略'}: {args.provider} → {args.strategy}")
 
     elif args.action == "clear":
         mgr.clear_all()
-        print("✅ 所有凭证池已清空")
+        print(t("i18n_common_c5fa61"))
 
 
 def cmd_sessions(args):
@@ -979,7 +979,7 @@ def cmd_sessions(args):
     if args.action == "list":
         convs = Conversation.list_all()
         if not convs:
-            print("暂无保存的会话")
+            print(t("i18n_common_cbdeb7"))
             return
         print(f"\n📋 会话列表 ({len(convs)}):")
         for c in convs:
@@ -991,14 +991,14 @@ def cmd_sessions(args):
 
     elif args.action == "rename":
         if not args.id or not args.title:
-            print("用法: meshctx sessions rename --id <conv_id> --title <新名称>")
+            print(t("i18n_common_2a23ae"))
             return
         ok = Conversation.rename(args.id, args.title)
         print(f"{'✅ 已重命名' if ok else '❌ 会话不存在'}")
 
     elif args.action == "delete":
         if not args.id:
-            print("用法: meshctx sessions delete --id <conv_id>")
+            print(t("i18n_common_2f1f6c"))
             return
         ok = Conversation.delete(args.id)
         print(f"{'✅ 已删除' if ok else '❌ 会话不存在'}")
@@ -1020,7 +1020,7 @@ def cmd_sessions(args):
     elif args.action == "browse":
         metas = Conversation.browse_meta(search=args.search)
         if not metas:
-            print("无匹配结果")
+            print(t("i18n_common_f10c91"))
             return
         print(f"\n🔍 搜索 '{args.search}' — {len(metas)} 结果:")
         for m in metas:
@@ -1095,7 +1095,7 @@ def cmd_diff(args):
         for b in backups[:10]:
             print(f"  {b['filename']} ({b['size']}B)")
     else:
-        print("用法: meshctx diff preview <file> | history | backups")
+        print(t("i18n_common_66ad5d"))
 
 
 def cmd_tasks(args):
@@ -1204,13 +1204,13 @@ def cmd_review(args):
 
         # AI 深度审查（可选）
         if getattr(args, 'ai', False):
-            print("\n🤖 AI 深度审查中...")
+            print(t("i18n_common_c60595"))
             ai_result = reviewer.ai_deep_review(content, language=language)
             if ai_result:
                 print(f"   模型: {ai_result.get('model_used', '?')}")
                 print(f"   {ai_result.get('summary', '')[:300]}")
             else:
-                print("   ⚠ LLM 不可用，跳过 AI 深度审查")
+                print(t("i18n_common_2a65bf"))
 
     else:
         # 目录审查
@@ -1225,14 +1225,14 @@ def cmd_review(args):
             top_files = sorted(by_file.items(), key=lambda x: -x[1])[:10]
             if top_files:
                 print(f"\n{'='*60}")
-                print("  📂 问题最多的文件 (Top 10):")
+                print(t("i18n_common_fc770a"))
                 for fname, count in top_files:
                     bar = "█" * min(count, 20)
                     print(f"  {count:>3} {bar} {fname}")
 
         # AI 深度审查（可选）
         if getattr(args, 'ai', False):
-            print("\n  ⚠ AI 深度审查仅支持单文件模式。请对具体文件使用 --ai 参数。")
+            print(t("i18n_common_ed7b9e"))
 
 
 def _print_review_result(summary: dict, issues: list, max_issues: int = 30):
@@ -1274,7 +1274,7 @@ def _print_review_result(summary: dict, issues: list, max_issues: int = 30):
     if issues:
         display_issues = issues if isinstance(issues[0], dict) else [i.to_dict() if hasattr(i, 'to_dict') else i for i in issues]
         print(f"\n{'='*60}")
-        print("  📋 问题列表:")
+        print(t("i18n_common_c6a97b"))
         for idx, issue in enumerate(display_issues[:max_issues]):
             sev_icon = {"critical": "🔴", "high": "🟠", "medium": "🟡", "low": "🔵", "info": "⚪"}.get(
                 issue.get("severity", ""), "❓")
@@ -1319,7 +1319,7 @@ def cmd_image(args):
             print(f"       尺寸: {', '.join(p['valid_sizes'][:3])}...")
             print()
         if not gen.has_provider:
-            print("  设置API Key:")
+            print(t("i18n_common_e6c0a1"))
             print("    export OPENAI_API_KEY=sk-...      # DALL-E")
             print("    export STABILITY_API_KEY=sk-...   # Stable Diffusion")
         print(f"\n  用法: meshctx image '一只猫在太空' --size 1024x1024 --style vivid\n")
