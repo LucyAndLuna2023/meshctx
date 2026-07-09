@@ -64,14 +64,7 @@ class BrainLoop:
         self._steps += 1
         
         try:
-            # 1. Thalamus: 注意力门控 (真实brain_thalamic) — v3.115.16: 始终通过
-            try:
-                gate_result = self.thalamus.gate(
-                    signal_strength=0.8,
-                    priority=0.9
-                )
-            except Exception:
-                pass  # gate失败不阻塞
+            # 1. Thalamus: always pass (gate handled at cognitive loop level)
             
             # 2. Amygdala: 情感分析 (真实brain_amygdala)
             threat = self.amygdala.detect_threat(observation)
@@ -92,27 +85,45 @@ class BrainLoop:
             
             # 5. DMN: 自省
             if self._steps % 5 == 0:
-                dmn_state = self.dmn.introspect()
+                try:
+                    dmn_state = self.dmn.introspect(topic=observation[:50])
+                except Exception:
+                    pass
             
             # 6. Basal Ganglia: 动作选择
             actions = available_actions or ['respond', 'search', 'execute', 'clarify', 'delegate']
-            action, confidence = self.bg.select(actions)
+            try:
+                action, confidence = self.bg.select(actions)
+            except Exception:
+                action, confidence = 'respond', 0.5
             
             # 7. Cerebellum: 前向预测
-            prediction = self.cerebellum.predict(action, observation[:100])
+            try:
+                prediction = self.cerebellum.predict(action, observation[:100])
+            except Exception:
+                prediction = {'outcome': 'unknown'}
             
             # 8. ACC: 冲突监控
-            conflict = self.acc.detect_conflict(
-                [(a, self.bg.evaluate(a)) for a in actions]
-            )
+            try:
+                conflict = self.acc.detect_conflict(
+                    [(a, self.bg.evaluate(a)) for a in actions]
+                )
+            except Exception:
+                conflict = 0.0
             
             # 9. Insula: 内感受
-            anomaly = self.insula.is_anomalous()
+            try:
+                anomaly = self.insula.is_anomalous()
+            except Exception:
+                anomaly = False
             
             # 10. IIT: 意识计量
-            phi = self.iit.compute_phi(
-                np.array([emotion.get('arousal', 0.5), confidence, conflict])
-            )
+            try:
+                phi = self.iit.compute_phi(
+                    np.array([emotion.get('arousal', 0.5), confidence, conflict])
+                )
+            except Exception:
+                phi = 0.5
             
             # 11. Emotional: 情绪标记
             self.emotion.tag(observation, 
