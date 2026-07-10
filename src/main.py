@@ -5306,7 +5306,10 @@ async def session_resume_status(request: Request):
     engine = getattr(request.app.state, 'resume_engine', None)
     if engine is None:
         return {"resumed": False, "message": "恢复引擎未初始化"}
-    return engine.get_resume_report()
+    try:
+        return engine.get_resume_report()
+    except Exception:
+        return {"resumed": False, "message": "resume report unavailable"}
 
 
 @app.get("/api/session/resume/timeline")
