@@ -4207,7 +4207,7 @@ async def gate_stats():
             "recent": gate.get_recent_events(limit=10),
             "mappings": {tool: [{"principle": r["principle_id"], "gate": r["gate"].value} for r in rules] for tool, rules in TOOL_PRINCIPLE_MAP.items()},
         }
-    except (ImportError, ModuleNotFoundError):
+    except Exception:
         return {"stats": {}, "recent": [], "mappings": {}, "note": "action_gate module not loaded"}
 
 
@@ -4259,7 +4259,7 @@ async def attention_status():
             "boosts": {level.value: factor for level, factor in monitor.BOOST_FACTORS.items()},
             "thresholds": {level.value: pct for level, pct in monitor.THRESHOLDS.items()},
         }
-    except (ImportError, ModuleNotFoundError):
+    except Exception:
         return {"state": "unknown", "boosts": {}, "thresholds": {}, "note": "attention_decay module not loaded"}
 
 
@@ -4339,7 +4339,7 @@ async def principle_guard_status():
         from src.core.principle_extractor import get_extractor
         ext = get_extractor()
         all_p = ext.list_all()
-    except (ImportError, ModuleNotFoundError):
+    except Exception:
         all_p = []
     return {
         "total": len(all_p),
