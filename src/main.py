@@ -1904,7 +1904,10 @@ async def failover_status():
 @app.get("/v1/backups")
 async def list_backups():
     """记忆备份列表"""
-    return {"backups": _memory_backup.list_backups()}
+    try:
+        return {"backups": _memory_backup.list_backups()}
+    except Exception:
+        return {"backups": [], "note": "backup module unavailable"}
 
 @app.post("/v1/backup")
 async def create_backup(label: str = ""):
