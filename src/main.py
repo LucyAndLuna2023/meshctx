@@ -4338,7 +4338,8 @@ async def principle_guard_status():
     try:
         from src.core.principle_extractor import get_extractor
         ext = get_extractor()
-        all_p = ext.list_all()
+        st = ext.stats()
+        all_p = st.get('patterns_extracted', 0)
     except Exception:
         all_p = []
     return {
