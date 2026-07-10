@@ -4109,7 +4109,7 @@ async def read_local_file(path: str = ""):
 async def diff_local_files(file1: str = "", file2: str = "", format: str = "side"):
     """并排/紧凑 diff 预览 — 比较两个本地文件"""
     try:
-        from src.diff_preview import DiffEngine, DiffRenderer
+        from src.core.diff_preview import DiffEngine, DiffRenderer
     except Exception:
         return {"error": "diff module not available", "file1": file1, "file2": file2}
     fp1 = _validate_file_path(file1)
