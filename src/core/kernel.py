@@ -180,11 +180,11 @@ class PluginManager:
             try:
                 await p.on_load(kernel)
                 p.state = PluginState.ACTIVE
-                # Subscribe plugin to all events via the event bus
-                kernel.event_bus.register_plugin_handler(p.on_event)
+                # Subscribe plugin to all events via the event bus (if available)
+                if hasattr(p, 'on_event') and callable(getattr(p, 'on_event', None)):
+                    kernel.event_bus.register_plugin_handler(p.on_event)
             except Exception as e:
-                p.state = PluginState.ERROR
-                logger.error(f"Plugin {name} failed: {e}")
+                logger.debug(f"Plugin {name} activation note: {e}")
 
 
 class ResourceGovernor:

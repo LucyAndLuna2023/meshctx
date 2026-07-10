@@ -17,6 +17,9 @@ class _StubClass:
     def __call__(self, *a, **kw): return self
     def __getattr__(self, name): return self
     def __getitem__(self, key): return self
+    def __await__(self):
+        async def _aw(): return self
+        return _aw().__await__()
     def __gt__(self, other): return False
     def __lt__(self, other): return False
     def __ge__(self, other): return False
