@@ -2594,9 +2594,12 @@ async def sandbox_execute(req: Request):
     
     from src.core.sandbox import get_sandbox
     
-    sandbox = get_sandbox()
-    result = await sandbox.execute(code, language, timeout)
-    return result.to_dict()
+    try:
+        sandbox = get_sandbox()
+        result = await sandbox.execute(code, language, timeout)
+        return result.to_dict()
+    except Exception as e:
+        return {"stdout": "", "stderr": str(e), "exit_code": -1, "error": "sandbox unavailable"}
 
 
 @app.post("/api/sandbox/execute/stream")
@@ -5199,28 +5202,7 @@ async def sandbox_status():
         return {"available": False, "languages": ["python", "bash"], "note": "sandbox module not loaded"}
 
 
-@app.post("/api/sandbox/execute")
-async def sandbox_execute(req: Request):
-    """安全执行代码 — Docker隔离 / subprocess回退"""
-    try:
-        body = await req.json()
-    except Exception:
-        raise HTTPException(400, t('error_invalid_json'))
-    
-    code = body.get("code", "").strip()
-    if not code:
-        raise HTTPException(400, t('error_missing_code_short'))
-    
-    if len(code) > 50000:
-        raise HTTPException(400, t("i18n_err_6d8b81"))
-    
-    language = body.get("language", "python")
-    timeout = body.get("timeout", 30)
-    
-    from src.core.sandbox import get_sandbox
-    sb = get_sandbox()
-    result = await sb.execute(code, language=language, timeout=timeout)
-    return result.to_dict()
+
 
 
 @app.get("/api/git/info")
