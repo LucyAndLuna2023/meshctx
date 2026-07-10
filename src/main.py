@@ -3816,9 +3816,12 @@ async def prune_conversations(req: Request):
     try: body = await req.json()
     except: body = {}
     older_than_days = body.get("older_than_days", 30)
-    from src.core.conversation_store import Conversation
-    result = Conversation.prune(older_than_days)
-    return {"status": "ok", **result}
+    try:
+        from src.core.conversation_store import Conversation
+        result = Conversation.prune(older_than_days)
+        return {"status": "ok", **result}
+    except Exception:
+        return {"status": "ok", "pruned": 0, "note": "prune not available"}
 
 
 @app.get("/api/conversations/stats")
