@@ -6038,6 +6038,7 @@ async def providers_health():
 # ═══ v3.115.16: 004qa审计缺失端点补全 ═══
 
 @app.delete("/api/file/delete")
+@app.get("/api/file/delete")
 async def file_delete(path: str = ""):
     """删除文件"""
     from .main import _validate_file_path
