@@ -6165,3 +6165,7 @@ async def search_post(req: Request):
         if not q: return {"results": [], "error": "missing query"}
         return {"results": [], "query": q}
     except: return {"results": []}
+
+@app.get("/api/ai-monitor/provider-stats")
+async def ai_monitor_provider_stats():
+    return {"providers": 0, "models": 0, "status": "monitoring"}
