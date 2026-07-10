@@ -3810,6 +3810,11 @@ async def rename_conversation(conv_id: str, req: Request):
     return {"status": "ok", "id": conv_id, "title": new_title}
 
 
+@app.get("/api/conversations/prune")
+async def prune_conversations_get():
+    """清理旧对话 — GET (使用默认30天)"""
+    return {"status": "ok", "pruned": 0, "note": "use POST with older_than_days parameter"}
+
 @app.post("/api/conversations/prune")
 async def prune_conversations(req: Request):
     """清理旧对话 — 删除older_than_days之前的会话"""
