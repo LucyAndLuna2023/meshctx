@@ -4344,12 +4344,14 @@ async def principle_guard_status():
         from src.core.principle_extractor import get_extractor
         ext = get_extractor()
         st = ext.stats()
-        all_p = st.get('patterns_extracted', 0)
+        all_p = ext.extract([]) if hasattr(ext, 'extract') else []
     except Exception:
         all_p = []
+    total = len(all_p) if isinstance(all_p, list) else 0
+    critical = len([p for p in all_p if isinstance(p, dict) and p.get("severity") == "critical"]) if isinstance(all_p, list) else 0
     return {
-        "total": len(all_p),
-        "critical": len([p for p in all_p if p.get("severity") == "critical"]),
+        "total": total,
+        "critical": critical,
         "amygdala_active": True,
         "thalamic_threshold": 0.6,
         "context_warning_at": 8000,
