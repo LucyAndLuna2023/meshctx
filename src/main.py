@@ -6169,3 +6169,19 @@ async def search_post(req: Request):
 @app.get("/api/ai-monitor/provider-stats")
 async def ai_monitor_provider_stats():
     return {"providers": 0, "models": 0, "status": "monitoring"}
+
+@app.get("/api/recovery-plan/status")
+async def recovery_plan_status():
+    return {"status": "standby", "plans": 0}
+
+@app.get("/api/training/status")  
+async def training_status():
+    return {"status": "idle", "models_training": 0}
+
+@app.get("/api/skills/list")
+async def skills_list():
+    return {"skills": [], "count": 0}
+
+@app.post("/api/code/review")
+async def code_review(req: Request):
+    return {"status": "not_available", "note": "code review module not loaded"}
