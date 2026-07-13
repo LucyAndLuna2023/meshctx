@@ -124,34 +124,69 @@ else
     echo -e "  ${YELLOW}⚠${NC} Homebrew 未安装（可选，用于系统级依赖）"
 fi
 
-# ── [3/6] 下载 ──────────────────────────────────────
-echo -e "${CYAN}[3/6]${NC} 下载 meshctx v${VERSION}..."
+# ── [3/6] 获取源码 ──────────────────────────────────
+echo -e "${CYAN}[3/6]${NC} 获取 meshctx v${VERSION}..."
 
-TMPDIR=$(mktemp -d)
-TARBALL="${TMPDIR}/meshctx-src.tar.gz"
-trap "rm -rf ${TMPDIR}" EXIT
+SOURCE_DIR=""
+USE_LOCAL=0
 
-DOWNLOAD_OK=0
+# 检查 --offline 或 --from-dir 参数
+for arg in "$@"; do
+    case "$arg" in
+        --offline|--local) USE_LOCAL=1 ;;
+        --from-dir=*) SOURCE_DIR="${arg#*=}"; USE_LOCAL=1 ;;
+    esac
+done
 
-# macOS 自带 curl，优先使用
-if curl -fsSL --connect-timeout 60 --retry 3 -o "${TARBALL}" "${SRC_URL}" 2>/dev/null; then
-    DOWNLOAD_OK=1
-elif command -v wget >/dev/null 2>&1; then
-    wget -q --timeout=120 --tries=3 -O "${TARBALL}" "${SRC_URL}" && DOWNLOAD_OK=1
+# 如果当前目录就是 meshctx 源码目录
+if [ -f "$(pwd)/install-mac.sh" ] && [ -f "$(pwd)/src/main.py" ]; then
+    SOURCE_DIR="$(pwd)"
+    USE_LOCAL=1
 fi
 
-if [ "${DOWNLOAD_OK}" != "1" ]; then
-    echo -e "${RED}✗ 下载失败${NC}"
-    echo ""
-    echo -e "  ${YELLOW}备选安装方法（git clone）：${NC}"
-    echo "    git clone https://github.com/${REPO}.git ~/.meshctx"
-    echo "    cd ~/.meshctx && bash install-mac.sh --offline"
-    echo ""
-    exit 1
-fi
+if [ "${USE_LOCAL}" = "1" ] && [ -n "${SOURCE_DIR}" ]; then
+    echo -e "  ${GREEN}✓${NC} 使用本地源码: ${SOURCE_DIR}"
+elif [ "${USE_LOCAL}" = "1" ]; then
+    echo -e "  ${YELLOW}→${NC} 通过 git clone 获取..."
+    TMPDIR=$(mktemp -d)
+    if git clone --depth 1 "https://github.com/${REPO}.git" "${TMPDIR}/meshctx" 2>/dev/null; then
+        SOURCE_DIR="${TMPDIR}/meshctx"
+        echo -e "  ${GREEN}✓${NC} git clone 成功"
+    else
+        echo -e "${RED}✗ git clone 失败${NC}"
+        echo "  请检查网络连接或手动 git clone"
+        exit 1
+    fi
+else
+    # 尝试下载 release tarball
+    TMPDIR=$(mktemp -d)
+    TARBALL="${TMPDIR}/meshctx-src.tar.gz"
+    trap "rm -rf ${TMPDIR}" EXIT
 
-TARBALL_SIZE=$(du -h "${TARBALL}" | cut -f1)
-echo -e "  ${GREEN}✓${NC} 下载完成 (${TARBALL_SIZE})"
+    DOWNLOAD_OK=0
+    if curl -fsSL --connect-timeout 30 --retry 2 -o "${TARBALL}" "${SRC_URL}" 2>/dev/null; then
+        DOWNLOAD_OK=1
+    elif command -v wget >/dev/null 2>&1; then
+        wget -q --timeout=60 --tries=2 -O "${TARBALL}" "${SRC_URL}" && DOWNLOAD_OK=1
+    fi
+
+    if [ "${DOWNLOAD_OK}" != "1" ]; then
+        # Fallback: git clone
+        echo -e "  ${YELLOW}→${NC} Release 下载失败，尝试 git clone..."
+        if git clone --depth 1 "https://github.com/${REPO}.git" "${TMPDIR}/meshctx" 2>/dev/null; then
+            SOURCE_DIR="${TMPDIR}/meshctx"
+            echo -e "  ${GREEN}✓${NC} git clone 成功"
+        else
+            echo -e "${RED}✗ 下载失败${NC}"
+            echo ""
+            echo -e "  ${YELLOW}手动安装：${NC}"
+            echo "    git clone https://github.com/${REPO}.git ~/.meshctx"
+            echo "    cd ~/.meshctx && bash install-mac.sh"
+            echo ""
+            exit 1
+        fi
+    fi
+fi
 
 # ── [4/6] 安装 ──────────────────────────────────────
 echo -e "${CYAN}[4/6]${NC} 安装..."
@@ -171,9 +206,17 @@ fi
 # 安装新版本
 rm -rf "${INSTALL_DIR}"
 mkdir -p "${INSTALL_DIR}"
-tar xzf "${TARBALL}" -C "${INSTALL_DIR}" || {
-    echo -e "${RED}✗ 解压失败${NC}"; exit 1
-}
+
+if [ -n "${SOURCE_DIR}" ]; then
+    # Copy from source directory
+    cp -R "${SOURCE_DIR}"/* "${INSTALL_DIR}/" 2>/dev/null
+    [ -d "${SOURCE_DIR}/.git" ] && cp -R "${SOURCE_DIR}/.git" "${INSTALL_DIR}/" 2>/dev/null || true
+    echo -e "  ${GREEN}✓${NC} 已复制源码到 ${INSTALL_DIR}"
+else
+    tar xzf "${TARBALL}" -C "${INSTALL_DIR}" 2>/dev/null || {
+        echo -e "${RED}✗ 解压失败${NC}"; exit 1
+    }
+fi
 
 # 恢复用户配置
 if [ -n "${CONFIG_BACKUP}" ] && [ -d "${CONFIG_BACKUP}" ]; then
@@ -233,6 +276,10 @@ else
 fi
 
 echo -e "  ${GREEN}✓${NC} 依赖安装完成"
+# 安装 meshctx 包（pip install -e .）
+echo -e "  ${CYAN}→${NC} 安装 meshctx 包..."
+pip install -q -e . 2>/dev/null || { echo -e "${RED}✗ meshctx 包安装失败${NC}"; exit 1; }
+echo -e "  ${GREEN}✓${NC} meshctx 包安装完成"
 
 # ── meshctx 命令 ─────────────────────────────────────
 echo -e "  ${CYAN}→${NC} 安装 meshctx 命令..."
