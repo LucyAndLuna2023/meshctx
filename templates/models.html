@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - meshctx{% endblock %}
+{% block content %}
+<div class="container" style="max-width:900px;margin:40px auto;padding:20px;">
+    <h2>🤖 Model Management</h2>
+    <p style="color:#8090b0;margin-bottom:24px;">Configure and manage AI models across providers. Add API keys in <a href="/ui/setup" style="color:#6c5ce7;">Setup</a>.</p>
+    <div class="card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px;">
+        <h3>Built-in Models</h3>
+        <div id="model-list" style="margin-top:16px;">
+            <p style="color:#8090b0;">Loading models from registry...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
