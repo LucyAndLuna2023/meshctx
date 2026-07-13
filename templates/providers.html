@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - meshctx{% endblock %}
+{% block content %}
+<div class="container" style="max-width:900px;margin:40px auto;padding:20px;">
+    <h2>🔌 AI Providers</h2>
+    <p style="color:#8090b0;margin-bottom:24px;">Supported API providers. Configure API keys in <a href="/ui/setup" style="color:#6c5ce7;">Setup</a>.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+        {% set providers = ["OpenAI", "Anthropic", "DeepSeek", "Google Gemini", "OpenRouter", "Groq", "Together", "Ollama (local)", "vLLM (local)", "LocalAI"] %}
+        {% for p in providers %}
+        <div class="card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;text-align:center;">
+            <span style="font-size:14px;">{{ p }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
