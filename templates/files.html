@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - meshctx{% endblock %}
+{% block content %}
+<div class="container" style="max-width:900px;margin:40px auto;padding:20px;">
+    <h2>📂 File Browser</h2>
+    <p style="color:#8090b0;margin-bottom:24px;">Browse and manage files in the meshctx workspace.</p>
+    <div class="card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <span style="font-size:20px;">📁</span>
+            <code style="background:#1a1a2e;padding:4px 12px;border-radius:6px;color:#00d48c;">~/.meshctx/</code>
+        </div>
+        <p style="color:#8090b0;font-size:13px;">File management is available via CLI: <code style="background:#1a1a2e;padding:2px 8px;border-radius:4px;color:#00d48c;">mesctx files</code></p>
+    </div>
+</div>
+{% endblock %}
