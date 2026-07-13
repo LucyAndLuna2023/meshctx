@@ -4004,7 +4004,7 @@ async def delete_memory_ui(request: Request, memory_id: str):
 @router.get("/memory", response_class=HTMLResponse)
 async def memory_dashboard(request: Request):
     """记忆仪表板: 搜索、添加、知识图谱可视化、统计"""
-    return _render("memory.html", {
+    return _render("memories.html", {
         "request": request,
         "title": "记忆仪表板",
     }, request)
@@ -4846,9 +4846,30 @@ async def download_page(request: Request):
 {% block content %}
 <h2>{{ t("install_title") }}</h2>
 <div class="card" style="margin-top:16px;">
-  <h3>{{ t("linux_macos") }}</h3>
+  <h3>🍎 macOS</h3>
+  <p style="color:var(--muted);">macOS 15+ · Apple Silicon / Intel</p>
+  <details open style="margin-top:8px;">
+    <summary style="cursor:pointer;font-weight:600;color:var(--cyan);">方式1: curl 一键安装</summary>
+    <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);margin-top:8px;">curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install-mac.sh | bash</pre>
+  </details>
+  <details style="margin-top:8px;">
+    <summary style="cursor:pointer;font-weight:600;color:var(--cyan);">方式2: Homebrew</summary>
+    <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);margin-top:8px;">brew tap LucyAndLuna2023/meshctx
+brew install meshctx</pre>
+  </details>
+  <details style="margin-top:8px;">
+    <summary style="cursor:pointer;font-weight:600;color:var(--cyan);">方式3: DMG 安装包</summary>
+    <div style="text-align:center;padding:12px;">
+      <a class="btn btn-primary" href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx.dmg" style="display:inline-block;text-decoration:none;padding:10px 28px;">⬇ 下载 DMG</a>
+      <p style="font-size:11px;color:var(--muted);margin-top:6px;">下载后拖入 Applications 即可</p>
+    </div>
+  </details>
+  <p style="font-size:11px;color:var(--muted);margin-top:8px;">需要 Python 3.10+ · 脚本自动处理依赖</p>
+</div>
+<div class="card" style="margin-top:16px;">
+  <h3>🐧 Linux</h3>
   <p style="color:var(--muted);">{{ t("one_cmd_install_desc") }}</p>
-  <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);">curl -fsSL https://meshctx.com/install.sh | bash</pre>
+  <pre style="background:var(--bg);padding:12px;border-radius:6px;color:var(--green);">curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash</pre>
   <p style="font-size:11px;color:var(--muted);margin-top:8px;">{{ t("install_requirements") }}</p>
 </div>
 <div class="card" style="margin-top:16px;">
