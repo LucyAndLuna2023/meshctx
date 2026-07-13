@@ -5416,6 +5416,7 @@ async function loadPath(path){
  currentPath = path || '';
  try{
   var r = await fetch('/api/file/list?path='+encodeURIComponent(currentPath||'/opt/meshctx'));
+  if(!r.ok){ document.getElementById('fileList').innerHTML='<tr><td colspan="4" style="color:var(--red)">'+escHtml((await r.json()).detail||r.statusText)+'</td></tr>'; return; }
   var d = await r.json();
   renderBreadcrumb(d.path);
   renderFiles(d.items, d.path);

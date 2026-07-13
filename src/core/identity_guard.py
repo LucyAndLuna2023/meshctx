@@ -17,7 +17,7 @@ Structure:
   USER MESSAGE (variable)
 
 Usage:
-  guard = IdentityGuard(identity_name="meshctx", version="3.115.15")
+  guard = IdentityGuard(identity_name="meshctx", version="3.115.16")
   system_msg = guard.build_preamble()
   full = guard.build_full(context={"memory": "...", "skills": []})
 """

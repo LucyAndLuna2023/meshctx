@@ -3722,7 +3722,8 @@ async def search_conversations(q: str = ""):
     import json
     results = []
     if not q: return {"results": [], "query": q}
-    for path in sorted(DATA_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:50]:
+    from pathlib import Path as _Path
+    for path in sorted(_Path(DATA_DIR).glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:50]:
         try:
             with open(path) as f:
                 data = json.load(f)
@@ -4031,6 +4032,7 @@ def _validate_file_path(path: str) -> "Path":
         "/opt/meshctx/logs",
         "/home/",
         "/tmp/",
+        "/tmp",  # resolve() strips trailing /
         "/var/tmp/",
         "/mnt/c/Users/",
         "/mnt/d/",

@@ -335,6 +335,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.115.15',
-            'CFBundleVersion': '3.115.15',
+            'CFBundleShortVersionString': '3.115.16',
+            'CFBundleVersion': '3.115.16',
         }, version='version_info.txt')

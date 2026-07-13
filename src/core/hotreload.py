@@ -66,6 +66,8 @@ class APIKeyFailover:
         self._running = True
     def stop(self):
         self._running = False
+    def status(self):
+        return {"active_key": self.active_key[:8]+"***" if self.active_key else None, "pool_size": len(self.pool), "running": self._running}
 
 class MemoryBackup:
     """记忆备份 — 开源版"""
