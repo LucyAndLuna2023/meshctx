@@ -53,6 +53,9 @@ class UsageInsights:
     def get_weekly(self):
         return {"period": "weekly", "calls": len(self._records), "tokens": 0}
 
+    def get_today(self):
+        return {"period": "today", "calls": len(self._records), "tokens": 0}
+
     def get_monthly(self):
         return {"period": "monthly", "calls": len(self._records), "tokens": 0}
 

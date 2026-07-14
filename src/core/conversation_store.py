@@ -9,12 +9,32 @@ DATA_DIR = os.path.expanduser("~/.meshctx/conversations")
 class Conversation:
     id: str = ""
     title: str = ""
+    model: str = ""
     messages: list = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
     
-    def to_dict(self): return {"id": self.id, "title": self.title, "messages": self.messages}
+    @property
+    def message_count(self) -> int:
+        return len(self.messages)
+    
+    def to_dict(self):
+        return {"id": self.id, "title": self.title, "model": self.model,
+                "messages": self.messages, "message_count": self.message_count,
+                "created_at": self.created_at}
+    
     def add_message(self, role: str, content: str, **kw):
         self.messages.append({"role": role, "content": content, "time": time.time()})
+    
+    def add(self, role: str, content: str, **kw):
+        """Alias for add_message."""
+        return self.add_message(role, content, **kw)
+    
+    def save(self):
+        """Persist conversation to disk."""
+        os.makedirs(DATA_DIR, exist_ok=True)
+        path = os.path.join(DATA_DIR, f"{self.id}.json")
+        with open(path, "w") as f:
+            json.dump(self.to_dict(), f, ensure_ascii=False, indent=2)
     @classmethod
     def list_all(cls, **kw):
         import os, json
@@ -68,6 +88,29 @@ class Conversation:
                     except OSError:
                         pass
         return count
+
+    @classmethod
+    def prune(cls, older_than_days: int = 30, **kw):
+        """删除 older_than_days 之前的旧对话，返回删除数和释放的磁盘空间"""
+        import os
+        cutoff = time.time() - older_than_days * 86400
+        d = os.path.expanduser("~/.meshctx/conversations")
+        deleted = 0
+        freed_bytes = 0
+        if os.path.isdir(d):
+            for f in os.listdir(d):
+                if f.endswith('.json'):
+                    fp = os.path.join(d, f)
+                    try:
+                        mtime = os.path.getmtime(fp)
+                        if mtime < cutoff:
+                            size = os.path.getsize(fp)
+                            os.remove(fp)
+                            deleted += 1
+                            freed_bytes += size
+                    except OSError:
+                        pass
+        return {"deleted": deleted, "freed_bytes": freed_bytes}
 
     @classmethod
     def delete(cls, conv_id, **kw):

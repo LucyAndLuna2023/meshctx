@@ -1683,21 +1683,24 @@ async def swarm_receive_result(request: dict):
 @app.post("/swarm/execute")
 async def swarm_execute(request: dict):
     """提交任务到Swarm — 自动分解→派发→汇总"""
-    from src.core.agent_swarm import get_swarm_manager
-    mgr = get_swarm_manager()
-    if not mgr:
-        raise HTTPException(503, "Swarm Manager not started")
-    tasks = await mgr.submit_task(
-        description=request.get("task", ""),
-        task_type=request.get("type", "general"),
-        context=request.get("context", ""),
-        priority=request.get("priority", 5),
-    )
-    return {
-        "status": "submitted",
-        "total_tasks": len(tasks),
-        "tasks": [t.to_dict() for t in tasks],
-    }
+    try:
+        from src.core.agent_swarm import get_swarm_manager
+        mgr = get_swarm_manager()
+        if not mgr:
+            raise HTTPException(503, "Swarm Manager not started")
+        tasks = await mgr.submit_task(
+            description=request.get("task", ""),
+            task_type=request.get("type", "general"),
+        )
+        return {
+            "status": "submitted",
+            "total_tasks": len(tasks),
+            "tasks": [t.to_dict() for t in tasks],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 @app.get("/swarm/status")
 async def swarm_status():
@@ -3699,14 +3702,6 @@ async def chat_compare(req: Request):
         raise
     except Exception as e:
         return {"error": str(e), "results": []}
-    model_ids = body.get("models", ["deepseek:chat", "openai:gpt-4o-mini", "anthropic:claude-haiku"])
-    
-    if not message:
-        raise HTTPException(400, t('error_missing_message'))
-    
-    from src.core.model_compare import compare_models
-    result = await compare_models(message, model_ids[:5])
-    return result
 
 
 @app.post("/api/chat/compare/stream")
@@ -5265,7 +5260,11 @@ async def watchdog_heartbeat():
     try:
         if HEARTBEAT_FILE.exists():
             with open(HEARTBEAT_FILE) as f:
-                return json.load(f)
+                raw = f.read().strip()
+                try:
+                    return {"last_heartbeat": float(raw), "status": "alive"}
+                except ValueError:
+                    return {"last_heartbeat": raw, "status": "invalid_format"}
         return {"status": "no_heartbeat", "message": "守护进程未启动"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -6067,7 +6066,6 @@ async def providers_health():
 @app.get("/api/file/delete")
 async def file_delete(path: str = ""):
     """删除文件"""
-    from .main import _validate_file_path
     try:
         fp = _validate_file_path(path)
         if fp.exists():
