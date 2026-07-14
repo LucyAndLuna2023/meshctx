@@ -1628,18 +1628,23 @@ async def get_execution_plan(task: dict = None):
 @app.post("/swarm/register")
 async def swarm_register(request: dict):
     """Worker注册 — Manager端点"""
-    from src.core.agent_swarm import get_swarm_manager
-    mgr = get_swarm_manager()
-    if not mgr:
-        raise HTTPException(503, "Swarm Manager not started")
-    wi = mgr.register_worker(
-        worker_id=request.get("worker_id", ""),
-        name=request.get("name", ""),
-        address=request.get("address", ""),
-        public_key=request.get("public_key", ""),
-        capabilities=request.get("capabilities", []),
-    )
-    return {"status": "registered", "worker": wi.to_dict()}
+    try:
+        from src.core.agent_swarm import get_swarm_manager
+        mgr = get_swarm_manager()
+        if not mgr:
+            raise HTTPException(503, "Swarm Manager not started")
+        wi = mgr.register_worker(
+            worker_id=request.get("worker_id", ""),
+            name=request.get("name", ""),
+            address=request.get("address", ""),
+            public_key=request.get("public_key", ""),
+            capabilities=request.get("capabilities", []),
+        )
+        return {"status": "registered", "worker": wi.to_dict()}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(503, f"Swarm unavailable: {e}")
 
 @app.post("/swarm/heartbeat")
 async def swarm_heartbeat(request: dict):
@@ -1912,22 +1917,32 @@ async def list_backups():
 @app.post("/v1/backup")
 async def create_backup(label: str = ""):
     """创建记忆备份"""
-    engine = get_memory_engine()
-    data = {
-        "projects": {pid: p.model_dump() if hasattr(p,'model_dump') else str(p) for pid, p in engine.projects.items()},
-        "conversations": {cid: c.model_dump() if hasattr(c,'model_dump') else str(c) for cid, c in engine.conversations.items()},
-        "memories": {mid: m.model_dump() if hasattr(m,'model_dump') else str(m) for mid, m in engine.memories.items()},
-    }
-    path = _memory_backup.backup(data, label)
-    return {"status": "ok", "path": path}
+    try:
+        engine = get_memory_engine()
+        data = {
+            "projects": {pid: p.model_dump() if hasattr(p,'model_dump') else str(p) for pid, p in engine.projects.items()},
+            "conversations": {cid: c.model_dump() if hasattr(c,'model_dump') else str(c) for cid, c in engine.conversations.items()},
+            "memories": {mid: m.model_dump() if hasattr(m,'model_dump') else str(m) for mid, m in engine.memories.items()},
+        }
+        path = _memory_backup.backup(data, label)
+        return {"status": "ok", "path": path}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Backup failed: {e}")
 
 @app.post("/v1/restore")
 async def restore_backup(name: str = ""):
     """恢复记忆备份"""
-    data = _memory_backup.restore(name or None)
-    if data is None:
-        return {"status": "error", "message": "无可用备份"}
-    return {"status": "ok", "keys": list(data.keys())}
+    try:
+        data = _memory_backup.restore(name)
+        if data is None:
+            return {"status": "error", "message": "无可用备份"}
+        return {"status": "ok", "keys": list(data.keys())}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Restore failed: {e}")
 
 @app.get("/v1/config/reload")
 async def reload_config():
@@ -3040,10 +3055,13 @@ async def api_chat(request: Request):
         })
     except Exception as e:
         logger.error(f"Chat API error: {e}")
+        err_msg = str(e)
+        # 区分认证错误 (401/403) 和服务器错误
+        status = 503 if any(kw in err_msg.lower() for kw in ('401', '403', 'unauthorized', 'invalid api key', 'invalid key', 'authentication')) else 500
         return JSONResponse({
-            "error": f"模型调用失败: {str(e)}",
+            "error": f"模型调用失败: {err_msg}",
             "content": ""
-        }, status_code=500)
+        }, status_code=status)
 
 
 # ═══════════════════════════════════════════════════
@@ -4005,18 +4023,21 @@ async def code_review(req: Request):
 def _validate_file_path(path: str) -> "Path":
     """路径白名单校验 — 防止路径遍历攻击 (C-1/C-2)"""
     from pathlib import Path
-    from src.core.platform_fs import wsl_to_windows, windows_to_wsl
     import os
 
     if not path:
         raise HTTPException(400, t('error_missing_file_path'))
 
-    # WSL/Windows路径翻译
+    # WSL/Windows路径翻译 (非Windows平台静默跳过)
     resolved = path
-    if path.startswith("/mnt/"):
-        resolved = wsl_to_windows(path)
-    elif len(path) >= 2 and path[1] == ":":
-        resolved = windows_to_wsl(path)
+    try:
+        from src.core.platform_fs import wsl_to_windows, windows_to_wsl
+        if path.startswith("/mnt/"):
+            resolved = wsl_to_windows(path)
+        elif len(path) >= 2 and path[1] == ":":
+            resolved = windows_to_wsl(path)
+    except ImportError:
+        pass  # macOS/Linux — platform_fs不可用,留原路径
 
     file_path = Path(resolved).expanduser().resolve()
     sp = str(file_path)
@@ -4031,6 +4052,7 @@ def _validate_file_path(path: str) -> "Path":
         "/opt/meshctx/plugins",
         "/opt/meshctx/logs",
         "/home/",
+        "/Users/",  # macOS
         "/tmp/",
         "/tmp",  # resolve() strips trailing /
         "/var/tmp/",
@@ -5240,17 +5262,23 @@ async def watchdog_status():
 @app.get("/api/watchdog/heartbeat")
 async def watchdog_heartbeat():
     """最新心跳信号"""
-    if HEARTBEAT_FILE.exists():
-        with open(HEARTBEAT_FILE) as f:
-            return json.load(f)
-    return {"status": "no_heartbeat", "message": "守护进程未启动"}
+    try:
+        if HEARTBEAT_FILE.exists():
+            with open(HEARTBEAT_FILE) as f:
+                return json.load(f)
+        return {"status": "no_heartbeat", "message": "守护进程未启动"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 @app.get("/api/watchdog/alerts")
 async def watchdog_alerts(limit: int = 20):
     """最近告警列表"""
-    daemon = get_daemon()
-    return {"alerts": daemon._alerts[-limit:]}
+    try:
+        daemon = get_daemon()
+        return {"alerts": daemon._alerts[-limit:] if hasattr(daemon, '_alerts') else []}
+    except Exception as e:
+        return {"alerts": [], "error": str(e)}
 
 
 @app.post("/api/watchdog/check")

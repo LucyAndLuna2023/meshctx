@@ -60,6 +60,19 @@ class WorkerInfo:
     total_tasks: int = 0
     completed_tasks: int = 0
 
+    def to_dict(self):
+        return {
+            "worker_id": self.worker_id,
+            "name": self.name,
+            "address": self.address,
+            "public_key": self.public_key,
+            "capabilities": self.capabilities,
+            "status": self.status,
+            "last_heartbeat": self.last_heartbeat,
+            "total_tasks": self.total_tasks,
+            "completed_tasks": self.completed_tasks,
+        }
+
 
 class ManagerAgent:
     def __init__(self, identity, port=3099, **kw):

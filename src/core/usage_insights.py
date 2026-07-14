@@ -59,6 +59,18 @@ class UsageInsights:
     def get_summary(self, days=30):
         return {"period": f"{days}d", "calls": len(self._records), "tokens": 0, "models": []}
 
+    def record_llm_call(self, model="unknown", provider="", tokens=0, latency_ms=0, error=False):
+        """记录LLM API调用"""
+        self._records.append({
+            "type": "llm_call",
+            "model": model,
+            "provider": provider,
+            "tokens": tokens,
+            "latency_ms": latency_ms,
+            "error": error,
+        })
+        return {"ok": True}
+
 
 _insights: Optional[UsageInsights] = None
 

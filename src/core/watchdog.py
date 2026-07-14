@@ -1,12 +1,14 @@
 """看门狗 — 开源版"""
 import logging, threading, time
+from pathlib import Path
 logger = logging.getLogger("meshctx.watchdog")
-HEARTBEAT_FILE = "/tmp/.meshctx_heartbeat"
+HEARTBEAT_FILE = Path("/tmp/.meshctx_heartbeat")
 
 class WatchdogDaemon:
     def __init__(self, *a, **kw): 
         self._running = False
         self._thread = None
+        self._alerts = []
     
     def start(self, **kw):
         self._running = True
@@ -25,6 +27,7 @@ class WatchdogDaemon:
     
     def stop(self): self._running = False
     def stats(self): return {"uptime": 0}
+    def get_status(self): return {"status": "ok", "uptime": 0, "alerts": len(self._alerts)}
 
 _daemon = WatchdogDaemon()
 def get_daemon(): return _daemon

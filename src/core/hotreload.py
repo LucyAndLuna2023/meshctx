@@ -78,5 +78,37 @@ class MemoryBackup:
         self._running = True
     def stop(self):
         self._running = False
-    def backup(self): return True
+    def backup(self, data=None, label=""):
+        """创建备份 — 兼容开源/完整版"""
+        import json, time
+        os.makedirs(self.backup_dir, exist_ok=True)
+        ts = time.strftime("%Y%m%d_%H%M%S")
+        name = label or ts
+        path = os.path.join(self.backup_dir, f"{name}.json")
+        try:
+            with open(path, "w") as f:
+                json.dump(data or {}, f, ensure_ascii=False, indent=2)
+            return path
+        except Exception:
+            return None
+    def restore(self, name=""):
+        """恢复备份 — 兼容开源/完整版"""
+        import json, glob
+        if name:
+            path = os.path.join(self.backup_dir, name if name.endswith('.json') else f"{name}.json")
+            if os.path.exists(path):
+                with open(path) as f:
+                    return json.load(f)
+        # 找最新备份
+        files = sorted(glob.glob(os.path.join(self.backup_dir, "*.json")))
+        if files:
+            with open(files[-1]) as f:
+                return json.load(f)
+        return None
+    def list_backups(self):
+        """列出所有备份"""
+        import glob
+        os.makedirs(self.backup_dir, exist_ok=True)
+        files = sorted(glob.glob(os.path.join(self.backup_dir, "*.json")))
+        return [os.path.basename(f) for f in files]
 

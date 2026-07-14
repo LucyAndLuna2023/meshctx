@@ -53,6 +53,46 @@ class Conversation:
         all_c = cls.list_all()
         return {"total_conversations": len(all_c), "storage_path": "~/.meshctx/conversations"}
 
+    @classmethod
+    def delete_all(cls, **kw):
+        """清空所有对话"""
+        import os, shutil
+        d = os.path.expanduser("~/.meshctx/conversations")
+        count = 0
+        if os.path.isdir(d):
+            for f in os.listdir(d):
+                if f.endswith('.json'):
+                    try:
+                        os.remove(os.path.join(d, f))
+                        count += 1
+                    except OSError:
+                        pass
+        return count
+
+    @classmethod
+    def delete(cls, conv_id, **kw):
+        """删除单个对话"""
+        import os
+        path = os.path.expanduser(f"~/.meshctx/conversations/{conv_id}.json")
+        if os.path.exists(path):
+            os.remove(path)
+            return True
+        return False
+
+    @classmethod
+    def rename(cls, conv_id, new_title, **kw):
+        """重命名对话"""
+        import os, json
+        path = os.path.expanduser(f"~/.meshctx/conversations/{conv_id}.json")
+        if os.path.exists(path):
+            with open(path) as f:
+                d = json.load(f)
+            d["title"] = new_title
+            with open(path, "w") as f:
+                json.dump(d, f, ensure_ascii=False)
+            return True
+        return False
+
 def get_or_create(conv_id: str = None) -> Conversation:
     if conv_id:
         path = os.path.join(DATA_DIR, f"{conv_id}.json")
