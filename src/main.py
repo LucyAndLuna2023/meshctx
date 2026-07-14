@@ -414,7 +414,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="3.115.16",
+    version="3.115.18",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -4070,7 +4070,7 @@ def _validate_file_path(path: str) -> "Path":
                 break
 
     if not is_allowed:
-        raise HTTPException(403, f"安全限制: 禁止访问该路径。允许目录: {data_dir}, /home/, /tmp/")
+        raise HTTPException(403, f"安全限制: 禁止访问该路径。允许目录: {data_dir}, /home/, /Users/, /tmp/")
 
     # 双重校验: 拒绝 .. 遍历
     if ".." in path:
