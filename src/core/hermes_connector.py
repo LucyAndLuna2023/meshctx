@@ -197,12 +197,12 @@ class EventBridge:
         MACHINE_ID = os.environ.get("HUB_MACHINE_ID", socket.gethostname())
 
         # 扫描 v5 inbox_safe（listener 写入路径）
+        # 🔴 铁律：只读 meshctx.json，不碰 machine.json/{MACHINE_ID}.json
+        # machine.json 包含所有 profile 的消息，清空会破坏其他 profile 通讯
         if INBOX_SAFE_DIR.exists():
-            for safe_file in sorted(INBOX_SAFE_DIR.glob("*.json")):
-                # 只处理自己机器的消息和发给 meshctx profile 的消息
-                name = safe_file.stem  # e.g. "machine", "admin", "qa", "meshctx"
-                if name in (MACHINE_ID, my_profile, "machine"):
-                    inboxes.append(safe_file)
+            meshctx_safe = INBOX_SAFE_DIR / f"{my_profile}.json"
+            if meshctx_safe.exists():
+                inboxes.append(meshctx_safe)
 
         for inbox_path in inboxes:
             if not inbox_path.exists():
