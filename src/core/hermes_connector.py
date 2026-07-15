@@ -192,13 +192,16 @@ class EventBridge:
         count = 0
         inboxes = [GLOBAL_INBOX]
 
-        # 扫描所有 profile inboxes
+        # 扫描所有 profile inboxes (但只修改 meshctx 自己的)
         profiles_dir = HERMES_HOME / "profiles"
+        my_profile = os.environ.get("HERMES_PROFILE", "meshctx")
         if profiles_dir.exists():
             for pdir in profiles_dir.iterdir():
                 inbox = pdir / ".hub_inbox"
                 if inbox.exists():
-                    inboxes.append(inbox)
+                    # 只处理自己 profile 的消息；其他 profile 的不碰
+                    if pdir.name == my_profile:
+                        inboxes.append(inbox)
 
         for inbox_path in inboxes:
             if not inbox_path.exists():
