@@ -5463,8 +5463,9 @@ async def config_export():
         # 收集敏感环境变量名（不导出值）
         env_keys = [k for k in os.environ if k.endswith("_API_KEY") or k.startswith("MESHCTX_")]
         import datetime
+        from src.core import __version__
         return {
-            "version": "3.115.16",
+            "version": __version__,
             "exported_at": datetime.datetime.utcnow().isoformat() + "Z",
             "providers": config.get("providers", {}),
             "mcp_servers": config.get("mcp_servers", config.get("mcp", [])),
