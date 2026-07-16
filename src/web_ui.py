@@ -3598,8 +3598,8 @@ function refreshProjectIndex(){
 # ── DictLoader 初始化 ───────────────────────────────────────────
 from src.i18n import t as i18n_t, get_lang as i18n_get_lang, TRANSLATIONS as i18n_translations
 _jinja_env = Environment(loader=ChoiceLoader([
-    DictLoader(_TEMPLATES),
     FileSystemLoader(os.path.join(os.path.dirname(__file__), '..', 'templates')),
+    DictLoader(_TEMPLATES),
 ]), autoescape=False)
 _jinja_env.globals['t'] = i18n_t
 _jinja_env.globals['lang'] = i18n_get_lang
