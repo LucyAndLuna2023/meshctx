@@ -1,0 +1,330 @@
+{
+  "results": [
+    {
+      "module": "1.Hippocampus",
+      "metric": "TargetSim",
+      "value": 1.2499999997596156,
+      "unit": "sim",
+      "note": "\u76ee\u6807\u21921.2500",
+      "score": 1.0
+    },
+    {
+      "module": "1.Hippocampus",
+      "metric": "LureSim",
+      "value": 1.2499999997596156,
+      "unit": "sim",
+      "note": "\u8bf1\u9975\u21921.2500",
+      "score": 1.0
+    },
+    {
+      "module": "1.Hippocampus",
+      "metric": "FoilSim",
+      "value": 1.2499999997596156,
+      "unit": "sim",
+      "note": "\u5e72\u6270\u21921.2500",
+      "score": 1.0
+    },
+    {
+      "module": "1.Hippocampus",
+      "metric": "MST_LDI",
+      "value": 0.0,
+      "unit": "\u0394sim",
+      "note": "\u4eba\u7c7b.15-.35\u21920.0000",
+      "score": 0.0
+    },
+    {
+      "module": "1.Hippocampus",
+      "metric": "PatternSep",
+      "value": 0.0,
+      "unit": "r",
+      "note": "PSI=0.0000",
+      "score": 0.0
+    },
+    {
+      "module": "2.Amygdala",
+      "metric": "F1",
+      "value": 0.7200000000000001,
+      "unit": "F1",
+      "note": "P=60.0%R=90.0%tp=9fp=6",
+      "score": 0.7200000000000001
+    },
+    {
+      "module": "2.Amygdala",
+      "metric": "FPR",
+      "value": 0.6,
+      "unit": "FPR",
+      "note": "\u5047\u9633=60.0%",
+      "score": 0.4
+    },
+    {
+      "module": "3.BasalGanglia",
+      "metric": "OptimalRate",
+      "value": 0.215,
+      "unit": "frac",
+      "note": "\u6700\u4f18=21.5%(\u57fa\u7ebf25%)",
+      "score": 0.215
+    },
+    {
+      "module": "3.BasalGanglia",
+      "metric": "AvgReward",
+      "value": 2.3245163566746867,
+      "unit": "r/ep",
+      "note": "\u7ec8\u5c40=2.325",
+      "score": 1.0
+    },
+    {
+      "module": "4.Cerebellum",
+      "metric": "InitMSE",
+      "value": 19.44621826582507,
+      "unit": "MSE",
+      "note": "\u521d\u59cb=19.4462",
+      "score": 0.0
+    },
+    {
+      "module": "4.Cerebellum",
+      "metric": "FinalMSE",
+      "value": 18.056288564645968,
+      "unit": "MSE",
+      "note": "\u6700\u7ec8=18.0563",
+      "score": 0.0
+    },
+    {
+      "module": "4.Cerebellum",
+      "metric": "Improve",
+      "value": 0.07147557855101194,
+      "unit": "ratio",
+      "note": "\u5b66\u4e60\u63d0\u5347=7.1%",
+      "score": 0.07147557855101194
+    },
+    {
+      "module": "5.Insula",
+      "metric": "AnomalyDisc",
+      "value": 0.0,
+      "unit": "\u0394conf",
+      "note": "\u5f02\u5e38\u533a\u5206=0.0000",
+      "score": 0.0
+    },
+    {
+      "module": "6.ACC",
+      "metric": "Congruent",
+      "value": 0.0,
+      "unit": "conf",
+      "note": "\u4e00\u81f4\u51b2\u7a81=0.000000",
+      "score": 1.0
+    },
+    {
+      "module": "6.ACC",
+      "metric": "Incongruent",
+      "value": 0.3525,
+      "unit": "conf",
+      "note": "\u4e0d\u4e00\u81f4\u51b2\u7a81=0.3525",
+      "score": 1.0
+    },
+    {
+      "module": "7.Mirror",
+      "metric": "IntentDiv",
+      "value": 1.0,
+      "unit": "frac",
+      "note": "\u610f\u56fe\u79cd\u7c7b=5/5",
+      "score": 1.0
+    },
+    {
+      "module": "8.DMN",
+      "metric": "Richness",
+      "value": 1.0,
+      "unit": "frac",
+      "note": "\u63a2\u7d22\u4e30\u5bcc\u5ea6=100%",
+      "score": 1.0
+    },
+    {
+      "module": "9.Thalamus",
+      "metric": "PassRate",
+      "value": 1.0,
+      "unit": "frac",
+      "note": "\u95e8\u63a7\u901a\u8fc7=100%",
+      "score": 1.0
+    },
+    {
+      "module": "10.STDP",
+      "metric": "SpikeCount",
+      "value": 0,
+      "unit": "spikes",
+      "note": "\u7b2c\u4e00\u6b21step\u8109\u51b2=0",
+      "score": 0.0
+    },
+    {
+      "module": "10.STDP",
+      "metric": "WeightDelta",
+      "value": 0.0038841605004660577,
+      "unit": "\u0394w",
+      "note": "\u6743\u91cd\u53d8\u5316=0.003884",
+      "score": 1.0
+    },
+    {
+      "module": "11.IIT",
+      "metric": "PhiMax",
+      "value": 20,
+      "unit": "\u03a6",
+      "note": "\u03a6=20.00(8642ms)",
+      "score": 1.0
+    },
+    {
+      "module": "12.Emotion",
+      "metric": "ArousalRange",
+      "value": 0.0,
+      "unit": "\u0394ar",
+      "note": "\u5524\u9192\u8303\u56f4=0.000",
+      "score": 0.0
+    },
+    {
+      "module": "12.Emotion",
+      "metric": "ValenceRange",
+      "value": 0.0,
+      "unit": "\u0394vl",
+      "note": "\u6548\u4ef7\u8303\u56f4=0.000",
+      "score": 0.0
+    },
+    {
+      "module": "13.BrainLoop",
+      "metric": "Latency",
+      "value": 10.944509506225586,
+      "unit": "ms",
+      "note": "10.9ms/step",
+      "score": 0.0
+    },
+    {
+      "module": "13.BrainLoop",
+      "metric": "Diversity",
+      "value": 0.2,
+      "unit": "frac",
+      "note": "\u51b3\u7b56\u591a\u6837\u6027=1/5",
+      "score": 0.2
+    },
+    {
+      "module": "14.PFC",
+      "metric": "WM_Recall",
+      "value": 0.1690260932668706,
+      "unit": "sim",
+      "note": "WM recall=0.1690",
+      "score": 0.0
+    },
+    {
+      "module": "14.PFC",
+      "metric": "SwitchCost",
+      "value": 0.3428571428571429,
+      "unit": "cost",
+      "note": "\u5e73\u5747\u5207\u6362=0.343",
+      "score": 0.657142857142857
+    },
+    {
+      "module": "14.PFC",
+      "metric": "PlanDepth",
+      "value": 3,
+      "unit": "steps",
+      "note": "\u89c4\u5212=3\u6b65",
+      "score": 1.0
+    },
+    {
+      "module": "15.Visual",
+      "metric": "EdgeDensity",
+      "value": 1688,
+      "unit": "edges",
+      "note": "\u68c0\u6d4b1688\u8fb9",
+      "score": 1.0
+    },
+    {
+      "module": "15.Visual",
+      "metric": "OrientDiv",
+      "value": 1.0,
+      "unit": "frac",
+      "note": "\u671d\u5411=8/8",
+      "score": 1.0
+    },
+    {
+      "module": "15.Visual",
+      "metric": "FeatRichness",
+      "value": 0.5,
+      "unit": "frac",
+      "note": "\u7279\u5f81=3\u79cd",
+      "score": 0.5
+    },
+    {
+      "module": "16.NAcc",
+      "metric": "PE_Converge",
+      "value": 0.019850499375000052,
+      "unit": "ratio",
+      "note": "PE\u6536\u655b=2.0%",
+      "score": 0.0
+    },
+    {
+      "module": "16.NAcc",
+      "metric": "Motivation",
+      "value": 0.4756846690818861,
+      "unit": "mot",
+      "note": "\u52a8\u673a=0.476",
+      "score": 1.0
+    },
+    {
+      "module": "16.NAcc",
+      "metric": "WantLiking",
+      "value": 0.0443,
+      "unit": "diss",
+      "note": "\u60f3\u8981vs\u559c\u6b22\u5dee\u5f02=-0.0443",
+      "score": 0.0443
+    },
+    {
+      "module": "17.Brainstem",
+      "metric": "Homeostasis",
+      "value": 0.0,
+      "unit": "bool",
+      "note": "\u7a33\u5b9a=False",
+      "score": 0.0
+    },
+    {
+      "module": "17.Brainstem",
+      "metric": "StressResponse",
+      "value": 1.3769193993062812,
+      "unit": "HRV",
+      "note": "\u5fc3\u7387\u53d8\u5f02=1.38",
+      "score": 1.0
+    },
+    {
+      "module": "17.Brainstem",
+      "metric": "ArousalCtrl",
+      "value": 0.0,
+      "unit": "bool",
+      "note": "\u89c9\u9192\u2192\u7761\u7720=True\u2192True",
+      "score": 0.0
+    },
+    {
+      "module": "17.Brainstem",
+      "metric": "DriveDiff",
+      "value": 0.03,
+      "unit": "\u0394",
+      "note": "\u9a71\u529b\u5dee\u5f02=0.030",
+      "score": 0.0
+    }
+  ],
+  "module_scores": {
+    "1.Hippocampus": 0.6,
+    "2.Amygdala": 0.56,
+    "3.BasalGanglia": 0.6075,
+    "4.Cerebellum": 0.023825192850337313,
+    "5.Insula": 0.0,
+    "6.ACC": 1.0,
+    "7.Mirror": 1.0,
+    "8.DMN": 1.0,
+    "9.Thalamus": 1.0,
+    "10.STDP": 0.5,
+    "11.IIT": 1.0,
+    "12.Emotion": 0.0,
+    "13.BrainLoop": 0.1,
+    "14.PFC": 0.5523809523809523,
+    "15.Visual": 0.8333333333333334,
+    "16.NAcc": 0.3481,
+    "17.Brainstem": 0.25
+  },
+  "overall": 0.49494522199194396,
+  "passed": 20,
+  "total": 38
+}

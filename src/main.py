@@ -569,8 +569,17 @@ app.middleware("http")(auth_middleware_v2)
 @app.get("/ui/login", response_class=HTMLResponse)
 async def login_page(request: Request, next: str = ""):
     lang = request.cookies.get("meshctx_lang", "en")
-    return HTMLResponse(content=r"""<!DOCTYPE html>
-<html lang=""" + '"' + lang + '"' + r"""><head><meta charset="UTF-8"><title>MeshCtx Login</title>
+    import json, os
+    _i18n_path = os.path.join(os.path.dirname(__file__), "i18n_translations.json")
+    try:
+        with open(_i18n_path, encoding="utf-8") as f:
+            _all_i18n = json.load(f)
+        _lang_data = _all_i18n.get(lang, _all_i18n.get("en", {}))
+    except Exception:
+        _lang_data = {}
+    _i18n_json = json.dumps(_lang_data, ensure_ascii=False)
+    return HTMLResponse(content="""<!DOCTYPE html>
+<html lang=""" + '"' + lang + '"' + """><head><meta charset="UTF-8"><title>MeshCtx Login</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,sans-serif;background:linear-gradient(135deg,#0b0e1a,#1a1f35);min-height:100vh;display:flex;align-items:center;justify-content:center}
@@ -582,14 +591,22 @@ input:focus{border-color:#6c5ce7}
 button{width:100%;padding:12px;background:linear-gradient(135deg,#6c5ce7,#5a4bd1);border:none;border-radius:8px;color:#fff;font-size:16px;cursor:pointer}
 .error{color:#f85149;font-size:13px;margin-top:8px;display:none}
 </style></head><body>
+<script>window.__i18n = """ + _i18n_json + """;window.__lang='""" + lang + """';window.__t=function(k){return (window.__i18n&&window.__i18n[k])||k;};</script>
 <div class="card">
-<h1>🔐 MeshCtx</h1><p id="login-hint">请输入管理密码 / Enter password</p>
+<h1 id="login-title"></h1><p id="login-hint"></p>
 <form onsubmit="login(event)">
-<input type="password" id="pw" placeholder="Password" aria-label="Password" autofocus>
-<button type="submit" id="login-btn">登 录 / Login</button>
-<div class="error" id="err">密码错误 / Wrong password</div>
+<input type="password" id="pw" aria-label="Password" autofocus>
+<button type="submit" id="login-btn"></button>
+<div class="error" id="err"></div>
 </form>
 <script>
+(function(){var t=window.__t;
+document.getElementById('login-title').textContent=t('login_title');
+document.getElementById('login-hint').textContent=t('login_hint');
+document.getElementById('pw').placeholder=t('login_password_placeholder');
+document.getElementById('login-btn').textContent=t('login_button');
+document.getElementById('err').textContent=t('login_error');
+})();
 async function login(e){e.preventDefault();
 var pw=document.getElementById('pw').value;
 var r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
@@ -797,13 +814,27 @@ class IntentRequest(BaseModel):
 # 实时健康面板 (v2.60)
 # ═══════════════════════════════════════════════════
 @app.get("/dashboard/live", response_class=HTMLResponse)
-async def live_dashboard():
+async def live_dashboard(request: Request):
     """实时健康面板 — WebSocket驱动的15模块监控"""
     from pathlib import Path
     html_path = Path(__file__).parent / "core" / "templates" / "live_dashboard.html"
-    if html_path.exists():
-        return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
-    return HTMLResponse(content="<h1>Dashboard template not found</h1>", status_code=404)
+    if not html_path.exists():
+        return HTMLResponse(content="<h1>Dashboard template not found</h1>", status_code=404)
+    html = html_path.read_text(encoding="utf-8")
+    # Inject i18n
+    lang = request.cookies.get("meshctx_lang", "en")
+    import json
+    _i18n_path = Path(__file__).parent / "i18n_translations.json"
+    try:
+        with open(_i18n_path, encoding="utf-8") as f:
+            _all_i18n = json.load(f)
+        _lang_data = _all_i18n.get(lang, _all_i18n.get("en", {}))
+    except Exception:
+        _lang_data = {}
+    _i18n_json = json.dumps(_lang_data, ensure_ascii=False)
+    i18n_script = f'<script>window.__i18n = {_i18n_json};window.__lang="{lang}";window.__t=function(k){{return (window.__i18n&&window.__i18n[k])||k;}};</script>'
+    html = html.replace("</head>", i18n_script + "\n</head>")
+    return HTMLResponse(content=html)
 
 @app.get("/favicon.ico")
 async def favicon():

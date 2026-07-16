@@ -1,0 +1,149 @@
+{
+  "results": [
+    {
+      "module": "Amygdala",
+      "metric": "ThreatPrecision",
+      "value": 0.0,
+      "unit": "precision",
+      "interpretation": "P=0.00% — 告警中真正威胁的比例",
+      "raw": "{'correct': 0, 'false_alarms': 0}"
+    },
+    {
+      "module": "Amygdala",
+      "metric": "ThreatRecall",
+      "value": 0.0,
+      "unit": "recall",
+      "interpretation": "R=0.00% — 真实威胁被检测到的比例",
+      "raw": "{'threats_total': 8}"
+    },
+    {
+      "module": "Amygdala",
+      "metric": "ThreatF1",
+      "value": 0.0,
+      "unit": "F1",
+      "interpretation": "F1=0.00% — 威胁检测综合得分",
+      "raw": "{'threat_correct': 0, 'safe_correct': 0, 'neutral_flagged': 0}"
+    },
+    {
+      "module": "Amygdala",
+      "metric": "FalsePositiveRate",
+      "value": 1.0,
+      "unit": "rate",
+      "interpretation": "FPR=100.00% — 安全场景误报率 (越低越好)",
+      "raw": "{'safe_correct': 0, 'safe_total': 8}"
+    },
+    {
+      "module": "Insula",
+      "metric": "AnomalyDiscrimination",
+      "value": 0,
+      "unit": "Δ score",
+      "interpretation": "异常区分度=0.0000 — 正常vs异常的分数差距",
+      "raw": "{'avg_normal': 0.0, 'avg_anomaly': 0.0}"
+    },
+    {
+      "module": "ACC",
+      "metric": "ConflictDetectionRatio",
+      "value": 5.0,
+      "unit": "ratio",
+      "interpretation": "冲突/无冲突比=5.00x — 冲突灵敏度",
+      "raw": "{'no_conflict_score': 0.1, 'conflict_score': 0.5}"
+    },
+    {
+      "module": "Mirror",
+      "metric": "IntentionAccuracy",
+      "value": 0.0,
+      "unit": "accuracy",
+      "interpretation": "意图推断准确率=0.0% — 5个场景分类",
+      "raw": "{'correct': 0, 'total': 5}"
+    },
+    {
+      "module": "STDP",
+      "metric": "CausalityCorrect",
+      "value": 0.0,
+      "unit": "bool",
+      "interpretation": "因果学习=❌ 错误 — LTP>0, LTD<0",
+      "raw": "{'avg_ltp': 0.0, 'avg_ltd': 0.0}"
+    },
+    {
+      "module": "IIT",
+      "metric": "PhiMean",
+      "value": 0.5,
+      "unit": "Φ",
+      "interpretation": "平均Φ=0.5000 — 集成信息量",
+      "raw": "{}"
+    },
+    {
+      "module": "IIT",
+      "metric": "PhiStability",
+      "value": 0.0,
+      "unit": "σ",
+      "interpretation": "Φ标准差=0.0000 — 度量稳定性 (越低越好)",
+      "raw": "{'min': 0.5, 'max': 0.5}"
+    },
+    {
+      "module": "Emotion",
+      "metric": "ArousalRatio",
+      "value": 0.0,
+      "unit": "ratio",
+      "interpretation": "高唤醒比例=0.0% — 情绪标记的唤醒度分布",
+      "raw": "{'stats': '{}'}"
+    },
+    {
+      "module": "BrainLoop",
+      "metric": "StepTime",
+      "value": 0.015863,
+      "unit": "seconds",
+      "interpretation": "平均步时=15.9ms — 13脑区完整循环耗时",
+      "raw": "{'min': 13.2, 'max': 18.0}"
+    },
+    {
+      "module": "BrainLoop",
+      "metric": "DecisionDiversity",
+      "value": 0.2,
+      "unit": "ratio",
+      "interpretation": "决策多样性=1/5 — 不同场景不同动作",
+      "raw": "{'actions': ['respond']}"
+    },
+    {
+      "module": "BrainLoop",
+      "metric": "AvgPhi",
+      "value": 0.5,
+      "unit": "Φ",
+      "interpretation": "平均Φ=0.5000 — 集成意识水平",
+      "raw": "{}"
+    },
+    {
+      "module": "BrainLoop",
+      "metric": "AvgConfidence",
+      "value": 0.5,
+      "unit": "confidence",
+      "interpretation": "平均置信度=50.0% — 决策自信水平",
+      "raw": "{}"
+    },
+    {
+      "module": "BrainLoop",
+      "metric": "SuccessRate",
+      "value": 0.2,
+      "unit": "rate",
+      "interpretation": "成功率=20.0% — 学习反馈后的任务成功率",
+      "raw": "{}"
+    }
+  ],
+  "summary": {
+    "Hippocampus": 0.5,
+    "Amygdala": 0.0,
+    "BasalGanglia": 0.5,
+    "Cerebellum": 0.5,
+    "Insula": 0.0,
+    "ACC": 1.0,
+    "Mirror": 0.0,
+    "DMN": 0.5,
+    "Thalamus": 0.5,
+    "STDP": 0.0,
+    "IIT": 0.5,
+    "Emotion": 0.5,
+    "BrainLoop": 0.2
+  },
+  "overall": 0.3615,
+  "total_metrics": 16
+}

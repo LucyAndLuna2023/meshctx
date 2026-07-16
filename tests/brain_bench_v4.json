@@ -1,0 +1,116 @@
+{
+  "results": [
+    {
+      "module": "Hippocampus",
+      "metric": "MST_LDI",
+      "value": 0.0,
+      "unit": "Δsim",
+      "note": "人类0.20-0.40 → 0.0000"
+    },
+    {
+      "module": "Hippocampus",
+      "metric": "PatternSep",
+      "value": -0.0,
+      "unit": "ratio",
+      "note": "PSI=-0.0000"
+    },
+    {
+      "module": "Hippocampus",
+      "metric": "Retention",
+      "value": 0.0,
+      "unit": "frac",
+      "note": "保留0/120"
+    },
+    {
+      "module": "Amygdala",
+      "metric": "ThreatF1",
+      "value": 0.6897,
+      "unit": "F1",
+      "note": "P=52.6% R=100.0% F1=69.0%"
+    },
+    {
+      "module": "Amygdala",
+      "metric": "FPR",
+      "value": 0.9,
+      "unit": "FPR",
+      "note": "FPR=90.0% tp=20 fp=18"
+    },
+    {
+      "module": "BasalGanglia",
+      "metric": "OptimalRate",
+      "value": 0.27,
+      "unit": "frac",
+      "note": "最优=27.0%(随机25%)"
+    },
+    {
+      "module": "BasalGanglia",
+      "metric": "AvgReward",
+      "value": 0.38,
+      "unit": "r/ep",
+      "note": "终局=0.380"
+    },
+    {
+      "module": "Insula",
+      "metric": "AnomalyDisc",
+      "value": 0.0,
+      "unit": "ΔPE",
+      "note": "异常区分=0.0000"
+    },
+    {
+      "module": "Mirror",
+      "metric": "IntentDiv",
+      "value": 0.2,
+      "unit": "frac",
+      "note": "1/5 types"
+    },
+    {
+      "module": "DMN",
+      "metric": "Richness",
+      "value": 1.0,
+      "unit": "frac",
+      "note": "10/10 有深度"
+    },
+    {
+      "module": "Thalamus",
+      "metric": "PassRate",
+      "value": 0.0,
+      "unit": "frac",
+      "note": "通过=0/50"
+    },
+    {
+      "module": "STDP",
+      "metric": "DeltaW",
+      "value": 0.0,
+      "unit": "Δw",
+      "note": "奖励Δw=0.000000"
+    },
+    {
+      "module": "IIT",
+      "metric": "PhiMean",
+      "value": 2.7763,
+      "unit": "Φ",
+      "note": "Φ=2.78 (6882ms)"
+    },
+    {
+      "module": "Emotion",
+      "metric": "ArousalMean",
+      "value": 0.5,
+      "unit": "ar",
+      "note": "唤醒度=0.500"
+    },
+    {
+      "module": "BrainLoop",
+      "metric": "StepTime",
+      "value": 10.4,
+      "unit": "ms",
+      "note": "10.4ms/step"
+    },
+    {
+      "module": "BrainLoop",
+      "metric": "Diversity",
+      "value": 0.2,
+      "unit": "frac",
+      "note": "1/5 types"
+    }
+  ]
+}
