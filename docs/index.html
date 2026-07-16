@@ -618,7 +618,7 @@ function switchLang(lang) {
     var labels = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch'};
     // 🔧 BUG-043: null guards for all DOM access
     var toggle = document.getElementById('langToggle');
-    if (toggle) toggle.innerHTML = (labels[lang]||'🌐 '+lang.toUpperCase())+' ▾';
+    if (toggle) toggle.textContent = (labels[lang]||'🌐 '+lang.toUpperCase())+' ▾';
     var menuBtns = document.querySelectorAll('.lang-dropdown-menu button');
     if (menuBtns.length) menuBtns.forEach(function(b){b.classList.remove('active');});
     for(var i=0;i<menuBtns.length;i++){
@@ -649,6 +649,9 @@ function switchLang(lang) {
                 if (cn.nodeType === 3 && cn.textContent.trim()) { cn.textContent = val; return; }
                 if (cn.nodeType === 1 && !cn.hasAttribute('data-lang-key') && !cn.querySelector('[data-lang-key]')) { cn.textContent = val; return; }
             }
+            // QA8 P2-2: no safe child found — warn instead of destroying nested [data-lang-key] children
+            console.warn('MeshCtx: no safe text child for key \"' + key + '\" (has nested [data-lang-key]), skipped');
+            return;
         }
         el.textContent = val;
     });
