@@ -233,7 +233,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
     <link rel="apple-touch-icon" href="/ui/icon-192.png">
     <link rel="apple-touch-icon" sizes="192x192" href="/ui/icon-192.png">
     <link rel="apple-touch-icon" sizes="512x512" href="/ui/icon-512.png">
-<script>window.__i18n = {{ __i18n_json | safe }}; window.__lang = '{{ __lang }}'; window.__t = function(k){ return (window.__i18n && window.__i18n[k]) || k; };</script>
+<script>window.__i18n = {{ __i18n_json | safe }}; window.__i18n_all = {{ __i18n_all_json | safe }}; window.__lang = '{{ __lang }}'; window.__t = function(k,lang){ var l=lang||window.__lang; return (window.__i18n_all && window.__i18n_all[l] && window.__i18n_all[l][k]) || (window.__i18n && window.__i18n[k]) || k; };</script>
 </head>
 <body>
 <!-- Skip to main content (CRITICAL-002) -->
@@ -334,9 +334,11 @@ function toggleTheme() {
     });
 })();
 
-// Language switcher — localStorage + server sync
+// Language switcher — localStorage + cookie + server sync (QA6: cookie BEFORE fetch)
 function switchLang(lang) {
+    document.cookie = 'meshctx_lang=' + lang + ';path=/;max-age=31536000';
     localStorage.setItem('meshctx_lang', lang);
+    window.__lang = lang;
     fetch('/api/lang/set', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({lang:lang})})
         .then(function(){ location.reload(); })
         .catch(function(){ location.reload(); });
@@ -3614,6 +3616,15 @@ def _get_i18n_json(lang: str) -> str:
         )
     return _i18n_json_cache[lang]
 
+def _get_i18n_all_json() -> str:
+    """QA6: 注入全部7语言到主 SPA，支持 switchLang 无刷新切换"""
+    if '_all' not in _i18n_json_cache:
+        all_i18n = {}
+        for lc in ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'es']:
+            all_i18n[lc] = i18n_translations.get(lc, {})
+        _i18n_json_cache['_all'] = __import__('json').dumps(all_i18n, ensure_ascii=False)
+    return _i18n_json_cache['_all']
+
 def _render(template_name: str, context: dict, request = None) -> HTMLResponse:
     """渲染 Jinja2 模板（从内嵌 DictLoader），自动检测浏览器语言"""
     lang = i18n_get_lang(request)
@@ -3622,6 +3633,7 @@ def _render(template_name: str, context: dict, request = None) -> HTMLResponse:
         return i18n_translations.get(lang, i18n_translations.get('en', {})).get(key, i18n_translations.get('en', {}).get(key, key))
     context['t'] = _scoped_t
     context['__i18n_json'] = _get_i18n_json(lang)
+    context['__i18n_all_json'] = _get_i18n_all_json()
     context['__lang'] = lang
     # Inject configurable local model hosts (BUG-005 fix)
     import os as _os
