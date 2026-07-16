@@ -10,7 +10,7 @@
                 <span data-lang-key="conv_project_label">项目:</span>
                 <a href="/ui/projects/{{ project.id }}" class="link">{{ project.name }}</a>
                 {% if conversation.summary %}
-                <span class="divider">|</span> 摘要: {{ truncate(conversation.summary, 80) }}
+                <span class="divider">|</span> <span data-lang-key="conv_summary_label">摘要:</span> {{ truncate(conversation.summary, 80) }}
                 {% endif %}
             </p>
         </div>

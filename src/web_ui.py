@@ -221,7 +221,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         .cmd-item-hint { font-size: 11px; color: #64748b; }
         .cmd-empty { text-align: center; color: #64748b; padding: 24px; font-size: 14px; }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <link rel="stylesheet" href="/static/lib/github-dark.min.css">
     <!-- PWA -->
     <link rel="manifest" href="/ui/manifest.json">
     <meta name="theme-color" content="#0a0a1a">
@@ -280,8 +280,8 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         <div class="cmd-list" id="cmdList"></div>
     </div>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="/static/lib/marked.min.js"></script>
+<script src="/static/lib/highlight.min.js"></script>
 <script>
 marked.setOptions({breaks:true, gfm:true});
 hljs.configure({languages:['python','javascript','bash','json','yaml','sql','css','html','xml','java','go','rust','cpp','typescript','shell']});
@@ -290,7 +290,7 @@ hljs.configure({languages:['python','javascript','bash','json','yaml','sql','css
 var hljsLight = document.createElement('link');
 hljsLight.rel = 'stylesheet';
 hljsLight.id = 'hljs-theme';
-hljsLight.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+hljsLight.href = '/static/lib/github.min.css';
 
 function getSystemTheme() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';

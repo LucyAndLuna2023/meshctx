@@ -1,15 +1,15 @@
 {% extends "base.html" %}
-{% block title %}记忆浏览 | meshctx{% endblock %}
+{% block title %}<span data-lang-key="memories_title">记忆</span> | meshctx{% endblock %}
 
 {% block content %}
 <section class="page-header">
-    <h1>🧠 记忆浏览</h1>
-    <p class="subtitle">浏览和管理所有项目的关键记忆</p>
+    <h1>🧠 <span data-lang-key="memories_title">记忆浏览</span></h1>
+    <p class="subtitle" data-lang-key="memories_subtitle">浏览和管理所有项目的关键记忆</p>
 </section>
 
 <!-- 筛选栏 -->
 <div class="filter-bar">
-    <div class="filter-info">
+    <div class="filter-info" data-lang-key="memories_count" data-lang-total="{{ memories|length }}" data-lang-projects="{{ projects|length }}">
         共 <strong>{{ memories|length }}</strong> 条记忆，
         来自 <strong>{{ projects|length }}</strong> 个项目
     </div>
@@ -21,7 +21,7 @@
     <div class="memory-card">
         <div class="memory-header">
             <span class="memory-key">{{ item.memory.key }}</span>
-            <span class="memory-importance" title="重要性: {{ "%.0f"|format(item.memory.importance * 100) }}%">
+            <span class="memory-importance" title="{{ t('importance_label') }}: {{ "%.0f"|format(item.memory.importance * 100) }}%">
                 {% set imp = item.memory.importance %}
                 {% if imp >= 0.8 %}⭐⭐⭐
                 {% elif imp >= 0.5 %}⭐⭐
@@ -34,13 +34,13 @@
             <span class="badge badge-outline">{{ item.project_name }}</span>
             <span class="text-sm">{{ format_dt(item.memory.created_at) }}</span>
             <span class="memory-importance-pct">
-                重要性: {{ "%.0f"|format(item.memory.importance * 100) }}%
+                <span data-lang-key="project_detail_importance">重要性:</span> {{ "%.0f"|format(item.memory.importance * 100) }}%
             </span>
         </div>
         <div class="memory-actions">
             <form method="POST" action="/ui/memories/{{ item.memory.id }}/delete"
-                  onsubmit="return confirm('确定要删除这条记忆吗？')">
-                <button type="submit" class="btn btn-xs btn-danger">删除</button>
+                  onsubmit="return confirm((LANG[currentLang()]||{}).memories_delete_confirm||'Delete this memory?')">
+                <button type="submit" class="btn btn-xs btn-danger" data-lang-key="memories_delete_btn">删除</button>
             </form>
         </div>
     </div>
@@ -48,7 +48,7 @@
 </div>
 {% else %}
 <div class="empty-state">
-    <p>🧹 {{ t('no_memories') }}记录。添加一些消息后，记忆会自动提取。</p>
+    <p>🧹 <span data-lang-key="memories_no_memories">暂无记忆</span>记录。{{ t('add_messages_hint') }}</p>
 </div>
 {% endif %}
 {% endblock %}

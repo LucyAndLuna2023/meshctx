@@ -1,11 +1,10 @@
 {% extends "base.html" %}
-{% block title %}{{ t('continuity') }}检测 | meshctx{% endblock %}
+{% block title %}<span data-lang-key="continuity_title">连续性</span> | meshctx{% endblock %}
 
 {% block content %}
 <section class="page-header">
-    <h1>🔗 {{ t('continuity') }}检测仪表板</h1>
-    <p class="subtitle">
-        检测各项目的上下文{{ t('continuity') }}状态：
+    <h1 data-lang-key="continuity_title_full">🔗 连续性检测仪表板</h1>
+    <p class="subtitle" data-lang-key="continuity_subtitle" data-lang-count="{{ total_count }}">
         <strong>{{ continuous_count }}</strong>/<strong>{{ total_count }}</strong> 个项目保持连续
     </p>
 </section>
@@ -14,15 +13,15 @@
 <div class="stats-grid stats-compact">
     <div class="stat-card stat-success">
         <div class="stat-value">{{ continuous_count }}</div>
-        <div class="stat-label">连续项目</div>
+        <div class="stat-label" data-lang-key="continuity_continuous">连续项目</div>
     </div>
     <div class="stat-card stat-danger">
         <div class="stat-value">{{ total_count - continuous_count }}</div>
-        <div class="stat-label">断裂项目</div>
+        <div class="stat-label" data-lang-key="continuity_broken">断裂项目</div>
     </div>
     <div class="stat-card">
         <div class="stat-value">{{ total_count }}</div>
-        <div class="stat-label">总项目</div>
+        <div class="stat-label" data-lang-key="continuity_total">总项目</div>
     </div>
 </div>
 
@@ -31,14 +30,14 @@
     <table class="data-table">
         <thead>
             <tr>
-                <th>项目</th>
-                <th>评分</th>
-                <th>状态</th>
-                <th>会话数</th>
-                <th>记忆数</th>
-                <th>活跃会话</th>
-                <th>最后活动</th>
-                <th>进度</th>
+                <th data-lang-key="continuity_table_project">项目</th>
+                <th data-lang-key="continuity_table_score">评分</th>
+                <th data-lang-key="continuity_table_status">状态</th>
+                <th data-lang-key="continuity_table_sessions">会话数</th>
+                <th data-lang-key="continuity_table_memories">记忆数</th>
+                <th data-lang-key="continuity_table_active">活跃会话</th>
+                <th data-lang-key="continuity_table_last_active">最后活动</th>
+                <th data-lang-key="continuity_table_progress">进度</th>
             </tr>
         </thead>
         <tbody>
@@ -56,9 +55,9 @@
                 </td>
                 <td>
                     {% if item.continuity.is_continuous %}
-                    <span class="badge badge-active">连续 ✅</span>
+                    <span class="badge badge-active" data-lang-key="continuity_continuous_badge">连续 ✅</span>
                     {% else %}
-                    <span class="badge badge-archived">断裂 ❌</span>
+                    <span class="badge badge-archived" data-lang-key="continuity_broken_badge">断裂 ❌</span>
                     {% endif %}
                 </td>
                 <td>{{ item.continuity.conversation_count }}</td>
@@ -77,18 +76,18 @@
 </div>
 {% else %}
 <div class="empty-state">
-    <p>暂无项目数据</p>
+    <p data-lang-key="continuity_no_data">暂无项目数据</p>
 </div>
 {% endif %}
 
 <!-- 评分说明 -->
 <div class="card info-card">
-    <h3>📖 {{ t('continuity') }}评分说明</h3>
+    <h3 data-lang-key="continuity_legend_title">📖 连续性评分说明</h3>
     <ul class="info-list">
-        <li><strong>≥ 0.7 优秀:</strong> 有会话、记忆和活跃助手会话，24小时内有活动</li>
-        <li><strong>0.5-0.7 良好:</strong> 有基本会话和记忆记录</li>
-        <li><strong>0.3-0.5 一般:</strong> 仅有部分记录，上下文可能不完整</li>
-        <li><strong>&lt; 0.3 断裂:</strong> 缺少关键数据，建议补充会话和记忆</li>
+        <li data-lang-key="continuity_excellent"><strong>≥ 0.7 优秀:</strong> 有会话、记忆和活跃助手会话，24小时内有活动</li>
+        <li data-lang-key="continuity_good"><strong>0.5-0.7 良好:</strong> 有基本会话和记忆记录</li>
+        <li data-lang-key="continuity_fair"><strong>0.3-0.5 一般:</strong> 仅有部分记录，上下文可能不完整</li>
+        <li data-lang-key="continuity_poor"><strong>&lt; 0.3 断裂:</strong> 缺少关键数据，建议补充会话和记忆</li>
     </ul>
 </div>
 {% endblock %}
