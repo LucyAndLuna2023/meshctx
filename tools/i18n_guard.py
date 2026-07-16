@@ -120,23 +120,33 @@ def main():
         all_keys[lang] = keys
         print(f"  {lang}: {len(keys)} keys")
     
-    # Check 3: All keys present in all languages
+    # Check 3: All keys MUST exist in EN (hard fail — fallback source of truth)
     en_keys = set(all_keys['en'].keys())
     errors = []
+    warnings = []
     for lang in LANGS:
+        if lang == 'en':
+            continue
         lang_keys = set(all_keys[lang].keys())
         missing = en_keys - lang_keys
         extra = lang_keys - en_keys
         if missing:
-            errors.append(f"  {lang}: missing keys: {sorted(missing)}")
-        if extra and lang != 'en':
+            warnings.append(f"  {lang}: {len(missing)} keys missing from L.{lang} (will fallback to English)")
+        if extra:
             errors.append(f"  {lang}: extra keys (not in EN): {sorted(extra)}")
-    
+
     if errors:
-        print("FAIL: Key completeness errors:")
+        print("FAIL: Extra keys in non-English languages:")
         for e in errors:
             print(e)
         sys.exit(1)
+
+    if warnings:
+        print("WARNING: Missing non-English translations (fallback to EN):")
+        for w in warnings:
+            print(w)
+    else:
+        print("✅ All languages have complete translations.")
     
     # Check 4: Cross-family pollution — WARNING only (bilingual terms are common)
     pollution = check_cross_family_pollution(blocks)
