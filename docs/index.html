@@ -632,13 +632,25 @@ function switchLang(lang) {
         el.classList.toggle('active', dl === lang);
         el.setAttribute('aria-hidden', dl !== lang ? 'true' : 'false');
     });
-    // Update text keys
-    document.querySelectorAll('[data-lang-key]').forEach(function(el) {
+    // Update text keys — QA6: depth-first to protect nested [data-lang-key] children from parent innerHTML overwrite
+    var els = Array.from(document.querySelectorAll('[data-lang-key]'));
+    function _getDepth(el) { var d = 0; while (el.parentElement) { d++; el = el.parentElement; } return d; }
+    els.sort(function(a, b) { return _getDepth(b) - _getDepth(a); }); // deepest first
+    els.forEach(function(el) {
         var key = el.getAttribute('data-lang-key');
         if (!key) return;
-        if (L[lang] && L[lang][key] !== undefined) { el.innerHTML = L[lang][key]; }
-        else if (L['en'] && L['en'][key] !== undefined) { el.innerHTML = L['en'][key]; }
-        else { console.warn('MeshCtx: missing L key \"' + key + '\" for lang=' + lang + ', keeping original content.'); }
+        var val = undefined;
+        if (L[lang] && L[lang][key] !== undefined) val = L[lang][key];
+        else if (L['en'] && L['en'][key] !== undefined) val = L['en'][key];
+        if (val === undefined) { console.warn('MeshCtx: missing L key \"' + key + '\" for lang=' + lang); return; }
+        // If this element contains nested [data-lang-key] children, only update the first non-key child
+        if (el.querySelector('[data-lang-key]')) {
+            for (var cn = el.firstChild; cn; cn = cn.nextSibling) {
+                if (cn.nodeType === 3 && cn.textContent.trim()) { cn.textContent = val; return; }
+                if (cn.nodeType === 1 && !cn.hasAttribute('data-lang-key') && !cn.querySelector('[data-lang-key]')) { cn.textContent = val; return; }
+            }
+        }
+        el.textContent = val;
     });
     // Update html lang attribute
     if (document.documentElement) document.documentElement.lang = lang;
