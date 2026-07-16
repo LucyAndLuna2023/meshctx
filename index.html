@@ -1,162 +1,162 @@
-1|<!DOCTYPE html>
-2|<html lang="en">
-3|<head>
-4|    <meta charset="UTF-8">
-5|    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-6|    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-7|    <meta http-equiv="Pragma" content="no-cache">
-8|    <meta http-equiv="Expires" content="0">
-9|<title>MeshCtx — 17-Brain-Region Self-Improving Agent Platform</title>
-10|    <meta name="description" content="MeshCtx is an open-core, self-improving agent platform — AGPLv3 framework + source-available brain. Remembers everything, learns from every task, orchestrates multiple AI agents in parallel.">
-11|    <meta name="keywords" content="AI agent, self-improving, brain-inspired, code sandbox, project indexing, multi-agent, open-core, AGPLv3, MeshCtx">
-12|    <meta name="author" content="MeshCtx">
-13|    <meta property="og:title" content="MeshCtx — 17-Brain-Region Self-Improving Agent Platform">
-14|    <meta property="og:description" content="17 brain regions, code sandbox, project indexing, Feishu notifications. Open-core AI agent platform.">
-15|    <meta property="og:url" content="https://meshctx.com">
-16|    <meta property="og:type" content="website">
-17|    <meta name="twitter:card" content="summary_large_image">
-18|    <meta name="twitter:title" content="MeshCtx — Self-Improving AI Agent">
-19|    <meta name="twitter:description" content="17-brain-region full-brain emulation AI agent. Code sandbox, project indexing, 17 brain regions.">
-20|    <link rel="canonical" href="https://meshctx.com">
-21|    <script type="application/ld+json">
-22|    {"@context":"https://schema.org","@type":"SoftwareApplication","name":"MeshCtx","operatingSystem":"Windows, Linux","applicationCategory":"DeveloperApplication","description":"Self-improving AI agent platform with full-brain emulation","url":"https://meshctx.com","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
-23|    </script>
-24|    <style>
-25|        :root {
-26|            --bg: #0a0a14; --bg2: #111122; --fg: #e2e8f0; --muted: #94a3b8;
-27|            --purple: #8b5cf6; --cyan: #06b6d4; --green: #22c55e; --border: #1e293b;
-28|        }
-29|        * { margin:0; padding:0; box-sizing:border-box; }
-30|        body { background:var(--bg); color:var(--fg); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; line-height:1.6; }
-31|        a { color:var(--cyan); text-decoration:none; } a:hover { text-decoration:underline; }
-32|        .lang { display:none; }
-33|        .lang.active { display:block; }
-34|
-35|        nav { position:fixed; top:0; width:100%; background:rgba(10,10,20,0.92); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); z-index:100; }
-36|        .nav-inner { max-width:1200px; margin:0 auto; padding:14px 24px; display:flex; justify-content:space-between; align-items:center; }
-37|        .logo { font-size:1.4rem; font-weight:700; } .logo span { color:var(--purple); }
-38|        .nav-links { display:flex; gap:20px; align-items:center; }
-39|        .nav-links a { color:var(--muted); font-size:0.9rem; } .nav-links a:hover { color:var(--fg); text-decoration:none; }
-40|
-41|        .lang-dropdown { position:relative; margin-left:12px; display:inline-block; }
-42|        .lang-dropdown-toggle { background:transparent; color:var(--muted); border:1px solid var(--border); padding:4px 10px; border-radius:4px; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; gap:4px; }
-43|        .lang-dropdown-toggle::after { content:'▾'; font-size:0.6rem; margin-left:2px; }
-44|        .lang-dropdown-toggle:hover { color:var(--fg); border-color:var(--purple); }
-45|        .lang-dropdown-menu { display:none; position:absolute; top:100%; right:0; margin-top:4px; background:var(--bg2); border:1px solid var(--border); border-radius:6px; min-width:100px; z-index:200; box-shadow:0 8px 24px rgba(0,0,0,0.4); }
-46|        .lang-dropdown-menu.show { display:block; }
-47|        .lang-dropdown-menu button { display:block; width:100%; padding:6px 14px; background:transparent; border:none; color:var(--muted); font-size:0.8rem; cursor:pointer; text-align:left; }
-48|        .lang-dropdown-menu button:hover,.lang-dropdown-menu button.active { color:var(--fg); background:rgba(139,92,246,0.15); }
-49|
-50|        .btn { display:inline-block; padding:10px 24px; border-radius:8px; font-weight:600; font-size:0.95rem; transition:all .2s; cursor:pointer; border:none; }
-51|        .btn-primary { background:var(--purple); color:white; } .btn-primary:hover { background:#7c3aed; transform:translateY(-1px); text-decoration:none; }
-52|        .btn-ghost { background:transparent; color:var(--fg); border:1px solid var(--border); } .btn-ghost:hover { border-color:var(--purple); text-decoration:none; }
-53|
-54|        .hero { padding:160px 24px 100px; text-align:center; background:radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.15), transparent 60%); }
-55|        .hero h1 { font-size:3.2rem; font-weight:800; letter-spacing:-0.02em; margin-bottom:16px; }
-56|        .hero h1 span { background:linear-gradient(135deg,var(--purple),var(--cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-57|        .hero p { font-size:1.15rem; color:var(--muted); max-width:600px; margin:0 auto 32px; }
-58|        .hero-buttons { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
-59|
-60|        section { padding:80px 24px; }
-61|        .section-inner { max-width:1200px; margin:0 auto; }
-62|        .section-title { font-size:2rem; font-weight:700; text-align:center; margin-bottom:48px; }
-63|        .section-title span { color:var(--purple); }
-64|
-65|        .feature-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:24px; }
-66|        .feature-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:28px; transition:border-color .2s; }
-67|        .feature-card:hover { border-color:var(--purple); }
-68|        .feature-icon { font-size:2rem; margin-bottom:12px; }
-69|        .feature-card h3 { font-size:1.1rem; margin-bottom:8px; }
-70|        .feature-card p { color:var(--muted); font-size:0.9rem; }
-71|
-72|        .table-wrap { overflow-x:auto; }
-73|        table { width:100%; border-collapse:collapse; font-size:0.9rem; }
-74|        th,td { padding:12px 16px; text-align:left; }
-75|        th { color:var(--muted); font-weight:600; border-bottom:2px solid var(--border); }
-76|        td { border-bottom:1px solid var(--border); }
-77|        .check { color:var(--green); font-weight:bold; }
-78|        .cross { color:#ef4444; } .warn { color:#eab308; }
-79|        .highlight { background:rgba(139,92,246,0.08); }
-80|
-81|        .code-block { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:24px; overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:0.85rem; line-height:1.8; }
-82|        .code-block .c { color:#6b7280; } .code-block .k { color:var(--purple); } .code-block .s { color:var(--green); } .code-block .f { color:var(--cyan); }
-83|
-84|        /* About Us */
-85|        .about-grid { display:grid; grid-template-columns:1fr 1fr; gap:32px; }
-86|        .about-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:28px; }
-87|        .about-card h3 { font-size:1.2rem; margin-bottom:16px; color:var(--purple); }
-88|        .about-card ul { list-style:none; padding:0; }
-89|        .about-card li { padding:6px 0; color:var(--muted); font-size:0.9rem; display:flex; align-items:flex-start; gap:8px; }
-90|        .about-card li::before { content:"✓"; color:var(--green); font-weight:bold; }
-91|        .contact-box { margin-top:20px; padding:16px; background:rgba(139,92,246,0.1); border-radius:8px; border:1px solid rgba(139,92,246,0.3); }
-92|        .contact-box a { color:var(--cyan); font-weight:600; }
-93|
-94|        .cta { text-align:center; padding:100px 24px; background:radial-gradient(ellipse at 50% 100%,rgba(6,182,212,0.1),transparent 60%); }
-95|        .cta h2 { font-size:2rem; margin-bottom:16px; }
-96|
-97|        footer { border-top:1px solid var(--border); padding:32px 24px; text-align:center; color:var(--muted); font-size:0.85rem; }
-98|        .footer-links { display:flex; gap:24px; justify-content:center; margin-bottom:16px; flex-wrap:wrap; }
-99|
-100|        @media(max-width:768px) {
-101|            .hero h1 { font-size:2rem; }
-102|            .nav-links a.nav-hide { display:none; }
-103|            .about-grid { grid-template-columns:1fr; }
-104|            .hero { padding:120px 16px 60px; }
-105|            .hero p { font-size:1rem; }
-106|            section { padding:40px 16px; }
-107|            .section-title { font-size:1.5rem; margin-bottom:24px; }
-108|            .code-block { padding:16px; font-size:0.75rem; }
-109|            .feature-grid { grid-template-columns:1fr; }
-110|            .feature-card { padding:20px; }
-111|            .footer-links { flex-direction:column; gap:8px; }
-112|            .hero-buttons { flex-direction:column; align-items:center; }
-113|            .hero-buttons .btn { width:100%; max-width:300px; text-align:center; }
-114|            table { font-size:0.75rem; }
-115|            th,td { padding:8px 6px; }
-116|        }
-117|    </style>
-118|</head>
-119|<body>
-120|
-121|<!-- Skip to main content (CRITICAL-002) -->
-122|<a href="#main-content" class="skip-link">Skip to main content</a>
-123|
-124|<style>
-125|    .skip-link {
-126|        position: absolute; top: -40px; left: 0;
-127|        background: #8b5cf6; color: #fff; padding: 8px 16px;
-128|        z-index: 10000; font-size: 14px; border-radius: 0 0 6px 0;
-129|        transition: top 0.2s;
-130|    }
-131|    .skip-link:focus { top: 0; }
-132|</style>
-133|
-134|<nav>
-135|    <div class="nav-inner">
-136|        <div class="logo"><a href="/" style="color:inherit;text-decoration:none;">Mesh<span>Ctx</span></a></div>
-137|        <div class="nav-links">
-138|            <a href="#features" class="nav-hide" data-lang-key="nav_features">Features</a>
-139|            <a href="#compare" class="nav-hide" data-lang-key="nav_compare">Compare</a>
-140|            <a href="#about" class="nav-hide" data-lang-key="nav_about">About</a>
-141|            <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a>
-142|            <a href="/getting-started" class="btn btn-ghost" data-lang-key="nav_docs">Docs</a>
-143|            <span class="lang-dropdown">
-144|                <button class="lang-dropdown-toggle" onclick="document.querySelector('.lang-dropdown-menu').classList.toggle('show')" id="langToggle">🌐 EN ▾</button>
-145|                <div class="lang-dropdown-menu" id="langMenu">
-146|                    <button class="active" onclick="switchLang('en');closeDropdown()">🇺🇸 English</button>
-147|                    <button onclick="switchLang('zh');closeDropdown()">🇨🇳 中文</button>
-148|                    <button onclick="switchLang('ja');closeDropdown()">🇯🇵 日本語</button>
-149|                    <button onclick="switchLang('ko');closeDropdown()">🇰🇷 한국어</button>
-150|                    <button onclick="switchLang('es');closeDropdown()">🇪🇸 Español</button>
-151|                    <button onclick="switchLang('fr');closeDropdown()">🇫🇷 Français</button>
-152|                    <button onclick="switchLang('de');closeDropdown()">🇩🇪 Deutsch</button>
-153|                </div>
-154|            </span>
-155|        </div>
-156|    </div>
-157|</nav>
-158|<main id='main-content'>
-159|
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+<title>MeshCtx — 17-Brain-Region Self-Improving Agent Platform</title>
+    <meta name="description" content="MeshCtx is an open-core, self-improving agent platform — AGPLv3 framework + source-available brain. Remembers everything, learns from every task, orchestrates multiple AI agents in parallel.">
+    <meta name="keywords" content="AI agent, self-improving, brain-inspired, code sandbox, project indexing, multi-agent, open-core, AGPLv3, MeshCtx">
+    <meta name="author" content="MeshCtx">
+    <meta property="og:title" content="MeshCtx — 17-Brain-Region Self-Improving Agent Platform">
+    <meta property="og:description" content="17 brain regions, code sandbox, project indexing, Feishu notifications. Open-core AI agent platform.">
+    <meta property="og:url" content="https://meshctx.com">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="MeshCtx — Self-Improving AI Agent">
+    <meta name="twitter:description" content="17-brain-region full-brain emulation AI agent. Code sandbox, project indexing, 17 brain regions.">
+    <link rel="canonical" href="https://meshctx.com">
+    <script type="application/ld+json">
+    {"@context":"https://schema.org","@type":"SoftwareApplication","name":"MeshCtx","operatingSystem":"Windows, Linux","applicationCategory":"DeveloperApplication","description":"Self-improving AI agent platform with full-brain emulation","url":"https://meshctx.com","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+    </script>
+    <style>
+        :root {
+            --bg: #0a0a14; --bg2: #111122; --fg: #e2e8f0; --muted: #94a3b8;
+            --purple: #8b5cf6; --cyan: #06b6d4; --green: #22c55e; --border: #1e293b;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background:var(--bg); color:var(--fg); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; line-height:1.6; }
+        a { color:var(--cyan); text-decoration:none; } a:hover { text-decoration:underline; }
+        .lang { display:none; }
+        .lang.active { display:block; }
+
+        nav { position:fixed; top:0; width:100%; background:rgba(10,10,20,0.92); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); z-index:100; }
+        .nav-inner { max-width:1200px; margin:0 auto; padding:14px 24px; display:flex; justify-content:space-between; align-items:center; }
+        .logo { font-size:1.4rem; font-weight:700; } .logo span { color:var(--purple); }
+        .nav-links { display:flex; gap:20px; align-items:center; }
+        .nav-links a { color:var(--muted); font-size:0.9rem; } .nav-links a:hover { color:var(--fg); text-decoration:none; }
+
+        .lang-dropdown { position:relative; margin-left:12px; display:inline-block; }
+        .lang-dropdown-toggle { background:transparent; color:var(--muted); border:1px solid var(--border); padding:4px 10px; border-radius:4px; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; gap:4px; }
+        .lang-dropdown-toggle::after { content:'▾'; font-size:0.6rem; margin-left:2px; }
+        .lang-dropdown-toggle:hover { color:var(--fg); border-color:var(--purple); }
+        .lang-dropdown-menu { display:none; position:absolute; top:100%; right:0; margin-top:4px; background:var(--bg2); border:1px solid var(--border); border-radius:6px; min-width:100px; z-index:200; box-shadow:0 8px 24px rgba(0,0,0,0.4); }
+        .lang-dropdown-menu.show { display:block; }
+        .lang-dropdown-menu button { display:block; width:100%; padding:6px 14px; background:transparent; border:none; color:var(--muted); font-size:0.8rem; cursor:pointer; text-align:left; }
+        .lang-dropdown-menu button:hover,.lang-dropdown-menu button.active { color:var(--fg); background:rgba(139,92,246,0.15); }
+
+        .btn { display:inline-block; padding:10px 24px; border-radius:8px; font-weight:600; font-size:0.95rem; transition:all .2s; cursor:pointer; border:none; }
+        .btn-primary { background:var(--purple); color:white; } .btn-primary:hover { background:#7c3aed; transform:translateY(-1px); text-decoration:none; }
+        .btn-ghost { background:transparent; color:var(--fg); border:1px solid var(--border); } .btn-ghost:hover { border-color:var(--purple); text-decoration:none; }
+
+        .hero { padding:160px 24px 100px; text-align:center; background:radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.15), transparent 60%); }
+        .hero h1 { font-size:3.2rem; font-weight:800; letter-spacing:-0.02em; margin-bottom:16px; }
+        .hero h1 span { background:linear-gradient(135deg,var(--purple),var(--cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .hero p { font-size:1.15rem; color:var(--muted); max-width:600px; margin:0 auto 32px; }
+        .hero-buttons { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+
+        section { padding:80px 24px; }
+        .section-inner { max-width:1200px; margin:0 auto; }
+        .section-title { font-size:2rem; font-weight:700; text-align:center; margin-bottom:48px; }
+        .section-title span { color:var(--purple); }
+
+        .feature-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:24px; }
+        .feature-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:28px; transition:border-color .2s; }
+        .feature-card:hover { border-color:var(--purple); }
+        .feature-icon { font-size:2rem; margin-bottom:12px; }
+        .feature-card h3 { font-size:1.1rem; margin-bottom:8px; }
+        .feature-card p { color:var(--muted); font-size:0.9rem; }
+
+        .table-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; font-size:0.9rem; }
+        th,td { padding:12px 16px; text-align:left; }
+        th { color:var(--muted); font-weight:600; border-bottom:2px solid var(--border); }
+        td { border-bottom:1px solid var(--border); }
+        .check { color:var(--green); font-weight:bold; }
+        .cross { color:#ef4444; } .warn { color:#eab308; }
+        .highlight { background:rgba(139,92,246,0.08); }
+
+        .code-block { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:24px; overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:0.85rem; line-height:1.8; }
+        .code-block .c { color:#6b7280; } .code-block .k { color:var(--purple); } .code-block .s { color:var(--green); } .code-block .f { color:var(--cyan); }
+
+        /* About Us */
+        .about-grid { display:grid; grid-template-columns:1fr 1fr; gap:32px; }
+        .about-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:28px; }
+        .about-card h3 { font-size:1.2rem; margin-bottom:16px; color:var(--purple); }
+        .about-card ul { list-style:none; padding:0; }
+        .about-card li { padding:6px 0; color:var(--muted); font-size:0.9rem; display:flex; align-items:flex-start; gap:8px; }
+        .about-card li::before { content:"✓"; color:var(--green); font-weight:bold; }
+        .contact-box { margin-top:20px; padding:16px; background:rgba(139,92,246,0.1); border-radius:8px; border:1px solid rgba(139,92,246,0.3); }
+        .contact-box a { color:var(--cyan); font-weight:600; }
+
+        .cta { text-align:center; padding:100px 24px; background:radial-gradient(ellipse at 50% 100%,rgba(6,182,212,0.1),transparent 60%); }
+        .cta h2 { font-size:2rem; margin-bottom:16px; }
+
+        footer { border-top:1px solid var(--border); padding:32px 24px; text-align:center; color:var(--muted); font-size:0.85rem; }
+        .footer-links { display:flex; gap:24px; justify-content:center; margin-bottom:16px; flex-wrap:wrap; }
+
+        @media(max-width:768px) {
+            .hero h1 { font-size:2rem; }
+            .nav-links a.nav-hide { display:none; }
+            .about-grid { grid-template-columns:1fr; }
+            .hero { padding:120px 16px 60px; }
+            .hero p { font-size:1rem; }
+            section { padding:40px 16px; }
+            .section-title { font-size:1.5rem; margin-bottom:24px; }
+            .code-block { padding:16px; font-size:0.75rem; }
+            .feature-grid { grid-template-columns:1fr; }
+            .feature-card { padding:20px; }
+            .footer-links { flex-direction:column; gap:8px; }
+            .hero-buttons { flex-direction:column; align-items:center; }
+            .hero-buttons .btn { width:100%; max-width:300px; text-align:center; }
+            table { font-size:0.75rem; }
+            th,td { padding:8px 6px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Skip to main content (CRITICAL-002) -->
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<style>
+    .skip-link {
+        position: absolute; top: -40px; left: 0;
+        background: #8b5cf6; color: #fff; padding: 8px 16px;
+        z-index: 10000; font-size: 14px; border-radius: 0 0 6px 0;
+        transition: top 0.2s;
+    }
+    .skip-link:focus { top: 0; }
+</style>
+
+<nav>
+    <div class="nav-inner">
+        <div class="logo"><a href="/" style="color:inherit;text-decoration:none;">Mesh<span>Ctx</span></a></div>
+        <div class="nav-links">
+            <a href="#features" class="nav-hide" data-lang-key="nav_features">Features</a>
+            <a href="#compare" class="nav-hide" data-lang-key="nav_compare">Compare</a>
+            <a href="#about" class="nav-hide" data-lang-key="nav_about">About</a>
+            <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a>
+            <a href="/getting-started" class="btn btn-ghost" data-lang-key="nav_docs">Docs</a>
+            <span class="lang-dropdown">
+                <button class="lang-dropdown-toggle" onclick="document.querySelector('.lang-dropdown-menu').classList.toggle('show')" id="langToggle">🌐 EN ▾</button>
+                <div class="lang-dropdown-menu" id="langMenu">
+                    <button class="active" onclick="switchLang('en');closeDropdown()">🇺🇸 English</button>
+                    <button onclick="switchLang('zh');closeDropdown()">🇨🇳 中文</button>
+                    <button onclick="switchLang('ja');closeDropdown()">🇯🇵 日本語</button>
+                    <button onclick="switchLang('ko');closeDropdown()">🇰🇷 한국어</button>
+                    <button onclick="switchLang('es');closeDropdown()">🇪🇸 Español</button>
+                    <button onclick="switchLang('fr');closeDropdown()">🇫🇷 Français</button>
+                    <button onclick="switchLang('de');closeDropdown()">🇩🇪 Deutsch</button>
+                </div>
+            </span>
+        </div>
+    </div>
+</nav>
+<main id='main-content'>
+
 <!-- ═══ HERO ═══ -->
 <header class="hero">
     <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
@@ -167,120 +167,120 @@
         <a href="#download" class="btn btn-ghost"><span data-lang-key="hero_cta2">Get Started →</span></a>
     </div>
 </header>
-224|
-225|<!-- ═══ FEATURES ═══ -->
-226|<section id="features">
-227|    <div class="section-inner">
-228|        <h2 class="section-title"><span data-lang-key="why_title">Why MeshCtx?</span></h2>
-229|        <div class="feature-grid">
-230|            <div class="feature-card" role="article" aria-label="Hierarchical Memory"><div class="feature-icon">&#x1f9e0;</div><h3 data-lang-key="f1_title">Hierarchical Memory</h3><p data-lang-key="f1_desc">4-tier memory system (L0-L4) modeled after human cognition. With the Ebbinghaus Forgetting Curve.</p></div>
-231|            <div class="feature-card" role="article" aria-label="Self-Improving"><div class="feature-icon">&#x1f504;</div><h3 data-lang-key="f2_title">Self-Improving</h3><p data-lang-key="f2_desc">Meta-cognition loop after every task: evaluate → extract patterns → update knowledge graph → adjust behavior.</p></div>
-232|            <div class="feature-card" role="article" aria-label="Multi-Agent"><div class="feature-icon">&#x1f3ad;</div><h3 data-lang-key="f3_title">Multi-Agent Orchestra</h3><p data-lang-key="f3_desc">One intent. Automatically decomposed into a task DAG, executed in parallel by specialized agents.</p></div>
-233|            <div class="feature-card" role="article" aria-label="Predictive Context"><div class="feature-icon">&#x1f52e;</div><h3 data-lang-key="f4_title">Predictive Context</h3><p data-lang-key="f4_desc">Learns your patterns. Pre-loads relevant memories before you ask. Context assembly in under 50ms.</p></div>
-234|            <div class="feature-card" role="article" aria-label="Plugin Marketplace"><div class="feature-icon">&#x1f50c;</div><h3 data-lang-key="f5_title">Plugin Marketplace</h3><p data-lang-key="f5_desc">MCP protocol native. Community-driven ecosystem of tools and integrations.</p></div>
-235|            <div class="feature-card" role="article" aria-label="Open Core"><div class="feature-icon">&#x1f513;</div><h3 data-lang-key="f6_title">Open Core</h3><p data-lang-key="f6_desc">AGPLv3 framework. Free forever. Core brain algorithms source-available. Commercial license available.</p></div>
-236|            <div class="feature-card" style="border-color:#8b5cf6;"><div class="feature-icon">🧠</div><h3 data-lang-key="f7_title">Super Brain Architecture</h3><p data-lang-key="f7_desc">Full-brain emulation with 17 brain regions: PFC Working Memory, Visual Cortex, NAcc Reward Prediction, Brainstem Autonomic, Hippocampal Replay, Amygdala Salience, Default Mode Network, Thalamic Gate, Cerebellar Forward Model, Basal Ganglia selector, ACC conflict monitor, Insula interoception, Mirror Neuron ToM, STDP plasticity, IIT integration, LTP enhancement, and Gnostic Field intuition. No other AI agent has this.</p></div>
-237|            <div class="feature-card" style="border-color:#8b5cf6;"><div class="feature-icon">🏛️</div><h3 data-lang-key="f8_title">Hippocampal Replay</h3><p data-lang-key="f8_desc">Sharp-wave ripple memory consolidation during idle. Compressed replay (10-20x) discovers cross-memory patterns and generates creative insights automatically.</p></div>
-238|            <div class="feature-card" style="border-color:#8b5cf6;"><div class="feature-icon">💭</div><h3 data-lang-key="f9_title">Default Mode Network</h3><p data-lang-key="f9_desc">Background creative ideation during idle periods. Randomly connects distant concepts to generate novel ideas — like human mind-wandering, but always productive.</p></div>
-239|            <div class="feature-card" style="border-color:#06b6d4;"><div class="feature-icon">🖥️</div><h3 data-lang-key="f10_title">Code Sandbox</h3><p data-lang-key="f10_desc">Safe Python/Bash/JS execution. Docker isolation + subprocess fallback. Streaming SSE output. /run command in Chat.</p></div>
-240|            <div class="feature-card" style="border-color:#06b6d4;"><div class="feature-icon">📂</div><h3 data-lang-key="f11_title">Project Indexing</h3><p data-lang-key="f11_desc">Search your entire codebase. 15+ languages symbol extraction. Auto-watch file changes. /context command for instant retrieval.</p></div>
-241|            <!-- ▼ v2.85 突破性特性 ▼ -->
-242|            <div class="feature-card" style="border-color:#f59e0b;"><div class="feature-icon">🔬</div><h3 data-lang-key="f12_title">SDM Breakthrough Memory</h3><p data-lang-key="f12_desc">Sparse Distributed Memory. O(2^1000) address space — 10^296x more capacity than any other agent. Predictive pre-activation + 100:1 fractal compression.</p></div>
-243|            <div class="feature-card" style="border-color:#f59e0b;"><div class="feature-icon">🔧</div><h3 data-lang-key="f13_title">Self-Modifying Code</h3><p data-lang-key="f13_desc">Industry-first: AI agent that autonomously analyzes, optimizes, tests, and applies changes to its own source code. 7-stage pipeline with SDB safety gate.</p></div>
-244|            <div class="feature-card" style="border-color:#f59e0b;"><div class="feature-icon">🛡️</div><h3 data-lang-key="f14_title">SDB Safety Framework</h3><p data-lang-key="f14_desc">Stochastic-Deterministic Boundary from arXiv paper. Zero replay divergence. 4-phase contract: Propose→Verify→Commit→Reject. 85.43/100 A-grade reliability.</p></div>
-245|            <div class="feature-card" style="border-color:#059669;"><div class="feature-icon">🔮</div><h3 data-lang-key="f15_title">Predictive Pre-Compute</h3><p data-lang-key="f15_desc">Learns your time/context patterns. Pre-computes answers before you ask. Idle-time processing for instant responses.</p></div>
-246|            <div class="feature-card" style="border-color:#059669;"><div class="feature-icon">🎯</div><h3 data-lang-key="f16_title">Attractor Reasoning</h3><p data-lang-key="f16_desc">Equilibrium Reasoners from arXiv. Multi-trajectory iterative refinement with convergence detection. 40,000-layer equivalent depth for hard problems.</p></div>
-247|            <div class="feature-card" style="border-color:#059669;"><div class="feature-icon">⚡</div><h3 data-lang-key="f17_title">Auto-Tuning Engine</h3><p data-lang-key="f17_desc">Real-time performance monitoring. Auto-adjusts cache, batch size, timeouts. PID-controlled parameter optimization.</p></div>
+
+<!-- ═══ FEATURES ═══ -->
+<section id="features">
+    <div class="section-inner">
+        <h2 class="section-title"><span data-lang-key="why_title">Why MeshCtx?</span></h2>
+        <div class="feature-grid">
+            <div class="feature-card" role="article" aria-label="Hierarchical Memory"><div class="feature-icon">&#x1f9e0;</div><h3 data-lang-key="f1_title">Hierarchical Memory</h3><p data-lang-key="f1_desc">4-tier memory system (L0-L4) modeled after human cognition. With the Ebbinghaus Forgetting Curve.</p></div>
+            <div class="feature-card" role="article" aria-label="Self-Improving"><div class="feature-icon">&#x1f504;</div><h3 data-lang-key="f2_title">Self-Improving</h3><p data-lang-key="f2_desc">Meta-cognition loop after every task: evaluate → extract patterns → update knowledge graph → adjust behavior.</p></div>
+            <div class="feature-card" role="article" aria-label="Multi-Agent"><div class="feature-icon">&#x1f3ad;</div><h3 data-lang-key="f3_title">Multi-Agent Orchestra</h3><p data-lang-key="f3_desc">One intent. Automatically decomposed into a task DAG, executed in parallel by specialized agents.</p></div>
+            <div class="feature-card" role="article" aria-label="Predictive Context"><div class="feature-icon">&#x1f52e;</div><h3 data-lang-key="f4_title">Predictive Context</h3><p data-lang-key="f4_desc">Learns your patterns. Pre-loads relevant memories before you ask. Context assembly in under 50ms.</p></div>
+            <div class="feature-card" role="article" aria-label="Plugin Marketplace"><div class="feature-icon">&#x1f50c;</div><h3 data-lang-key="f5_title">Plugin Marketplace</h3><p data-lang-key="f5_desc">MCP protocol native. Community-driven ecosystem of tools and integrations.</p></div>
+            <div class="feature-card" role="article" aria-label="Open Core"><div class="feature-icon">&#x1f513;</div><h3 data-lang-key="f6_title">Open Core</h3><p data-lang-key="f6_desc">AGPLv3 framework. Free forever. Core brain algorithms source-available. Commercial license available.</p></div>
+            <div class="feature-card" style="border-color:#8b5cf6;"><div class="feature-icon">🧠</div><h3 data-lang-key="f7_title">Super Brain Architecture</h3><p data-lang-key="f7_desc">Full-brain emulation with 17 brain regions: PFC Working Memory, Visual Cortex, NAcc Reward Prediction, Brainstem Autonomic, Hippocampal Replay, Amygdala Salience, Default Mode Network, Thalamic Gate, Cerebellar Forward Model, Basal Ganglia selector, ACC conflict monitor, Insula interoception, Mirror Neuron ToM, STDP plasticity, IIT integration, LTP enhancement, and Gnostic Field intuition. No other AI agent has this.</p></div>
+            <div class="feature-card" style="border-color:#8b5cf6;"><div class="feature-icon">🏛️</div><h3 data-lang-key="f8_title">Hippocampal Replay</h3><p data-lang-key="f8_desc">Sharp-wave ripple memory consolidation during idle. Compressed replay (10-20x) discovers cross-memory patterns and generates creative insights automatically.</p></div>
+            <div class="feature-card" style="border-color:#8b5cf6;"><div class="feature-icon">💭</div><h3 data-lang-key="f9_title">Default Mode Network</h3><p data-lang-key="f9_desc">Background creative ideation during idle periods. Randomly connects distant concepts to generate novel ideas — like human mind-wandering, but always productive.</p></div>
+            <div class="feature-card" style="border-color:#06b6d4;"><div class="feature-icon">🖥️</div><h3 data-lang-key="f10_title">Code Sandbox</h3><p data-lang-key="f10_desc">Safe Python/Bash/JS execution. Docker isolation + subprocess fallback. Streaming SSE output. /run command in Chat.</p></div>
+            <div class="feature-card" style="border-color:#06b6d4;"><div class="feature-icon">📂</div><h3 data-lang-key="f11_title">Project Indexing</h3><p data-lang-key="f11_desc">Search your entire codebase. 15+ languages symbol extraction. Auto-watch file changes. /context command for instant retrieval.</p></div>
+            <!-- ▼ v2.85 突破性特性 ▼ -->
+            <div class="feature-card" style="border-color:#f59e0b;"><div class="feature-icon">🔬</div><h3 data-lang-key="f12_title">SDM Breakthrough Memory</h3><p data-lang-key="f12_desc">Sparse Distributed Memory. O(2^1000) address space — 10^296x more capacity than any other agent. Predictive pre-activation + 100:1 fractal compression.</p></div>
+            <div class="feature-card" style="border-color:#f59e0b;"><div class="feature-icon">🔧</div><h3 data-lang-key="f13_title">Self-Modifying Code</h3><p data-lang-key="f13_desc">Industry-first: AI agent that autonomously analyzes, optimizes, tests, and applies changes to its own source code. 7-stage pipeline with SDB safety gate.</p></div>
+            <div class="feature-card" style="border-color:#f59e0b;"><div class="feature-icon">🛡️</div><h3 data-lang-key="f14_title">SDB Safety Framework</h3><p data-lang-key="f14_desc">Stochastic-Deterministic Boundary from arXiv paper. Zero replay divergence. 4-phase contract: Propose→Verify→Commit→Reject. 85.43/100 A-grade reliability.</p></div>
+            <div class="feature-card" style="border-color:#059669;"><div class="feature-icon">🔮</div><h3 data-lang-key="f15_title">Predictive Pre-Compute</h3><p data-lang-key="f15_desc">Learns your time/context patterns. Pre-computes answers before you ask. Idle-time processing for instant responses.</p></div>
+            <div class="feature-card" style="border-color:#059669;"><div class="feature-icon">🎯</div><h3 data-lang-key="f16_title">Attractor Reasoning</h3><p data-lang-key="f16_desc">Equilibrium Reasoners from arXiv. Multi-trajectory iterative refinement with convergence detection. 40,000-layer equivalent depth for hard problems.</p></div>
+            <div class="feature-card" style="border-color:#059669;"><div class="feature-icon">⚡</div><h3 data-lang-key="f17_title">Auto-Tuning Engine</h3><p data-lang-key="f17_desc">Real-time performance monitoring. Auto-adjusts cache, batch size, timeouts. PID-controlled parameter optimization.</p></div>
 <div class="feature-card" style="border-color:#f59e0b;"><div class="feature-icon">🧠</div><h3 data-lang-key="f18_title">JEPA World Model</h3><p data-lang-key="f18_desc">Yann LeCun's Joint Embedding Predictive Architecture. Latent-space world model that predicts outcomes without pixel-level reconstruction — energy-efficient reasoning.</p></div>
             <div class="feature-card" style="border-color:#06b6d4;"><div class="feature-icon">🖥️</div><h3 data-lang-key="f19_title">Desktop Agent</h3><p data-lang-key="f19_desc">Windows GUI automation via Win32 API + UIA. Click, type, screenshot, window management — all through natural language commands.</p></div>
             <div class="feature-card" style="border-color:#22c55e;"><div class="feature-icon">🔐</div><h3 data-lang-key="f20_title">Smart Permissions</h3><p data-lang-key="f20_desc">Learns your approval patterns over time. Auto-approves routine operations, escalates risky ones. 3-tier: YOLO / Smart / Manual.</p></div>
             <div class="feature-card" style="border-color:#8b5cf6;"><div class="feature-icon">🎯</div><h3 data-lang-key="f21_title">JEPA Router</h3><p data-lang-key="f21_desc">Predictive model selection using Fisher information geometry. Routes queries to the optimal model before you finish typing.</p></div>
             <div class="feature-card" style="border-color:#eab308;"><div class="feature-icon">📊</div><h3 data-lang-key="f22_title">Growth Tracker</h3><p data-lang-key="f22_desc">Tracks 6-dimensional capability growth: reasoning, memory, speed, accuracy, creativity, autonomy. Generates weekly evolution reports.</p></div>
-253|        </div>
-254|    </div>
-255|<</section>
-256|
-257|<!-- ═══ SUPER BRAIN — 对你有什么用 ═══ -->
-258|<section style="background:linear-gradient(135deg,#0a0a1a,#1a0a2e);">
-259|    <div class="section-inner">
-260|        <h2 class="section-title"><span data-lang-key="sb_title">🧠 Super Brain = 真正像人脑的 AI</span></h2>
-261|        <p style="text-align:center;color:var(--muted);margin-bottom:32px;" data-lang-key="sb_subtitle">不是噱头。每个脑区解决一个实际痛点：</p>
-262|        <div class="feature-grid">
-263|            <div class="feature-card"><div class="feature-icon">🏛️</div><h3 data-lang-key="sb1_title">海马体重放 → 越用越聪明</h3><p data-lang-key="sb1_desc">闲时自动回放记忆，10-20倍速压缩。就像你睡觉时大脑在整理白天经历一样，它在后台默默发现规律——第二天回答问题更准。</p></div>
-264|            <div class="feature-card"><div class="feature-icon">😊</div><h3 data-lang-key="sb2_title">杏仁核 → 知道什么重要</h3><p data-lang-key="sb2_desc">自动识别消息的紧迫度和情感。"紧急！服务器挂了"和"今天天气不错"会被完全不同的优先级处理。</p></div>
-265|            <div class="feature-card"><div class="feature-icon">💭</div><h3 data-lang-key="sb3_title">默认模式网络 → 主动思考</h3><p data-lang-key="sb3_desc">不等你提问，后台持续联想远距离概念产生新想法。别的Agent是单向工具，它像主动思考的同事。</p></div>
-266|            <div class="feature-card"><div class="feature-icon">🎯</div><h3 data-lang-key="sb4_title">丘脑门控 → 过滤噪音</h3><p data-lang-key="sb4_desc">海量信息中自动聚焦关键信号，抑制无关干扰。像嘈杂咖啡馆里仍能听清对面说话。</p></div>
-267|            <div class="feature-card"><div class="feature-icon">🔮</div><h3 data-lang-key="sb5_title">小脑前向模型 → 预判风险</h3><p data-lang-key="sb5_desc">执行动作前先在"脑内模拟"后果。危险操作自动预警，防止AI闯祸。</p></div>
-268|            <div class="feature-card"><div class="feature-icon">🕹️</div><h3 data-lang-key="sb6_title">基底节 → 养成好习惯</h3><p data-lang-key="sb6_desc">TD学习持续优化策略。成功操作变"肌肉记忆"——越常用越快。</p></div>
-269|            <div class="feature-card"><div class="feature-icon">⚡</div><h3 data-lang-key="sb7_title">前扣带皮层 → 自我纠错</h3><p data-lang-key="sb7_desc">实时监测预期vs实际差异。发现偏差自动修正——不需要你手动纠正。</p></div>
-270|            <div class="feature-card"><div class="feature-icon">🪞</div><h3 data-lang-key="sb8_title">镜像神经元 → 理解意图</h3><p data-lang-key="sb8_desc">不只是字面理解，而是推断你真正的意图和情绪。急躁时简洁高效，探索时创意建议。</p></div>
-271|            <div class="feature-card"><div class="feature-icon">🫀</div><h3 data-lang-key="sb9_title">岛叶内感知 → 自我监控</h3><p data-lang-key="sb9_desc">持续监控资源使用和性能。内存泄漏、响应变慢在你发现之前自我诊断报警。</p></div>
+        </div>
+    </div>
+<</section>
+
+<!-- ═══ SUPER BRAIN — 对你有什么用 ═══ -->
+<section style="background:linear-gradient(135deg,#0a0a1a,#1a0a2e);">
+    <div class="section-inner">
+        <h2 class="section-title"><span data-lang-key="sb_title">🧠 Super Brain = 真正像人脑的 AI</span></h2>
+        <p style="text-align:center;color:var(--muted);margin-bottom:32px;" data-lang-key="sb_subtitle">不是噱头。每个脑区解决一个实际痛点：</p>
+        <div class="feature-grid">
+            <div class="feature-card"><div class="feature-icon">🏛️</div><h3 data-lang-key="sb1_title">海马体重放 → 越用越聪明</h3><p data-lang-key="sb1_desc">闲时自动回放记忆，10-20倍速压缩。就像你睡觉时大脑在整理白天经历一样，它在后台默默发现规律——第二天回答问题更准。</p></div>
+            <div class="feature-card"><div class="feature-icon">😊</div><h3 data-lang-key="sb2_title">杏仁核 → 知道什么重要</h3><p data-lang-key="sb2_desc">自动识别消息的紧迫度和情感。"紧急！服务器挂了"和"今天天气不错"会被完全不同的优先级处理。</p></div>
+            <div class="feature-card"><div class="feature-icon">💭</div><h3 data-lang-key="sb3_title">默认模式网络 → 主动思考</h3><p data-lang-key="sb3_desc">不等你提问，后台持续联想远距离概念产生新想法。别的Agent是单向工具，它像主动思考的同事。</p></div>
+            <div class="feature-card"><div class="feature-icon">🎯</div><h3 data-lang-key="sb4_title">丘脑门控 → 过滤噪音</h3><p data-lang-key="sb4_desc">海量信息中自动聚焦关键信号，抑制无关干扰。像嘈杂咖啡馆里仍能听清对面说话。</p></div>
+            <div class="feature-card"><div class="feature-icon">🔮</div><h3 data-lang-key="sb5_title">小脑前向模型 → 预判风险</h3><p data-lang-key="sb5_desc">执行动作前先在"脑内模拟"后果。危险操作自动预警，防止AI闯祸。</p></div>
+            <div class="feature-card"><div class="feature-icon">🕹️</div><h3 data-lang-key="sb6_title">基底节 → 养成好习惯</h3><p data-lang-key="sb6_desc">TD学习持续优化策略。成功操作变"肌肉记忆"——越常用越快。</p></div>
+            <div class="feature-card"><div class="feature-icon">⚡</div><h3 data-lang-key="sb7_title">前扣带皮层 → 自我纠错</h3><p data-lang-key="sb7_desc">实时监测预期vs实际差异。发现偏差自动修正——不需要你手动纠正。</p></div>
+            <div class="feature-card"><div class="feature-icon">🪞</div><h3 data-lang-key="sb8_title">镜像神经元 → 理解意图</h3><p data-lang-key="sb8_desc">不只是字面理解，而是推断你真正的意图和情绪。急躁时简洁高效，探索时创意建议。</p></div>
+            <div class="feature-card"><div class="feature-icon">🫀</div><h3 data-lang-key="sb9_title">岛叶内感知 → 自我监控</h3><p data-lang-key="sb9_desc">持续监控资源使用和性能。内存泄漏、响应变慢在你发现之前自我诊断报警。</p></div>
             <div class="feature-card"><div class="feature-icon">🧩</div><h3 data-lang-key="sb10_title">前额叶 → 工作记忆与任务切换</h3><p data-lang-key="sb10_desc">保持当前任务上下文，快速切换注意力。多任务处理不丢上下文，Planning + WorkingMemory协同。</p></div>
             <div class="feature-card"><div class="feature-icon">👁️</div><h3 data-lang-key="sb11_title">视觉皮层 → 特征提取</h3><p data-lang-key="sb11_desc">Gabor滤波器组提取纹理/边缘/方向特征。多尺度视觉缓冲区，适合图像分析和模式识别。</p></div>
             <div class="feature-card"><div class="feature-icon">🎯</div><h3 data-lang-key="sb12_title">伏隔核 → 奖励预测与动机</h3><p data-lang-key="sb12_desc">TD学习预测奖励信号，"想要vs喜欢"双通道。动机强度动态调节，驱动智能体主动探索。</p></div>
             <div class="feature-card"><div class="feature-icon">🫁</div><h3 data-lang-key="sb13_title">脑干 → 自主调节与觉醒</h3><p data-lang-key="sb13_desc">自主神经调节系统+网状激活。心跳/呼吸/觉醒度三稳态控制，ReticularActivation保证系统持续在线。</p></div>
-272|        </div>
-273|        <p style="text-align:center;margin-top:24px;color:var(--muted);font-size:13px;" data-lang-key="sb_bench">
-274|            📊 <a href="https://github.com/LucyAndLuna2023/meshctx/blob/main/tests/brain_benchmark.py" style="color:var(--accent);">Benchmark验证 v3.115.18</a>：8模块满分100% · 综合63.5% · 29/42通过 · 4个新脑区已集成
-275|        </p>
-276|    </div>
+        </div>
+        <p style="text-align:center;margin-top:24px;color:var(--muted);font-size:13px;" data-lang-key="sb_bench">
+            📊 <a href="https://github.com/LucyAndLuna2023/meshctx/blob/main/tests/brain_benchmark.py" style="color:var(--accent);">Benchmark验证 v3.115.18</a>：8模块满分100% · 综合63.5% · 29/42通过 · 4个新脑区已集成
+        </p>
+    </div>
 </section>
-278|
-279|<!-- ═══ TRUST ═══ -->
-280|<section style="padding:40px 24px;">
-281|    <div class="section-inner" style="text-align:center;">
-282|        <p style="color:var(--muted);font-size:13px;max-width:700px;margin:0 auto;line-height:1.8;" data-lang-key="trust_text">
-283|            🔒 <strong>你的数据，你做主。</strong>所有操作可审计、可拦截、可回滚。API Key加密存储。框架AGPLv3开源——代码全透明，永不锁定。
-284|        </p>
-285|    </div>
+
+<!-- ═══ TRUST ═══ -->
+<section style="padding:40px 24px;">
+    <div class="section-inner" style="text-align:center;">
+        <p style="color:var(--muted);font-size:13px;max-width:700px;margin:0 auto;line-height:1.8;" data-lang-key="trust_text">
+            🔒 <strong>你的数据，你做主。</strong>所有操作可审计、可拦截、可回滚。API Key加密存储。框架AGPLv3开源——代码全透明，永不锁定。
+        </p>
+    </div>
 </section>
-287|
-288|<!-- ═══ COMPARISON ═══ -->
-289|<section id="compare">
-290|    <div class="section-inner">
-291|        <h2 class="section-title"><span data-lang-key="compare_title">MeshCtx vs The World</span></h2>
-292|        <div class="table-wrap">
-293|            <table><thead><tr><th data-lang-key="capability_col">Capability</th><th class="highlight">MeshCtx</th><th>Hermes</th><th>OpenClaw</th><th>Claude Cowork</th><th>FreeEnergy Chat</th></tr>
-294|                <tr style="border-top:2px solid #8b5cf6;"><td data-lang-key="c34"><strong>🧠 JEPA World Model</strong><br><span data-lang-key="cv_q">LeCun Latent Prediction</span></td><td class="highlight"><span class="check">✅ v3.36</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-295|                <tr style="border-top:2px solid #22c55e;"><td data-lang-key="c35"><strong>🖥️ Desktop Agent</strong><br><span data-lang-key="cv_r">Windows GUI Automation</span></td><td class="highlight"><span class="check">✅ v3.37</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-296|                <tr style="border-top:2px solid #f59e0b;"><td data-lang-key="c36"><strong>🔐 Smart Permissions</strong><br><span data-lang-key="cv_s">Learns When to Auto-Approve</span></td><td class="highlight"><span class="check">✅ v3.38</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-297|                <tr style="border-top:2px solid #06b6d4;"><td data-lang-key="c37"><strong>🧠 JEPA Router</strong><br><span data-lang-key="cv_t">Predictive Model Selection</span></td><td class="highlight"><span class="check">✅ v3.39</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr></thead>
-298|            <tbody>
-299|                <tr><td data-lang-key="c1">Hierarchical Memory</td><td class="highlight"><span class="check">L0-L4</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
-300|                <tr><td data-lang-key="c2">Forgetting Curve</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
-301|                <tr><td data-lang-key="c3">Meta-Cognition</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
-302|<tr><td data-lang-key="c4">Multi-Agent</td><td class="highlight"><span class="check">✓ DAG</span></td><td><span class="warn">⚠ Limited</span></td><td><span class="cross">✗</span></td><td><span class="warn">⚠ Limited</span></td><td><span class="cross">✗</span></td></tr>
-303|                <tr><td data-lang-key="c6">Plugin Market</td><td class="highlight"><span class="check"><a href="#plugins" style="color:#22c55e;">✓ 15 Plugins</a></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
-304|<tr><td data-lang-key="c7">MCP Protocol</td><td class="highlight"><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td></tr>
-305|                <tr><td data-lang-key="c11">Amygdala Salience</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
-306|                <tr><td data-lang-key="c12">Counterfactual Reasoning</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
-307|                <tr><td data-lang-key="c13">Default Mode Network</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
-308|                <tr><td data-lang-key="c14">Thalamic Attention Gate</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
-309|                <tr><td data-lang-key="c15">Theory of Mind</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
-310|                <tr><td data-lang-key="c18">Multi-Model Compare</td><td class="highlight"><span class="check"><span data-lang-key="cv_d">✓ 3-Model Compare</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-311|                <tr><td data-lang-key="c21">🛡️ SDB Safety (arXiv)</td><td class="highlight"><span class="check"><span data-lang-key="cv_f">Zero Divergence</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-312|                <tr><td data-lang-key="c22">🎯 Attractor Reasoning</td><td class="highlight"><span class="check"><span data-lang-key="cv_g">40K Layers</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-313|                <tr style="border-top:2px solid #f59e0b;"><td data-lang-key="c23"><strong>🔬 Causal Root Cause (Pearl)</strong><br><span style="font-size:10px;color:var(--muted);" data-lang-key="cv_causal">do-calculus causal inference</span></td><td class="highlight"><span class="check">✅ v2.77</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-314|                <tr><td data-lang-key="c24">🔒 Prompt Injection Shield</td><td class="highlight"><span class="check"><span data-lang-key="cv_h">10 Inj. Types</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-315|                <tr><td data-lang-key="c25">🔍 Cross-Validation</td><td class="highlight"><span class="check"><span data-lang-key="cv_i">Multi-Agent OK</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-316|                <tr><td data-lang-key="c26">📋 Behavior Compliance</td><td class="highlight"><span class="check"><span data-lang-key="cv_j">6 Rules</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-317|                <tr><td data-lang-key="c27">🧮 Info-Geometric Router</td><td class="highlight"><span class="check"><span data-lang-key="cv_k">Fisher 12</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-318|                <tr><td data-lang-key="c28">🔄 Self-Updater</td><td class="highlight"><span class="check">push→test→deploy</span></td><td><span class="warn">⚠ Manual</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-319|                <tr><td data-lang-key="c29">💾 Backup Vault</td><td class="highlight"><span class="check"><span data-lang-key="cv_l">Multi-Path Backup</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-320|                <tr><td data-lang-key="c30">🎯 Goal Decomposer</td><td class="highlight"><span class="check"><span data-lang-key="cv_m">4 Templates+DAG</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-321|                <tr><td data-lang-key="c31">📚 Error Learner (ALiFE)</td><td class="highlight"><span class="check"><span data-lang-key="cv_n">Never Repeat</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-322|                <tr><td data-lang-key="c32">⚡ Workflow Engine</td><td class="highlight"><span class="check"><span data-lang-key="cv_o">11-Step Pipeline</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-323|                <tr style="border-top:2px solid #f59e0b;"><td data-lang-key="c33"><strong>🐝 Agent Swarm</strong><br><span style="font-size:10px;color:var(--muted);" data-lang-key="cv_p">Manager-Worker Multi-Agent</span></td><td class="highlight"><span class="check">✅ v3.34</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-324|            </tbody></table>
-325|        </div>
-326|    </div>
+
+<!-- ═══ COMPARISON ═══ -->
+<section id="compare">
+    <div class="section-inner">
+        <h2 class="section-title"><span data-lang-key="compare_title">MeshCtx vs The World</span></h2>
+        <div class="table-wrap">
+            <table><thead><tr><th data-lang-key="capability_col">Capability</th><th class="highlight">MeshCtx</th><th>Hermes</th><th>OpenClaw</th><th>Claude Cowork</th><th>FreeEnergy Chat</th></tr>
+                <tr style="border-top:2px solid #8b5cf6;"><td data-lang-key="c34"><strong>🧠 JEPA World Model</strong><br><span data-lang-key="cv_q">LeCun Latent Prediction</span></td><td class="highlight"><span class="check">✅ v3.36</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr style="border-top:2px solid #22c55e;"><td data-lang-key="c35"><strong>🖥️ Desktop Agent</strong><br><span data-lang-key="cv_r">Windows GUI Automation</span></td><td class="highlight"><span class="check">✅ v3.37</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr style="border-top:2px solid #f59e0b;"><td data-lang-key="c36"><strong>🔐 Smart Permissions</strong><br><span data-lang-key="cv_s">Learns When to Auto-Approve</span></td><td class="highlight"><span class="check">✅ v3.38</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr style="border-top:2px solid #06b6d4;"><td data-lang-key="c37"><strong>🧠 JEPA Router</strong><br><span data-lang-key="cv_t">Predictive Model Selection</span></td><td class="highlight"><span class="check">✅ v3.39</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr></thead>
+            <tbody>
+                <tr><td data-lang-key="c1">Hierarchical Memory</td><td class="highlight"><span class="check">L0-L4</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
+                <tr><td data-lang-key="c2">Forgetting Curve</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
+                <tr><td data-lang-key="c3">Meta-Cognition</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
+<tr><td data-lang-key="c4">Multi-Agent</td><td class="highlight"><span class="check">✓ DAG</span></td><td><span class="warn">⚠ Limited</span></td><td><span class="cross">✗</span></td><td><span class="warn">⚠ Limited</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c6">Plugin Market</td><td class="highlight"><span class="check"><a href="#plugins" style="color:#22c55e;">✓ 15 Plugins</a></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
+<tr><td data-lang-key="c7">MCP Protocol</td><td class="highlight"><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c11">Amygdala Salience</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
+                <tr><td data-lang-key="c12">Counterfactual Reasoning</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
+                <tr><td data-lang-key="c13">Default Mode Network</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
+                <tr><td data-lang-key="c14">Thalamic Attention Gate</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
+                <tr><td data-lang-key="c15">Theory of Mind</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
+                <tr><td data-lang-key="c18">Multi-Model Compare</td><td class="highlight"><span class="check"><span data-lang-key="cv_d">✓ 3-Model Compare</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c21">🛡️ SDB Safety (arXiv)</td><td class="highlight"><span class="check"><span data-lang-key="cv_f">Zero Divergence</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c22">🎯 Attractor Reasoning</td><td class="highlight"><span class="check"><span data-lang-key="cv_g">40K Layers</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr style="border-top:2px solid #f59e0b;"><td data-lang-key="c23"><strong>🔬 Causal Root Cause (Pearl)</strong><br><span style="font-size:10px;color:var(--muted);" data-lang-key="cv_causal">do-calculus causal inference</span></td><td class="highlight"><span class="check">✅ v2.77</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c24">🔒 Prompt Injection Shield</td><td class="highlight"><span class="check"><span data-lang-key="cv_h">10 Inj. Types</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c25">🔍 Cross-Validation</td><td class="highlight"><span class="check"><span data-lang-key="cv_i">Multi-Agent OK</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c26">📋 Behavior Compliance</td><td class="highlight"><span class="check"><span data-lang-key="cv_j">6 Rules</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c27">🧮 Info-Geometric Router</td><td class="highlight"><span class="check"><span data-lang-key="cv_k">Fisher 12</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c28">🔄 Self-Updater</td><td class="highlight"><span class="check">push→test→deploy</span></td><td><span class="warn">⚠ Manual</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c29">💾 Backup Vault</td><td class="highlight"><span class="check"><span data-lang-key="cv_l">Multi-Path Backup</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c30">🎯 Goal Decomposer</td><td class="highlight"><span class="check"><span data-lang-key="cv_m">4 Templates+DAG</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c31">📚 Error Learner (ALiFE)</td><td class="highlight"><span class="check"><span data-lang-key="cv_n">Never Repeat</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c32">⚡ Workflow Engine</td><td class="highlight"><span class="check"><span data-lang-key="cv_o">11-Step Pipeline</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr style="border-top:2px solid #f59e0b;"><td data-lang-key="c33"><strong>🐝 Agent Swarm</strong><br><span style="font-size:10px;color:var(--muted);" data-lang-key="cv_p">Manager-Worker Multi-Agent</span></td><td class="highlight"><span class="check">✅ v3.34</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+            </tbody></table>
+        </div>
+    </div>
 </section>
-328|
-329|<!-- ═══ ABOUT US ═══ -->
-330|<section id="about">
-331|    <div class="section-inner">
-332|        <h2 class="section-title"><span data-lang-key="about_title">About MeshCtx</span></h2>
-333|        <div class="about-grid">
+
+<!-- ═══ ABOUT US ═══ -->
+<section id="about">
+    <div class="section-inner">
+        <h2 class="section-title"><span data-lang-key="about_title">About MeshCtx</span></h2>
+        <div class="about-grid">
 <div class="about-card">
                 <h3 data-lang-key="about_h3">🌍 Open-Core, Globally Built</h3>
                 <p style="color:var(--muted);margin-bottom:16px;" data-lang-key="about_p">MeshCtx is an open-core multi-agent framework built on <strong>"Division of Labor + Full Transparency."</strong> It's not a black-box single agent — it's a mesh network of an Orchestrator, a Guardian, and specialized agents working under full human supervision.</p>
@@ -291,23 +291,23 @@
                     <li data-lang-key="about_li4"><strong>Cost-Efficient</strong> — Multi-tier caching reduces API calls by 60%+</li>
                 </ul>
             </div>
-396|            <!-- Contact (shared) -->
-397|            <div class="about-card">
-398|                <h3 data-lang-key="contact_title">📬 Contact</h3>
-399|                <p style="color:var(--muted);margin-bottom:12px;" data-lang-key="contact_desc">Questions? Collaborations? Reach out anytime.</p>
-400|                <div class="contact-box">
-401|                    <p>📧 <a href="mailto:support@meshctx.com">support@meshctx.com</a></p>
-402|                    <p>🌐 <a href="https://meshctx.com">meshctx.com</a></p>
-403|                    <p>💻 <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a></p>
-404|                </div>
-405|            </div>
-406|        </div>
-407|    </div>
+            <!-- Contact (shared) -->
+            <div class="about-card">
+                <h3 data-lang-key="contact_title">📬 Contact</h3>
+                <p style="color:var(--muted);margin-bottom:12px;" data-lang-key="contact_desc">Questions? Collaborations? Reach out anytime.</p>
+                <div class="contact-box">
+                    <p>📧 <a href="mailto:support@meshctx.com">support@meshctx.com</a></p>
+                    <p>🌐 <a href="https://meshctx.com">meshctx.com</a></p>
+                    <p>💻 <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
 </section>
-409|
-410|<!-- ═══ DOWNLOAD & INSTALL (7语言 data-lang div) ═══ -->
-411|<section id="download">
-412|    <div class="section-inner">
+
+<!-- ═══ DOWNLOAD & INSTALL (7语言 data-lang div) ═══ -->
+<section id="download">
+    <div class="section-inner">
 <!-- Download (unified) -->
         <div class="lang active" data-lang-key-area="download">
             <h2 class="section-title" data-lang-key="install_title">Download & Install</h2>
@@ -317,26 +317,26 @@
                 <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🐧</div><h3>Linux / WSL</h3><p style="min-height:40px;" data-lang-key="linux_desc">Source install · pip · venv · PEP 668</p><div class="code-block" style="margin:8px 0;font-size:0.9rem;text-align:left;">curl -fsSL https://cdn.jsdelivr.net/gh/LucyAndLuna2023/meshctx@main/install.sh | bash</div></div>
             </div>
         </div>
-476|    </div>
+    </div>
 </section>
-478|
-479|<!-- ═══ PLUGIN MARKET ═══ -->
-480|<section id="plugins">
-481|    <div class="section-inner">
+
+<!-- ═══ PLUGIN MARKET ═══ -->
+<section id="plugins">
+    <div class="section-inner">
 <div class="lang active" data-lang-key-area="plugin"><h2 class="section-title" data-lang-key="plugin_title">🔌 Plugin Marketplace</h2><p style="text-align:center;color:var(--muted);margin-bottom:24px;" data-lang-key="plugin_subtitle">Community-driven · MCP native · GitHub hosted · One-click install</p></div>
-489|        <div class="feature-grid">
-490|            <div class="feature-card"><div class="feature-icon">🔍</div><h3 data-lang-key="pl1_title">Web Search</h3><p data-lang-key="pl1_desc">Google/Bing/DuckDuckGo search integration</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
-491|            <div class="feature-card"><div class="feature-icon">📝</div><h3 data-lang-key="pl2_title">Code Reviewer</h3><p data-lang-key="pl2_desc">AI code review: bug detection/security/style</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
-492|            <div class="feature-card"><div class="feature-icon">📁</div><h3 data-lang-key="pl3_title">File Manager</h3><p data-lang-key="pl3_desc">Local file browse/read/write/search</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
-493|            <div class="feature-card"><div class="feature-icon">📡</div><h3 data-lang-key="pl4_title">Feishu Bot</h3><p data-lang-key="pl4_desc">Feishu bot: messages/notifications/group management</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
-494|            <div class="feature-card"><div class="feature-icon">📊</div><h3 data-lang-key="pl5_title">Data Visualizer</h3><p data-lang-key="pl5_desc">Data visualization: charts/dashboards/reports</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
-495|        </div>
-496|        <p style="text-align:center;margin-top:20px;">
-497|            <a href="https://github.com/LucyAndLuna2023/meshctx-plugins" class="btn btn-primary" target="_blank"><span data-lang-key="pl_btn_browse">📦 Browse All Plugins</span></a>
-498|            <a href="https://github.com/LucyAndLuna2023/meshctx/blob/main/src/core/plugin_manager.py" class="btn btn-ghost" target="_blank" style="margin-left:8px;"><span data-lang-key="pl_btn_dev">📋 Develop Plugin</span></a>
-499|        </p>
-500|    </div>
-501|
+        <div class="feature-grid">
+            <div class="feature-card"><div class="feature-icon">🔍</div><h3 data-lang-key="pl1_title">Web Search</h3><p data-lang-key="pl1_desc">Google/Bing/DuckDuckGo search integration</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
+            <div class="feature-card"><div class="feature-icon">📝</div><h3 data-lang-key="pl2_title">Code Reviewer</h3><p data-lang-key="pl2_desc">AI code review: bug detection/security/style</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
+            <div class="feature-card"><div class="feature-icon">📁</div><h3 data-lang-key="pl3_title">File Manager</h3><p data-lang-key="pl3_desc">Local file browse/read/write/search</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
+            <div class="feature-card"><div class="feature-icon">📡</div><h3 data-lang-key="pl4_title">Feishu Bot</h3><p data-lang-key="pl4_desc">Feishu bot: messages/notifications/group management</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
+            <div class="feature-card"><div class="feature-icon">📊</div><h3 data-lang-key="pl5_title">Data Visualizer</h3><p data-lang-key="pl5_desc">Data visualization: charts/dashboards/reports</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
+        </div>
+        <p style="text-align:center;margin-top:20px;">
+            <a href="https://github.com/LucyAndLuna2023/meshctx-plugins" class="btn btn-primary" target="_blank"><span data-lang-key="pl_btn_browse">📦 Browse All Plugins</span></a>
+            <a href="https://github.com/LucyAndLuna2023/meshctx/blob/main/src/core/plugin_manager.py" class="btn btn-ghost" target="_blank" style="margin-left:8px;"><span data-lang-key="pl_btn_dev">📋 Develop Plugin</span></a>
+        </p>
+    </div>
+
 </section>
 
 <script>
