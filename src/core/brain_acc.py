@@ -297,7 +297,7 @@ class ERNDetector:
 
         return ErrorSignal(
             error_detected=is_error,
-            ernn_amplitude=ern_amplitude,
+            errn_amplitude=ern_amplitude,
             prediction_error=rpe,
             correctness=1.0 if not is_error else 0.0,
             conflict_at_error=0.0,  # set by caller
@@ -602,7 +602,7 @@ class ACC:
             'stimulus_conflict': round(stimulus_conflict, 4),
             'combined_conflict': round(combined_conflict, 4),
             'error': is_error,
-            'ern_amplitude': round(ern.ernn_amplitude, 4),
+            'ern_amplitude': round(ern.errn_amplitude, 4),
             'prediction_error': round(ern.prediction_error, 4),
             'winning_response': winner,
             'response_margin': round(margin, 4),

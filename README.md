@@ -1,15 +1,15 @@
 <p align="center">
   <img src="docs/assets/logo.png" alt="MeshCtx" width="200">
   <h1 align="center">🧠 MeshCtx v3.115.15</h1>
-  <h3 align="center">世界第一全脑仿真自进化AI Agent · SDM突破性记忆 · 自修改代码 · 130全量测试 · 9脑区 · 9模块 · DeepSeek TUI竞品对标</h3>
+  <h3 align="center">世界第一全脑仿真自进化AI Agent · SDM突破性记忆 · 自修改代码 · 全量测试 · 17脑区 · 17模块 · DeepSeek TUI竞品对标</h3>
 </p>
 
 <p align="center">
   <a href="LEGAL.md"><img src="https://img.shields.io/badge/license-AGPLv3+Commercial-blue"></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.10+-green"></a>
   <a href="#"><img src="https://img.shields.io/badge/tests-130-brightgreen"></a>
-  <a href="#"><img src="https://img.shields.io/badge/modules-9-purple"></a>
-  <a href="#"><img src="https://img.shields.io/badge/brain_regions-9-orange"></a>
+  <a href="#"><img src="https://img.shields.io/badge/modules-17-purple"></a>
+  <a href="#"><img src="https://img.shields.io/badge/brain_regions-17-orange"></a>
   <a href="#"><img src="https://img.shields.io/badge/languages-7-red"></a>
   <a href="#"><img src="https://img.shields.io/badge/papers-3-blue"></a>
 </p>
@@ -58,7 +58,7 @@ meshctx desktop        # Windows桌面客户端
 ## 🧠 核心特性
 
 ### 脑启发AI引擎
-- **9脑区全脑仿真**: 自由能原理 · 主动推理 · 全局工作空间 · 稳态调节
+- **17脑区全脑仿真**: 自由能原理 · 主动推理 · 全局工作空间 · 稳态调节
 - **混合推理调度**: 自由能驱动的探索vs直出决策
 - **超级大脑**: 海马回放 · 杏仁核情绪标记 · 默认模式网络 · 丘脑门控
 - **元认知**: 自我评估 · 错误分类 · 行为调整
@@ -140,7 +140,7 @@ curl -X POST http://manager:3001/swarm/execute \
 | v2.41 | **自主运维引擎** (自愈+进化) | 935 |
 | v2.42 | **Hooks引擎** (8事件) | 956 |
 | v2.43 | **Agent团队** (6角色+4模式) | 975 |
-| v3.115 | **DeepSeek TUI竞品对标** (9模块·4200行) | **130** |
+| v3.115 | **DeepSeek TUI竞品对标** (17模块·4200行) | **130** |
 
 ---
 
