@@ -1,11 +1,61 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════
-# meshctx 一键安装 v8
-# 使用: curl -fsSL https://cdn.jsdelivr.net/gh/LucyAndLuna2023/meshctx@main/install.sh | bash
+# meshctx One-Click Install v8
+# Usage: curl -fsSL https://cdn.jsdelivr.net/gh/LucyAndLuna2023/meshctx@main/install.sh | bash
+# i18n: MESHCTX_LANG=zh|en (default: auto from LANG env)
 # ═══════════════════════════════════════════════════════
 set -e
 
 GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[0;33m'; RED='\033[0;31m'; NC='\033[0m'
+BOLD='\033[1m'
+
+# ── i18n ─────────────────────────────────────────────
+detect_lang() {
+    if [ -n "$MESHCTX_LANG" ]; then echo "$MESHCTX_LANG"; return; fi
+    case "${LANG:-}" in zh_*|zh-*|Chinese*) echo "zh" ;; *) echo "en" ;; esac
+}
+LANG_CHOICE=$(detect_lang)
+T() {
+    case "$1" in
+    header_installer)   [ "$LANG_CHOICE" = "zh" ] && echo "meshctx v${VERSION} 一键安装" || echo "meshctx v${VERSION} One-Click Install" ;;
+    step_stop)          [ "$LANG_CHOICE" = "zh" ] && echo "停止旧版本..." || echo "Stopping old version..." ;;
+    stopped_ok)         [ "$LANG_CHOICE" = "zh" ] && echo "已停止旧服务并释放端口 ${PORT}" || echo "Stopped old service, freed port ${PORT}" ;;
+    no_stop_needed)     [ "$LANG_CHOICE" = "zh" ] && echo "无需停止" || echo "No stop needed" ;;
+    step_check)         [ "$LANG_CHOICE" = "zh" ] && echo "检查环境..." || echo "Checking environment..." ;;
+    need_python)        [ "$LANG_CHOICE" = "zh" ] && echo "需要 Python 3.10+，请先安装: apt install python3" || echo "Requires Python 3.10+, install: apt install python3" ;;
+    need_python_ver)    [ "$LANG_CHOICE" = "zh" ] && echo "需要 Python 3.10+，当前 ${PY_VER}" || echo "Requires Python 3.10+, current ${PY_VER}" ;;
+    step_download)      [ "$LANG_CHOICE" = "zh" ] && echo "下载 meshctx v${VERSION}..." || echo "Downloading meshctx v${VERSION}..." ;;
+    download_ok)        [ "$LANG_CHOICE" = "zh" ] && echo "下载完成" || echo "Download complete" ;;
+    download_fail)      [ "$LANG_CHOICE" = "zh" ] && echo "下载失败" || echo "Download failed" ;;
+    download_fail_hint) [ "$LANG_CHOICE" = "zh" ] && echo "请检查网络连接，或手动下载:" || echo "Check network, or download manually:" ;;
+    step_install)       [ "$LANG_CHOICE" = "zh" ] && echo "安装中..." || echo "Installing..." ;;
+    backup_config)      [ "$LANG_CHOICE" = "zh" ] && echo "已备份用户配置" || echo "User config backed up" ;;
+    extract_fail)       [ "$LANG_CHOICE" = "zh" ] && echo "解压失败" || echo "Extraction failed" ;;
+    config_restored)    [ "$LANG_CHOICE" = "zh" ] && echo "$(T config_restored)" || echo "Config restored (API Keys preserved, password reset)" ;;
+    no_python_found)    [ "$LANG_CHOICE" = "zh" ] && echo "$(T no_python_found)" || echo "Python >= 3.8 not found, install Python first" ;;
+    using_python)       [ "$LANG_CHOICE" = "zh" ] && echo "$(T using_python)" || echo "Using Python" ;;
+    venv_fail)          [ "$LANG_CHOICE" = "zh" ] && echo "$(T venv_fail)" || echo "Failed to create venv" ;;
+    dep_fail)           [ "$LANG_CHOICE" = "zh" ] && echo "$(T dep_fail)" || echo "Dependency install failed" ;;
+    install_done)       [ "$LANG_CHOICE" = "zh" ] && echo "$(T install_done)" || echo "Installation complete" ;;
+    step_verify)        [ "$LANG_CHOICE" = "zh" ] && echo "$(T step_verify)" || echo "Verifying installation..." ;;
+    version_ok)         [ "$LANG_CHOICE" = "zh" ] && echo "$(T version_ok)" || echo "Version ${INSTALLED_VER} verified" ;;
+    version_warn)       [ "$LANG_CHOICE" = "zh" ] && echo "$(T version_warn)" || echo "Version ${INSTALLED_VER} (expected ${VERSION})" ;;
+    install_banner)     [ "$LANG_CHOICE" = "zh" ] && echo "$(T install_banner)" || echo "meshctx Installed! 🎉" ;;
+    quick_start)        [ "$LANG_CHOICE" = "zh" ] && echo "$(T quick_start)" || echo "Quick Start" ;;
+    cmd_start)          [ "$LANG_CHOICE" = "zh" ] && echo "$(T cmd_start)" || echo "Start service" ;;
+    open_browser)       [ "$LANG_CHOICE" = "zh" ] && echo "浏览器打开 http://localhost:${PORT}/ui/setup" || echo "Open http://localhost:${PORT}/ui/setup" ;;
+    setup_api)          [ "$LANG_CHOICE" = "zh" ] && echo "$(T setup_api)" || echo "Configure API Key on Setup page" ;;
+    open_dashboard)     [ "$LANG_CHOICE" = "zh" ] && echo "$(T open_dashboard)" || echo "Open Dashboard to view status" ;;
+    tip_refresh)        [ "$LANG_CHOICE" = "zh" ] && echo "$(T tip_refresh)" || echo "First visit: press Ctrl+Shift+R to force-refresh browser cache" ;;
+    common_cmds)        [ "$LANG_CHOICE" = "zh" ] && echo "$(T common_cmds)" || echo "Common Commands" ;;
+    tip_abnormal)       [ "$LANG_CHOICE" = "zh" ] && echo "$(T tip_abnormal)" || echo "If page looks broken, press Ctrl+Shift+R to force-refresh browser cache" ;;
+    run_now)            [ "$LANG_CHOICE" = "zh" ] && echo "$(T run_now)" || echo "Run now" ;;
+    cmd_path_ok)        [ "$LANG_CHOICE" = "zh" ] && echo "$(T cmd_path_ok)" || echo "meshctx command added to PATH (no sudo)" ;;
+    new_terminal)       [ "$LANG_CHOICE" = "zh" ] && echo "$(T new_terminal)" || echo "New terminal: source $SHELL_RC    # or reopen terminal" ;;
+    auto_stopped)       [ "$LANG_CHOICE" = "zh" ] && echo "$(T auto_stopped)" || echo "Old process auto-stopped, no conflicts" ;;
+    *) echo "$1" ;;
+    esac
+}
 INSTALL_DIR="${HOME}/.meshctx"
 VERSION="3.115.15"
 REPO="LucyAndLuna2023/meshctx"
@@ -13,13 +63,13 @@ SRC_URL="https://github.com/${REPO}/releases/download/v${VERSION}/meshctx-src.ta
 PORT=3001
 
 echo ""
-echo -e "${CYAN}  ╔══════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}  ║     meshctx v${VERSION} 一键安装              ║${NC}"
-echo -e "${CYAN}  ╚══════════════════════════════════════════╝${NC}"
+echo -e "  ${CYAN}  ╔══════════════════════════════════════════╗${NC}"
+echo -e "  ${CYAN}  ║     $(T header_installer)              ║${NC}"
+echo -e "  ${CYAN}  ╚══════════════════════════════════════════╝${NC}"
 echo ""
 
 # ── 停止旧版本 ──────────────────────────────────────
-echo -e "${CYAN}[1/5]${NC} 停止旧版本..."
+echo -e "${CYAN}[1/5]${NC} $(T step_stop)"
 KILLED=0
 # 停止本机 uvicorn
 if pgrep -f "uvicorn.*src.main" >/dev/null 2>&1; then
@@ -47,27 +97,27 @@ if [ -n "$PORT_PID" ]; then
 fi
 
 if [ "$KILLED" = "1" ]; then
-    echo -e "  ${GREEN}✓${NC} 已停止旧服务并释放端口 ${PORT}"
+    echo -e "  ${GREEN}✓${NC} $(T stopped_ok)"
 else
-    echo -e "  ${GREEN}✓${NC} 无需停止"
+    echo -e "  ${GREEN}✓${NC} $(T no_stop_needed)"
 fi
 
-# ── 检查 Python ──────────────────────────────────────
-echo -e "${CYAN}[2/5]${NC} 检查环境..."
+# ── Check Python ──────────────────────────────────────
+echo -e "${CYAN}[2/5]${NC} $(T step_check)"
 python3 --version >/dev/null 2>&1 || {
-    echo -e "${RED}✗ 需要 Python 3.10+，请先安装: apt install python3${NC}"
+    echo -e "${RED}✗ $(T need_python)"
     exit 1
 }
 PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
 PY_OK=$(python3 -c "import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)" 2>/dev/null && echo 1 || echo 0)
 if [ "$PY_OK" = "0" ]; then
-    echo -e "${RED}✗ 需要 Python 3.10+，当前 ${PY_VER}${NC}"
+    echo -e "${RED}✗ $(T need_python_ver)"
     exit 1
 fi
 echo -e "  ${GREEN}✓${NC} Python ${PY_VER}"
 
-# ── 下载 ────────────────────────────────────────────
-echo -e "${CYAN}[3/5]${NC} 下载 meshctx v${VERSION}..."
+# ── Download ────────────────────────────────────────────
+echo -e "${CYAN}[3/5]${NC} $(T step_download) ${VERSION}..."
 TMPDIR=$(mktemp -d)
 TARBALL="${TMPDIR}/meshctx-src.tar.gz"
 trap "rm -rf ${TMPDIR}" EXIT
@@ -80,15 +130,15 @@ else
 fi
 
 if [ "$DOWNLOAD_OK" != "1" ]; then
-    echo -e "${RED}✗ 下载失败${NC}"
-    echo "  请检查网络连接，或手动下载:"
+    echo -e "${RED}✗ $(T download_fail)${NC}"
+    echo "  $(T download_fail_hint)"
     echo "  ${SRC_URL}"
     exit 1
 fi
-echo -e "  ${GREEN}✓${NC} 下载完成 ($(du -h "${TARBALL}" | cut -f1))"
+echo -e "  ${GREEN}✓${NC} $(T download_ok) ($(du -h "${TARBALL}" | cut -f1))"
 
-# ── 备份用户配置 ────────────────────────────────────
-echo -e "${CYAN}[4/6]${NC} 安装中..."
+# ── Backup user config ────────────────────────────────────
+echo -e "${CYAN}[4/6]${NC} $(T step_install)"
 CONFIG_BACKUP=""
 if [ -d "${INSTALL_DIR}" ]; then
     # 备份用户的重要配置文件（Key、模型配置等）
@@ -99,16 +149,16 @@ if [ -d "${INSTALL_DIR}" ]; then
         fi
     done
     # 也备份项目根目录的 provider_config.json（如果在别处）
-    [ -z "$CONFIG_BACKUP" ] || echo -e "  ${GREEN}✓${NC} 已备份用户配置"
+    [ -z "$CONFIG_BACKUP" ] || echo -e "  ${GREEN}✓${NC} $(T backup_config)"
 fi
 
 rm -rf "${INSTALL_DIR}"
 mkdir -p "${INSTALL_DIR}"
 tar xzf "${TARBALL}" -C "${INSTALL_DIR}" || {
-    echo -e "${RED}✗ 解压失败${NC}"; exit 1
+    echo -e "${RED}✗ $(T extract_fail)${NC}"; exit 1
 }
 
-# ── 恢复用户配置 ────────────────────────────────────
+# ── Restore user config ────────────────────────────────────
 if [ -n "$CONFIG_BACKUP" ] && [ -d "$CONFIG_BACKUP" ]; then
     RESTORED=0
     for f in config.yaml .env; do
@@ -127,7 +177,7 @@ if [ -n "$CONFIG_BACKUP" ] && [ -d "$CONFIG_BACKUP" ]; then
         sed -i '/^MESHCTX_PASSWORD=/d' "${INSTALL_DIR}/.env" 2>/dev/null || true
     fi
     rm -rf "$CONFIG_BACKUP"
-    [ "$RESTORED" = "0" ] || echo -e "  ${GREEN}✓${NC} 用户配置已恢复（API Key / 模型配置不丢失，密码已重置）"
+    [ "$RESTORED" = "0" ] || echo -e "  ${GREEN}✓${NC} $(T config_restored)"
 fi
 
 cd "${INSTALL_DIR}"
@@ -147,14 +197,14 @@ for p in python3 python3.11 python3.12 python3.10 python; do
 done
 
 if [ -z "$PYTHON_BIN" ]; then
-    echo -e "${RED}✗ 未找到 Python >= 3.8，请先安装 Python${NC}"
+    echo -e "${RED}✗ $(T no_python_found)${NC}"
     echo -e "  Ubuntu/Debian: sudo apt install python3 python3-venv python3-pip"
     echo -e "  CentOS/RHEL:   sudo yum install python3 python3-pip"
     echo -e "  macOS:         brew install python@3.12"
     exit 1
 fi
 
-echo -e "  ${CYAN}→${NC} 使用 Python: $PYTHON_BIN ($($PYTHON_BIN --version))"
+echo -e "  ${CYAN}→${NC} $(T using_python): $PYTHON_BIN ($($PYTHON_BIN --version))"
 
 if [ ! -d "venv" ]; then
     # Try standard venv first
@@ -168,7 +218,7 @@ if [ ! -d "venv" ]; then
             # Last resort: virtualenv
             pip install virtualenv 2>/dev/null || $PYTHON_BIN -m pip install virtualenv 2>/dev/null
             $PYTHON_BIN -m virtualenv venv 2>/dev/null || {
-                echo -e "${RED}✗ 创建 venv 失败${NC}"
+                echo -e "${RED}✗ $(T venv_fail)${NC}"
                 echo -e "  Ubuntu/Debian: sudo apt install python3-venv python3-pip"
                 echo -e "  CentOS/RHEL:   sudo yum install python3-pip && pip3 install virtualenv"
                 echo -e "  Arch:          sudo pacman -S python-virtualenv"
@@ -183,7 +233,7 @@ source venv/bin/activate
 pip install -q --upgrade pip 2>/dev/null
 pip install -q -r requirements.txt 2>/dev/null || {
     pip install -q fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging python-multipart 2>/dev/null || {
-        echo -e "${RED}✗ 依赖安装失败${NC}"; exit 1
+        echo -e "${RED}✗ $(T dep_fail)${NC}"; exit 1
     }
 }
 
@@ -227,45 +277,45 @@ if [ "$SYMLINK_OK" = "0" ]; then
     fi
 fi
 
-echo -e "  ${GREEN}✓${NC} 安装完成"
+echo -e "  ${GREEN}✓${NC} $(T install_done)"
 
-# ── 验证 ────────────────────────────────────────────
-echo -e "${CYAN}[5/6]${NC} 验证安装..."
+# ── Verify ────────────────────────────────────────────
+echo -e "${CYAN}[5/6]${NC} $(T step_verify)"
 source venv/bin/activate
 INSTALLED_VER=$(python -c "from src.core import __version__; print(__version__)" 2>/dev/null || echo "?")
 if [ "$INSTALLED_VER" = "$VERSION" ]; then
-    echo -e "  ${GREEN}✓${NC} 版本 ${INSTALLED_VER} 校验通过"
+    echo -e "  ${GREEN}✓${NC} $(T version_ok)"
 else
-    echo -e "  ${YELLOW}⚠${NC} 版本 ${INSTALLED_VER}（期望 ${VERSION}）"
+    echo -e "  ${YELLOW}⚠${NC} $(T version_warn)"
 fi
 
-# ── 完成 ────────────────────────────────────────────
+# ── Done ────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}╔══════════════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}║                                                  ║${NC}"
-echo -e "${GREEN}║          meshctx 安装完成！ 🎉                     ║${NC}"
+echo -e "${GREEN}║          $(T install_banner)                     ║${NC}"
 echo -e "${GREEN}║                                                  ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════╝${NC}"
 echo ""
 if [ "$KILLED" = "1" ]; then
-    echo -e "  ${GREEN}✓${NC} 已自动停止旧进程，新版本不会冲突"
+    echo -e "  ${GREEN}✓${NC} $(T auto_stopped)"
 fi
-echo -e "  ${CYAN}快速开始:${NC}"
-echo "    meshctx start                    # 启动服务"
-echo "    浏览器打开 http://localhost:${PORT}/ui/setup"
-echo "    → 在 Setup 页面配置 API Key"
-echo "    → 打开 Dashboard 查看状态"
+echo -e "  ${CYAN}$(T quick_start):${NC}"
+echo "    meshctx start                    # $(T cmd_start)"
+echo "    $(T open_browser)"
+echo "    → $(T setup_api)"
+echo "    → $(T open_dashboard)"
 echo ""
-echo -e "  ${YELLOW}💡 提示:${NC} 首次打开页面请按 ${BOLD}Ctrl+Shift+R${NC} 强制刷新浏览器缓存"
+echo -e "  ${YELLOW}💡${NC} $(T tip_refresh)"
 echo ""
-echo -e "  ${CYAN}常用命令:${NC}"
-echo "    meshctx status                   # 查看状态"
-echo "    meshctx stop                     # 停止服务"
-echo "    meshctx start --port 8080        # 指定端口"
+echo -e "  ${CYAN}$(T common_cmds):${NC}"
+echo "    meshctx status                   # view status"
+echo "    meshctx stop                     # stop service"
+echo "    meshctx start --port 8080        # specify port"
 echo ""
-echo -e "  ${YELLOW}💡 提示：${NC}如果页面显示异常，按 Ctrl+Shift+R 强制刷新浏览器缓存"
+echo -e "  ${YELLOW}💡${NC} $(T tip_abnormal)"
 echo ""
-echo -e "  ${GREEN}👉 现在运行:${NC}  meshctx start    # 启动服务"
-[ "$SYMLINK_OK" = "1" ] && echo -e "  ${GREEN}✓${NC} meshctx 命令已加入 PATH（无需 sudo）"
-echo -e "  ${YELLOW}💡${NC} 新终端窗口需执行: source $SHELL_RC    # 或重新打开终端"
+echo -e "  ${GREEN}👉 $(T run_now):${NC}  meshctx start    # $(T cmd_start)"
+[ "$SYMLINK_OK" = "1" ] && echo -e "  ${GREEN}✓${NC} $(T cmd_path_ok)"
+echo -e "  ${YELLOW}💡${NC} $(T new_terminal)"
 echo ""

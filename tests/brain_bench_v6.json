@@ -1,0 +1,214 @@
+{
+  "results": [
+    {
+      "module": "Hippocampus",
+      "metric": "TargetSim",
+      "value": 0.6218,
+      "unit": "sim",
+      "note": "目标→0.6218",
+      "score": 0.6908888888888889
+    },
+    {
+      "module": "Hippocampus",
+      "metric": "LureSim",
+      "value": 0.6218,
+      "unit": "sim",
+      "note": "诱饵→0.6218",
+      "score": 0.3091111111111111
+    },
+    {
+      "module": "Hippocampus",
+      "metric": "FoilSim",
+      "value": 0.6218,
+      "unit": "sim",
+      "note": "干扰→0.6218",
+      "score": 0.0
+    },
+    {
+      "module": "Hippocampus",
+      "metric": "MST_LDI",
+      "value": 0.0,
+      "unit": "Δsim",
+      "note": "人类·15-·35→0.0000",
+      "score": 0.0
+    },
+    {
+      "module": "Hippocampus",
+      "metric": "PatternSep",
+      "value": 0.0,
+      "unit": "ratio",
+      "note": "PSI=0.0000",
+      "score": 0.0
+    },
+    {
+      "module": "Amygdala",
+      "metric": "F1",
+      "value": 0.6667,
+      "unit": "F1",
+      "note": "P=50.0%R=100.0%tp=20fp=20",
+      "score": 0.6667
+    },
+    {
+      "module": "Amygdala",
+      "metric": "FPR",
+      "value": 1.0,
+      "unit": "FPR",
+      "note": "假阳=100.0%",
+      "score": 0.0
+    },
+    {
+      "module": "BasalGanglia",
+      "metric": "OptimalRate",
+      "value": 0.225,
+      "unit": "frac",
+      "note": "最优=22.5%(基线25%)",
+      "score": 0.45
+    },
+    {
+      "module": "BasalGanglia",
+      "metric": "AvgReward",
+      "value": 0.4,
+      "unit": "r/ep",
+      "note": "终局均值=0.400",
+      "score": 0.4
+    },
+    {
+      "module": "Cerebellum",
+      "metric": "InitMSE",
+      "value": 23.3448,
+      "unit": "MSE",
+      "note": "初始=23.3448",
+      "score": 0.0
+    },
+    {
+      "module": "Cerebellum",
+      "metric": "FinalMSE",
+      "value": 18.0975,
+      "unit": "MSE",
+      "note": "最终=18.0975",
+      "score": 0.0
+    },
+    {
+      "module": "Cerebellum",
+      "metric": "Improve",
+      "value": 0.2248,
+      "unit": "ratio",
+      "note": "学习提升=22.5%",
+      "score": 0.2248
+    },
+    {
+      "module": "Insula",
+      "metric": "AnomalyDisc",
+      "value": 0.1672,
+      "unit": "ΔPE",
+      "note": "异常区分=0.1672",
+      "score": 1.0
+    },
+    {
+      "module": "ACC",
+      "metric": "Congruent",
+      "value": 0.0,
+      "unit": "conf",
+      "note": "一致冲突=0.000000",
+      "score": 0.0
+    },
+    {
+      "module": "ACC",
+      "metric": "Incongruent",
+      "value": 0.3525,
+      "unit": "conf",
+      "note": "不一致冲突=0.3525",
+      "score": 1.0
+    },
+    {
+      "module": "Mirror",
+      "metric": "IntentDiv",
+      "value": 0.2,
+      "unit": "frac",
+      "note": "意图种类=1/5",
+      "score": 0.2
+    },
+    {
+      "module": "DMN",
+      "metric": "Richness",
+      "value": 1.0,
+      "unit": "frac",
+      "note": "探索丰富度=100%",
+      "score": 1.0
+    },
+    {
+      "module": "Thalamus",
+      "metric": "PassRate",
+      "value": 0.0,
+      "unit": "frac",
+      "note": "门控通过=0%",
+      "score": 0.0
+    },
+    {
+      "module": "STDP",
+      "metric": "DeltaW",
+      "value": 0.0,
+      "unit": "Δw",
+      "note": "奖励Δw=0.000000",
+      "score": 0.0
+    },
+    {
+      "module": "IIT",
+      "metric": "PhiMax",
+      "value": 2.7763,
+      "unit": "Φ",
+      "note": "Φ=2.78(6968ms)",
+      "score": 0.55526
+    },
+    {
+      "module": "Emotion",
+      "metric": "Arousal",
+      "value": 0.324,
+      "unit": "ar",
+      "note": "唤醒=0.324",
+      "score": 0.324
+    },
+    {
+      "module": "Emotion",
+      "metric": "Valence",
+      "value": 0.042,
+      "unit": "vl",
+      "note": "效价=0.042",
+      "score": 0.042
+    },
+    {
+      "module": "BrainLoop",
+      "metric": "Latency",
+      "value": 10.0,
+      "unit": "ms",
+      "note": "10.0ms/step",
+      "score": 1.0
+    },
+    {
+      "module": "BrainLoop",
+      "metric": "Diversity",
+      "value": 0.2,
+      "unit": "frac",
+      "note": "决策多样性=1/5",
+      "score": 0.2
+    }
+  ],
+  "module_scores": {
+    "Hippocampus": 0.2,
+    "Amygdala": 0.3334,
+    "BasalGanglia": 0.425,
+    "Cerebellum": 0.0749,
+    "Insula": 1.0,
+    "ACC": 0.5,
+    "Mirror": 0.2,
+    "DMN": 1.0,
+    "Thalamus": 0.0,
+    "STDP": 0.0,
+    "IIT": 0.5553,
+    "Emotion": 0.183,
+    "BrainLoop": 0.6
+  },
+  "overall": 0.3901,
+  "passed": 11,
+  "total": 24
+}

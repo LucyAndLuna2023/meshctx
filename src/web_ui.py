@@ -3822,6 +3822,12 @@ async def project_list(request: Request):
     }, request)
 
 
+@router.get("/projects/create")
+async def create_project_page(request: Request):
+    """redirect GET to projects list (creation is inline)"""
+    return RedirectResponse(url="/ui/projects", status_code=303)
+
+
 @router.post("/projects/create")
 async def create_project_ui(
     request: Request,

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>meshctx Live Health Dashboard</title>
+<title id="page-title">meshctx Live Health Dashboard</title>
 <style>
 :root {
   --bg: #0d1117; --surface: #161b22; --border: #30363d;
@@ -144,6 +144,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     dot.className='status-dot '+(err===0?'status-ok':'status-error');
   }
   connect();
+  // i18n initialization
+  (function i18nInit(){
+    if(!window.__t) return setTimeout(i18nInit, 50);
+    var t = window.__t;
+    document.getElementById('page-title').textContent = t('dashboard_title');
+    document.querySelector('.header h1').innerHTML = document.querySelector('.header h1').innerHTML.replace('meshctx Live Health', t('dashboard_header'));
+    document.querySelectorAll('.stat-card .label').forEach(function(el){
+      if(el.textContent==='Uptime') el.textContent=t('dashboard_uptime');
+      else if(el.textContent==='Modules OK') el.textContent=t('dashboard_modules_ok');
+      else if(el.textContent==='Modules Error') el.textContent=t('dashboard_modules_err');
+    });
+    document.querySelector('.refresh-info').textContent = t('dashboard_ws_info');
+  })();
 })();
 </script>
 </body>
