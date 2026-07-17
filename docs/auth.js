@@ -171,7 +171,7 @@ var _captchaCodeSignin = '';
 // ═══ Email Sign Up ═══
 async function signUpWithEmail() {
     var sb = _getSupabase();
-    if (!sb) return;
+    if (!sb) { showAuthError('Connection error. Please refresh the page and try again.'); return; }
     var email = document.getElementById('signup-email').value.trim();
     var password = document.getElementById('signup-password').value;
     var name = document.getElementById('signup-name').value.trim();
@@ -190,6 +190,7 @@ async function signUpWithEmail() {
     var btn = document.getElementById('signup-btn');
     btn.disabled = true; btn.textContent = 'Creating account...';
 
+    try {
     var { data, error } = await sb.auth.signUp({
         email: email,
         password: password,
@@ -207,12 +208,13 @@ async function signUpWithEmail() {
     } else {
         showAuthError(_t('auth_confirm', 'Check your email for a confirmation link!'));
     }
+    } catch(e) { btn.disabled = false; btn.textContent = 'Create Account'; showAuthError('Network error. Please check your connection and try again.'); }
 }
 
 // ═══ Email Sign In ═══
 async function signInWithEmail() {
     var sb = _getSupabase();
-    if (!sb) return;
+    if (!sb) { showAuthError('Connection error. Please refresh the page and try again.'); return; }
     var email = document.getElementById('signin-email').value.trim();
     var password = document.getElementById('signin-password').value;
     if (!email || !password) { showAuthError(_t('auth_err_empty', 'Please fill in email and password.')); return; }
@@ -264,7 +266,7 @@ function showResetPassword() {
 
 async function resetPassword() {
     var sb = _getSupabase();
-    if (!sb) return;
+    if (!sb) { showAuthError('Connection error. Please refresh the page and try again.'); return; }
     var email = document.getElementById('reset-email').value.trim();
     if (!email) {
         var err = document.getElementById('auth-error-reset');
@@ -292,7 +294,7 @@ async function changePassword(newPassword) {
 // ═══ Sign Out ═══
 async function signOut() {
     var sb = _getSupabase();
-    if (!sb) return;
+    if (!sb) { showAuthError('Connection error. Please refresh the page and try again.'); return; }
     await sb.auth.signOut();
     _user = null;
     updateAuthUI();
