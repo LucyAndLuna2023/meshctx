@@ -120,8 +120,16 @@
 }
 .auth-divider::before, .auth-divider::after {
     content: ''; flex: 1; border-bottom: 1px solid var(--border);
+.auth-error { color: #ef4444; font-size: 0.85rem; margin-top: 8px; min-height: 20px; }
+.auth-error:empty { display: none; }
+
+/* Forgot password link */
+.auth-forgot-link {
+    display: block; text-align: right; font-size: 0.85rem;
+    color: var(--accent); cursor: pointer; margin-bottom: 12px;
+    text-decoration: none;
 }
-.auth-divider span { padding: 0 12px; }
+.auth-forgot-link:hover { text-decoration: underline; }
 
 /* OAuth buttons */
 .btn-oauth {
@@ -139,12 +147,6 @@
 .btn-oauth-google:hover { border-color: #4285f4; }
 .btn-oauth-github { background: #24292f; color: #fff; border-color: #24292f; }
 .btn-oauth-github:hover { background: #1b1f23; border-color: #1b1f23; }
-
-/* Error message */
-.auth-error {
-    color: #ef4444; font-size: 0.8rem; text-align: center;
-    margin-top: 10px; min-height: 18px;
-}
 
 /* Footer */
 .auth-modal-footer {

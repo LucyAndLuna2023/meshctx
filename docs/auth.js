@@ -1,5 +1,5 @@
 /**
- * MeshCtx Auth — Supabase (Email + GitHub + Google) + i18n
+ * MeshCtx Auth — Supabase (Email + GitHub) + Password Reset + i18n
  */
 
 // ═══ CONFIG ═══
@@ -117,7 +117,7 @@ async function signInWithEmail() {
     hideAuthModal();
 }
 
-// ═══ OAuth (GitHub / Google) ═══
+// ═══ OAuth (GitHub) ═══
 async function signInWithOAuth(provider) {
     var sb = _getSupabase();
     if (!sb) { showAuthError('Supabase not configured.'); return; }
@@ -133,6 +133,42 @@ async function signInWithOAuth(provider) {
         showAuthError(error.message);
         if (btn) { btn.disabled = false; }
     }
+}
+
+// ═══ Forgot / Reset Password ═══
+function showResetPassword() {
+    document.querySelectorAll('.auth-tab-content').forEach(function(el) { el.style.display = 'none'; });
+    var tab = document.getElementById('auth-tab-reset');
+    if (tab) tab.style.display = 'block';
+    var err = document.getElementById('auth-error-reset');
+    if (err) err.textContent = '';
+}
+
+async function resetPassword() {
+    var sb = _getSupabase();
+    if (!sb) return;
+    var email = document.getElementById('reset-email').value.trim();
+    if (!email) {
+        var err = document.getElementById('auth-error-reset');
+        if (err) err.textContent = _t('auth_err_empty', 'Please fill in your email.');
+        return;
+    }
+    var btn = document.getElementById('reset-btn');
+    btn.disabled = true;
+    var { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/' });
+    btn.disabled = false;
+    var err = document.getElementById('auth-error-reset');
+    if (error) { if (err) err.textContent = error.message; }
+    else { if (err) err.textContent = _t('auth_reset_sent', 'Check your email for the reset link!'); }
+}
+
+// ═══ Change Password ═══
+async function changePassword(newPassword) {
+    var sb = _getSupabase();
+    if (!sb || !_user) return { error: { message: 'Not logged in' } };
+    if (!newPassword || newPassword.length < 6) return { error: { message: _t('auth_err_pwd_short', 'Password must be at least 6 characters.') } };
+    var { data, error } = await sb.auth.updateUser({ password: newPassword });
+    return { data: data, error: error };
 }
 
 // ═══ Sign Out ═══

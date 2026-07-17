@@ -83,6 +83,17 @@
         </div>
 
         <div class="section">
+            <div class="section-title" data-lang-key="profile_change_pwd">Change Password</div>
+            <div class="form-group">
+                <label data-lang-key="profile_new_pwd">New Password</label>
+                <input type="password" id="pf-new-password" placeholder="••••••••" autocomplete="new-password">
+            </div>
+            <p class="profile-error" id="pf-pwd-error" style="display:none;"></p>
+            <p class="profile-success" id="pf-pwd-success" style="display:none;"></p>
+            <button class="btn btn-primary" onclick="doChangePassword()" data-lang-key="profile_pwd_btn">Update Password</button>
+        </div>
+
+        <div class="section">
             <div class="section-title" data-lang-key="profile_emails">Email Addresses</div>
             <div class="section-desc" data-lang-key="profile_em_desc">Manage your email addresses.</div>
             <div id="pf-emails"></div>
@@ -234,6 +245,29 @@ async function removeEmail(btn, id){
     if(!confirm('Remove this email?')) return;
     // Note: full email management requires server-side admin API
     alert('Email management requires admin API. Coming soon.');
+}
+
+async function doChangePassword() {
+    var pw = document.getElementById('pf-new-password').value;
+    var errEl = document.getElementById('pf-pwd-error');
+    var okEl = document.getElementById('pf-pwd-success');
+    errEl.style.display = 'none';
+    okEl.style.display = 'none';
+    if (!pw || pw.length < 6) {
+        errEl.textContent = 'Password must be at least 6 characters.';
+        errEl.style.display = 'block';
+        return;
+    }
+    var sb = _sb();
+    var r = await sb.auth.updateUser({ password: pw });
+    if (r.error) {
+        errEl.textContent = r.error.message;
+        errEl.style.display = 'block';
+    } else {
+        okEl.style.display = 'block';
+        document.getElementById('pf-new-password').value = '';
+        setTimeout(function() { okEl.style.display = 'none'; }, 3000);
+    }
 }
 
 async function deleteAccount(){
