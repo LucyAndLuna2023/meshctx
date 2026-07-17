@@ -58,13 +58,13 @@ function hideAuthModal() {
 }
 
 function clearAuthError() {
-    var el = document.getElementById('auth-error');
-    if (el) el.textContent = '';
+    var errs = document.querySelectorAll('.auth-error');
+    errs.forEach(function(el) { el.textContent = ''; });
 }
 
 function showAuthError(msg) {
-    var el = document.getElementById('auth-error');
-    if (el) el.textContent = msg;
+    var errs = document.querySelectorAll('.auth-error');
+    errs.forEach(function(el) { el.textContent = msg; });
 }
 
 // ═══ Password Strength ═══
