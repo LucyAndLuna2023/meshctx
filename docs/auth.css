@@ -1,6 +1,6 @@
-/* ═══ Auth Modal & Button Styles ═══ */
+/* ═══ Auth Modal & Profile Styles ═══ */
 
-/* Auth button in nav */
+/* Nav auth button */
 .btn-auth {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 6px 16px;
@@ -24,7 +24,9 @@
 .user-menu-name {
     color: var(--fg); font-size: 0.85rem; max-width: 120px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    cursor: pointer;
 }
+.user-menu-name:hover { text-decoration: underline; }
 .btn-signout {
     padding: 3px 10px; background: transparent; border: 1px solid var(--border);
     color: var(--muted); border-radius: 4px; font-size: 0.75rem;
@@ -32,7 +34,7 @@
 }
 .btn-signout:hover { border-color: #ef4444; color: #ef4444; }
 
-/* Modal overlay */
+/* ═══ Modal ═══ */
 .auth-modal-overlay {
     display: none; position: fixed; inset: 0;
     background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
@@ -40,53 +42,164 @@
 }
 .auth-modal {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 32px; max-width: 400px; width: 90%;
+    border-radius: 12px; padding: 0; max-width: 420px; width: 90%;
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     animation: modalSlideIn 0.25s ease;
+    overflow: hidden;
 }
 @keyframes modalSlideIn {
     from { opacity: 0; transform: translateY(-20px) scale(0.96); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.auth-modal h2 {
-    font-size: 1.5rem; font-weight: 700; margin-bottom: 8px;
-    text-align: center;
-}
-.auth-modal p {
-    color: var(--muted); font-size: 0.9rem; text-align: center;
-    margin-bottom: 24px;
-}
-
-/* GitHub login button */
-.btn-github {
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-    width: 100%; padding: 12px 20px;
-    background: #24292f; color: #fff;
-    border: none; border-radius: 8px; font-size: 1rem;
-    font-weight: 600; cursor: pointer; transition: opacity 0.2s;
-}
-.btn-github:hover { opacity: 0.9; }
-.btn-github:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-github svg { width: 20px; height: 20px; }
-
-/* Close button */
 .auth-modal-close {
-    position: absolute; top: 12px; right: 16px;
+    position: absolute; top: 12px; right: 16px; z-index: 10;
     background: transparent; border: none; color: var(--muted);
     font-size: 1.3rem; cursor: pointer;
 }
 .auth-modal-close:hover { color: var(--fg); }
 
-/* Footer text */
+/* Tabs */
+.auth-tabs {
+    display: flex; border-bottom: 1px solid var(--border);
+}
+.auth-tab-btn {
+    flex: 1; padding: 14px 0; background: transparent; border: none;
+    color: var(--muted); font-size: 0.9rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+    border-bottom: 2px solid transparent;
+}
+.auth-tab-btn:hover { color: var(--fg); }
+.auth-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Tab content */
+.auth-tab-content {
+    display: none; padding: 28px 32px;
+}
+
+.auth-modal h2 {
+    font-size: 1.3rem; font-weight: 700; margin-bottom: 6px;
+}
+.auth-modal .auth-subtitle {
+    color: var(--muted); font-size: 0.85rem; margin-bottom: 20px;
+}
+
+/* Form inputs */
+.auth-input-group {
+    margin-bottom: 14px;
+}
+.auth-input-group label {
+    display: block; font-size: 0.8rem; font-weight: 600;
+    color: var(--muted); margin-bottom: 4px;
+}
+.auth-input-group input {
+    width: 100%; padding: 10px 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--fg); font-size: 0.9rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+.auth-input-group input:focus {
+    outline: none; border-color: var(--accent);
+}
+
+/* Submit button */
+.btn-submit {
+    width: 100%; padding: 11px;
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    border: none; color: #fff; border-radius: 6px;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    margin-top: 4px; transition: opacity 0.2s;
+}
+.btn-submit:hover { opacity: 0.9; }
+.btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Divider */
+.auth-divider {
+    display: flex; align-items: center; margin: 20px 0; color: var(--muted); font-size: 0.8rem;
+}
+.auth-divider::before, .auth-divider::after {
+    content: ''; flex: 1; border-bottom: 1px solid var(--border);
+}
+.auth-divider span { padding: 0 12px; }
+
+/* OAuth buttons */
+.btn-oauth {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; padding: 10px 16px;
+    border: 1px solid var(--border); border-radius: 6px;
+    font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    background: var(--surface); color: var(--fg);
+    transition: all 0.2s; margin-bottom: 10px;
+}
+.btn-oauth:hover { border-color: var(--accent); background: rgba(139,92,246,0.08); }
+.btn-oauth:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-oauth svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+.btn-oauth-google:hover { border-color: #4285f4; }
+.btn-oauth-github { background: #24292f; color: #fff; border-color: #24292f; }
+.btn-oauth-github:hover { background: #1b1f23; border-color: #1b1f23; }
+
+/* Error message */
+.auth-error {
+    color: #ef4444; font-size: 0.8rem; text-align: center;
+    margin-top: 10px; min-height: 18px;
+}
+
+/* Footer */
 .auth-modal-footer {
-    margin-top: 16px; text-align: center;
-    font-size: 0.75rem; color: var(--muted);
+    padding: 0 32px 20px; text-align: center;
+    font-size: 0.7rem; color: var(--muted);
 }
 .auth-modal-footer a { color: var(--accent); }
 
-/* Responsive */
+/* ═══ Profile Page ═══ */
+.profile-container {
+    max-width: 680px; margin: 120px auto 60px; padding: 0 24px;
+}
+.profile-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 32px;
+}
+.profile-card h2 { font-size: 1.5rem; margin-bottom: 24px; }
+.profile-avatar-section {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 24px;
+}
+.profile-avatar-large {
+    width: 72px; height: 72px; border-radius: 50%; object-fit: cover;
+    border: 3px solid var(--accent);
+}
+.profile-field {
+    margin-bottom: 16px;
+}
+.profile-field label {
+    display: block; font-size: 0.8rem; font-weight: 600;
+    color: var(--muted); margin-bottom: 4px;
+}
+.profile-field input, .profile-field textarea {
+    width: 100%; padding: 10px 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--fg); font-size: 0.9rem;
+    box-sizing: border-box;
+}
+.profile-field textarea { min-height: 80px; resize: vertical; }
+.profile-field input:focus, .profile-field textarea:focus {
+    outline: none; border-color: var(--accent);
+}
+.btn-save-profile {
+    padding: 10px 24px;
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    border: none; color: #fff; border-radius: 6px;
+    font-size: 0.9rem; font-weight: 600; cursor: pointer;
+}
+.btn-save-profile:hover { opacity: 0.9; }
+.profile-success { color: #22c55e; font-size: 0.85rem; margin-top: 8px; }
+.profile-error { color: #ef4444; font-size: 0.85rem; margin-top: 8px; }
+
+/* ═══ Responsive ═══ */
 @media (max-width: 480px) {
-    .auth-modal { padding: 24px 20px; }
+    .auth-tab-content { padding: 24px 20px; }
+    .auth-modal-footer { padding: 0 20px 16px; }
     .user-menu-name { display: none; }
+    .profile-container { margin-top: 100px; }
 }
