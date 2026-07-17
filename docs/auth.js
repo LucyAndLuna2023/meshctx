@@ -24,15 +24,67 @@ function _refreshAuthI18n() {
 }
 
 function _getSupabase() {
-    if (!_sb && SUPABASE_URL) {
-        try {
-            if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-                _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return {
+        auth: {
+            signUp: function(params) {
+                return fetch(SUPABASE_URL + '/auth/v1/signup', {
+                    method: 'POST',
+                    headers: {'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json'},
+                    body: JSON.stringify(params)
+                }).then(function(r){ return r.json().then(function(d){ return {data: r.ok ? d : null, error: r.ok ? null : d}; }); })
+                .catch(function(e){ return {data: null, error: {message: 'Network error: ' + (e.message || 'connection failed')}}; });
+            },
+            signInWithPassword: function(params) {
+                return fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+                    method: 'POST',
+                    headers: {'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json'},
+                    body: JSON.stringify(params)
+                }).then(function(r){ return r.json().then(function(d){ return {data: r.ok ? d : null, error: r.ok ? d : null}; }); })
+                .catch(function(e){ return {data: null, error: {message: 'Network error: ' + (e.message || 'connection failed')}}; });
+            },
+            signInWithOAuth: function(params) {
+                var qs = '?provider=' + encodeURIComponent(params.provider) + '&redirect_to=' + encodeURIComponent(params.options.redirectTo);
+                window.location.href = SUPABASE_URL + '/auth/v1/authorize' + qs;
+                return Promise.resolve({data: {}, error: null});
+            },
+            resetPasswordForEmail: function(email) {
+                return fetch(SUPABASE_URL + '/auth/v1/recover', {
+                    method: 'POST',
+                    headers: {'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json'},
+                    body: JSON.stringify({email: email})
+                }).then(function(r){ return {data: {}, error: r.ok ? null : {message: 'Failed'}}; })
+                .catch(function(e){ return {data: null, error: {message: 'Network error'}}; });
+            },
+            updateUser: function(params) {
+                return fetch(SUPABASE_URL + '/auth/v1/user', {
+                    method: 'PUT',
+                    headers: {'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (_token || '')},
+                    body: JSON.stringify(params)
+                }).then(function(r){ return r.json().then(function(d){ return {data: r.ok ? d : null, error: r.ok ? null : d}; }); });
+            },
+            getSession: function() {
+                if (!_token) return Promise.resolve({data: {session: null}, error: null});
+                return fetch(SUPABASE_URL + '/auth/v1/user', {
+                    headers: {'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + _token}
+                }).then(function(r){ return r.json().then(function(d){ return {data: {session: {user: r.ok ? d : null}}, error: r.ok ? null : d}; }); })
+                .catch(function(){ return {data: {session: null}, error: null}; });
+            },
+            onAuthStateChange: function(cb) { _onAuthChange = cb; },
+            signOut: function() {
+                _token = null; _user = null;
+                localStorage.removeItem('meshctx-token');
+                if (_onAuthChange) _onAuthChange('SIGNED_OUT', null);
+                return fetch(SUPABASE_URL + '/auth/v1/logout', {
+                    method: 'POST',
+                    headers: {'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + (_token || '')}
+                }).catch(function(){});
             }
-        } catch(e) { console.error('Supabase init failed:', e); }
-    }
-    return _sb;
+        }
+    };
 }
+
+var _token = localStorage.getItem('meshctx-token') || null;
+var _onAuthChange = null;
 
 // ═══ Modal ═══
 function showAuthModal(tab) {
@@ -209,6 +261,7 @@ async function signUpWithEmail() {
 
     if (error) { showAuthError(error.message); return; }
 
+    if (data.session && data.session.access_token) { _token = data.session.access_token; localStorage.setItem('meshctx-token', _token); }
     if (data.user && data.user.identities && data.user.identities.length === 0) {
         showAuthError('This email is already registered. Please sign in instead.');
     } else {
@@ -376,7 +429,7 @@ async function initAuth() {
 
     try {
         var { data } = await sb.auth.getSession();
-        if (data && data.session) { _user = data.session.user; }
+        if (data && data.session && data.session.user) { _user = data.session.user; }
     } catch(e) { console.log('No active session'); }
 
     updateAuthUI();
