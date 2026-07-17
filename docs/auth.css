@@ -222,3 +222,22 @@
     .user-menu-name { display: none; }
     .profile-container { margin-top: 100px; }
 }
+
+/* Password strength meter */
+.pwd-strength-wrap { margin-bottom: 12px; display: none; }
+.pwd-strength-label { font-size: 0.75rem; color: var(--fg-dim); }
+.pwd-strength-track { height: 4px; background: var(--border); border-radius: 2px; margin-top: 4px; }
+.pwd-strength-fill { height: 100%; border-radius: 2px; transition: width 0.3s; width: 0; }
+.pwd-strength-fill.s1 { background: #ef4444; }
+.pwd-strength-fill.s2 { background: #f59e0b; }
+.pwd-strength-fill.s3 { background: #22c55e; }
+
+/* CAPTCHA */
+.captcha-wrap { margin-bottom: 16px; }
+.captcha-wrap label { display: block; font-size: 0.8rem; color: var(--fg-dim); margin-bottom: 4px; }
+.captcha-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.captcha-refresh { font-size: 0.75rem; color: var(--accent); cursor: pointer; white-space: nowrap; }
+.captcha-refresh:hover { text-decoration: underline; }
+#signup-captcha { width: 100%; padding: 8px 10px; font-size: 0.9rem; letter-spacing: 4px; text-transform: uppercase;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); box-sizing: border-box; }
+#signup-captcha:focus { border-color: var(--accent); outline: none; }

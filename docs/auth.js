@@ -41,6 +41,7 @@ function showAuthModal(tab) {
     var btn = document.getElementById('auth-tab-btn-' + tab);
     if (content) content.style.display = 'block';
     if (btn) btn.classList.add('active');
+    if (tab === 'signup') { generateCaptcha(); }
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
     clearAuthError();
@@ -65,6 +66,73 @@ function showAuthError(msg) {
     if (el) el.textContent = msg;
 }
 
+// ═══ Password Strength ═══
+// Requires: 8+ chars, uppercase, lowercase, digit
+function isPasswordStrong(pw) {
+    return pw && pw.length >= 8 && /[A-Z]/.test(pw) && /[a-z]/.test(pw) && /[0-9]/.test(pw);
+}
+
+function checkPasswordStrength() {
+    var pw = document.getElementById('signup-password');
+    var bar = document.getElementById('pwd-strength-bar');
+    var wrap = document.querySelector('.pwd-strength-wrap');
+    if (!pw || !bar) return;
+    var v = pw.value;
+    if (!v) { if (wrap) wrap.style.display = 'none'; return; }
+    if (wrap) wrap.style.display = 'block';
+    var score = 0;
+    if (v) score += Math.min(v.length, 12);
+    if (/[a-z]/.test(v)) score += 3;
+    if (/[A-Z]/.test(v)) score += 3;
+    if (/[0-9]/.test(v)) score += 3;
+    if (/[^A-Za-z0-9]/.test(v)) score += 4;
+    var pct = Math.min(score / 25 * 100, 100);
+    bar.style.width = pct + '%';
+    bar.className = 'pwd-strength-fill s' + (pct < 40 ? '1' : pct < 70 ? '2' : '3');
+}
+
+// ═══ CAPTCHA ═══
+var _captchaCode = '';
+
+function generateCaptcha() {
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var code = '';
+    for (var i = 0; i < 6; i++) { code += chars[Math.floor(Math.random() * chars.length)]; }
+    _captchaCode = code;
+    var canvas = document.getElementById('captcha-canvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    canvas.width = 140; canvas.height = 48;
+    // Background
+    ctx.fillStyle = 'rgba(15,15,25,0.9)';
+    ctx.fillRect(0, 0, 140, 48);
+    // Noise lines
+    for (var i = 0; i < 6; i++) {
+        ctx.strokeStyle = 'rgba(139,92,246,' + (0.15 + Math.random() * 0.2) + ')';
+        ctx.beginPath();
+        ctx.moveTo(Math.random() * 140, Math.random() * 48);
+        ctx.lineTo(Math.random() * 140, Math.random() * 48);
+        ctx.stroke();
+    }
+    // Noise dots
+    for (var i = 0; i < 30; i++) {
+        ctx.fillStyle = 'rgba(255,255,255,' + (0.05 + Math.random() * 0.15) + ')';
+        ctx.fillRect(Math.random() * 140, Math.random() * 48, 2, 2);
+    }
+    // Draw text
+    for (var i = 0; i < 6; i++) {
+        ctx.font = (20 + Math.random() * 6) + 'px monospace';
+        ctx.fillStyle = 'hsl(' + (260 + Math.random() * 40) + ', 70%, ' + (60 + Math.random() * 25) + '%)';
+        ctx.save();
+        ctx.translate(10 + i * 22, 28 + Math.random() * 10 - 5);
+        ctx.rotate((Math.random() - 0.5) * 0.6);
+        ctx.fillText(code[i], 0, 0);
+        ctx.restore();
+    }
+}
+
+function _captcha_err_alt() { return 'Incorrect verification code.'; }
+
 // ═══ Email Sign Up ═══
 async function signUpWithEmail() {
     var sb = _getSupabase();
@@ -73,10 +141,16 @@ async function signUpWithEmail() {
     var password = document.getElementById('signup-password').value;
     var name = document.getElementById('signup-name').value.trim();
     if (!email || !password) { showAuthError(_t('auth_err_empty', 'Please fill in email and password.')); return; }
-    if (password.length < 6) { showAuthError(_t('auth_err_short', 'Password must be at least 6 characters.')); return; }
+    if (!isPasswordStrong(password)) { showAuthError(_t('auth_err_pwd_weak', 'Password must be 8+ chars with uppercase, lowercase, and number.')); return; }
 
     var password2 = document.getElementById('signup-password2').value;
     if (password !== password2) { showAuthError(_t('auth_err_pw_match', 'Passwords do not match.')); return; }
+
+    // CAPTCHA
+    var captchaInput = document.getElementById('signup-captcha');
+    if (captchaInput && captchaInput.value.trim().toUpperCase() !== _captchaCode) {
+        showAuthError(_t('auth_err_captcha', _captcha_err_alt())); generateCaptcha(); return;
+    }
 
     var btn = document.getElementById('signup-btn');
     btn.disabled = true; btn.textContent = 'Creating account...';

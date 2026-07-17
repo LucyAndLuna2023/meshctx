@@ -547,12 +547,27 @@ if (L && Object.keys(L).length > 0 && L['en']) {
             </div>
             <div class="auth-input-group">
                 <label data-lang-key="auth_label_pw">Password</label>
-                <input type="password" id="signup-password" data-lang-key-placeholder="auth_ph_pw" placeholder="At least 6 characters" autocomplete="new-password">
+                <input type="password" id="signup-password" data-lang-key-placeholder="auth_ph_pw" placeholder="At least 6 characters" autocomplete="new-password" oninput="checkPasswordStrength()">
+            </div>
+            <div class="pwd-strength-wrap" style="display:none;">
+                <span class="pwd-strength-label" data-lang-key="auth_pwd_strength">Password strength:</span>
+                <div class="pwd-strength-track"><div class="pwd-strength-fill" id="pwd-strength-bar"></div></div>
             </div>
             <div class="auth-input-group">
                 <label data-lang-key="auth_label_pw2">Confirm Password</label>
                 <input type="password" id="signup-password2" data-lang-key-placeholder="auth_ph_pw2" placeholder="Re-enter your password" autocomplete="new-password">
             </div>
+
+            <!-- CAPTCHA -->
+            <div class="captcha-wrap">
+                <label data-lang-key="auth_captcha_label">Verification Code</label>
+                <div class="captcha-row">
+                    <canvas id="captcha-canvas" width="140" height="48" style="border-radius:4px;cursor:pointer;" onclick="generateCaptcha()" title="Click to refresh"></canvas>
+                    <span class="captcha-refresh" onclick="generateCaptcha()" data-lang-key="auth_captcha_refresh">Refresh</span>
+                </div>
+                <input type="text" id="signup-captcha" data-lang-key-placeholder="auth_captcha_placeholder" placeholder="Enter the code above" maxlength="6" autocomplete="off">
+            </div>
+
             <button class="btn-submit" id="signup-btn" onclick="signUpWithEmail()" data-lang-key="auth_signup_btn">Create Account</button>
             <div class="auth-divider"><span data-lang-key="auth_divider">or continue with</span></div>
             <button class="btn-oauth btn-oauth-github" onclick="signInWithOAuth('github')">
