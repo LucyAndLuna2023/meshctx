@@ -12,6 +12,15 @@
 
     <!-- Auth: zero-dependency, pure fetch() against Supabase REST API -->
     <script src="auth.js"></script>
+    <script>
+    // Global error catcher — displays JS errors visibly
+    window.onerror = function(msg, url, line) {
+        var e = document.createElement('div');
+        e.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ef4444;color:#fff;padding:12px;z-index:99999;font-size:14px;text-align:center';
+        e.textContent = 'JS ERROR: ' + msg + ' (line ' + line + ')';
+        document.body.appendChild(e);
+    };
+    </script>
     <meta name="keywords" content="AI agent, self-improving, brain-inspired, code sandbox, project indexing, multi-agent, open-core, AGPLv3, MeshCtx">
     <meta name="author" content="MeshCtx">
     <meta property="og:title" content="MeshCtx — 17-Brain-Region Self-Improving Agent Platform">
