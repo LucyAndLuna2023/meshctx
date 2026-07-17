@@ -547,7 +547,11 @@ if (L && Object.keys(L).length > 0 && L['en']) {
             </div>
             <div class="auth-input-group">
                 <label data-lang-key="auth_label_pw">Password</label>
-                <input type="password" id="signup-password" placeholder="At least 6 characters" autocomplete="new-password">
+                <input type="password" id="signup-password" data-lang-key-placeholder="auth_ph_pw" placeholder="At least 6 characters" autocomplete="new-password">
+            </div>
+            <div class="auth-input-group">
+                <label data-lang-key="auth_label_pw2">Confirm Password</label>
+                <input type="password" id="signup-password2" data-lang-key-placeholder="auth_ph_pw2" placeholder="Re-enter your password" autocomplete="new-password">
             </div>
             <button class="btn-submit" id="signup-btn" onclick="signUpWithEmail()" data-lang-key="auth_signup_btn">Create Account</button>
             <div class="auth-divider"><span data-lang-key="auth_divider">or continue with</span></div>

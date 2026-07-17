@@ -75,6 +75,9 @@ async function signUpWithEmail() {
     if (!email || !password) { showAuthError(_t('auth_err_empty', 'Please fill in email and password.')); return; }
     if (password.length < 6) { showAuthError(_t('auth_err_short', 'Password must be at least 6 characters.')); return; }
 
+    var password2 = document.getElementById('signup-password2').value;
+    if (password !== password2) { showAuthError(_t('auth_err_pw_match', 'Passwords do not match.')); return; }
+
     var btn = document.getElementById('signup-btn');
     btn.disabled = true; btn.textContent = 'Creating account...';
 

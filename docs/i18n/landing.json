@@ -279,7 +279,10 @@
     "profile_new_pwd": "New Password",
     "profile_pwd_changed": "Password updated!",
     "profile_pwd_btn": "Update Password",
-    "auth_err_pwd_short": "Password must be at least 6 characters."
+    "auth_err_pwd_short": "Password must be at least 6 characters.",
+    "auth_label_pw2": "Confirm Password",
+    "auth_ph_pw2": "Re-enter your password",
+    "auth_err_pw_match": "Passwords do not match."
   },
   "zh": {
     "hero_title": "会<span>学习</span>的智能体",
@@ -561,7 +564,10 @@
     "profile_new_pwd": "新密码",
     "profile_pwd_changed": "密码已更新！",
     "profile_pwd_btn": "更新密码",
-    "auth_err_pwd_short": "密码至少需要 6 个字符。"
+    "auth_err_pwd_short": "密码至少需要 6 个字符。",
+    "auth_label_pw2": "确认密码",
+    "auth_ph_pw2": "再次输入密码",
+    "auth_err_pw_match": "两次输入的密码不一致。"
   },
   "fr": {
     "hero_title": "L'Agent qui <span>Apprend</span>",
@@ -843,7 +849,10 @@
     "profile_new_pwd": "Nouveau mot de passe",
     "profile_pwd_changed": "Mot de passe mis à jour !",
     "profile_pwd_btn": "Mettre à jour",
-    "auth_err_pwd_short": "Le mot de passe doit contenir au moins 6 caractères."
+    "auth_err_pwd_short": "Le mot de passe doit contenir au moins 6 caractères.",
+    "auth_label_pw2": "Confirmer le mot de passe",
+    "auth_ph_pw2": "Saisissez à nouveau",
+    "auth_err_pw_match": "Les mots de passe ne correspondent pas."
   },
   "de": {
     "hero_title": "Der Agent, der <span>lernt</span>",
@@ -1125,7 +1134,10 @@
     "profile_new_pwd": "Neues Passwort",
     "profile_pwd_changed": "Passwort aktualisiert!",
     "profile_pwd_btn": "Passwort aktualisieren",
-    "auth_err_pwd_short": "Passwort muss mindestens 6 Zeichen lang sein."
+    "auth_err_pwd_short": "Passwort muss mindestens 6 Zeichen lang sein.",
+    "auth_label_pw2": "Passwort bestätigen",
+    "auth_ph_pw2": "Passwort erneut eingeben",
+    "auth_err_pw_match": "Passwörter stimmen nicht überein."
   },
   "ja": {
     "hero_title": "学習する<span>エージェント</span>",
@@ -1407,7 +1419,10 @@
     "profile_new_pwd": "新しいパスワード",
     "profile_pwd_changed": "パスワードが更新されました！",
     "profile_pwd_btn": "パスワードを更新",
-    "auth_err_pwd_short": "パスワードは6文字以上必要です。"
+    "auth_err_pwd_short": "パスワードは6文字以上必要です。",
+    "auth_label_pw2": "パスワード確認",
+    "auth_ph_pw2": "パスワードを再入力",
+    "auth_err_pw_match": "パスワードが一致しません。"
   },
   "ko": {
     "hero_title": "학습하는 <span>에이전트</span>",
@@ -1689,7 +1704,10 @@
     "profile_new_pwd": "새 비밀번호",
     "profile_pwd_changed": "비밀번호가 변경되었습니다!",
     "profile_pwd_btn": "비밀번호 업데이트",
-    "auth_err_pwd_short": "비밀번호는 6자 이상이어야 합니다."
+    "auth_err_pwd_short": "비밀번호는 6자 이상이어야 합니다.",
+    "auth_label_pw2": "비밀번호 확인",
+    "auth_ph_pw2": "비밀번호 다시 입력",
+    "auth_err_pw_match": "비밀번호가 일치하지 않습니다."
   },
   "es": {
     "hero_title": "El Agente que <span>Aprende</span>",
@@ -1971,7 +1989,10 @@
     "profile_new_pwd": "Nueva contraseña",
     "profile_pwd_changed": "¡Contraseña actualizada!",
     "profile_pwd_btn": "Actualizar contraseña",
-    "auth_err_pwd_short": "La contraseña debe tener al menos 6 caracteres."
+    "auth_err_pwd_short": "La contraseña debe tener al menos 6 caracteres.",
+    "auth_label_pw2": "Confirmar contraseña",
+    "auth_ph_pw2": "Vuelva a escribir la contraseña",
+    "auth_err_pw_match": "Las contraseñas no coinciden."
   },
   "it": {
     "hero_title": "L'Agente Che <span>Impara</span>",
@@ -2253,7 +2274,10 @@
     "profile_new_pwd": "New Password",
     "profile_pwd_changed": "Password updated!",
     "profile_pwd_btn": "Update Password",
-    "auth_err_pwd_short": "Password must be at least 6 characters."
+    "auth_err_pwd_short": "Password must be at least 6 characters.",
+    "auth_label_pw2": "Confirm Password",
+    "auth_ph_pw2": "Re-enter your password",
+    "auth_err_pw_match": "Passwords do not match."
   },
   "ar": {
     "hero_title": "الوكيل الذي <span>يتعلّم</span>",
@@ -2535,6 +2559,9 @@
     "profile_new_pwd": "كلمة مرور جديدة",
     "profile_pwd_changed": "تم تحديث كلمة المرور!",
     "profile_pwd_btn": "تحديث كلمة المرور",
-    "auth_err_pwd_short": "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل."
+    "auth_err_pwd_short": "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.",
+    "auth_label_pw2": "Confirm Password",
+    "auth_ph_pw2": "Re-enter your password",
+    "auth_err_pw_match": "Passwords do not match."
   }
 }
