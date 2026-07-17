@@ -4,7 +4,7 @@
 
 // ═══ CONFIG ═══
 var SUPABASE_URL = 'https://xtyjsjlkljzdgvqpskyk.supabase.co';
-var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0eWpzamxrbGp6ZGd2cXBza3lrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNjk1NTAsImV4cCI6MjA5OTg0NTU1MH0.lFjTZ3LltOTiSXtBVtH0TD31Rrp8dLnHtmaMFNRNpfE';
+var SUPABASE_ANON_KEY = 'sb_publishable_y3oQKcnr2dADsN39_PSBvg_H3Qbm5Bf';
 var _sb = null;
 var _user = null;
 
@@ -37,8 +37,15 @@ function _getSupabase() {
                     method: 'POST',
                     headers: {'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json'},
                     body: JSON.stringify(body)
-                }).then(function(r){ return r.json().then(function(d){ 
-                    if (r.ok) return {data: {user: d, session: null}, error: null};
+                }).then(function(r){ return r.json().then(function(d){
+                    if (r.ok) {
+                        // Signup returns session only if email confirmation is OFF
+                        var session = null;
+                        if (d.access_token) {
+                            session = { access_token: d.access_token, refresh_token: d.refresh_token, expires_in: d.expires_in, user: d.user };
+                        }
+                        return {data: {user: d.user || d, session: session}, error: null};
+                    }
                     return {data: null, error: {message: d.msg || d.message || JSON.stringify(d)}};
                 }); })
                 .catch(function(e){ return {data: null, error: {message: 'Network error: ' + (e.message || 'connection failed')}}; });
@@ -49,7 +56,13 @@ function _getSupabase() {
                     headers: {'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json'},
                     body: JSON.stringify(params)
                 }).then(function(r){ return r.json().then(function(d){ 
-                    if (r.ok) return {data: d, error: null};
+                    if (r.ok) {
+                        // Normalize to {user, session} like signUp
+                        return {data: {
+                            user: d.user,
+                            session: { access_token: d.access_token, refresh_token: d.refresh_token, expires_in: d.expires_in }
+                        }, error: null};
+                    }
                     return {data: null, error: {message: d.msg || d.error_description || JSON.stringify(d)}};
                 }); })
                 .catch(function(e){ return {data: null, error: {message: 'Network error: ' + (e.message || 'connection failed')}}; });
@@ -86,12 +99,13 @@ function _getSupabase() {
             },
             onAuthStateChange: function(cb) { _onAuthChange = cb; },
             signOut: function() {
+                var tok = _token;
                 _token = null; _user = null;
                 localStorage.removeItem('meshctx-token');
                 if (_onAuthChange) _onAuthChange('SIGNED_OUT', null);
                 return fetch(SUPABASE_URL + '/auth/v1/logout', {
                     method: 'POST',
-                    headers: {'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + (_token || '')}
+                    headers: {'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + (tok || '')}
                 }).catch(function(){});
             }
         }
@@ -137,10 +151,26 @@ function showAuthError(msg) {
     var text = (typeof msg === 'string') ? msg : (msg && msg.message) ? msg.message : String(msg || 'Unknown error');
     var errs = document.querySelectorAll('.auth-error');
     for (var i = 0; i < errs.length; i++) { errs[i].textContent = text; }
+    // Flash error on buttons briefly, then restore original text
     var sbtn = document.getElementById('signup-btn');
-    if (sbtn) { sbtn.textContent = '❌ ' + text.substring(0, 30); sbtn.disabled = false; }
     var ibn = document.getElementById('signin-btn');
-    if (ibn) { ibn.textContent = '❌ ' + text.substring(0, 30); ibn.disabled = false; }
+    var rbtn = document.getElementById('reset-btn');
+    var btns = [sbtn, ibn, rbtn];
+    for (var j = 0; j < btns.length; j++) {
+        var btn = btns[j];
+        if (!btn || btn.disabled) continue;
+        var orig = btn.getAttribute('data-orig-text');
+        if (!orig) { orig = btn.textContent; btn.setAttribute('data-orig-text', orig); }
+        btn.textContent = '❌ ' + text.substring(0, 30);
+        btn.style.background = '#ef4444';
+        btn.disabled = false;
+        (function(b, o) {
+            setTimeout(function() {
+                b.textContent = o;
+                b.style.background = '';
+            }, 3000);
+        })(btn, orig);
+    }
 }
 
 // ═══ Password Strength ═══
@@ -280,12 +310,19 @@ async function signUpWithEmail() {
 
     if (error) { showAuthError(error.message); return; }
 
-    if (data.session && data.session.access_token) { _token = data.session.access_token; localStorage.setItem('meshctx-token', _token); }
-    if (data.user && data.user.identities && data.user.identities.length === 0) {
-        showAuthError('This email is already registered. Please sign in instead.');
-    } else {
-        showAuthError(_t('auth_confirm', 'Check your email for a confirmation link!'));
+    // If email confirmation is off, we get a session immediately
+    if (data.session && data.session.access_token) {
+        _token = data.session.access_token;
+        localStorage.setItem('meshctx-token', _token);
+        _user = data.session.user || data.user;
+        updateAuthUI();
+        hideAuthModal();
+        return;
     }
+
+    // Email confirmation is on — identities is empty [] for new users
+    // "already registered" returns 422 error from Supabase, caught above
+    showAuthError(_t('auth_confirm', 'Check your email for a confirmation link!'));
     } catch(e) { btn.disabled = false; btn.textContent = 'Create Account'; showAuthError('Network error. Please check your connection and try again.'); }
 }
 
@@ -310,6 +347,8 @@ async function signInWithEmail() {
     btn.disabled = false; btn.textContent = 'Sign In';
 
     if (error) { showAuthError(error.message); return; }
+    _token = data.session.access_token;
+    localStorage.setItem('meshctx-token', _token);
     _user = data.user;
     updateAuthUI();
     hideAuthModal();
