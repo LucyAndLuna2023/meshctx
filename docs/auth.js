@@ -1,13 +1,27 @@
 /**
- * MeshCtx Auth — Supabase (Email + GitHub + Google) + Profile Management
+ * MeshCtx Auth — Supabase (Email + GitHub + Google) + i18n
  */
 
 // ═══ CONFIG ═══
 var SUPABASE_URL = 'https://xtyjsjlkljzdgvqpskyk.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0eWpzamxrbGp6ZGd2cXBza3lrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNjk1NTAsImV4cCI6MjA5OTg0NTU1MH0.lFjTZ3LltOTiSXtBVtH0TD31Rrp8dLnHtmaMFNRNpfE';
-
 var _sb = null;
 var _user = null;
+
+// ═══ i18n helpers (L & switchLang from index.html / profile.html) ═══
+function _t(key, fallback) {
+    try {
+        if (typeof L !== 'undefined' && L && L['en'] && L['en'][key] !== undefined)
+            return L['en'][key];
+    } catch(e) {}
+    return fallback || key;
+}
+
+function _refreshAuthI18n() {
+    // Re-apply translations to auth modal (since it's hidden, we trigger on open)
+    if (typeof switchLang !== 'function') return;
+    try { switchLang((typeof L !== 'undefined' && L && Object.keys(L).length) ? (localStorage.getItem('meshctx-lang') || 'en') : 'en'); } catch(e) {}
+}
 
 function _getSupabase() {
     if (!_sb && SUPABASE_URL) {
@@ -30,6 +44,7 @@ function showAuthModal(tab) {
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
     clearAuthError();
+    _refreshAuthI18n();
 }
 
 function hideAuthModal() {
@@ -57,8 +72,8 @@ async function signUpWithEmail() {
     var email = document.getElementById('signup-email').value.trim();
     var password = document.getElementById('signup-password').value;
     var name = document.getElementById('signup-name').value.trim();
-    if (!email || !password) { showAuthError('Please fill in email and password.'); return; }
-    if (password.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
+    if (!email || !password) { showAuthError(_t('auth_err_empty', 'Please fill in email and password.')); return; }
+    if (password.length < 6) { showAuthError(_t('auth_err_short', 'Password must be at least 6 characters.')); return; }
 
     var btn = document.getElementById('signup-btn');
     btn.disabled = true; btn.textContent = 'Creating account...';
@@ -78,7 +93,7 @@ async function signUpWithEmail() {
     if (data.user && data.user.identities && data.user.identities.length === 0) {
         showAuthError('This email is already registered. Please sign in instead.');
     } else {
-        showAuthError('Check your email for a confirmation link!');
+        showAuthError(_t('auth_confirm', 'Check your email for a confirmation link!'));
     }
 }
 
@@ -88,7 +103,7 @@ async function signInWithEmail() {
     if (!sb) return;
     var email = document.getElementById('signin-email').value.trim();
     var password = document.getElementById('signin-password').value;
-    if (!email || !password) { showAuthError('Please fill in email and password.'); return; }
+    if (!email || !password) { showAuthError(_t('auth_err_empty', 'Please fill in email and password.')); return; }
 
     var btn = document.getElementById('signin-btn');
     btn.disabled = true; btn.textContent = 'Signing in...';

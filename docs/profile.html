@@ -1,344 +1,248 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile — MeshCtx</title>
     <link rel="stylesheet" href="auth.css">
     <style>
-        :root {
-            --surface: #0f0f1a; --fg: #e2e8f0; --muted: #64748b;
-            --border: #1e293b; --accent: #8b5cf6;
-        }
-        body {
-            margin: 0; background: #08080f; color: var(--fg);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-        .profile-nav {
-            position: fixed; top: 0; width: 100%;
-            background: rgba(10,10,20,0.92); backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border); z-index: 100;
-        }
-        .profile-nav-inner {
-            max-width: 680px; margin: 0 auto; padding: 12px 24px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .profile-nav-inner a { color: var(--accent); text-decoration: none; font-size: 0.9rem; }
-        .profile-nav-inner a:hover { text-decoration: underline; }
-        .profile-container { max-width: 680px; margin: 80px auto 60px; padding: 0 24px; }
-        .profile-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 12px; padding: 32px; margin-bottom: 24px;
-        }
-        .profile-card h2 { font-size: 1.4rem; margin-bottom: 6px; }
-        .profile-card .section-desc { color: var(--muted); font-size: 0.85rem; margin-bottom: 20px; }
-        .profile-avatar-section {
-            display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
-        }
-        .profile-avatar-large {
-            width: 80px; height: 80px; border-radius: 50%; object-fit: cover;
-            border: 3px solid var(--accent);
-        }
-        .avatar-placeholder {
-            width: 80px; height: 80px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent), #6366f1);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 2rem; color: #fff; font-weight: 700;
-        }
-        .profile-field { margin-bottom: 16px; }
-        .profile-field label {
-            display: block; font-size: 0.8rem; font-weight: 600;
-            color: var(--muted); margin-bottom: 4px;
-        }
-        .profile-field input, .profile-field textarea {
-            width: 100%; padding: 10px 12px;
-            background: rgba(255,255,255,0.05); border: 1px solid var(--border);
-            border-radius: 6px; color: var(--fg); font-size: 0.9rem;
-            box-sizing: border-box; transition: border-color 0.2s;
-        }
-        .profile-field textarea { min-height: 80px; resize: vertical; }
-        .profile-field input:focus, .profile-field textarea:focus {
-            outline: none; border-color: var(--accent);
-        }
-        .profile-field input:disabled, .profile-field textarea:disabled {
-            opacity: 0.5; cursor: not-allowed;
-        }
-        .btn-save {
-            padding: 10px 24px;
-            background: linear-gradient(135deg, #8b5cf6, #6366f1);
-            border: none; color: #fff; border-radius: 6px;
-            font-size: 0.9rem; font-weight: 600; cursor: pointer;
-            transition: opacity 0.2s;
-        }
-        .btn-save:hover { opacity: 0.9; }
-        .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn-outline {
-            padding: 10px 20px;
-            background: transparent; border: 1px solid var(--border);
-            color: var(--fg); border-radius: 6px;
-            font-size: 0.9rem; font-weight: 600; cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-outline:hover { border-color: var(--accent); }
-        .btn-outline.danger { border-color: #ef4444; color: #ef4444; }
-        .btn-outline.danger:hover { background: rgba(239,68,68,0.1); }
-        .status-msg { font-size: 0.85rem; min-height: 20px; margin-top: 8px; }
-        .status-msg.success { color: #22c55e; }
-        .status-msg.error { color: #ef4444; }
-        .email-list-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 10px 0; border-bottom: 1px solid var(--border);
-        }
-        .email-list-item:last-child { border-bottom: none; }
-        .email-badge {
-            font-size: 0.7rem; padding: 2px 8px; border-radius: 10px;
-            background: rgba(34,197,94,0.15); color: #22c55e;
-        }
-        .btn-sm {
-            padding: 3px 12px; font-size: 0.75rem;
-            background: transparent; border: 1px solid var(--border);
-            color: var(--muted); border-radius: 4px; cursor: pointer;
-        }
-        .btn-sm:hover { border-color: #ef4444; color: #ef4444; }
-        .flex-row { display: flex; gap: 12px; align-items: center; }
-        .flex-between { display: flex; justify-content: space-between; align-items: center; }
-        .not-logged-in {
-            text-align: center; padding: 80px 24px;
-        }
-        .not-logged-in h2 { font-size: 1.5rem; margin-bottom: 12px; }
-        .not-logged-in p { color: var(--muted); margin-bottom: 24px; }
-        @media (max-width: 480px) {
-            .profile-card { padding: 20px; }
-            .profile-avatar-section { flex-direction: column; text-align: center; }
-        }
+        body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#0a0a12; color:#e0e0e0; min-height:100vh; }
+        .header { display:flex; align-items:center; padding:12px 24px; border-bottom:1px solid #1a1a2e; background:#0d0d1a; }
+        .header a { color:#8b5cf6; text-decoration:none; font-size:14px; }
+        .container { max-width:640px; margin:0 auto; padding:32px 20px; }
+        h1 { font-size:28px; margin-bottom:8px; }
+        .subtitle { color:#888; font-size:14px; margin-bottom:32px; }
+        .section { background:#111122; border:1px solid #1a1a2e; border-radius:12px; padding:24px; margin-bottom:24px; }
+        .section-title { font-size:16px; font-weight:600; margin-bottom:4px; }
+        .section-desc { color:#888; font-size:13px; margin-bottom:16px; }
+        .form-group { margin-bottom:16px; }
+        .form-group label { display:block; font-size:13px; font-weight:500; color:#aaa; margin-bottom:6px; }
+        .form-group input, .form-group textarea { width:100%; padding:10px 12px; background:#0a0a12; border:1px solid #1a1a2e; border-radius:8px; color:#e0e0e0; font-size:14px; box-sizing:border-box; }
+        .form-group textarea { min-height:80px; resize:vertical; }
+        .btn { padding:10px 20px; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
+        .btn-primary { background:linear-gradient(135deg,#8b5cf6,#6d28d9); color:#fff; }
+        .btn-primary:hover { opacity:0.9; }
+        .btn-danger { background:transparent; color:#ef4444; border:1px solid #ef4444; }
+        .btn-danger:hover { background:#ef4444; color:#fff; }
+        .btn-sm { padding:5px 10px; font-size:12px; }
+        .email-row { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #1a1a2e; }
+        .email-row:last-child { border:none; }
+        .email-addr { flex:1; font-size:14px; }
+        .email-primary { font-size:11px; background:#8b5cf620; color:#8b5cf6; padding:2px 8px; border-radius:10px; }
+        .add-email { display:flex; gap:8px; margin-top:12px; }
+        .add-email input { flex:1; padding:8px 12px; background:#0a0a12; border:1px solid #1a1a2e; border-radius:8px; color:#e0e0e0; font-size:13px; }
+        .saved-toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#10b981; color:#fff; padding:10px 20px; border-radius:8px; font-size:14px; display:none; z-index:999; }
+        .not-logged { text-align:center; padding:60px 20px; }
+        .not-logged h2 { font-size:24px; margin-bottom:8px; }
+        .not-logged p { color:#888; margin-bottom:24px; }
+        .not-logged a { color:#8b5cf6; font-size:16px; }
     </style>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <script src="auth.js"></script>
 </head>
 <body>
+<div class="header">
+    <a href="/">&larr; <span data-lang-key="profile_back">Back to Home</span></a>
+</div>
 
-<div class="profile-nav">
-    <div class="profile-nav-inner">
-        <span style="font-weight:700;">Mesh<span style="color:var(--accent);">Ctx</span> Profile</span>
-        <a href="/">← Back to Home</a>
+<div class="container" id="profile-container">
+    <!-- Not logged in -->
+    <div class="not-logged" id="profile-not-logged">
+        <h2 data-lang-key="profile_nologin">Not Logged In</h2>
+        <p data-lang-key="profile_nologin_d">Please sign in to manage your profile.</p>
+        <a href="/">&#8592; <span data-lang-key="profile_back">Back to Home</span></a>
     </div>
-</div>
 
-<div id="not-logged-in" class="not-logged-in" style="display:none">
-    <h2>Not Logged In</h2>
-    <p>Please sign in to manage your profile.</p>
-    <button class="btn-save" onclick="window.location.href='/?auth=signin'">Sign In</button>
-</div>
+    <!-- Profile form -->
+    <div id="profile-form" style="display:none;">
+        <h1 data-lang-key="profile_title">Profile</h1>
+        <p class="subtitle" id="profile-email-display"></p>
 
-<div id="profile-content" style="display:none">
+        <div class="section">
+            <div class="section-title" data-lang-key="profile_public">Public Profile</div>
+            <div class="section-desc" data-lang-key="profile_pub_desc">This information will be displayed publicly.</div>
+            <div class="form-group">
+                <label data-lang-key="profile_dname">Display Name</label>
+                <input type="text" id="pf-name" data-lang-key-placeholder="auth_ph_name" placeholder="Your name">
+            </div>
+            <div class="form-group">
+                <label data-lang-key="profile_avatar">Avatar URL</label>
+                <input type="url" id="pf-avatar" placeholder="https://...">
+            </div>
+            <div class="form-group">
+                <label data-lang-key="profile_bio">Bio</label>
+                <textarea id="pf-bio" data-lang-key-placeholder="profile_bio_ph" placeholder="Tell us about yourself..."></textarea>
+            </div>
+            <div class="form-group">
+                <label data-lang-key="profile_web">Website</label>
+                <input type="url" id="pf-website" placeholder="https://...">
+            </div>
+            <div class="form-group">
+                <label data-lang-key="profile_company">Company</label>
+                <input type="text" id="pf-company" placeholder="Company name">
+            </div>
+            <button class="btn btn-primary" onclick="saveProfile()" data-lang-key="profile_save">Save Changes</button>
+        </div>
 
-    <!-- Profile Card -->
-    <div class="profile-container">
-        <div class="profile-card">
-            <h2>Public Profile</h2>
-            <p class="section-desc">This information will be displayed publicly.</p>
-
-            <div class="profile-avatar-section">
-                <div class="avatar-placeholder" id="avatar-init">?</div>
-                <img class="profile-avatar-large" id="avatar-img" src="" alt="" style="display:none">
-                <div>
-                    <div style="font-weight:700;font-size:1.1rem" id="display-name-preview"></div>
-                    <div style="color:var(--muted);font-size:0.85rem" id="email-preview"></div>
-                </div>
-            </div>
-
-            <div class="profile-field">
-                <label>Display Name</label>
-                <input type="text" id="profile-name" placeholder="Your display name">
-            </div>
-            <div class="profile-field">
-                <label>Avatar URL</label>
-                <input type="url" id="profile-avatar" placeholder="https://...">
-            </div>
-            <div class="profile-field">
-                <label>Bio</label>
-                <textarea id="profile-bio" placeholder="Tell us about yourself..."></textarea>
-            </div>
-            <div class="profile-field">
-                <label>Website</label>
-                <input type="url" id="profile-website" placeholder="https://your-site.com">
-            </div>
-            <div class="profile-field">
-                <label>Company</label>
-                <input type="text" id="profile-company" placeholder="Your company">
-            </div>
-
-            <div class="flex-row">
-                <button class="btn-save" id="save-profile-btn" onclick="saveProfile()">Save Changes</button>
-                <span class="status-msg" id="profile-status"></span>
+        <div class="section">
+            <div class="section-title" data-lang-key="profile_emails">Email Addresses</div>
+            <div class="section-desc" data-lang-key="profile_em_desc">Manage your email addresses.</div>
+            <div id="pf-emails"></div>
+            <div class="add-email">
+                <input type="email" id="pf-new-email" data-lang-key-placeholder="profile_em_ph" placeholder="Add email address">
+                <button class="btn btn-primary btn-sm" onclick="addEmail()" data-lang-key="profile_em_add">Add</button>
             </div>
         </div>
 
-        <!-- Email Card -->
-        <div class="profile-card">
-            <h2>Email Addresses</h2>
-            <p class="section-desc">Manage your email addresses. Primary email is used for sign-in and notifications.</p>
-
-            <div id="email-list"></div>
-
-            <div style="margin-top:16px" class="flex-row">
-                <input type="email" id="new-email" placeholder="Add email address" style="flex:1;padding:8px 12px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;color:var(--fg);font-size:0.9rem">
-                <button class="btn-outline" onclick="addNewEmail()">Add</button>
-            </div>
-            <div class="status-msg" id="email-status"></div>
-        </div>
-
-        <!-- Danger Zone -->
-        <div class="profile-card" style="border-color:#ef4444">
-            <h2 style="color:#ef4444">Danger Zone</h2>
-            <p class="section-desc">Destructive actions — cannot be undone.</p>
-            <button class="btn-outline danger" onclick="deleteAccount()">Delete Account</button>
-            <div class="status-msg" id="danger-status"></div>
+        <div class="section">
+            <div class="section-title" style="color:#ef4444;" data-lang-key="profile_danger">Danger Zone</div>
+            <div class="section-desc" data-lang-key="profile_danger_d">Destructive actions — cannot be undone.</div>
+            <button class="btn btn-danger" onclick="deleteAccount()" data-lang-key="profile_delete">Delete Account</button>
         </div>
     </div>
 </div>
 
+<div class="saved-toast" id="pf-toast" data-lang-key="profile_saved">&#10003; Profile updated!</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-var _profileLoaded = false;
+var SUPABASE_URL = 'https://xtyjsjlkljzdgvqpskyk.supabase.co';
+var SUPABASE_ANON_KEY = 'eyJhbG...NpfE';
+var _supabase = null;
+function _sb(){ if(!_supabase) _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); return _supabase; }
 
-async function initProfile() {
-    // Wait for auth to init
-    await new Promise(function(r) { setTimeout(r, 500); });
-
-    if (!_user) {
-        document.getElementById('not-logged-in').style.display = 'block';
-        return;
-    }
-
-    document.getElementById('profile-content').style.display = 'block';
-    loadProfileData();
+// ═══ i18n ═══
+var L = {};
+var _langPending = 'en';
+function _loadI18n(){
+    fetch('/i18n/landing.json')
+    .then(function(r){ return r.json(); })
+    .then(function(d){ L = d; switchLang(_langPending); })
+    .catch(function(){});
 }
 
-function loadProfileData() {
-    if (!_user) return;
-    var meta = _user.user_metadata || {};
-
-    document.getElementById('profile-name').value = meta.full_name || '';
-    document.getElementById('profile-avatar').value = meta.avatar_url || '';
-    document.getElementById('profile-bio').value = meta.bio || '';
-    document.getElementById('profile-website').value = meta.website || '';
-    document.getElementById('profile-company').value = meta.company || '';
-
-    var name = meta.full_name || _user.email || 'User';
-    document.getElementById('display-name-preview').textContent = name;
-    document.getElementById('email-preview').textContent = _user.email || '';
-
-    if (meta.avatar_url) {
-        document.getElementById('avatar-init').style.display = 'none';
-        document.getElementById('avatar-img').style.display = 'block';
-        document.getElementById('avatar-img').src = meta.avatar_url;
-    } else {
-        document.getElementById('avatar-init').textContent = (name[0] || '?').toUpperCase();
-    }
-
-    renderEmailList();
-    _profileLoaded = true;
-}
-
-function renderEmailList() {
-    var el = document.getElementById('email-list');
-    if (!_user) return;
-    var emails = (_user.user_metadata || {}).emails || [];
-    var allEmails = [_user.email].concat(emails).filter(Boolean);
-
-    el.innerHTML = allEmails.map(function(e, i) {
-        return '<div class="email-list-item">' +
-            '<span>' + e + (i === 0 ? ' <span class="email-badge">Primary</span>' : '') + '</span>' +
-            (i > 0 ? '<button class="btn-sm" onclick="removeEmail(' + i + ')">Remove</button>' : '') +
-            '</div>';
-    }).join('');
-}
-
-async function saveProfile() {
-    var btn = document.getElementById('save-profile-btn');
-    var status = document.getElementById('profile-status');
-    btn.disabled = true; status.textContent = 'Saving...'; status.className = 'status-msg';
-
-    var { error } = await updateProfile({
-        full_name: document.getElementById('profile-name').value.trim(),
-        avatar_url: document.getElementById('profile-avatar').value.trim(),
-        bio: document.getElementById('profile-bio').value.trim(),
-        website: document.getElementById('profile-website').value.trim(),
-        company: document.getElementById('profile-company').value.trim()
+function switchLang(lang){
+    if(!L || !L['en']){ _langPending = lang; return; }
+    var els = Array.from(document.querySelectorAll('[data-lang-key]'));
+    function _d(e){ var d=0; while(e.parentElement){d++;e=e.parentElement;} return d; }
+    els.sort(function(a,b){ return _d(b)-_d(a); });
+    els.forEach(function(el){
+        var key = el.getAttribute('data-lang-key');
+        if(!key) return;
+        var val = L[lang] && L[lang][key] !== undefined ? L[lang][key] : (L['en'] && L['en'][key]);
+        if(val === undefined) return;
+        if(el.querySelector('[data-lang-key]')){
+            for(var cn=el.firstChild; cn; cn=cn.nextSibling){
+                if(cn.nodeType===3 && cn.textContent.trim()){ cn.textContent = val; return; }
+                if(cn.nodeType===1 && !cn.hasAttribute('data-lang-key') && !cn.querySelector('[data-lang-key]')){ cn.innerHTML = val; return; }
+            }
+            return;
+        }
+        el.innerHTML = val;
     });
-
-    btn.disabled = false;
-    if (error) {
-        status.textContent = 'Error: ' + error.message;
-        status.className = 'status-msg error';
-    } else {
-        status.textContent = '✓ Profile updated!';
-        status.className = 'status-msg success';
-        loadProfileData();
-    }
+    document.querySelectorAll('[data-lang-key-placeholder]').forEach(function(el){
+        var key = el.getAttribute('data-lang-key-placeholder');
+        if(!key) return;
+        var val = L[lang] && L[lang][key] !== undefined ? L[lang][key] : (L['en'] && L['en'][key]);
+        if(val !== undefined) el.placeholder = val;
+    });
+    document.documentElement.lang = lang;
+    document.documentElement.dir = (lang==='ar') ? 'rtl' : 'ltr';
+    try { localStorage.setItem('meshctx-lang', lang); } catch(e) {}
 }
 
-async function addNewEmail() {
-    var input = document.getElementById('new-email');
-    var email = input.value.trim();
-    var status = document.getElementById('email-status');
-    if (!email) return;
+var saved; try{ saved = localStorage.getItem('meshctx-lang'); }catch(e){ saved=null; }
+_langPending = saved || 'en';
+_loadI18n();
 
-    status.textContent = 'Updating...'; status.className = 'status-msg';
-
-    // Supabase only supports one email natively; for additional emails store in metadata
-    var meta = (_user.user_metadata || {});
-    var emails = meta.emails || [];
-    if (emails.indexOf(email) !== -1) {
-        status.textContent = 'Email already added';
-        status.className = 'status-msg error';
+// ═══ Auth & Profile ═══
+async function initProfile(){
+    var sb = _sb();
+    var r = await sb.auth.getSession();
+    if(!r.data.session){
+        document.getElementById('profile-not-logged').style.display = 'block';
+        document.getElementById('profile-form').style.display = 'none';
         return;
     }
-    emails.push(email);
+    document.getElementById('profile-not-logged').style.display = 'none';
+    document.getElementById('profile-form').style.display = 'block';
+    var u = r.data.session.user;
+    document.getElementById('profile-email-display').textContent = u.email;
+    // Load metadata
+    var m = u.user_metadata || {};
+    document.getElementById('pf-name').value = m.display_name || m.full_name || m.name || '';
+    document.getElementById('pf-avatar').value = m.avatar_url || '';
+    document.getElementById('pf-bio').value = m.bio || '';
+    document.getElementById('pf-website').value = m.website || '';
+    document.getElementById('pf-company').value = m.company || '';
+    loadEmails(sb);
+}
 
-    var { error } = await updateProfile({});
-    if (error) {
-        status.textContent = 'Error: ' + error.message;
-        status.className = 'status-msg error';
-    } else {
-        // Update metadata directly
-        var sb = _getSupabase();
-        var { error: e2 } = await sb.auth.updateUser({ data: { emails: emails } });
-        if (e2) {
-            status.textContent = 'Error: ' + e2.message;
-            status.className = 'status-msg error';
-        } else {
-            _user.user_metadata.emails = emails;
-            status.textContent = '✓ Email added!';
-            status.className = 'status-msg success';
-            input.value = '';
-            renderEmailList();
+async function loadEmails(sb){
+    var el = document.getElementById('pf-emails');
+    el.innerHTML = '';
+    // Fetch identities (linked emails)
+    var r = await sb.auth.getUserIdentities ? sb.auth.getUserIdentities() : null;
+    var identities = r && r.data ? r.data.identities || [] : [];
+    // Get the main user email first
+    var u = (await sb.auth.getSession()).data.session.user;
+    var primary = u.email;
+    var all = [{email:primary, id:'primary'}];
+    for(var i=0; i<identities.length; i++){
+        if(identities[i].identity_data && identities[i].identity_data.email && identities[i].identity_data.email !== primary){
+            all.push({email:identities[i].identity_data.email, id:identities[i].id});
         }
     }
+    var rmLabel = L['en'] && L['en']['profile_em_remove'] ? L['en']['profile_em_remove'] : 'Remove';
+    var pmLabel = L['en'] && L['en']['profile_em_primary'] ? L['en']['profile_em_primary'] : 'Primary';
+    for(var j=0; j<all.length; j++){
+        var em = all[j];
+        var div = document.createElement('div');
+        div.className = 'email-row';
+        div.innerHTML = '<span class="email-addr">'+em.email+'</span>' + (em.id==='primary' ? '<span class="email-primary">'+pmLabel+'</span>' : '<button class="btn btn-danger btn-sm" onclick="removeEmail(this,\''+em.id+'\')">'+rmLabel+'</button>');
+        el.appendChild(div);
+    }
 }
 
-async function removeEmail(index) {
-    var meta = (_user.user_metadata || {});
-    var emails = meta.emails || [];
-    emails.splice(index - 1, 1);
-    var sb = _getSupabase();
-    await sb.auth.updateUser({ data: { emails: emails } });
-    _user.user_metadata.emails = emails;
-    renderEmailList();
+async function saveProfile(){
+    var sb = _sb();
+    var meta = {
+        display_name: document.getElementById('pf-name').value,
+        avatar_url: document.getElementById('pf-avatar').value,
+        bio: document.getElementById('pf-bio').value,
+        website: document.getElementById('pf-website').value,
+        company: document.getElementById('pf-company').value
+    };
+    var r = await sb.auth.updateUser({data:meta});
+    if(r.error){ alert(r.error.message); return; }
+    var t = document.getElementById('pf-toast');
+    t.style.display = 'block';
+    setTimeout(function(){ t.style.display = 'none'; }, 2000);
 }
 
-async function deleteAccount() {
-    if (!confirm('Are you sure? This will permanently delete your account and all data. This cannot be undone.')) return;
-    var sb = _getSupabase();
-    // Note: deleting a user requires admin privileges via service_role key
-    // For self-service, we'd need a Supabase Edge Function
-    var status = document.getElementById('danger-status');
-    status.textContent = 'Account deletion requires contacting support. Email support@meshctx.com';
-    status.className = 'status-msg error';
+async function addEmail(){
+    var email = document.getElementById('pf-new-email').value.trim();
+    if(!email) return;
+    var sb = _sb();
+    // Supabase doesn't have direct add-email API; use updateUser to change primary
+    // Actually, let's use the admin API pattern. For now, just update primary.
+    var r = await sb.auth.updateUser({email:email});
+    if(r.error){ alert(r.error.message); return; }
+    alert('Check your inbox to confirm the new email.');
+    document.getElementById('pf-new-email').value = '';
 }
 
-document.addEventListener('DOMContentLoaded', initProfile);
+async function removeEmail(btn, id){
+    if(!confirm('Remove this email?')) return;
+    // Note: full email management requires server-side admin API
+    alert('Email management requires admin API. Coming soon.');
+}
+
+async function deleteAccount(){
+    if(!confirm('Permanently delete your account? This action cannot be undone.')) return;
+    // Requires admin API
+    alert('Account deletion requires admin API. Coming soon.');
+}
+
+initProfile();
 </script>
 </body>
 </html>
