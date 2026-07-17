@@ -263,6 +263,8 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
             <option value="fr">Français</option>
             <option value="de">Deutsch</option>
             <option value="es">Español</option>
+            <option value="it">🇮🇹 Italiano</option>
+            <option value="ar">🇸🇦 العربية</option>
         </select>
         <button onclick="toggleTheme()" id="themeToggle" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:4px;font-size:14px;cursor:pointer;margin-left:4px;transition:border-color 0.3s ease,color 0.3s ease;" title="{{ t("toggle_theme") }}">🌙</button>
     </div>

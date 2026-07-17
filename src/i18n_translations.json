@@ -1132,7 +1132,9 @@
     "dashboard_modules_ok": "模块正常",
     "dashboard_modules_err": "模块异常",
     "dashboard_ws_info": "WebSocket /ws/health — 实时监控",
-    "setup_text_f653ae": "配置飞书机器人Webhook，接收部署/健康/错误实时通知"
+    "setup_text_f653ae": "配置飞书机器人Webhook，接收部署/健康/错误实时通知",
+    "italian": "意大利语",
+    "arabic": "阿拉伯语"
   },
   "en": {
     "2d": "2D",
@@ -2314,7 +2316,9 @@
         "name": "Arabic",
         "native": "العربية"
       }
-    ]
+    ],
+    "italian": "Italian",
+    "arabic": "Arabic"
   },
   "ja": {
     "2d": "2D",
@@ -3449,7 +3453,9 @@
     "dashboard_modules_ok": "正常モジュール",
     "dashboard_modules_err": "異常モジュール",
     "dashboard_ws_info": "WebSocket /ws/health — リアルタイム監視",
-    "setup_text_f653ae": "FeishuボットWebhookを設定して、デプロイ/正常性/エラーのリアルタイム通知を受信"
+    "setup_text_f653ae": "FeishuボットWebhookを設定して、デプロイ/正常性/エラーのリアルタイム通知を受信",
+    "italian": "イタリア語",
+    "arabic": "アラビア語"
   },
   "ko": {
     "2d": "2D",
@@ -4584,7 +4590,9 @@
     "dashboard_modules_ok": "정상 모듈",
     "dashboard_modules_err": "오류 모듈",
     "dashboard_ws_info": "WebSocket /ws/health — 실시간 모니터링",
-    "setup_text_f653ae": "Feishu 봇 Webhook을 구성하여 배포/상태/오류 실시간 알림을 수신하세요"
+    "setup_text_f653ae": "Feishu 봇 Webhook을 구성하여 배포/상태/오류 실시간 알림을 수신하세요",
+    "italian": "이탈리아어",
+    "arabic": "아랍어"
   },
   "fr": {
     "2d": "2D",
@@ -5719,7 +5727,9 @@
     "dashboard_modules_ok": "Modules OK",
     "dashboard_modules_err": "Modules Erreur",
     "dashboard_ws_info": "WebSocket /ws/health — Surveillance en temps réel",
-    "setup_text_f653ae": "Configurer le Webhook du bot Feishu pour recevoir des notifications en temps réel de déploiement, santé et erreurs"
+    "setup_text_f653ae": "Configurer le Webhook du bot Feishu pour recevoir des notifications en temps réel de déploiement, santé et erreurs",
+    "italian": "Italien",
+    "arabic": "Arabe"
   },
   "de": {
     "2d": "2D",
@@ -6854,7 +6864,9 @@
     "dashboard_modules_ok": "Module OK",
     "dashboard_modules_err": "Module Fehler",
     "dashboard_ws_info": "WebSocket /ws/health — Echtzeit-Überwachung",
-    "setup_text_f653ae": "Feishu-Bot-Webhook konfigurieren, um Echtzeit-Benachrichtigungen zu Deployment, Zustand und Fehlern zu erhalten"
+    "setup_text_f653ae": "Feishu-Bot-Webhook konfigurieren, um Echtzeit-Benachrichtigungen zu Deployment, Zustand und Fehlern zu erhalten",
+    "italian": "Italienisch",
+    "arabic": "Arabisch"
   },
   "es": {
     "2d": "2D",
@@ -7989,7 +8001,9 @@
     "dashboard_modules_ok": "Módulos OK",
     "dashboard_modules_err": "Módulos Error",
     "dashboard_ws_info": "WebSocket /ws/health — Monitoreo en tiempo real",
-    "setup_text_f653ae": "Configurar el Webhook del bot Feishu para recibir notificaciones en tiempo real de despliegue, estado y errores"
+    "setup_text_f653ae": "Configurar el Webhook del bot Feishu para recibir notificaciones en tiempo real de despliegue, estado y errores",
+    "italian": "Italiano",
+    "arabic": "Árabe"
   },
   "it": {
     "2d": "2D",
@@ -9171,7 +9185,9 @@
         "name": "Arabic",
         "native": "العربية"
       }
-    ]
+    ],
+    "italian": "Italiano",
+    "arabic": "Arabo"
   },
   "ar": {
     "2d": "ثنائي الأبعاد",
@@ -10307,6 +10323,8 @@
     "dashboard_modules_err": "خطأ في الوحدات",
     "dashboard_ws_info": "WebSocket /ws/health — مراقبة فورية",
     "setup_text_f653ae": "إعداد Webhook بوت Feishu لاستلام إشعارات النشر والصحة والأخطاء في الوقت الفعلي",
-    "__available_langs__": "[{\"code\": \"zh\", \"name\": \"Chinese\", \"native\": \"中文\"}, {\"code\": \"en\", \"name\": \"English\", \"native\": \"English\"}, {\"code\": \"ja\", \"name\": \"Japanese\", \"native\": \"日本語\"}, {\"code\": \"ko\", \"name\": \"Korean\", \"native\": \"한국어\"}, {\"code\": \"fr\", \"name\": \"French\", \"native\": \"Français\"}, {\"code\": \"de\", \"name\": \"German\", \"native\": \"Deutsch\"}, {\"code\": \"es\", \"name\": \"Spanish\", \"native\": \"Español\"}, {\"code\": \"it\", \"name\": \"Italian\", \"native\": \"Italiano\"}, {\"code\": \"ar\", \"name\": \"Arabic\", \"native\": \"العربية\"}]"
+    "__available_langs__": "[{\"code\": \"zh\", \"name\": \"Chinese\", \"native\": \"中文\"}, {\"code\": \"en\", \"name\": \"English\", \"native\": \"English\"}, {\"code\": \"ja\", \"name\": \"Japanese\", \"native\": \"日本語\"}, {\"code\": \"ko\", \"name\": \"Korean\", \"native\": \"한국어\"}, {\"code\": \"fr\", \"name\": \"French\", \"native\": \"Français\"}, {\"code\": \"de\", \"name\": \"German\", \"native\": \"Deutsch\"}, {\"code\": \"es\", \"name\": \"Spanish\", \"native\": \"Español\"}, {\"code\": \"it\", \"name\": \"Italian\", \"native\": \"Italiano\"}, {\"code\": \"ar\", \"name\": \"Arabic\", \"native\": \"العربية\"}]",
+    "italian": "الإيطالية",
+    "arabic": "العربية"
   }
 }
