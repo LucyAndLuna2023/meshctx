@@ -42,6 +42,7 @@ function showAuthModal(tab) {
     if (content) content.style.display = 'block';
     if (btn) btn.classList.add('active');
     if (tab === 'signup') { generateCaptcha(); }
+    if (tab === 'signin') { generateCaptchaSignin(); }
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
     clearAuthError();
@@ -133,6 +134,40 @@ function generateCaptcha() {
 
 function _captcha_err_alt() { return 'Incorrect verification code.'; }
 
+function generateCaptchaSignin() {
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var code = '';
+    for (var i = 0; i < 6; i++) { code += chars[Math.floor(Math.random() * chars.length)]; }
+    _captchaCodeSignin = code;
+    var canvas = document.getElementById('captcha-canvas-signin');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    canvas.width = 140; canvas.height = 48;
+    ctx.fillStyle = 'rgba(15,15,25,0.9)';
+    ctx.fillRect(0, 0, 140, 48);
+    for (var i = 0; i < 6; i++) {
+        ctx.strokeStyle = 'rgba(139,92,246,' + (0.15 + Math.random() * 0.2) + ')';
+        ctx.beginPath();
+        ctx.moveTo(Math.random() * 140, Math.random() * 48);
+        ctx.lineTo(Math.random() * 140, Math.random() * 48);
+        ctx.stroke();
+    }
+    for (var i = 0; i < 30; i++) {
+        ctx.fillStyle = 'rgba(255,255,255,' + (0.05 + Math.random() * 0.15) + ')';
+        ctx.fillRect(Math.random() * 140, Math.random() * 48, 2, 2);
+    }
+    for (var i = 0; i < 6; i++) {
+        ctx.font = (20 + Math.random() * 6) + 'px monospace';
+        ctx.fillStyle = 'hsl(' + (260 + Math.random() * 40) + ', 70%, ' + (60 + Math.random() * 25) + '%)';
+        ctx.save();
+        ctx.translate(10 + i * 22, 28 + Math.random() * 10 - 5);
+        ctx.rotate((Math.random() - 0.5) * 0.6);
+        ctx.fillText(code[i], 0, 0);
+        ctx.restore();
+    }
+}
+var _captchaCodeSignin = '';
+
 // ═══ Email Sign Up ═══
 async function signUpWithEmail() {
     var sb = _getSupabase();
@@ -181,6 +216,12 @@ async function signInWithEmail() {
     var email = document.getElementById('signin-email').value.trim();
     var password = document.getElementById('signin-password').value;
     if (!email || !password) { showAuthError(_t('auth_err_empty', 'Please fill in email and password.')); return; }
+
+    // CAPTCHA
+    var captchaInput = document.getElementById('signin-captcha');
+    if (captchaInput && captchaInput.value.trim().toUpperCase() !== _captchaCodeSignin) {
+        showAuthError(_t('auth_err_captcha', _captcha_err_alt())); generateCaptchaSignin(); return;
+    }
 
     var btn = document.getElementById('signin-btn');
     btn.disabled = true; btn.textContent = 'Signing in...';

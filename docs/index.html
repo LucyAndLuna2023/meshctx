@@ -511,6 +511,17 @@ if (L && Object.keys(L).length > 0 && L['en']) {
                 <input type="password" id="signin-password" data-lang-key-placeholder="auth_ph_pw" placeholder="••••••••" autocomplete="current-password">
             </div>
             <a class="auth-forgot-link" onclick="showResetPassword()" data-lang-key="auth_forgot">Forgot password?</a>
+
+            <!-- CAPTCHA -->
+            <div class="captcha-wrap">
+                <label data-lang-key="auth_captcha_label">Verification Code</label>
+                <div class="captcha-row">
+                    <canvas id="captcha-canvas-signin" width="140" height="48" style="border-radius:4px;cursor:pointer;" onclick="generateCaptchaSignin()" title="Click to refresh"></canvas>
+                    <span class="captcha-refresh" onclick="generateCaptchaSignin()" data-lang-key="auth_captcha_refresh">Refresh</span>
+                </div>
+                <input type="text" id="signin-captcha" data-lang-key-placeholder="auth_captcha_placeholder" placeholder="Enter the code above" maxlength="6" autocomplete="off">
+            </div>
+
             <button class="btn-submit" id="signin-btn" onclick="signInWithEmail()" data-lang-key="auth_signin_btn">Sign In</button>
             <div class="auth-divider"><span data-lang-key="auth_divider">or continue with</span></div>
             <button class="btn-oauth btn-oauth-github" onclick="signInWithOAuth('github')">
