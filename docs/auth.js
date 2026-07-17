@@ -120,7 +120,12 @@ function clearAuthError() {
 
 function showAuthError(msg) {
     var errs = document.querySelectorAll('.auth-error');
-    errs.forEach(function(el) { el.textContent = msg; });
+    for (var i = 0; i < errs.length; i++) { errs[i].textContent = msg; }
+    // Flash error on buttons so user sees it
+    var sbtn = document.getElementById('signup-btn');
+    if (sbtn) { sbtn.textContent = '❌ ' + msg.substring(0, 30); sbtn.disabled = false; }
+    var ibn = document.getElementById('signin-btn');
+    if (ibn) { ibn.textContent = '❌ ' + msg.substring(0, 30); ibn.disabled = false; }
 }
 
 // ═══ Password Strength ═══
