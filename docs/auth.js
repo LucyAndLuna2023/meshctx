@@ -25,7 +25,11 @@ function _refreshAuthI18n() {
 
 function _getSupabase() {
     if (!_sb && SUPABASE_URL) {
-        _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        try {
+            if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+                _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+        } catch(e) { console.error('Supabase init failed:', e); }
     }
     return _sb;
 }
@@ -170,7 +174,9 @@ var _captchaCodeSignin = '';
 
 // ═══ Email Sign Up ═══
 async function signUpWithEmail() {
+    console.log('[Auth] signUpWithEmail called');
     var sb = _getSupabase();
+    console.log('[Auth] sb:', !!sb);
     if (!sb) { showAuthError('Connection error. Please refresh the page and try again.'); return; }
     var email = document.getElementById('signup-email').value.trim();
     var password = document.getElementById('signup-password').value;
