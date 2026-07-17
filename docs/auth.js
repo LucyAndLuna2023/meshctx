@@ -64,8 +64,11 @@ function _getSupabase() {
                     method: 'POST',
                     headers: {'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json'},
                     body: JSON.stringify({email: email})
-                }).then(function(r){ return {data: {}, error: r.ok ? null : {message: 'Failed'}}; })
-                .catch(function(e){ return {data: null, error: {message: 'Network error'}}; });
+                }).then(function(r){ return r.json().then(function(d){
+                    if (r.ok) return {data: {}, error: null};
+                    return {data: null, error: {message: d.msg || d.message || 'Failed to send reset email'}};
+                }); })
+                .catch(function(e){ return {data: null, error: {message: 'Network error: ' + (e.message || 'connection failed')}}; });
             },
             updateUser: function(params) {
                 return fetch(SUPABASE_URL + '/auth/v1/user', {
