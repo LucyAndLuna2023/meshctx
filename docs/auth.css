@@ -1,0 +1,92 @@
+/* ═══ Auth Modal & Button Styles ═══ */
+
+/* Auth button in nav */
+.btn-auth {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 16px;
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    border: none; color: #fff;
+    border-radius: 6px; font-size: 0.85rem;
+    cursor: pointer; font-weight: 600;
+    transition: opacity 0.2s;
+}
+.btn-auth:hover { opacity: 0.85; }
+
+/* User menu in nav */
+.user-menu {
+    display: none; align-items: center; gap: 8px;
+    position: relative;
+}
+.user-menu-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid var(--border); object-fit: cover;
+}
+.user-menu-name {
+    color: var(--fg); font-size: 0.85rem; max-width: 120px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.btn-signout {
+    padding: 3px 10px; background: transparent; border: 1px solid var(--border);
+    color: var(--muted); border-radius: 4px; font-size: 0.75rem;
+    cursor: pointer; transition: all 0.2s;
+}
+.btn-signout:hover { border-color: #ef4444; color: #ef4444; }
+
+/* Modal overlay */
+.auth-modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    z-index: 10000; align-items: center; justify-content: center;
+}
+.auth-modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 32px; max-width: 400px; width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    animation: modalSlideIn 0.25s ease;
+}
+@keyframes modalSlideIn {
+    from { opacity: 0; transform: translateY(-20px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.auth-modal h2 {
+    font-size: 1.5rem; font-weight: 700; margin-bottom: 8px;
+    text-align: center;
+}
+.auth-modal p {
+    color: var(--muted); font-size: 0.9rem; text-align: center;
+    margin-bottom: 24px;
+}
+
+/* GitHub login button */
+.btn-github {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; padding: 12px 20px;
+    background: #24292f; color: #fff;
+    border: none; border-radius: 8px; font-size: 1rem;
+    font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+}
+.btn-github:hover { opacity: 0.9; }
+.btn-github:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-github svg { width: 20px; height: 20px; }
+
+/* Close button */
+.auth-modal-close {
+    position: absolute; top: 12px; right: 16px;
+    background: transparent; border: none; color: var(--muted);
+    font-size: 1.3rem; cursor: pointer;
+}
+.auth-modal-close:hover { color: var(--fg); }
+
+/* Footer text */
+.auth-modal-footer {
+    margin-top: 16px; text-align: center;
+    font-size: 0.75rem; color: var(--muted);
+}
+.auth-modal-footer a { color: var(--accent); }
+
+/* Responsive */
+@media (max-width: 480px) {
+    .auth-modal { padding: 24px 20px; }
+    .user-menu-name { display: none; }
+}

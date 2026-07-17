@@ -7,7 +7,12 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
 <title>MeshCtx — 17-Brain-Region Self-Improving Agent Platform</title>
-    <meta name="description" content="MeshCtx is an open-core, self-improving agent platform — AGPLv3 framework + source-available brain. Remembers everything, learns from every task, orchestrates multiple AI agents in parallel.">
+    <meta name="description" content="MeshCtx is an open-core, self-improving agent platform with 17 brain regions. Multi-agent orchestration, tool calling, and RAG.">
+    <link rel="stylesheet" href="auth.css">
+
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="auth.js"></script>
     <meta name="keywords" content="AI agent, self-improving, brain-inspired, code sandbox, project indexing, multi-agent, open-core, AGPLv3, MeshCtx">
     <meta name="author" content="MeshCtx">
     <meta property="og:title" content="MeshCtx — 17-Brain-Region Self-Improving Agent Platform">
@@ -140,6 +145,12 @@
             <a href="#about" class="nav-hide" data-lang-key="nav_about">About</a>
             <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a>
             <a href="/getting-started" class="btn btn-ghost" data-lang-key="nav_docs">Docs</a>
+            <button class="btn-auth" id="auth-btn" onclick="showAuthModal()" style="display:none;">🔑 Sign In</button>
+            <span class="user-menu" id="user-menu">
+                <img class="user-menu-avatar" id="user-avatar" src="" alt="" style="display:none">
+                <span class="user-menu-name" id="user-name"></span>
+                <button class="btn-signout" onclick="signOut()">Sign Out</button>
+            </span>
             <span class="lang-dropdown">
                 <button class="lang-dropdown-toggle" onclick="document.querySelector('.lang-dropdown-menu').classList.toggle('show')" id="langToggle">🌐 EN ▾</button>
                 <div class="lang-dropdown-menu" id="langMenu">
@@ -457,6 +468,22 @@ if (L && Object.keys(L).length > 0 && L['en']) {
   _langPending = saved || 'en';
 }
 </script>
+
+<!-- ═══ Auth Modal ═══ -->
+<div class="auth-modal-overlay" id="auth-modal" onclick="if(event.target===this)hideAuthModal()">
+    <div class="auth-modal">
+        <button class="auth-modal-close" onclick="hideAuthModal()">&times;</button>
+        <h2>Welcome Back</h2>
+        <p>Sign in to sync your agent configurations and preferences across devices.</p>
+        <button class="btn-github" id="github-login-btn" onclick="signInWithGitHub()">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            Sign in with GitHub
+        </button>
+        <div class="auth-modal-footer">
+            By signing in, you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.
+        </div>
+    </div>
+</div>
 
 </body>
 </html>
