@@ -17,7 +17,7 @@ logger = logging.getLogger("meshctx.webui")
 _TEMPLATES = {}
 
 _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
-<html lang="{{ __lang }}">
+<html lang="{{ __lang }}" dir="{{ 'rtl' if __lang == 'ar' else 'ltr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1877,7 +1877,7 @@ async function testFromForm() {
 {% endblock %}"""
 
 _TEMPLATES["desktop.html"] = r"""<!DOCTYPE html>
-<html lang="{{ __lang }}">
+<html lang="{{ __lang }}" dir="{{ 'rtl' if __lang == 'ar' else 'ltr' }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -3596,7 +3596,7 @@ function refreshProjectIndex(){
 
 
 # ── DictLoader 初始化 ───────────────────────────────────────────
-from src.i18n import t as i18n_t, get_lang as i18n_get_lang, TRANSLATIONS as i18n_translations
+from src.i18n import t as i18n_t, get_lang as i18n_get_lang, TRANSLATIONS as i18n_translations, LANGUAGES, LANGUAGE_CODES
 _jinja_env = Environment(loader=ChoiceLoader([
     FileSystemLoader(os.path.join(os.path.dirname(__file__), '..', 'templates')),
     DictLoader(_TEMPLATES),
@@ -3617,10 +3617,10 @@ def _get_i18n_json(lang: str) -> str:
     return _i18n_json_cache[lang]
 
 def _get_i18n_all_json() -> str:
-    """QA6: 注入全部7语言到主 SPA，支持 switchLang 无刷新切换"""
+    """QA6: 注入全部语言到主 SPA，支持 switchLang 无刷新切换"""
     if '_all' not in _i18n_json_cache:
         all_i18n = {}
-        for lc in ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'es']:
+        for lc in LANGUAGE_CODES:
             all_i18n[lc] = i18n_translations.get(lc, {})
         _i18n_json_cache['_all'] = __import__('json').dumps(all_i18n, ensure_ascii=False)
     return _i18n_json_cache['_all']
@@ -3644,10 +3644,7 @@ def _render(template_name: str, context: dict, request = None) -> HTMLResponse:
     if '_langs_json' not in _i18n_json_cache:
         _i18n_json_cache['_langs_json'] = __import__('json').dumps(
             i18n_translations.get('en', {}).get('__available_langs__',
-                [{"code":"zh","name":"中文","native":"中文"},{"code":"en","name":"English","native":"English"},
-                 {"code":"ja","name":"Japanese","native":"日本語"},{"code":"ko","name":"Korean","native":"한국어"},
-                 {"code":"fr","name":"French","native":"Français"},{"code":"de","name":"German","native":"Deutsch"},
-                 {"code":"es","name":"Spanish","native":"Español"}])
+                [{"code": lang["code"], "name": lang["name"], "native": lang["native"]} for lang in LANGUAGES])
         )
     context['__languages'] = _i18n_json_cache['_langs_json']
     template = _jinja_env.get_template(template_name)

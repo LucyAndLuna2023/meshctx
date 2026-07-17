@@ -1,6 +1,6 @@
 """
 meshctx i18n 多语言支持
-支持: 中文(zh) / English(en) / 日本語(ja) / 한국어(ko) / Français(fr) / Deutsch(de) / Español(es)
+支持: 中文(zh) / English(en) / 日本語(ja) / 한국어(ko) / Français(fr) / Deutsch(de) / Español(es) / Italiano(it) / العربية(ar)
 
 ── Key 命名规范 (v3.115.16 Phase 1) ──
 所有 key 使用 snake_case，按功能域分组，用 _ 分隔层级:
@@ -35,6 +35,25 @@ empty     | _empty     | 空状态文本
 
 示例: project_create_btn, chat_input_placeholder, common_delete_confirm
 """
+
+# ── 权威语言定义（唯一真相源）──────────────────────────────────
+# 所有引用此列表的地方（web_ui.py, base.html, chat.html 等）
+# 必须从此处导入，不得硬编码！
+
+LANGUAGES = [
+    {"code": "zh", "name": "Chinese", "native": "中文", "rtl": False},
+    {"code": "en", "name": "English", "native": "English", "rtl": False},
+    {"code": "ja", "name": "Japanese", "native": "日本語", "rtl": False},
+    {"code": "ko", "name": "Korean", "native": "한국어", "rtl": False},
+    {"code": "fr", "name": "French", "native": "Français", "rtl": False},
+    {"code": "de", "name": "German", "native": "Deutsch", "rtl": False},
+    {"code": "es", "name": "Spanish", "native": "Español", "rtl": False},
+    {"code": "it", "name": "Italian", "native": "Italiano", "rtl": False},
+    {"code": "ar", "name": "Arabic", "native": "العربية", "rtl": True},
+]
+
+LANGUAGE_CODES = [lang["code"] for lang in LANGUAGES]
+RTL_LANGUAGES = {lang["code"] for lang in LANGUAGES if lang["rtl"]}
 import json
 import os
 from pathlib import Path
@@ -167,13 +186,5 @@ def get_translations(lang: str = None) -> Dict[str, str]:
 
 
 def get_available_languages() -> list:
-    """可用的语言列表"""
-    return [
-        {"code": "zh", "name": "中文", "native": "中文"},
-        {"code": "en", "name": "English", "native": "English"},
-        {"code": "ja", "name": "Japanese", "native": "日本語"},
-        {"code": "ko", "name": "Korean", "native": "한국어"},
-        {"code": "fr", "name": "French", "native": "Français"},
-        {"code": "de", "name": "German", "native": "Deutsch"},
-        {"code": "es", "name": "Spanish", "native": "Español"},
-    ]
+    """可用的语言列表（从 LANGUAGES 常量生成）"""
+    return [{"code": lang["code"], "name": lang["name"], "native": lang["native"]} for lang in LANGUAGES]
