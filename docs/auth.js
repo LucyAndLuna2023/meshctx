@@ -27,11 +27,20 @@ function _getSupabase() {
     return {
         auth: {
             signUp: function(params) {
+                // Flatten Supabase SDK options format to REST API format
+                var body = { email: params.email, password: params.password };
+                if (params.options) {
+                    if (params.options.data) body.data = params.options.data;
+                    if (params.options.emailRedirectTo) body.email_redirect_to = params.options.emailRedirectTo;
+                }
                 return fetch(SUPABASE_URL + '/auth/v1/signup', {
                     method: 'POST',
                     headers: {'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json'},
-                    body: JSON.stringify(params)
-                }).then(function(r){ return r.json().then(function(d){ return {data: r.ok ? d : null, error: r.ok ? null : d}; }); })
+                    body: JSON.stringify(body)
+                }).then(function(r){ return r.json().then(function(d){ 
+                    if (r.ok) return {data: {user: d, session: null}, error: null};
+                    return {data: null, error: {message: d.msg || d.message || JSON.stringify(d)}};
+                }); })
                 .catch(function(e){ return {data: null, error: {message: 'Network error: ' + (e.message || 'connection failed')}}; });
             },
             signInWithPassword: function(params) {
@@ -39,7 +48,10 @@ function _getSupabase() {
                     method: 'POST',
                     headers: {'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json'},
                     body: JSON.stringify(params)
-                }).then(function(r){ return r.json().then(function(d){ return {data: r.ok ? d : null, error: r.ok ? d : null}; }); })
+                }).then(function(r){ return r.json().then(function(d){ 
+                    if (r.ok) return {data: d, error: null};
+                    return {data: null, error: {message: d.msg || d.error_description || JSON.stringify(d)}};
+                }); })
                 .catch(function(e){ return {data: null, error: {message: 'Network error: ' + (e.message || 'connection failed')}}; });
             },
             signInWithOAuth: function(params) {
@@ -119,13 +131,13 @@ function clearAuthError() {
 }
 
 function showAuthError(msg) {
+    var text = (typeof msg === 'string') ? msg : (msg && msg.message) ? msg.message : String(msg || 'Unknown error');
     var errs = document.querySelectorAll('.auth-error');
-    for (var i = 0; i < errs.length; i++) { errs[i].textContent = msg; }
-    // Flash error on buttons so user sees it
+    for (var i = 0; i < errs.length; i++) { errs[i].textContent = text; }
     var sbtn = document.getElementById('signup-btn');
-    if (sbtn) { sbtn.textContent = '❌ ' + msg.substring(0, 30); sbtn.disabled = false; }
+    if (sbtn) { sbtn.textContent = '❌ ' + text.substring(0, 30); sbtn.disabled = false; }
     var ibn = document.getElementById('signin-btn');
-    if (ibn) { ibn.textContent = '❌ ' + msg.substring(0, 30); ibn.disabled = false; }
+    if (ibn) { ibn.textContent = '❌ ' + text.substring(0, 30); ibn.disabled = false; }
 }
 
 // ═══ Password Strength ═══
