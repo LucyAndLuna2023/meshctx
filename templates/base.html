@@ -1214,7 +1214,7 @@ function changeLang(lang) {
     document.querySelectorAll('[data-lang-key]').forEach(el => {
         const key = el.dataset.langKey;
         if (LANG[lang] && LANG[lang][key]) {
-            el.textContent = LANG[lang][key];
+            el.innerHTML = LANG[lang][key];
         }
     });
     // Update all data-lang-* templated elements
