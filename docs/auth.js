@@ -396,4 +396,6 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') hideAuthModal();
 });
 
-document.addEventListener('DOMContentLoaded', initAuth);
+// Init: handle both sync (<script src>) and async (dynamic load) cases
+if (document.readyState !== 'loading') { initAuth(); }
+else { document.addEventListener('DOMContentLoaded', initAuth); }
