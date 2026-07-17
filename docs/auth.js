@@ -11,7 +11,11 @@ var _user = null;
 // ═══ i18n helpers (L & switchLang from index.html / profile.html) ═══
 function _t(key, fallback) {
     try {
-        if (typeof L !== 'undefined' && L && L['en'] && L['en'][key] !== undefined)
+        var lang = localStorage.getItem('meshctx-lang') || 'en';
+        if (typeof L !== 'undefined' && L && L[lang] && L[lang][key] !== undefined)
+            return L[lang][key];
+        // Fallback to en if current lang missing this key
+        if (lang !== 'en' && L && L['en'] && L['en'][key] !== undefined)
             return L['en'][key];
     } catch(e) {}
     return fallback || key;
@@ -24,6 +28,10 @@ function _refreshAuthI18n() {
 }
 
 function _getSupabase() {
+    var url = SUPABASE_URL;
+    var key = SUPABASE_ANON_KEY;
+    // Return null if misconfigured so callers can guard
+    if (!url || !key || key.indexOf('sb_publishable') !== 0) return null;
     return {
         auth: {
             signUp: function(params) {
@@ -31,7 +39,7 @@ function _getSupabase() {
                 var body = { email: params.email, password: params.password };
                 if (params.options) {
                     if (params.options.data) body.data = params.options.data;
-                    if (params.options.emailRedirectTo) body.email_redirect_to = params.options.emailRedirectTo;
+                    if (params.options.emailRedirectTo) body.redirect_to = params.options.emailRedirectTo;
                 }
                 return fetch(SUPABASE_URL + '/auth/v1/signup', {
                     method: 'POST',
@@ -72,11 +80,13 @@ function _getSupabase() {
                 window.location.href = SUPABASE_URL + '/auth/v1/authorize' + qs;
                 return Promise.resolve({data: {}, error: null});
             },
-            resetPasswordForEmail: function(email) {
+            resetPasswordForEmail: function(email, options) {
+                var body = {email: email};
+                if (options && options.redirectTo) body.redirect_to = options.redirectTo;
                 return fetch(SUPABASE_URL + '/auth/v1/recover', {
                     method: 'POST',
                     headers: {'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json'},
-                    body: JSON.stringify({email: email})
+                    body: JSON.stringify(body)
                 }).then(function(r){ return r.json().then(function(d){
                     if (r.ok) return {data: {}, error: null};
                     return {data: null, error: {message: d.msg || d.message || 'Failed to send reset email'}};
@@ -238,7 +248,7 @@ function generateCaptcha() {
     }
 }
 
-function _captcha_err_alt() { return 'Incorrect verification code.'; }
+function _captcha_err_alt() { return _t('auth_err_captcha', 'Incorrect verification code.'); }
 
 function generateCaptchaSignin() {
     var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -343,15 +353,21 @@ async function signInWithEmail() {
     var btn = document.getElementById('signin-btn');
     btn.disabled = true; btn.textContent = 'Signing in...';
 
+    try {
     var { data, error } = await sb.auth.signInWithPassword({ email: email, password: password });
     btn.disabled = false; btn.textContent = 'Sign In';
 
     if (error) { showAuthError(error.message); return; }
+    if (!data || !data.session || !data.session.access_token) {
+        showAuthError(_t('auth_err_server', 'Invalid response from server. Please try again.'));
+        return;
+    }
     _token = data.session.access_token;
     localStorage.setItem('meshctx-token', _token);
     _user = data.user;
     updateAuthUI();
     hideAuthModal();
+    } catch(e) { btn.disabled = false; btn.textContent = 'Sign In'; showAuthError('Network error. Please check your connection and try again.'); }
 }
 
 // ═══ OAuth (GitHub) ═══
@@ -403,7 +419,7 @@ async function resetPassword() {
 async function changePassword(newPassword) {
     var sb = _getSupabase();
     if (!sb || !_user) return { error: { message: 'Not logged in' } };
-    if (!newPassword || newPassword.length < 6) return { error: { message: _t('auth_err_pwd_short', 'Password must be at least 6 characters.') } };
+    if (!newPassword || newPassword.length < 8) return { error: { message: _t('auth_err_pwd_weak', 'Password must be 8+ chars with uppercase, lowercase, and number.') } };
     var { data, error } = await sb.auth.updateUser({ password: newPassword });
     return { data: data, error: error };
 }

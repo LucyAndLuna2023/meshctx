@@ -120,6 +120,7 @@
 }
 .auth-divider::before, .auth-divider::after {
     content: ''; flex: 1; border-bottom: 1px solid var(--border);
+}
 .auth-error { color: #ef4444; font-size: 0.85rem; margin-top: 8px; min-height: 20px; }
 .auth-error:empty { display: none; }
 
