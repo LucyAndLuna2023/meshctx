@@ -12,7 +12,7 @@
 
 // ═══ CONFIG — 填你的 Supabase 信息 ═══
 var SUPABASE_URL = 'https://xtyjsjlkljzdgvqpskyk.supabase.co';
-var SUPABASE_ANON_KEY = 'sb_publishable_y3oQKcnr2dADsN39_PSBvg_H3Qbm5Bf';
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0eWpzamxrbGp6ZGd2cXBza3lrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyNjk1NTAsImV4cCI6MjA5OTg0NTU1MH0.lFjTZ3LltOTiSXtBVtH0TD31Rrp8dLnHtmaMFNRNpfE';
 
 var _sb = null;
 var _user = null;
