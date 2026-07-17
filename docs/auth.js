@@ -368,9 +368,9 @@ async function addEmail(newEmail) {
 // ═══ Init ═══
 async function initAuth() {
     var sb = _getSupabase();
+    var authBtn = document.getElementById('auth-btn');
     if (!sb) {
-        var authBtn = document.getElementById('auth-btn');
-        if (authBtn) authBtn.style.display = 'none';
+        if (authBtn) authBtn.style.display = 'inline-flex';
         return;
     }
 
@@ -396,6 +396,4 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') hideAuthModal();
 });
 
-// Init: handle both sync (<script src>) and async (dynamic load) cases
-if (document.readyState !== 'loading') { initAuth(); }
-else { document.addEventListener('DOMContentLoaded', initAuth); }
+document.addEventListener('DOMContentLoaded', initAuth);
