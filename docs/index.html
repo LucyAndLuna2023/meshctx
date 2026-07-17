@@ -20,6 +20,12 @@
         e.textContent = 'JS ERROR: ' + msg + ' (line ' + line + ')';
         document.body.appendChild(e);
     };
+    window.onunhandledrejection = function(evt) {
+        var e = document.createElement('div');
+        e.style.cssText = 'position:fixed;top:40px;left:0;right:0;background:#f59e0b;color:#fff;padding:12px;z-index:99999;font-size:14px;text-align:center';
+        e.textContent = 'ASYNC ERROR: ' + (evt.reason ? (evt.reason.message || evt.reason) : 'unknown');
+        document.body.appendChild(e);
+    };
     </script>
     <meta name="keywords" content="AI agent, self-improving, brain-inspired, code sandbox, project indexing, multi-agent, open-core, AGPLv3, MeshCtx">
     <meta name="author" content="MeshCtx">

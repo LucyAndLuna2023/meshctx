@@ -252,6 +252,7 @@ async function signUpWithEmail() {
     }
 
     var btn = document.getElementById('signup-btn');
+    if (!btn) { showAuthError('UI error: button not found. Please refresh.'); return; }
     btn.disabled = true; btn.textContent = 'Creating account...';
 
     try {
