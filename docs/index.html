@@ -10,9 +10,28 @@
     <meta name="description" content="MeshCtx is an open-core, self-improving agent platform with 17 brain regions. Multi-agent orchestration, tool calling, and RAG.">
     <link rel="stylesheet" href="auth.css">
 
-    <!-- Supabase JS SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-    <script src="auth.js"></script>
+    <!-- Supabase JS SDK with fallback CDN -->
+    <script>
+    (function(){
+        function loadAuth(){ var s=document.createElement('script');s.src='auth.js';document.head.appendChild(s); }
+        function tryCDN(url, fallback){
+            var S = document.createElement('script');
+            S.src = url;
+            S.onload = loadAuth;
+            S.onerror = fallback;
+            document.head.appendChild(S);
+        }
+        tryCDN('https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js', function(){
+            tryCDN('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js', function(){
+                document.addEventListener('DOMContentLoaded', function(){
+                    var els = document.querySelectorAll('.auth-error');
+                    els.forEach(function(e){ e.textContent = 'Network restricted: cannot load auth service. Try VPN or refresh.'; });
+                });
+                loadAuth(); // still load auth.js for the error handling
+            });
+        });
+    })();
+    </script>
     <meta name="keywords" content="AI agent, self-improving, brain-inspired, code sandbox, project indexing, multi-agent, open-core, AGPLv3, MeshCtx">
     <meta name="author" content="MeshCtx">
     <meta property="og:title" content="MeshCtx — 17-Brain-Region Self-Improving Agent Platform">
