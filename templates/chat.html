@@ -293,6 +293,17 @@ body {
     <option value="deepseek:chat">V3 Chat</option>
     <option value="deepseek:reasoner">🧠 R1</option>
   </select>
+  <select id="langSelect" onchange="changeLang(this.value)" style="width:auto">
+    <option value="en">English</option>
+    <option value="zh">中文</option>
+    <option value="ja">日本語</option>
+    <option value="ko">한국어</option>
+    <option value="de">Deutsch</option>
+    <option value="fr">Français</option>
+    <option value="es">Español</option>
+    <option value="it">Italiano</option>
+    <option value="ar">العربية</option>
+  </select>
   <button onclick="newChat()" data-lang-key="chat_new">➕ 新对话</button>
   <span style="flex:1"></span>
   <a href="/ui/" style="color:var(--muted);text-decoration:none;font-size:13px" data-lang-key="chat_console">← 控制台</a>
@@ -517,11 +528,14 @@ function changeLang(lang) {
     }
   });
   localStorage.setItem('meshctx-lang', lang);
+  var sel = document.getElementById('langSelect');
+  if (sel) sel.value = lang;
 }
 
 // Restore saved language on load
 const savedLang = localStorage.getItem('meshctx-lang') || 'en';
 changeLang(savedLang);
+if (document.getElementById('langSelect')) document.getElementById('langSelect').value = savedLang;
 
 // ===== Chat Logic =====
 let messages = [];
