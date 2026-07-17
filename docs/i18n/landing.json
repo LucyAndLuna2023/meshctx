@@ -288,7 +288,15 @@
     "auth_captcha_placeholder": "Enter the code above",
     "auth_captcha_err": "Incorrect verification code.",
     "auth_captcha_refresh": "Refresh",
-    "auth_pwd_strength": "Password strength:"
+    "auth_pwd_strength": "Password strength:",
+    "auth_err_server": "Invalid response from server. Please try again.",
+    "profile_pwd_rule": "Password must be 8+ chars with uppercase, lowercase, and digit.",
+    "profile_em_confirm": "Check your inbox to confirm the new email.",
+    "profile_em_remove_confirm": "Remove this email?",
+    "profile_em_admin": "Email management requires admin API. Coming soon.",
+    "profile_delete_confirm": "Permanently delete your account? This action cannot be undone.",
+    "profile_delete_admin": "Account deletion requires admin API. Coming soon.",
+    "profile_save_err": "Failed to save profile."
   },
   "zh": {
     "hero_title": "会<span>学习</span>的智能体",
@@ -579,7 +587,15 @@
     "auth_captcha_placeholder": "请输入上图验证码",
     "auth_captcha_err": "验证码不正确。",
     "auth_captcha_refresh": "换一个",
-    "auth_pwd_strength": "密码强度："
+    "auth_pwd_strength": "密码强度：",
+    "auth_err_server": "服务器响应异常，请重试。",
+    "profile_pwd_rule": "密码需8位以上，含大小写字母和数字。",
+    "profile_em_confirm": "请查看收件箱确认新邮箱。",
+    "profile_em_remove_confirm": "确定要移除此邮箱？",
+    "profile_em_admin": "邮箱管理需要管理员API，即将支持。",
+    "profile_delete_confirm": "永久删除账户？此操作不可撤销。",
+    "profile_delete_admin": "账户删除需要管理员API，即将支持。",
+    "profile_save_err": "保存失败。"
   },
   "fr": {
     "hero_title": "L'Agent qui <span>Apprend</span>",
@@ -870,7 +886,15 @@
     "auth_captcha_placeholder": "Saisissez le code ci-dessus",
     "auth_captcha_err": "Code de vérification incorrect.",
     "auth_captcha_refresh": "Actualiser",
-    "auth_pwd_strength": "Force du mot de passe :"
+    "auth_pwd_strength": "Force du mot de passe :",
+    "auth_err_server": "Invalid response from server. Please try again.",
+    "profile_pwd_rule": "Password must be 8+ chars with uppercase, lowercase, and digit.",
+    "profile_em_confirm": "Check your inbox to confirm the new email.",
+    "profile_em_remove_confirm": "Remove this email?",
+    "profile_em_admin": "Email management requires admin API. Coming soon.",
+    "profile_delete_confirm": "Permanently delete your account? This action cannot be undone.",
+    "profile_delete_admin": "Account deletion requires admin API. Coming soon.",
+    "profile_save_err": "Failed to save profile."
   },
   "de": {
     "hero_title": "Der Agent, der <span>lernt</span>",
@@ -1161,7 +1185,15 @@
     "auth_captcha_placeholder": "Code oben eingeben",
     "auth_captcha_err": "Falscher Bestätigungscode.",
     "auth_captcha_refresh": "Aktualisieren",
-    "auth_pwd_strength": "Passwortstärke:"
+    "auth_pwd_strength": "Passwortstärke:",
+    "auth_err_server": "Invalid response from server. Please try again.",
+    "profile_pwd_rule": "Password must be 8+ chars with uppercase, lowercase, and digit.",
+    "profile_em_confirm": "Check your inbox to confirm the new email.",
+    "profile_em_remove_confirm": "Remove this email?",
+    "profile_em_admin": "Email management requires admin API. Coming soon.",
+    "profile_delete_confirm": "Permanently delete your account? This action cannot be undone.",
+    "profile_delete_admin": "Account deletion requires admin API. Coming soon.",
+    "profile_save_err": "Failed to save profile."
   },
   "ja": {
     "hero_title": "学習する<span>エージェント</span>",
@@ -1452,7 +1484,15 @@
     "auth_captcha_placeholder": "上のコードを入力",
     "auth_captcha_err": "認証コードが正しくありません。",
     "auth_captcha_refresh": "更新",
-    "auth_pwd_strength": "パスワード強度："
+    "auth_pwd_strength": "パスワード強度：",
+    "auth_err_server": "Invalid response from server. Please try again.",
+    "profile_pwd_rule": "Password must be 8+ chars with uppercase, lowercase, and digit.",
+    "profile_em_confirm": "Check your inbox to confirm the new email.",
+    "profile_em_remove_confirm": "Remove this email?",
+    "profile_em_admin": "Email management requires admin API. Coming soon.",
+    "profile_delete_confirm": "Permanently delete your account? This action cannot be undone.",
+    "profile_delete_admin": "Account deletion requires admin API. Coming soon.",
+    "profile_save_err": "Failed to save profile."
   },
   "ko": {
     "hero_title": "학습하는 <span>에이전트</span>",
@@ -1743,7 +1783,15 @@
     "auth_captcha_placeholder": "위 코드를 입력하세요",
     "auth_captcha_err": "인증 코드가 올바르지 않습니다.",
     "auth_captcha_refresh": "새로고침",
-    "auth_pwd_strength": "비밀번호 강도："
+    "auth_pwd_strength": "비밀번호 강도：",
+    "auth_err_server": "Invalid response from server. Please try again.",
+    "profile_pwd_rule": "Password must be 8+ chars with uppercase, lowercase, and digit.",
+    "profile_em_confirm": "Check your inbox to confirm the new email.",
+    "profile_em_remove_confirm": "Remove this email?",
+    "profile_em_admin": "Email management requires admin API. Coming soon.",
+    "profile_delete_confirm": "Permanently delete your account? This action cannot be undone.",
+    "profile_delete_admin": "Account deletion requires admin API. Coming soon.",
+    "profile_save_err": "Failed to save profile."
   },
   "es": {
     "hero_title": "El Agente que <span>Aprende</span>",
@@ -2034,7 +2082,15 @@
     "auth_captcha_placeholder": "Ingrese el código de arriba",
     "auth_captcha_err": "Código de verificación incorrecto.",
     "auth_captcha_refresh": "Actualizar",
-    "auth_pwd_strength": "Fortaleza de la contraseña:"
+    "auth_pwd_strength": "Fortaleza de la contraseña:",
+    "auth_err_server": "Invalid response from server. Please try again.",
+    "profile_pwd_rule": "Password must be 8+ chars with uppercase, lowercase, and digit.",
+    "profile_em_confirm": "Check your inbox to confirm the new email.",
+    "profile_em_remove_confirm": "Remove this email?",
+    "profile_em_admin": "Email management requires admin API. Coming soon.",
+    "profile_delete_confirm": "Permanently delete your account? This action cannot be undone.",
+    "profile_delete_admin": "Account deletion requires admin API. Coming soon.",
+    "profile_save_err": "Failed to save profile."
   },
   "it": {
     "hero_title": "L'Agente Che <span>Impara</span>",
@@ -2325,7 +2381,15 @@
     "auth_captcha_placeholder": "Enter the code above",
     "auth_captcha_err": "Incorrect verification code.",
     "auth_captcha_refresh": "Refresh",
-    "auth_pwd_strength": "Password strength:"
+    "auth_pwd_strength": "Password strength:",
+    "auth_err_server": "Invalid response from server. Please try again.",
+    "profile_pwd_rule": "Password must be 8+ chars with uppercase, lowercase, and digit.",
+    "profile_em_confirm": "Check your inbox to confirm the new email.",
+    "profile_em_remove_confirm": "Remove this email?",
+    "profile_em_admin": "Email management requires admin API. Coming soon.",
+    "profile_delete_confirm": "Permanently delete your account? This action cannot be undone.",
+    "profile_delete_admin": "Account deletion requires admin API. Coming soon.",
+    "profile_save_err": "Failed to save profile."
   },
   "ar": {
     "hero_title": "الوكيل الذي <span>يتعلّم</span>",
@@ -2616,6 +2680,14 @@
     "auth_captcha_placeholder": "Enter the code above",
     "auth_captcha_err": "Incorrect verification code.",
     "auth_captcha_refresh": "Refresh",
-    "auth_pwd_strength": "Password strength:"
+    "auth_pwd_strength": "Password strength:",
+    "auth_err_server": "Invalid response from server. Please try again.",
+    "profile_pwd_rule": "Password must be 8+ chars with uppercase, lowercase, and digit.",
+    "profile_em_confirm": "Check your inbox to confirm the new email.",
+    "profile_em_remove_confirm": "Remove this email?",
+    "profile_em_admin": "Email management requires admin API. Coming soon.",
+    "profile_delete_confirm": "Permanently delete your account? This action cannot be undone.",
+    "profile_delete_admin": "Account deletion requires admin API. Coming soon.",
+    "profile_save_err": "Failed to save profile."
   }
 }

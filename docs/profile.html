@@ -113,12 +113,11 @@
 
 <div class="saved-toast" id="pf-toast" data-lang-key="profile_saved">&#10003; Profile updated!</div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js"></script>
 <script>
 var SUPABASE_URL = 'https://xtyjsjlkljzdgvqpskyk.supabase.co';
 var SUPABASE_ANON_KEY = 'sb_publishable_y3oQKcnr2dADsN39_PSBvg_H3Qbm5Bf';
-var _supabase = null;
-function _sb(){ if(!_supabase) _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); return _supabase; }
+// _getSupabase() from auth.js — uses meshctx-token, same as index.html
 
 // ═══ i18n ═══
 var L = {};
@@ -164,9 +163,17 @@ var saved; try{ saved = localStorage.getItem('meshctx-lang'); }catch(e){ saved=n
 _langPending = saved || 'en';
 _loadI18n();
 
+// i18n helper — same pattern as auth.js _t()
+function _t_i18n(key, fallback) {
+    var lang = localStorage.getItem('meshctx-lang') || 'en';
+    if (L[lang] && L[lang][key] !== undefined) return L[lang][key];
+    if (L['en'] && L['en'][key] !== undefined) return L['en'][key];
+    return fallback || key;
+}
+
 // ═══ Auth & Profile ═══
 async function initProfile(){
-    var sb = _sb();
+    var sb = _getSupabase();
     var r = await sb.auth.getSession();
     if(!r.data.session){
         document.getElementById('profile-not-logged').style.display = 'block';
@@ -202,8 +209,9 @@ async function loadEmails(sb){
             all.push({email:identities[i].identity_data.email, id:identities[i].id});
         }
     }
-    var rmLabel = L['en'] && L['en']['profile_em_remove'] ? L['en']['profile_em_remove'] : 'Remove';
-    var pmLabel = L['en'] && L['en']['profile_em_primary'] ? L['en']['profile_em_primary'] : 'Primary';
+    var curLang = (localStorage.getItem('meshctx-lang') || 'en');
+    var rmLabel = L[curLang] && L[curLang]['profile_em_remove'] ? L[curLang]['profile_em_remove'] : (L['en'] && L['en']['profile_em_remove']) || 'Remove';
+    var pmLabel = L[curLang] && L[curLang]['profile_em_primary'] ? L[curLang]['profile_em_primary'] : (L['en'] && L['en']['profile_em_primary']) || 'Primary';
     for(var j=0; j<all.length; j++){
         var em = all[j];
         var div = document.createElement('div');
@@ -214,7 +222,7 @@ async function loadEmails(sb){
 }
 
 async function saveProfile(){
-    var sb = _sb();
+    var sb = _getSupabase();
     var meta = {
         display_name: document.getElementById('pf-name').value,
         avatar_url: document.getElementById('pf-avatar').value,
@@ -223,7 +231,7 @@ async function saveProfile(){
         company: document.getElementById('pf-company').value
     };
     var r = await sb.auth.updateUser({data:meta});
-    if(r.error){ alert(r.error.message); return; }
+    if(r.error){ alert(_t_i18n('profile_save_err', r.error.message || 'Failed to save profile.')); return; }
     var t = document.getElementById('pf-toast');
     t.style.display = 'block';
     setTimeout(function(){ t.style.display = 'none'; }, 2000);
@@ -232,19 +240,19 @@ async function saveProfile(){
 async function addEmail(){
     var email = document.getElementById('pf-new-email').value.trim();
     if(!email) return;
-    var sb = _sb();
+    var sb = _getSupabase();
     // Supabase doesn't have direct add-email API; use updateUser to change primary
     // Actually, let's use the admin API pattern. For now, just update primary.
     var r = await sb.auth.updateUser({email:email});
-    if(r.error){ alert(r.error.message); return; }
-    alert('Check your inbox to confirm the new email.');
+    if(r.error){ alert(_t_i18n('profile_save_err', r.error.message || 'Failed to save profile.')); return; }
+    alert(_t_i18n('profile_em_confirm', 'Check your inbox to confirm the new email.'));
     document.getElementById('pf-new-email').value = '';
 }
 
 async function removeEmail(btn, id){
-    if(!confirm('Remove this email?')) return;
+    if(!confirm(_t_i18n('profile_em_remove_confirm', 'Remove this email?'))) return;
     // Note: full email management requires server-side admin API
-    alert('Email management requires admin API. Coming soon.');
+    alert(_t_i18n('profile_em_admin', 'Email management requires admin API. Coming soon.'));
 }
 
 async function doChangePassword() {
@@ -253,12 +261,12 @@ async function doChangePassword() {
     var okEl = document.getElementById('pf-pwd-success');
     errEl.style.display = 'none';
     okEl.style.display = 'none';
-    if (!pw || pw.length < 6) {
-        errEl.textContent = 'Password must be at least 6 characters.';
+    if (!pw || pw.length < 8) {
+        errEl.textContent = _t_i18n('profile_pwd_rule', 'Password must be 8+ chars with uppercase, lowercase, and digit.');
         errEl.style.display = 'block';
         return;
     }
-    var sb = _sb();
+    var sb = _getSupabase();
     var r = await sb.auth.updateUser({ password: pw });
     if (r.error) {
         errEl.textContent = r.error.message;
@@ -271,9 +279,9 @@ async function doChangePassword() {
 }
 
 async function deleteAccount(){
-    if(!confirm('Permanently delete your account? This action cannot be undone.')) return;
+    if(!confirm(_t_i18n('profile_delete_confirm', 'Permanently delete your account? This action cannot be undone.'))) return;
     // Requires admin API
-    alert('Account deletion requires admin API. Coming soon.');
+    alert(_t_i18n('profile_delete_admin', 'Account deletion requires admin API. Coming soon.'));
 }
 
 initProfile();

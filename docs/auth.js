@@ -248,7 +248,7 @@ function generateCaptcha() {
     }
 }
 
-function _captcha_err_alt() { return _t('auth_err_captcha', 'Incorrect verification code.'); }
+function _captcha_err_alt() { return _t('auth_captcha_err', 'Incorrect verification code.'); }
 
 function generateCaptchaSignin() {
     var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -300,7 +300,7 @@ async function signUpWithEmail() {
     // CAPTCHA
     var captchaInput = document.getElementById('signup-captcha');
     if (captchaInput && captchaInput.value.trim().toUpperCase() !== _captchaCode) {
-        showAuthError(_t('auth_err_captcha', _captcha_err_alt())); generateCaptcha(); return;
+        showAuthError(_t('auth_captcha_err', _captcha_err_alt())); generateCaptcha(); return;
     }
 
     var btn = document.getElementById('signup-btn');
@@ -347,7 +347,7 @@ async function signInWithEmail() {
     // CAPTCHA
     var captchaInput = document.getElementById('signin-captcha');
     if (captchaInput && captchaInput.value.trim().toUpperCase() !== _captchaCodeSignin) {
-        showAuthError(_t('auth_err_captcha', _captcha_err_alt())); generateCaptchaSignin(); return;
+        showAuthError(_t('auth_captcha_err', _captcha_err_alt())); generateCaptchaSignin(); return;
     }
 
     var btn = document.getElementById('signin-btn');
