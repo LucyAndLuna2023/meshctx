@@ -516,7 +516,7 @@ if (L && Object.keys(L).length > 0 && L['en']) {
             <div class="captcha-wrap">
                 <label data-lang-key="auth_captcha_label">Verification Code</label>
                 <div class="captcha-row">
-                    <canvas id="captcha-canvas-signin" width="140" height="48" style="border-radius:4px;cursor:pointer;" onclick="generateCaptchaSignin()" title="Click to refresh"></canvas>
+                    <canvas id="captcha-canvas-signin" width="140" height="48" style="border-radius:4px;cursor:pointer;border:1px solid var(--border);" onclick="generateCaptchaSignin()" title="Click to refresh"></canvas>
                     <span class="captcha-refresh" onclick="generateCaptchaSignin()" data-lang-key="auth_captcha_refresh">Refresh</span>
                 </div>
                 <input type="text" id="signin-captcha" data-lang-key-placeholder="auth_captcha_placeholder" placeholder="Enter the code above" maxlength="6" autocomplete="off">
@@ -573,7 +573,7 @@ if (L && Object.keys(L).length > 0 && L['en']) {
             <div class="captcha-wrap">
                 <label data-lang-key="auth_captcha_label">Verification Code</label>
                 <div class="captcha-row">
-                    <canvas id="captcha-canvas" width="140" height="48" style="border-radius:4px;cursor:pointer;" onclick="generateCaptcha()" title="Click to refresh"></canvas>
+                    <canvas id="captcha-canvas" width="140" height="48" style="border-radius:4px;cursor:pointer;border:1px solid var(--border);" onclick="generateCaptcha()" title="Click to refresh"></canvas>
                     <span class="captcha-refresh" onclick="generateCaptcha()" data-lang-key="auth_captcha_refresh">Refresh</span>
                 </div>
                 <input type="text" id="signup-captcha" data-lang-key-placeholder="auth_captcha_placeholder" placeholder="Enter the code above" maxlength="6" autocomplete="off">

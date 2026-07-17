@@ -105,7 +105,7 @@ function generateCaptcha() {
     var ctx = canvas.getContext('2d');
     canvas.width = 140; canvas.height = 48;
     // Background
-    ctx.fillStyle = 'rgba(15,15,25,0.9)';
+    ctx.fillStyle = 'rgba(30,35,50,1)';
     ctx.fillRect(0, 0, 140, 48);
     // Noise lines
     for (var i = 0; i < 6; i++) {
@@ -143,7 +143,7 @@ function generateCaptchaSignin() {
     if (!canvas) return;
     var ctx = canvas.getContext('2d');
     canvas.width = 140; canvas.height = 48;
-    ctx.fillStyle = 'rgba(15,15,25,0.9)';
+    ctx.fillStyle = 'rgba(30,35,50,1)';
     ctx.fillRect(0, 0, 140, 48);
     for (var i = 0; i < 6; i++) {
         ctx.strokeStyle = 'rgba(139,92,246,' + (0.15 + Math.random() * 0.2) + ')';
