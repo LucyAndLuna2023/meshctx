@@ -266,7 +266,10 @@
     "profile_delete": "Delete Account",
     "profile_nologin": "Not Logged In",
     "profile_nologin_d": "Please sign in to manage your profile.",
-    "profile_back": "← Back to Home"
+    "profile_back": "← Back to Home",
+    "auth_gate_title": "Sign in to Access",
+    "auth_gate_desc": "Register or sign in to download MeshCtx and access installation scripts.",
+    "auth_gate_btn": "Sign In / Register"
   },
   "zh": {
     "hero_title": "会<span>学习</span>的智能体",
@@ -535,7 +538,10 @@
     "profile_delete": "删除账户",
     "profile_nologin": "未登录",
     "profile_nologin_d": "请登录以管理您的个人资料。",
-    "profile_back": "← 返回首页"
+    "profile_back": "← 返回首页",
+    "auth_gate_title": "登录后查看",
+    "auth_gate_desc": "注册或登录后即可下载 MeshCtx 并查看安装脚本。",
+    "auth_gate_btn": "登录 / 注册"
   },
   "fr": {
     "hero_title": "L'Agent qui <span>Apprend</span>",
@@ -804,7 +810,10 @@
     "profile_delete": "Supprimer le compte",
     "profile_nologin": "Non connecté",
     "profile_nologin_d": "Connectez-vous pour gérer votre profil.",
-    "profile_back": "← Accueil"
+    "profile_back": "← Accueil",
+    "auth_gate_title": "Connectez-vous pour accéder",
+    "auth_gate_desc": "Inscrivez-vous ou connectez-vous pour télécharger MeshCtx et accéder aux scripts d'installation.",
+    "auth_gate_btn": "Connexion / Inscription"
   },
   "de": {
     "hero_title": "Der Agent, der <span>lernt</span>",
@@ -1073,7 +1082,10 @@
     "profile_delete": "Konto löschen",
     "profile_nologin": "Nicht angemeldet",
     "profile_nologin_d": "Anmelden zur Profilverwaltung.",
-    "profile_back": "← Startseite"
+    "profile_back": "← Startseite",
+    "auth_gate_title": "Anmelden für Zugriff",
+    "auth_gate_desc": "Registrieren oder anmelden, um MeshCtx herunterzuladen und Installationsskripte anzuzeigen.",
+    "auth_gate_btn": "Anmelden / Registrieren"
   },
   "ja": {
     "hero_title": "学習する<span>エージェント</span>",
@@ -1342,7 +1354,10 @@
     "profile_delete": "アカウント削除",
     "profile_nologin": "未ログイン",
     "profile_nologin_d": "プロフィール管理にはログインを。",
-    "profile_back": "← ホーム"
+    "profile_back": "← ホーム",
+    "auth_gate_title": "ログインしてアクセス",
+    "auth_gate_desc": "登録またはログインして MeshCtx をダウンロードし、インストールスクリプトにアクセスしてください。",
+    "auth_gate_btn": "ログイン / 登録"
   },
   "ko": {
     "hero_title": "학습하는 <span>에이전트</span>",
@@ -1611,7 +1626,10 @@
     "profile_delete": "계정 삭제",
     "profile_nologin": "로그인 안 됨",
     "profile_nologin_d": "프로필 관리를 위해 로그인하세요.",
-    "profile_back": "← 홈으로"
+    "profile_back": "← 홈으로",
+    "auth_gate_title": "로그인하여 접근",
+    "auth_gate_desc": "등록 또는 로그인하여 MeshCtx를 다운로드하고 설치 스크립트에 접근하세요.",
+    "auth_gate_btn": "로그인 / 등록"
   },
   "es": {
     "hero_title": "El Agente que <span>Aprende</span>",
@@ -1880,7 +1898,10 @@
     "profile_delete": "Eliminar cuenta",
     "profile_nologin": "No has iniciado sesión",
     "profile_nologin_d": "Inicia sesión para gestionar tu perfil.",
-    "profile_back": "← Inicio"
+    "profile_back": "← Inicio",
+    "auth_gate_title": "Inicia sesión para acceder",
+    "auth_gate_desc": "Regístrate o inicia sesión para descargar MeshCtx y acceder a los scripts de instalación.",
+    "auth_gate_btn": "Iniciar sesión / Registrarse"
   },
   "it": {
     "hero_title": "L'Agente Che <span>Impara</span>",
@@ -2149,7 +2170,10 @@
     "profile_delete": "Elimina account",
     "profile_nologin": "Non connesso",
     "profile_nologin_d": "Accedi per gestire il profilo.",
-    "profile_back": "← Home"
+    "profile_back": "← Home",
+    "auth_gate_title": "Sign in to Access",
+    "auth_gate_desc": "Register or sign in to download MeshCtx and access installation scripts.",
+    "auth_gate_btn": "Sign In / Register"
   },
   "ar": {
     "hero_title": "الوكيل الذي <span>يتعلّم</span>",
@@ -2418,6 +2442,9 @@
     "profile_delete": "حذف الحساب",
     "profile_nologin": "غير مسجل الدخول",
     "profile_nologin_d": "يرجى تسجيل الدخول لإدارة ملفك.",
-    "profile_back": "← العودة للرئيسية"
+    "profile_back": "← العودة للرئيسية",
+    "auth_gate_title": "سجل الدخول للوصول",
+    "auth_gate_desc": "سجل أو سجل الدخول لتنزيل MeshCtx والوصول إلى سكريبتات التثبيت.",
+    "auth_gate_btn": "تسجيل الدخول / التسجيل"
   }
 }

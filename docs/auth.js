@@ -163,9 +163,13 @@ function updateAuthUI() {
             if (avatarUrl) { userAvatar.src = avatarUrl; userAvatar.style.display = 'inline'; }
             else { userAvatar.style.display = 'none'; }
         }
+        // Unlock gated content
+        document.querySelectorAll('.auth-gated-overlay').forEach(function(el) { el.classList.add('unlocked'); });
     } else {
         if (authBtn) authBtn.style.display = 'inline-flex';
         if (userMenu) userMenu.style.display = 'none';
+        // Lock gated content
+        document.querySelectorAll('.auth-gated-overlay').forEach(function(el) { el.classList.remove('unlocked'); });
     }
 }
 
