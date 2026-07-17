@@ -5,10 +5,578 @@
 # 或:   git clone ... && bash install-mac.sh
 # ═══════════════════════════════════════════════════════
 set -e
+LANG_CHOICE=$(detect_lang)
 
 # ── 颜色 ──
 GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[0;33m'
 RED='\033[0;31m'; BOLD='\033[1m'; NC='\033[0m'
+
+# ── i18n ──
+detect_lang() {
+    if [ -n "$MESHCTX_LANG" ]; then echo "$MESHCTX_LANG"; return; fi
+    case "${LANG:-}" in
+        zh_*|zh-*|Chinese*)     echo "zh" ;;
+        ja_*|ja-*|Japanese*)    echo "ja" ;;
+        ko_*|ko-*|Korean*)      echo "ko" ;;
+        fr_*|fr-*|French*)      echo "fr" ;;
+        de_*|de-*|German*)      echo "de" ;;
+        es_*|es-*|Spanish*)     echo "es" ;;
+        it_*|it-*|Italian*)     echo "it" ;;
+        ar_*|ar-*|Arabic*)      echo "ar" ;;
+        *)                      echo "en" ;;
+    esac
+}
+T() {
+    case "$1" in
+    header_macos)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T header_macos)' ;;
+            en) echo 'meshctx v${VERSION} macOS One-Click Install' ;;
+            ja) echo 'meshctx v${VERSION} macOS ワンクリックインストール' ;;
+            ko) echo 'meshctx v${VERSION} macOS 원클릭 설치' ;;
+            fr) echo 'meshctx v${VERSION} Installation macOS en un clic' ;;
+            de) echo 'meshctx v${VERSION} macOS Ein-Klick-Installation' ;;
+            es) echo 'meshctx v${VERSION} Instalación macOS en un clic' ;;
+            it) echo 'meshctx v${VERSION} Installazione macOS con un clic' ;;
+            ar) echo 'meshctx v${VERSION} تثبيت macOS بنقرة واحدة' ;;
+        esac
+        ;;
+    macos_only)
+        case "$LANG_CHOICE" in
+            zh) echo '✗ $(T macos_only)' ;;
+            en) echo '✗ This script is for macOS only. Use install.sh for Linux' ;;
+            ja) echo '✗ このスクリプトはmacOS専用です。Linuxはinstall.shをお使いください' ;;
+            ko) echo '✗ 이 스크립트는 macOS 전용입니다. Linux는 install.sh를 사용하세요' ;;
+            fr) echo '✗ Ce script est réservé à macOS. Utilisez install.sh pour Linux' ;;
+            de) echo '✗ Dieses Skript ist nur für macOS. Verwenden Sie install.sh für Linux' ;;
+            es) echo '✗ Este script es solo para macOS. Use install.sh para Linux' ;;
+            it) echo '✗ Questo script è solo per macOS. Usa install.sh per Linux' ;;
+            ar) echo '✗ هذا السكريبت لنظام macOS فقط. استخدم install.sh لنظام Linux' ;;
+        esac
+        ;;
+    step1_stop)
+        case "$LANG_CHOICE" in
+            zh) echo '[1/6] $(T step1_stop)' ;;
+            en) echo '[1/6] Stopping old version...' ;;
+            ja) echo '[1/6] 古いバージョンを停止中...' ;;
+            ko) echo '[1/6] 이전 버전 중지 중...' ;;
+            fr) echo '[1/6] Arrêt de l'\''ancienne version...' ;;
+            de) echo '[1/6] Alte Version wird beendet...' ;;
+            es) echo '[1/6] Deteniendo versión anterior...' ;;
+            it) echo '[1/6] Arresto della versione precedente...' ;;
+            ar) echo '[1/6] إيقاف الإصدار القديم...' ;;
+        esac
+        ;;
+    stopped_ok_port)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T stopped_ok_port)' ;;
+            en) echo 'Stopped old service, freed port ${PORT}' ;;
+            ja) echo '古いサービスを停止し、ポート ${PORT} を解放しました' ;;
+            ko) echo '이전 서비스 중지 및 포트 ${PORT} 해제됨' ;;
+            fr) echo 'Ancien service arrêté, port ${PORT} libéré' ;;
+            de) echo 'Alter Dienst beendet, Port ${PORT} freigegeben' ;;
+            es) echo 'Servicio anterior detenido, puerto ${PORT} liberado' ;;
+            it) echo 'Vecchio servizio arrestato, porta ${PORT} liberata' ;;
+            ar) echo 'تم إيقاف الخدمة القديمة وتحرير المنفذ ${PORT}' ;;
+        esac
+        ;;
+    no_stop)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T no_stop)' ;;
+            en) echo 'No stop needed' ;;
+            ja) echo '停止不要' ;;
+            ko) echo '중지 불필요' ;;
+            fr) echo 'Aucun arrêt nécessaire' ;;
+            de) echo 'Kein Stopp erforderlich' ;;
+            es) echo 'No es necesario detener' ;;
+            it) echo 'Nessun arresto necessario' ;;
+            ar) echo 'لا حاجة للإيقاف' ;;
+        esac
+        ;;
+    step2_check)
+        case "$LANG_CHOICE" in
+            zh) echo '[2/6] $(T step2_check)' ;;
+            en) echo '[2/6] Checking environment...' ;;
+            ja) echo '[2/6] 環境を確認中...' ;;
+            ko) echo '[2/6] 환경 확인 중...' ;;
+            fr) echo '[2/6] Vérification de l'\''environnement...' ;;
+            de) echo '[2/6] Umgebung wird geprüft...' ;;
+            es) echo '[2/6] Comprobando entorno...' ;;
+            it) echo '[2/6] Verifica dell'\''ambiente in corso...' ;;
+            ar) echo '[2/6] التحقق من البيئة...' ;;
+        esac
+        ;;
+    need_py310)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T need_py310)' ;;
+            en) echo 'Requires Python 3.10+, not found' ;;
+            ja) echo 'Python 3.10+ が必要ですが見つかりません' ;;
+            ko) echo 'Python 3.10+ 필요하지만 찾을 수 없음' ;;
+            fr) echo 'Python 3.10+ requis, introuvable' ;;
+            de) echo 'Python 3.10+ erforderlich, nicht gefunden' ;;
+            es) echo 'Requiere Python 3.10+, no encontrado' ;;
+            it) echo 'Richiede Python 3.10+, non trovato' ;;
+            ar) echo 'يتطلب Python 3.10+، غير موجود' ;;
+        esac
+        ;;
+    install_py_methods)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T install_py_methods)' ;;
+            en) echo 'How to install Python 3.10+:' ;;
+            ja) echo 'Python 3.10+ のインストール方法：' ;;
+            ko) echo 'Python 3.10+ 설치 방법:' ;;
+            fr) echo 'Comment installer Python 3.10+ :' ;;
+            de) echo 'Python 3.10+ installieren:' ;;
+            es) echo 'Cómo instalar Python 3.10+:' ;;
+            it) echo 'Come installare Python 3.10+:' ;;
+            ar) echo 'كيفية تثبيت Python 3.10+:' ;;
+        esac
+        ;;
+    method1_homebrew)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T method1_homebrew)' ;;
+            en) echo 'Method 1: Homebrew (recommended)' ;;
+            ja) echo '方法1: Homebrew（推奨）' ;;
+            ko) echo '방법1: Homebrew (권장)' ;;
+            fr) echo 'Méthode 1 : Homebrew (recommandé)' ;;
+            de) echo 'Methode 1: Homebrew (empfohlen)' ;;
+            es) echo 'Método 1: Homebrew (recomendado)' ;;
+            it) echo 'Metodo 1: Homebrew (consigliato)' ;;
+            ar) echo 'الطريقة 1: Homebrew (موصى به)' ;;
+        esac
+        ;;
+    method2_official)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T method2_official)' ;;
+            en) echo 'Method 2: Official installer' ;;
+            ja) echo '方法2: 公式インストーラー' ;;
+            ko) echo '방법2: 공식 설치 프로그램' ;;
+            fr) echo 'Méthode 2 : Programme officiel' ;;
+            de) echo 'Methode 2: Offizieller Installer' ;;
+            es) echo 'Método 2: Instalador oficial' ;;
+            it) echo 'Metodo 2: Installer ufficiale' ;;
+            ar) echo 'الطريقة 2: المثبت الرسمي' ;;
+        esac
+        ;;
+    method3_xcode)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T method3_xcode)' ;;
+            en) echo 'Method 3: Xcode Command Line Tools' ;;
+            ja) echo '$(T method3_xcode)' ;;
+            ko) echo '방법3: Xcode Command Line Tools' ;;
+            fr) echo 'Méthode 3 : Xcode Command Line Tools' ;;
+            de) echo 'Methode 3: Xcode Command Line Tools' ;;
+            es) echo 'Método 3: Xcode Command Line Tools' ;;
+            it) echo 'Metodo 3: Xcode Command Line Tools' ;;
+            ar) echo 'الطريقة 3: Xcode Command Line Tools' ;;
+        esac
+        ;;
+    installing_pip)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T installing_pip)' ;;
+            en) echo 'Installing pip...' ;;
+            ja) echo 'pip をインストール中...' ;;
+            ko) echo 'pip 설치 중...' ;;
+            fr) echo 'Installation de pip...' ;;
+            de) echo 'pip wird installiert...' ;;
+            es) echo 'Instalando pip...' ;;
+            it) echo 'Installazione di pip...' ;;
+            ar) echo 'جاري تثبيت pip...' ;;
+        esac
+        ;;
+    homebrew_not_installed)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T homebrew_not_installed)' ;;
+            en) echo 'Homebrew not installed (optional, for system deps)' ;;
+            ja) echo 'Homebrew 未インストール（任意、システム依存関係用）' ;;
+            ko) echo 'Homebrew 미설치 (선택 사항, 시스템 종속성용)' ;;
+            fr) echo 'Homebrew non installé (optionnel, pour dépendances système)' ;;
+            de) echo 'Homebrew nicht installiert (optional, für Systemabhängigkeiten)' ;;
+            es) echo 'Homebrew no instalado (opcional, para dependencias del sistema)' ;;
+            it) echo 'Homebrew non installato (opzionale, per dipendenze di sistema)' ;;
+            ar) echo 'Homebrew غير مثبت (اختياري، لتبعيات النظام)' ;;
+        esac
+        ;;
+    step3_fetch)
+        case "$LANG_CHOICE" in
+            zh) echo '[3/6] $(T step3_fetch)' ;;
+            en) echo '[3/6] Fetching meshctx v${VERSION}...' ;;
+            ja) echo '[3/6] meshctx v${VERSION} を取得中...' ;;
+            ko) echo '[3/6] meshctx v${VERSION} 가져오는 중...' ;;
+            fr) echo '[3/6] Récupération de meshctx v${VERSION}...' ;;
+            de) echo '[3/6] meshctx v${VERSION} wird abgerufen...' ;;
+            es) echo '[3/6] Obteniendo meshctx v${VERSION}...' ;;
+            it) echo '[3/6] Recupero di meshctx v${VERSION} in corso...' ;;
+            ar) echo '[3/6] جاري جلب meshctx v${VERSION}...' ;;
+        esac
+        ;;
+    using_local)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T using_local)' ;;
+            en) echo 'Using local source: ${SOURCE_DIR}' ;;
+            ja) echo 'ローカルソースを使用: ${SOURCE_DIR}' ;;
+            ko) echo '로컬 소스 사용: ${SOURCE_DIR}' ;;
+            fr) echo 'Utilisation de la source locale : ${SOURCE_DIR}' ;;
+            de) echo 'Lokale Quelle wird verwendet: ${SOURCE_DIR}' ;;
+            es) echo 'Usando fuente local: ${SOURCE_DIR}' ;;
+            it) echo 'Utilizzo sorgente locale: ${SOURCE_DIR}' ;;
+            ar) echo 'استخدام المصدر المحلي: ${SOURCE_DIR}' ;;
+        esac
+        ;;
+    git_cloning)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T git_cloning)' ;;
+            en) echo 'Fetching via git clone...' ;;
+            ja) echo 'git clone で取得中...' ;;
+            ko) echo 'git clone으로 가져오는 중...' ;;
+            fr) echo 'Récupération via git clone...' ;;
+            de) echo 'Abruf via git clone...' ;;
+            es) echo 'Obteniendo vía git clone...' ;;
+            it) echo 'Recupero tramite git clone...' ;;
+            ar) echo 'جاري الجلب عبر git clone...' ;;
+        esac
+        ;;
+    git_clone_ok)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T git_clone_ok)' ;;
+            en) echo 'git clone succeeded' ;;
+            ja) echo '$(T git_clone_ok)' ;;
+            ko) echo 'git clone 성공' ;;
+            fr) echo 'git clone réussi' ;;
+            de) echo 'git clone erfolgreich' ;;
+            es) echo 'git clone exitoso' ;;
+            it) echo 'git clone riuscito' ;;
+            ar) echo 'تم git clone بنجاح' ;;
+        esac
+        ;;
+    git_clone_fail)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T git_clone_fail)' ;;
+            en) echo 'git clone failed' ;;
+            ja) echo 'git clone 失敗' ;;
+            ko) echo 'git clone 실패' ;;
+            fr) echo 'Échec du git clone' ;;
+            de) echo 'git clone fehlgeschlagen' ;;
+            es) echo 'git clone fallido' ;;
+            it) echo 'git clone fallito' ;;
+            ar) echo 'فشل git clone' ;;
+        esac
+        ;;
+    check_network_git)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T check_network_git)' ;;
+            en) echo 'Check network or manually git clone' ;;
+            ja) echo 'ネットワークを確認するか手動でgit cloneしてください' ;;
+            ko) echo '네트워크를 확인하거나 수동으로 git clone하세요' ;;
+            fr) echo 'Vérifiez le réseau ou faites un git clone manuel' ;;
+            de) echo 'Netzwerk prüfen oder manuell git clone' ;;
+            es) echo 'Verifique la red o haga git clone manual' ;;
+            it) echo 'Controlla la rete o fai git clone manualmente' ;;
+            ar) echo 'تحقق من الشبكة أو قم بعمل git clone يدوياً' ;;
+        esac
+        ;;
+    release_fail_try_git)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T release_fail_try_git)' ;;
+            en) echo 'Release download failed, trying git clone...' ;;
+            ja) echo 'リリースダウンロード失敗、git clone を試行中...' ;;
+            ko) echo '릴리스 다운로드 실패, git clone 시도 중...' ;;
+            fr) echo 'Échec du téléchargement de la release, tentative de git clone...' ;;
+            de) echo 'Release-Download fehlgeschlagen, versuche git clone...' ;;
+            es) echo 'Descarga de release fallida, intentando git clone...' ;;
+            it) echo 'Download della release fallito, provo git clone...' ;;
+            ar) echo 'فشل تنزيل الإصدار، جاري محاولة git clone...' ;;
+        esac
+        ;;
+    download_fail_short)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T download_fail_short)' ;;
+            en) echo 'Download failed' ;;
+            ja) echo 'ダウンロード失敗' ;;
+            ko) echo '다운로드 실패' ;;
+            fr) echo 'Échec du téléchargement' ;;
+            de) echo 'Download fehlgeschlagen' ;;
+            es) echo 'Descarga fallida' ;;
+            it) echo 'Download fallito' ;;
+            ar) echo 'فشل التنزيل' ;;
+        esac
+        ;;
+    manual_install)
+        case "$LANG_CHOICE" in
+            zh) echo '手动安装：' ;;
+            en) echo 'Manual install:' ;;
+            ja) echo '手動インストール：' ;;
+            ko) echo '수동 설치:' ;;
+            fr) echo 'Installation manuelle :' ;;
+            de) echo 'Manuelle Installation:' ;;
+            es) echo 'Instalación manual:' ;;
+            it) echo 'Installazione manuale:' ;;
+            ar) echo 'تثبيت يدوي:' ;;
+        esac
+        ;;
+    step4_install)
+        case "$LANG_CHOICE" in
+            zh) echo '[4/6] $(T step4_install)' ;;
+            en) echo '[4/6] Installing...' ;;
+            ja) echo '[4/6] インストール中...' ;;
+            ko) echo '[4/6] 설치 중...' ;;
+            fr) echo '[4/6] Installation...' ;;
+            de) echo '[4/6] Installation...' ;;
+            es) echo '[4/6] Instalando...' ;;
+            it) echo '[4/6] Installazione...' ;;
+            ar) echo '[4/6] جاري التثبيت...' ;;
+        esac
+        ;;
+    config_backed_up)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T config_backed_up)' ;;
+            en) echo 'User config backed up' ;;
+            ja) echo 'ユーザー設定をバックアップしました' ;;
+            ko) echo '사용자 설정 백업 완료' ;;
+            fr) echo 'Configuration utilisateur sauvegardée' ;;
+            de) echo 'Benutzerkonfiguration gesichert' ;;
+            es) echo 'Configuración de usuario respaldada' ;;
+            it) echo 'Configurazione utente salvata' ;;
+            ar) echo 'تم نسخ إعدادات المستخدم احتياطياً' ;;
+        esac
+        ;;
+    creating_venv)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T creating_venv)' ;;
+            en) echo 'Creating virtual environment...' ;;
+            ja) echo '仮想環境を作成中...' ;;
+            ko) echo '가상 환경 생성 중...' ;;
+            fr) echo 'Création de l'\''environnement virtuel...' ;;
+            de) echo 'Virtuelle Umgebung wird erstellt...' ;;
+            es) echo 'Creando entorno virtual...' ;;
+            it) echo 'Creazione dell'\''ambiente virtuale...' ;;
+            ar) echo 'جاري إنشاء البيئة الافتراضية...' ;;
+        esac
+        ;;
+    installing_deps)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T installing_deps)' ;;
+            en) echo 'Installing dependencies...' ;;
+            ja) echo '依存関係をインストール中...' ;;
+            ko) echo '의존성 설치 중...' ;;
+            fr) echo 'Installation des dépendances...' ;;
+            de) echo 'Abhängigkeiten werden installiert...' ;;
+            es) echo 'Instalando dependencias...' ;;
+            it) echo 'Installazione delle dipendenze...' ;;
+            ar) echo 'جاري تثبيت التبعيات...' ;;
+        esac
+        ;;
+    deps_ok)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T deps_ok)' ;;
+            en) echo 'Dependencies installed' ;;
+            ja) echo '依存関係のインストール完了' ;;
+            ko) echo '의존성 설치 완료' ;;
+            fr) echo 'Dépendances installées' ;;
+            de) echo 'Abhängigkeiten installiert' ;;
+            es) echo 'Dependencias instaladas' ;;
+            it) echo 'Dipendenze installate' ;;
+            ar) echo 'تم تثبيت التبعيات' ;;
+        esac
+        ;;
+    installing_meshctx_pkg)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T installing_meshctx_pkg)' ;;
+            en) echo 'Installing meshctx package...' ;;
+            ja) echo 'meshctx パッケージをインストール中...' ;;
+            ko) echo 'meshctx 패키지 설치 중...' ;;
+            fr) echo 'Installation du package meshctx...' ;;
+            de) echo 'meshctx-Paket wird installiert...' ;;
+            es) echo 'Instalando paquete meshctx...' ;;
+            it) echo 'Installazione del pacchetto meshctx...' ;;
+            ar) echo 'جاري تثبيت حزمة meshctx...' ;;
+        esac
+        ;;
+    meshctx_pkg_ok)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T meshctx_pkg_ok)' ;;
+            en) echo 'meshctx package installed' ;;
+            ja) echo 'meshctx パッケージのインストール完了' ;;
+            ko) echo 'meshctx 패키지 설치 완료' ;;
+            fr) echo 'Package meshctx installé' ;;
+            de) echo 'meshctx-Paket installiert' ;;
+            es) echo 'Paquete meshctx instalado' ;;
+            it) echo 'Pacchetto meshctx installato' ;;
+            ar) echo 'تم تثبيت حزمة meshctx' ;;
+        esac
+        ;;
+    installing_cmd)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T installing_cmd)' ;;
+            en) echo 'Installing meshctx command...' ;;
+            ja) echo 'meshctx コマンドをインストール中...' ;;
+            ko) echo 'meshctx 명령 설치 중...' ;;
+            fr) echo 'Installation de la commande meshctx...' ;;
+            de) echo 'meshctx-Befehl wird installiert...' ;;
+            es) echo 'Instalando comando meshctx...' ;;
+            it) echo 'Installazione del comando meshctx...' ;;
+            ar) echo 'جاري تثبيت أمر meshctx...' ;;
+        esac
+        ;;
+    cmd_installed)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T cmd_installed)' ;;
+            en) echo 'meshctx command installed' ;;
+            ja) echo 'meshctx コマンドをインストールしました' ;;
+            ko) echo 'meshctx 명령 설치됨' ;;
+            fr) echo 'Commande meshctx installée' ;;
+            de) echo 'meshctx-Befehl installiert' ;;
+            es) echo 'Comando meshctx instalado' ;;
+            it) echo 'Comando meshctx installato' ;;
+            ar) echo 'تم تثبيت أمر meshctx' ;;
+        esac
+        ;;
+    configuring_autostart)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T configuring_autostart)' ;;
+            en) echo 'Configuring auto-start...' ;;
+            ja) echo '自動起動を設定中...' ;;
+            ko) echo '자동 시작 설정 중...' ;;
+            fr) echo 'Configuration du démarrage automatique...' ;;
+            de) echo 'Autostart wird konfiguriert...' ;;
+            es) echo 'Configurando inicio automático...' ;;
+            it) echo 'Configurazione dell'\''avvio automatico...' ;;
+            ar) echo 'جاري تكوين التشغيل التلقائي...' ;;
+        esac
+        ;;
+    autostart_ok)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T autostart_ok)' ;;
+            en) echo 'Auto-start configured' ;;
+            ja) echo '自動起動を設定しました' ;;
+            ko) echo '자동 시작 설정됨' ;;
+            fr) echo 'Démarrage automatique configuré' ;;
+            de) echo 'Autostart konfiguriert' ;;
+            es) echo 'Inicio automático configurado' ;;
+            it) echo 'Avvio automatico configurato' ;;
+            ar) echo 'تم تكوين التشغيل التلقائي' ;;
+        esac
+        ;;
+    step5_verify)
+        case "$LANG_CHOICE" in
+            zh) echo '[5/6] 验证$(T step4_install)' ;;
+            en) echo '[5/6] Verifying installation...' ;;
+            ja) echo '[5/6] インストールを検証中...' ;;
+            ko) echo '[5/6] 설치 확인 중...' ;;
+            fr) echo '[5/6] Vérification de l'\''installation...' ;;
+            de) echo '[5/6] Installation wird überprüft...' ;;
+            es) echo '[5/6] Verificando instalación...' ;;
+            it) echo '[5/6] Verifica dell'\''installazione...' ;;
+            ar) echo '[5/6] التحقق من التثبيت...' ;;
+        esac
+        ;;
+    service_running)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T service_running)' ;;
+            en) echo 'Service running OK (port ${PORT})' ;;
+            ja) echo 'サービス正常稼働中 (ポート ${PORT})' ;;
+            ko) echo '서비스 정상 작동 중 (포트 ${PORT})' ;;
+            fr) echo 'Service en cours (port ${PORT})' ;;
+            de) echo 'Dienst läuft normal (Port ${PORT})' ;;
+            es) echo 'Servicio funcionando (puerto ${PORT})' ;;
+            it) echo 'Servizio in esecuzione (porta ${PORT})' ;;
+            ar) echo 'الخدمة تعمل بشكل طبيعي (المنفذ ${PORT})' ;;
+        esac
+        ;;
+    service_manual_start)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T service_manual_start)' ;;
+            en) echo 'Service started manually (port ${PORT})' ;;
+            ja) echo 'サービスを手動起動しました (ポート ${PORT})' ;;
+            ko) echo '서비스 수동 시작됨 (포트 ${PORT})' ;;
+            fr) echo 'Service démarré manuellement (port ${PORT})' ;;
+            de) echo 'Dienst manuell gestartet (Port ${PORT})' ;;
+            es) echo 'Servicio iniciado manualmente (puerto ${PORT})' ;;
+            it) echo 'Servizio avviato manualmente (porta ${PORT})' ;;
+            ar) echo 'تم بدء الخدمة يدوياً (المنفذ ${PORT})' ;;
+        esac
+        ;;
+    service_starting)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T service_starting)' ;;
+            en) echo 'Service starting, please check later' ;;
+            ja) echo 'サービス起動中、後ほどご確認ください' ;;
+            ko) echo '서비스 시작 중, 나중에 확인하세요' ;;
+            fr) echo 'Service en cours de démarrage, veuillez vérifier plus tard' ;;
+            de) echo 'Dienst startet, bitte später prüfen' ;;
+            es) echo 'Servicio iniciando, verifique más tarde' ;;
+            it) echo 'Servizio in avvio, controlla più tardi' ;;
+            ar) echo 'جاري بدء الخدمة، يرجى التحقق لاحقاً' ;;
+        esac
+        ;;
+    install_complete)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T install_complete) 🎉' ;;
+            en) echo 'meshctx macOS Installation Complete! 🎉' ;;
+            ja) echo 'meshctx macOS インストール完了！ 🎉' ;;
+            ko) echo 'meshctx macOS 설치 완료! 🎉' ;;
+            fr) echo 'Installation de meshctx macOS terminée ! 🎉' ;;
+            de) echo 'meshctx macOS Installation abgeschlossen! 🎉' ;;
+            es) echo '¡Instalación de meshctx macOS completada! 🎉' ;;
+            it) echo 'Installazione meshctx macOS completata! 🎉' ;;
+            ar) echo 'اكتمل تثبيت meshctx macOS! 🎉' ;;
+        esac
+        ;;
+    quick_start_label)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T quick_start_label)' ;;
+            en) echo 'Quick Start:' ;;
+            ja) echo 'クイックスタート:' ;;
+            ko) echo '빠른 시작:' ;;
+            fr) echo 'Démarrage rapide :' ;;
+            de) echo 'Schnellstart:' ;;
+            es) echo 'Inicio rápido:' ;;
+            it) echo 'Avvio rapido:' ;;
+            ar) echo ':بداية سريعة' ;;
+        esac
+        ;;
+    common_cmds_label)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T common_cmds_label)' ;;
+            en) echo 'Common Commands:' ;;
+            ja) echo 'よく使うコマンド:' ;;
+            ko) echo '자주 쓰는 명령어:' ;;
+            fr) echo 'Commandes courantes :' ;;
+            de) echo 'Häufige Befehle:' ;;
+            es) echo 'Comandos comunes:' ;;
+            it) echo 'Comandi comuni:' ;;
+            ar) echo ':أوامر شائعة' ;;
+        esac
+        ;;
+    autostart_label)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T autostart_label)' ;;
+            en) echo 'Auto-start:' ;;
+            ja) echo '自動起動:' ;;
+            ko) echo '자동 시작:' ;;
+            fr) echo 'Démarrage automatique :' ;;
+            de) echo 'Autostart:' ;;
+            es) echo 'Inicio automático:' ;;
+            it) echo 'Avvio automatico:' ;;
+            ar) echo ':تشغيل تلقائي' ;;
+        esac
+        ;;
+    manage_launchagent)
+        case "$LANG_CHOICE" in
+            zh) echo '$(T manage_launchagent)' ;;
+            en) echo 'Manage LaunchAgent:' ;;
+            ja) echo 'LaunchAgent 管理:' ;;
+            ko) echo 'LaunchAgent 관리:' ;;
+            fr) echo 'Gérer LaunchAgent :' ;;
+            de) echo 'LaunchAgent verwalten:' ;;
+            es) echo 'Administrar LaunchAgent:' ;;
+            it) echo 'Gestisci LaunchAgent:' ;;
+            ar) echo ':LaunchAgent إدارة' ;;
+        esac
+        ;;
+    *) echo "$1" ;;
+    esac
+}
 
 INSTALL_DIR="${HOME}/.meshctx"
 VERSION="3.115.15"
@@ -19,13 +587,13 @@ LAUNCHD_LABEL="com.meshctx.server"
 
 echo ""
 echo -e "${CYAN}  ╔══════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}  ║     meshctx v${VERSION} macOS 一键安装        ║${NC}"
+echo -e "${CYAN}  ║     $(T header_macos)        ║${NC}"
 echo -e "${CYAN}  ╚══════════════════════════════════════════╝${NC}"
 echo ""
 
 # ── macOS 检测 ──
 if [[ "$(uname)" != "Darwin" ]]; then
-    echo -e "${RED}✗ 此脚本仅适用于 macOS，Linux 请用 install.sh${NC}"
+    echo -e "${RED}✗ $(T macos_only)${NC}"
     exit 1
 fi
 
@@ -33,7 +601,7 @@ MACOS_VER=$(sw_vers -productVersion 2>/dev/null || echo "unknown")
 echo -e "  ${GREEN}✓${NC} macOS ${MACOS_VER} ($(uname -m))"
 
 # ── [1/6] 停止旧版本 ─────────────────────────────────
-echo -e "${CYAN}[1/6]${NC} 停止旧版本..."
+echo -e "${CYAN}[1/6]${NC} $(T step1_stop)"
 
 KILLED=0
 
@@ -65,13 +633,13 @@ if [ -n "${PORT_PID}" ]; then
 fi
 
 if [ "${KILLED}" = "1" ]; then
-    echo -e "  ${GREEN}✓${NC} 已停止旧服务并释放端口 ${PORT}"
+    echo -e "  ${GREEN}✓${NC} $(T stopped_ok_port)"
 else
-    echo -e "  ${GREEN}✓${NC} 无需停止"
+    echo -e "  ${GREEN}✓${NC} $(T no_stop)"
 fi
 
 # ── [2/6] 环境检查 ───────────────────────────────────
-echo -e "${CYAN}[2/6]${NC} 检查环境..."
+echo -e "${CYAN}[2/6]${NC} $(T step2_check)"
 
 # Python 检查
 PYTHON_BIN=""
@@ -88,19 +656,19 @@ for p in python3.12 python3.11 python3.10 python3; do
 done
 
 if [ -z "${PYTHON_BIN}" ]; then
-    echo -e "  ${RED}✗ 需要 Python 3.10+，但未找到${NC}"
+    echo -e "  ${RED}✗ $(T need_py310)${NC}"
     echo ""
-    echo -e "  ${YELLOW}安装 Python 3.10+ 的方法：${NC}"
+    echo -e "  ${YELLOW}$(T install_py_methods)${NC}"
     echo ""
-    echo -e "  ${BOLD}方法1: Homebrew（推荐）${NC}"
+    echo -e "  ${BOLD}$(T method1_homebrew)${NC}"
     echo "    /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
     echo "    brew install python@3.12"
     echo ""
-    echo -e "  ${BOLD}方法2: 官方安装包${NC}"
+    echo -e "  ${BOLD}$(T method2_official)${NC}"
     echo "    下载: https://www.python.org/downloads/macos/"
     echo "    安装 .pkg 后重新打开终端"
     echo ""
-    echo -e "  ${BOLD}方法3: Xcode Command Line Tools${NC}"
+    echo -e "  ${BOLD}$(T method3_xcode)${NC}"
     echo "    xcode-select --install"
     echo ""
     exit 1
@@ -111,7 +679,7 @@ echo -e "  ${GREEN}✓${NC} ${PY_VER} ($(which ${PYTHON_BIN}))"
 
 # pip 检查
 if ! ${PYTHON_BIN} -m pip --version >/dev/null 2>&1; then
-    echo -e "  ${YELLOW}→${NC} 安装 pip..."
+    echo -e "  ${YELLOW}→${NC} $(T installing_pip)"
     ${PYTHON_BIN} -m ensurepip --upgrade 2>/dev/null || \
         curl -sS https://bootstrap.pypa.io/get-pip.py | ${PYTHON_BIN}
 fi
@@ -121,11 +689,11 @@ echo -e "  ${GREEN}✓${NC} pip: $(${PYTHON_BIN} -m pip --version 2>&1 | head -1
 if command -v brew >/dev/null 2>&1; then
     echo -e "  ${GREEN}✓${NC} Homebrew: $(brew --version 2>&1 | head -1)"
 else
-    echo -e "  ${YELLOW}⚠${NC} Homebrew 未安装（可选，用于系统级依赖）"
+    echo -e "  ${YELLOW}⚠${NC} $(T homebrew_not_installed)"
 fi
 
 # ── [3/6] 获取源码 ──────────────────────────────────
-echo -e "${CYAN}[3/6]${NC} 获取 meshctx v${VERSION}..."
+echo -e "${CYAN}[3/6]${NC} $(T step3_fetch)"
 
 SOURCE_DIR=""
 USE_LOCAL=0
@@ -145,16 +713,16 @@ if [ -f "$(pwd)/install-mac.sh" ] && [ -f "$(pwd)/src/main.py" ]; then
 fi
 
 if [ "${USE_LOCAL}" = "1" ] && [ -n "${SOURCE_DIR}" ]; then
-    echo -e "  ${GREEN}✓${NC} 使用本地源码: ${SOURCE_DIR}"
+    echo -e "  ${GREEN}✓${NC} $(T using_local)"
 elif [ "${USE_LOCAL}" = "1" ]; then
-    echo -e "  ${YELLOW}→${NC} 通过 git clone 获取..."
+    echo -e "  ${YELLOW}→${NC} $(T git_cloning)"
     TMPDIR=$(mktemp -d)
     if git clone --depth 1 "https://github.com/${REPO}.git" "${TMPDIR}/meshctx" 2>/dev/null; then
         SOURCE_DIR="${TMPDIR}/meshctx"
-        echo -e "  ${GREEN}✓${NC} git clone 成功"
+        echo -e "  ${GREEN}✓${NC} $(T git_clone_ok)"
     else
-        echo -e "${RED}✗ git clone 失败${NC}"
-        echo "  请检查网络连接或手动 git clone"
+        echo -e "${RED}✗ $(T git_clone_fail)${NC}"
+        echo "  $(T check_network_git)"
         exit 1
     fi
 else
@@ -172,14 +740,14 @@ else
 
     if [ "${DOWNLOAD_OK}" != "1" ]; then
         # Fallback: git clone
-        echo -e "  ${YELLOW}→${NC} Release 下载失败，尝试 git clone..."
+        echo -e "  ${YELLOW}→${NC} $(T release_fail_try_git)"
         if git clone --depth 1 "https://github.com/${REPO}.git" "${TMPDIR}/meshctx" 2>/dev/null; then
             SOURCE_DIR="${TMPDIR}/meshctx"
-            echo -e "  ${GREEN}✓${NC} git clone 成功"
+            echo -e "  ${GREEN}✓${NC} $(T git_clone_ok)"
         else
-            echo -e "${RED}✗ 下载失败${NC}"
+            echo -e "${RED}✗ $(T download_fail_short)${NC}"
             echo ""
-            echo -e "  ${YELLOW}手动安装：${NC}"
+            echo -e "  ${YELLOW}$(T manual_install)${NC}"
             echo "    git clone https://github.com/${REPO}.git ~/.meshctx"
             echo "    cd ~/.meshctx && bash install-mac.sh"
             echo ""
@@ -189,7 +757,7 @@ else
 fi
 
 # ── [4/6] 安装 ──────────────────────────────────────
-echo -e "${CYAN}[4/6]${NC} 安装..."
+echo -e "${CYAN}[4/6]${NC} $(T step4_install)"
 
 # 备份用户配置
 CONFIG_BACKUP=""
@@ -200,7 +768,7 @@ if [ -d "${INSTALL_DIR}" ]; then
             cp "${INSTALL_DIR}/${f}" "${CONFIG_BACKUP}/${f}" 2>/dev/null || true
         fi
     done
-    [ -z "${CONFIG_BACKUP}" ] || echo -e "  ${GREEN}✓${NC} 已备份用户配置"
+    [ -z "${CONFIG_BACKUP}" ] || echo -e "  ${GREEN}✓${NC} $(T config_backed_up)"
 fi
 
 # 安装新版本
@@ -238,7 +806,7 @@ fi
 cd "${INSTALL_DIR}"
 
 # 创建 venv
-echo -e "  ${CYAN}→${NC} 创建虚拟环境..."
+echo -e "  ${CYAN}→${NC} $(T creating_venv)"
 if [ ! -d "venv" ]; then
     ${PYTHON_BIN} -m venv venv 2>/dev/null || {
         # Fallback: ensurepip
@@ -259,7 +827,7 @@ fi
 source venv/bin/activate
 
 # 安装依赖
-echo -e "  ${CYAN}→${NC} 安装依赖..."
+echo -e "  ${CYAN}→${NC} $(T installing_deps)"
 pip install -q --upgrade pip 2>/dev/null
 
 if [ -f "requirements.txt" ]; then
@@ -275,14 +843,14 @@ else
     }
 fi
 
-echo -e "  ${GREEN}✓${NC} 依赖安装完成"
+echo -e "  ${GREEN}✓${NC} $(T deps_ok)"
 # 安装 meshctx 包（pip install -e .）
-echo -e "  ${CYAN}→${NC} 安装 meshctx 包..."
+echo -e "  ${CYAN}→${NC} $(T installing_meshctx_pkg)"
 pip install -q -e . 2>/dev/null || { echo -e "${RED}✗ meshctx 包安装失败${NC}"; exit 1; }
-echo -e "  ${GREEN}✓${NC} meshctx 包安装完成"
+echo -e "  ${GREEN}✓${NC} $(T meshctx_pkg_ok)"
 
 # ── meshctx 命令 ─────────────────────────────────────
-echo -e "  ${CYAN}→${NC} 安装 meshctx 命令..."
+echo -e "  ${CYAN}→${NC} $(T installing_cmd)"
 
 mkdir -p ~/bin
 
@@ -319,10 +887,10 @@ for _dir in "${HOME}/.local/bin" "${HOME}/bin" "/usr/local/bin"; do
     fi
 done
 
-echo -e "  ${GREEN}✓${NC} meshctx 命令已安装"
+echo -e "  ${GREEN}✓${NC} $(T cmd_installed)"
 
 # ── LaunchAgent（开机自启）───────────────────────────
-echo -e "  ${CYAN}→${NC} 配置开机自启..."
+echo -e "  ${CYAN}→${NC} $(T configuring_autostart)"
 
 LAUNCHD_DIR="${HOME}/Library/LaunchAgents"
 mkdir -p "${LAUNCHD_DIR}"
@@ -368,26 +936,26 @@ LAUNCHDEOF
 launchctl unload "${LAUNCHD_DIR}/${LAUNCHD_LABEL}.plist" 2>/dev/null || true
 launchctl load "${LAUNCHD_DIR}/${LAUNCHD_LABEL}.plist" 2>/dev/null || true
 
-echo -e "  ${GREEN}✓${NC} 开机自启已配置"
+echo -e "  ${GREEN}✓${NC} $(T autostart_ok)"
 
 # ── [5/6] 验证 ──────────────────────────────────────
-echo -e "${CYAN}[5/6]${NC} 验证安装..."
+echo -e "${CYAN}[5/6]${NC} 验证$(T step4_install)"
 
 # 等待服务启动
 sleep 2
 
 # 检查服务状态
 if curl -s -o /dev/null -w "%{http_code}" "http://localhost:${PORT}/api/health" 2>/dev/null | grep -q "200"; then
-    echo -e "  ${GREEN}✓${NC} 服务运行正常 (端口 ${PORT})"
+    echo -e "  ${GREEN}✓${NC} $(T service_running)"
 else
     # 手动启动
     cd "${INSTALL_DIR}" && source venv/bin/activate
     nohup python -m uvicorn src.main:app --host 0.0.0.0 --port ${PORT} > /dev/null 2>&1 &
     sleep 2
     if curl -s -o /dev/null -w "%{http_code}" "http://localhost:${PORT}/api/health" 2>/dev/null | grep -q "200"; then
-        echo -e "  ${GREEN}✓${NC} 服务已手动启动 (端口 ${PORT})"
+        echo -e "  ${GREEN}✓${NC} $(T service_manual_start)"
     else
-        echo -e "  ${YELLOW}⚠${NC} 服务启动中，请稍后检查"
+        echo -e "  ${YELLOW}⚠${NC} $(T service_starting)"
     fi
 fi
 
@@ -400,26 +968,26 @@ echo -e "  ${GREEN}✓${NC} 版本 ${INSTALLED_VER}"
 echo ""
 echo -e "${GREEN}╔══════════════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}║                                                  ║${NC}"
-echo -e "${GREEN}║          meshctx macOS 安装完成！ 🎉              ║${NC}"
+echo -e "${GREEN}║          $(T install_complete) 🎉              ║${NC}"
 echo -e "${GREEN}║                                                  ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "  ${CYAN}快速开始:${NC}"
+echo -e "  ${CYAN}$(T quick_start_label)${NC}"
 echo "    meshctx start                    # 启动服务"
 echo "    浏览器打开 http://localhost:${PORT}/ui/setup"
 echo "    → 在 Setup 页面配置 API Key"
 echo ""
-echo -e "  ${CYAN}常用命令:${NC}"
+echo -e "  ${CYAN}$(T common_cmds_label)${NC}"
 echo "    meshctx status                   # 查看状态"
 echo "    meshctx stop                     # 停止服务"
 echo "    meshctx start --port 8080        # 指定端口"
 echo "    meshctx logs                     # 查看日志"
 echo ""
-echo -e "  ${CYAN}开机自启:${NC}"
+echo -e "  ${CYAN}$(T autostart_label)${NC}"
 echo "    已配置 LaunchAgent，重启后自动启动"
 echo "    日志目录: ~/Library/Logs/meshctx.log"
 echo ""
-echo -e "  ${CYAN}管理 LaunchAgent:${NC}"
+echo -e "  ${CYAN}$(T manage_launchagent)${NC}"
 echo "    launchctl list | grep meshctx    # 查看状态"
 echo "    launchctl stop ${LAUNCHD_LABEL}   # 手动停止"
 echo "    launchctl start ${LAUNCHD_LABEL}  # 手动启动"
