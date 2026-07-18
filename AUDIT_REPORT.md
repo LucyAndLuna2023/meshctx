@@ -115,3 +115,20 @@ d72d222 fix: 004qa第4轮 bugs #17-28 (LEGAL 783行真翻译)
 
 *报告文件: ~/meshctx-public/AUDIT_REPORT.md*
 *Redis: hub:dm:004 (91条JSON) / hub:dm:meshctx (纯文本)*
+
+---
+
+## 🟡 R6 (2026-07-18): CSS/字段名/死文件审计
+
+| # | 级别 | 描述 | 状态 |
+|---|------|------|------|
+| #41 | P1 | display_name vs full_name 三端不一致 → Profile改名字导航栏不更新 | 🔴 |
+| #42 | P1 | auth.css 14处使用未定义CSS变量 --surface/--accent/--fg-dim | 🔴 |
+| #43 | P2 | #signin-captcha 缺少CSS样式 (只有#signup-captcha有) | 🔴 |
+| #44 | P3 | legal-i18n.json (86KB) 未被 LEGAL.html 加载 | 🔴 |
+| #45 | P3 | i18n/目录7个JSON文件不被任何页面加载 | 🔴 |
+
+**关键发现:**
+- `full_name` (注册时写入) vs `display_name` (Profile保存时写入) vs `full_name` (导航栏读取) → 三端断裂
+- `--surface`, `--accent`, `--fg-dim` 在auth.css中使用14次但从未在:root定义
+- index.html CSS变量定义: --bg, --bg2, --fg, --muted, --border, --purple 缺3个

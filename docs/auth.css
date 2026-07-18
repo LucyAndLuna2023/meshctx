@@ -242,3 +242,6 @@
 #signup-captcha { width: 100%; padding: 8px 10px; font-size: 0.9rem; letter-spacing: 4px; text-transform: uppercase;
     background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); box-sizing: border-box; }
 #signup-captcha:focus { border-color: var(--accent); outline: none; }
+#signin-captcha { width: 100%; padding: 8px 10px; font-size: 0.9rem; letter-spacing: 4px; text-transform: uppercase;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); box-sizing: border-box; }
+#signin-captcha:focus { border-color: var(--accent); outline: none; }

@@ -418,7 +418,7 @@ function updateAuthUI() {
         if (userMenu) userMenu.style.display = 'flex';
         if (userName) {
             var meta = _user.user_metadata || {};
-            userName.textContent = meta.full_name || meta.user_name || _user.email || 'User';
+            userName.textContent = meta.full_name || meta.display_name || meta.user_name || _user.email || 'User';
         }
         if (userAvatar) {
             var avatarUrl = (_user.user_metadata || {}).avatar_url || '';
