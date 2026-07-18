@@ -260,7 +260,7 @@ function generateCaptchaSignin() { _captchaCodeSignin = _drawCaptcha('captcha-ca
 // ═══ Email Sign Up ═══
 async function signUpWithEmail() {
     var sb = _getSupabase();
-    if (!sb) { showAuthError(_t('auth_err_connection', 'Connection error. Please refresh the page and try again.')); return; }
+    if (!sb) { showAuthError(_t('auth_err_connection', 'Network error. Check your connection and try again.')); return; }
     var email = document.getElementById('signup-email').value.trim();
     var password = document.getElementById('signup-password').value;
     var name = document.getElementById('signup-name').value.trim();
@@ -268,7 +268,7 @@ async function signUpWithEmail() {
     if (!isPasswordStrong(password)) { showAuthError(_t('auth_err_pwd_weak', 'Password must be 8+ chars with uppercase, lowercase, and number.')); return; }
 
     var password2 = document.getElementById('signup-password2').value;
-    if (password !== password2) { showAuthError(_t('auth_err_pw_match', 'Passwords do not match.')); return; }
+    if (password !== password2) { showAuthError(_t('auth_err_pwd_match', 'Passwords do not match.')); return; }
 
     // CAPTCHA
     var captchaInput = document.getElementById('signup-captcha');
@@ -277,8 +277,8 @@ async function signUpWithEmail() {
     }
 
     var btn = document.getElementById('signup-btn');
-    if (!btn) { showAuthError(_t('auth_err_ui', 'UI error: button not found. Please refresh.')); return; }
-    btn.disabled = true; btn.textContent = _t('auth_btn_creating', 'Creating account...');
+    if (!btn) { showAuthError(_t('auth_err_ui', 'UI error. Please refresh the page.')); return; }
+    btn.disabled = true; btn.textContent = _t('auth_btn_creating', 'Creating account…');
 
     try {
     var { data, error } = await sb.auth.signUp({
@@ -306,13 +306,13 @@ async function signUpWithEmail() {
     // Email confirmation is on — identities is empty [] for new users
     // "already registered" returns 422 error from Supabase, caught above
     showAuthError(_t('auth_confirm', 'Check your email for a confirmation link!'));
-    } catch(e) { btn.disabled = false; btn.textContent = _t('auth_btn_signup', 'Create Account'); showAuthError(_t('auth_err_network', 'Network error. Please check your connection and try again.')); }
+    } catch(e) { btn.disabled = false; btn.textContent = _t('auth_btn_signup', 'Create Account'); showAuthError(_t('auth_err_network', 'Network or server error. Please try again.')); }
 }
 
 // ═══ Email Sign In ═══
 async function signInWithEmail() {
     var sb = _getSupabase();
-    if (!sb) { showAuthError(_t('auth_err_connection', 'Connection error. Please refresh the page and try again.')); return; }
+    if (!sb) { showAuthError(_t('auth_err_connection', 'Network error. Check your connection and try again.')); return; }
     var email = document.getElementById('signin-email').value.trim();
     var password = document.getElementById('signin-password').value;
     if (!email || !password) { showAuthError(_t('auth_err_empty', 'Please fill in email and password.')); return; }
@@ -324,7 +324,7 @@ async function signInWithEmail() {
     }
 
     var btn = document.getElementById('signin-btn');
-    btn.disabled = true; btn.textContent = _t('auth_btn_signing_in', 'Signing in...');
+    btn.disabled = true; btn.textContent = _t('auth_btn_signing_in', 'Signing in…');
 
     try {
     var { data, error } = await sb.auth.signInWithPassword({ email: email, password: password });
@@ -340,13 +340,13 @@ async function signInWithEmail() {
     _user = data.user;
     updateAuthUI();
     hideAuthModal();
-    } catch(e) { btn.disabled = false; btn.textContent = _t('auth_btn_signin', 'Sign In'); showAuthError(_t('auth_err_network', 'Network error. Please check your connection and try again.')); }
+    } catch(e) { btn.disabled = false; btn.textContent = _t('auth_btn_signin', 'Sign In'); showAuthError(_t('auth_err_network', 'Network or server error. Please try again.')); }
 }
 
 // ═══ OAuth (GitHub) ═══
 async function signInWithOAuth(provider) {
     var sb = _getSupabase();
-    if (!sb) { showAuthError(_t('auth_err_config', 'Supabase not configured.')); return; }
+    if (!sb) { showAuthError(_t('auth_err_config', 'Auth config error. Please contact support.')); return; }
 
     var btn = document.getElementById('oauth-btn-' + provider);
     if (btn) { btn.disabled = true; }
@@ -372,7 +372,7 @@ function showResetPassword() {
 
 async function resetPassword() {
     var sb = _getSupabase();
-    if (!sb) { showAuthError(_t('auth_err_connection', 'Connection error. Please refresh the page and try again.')); return; }
+    if (!sb) { showAuthError(_t('auth_err_connection', 'Network error. Check your connection and try again.')); return; }
     var email = document.getElementById('reset-email').value.trim();
     if (!email) {
         var err = document.getElementById('auth-error-reset');
@@ -400,7 +400,7 @@ async function changePassword(newPassword) {
 // ═══ Sign Out ═══
 async function signOut() {
     var sb = _getSupabase();
-    if (!sb) { showAuthError(_t('auth_err_connection', 'Connection error. Please refresh the page and try again.')); return; }
+    if (!sb) { showAuthError(_t('auth_err_connection', 'Network error. Check your connection and try again.')); return; }
     await sb.auth.signOut();
     _user = null;
     updateAuthUI();
