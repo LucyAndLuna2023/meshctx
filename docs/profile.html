@@ -2,6 +2,7 @@
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://xtyjsjlkljzdgvqpskyk.supabase.co https://api.github.com; img-src 'self' data: https://avatars.githubusercontent.com; frame-src https://xtyjsjlkljzdgvqpskyk.supabase.co;">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile — MeshCtx</title>
     <link rel="stylesheet" href="auth.css">
@@ -197,9 +198,12 @@ async function initProfile(){
 async function loadEmails(sb){
     var el = document.getElementById('pf-emails');
     el.innerHTML = '';
-    // Fetch identities (linked emails)
-    var r = await sb.auth.getUserIdentities ? sb.auth.getUserIdentities() : null;
-    var identities = r && r.data ? r.data.identities || [] : [];
+    // Fetch identities (linked emails) — guarded: Supabase js v2 may not have this method
+    var identities = [];
+    try {
+        var r = sb.auth.getUserIdentities ? await sb.auth.getUserIdentities() : null;
+        identities = r && r.data ? r.data.identities || [] : [];
+    } catch(e) { /* getUserIdentities not available — fallback to empty */ }
     // Get the main user email first
     var u = (await sb.auth.getSession()).data.session.user;
     var primary = u.email;
@@ -252,7 +256,7 @@ async function addEmail(){
 async function removeEmail(btn, id){
     if(!confirm(_t_i18n('profile_em_remove_confirm', 'Remove this email?'))) return;
     // Note: full email management requires server-side admin API
-    alert(_t_i18n('profile_em_admin', 'Email management requires admin API. Coming soon.'));
+    alert(_t_i18n('profile_em_admin', 'Email management requires admin verification. Please contact meshctx@proton.me.'));
 }
 
 async function doChangePassword() {
@@ -281,7 +285,12 @@ async function doChangePassword() {
 async function deleteAccount(){
     if(!confirm(_t_i18n('profile_delete_confirm', 'Permanently delete your account? This action cannot be undone.'))) return;
     // Requires admin API
-    alert(_t_i18n('profile_delete_admin', 'Account deletion requires admin API. Coming soon.'));
+    // Deletion requires service_role key (admin API). Direct users to email support.
+    var email = _user ? _user.email : '';
+    var subject = encodeURIComponent('Account Deletion Request');
+    var body = encodeURIComponent('Please delete my account: ' + (email || 'unknown'));
+    alert(_t_i18n('profile_delete_admin', 'Account deletion requires admin verification. Please email meshctx@proton.me with subject "Account Deletion Request".'));
+    window.open('mailto:meshctx@proton.me?subject=' + subject + '&body=' + body, '_blank');
 }
 
 initProfile();

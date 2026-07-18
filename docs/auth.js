@@ -128,7 +128,7 @@ function _getSupabase() {
     };
 }
 
-var _token = localStorage.getItem('meshctx-token') || null;
+var _token = localStorage.getItem('meshctx-token') || null;  // ⚠️ P1: localStorage XSS risk — TODO: migrate to httpOnly cookie
 var _onAuthChange = null;
 
 // ═══ Modal ═══
@@ -215,6 +215,7 @@ function checkPasswordStrength() {
 }
 
 // ═══ CAPTCHA ═══
+// ⚠️ P1: client-side only, no server validation — TODO: Cloudflare Turnstile or Supabase reCAPTCHA
 var _captchaCode = '';
 var _captchaCodeSignin = '';
 
