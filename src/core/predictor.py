@@ -304,5 +304,3 @@ class PredictorPlugin:
         }
 
 
-# ── _P universal proxy (backward compat) ──────────────────────────────
-

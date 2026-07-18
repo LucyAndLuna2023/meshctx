@@ -374,5 +374,3 @@ def get_indexer(root: str = ".") -> _Indexer:
 get_index = _Indexer.search  # backward compat alias
 
 
-# ── _P universal proxy (backward compat) ──────────────────────────────
-

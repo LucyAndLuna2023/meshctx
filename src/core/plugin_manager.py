@@ -1,5 +1,5 @@
 """
-meshctx Plugin Manager (v3.115.16) — Real implementation replacing 37-line _P stub.
+meshctx Plugin Manager (v3.115.16) — Real implementation, no stubs.
 Plugin discovery, loading, lifecycle hooks, hot-reload, dependency resolution.
 """
 import importlib

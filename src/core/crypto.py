@@ -1,6 +1,5 @@
-"""meshctx crypto — auto-generated stub"""
-# v3.115.6: _P 支持 YAML 安全序列化 + __call__ 保留 args
-# v3.115.8: 兼容旧 config.yaml 中残留的 !!python/object 标签
+"""meshctx crypto — encryption and key management"""
+# v3.115.8: legacy !!python/object YAML tag compatibility
 
 # ── 全局 monkey-patch yaml.safe_load（最早执行，覆盖所有调用点）──
 import yaml as _yaml_mod
@@ -68,9 +67,3 @@ def decrypt_key(key: str) -> str:
 def is_encrypted(key: str) -> bool:
     return key.startswith("enc:")
 
-
-# ── 兼容旧 !!python/object 标签（读取）─ 安全处理，不再崩溃 ──
-def _legacy_P_constructor(loader, node):
-    """将旧格式映射为普通字符串"""
-    data = loader.construct_mapping(node, deep=True)
-    return f"enc:{data.get('_n', '')}"

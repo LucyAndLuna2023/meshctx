@@ -9,12 +9,12 @@
 
 ### 🔴 BUG #1: `/kernel/stats` 500 Internal Server Error
 - **文件**: `src/main.py:971` + `src/core/kernel.py:PluginManager`
-- **原因**: `list_active()` 缺失 → `__getattr__` → `_P` 不可JSON序列化 → 500
+- **原因**: `list_active()` 缺失 → `__getattr__` → stub 不可JSON序列化 → 500
 - **修复**: 在 `PluginManager` 添加 `list_active()` 方法
 
 ### 🟡 BUG #2: `/health` 和 `/api/health` 返回虚假数据
 - **文件**: `src/main.py:3529-3564` + `src/core/health_monitor.py`
-- **原因**: `get_health_monitor()` + `check_all()` 缺失 → 走 `_P` 代理 → 永远返回 `modules_ok=0`
+- **原因**: `get_health_monitor()` + `check_all()` 缺失 → 走 stub 代理 → 永远返回 `modules_ok=0`
 - **修复**: 添加 `get_health_monitor()` 函数 + `check_all()` 方法
 
 ### 🟡 BUG #3: PluginManager 缺少 `list_all()`

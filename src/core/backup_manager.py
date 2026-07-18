@@ -310,8 +310,3 @@ class BackupManager:
         return deleted
 
 
-# ---------------------------------------------------------------------------
-# _P compatibility stub — keeps module importable when real classes aren't
-# needed.  Module-level __getattr__ returns a _P proxy for any undefined name.
-# ---------------------------------------------------------------------------
-
