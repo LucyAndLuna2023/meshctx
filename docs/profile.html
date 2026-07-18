@@ -2,7 +2,7 @@
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://xtyjsjlkljzdgvqpskyk.supabase.co https://api.github.com; img-src 'self' data: https://avatars.githubusercontent.com; frame-src https://xtyjsjlkljzdgvqpskyk.supabase.co;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://xtyjsjlkljzdgvqpskyk.supabase.co https://api.github.com; img-src 'self' data: https://avatars.githubusercontent.com; frame-src https://xtyjsjlkljzdgvqpskyk.supabase.co; form-action 'self' https://xtyjsjlkljzdgvqpskyk.supabase.co; base-uri 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile — MeshCtx</title>
     <link rel="stylesheet" href="auth.css">
@@ -87,7 +87,15 @@
             <div class="section-title" data-lang-key="profile_change_pwd">Change Password</div>
             <div class="form-group">
                 <label data-lang-key="profile_new_pwd">New Password</label>
-                <input type="password" id="pf-new-password" placeholder="••••••••" autocomplete="new-password">
+                <input type="password" id="pf-new-password" placeholder="••••••••" autocomplete="new-password" oninput="_checkPwdStrength('pf-new-password','pf-pwd-strength-bar','.pf-pwd-strength-wrap')">
+            </div>
+            <div class="pwd-strength-wrap pf-pwd-strength-wrap" style="display:none;">
+                <span class="pwd-strength-label" data-lang-key="auth_pwd_strength">Password strength:</span>
+                <div class="pwd-strength-track"><div class="pwd-strength-fill" id="pf-pwd-strength-bar"></div></div>
+            </div>
+            <div class="form-group">
+                <label data-lang-key="auth_label_pw2">Confirm Password</label>
+                <input type="password" id="pf-confirm-password" placeholder="••••••••" autocomplete="new-password">
             </div>
             <p class="profile-error" id="pf-pwd-error" style="display:none;"></p>
             <p class="profile-success" id="pf-pwd-success" style="display:none;"></p>
@@ -113,7 +121,6 @@
 </div>
 
 <div class="saved-toast" id="pf-toast" data-lang-key="profile_saved">&#10003; Profile updated!</div>
-<p class="profile-error" id="pf-error" style="display:none;"></p>
 
 <script src="auth.js"></script>
 <script>
@@ -144,11 +151,11 @@ function switchLang(lang){
         if(el.querySelector('[data-lang-key]')){
             for(var cn=el.firstChild; cn; cn=cn.nextSibling){
                 if(cn.nodeType===3 && cn.textContent.trim()){ cn.textContent = val; return; }
-                if(cn.nodeType===1 && !cn.hasAttribute('data-lang-key') && !cn.querySelector('[data-lang-key]')){ cn.textContent = val; return; }
+                if(cn.nodeType===1 && !cn.hasAttribute('data-lang-key') && !cn.querySelector('[data-lang-key]')){ cn.innerHTML = val; return; }
             }
             return;
         }
-        el.textContent = val;
+        el.innerHTML = val;
     });
     document.querySelectorAll('[data-lang-key-placeholder]').forEach(function(el){
         var key = el.getAttribute('data-lang-key-placeholder');
@@ -230,7 +237,7 @@ async function saveProfile(){
         company: document.getElementById('pf-company').value
     };
     var r = await sb.auth.updateUser({data:meta});
-    if(r.error){ var e=document.getElementById('pf-error'); e.textContent=_t('profile_save_err', r.error.message || 'Failed to save profile.'); e.style.display='block'; return; }
+    if(r.error){ alert(_t('profile_save_err', r.error.message || 'Failed to save profile.')); return; }
     var t = document.getElementById('pf-toast');
     t.style.display = 'block';
     setTimeout(function(){ t.style.display = 'none'; }, 2000);
@@ -243,8 +250,8 @@ async function changeEmail(){
     // Supabase doesn't have direct add-email API; use updateUser to change primary
     // Actually, let's use the admin API pattern. For now, just update primary.
     var r = await sb.auth.updateUser({email:email});
-    if(r.error){ var e=document.getElementById('pf-error'); e.textContent=_t('profile_save_err', r.error.message || 'Failed to save profile.'); e.style.display='block'; return; }
-    var t=document.getElementById('pf-toast'); t.textContent='✉ '+_t('profile_em_confirm', 'Check your inbox to confirm the new email.'); t.style.display='block'; setTimeout(function(){ t.style.display='none'; }, 4000);
+    if(r.error){ alert(_t('profile_save_err', r.error.message || 'Failed to save profile.')); return; }
+    alert(_t('profile_em_confirm', 'Check your inbox to confirm the new email.'));
     document.getElementById('pf-new-email').value = '';
 }
 
@@ -256,24 +263,39 @@ async function removeEmail(btn, id){
 
 async function doChangePassword() {
     var pw = document.getElementById('pf-new-password').value;
+    var pw2 = document.getElementById('pf-confirm-password').value;
     var errEl = document.getElementById('pf-pwd-error');
     var okEl = document.getElementById('pf-pwd-success');
     errEl.style.display = 'none';
     okEl.style.display = 'none';
-    if (!pw || pw.length < 8) {
+    if (!isPasswordStrong(pw)) {
         errEl.textContent = _t('profile_pwd_rule', 'Password must be 8+ chars with uppercase, lowercase, and digit.');
         errEl.style.display = 'block';
         return;
     }
-    var sb = _getSupabase();
-    var r = await sb.auth.updateUser({ password: pw });
-    if (r.error) {
-        errEl.textContent = r.error.message;
+    if (pw !== pw2) {
+        errEl.textContent = _t('auth_err_pwd_match', 'Passwords do not match.');
         errEl.style.display = 'block';
-    } else {
-        okEl.style.display = 'block';
-        document.getElementById('pf-new-password').value = '';
-        setTimeout(function() { okEl.style.display = 'none'; }, 3000);
+        return;
+    }
+    var sb = _getSupabase();
+    try {
+        var r = await sb.auth.updateUser({ password: pw });
+        if (r.error) {
+            errEl.textContent = r.error.message;
+            errEl.style.display = 'block';
+        } else {
+            okEl.textContent = _t('profile_pwd_changed', 'Password updated!');
+            okEl.style.display = 'block';
+            document.getElementById('pf-new-password').value = '';
+            document.getElementById('pf-confirm-password').value = '';
+            var wrap = document.querySelector('.pf-pwd-strength-wrap');
+            if (wrap) wrap.style.display = 'none';
+            setTimeout(function() { okEl.style.display = 'none'; }, 3000);
+        }
+    } catch (e) {
+        errEl.textContent = _t('auth_err_network', 'Network error. Please check your connection.');
+        errEl.style.display = 'block';
     }
 }
 

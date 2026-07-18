@@ -9,6 +9,7 @@ meshctx 开源 wrapper 层。核心引擎在 meshctx-core (私有仓库)。
 __version__ = "3.115.18"
 
 import sys, logging, warnings, os
+from functools import lru_cache
 from types import ModuleType
 
 # ═══════════════ MESHCTX_STRICT 开关 ═══════════════
@@ -251,6 +252,7 @@ def has_module(name):
     return False
 
 
+@lru_cache(maxsize=1)
 def available_modules():
     """列出当前可用的 meshctx-core 子模块。
 
