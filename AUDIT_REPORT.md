@@ -7,14 +7,14 @@
 
 ## 📊 R7新发现: 6个bug
 
-| # | 级别 | 描述 | 位置 |
-|---|------|------|------|
-| #46 | P2 | OAuth按钮缺少ID → btn.disabled无效 | index.html L543+L600 |
-| #47 | P1 | profile.html _refreshI18n innerHTML XSS | profile.html L146/L150 |
-| #48 | P1 | Mac 192.168.3.63:3001 未部署auth.js | 部署 |
-| #49 | P2 | updateUser wrapper缺少.catch() | auth.js L66-73 |
-| #50 | P3 | saveProfile/changeEmail用alert报错 | profile.html L232/L245 |
-| #51 | P3 | Mac语言选择器缺it/ar (7/9语言) | Mac部署版 |
+| # | 级别 | 描述 | 位置 | 状态 |
+|---|------|------|------|------|
+| #46 | P2 | OAuth按钮缺少ID → btn.disabled无效 | index.html L543+L600 | ✅ 9644405 |
+| #47 | P1 | profile.html _refreshI18n innerHTML XSS | profile.html L146/L150 | ✅ 9644405 |
+| #48 | P1 | Mac 192.168.3.63:3001 未部署auth.js | 部署 | 🔧 需重新部署 |
+| #49 | P2 | updateUser wrapper缺少.catch() | auth.js L66-73 | ✅ 9644405 |
+| #50 | P3 | saveProfile/changeEmail用alert报错 | profile.html L232/L245 | ✅ 9644405 |
+| #51 | P3 | Mac语言选择器缺it/ar (7/9语言) | Mac部署版 | 🔧 需重新部署 |
 
 ---
 
@@ -71,14 +71,19 @@ Mac页面lang dropdown只有7语言(en/zh/ja/ko/es/fr/de)，缺少Italian和Arab
 
 ## 📈 累计统计
 
-- **六轮总计**: 45 bug / 34已修 / 11未修
-- **R7新增**: 6 bug
-- **新总计**: 51 bug / 34已修 / 17未修
+- **R1-R6**: 45 bug / **45已修** / 0未修 ✅
+- **R7新增**: 6 bug / **4已修** / 2未修 (部署)
+- **总计**: **51 bug / 49已修** / 2未修
 
 ---
+## 📦 本轮commit
+- **9644405**: fix: #46/#47/#49/#50 (OAuth ID + XSS + catch + alert→inline)
+- **dbe5f56**: fix: #41-#45 (R6全部)
+- **阶段1 (WIP)**: _StubClass + warnings + has_module/available_modules + MESHCTX_STRICT
 
-## ⚡ TOP 3 紧急
+---
+## ⚡ TOP 3 剩余
 
-1. **#47 P1**: profile.html innerHTML XSS — 安全漏洞，需立即同步auth.js修复方案
-2. **#48 P1**: Mac未部署auth — 主平台无登录功能
-3. **#49 P2**: updateUser无.catch() — 用户修改Profile可能静默失败
+1. **#48 P1**: Mac未部署auth — 主平台无登录功能 (scp docs/* 到 192.168.3.63:3001)
+2. **#51 P3**: Mac语言缺it/ar — 代码已修，需重新部署
+3. **_P清除**: 002提交了_P全量清除，待合并

@@ -8,14 +8,57 @@ meshctx 开源 wrapper 层。核心引擎在 meshctx-core (私有仓库)。
 """
 __version__ = "3.115.18"
 
-import sys, logging
+import sys, logging, warnings, os
 from types import ModuleType
 
-# ═══════════════ 通用 Stub ═══════════════
+# ═══════════════ MESHCTX_STRICT 开关 ═══════════════
+# 设置环境变量 MESHCTX_STRICT=1 可启用严格模式:
+#   stub 访问不再静默失败, 而是 raise ImportError
+_STRICT = os.environ.get('MESHCTX_STRICT', '').strip() in ('1', 'true', 'yes')
+
+# ═══════════════ 通用 Stub (阶段1: 添加诊断) ═══════════════
 class _StubClass:
-    def __init__(self, *a, **kw): pass
-    def __call__(self, *a, **kw): return self
-    def __getattr__(self, name): return self
+    __slots__ = ('_warned',)  # 减少内存, 单例仅一个 set
+
+    def __init__(self, *a, **kw):
+        object.__setattr__(self, '_warned', set())
+
+    def _warn_once(self, name):
+        """每个属性名仅警告一次, 避免日志洪水"""
+        _w = object.__getattribute__(self, '_warned')
+        if name not in _w:
+            _w.add(name)
+            warnings.warn(
+                f"meshctx stub accessed: .{name} — meshctx-core not installed. "
+                f"Set MESHCTX_STRICT=1 to raise ImportError instead.",
+                RuntimeWarning, stacklevel=3)
+
+    def __getattr__(self, name):
+        if name.startswith('_'):
+            raise AttributeError(name)
+        if _STRICT:
+            raise ImportError(
+                f"meshctx stub '{name}' — meshctx-core not installed. "
+                f"Unset MESHCTX_STRICT for graceful degradation.")
+        self._warn_once(name)
+        return self
+
+    def __call__(self, *a, **kw):
+        if _STRICT:
+            raise ImportError(
+                "meshctx stub called — meshctx-core not installed. "
+                "Unset MESHCTX_STRICT for graceful degradation.")
+        self._warn_once('__call__')
+        return self
+
+    def __bool__(self):
+        if _STRICT:
+            raise ImportError(
+                "meshctx stub truthiness check — meshctx-core not installed. "
+                "Use has_module() to check availability.")
+        self._warn_once('__bool__')
+        return False
+
     def __getitem__(self, key): return self
     def __await__(self):
         async def _aw(): return self
@@ -24,7 +67,6 @@ class _StubClass:
     def __lt__(self, other): return False
     def __ge__(self, other): return False
     def __le__(self, other): return False
-    def __bool__(self): return False
     def __repr__(self): return "<meshctx-core stub>"
     def __iter__(self): return iter([])
     def __len__(self): return 0
@@ -179,7 +221,47 @@ def __getattr__(name):
     return _stub
 
 def __dir__():
-    result = ['__version__']
+    result = ['__version__', 'has_module', 'available_modules']
     for syms in _known.values():
         result.extend(syms)
     return sorted(set(result))
+
+
+# ═══════════════ 阶段1: 模块可用性查询 API ═══════════════
+def has_module(name):
+    """检查 meshctx-core 子模块是否可用 (非 stub)。
+
+    用法:
+        if meshctx.has_module('agent_swarm'):
+            meshctx.agent_swarm.get_swarm_manager()
+        else:
+            # 优雅降级
+            pass
+
+    返回:
+        True  — meshctx-core 已安装, 模块真实可用
+        False — stub 模式 (meshctx-core 未安装)
+    """
+    if name in _known:
+        try:
+            __import__(f'src.core.{name}', fromlist=['__name__'])
+            return True
+        except ImportError:
+            return False
+    return False
+
+
+def available_modules():
+    """列出当前可用的 meshctx-core 子模块。
+
+    返回: list[str] — 已加载或可导入的模块名
+    注意: 仅反映可用模块, 不包含 stub (stub 下返回空列表)
+    """
+    result = []
+    for mod_name in _known:
+        try:
+            __import__(f'src.core.{mod_name}', fromlist=['__name__'])
+            result.append(mod_name)
+        except ImportError:
+            pass
+    return sorted(result)
