@@ -216,7 +216,7 @@ async function loadEmails(sb){
         var em = all[j];
         var div = document.createElement('div');
         div.className = 'email-row';
-        div.innerHTML = '<span class="email-addr">'+em.email+'</span>' + (em.id==='primary' ? '<span class="email-primary">'+pmLabel+'</span>' : '<button class="btn btn-danger btn-sm" onclick="removeEmail(this,\''+em.id+'\')">'+rmLabel+'</button>');
+        var emailSpan = document.createElement('span'); emailSpan.className = 'email-addr'; emailSpan.textContent = em.email; div.appendChild(emailSpan); if (em.id==='primary') { var primarySpan = document.createElement('span'); primarySpan.className = 'email-primary'; primarySpan.textContent = pmLabel; div.appendChild(primarySpan); } else { var rmBtn = document.createElement('button'); rmBtn.className = 'btn btn-danger btn-sm'; rmBtn.textContent = rmLabel; rmBtn.setAttribute('onclick', "removeEmail(this,'"+em.id+"')"); div.appendChild(rmBtn); }
         el.appendChild(div);
     }
 }

@@ -3,8 +3,8 @@
  */
 
 // ═══ CONFIG ═══
-var SUPABASE_URL = 'https://xtyjsjlkljzdgvqpskyk.supabase.co';
-var SUPABASE_ANON_KEY = 'sb_publishable_y3oQKcnr2dADsN39_PSBvg_H3Qbm5Bf';
+var SUPABASE_URL = /* meshctx config — immutable */ 'https://xtyjsjlkljzdgvqpskyk.supabase.co';
+var SUPABASE_ANON_KEY = /* meshctx config — immutable */ 'sb_publishable_y3oQKcnr2dADsN39_PSBvg_H3Qbm5Bf';
 var _sb = null;
 var _user = null;
 
@@ -21,10 +21,14 @@ function _t(key, fallback) {
     return fallback || key;
 }
 
+var __lastI18nLang = null;
 function _refreshAuthI18n() {
-    // Re-apply translations to auth modal (since it's hidden, we trigger on open)
+    // Re-apply translations to auth modal only when language changed
+    var cur = localStorage.getItem('meshctx-lang') || 'en';
+    if (cur === __lastI18nLang) return;
+    __lastI18nLang = cur;
     if (typeof switchLang !== 'function') return;
-    try { switchLang((typeof L !== 'undefined' && L && Object.keys(L).length) ? (localStorage.getItem('meshctx-lang') || 'en') : 'en'); } catch(e) {}
+    try { switchLang((typeof L !== 'undefined' && L && Object.keys(L).length) ? cur : 'en'); } catch(e) {}
 }
 
 function _getSupabase() {
@@ -94,9 +98,11 @@ function _getSupabase() {
                 .catch(function(e){ return {data: null, error: {message: 'Network error: ' + (e.message || 'connection failed')}}; });
             },
             updateUser: function(params) {
+                var headers = {'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json'};
+                if (_token) headers['Authorization'] = 'Bearer ' + _token;
                 return fetch(SUPABASE_URL + '/auth/v1/user', {
                     method: 'PUT',
-                    headers: {'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (_token || '')},
+                    headers: headers,
                     body: JSON.stringify(params)
                 }).then(function(r){ return r.json().then(function(d){ return {data: r.ok ? d : null, error: r.ok ? null : d}; }); });
             },
@@ -210,53 +216,16 @@ function checkPasswordStrength() {
 
 // ═══ CAPTCHA ═══
 var _captchaCode = '';
-
-function generateCaptcha() {
-    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    var code = '';
-    for (var i = 0; i < 6; i++) { code += chars[Math.floor(Math.random() * chars.length)]; }
-    _captchaCode = code;
-    var canvas = document.getElementById('captcha-canvas');
-    if (!canvas) return;
-    var ctx = canvas.getContext('2d');
-    canvas.width = 140; canvas.height = 48;
-    // Background
-    ctx.fillStyle = 'rgba(30,35,50,1)';
-    ctx.fillRect(0, 0, 140, 48);
-    // Noise lines
-    for (var i = 0; i < 6; i++) {
-        ctx.strokeStyle = 'rgba(139,92,246,' + (0.15 + Math.random() * 0.2) + ')';
-        ctx.beginPath();
-        ctx.moveTo(Math.random() * 140, Math.random() * 48);
-        ctx.lineTo(Math.random() * 140, Math.random() * 48);
-        ctx.stroke();
-    }
-    // Noise dots
-    for (var i = 0; i < 30; i++) {
-        ctx.fillStyle = 'rgba(255,255,255,' + (0.05 + Math.random() * 0.15) + ')';
-        ctx.fillRect(Math.random() * 140, Math.random() * 48, 2, 2);
-    }
-    // Draw text
-    for (var i = 0; i < 6; i++) {
-        ctx.font = (20 + Math.random() * 6) + 'px monospace';
-        ctx.fillStyle = 'hsl(' + (260 + Math.random() * 40) + ', 70%, ' + (60 + Math.random() * 25) + '%)';
-        ctx.save();
-        ctx.translate(10 + i * 22, 28 + Math.random() * 10 - 5);
-        ctx.rotate((Math.random() - 0.5) * 0.6);
-        ctx.fillText(code[i], 0, 0);
-        ctx.restore();
-    }
-}
+var _captchaCodeSignin = '';
 
 function _captcha_err_alt() { return _t('auth_captcha_err', 'Incorrect verification code.'); }
 
-function generateCaptchaSignin() {
+function _drawCaptcha(canvasId) {
     var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     var code = '';
     for (var i = 0; i < 6; i++) { code += chars[Math.floor(Math.random() * chars.length)]; }
-    _captchaCodeSignin = code;
-    var canvas = document.getElementById('captcha-canvas-signin');
-    if (!canvas) return;
+    var canvas = document.getElementById(canvasId);
+    if (!canvas) return '';
     var ctx = canvas.getContext('2d');
     canvas.width = 140; canvas.height = 48;
     ctx.fillStyle = 'rgba(30,35,50,1)';
@@ -281,13 +250,16 @@ function generateCaptchaSignin() {
         ctx.fillText(code[i], 0, 0);
         ctx.restore();
     }
+    return code;
 }
-var _captchaCodeSignin = '';
+
+function generateCaptcha() { _captchaCode = _drawCaptcha('captcha-canvas'); }
+function generateCaptchaSignin() { _captchaCodeSignin = _drawCaptcha('captcha-canvas-signin'); }
 
 // ═══ Email Sign Up ═══
 async function signUpWithEmail() {
     var sb = _getSupabase();
-    if (!sb) { showAuthError('Connection error. Please refresh the page and try again.'); return; }
+    if (!sb) { showAuthError(_t('auth_err_connection', 'Connection error. Please refresh the page and try again.')); return; }
     var email = document.getElementById('signup-email').value.trim();
     var password = document.getElementById('signup-password').value;
     var name = document.getElementById('signup-name').value.trim();
@@ -304,8 +276,8 @@ async function signUpWithEmail() {
     }
 
     var btn = document.getElementById('signup-btn');
-    if (!btn) { showAuthError('UI error: button not found. Please refresh.'); return; }
-    btn.disabled = true; btn.textContent = 'Creating account...';
+    if (!btn) { showAuthError(_t('auth_err_ui', 'UI error: button not found. Please refresh.')); return; }
+    btn.disabled = true; btn.textContent = _t('auth_btn_creating', 'Creating account...');
 
     try {
     var { data, error } = await sb.auth.signUp({
@@ -316,7 +288,7 @@ async function signUpWithEmail() {
             emailRedirectTo: window.location.origin + '/'
         }
     });
-    btn.disabled = false; btn.textContent = 'Create Account';
+    btn.disabled = false; btn.textContent = _t('auth_btn_signup', 'Create Account');
 
     if (error) { showAuthError(error.message); return; }
 
@@ -333,13 +305,13 @@ async function signUpWithEmail() {
     // Email confirmation is on — identities is empty [] for new users
     // "already registered" returns 422 error from Supabase, caught above
     showAuthError(_t('auth_confirm', 'Check your email for a confirmation link!'));
-    } catch(e) { btn.disabled = false; btn.textContent = 'Create Account'; showAuthError('Network error. Please check your connection and try again.'); }
+    } catch(e) { btn.disabled = false; btn.textContent = _t('auth_btn_signup', 'Create Account'); showAuthError(_t('auth_err_network', 'Network error. Please check your connection and try again.')); }
 }
 
 // ═══ Email Sign In ═══
 async function signInWithEmail() {
     var sb = _getSupabase();
-    if (!sb) { showAuthError('Connection error. Please refresh the page and try again.'); return; }
+    if (!sb) { showAuthError(_t('auth_err_connection', 'Connection error. Please refresh the page and try again.')); return; }
     var email = document.getElementById('signin-email').value.trim();
     var password = document.getElementById('signin-password').value;
     if (!email || !password) { showAuthError(_t('auth_err_empty', 'Please fill in email and password.')); return; }
@@ -351,11 +323,11 @@ async function signInWithEmail() {
     }
 
     var btn = document.getElementById('signin-btn');
-    btn.disabled = true; btn.textContent = 'Signing in...';
+    btn.disabled = true; btn.textContent = _t('auth_btn_signing_in', 'Signing in...');
 
     try {
     var { data, error } = await sb.auth.signInWithPassword({ email: email, password: password });
-    btn.disabled = false; btn.textContent = 'Sign In';
+    btn.disabled = false; btn.textContent = _t('auth_btn_signin', 'Sign In');
 
     if (error) { showAuthError(error.message); return; }
     if (!data || !data.session || !data.session.access_token) {
@@ -367,13 +339,13 @@ async function signInWithEmail() {
     _user = data.user;
     updateAuthUI();
     hideAuthModal();
-    } catch(e) { btn.disabled = false; btn.textContent = 'Sign In'; showAuthError('Network error. Please check your connection and try again.'); }
+    } catch(e) { btn.disabled = false; btn.textContent = _t('auth_btn_signin', 'Sign In'); showAuthError(_t('auth_err_network', 'Network error. Please check your connection and try again.')); }
 }
 
 // ═══ OAuth (GitHub) ═══
 async function signInWithOAuth(provider) {
     var sb = _getSupabase();
-    if (!sb) { showAuthError('Supabase not configured.'); return; }
+    if (!sb) { showAuthError(_t('auth_err_config', 'Supabase not configured.')); return; }
 
     var btn = document.getElementById('oauth-btn-' + provider);
     if (btn) { btn.disabled = true; }
@@ -399,7 +371,7 @@ function showResetPassword() {
 
 async function resetPassword() {
     var sb = _getSupabase();
-    if (!sb) { showAuthError('Connection error. Please refresh the page and try again.'); return; }
+    if (!sb) { showAuthError(_t('auth_err_connection', 'Connection error. Please refresh the page and try again.')); return; }
     var email = document.getElementById('reset-email').value.trim();
     if (!email) {
         var err = document.getElementById('auth-error-reset');
@@ -427,7 +399,7 @@ async function changePassword(newPassword) {
 // ═══ Sign Out ═══
 async function signOut() {
     var sb = _getSupabase();
-    if (!sb) { showAuthError('Connection error. Please refresh the page and try again.'); return; }
+    if (!sb) { showAuthError(_t('auth_err_connection', 'Connection error. Please refresh the page and try again.')); return; }
     await sb.auth.signOut();
     _user = null;
     updateAuthUI();
@@ -484,11 +456,11 @@ async function updateProfile(fields) {
     return { data: data, error: error };
 }
 
+// addEmail — reserved for future multi-email support (requires custom table)
+// Supabase GoTrue does not support secondary emails via REST API
 async function addEmail(newEmail) {
     var sb = _getSupabase();
     if (!sb) return { error: 'Not logged in' };
-    // Supabase doesn't have direct "add email" — we update the primary email
-    // For multiple emails, we'd need a custom table
     return await sb.auth.updateUser({ email: newEmail });
 }
 
@@ -504,7 +476,7 @@ async function initAuth() {
     try {
         var { data } = await sb.auth.getSession();
         if (data && data.session && data.session.user) { _user = data.session.user; }
-    } catch(e) { console.log('No active session'); }
+    } catch(e) { /* session not found — expected on first visit */ }
 
     updateAuthUI();
 
@@ -513,7 +485,7 @@ async function initAuth() {
         updateAuthUI();
         if (event === 'SIGNED_IN') {
             hideAuthModal();
-            console.log('Signed in:', _user && _user.email);
+            /* auth state restored */
         }
     });
 }

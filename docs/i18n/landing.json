@@ -296,7 +296,15 @@
     "profile_em_admin": "Email management requires admin API. Coming soon.",
     "profile_delete_confirm": "Permanently delete your account? This action cannot be undone.",
     "profile_delete_admin": "Account deletion requires admin API. Coming soon.",
-    "profile_save_err": "Failed to save profile."
+    "profile_save_err": "Failed to save profile.",
+    "auth_btn_creating": "Creating account…",
+    "auth_btn_signin": "Sign In",
+    "auth_btn_signing_in": "Signing in…",
+    "auth_btn_signup": "Create Account",
+    "auth_err_config": "Auth config error. Please contact support.",
+    "auth_err_connection": "Network error. Check your connection and try again.",
+    "auth_err_network": "Network or server error. Please try again.",
+    "auth_err_ui": "UI error. Please refresh the page."
   },
   "zh": {
     "hero_title": "会<span>学习</span>的智能体",
@@ -595,7 +603,15 @@
     "profile_em_admin": "邮箱管理需要管理员API，即将支持。",
     "profile_delete_confirm": "永久删除账户？此操作不可撤销。",
     "profile_delete_admin": "账户删除需要管理员API，即将支持。",
-    "profile_save_err": "保存失败。"
+    "profile_save_err": "保存失败。",
+    "auth_btn_creating": "正在创建账户…",
+    "auth_btn_signin": "登录",
+    "auth_btn_signing_in": "正在登录…",
+    "auth_btn_signup": "创建账户",
+    "auth_err_config": "认证配置错误，请联系支持。",
+    "auth_err_connection": "网络错误，请检查连接后重试。",
+    "auth_err_network": "网络或服务器错误，请重试。",
+    "auth_err_ui": "界面错误，请刷新页面。"
   },
   "fr": {
     "hero_title": "L'Agent qui <span>Apprend</span>",
@@ -894,7 +910,15 @@
     "profile_em_admin": "Email management requires admin API. Coming soon.",
     "profile_delete_confirm": "Permanently delete your account? This action cannot be undone.",
     "profile_delete_admin": "Account deletion requires admin API. Coming soon.",
-    "profile_save_err": "Failed to save profile."
+    "profile_save_err": "Failed to save profile.",
+    "auth_btn_creating": "Création du compte…",
+    "auth_btn_signin": "Connexion",
+    "auth_btn_signing_in": "Connexion en cours…",
+    "auth_btn_signup": "Créer un compte",
+    "auth_err_config": "Erreur de configuration. Veuillez contacter le support.",
+    "auth_err_connection": "Erreur réseau. Vérifiez votre connexion et réessayez.",
+    "auth_err_network": "Erreur réseau ou serveur. Veuillez réessayer.",
+    "auth_err_ui": "Erreur d'interface. Veuillez rafraîchir la page."
   },
   "de": {
     "hero_title": "Der Agent, der <span>lernt</span>",
@@ -1193,7 +1217,15 @@
     "profile_em_admin": "Email management requires admin API. Coming soon.",
     "profile_delete_confirm": "Permanently delete your account? This action cannot be undone.",
     "profile_delete_admin": "Account deletion requires admin API. Coming soon.",
-    "profile_save_err": "Failed to save profile."
+    "profile_save_err": "Failed to save profile.",
+    "auth_btn_creating": "Konto wird erstellt…",
+    "auth_btn_signin": "Anmelden",
+    "auth_btn_signing_in": "Anmeldung läuft…",
+    "auth_btn_signup": "Konto erstellen",
+    "auth_err_config": "Konfigurationsfehler. Bitte kontaktieren Sie den Support.",
+    "auth_err_connection": "Netzwerkfehler. Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+    "auth_err_network": "Netzwerk- oder Serverfehler. Bitte versuchen Sie es erneut.",
+    "auth_err_ui": "UI-Fehler. Bitte aktualisieren Sie die Seite."
   },
   "ja": {
     "hero_title": "学習する<span>エージェント</span>",
@@ -1492,7 +1524,15 @@
     "profile_em_admin": "Email management requires admin API. Coming soon.",
     "profile_delete_confirm": "Permanently delete your account? This action cannot be undone.",
     "profile_delete_admin": "Account deletion requires admin API. Coming soon.",
-    "profile_save_err": "Failed to save profile."
+    "profile_save_err": "Failed to save profile.",
+    "auth_btn_creating": "アカウント作成中…",
+    "auth_btn_signin": "サインイン",
+    "auth_btn_signing_in": "サインイン中…",
+    "auth_btn_signup": "アカウント作成",
+    "auth_err_config": "設定エラー。サポートにお問い合わせください。",
+    "auth_err_connection": "ネットワークエラー。接続を確認して再試行してください。",
+    "auth_err_network": "ネットワークまたはサーバーエラー。再試行してください。",
+    "auth_err_ui": "UIエラー。ページを更新してください。"
   },
   "ko": {
     "hero_title": "학습하는 <span>에이전트</span>",
@@ -1791,7 +1831,15 @@
     "profile_em_admin": "Email management requires admin API. Coming soon.",
     "profile_delete_confirm": "Permanently delete your account? This action cannot be undone.",
     "profile_delete_admin": "Account deletion requires admin API. Coming soon.",
-    "profile_save_err": "Failed to save profile."
+    "profile_save_err": "Failed to save profile.",
+    "auth_btn_creating": "계정 생성 중…",
+    "auth_btn_signin": "로그인",
+    "auth_btn_signing_in": "로그인 중…",
+    "auth_btn_signup": "계정 만들기",
+    "auth_err_config": "구성 오류입니다. 지원팀에 문의하세요.",
+    "auth_err_connection": "네트워크 오류입니다. 연결을 확인하고 다시 시도하세요.",
+    "auth_err_network": "네트워크 또는 서버 오류입니다. 다시 시도하세요.",
+    "auth_err_ui": "UI 오류입니다. 페이지를 새로고침하세요."
   },
   "es": {
     "hero_title": "El Agente que <span>Aprende</span>",
@@ -2090,7 +2138,15 @@
     "profile_em_admin": "Email management requires admin API. Coming soon.",
     "profile_delete_confirm": "Permanently delete your account? This action cannot be undone.",
     "profile_delete_admin": "Account deletion requires admin API. Coming soon.",
-    "profile_save_err": "Failed to save profile."
+    "profile_save_err": "Failed to save profile.",
+    "auth_btn_creating": "Creando cuenta…",
+    "auth_btn_signin": "Iniciar sesión",
+    "auth_btn_signing_in": "Iniciando sesión…",
+    "auth_btn_signup": "Crear cuenta",
+    "auth_err_config": "Error de configuración. Contacte con soporte.",
+    "auth_err_connection": "Error de red. Verifique su conexión e intente de nuevo.",
+    "auth_err_network": "Error de red o servidor. Intente de nuevo.",
+    "auth_err_ui": "Error de interfaz. Actualice la página."
   },
   "it": {
     "hero_title": "L'Agente Che <span>Impara</span>",
