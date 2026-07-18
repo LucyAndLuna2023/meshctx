@@ -689,6 +689,26 @@ async def serve_getting_started():
         return FileResponse(str(gs_path), media_type="text/html")
     return HTMLResponse("<h1>404 - Not Found</h1>", status_code=404)
 
+# ─── 前端静态资源 (docs/ 目录) ─────────────────────────
+@app.get("/auth.js")
+async def serve_auth_js():
+    return FileResponse(str(_docs_dir / "auth.js"), media_type="application/javascript")
+
+@app.get("/auth.css")
+async def serve_auth_css():
+    return FileResponse(str(_docs_dir / "auth.css"), media_type="text/css")
+
+@app.get("/profile.html")
+async def serve_profile_html():
+    p = _docs_dir / "profile.html"
+    if p.exists():
+        return FileResponse(str(p), media_type="text/html")
+    return HTMLResponse("<h1>404</h1>", status_code=404)
+
+@app.get("/legal-i18n.js")
+async def serve_legal_i18n():
+    return FileResponse(str(_docs_dir / "legal-i18n.js"), media_type="application/javascript")
+
 # ─── 安装脚本 ────────────────────────────────────────
 from fastapi.responses import FileResponse
 
