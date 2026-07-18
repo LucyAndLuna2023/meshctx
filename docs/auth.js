@@ -211,6 +211,8 @@ function checkPasswordStrength() {
     if (/[0-9]/.test(v)) score += 3;
     if (/[^A-Za-z0-9]/.test(v)) score += 4;
     var pct = Math.min(score / 25 * 100, 100);
+    // 与实际验证 isPasswordStrong 对齐: 验证不通过→强制红色
+    if (!isPasswordStrong(v)) { pct = Math.min(pct, 30); }
     bar.style.width = pct + '%';
     bar.className = 'pwd-strength-fill s' + (pct < 40 ? '1' : pct < 70 ? '2' : '3');
 }
@@ -393,7 +395,7 @@ async function resetPassword() {
 async function changePassword(newPassword) {
     var sb = _getSupabase();
     if (!sb || !_user) return { error: { message: _t('auth_err_login_required', 'Please sign in first.') } };
-    if (!newPassword || newPassword.length < 8) return { error: { message: _t('auth_err_pwd_weak', 'Password must be 8+ chars with uppercase, lowercase, and number.') } };
+    if (!newPassword || !isPasswordStrong(newPassword)) return { error: { message: _t('auth_err_pwd_weak', 'Password must be 8+ chars with uppercase, lowercase, and number.') } };
     var { data, error } = await sb.auth.updateUser({ password: newPassword });
     return { data: data, error: error };
 }
