@@ -304,7 +304,10 @@
     "auth_err_config": "Auth config error. Please contact support.",
     "auth_err_connection": "Network error. Check your connection and try again.",
     "auth_err_network": "Network or server error. Please try again.",
-    "auth_err_ui": "UI error. Please refresh the page."
+    "auth_err_ui": "UI error. Please refresh the page.",
+    "auth_err_login_required": "Please sign in first.",
+    "auth_err_unknown": "Unknown error",
+    "auth_err_oauth": "OAuth sign-in failed"
   },
   "zh": {
     "hero_title": "会<span>学习</span>的智能体",
@@ -611,7 +614,10 @@
     "auth_err_config": "认证配置错误，请联系支持。",
     "auth_err_connection": "网络错误，请检查连接后重试。",
     "auth_err_network": "网络或服务器错误，请重试。",
-    "auth_err_ui": "界面错误，请刷新页面。"
+    "auth_err_ui": "界面错误，请刷新页面。",
+    "auth_err_login_required": "请先登录。",
+    "auth_err_unknown": "未知错误",
+    "auth_err_oauth": "OAuth登录失败"
   },
   "fr": {
     "hero_title": "L'Agent qui <span>Apprend</span>",
@@ -918,7 +924,10 @@
     "auth_err_config": "Erreur de configuration. Veuillez contacter le support.",
     "auth_err_connection": "Erreur réseau. Vérifiez votre connexion et réessayez.",
     "auth_err_network": "Erreur réseau ou serveur. Veuillez réessayer.",
-    "auth_err_ui": "Erreur d'interface. Veuillez rafraîchir la page."
+    "auth_err_ui": "Erreur d'interface. Veuillez rafraîchir la page.",
+    "auth_err_login_required": "Veuillez d'abord vous connecter.",
+    "auth_err_unknown": "Erreur inconnue",
+    "auth_err_oauth": "Échec de connexion OAuth"
   },
   "de": {
     "hero_title": "Der Agent, der <span>lernt</span>",
@@ -1225,7 +1234,10 @@
     "auth_err_config": "Konfigurationsfehler. Bitte kontaktieren Sie den Support.",
     "auth_err_connection": "Netzwerkfehler. Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
     "auth_err_network": "Netzwerk- oder Serverfehler. Bitte versuchen Sie es erneut.",
-    "auth_err_ui": "UI-Fehler. Bitte aktualisieren Sie die Seite."
+    "auth_err_ui": "UI-Fehler. Bitte aktualisieren Sie die Seite.",
+    "auth_err_login_required": "Bitte melden Sie sich zuerst an.",
+    "auth_err_unknown": "Unbekannter Fehler",
+    "auth_err_oauth": "OAuth-Anmeldung fehlgeschlagen"
   },
   "ja": {
     "hero_title": "学習する<span>エージェント</span>",
@@ -1532,7 +1544,10 @@
     "auth_err_config": "設定エラー。サポートにお問い合わせください。",
     "auth_err_connection": "ネットワークエラー。接続を確認して再試行してください。",
     "auth_err_network": "ネットワークまたはサーバーエラー。再試行してください。",
-    "auth_err_ui": "UIエラー。ページを更新してください。"
+    "auth_err_ui": "UIエラー。ページを更新してください。",
+    "auth_err_login_required": "最初にサインインしてください。",
+    "auth_err_unknown": "不明なエラー",
+    "auth_err_oauth": "OAuthサインインに失敗しました"
   },
   "ko": {
     "hero_title": "학습하는 <span>에이전트</span>",
@@ -1839,7 +1854,10 @@
     "auth_err_config": "구성 오류입니다. 지원팀에 문의하세요.",
     "auth_err_connection": "네트워크 오류입니다. 연결을 확인하고 다시 시도하세요.",
     "auth_err_network": "네트워크 또는 서버 오류입니다. 다시 시도하세요.",
-    "auth_err_ui": "UI 오류입니다. 페이지를 새로고침하세요."
+    "auth_err_ui": "UI 오류입니다. 페이지를 새로고침하세요.",
+    "auth_err_login_required": "먼저 로그인하세요.",
+    "auth_err_unknown": "알 수 없는 오류",
+    "auth_err_oauth": "OAuth 로그인 실패"
   },
   "es": {
     "hero_title": "El Agente que <span>Aprende</span>",
@@ -2146,7 +2164,10 @@
     "auth_err_config": "Error de configuración. Contacte con soporte.",
     "auth_err_connection": "Error de red. Verifique su conexión e intente de nuevo.",
     "auth_err_network": "Error de red o servidor. Intente de nuevo.",
-    "auth_err_ui": "Error de interfaz. Actualice la página."
+    "auth_err_ui": "Error de interfaz. Actualice la página.",
+    "auth_err_login_required": "Inicie sesión primero.",
+    "auth_err_unknown": "Error desconocido",
+    "auth_err_oauth": "Error de inicio de sesión OAuth"
   },
   "it": {
     "hero_title": "L'Agente Che <span>Impara</span>",

@@ -164,7 +164,7 @@ function clearAuthError() {
 }
 
 function showAuthError(msg) {
-    var text = (typeof msg === 'string') ? msg : (msg && msg.message) ? msg.message : String(msg || 'Unknown error');
+    var text = (typeof msg === 'string') ? msg : (msg && msg.message) ? msg.message : String(msg || _t('auth_err_unknown', 'Unknown error'));
     var errs = document.querySelectorAll('.auth-error');
     for (var i = 0; i < errs.length; i++) { errs[i].textContent = text; }
     // Flash error on buttons briefly, then restore original text
@@ -355,7 +355,7 @@ async function signInWithOAuth(provider) {
         options: { redirectTo: window.location.origin + '/' }
     });
     if (error) {
-        showAuthError(error.message);
+        showAuthError(_t('auth_err_oauth', error.message || 'OAuth sign-in failed'));
         if (btn) { btn.disabled = false; }
     }
 }
@@ -390,7 +390,7 @@ async function resetPassword() {
 // ═══ Change Password ═══
 async function changePassword(newPassword) {
     var sb = _getSupabase();
-    if (!sb || !_user) return { error: { message: 'Not logged in' } };
+    if (!sb || !_user) return { error: { message: _t('auth_err_login_required', 'Please sign in first.') } };
     if (!newPassword || newPassword.length < 8) return { error: { message: _t('auth_err_pwd_weak', 'Password must be 8+ chars with uppercase, lowercase, and number.') } };
     var { data, error } = await sb.auth.updateUser({ password: newPassword });
     return { data: data, error: error };
@@ -437,7 +437,7 @@ function updateAuthUI() {
 // ═══ Profile Management ═══
 async function updateProfile(fields) {
     var sb = _getSupabase();
-    if (!sb || !_user) return { error: 'Not logged in' };
+    if (!sb || !_user) return { error: _t('auth_err_login_required', 'Please sign in first.') };
 
     var updates = { data: {} };
     if (fields.email) updates.email = fields.email;
@@ -460,7 +460,7 @@ async function updateProfile(fields) {
 // Supabase GoTrue does not support secondary emails via REST API
 async function addEmail(newEmail) {
     var sb = _getSupabase();
-    if (!sb) return { error: 'Not logged in' };
+    if (!sb) return { error: _t('auth_err_login_required', 'Please sign in first.') };
     return await sb.auth.updateUser({ email: newEmail });
 }
 
