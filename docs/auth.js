@@ -104,7 +104,8 @@ function _getSupabase() {
                     method: 'PUT',
                     headers: headers,
                     body: JSON.stringify(params)
-                }).then(function(r){ return r.json().then(function(d){ return {data: r.ok ? d : null, error: r.ok ? null : d}; }); });
+                }).then(function(r){ return r.json().then(function(d){ return {data: r.ok ? d : null, error: r.ok ? null : d}; }); })
+                .catch(function(e){ return {data: null, error: {message: 'Network error: ' + (e.message || 'connection failed')}}; });
             },
             getSession: function() {
                 if (!_token) return Promise.resolve({data: {session: null}, error: null});

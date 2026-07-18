@@ -1,134 +1,84 @@
-# 🔴 MeshCtx 认证系统 — 完整审计报告
+# 🔴 R7审计报告 — OAuth/错误处理/部署一致性
 
-> 审计方: QA Profile | 日期: 2026-07-07 ~ 2026-07-18 | 五轮穷举审计
-> 目标: 004meshctx 登录/注册/多语言/Profile系统
-
----
-
-## 📊 总览: 40 bug → 22已修 / 18未修 (修复率 55%)
-
-| 轮次 | 报告 | 发现 | P0 | P1 | 状态 |
-|------|------|------|----|----|------|
-| R1 | 首次验证 | #1-6 (6) | 2 | 4 | 7已修(544f40e) |
-| R2 | 穷举+平台 | #7-11 (5) | 2 | 1 | 4已修(00e0d66) |
-| R3 | 深入审计 | #12-24 (13) | 1 | 5 | 已修(1c4dedd) |
-| R4 | 语言审计 | #25-32 (8) | 0 | 3 | 已修(d72d222+71cb80a) |
-| R5 | 修复验证 | #33-40 (8) | 0 | 3 | 🔴 待修 |
+> 审计方: QA | 日期: 2026-07-18 | 第七轮穷举审计
+> 角度: OAuth流程、未捕获Promise、innerHTML XSS、部署一致性、语言选择器
 
 ---
 
-## 🔴 P0 — 致命 (2个，均已修复 ✅)
+## 📊 R7新发现: 6个bug
 
-### #12 Session不互通 (index.html vs profile.html) ✅ 已修
-- **问题**: profile.html 之前用 Supabase SDK CDN (sb-*-auth-token)，index.html 用自定义 wrapper (meshctx-token)，两套 session 不互通
-- **修复**: 1c4dedd — profile.html 改用 `_getSupabase()` + `meshctx-token`
-
-### #1 注册误报 ✅ 已修 (544f40e)
-- 注册成功/失败判断条件反了
-
----
-
-## 🔴 P1 — 高危 (14个，4个待修)
-
-### 已修复 ✅
-| Bug | 描述 | 修复commit |
-|-----|------|------------|
-| #2 | 密码提示不显示 | 544f40e |
-| #3 | signOut报错 | 544f40e |
-| #4 | 重置密码无响应 | 544f40e |
-| #5 | 邮箱参数缺失 | 544f40e |
-| #6 | 密码验证<6 | 544f40e |
-| #8 | _t()永远返回英文 | 00e0d66 |
-| #14 | profile L['en']硬编码 | 1c4dedd |
-| #15 | profile密码<6 vs auth.js<8 | 1c4dedd |
-| #16 | profile 6处alert硬编码 | 1c4dedd |
-| #25 | LEGAL fr/de假翻译(58/68键=英文) | d72d222 |
-
-### 🔴 待修复
-| Bug | 描述 |
-|-----|------|
-| **#33** | 11个新i18n键缺ar/it翻译 (auth_err_unknown等, 7/9语言) |
-| **#34** | 键名不一致: `auth_btn_signin`(JS) vs `auth_signin_btn`(HTML) |
-| **#35** | profile.html `getUserIdentities` 在wrapper中不存在 → 多邮箱功能无效 |
-
----
-
-## 🟡 P2 — 中危 (8个，4个待修)
-
-### 已修复 ✅
-| Bug | 描述 |
-|-----|------|
-| #17 | catch块硬编码错误消息 |
-| #18 | showAuthError 7处无i18n |
-| #21 | CAPTCHA代码重复(signup/signin两份) |
-| #29 | 按钮loading文字硬编码 |
-
-### 🔴 待修复
-| Bug | 描述 |
-|-----|------|
-| **#36** | `_captchaCode=''` 初始值 → canvas未渲染时CAPTCHA可绕过 |
-| **#37** | LEGAL.html缺it/ar语言 (7语言 vs index.html 9语言) |
-| #26 | index.html 33个modal键缺失 (后续确认:已覆盖) |
-| #27 | LEGAL.html 0个auth键 |
-
----
-
-## ⚪ P3 — 低危 (11个，5个待修)
-
-### 已修复 ✅
-| Bug | 描述 |
-|-----|------|
-| #22 | 全局变量明文 |
-| #31 | updateUser发空Bearer |
-| - | XSS: innerHTML → createElement+textContent |
-
-### 🔴 待修复
-| Bug | 描述 |
-|-----|------|
-| #38 | `_t()`(auth.js) 与 `_t_i18n()`(profile.html) 重复 |
-| #39 | `addEmail`函数名误导 → 实际改主邮箱非添加 |
-| #40 | LEGAL.html L对象JSON尾逗号语法错误 |
-| #23 | stub功能 |
-| #24 | 整页重译 |
-
----
-
-## 📁 004修复记录
-
-```
-71cb80a fix: #29-31 additional hardcoded strings → i18n
-d72d222 fix: 004qa第4轮 bugs #17-28 (LEGAL 783行真翻译)
-1c4dedd fix: 第三轮审计 BUG#12-16 (P0 Session不互通 + 4 P1)
-00e0d66 fix: 11 bugs (第二轮) — _t()、try-catch、redirect_to等
-544f40e fix: 7 critical auth bugs (第一轮)
-```
-
----
-
-## ⚡ 当前最紧急 (TOP 3)
-
-1. **#33** — 11个i18n键缺ar/it，阿拉伯语/意大利语用户看到英文错误提示
-2. **#34** — 键名不一致导致未来修改时易遗漏
-3. **#35** — `getUserIdentities`不存在，多邮箱功能完全不可用
-
----
-
-*报告文件: ~/meshctx-public/AUDIT_REPORT.md*
-*Redis: hub:dm:004 (91条JSON) / hub:dm:meshctx (纯文本)*
-
----
-
-## 🟡 R6 (2026-07-18): CSS/字段名/死文件审计
-
-| # | 级别 | 描述 | 状态 |
+| # | 级别 | 描述 | 位置 |
 |---|------|------|------|
-| #41 | P1 | display_name vs full_name 三端不一致 → Profile改名字导航栏不更新 | 🔴 |
-| #42 | P1 | auth.css 14处使用未定义CSS变量 --surface/--accent/--fg-dim | 🔴 |
-| #43 | P2 | #signin-captcha 缺少CSS样式 (只有#signup-captcha有) | 🔴 |
-| #44 | P3 | legal-i18n.json (86KB) 未被 LEGAL.html 加载 | 🔴 |
-| #45 | P3 | i18n/目录7个JSON文件不被任何页面加载 | 🔴 |
+| #46 | P2 | OAuth按钮缺少ID → btn.disabled无效 | index.html L543+L600 |
+| #47 | P1 | profile.html _refreshI18n innerHTML XSS | profile.html L146/L150 |
+| #48 | P1 | Mac 192.168.3.63:3001 未部署auth.js | 部署 |
+| #49 | P2 | updateUser wrapper缺少.catch() | auth.js L66-73 |
+| #50 | P3 | saveProfile/changeEmail用alert报错 | profile.html L232/L245 |
+| #51 | P3 | Mac语言选择器缺it/ar (7/9语言) | Mac部署版 |
 
-**关键发现:**
-- `full_name` (注册时写入) vs `display_name` (Profile保存时写入) vs `full_name` (导航栏读取) → 三端断裂
-- `--surface`, `--accent`, `--fg-dim` 在auth.css中使用14次但从未在:root定义
-- index.html CSS变量定义: --bg, --bg2, --fg, --muted, --border, --purple 缺3个
+---
+
+## ✅ 确认修复 (dbe5f56)
+
+004的commit dbe5f56已修复R6全部5个bug:
+- #41 P1: display_name→full_name统一 ✅
+- #42 P1: :root添加--surface/#1a1a2e --accent/#8b5cf6 --fg-dim/#64748b ✅
+- #43 P2: #signin-captcha CSS样式已添加 ✅
+- #44 P3: LEGAL.html注释legal-i18n.json用途 ✅
+- #45 P3: 删除i18n/{de,en,es,fr,ja,ko,zh}.json 7个死文件 ✅
+
+---
+
+## 🔍 详细分析
+
+### BUG#46 (P2): OAuth按钮缺少ID
+```html
+<!-- 当前 (两处): -->
+<button class="btn-oauth btn-oauth-github" onclick="signInWithOAuth('github')">
+
+<!-- auth.js L351 查找: -->
+var btn = document.getElementById('oauth-btn-' + provider); // 'oauth-btn-github' → null!
+```
+**影响**: btn永远为null → OAuth期间按钮不禁用（可重复点击）、错误后不恢复。
+
+### BUG#47 (P1): profile.html innerHTML XSS
+```js
+// profile.html L146:
+cn.innerHTML = val;   // ⚠️ XSS — i18n值注入HTML
+// profile.html L150:
+el.innerHTML = val;   // ⚠️ XSS
+```
+auth.js已在R5修复（改用textContent/createElement），profile.html未同步。landing.json的i18n值被篡改即可注入。
+
+### BUG#48 (P1): Mac平台未部署auth
+实测192.168.3.63:3001: 页面仅2个script，无auth.js，无Sign In按钮。与git repo最新代码不一致。Linux/Win平台同样DOWN。
+
+### BUG#49 (P2): updateUser无.catch()
+signUp/signInWithPassword/resetPasswordForEmail都有`.catch()`兜底，唯独updateUser没有:
+```js
+return fetch(...).then(r=>r.json().then(d=>({data:r.ok?d:null,error:r.ok?null:d})));
+// 无.catch() → 网络错误时Promise拒绝且未捕获
+```
+saveProfile()和changeEmail()调用此函数，网络故障时静默失败。
+
+### BUG#50 (P3): alert报错不一致
+saveProfile用`alert()`、changeEmail用`alert()`，但doChangePassword用内联`errEl.style.display='block'`。用户体验不一致。
+
+### BUG#51 (P3): 语言选择器缺it/ar
+Mac页面lang dropdown只有7语言(en/zh/ja/ko/es/fr/de)，缺少Italian和Arabic。landing.json中it/ar数据完整但UI不可达。
+
+---
+
+## 📈 累计统计
+
+- **六轮总计**: 45 bug / 34已修 / 11未修
+- **R7新增**: 6 bug
+- **新总计**: 51 bug / 34已修 / 17未修
+
+---
+
+## ⚡ TOP 3 紧急
+
+1. **#47 P1**: profile.html innerHTML XSS — 安全漏洞，需立即同步auth.js修复方案
+2. **#48 P1**: Mac未部署auth — 主平台无登录功能
+3. **#49 P2**: updateUser无.catch() — 用户修改Profile可能静默失败

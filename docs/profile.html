@@ -113,6 +113,7 @@
 </div>
 
 <div class="saved-toast" id="pf-toast" data-lang-key="profile_saved">&#10003; Profile updated!</div>
+<p class="profile-error" id="pf-error" style="display:none;"></p>
 
 <script src="auth.js"></script>
 <script>
@@ -143,11 +144,11 @@ function switchLang(lang){
         if(el.querySelector('[data-lang-key]')){
             for(var cn=el.firstChild; cn; cn=cn.nextSibling){
                 if(cn.nodeType===3 && cn.textContent.trim()){ cn.textContent = val; return; }
-                if(cn.nodeType===1 && !cn.hasAttribute('data-lang-key') && !cn.querySelector('[data-lang-key]')){ cn.innerHTML = val; return; }
+                if(cn.nodeType===1 && !cn.hasAttribute('data-lang-key') && !cn.querySelector('[data-lang-key]')){ cn.textContent = val; return; }
             }
             return;
         }
-        el.innerHTML = val;
+        el.textContent = val;
     });
     document.querySelectorAll('[data-lang-key-placeholder]').forEach(function(el){
         var key = el.getAttribute('data-lang-key-placeholder');
@@ -229,7 +230,7 @@ async function saveProfile(){
         company: document.getElementById('pf-company').value
     };
     var r = await sb.auth.updateUser({data:meta});
-    if(r.error){ alert(_t('profile_save_err', r.error.message || 'Failed to save profile.')); return; }
+    if(r.error){ var e=document.getElementById('pf-error'); e.textContent=_t('profile_save_err', r.error.message || 'Failed to save profile.'); e.style.display='block'; return; }
     var t = document.getElementById('pf-toast');
     t.style.display = 'block';
     setTimeout(function(){ t.style.display = 'none'; }, 2000);
@@ -242,8 +243,8 @@ async function changeEmail(){
     // Supabase doesn't have direct add-email API; use updateUser to change primary
     // Actually, let's use the admin API pattern. For now, just update primary.
     var r = await sb.auth.updateUser({email:email});
-    if(r.error){ alert(_t('profile_save_err', r.error.message || 'Failed to save profile.')); return; }
-    alert(_t('profile_em_confirm', 'Check your inbox to confirm the new email.'));
+    if(r.error){ var e=document.getElementById('pf-error'); e.textContent=_t('profile_save_err', r.error.message || 'Failed to save profile.'); e.style.display='block'; return; }
+    var t=document.getElementById('pf-toast'); t.textContent='✉ '+_t('profile_em_confirm', 'Check your inbox to confirm the new email.'); t.style.display='block'; setTimeout(function(){ t.style.display='none'; }, 4000);
     document.getElementById('pf-new-email').value = '';
 }
 
