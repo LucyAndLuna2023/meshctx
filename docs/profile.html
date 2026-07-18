@@ -100,7 +100,7 @@
             <div id="pf-emails"></div>
             <div class="add-email">
                 <input type="email" id="pf-new-email" data-lang-key-placeholder="profile_em_ph" placeholder="Add email address">
-                <button class="btn btn-primary btn-sm" onclick="addEmail()" data-lang-key="profile_em_add">Add</button>
+                <button class="btn btn-primary btn-sm" onclick="changeEmail()" data-lang-key="profile_em_add">Add</button>
             </div>
         </div>
 
@@ -165,12 +165,6 @@ _langPending = saved || 'en';
 _loadI18n();
 
 // i18n helper — same pattern as auth.js _t()
-function _t_i18n(key, fallback) {
-    var lang = localStorage.getItem('meshctx-lang') || 'en';
-    if (L[lang] && L[lang][key] !== undefined) return L[lang][key];
-    if (L['en'] && L['en'][key] !== undefined) return L['en'][key];
-    return fallback || key;
-}
 
 // ═══ Auth & Profile ═══
 async function initProfile(){
@@ -235,28 +229,28 @@ async function saveProfile(){
         company: document.getElementById('pf-company').value
     };
     var r = await sb.auth.updateUser({data:meta});
-    if(r.error){ alert(_t_i18n('profile_save_err', r.error.message || 'Failed to save profile.')); return; }
+    if(r.error){ alert(_t('profile_save_err', r.error.message || 'Failed to save profile.')); return; }
     var t = document.getElementById('pf-toast');
     t.style.display = 'block';
     setTimeout(function(){ t.style.display = 'none'; }, 2000);
 }
 
-async function addEmail(){
+async function changeEmail(){
     var email = document.getElementById('pf-new-email').value.trim();
     if(!email) return;
     var sb = _getSupabase();
     // Supabase doesn't have direct add-email API; use updateUser to change primary
     // Actually, let's use the admin API pattern. For now, just update primary.
     var r = await sb.auth.updateUser({email:email});
-    if(r.error){ alert(_t_i18n('profile_save_err', r.error.message || 'Failed to save profile.')); return; }
-    alert(_t_i18n('profile_em_confirm', 'Check your inbox to confirm the new email.'));
+    if(r.error){ alert(_t('profile_save_err', r.error.message || 'Failed to save profile.')); return; }
+    alert(_t('profile_em_confirm', 'Check your inbox to confirm the new email.'));
     document.getElementById('pf-new-email').value = '';
 }
 
 async function removeEmail(btn, id){
-    if(!confirm(_t_i18n('profile_em_remove_confirm', 'Remove this email?'))) return;
+    if(!confirm(_t('profile_em_remove_confirm', 'Remove this email?'))) return;
     // Note: full email management requires server-side admin API
-    alert(_t_i18n('profile_em_admin', 'Email management requires admin verification. Please contact meshctx@proton.me.'));
+    alert(_t('profile_em_admin', 'Email management requires admin verification. Please contact meshctx@proton.me.'));
 }
 
 async function doChangePassword() {
@@ -266,7 +260,7 @@ async function doChangePassword() {
     errEl.style.display = 'none';
     okEl.style.display = 'none';
     if (!pw || pw.length < 8) {
-        errEl.textContent = _t_i18n('profile_pwd_rule', 'Password must be 8+ chars with uppercase, lowercase, and digit.');
+        errEl.textContent = _t('profile_pwd_rule', 'Password must be 8+ chars with uppercase, lowercase, and digit.');
         errEl.style.display = 'block';
         return;
     }
@@ -283,13 +277,13 @@ async function doChangePassword() {
 }
 
 async function deleteAccount(){
-    if(!confirm(_t_i18n('profile_delete_confirm', 'Permanently delete your account? This action cannot be undone.'))) return;
+    if(!confirm(_t('profile_delete_confirm', 'Permanently delete your account? This action cannot be undone.'))) return;
     // Requires admin API
     // Deletion requires service_role key (admin API). Direct users to email support.
     var email = _user ? _user.email : '';
     var subject = encodeURIComponent('Account Deletion Request');
     var body = encodeURIComponent('Please delete my account: ' + (email || 'unknown'));
-    alert(_t_i18n('profile_delete_admin', 'Account deletion requires admin verification. Please email meshctx@proton.me with subject "Account Deletion Request".'));
+    alert(_t('profile_delete_admin', 'Account deletion requires admin verification. Please email meshctx@proton.me with subject "Account Deletion Request".'));
     window.open('mailto:meshctx@proton.me?subject=' + subject + '&body=' + body, '_blank');
 }
 

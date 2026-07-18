@@ -216,8 +216,8 @@ function checkPasswordStrength() {
 
 // ═══ CAPTCHA ═══
 // ⚠️ P1: client-side only, no server validation — TODO: Cloudflare Turnstile or Supabase reCAPTCHA
-var _captchaCode = '';
-var _captchaCodeSignin = '';
+var _captchaCode = '\u200B';   // zero-width space — never matches user input, prevents empty bypass
+var _captchaCodeSignin = '\u200B';
 
 function _captcha_err_alt() { return _t('auth_captcha_err', 'Incorrect verification code.'); }
 
@@ -289,7 +289,7 @@ async function signUpWithEmail() {
             emailRedirectTo: window.location.origin + '/'
         }
     });
-    btn.disabled = false; btn.textContent = _t('auth_btn_signup', 'Create Account');
+    btn.disabled = false; btn.textContent = _t('auth_signup_btn', 'Create Account');
 
     if (error) { showAuthError(error.message); return; }
 
@@ -306,7 +306,7 @@ async function signUpWithEmail() {
     // Email confirmation is on — identities is empty [] for new users
     // "already registered" returns 422 error from Supabase, caught above
     showAuthError(_t('auth_confirm', 'Check your email for a confirmation link!'));
-    } catch(e) { btn.disabled = false; btn.textContent = _t('auth_btn_signup', 'Create Account'); showAuthError(_t('auth_err_network', 'Network or server error. Please try again.')); }
+    } catch(e) { btn.disabled = false; btn.textContent = _t('auth_signup_btn', 'Create Account'); showAuthError(_t('auth_err_network', 'Network or server error. Please try again.')); }
 }
 
 // ═══ Email Sign In ═══
@@ -328,7 +328,7 @@ async function signInWithEmail() {
 
     try {
     var { data, error } = await sb.auth.signInWithPassword({ email: email, password: password });
-    btn.disabled = false; btn.textContent = _t('auth_btn_signin', 'Sign In');
+    btn.disabled = false; btn.textContent = _t('auth_signin_btn', 'Sign In');
 
     if (error) { showAuthError(error.message); return; }
     if (!data || !data.session || !data.session.access_token) {
@@ -340,7 +340,7 @@ async function signInWithEmail() {
     _user = data.user;
     updateAuthUI();
     hideAuthModal();
-    } catch(e) { btn.disabled = false; btn.textContent = _t('auth_btn_signin', 'Sign In'); showAuthError(_t('auth_err_network', 'Network or server error. Please try again.')); }
+    } catch(e) { btn.disabled = false; btn.textContent = _t('auth_signin_btn', 'Sign In'); showAuthError(_t('auth_err_network', 'Network or server error. Please try again.')); }
 }
 
 // ═══ OAuth (GitHub) ═══

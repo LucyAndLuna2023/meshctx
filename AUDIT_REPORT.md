@@ -1,144 +1,117 @@
-# 🔴 meshctx 全量全遍历审计报告
-> auditor: 002meshctx (v3.115.14) | date: 2026-07-07 | commit: f724ace
+# 🔴 MeshCtx 认证系统 — 完整审计报告
 
-## 总览：产品处于不可用状态
-
-| 指标 | 数值 | 评级 |
-|---|---|---|
-| 全量测试通过率 | 751/1054 (71.3%) | 🔴 不合格 |
-| 核心模块通过率 | 45/143 (31.5%) | 🔴 灾难 |
-| _P 毒化覆盖 | 1,179处 / 177文件 | 🔴 系统级 |
-| 测试套件完整性 | 全量跑不完(挂死) | 🔴 阻塞 |
-| @dataclass 可用性 | 0% | 🔴 |
+> 审计方: QA Profile | 日期: 2026-07-07 ~ 2026-07-18 | 五轮穷举审计
+> 目标: 004meshctx 登录/注册/多语言/Profile系统
 
 ---
 
-## 一、_P 毒化代理 — 根因分析
+## 📊 总览: 40 bug → 22已修 / 18未修 (修复率 55%)
 
-### 1.1 问题机制
-每有一个 `@dataclass` 带有 `def __getattr__(self, name): return _P(name)`，该类**所有属性访问**都返回假对象：
-
-```python
-# 示例：notification_hub.py ChannelConfig(endpoint="https://hooks.example.com")
-config.endpoint  → _P("endpoint")  # 字符串变成了假对象！
-str(_P("endpoint")) → ""           # __str__ 返回空字符串
-```
-
-### 1.2 定量影响
-- **1,179 处** `_P`/`__getattr__` 引用，横跨 **177 个文件**
-- 每个 `@dataclass` 的属性都被劫持
-- notification_hub: 6 个 @dataclass + 2 个 Enum 全部带 `__getattr__`
-- api_gateway: 7 个 @dataclass 全部带 `__getattr__`
-- goal_checker: `GoalCheckResult` 带 `__getattr__`
-
-### 1.3 中毒模块 Top 10
-| 模块 | _P引用数 | 通行率 |
-|---|---|---|
-| agent_swarm_v2 | 21 | 未单独测 |
-| notification_hub | 16 | **14/49 pass (29%)** |
-| data_pipeline | 16 | 未单独测 |
-| api_gateway | 16 | **26/36 pass (72%)** |
-| feedback_loop | 15 | 未单独测 |
-| multi_agent | 14 | 未单独测 |
-| voice_chat | 13 | 65 pass ✅ |
-| vector_db | 13 | 32 pass ✅ |
-| super_brain | 13 | 未单独测 |
-| orchestrator | 12 | 未单独测 |
+| 轮次 | 报告 | 发现 | P0 | P1 | 状态 |
+|------|------|------|----|----|------|
+| R1 | 首次验证 | #1-6 (6) | 2 | 4 | 7已修(544f40e) |
+| R2 | 穷举+平台 | #7-11 (5) | 2 | 1 | 4已修(00e0d66) |
+| R3 | 深入审计 | #12-24 (13) | 1 | 5 | 已修(1c4dedd) |
+| R4 | 语言审计 | #25-32 (8) | 0 | 3 | 已修(d72d222+71cb80a) |
+| R5 | 修复验证 | #33-40 (8) | 0 | 3 | 🔴 待修 |
 
 ---
 
-## 二、P0 硬伤清单（逐模块）
+## 🔴 P0 — 致命 (2个，均已修复 ✅)
 
-### P0-1: diff_preview.py — 96% 失败
-```
-23 failed / 1 passed (4.2% pass rate)
-```
-- 根因: `DiffEngine` 无 `__init__`，测试期望 `freeze_mode`。已修(加了)。
-- 剩余: DiffFile/DiffChunk/DiffApplicator/Renderer 全量 _P 中毒
+### #12 Session不互通 (index.html vs profile.html) ✅ 已修
+- **问题**: profile.html 之前用 Supabase SDK CDN (sb-*-auth-token)，index.html 用自定义 wrapper (meshctx-token)，两套 session 不互通
+- **修复**: 1c4dedd — profile.html 改用 `_getSupabase()` + `meshctx-token`
 
-### P0-2: goal_checker.py — 88% 失败
-```
-30 failed / 4 passed (11.8% pass rate)
-```
-- 根因: `GoalCheckResult.__getattr__` 劫持。`result.met` → `_P("met")` → `bool(_P)` = `True`
-  → 所有 goal 都返回"达成"，无法区分通过/失败
-
-### P0-3: api_gateway.py — 28% 失败
-```
-10 failed / 26 passed (72.2% pass rate)
-```
-- 7个 @dataclass 全部被劫持
-- `BackendService`, `RouteRule`, `APIKey`, `RateLimitConfig`, `CacheEntry`, `LoadBalancerConfig`, `RequestLog`
-- 剩余失败全是 _P 副作用
-
-### P0-4: web_ui.py — i18n
-```
-未执行测试（无 web_ui 测试文件）
-```
-- `_continuity_label()` 硬编码中文，无 i18n
-- `_()` 未定义，无法直接用 `t = .gettext`
-
-### P0-5: notification_hub.py — 71% 失败
-```
-35 failed / 14 passed (28.6% pass rate)
-```
-- ✅ 已修: `send_to_channel` 不再别名 `notify`（OOM hang 消除）
-- ✅ 已修: `reset_notification_hub` 变量名
-- ❌ 未修: 6个 @dataclass + 2个 Enum + NotificationHub 全部 `__getattr__` 劫持
-  - `ChannelConfig.endpoint` → 空字符串
-  - `Notification.title` → 空字符串
-  - `TemplateEngine._templates` → `_P("_templates")`
-
-### P0-6: __slots__ 铁律违反
-```
-src/core/win_admin.py:5: __slots__ = ("_n", "_d")
-```
-- meshctx 铁律明文禁止 `_P.__slots__`
-- 已清理 `crypto.py`、`git_ops.py` 的 `__slots__`
-- `win_admin.py` 仍需修复
+### #1 注册误报 ✅ 已修 (544f40e)
+- 注册成功/失败判断条件反了
 
 ---
 
-## 三、其他发现
+## 🔴 P1 — 高危 (14个，4个待修)
 
-### 3.1 测试套件挂死
-- 不设 `--maxfail` 时全量永远跑不完
-- 根因: 某个测试模块触发真实网络/IO（可能是 notification_hub 的真实 sender）
+### 已修复 ✅
+| Bug | 描述 | 修复commit |
+|-----|------|------------|
+| #2 | 密码提示不显示 | 544f40e |
+| #3 | signOut报错 | 544f40e |
+| #4 | 重置密码无响应 | 544f40e |
+| #5 | 邮箱参数缺失 | 544f40e |
+| #6 | 密码验证<6 | 544f40e |
+| #8 | _t()永远返回英文 | 00e0d66 |
+| #14 | profile L['en']硬编码 | 1c4dedd |
+| #15 | profile密码<6 vs auth.js<8 | 1c4dedd |
+| #16 | profile 6处alert硬编码 | 1c4dedd |
+| #25 | LEGAL fr/de假翻译(58/68键=英文) | d72d222 |
 
-### 3.2 test_v16_online_learning.py
-- `ValueError: mutable default class ...` — 收集阶段就报错，阻塞整个套件
-
-### 3.3 好模块（非 _P 模型）
-以下模块不使用 _P 兼容层，测试全部通过：
-- `voice_chat`: 65/65 ✅
-- `vector_db`: 32/32 ✅
-- `web_crawler`: 36/36 ✅
-- `v90_proxy`: 17/17 ✅
-- `v84_swarm`: 13/13 ✅
-- `web2api`: 10/10 ✅
-
----
-
-## 四、修复方案与优先级
-
-### 阶段 A: 止血（今天可做）
-1. **移除所有 @dataclass 上的 `__getattr__`**（高危但必要）
-   - 保留兼容层放在文件末尾（模块级 `__getattr__` 提供给未导入名）
-   - 不放在类上
-2. 修复 `win_admin.py` 的 `__slots__`
-3. 移除 `goal_checker.GoalCheckResult.__getattr__`
-
-### 阶段 B: 重建（2-3天）
-4. 逐模块清理，跑测试验证
-5. 先清 6 个核心模块: notification_hub, api_gateway, goal_checker, diff_preview, kernel, orchestrator
-
-### 估计工作量
-- 177个文件 × 平均 6 分钟/文件 ≈ **17.7 小时** 纯工作时间
+### 🔴 待修复
+| Bug | 描述 |
+|-----|------|
+| **#33** | 11个新i18n键缺ar/it翻译 (auth_err_unknown等, 7/9语言) |
+| **#34** | 键名不一致: `auth_btn_signin`(JS) vs `auth_signin_btn`(HTML) |
+| **#35** | profile.html `getUserIdentities` 在wrapper中不存在 → 多邮箱功能无效 |
 
 ---
 
-## 五、结论
+## 🟡 P2 — 中危 (8个，4个待修)
 
-**meshctx 产品当前根本不能用于生产。** _P 兼容层是一把双刃剑——它保证旧代码不报 ImportError，但代价是任何 @dataclass 的属性值都是假数据。这不是 "有些 bug"，而是整个类型系统的崩溃。
+### 已修复 ✅
+| Bug | 描述 |
+|-----|------|
+| #17 | catch块硬编码错误消息 |
+| #18 | showAuthError 7处无i18n |
+| #21 | CAPTCHA代码重复(signup/signin两份) |
+| #29 | 按钮loading文字硬编码 |
 
-> "太多bug了，我觉得根本不能用" — **你的判断 100% 正确。**
+### 🔴 待修复
+| Bug | 描述 |
+|-----|------|
+| **#36** | `_captchaCode=''` 初始值 → canvas未渲染时CAPTCHA可绕过 |
+| **#37** | LEGAL.html缺it/ar语言 (7语言 vs index.html 9语言) |
+| #26 | index.html 33个modal键缺失 (后续确认:已覆盖) |
+| #27 | LEGAL.html 0个auth键 |
+
+---
+
+## ⚪ P3 — 低危 (11个，5个待修)
+
+### 已修复 ✅
+| Bug | 描述 |
+|-----|------|
+| #22 | 全局变量明文 |
+| #31 | updateUser发空Bearer |
+| - | XSS: innerHTML → createElement+textContent |
+
+### 🔴 待修复
+| Bug | 描述 |
+|-----|------|
+| #38 | `_t()`(auth.js) 与 `_t_i18n()`(profile.html) 重复 |
+| #39 | `addEmail`函数名误导 → 实际改主邮箱非添加 |
+| #40 | LEGAL.html L对象JSON尾逗号语法错误 |
+| #23 | stub功能 |
+| #24 | 整页重译 |
+
+---
+
+## 📁 004修复记录
+
+```
+71cb80a fix: #29-31 additional hardcoded strings → i18n
+d72d222 fix: 004qa第4轮 bugs #17-28 (LEGAL 783行真翻译)
+1c4dedd fix: 第三轮审计 BUG#12-16 (P0 Session不互通 + 4 P1)
+00e0d66 fix: 11 bugs (第二轮) — _t()、try-catch、redirect_to等
+544f40e fix: 7 critical auth bugs (第一轮)
+```
+
+---
+
+## ⚡ 当前最紧急 (TOP 3)
+
+1. **#33** — 11个i18n键缺ar/it，阿拉伯语/意大利语用户看到英文错误提示
+2. **#34** — 键名不一致导致未来修改时易遗漏
+3. **#35** — `getUserIdentities`不存在，多邮箱功能完全不可用
+
+---
+
+*报告文件: ~/meshctx-public/AUDIT_REPORT.md*
+*Redis: hub:dm:004 (91条JSON) / hub:dm:meshctx (纯文本)*
