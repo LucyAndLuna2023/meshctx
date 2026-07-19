@@ -18,7 +18,7 @@
         "linux"
       ],
       "entry_point": "web-search/manifest.json",
-      "installs": 0,
+      "installs": 1,
       "builtin": false,
       "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/web-search",
       "status": "active"
@@ -39,7 +39,7 @@
         "linux"
       ],
       "entry_point": "sandbox/manifest.json",
-      "installs": 156,
+      "installs": 157,
       "builtin": true,
       "repo": "",
       "status": "active"
@@ -61,7 +61,7 @@
         "linux"
       ],
       "entry_point": "file-browser/manifest.json",
-      "installs": 89,
+      "installs": 90,
       "builtin": true,
       "repo": "",
       "status": "active"
@@ -83,7 +83,7 @@
         "linux"
       ],
       "entry_point": "git-assistant/manifest.json",
-      "installs": 0,
+      "installs": 1,
       "builtin": false,
       "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/git-assistant",
       "status": "active"
@@ -104,7 +104,7 @@
         "linux"
       ],
       "entry_point": "translator/manifest.json",
-      "installs": 42,
+      "installs": 43,
       "builtin": true,
       "repo": "",
       "status": "active"
@@ -126,7 +126,7 @@
         "linux"
       ],
       "entry_point": "data-analyzer/manifest.json",
-      "installs": 0,
+      "installs": 1,
       "builtin": false,
       "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/data-analyzer",
       "status": "active"
@@ -147,7 +147,7 @@
         "linux"
       ],
       "entry_point": "feishu/manifest.json",
-      "installs": 203,
+      "installs": 204,
       "builtin": true,
       "repo": "",
       "status": "active"
@@ -168,7 +168,7 @@
         "linux"
       ],
       "entry_point": "wechat/manifest.json",
-      "installs": 167,
+      "installs": 168,
       "builtin": true,
       "repo": "",
       "status": "active"
@@ -189,7 +189,7 @@
         "linux"
       ],
       "entry_point": "telegram/manifest.json",
-      "installs": 134,
+      "installs": 135,
       "builtin": true,
       "repo": "",
       "status": "active"
@@ -211,7 +211,7 @@
         "linux"
       ],
       "entry_point": "scheduler/manifest.json",
-      "installs": 78,
+      "installs": 79,
       "builtin": true,
       "repo": "",
       "status": "active"
@@ -232,7 +232,7 @@
         "linux"
       ],
       "entry_point": "monitor/manifest.json",
-      "installs": 112,
+      "installs": 113,
       "builtin": true,
       "repo": "",
       "status": "active"
@@ -253,7 +253,7 @@
         "macos"
       ],
       "entry_point": "voice/manifest.json",
-      "installs": 0,
+      "installs": 1,
       "builtin": false,
       "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/voice-assistant",
       "status": "beta"
@@ -265,7 +265,7 @@
       "description": "AI Agent自防御系统 — AGENTS.md加载+错误模式学习+发布闸门",
       "module": "src.core.agent_governance",
       "priority": 200,
-      "installs": 1,
+      "installs": 2,
       "icon": "🛡️",
       "category": "security",
       "status": "active"
