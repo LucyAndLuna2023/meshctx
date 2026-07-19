@@ -3520,8 +3520,15 @@ def _do_web_search(query: str) -> str:
     import urllib.parse, re, requests
 
     def _fetch(url, ua, timeout=8):
-        resp = requests.get(url, headers={"User-Agent": ua}, timeout=timeout, verify=False)
-        return resp.text
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        try:
+            resp = requests.get(url, headers={"User-Agent": ua}, timeout=timeout)
+            return resp.text
+        except requests.exceptions.SSLError:
+            logger.warning(f"SSL验证失败，降级为verify=False: {url[:60]}")
+            resp = requests.get(url, headers={"User-Agent": ua}, timeout=timeout, verify=False)
+            return resp.text
 
     def _strip_html(s):
         return re.sub(r'<[^>]+>', '', s).strip()
@@ -3581,7 +3588,13 @@ def _do_web_extract(url: str) -> str:
     """抓取网页内容"""
     import requests, re
     try:
-        resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15, verify=False)
+        try:
+            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15)
+        except requests.exceptions.SSLError:
+            logger.warning(f"SSL验证失败，降级为verify=False: {url[:60]}")
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15, verify=False)
         html = resp.text
         text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL)
         text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL)
@@ -4785,7 +4798,7 @@ async def system_status():
         with open(reg_path) as f:
             plugin_count = len(json.load(f).get("plugins", []))
     
-    conv_path = Path.home() / ".meshctx" / "conversations"
+    conv_path = Path(os.environ.get("MESHCTX_HOME", str(Path.home() / ".meshctx"))) / "conversations"
     sessions = len(list(conv_path.glob("*.json"))) if conv_path.exists() else 0
     
     return {
