@@ -264,6 +264,49 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Agent Swarm初始化失败(非致命): {e}")
 
+    # v3.115.25: 初始化核心引擎（消除空壳）
+    try:
+        from .core.memory_hierarchy import MemoryHierarchy
+        app.state.memory_hierarchy = MemoryHierarchy()
+        logger.info("MemoryHierarchy (4-tier L0-L4) 已初始化")
+    except Exception as e:
+        logger.warning(f"MemoryHierarchy初始化跳过: {e}")
+
+    try:
+        from .core.sdm_memory import get_sdm
+        app.state.sdm = get_sdm()
+        logger.info("SDM (Sparse Distributed Memory) 已初始化")
+    except Exception as e:
+        logger.warning(f"SDM初始化跳过: {e}")
+
+    try:
+        from .core.attractor_reasoner import get_attractor_reasoner
+        app.state.attractor = get_attractor_reasoner(max_trajectories=8)
+        logger.info("AttractorReasoner 已初始化")
+    except Exception as e:
+        logger.warning(f"AttractorReasoner初始化跳过: {e}")
+
+    try:
+        from .core.predictive_precompute import get_precompute_engine
+        app.state.precompute = get_precompute_engine()
+        logger.info("PredictivePreCompute 已初始化")
+    except Exception as e:
+        logger.warning(f"PredictivePreCompute初始化跳过: {e}")
+
+    try:
+        from .core.sdb_framework import get_sdb_engine
+        app.state.sdb = get_sdb_engine()
+        logger.info("SDB Safety Framework 已初始化")
+    except Exception as e:
+        logger.warning(f"SDB初始化跳过: {e}")
+
+    try:
+        from .core.predictive_context import PredictiveContext
+        app.state.predictive_ctx = PredictiveContext()
+        logger.info("PredictiveContext 已初始化")
+    except Exception as e:
+        logger.warning(f"PredictiveContext初始化跳过: {e}")
+
     watcher = ConfigWatcher()
     def _reload_config():
         logger.info("配置已变更，自动重载模型...")
@@ -6213,232 +6256,64 @@ async def delete_prompt(name: str):
         return {"status": "error", "error": str(e)}
 
 
-# ═══════════════════════════════════════════════════════════
-# v2.22 自愈2.0 API
-# ═══════════════════════════════════════════════════════════
-
-@app.get("/api/healer/dashboard")
-async def healer_dashboard():
-    return {
-        "status": "healthy",
-        "color": "green",
-        "health_score": 98.5,
-        "predictions": [],
-        "heals_performed": 5,
-        "uptime_human": "2h 30m",
-    }
-
-
-@app.get("/api/healer/status")
-async def healer_status():
-    return {"status": "ok", "last_check": time.time()}
-
-
-@app.get("/api/healer/history")
-async def healer_history(limit: int = 5):
-    return {"history": [], "total": 0}
-
-
-@app.post("/api/healer/run")
-async def healer_run():
-    return {"healthy": True, "checks": 15, "module": "all"}
-
-
-# ═══════════════════════════════════════════════════════════
-# v1.5.23 会话档案 API
-# ═══════════════════════════════════════════════════════════
-
-_sessions_archive: Dict[str, Any] = {}
-
-
-@app.post("/api/sessions/archive")
-async def sessions_archive(request: Request):
-    body = await request.json()
-    sid = body.get("id", "unknown")
-    _sessions_archive[sid] = body
-    return {"success": True, "id": sid}
-
-
-@app.get("/api/sessions/archive")
-async def sessions_archive_list():
-    return {
-        "sessions": list(_sessions_archive.keys()),
-        "total": len(_sessions_archive),
-    }
-
-
-@app.get("/api/sessions/archive/{session_id}")
-async def sessions_archive_get(session_id: str):
-    session = _sessions_archive.get(session_id)
-    if session is None:
-        raise HTTPException(404, "Session not found")
-    return {
-        "id": session_id,
-        "count": len(session.get("messages", [])),
-        "messages": session.get("messages", []),
-    }
-
-
-# ═══════════════════════════════════════════════════════════
-# v1.5.23 供应商健康 API
-# ═══════════════════════════════════════════════════════════
-
-@app.get("/api/providers/health")
-async def providers_health():
-    return {
-        "providers": {
-            "deepseek": {"status": "healthy", "latency_ms": 200},
-            "openai": {"status": "degraded", "latency_ms": 850},
-        },
-        "failover_order": ["deepseek", "openai"],
-    }
-
-# ═══ v3.115.16: 004qa审计缺失端点补全 ═══
-
-@app.delete("/api/file/delete")
-@app.get("/api/file/delete")
-async def file_delete(path: str = ""):
-    """删除文件"""
-    try:
-        fp = _validate_file_path(path)
-        if fp.exists():
-            fp.unlink()
-            return {"ok": True, "path": str(fp)}
-        return {"ok": False, "error": "file not found"}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-@app.get("/api/brain/regions")
-async def brain_regions():
-    """13脑区列表"""
-    return {"regions": ["HippocampalReplay","AmygdalaSalience","ThalamicGate",
-        "CerebellarForwardModel","BasalGanglia","Insula","MirrorNeurons",
-        "IITConsciousness","EmotionalConsolidation","STDPLearner",
-        "DefaultModeNetwork","ACC","BrainLoop"], "count": 13}
-
-@app.get("/api/brain/learn-stats")
-async def brain_learn_stats():
-    """脑区学习统计"""
-    try:
-        from .core.cognitive_loop import CognitiveLoop
-        return CognitiveLoop().stats()
-    except Exception:
-        return {"status": "not_initialized"}
-
-@app.get("/api/stream/stats")
-async def stream_stats():
-    return {"active_streams": 0, "total_tokens": 0}
-
-@app.get("/api/hybrid/stats")
-async def hybrid_stats():
-    return {"backend": "in-memory", "vectors": 0}
-
-@app.get("/api/metrics")
-async def metrics():
-    try:
-        from .core.monitoring import get_metrics
-        return get_metrics()
-    except Exception:
-        return {"requests": 0, "uptime_seconds": 0}
-
-@app.get("/api/event-bus/stats")
-async def event_bus_stats():
-    try:
-        k = get_kernel()
-        return k.event_bus.stats() if hasattr(k, 'event_bus') else {"events": 0}
-    except Exception:
-        return {"events": 0}
-
-@app.delete("/memories/{memory_id}")
-async def delete_memory(memory_id: str):
-    engine = get_memory_engine()
-    if memory_id in engine.memories:
-        del engine.memories[memory_id]
-        return {"ok": True}
-    return {"ok": False, "error": "not found"}
-
-@app.get("/api/ai-monitor/status")
-async def ai_monitor_status():
-    return {"status": "monitoring", "models_tracked": 0}
-
-# ═══ v3.115.16: 004qa 缺失端点补全 ═══
-
-@app.delete("/api/file/delete")
-async def file_delete(path: str = ""):
-    try:
-        fp = _validate_file_path(path)
-        if fp.exists(): fp.unlink(); return {"ok": True}
-        return {"ok": False, "error": "not found"}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-@app.get("/api/brain/regions")
-async def brain_regions():
-    return {"regions": ["HippocampalReplay","AmygdalaSalience","ThalamicGate","CerebellarForwardModel","BasalGanglia","Insula","MirrorNeurons","IITConsciousness","EmotionalConsolidation","STDPLearner","DefaultModeNetwork","ACC","BrainLoop"], "count": 13}
-
-@app.get("/api/brain/learn-stats")
-async def brain_learn_stats():
-    try:
-        from .core.cognitive_loop import CognitiveLoop
-        return CognitiveLoop().stats()
-    except: return {"status": "not_initialized"}
-
-@app.get("/api/metrics")
-async def metrics():
-    try:
-        from .core.monitoring import get_metrics
-        return get_metrics()
-    except: return {"uptime_seconds": 0}
-
-@app.get("/api/stream/stats")
-async def stream_stats():
-    return {"active_streams": 0}
-
-@app.get("/api/hybrid/stats")  
-async def hybrid_stats():
-    return {"vectors": 0}
-
-@app.get("/api/event-bus/stats")
-async def event_bus_stats():
-    return {"events": 0}
-
-@app.delete("/memories/{memory_id}")
-async def delete_memory(memory_id: str):
-    engine = get_memory_engine()
-    if memory_id in engine.memories:
-        del engine.memories[memory_id]
-        return {"ok": True}
-    return {"ok": False}
-
-@app.get("/api/ai-monitor/status")
-async def ai_monitor_status():
-    return {"status": "monitoring"}
-
-@app.post("/api/search")
-async def search_post(req: Request):
-    try:
-        body = await req.json()
-        q = body.get("q", body.get("query", ""))
-        if not q: return {"results": [], "error": "missing query"}
-        return {"results": [], "query": q}
-    except: return {"results": []}
+# ═══ v3.115.25: 补全新端点（非重复，真实现） ═══
 
 @app.get("/api/ai-monitor/provider-stats")
 async def ai_monitor_provider_stats():
-    return {"providers": 0, "models": 0, "status": "monitoring"}
+    """AI监控 — 供应商统计"""
+    try:
+        from .core.usage_insights import get_usage_insights
+        insights = get_usage_insights()
+        return {
+            "providers": len(getattr(insights, 'providers', {})),
+            "models": sum(len(v) for v in getattr(insights, 'providers', {}).values()),
+            "status": "monitoring",
+        }
+    except Exception:
+        return {"providers": 0, "models": 0, "status": "monitoring"}
+
 
 @app.get("/api/recovery-plan/status")
 async def recovery_plan_status():
-    return {"status": "standby", "plans": 0}
+    """恢复计划 — 状态"""
+    try:
+        from .core.error_recovery import get_error_recovery
+        recovery = get_error_recovery()
+        plans = getattr(recovery, '_plans', {})
+        return {"status": "standby" if not plans else "active", "plans": len(plans)}
+    except Exception:
+        return {"status": "standby", "plans": 0}
 
-@app.get("/api/training/status")  
+
+@app.get("/api/training/status")
 async def training_status():
-    return {"status": "idle", "models_training": 0}
+    """在线训练 — 状态"""
+    try:
+        from .core.online_learning import OnlineLearner
+        learner = OnlineLearner()
+        return {
+            "status": getattr(learner, "_status", "idle"),
+            "models_training": len(getattr(learner, "_active_models", [])),
+        }
+    except Exception:
+        return {"status": "idle", "models_training": 0}
+
 
 @app.get("/api/skills/list")
 async def skills_list():
-    return {"skills": [], "count": 0}
-
-@app.post("/api/code/review")
-async def code_review(req: Request):
-    return {"status": "not_available", "note": "code review module not loaded"}
+    """技能列表"""
+    try:
+        import os
+        skills_dir = os.path.expanduser("~/.hermes/profiles/meshctx/skills")
+        if os.path.isdir(skills_dir):
+            items = []
+            for d in os.listdir(skills_dir):
+                fp = os.path.join(skills_dir, d, "SKILL.md")
+                if os.path.isfile(fp):
+                    with open(fp) as f:
+                        first = f.readline().strip("# \n")
+                    items.append({"name": d, "description": first[:80]})
+            return {"skills": items, "count": len(items)}
+        return {"skills": [], "count": 0}
+    except Exception:
+        return {"skills": [], "count": 0}
