@@ -3713,7 +3713,9 @@ def _ssh_connect(host: str, user: str = "", password: str = "", port: int = 22):
         client.connect(host, port=port, username=u, password=pw, timeout=10, banner_timeout=5)
         return client, host, u, ""
     except (ImportError, ModuleNotFoundError) as e:
-        logger.warning(f"paramiko 不可用 ({e})，回退到 sshpass+ssh")
+        if not getattr(_ssh_connect, "_warned_import", False):
+            logger.warning(f"paramiko 不可用 ({e})，回退到 sshpass+ssh")
+            _ssh_connect._warned_import = True
     except Exception as e:
         logger.warning(f"paramiko 连接失败 ({e})，尝试 sshpass 回退")
 
