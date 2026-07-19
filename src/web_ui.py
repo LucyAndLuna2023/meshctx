@@ -3600,8 +3600,8 @@ function refreshProjectIndex(){
 # ── DictLoader 初始化 ───────────────────────────────────────────
 from src.i18n import t as i18n_t, get_lang as i18n_get_lang, TRANSLATIONS as i18n_translations, LANGUAGES, LANGUAGE_CODES
 _jinja_env = Environment(loader=ChoiceLoader([
-    FileSystemLoader(os.path.join(os.path.dirname(__file__), '..', 'templates')),
     DictLoader(_TEMPLATES),
+    FileSystemLoader(os.path.join(os.path.dirname(__file__), '..', 'templates')),
 ]), autoescape=False)
 _jinja_env.globals['t'] = i18n_t
 _jinja_env.globals['lang'] = i18n_get_lang
@@ -4919,11 +4919,27 @@ brew install meshctx</pre>
 _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
 {% block content %}
 <style>
-.chat-card {
-  background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
-  display: flex; flex-direction: column; height: calc(100vh - 140px); min-height: 400px;
-  overflow: hidden;
-}
+/* ── 双栏布局: 侧边栏 + 对话区 ── */
+.chat-layout { display: flex; height: calc(100vh - 140px); gap: 0; min-height: 400px; }
+.chat-sidebar { width: 260px; min-width: 200px; border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; background: var(--card-bg); border-radius: 12px 0 0 12px; }
+.sidebar-header { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-list { flex: 1; overflow-y: auto; padding: 6px 8px; }
+.conv-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 13px;
+  border: 1px solid transparent; margin-bottom: 2px;
+  display: flex; justify-content: space-between; align-items: center; }
+.conv-item:hover { background: var(--surface); }
+.conv-item.active { background: var(--surface); border-color: var(--accent); }
+.conv-item-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.conv-item-time { font-size: 10px; color: var(--muted); margin-left: 8px; white-space: nowrap; }
+.conv-item-del { visibility: hidden; margin-left: 4px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.conv-item:hover .conv-item-del { visibility: visible; }
+.conv-item-del:hover { color: #f85149; }
+.sidebar-empty { text-align: center; color: var(--muted); padding: 40px 20px; font-size: 13px; }
+
+.chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.chat-card { background: var(--card-bg); border: 1px solid var(--border); border-left: none;
+  border-radius: 0 12px 12px 0; display: flex; flex-direction: column; flex: 1; overflow: hidden; }
 .chat-messages {
   flex: 1; overflow-y: auto; padding: 16px 20px;
   display: flex; flex-direction: column; gap: 12px;
@@ -4947,27 +4963,67 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
 .empty-chat { text-align: center; color: var(--muted); padding: 60px 20px; }
 .empty-chat h2 { font-size: 24px; margin-bottom: 8px; }
 .empty-chat p { font-size: 14px; }
+.stream-cursor { animation: blink 1s infinite; color: var(--accent); }
+@keyframes blink { 0%,50% { opacity: 1; } 51%,100% { opacity: 0; } }
+
+/* 响应式: 小屏幕时隐藏侧边栏 */
+@media (max-width: 700px) {
+  .chat-sidebar { display: none; }
+  .chat-card { border-left: 1px solid var(--border); border-radius: 12px; }
+}
 </style>
-<div class="chat-card">
-  <div class="chat-messages" id="chatMessages">
-    <div class="empty-chat">
-      <h2>💬 meshctx Chat</h2>
-      <p>输入消息开始对话</p>
+
+<div class="chat-layout">
+  <!-- ── 侧边栏: 对话列表 ── -->
+  <div class="chat-sidebar">
+    <div class="sidebar-header">
+      <button onclick="newChat()" style="width:100%;background:var(--accent);color:#fff;border:none;
+        border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:600;">➕ 新对话</button>
+    </div>
+    <div class="sidebar-list" id="convList">
+      <div class="sidebar-empty">加载中...</div>
     </div>
   </div>
-  <div class="chat-input-area">
-    <textarea id="userInput" rows="1" placeholder="输入消息... (Enter 发送, Shift+Enter 换行)"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"
-          oninput="this.style.height='';this.style.height=Math.min(this.scrollHeight,150)+'px';"></textarea>
-    <button onclick="send()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;
-          padding:10px 18px;cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap;">{{ t("send") }}</button>
+  <!-- ── 主对话区 ── -->
+  <div class="chat-main">
+    <div class="chat-card">
+      <div class="chat-messages" id="chatMessages">
+        <div class="empty-chat">
+          <h2>💬 meshctx Chat</h2>
+          <p>输入消息开始对话</p>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <textarea id="userInput" rows="1" placeholder="输入消息... (Enter 发送, Shift+Enter 换行)"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"
+              oninput="this.style.height='';this.style.height=Math.min(this.scrollHeight,150)+'px';"></textarea>
+        <button onclick="send()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;
+              padding:10px 18px;cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap;">{{ t("send") }}</button>
+      </div>
+    </div>
   </div>
 </div>
+
 <script>
 var _convId = null;
 var _projectId = null;
 var _msgContainer = document.getElementById('chatMessages');
 var _emptyState = _msgContainer.querySelector('.empty-chat');
+
+// ═══════════════ 工具函数 ═══════════════
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function formatTime(ts) {
+  if(!ts) return '';
+  var d = new Date(ts * 1000);
+  var now = new Date();
+  var diff = now - d;
+  if (diff < 60000) return '刚刚';
+  if (diff < 3600000) return Math.floor(diff/60000) + '分钟前';
+  if (diff < 86400000) return Math.floor(diff/3600000) + '小时前';
+  return d.toLocaleDateString('zh-CN');
+}
 
 function addMessage(role, content) {
   if (_emptyState) { _emptyState.remove(); _emptyState = null; }
@@ -4979,20 +5035,159 @@ function addMessage(role, content) {
   return el;
 }
 
+// ═══════════════ 对话管理 ═══════════════
+async function loadConversations() {
+  try {
+    var res = await fetch('/api/conversations/browse?limit=50');
+    var data = await res.json();
+    var convs = data.conversations || [];
+    renderConvList(convs);
+    return convs;
+  } catch(e) {
+    document.getElementById('convList').innerHTML = '<div class="sidebar-empty">加载失败</div>';
+    return [];
+  }
+}
+
+function renderConvList(convs) {
+  var list = document.getElementById('convList');
+  if (!convs || convs.length === 0) {
+    list.innerHTML = '<div class="sidebar-empty">暂无对话<br>点击上方按钮开始</div>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < convs.length; i++) {
+    var c = convs[i];
+    var title = c.title || '新对话';
+    var active = c.id === _convId ? ' active' : '';
+    html += '<div class="conv-item' + active + '" onclick="switchConv(\'' + c.id + '\')">' +
+      '<span class="conv-item-title">' + escapeHtml(title) + '</span>' +
+      '<span class="conv-item-time">' + formatTime(c.created_at) + '</span>' +
+      '<span class="conv-item-del" onclick="event.stopPropagation();deleteConv(\'' + c.id + '\')">✕</span>' +
+      '</div>';
+  }
+  list.innerHTML = html;
+}
+
+async function newChat() {
+  try {
+    var res = await fetch('/api/conversations', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({title: '新对话'})
+    });
+    var data = await res.json();
+    _convId = data.id;
+    // 清空消息区
+    document.getElementById('chatMessages').innerHTML = '<div class="empty-chat"><h2>💬 meshctx Chat</h2><p>输入消息开始对话</p></div>';
+    _emptyState = document.getElementById('chatMessages').querySelector('.empty-chat');
+    await loadConversations();
+    document.getElementById('userInput').focus();
+  } catch(e) {
+    console.error('newChat failed:', e);
+  }
+}
+
+async function switchConv(convId) {
+  if (_convId === convId) return;
+  _convId = convId;
+  var container = document.getElementById('chatMessages');
+  container.innerHTML = '';
+  _emptyState = null;
+  try {
+    var res = await fetch('/api/conversations/' + convId);
+    if (!res.ok) throw new Error('not found');
+    var data = await res.json();
+    if (data.messages && data.messages.length > 0) {
+      for (var i = 0; i < data.messages.length; i++) {
+        var m = data.messages[i];
+        addMessage(m.role, m.content);
+      }
+    } else {
+      container.innerHTML = '<div class="empty-chat"><h2>💬 meshctx Chat</h2><p>输入消息开始对话</p></div>';
+      _emptyState = container.querySelector('.empty-chat');
+    }
+  } catch(e) {
+    container.innerHTML = '<div class="empty-chat"><h2>💬 meshctx Chat</h2><p>输入消息开始对话</p></div>';
+    _emptyState = container.querySelector('.empty-chat');
+  }
+  loadConversations();
+}
+
+async function deleteConv(convId) {
+  if (!confirm('删除此对话？')) return;
+  try {
+    await fetch('/api/conversations/' + convId, {method: 'DELETE'});
+    if (_convId === convId) {
+      _convId = null;
+      document.getElementById('chatMessages').innerHTML = '<div class="empty-chat"><h2>💬 meshctx Chat</h2><p>输入消息开始对话</p></div>';
+      _emptyState = document.getElementById('chatMessages').querySelector('.empty-chat');
+    }
+    await loadConversations();
+  } catch(e) {}
+}
+
+async function saveMessageToConv(role, content) {
+  if (!_convId || !content) return;
+  try {
+    await fetch('/api/conversations/' + _convId + '/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({role: role, content: content})
+    });
+  } catch(e) {}
+}
+
+async function autoTitleFromMsg(msg) {
+  if (!_convId) return;
+  try {
+    var res = await fetch('/api/conversations/' + _convId);
+    var data = await res.json();
+    if (data.title === '新对话' || !data.title) {
+      var newTitle = msg.slice(0, 30).replace(/\n/g, ' ');
+      await fetch('/api/conversations/' + _convId + '/rename', {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({title: newTitle})
+      });
+    }
+  } catch(e) {}
+}
+
+// ═══════════════ 发送消息 ═══════════════
 async function send() {
   var input = document.getElementById('userInput');
   var text = input.value.trim();
   if (!text) return;
   input.value = ''; input.style.height = '';
-  addMessage('user', text);
 
-  // 流式SSE — 支持工具调用实时展示 (v3.115.21)
+  // 自动创建对话
+  if (!_convId) {
+    try {
+      var cr = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({title: text.slice(0, 30).replace(/\n/g, ' ')})
+      });
+      var cd = await cr.json();
+      _convId = cd.id;
+      loadConversations();
+    } catch(e) {}
+  }
+
+  addMessage('user', text);
+  saveMessageToConv('user', text);
+  // 第一条消息作标题
+  autoTitleFromMsg(text);
+
+  // 流式SSE — 支持工具调用实时展示 (v3.115.22)
   var aiEl = addMessage('assistant', '');
   var cursor = document.createElement('span');
   cursor.className = 'stream-cursor';
   cursor.textContent = '▌';
   aiEl.appendChild(cursor);
 
+  var streamText = '';
   try {
     var res = await fetch('/api/chat/stream', {
       method: 'POST',
@@ -5008,7 +5203,6 @@ async function send() {
     var reader = res.body.getReader();
     var decoder = new TextDecoder();
     var buffer = '';
-    var streamText = '';
 
     while (true) {
       var chunk = await reader.read();
@@ -5024,12 +5218,12 @@ async function send() {
 
         if (data === '[DONE]') {
           cursor.remove();
-          // 渲染markdown
           if (typeof marked !== 'undefined') {
             aiEl.innerHTML = marked.parse(streamText);
           } else {
             aiEl.textContent = streamText;
           }
+          saveMessageToConv('assistant', streamText);
           return;
         }
 
@@ -5038,6 +5232,7 @@ async function send() {
           if (parsed.error) {
             aiEl.textContent = '⚠️ ' + parsed.error;
             cursor.remove();
+            saveMessageToConv('assistant', streamText || parsed.error);
             return;
           }
           if (parsed.content) {
@@ -5057,11 +5252,23 @@ async function send() {
       }
     }
     cursor.remove();
+    saveMessageToConv('assistant', streamText);
   } catch (err) {
     cursor.remove();
     aiEl.textContent = '⚠️ 网络错误: ' + err.message;
+    saveMessageToConv('assistant', '⚠️ ' + err.message);
   }
 }
+
+// ═══════════════ 初始化 ═══════════════
+(async function init() {
+  var convs = await loadConversations();
+  if (convs.length > 0) {
+    // 自动恢复最近对话
+    _convId = convs[0].id;
+    switchConv(_convId);
+  }
+})();
 
 // v1.5.9: Desktop快速提问监听
 window.addEventListener('message', function(e){
