@@ -3055,9 +3055,83 @@ async def win_software():
 # 非流式Chat API (v3.115.14 — BUG-048修复)
 # ═══════════════════════════════════════════════════
 
+# ── 工具定义（模块级，流式和非流式共用）──
+
+TOOLS = [
+    {"type": "function", "function": {"name": "web_search", "description": "搜索网页获取实时信息（价格、新闻、天气等）。返回搜索结果摘要。", "parameters": {"type": "object", "properties": {"query": {"type": "string", "description": "搜索关键词"}}, "required": ["query"]}}},
+    {"type": "function", "function": {"name": "web_extract", "description": "抓取指定 URL 的网页内容，返回纯文本。用于获取搜索结果的详细信息。", "parameters": {"type": "object", "properties": {"url": {"type": "string", "description": "要抓取的网页 URL"}}, "required": ["url"]}}},
+    {"type": "function", "function": {"name": "read_file", "description": "读取本机文件。参数: path(文件路径), offset(起始行,默认1), limit(行数,默认200)", "parameters": {"type": "object", "properties": {"path": {"type": "string", "description": "文件路径"}, "offset": {"type": "integer", "description": "起始行号", "default": 1}, "limit": {"type": "integer", "description": "读取行数", "default": 200}}, "required": ["path"]}}},
+    {"type": "function", "function": {"name": "write_file", "description": "写入本机文件（覆盖）。参数: path(文件路径), content(内容)", "parameters": {"type": "object", "properties": {"path": {"type": "string", "description": "文件路径"}, "content": {"type": "string", "description": "要写入的内容"}}, "required": ["path", "content"]}}},
+    {"type": "function", "function": {"name": "search_files", "description": "搜索本机文件（按名称或内容）。参数: pattern(搜索模式), dir(目录,默认HOME)", "parameters": {"type": "object", "properties": {"pattern": {"type": "string", "description": "搜索关键词或文件通配符"}, "dir": {"type": "string", "description": "搜索目录，默认用户 HOME"}}, "required": ["pattern"]}}},
+    {"type": "function", "function": {"name": "terminal", "description": "🔒[需授权] 在本机执行 shell 命令。可以运行任何程序、脚本、安装软件、管理系统等。等同于用户在终端操作电脑。", "parameters": {"type": "object", "properties": {"cmd": {"type": "string", "description": "要执行的 shell 命令"}, "workdir": {"type": "string", "description": "工作目录(可选，默认当前目录)"}, "timeout": {"type": "integer", "description": "超时秒数(默认 60)", "default": 60}}, "required": ["cmd"]}}},
+    {"type": "function", "function": {"name": "remote_read", "description": "🔒[需授权] 通过 SSH 读取远程服务器文件。用户提供服务器信息时请传入 host/user/password 参数。", "parameters": {"type": "object", "properties": {"path": {"type": "string", "description": "远程服务器文件路径"}, "host": {"type": "string", "description": "服务器地址"}, "user": {"type": "string", "description": "SSH 用户名"}, "password": {"type": "string", "description": "SSH 密码"}, "port": {"type": "integer", "description": "SSH 端口(默认 22)", "default": 22}}, "required": ["path", "host"]}}},
+    {"type": "function", "function": {"name": "remote_write", "description": "🔒[需授权] 通过 SSH 写入远程服务器文件。用户提供服务器信息时请传入 host/user/password 参数。", "parameters": {"type": "object", "properties": {"path": {"type": "string", "description": "远程文件路径"}, "content": {"type": "string", "description": "要写入的内容"}, "host": {"type": "string", "description": "服务器地址"}, "user": {"type": "string", "description": "SSH 用户名"}, "password": {"type": "string", "description": "SSH 密码"}, "port": {"type": "integer", "description": "SSH 端口(默认 22)", "default": 22}}, "required": ["path", "content", "host"]}}},
+    {"type": "function", "function": {"name": "remote_exec", "description": "🔒[需授权] 通过 SSH 在远程服务器执行命令。用户提供服务器信息时请传入 host/user/password 参数。", "parameters": {"type": "object", "properties": {"cmd": {"type": "string", "description": "要执行的 shell 命令"}, "host": {"type": "string", "description": "服务器地址"}, "user": {"type": "string", "description": "SSH 用户名"}, "password": {"type": "string", "description": "SSH 密码"}, "port": {"type": "integer", "description": "SSH 端口(默认 22)", "default": 22}}, "required": ["cmd", "host"]}}},
+    {"type": "function", "function": {"name": "browser_navigate", "description": "抓取网页并提取可读文本（纯Python，无需Playwright）。参数: url", "parameters": {"type": "object", "properties": {"url": {"type": "string", "description": "网页URL"}}, "required": ["url"]}}},
+    {"type": "function", "function": {"name": "browser_snapshot", "description": "获取当前已抓取页面的结构化内容（标题、链接、文本）。需先调用 browser_navigate", "parameters": {"type": "object", "properties": {}}}},
+]
+
+SYSTEM_PROMPT = """你是 meshctx AI 助手，运行在用户本机。你可以使用以下工具：
+
+| 工具 | 用途 |
+|------|------|
+| web_search | 搜索网页获取实时数据（价格、新闻、天气、股票等） |
+| web_extract | 抓取指定网页的完整内容 |
+| terminal   | 🔒 在本机执行 shell 命令（运行程序、安装软件、管理系统等） |
+| browser_navigate | 抓取网页并提取可读文本（标题、链接、正文） |
+| browser_snapshot | 获取已缓存页面的结构化内容 |
+| read_file  | 读取本机文件 |
+| write_file | 写入本机文件 |
+| search_files | 搜索本机文件（按名称或内容） |
+| remote_exec | 🔒 SSH 远程执行命令（需 host/user/password） |
+| remote_read | 🔒 SSH 远程读取文件（需 host/user/password） |
+| remote_write | 🔒 SSH 远程写入文件（需 host/user/password） |
+
+重要规则：
+- 查询实时信息必须先调用 web_search
+- 用户提供服务器信息（IP/用户名/密码）时，直接传入 remote_* 工具参数
+- 读取/分析本机文件用 read_file
+- 最终回复用中文，数据用表格呈现"""
+
+SENSITIVE_TOOLS = {"write_file", "remote_write", "remote_exec", "terminal"}
+DESTRUCTIVE_TOOLS = {"write_file", "remote_write", "remote_exec", "terminal"}
+
+
+def _dispatch_tool(name: str, args: dict, approved_tools: set, page_cache: dict) -> str:
+    """工具调度器（模块级，流式和非流式共用）"""
+    if name == "web_search":
+        return _do_web_search(args.get("query", ""))
+    elif name == "web_extract":
+        return _do_web_extract(args.get("url", ""))
+    elif name == "read_file":
+        return _do_read_file(args.get("path", ""), args.get("offset", 1), args.get("limit", 200))
+    elif name == "write_file":
+        return _do_write_file(args.get("path", ""), args.get("content", ""))
+    elif name == "search_files":
+        return _do_search_files(args.get("pattern", ""), args.get("dir", str(Path.home())))
+    elif name == "terminal":
+        return _do_terminal(args.get("cmd", ""), args.get("workdir", ""), args.get("timeout", 60))
+    elif name == "remote_read":
+        return _do_remote_read(args.get("path", ""), args.get("host", ""),
+                               args.get("user", ""), args.get("password", ""), args.get("port", 22))
+    elif name == "remote_write":
+        return _do_remote_write(args.get("path", ""), args.get("content", ""),
+                                args.get("host", ""), args.get("user", ""),
+                                args.get("password", ""), args.get("port", 22))
+    elif name == "remote_exec":
+        return _do_remote_exec(args.get("cmd", ""), args.get("host", ""),
+                               args.get("user", ""), args.get("password", ""), args.get("port", 22))
+    elif name == "browser_navigate":
+        return _do_browser_navigate(args.get("url", ""), page_cache)
+    elif name == "browser_snapshot":
+        return _do_browser_snapshot(page_cache)
+    else:
+        return f"未知工具: {name}"
+
+
 @app.post("/api/chat")
 async def api_chat(request: Request):
-    """非流式Chat API — 返回完整JSON响应。用于前端chat.html"""
+    """非流式Chat API — 完整工具循环。用于前端chat.html"""
     from src.model_registry import get_registry
     from src.config import load_config
     import json as _json
@@ -3084,43 +3158,113 @@ async def api_chat(request: Request):
         except Exception:
             model_id = "deepseek:v4-pro"
 
+    # 确保 system prompt 在最前面
+    if not msgs or msgs[0].get("role") != "system":
+        msgs.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
+
     try:
         reg = get_registry()
         client = reg.get(model_id) or reg.get(None)
         if not client:
-            return JSONResponse({
-                "error": "模型未配置，请在Setup页面设置API Key"
-            }, status_code=503)
+            return JSONResponse({"error": "模型未配置，请在Setup页面设置API Key"}, status_code=503)
 
-        resp = client.client.chat.completions.create(
-            model=client.model_name,
-            messages=msgs,
-            temperature=0.7,
-            max_tokens=4096,
-        )
-        choice = resp.choices[0]
-        content = choice.message.content or ""
+        max_rounds = int(body.get("max_rounds", 10))
+        approved_tools = set()
+        page_cache = {}
+        tools_ok = True
+
+        for _round in range(max_rounds):
+            try:
+                if tools_ok:
+                    resp = client.client.chat.completions.create(
+                        model=client.model_name,
+                        messages=msgs,
+                        temperature=0.7,
+                        max_tokens=4096,
+                        tools=TOOLS,
+                        tool_choice="auto",
+                    )
+                else:
+                    resp = client.client.chat.completions.create(
+                        model=client.model_name,
+                        messages=msgs,
+                        temperature=0.7,
+                        max_tokens=4096,
+                    )
+            except Exception as e:
+                if "tools" in str(e).lower() or "tool" in str(e).lower():
+                    tools_ok = False
+                    resp = client.client.chat.completions.create(
+                        model=client.model_name,
+                        messages=msgs,
+                        temperature=0.7,
+                        max_tokens=4096,
+                    )
+                else:
+                    raise
+
+            choice = resp.choices[0]
+            msg = choice.message
+
+            # No tool calls → return final content
+            if not msg.tool_calls:
+                content = msg.content or ""
+                return JSONResponse({
+                    "content": content,
+                    "tool_result": None,
+                    "tokens": choice.usage.total_tokens if hasattr(choice, 'usage') and choice.usage else 0,
+                    "hybrid_info": None,
+                })
+
+            # Process tool calls
+            msgs.append({"role": "assistant", "content": msg.content or "", "tool_calls": [
+                {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+                for tc in msg.tool_calls
+            ]})
+
+            for tc in msg.tool_calls:
+                name = tc.function.name
+                try:
+                    args = _json.loads(tc.function.arguments)
+                except Exception:
+                    args = {}
+
+                # 敏感工具检查
+                if name in DESTRUCTIVE_TOOLS and name not in approved_tools:
+                    if not args.get("__approved"):
+                        msgs.append({"role": "tool", "tool_call_id": tc.id,
+                                     "content": "refused: 敏感工具需要确认。请设置 __approved: true"})
+                        continue
+                    approved_tools.add(name)
+
+                result = _dispatch_tool(name, args, approved_tools, page_cache)
+                msgs.append({"role": "tool", "tool_call_id": tc.id, "content": result[:8000]})
+
+        # Max rounds reached
+        # Make one final call without tools to get a text response
+        try:
+            resp = client.client.chat.completions.create(
+                model=client.model_name,
+                messages=msgs,
+                temperature=0.7,
+                max_tokens=4096,
+            )
+            content = resp.choices[0].message.content or ""
+        except Exception:
+            content = "处理超时，请重试"
 
         return JSONResponse({
             "content": content,
             "tool_result": None,
-            "tokens": choice.usage.total_tokens if hasattr(choice, 'usage') and choice.usage else 0,
+            "tokens": 0,
             "hybrid_info": None,
         })
+
     except Exception as e:
         logger.error(f"Chat API error: {e}")
         err_msg = str(e)
-        # 区分认证错误 (401/403) 和服务器错误
         status = 503 if any(kw in err_msg.lower() for kw in ('401', '403', 'unauthorized', 'invalid api key', 'invalid key', 'authentication')) else 500
-        return JSONResponse({
-            "error": f"模型调用失败: {err_msg}",
-            "content": ""
-        }, status_code=status)
-
-
-# ═══════════════════════════════════════════════════
-# 流式Chat API (v1.4.0)
-# ═══════════════════════════════════════════════════
+        return JSONResponse({"error": f"模型调用失败: {err_msg}", "content": ""}, status_code=status)
 
 @app.post("/api/chat/stream")
 async def api_chat_stream(request: Request):
@@ -3195,200 +3339,6 @@ async def api_chat_stream(request: Request):
     DESTRUCTIVE_TOOLS = {"write_file", "remote_write", "remote_exec", "terminal"}
     _approved_tools = set()  # 本次流中已批准的工具
     _page_cache = {}  # 浏览器页面缓存: {url: {title, links, text, html}}
-    TOOLS = [
-        {
-            "type": "function",
-            "function": {
-                "name": "web_search",
-                "description": "搜索网页获取实时信息（价格、新闻、天气等）。返回搜索结果摘要。",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "query": {"type": "string", "description": "搜索关键词"}
-                    },
-                    "required": ["query"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "web_extract",
-                "description": "抓取指定 URL 的网页内容，返回纯文本。用于获取搜索结果的详细信息。",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "url": {"type": "string", "description": "要抓取的网页 URL"}
-                    },
-                    "required": ["url"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "read_file",
-                "description": "读取本机文件。参数: path(文件路径), offset(起始行,默认1), limit(行数,默认200)",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "path": {"type": "string", "description": "文件路径，如 /home/user/data.csv"},
-                        "offset": {"type": "integer", "description": "起始行号", "default": 1},
-                        "limit": {"type": "integer", "description": "读取行数", "default": 200}
-                    },
-                    "required": ["path"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "write_file",
-                "description": "写入本机文件（覆盖）。参数: path(文件路径), content(内容)",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "path": {"type": "string", "description": "文件路径"},
-                        "content": {"type": "string", "description": "要写入的内容"}
-                    },
-                    "required": ["path", "content"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "search_files",
-                "description": "搜索本机文件（按名称或内容）。参数: pattern(搜索模式), dir(目录,默认HOME)",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "pattern": {"type": "string", "description": "搜索关键词或文件通配符"},
-                        "dir": {"type": "string", "description": "搜索目录，默认用户 HOME"}
-                    },
-                    "required": ["pattern"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "remote_read",
-                "description": "🔒[需授权] 通过 SSH 读取远程服务器文件。用户提供服务器信息时请传入 host/user/password 参数。",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "path": {"type": "string", "description": "远程服务器文件路径"},
-                        "host": {"type": "string", "description": "服务器地址(如 192.168.1.100)"},
-                        "user": {"type": "string", "description": "SSH 用户名(如 root)"},
-                        "password": {"type": "string", "description": "SSH 密码(用户提供时传入)"},
-                        "port": {"type": "integer", "description": "SSH 端口(默认 22)", "default": 22}
-                    },
-                    "required": ["path", "host"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "remote_write",
-                "description": "🔒[需授权] 通过 SSH 写入远程服务器文件。用户提供服务器信息时请传入 host/user/password 参数。",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "path": {"type": "string", "description": "远程文件路径"},
-                        "content": {"type": "string", "description": "要写入的内容"},
-                        "host": {"type": "string", "description": "服务器地址(如 192.168.1.100)"},
-                        "user": {"type": "string", "description": "SSH 用户名(如 root)"},
-                        "password": {"type": "string", "description": "SSH 密码(用户提供时传入)"},
-                        "port": {"type": "integer", "description": "SSH 端口(默认 22)", "default": 22}
-                    },
-                    "required": ["path", "content", "host"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "remote_exec",
-                "description": "🔒[需授权] 通过 SSH 在远程服务器执行命令。用户提供服务器信息时请传入 host/user/password 参数。",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "cmd": {"type": "string", "description": "要执行的 shell 命令"},
-                        "host": {"type": "string", "description": "服务器地址(如 192.168.1.100)"},
-                        "user": {"type": "string", "description": "SSH 用户名(如 root)"},
-                        "password": {"type": "string", "description": "SSH 密码(用户提供时传入)"},
-                        "port": {"type": "integer", "description": "SSH 端口(默认 22)", "default": 22}
-                    },
-                    "required": ["cmd", "host"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "terminal",
-                "description": "🔒[需授权] 在本机执行 shell 命令。可以运行任何程序、脚本、安装软件、管理系统等。等同于用户在终端操作电脑。",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "cmd": {"type": "string", "description": "要执行的 shell 命令"},
-                        "workdir": {"type": "string", "description": "工作目录(可选，默认当前目录)"},
-                        "timeout": {"type": "integer", "description": "超时秒数(默认 60)", "default": 60}
-                    },
-                    "required": ["cmd"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "browser_navigate",
-                "description": "抓取网页并提取可读文本（纯Python，无需Playwright）。参数: url",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "url": {"type": "string", "description": "网页URL"}
-                    },
-                    "required": ["url"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "browser_snapshot",
-                "description": "获取当前已抓取页面的结构化内容（标题、链接、文本）。需先调用 browser_navigate",
-                "parameters": {
-                    "type": "object",
-                    "properties": {}
-                }
-            }
-        }
-    ]
-
-    SYSTEM_PROMPT = """你是 meshctx AI 助手，运行在用户本机。你可以使用以下工具：
-
-| 工具 | 用途 |
-|------|------|
-| web_search | 搜索网页获取实时数据（价格、新闻、天气、股票等） |
-| web_extract | 抓取指定网页的完整内容 |
-| terminal   | 🔒 在本机执行 shell 命令（运行程序、安装软件、管理系统等） |
-| browser_navigate | 抓取网页并提取可读文本（标题、链接、正文） |
-| browser_snapshot | 获取已缓存页面的结构化内容 |
-| read_file  | 读取本机文件 |
-| write_file | 写入本机文件 |
-| search_files | 搜索本机文件（按名称或内容） |
-| remote_exec | 🔒 SSH 远程执行命令（需 host/user/password） |
-| remote_read | 🔒 SSH 远程读取文件（需 host/user/password） |
-| remote_write | 🔒 SSH 远程写入文件（需 host/user/password） |
-
-重要规则：
-- 查询实时信息必须先调用 web_search
-- 用户提供服务器信息（IP/用户名/密码）时，直接传入 remote_* 工具参数
-- 读取/分析本机文件用 read_file
-- 最终回复用中文，数据用表格呈现"""
 
     # 确保 system prompt 在最前面
     if not msgs or msgs[0].get("role") != "system":
@@ -3699,47 +3649,98 @@ def _do_terminal(cmd: str, workdir: str = "", timeout: int = 60) -> str:
 # ── 远程文件工具 (SSH: paramiko 纯 Python → 原生 ssh 回退) ──
 
 def _ssh_connect(host: str, user: str = "", password: str = "", port: int = 22):
-    """建立 SSH 连接。凭据来源：参数 > 环境变量。返回 (paramiko.SSHClient | None, host, user, error)"""
-    import paramiko
+    """建立 SSH 连接。凭据来源：参数 > 环境变量。
+    先尝试 paramiko（纯Python），失败回退到 sshpass+ssh 命令。
+    返回 (client_or_None, host, user, error)"""
+    import subprocess
+    import shlex
     u = user or os.environ.get("SERVER_USER", "root")
     pw = password or os.environ.get("SERVER_PASS", "")
     if not pw:
         return None, host, u, "未提供密码（请传入 password 参数或设置 SERVER_PASS 环境变量）"
+
+    # ── 方案1: paramiko (纯Python，跨平台) ──
     try:
+        import paramiko
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         client.connect(host, port=port, username=u, password=pw, timeout=10, banner_timeout=5)
         return client, host, u, ""
+    except (ImportError, ModuleNotFoundError) as e:
+        logger.warning(f"paramiko 不可用 ({e})，回退到 sshpass+ssh")
     except Exception as e:
-        return None, host, u, f"SSH 连接失败 {u}@{host}:{port} — {e}"
+        logger.warning(f"paramiko 连接失败 ({e})，尝试 sshpass 回退")
 
-
-def _ssh_exec_cmd(client, cmd: str, timeout: int = 30) -> str:
-    """在已连接的 SSH 客户端上执行命令"""
-    stdin, stdout, stderr = client.exec_command(cmd, timeout=timeout)
-    out = stdout.read().decode(errors='replace').strip()
-    err = stderr.read().decode(errors='replace').strip()
-    return out or err
-
-
-def _ssh_read_file(client, path: str) -> str:
-    """通过 SFTP 读取远程文件"""
-    sftp = client.open_sftp()
+    # ── 方案2: sshpass + ssh (Mac Python 3.12 兼容回退) ──
     try:
-        with sftp.open(path, 'r') as f:
-            return f.read().decode(errors='replace')
-    finally:
-        sftp.close()
+        # 检查 sshpass 可用性
+        r = subprocess.run(["which", "sshpass"], capture_output=True, text=True, timeout=3)
+        if r.returncode != 0:
+            return None, host, u, "paramiko 不可用且 sshpass 未安装。请安装: apt install sshpass / brew install sshpass"
+        # 简单连接测试
+        test_cmd = f"sshpass -p {shlex.quote(pw)} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p {port} {u}@{host} echo OK"
+        r = subprocess.run(test_cmd, shell=True, capture_output=True, text=True, timeout=15)
+        if r.returncode != 0:
+            return None, host, u, f"SSH 连接失败 {u}@{host}:{port} — {r.stderr.strip()}"
+        return None, host, u, ""  # client=None 表示用 sshpass 模式
+    except FileNotFoundError:
+        return None, host, u, "paramiko 不可用且 sshpass 未找到"
+    except Exception as e:
+        return None, host, u, f"sshpass 连接失败: {e}"
 
 
-def _ssh_write_file(client, path: str, content: str):
-    """通过 SFTP 写入远程文件"""
-    sftp = client.open_sftp()
-    try:
-        with sftp.open(path, 'w') as f:
-            f.write(content)
-    finally:
-        sftp.close()
+def _ssh_exec_cmd(client, cmd: str, host: str = "", user: str = "", password: str = "", port: int = 22, timeout: int = 30) -> str:
+    """在已连接的 SSH 客户端上执行命令。client 为 None 时走 sshpass 回退。"""
+    import subprocess
+    import shlex
+    if client is not None:
+        stdin, stdout, stderr = client.exec_command(cmd, timeout=timeout)
+        out = stdout.read().decode(errors='replace').strip()
+        err = stderr.read().decode(errors='replace').strip()
+        return out or err
+    else:
+        # sshpass 回退
+        pw = password or os.environ.get("SERVER_PASS", "")
+        ssh_cmd = f"sshpass -p {shlex.quote(pw)} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p {port} {user}@{host} {shlex.quote(cmd)}"
+        r = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True, timeout=timeout + 5)
+        return (r.stdout + r.stderr).strip()
+
+
+def _ssh_read_file(client, path: str, host: str = "", user: str = "", password: str = "", port: int = 22) -> str:
+    """通过 SFTP 读取远程文件。client 为 None 时走 sshpass cat 回退。"""
+    import subprocess
+    import shlex
+    if client is not None:
+        sftp = client.open_sftp()
+        try:
+            with sftp.open(path, 'r') as f:
+                return f.read().decode(errors='replace')
+        finally:
+            sftp.close()
+    else:
+        pw = password or os.environ.get("SERVER_PASS", "")
+        ssh_cmd = f"sshpass -p {shlex.quote(pw)} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p {port} {user}@{host} cat {shlex.quote(path)}"
+        r = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True, timeout=15)
+        return (r.stdout + r.stderr).strip()
+
+
+def _ssh_write_file(client, path: str, content: str, host: str = "", user: str = "", password: str = "", port: int = 22):
+    """通过 SFTP 写入远程文件。client 为 None 时走 sshpass tee 回退。"""
+    import subprocess
+    import shlex
+    if client is not None:
+        sftp = client.open_sftp()
+        try:
+            with sftp.open(path, 'w') as f:
+                f.write(content)
+        finally:
+            sftp.close()
+    else:
+        pw = password or os.environ.get("SERVER_PASS", "")
+        ssh_cmd = f"sshpass -p {shlex.quote(pw)} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p {port} {user}@{host} tee {shlex.quote(path)} > /dev/null"
+        r = subprocess.run(ssh_cmd, shell=True, input=content, capture_output=True, text=True, timeout=15)
+        if r.returncode != 0:
+            raise RuntimeError(f"sshpass write failed: {r.stderr}")
 
 
 def _do_remote_exec(cmd: str, host: str = "", user: str = "", password: str = "", port: int = 22) -> str:
@@ -3748,12 +3749,13 @@ def _do_remote_exec(cmd: str, host: str = "", user: str = "", password: str = ""
     if err:
         return f"远程执行失败: {err}"
     try:
-        out = _ssh_exec_cmd(client, cmd)
+        out = _ssh_exec_cmd(client, cmd, host=h, user=u, password=password, port=port)
         return f"远程执行 [{u}@{h}]:\n{out[:4000]}" if out else f"远程执行完成 [{u}@{h}] (无输出)"
     except Exception as e:
         return f"远程执行失败: {e}"
     finally:
-        client.close()
+        if client:
+            client.close()
 
 
 def _do_remote_read(path: str, host: str = "", user: str = "", password: str = "", port: int = 22) -> str:
@@ -3762,13 +3764,14 @@ def _do_remote_read(path: str, host: str = "", user: str = "", password: str = "
     if err:
         return f"远程读取失败: {err}"
     try:
-        content = _ssh_read_file(client, path)
+        content = _ssh_read_file(client, path, host=h, user=u, password=password, port=port)
         lines = content.split('\n')
         return f"远程文件: {u}@{h}:{path} ({len(lines)} 行)\n" + '\n'.join(f"{i+1}|{l}" for i, l in enumerate(lines[:500]))
     except Exception as e:
         return f"远程读取失败: {e}"
     finally:
-        client.close()
+        if client:
+            client.close()
 
 
 def _do_remote_write(path: str, content: str, host: str = "", user: str = "", password: str = "", port: int = 22) -> str:
@@ -3777,12 +3780,13 @@ def _do_remote_write(path: str, content: str, host: str = "", user: str = "", pa
     if err:
         return f"远程写入失败: {err}"
     try:
-        _ssh_write_file(client, path, content)
+        _ssh_write_file(client, path, content, host=h, user=u, password=password, port=port)
         return f"已写入远程文件: {u}@{h}:{path} ({len(content)} 字符)"
     except Exception as e:
         return f"远程写入失败: {e}"
     finally:
-        client.close()
+        if client:
+            client.close()
 
 
 # ── 浏览器工具 (纯 Python, requests + bs4, 零版本依赖) ──
