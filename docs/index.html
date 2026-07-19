@@ -560,6 +560,26 @@ if (L && Object.keys(L).length > 0 && L['en']) {
             <div class="auth-error" id="auth-error-reset"></div>
         </div>
 
+        <!-- Recovery: Set New Password (arrives from email reset link) -->
+        <div class="auth-tab-content" id="auth-tab-recovery" style="display:none">
+            <h2 data-lang-key="auth_recovery_title">Set New Password</h2>
+            <p class="auth-subtitle" data-lang-key="auth_recovery_desc">Enter your new password below.</p>
+            <div class="auth-input-group">
+                <label data-lang-key="auth_label_pw">New Password</label>
+                <input type="password" id="recovery-password" data-lang-key-placeholder="auth_ph_pw" placeholder="8+ chars, uppercase, lowercase, digit" autocomplete="new-password" oninput="checkRecoveryStrength()">
+            </div>
+            <div class="pwd-strength-wrap" style="display:none;">
+                <span class="pwd-strength-label" data-lang-key="auth_pwd_strength">Password strength:</span>
+                <div class="pwd-strength-track"><div class="pwd-strength-fill" id="pwd-strength-bar-recovery"></div></div>
+            </div>
+            <div class="auth-input-group">
+                <label data-lang-key="auth_label_pw2">Confirm Password</label>
+                <input type="password" id="recovery-password2" data-lang-key-placeholder="auth_ph_pw2" placeholder="Re-enter your new password" autocomplete="new-password">
+            </div>
+            <button class="btn-submit" id="recovery-btn" onclick="confirmPasswordReset()" data-lang-key="auth_recovery_btn">Update Password</button>
+            <div class="auth-error" id="auth-error-recovery"></div>
+        </div>
+
         <!-- Sign Up -->
         <div class="auth-tab-content" id="auth-tab-signup">
             <h2 data-lang-key="auth_create">Create Account</h2>

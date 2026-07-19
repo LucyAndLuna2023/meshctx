@@ -304,7 +304,12 @@
     "auth_err_ui": "UI error. Please refresh the page.",
     "auth_err_login_required": "Please sign in first.",
     "auth_err_unknown": "Unknown error",
-    "auth_err_oauth": "OAuth sign-in failed"
+    "auth_err_oauth": "OAuth sign-in failed",
+    "auth_recovery_title": "Set New Password",
+    "auth_recovery_desc": "Enter your new password below.",
+    "auth_recovery_btn": "Update Password",
+    "auth_err_session": "This password reset link is invalid or has expired.",
+    "auth_btn_updating": "Updating..."
   },
   "zh": {
     "hero_title": "会<span>学习</span>的智能体",
@@ -611,7 +616,12 @@
     "auth_err_ui": "界面错误，请刷新页面。",
     "auth_err_login_required": "请先登录。",
     "auth_err_unknown": "未知错误",
-    "auth_err_oauth": "OAuth登录失败"
+    "auth_err_oauth": "OAuth登录失败",
+    "auth_recovery_title": "设置新密码",
+    "auth_recovery_desc": "在下方输入新密码。",
+    "auth_recovery_btn": "更新密码",
+    "auth_err_session": "密码重置链接无效或已过期。",
+    "auth_btn_updating": "更新中..."
   },
   "fr": {
     "hero_title": "L'Agent qui <span>Apprend</span>",
@@ -918,7 +928,12 @@
     "auth_err_ui": "Erreur d'interface. Veuillez rafraîchir la page.",
     "auth_err_login_required": "Veuillez d'abord vous connecter.",
     "auth_err_unknown": "Erreur inconnue",
-    "auth_err_oauth": "Échec de connexion OAuth"
+    "auth_err_oauth": "Échec de connexion OAuth",
+    "auth_recovery_title": "Définir un Nouveau Mot de Passe",
+    "auth_recovery_desc": "Entrez votre nouveau mot de passe.",
+    "auth_recovery_btn": "Mettre à Jour le Mot de Passe",
+    "auth_err_session": "Ce lien de réinitialisation est invalide ou a expiré.",
+    "auth_btn_updating": "Mise à jour..."
   },
   "de": {
     "hero_title": "Der Agent, der <span>lernt</span>",
@@ -1225,7 +1240,12 @@
     "auth_err_ui": "UI-Fehler. Bitte aktualisieren Sie die Seite.",
     "auth_err_login_required": "Bitte melden Sie sich zuerst an.",
     "auth_err_unknown": "Unbekannter Fehler",
-    "auth_err_oauth": "OAuth-Anmeldung fehlgeschlagen"
+    "auth_err_oauth": "OAuth-Anmeldung fehlgeschlagen",
+    "auth_recovery_title": "Neues Passwort Festlegen",
+    "auth_recovery_desc": "Geben Sie Ihr neues Passwort ein.",
+    "auth_recovery_btn": "Passwort Aktualisieren",
+    "auth_err_session": "Dieser Link zum Zurücksetzen des Passworts ist ungültig oder abgelaufen.",
+    "auth_btn_updating": "Aktualisiere..."
   },
   "ja": {
     "hero_title": "学習する<span>エージェント</span>",
@@ -1532,7 +1552,12 @@
     "auth_err_ui": "UIエラー。ページを更新してください。",
     "auth_err_login_required": "最初にサインインしてください。",
     "auth_err_unknown": "不明なエラー",
-    "auth_err_oauth": "OAuthサインインに失敗しました"
+    "auth_err_oauth": "OAuthサインインに失敗しました",
+    "auth_recovery_title": "新しいパスワードを設定",
+    "auth_recovery_desc": "以下に新しいパスワードを入力してください。",
+    "auth_recovery_btn": "パスワードを更新",
+    "auth_err_session": "このパスワードリセットリンクは無効か期限切れです。",
+    "auth_btn_updating": "更新中..."
   },
   "ko": {
     "hero_title": "학습하는 <span>에이전트</span>",
@@ -1839,7 +1864,12 @@
     "auth_err_ui": "UI 오류입니다. 페이지를 새로고침하세요.",
     "auth_err_login_required": "먼저 로그인하세요.",
     "auth_err_unknown": "알 수 없는 오류",
-    "auth_err_oauth": "OAuth 로그인 실패"
+    "auth_err_oauth": "OAuth 로그인 실패",
+    "auth_recovery_title": "새 비밀번호 설정",
+    "auth_recovery_desc": "아래에 새 비밀번호를 입력하세요.",
+    "auth_recovery_btn": "비밀번호 업데이트",
+    "auth_err_session": "비밀번호 재설정 링크가 유효하지 않거나 만료되었습니다.",
+    "auth_btn_updating": "업데이트 중..."
   },
   "es": {
     "hero_title": "El Agente que <span>Aprende</span>",
@@ -2146,7 +2176,12 @@
     "auth_err_ui": "Error de interfaz. Actualice la página.",
     "auth_err_login_required": "Inicie sesión primero.",
     "auth_err_unknown": "Error desconocido",
-    "auth_err_oauth": "Error de inicio de sesión OAuth"
+    "auth_err_oauth": "Error de inicio de sesión OAuth",
+    "auth_recovery_title": "Establecer Nueva Contraseña",
+    "auth_recovery_desc": "Ingrese su nueva contraseña.",
+    "auth_recovery_btn": "Actualizar Contraseña",
+    "auth_err_session": "Este enlace de restablecimiento no es válido o ha expirado.",
+    "auth_btn_updating": "Actualizando..."
   },
   "it": {
     "hero_title": "L'Agente Che <span>Impara</span>",
@@ -2453,7 +2488,12 @@
     "auth_err_network": "Errore di rete o server. Riprova.",
     "auth_err_oauth": "Accesso OAuth non riuscito",
     "auth_err_ui": "Errore UI. Aggiorna la pagina.",
-    "auth_err_unknown": "Errore sconosciuto"
+    "auth_err_unknown": "Errore sconosciuto",
+    "auth_recovery_title": "Imposta Nuova Password",
+    "auth_recovery_desc": "Inserisci la nuova password.",
+    "auth_recovery_btn": "Aggiorna Password",
+    "auth_err_session": "Questo link di reimpostazione non è valido o è scaduto.",
+    "auth_btn_updating": "Aggiornamento..."
   },
   "ar": {
     "hero_title": "الوكيل الذي <span>يتعلّم</span>",
@@ -2760,6 +2800,11 @@
     "auth_err_network": "خطأ في الشبكة أو الخادم. يرجى المحاولة مرة أخرى.",
     "auth_err_oauth": "فشل تسجيل الدخول عبر OAuth",
     "auth_err_ui": "خطأ في الواجهة. يرجى تحديث الصفحة.",
-    "auth_err_unknown": "خطأ غير معروف"
+    "auth_err_unknown": "خطأ غير معروف",
+    "auth_recovery_title": "تعيين كلمة مرور جديدة",
+    "auth_recovery_desc": "أدخل كلمة المرور الجديدة أدناه.",
+    "auth_recovery_btn": "تحديث كلمة المرور",
+    "auth_err_session": "رابط إعادة تعيين كلمة المرور غير صالح أو منتهي الصلاحية.",
+    "auth_btn_updating": "جارٍ التحديث..."
   }
 }

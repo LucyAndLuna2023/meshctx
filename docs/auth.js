@@ -114,6 +114,26 @@ function _getSupabase() {
                 .catch(function(){ return {data: {session: null}, error: null}; });
             },
             onAuthStateChange: function(cb) { _onAuthChange = cb; },
+            setSession: function(params) {
+                if (!params || !params.access_token) return Promise.resolve({data: {session: null}, error: {message: 'Missing access_token'}});
+                _token = params.access_token;
+                if (params.refresh_token) _refreshToken = params.refresh_token;
+                localStorage.setItem('meshctx-token', _token);
+                if (_refreshToken) localStorage.setItem('meshctx-refresh-token', _refreshToken);
+                // Fetch user with the new token
+                var headers = {'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + _token};
+                return fetch(SUPABASE_URL + '/auth/v1/user', {headers: headers})
+                    .then(function(r){ return r.json().then(function(d){
+                        if (r.ok) {
+                            _user = d;
+                            if (_onAuthChange) _onAuthChange('SIGNED_IN', {user: d});
+                            return {data: {session: {user: d, access_token: _token}}, error: null};
+                        }
+                        _token = null; _user = null;
+                        return {data: {session: null}, error: {message: d.msg || 'Invalid token'}};
+                    }); })
+                    .catch(function(e){ return {data: {session: null}, error: {message: 'Network error: ' + e.message}}; });
+            },
             signOut: function() {
                 var tok = _token;
                 _token = null; _user = null;
@@ -129,6 +149,7 @@ function _getSupabase() {
 }
 
 var _token = localStorage.getItem('meshctx-token') || null;  // ⚠️ P1: localStorage XSS risk — TODO: migrate to httpOnly cookie
+var _refreshToken = localStorage.getItem('meshctx-refresh-token') || null;
 var _onAuthChange = null;
 
 // ═══ Modal ═══
@@ -393,6 +414,88 @@ async function resetPassword() {
     else { if (err) err.textContent = _t('auth_reset_sent', 'Check your email for the reset link!'); }
 }
 
+// ═══ Password Recovery (from email reset link) ═══
+function checkRecoveryStrength() {
+    _checkPwdStrength('recovery-password', 'pwd-strength-bar-recovery', '.pwd-strength-wrap');
+}
+
+function showRecoveryForm() {
+    var modal = document.getElementById('auth-modal');
+    if (!modal) return;
+    document.querySelectorAll('.auth-tab-content').forEach(function(el) { el.style.display = 'none'; });
+    document.querySelectorAll('.auth-tab-btn').forEach(function(el) { el.classList.remove('active'); });
+    var tab = document.getElementById('auth-tab-recovery');
+    if (tab) tab.style.display = 'block';
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    clearAuthError();
+}
+
+async function confirmPasswordReset() {
+    var sb = _getSupabase();
+    if (!sb) { showAuthError(_t('auth_err_connection', 'Network error.')); return; }
+    if (!_token) { showAuthError(_t('auth_err_session', 'Session expired. Please request a new reset link.')); return; }
+
+    var pw = document.getElementById('recovery-password').value;
+    var pw2 = document.getElementById('recovery-password2').value;
+    if (!pw) { showAuthError(_t('auth_err_empty', 'Please enter a new password.')); return; }
+    if (!isPasswordStrong(pw)) { showAuthError(_t('auth_err_pwd_weak', 'Password must be 8+ chars with uppercase, lowercase, and number.')); return; }
+    if (pw !== pw2) { showAuthError(_t('auth_err_pwd_match', 'Passwords do not match.')); return; }
+
+    var btn = document.getElementById('recovery-btn');
+    btn.disabled = true;
+    btn.textContent = _t('auth_btn_updating', 'Updating…');
+
+    try {
+        var { data, error } = await sb.auth.updateUser({ password: pw });
+        btn.disabled = false;
+        btn.textContent = _t('auth_recovery_btn', 'Update Password');
+        if (error) { showAuthError(error.message); return; }
+
+        // Success — clear recovery params, show signin
+        history.replaceState(null, '', window.location.pathname);
+        _token = null; _user = null;
+        localStorage.removeItem('meshctx-token');
+        localStorage.removeItem('meshctx-refresh-token');
+        hideAuthModal();
+        alert('Password updated successfully! You can now sign in with your new password.');
+        showAuthModal('signin');
+    } catch(e) {
+        btn.disabled = false;
+        btn.textContent = _t('auth_recovery_btn', 'Update Password');
+        showAuthError(_t('auth_err_network', 'Network error. Please try again.'));
+    }
+}
+
+function handleRecoveryFlow() {
+    // Parse URL hash for Supabase recovery params
+    var hash = window.location.hash.substring(1); // remove '#'
+    if (!hash) return false;
+    var params = {};
+    hash.split('&').forEach(function(pair) {
+        var kv = pair.split('=');
+        params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
+    });
+    if (params.type !== 'recovery' || !params.access_token) return false;
+
+    var sb = _getSupabase();
+    if (!sb) return false;
+
+    // Set the recovery session, then show the password form
+    sb.auth.setSession({
+        access_token: params.access_token,
+        refresh_token: params.refresh_token || ''
+    }).then(function(result) {
+        if (result.error) {
+            alert('This password reset link is invalid or has expired. Please request a new one.');
+            history.replaceState(null, '', window.location.pathname);
+            return;
+        }
+        showRecoveryForm();
+    });
+    return true;
+}
+
 // ═══ Change Password ═══
 async function changePassword(newPassword) {
     var sb = _getSupabase();
@@ -472,6 +575,9 @@ async function addEmail(newEmail) {
 
 // ═══ Init ═══
 async function initAuth() {
+    // Check for password recovery flow first (from email reset link)
+    if (handleRecoveryFlow()) return;
+
     var sb = _getSupabase();
     var authBtn = document.getElementById('auth-btn');
     if (!sb) {
@@ -502,3 +608,8 @@ document.addEventListener('keydown', function(e) {
 });
 
 document.addEventListener('DOMContentLoaded', initAuth);
+
+// Also handle recovery when hash changes (e.g. user clicks reset link in email)
+window.addEventListener('hashchange', function() {
+    if (location.hash.includes('type=recovery')) handleRecoveryFlow();
+});
