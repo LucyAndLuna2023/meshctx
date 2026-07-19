@@ -575,6 +575,27 @@ async function addEmail(newEmail) {
 
 // ═══ Init ═══
 async function initAuth() {
+    // Check for OAuth callback (access_token in hash without type=recovery)
+    var hash = window.location.hash;
+    if (hash && hash.includes('access_token=') && !hash.includes('type=recovery')) {
+        // OAuth callback — set session from hash then clean URL
+        var params = {};
+        hash.substring(1).split('&').forEach(function(p) {
+            var kv = p.split('=');
+            if (kv.length === 2) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+        });
+        if (params.access_token) {
+            var sb = _getSupabase();
+            if (sb) {
+                await sb.auth.setSession({access_token: params.access_token, refresh_token: params.refresh_token || ''});
+                // Clean URL hash and reload
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+                window.location.reload();
+                return;
+            }
+        }
+    }
+
     // Check for password recovery flow first (from email reset link)
     if (handleRecoveryFlow()) return;
 
@@ -609,7 +630,8 @@ document.addEventListener('keydown', function(e) {
 
 document.addEventListener('DOMContentLoaded', initAuth);
 
-// Also handle recovery when hash changes (e.g. user clicks reset link in email)
+// Also handle hash changes for recovery and OAuth callbacks
 window.addEventListener('hashchange', function() {
-    if (location.hash.includes('type=recovery')) handleRecoveryFlow();
+    if (location.hash.includes('type=recovery')) { handleRecoveryFlow(); return; }
+    if (location.hash.includes('access_token=')) initAuth();
 });
