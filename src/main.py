@@ -403,18 +403,33 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"守护进程启动跳过: {e}")
 
+    # v3.115.20: 自主OODA Agent — 主动监控+飞书推送
+    try:
+        from .core.autonomous_agent import get_autonomous_agent
+        agent = get_autonomous_agent()
+        await agent.start()
+        app.state.autonomous_agent = agent
+        logger.info("🤖 自主OODA Agent已启动 (系统健康/API/Git/Hub → 飞书推送)")
+    except Exception as e:
+        logger.warning(f"自主Agent启动跳过: {e}")
+        app.state.autonomous_agent = None
+
     yield  # ── 服务运行中 ──
 
     # ── Shutdown ──
     if _kernel is not None:
         await _kernel.stop()
+    # v3.115.20: stop autonomous agent
+    ag = getattr(app.state, "autonomous_agent", None)
+    if ag:
+        await ag.stop()
     logger.info("meshctx v1.0 已停止")
 
 
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="3.115.18",
+    version="3.115.20",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -1563,6 +1578,37 @@ async def agent_status_api():
 async def docker_status():
     """Docker状态 stub (v3.115.16)"""
     return {"status": "unavailable", "message": "Docker not installed or not accessible"}
+
+
+# ── v3.115.20: Autonomous OODA Agent API ──
+
+@app.get("/api/autonomous/status")
+async def autonomous_status():
+    """自主OODA Agent状态"""
+    from .core.autonomous_agent import get_autonomous_agent
+    agent = get_autonomous_agent()
+    return agent.status()
+
+
+@app.post("/api/autonomous/observe")
+async def autonomous_observe():
+    """手动触发一次OODA观察（立即返回观察结果）"""
+    from .core.autonomous_agent import get_autonomous_agent
+    agent = get_autonomous_agent()
+    observations = await agent.observe_now()
+    return {"cycle_count": agent._cycle_count, "observations": observations, "count": len(observations)}
+
+
+@app.get("/api/autonomous/config")
+async def autonomous_config():
+    """自主Agent当前配置（webhook URL已脱敏）"""
+    from .core.autonomous_agent import get_autonomous_agent
+    agent = get_autonomous_agent()
+    cfg = dict(agent.config)
+    wh = cfg.get("feishu_webhook", "")
+    if wh:
+        cfg["feishu_webhook"] = wh[:40] + "..." if len(wh) > 40 else wh
+    return cfg
 
 
 @app.post("/agent/start")
