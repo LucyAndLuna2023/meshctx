@@ -4985,9 +4985,16 @@ async function send() {
   if (!text) return;
   input.value = ''; input.style.height = '';
   addMessage('user', text);
-  
+
+  // 流式SSE — 支持工具调用实时展示 (v3.115.21)
+  var aiEl = addMessage('assistant', '');
+  var cursor = document.createElement('span');
+  cursor.className = 'stream-cursor';
+  cursor.textContent = '▌';
+  aiEl.appendChild(cursor);
+
   try {
-    var res = await fetch('/api/chat', {
+    var res = await fetch('/api/chat/stream', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -4996,16 +5003,63 @@ async function send() {
         conversation_id: _convId || null
       })
     });
-    var data = await res.json();
-    if (data.error) {
-      addMessage('assistant', '⚠️ ' + data.error);
-    } else {
-      if (!_convId) _convId = data.conversation_id;
-      if (!_projectId) _projectId = data.project_id;
-      addMessage('assistant', data.response || data.content || '(empty response)');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    var reader = res.body.getReader();
+    var decoder = new TextDecoder();
+    var buffer = '';
+    var streamText = '';
+
+    while (true) {
+      var chunk = await reader.read();
+      if (chunk.done) break;
+      buffer += decoder.decode(chunk.value, {stream: true});
+      var lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        if (!line.startsWith('data: ')) continue;
+        var data = line.slice(6);
+
+        if (data === '[DONE]') {
+          cursor.remove();
+          // 渲染markdown
+          if (typeof marked !== 'undefined') {
+            aiEl.innerHTML = marked.parse(streamText);
+          } else {
+            aiEl.textContent = streamText;
+          }
+          return;
+        }
+
+        try {
+          var parsed = JSON.parse(data);
+          if (parsed.error) {
+            aiEl.textContent = '⚠️ ' + parsed.error;
+            cursor.remove();
+            return;
+          }
+          if (parsed.content) {
+            streamText += parsed.content;
+            if (typeof marked !== 'undefined') {
+              aiEl.innerHTML = marked.parse(streamText) + '<span class="stream-cursor">▌</span>';
+            } else {
+              aiEl.textContent = streamText;
+              cursor.remove();
+              cursor = document.createElement('span');
+              cursor.className = 'stream-cursor';
+              cursor.textContent = '▌';
+              aiEl.appendChild(cursor);
+            }
+          }
+        } catch (e) { /* skip malformed JSON */ }
+      }
     }
+    cursor.remove();
   } catch (err) {
-    addMessage('assistant', '⚠️ 网络错误: ' + err.message);
+    cursor.remove();
+    aiEl.textContent = '⚠️ 网络错误: ' + err.message;
   }
 }
 

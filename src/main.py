@@ -429,7 +429,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="3.115.20",
+    version="3.115.21",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -3517,15 +3517,11 @@ async def api_chat_stream(request: Request):
 
 def _do_web_search(query: str) -> str:
     """执行网页搜索（多引擎回退：Bing → Google → DuckDuckGo）"""
-    import urllib.parse, urllib.request, re, ssl
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    import urllib.parse, re, requests
 
     def _fetch(url, ua, timeout=8):
-        req = urllib.request.Request(url, headers={"User-Agent": ua})
-        with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
-            return resp.read().decode(errors='ignore')
+        resp = requests.get(url, headers={"User-Agent": ua}, timeout=timeout, verify=False)
+        return resp.text
 
     def _strip_html(s):
         return re.sub(r'<[^>]+>', '', s).strip()
@@ -3583,12 +3579,10 @@ def _do_web_search(query: str) -> str:
 
 def _do_web_extract(url: str) -> str:
     """抓取网页内容"""
-    import urllib.request
+    import requests, re
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            html = resp.read().decode(errors='ignore')
-        import re
+        resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15, verify=False)
+        html = resp.text
         text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL)
         text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL)
         text = re.sub(r'<[^>]+>', ' ', text)
@@ -3698,8 +3692,6 @@ def _ssh_connect(host: str, user: str = "", password: str = "", port: int = 22):
     """建立 SSH 连接。凭据来源：参数 > 环境变量。
     先尝试 paramiko（纯Python），失败回退到 sshpass+ssh 命令。
     返回 (client_or_None, host, user, error)"""
-    import subprocess
-    import shlex
     u = user or os.environ.get("SERVER_USER", "root")
     pw = password or os.environ.get("SERVER_PASS", "")
     if not pw:
@@ -3712,15 +3704,16 @@ def _ssh_connect(host: str, user: str = "", password: str = "", port: int = 22):
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         client.connect(host, port=port, username=u, password=pw, timeout=10, banner_timeout=5)
         return client, host, u, ""
-    except (ImportError, ModuleNotFoundError) as e:
-        if not getattr(_ssh_connect, "_warned_import", False):
-            logger.warning(f"paramiko 不可用 ({e})，回退到 sshpass+ssh")
-            _ssh_connect._warned_import = True
     except Exception as e:
-        logger.warning(f"paramiko 连接失败 ({e})，尝试 sshpass 回退")
+        # 涵盖 ImportError / ModuleNotFoundError（含 Mac _posixsubprocess 缺失）及连接失败
+        if not getattr(_ssh_connect, "_warned_paramiko", False):
+            logger.warning(f"paramiko 不可用 ({type(e).__name__}: {e})，回退到 sshpass+ssh")
+            _ssh_connect._warned_paramiko = True
 
     # ── 方案2: sshpass + ssh (Mac Python 3.12 兼容回退) ──
     try:
+        import shlex
+        import subprocess
         # 检查 sshpass 可用性
         r = subprocess.run(["which", "sshpass"], capture_output=True, text=True, timeout=3)
         if r.returncode != 0:
