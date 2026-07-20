@@ -48,6 +48,36 @@ def _ensure_keys_loaded():
     return loaded
 
 
+def _get_profile_name(config_path=None) -> str | None:
+    """获取当前 profile 名称，用于 CLI 提示前缀。
+
+    优先级: MESHCTX_PROFILE 环境变量 > config.yaml profile.active > config.yaml profile
+    如果 profile 是 "default" 或未设置，返回 None（不显示前缀）。
+    """
+    import yaml
+    profile = os.environ.get("MESHCTX_PROFILE", "").strip()
+    if profile:
+        return profile if profile != "default" else None
+
+    # 从 config.yaml 读取
+    cfg_path = config_path or os.environ.get(
+        "MESHCTX_CONFIG",
+        str(Path.home() / ".meshctx" / "config.yaml")
+    )
+    try:
+        with open(cfg_path) as f:
+            cfg = yaml.safe_load(f) or {}
+    except Exception:
+        return None
+
+    profile = cfg.get("profile", {})
+    if isinstance(profile, dict):
+        profile = profile.get("active", "")
+    if profile and profile != "default":
+        return str(profile)
+    return None
+
+
 # ═══════════════════════════════════════════════════
 # model 命令 — 30+模型, 一行配置
 # ═══════════════════════════════════════════════════
@@ -320,14 +350,18 @@ def cmd_chat(args):
         messages = _build_system_msg(args)
         session_id = None
 
-    print(f"🤖 meshctx → {client.model_id}  ({client.model_name})")
+    profile = _get_profile_name(args.config)
+    profile_tag = f"[{profile}] " if profile else ""
+
+    print(f"🤖 meshctx{profile_tag} → {client.model_id}  ({client.model_name})")
     print(f"   输入 /help 查看命令  |  /quit 退出")
     print(f"   流式输出已启用  |  支持文件/命令/搜索工具\n")
 
     # ── REPL ──
+    prompt = f"{profile_tag}You> " if profile_tag else "You> "
     while True:
         try:
-            user = input("You> ").strip()
+            user = input(prompt).strip()
         except (EOFError, KeyboardInterrupt):
             break
         if not user:
@@ -356,7 +390,9 @@ def _chat_one_shot(client, msg, args):
     from src.chat_tools import TOOLS_OPENAI, execute_tool
     messages = _build_system_msg(args)
     messages.append({"role": "user", "content": msg})
-    print(f"meshctx> ", end="", flush=True)
+    profile = _get_profile_name(args.config)
+    prefix = f"[{profile}] " if profile else ""
+    print(f"{prefix}meshctx> ", end="", flush=True)
     _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, {}, max_turns=2)
     print()
 
@@ -604,12 +640,14 @@ def cmd_agent(args):
     messages.append({"role": "user", "content": f"目标: {args.goal}\n\n请制定计划，逐步执行。每步完成后汇报进展。"})
 
     print(f"🎯 Agent: {args.goal}")
+    profile = _get_profile_name(args.config)
+    prefix = f"[{profile}] " if profile else ""
     print(f"🤖 模型: {client.model_id}  |  最大步数: {args.max_steps}")
     print(f"{'─'*50}")
 
     for step in range(args.max_steps):
         print(f"\n-- 第 {step+1}/{args.max_steps} 步 --")
-        print(f"meshctx> ", end="", flush=True)
+        print(f"{prefix}meshctx> ", end="", flush=True)
         _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, TOOL_ICONS, max_turns=3)
 
         # 检查是否完成
@@ -622,7 +660,7 @@ def cmd_agent(args):
             print(f"\n✅ Agent 完成")
             break
     else:
-        print(f"\n⚠️ 已达最大步数 {args.max_turns}，Agent 暂停")
+        print(f"\n⚠️ 已达最大步数 {args.max_steps}，Agent 暂停")
 
 
 # ═══════════════════════════════════════════════════
@@ -647,7 +685,9 @@ def cmd_task(args):
     messages.append({"role": "user", "content": f"任务: {desc}\n\n用可用工具完成任务，直接给出结果。"})
 
     print(f"📋 任务: {desc}")
-    print(f"meshctx> ", end="", flush=True)
+    profile = _get_profile_name(args.config)
+    prefix = f"[{profile}] " if profile else ""
+    print(f"{prefix}meshctx> ", end="", flush=True)
     _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, TOOL_ICONS, max_turns=args.max_steps)
     print()
 
