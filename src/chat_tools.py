@@ -1,43 +1,14 @@
 """
-meshctx Chat 工具执行引擎
-让 AI 不只是聊天，能真正读文件、跑命令、搜索代码
-
-工具集对标 Hermes: read_file, write_file, search_files, terminal, web
+meshctx Chat 工具引擎 v2 — 原生 OpenAI function calling 格式
+对标 Hermes: read_file, write_file, search_files, terminal, web_search, list_dir
 """
 import os, re, json, shlex, subprocess, urllib.request, urllib.parse
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 # ═══════════════════════════════════════════════════
-# 工具定义
+# 工具执行函数
 # ═══════════════════════════════════════════════════
-
-TOOLS = {
-    "read_file": {
-        "desc": "读取文件内容。参数: path(文件路径), limit(行数,默认100)",
-        "fn": lambda args: _read_file(args.get("path",""), args.get("limit",100)),
-    },
-    "write_file": {
-        "desc": "写入文件。参数: path(文件路径), content(内容)",
-        "fn": lambda args: _write_file(args.get("path",""), args.get("content","")),
-    },
-    "list_dir": {
-        "desc": "列出目录。参数: path(目录路径)",
-        "fn": lambda args: _list_dir(args.get("path",".")),
-    },
-    "run_cmd": {
-        "desc": "执行终端命令。参数: cmd(命令)",
-        "fn": lambda args: _run_cmd(args.get("cmd","")),
-    },
-    "search_files": {
-        "desc": "搜索文件内容。参数: pattern(搜索词), path(目录,默认.), glob(文件过滤,如*.py)",
-        "fn": lambda args: _search_files(args.get("pattern",""), args.get("path","."), args.get("glob","*")),
-    },
-    "web_search": {
-        "desc": "联网搜索网页信息(股票、新闻、天气等实时数据优先用此工具)。参数: query(搜索词)",
-        "fn": lambda args: _web_search(args.get("query","")),
-    },
-}
 
 def _read_file(path: str, limit: int = 100) -> str:
     try:
@@ -64,6 +35,8 @@ def _write_file(path: str, content: str) -> str:
 def _list_dir(path: str) -> str:
     try:
         p = Path(path).expanduser()
+        if not p.exists():
+            return f"目录不存在: {path}"
         items = sorted(p.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower()))
         lines = []
         for item in items[:50]:
@@ -79,7 +52,6 @@ def _list_dir(path: str) -> str:
 
 def _run_cmd(cmd: str) -> str:
     try:
-        # 确保PATH包含基本工具路径(WSL/Docker/最小环境)
         env = os.environ.copy()
         env['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:' + env.get('PATH', '')
         r = subprocess.run(shlex.split(cmd), shell=False, capture_output=True, text=True, timeout=30, cwd=os.getcwd(), env=env)
@@ -92,12 +64,14 @@ def _run_cmd(cmd: str) -> str:
     except Exception as e:
         return f"执行失败: {e}"
 
-def _search_files(pattern: str, path: str, glob: str) -> str:
+def _search_files(pattern: str, path: str = ".", glob: str = "*") -> str:
     try:
         p = Path(path).expanduser()
+        if not p.exists():
+            return f"目录不存在: {path}"
         matches = []
         for f in p.rglob(glob):
-            if f.is_file() and f.stat().st_size < 1024*1024:  # 跳过>1MB文件
+            if f.is_file() and f.stat().st_size < 1024*1024:
                 try:
                     content = f.read_text(errors="replace")
                     if pattern.lower() in content.lower():
@@ -111,14 +85,12 @@ def _search_files(pattern: str, path: str, glob: str) -> str:
         return f"搜索失败: {e}"
 
 def _web_search(query: str) -> str:
-    # 自动追加日期: 含"今天/今日/最新/实时"时加当天日期
     date_keywords = ['今天', '今日', '最新', '实时', '当前', '目前']
     if any(k in query for k in date_keywords):
         from datetime import datetime
         today = datetime.now().strftime('%Y年%m月%d日')
         if today not in query:
             query = f"{query} {today}"
-    # 尝试DuckDuckGo，失败则回退到百度
     try:
         url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
         req = urllib.request.Request(url, headers={"User-Agent": "meshctx/1.0"})
@@ -128,16 +100,14 @@ def _web_search(query: str) -> str:
         results = [re.sub(r'<[^>]+>', '', s).strip()[:200] for s in snippets[:5]]
         if results:
             return "\n".join(f"{i+1}. {r}" for i, r in enumerate(results))
-    except Exception:
+    except:
         pass
-    # 回退: Bing搜索
     try:
         url = f"https://cn.bing.com/search?q={urllib.parse.quote(query)}"
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
         with urllib.request.urlopen(req, timeout=10) as resp:
             html = resp.read().decode()
-        # 提取Bing搜索结果摘要
-        snippets = re.findall(r'<p[^>]* class="b_lineclamp[^"]*"[^>]*>(.*?)</p>', html, re.DOTALL)
+        snippets = re.findall(r'<p[^>]* class="b_lineclamp[^\"]*"[^>]*>(.*?)</p>', html, re.DOTALL)
         if not snippets:
             snippets = re.findall(r'<div class="b_caption"[^>]*>.*?<p>(.*?)</p>', html, re.DOTALL)
         if not snippets:
@@ -147,50 +117,133 @@ def _web_search(query: str) -> str:
     except Exception as e:
         return f"搜索失败: {e}"
 
-
 # ═══════════════════════════════════════════════════
-# 工具执行循环
+# OpenAI Function Calling 工具定义
 # ═══════════════════════════════════════════════════
 
-def execute_tool(response_text: str) -> Optional[str]:
-    """从AI回复中提取工具调用并执行"""
-    # 匹配格式: {"tool": "xxx", "path": "yyy", ...}
-    match = re.search(r'\{["\']tool["\']\s*:\s*["\'](\w+)["\'](.*?)\}', response_text, re.DOTALL)
-    if not match:
-        return None
-    
-    tool_name = match.group(1)
-    args_str = match.group(2)
-    
-    if tool_name not in TOOLS:
+TOOLS_OPENAI = [
+    {
+        "type": "function",
+        "function": {
+            "name": "read_file",
+            "description": "读取文件内容。用于查看代码、配置、日志等文件。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "文件路径（绝对路径或相对路径）"},
+                    "limit": {"type": "integer", "description": "最多显示行数，默认100", "default": 100}
+                },
+                "required": ["path"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "write_file",
+            "description": "写入文件。会自动创建父目录。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "文件路径"},
+                    "content": {"type": "string", "description": "要写入的内容"}
+                },
+                "required": ["path", "content"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_dir",
+            "description": "列出目录中的文件和子目录。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "目录路径，默认当前目录", "default": "."}
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "run_cmd",
+            "description": "执行终端命令。用于编译、安装包、git操作等。命令在30秒超时内运行。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "cmd": {"type": "string", "description": "要执行的shell命令"}
+                },
+                "required": ["cmd"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_files",
+            "description": "在文件中搜索指定内容。用于查找函数定义、错误信息等。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pattern": {"type": "string", "description": "搜索文本（不区分大小写）"},
+                    "path": {"type": "string", "description": "搜索起始目录，默认当前目录", "default": "."},
+                    "glob": {"type": "string", "description": "文件名过滤，如 *.py 只搜索Python文件", "default": "*"}
+                },
+                "required": ["pattern"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "web_search",
+            "description": "联网搜索网页信息。查股票、新闻、天气、文档等实时数据时优先使用。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "搜索关键词"}
+                },
+                "required": ["query"]
+            }
+        }
+    },
+]
+
+# 工具执行器映射
+TOOL_EXECUTORS = {
+    "read_file": lambda args: _read_file(args.get("path", ""), args.get("limit", 100)),
+    "write_file": lambda args: _write_file(args.get("path", ""), args.get("content", "")),
+    "list_dir": lambda args: _list_dir(args.get("path", ".")),
+    "run_cmd": lambda args: _run_cmd(args.get("cmd", "")),
+    "search_files": lambda args: _search_files(args.get("pattern", ""), args.get("path", "."), args.get("glob", "*")),
+    "web_search": lambda args: _web_search(args.get("query", "")),
+}
+
+TOOL_ICONS = {
+    "read_file": "📖", "write_file": "📝", "list_dir": "📂",
+    "run_cmd": "⚡", "search_files": "🔍", "web_search": "🌐",
+}
+
+def execute_tool(tool_name: str, arguments: Dict) -> str:
+    """执行工具并返回结果"""
+    fn = TOOL_EXECUTORS.get(tool_name)
+    if not fn:
         return f"未知工具: {tool_name}"
-    
-    # 解析参数
-    args = {}
-    for k in re.findall(r'["\'](\w+)["\']\s*:\s*["\']([^"\']*?)["\']', args_str):
-        args[k[0]] = k[1]
-    
-    result = TOOLS[tool_name]["fn"](args)
-    return f"[工具: {tool_name}]\n{result}"
-
+    try:
+        return fn(arguments)
+    except Exception as e:
+        return f"工具执行错误: {e}"
 
 def get_tools_prompt() -> str:
-    """生成工具提示"""
-    tools_desc = []
-    for name, info in TOOLS.items():
-        tools_desc.append(f"  {name}: {info['desc']}")
-    
-    return f"""你可以使用以下工具来完成任务。调用格式：在回复中包含 JSON:
-{{"tool": "工具名", "参数名": "参数值", ...}}
+    """生成简洁的工具列表文本（用于系统提示中的快速参考）"""
+    return """可用工具: read_file, write_file, list_dir, run_cmd, search_files, web_search
+你运行在用户本地机器上，有完整的文件系统访问权限。
+看到需要读文件/执行命令/搜索代码时，直接用工具！不要说"我无法访问"。
+回复简洁有用，中文优先。"""
 
-可用工具:
-{chr(10).join(tools_desc)}
-
-重要:
-1. 如果用户要求读文件、搜代码、执行命令等操作，不要说你做不到——直接使用工具！
-2. 联网搜索、查股票、查新闻、查天气等实时数据，必须用 web_search 工具，不要用 run_cmd+curl！
-3. 用工具执行后根据结果回复用户。"""
-
-
-def has_tool_call(text: str) -> bool:
-    return bool(re.search(r'\{["\']tool["\']\s*:', text))
+# 兼容旧代码
+TOOLS = TOOL_EXECUTORS
+has_tool_call = lambda text: bool(re.search(r'\{["\']tool["\']\s*:', text))
