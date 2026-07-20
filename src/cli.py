@@ -293,62 +293,38 @@ def _cmd_gateway_setup():
 
 
 def cmd_chat(args):
+    """meshctx chat — 流式+工具+会话持久化+一发模式"""
     _ensure_keys_loaded()
     from src.model_registry import get_registry
+    from src.chat_tools import TOOLS_OPENAI, execute_tool, TOOL_ICONS
 
     reg = get_registry(args.config)
     model_id = args.model or os.environ.get("MESHCTX_MODEL")
     client = reg.get(model_id)
-
     if not client:
         print(t("i18n_scan_6de16b"))
         return
 
-    print(f"🤖 meshctx → {client.model_id}{t('i18n_config_34e2bd')}")
+    # ── 一发模式: meshctx chat "问题" ──
+    if args.message:
+        _chat_one_shot(client, args.message, args)
+        return
 
-    verbose = False  # /verbose 切换详细模式
-
-    messages = []
-    if args.system:
-        messages.append({"role": "system", "content": args.system})
+    # ── 会话前缀
+    SESS = _init_session_dir()
+    if hasattr(args, 'continue_session') and args.continue_session:
+        messages = _load_session(SESS, args.continue_session)
+        session_id = args.continue_session
+        print(f"📂 恢复会话: {session_id}")
     else:
-        # 检测运行环境
-        import platform
-        is_wsl = "microsoft" in platform.uname().release.lower()
-        wsl_info = ""
-        if is_wsl:
-            wsl_info = """
-⚠️ 你正运行在 WSL (Windows Subsystem for Linux) 环境中。
-   Windows 文件路径映射:
-     C:\\ → /mnt/c/      D:\\ → /mnt/d/      E:\\ → /mnt/e/
-   用户可以访问 Windows 文件，如 /mnt/e/file.txt。
-   你本地有完整的文件系统访问权限，不是云端！"""
-        
-        from src.soul import get_soul_prompt
-        soul_prompt = get_soul_prompt()
-        
-        messages.append({"role": "system", "content": f"""你是 meshctx 助手，运行在用户本地机器。
+        messages = _build_system_msg(args)
+        session_id = None
 
-你有完整的本地文件系统访问权限，可以读写文件。
-{wsl_info}
+    print(f"🤖 meshctx → {client.model_id}  ({client.model_name})")
+    print(f"   输入 /help 查看命令  |  /quit 退出")
+    print(f"   流式输出已启用  |  支持文件/命令/搜索工具\n")
 
-{soul_prompt}
-你可以使用以下工具（在回复中用JSON格式调用）:
-  read_file: 读取文件。参数: path
-  write_file: 写入文件。参数: path, content
-  list_dir: 列出目录。参数: path
-  run_cmd: 执行终端命令。参数: cmd
-  search_files: 搜索文件内容。参数: pattern, path, glob
-  web_search: 搜索网页。参数: query
-
-调用格式示例:
-{{"tool": "read_file", "path": "/mnt/e/file.txt"}}
-
-重要规则:
-- 用户让你读文件/查代码/执行命令时，直接使用工具！不要说"我无法访问"
-- 工具执行后你会收到结果，基于结果回复用户
-- 回复简洁有用，中文优先"""})
-
+    # ── REPL ──
     while True:
         try:
             user = input("You> ").strip()
@@ -358,117 +334,323 @@ def cmd_chat(args):
             continue
         if user == "/quit":
             break
-        if user == "/gateway":
-            _cmd_gateway_setup()
-            continue
-        if user == "/models" or user == "/model":
-            entries = reg.list_all()
-            print(f"\n  {'模型ID':<25} {'状态':<8}{t('i18n_common_f411d0')}")
-            print(f"  {'-'*50}")
-            for e in entries:
-                status = "✓" if e['ready'] else "✗"
-                desc = {"deepseek:v4-pro":"🏆 最新最強 V4","deepseek:v4-flash":"⚡ 极速 V4","deepseek:chat":"V3 稳定","deepseek:reasoner":"🧠 R1 推理"}.get(e['id'], "")
-                print(f"  {e['id']:<25} {status:<8} {desc}")
-            print()
-            continue
-        if user.startswith("/model "):
-            new_id = user.split(" ", 1)[1].strip()
-            new_client = reg.get(new_id)
-            if new_client:
-                client = new_client
-                print(f"{t('i18n_done_b48c54')}{client.model_id} ({client.model_name})\n")
-            else:
-                print(f"{t('i18n_model_1bf634')}{new_id}{t('i18n_model_ec82c8')}")
-            continue
-        if user == "/verbose":
-            verbose = not verbose
-            print(f"{t('i18n_common_6a531f')}{'开启' if verbose else '关闭'} — {'显示所有工具调用和思考过程' if verbose else '仅显示最终结果'}\n")
-            continue
+
+        # 斜杠命令
+        if user.startswith("/"):
+            if _handle_slash(user, reg, client, SESS, messages, session_id):
+                if user.startswith("/model "):  # refresh client ref
+                    new_client = reg.get(user.split(" ",1)[1].strip())
+                    if new_client: client = new_client
+                continue
 
         messages.append({"role": "user", "content": user})
-        
-        # 自动翻译 Windows 路径 → WSL 路径
-        import re as _re
-        if _re.search(r'[A-Z]:\\', user):
-            def _translate_path(m):
-                return '/mnt/' + m.group(1).lower() + '/'
-            wsl_user = _re.sub(r'([A-Z]):\\', _translate_path, user).replace('\\', '/')
-            if wsl_user != user:
-                messages[-1]["content"] = wsl_user + "\n[WSL路径: " + wsl_user + "]"
-        
-        from src.chat_tools import execute_tool, has_tool_call, TOOLS
-        max_turns = 3
-        for turn in range(max_turns):
-            if verbose:
-                print(f"  ↳ 第{turn+1}轮推理...", end="", flush=True)
-            print("meshctx> ", end="", flush=True)
-            resp = client.chat(messages)
-            text = resp["content"]
+        session_id = _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, TOOL_ICONS)
 
-            # 安全打印
-            try:
-                print(text)
-            except UnicodeEncodeError:
-                print(text.encode('utf-8', errors='surrogateescape').decode('utf-8', errors='replace'))
+        # 自动保存会话
+        if session_id and len(messages) > 3:
+            _save_session(SESS, session_id, messages)
 
-            messages.append({"role": "assistant", "content": text})
 
-            # 检测工具调用
-            if has_tool_call(text):
-                # 解析工具名和参数用于显示
-                import re as _re2
-                tool_match = _re2.search(r'\{["\']tool["\']\s*:\s*["\'](\w+)["\'](.*?)\}', text, _re2.DOTALL)
-                if tool_match:
-                    tool_name = tool_match.group(1)
-                    args_str = tool_match.group(2)
-                    # 提取关键参数用于显示
-                    display_args = {}
-                    for k in _re2.findall(r'["\'](\w+)["\']\s*:\s*["\']([^"\']*?)["\']', args_str):
-                        display_args[k[0]] = k[1]
-                    # 简洁显示
-                    if tool_name == "read_file":
-                        fpath = display_args.get("path", "?")
-                        print(f"\n📖 读取文件: {fpath}", flush=True)
-                    elif tool_name == "write_file":
-                        fpath = display_args.get("path", "?")
-                        clen = len(display_args.get("content", ""))
-                        print(f"\n📝 写入文件: {fpath} ({clen}字符)", flush=True)
-                    elif tool_name == "list_dir":
-                        dpath = display_args.get("path", ".")
-                        print(f"\n📂 列出目录: {dpath}", flush=True)
-                    elif tool_name == "run_cmd":
-                        cmd = display_args.get("cmd", "?")
-                        print(f"\n⚡ 执行命令: {cmd[:80]}", flush=True)
-                    elif tool_name == "search_files":
-                        pat = display_args.get("pattern", "?")
-                        print(f"\n🔍 搜索文件: {pat}", flush=True)
-                    elif tool_name == "web_search":
-                        query = display_args.get("query", "?")
-                        print(f"\n🌐 网页搜索: {query}", flush=True)
-                    else:
-                        print(f"\n🔧 调用工具: {tool_name}({display_args})", flush=True)
-                else:
-                    print(f"\n🔧 检测到工具调用...", flush=True)
+def _chat_one_shot(client, msg, args):
+    """一发模式: 问一个问题，流式回答，退出"""
+    from src.chat_tools import TOOLS_OPENAI, execute_tool
+    messages = _build_system_msg(args)
+    messages.append({"role": "user", "content": msg})
+    print(f"meshctx> ", end="", flush=True)
+    _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, {}, max_turns=2)
+    print()
 
-                result = execute_tool(text)
+
+def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=5):
+    """核心对话循环 — 流式输出 + 原生 function calling"""
+    import uuid, json
+    session_id = uuid.uuid4().hex[:8]
+
+    for turn in range(max_turns):
+        try:
+            stream = client.chat_stream(messages, tools=tools_def)
+        except:
+            # Fallback: no tools
+            stream = client.chat_stream(messages)
+
+        tool_data = None
+        full_text = ""
+
+        for chunk in stream:
+            if isinstance(chunk, tuple) and chunk[0] == "__TOOLS__":
+                tool_data = chunk
+            else:
+                print(chunk, end="", flush=True)
+                full_text += chunk
+
+        print()
+
+        if tool_data:
+            _, tool_calls, fc = tool_data
+            full_text = fc
+
+            if full_text:
+                messages.append({"role": "assistant", "content": full_text,
+                                 "tool_calls": [{"id": tc["id"], "type": "function",
+                                                  "function": {"name": tc["name"], "arguments": json.dumps(tc["arguments"], ensure_ascii=False)}}
+                                                 for tc in tool_calls]})
+            else:
+                messages.append({"role": "assistant", "content": None,
+                                 "tool_calls": [{"id": tc["id"], "type": "function",
+                                                  "function": {"name": tc["name"], "arguments": json.dumps(tc["arguments"], ensure_ascii=False)}}
+                                                 for tc in tool_calls]})
+
+            for tc in tool_calls:
+                name = tc["name"]
+                args = tc["arguments"]
+                icon = icons.get(name, "🔧")
+                summary = _tool_summary(name, args)
+                print(f"  {icon} {summary}", flush=True)
+
+                result = exec_tool(name, args)
                 if result:
-                    # 显示结果摘要
-                    result_summary = result[:300]
-                    if len(result) > 300:
-                        result_summary += "..."
-                    if verbose:
-                        print(f"  ✅ 结果 ({len(result)}字符):\n{result_summary}\n", flush=True)
-                    else:
-                        # 简洁模式：只显示第一行
-                        first_line = result.split('\n')[0]
-                        print(f"  ✅ {first_line[:120]}", flush=True)
+                    first_line = result.split('\n')[0][:120]
+                    print(f"    ✅ {first_line}", flush=True)
 
-                    messages.append({"role": "user", "content": f"[工具执行结果]\n{result}\n\n请基于以上结果回复用户。"})
-                    continue
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tc["id"],
+                    "content": result,
+                })
+            continue  # next turn
+        else:
+            messages.append({"role": "assistant", "content": full_text})
+        break
+
+    # 清理
+    if len(messages) > 40:
+        system = messages[0] if messages[0]["role"] == "system" else None
+        recent = messages[-30:]
+        messages.clear()
+        if system: messages.append(system)
+        messages.extend(recent)
+    return session_id
+
+
+def _tool_summary(name, args):
+    """生成工具调用的1行摘要"""
+    if name == "read_file":
+        return f"读取: {args.get('path', '?')}"
+    elif name == "write_file":
+        return f"写入: {args.get('path', '?')} ({len(args.get('content',''))}字符)"
+    elif name == "list_dir":
+        return f"列出: {args.get('path', '.')}"
+    elif name == "run_cmd":
+        return f"执行: {args.get('cmd', '?')[:80]}"
+    elif name == "search_files":
+        return f"搜索: {args.get('pattern', '?')}"
+    elif name == "web_search":
+        return f"搜索: {args.get('query', '?')[:60]}"
+    return f"{name}: {str(args)[:80]}"
+
+
+def _build_system_msg(args):
+    """构建系统提示，含项目上下文"""
+    from src.soul import get_soul_prompt
+    import platform
+
+    is_wsl = "microsoft" in platform.uname().release.lower()
+    wsl_info = ""
+    if is_wsl:
+        wsl_info = "\n⚠️ WSL 环境: C:\\ → /mnt/c/  D:\\ → /mnt/d/  可访问Windows文件。"
+
+    project_ctx = ""
+    if hasattr(args, 'project') and args.project:
+        import pathlib
+        proj = pathlib.Path(args.project).expanduser()
+        if proj.exists():
+            for fname in ["AGENTS.md", "CODEBUDDY.md", "CLAUDE.md", ".cursorrules"]:
+                fpath = proj / fname
+                if fpath.exists():
+                    project_ctx = f"\n\n## 项目上下文 ({proj.name})\n{fpath.read_text(encoding='utf-8',errors='replace')[:3000]}"
+                    break
+
+    soul_prompt = get_soul_prompt()
+    from src.chat_tools import get_tools_prompt
+
+    return [{"role": "system", "content": f"""你是 meshctx 助手，运行在用户本地机器。
+有完整的本地文件系统访问权限，可以读写文件、执行命令。
+{wsl_info}
+{project_ctx}
+
+{soul_prompt}
+
+{get_tools_prompt()}"""}]
+
+
+def _handle_slash(cmd, reg, client, SESS, messages, session_id):
+    """处理斜杠命令，返回True表示已处理"""
+    if cmd == "/help":
+        print("""
+命令列表:
+  /models       列出可用模型
+  /model <id>    切换模型
+  /save [name]   保存当前会话
+  /load <id>     加载历史会话
+  /sessions      列出所有会话
+  /clear         清空当前会话
+  /verbose       切换详细模式
+  /gateway       模型网关设置
+  /quit          退出
+        """)
+    elif cmd == "/models":
+        entries = reg.list_all()
+        for e in entries:
+            status = "✓" if e['ready'] else "✗"
+            print(f"  {e['id']:<25} {status}")
+    elif cmd.startswith("/model "):
+        new_id = cmd.split(" ", 1)[1].strip()
+        new_client = reg.get(new_id)
+        if new_client:
+            print(f"  ✓ 切换到 {new_client.model_id} ({new_client.model_name})")
+            return True
+        else:
+            print(f"  ✗ {new_id} 未配置")
+    elif cmd == "/save" or cmd.startswith("/save "):
+        import uuid
+        name = cmd.split(" ", 1)[1].strip() if " " in cmd else None
+        sid = session_id or uuid.uuid4().hex[:8]
+        _save_session(SESS, sid, messages, name)
+        print(f"  ✓ 已保存: {sid}")
+    elif cmd.startswith("/load "):
+        sid = cmd.split(" ", 1)[1].strip()
+        loaded = _load_session(SESS, sid)
+        if loaded:
+            messages.clear()
+            messages.extend(loaded)
+            print(f"  ✓ 加载会话: {sid} ({len(messages)}条消息)")
+            return True
+        else:
+            print(f"  ✗ 会话不存在: {sid}")
+    elif cmd == "/sessions":
+        _list_sessions(SESS)
+    elif cmd == "/clear":
+        system = messages[0] if messages[0]["role"] == "system" else None
+        messages.clear()
+        if system: messages.append(system)
+        print("  ✓ 会话已清空")
+    elif cmd == "/gateway":
+        _cmd_gateway_setup()
+    elif cmd == "/verbose":
+        print(f"  verbose 已切换 (当前详细模式: 工具调用可见)")
+    else:
+        print(f"  未知命令: {cmd}  (输入 /help 查看)")
+    return False
+
+
+# ── 会话持久化 ──
+import uuid as _uuid_mod
+
+def _init_session_dir():
+    d = Path.home() / ".meshctx" / "sessions"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+def _save_session(sess_dir, sid, messages, name=None):
+    import json, datetime
+    file = sess_dir / f"{sid}.json"
+    data = {
+        "id": sid,
+        "name": name or f"session-{sid}",
+        "created": datetime.datetime.now().isoformat(),
+        "messages": messages,
+    }
+    file.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+
+def _load_session(sess_dir, sid):
+    import json
+    file = sess_dir / f"{sid}.json"
+    if not file.exists():
+        return None
+    data = json.loads(file.read_text())
+    return data.get("messages", [])
+
+def _list_sessions(sess_dir):
+    import json
+    files = sorted(sess_dir.glob("*.json"), key=lambda f: f.stat().st_mtime, reverse=True)
+    if not files:
+        print("  (无历史会话)")
+        return
+    for f in files[:10]:
+        try:
+            d = json.loads(f.read_text())
+            print(f"  {d['id']:<10} {d['name'][:30]:<30} ({len(d['messages'])}条)")
+        except:
+            print(f"  {f.stem:<10} (损坏)")
+
+
+# ═══════════════════════════════════════════════════
+# agent — 自主Agent (OODA: Observe-Orient-Decide-Act)
+# ═══════════════════════════════════════════════════
+
+def cmd_agent(args):
+    """自主Agent — 接收目标，自主循环直到完成"""
+    _ensure_keys_loaded()
+    from src.model_registry import get_registry
+    from src.chat_tools import TOOLS_OPENAI, execute_tool, TOOL_ICONS
+
+    reg = get_registry(args.config)
+    model_id = args.model or os.environ.get("MESHCTX_MODEL")
+    client = reg.get(model_id)
+    if not client:
+        print("模型未找到")
+        return
+
+    messages = _build_system_msg(args)
+    messages.append({"role": "user", "content": f"目标: {args.goal}\n\n请制定计划，逐步执行。每步完成后汇报进展。"})
+
+    print(f"🎯 Agent: {args.goal}")
+    print(f"🤖 模型: {client.model_id}  |  最大步数: {args.max_steps}")
+    print(f"{'─'*50}")
+
+    for step in range(args.max_steps):
+        print(f"\n-- 第 {step+1}/{args.max_steps} 步 --")
+        print(f"meshctx> ", end="", flush=True)
+        _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, TOOL_ICONS, max_turns=3)
+
+        # 检查是否完成
+        last_content = ""
+        for m in reversed(messages):
+            if m["role"] == "assistant" and m.get("content"):
+                last_content = m["content"]
+                break
+        if any(kw in last_content for kw in ["完成", "✅", "Done", "finished", "总结", "最终"]):
+            print(f"\n✅ Agent 完成")
             break
-        
-        if len(messages) > 30:
-            messages = messages[-30:]
+    else:
+        print(f"\n⚠️ 已达最大步数 {args.max_turns}，Agent 暂停")
+
+
+# ═══════════════════════════════════════════════════
+# task — 一次性任务
+# ═══════════════════════════════════════════════════
+
+def cmd_task(args):
+    """一次性任务 — 接收描述，循环执行直到完成"""
+    _ensure_keys_loaded()
+    from src.model_registry import get_registry
+    from src.chat_tools import TOOLS_OPENAI, execute_tool, TOOL_ICONS
+
+    reg = get_registry(args.config)
+    model_id = args.model or os.environ.get("MESHCTX_MODEL")
+    client = reg.get(model_id)
+    if not client:
+        print("模型未找到")
+        return
+
+    desc = " ".join(args.description)
+    messages = _build_system_msg(args)
+    messages.append({"role": "user", "content": f"任务: {desc}\n\n用可用工具完成任务，直接给出结果。"})
+
+    print(f"📋 任务: {desc}")
+    print(f"meshctx> ", end="", flush=True)
+    _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, TOOL_ICONS, max_turns=args.max_steps)
+    print()
 
 
 # ═══════════════════════════════════════════════════
@@ -1377,11 +1559,32 @@ def main():
     s.set_defaults(func=cmd_skill)
 
     # chat
-    c = sub.add_parser("chat", help="对话")
+    c = sub.add_parser("chat", help="对话 (流式+工具+会话持久化)")
     c.add_argument("-m","--model", help="模型ID")
     c.add_argument("-s","--system", help="系统提示")
     c.add_argument("-c","--config")
+    c.add_argument("--project", help="项目上下文目录 (自动加载 AGENTS.md)")
+    c.add_argument("--continue", dest="continue_session", help="恢复历史会话ID")
+    c.add_argument("message", nargs="?", help="一发模式: 直接问一个问题")
     c.set_defaults(func=cmd_chat)
+
+    # agent — 自主Agent模式
+    ag = sub.add_parser("agent", help="自主Agent (OODA循环+工具)")
+    ag.add_argument("-m","--model", help="模型ID")
+    ag.add_argument("-c","--config")
+    ag.add_argument("-g","--goal", required=True, help="Agent目标")
+    ag.add_argument("--project", help="项目上下文")
+    ag.add_argument("--max-steps", type=int, default=8, help="最大步数 (默认8)")
+    ag.set_defaults(func=cmd_agent)
+
+    # task — 一次性任务
+    tk = sub.add_parser("task", help="一次性任务执行 (自动工具循环)")
+    tk.add_argument("-m","--model", help="模型ID")
+    tk.add_argument("-c","--config")
+    tk.add_argument("description", nargs="+", help="任务描述")
+    tk.add_argument("--project", help="项目上下文")
+    tk.add_argument("--max-steps", type=int, default=5, help="最大步数 (默认5)")
+    tk.set_defaults(func=cmd_task)
 
     # start/stop/status/evolve/web
     st = sub.add_parser("start", help="启动服务")
