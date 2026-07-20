@@ -16,6 +16,7 @@ import os
 import sys
 import time
 import random
+import shlex
 import numpy as np
 import subprocess
 from contextlib import asynccontextmanager
@@ -3725,8 +3726,10 @@ def _do_terminal(cmd: str, workdir: str = "", timeout: int = 60) -> str:
     try:
         env = os.environ.copy()
         env["PATH"] = "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + env.get("PATH", "")
+        # 安全修复: 使用 shlex.split 避免 shell=True 命令注入
+        args = shlex.split(cmd)
         result = sp.run(
-            cmd, shell=True, capture_output=True, text=True,
+            args, shell=False, capture_output=True, text=True,
             timeout=timeout, cwd=workdir or os.getcwd(), env=env
         )
         out = result.stdout.strip()
@@ -3798,8 +3801,8 @@ def _ssh_exec_cmd(client, cmd: str, host: str = "", user: str = "", password: st
     else:
         # sshpass 回退
         pw = password or os.environ.get("SERVER_PASS", "")
-        ssh_cmd = f"sshpass -p {shlex.quote(pw)} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p {port} {user}@{host} {shlex.quote(cmd)}"
-        r = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True, timeout=timeout + 5)
+        ssh_cmd = ["sshpass", "-p", pw, "ssh", "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=10", "-p", str(port), f"{user}@{host}", cmd]
+        r = subprocess.run(ssh_cmd, shell=False, capture_output=True, text=True, timeout=timeout + 5)
         return (r.stdout + r.stderr).strip()
 
 
@@ -3816,8 +3819,8 @@ def _ssh_read_file(client, path: str, host: str = "", user: str = "", password: 
             sftp.close()
     else:
         pw = password or os.environ.get("SERVER_PASS", "")
-        ssh_cmd = f"sshpass -p {shlex.quote(pw)} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p {port} {user}@{host} cat {shlex.quote(path)}"
-        r = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True, timeout=15)
+        ssh_cmd = ["sshpass", "-p", pw, "ssh", "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=10", "-p", str(port), f"{user}@{host}", "cat", path]
+        r = subprocess.run(ssh_cmd, shell=False, capture_output=True, text=True, timeout=15)
         return (r.stdout + r.stderr).strip()
 
 
@@ -3834,8 +3837,8 @@ def _ssh_write_file(client, path: str, content: str, host: str = "", user: str =
             sftp.close()
     else:
         pw = password or os.environ.get("SERVER_PASS", "")
-        ssh_cmd = f"sshpass -p {shlex.quote(pw)} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p {port} {user}@{host} tee {shlex.quote(path)} > /dev/null"
-        r = subprocess.run(ssh_cmd, shell=True, input=content, capture_output=True, text=True, timeout=15)
+        ssh_cmd = ["sshpass", "-p", pw, "ssh", "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=10", "-p", str(port), f"{user}@{host}", "tee", path]
+        r = subprocess.run(ssh_cmd, shell=False, input=content, capture_output=True, text=True, timeout=15)
         if r.returncode != 0:
             raise RuntimeError(f"sshpass write failed: {r.stderr}")
 
@@ -4349,6 +4352,10 @@ def _validate_file_path(path: str) -> "Path":
 
     # 双重校验: 拒绝 .. 遍历
     if ".." in path:
+        raise HTTPException(403, t('error_path_traversal_blocked'))
+
+    # 拒绝符号链接绕过
+    if file_path.is_symlink():
         raise HTTPException(403, t('error_path_traversal_blocked'))
 
     # 拒绝敏感系统文件 (扩展: 含部署脚本/配置/密钥)
@@ -5969,7 +5976,29 @@ async def code_run(request: Request):
                       "cat ~/.hermes/secrets",  # 读取密钥
                       "nc -l", "nc -e",  # 反向shell
                       "socket.*connect", "socket.*socket",  # 后门socket
-                      "import.*subprocess.*rm", "import.*os.*system"
+                      "import.*subprocess.*rm", "import.*os.*system",
+                      # 代码执行绕过变体
+                      "exec\\s*\\(", "eval\\s*\\(", "compile\\s*\\(",
+                      "__import__\\s*\\(", "getattr\\s*\\(\\s*__builtins__",
+                      "vars\\s*\\(\\s*\\)\\s*\\[", "base64", "codecs",
+                      "bytes\\s*\\(", "bytearray\\s*\\(", "memoryview\\s*\\(",
+                      "hex\\s*\\(", "oct\\s*\\(", "bin\\s*\\(",
+                      "chr\\s*\\(", "ord\\s*\\(", "str\\s*\\(", "repr\\s*\\(",
+                      "ascii\\s*\\(", "format\\s*\\(", "join\\s*\\(",
+                      "split\\s*\\(", "replace\\s*\\(", "strip\\s*\\(",
+                      "lstrip\\s*\\(", "rstrip\\s*\\(", "upper\\s*\\(",
+                      "lower\\s*\\(", "title\\s*\\(", "capitalize\\s*\\(",
+                      "swapcase\\s*\\(", "encode\\s*\\(", "decode\\s*\\(",
+                      "translate\\s*\\(", "maketrans\\s*\\(", "zfill\\s*\\(",
+                      "center\\s*\\(", "ljust\\s*\\(", "rjust\\s*\\(",
+                      "expandtabs\\s*\\(", "partition\\s*\\(", "rpartition\\s*\\(",
+                      "splitlines\\s*\\(", "rsplit\\s*\\(", "startswith\\s*\\(",
+                      "endswith\\s*\\(", "find\\s*\\(", "rfind\\s*\\(",
+                      "index\\s*\\(", "rindex\\s*\\(", "count\\s*\\(",
+                      "isalnum\\s*\\(", "isalpha\\s*\\(", "isdigit\\s*\\(",
+                      "isspace\\s*\\(", "istitle\\s*\\(", "isupper\\s*\\(",
+                      "islower\\s*\\(", "isidentifier\\s*\\(", "isprintable\\s*\\(",
+                      "isnumeric\\s*\\(", "isdecimal\\s*\\(", "isascii\\s*\\("
                       ]
         import re
         for pattern in dangerous:
@@ -6042,7 +6071,7 @@ async def terminal_exec(request: Request):
             if re.search(pattern, cmd, re.IGNORECASE):
                 return {"error": "危险命令已被拦截", "blocked": True}
         result = subprocess.run(
-            cmd, shell=True,
+            shlex.split(cmd), shell=False,
             capture_output=True, text=True, timeout=30,
         )
         return {

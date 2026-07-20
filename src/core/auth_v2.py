@@ -22,9 +22,12 @@ logger = logging.getLogger(__name__)
 
 # ── 配置加载 ────────────────────────────────────────────
 
-_AUTH_PASSWORD = os.environ.get("MESHCTX_PASSWORD", "")
-_AUTH_SECRET = os.environ.get("MESHCTX_SECRET", secrets.token_hex(32))
-_AUTH_ENABLED = bool(_AUTH_PASSWORD)
+_AUTH_PASSWORD=os.environ.get("MESHCTX_PASSWORD", "")
+_AUTH_SECRET=os.environ.get("MESHCTX_SECRET", secrets.token_hex(32))
+# 安全修复: 默认启用认证，除非显式禁用
+_AUTH_ENABLED = os.environ.get("MESHCTX_AUTH_DISABLED", "").lower() not in ("1", "true", "yes")
+if not _AUTH_PASSWORD and _AUTH_ENABLED:
+    logger.warning("MESHCTX_PASSWORD 未设置，认证已启用但无密码！请设置 MESHCTX_PASSWORD 或 MESHCTX_AUTH_DISABLED=1 禁用认证")
 
 # API Key 存储路径
 _API_KEYS_PATH = Path.home() / ".meshctx" / "api_keys.yaml"
