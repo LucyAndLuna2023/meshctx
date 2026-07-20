@@ -16,8 +16,11 @@ import argparse
 import asyncio
 import json
 import os
+import readline
 import sys
 from pathlib import Path
+
+HISTORY_FILE = str(Path.home() / ".meshctx" / ".history")
 
 # i18n support
 try:
@@ -357,6 +360,12 @@ def cmd_chat(args):
     print(f"   输入 /help 查看命令  |  /quit 退出")
     print(f"   流式输出已启用  |  支持文件/命令/搜索工具\n")
 
+    # ── 加载历史 ──
+    try:
+        readline.read_history_file(HISTORY_FILE)
+    except FileNotFoundError:
+        pass
+
     # ── REPL ──
     prompt = f"{profile_tag}You> " if profile_tag else "You> "
     while True:
@@ -383,6 +392,12 @@ def cmd_chat(args):
         # 自动保存会话
         if session_id and len(messages) > 3:
             _save_session(SESS, session_id, messages)
+
+    # ── 保存历史 ──
+    try:
+        readline.write_history_file(HISTORY_FILE)
+    except Exception:
+        pass
 
 
 def _chat_one_shot(client, msg, args):
@@ -457,6 +472,20 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=5):
         else:
             messages.append({"role": "assistant", "content": full_text})
         break
+    else:
+        # max_turns 耗尽，强制最后一轮获取模型回复
+        print("\n  ⏳ ", end="", flush=True)
+        try:
+            stream = client.chat_stream(messages, tools=tools_def)
+            for chunk in stream:
+                if isinstance(chunk, tuple) and chunk[0] == "__TOOLS__":
+                    pass  # 忽略工具调用，只取文本
+                else:
+                    print(chunk, end="", flush=True)
+                    full_text = chunk if 'full_text' not in dir() else full_text + chunk
+            print()
+        except:
+            pass
 
     # 清理
     if len(messages) > 40:
