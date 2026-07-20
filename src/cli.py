@@ -58,13 +58,18 @@ def _ensure_keys_loaded():
     return loaded
 
 
-def _get_profile_name(config_path=None) -> str | None:
+def _get_profile_name(config_path=None, cli_profile=None) -> str | None:
     """获取当前 profile 名称，用于 CLI 提示前缀。
 
-    优先级: MESHCTX_PROFILE 环境变量 > config.yaml profile.active > config.yaml profile
+    优先级: --profile CLI参数 > MESHCTX_PROFILE 环境变量 > config.yaml profile.active > config.yaml profile
     如果 profile 是 "default" 或未设置，返回 None（不显示前缀）。
     """
     import yaml
+
+    # 1. CLI --profile 参数最高优先
+    if cli_profile and cli_profile != "default":
+        return cli_profile
+
     profile = os.environ.get("MESHCTX_PROFILE", "").strip()
     if profile:
         return profile if profile != "default" else None
@@ -376,7 +381,7 @@ def cmd_chat(args):
         messages = _build_system_msg(args)
         session_id = None
 
-    profile = _get_profile_name(args.config)
+    profile = _get_profile_name(args.config, getattr(args, 'profile', None))
     profile_tag = f"[{profile}] " if profile else ""
 
     print(f"🤖 meshctx{profile_tag} → {client.model_id}  ({client.model_name})")
@@ -435,7 +440,7 @@ def _chat_one_shot(client, msg, args):
     from src.chat_tools import TOOLS_OPENAI, execute_tool
     messages = _build_system_msg(args)
     messages.append({"role": "user", "content": msg})
-    profile = _get_profile_name(args.config)
+    profile = _get_profile_name(args.config, getattr(args, 'profile', None))
     prefix = f"[{profile}] " if profile else ""
     print(f"{prefix}meshctx> ", end="", flush=True)
     _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, {}, max_turns=2)
@@ -699,7 +704,7 @@ def cmd_agent(args):
     messages.append({"role": "user", "content": f"目标: {args.goal}\n\n请制定计划，逐步执行。每步完成后汇报进展。"})
 
     print(f"🎯 Agent: {args.goal}")
-    profile = _get_profile_name(args.config)
+    profile = _get_profile_name(args.config, getattr(args, 'profile', None))
     prefix = f"[{profile}] " if profile else ""
     print(f"🤖 模型: {client.model_id}  |  最大步数: {args.max_steps}")
     print(f"{'─'*50}")
@@ -744,7 +749,7 @@ def cmd_task(args):
     messages.append({"role": "user", "content": f"任务: {desc}\n\n用可用工具完成任务，直接给出结果。"})
 
     print(f"📋 任务: {desc}")
-    profile = _get_profile_name(args.config)
+    profile = _get_profile_name(args.config, getattr(args, 'profile', None))
     prefix = f"[{profile}] " if profile else ""
     print(f"{prefix}meshctx> ", end="", flush=True)
     _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, TOOL_ICONS, max_turns=args.max_steps)
@@ -1660,6 +1665,7 @@ def main():
     c = sub.add_parser("chat", help="对话 (流式+工具+会话持久化)")
     c.add_argument("-m","--model", help="模型ID")
     c.add_argument("-s","--system", help="系统提示")
+    c.add_argument("-p","--profile", help="Profile名称 (如 work, meshctx)")
     c.add_argument("-c","--config")
     c.add_argument("--project", help="项目上下文目录 (自动加载 AGENTS.md)")
     c.add_argument("--continue", dest="continue_session", help="恢复历史会话ID")
@@ -1671,6 +1677,7 @@ def main():
     ag = sub.add_parser("agent", help="自主Agent (OODA循环+工具)")
     ag.add_argument("-m","--model", help="模型ID")
     ag.add_argument("-c","--config")
+    ag.add_argument("-p","--profile", help="Profile名称")
     ag.add_argument("-g","--goal", required=True, help="Agent目标")
     ag.add_argument("--project", help="项目上下文")
     ag.add_argument("--max-steps", type=int, default=8, help="最大步数 (默认8)")
