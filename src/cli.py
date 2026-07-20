@@ -352,10 +352,26 @@ def cmd_chat(args):
 
     # ── 会话前缀
     SESS = _init_session_dir()
+    last_marker = SESS / ".last_session"
+    
     if hasattr(args, 'continue_session') and args.continue_session:
         messages = _load_session(SESS, args.continue_session)
         session_id = args.continue_session
         print(f"📂 恢复会话: {session_id}")
+    elif hasattr(args, 'new_session') and args.new_session:
+        messages = _build_system_msg(args)
+        session_id = None
+    elif last_marker.exists():
+        # 自动恢复上次会话
+        last_id = last_marker.read_text().strip()
+        loaded = _load_session(SESS, last_id)
+        if loaded:
+            messages = loaded
+            session_id = last_id
+            print(f"📂 自动恢复上次会话: {session_id}")
+        else:
+            messages = _build_system_msg(args)
+            session_id = None
     else:
         messages = _build_system_msg(args)
         session_id = None
@@ -411,6 +427,7 @@ def cmd_chat(args):
         # 自动保存会话
         if session_id and len(messages) > 3:
             _save_session(SESS, session_id, messages)
+            last_marker.write_text(session_id)
 
 
 def _chat_one_shot(client, msg, args):
@@ -1646,6 +1663,7 @@ def main():
     c.add_argument("-c","--config")
     c.add_argument("--project", help="项目上下文目录 (自动加载 AGENTS.md)")
     c.add_argument("--continue", dest="continue_session", help="恢复历史会话ID")
+    c.add_argument("--new", dest="new_session", action="store_true", help="强制新会话(跳过自动恢复)")
     c.add_argument("message", nargs="?", help="一发模式: 直接问一个问题")
     c.set_defaults(func=cmd_chat)
 
