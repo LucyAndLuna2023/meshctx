@@ -14,6 +14,11 @@ class ModelResponse:
     model: str
     tokens_used: int = 0
     finish_reason: str = "stop"
+    tool_calls: Optional[List[Dict]] = None
+
+    def __post_init__(self):
+        if self.tool_calls is None:
+            self.tool_calls = []
 
 
 class ModelAdapter:
@@ -54,12 +59,13 @@ class ModelAdapter:
     def chat(self, messages: List[Dict[str, str]],
              system: str = None,
              temperature: float = None,
-             max_tokens: int = None) -> ModelResponse:
-        """发送对话请求"""
+             max_tokens: int = None,
+             tools: List[Dict] = None,
+             tool_choice: str = "auto") -> ModelResponse:
+        """发送对话请求，支持原生 function calling"""
         if not self._ready:
             return ModelResponse(content="[模型未初始化]", model="none")
 
-        # 构建消息
         msgs = []
         if system:
             msgs.append({"role": "system", "content": system})
@@ -68,28 +74,109 @@ class ModelAdapter:
         temp = temperature or self.cfg.get("temperature", 0.7)
         mt = max_tokens or self.cfg.get("max_tokens", 4096)
 
+        kwargs = dict(model=self._model, messages=msgs, temperature=temp, max_tokens=mt)
+        if tools:
+            kwargs["tools"] = tools
+            kwargs["tool_choice"] = tool_choice
+
         try:
-            resp = self._client.chat.completions.create(
-                model=self._model,
-                messages=msgs,
-                temperature=temp,
-                max_tokens=mt,
-            )
+            resp = self._client.chat.completions.create(**kwargs)
             choice = resp.choices[0]
             content = choice.message.content or ""
-            # 清理非法 Unicode 代理字符
             content = content.encode('utf-8', errors='surrogateescape').decode('utf-8', errors='replace')
+
+            # Extract tool calls if present
+            tool_calls = []
+            if choice.message.tool_calls:
+                import json
+                for tc in choice.message.tool_calls:
+                    try:
+                        args = json.loads(tc.function.arguments)
+                    except:
+                        args = {}
+                    tool_calls.append({"id": tc.id, "name": tc.function.name, "arguments": args})
+
             return ModelResponse(
                 content=content,
                 model=resp.model,
                 tokens_used=resp.usage.total_tokens if resp.usage else 0,
                 finish_reason=choice.finish_reason or "stop",
+                tool_calls=tool_calls,
             )
         except Exception as e:
             return ModelResponse(
                 content=f"[模型调用失败: {e}]",
                 model=self._model,
             )
+
+    def chat_stream(self, messages: List[Dict[str, str]],
+                    system: str = None,
+                    temperature: float = None,
+                    max_tokens: int = None,
+                    tools: List[Dict] = None):
+        """流式对话 — 逐 token yield"""
+        if not self._ready:
+            yield "[模型未初始化]"
+            return
+
+        msgs = []
+        if system:
+            msgs.append({"role": "system", "content": system})
+        msgs.extend(messages)
+
+        temp = temperature or self.cfg.get("temperature", 0.7)
+        mt = max_tokens or self.cfg.get("max_tokens", 4096)
+
+        kwargs = dict(model=self._model, messages=msgs, temperature=temp, max_tokens=mt, stream=True,
+                      stream_options={"include_usage": True})
+        if tools:
+            kwargs["tools"] = tools
+            kwargs["tool_choice"] = "auto"
+
+        tool_calls_acc = {}  # index -> {id, name, args_str}
+        final_content = ""
+
+        try:
+            for chunk in self._client.chat.completions.create(**kwargs):
+                delta = chunk.choices[0].delta if chunk.choices else None
+                if delta is None:
+                    continue
+
+                # Content
+                if delta.content:
+                    final_content += delta.content
+                    yield delta.content
+
+                # Tool calls
+                if delta.tool_calls:
+                    for tc in delta.tool_calls:
+                        idx = tc.index
+                        if idx not in tool_calls_acc:
+                            tool_calls_acc[idx] = {"id": tc.id or "", "name": "", "args_str": ""}
+                        if tc.id:
+                            tool_calls_acc[idx]["id"] = tc.id
+                        if tc.function:
+                            if tc.function.name:
+                                tool_calls_acc[idx]["name"] += tc.function.name
+                            if tc.function.arguments:
+                                tool_calls_acc[idx]["args_str"] += tc.function.arguments
+        except Exception as e:
+            yield f"\n[流式错误: {e}]"
+
+        # Parse accumulated tool calls
+        if tool_calls_acc:
+            import json
+            parsed_tools = []
+            for idx in sorted(tool_calls_acc.keys()):
+                tc = tool_calls_acc[idx]
+                try:
+                    args = json.loads(tc["args_str"])
+                except:
+                    args = {}
+                parsed_tools.append({"id": tc["id"], "name": tc["name"], "arguments": args})
+
+            # Yield tool calls as a special marker at end
+            yield ("__TOOL_CALLS__", parsed_tools, final_content)
 
     def extract_memories(self, content: str, context: str = "") -> List[Dict]:
         """从内容提取记忆 (结构化输出)"""
