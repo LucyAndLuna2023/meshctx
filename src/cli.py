@@ -14,13 +14,20 @@ meshctx CLI v1.0 — 和 OpenClaw / Hermes 一样好用的命令行
 """
 import argparse
 import asyncio
+import atexit
 import json
 import os
-import readline
 import sys
 from pathlib import Path
 
-HISTORY_FILE = str(Path.home() / ".meshctx" / ".history")
+# ── readline: Linux/Mac 可用，Windows 不支持 ──
+try:
+    import readline
+    _HAS_READLINE = True
+except ImportError:
+    _HAS_READLINE = False
+
+_HISTORY_SAVED = False
 
 # i18n support
 try:
@@ -360,11 +367,23 @@ def cmd_chat(args):
     print(f"   输入 /help 查看命令  |  /quit 退出")
     print(f"   流式输出已启用  |  支持文件/命令/搜索工具\n")
 
-    # ── 加载历史 ──
-    try:
-        readline.read_history_file(HISTORY_FILE)
-    except FileNotFoundError:
-        pass
+    # ── readline 历史 (profile 感知) ──
+    history_file = str(Path.home() / ".meshctx" / f".history_{profile or 'default'}")
+    if _HAS_READLINE:
+        try:
+            readline.read_history_file(history_file)
+        except FileNotFoundError:
+            pass
+
+        def _save_history():
+            global _HISTORY_SAVED
+            if not _HISTORY_SAVED:
+                _HISTORY_SAVED = True
+                try:
+                    readline.write_history_file(history_file)
+                except Exception:
+                    pass
+        atexit.register(_save_history)
 
     # ── REPL ──
     prompt = f"{profile_tag}You> " if profile_tag else "You> "
@@ -392,12 +411,6 @@ def cmd_chat(args):
         # 自动保存会话
         if session_id and len(messages) > 3:
             _save_session(SESS, session_id, messages)
-
-    # ── 保存历史 ──
-    try:
-        readline.write_history_file(HISTORY_FILE)
-    except Exception:
-        pass
 
 
 def _chat_one_shot(client, msg, args):
