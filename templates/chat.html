@@ -541,6 +541,7 @@ if (document.getElementById('langSelect')) document.getElementById('langSelect')
 let messages = [];
 let model = 'deepseek:v4-flash';
 let currentHybridInfo = null;
+let profile = "{{ profile }}";
 
 function getTimestamp() {
   const d = new Date();
@@ -564,7 +565,7 @@ function addMsg(role, content, isTool) {
     <div style="min-width:0">
       <div class="bubble" id="${contentId}">
         <div class="bubble-header">
-          <span class="timestamp">${ts}</span>
+          <span class="timestamp">${role==='user' && profile ? '['+profile+'] ' : ''}${ts}</span>
           <span class="bubble-actions">
             <button onclick="copyMsg(this)" title="${t('chat_copied').replace('📋 ','')}">📋</button>
             ${extraActions}
