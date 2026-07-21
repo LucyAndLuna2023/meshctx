@@ -447,12 +447,45 @@ def _chat_one_shot(client, msg, args):
     print()
 
 
+def _sanitize_messages(messages):
+    """清洗消息历史 — 移除孤儿 tool 消息和 API 错误污染，防止 DeepSeek 400 死循环
+
+    规则:
+    1. role=tool 的消息必须紧跟在带 tool_calls 的 assistant 消息之后
+    2. assistant content 包含 "[错误" 且以 Error code 开头的不写入（历史遗留清理）
+    """
+    cleaned = []
+    for m in messages:
+        role = m.get("role")
+        # 跳过历史遗留的 API 错误污染消息
+        if role == "assistant":
+            content = str(m.get("content") or "")
+            if "[错误" in content and "Error code:" in content:
+                continue
+        # 孤儿 tool 消息检查
+        if role == "tool":
+            prev = cleaned[-1] if cleaned else None
+            if not (prev and prev.get("role") == "assistant" and prev.get("tool_calls")):
+                continue
+        cleaned.append(m)
+    # 原地替换
+    if len(cleaned) != len(messages):
+        messages.clear()
+        messages.extend(cleaned)
+    return messages
+
+
 def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=5):
     """核心对话循环 — 流式输出 + 原生 function calling"""
     import uuid, json
     session_id = uuid.uuid4().hex[:8]
 
+    # 进入循环前清洗一次历史消息
+    _sanitize_messages(messages)
+
     for turn in range(max_turns):
+        # 每轮发送前再清洗一次（防御性）
+        _sanitize_messages(messages)
         try:
             stream = client.chat_stream(messages, tools=tools_def)
         except:
@@ -461,15 +494,24 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=5):
 
         tool_data = None
         full_text = ""
+        stream_error = None
 
-        for chunk in stream:
-            if isinstance(chunk, tuple) and chunk[0] == "__TOOLS__":
-                tool_data = chunk
-            else:
-                print(chunk, end="", flush=True)
-                full_text += chunk
+        try:
+            for chunk in stream:
+                if isinstance(chunk, tuple) and chunk[0] == "__TOOLS__":
+                    tool_data = chunk
+                else:
+                    print(chunk, end="", flush=True)
+                    full_text += chunk
+        except Exception as e:
+            stream_error = e
+            print(f"\n  ⚠️  API 错误: {e}", flush=True)
 
         print()
+
+        # API 流错误 — 不写入会话历史，直接返回让用户重试
+        if stream_error is not None:
+            break
 
         if tool_data:
             _, tool_calls, fc = tool_data
