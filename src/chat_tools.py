@@ -54,7 +54,10 @@ def _run_cmd(cmd: str) -> str:
     try:
         env = os.environ.copy()
         env['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:' + env.get('PATH', '')
-        r = subprocess.run(shlex.split(cmd), shell=False, capture_output=True, text=True, timeout=30, cwd=os.getcwd(), env=env)
+        # 用 shell=True 支持复合命令（cd && grep、管道、重定向等）
+        # 用户主动调用的本地工具，安全风险可控
+        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30, cwd=os.getcwd(), env=env,
+                           executable='/bin/bash')
         out = r.stdout[:3000]
         if r.stderr:
             out += "\n[stderr]\n" + r.stderr[:500]
