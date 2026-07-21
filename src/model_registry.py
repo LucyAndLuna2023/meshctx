@@ -501,7 +501,9 @@ class ModelClient:
                             if tc.function.arguments:
                                 tool_acc[idx]["args_str"] += tc.function.arguments
         except Exception as e:
-            yield f"\n[错误: {e}]"
+            # 不 yield 错误消息到流中 — 避免被调用方当成 assistant content 写入会话历史
+            # 错误应该通过异常传播，让调用方决定如何处理（不污染消息历史）
+            raise
 
         # After stream ends, yield tool calls if any
         if tool_acc:

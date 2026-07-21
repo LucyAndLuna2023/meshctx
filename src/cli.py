@@ -388,13 +388,35 @@ def cmd_chat(args):
     print(f"   输入 /help 查看命令  |  /quit 退出")
     print(f"   流式输出已启用  |  支持文件/命令/搜索工具\n")
 
-    # ── readline 历史 (profile 感知) ──
+    # ── readline 历史 (profile 感知 + 兼容旧版 + 键绑定) ──
     history_file = str(Path.home() / ".meshctx" / f".history_{profile or 'default'}")
+    legacy_history = str(Path.home() / ".meshctx" / ".history")
     if _HAS_READLINE:
+        # 显式启用 readline 键绑定（某些系统 inputrc 注释掉了箭头键绑定）
+        try:
+            readline.parse_and_bind('tab: complete')
+            readline.parse_and_bind('"\\e[A": previous-history')   # ↑
+            readline.parse_and_bind('"\\e[B": next-history')       # ↓
+            readline.parse_and_bind('"\\eOA": previous-history')   # ↑ (某些终端)
+            readline.parse_and_bind('"\\eOB": next-history')       # ↓ (某些终端)
+            readline.parse_and_bind('"\\e[C": forward-char')       # →
+            readline.parse_and_bind('"\\e[D": backward-char')      # ←
+        except Exception:
+            pass
+
+        # 兼容旧版: 如果 .history 存在但 profile 专属文件不存在，先迁移
+        try:
+            if os.path.exists(legacy_history) and not os.path.exists(history_file):
+                import shutil
+                shutil.copy2(legacy_history, history_file)
+        except Exception:
+            pass
         try:
             readline.read_history_file(history_file)
         except FileNotFoundError:
             pass
+        # 设置历史长度（默认 -1 无限，但某些系统默认 0）
+        readline.set_history_length(10000)
 
         def _save_history():
             global _HISTORY_SAVED
@@ -447,12 +469,67 @@ def _chat_one_shot(client, msg, args):
     print()
 
 
+def _sanitize_messages(messages):
+    """清洗消息历史 — 移除孤儿 tool 消息和 API 错误污染，防止 DeepSeek 400 死循环
+
+    规则:
+    1. role=tool 的消息必须紧跟在带 tool_calls 的 assistant 消息之后
+    2. assistant 消息带 tool_calls 时，每个 tool_call_id 都必须有对应的 tool 响应；
+       否则把该 assistant 消息的 tool_calls 字段移除（降级为普通文本）
+    3. assistant content 包含 "[错误" 且以 Error code 开头的不写入（历史遗留清理）
+    """
+    # 第一遍：收集所有有响应的 tool_call_id
+    tool_responses = set()
+    for m in messages:
+        if m.get("role") == "tool" and m.get("tool_call_id"):
+            tool_responses.add(m["tool_call_id"])
+
+    cleaned = []
+    dropped = 0
+    for m in messages:
+        role = m.get("role")
+        # 跳过历史遗留的 API 错误污染消息
+        if role == "assistant":
+            content = str(m.get("content") or "")
+            if "[错误" in content and "Error code:" in content:
+                dropped += 1
+                continue
+            # assistant 带 tool_calls — 检查每个 tool_call_id 是否都有响应
+            tool_calls = m.get("tool_calls") or []
+            if tool_calls:
+                all_responded = all(tc.get("id") in tool_responses for tc in tool_calls)
+                if not all_responded:
+                    # 降级: 移除 tool_calls，保留文本内容（避免 400）
+                    m = dict(m)  # 不修改原对象
+                    m.pop("tool_calls", None)
+                    if not m.get("content"):
+                        m["content"] = "(工具调用被中断)"
+                    dropped += 1
+        # 孤儿 tool 消息检查
+        if role == "tool":
+            prev = cleaned[-1] if cleaned else None
+            if not (prev and prev.get("role") == "assistant" and prev.get("tool_calls")):
+                dropped += 1
+                continue
+        cleaned.append(m)
+    # 原地替换
+    if len(cleaned) != len(messages) or dropped > 0:
+        messages.clear()
+        messages.extend(cleaned)
+    return messages
+
+
 def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=5):
     """核心对话循环 — 流式输出 + 原生 function calling"""
     import uuid, json
     session_id = uuid.uuid4().hex[:8]
 
+    # 进入循环前清洗一次历史消息
+    _sanitize_messages(messages)
+
     for turn in range(max_turns):
+        # 每轮发送前再清洗一次（防御性）
+        _sanitize_messages(messages)
         try:
             stream = client.chat_stream(messages, tools=tools_def)
         except:
@@ -461,15 +538,24 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=5):
 
         tool_data = None
         full_text = ""
+        stream_error = None
 
-        for chunk in stream:
-            if isinstance(chunk, tuple) and chunk[0] == "__TOOLS__":
-                tool_data = chunk
-            else:
-                print(chunk, end="", flush=True)
-                full_text += chunk
+        try:
+            for chunk in stream:
+                if isinstance(chunk, tuple) and chunk[0] == "__TOOLS__":
+                    tool_data = chunk
+                else:
+                    print(chunk, end="", flush=True)
+                    full_text += chunk
+        except Exception as e:
+            stream_error = e
+            print(f"\n  ⚠️  API 错误: {e}", flush=True)
 
         print()
+
+        # API 流错误 — 不写入会话历史，直接返回让用户重试
+        if stream_error is not None:
+            break
 
         if tool_data:
             _, tool_calls, fc = tool_data
