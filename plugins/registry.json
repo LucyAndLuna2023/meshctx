@@ -1,5 +1,5 @@
 {
-  "version": "2.0",
+  "version": "3.115.17",
   "updated": "2026-05-17",
   "plugins": [
     {
@@ -20,7 +20,7 @@
       "entry_point": "web-search/manifest.json",
       "installs": 1,
       "builtin": false,
-      "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/web-search",
+      "repo": "https://github.com/LucyAndLuna2023/meshctx/tree/main/plugins/web-search",
       "status": "active"
     },
     {
@@ -85,7 +85,7 @@
       "entry_point": "git-assistant/manifest.json",
       "installs": 1,
       "builtin": false,
-      "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/git-assistant",
+      "repo": "https://github.com/LucyAndLuna2023/meshctx/tree/main/plugins/git-assistant",
       "status": "active"
     },
     {
@@ -128,7 +128,7 @@
       "entry_point": "data-analyzer/manifest.json",
       "installs": 1,
       "builtin": false,
-      "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/data-analyzer",
+      "repo": "https://github.com/LucyAndLuna2023/meshctx/tree/main/plugins/data-analyzer",
       "status": "active"
     },
     {
@@ -255,7 +255,7 @@
       "entry_point": "voice/manifest.json",
       "installs": 1,
       "builtin": false,
-      "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/voice-assistant",
+      "repo": "https://github.com/LucyAndLuna2023/meshctx/tree/main/plugins/voice-assistant",
       "status": "beta"
     },
     {
