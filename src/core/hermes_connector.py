@@ -223,6 +223,7 @@ class EventBridge:
                             continue
 
                         # 匹配转发规则
+                        matched = False
                         for rule in self._hermes_to_meshctx:
                             if rule["hub_pattern"] in line:
                                 event = Event(
@@ -232,11 +233,21 @@ class EventBridge:
                                 )
                                 await bus.publish(event)
                                 count += 1
+                                matched = True
                                 break
+                        # 🔴 修复(001/admin报告): 未匹配的消息必须保留——
+                        # 可能是发给Hermes agent的DM，meshctx无权吃掉
+                        if not matched:
+                            kept.append(line)
                     except json.JSONDecodeError:
+                        # 🔴 修复: 无法解析的行也保留，不丢数据
+                        kept.append(line)
                         continue
-                # 过滤完成后清空inbox，只保留自己发出的消息
-                inbox_path.write_text("\n".join(kept) + "\n" if kept else "")
+                # 过滤完成后原子重写inbox：只移除已匹配处理的消息
+                # 原子写避免崩溃时丢消息（tmp+rename）
+                tmp_path = inbox_path.with_suffix(inbox_path.suffix + ".tmp")
+                tmp_path.write_text("\n".join(kept) + "\n" if kept else "")
+                os.replace(tmp_path, inbox_path)
             except Exception as e:
                 logger.debug(f"Failed to read inbox {inbox_path}: {e}")
 
