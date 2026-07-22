@@ -34,10 +34,8 @@ def _get_fernet():
         with open(key_path, "rb") as f:
             key = f.read()
     else:
-        # 生成机器绑定密钥（hostname + MAC 地址哈希）
-        import socket, uuid
-        seed = f"{socket.gethostname()}:{uuid.getnode()}:meshctx-v3"
-        raw = hashlib.sha256(seed.encode()).digest()
+        # 生成密码学安全随机密钥 (os.urandom)
+        raw = os.urandom(32)
         key = base64.urlsafe_b64encode(raw)
         key_path.parent.mkdir(parents=True, exist_ok=True)
         _os.chmod(key_path.parent, 0o700)
