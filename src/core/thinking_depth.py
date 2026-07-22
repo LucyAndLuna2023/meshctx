@@ -1,4 +1,4 @@
-"""meshctx thinking_depth — 开源版 (全功能 stub)"""
+"""meshctx thinking_depth — 开源版"""
 import re
 import threading
 from dataclasses import dataclass, field

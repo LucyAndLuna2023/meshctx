@@ -3,7 +3,7 @@ FROM python:3.11-slim
 
 LABEL org.opencontainers.image.title="meshctx"
 LABEL org.opencontainers.image.description="World's First Self-Evolving Agent System"
-LABEL org.opencontainers.image.version="2.28.0"
+LABEL org.opencontainers.image.version="3.115.17"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git curl && \
