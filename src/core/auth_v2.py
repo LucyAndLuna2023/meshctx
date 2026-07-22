@@ -59,7 +59,20 @@ _api_keys = _load_api_keys()
 # ── 密码哈希 ─────────────────────────────────────────────
 
 def _hash_session() -> str:
-    return hashlib.sha256(f"{_AUTH_PASSWORD}:{_AUTH_SECRET}".encode()).hexdigest()
+    """Session hash with daily rotation — auto-expires after 24h."""
+    day_stamp = time.strftime("%Y%m%d")
+    return hashlib.sha256(f"{_AUTH_PASSWORD}:{_AUTH_SECRET}:{day_stamp}".encode()).hexdigest()
+
+def _session_valid(session: str) -> bool:
+    """Timing-safe check: today's or yesterday's hash (1-day grace period)."""
+    today = hashlib.sha256(
+        f"{_AUTH_PASSWORD}:{_AUTH_SECRET}:{time.strftime('%Y%m%d')}".encode()
+    ).hexdigest()
+    yesterday_stamp = time.strftime("%Y%m%d", time.gmtime(time.time() - 86400))
+    yesterday = hashlib.sha256(
+        f"{_AUTH_PASSWORD}:{_AUTH_SECRET}:{yesterday_stamp}".encode()
+    ).hexdigest()
+    return secrets.compare_digest(session, today) or secrets.compare_digest(session, yesterday)
 
 def _hash_api_key(key: str) -> str:
     """对 API key 做单向哈希存储"""
@@ -113,7 +126,7 @@ async def _authenticate(request: Request):
 
     # 2. 再检查 session cookie
     session = request.cookies.get("meshctx_session", "")
-    if session and session == _hash_session():
+    if session and _session_valid(session):
         return "admin", True  # 管理员
 
     return None, False
@@ -220,10 +233,10 @@ def register_auth_routes(app):
     # ── API Key 管理（仅管理员）───────────────────────────
 
     def _require_admin(request: Request):
-        """验证管理员身份"""
+        """验证管理员身份（含会话过期检查）"""
         session = request.cookies.get("meshctx_session", "")
-        if not session or session != _hash_session():
-            raise HTTPException(403, "仅管理员可管理 API Keys")
+        if not session or not _session_valid(session):
+            raise HTTPException(403, "会话已过期，请重新登录")
 
     @app.get("/api/auth/keys")
     async def list_keys(request: Request):
