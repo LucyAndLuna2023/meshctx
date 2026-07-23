@@ -4844,6 +4844,8 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
         <select id="modelSelect" onchange="onModelChange()">
           <option value="">默认</option>
         </select>
+        <span id="currentModelLabel" style="font-size:11px;color:var(--accent);display:none;"></span>
+        <button onclick="loadModelList()" title="刷新模型列表" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;padding:2px 6px;font-size:12px;color:var(--muted);">🔄</button>
       </div>
       <div class="chat-messages" id="chatMessages">
         <div class="empty-chat">
@@ -4870,13 +4872,18 @@ var _msgContainer = document.getElementById('chatMessages');
 var _emptyState = _msgContainer.querySelector('.empty-chat');
 
 // ═══════════════ 模型选择 ═══════════════
+var _modelCache = null;
+
 async function loadModelList() {
+  var sel = document.getElementById('modelSelect');
+  sel.disabled = true;
   try {
     var res = await fetch('/api/models');
     var data = await res.json();
-    var sel = document.getElementById('modelSelect');
+    _modelCache = data;
     sel.innerHTML = '<option value="">默认</option>';
     var models = data.models || [];
+    var defaultModel = data.current || data.default || '';
     for (var i = 0; i < models.length; i++) {
       var m = models[i];
       if (m.usable || m.configured) {
@@ -4884,14 +4891,33 @@ async function loadModelList() {
         sel.innerHTML += '<option value="' + m.id + '">' + label + '</option>';
       }
     }
-  } catch(e) {}
+    // 恢复当前选择
+    if (_currentModel) sel.value = _currentModel;
+    updateModelLabel();
+  } catch(e) {
+    console.warn('loadModelList failed:', e);
+  }
+  sel.disabled = false;
+}
+
+function updateModelLabel() {
+  var lbl = document.getElementById('currentModelLabel');
+  if (_currentModel) {
+    lbl.textContent = '当前: ' + _currentModel;
+    lbl.style.display = '';
+  } else if (_modelCache && _modelCache.current) {
+    lbl.textContent = '默认: ' + _modelCache.current;
+    lbl.style.display = '';
+  } else {
+    lbl.style.display = 'none';
+  }
 }
 
 function onModelChange() {
   var sel = document.getElementById('modelSelect');
   _currentModel = sel.value;
+  updateModelLabel();
   if (!_convId) return;
-  // 保存到后端
   fetch('/api/conversations/' + _convId + '/model', {
     method: 'PATCH',
     headers: {'Content-Type': 'application/json'},
@@ -4969,6 +4995,7 @@ async function newChat() {
     _convId = data.id;
     _currentModel = '';
     document.getElementById('modelSelect').value = '';
+    updateModelLabel();
     // 清空消息区
     document.getElementById('chatMessages').innerHTML = '<div class="empty-chat"><h2>💬 meshctx Chat</h2><p>输入消息开始对话</p></div>';
     _emptyState = document.getElementById('chatMessages').querySelector('.empty-chat');
@@ -4992,6 +5019,7 @@ async function switchConv(convId) {
     // 恢复模型选择
     _currentModel = data.model || '';
     document.getElementById('modelSelect').value = _currentModel;
+    updateModelLabel();
     if (data.messages && data.messages.length > 0) {
       for (var i = 0; i < data.messages.length; i++) {
         var m = data.messages[i];

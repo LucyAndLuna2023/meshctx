@@ -82,3 +82,23 @@ meshctx profile: 29 skills, status=online
 | `src/core/hermes_connector.py` | 新增 | Hermes集群协同插件 |
 | `src/main.py` | 修改 | +/api/hermes/cluster, +HermesConnectorPlugin注册 |
 | `tests/test_smoke_v31153.py` | 新增 | 冒烟测试 |
+
+---
+
+## per-conversation 模型切换 (v3.115.25) — 2026-07-24
+
+### 功能
+- 每个会话独立选择 AI 模型，切换会话自动恢复对应模型
+- Web UI 顶部模型下拉菜单 + 斜杠命令 (`/model`, `/models`, `/help`, `/clear`)
+- CLI 斜杠命令 `/model <id>` 切换，`/model` 查看当前
+
+### 新增/修改
+| 文件 | 变更 |
+|------|------|
+| `src/core/conversation_store.py` | load/get_or_create/list_all 恢复 model 字段 |
+| `src/main.py` | PATCH /api/conversations/{id}/model + BUILTIN_MODELS 校验 |
+| `src/web_ui.py` | 模型下拉菜单 + 斜杠命令 + send()传model |
+| `src/cli.py` | /model 无参显示当前模型 |
+
+### 审计
+- 004qa 深度审计: P1认证+P2校验+P2格式一致性，已修复闭环 (d276a6b)
