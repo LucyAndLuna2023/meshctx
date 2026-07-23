@@ -4104,25 +4104,25 @@ async def rename_conversation(conv_id: str, req: Request):
 
 @app.patch("/api/conversations/{conv_id}/model")
 async def set_conversation_model(conv_id: str, req: Request):
-    """设置对话使用的模型"""
+    """设置对话使用的模型 — 需登录认证（auth_v2 中间件），model_id 必须在已配置模型列表中"""
     try: body = await req.json()
     except: raise HTTPException(400, "Invalid JSON")
     model_id = body.get("model", "").strip()
     if not model_id:
         raise HTTPException(400, "model is required")
-    
-    from src.core.conversation_store import Conversation, DATA_DIR
-    import json as _json
-    import os
-    path = os.path.join(DATA_DIR, f"{conv_id}.json")
-    if os.path.exists(path):
-        with open(path) as f:
-            d = _json.load(f)
-        d["model"] = model_id
-        with open(path, "w") as f:
-            _json.dump(d, f, ensure_ascii=False, indent=2)
-        return {"status": "ok", "id": conv_id, "model": model_id}
-    raise HTTPException(404, t('error_conversation_not_found'))
+
+    # 校验 model_id 是否在已知模型列表中
+    from src.model_registry import BUILTIN_MODELS
+    if model_id not in BUILTIN_MODELS:
+        raise HTTPException(400, f"Unknown model: {model_id}")
+
+    from src.core.conversation_store import Conversation
+    conv = Conversation.load(conv_id)
+    if conv is None:
+        raise HTTPException(404, t('error_conversation_not_found'))
+    conv.model = model_id
+    conv.save()
+    return {"status": "ok", "id": conv_id, "model": model_id}
 
 
 @app.get("/api/conversations/prune")
