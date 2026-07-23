@@ -697,6 +697,11 @@ def _handle_slash(cmd, reg, client, SESS, messages, session_id):
             return True
         else:
             print(f"  ✗ {new_id} 未配置")
+    elif cmd == "/model":
+        if client:
+            print(f"  当前模型: {client.model_id} ({client.model_name})")
+        else:
+            print(f"  当前无活跃模型")
     elif cmd == "/save" or cmd.startswith("/save "):
         import uuid
         name = cmd.split(" ", 1)[1].strip() if " " in cmd else None

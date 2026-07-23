@@ -52,7 +52,7 @@ class Conversation:
                     try:
                         with open(os.path.join(d, f)) as fh:
                             data = json.load(fh)
-                        convs.append({"id": data.get("id", f[:-5]), "title": data.get("title", ""), "created_at": data.get("created_at", 0)})
+                        convs.append({"id": data.get("id", f[:-5]), "title": data.get("title", ""), "model": data.get("model", ""), "created_at": data.get("created_at", 0)})
                     except Exception:
                         pass
         return convs
@@ -71,7 +71,7 @@ class Conversation:
         if os.path.exists(path):
             with open(path) as f:
                 d = json.load(f)
-            return cls(id=d["id"], title=d["title"], messages=d.get("messages", []))
+            return cls(id=d["id"], title=d["title"], model=d.get("model", ""), messages=d.get("messages", []))
         return None
 
     @classmethod
@@ -148,6 +148,6 @@ def get_or_create(conv_id: str = None) -> Conversation:
         if os.path.exists(path):
             with open(path) as f:
                 d = json.load(f)
-                return Conversation(id=d["id"], title=d["title"], messages=d.get("messages", []))
+                return Conversation(id=d["id"], title=d["title"], model=d.get("model", ""), messages=d.get("messages", []))
     return Conversation(id=conv_id or str(time.time()), title="New Chat")
 get_conversation_store = get_or_create

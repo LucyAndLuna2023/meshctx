@@ -4806,6 +4806,23 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
   .chat-sidebar { display: none; }
   .chat-card { border-left: 1px solid var(--border); border-radius: 12px; }
 }
+
+/* 模型选择器 */
+.chat-header-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-bottom: 1px solid var(--border);
+  background: var(--card-bg); flex-shrink: 0;
+}
+.chat-header-bar .model-label {
+  font-size: 11px; color: var(--muted); white-space: nowrap;
+}
+.chat-header-bar select {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 4px 8px; font-size: 12px; font-family: inherit;
+  outline: none; cursor: pointer; min-width: 140px;
+}
+.chat-header-bar select:focus { border-color: var(--accent); }
 </style>
 
 <div class="chat-layout">
@@ -4822,6 +4839,12 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
   <!-- ── 主对话区 ── -->
   <div class="chat-main">
     <div class="chat-card">
+      <div class="chat-header-bar">
+        <span class="model-label">🤖 模型:</span>
+        <select id="modelSelect" onchange="onModelChange()">
+          <option value="">默认</option>
+        </select>
+      </div>
       <div class="chat-messages" id="chatMessages">
         <div class="empty-chat">
           <h2>💬 meshctx Chat</h2>
@@ -4842,8 +4865,39 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
 <script>
 var _convId = null;
 var _projectId = null;
+var _currentModel = '';
 var _msgContainer = document.getElementById('chatMessages');
 var _emptyState = _msgContainer.querySelector('.empty-chat');
+
+// ═══════════════ 模型选择 ═══════════════
+async function loadModelList() {
+  try {
+    var res = await fetch('/api/models');
+    var data = await res.json();
+    var sel = document.getElementById('modelSelect');
+    sel.innerHTML = '<option value="">默认</option>';
+    var models = data.models || [];
+    for (var i = 0; i < models.length; i++) {
+      var m = models[i];
+      if (m.usable || m.configured) {
+        var label = m.id + (m.current ? ' ⭐' : '');
+        sel.innerHTML += '<option value="' + m.id + '">' + label + '</option>';
+      }
+    }
+  } catch(e) {}
+}
+
+function onModelChange() {
+  var sel = document.getElementById('modelSelect');
+  _currentModel = sel.value;
+  if (!_convId) return;
+  // 保存到后端
+  fetch('/api/conversations/' + _convId + '/model', {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({model: _currentModel})
+  }).catch(function(){});
+}
 
 // ═══════════════ 工具函数 ═══════════════
 function escapeHtml(s) {
@@ -4913,6 +4967,8 @@ async function newChat() {
     });
     var data = await res.json();
     _convId = data.id;
+    _currentModel = '';
+    document.getElementById('modelSelect').value = '';
     // 清空消息区
     document.getElementById('chatMessages').innerHTML = '<div class="empty-chat"><h2>💬 meshctx Chat</h2><p>输入消息开始对话</p></div>';
     _emptyState = document.getElementById('chatMessages').querySelector('.empty-chat');
@@ -4933,6 +4989,9 @@ async function switchConv(convId) {
     var res = await fetch('/api/conversations/' + convId);
     if (!res.ok) throw new Error('not found');
     var data = await res.json();
+    // 恢复模型选择
+    _currentModel = data.model || '';
+    document.getElementById('modelSelect').value = _currentModel;
     if (data.messages && data.messages.length > 0) {
       for (var i = 0; i < data.messages.length; i++) {
         var m = data.messages[i];
@@ -4989,12 +5048,59 @@ async function autoTitleFromMsg(msg) {
   } catch(e) {}
 }
 
+// ═══════════════ 斜杠命令 ═══════════════
+function handleSlashCommand(cmd) {
+  var parts = cmd.split(' ');
+  var action = parts[0].toLowerCase();
+
+  if (action === '/model' && parts.length > 1) {
+    var modelId = parts.slice(1).join(' ');
+    _currentModel = modelId;
+    var sel = document.getElementById('modelSelect');
+    // 尝试选中对应选项
+    for (var i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === modelId) {
+        sel.value = modelId; break;
+      }
+    }
+    if (_convId) {
+      fetch('/api/conversations/' + _convId + '/model', {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({model: modelId})
+      });
+    }
+    addMessage('system', '✓ 模型已切换为: ' + modelId);
+  } else if (action === '/model') {
+    var current = _currentModel || '默认';
+    addMessage('system', '当前模型: ' + current);
+  } else if (action === '/models') {
+    fetch('/api/models').then(function(r){return r.json()}).then(function(d){
+      var list = (d.models||[]).map(function(m){return m.id + (m.current?' ⭐':'')}).join(', ');
+      addMessage('system', '可用模型: ' + list);
+    });
+  } else if (action === '/help') {
+    addMessage('system', '命令: /model <id> 切换模型 | /models 列出 | /model 当前 | /clear 清空 | /help');
+  } else if (action === '/clear') {
+    document.getElementById('chatMessages').innerHTML = '<div class="empty-chat"><h2>💬 meshctx Chat</h2><p>输入消息开始对话</p></div>';
+    _emptyState = document.getElementById('chatMessages').querySelector('.empty-chat');
+  } else {
+    addMessage('system', '未知命令: ' + cmd + ' (输入 /help 查看)');
+  }
+}
+
 // ═══════════════ 发送消息 ═══════════════
 async function send() {
   var input = document.getElementById('userInput');
   var text = input.value.trim();
   if (!text) return;
   input.value = ''; input.style.height = '';
+
+  // ── 斜杠命令处理 ──
+  if (text.startsWith('/')) {
+    handleSlashCommand(text);
+    return;
+  }
 
   // 自动创建对话
   if (!_convId) {
@@ -5030,7 +5136,8 @@ async function send() {
       body: JSON.stringify({
         message: text,
         project_id: _projectId || null,
-        conversation_id: _convId || null
+        conversation_id: _convId || null,
+        model: _currentModel || undefined
       })
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -5097,6 +5204,7 @@ async function send() {
 
 // ═══════════════ 初始化 ═══════════════
 (async function init() {
+  loadModelList();
   var convs = await loadConversations();
   if (convs.length > 0) {
     // 自动恢复最近对话

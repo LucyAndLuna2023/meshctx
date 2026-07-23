@@ -4102,6 +4102,29 @@ async def rename_conversation(conv_id: str, req: Request):
     return {"status": "ok", "id": conv_id, "title": new_title}
 
 
+@app.patch("/api/conversations/{conv_id}/model")
+async def set_conversation_model(conv_id: str, req: Request):
+    """设置对话使用的模型"""
+    try: body = await req.json()
+    except: raise HTTPException(400, "Invalid JSON")
+    model_id = body.get("model", "").strip()
+    if not model_id:
+        raise HTTPException(400, "model is required")
+    
+    from src.core.conversation_store import Conversation, DATA_DIR
+    import json as _json
+    import os
+    path = os.path.join(DATA_DIR, f"{conv_id}.json")
+    if os.path.exists(path):
+        with open(path) as f:
+            d = _json.load(f)
+        d["model"] = model_id
+        with open(path, "w") as f:
+            _json.dump(d, f, ensure_ascii=False, indent=2)
+        return {"status": "ok", "id": conv_id, "model": model_id}
+    raise HTTPException(404, t('error_conversation_not_found'))
+
+
 @app.get("/api/conversations/prune")
 async def prune_conversations_get():
     """清理旧对话 — GET (使用默认30天)"""
