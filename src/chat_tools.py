@@ -192,11 +192,15 @@ def _web_extract(url: str) -> str:
         return f"网页提取失败: {e}"
 
 def _lint_check(path: str, linter: str = "auto") -> str:
-    """对文件运行 linter"""
-    p = Path(path).expanduser()
+    """对文件运行 linter。自动检测语言，安全路径保护。"""
+    p = Path(path).expanduser().resolve()
     if not p.exists():
         return f"文件不存在: {path}"
+    # 路径安全检查：拒绝含危险字符的路径
+    if ";" in path or "&&" in path or "||" in path or "$" in path or "`" in path:
+        return f"路径包含危险字符，已拒绝: {path}"
     suffix = p.suffix.lower()
+    safe_path = shlex.quote(str(p))
     if linter == "auto":
         if suffix == ".py":
             linter = "pylint"
@@ -210,13 +214,13 @@ def _lint_check(path: str, linter: str = "auto") -> str:
             return f"无法自动检测 linter: {suffix}"
     try:
         if linter == "pylint":
-            cmd = f"python3 -m pylint --exit-zero '{path}' 2>&1 | tail -20"
+            cmd = f"python3 -m pylint --exit-zero {safe_path} 2>&1 | tail -20"
         elif linter == "flake8":
-            cmd = f"python3 -m flake8 '{path}' 2>&1 | tail -20"
+            cmd = f"python3 -m flake8 {safe_path} 2>&1 | tail -20"
         elif linter == "shellcheck":
-            cmd = f"shellcheck '{path}' 2>&1 | tail -20"
+            cmd = f"shellcheck {safe_path} 2>&1 | tail -20"
         else:
-            cmd = f"{linter} '{path}' 2>&1 | tail -20"
+            cmd = f"{shlex.quote(linter)} {safe_path} 2>&1 | tail -20"
         r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30, executable='/bin/bash')
         return r.stdout[:3000] or "(无诊断)"
     except Exception as e:

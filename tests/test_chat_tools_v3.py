@@ -101,6 +101,10 @@ class TestNewTools:
         finally:
             os.unlink(path)
 
+    def test_lint_check_dangerous_path(self):
+        result = _lint_check("/tmp/evil'; rm -rf /; echo '")
+        assert "危险字符" in result or "文件不存在" in result
+
 
 class TestToolRegistry:
     """测试工具注册表完整性"""

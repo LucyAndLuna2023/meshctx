@@ -1,6 +1,6 @@
 <p align="center">
   <img src="docs/assets/logo.png" alt="MeshCtx" width="200">
-  <h1 align="center">🧠 MeshCtx v3.115.30</h1>
+  <h1 align="center">🧠 MeshCtx v3.115.31</h1>
   <h3 align="center">世界第一全脑仿真自进化AI Agent · SDM突破性记忆 · 自修改代码 · 全量测试 · 17脑区 · 17模块 · Swarm代码生成 · 11工具链</h3>
 </p>
 
