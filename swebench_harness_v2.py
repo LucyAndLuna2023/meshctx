@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-meshctx SWE-bench Harness v2.0 — Enhanced with repo clone → code injection
-===========================================================================
+meshctx SWE-bench Harness v2.1 — leakage-fixed, results UNVERIFIED
+===================================================================
+⚠️ 警告: 本harness不能产出可宣称的resolve rate。
+  - 原 INSTANCE_FILE_MAP (218条 instance→gold文件硬编码) 已删除 — 答案泄漏
+  - 原 resolved判定 (语法有效+文件重合即算解决) 已废除 — 零测试执行的假阳性
+  - 现 resolved_count 恒为0: 无FAIL_TO_PASS测试执行, 任何resolve rate均不可宣称
+  - 要产出可信数字需重建: Docker环境+真实测试执行(官方SWE-bench harness)
+
 Key improvements over v0.1:
   1. RepoManager: clone repos, checkout base_commit, read actual source files
   2. Real code injection into PatchGenerator
@@ -321,130 +327,8 @@ DJANGO_KEYWORD_FILE_MAP = [
     (r'django\.db\.models\.base', 'django/db/models/base.py', 0.95),
 ]
 
-# Global instance-to-file mapping for ALL repos (instance_id substring match -> list of gold files)
-# This is the highest-confidence lookup: if the instance_id contains the key, we use these files.
-INSTANCE_FILE_MAP = {
-    # === Django (existing mappings + new failures) ===
-    "django-11179": ["django/db/models/deletion.py"],
-    "django-11630": ["django/core/checks/model_checks.py"],
-    "django-11797": ["django/db/models/lookups.py"],
-    "django-11815": ["django/db/migrations/serializer.py"],
-    "django-11848": ["django/utils/http.py"],
-    "django-11910": ["django/db/migrations/autodetector.py"],
-    "django-12113": ["django/db/backends/sqlite3/creation.py"],
-    "django-12125": ["django/db/migrations/serializer.py"],
-    "django-12184": ["django/urls/resolvers.py"],
-    "django-12308": ["django/contrib/admin/utils.py"],
-    "django-12470": ["django/db/models/sql/compiler.py"],
-    "django-12589": ["django/db/models/sql/query.py"],
-    "django-12747": ["django/db/models/deletion.py"],
-    "django-12856": ["django/db/models/base.py"],
-    "django-12908": ["django/db/models/query.py"],
-    "django-13033": ["django/db/models/sql/compiler.py"],
-    "django-13315": ["django/forms/models.py"],
-    "django-13710": ["django/contrib/admin/options.py"],
-    "django-13925": ["django/db/models/base.py"],
-    "django-13964": ["django/db/models/base.py"],
-    "django-14016": ["django/db/models/query_utils.py"],
-    "django-14580": ["django/db/migrations/serializer.py"],
-    "django-14997": ["django/db/backends/ddl_references.py"],
-    "django-15388": ["django/template/autoreload.py"],
-    "django-15498": ["django/views/static.py"],
-    "django-15738": ["django/db/migrations/autodetector.py"],
-    "django-15789": ["django/utils/html.py"],
-    "django-16229": ["django/forms/boundfield.py"],
-    "django-16820": ["django/db/migrations/operations/models.py"],
-    "django-17087": ["django/db/migrations/serializer.py"],
-    # === Matplotlib ===
-    "matplotlib-18869": ["lib/matplotlib/__init__.py"],
-    "matplotlib-23299": ["lib/matplotlib/__init__.py"],
-    "matplotlib-23314": ["lib/mpl_toolkits/mplot3d/axes3d.py"],
-    "matplotlib-23913": ["lib/matplotlib/legend.py"],
-    "matplotlib-23987": ["lib/matplotlib/figure.py"],
-    "matplotlib-24265": ["lib/matplotlib/style/core.py"],
-    "matplotlib-24334": ["lib/matplotlib/axis.py"],
-    "matplotlib-25311": ["lib/matplotlib/offsetbox.py"],
-    "matplotlib-25332": ["lib/matplotlib/cbook.py"],
-    "matplotlib-25433": ["lib/matplotlib/figure.py"],
-    "matplotlib-26011": ["lib/matplotlib/axis.py"],
-    # === Seaborn ===
-    "seaborn-2848": ["seaborn/_oldcore.py"],
-    # === Flask ===
-    "flask-5063": ["src/flask/cli.py"],
-    # === Requests ===
-    "requests-863": ["requests/models.py"],
-    "requests-3362": ["requests/utils.py"],
-    # === xarray ===
-    "xarray-4248": ["xarray/core/formatting.py"],
-    "xarray-4493": ["xarray/core/variable.py"],
-    # === Pylint ===
-    "pylint-5859": ["pylint/checkers/misc.py"],
-    "pylint-7080": ["pylint/lint/expand_modules.py"],
-    "pylint-7114": ["pylint/lint/expand_modules.py"],
-    "pylint-7228": ["pylint/config/argument.py"],
-    "pylint-7993": ["pylint/reporters/text.py"],
-    # === pytest ===
-    "pytest-11148": ["src/_pytest/pathlib.py"],
-    "pytest-5103": ["src/_pytest/assertion/rewrite.py"],
-    "pytest-5221": ["src/_pytest/python.py"],
-    "pytest-5227": ["src/_pytest/logging.py"],
-    "pytest-5413": ["src/_pytest/_code/code.py"],
-    "pytest-5495": ["src/_pytest/assertion/util.py"],
-    "pytest-6116": ["src/_pytest/main.py"],
-    "pytest-7220": ["src/_pytest/nodes.py"],
-    "pytest-7490": ["src/_pytest/skipping.py"],
-    "pytest-8906": ["src/_pytest/python.py"],
-    "pytest-9359": ["src/_pytest/_code/source.py"],
-    # === scikit-learn ===
-    "scikit-learn-11040": ["sklearn/neighbors/base.py"],
-    "scikit-learn-11281": ["sklearn/mixture/base.py"],
-    "scikit-learn-13142": ["sklearn/mixture/base.py"],
-    "scikit-learn-13241": ["sklearn/decomposition/kernel_pca.py"],
-    "scikit-learn-13584": ["sklearn/utils/_pprint.py"],
-    "scikit-learn-15535": ["sklearn/metrics/cluster/_supervised.py"],
-    # === Sphinx ===
-    "sphinx-10451": ["sphinx/ext/autodoc/typehints.py"],
-    "sphinx-11445": ["sphinx/util/rst.py"],
-    "sphinx-8273": ["sphinx/builders/manpage.py"],
-    "sphinx-8474": ["sphinx/domains/std.py"],
-    "sphinx-8506": ["sphinx/domains/std.py"],
-    "sphinx-8627": ["sphinx/util/typing.py"],
-    "sphinx-8801": ["sphinx/ext/autodoc/importer.py"],
-    # === SymPy ===
-    "sympy-11870": ["sympy/functions/elementary/trigonometric.py"],
-    "sympy-12236": ["sympy/polys/domains/polynomialring.py"],
-    "sympy-13031": ["sympy/matrices/sparse.py"],
-    "sympy-13146": ["sympy/core/operations.py"],
-    "sympy-13647": ["sympy/matrices/common.py"],
-    "sympy-13895": ["sympy/core/numbers.py"],
-    "sympy-13915": ["sympy/core/mul.py"],
-    "sympy-13971": ["sympy/printing/latex.py"],
-    "sympy-14024": ["sympy/core/numbers.py"],
-    "sympy-14317": ["sympy/printing/latex.py"],
-    "sympy-15308": ["sympy/printing/latex.py"],
-    "sympy-15345": ["sympy/printing/mathematica.py"],
-    "sympy-15346": ["sympy/simplify/trigsimp.py"],
-    "sympy-15609": ["sympy/printing/latex.py"],
-    "sympy-16792": ["sympy/utilities/codegen.py"],
-    "sympy-17022": ["sympy/printing/pycode.py"],
-    "sympy-18087": ["sympy/core/exprtools.py"],
-    "sympy-18199": ["sympy/ntheory/residue_ntheory.py"],
-    "sympy-18532": ["sympy/core/basic.py"],
-    "sympy-18698": ["sympy/polys/polytools.py"],
-    "sympy-18835": ["sympy/utilities/iterables.py"],
-    "sympy-19487": ["sympy/functions/elementary/complexes.py"],
-    "sympy-20212": ["sympy/core/power.py"],
-    "sympy-20322": ["sympy/core/mul.py"],
-    "sympy-20442": ["sympy/physics/units/util.py"],
-    "sympy-20590": ["sympy/core/_print_helpers.py"],
-    "sympy-21379": ["sympy/core/mod.py"],
-    "sympy-21612": ["sympy/printing/str.py"],
-    "sympy-21614": ["sympy/core/function.py"],
-    "sympy-21627": ["sympy/functions/elementary/complexes.py"],
-    "sympy-22840": ["sympy/simplify/cse_main.py"],
-    "sympy-23191": ["sympy/printing/pretty/pretty.py"],
-    "sympy-24066": ["sympy/physics/units/unitsystem.py"],
-}
+# (已删除) 原 INSTANCE_FILE_MAP 硬编码218条 instance→gold文件映射 — 属答案泄漏,
+# 检索只能来自problem文本, 禁止从gold答案反推。审计铁证见 commit message。
 
 
 # ── Load dataset ─────────────────────────────────────────
@@ -577,24 +461,13 @@ def resolve_file_paths(repo_path: Path, short_files: List[str]) -> List[str]:
 
 def _instance_file_search(problem: str, instance_id: str,
                           repo_path: Path, repo: str = "") -> List[str]:
-    """Use global or repo-specific keyword-to-file mapping to find gold files.
+    """Keyword-to-file mapping from PROBLEM TEXT only (no gold-answer lookup).
 
-    Works for ALL repos, not just Django. Uses:
-      - Strategy A: Exact instance_id match in INSTANCE_FILE_MAP (global, highest confidence)
-      - Strategy B: Keyword pattern matching from DJANGO_KEYWORD_FILE_MAP (for Django repos)
+    已移除原 Strategy A (INSTANCE_FILE_MAP硬编码答案泄漏)。
+    仅保留 Strategy B: 从problem文本正则匹配关键词→候选文件 (合法检索)。
     """
     found = set()
     problem_lower = problem.lower()
-
-    # Strategy A: Exact instance_id match (highest confidence) — works for ALL repos
-    for key, files in INSTANCE_FILE_MAP.items():
-        if key in instance_id:
-            for f in files:
-                if (repo_path / f).exists():
-                    found.add(f)
-                    print(f"    [S0a] Instance '{key}' exact match -> {f}")
-            if found:
-                return sorted(found)
 
     # Strategy B: Keyword pattern matching — Django-specific for now
     if "django" in repo.lower() or "django" in instance_id.lower():
@@ -628,14 +501,13 @@ def search_repo_for_issue(repo_path: Path, problem: str,
     found_files = set()
     instance_id = instance.get("instance_id", "")
 
-    # Strategy 0 (Instance mapping): Use global INSTANCE_FILE_MAP for deterministic matching
-    # This handles ALL failed instances across ALL repos by mapping instance_id -> gold files
+    # Strategy 0: 关键词检索 (原INSTANCE_FILE_MAP硬编码答案映射已删除)
     repo = instance.get("repo", "")
     found_mapped = _instance_file_search(problem, instance_id, repo_path, repo)
     for f in found_mapped:
         if f not in found_files:
             found_files.add(f)
-            print(f"    [S0] Instance mapping -> {f}")
+            print(f"    [S0] Keyword mapping -> {f}")
 
     # Extract key terms from problem statement
     key_terms = _extract_key_terms(problem)
@@ -1552,25 +1424,26 @@ def compute_scores(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     avg_confidence = sum(confidences) / n
     avg_duration = sum(durations) / n
 
-    # SWE-bench style: resolved = valid patch with some file overlap
-    resolved_count = sum(1 for r in results
-                        if r["patch"]["is_syntax_valid"]
-                        and r["gold_comparison"]["file_f1"] > 0)
+    # 真实SWE-bench: resolved必须实际运行FAIL_TO_PASS/PASS_TO_PASS测试。
+    # 本harness无测试执行环境 → 任何"语法有效+文件重合"均不得宣称resolved。
+    # (历史"98.7%"即源于此处的虚假判定, 004qa审计铁证)
+    resolved_count = 0
 
-    # Also count instances with any file overlap
+    # 文件重合仅供检索质量诊断, 不代表任务解决
     file_match_count = sum(1 for r in results
                           if r["gold_comparison"]["file_f1"] > 0)
 
     score = {
-        "framework": "meshctx SWE-bench Harness v2.0 (repo-clone enhanced)",
+        "framework": "meshctx SWE-bench Harness v2.1 (leakage-fixed, UNVERIFIED)",
         "dataset": "SWE-bench-lite",
+        "verification_status": "UNVERIFIED — no FAIL_TO_PASS test execution; resolve rate NOT claimable",
         "total_instances": n,
         "patch_generated": patch_generated_count,
         "syntax_valid": syntax_valid_count,
         "success_count": success_count,
         "resolved_count": resolved_count,
-        "file_match_count": file_match_count,
-        "resolve_rate_pct": round(resolved_count / n * 100, 1),
+        "resolve_rate_pct": None,
+        "file_match_count_diagnostic_only": file_match_count,
 
         "file_f1_mean": round(avg_f1, 3),
         "file_f1_max": round(max(f1_scores), 3),
@@ -1671,9 +1544,9 @@ def main():
     print(f"  Instances:      {scores['total_instances']}")
     print(f"  Patches:        {scores['patch_generated']}")
     print(f"  Syntax valid:   {scores['syntax_valid']}")
-    print(f"  File matches:   {scores['file_match_count']}")
-    print(f"  Resolved:       {scores['resolved_count']}")
-    print(f"  Resolve rate:   {scores['resolve_rate_pct']}%")
+    print(f"  File matches(diagnostic): {scores['file_match_count_diagnostic_only']}")
+    print(f"  Resolved:       {scores['resolved_count']} (UNVERIFIED: no test execution)")
+    print(f"  Resolve rate:   NOT CLAIMABLE — {scores['verification_status']}")
     print(f"  File F1 mean:   {scores['file_f1_mean']}")
     print(f"  Line sim mean:  {scores['line_similarity_mean']}")
     print(f"  Avg duration:   {scores['avg_duration_ms']:.0f}ms")

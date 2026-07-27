@@ -13,7 +13,7 @@ MeshCtx Super Brain — 9-Region Cognitive Architecture
        ↓                                  ↓
   DefaultModeNetwork (创意)          (他者建模)
 
-License: AGPLv3
+License: MIT
 """
 
 from __future__ import annotations

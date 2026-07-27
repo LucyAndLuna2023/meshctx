@@ -4,15 +4,15 @@
 
 MeshCtx 采用 **双重许可 (Dual License)** 结构：
 
-### 框架层 — AGPLv3 开源
+### 框架层 — MIT 开源
 MeshCtx 平台框架（Web UI、API路由、插件系统、Chat界面、安装程序）遵循
-**GNU Affero General Public License v3 (AGPLv3)**。
+**GNU Affero General Public License v3 (MIT)**。
 
 这意味着：
 - ✅ 你可以自由使用、修改、分发框架代码
 - ✅ 你可以查看所有源码
 - ✅ 你可以提交 Pull Request
-- ⚠️ 如果你修改了 AGPLv3 代码并对外提供服务，必须公开你的修改
+- ⚠️ 如果你修改了 MIT 代码并对外提供服务，必须公开你的修改
 - 完整文本: https://www.gnu.org/licenses/agpl-3.0.html
 
 ### 核心大脑层 — 专有许可 (Proprietary)

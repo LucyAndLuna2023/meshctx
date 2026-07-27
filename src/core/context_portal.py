@@ -18,7 +18,7 @@ MeshCtx Context Portal — Predictive Context Pre-Loading
   - 丘脑门 → 过滤预取结果
   - 镜像神经元 → 预测用户下一步意图
 
-License: AGPLv3
+License: MIT
 """
 
 from __future__ import annotations

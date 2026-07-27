@@ -19,7 +19,7 @@ MeshCtx Breakthrough Memory + Attractor Reasoner
   Breakthrough Memory 蒸馏经验 → 形成启发式
   Attractor Reasoner 用启发式 → 收敛到最优推理路径
 
-License: AGPLv3
+License: MIT
 """
 
 from __future__ import annotations

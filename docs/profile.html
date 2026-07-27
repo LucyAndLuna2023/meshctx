@@ -2,7 +2,7 @@
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://xtyjsjlkljzdgvqpskyk.supabase.co https://api.github.com; img-src 'self' data: https://avatars.githubusercontent.com; frame-src https://xtyjsjlkljzdgvqpskyk.supabase.co; form-action 'self' https://xtyjsjlkljzdgvqpskyk.supabase.co; base-uri 'self'; object-src 'none';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://xtyjsjlkljzdgvqpskyk.supabase.co https://api.github.com; img-src 'self' data: https://avatars.githubusercontent.com; frame-src https://xtyjsjlkljzdgvqpskyk.supabase.co; form-action 'self' https://xtyjsjlkljzdgvqpskyk.supabase.co; base-uri 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile — MeshCtx</title>
     <link rel="stylesheet" href="auth.css">
@@ -121,7 +121,6 @@
 </div>
 
 <div class="saved-toast" id="pf-toast" data-lang-key="profile_saved">&#10003; Profile updated!</div>
-<p class="profile-error" id="pf-error" style="display:none;"></p>
 
 <script src="auth.js"></script>
 <script>
@@ -152,11 +151,11 @@ function switchLang(lang){
         if(el.querySelector('[data-lang-key]')){
             for(var cn=el.firstChild; cn; cn=cn.nextSibling){
                 if(cn.nodeType===3 && cn.textContent.trim()){ cn.textContent = val; return; }
-                if(cn.nodeType===1 && !cn.hasAttribute('data-lang-key') && !cn.querySelector('[data-lang-key]')){ cn.textContent = val; return; }
+                if(cn.nodeType===1 && !cn.hasAttribute('data-lang-key') && !cn.querySelector('[data-lang-key]')){ cn.innerHTML = val; return; }
             }
             return;
         }
-        el.textContent = val;
+        el.innerHTML = val;
     });
     document.querySelectorAll('[data-lang-key-placeholder]').forEach(function(el){
         var key = el.getAttribute('data-lang-key-placeholder');
@@ -238,7 +237,7 @@ async function saveProfile(){
         company: document.getElementById('pf-company').value
     };
     var r = await sb.auth.updateUser({data:meta});
-    if(r.error){ var e=document.getElementById('pf-error'); e.textContent=_t('profile_save_err', r.error.message || 'Failed to save profile.'); e.style.display='block'; return; }
+    if(r.error){ alert(_t('profile_save_err', r.error.message || 'Failed to save profile.')); return; }
     var t = document.getElementById('pf-toast');
     t.style.display = 'block';
     setTimeout(function(){ t.style.display = 'none'; }, 2000);
@@ -251,8 +250,8 @@ async function changeEmail(){
     // Supabase doesn't have direct add-email API; use updateUser to change primary
     // Actually, let's use the admin API pattern. For now, just update primary.
     var r = await sb.auth.updateUser({email:email});
-    if(r.error){ var e=document.getElementById('pf-error'); e.textContent=_t('profile_save_err', r.error.message || 'Failed to save profile.'); e.style.display='block'; return; }
-    var t=document.getElementById('pf-toast'); t.textContent='✉ '+_t('profile_em_confirm', 'Check your inbox to confirm the new email.'); t.style.display='block'; setTimeout(function(){ t.style.display='none'; }, 4000);
+    if(r.error){ alert(_t('profile_save_err', r.error.message || 'Failed to save profile.')); return; }
+    alert(_t('profile_em_confirm', 'Check your inbox to confirm the new email.'));
     document.getElementById('pf-new-email').value = '';
 }
 

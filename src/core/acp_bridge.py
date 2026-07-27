@@ -322,5 +322,3 @@ def reset_acp_bridge():
         _bridge = None
 
 
-# ── _P universal proxy (backward compat) ──────────────────────────────
-

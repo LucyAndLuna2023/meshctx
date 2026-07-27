@@ -2,7 +2,7 @@
 (function(){
 var LANG_NAMES = {
     en:'English', zh:'中文', fr:'Français', de:'Deutsch',
-    ja:'日本語', ko:'한국어', es:'Español', it:'Italiano', ar:'العربية'
+    ja:'日本語', ko:'한국어', es:'Español', it:'Italiano', ar:'العربية', ru:'Русский'
 };
 
 function detectLang() {

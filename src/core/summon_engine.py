@@ -1,7 +1,7 @@
 """
 Summon Engine — P0-7 动态子Agent引擎
 =====================================
-License: AGPLv3
+License: MIT
 """
 
 from __future__ import annotations

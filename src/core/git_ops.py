@@ -245,8 +245,3 @@ def list_fix_branches() -> Dict[str, Any]:
     except Exception as e:
         return {"error": str(e)}
 
-
-# ── _P stub class (backward compat) ─────────────────────────────────────────
-
-
-# ── module-level __getattr__ fallback ───────────────────────────────────────

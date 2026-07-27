@@ -28,7 +28,7 @@ meshctx 产品 = 开源框架(meshctx public) + 闭源核心(meshctx-core privat
   ├── Docker 部署 (Dockerfile + docker-compose.yml) — ✅ 已实现
   ├── VS Code 扩展 (vscode/) — ✅ 存在
   ├── 487 测试通过 / 1 失败 (test_homepage_i18n)
-  └── AGPLv3 许可证
+  └── MIT 许可证
 
 闭源仓库 (LucyAndLuna2023/meshctx-core):
   ├── 285MB Python 代码 — 核心算法实现
@@ -156,7 +156,7 @@ meshctx.com:
 | 5 | Knowledge Graph | `knowledge_graph_v2.py` | ✅ |
 | 6 | Plugin Marketplace | `plugin_market.py` (574行) | ⚠️ 仓库404 |
 | 7 | MCP Protocol | `mcp_server.py` (312行) | ✅ |
-| 8 | Open Source (AGPLv3) | LICENSE 文件 | ✅ |
+| 8 | Open Source (MIT) | LICENSE 文件 | ✅ |
 | 9 | Super Brain (17 regions) | 21个 brain_*.py | ✅ |
 | 10 | Hippocampal Replay | `brain_hippocampal.py` | ✅ |
 | 11 | Amygdala Salience | `brain_amygdala.py` | ✅ |

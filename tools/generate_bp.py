@@ -61,7 +61,7 @@ doc.add_page_break()
 doc.add_heading('1. 执行摘要', level=1)
 doc.add_paragraph(
     'MeshCtx（meshctx.com）是全球首个融合脑科学、信息几何、因果推断等多学科前沿理论的'
-    '自进化AI Agent平台。项目采用Open Core模式（AGPLv3开源框架 + 核心大脑算法源码可见），'
+    '自进化AI Agent平台。项目采用Open Core模式（MIT开源框架 + 核心大脑算法源码可见），'
     '已在GitHub获得持续开发迭代，累计交付40+版本、1600+测试用例。'
 )
 doc.add_paragraph(
@@ -90,7 +90,7 @@ tech_data = [
     ('部署', 'Windows NSIS安装包 / Linux pip / macOS DMG'),
     ('安全', 'SDB安全闸 + Prompt注入防护 + 行为合规监控（5层防护）'),
     ('协议', 'MCP原生（Model Context Protocol）'),
-    ('许可证', 'AGPLv3（开源框架） + 商业授权（企业版）'),
+    ('许可证', 'MIT（开源框架） + 商业授权（企业版）'),
     ('平台', 'Windows / Linux / macOS / WSL'),
 ]
 for i, (k, v) in enumerate(tech_data):
@@ -208,7 +208,7 @@ compare_items = [
     ('知识图谱', 'Knowledge Graph', '✅', '✗', '✗', '✗', '✗'),
     ('插件市场', 'Plugin Marketplace', '✅', '⚠️', '⚠️', '⚠️', '⚠️'),
     ('MCP协议原生', 'MCP Protocol', '✅', '✅', '⚠️', '⚠️', '✗'),
-    ('开源', 'Open Source', '✅ AGPLv3', '✗', '✅', '✅', '✅'),
+    ('开源', 'Open Source', '✅ MIT', '✗', '✅', '✅', '✅'),
     ('超级大脑架构', 'Super Brain (13 regions)', '✅', '✗', '✗', '✗', '✗'),
     ('海马体记忆回放', 'Hippocampal Replay', '✅', '✗', '✗', '✗', '✗'),
     ('JEPA世界模型', 'JEPA World Model', '✅ v3.36', '✗', '✗', '✗', '✗'),
@@ -274,7 +274,7 @@ doc.add_heading('7. 商业模式', level=1)
 doc.add_heading('7.1 Open Core模式', level=2)
 doc.add_paragraph(
     'MeshCtx采用Open Core商业模式（参考GitLab、Redis等成功案例）：\n'
-    '• 开源核心（AGPLv3）：Agent框架、插件系统、API接口 — 永久免费\n'
+    '• 开源核心（MIT）：Agent框架、插件系统、API接口 — 永久免费\n'
     '• 源码可见（Source Available）：大脑算法核心代码 — 可审查、不可商用\n'
     '• 商业授权（Enterprise License）：企业级支持、私有部署、定制开发'
 )
@@ -290,7 +290,7 @@ revenue_table.rows[0].cells[0].text = '产品'
 revenue_table.rows[0].cells[1].text = '目标客户'
 revenue_table.rows[0].cells[2].text = '定价模式'
 revenue_data = [
-    ('MeshCtx Community', '个人开发者/开源项目（年收入<$100万）', '永久免费（AGPLv3）'),
+    ('MeshCtx Community', '个人开发者/开源项目（年收入<$100万）', '永久免费（MIT）'),
     ('MeshCtx Enterprise', '大型企业/金融机构', '年订阅（按席位/节点）'),
     ('Enterprise SLA', '需要官方技术支持的企业', '年订阅（SLA+优先响应）'),
     ('Cloud Marketplace', '通过阿里云/AWS等合作伙伴部署', '按云厂商定价（meshctx收取license费）'),

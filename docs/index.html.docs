@@ -388,7 +388,7 @@
         <a href="mailto:support@meshctx.com" data-lang-key="ft_contact">Contact</a>
     </div>
 <p style="margin-bottom:8px;">
-        <strong>AGPL v3</strong> · Free for everyone ·
+        <strong>MIT</strong> · Free for everyone ·
         <a href="LEGAL" style="color:var(--muted);">Terms</a> · 
         <a href="LEGAL" style="color:var(--muted);">Privacy</a> · 
         <a href="LEGAL" style="color:var(--muted);">Disclaimer</a>

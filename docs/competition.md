@@ -24,7 +24,7 @@
 | **Offline Dreaming/Memory Consolidation** | ✅ dreaming_agent.py (727L) | ❌ | ❌ | ❌ |
 | **Workflow Engine** | ✅ workflow_engine.py (649L) + workflow.py (863L) | ❌ | ❌ | ❌ |
 | **Distributed Lock / Circuit Breaker** | ✅ distributed_lock.py (897L) + circuit_breaker.py (858L) | ❌ | ❌ | ❌ |
-| **Open Source** | ✅ AGPLv3 | ❌ Proprietary | ❌ Proprietary | ❌ Proprietary |
+| **Open Source** | ✅ MIT | ❌ Proprietary | ❌ Proprietary | ❌ Proprietary |
 
 *Claude Code SWE-bench score from Anthropic's own published benchmark results.
 

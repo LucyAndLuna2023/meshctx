@@ -1,6 +1,6 @@
 """
 meshctx i18n 多语言支持
-支持: 中文(zh) / English(en) / 日本語(ja) / 한국어(ko) / Français(fr) / Deutsch(de) / Español(es) / Italiano(it) / العربية(ar)
+支持: 中文(zh) / English(en) / 日本語(ja) / 한국어(ko) / Français(fr) / Deutsch(de) / Español(es) / Italiano(it) / Русский(ru) / العربية(ar)
 
 ── Key 命名规范 (v3.115.16 Phase 1) ──
 所有 key 使用 snake_case，按功能域分组，用 _ 分隔层级:
@@ -49,6 +49,7 @@ LANGUAGES = [
     {"code": "de", "name": "German", "native": "Deutsch", "rtl": False},
     {"code": "es", "name": "Spanish", "native": "Español", "rtl": False},
     {"code": "it", "name": "Italian", "native": "Italiano", "rtl": False},
+    {"code": "ru", "name": "Russian", "native": "Русский", "rtl": False},
     {"code": "ar", "name": "Arabic", "native": "العربية", "rtl": True},
 ]
 

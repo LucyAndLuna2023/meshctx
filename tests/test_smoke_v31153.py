@@ -5,7 +5,7 @@ Validates: PluginManager.list_all(), list_active(), HealthMonitor.check_all(), g
 import sys, asyncio, json
 
 def test_plugin_manager_list_all():
-    """BUG#3 fix: PluginManager.list_all() must return list, not _P proxy"""
+    """BUG#3 fix: PluginManager.list_all() must return list, not stub proxy"""
     from src.core.kernel import get_kernel
     k = get_kernel()
     
@@ -36,7 +36,7 @@ def test_plugin_manager_list_all():
     print("  ✅ test_plugin_manager_list_all")
 
 def test_plugin_manager_list_active():
-    """BUG#1 fix: PluginManager.list_active() must return list, not _P proxy"""
+    """BUG#1 fix: PluginManager.list_active() must return list, not stub proxy"""
     from src.core.kernel import get_kernel
     k = get_kernel()
     
@@ -113,7 +113,7 @@ def test_getattr_not_leaking():
     # check_all() should exist as a real method, not via __getattr__
     assert hasattr(hm, "check_all"), "check_all() should exist"
     
-    # Accessing a genuinely non-existent attribute should still work via _P
+    # Accessing a genuinely non-existent attribute should gracefully fail
     # but we want to ensure check_all is NOT going through __getattr__
     import inspect
     check_all_method = getattr(type(hm), "check_all", None)

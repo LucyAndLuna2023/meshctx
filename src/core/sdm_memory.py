@@ -24,7 +24,7 @@ Kanerva 1988 稀疏分布式记忆的实现。
   - RAG vector DB: O(num_docs * dim) ≈ 10^9
   - SDM: O(2^1000) → 理论无限
 
-License: AGPLv3
+License: MIT
 """
 
 from __future__ import annotations

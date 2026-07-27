@@ -2,8 +2,14 @@
 import os, json, time
 from dataclasses import dataclass, field
 from typing import Optional
+from pathlib import Path
 
-DATA_DIR = os.path.expanduser("~/.meshctx/conversations")
+def _conv_data_dir() -> str:
+    """Profile感知的对话存储路径。优先 MESHCTX_HOME，回退 ~/.meshctx。"""
+    base = os.environ.get("MESHCTX_HOME", str(Path.home() / ".meshctx"))
+    return os.path.join(base, "conversations")
+
+DATA_DIR = _conv_data_dir()
 
 @dataclass
 class Conversation:
@@ -39,14 +45,14 @@ class Conversation:
     def list_all(cls, **kw):
         import os, json
         convs = []
-        d = os.path.expanduser("~/.meshctx/conversations")
+        d = DATA_DIR
         if os.path.isdir(d):
             for f in sorted(os.listdir(d)):
                 if f.endswith('.json'):
                     try:
                         with open(os.path.join(d, f)) as fh:
                             data = json.load(fh)
-                        convs.append({"id": data.get("id", f[:-5]), "title": data.get("title", ""), "created_at": data.get("created_at", 0)})
+                        convs.append({"id": data.get("id", f[:-5]), "title": data.get("title", ""), "model": data.get("model", ""), "created_at": data.get("created_at", 0)})
                     except Exception:
                         pass
         return convs
@@ -61,23 +67,23 @@ class Conversation:
     @classmethod
     def load(cls, conv_id, **kw):
         import os, json
-        path = os.path.expanduser(f"~/.meshctx/conversations/{conv_id}.json")
+        path = os.path.join(DATA_DIR, f"{conv_id}.json")
         if os.path.exists(path):
             with open(path) as f:
                 d = json.load(f)
-            return cls(id=d["id"], title=d["title"], messages=d.get("messages", []))
+            return cls(id=d["id"], title=d["title"], model=d.get("model", ""), messages=d.get("messages", []))
         return None
 
     @classmethod
     def stats(cls, **kw):
         all_c = cls.list_all()
-        return {"total_conversations": len(all_c), "storage_path": "~/.meshctx/conversations"}
+        return {"total_conversations": len(all_c), "storage_path": DATA_DIR}
 
     @classmethod
     def delete_all(cls, **kw):
         """清空所有对话"""
         import os, shutil
-        d = os.path.expanduser("~/.meshctx/conversations")
+        d = DATA_DIR
         count = 0
         if os.path.isdir(d):
             for f in os.listdir(d):
@@ -94,7 +100,7 @@ class Conversation:
         """删除 older_than_days 之前的旧对话，返回删除数和释放的磁盘空间"""
         import os
         cutoff = time.time() - older_than_days * 86400
-        d = os.path.expanduser("~/.meshctx/conversations")
+        d = DATA_DIR
         deleted = 0
         freed_bytes = 0
         if os.path.isdir(d):
@@ -116,7 +122,7 @@ class Conversation:
     def delete(cls, conv_id, **kw):
         """删除单个对话"""
         import os
-        path = os.path.expanduser(f"~/.meshctx/conversations/{conv_id}.json")
+        path = os.path.join(DATA_DIR, f"{conv_id}.json")
         if os.path.exists(path):
             os.remove(path)
             return True
@@ -126,7 +132,7 @@ class Conversation:
     def rename(cls, conv_id, new_title, **kw):
         """重命名对话"""
         import os, json
-        path = os.path.expanduser(f"~/.meshctx/conversations/{conv_id}.json")
+        path = os.path.join(DATA_DIR, f"{conv_id}.json")
         if os.path.exists(path):
             with open(path) as f:
                 d = json.load(f)
@@ -142,6 +148,6 @@ def get_or_create(conv_id: str = None) -> Conversation:
         if os.path.exists(path):
             with open(path) as f:
                 d = json.load(f)
-                return Conversation(id=d["id"], title=d["title"], messages=d.get("messages", []))
+                return Conversation(id=d["id"], title=d["title"], model=d.get("model", ""), messages=d.get("messages", []))
     return Conversation(id=conv_id or str(time.time()), title="New Chat")
 get_conversation_store = get_or_create

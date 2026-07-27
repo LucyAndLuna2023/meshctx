@@ -3,7 +3,7 @@
 # Last updated: 2026-05-15
 
 ## MeshCtx
-MeshCtx is the world's first self-evolving AI agent platform with full-brain emulation (13 brain regions), code sandbox, project indexing, and Feishu notifications. Open-core: AGPLv3 framework + source-available brain algorithms.
+MeshCtx is the world's first self-evolving AI agent platform with full-brain emulation (13 brain regions), code sandbox, project indexing, and Feishu notifications. Open-core: MIT framework + source-available brain algorithms.
 
 ## Core Features
 - 🧠 Super Brain: 13 brain regions (Hippocampal Replay, Amygdala Salience, Default Mode Network, Thalamic Gate, Cerebellar Forward Model, Basal Ganglia, ACC, Mirror Neurons, Insula, STDP Learner, Emotional Consolidation, IIT Consciousness)
@@ -93,5 +93,5 @@ MeshCtx is the world's first self-evolving AI agent platform with full-brain emu
 - /context <query> — Search project codebase
 
 ## Optional
-- License: AGPLv3 (framework) + Commercial (brain algorithms) — license@meshctx.com
+- License: MIT (framework) + Commercial (brain algorithms) — license@meshctx.com
 - Benchmark: tests/benchmark_v19.py (76/100 Super Brain score)

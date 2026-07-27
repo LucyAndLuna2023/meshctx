@@ -1,7 +1,7 @@
 """
 meshctx Multi-Modal Engine — Image, Audio, OCR, Document Processing
 ===================================================================
-License: AGPLv3
+License: MIT
 """
 
 from __future__ import annotations

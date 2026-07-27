@@ -21,7 +21,7 @@ Yann LeCun 架构的核心思想:
   - 对话流程预测 (predict next user intent)
   - 任务分解预测 (predict subtask success)
 
-License: AGPLv3
+License: MIT
 """
 
 from __future__ import annotations

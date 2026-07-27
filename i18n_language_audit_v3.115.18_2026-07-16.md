@@ -43,7 +43,7 @@ window.__lang  = "en" (修改无效，不触发任何重载)
 | 语言按钮 | 中文 | 🇺🇸 English ▾ ▾ | 🔴 英文 + 双箭头bug |
 | 导航栏 (Features/Compare/About/GitHub/Documentation) | 功能/对比/关于/GitHub/文档 | Features/Compare/About/GitHub/Documentation | 🔴 全英文 |
 | 主标题 | AI智能体学习 | The Agent That Learns | 🔴 英文 |
-| 副标题 | AGPLv3框架... | AGPLv3 framework... | 🔴 英文 |
+| 副标题 | MIT框架... | MIT framework... | 🔴 英文 |
 | Why MeshCtx? | 为什么选择MeshCtx？ | Why MeshCtx? | 🔴 英文 |
 | 6个特性卡片 | 分层记忆/自改进... | Hierarchical Memory/Self-Improving... | 🔴 全英文 |
 | 13脑区模块 | 海马回放/杏仁核... | Hippocampal Replay/Amygdala... | 🔴 全英文 |

@@ -23,7 +23,7 @@ MeshCtx Autonomous Engine — 24×7 Self-Running Agent Loop
   - ACC: 冲突解决
   - 基底节: 动作选择
 
-License: AGPLv3
+License: MIT
 """
 
 from __future__ import annotations
