@@ -1,20 +1,30 @@
+"""meshctx Web UI Router
+
+Assembles all route modules into a single APIRouter.
+Injected into the FastAPI app by web_ui.py at startup.
+
+Modules:
+  routes/v2.py  — v2 UI (2-entry + gear layout)
 """
-meshctx Web UI v2 Router (stub)
 
-v3.115.31: All routes and templates are embedded in web_ui.py
-for zero-config DictLoader deployment. This file exists as a
-documented reference only.
+from fastapi import APIRouter
 
-Route map:
-  /ui/        → 302 redirect to /ui/v2
-  /ui/v2      → Dashboard: 2 entry cards (Chat + Projects) + Gear
-  /ui/v2/chat → Chat v2: sidebar history + iframe embed
-  /ui/v2/projects → Projects v2: grid cards + API loading
-  /ui/v2/settings → Settings modal: model/providers/memory/system
-  /ui/v2/dev  → Dev Panel: Brain/Agent/Lab/Sandbox/Processes/Monitor
+from .routes.v2 import create_v2_routes
 
-Legacy routes preserved:
-  /ui/classic → Old 11-tab dashboard via ?tab= query param
-  /ui/chat, /ui/projects, /ui/providers, /ui/plugins, /ui/memory, etc.
-"""
-pass
+
+def create_ui_router(render_fn=None):
+    """Create the unified UI router with all sub-routers included.
+
+    Args:
+        render_fn: _render(template_name, context, request) → HTMLResponse
+                   Injected from web_ui.py to avoid circular imports.
+                   If None (CLI/docs), router has no v2 routes.
+    """
+    router = APIRouter(prefix="/ui", tags=["Web UI"])
+
+    if render_fn is not None:
+        v2_router = create_v2_routes(render_fn)
+        # Include v2 routes at /ui/... (prefix already set above)
+        router.include_router(v2_router)
+
+    return router
