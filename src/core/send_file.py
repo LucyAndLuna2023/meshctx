@@ -15,6 +15,20 @@ from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email import encoders
 
+# ── 路径遍历防护 ──
+_ALLOWED_ROOTS = [
+    os.path.realpath(os.path.expanduser("~/.meshctx")),
+    os.path.realpath(os.path.expanduser("~/.hermes")),
+    os.path.realpath("/tmp"),
+]
+
+def _safe_open_file(file_path: str, mode: str = "rb"):
+    """安全打开文件 — 防止路径遍历攻击"""
+    real = os.path.realpath(os.path.expanduser(file_path))
+    if not any(real.startswith(root) for root in _ALLOWED_ROOTS):
+        raise PermissionError(f"Path traversal blocked: {file_path}")
+    return open(real, mode)
+
 # Try to import requests for cleaner HTTP, fall back to stdlib
 try:
     import requests as _requests
@@ -48,7 +62,7 @@ def _build_multipart_formdata(fields: dict, files: dict) -> tuple[bytes, str]:
         filename, file_data, content_type = file_info
         # Support passing a file path string
         if isinstance(file_data, str):
-            with open(file_data, 'rb') as f:
+            with _safe_open_file(file_data) as f:
                 file_data = f.read()
         part = MIMEBase(*content_type.split('/', 1))
         part.set_payload(file_data)
@@ -105,7 +119,7 @@ def _send_file_telegram(file_path: str, caption: Optional[str] = None, chat_id: 
     url = f"https://api.telegram.org/bot{token}/sendDocument"
 
     if _requests is not None:
-        with open(file_path, 'rb') as f:
+        with _safe_open_file(file_path) as f:
             files = {'document': (path.name, f)}
             data = {'chat_id': chat_id}
             if caption:
@@ -183,7 +197,7 @@ def _send_file_feishu(file_path: str, caption: Optional[str] = None, chat_id: Op
     mime_type = mimetypes.guess_type(file_path)[0] or 'application/octet-stream'
 
     if _requests is not None:
-        with open(file_path, 'rb') as f:
+        with _safe_open_file(file_path) as f:
             resp = _requests.post(
                 upload_url,
                 headers={"Authorization": f"Bearer {access_token}"},
@@ -257,7 +271,7 @@ def _send_file_discord(file_path: str, caption: Optional[str] = None) -> str:
         raise ValueError(f"File too large for Discord (max 25 MB): {file_path}")
 
     if _requests is not None:
-        with open(file_path, 'rb') as f:
+        with _safe_open_file(file_path) as f:
             files = {'file': (path.name, f)}
             data = {}
             if caption:
@@ -297,7 +311,7 @@ def _send_file_webhook(file_path: str, caption: Optional[str] = None, webhook_ur
         raise FileNotFoundError(f"File not found: {file_path}")
 
     if _requests is not None:
-        with open(file_path, 'rb') as f:
+        with _safe_open_file(file_path) as f:
             files = {'file': (path.name, f)}
             data = {}
             if caption:
