@@ -95,13 +95,13 @@ Reply with ONLY the JSON array, no other text."""
         text = re.sub(r'```', '', text)
         try:
             return json.loads(text)
-    except Exception:
+        except Exception:
             # 尝试提取 JSON 数组
             m = re.search(r'\[.*\]', text, re.DOTALL)
             if m:
                 try:
                     return json.loads(m.group())
-    except Exception:
+                except Exception:
                     pass
         return []
 
@@ -218,7 +218,7 @@ Reply with ONLY the JSON object."""
                 breaking=data.get("breaking", False),
                 reviewer=data.get("reviewer", ""),
             )
-    except Exception:
+        except Exception:
             return self._rule_pr(pr_type, diff)
 
     def _rule_pr(self, pr_type: str, diff: str) -> PRDescription:
@@ -279,7 +279,7 @@ Focus on: bugs, security, performance, error handling, naming. Reply with ONLY J
             )
             data = json.loads(re.sub(r'```(?:json)?\s*|```', '', resp.content).strip())
             return [ReviewComment(**c) for c in data if c.get("message")]
-    except Exception:
+        except Exception:
             return self._rule_review(diff)
 
     def _rule_review(self, diff: str) -> list[ReviewComment]:

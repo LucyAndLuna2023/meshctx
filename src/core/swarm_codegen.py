@@ -72,14 +72,14 @@ class SwarmCodeGen:
         try:
             from model_adapter import ModelAdapter
             return ModelAdapter
-    except Exception:
+        except Exception:
             return None
 
     def _get_model_config(self, model_id: str) -> dict:
         if self.registry:
             try:
                 return self.registry.get_model_config(model_id)
-    except Exception:
+            except Exception:
                 pass
         return {}
 
@@ -193,7 +193,7 @@ class SwarmCodeGen:
             text = resp.content.strip()
             text = re.sub(r'```(?:json)?\s*|```', '', text)
             return json.loads(text)
-    except Exception:
+        except Exception:
             return None
 
     def _refine(self, task: str, best: CodeGenResult, models: List[str],
@@ -228,8 +228,8 @@ class SwarmCodeGen:
                         model="{}(refined)".format(model),
                         code=code,
                     )
-    except Exception:
-                continue
+            except Exception:
+                    continue
         return None
 
     def _run_tests(self, code: str, test_code: str) -> tuple:
