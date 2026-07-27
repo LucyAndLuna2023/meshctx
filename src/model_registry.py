@@ -441,82 +441,41 @@ class ModelRegistry:
 
 @dataclass
 class ModelClient:
-    """模型客户端 — 支持流式输出 + 原生 function calling"""
+    """模型客户端"""
     client: Any
     model_id: str
     model_name: str
 
-    def chat(self, messages: List[Dict], temperature=0.7, max_tokens=4096, tools=None) -> Dict:
-        """发送对话请求"""
-        kwargs = dict(model=self.model_name, messages=messages, temperature=temperature, max_tokens=max_tokens)
-        if tools:
-            kwargs["tools"] = tools
-            kwargs["tool_choice"] = "auto"
-        resp = self.client.chat.completions.create(**kwargs)
+    def chat(self, messages: List[Dict], temperature=0.7, max_tokens=4096) -> Dict:
+        """发送对话请求 — 失败时抛出异常，不伪装成功"""
+        resp = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
         choice = resp.choices[0]
-        result = {
+        return {
             "content": choice.message.content or "",
             "model": resp.model,
             "tokens": resp.usage.total_tokens if resp.usage else 0,
-            "tool_calls": [],
         }
-        if choice.message.tool_calls:
-            import json
-            for tc in choice.message.tool_calls:
-                try:
-                    args = json.loads(tc.function.arguments)
-                except:
-                    args = {}
-                result["tool_calls"].append({"id": tc.id, "name": tc.function.name, "arguments": args})
-        return result
 
-    def chat_stream(self, messages: List[Dict], temperature=0.7, max_tokens=4096, tools=None):
-        """流式对话 — 逐token返回，最后可能返回 tool_calls"""
-        kwargs = dict(model=self.model_name, messages=messages, temperature=temperature, max_tokens=max_tokens, stream=True,
-                      stream_options={"include_usage": True})
-        if tools:
-            kwargs["tools"] = tools
-            kwargs["tool_choice"] = "auto"
-
-        tool_acc = {}  # idx → {id, name, args_str}
-        full_content = ""
+    def chat_stream(self, messages: List[Dict], temperature=0.7, max_tokens=4096):
+        """流式对话 — 逐token返回"""
         try:
-            for chunk in self.client.chat.completions.create(**kwargs):
-                delta = chunk.choices[0].delta if chunk.choices else None
-                if delta is None:
-                    continue
-                if delta.content:
-                    full_content += delta.content
-                    yield delta.content
-                if delta.tool_calls:
-                    for tc in delta.tool_calls:
-                        idx = tc.index
-                        if idx not in tool_acc:
-                            tool_acc[idx] = {"id": tc.id or "", "name": "", "args_str": ""}
-                        if tc.id:
-                            tool_acc[idx]["id"] = tc.id
-                        if tc.function:
-                            if tc.function.name:
-                                tool_acc[idx]["name"] += tc.function.name
-                            if tc.function.arguments:
-                                tool_acc[idx]["args_str"] += tc.function.arguments
+            stream = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=True,
+            )
+            for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
         except Exception as e:
-            # 不 yield 错误消息到流中 — 避免被调用方当成 assistant content 写入会话历史
-            # 错误应该通过异常传播，让调用方决定如何处理（不污染消息历史）
-            raise
-
-        # After stream ends, yield tool calls if any
-        if tool_acc:
-            import json
-            parsed = []
-            for idx in sorted(tool_acc.keys()):
-                tc = tool_acc[idx]
-                try:
-                    args = json.loads(tc["args_str"])
-                except:
-                    args = {}
-                parsed.append({"id": tc["id"], "name": tc["name"], "arguments": args})
-            yield ("__TOOLS__", parsed, full_content)
+            yield f"[错误: {e}]"
 
 
 # ── 全局单例 ──────────────────────────────────────────

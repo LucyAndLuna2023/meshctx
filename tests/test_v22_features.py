@@ -8,21 +8,6 @@ import time
 BASE = "http://127.0.0.1:3001"
 
 
-def _server_up() -> bool:
-    """API测试依赖活服务器, 探活一次决定全模块skip或执行"""
-    try:
-        requests.get(f"{BASE}/api/version", timeout=2)
-        return True
-    except requests.RequestException:
-        return False
-
-
-pytestmark = pytest.mark.skipif(
-    not _server_up(),
-    reason="meshctx server未运行(127.0.0.1:3001) — API测试为环境性skip而非失败",
-)
-
-
 class TestAutoHealerV2:
     """自愈2.0 测试"""
 

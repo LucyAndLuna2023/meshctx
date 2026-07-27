@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://xtyjsjlkljzdgvqpskyk.supabase.co https://api.github.com; img-src 'self' data: https://avatars.githubusercontent.com; frame-src https://xtyjsjlkljzdgvqpskyk.supabase.co; form-action 'self' https://xtyjsjlkljzdgvqpskyk.supabase.co; base-uri 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://xtyjsjlkljzdgvqpskyk.supabase.co https://api.github.com; img-src 'self' data: https://avatars.githubusercontent.com; frame-src https://xtyjsjlkljzdgvqpskyk.supabase.co; form-action 'self' https://xtyjsjlkljzdgvqpskyk.supabase.co; base-uri 'self'; object-src 'none';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -178,7 +178,6 @@
                     <button onclick="switchLang('fr');closeDropdown()">🇫🇷 Français</button>
                     <button onclick="switchLang('de');closeDropdown()">🇩🇪 Deutsch</button>
                     <button onclick="switchLang('it');closeDropdown()">🇮🇹 Italiano</button>
-                    <button onclick="switchLang('ru');closeDropdown()">🇷🇺 Русский</button>
                     <button onclick="switchLang('ar');closeDropdown()">🇸🇦 العربية</button>
                 </div>
             </span>
@@ -216,16 +215,16 @@
             <div class="feature-card" style="border-color:#06b6d4;"><div class="feature-icon">📂</div><h3 data-lang-key="f11_title">Project Indexing</h3><p data-lang-key="f11_desc">Search your entire codebase. 15+ languages symbol extraction. Auto-watch file changes. /context command for instant retrieval.</p></div>
             <!-- ▼ v2.85 突破性特性 ▼ -->
             <div class="feature-card" style="border-color:#f59e0b;"><div class="feature-icon">🔬</div><h3 data-lang-key="f12_title">SDM Breakthrough Memory</h3><p data-lang-key="f12_desc">Sparse Distributed Memory. O(2^1000) address space — 10^296x more capacity than any other agent. Predictive pre-activation + 100:1 fractal compression.</p></div>
-            <div class="feature-card" style="border-color:#f59e0b;"><div class="feature-icon">🔧</div><h3 data-lang-key="f13_title">Self-Modifying Code</h3><p data-lang-key="f13_desc">Industry-first: AI agent that autonomously analyzes, optimizes, tests, and applies changes to its own source code. 7-stage pipeline with safety guard.</p></div>
-            <div class="feature-card" style="border-color:#f59e0b;"><div class="feature-icon">🛡️</div><h3 data-lang-key="f14_title">Safety Guard</h3><p data-lang-key="f14_desc">4-phase operation contract: Propose→Verify→Commit→Reject. Critical actions require explicit user approval before execution.</p></div>
+            <div class="feature-card" style="border-color:#f59e0b;"><div class="feature-icon">🔧</div><h3 data-lang-key="f13_title">Self-Modifying Code</h3><p data-lang-key="f13_desc">Industry-first: AI agent that autonomously analyzes, optimizes, tests, and applies changes to its own source code. 7-stage pipeline with SDB safety gate.</p></div>
+            <div class="feature-card" style="border-color:#f59e0b;"><div class="feature-icon">🛡️</div><h3 data-lang-key="f14_title">SDB Safety Framework</h3><p data-lang-key="f14_desc">Stochastic-Deterministic Boundary from arXiv paper. Zero replay divergence. 4-phase contract: Propose→Verify→Commit→Reject. 85.43/100 A-grade reliability.</p></div>
             <div class="feature-card" style="border-color:#059669;"><div class="feature-icon">🔮</div><h3 data-lang-key="f15_title">Predictive Pre-Compute</h3><p data-lang-key="f15_desc">Learns your time/context patterns. Pre-computes answers before you ask. Idle-time processing for instant responses.</p></div>
-            <div class="feature-card" style="border-color:#059669;"><div class="feature-icon">🎯</div><h3 data-lang-key="f16_title">Iterative Reasoning</h3><p data-lang-key="f16_desc">Multi-pass iterative refinement with convergence detection. Re-examines and improves responses until quality threshold is met.</p></div>
+            <div class="feature-card" style="border-color:#059669;"><div class="feature-icon">🎯</div><h3 data-lang-key="f16_title">Attractor Reasoning</h3><p data-lang-key="f16_desc">Equilibrium Reasoners from arXiv. Multi-trajectory iterative refinement with convergence detection. 40,000-layer equivalent depth for hard problems.</p></div>
             <div class="feature-card" style="border-color:#059669;"><div class="feature-icon">⚡</div><h3 data-lang-key="f17_title">Auto-Tuning Engine</h3><p data-lang-key="f17_desc">Real-time performance monitoring. Auto-adjusts cache, batch size, timeouts. PID-controlled parameter optimization.</p></div>
 <div class="feature-card" style="border-color:#f59e0b;"><div class="feature-icon">🧠</div><h3 data-lang-key="f18_title">JEPA World Model</h3><p data-lang-key="f18_desc">Yann LeCun's Joint Embedding Predictive Architecture. Latent-space world model that predicts outcomes without pixel-level reconstruction — energy-efficient reasoning.</p></div>
             <div class="feature-card" style="border-color:#06b6d4;"><div class="feature-icon">🖥️</div><h3 data-lang-key="f19_title">Desktop Agent</h3><p data-lang-key="f19_desc">Windows GUI automation via Win32 API + UIA. Click, type, screenshot, window management — all through natural language commands.</p></div>
             <div class="feature-card" style="border-color:#22c55e;"><div class="feature-icon">🔐</div><h3 data-lang-key="f20_title">Smart Permissions</h3><p data-lang-key="f20_desc">Learns your approval patterns over time. Auto-approves routine operations, escalates risky ones. 3-tier: YOLO / Smart / Manual.</p></div>
-            <div class="feature-card" style="border-color:#8b5cf6;"><div class="feature-icon">🎯</div><h3 data-lang-key="f21_title">Smart Router</h3><p data-lang-key="f21_desc">Heuristic-based model selection: routes queries to the best-fit model based on task type, content length, and cost constraints.</p></div>
-            <div class="feature-card" style="border-color:#eab308;"><div class="feature-icon">📊</div><h3 data-lang-key="f22_title">Activity Tracker</h3><p data-lang-key="f22_desc">Tracks git activity (commits, churn, PR throughput) and session metrics. Generates weekly development activity reports.</p></div>
+            <div class="feature-card" style="border-color:#8b5cf6;"><div class="feature-icon">🎯</div><h3 data-lang-key="f21_title">JEPA Router</h3><p data-lang-key="f21_desc">Predictive model selection using Fisher information geometry. Routes queries to the optimal model before you finish typing.</p></div>
+            <div class="feature-card" style="border-color:#eab308;"><div class="feature-icon">📊</div><h3 data-lang-key="f22_title">Growth Tracker</h3><p data-lang-key="f22_desc">Tracks 6-dimensional capability growth: reasoning, memory, speed, accuracy, creativity, autonomy. Generates weekly evolution reports.</p></div>
         </div>
     </div>
 <</section>
@@ -278,27 +277,27 @@
                 <tr style="border-top:2px solid #8b5cf6;"><td data-lang-key="c34"><strong>🧠 JEPA World Model</strong><br><span data-lang-key="cv_q">LeCun Latent Prediction</span></td><td class="highlight"><span class="check">✅ v3.36</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
                 <tr style="border-top:2px solid #22c55e;"><td data-lang-key="c35"><strong>🖥️ Desktop Agent</strong><br><span data-lang-key="cv_r">Windows GUI Automation</span></td><td class="highlight"><span class="check">✅ v3.37</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
                 <tr style="border-top:2px solid #f59e0b;"><td data-lang-key="c36"><strong>🔐 Smart Permissions</strong><br><span data-lang-key="cv_s">Learns When to Auto-Approve</span></td><td class="highlight"><span class="check">✅ v3.38</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr style="border-top:2px solid #06b6d4;"><td data-lang-key="c37"><strong>🧠 Smart Router</strong><br><span data-lang-key="cv_t">Heuristic Model Selection</span></td><td class="highlight"><span class="check">✅ v3.39</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr></thead>
+                <tr style="border-top:2px solid #06b6d4;"><td data-lang-key="c37"><strong>🧠 JEPA Router</strong><br><span data-lang-key="cv_t">Predictive Model Selection</span></td><td class="highlight"><span class="check">✅ v3.39</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr></thead>
             <tbody>
                 <tr><td data-lang-key="c1">Hierarchical Memory</td><td class="highlight"><span class="check">L0-L4</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
                 <tr><td data-lang-key="c2">Forgetting Curve</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
                 <tr><td data-lang-key="c3">Meta-Cognition</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
-<tr><td data-lang-key="c4">Multi-Agent</td><td class="highlight"><span class="check">✓ DAG</span></td><td><span class="warn">⚠ Limited</span></td><td><span class="check">✓</span></td><td><span class="warn">⚠ Limited</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td data-lang-key="c6">Plugin Market</td><td class="highlight"><span class="check"><a href="#plugins" style="color:#22c55e;">✓ 5 Plugins</a></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
-<tr><td data-lang-key="c7">MCP Protocol</td><td class="highlight"><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td></tr>
+<tr><td data-lang-key="c4">Multi-Agent</td><td class="highlight"><span class="check">✓ DAG</span></td><td><span class="warn">⚠ Limited</span></td><td><span class="cross">✗</span></td><td><span class="warn">⚠ Limited</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c6">Plugin Market</td><td class="highlight"><span class="check"><a href="#plugins" style="color:#22c55e;">✓ 15 Plugins</a></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
+<tr><td data-lang-key="c7">MCP Protocol</td><td class="highlight"><span class="check">✓</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="check">✓</span></td><td><span class="cross">✗</span></td></tr>
                 <tr><td data-lang-key="c11">Amygdala Salience</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
                 <tr><td data-lang-key="c12">Counterfactual Reasoning</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
                 <tr><td data-lang-key="c13">Default Mode Network</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
                 <tr><td data-lang-key="c14">Thalamic Attention Gate</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
                 <tr><td data-lang-key="c15">Theory of Mind</td><td class="highlight"><span class="check">✓</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class='cross'>✗</span></td></tr>
                 <tr><td data-lang-key="c18">Multi-Model Compare</td><td class="highlight"><span class="check"><span data-lang-key="cv_d">✓ 3-Model Compare</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td data-lang-key="c21">🛡️ Safety Guard</td><td class="highlight"><span class="check"><span data-lang-key="cv_f">4-Phase Contract</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td data-lang-key="c22">🎯 Iterative Reasoning</td><td class="highlight"><span class="check"><span data-lang-key="cv_g">Multi-Pass Refine</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c21">🛡️ SDB Safety (arXiv)</td><td class="highlight"><span class="check"><span data-lang-key="cv_f">Zero Divergence</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c22">🎯 Attractor Reasoning</td><td class="highlight"><span class="check"><span data-lang-key="cv_g">40K Layers</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
                 <tr style="border-top:2px solid #f59e0b;"><td data-lang-key="c23"><strong>🔬 Causal Root Cause (Pearl)</strong><br><span style="font-size:10px;color:var(--muted);" data-lang-key="cv_causal">do-calculus causal inference</span></td><td class="highlight"><span class="check">✅ v2.77</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
                 <tr><td data-lang-key="c24">🔒 Prompt Injection Shield</td><td class="highlight"><span class="check"><span data-lang-key="cv_h">10 Inj. Types</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
                 <tr><td data-lang-key="c25">🔍 Cross-Validation</td><td class="highlight"><span class="check"><span data-lang-key="cv_i">Multi-Agent OK</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
                 <tr><td data-lang-key="c26">📋 Behavior Compliance</td><td class="highlight"><span class="check"><span data-lang-key="cv_j">6 Rules</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
-                <tr><td data-lang-key="c27">🧮 Smart Router</td><td class="highlight"><span class="check"><span data-lang-key="cv_k">Heuristic Select</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
+                <tr><td data-lang-key="c27">🧮 Info-Geometric Router</td><td class="highlight"><span class="check"><span data-lang-key="cv_k">Fisher 12</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
                 <tr><td data-lang-key="c28">🔄 Self-Updater</td><td class="highlight"><span class="check">push→test→deploy</span></td><td><span class="warn">⚠ Manual</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
                 <tr><td data-lang-key="c29">💾 Backup Vault</td><td class="highlight"><span class="check"><span data-lang-key="cv_l">Multi-Path Backup</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
                 <tr><td data-lang-key="c30">🎯 Goal Decomposer</td><td class="highlight"><span class="check"><span data-lang-key="cv_m">4 Templates+DAG</span></span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td><td><span class="cross">✗</span></td></tr>
@@ -355,7 +354,7 @@
                     </div>
                 </div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:0;">
-                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🪟</div><h3>Windows</h3><p style="min-height:40px;" data-lang-key="win_desc">NSIS Installer · 8 languages · One-click</p><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" style="display:block;margin:8px 0;" data-lang-key="win_dl_installer">📦 Download Installer</a><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-ghost" style="display:block;" data-lang-key="win_dl_portable">📂 Download Portable</a></div>
+                <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🪟</div><h3>Windows</h3><p style="min-height:40px;" data-lang-key="win_desc">NSIS Installer · 7 languages · One-click</p><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" style="display:block;margin:8px 0;" data-lang-key="win_dl_installer">📦 Download Installer</a><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-portable.zip" class="btn btn-ghost" style="display:block;" data-lang-key="win_dl_portable">📂 Download Portable</a></div>
                 <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🍎</div><h3>macOS</h3><p style="min-height:40px;" data-lang-key="mac_desc">DMG package · ARM64 native · Homebrew</p><div class="code-block" style="margin:8px 0;font-size:0.8rem;text-align:left;">curl -fsSL https://cdn.jsdelivr.net/gh/LucyAndLuna2023/meshctx@main/install-mac.sh | bash</div><a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-macos.dmg" class="btn btn-ghost" style="display:block;" data-lang-key="mac_dl">📥 Download DMG</a></div>
                 <div class="feature-card" style="text-align:center;"><div style="font-size:2.5rem;">🐧</div><h3>Linux / WSL</h3><p style="min-height:40px;" data-lang-key="linux_desc">Source install · pip · venv · PEP 668</p><div class="code-block" style="margin:8px 0;font-size:0.9rem;text-align:left;">curl -fsSL https://cdn.jsdelivr.net/gh/LucyAndLuna2023/meshctx@main/install.sh | bash</div></div>
             </div>
@@ -376,8 +375,8 @@
             <div class="feature-card"><div class="feature-icon">📊</div><h3 data-lang-key="pl5_title">Data Visualizer</h3><p data-lang-key="pl5_desc">Data visualization: charts/dashboards/reports</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
         </div>
         <p style="text-align:center;margin-top:20px;">
-            <a href="https://github.com/LucyAndLuna2023/meshctx-public/tree/main/src/core" class="btn btn-primary" target="_blank"><span data-lang-key="pl_btn_browse">📦 Browse Core Modules</span></a>
-            <a href="https://github.com/LucyAndLuna2023/meshctx-public/blob/main/src/core/plugin_manager.py" class="btn btn-ghost" target="_blank" style="margin-left:8px;"><span data-lang-key="pl_btn_dev">📋 Develop Plugin</span></a>
+            <a href="https://github.com/LucyAndLuna2023/meshctx-plugins" class="btn btn-primary" target="_blank"><span data-lang-key="pl_btn_browse">📦 Browse All Plugins</span></a>
+            <a href="https://github.com/LucyAndLuna2023/meshctx/blob/main/src/core/plugin_manager.py" class="btn btn-ghost" target="_blank" style="margin-left:8px;"><span data-lang-key="pl_btn_dev">📋 Develop Plugin</span></a>
         </p>
     </div>
 
@@ -414,15 +413,14 @@ let _langPending = null; // pending language while L is loading
 function closeDropdown() { document.getElementById('langMenu').classList.remove('show'); }
 var pageMeta = {
     en: {title: "MeshCtx — 17-Brain-Region Self-Improving Agent Platform", desc: "MeshCtx is an open-core, self-improving agent platform — AGPLv3 framework + source-available brain. SWE-bench Lite — target >30% (runner in development). Remembers everything, learns from every task, orchestrates multiple AI agents in parallel."},
-    zh: {title: "MeshCtx — 世界首个自进化智能体系统", desc: "MeshCtx 是开源核心的自适应学习智能体平台 — AGPLv3 框架 + 源码可见的大脑。SWE-bench Lite — 目标>30%(runner开发中)。记忆一切，从每次任务中学习，并行编排多个 AI 智能体。"},
-    ja: {title: "MeshCtx — 17脳領域シミュレーション自己改善型エージェントシステム", desc: "MeshCtx はオープンコアの自己改善型エージェントプラットフォーム — AGPLv3 フレームワーク + ソース公開の脳。SWE-bench Lite — 目標>30%(runner開発中)。すべてを記憶し、毎回のタスクから学習し、複数の AI エージェントを並列編成。"},
-    ko: {title: "MeshCtx — 17개 뇌 영역 시뮬레이션 자가 개선형 에이전트 시스템", desc: "MeshCtx는 오픈코어 자가 개선형 에이전트 플랫폼 — AGPLv3 프레임워크 + 소스 공개 두뇌. SWE-bench Lite — 목표 >30%(runner 개발 중). 모든 것을 기억하고, 매 작업에서 학습하며, 여러 AI 에이전트를 병렬 편성."},
-    es: {title: "MeshCtx — El Primer Sistema de Agentes Auto-Evolutivo del Mundo", desc: "MeshCtx es una plataforma de agentes con aprendizaje adaptativo de núcleo abierto — framework AGPLv3 + cerebro de código visible. SWE-bench Lite — objetivo >30% (runner en desarrollo). Lo recuerda todo, aprende de cada tarea, organiza múltiples agentes de IA en paralelo."},
-    fr: {title: "MeshCtx — Le Premier Système d'Agents Auto-Évolutif au Monde", desc: "MeshCtx est une plateforme d'agents auto-améliorante open-core — framework AGPLv3 + cerveau à code source visible. SWE-bench Lite — objectif >30% (runner en développement). Se souvient de tout, apprend de chaque tâche, orchestre plusieurs agents IA en parallèle."},
-    de: {title: "MeshCtx — Selbstverbesserndes Agentensystem mit 17 Hirnregionen", desc: "MeshCtx ist eine Open-Core-Plattform für selbstverbessernde Agenten — AGPLv3-Framework + quelloffenes Gehirn. SWE-bench Lite — Ziel >30% (Runner in Entwicklung). Merkt sich alles, lernt aus jeder Aufgabe, orchestriert mehrere KI-Agenten parallel."},
-    it: {title: "MeshCtx — L'Agente Che Impara — Piattaforma con 17 Regioni Cerebrali", desc: "MeshCtx è una piattaforma agentiva open-core auto-migliorante — framework AGPLv3 + cervello a codice sorgente visibile. SWE-bench Lite — obiettivo >30% (runner in sviluppo). Ricorda tutto, impara da ogni compito, orchestra più agenti AI in parallelo."},
-    ru: {title: "MeshCtx — Агент, который учится — 17-регионная платформа", desc: "MeshCtx — самообучающаяся агентная платформа с открытым ядром — AGPLv3 фреймворк + мозг с открытым исходным кодом. SWE-bench Lite — цель >30% (раннер в разработке). Помнит всё, учится на каждой задаче, оркеструет множество AI-агентов параллельно."},
-    ar: {title: "MeshCtx — الوكيل الذي يتعلّم — منصة بـ 17 منطقة دماغية", desc: "MeshCtx هي منصة وكلاء ذاتية التحسين مفتوحة النواة — إطار عمل AGPLv3 + دماغ مفتوح المصدر. SWE-bench Lite — هدف >30% (الأداة قيد التطوير). تتذكر كل شيء، وتتعلّم من كل مهمة، وتنسّق وكلاء ذكاء اصطناعي متعددين بالتوازي."}
+    zh: {title: "MeshCtx — 世界首个自进化智能体系统", desc: "MeshCtx 是开源核心的自适应学习智能体平台 — AGPLv3 框架 + 源码可见的大脑。SWE-bench Lite (in development) — 超越 Claude Code。记忆一切，从每次任务中学习，并行编排多个 AI 智能体。"},
+    ja: {title: "MeshCtx — 17脳領域シミュレーション自己改善型エージェントシステム", desc: "MeshCtx はオープンコアの自己改善型エージェントプラットフォーム — AGPLv3 フレームワーク + ソース公開の脳。SWE-bench Lite (in development) — Claude Code 超え。すべてを記憶し、毎回のタスクから学習し、複数の AI エージェントを並列編成。"},
+    ko: {title: "MeshCtx — 17개 뇌 영역 시뮬레이션 자가 개선형 에이전트 시스템", desc: "MeshCtx는 오픈코어 자가 개선형 에이전트 플랫폼 — AGPLv3 프레임워크 + 소스 공개 두뇌. SWE-bench Lite (in development) — Claude Code 능가. 모든 것을 기억하고, 매 작업에서 학습하며, 여러 AI 에이전트를 병렬 편성."},
+    es: {title: "MeshCtx — El Primer Sistema de Agentes Auto-Evolutivo del Mundo", desc: "MeshCtx es una plataforma de agentes con aprendizaje adaptativo de núcleo abierto — framework AGPLv3 + cerebro de código visible. SWE-bench Lite (in development) — supera a Claude Code. Lo recuerda todo, aprende de cada tarea, organiza múltiples agentes de IA en paralelo."},
+    fr: {title: "MeshCtx — Le Premier Système d'Agents Auto-Évolutif au Monde", desc: "MeshCtx est une plateforme d'agents auto-améliorante open-core — framework AGPLv3 + cerveau à code source visible. SWE-bench Lite (in development) — surpasse Claude Code. Se souvient de tout, apprend de chaque tâche, orchestre plusieurs agents IA en parallèle."},
+    de: {title: "MeshCtx — Selbstverbesserndes Agentensystem mit 17 Hirnregionen", desc: "MeshCtx ist eine Open-Core-Plattform für selbstverbessernde Agenten — AGPLv3-Framework + quelloffenes Gehirn. SWE-bench Lite (in development) — übertrifft Claude Code. Merkt sich alles, lernt aus jeder Aufgabe, orchestriert mehrere KI-Agenten parallel."},
+    it: {title: "MeshCtx — L'Agente Che Impara — Piattaforma con 17 Regioni Cerebrali", desc: "MeshCtx è una piattaforma agentiva open-core auto-migliorante — framework AGPLv3 + cervello a codice sorgente visibile. SWE-bench Lite (in development) — supera Claude Code. Ricorda tutto, impara da ogni compito, orchestra più agenti AI in parallelo."},
+    ar: {title: "MeshCtx — الوكيل الذي يتعلّم — منصة بـ 17 منطقة دماغية", desc: "MeshCtx هي منصة وكلاء ذاتية التحسين مفتوحة النواة — إطار عمل AGPLv3 + دماغ مفتوح المصدر. SWE-bench Lite (قيد التطوير) — تتجاوز Claude Code. تتذكر كل شيء، وتتعلّم من كل مهمة، وتنسّق وكلاء ذكاء اصطناعي متعددين بالتوازي."}
 };
 function switchLang(lang) {
     // If L not loaded yet (empty object or no 'en' key), save pending and return
@@ -431,12 +429,12 @@ function switchLang(lang) {
         // Still update UI elements that don't need translations
         var toggle2 = document.getElementById('langToggle');
         if (toggle2) {
-            var labels2 = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ru:'🇷🇺 Русский',ar:'🇸🇦 العربية'};
+            var labels2 = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ar:'🇸🇦 العربية'};
             toggle2.textContent = (labels2[lang]||'🌐 '+lang.toUpperCase())+' ▾';
         }
         return;
     }
-    var labels = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ru:'🇷🇺 Русский',ar:'🇸🇦 العربية'};
+    var labels = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ar:'🇸🇦 العربية'};
     // 🔧 BUG-043: null guards for all DOM access
     var toggle = document.getElementById('langToggle');
     if (toggle) toggle.textContent = (labels[lang]||'🌐 '+lang.toUpperCase())+' ▾';
@@ -444,7 +442,7 @@ function switchLang(lang) {
     if (menuBtns.length) menuBtns.forEach(function(b){b.classList.remove('active');});
     for(var i=0;i<menuBtns.length;i++){
         var t=(menuBtns[i].textContent||'').trim();
-        if((lang==='en'&&t.indexOf('English')>=0)||(lang==='zh'&&t.indexOf('中文')>=0)||(lang==='ja'&&t.indexOf('日本語')>=0)||(lang==='ko'&&t.indexOf('한국어')>=0)||(lang==='es'&&t.indexOf('Español')>=0)||(lang==='fr'&&t.indexOf('Français')>=0)||(lang==='de'&&t.indexOf('Deutsch')>=0)||(lang==='it'&&t.indexOf('Italiano')>=0)||(lang==='ru'&&t.indexOf('Русский')>=0)||(lang==='ar'&&t.indexOf('العربية')>=0))
+        if((lang==='en'&&t.indexOf('English')>=0)||(lang==='zh'&&t.indexOf('中文')>=0)||(lang==='ja'&&t.indexOf('日本語')>=0)||(lang==='ko'&&t.indexOf('한국어')>=0)||(lang==='es'&&t.indexOf('Español')>=0)||(lang==='fr'&&t.indexOf('Français')>=0)||(lang==='de'&&t.indexOf('Deutsch')>=0)||(lang==='it'&&t.indexOf('Italiano')>=0)||(lang==='ar'&&t.indexOf('العربية')>=0))
             menuBtns[i].classList.add('active');
     }
     // Show/hide language blocks
@@ -542,7 +540,7 @@ if (L && Object.keys(L).length > 0 && L['en']) {
 
             <button class="btn-submit" id="signin-btn" onclick="signInWithEmail()" data-lang-key="auth_signin_btn">Sign In</button>
             <div class="auth-divider"><span data-lang-key="auth_divider">or continue with</span></div>
-            <button class="btn-oauth btn-oauth-github" onclick="signInWithOAuth('github')">
+            <button id="oauth-btn-github" class="btn-oauth btn-oauth-github" onclick="signInWithOAuth('github')">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
                 <span data-lang-key="auth_github">GitHub</span>
             </button>
@@ -560,26 +558,6 @@ if (L && Object.keys(L).length > 0 && L['en']) {
             <button class="btn-submit" id="reset-btn" onclick="resetPassword()" data-lang-key="auth_reset_send">Send Reset Link</button>
             <a class="auth-forgot-link" onclick="showAuthModal('signin')" data-lang-key="auth_back_signin">← Back to Sign In</a>
             <div class="auth-error" id="auth-error-reset"></div>
-        </div>
-
-        <!-- Recovery: Set New Password (arrives from email reset link) -->
-        <div class="auth-tab-content" id="auth-tab-recovery" style="display:none">
-            <h2 data-lang-key="auth_recovery_title">Set New Password</h2>
-            <p class="auth-subtitle" data-lang-key="auth_recovery_desc">Enter your new password below.</p>
-            <div class="auth-input-group">
-                <label data-lang-key="auth_label_pw">New Password</label>
-                <input type="password" id="recovery-password" data-lang-key-placeholder="auth_ph_pw" placeholder="8+ chars, uppercase, lowercase, digit" autocomplete="new-password" oninput="checkRecoveryStrength()">
-            </div>
-            <div class="pwd-strength-wrap" style="display:none;">
-                <span class="pwd-strength-label" data-lang-key="auth_pwd_strength">Password strength:</span>
-                <div class="pwd-strength-track"><div class="pwd-strength-fill" id="pwd-strength-bar-recovery"></div></div>
-            </div>
-            <div class="auth-input-group">
-                <label data-lang-key="auth_label_pw2">Confirm Password</label>
-                <input type="password" id="recovery-password2" data-lang-key-placeholder="auth_ph_pw2" placeholder="Re-enter your new password" autocomplete="new-password">
-            </div>
-            <button class="btn-submit" id="recovery-btn" onclick="confirmPasswordReset()" data-lang-key="auth_recovery_btn">Update Password</button>
-            <div class="auth-error" id="auth-error-recovery"></div>
         </div>
 
         <!-- Sign Up -->
@@ -619,7 +597,7 @@ if (L && Object.keys(L).length > 0 && L['en']) {
 
             <button class="btn-submit" id="signup-btn" onclick="signUpWithEmail()" data-lang-key="auth_signup_btn">Create Account</button>
             <div class="auth-divider"><span data-lang-key="auth_divider">or continue with</span></div>
-            <button class="btn-oauth btn-oauth-github" onclick="signInWithOAuth('github')">
+            <button id="oauth-btn-github" class="btn-oauth btn-oauth-github" onclick="signInWithOAuth('github')">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
                 <span data-lang-key="auth_github">GitHub</span>
             </button>

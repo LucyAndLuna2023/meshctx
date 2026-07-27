@@ -2,38 +2,12 @@
 {% block title %}{{ t('dashboard_title') }}{% endblock %}
 
 {% block content %}
-<style>
-/* ── Tab 栏 ── */
-.dash-tabs { display:flex; gap:4px; margin-bottom:20px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:4px; }
-.dash-tab { padding:8px 20px; border-radius:8px; font-size:14px; cursor:pointer; color:var(--muted); transition:all .2s; border:none; background:transparent; font-family:inherit; }
-.dash-tab:hover { color:var(--text); background:var(--hover); }
-.dash-tab.active { background:var(--accent); color:#fff; }
-.dash-panel { display:none; }
-.dash-panel.active { display:block; }
-/* ── 系统监控卡片 ── */
-.sys-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:16px; }
-.sys-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px; text-align:center; }
-.sys-card .v { font-size:32px; font-weight:700; margin:6px 0; }
-.sys-card .l { font-size:12px; color:var(--muted); }
-.sys-badge { display:inline-flex; align-items:center; gap:4px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:8px; padding:4px 12px; text-align:center; }
-.sys-badge .bl { font-size:10px; color:var(--muted); }
-.sys-badge .bv { font-size:15px; font-weight:700; }
-.green{color:var(--green)} .red{color:var(--red)} .yellow{color:var(--yellow)} .purple{color:var(--accent)}
-</style>
-
-<!-- ═══ Tab 栏 ═══ -->
-<div class="dash-tabs">
-    <button class="dash-tab active" onclick="switchDashTab('projects')" id="tab-projects">📊 项目总览</button>
-    <button class="dash-tab" onclick="switchDashTab('system')" id="tab-system">🖥️ 系统监控</button>
-</div>
-
-<!-- ═══ Tab 1: 项目总览 ═══ -->
-<div class="dash-panel active" id="panel-projects">
 <section class="page-header">
     <h1>📊 {{ t('dashboard_header') }}</h1>
     <p class="subtitle">{{ t('dashboard_subtitle') }}</p>
 </section>
 
+<!-- 统计卡片 -->
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-icon">📁</div>
@@ -62,6 +36,7 @@
     </div>
 </div>
 
+<!-- 项目连续性概览 -->
 <div class="section">
     <div class="section-header">
         <h2 data-lang-key="dashboard_projects_overview">📋 项目连续性概览</h2>
@@ -127,133 +102,4 @@
     </div>
     {% endif %}
 </div>
-</div><!-- /panel-projects -->
-
-<!-- ═══ Tab 2: 系统监控 ═══ -->
-<div class="dash-panel" id="panel-system">
-<h2 style="margin-bottom:16px;">🖥️ 系统监控</h2>
-<div class="sys-grid" id="sysStats"></div>
-
-<div class="card" style="margin-bottom:16px;text-align:left">
-<h3 style="margin-bottom:8px">🛡️ Watchdog</h3>
-<div id="wdStatus" style="font-size:12px;color:var(--muted)">⏳ 加载中...</div>
-</div>
-<div class="card" style="margin-bottom:16px;text-align:left">
-<h3 style="margin-bottom:8px">🏥 Auto-Healer</h3>
-<div id="healerStatus" style="font-size:12px;color:var(--muted)">⏳ 加载中...</div>
-</div>
-<h3 style="margin-top:8px;">🔌 API Endpoints</h3>
-<table><thead><tr><th>Endpoint</th><th>Latency</th><th>Status</th></tr></thead><tbody id="epTable"></tbody></table>
-<div id="pluginStatus" style="margin-top:16px;"></div>
-</div><!-- /panel-system -->
-
-<script>
-// ═══ Tab 切换 ═══
-var _sysLoaded = false;
-function switchDashTab(name) {
-    document.querySelectorAll('.dash-tab').forEach(function(t){ t.classList.remove('active'); });
-    document.querySelectorAll('.dash-panel').forEach(function(p){ p.classList.remove('active'); });
-    document.getElementById('tab-'+name).classList.add('active');
-    document.getElementById('panel-'+name).classList.add('active');
-    if (name === 'system' && !_sysLoaded) { loadSystemDashboard(); _sysLoaded = true; }
-    // Update URL hash without reload
-    history.replaceState(null, '', '#tab=' + name);
-}
-
-// ═══ 系统监控加载 ═══
-function sysBadge(label,value,color){ return '<div class="sys-badge"><div class="bl">'+label+'</div><div class="bv '+color+'">'+value+'</div></div>'; }
-function sysCard(label,value,color){ return '<div class="sys-card"><div class="l">'+label+'</div><div class="v '+color+'">'+value+'</div></div>'; }
-
-async function loadSystemDashboard() {
-    // System status
-    var r = await fetch('/api/system/status');
-    var d = await r.json();
-    var s = '';
-    s += sysCard('版本', d.version, 'purple');
-    s += sysCard('模型', d.models.configured+'/'+d.models.builtin, 'green');
-    s += sysCard('插件', d.plugins.available, 'yellow');
-    s += sysCard('会话', d.sessions.total, 'green');
-    s += sysCard('Python', d.server.python, 'purple');
-    document.getElementById('sysStats').innerHTML = s;
-
-    // Ping endpoints
-    var eps = ['/api/version','/api/health','/api/models','/api/plugins/market','/api/feishu/status'];
-    var rows = '';
-    for (var i = 0; i < eps.length; i++) {
-        var t0 = performance.now();
-        var ok = false;
-        try { var r2 = await fetch(eps[i]); ok = r2.ok; } catch(e) {}
-        var ms = (performance.now() - t0).toFixed(0);
-        rows += '<tr><td>'+eps[i]+'</td><td>'+ms+'ms</td><td style="color:'+(ok?'var(--green)':'var(--red)')+'">'+(ok?'OK':'FAIL')+'</td></tr>';
-    }
-    document.getElementById('epTable').innerHTML = rows;
-
-    // Plugin status
-    try {
-        var r3 = await fetch('/api/plugins/market');
-        var pd = await r3.json();
-        var ps = '<h3>🔌 Plugins</h3><table><tr><th>Name</th><th>Status</th><th>Installs</th></tr>';
-        pd.plugins.forEach(function(p){
-            ps += '<tr><td>'+(p.icon||'')+' '+p.name+'</td><td style="color:'+(p.status=='active'?'var(--green)':'var(--yellow)')+'">'+p.status+'</td><td>'+p.installs+'</td></tr>';
-        });
-        ps += '</table>';
-        document.getElementById('pluginStatus').innerHTML = ps;
-    } catch(e) {}
-
-    // Watchdog
-    try {
-        var wd = await fetch('/api/watchdog/status');
-        var w = await wd.json();
-        var ws = '<div style="display:flex;gap:12px;flex-wrap:wrap">';
-        ws += sysBadge('Running', w.running?'✅':'❌', w.running?'green':'red');
-        ws += sysBadge('Uptime', w.uptime_human, 'purple');
-        ws += sysBadge('Checks', w.stats.checks_total, 'yellow');
-        ws += sysBadge('Fixed', w.stats.issues_fixed, 'green');
-        for (var k in w.subsystems) {
-            var sub = w.subsystems[k];
-            ws += sysBadge(k, sub.status, sub.status=='ok'?'green':'yellow');
-        }
-        ws += '</div>';
-        if (w.recent_alerts && w.recent_alerts.length) {
-            ws += '<div style="margin-top:8px;font-size:11px;color:var(--muted)">Recent alerts: '+w.recent_alerts.length+'</div>';
-        }
-        document.getElementById('wdStatus').innerHTML = ws;
-    } catch(e) {}
-
-    // Healer
-    try {
-        var ah = await fetch('/api/healer/dashboard');
-        var h = await ah.json();
-        var colorMap = {green:'var(--green)',yellow:'var(--yellow)',orange:'#f97316',red:'var(--red)',gray:'var(--muted)'};
-        var emojiMap = {green:'🟢',yellow:'🟡',orange:'🟠',red:'🔴',gray:'⚪'};
-        var emoji = emojiMap[h.color]||'⚪';
-        var hs = '<div style="display:flex;gap:12px;flex-wrap:wrap">';
-        hs += sysBadge('Status', emoji+' '+h.status, colorMap[h.color]||'var(--muted)');
-        hs += sysBadge('Running', h.running?'✅':'❌', h.running?'green':'red');
-        hs += sysBadge('Last Check', h.last_check_human, 'purple');
-        hs += sysBadge('Uptime', h.uptime_since_incident_human, 'purple');
-        hs += sysBadge('Heals', h.heals_successful+'/'+h.heals_performed, 'yellow');
-        hs += sysBadge('Checks', h.checks_total, 'green');
-        hs += '</div>';
-        document.getElementById('healerStatus').innerHTML = hs;
-    } catch(e) {}
-}
-
-// Auto-refresh system panel every 30s when visible
-setInterval(function() {
-    var sysPanel = document.getElementById('panel-system');
-    if (sysPanel && sysPanel.classList.contains('active')) {
-        loadSystemDashboard();
-    }
-}, 30000);
-
-// Activate tab from URL hash on load
-(function() {
-    var hash = window.location.hash;
-    var m = hash.match(/tab=(\w+)/);
-    if (m && (m[1] === 'system' || m[1] === 'projects')) {
-        switchDashTab(m[1]);
-    }
-})();
-</script>
 {% endblock %}

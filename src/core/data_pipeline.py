@@ -1,4 +1,4 @@
-"""meshctx data_pipeline — v3.115.17"""
+"""meshctx data_pipeline — v3.111 stub"""
 from __future__ import annotations
 import csv
 import json

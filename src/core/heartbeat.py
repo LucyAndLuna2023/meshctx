@@ -48,7 +48,7 @@ def heartbeat_start(name: str, interval_seconds: int = 60,
                     if on_miss:
                         try:
                             on_miss(name, hb["misses"])
-                        except:
+    except Exception:
                             pass
             else:
                 hb["misses"] = 0

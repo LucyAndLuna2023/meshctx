@@ -21,6 +21,16 @@ from typing import Optional, List, Dict, Callable
 from pathlib import Path
 
 
+def _safe_builtins():
+    """Restricted builtins for exec() sandbox — 允许 import 但阻止危险 I/O"""
+    import builtins
+    safe = {k: v for k, v in vars(builtins).items()
+            if k not in ('open', 'eval', 'exec', 'compile', 'input', 'breakpoint',
+                         'memoryview', 'copyright', 'credits', 'license', 'help')}
+    safe['__builtins__'] = safe
+    return safe
+
+
 @dataclass
 class CodeGenResult:
     """单个模型生成的代码"""
@@ -62,14 +72,14 @@ class SwarmCodeGen:
         try:
             from model_adapter import ModelAdapter
             return ModelAdapter
-        except:
+    except Exception:
             return None
 
     def _get_model_config(self, model_id: str) -> dict:
         if self.registry:
             try:
                 return self.registry.get_model_config(model_id)
-            except:
+    except Exception:
                 pass
         return {}
 
@@ -183,7 +193,7 @@ class SwarmCodeGen:
             text = resp.content.strip()
             text = re.sub(r'```(?:json)?\s*|```', '', text)
             return json.loads(text)
-        except:
+    except Exception:
             return None
 
     def _refine(self, task: str, best: CodeGenResult, models: List[str],
@@ -218,14 +228,14 @@ class SwarmCodeGen:
                         model="{}(refined)".format(model),
                         code=code,
                     )
-            except:
+    except Exception:
                 continue
         return None
 
     def _run_tests(self, code: str, test_code: str) -> tuple:
         full = "{}\n\n{}".format(code, test_code)
         try:
-            namespace = {}
+            namespace = {"__builtins__": _safe_builtins()}
             exec(full, namespace)
             return 1, 1
         except AssertionError:
@@ -296,7 +306,8 @@ class SelfEvolvingEngine:
 
     def _execute_test(self, code: str, test_code: str) -> tuple:
         try:
-            exec(code + "\n" + test_code)
+            namespace = {"__builtins__": _safe_builtins()}
+            exec(code + "\n" + test_code, namespace)
             return 1, 1, ""
         except AssertionError as e:
             return 0, 1, "AssertionError: {}".format(e)

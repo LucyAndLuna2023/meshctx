@@ -1,18 +1,4 @@
 """meshctx crypto — encryption and key management"""
-# v3.115.8: legacy !!python/object YAML tag compatibility
-
-# ── 全局 monkey-patch yaml.safe_load（最早执行，覆盖所有调用点）──
-import yaml as _yaml_mod
-from pathlib import Path
-_original_safe_load = _yaml_mod.safe_load
-
-def _patched_safe_load(stream):
-    try:
-        return _original_safe_load(stream)
-    except _yaml_mod.constructor.ConstructorError:
-        return _yaml_mod.load(stream, Loader=_yaml_mod.Loader)
-
-_yaml_mod.safe_load = _patched_safe_load
 
 
 def get_crypto(*args, **kwargs):

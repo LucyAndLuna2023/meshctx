@@ -1,4 +1,4 @@
-"""meshctx calendar_engine — v3.115.17"""
+"""meshctx calendar_engine — v3.93 stub"""
 from __future__ import annotations
 import json
 import os

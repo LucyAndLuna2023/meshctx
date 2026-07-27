@@ -245,8 +245,10 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         <a href="/ui/projects" class="{% if '/ui/projects' in request.url.path %}active{% endif %}">{{ t("projects") }}</a>
         <a href="/ui/memories" class="{% if '/ui/memories' in request.url.path %}active{% endif %}">{{ t("memories") }}</a>
         <a href="/ui/continuity" class="{% if '/ui/continuity' in request.url.path %}active{% endif %}">{{ t("continuity") }}</a>
+        <a href="/ui/memory" class="{% if '/ui/memory' in request.url.path %}active{% endif %}">🧠 {{ t("memories") }}</a>
         <a href="/ui/chat" class="{% if '/ui/chat' in request.url.path %}active{% endif %}">{{ t("chat") }}</a>
         <a href="/ui/setup" class="{% if '/ui/setup' in request.url.path %}active{% endif %}">{{ t("setup") }}</a>
+        <a href="/ui/dashboard" class="{% if '/ui/dashboard' in request.url.path %}active{% endif %}">📊 {{ t("dashboard") }}</a>
         <a href="/ui/plugins" class="{% if '/ui/plugins' in request.url.path %}active{% endif %}">🔌 {{ t("plugins") }}</a>
         <a href="/ui/files" class="{% if '/ui/files' in request.url.path %}active{% endif %}">📁 {{ t("files") }}</a>
         <a href="/docs" target="_blank" class="" style="color:#f59e0b;">📚 {{ t("api_docs") }}</a>
@@ -3598,8 +3600,8 @@ function refreshProjectIndex(){
 # ── DictLoader 初始化 ───────────────────────────────────────────
 from src.i18n import t as i18n_t, get_lang as i18n_get_lang, TRANSLATIONS as i18n_translations, LANGUAGES, LANGUAGE_CODES
 _jinja_env = Environment(loader=ChoiceLoader([
-    DictLoader(_TEMPLATES),
     FileSystemLoader(os.path.join(os.path.dirname(__file__), '..', 'templates')),
+    DictLoader(_TEMPLATES),
 ]), autoescape=False)
 _jinja_env.globals['t'] = i18n_t
 _jinja_env.globals['lang'] = i18n_get_lang
@@ -4016,11 +4018,13 @@ async def delete_memory_ui(request: Request, memory_id: str):
 
 # ── 记忆仪表板 (搜索+添加+图谱+统计) ──────────────────────
 
-@router.get("/memory")
+@router.get("/memory", response_class=HTMLResponse)
 async def memory_dashboard(request: Request):
-    """Redirect to unified memories page with graph tab active."""
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/ui/memories#tab=graph", status_code=302)
+    """记忆仪表板: 搜索、添加、知识图谱可视化、统计"""
+    return _render("memories.html", {
+        "request": request,
+        "title": "记忆仪表板",
+    }, request)
 
 
 # ── 连续性检测仪表板 ──────────────────────────────────────────
@@ -4068,25 +4072,7 @@ async def desktop_page(request: Request):
 
 @router.get("/chat", response_class=HTMLResponse)
 async def chat_page(request: Request):
-    # 检测当前 profile
-    import os as _os, yaml as _yaml
-    profile = _os.environ.get("MESHCTX_PROFILE", "").strip()
-    if not profile:
-        try:
-            cfg_path = _os.environ.get("MESHCTX_CONFIG",
-                str(__import__('pathlib').Path.home() / ".meshctx" / "config.yaml"))
-            with open(cfg_path) as f:
-                cfg = _yaml.safe_load(f) or {}
-            p = cfg.get("profile", {})
-            if isinstance(p, dict):
-                profile = p.get("active", "")
-            elif p:
-                profile = str(p)
-        except Exception:
-            profile = ""
-    if profile == "default":
-        profile = ""
-    return _render("chat.html", {"request": request, "title": "Chat", "profile": profile}, request)
+    return _render("chat.html", {"request": request, "title": "Chat"}, request)
 
 @router.get("/setup", response_class=HTMLResponse)
 async def setup_page(request: Request):
@@ -4329,11 +4315,190 @@ async def delete_api_key(
 
 # ── v2.17 系统仪表盘 ─────────────────────────────────────
 
-@router.get("/dashboard")
+@router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page(request: Request):
-    """Redirect to unified dashboard with system tab active."""
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/ui/#tab=system", status_code=302)
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse("""<!DOCTYPE html>
+<html lang="zh"><head><meta charset="UTF-8"><title>Dashboard - MeshCtx</title>
+<style>
+:root{--bg:#0b0e1a;--card-bg:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08);--text:#e0e4f0;--muted:#8090b0;--accent:#6c5ce7;--green:#22c55e;--red:#f85149;--yellow:#fbbf24;--input-bg:#16213e;--surface:#16213e;--hover:rgba(255,255,255,0.06)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,sans-serif;background:linear-gradient(135deg,#0b0e1a,#1a1f35);color:var(--text);min-height:100vh;padding:24px}
+nav{display:flex;gap:12px;margin-bottom:24px}
+nav a{color:var(--muted);text-decoration:none;padding:8px 16px;border-radius:8px;font-size:14px}
+.container{max-width:1000px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center}
+.card .v{font-size:36px;font-weight:700;margin:8px 0}
+.card .l{font-size:12px;color:var(--muted)}
+.green{color:var(--green)} .red{color:var(--red)} .yellow{color:var(--yellow)} .purple{color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:16px}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+th{color:var(--muted)}
+/* ── Light Theme ── */
+body.light{background:linear-gradient(135deg,#f8fafc,#eef2ff);color:#0f172a}
+body.light .card{background:rgba(255,255,255,0.9);border-color:#e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+body.light nav a{color:#64748b}
+body.light nav a:hover{background:#e2e8f0;color:#0f172a}
+body.light th{color:#64748b}
+body.light td{color:#0f172a}
+body.light table tr:hover{background:rgba(108,92,231,0.06)}
+body.light input,body.light select{background:#fff;border-color:#e2e8f0;color:#0f172a}
+body.light .green{color:#16a34a}
+body.light .red{color:#dc2626}
+body.light .yellow{color:#d97706}
+body.light .purple{color:#7c3aed}
+</style></head><body>
+<div class="container">
+<nav><a href="/ui/chat" data-nav="chat">Chat</a><a href="/ui/setup" data-nav="setup">Setup</a><a href="/ui/plugins" data-nav="plugins">Plugins</a><a href="/ui/files" data-nav="files">📁 Files</a><a href="/ui/dashboard" data-nav="dashboard" style="color:var(--accent);background:rgba(108,92,231,0.15);">Dashboard</a><span style="flex:1"></span><button onclick="toggleThemeDash()" id="themeBtnDash" title="切换明暗主题" style="background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;color:var(--text);">🌙</button></nav>
+<script>
+(function(){
+  var L={chat:{en:'Chat',zh:'聊天',ja:'チャット',ko:'채팅',es:'Chat',fr:'Chat',de:'Chat'},
+    setup:{en:'Setup',zh:'设置',ja:'設定',ko:'설정',es:'Configuración',fr:'Configuration',de:'Einrichtung'},
+    plugins:{en:'Plugins',zh:'插件',ja:'プラグイン',ko:'플러그인',es:'Plugins',fr:'Plugins',de:'Plugins'},
+    files:{en:'Files',zh:'文件',ja:'ファイル',ko:'파일',es:'Archivos',fr:'Fichiers',de:'Dateien'},
+    dashboard:{en:'Dashboard',zh:'仪表板',ja:'ダッシュボード',ko:'대시보드',es:'Panel',fr:'Tableau de bord',de:'Dashboard'}};
+  var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'en';
+  document.querySelectorAll('[data-nav]').forEach(function(el){
+    var k=el.getAttribute('data-nav'),v=L[k];
+    if(v&&v[lang])el.textContent=(k==='files'?'📁 ':'')+v[lang];
+  });
+})();
+</script>
+<h2 style="margin-bottom:16px;">📊 System Dashboard</h2>
+<div class="grid" id="stats"></div>
+<div class="card" style="margin-bottom:16px;text-align:left">
+<h3 style="margin-bottom:8px">🛡️ Watchdog</h3>
+<div id="wdStatus" style="font-size:12px;color:var(--muted)">Loading...</div>
+</div>
+<div class="card" style="margin-bottom:16px;text-align:left">
+<h3 style="margin-bottom:8px">🏥 Auto-Healer</h3>
+<div id="healerStatus" style="font-size:12px;color:var(--muted)">Loading...</div>
+</div>
+<h3 style="margin-top:8px;">API Endpoints</h3>
+<table><thead><tr><th>Endpoint</th><th>Latency</th><th>Status</th></tr></thead><tbody id="epTable"></tbody></table>
+<div id="pluginStatus" style="margin-top:16px;"></div>
+</div>
+<script>
+(function(){var s=localStorage.getItem('meshctx_theme');if(!s){s=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}if(s==='light')document.body.classList.add('light');var b=document.getElementById('themeBtnDash');if(b)b.textContent=s==='light'?'☀️':'🌙';if(window.matchMedia)window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',function(e){var c=localStorage.getItem('meshctx_theme');if(!c||c==='auto'){if(e.matches)document.body.classList.remove('light');else document.body.classList.add('light')}})})();
+function toggleThemeDash(){var b=document.body;var isLight=b.classList.toggle('light');localStorage.setItem('meshctx_theme',isLight?'light':'dark');var btn=document.getElementById('themeBtnDash');if(btn)btn.textContent=isLight?'☀️':'🌙'}
+async function load(){
+  var r=await fetch('/api/system/status');
+  var d=await r.json();
+  var s='';
+  s+=card('Version',d.version,'purple');
+  s+=card('Models',d.models.configured+'/'+d.models.builtin,'green');
+  s+=card('Plugins',d.plugins.available,'yellow');
+  s+=card('Sessions',d.sessions.total,'green');
+  s+=card('Python',d.server.python,'purple');
+  document.getElementById('stats').innerHTML=s;
+  
+  // Ping endpoints
+  var eps=['/api/version','/api/health','/api/models','/api/plugins/market','/api/feishu/status'];
+  var rows='';
+  for(var i=0;i<eps.length;i++){
+    var t0=performance.now();
+    var ok=false;
+    try{var r2=await fetch(eps[i]);ok=r2.ok}catch(e){}
+    var ms=(performance.now()-t0).toFixed(0);
+    rows+='<tr><td>'+eps[i]+'</td><td>'+ms+'ms</td><td style="color:'+(ok?'var(--green)':'var(--red)')+'">'+(ok?'OK':'FAIL')+'</td></tr>';
+  }
+  document.getElementById('epTable').innerHTML=rows;
+  
+  // Plugin status
+  var r3=await fetch('/api/plugins/market');
+  var pd=await r3.json();
+  var ps='<h3>Plugins</h3><table><tr><th>Name</th><th>Status</th><th>Installs</th></tr>';
+  pd.plugins.forEach(function(p){
+    ps+='<tr><td>'+p.icon+' '+p.name+'</td><td style="color:'+(p.status=='active'?'var(--green)':'var(--yellow)')+'">'+p.status+'</td><td>'+p.installs+'</td></tr>';
+  });
+  ps+='</table>';
+  document.getElementById('pluginStatus').innerHTML=ps;
+  
+  // Watchdog
+  try{
+    var wd=await fetch('/api/watchdog/status');
+    var w=await wd.json();
+    var ws='<div style="display:flex;gap:12px;flex-wrap:wrap">';
+    ws+=badge('Running',w.running?'✅':'❌',w.running?'green':'red');
+    ws+=badge('Uptime',w.uptime_human,'purple');
+    ws+=badge('Checks',w.stats.checks_total,'yellow');
+    ws+=badge('Fixed',w.stats.issues_fixed,'green');
+    for(var k in w.subsystems){
+      var s=w.subsystems[k];
+      ws+=badge(k,s.status,s.status=='ok'?'green':'yellow');
+    }
+    ws+='</div>';
+    if(w.recent_alerts&&w.recent_alerts.length){
+      ws+='<div style="margin-top:8px;font-size:11px;color:var(--muted)">Recent alerts: '+w.recent_alerts.length+'</div>';
+    }
+    document.getElementById('wdStatus').innerHTML=ws;
+  }catch(e){}
+
+  // Auto-Healer
+  try{
+    var ah=await fetch('/api/healer/dashboard');
+    var h=await ah.json();
+    var hs='<div style="display:flex;gap:12px;flex-wrap:wrap">';
+    var colorMap={green:'var(--green)',yellow:'var(--yellow)',orange:'#f97316',red:'var(--red)',gray:'var(--muted)'};
+    var emojiMap={green:'🟢',yellow:'🟡',orange:'🟠',red:'🔴',gray:'⚪'};
+    var emoji=emojiMap[h.color]||'⚪';
+    hs+=badge('Status',emoji+' '+h.status,colorMap[h.color]||'var(--muted)');
+    hs+=badge('Running',h.running?'✅':'❌',h.running?'green':'red');
+    hs+=badge('Last Check',h.last_check_human,'purple');
+    hs+=badge('Uptime',h.uptime_since_incident_human,'purple');
+    hs+=badge('Heals',h.heals_successful+'/'+h.heals_performed,'yellow');
+    hs+=badge('Checks',h.checks_total,'green');
+    hs+='</div>';
+    document.getElementById('healerStatus').innerHTML=hs;
+  }catch(e){}
+}
+function badge(label,value,color){return '<span style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:4px 12px;text-align:center"><div style="font-size:10px;color:var(--muted)">'+label+'</div><div class="'+color+'" style="font-size:16px;font-weight:700">'+value+'</div></span>'}
+function card(label,value,color){return '<div class="card"><div class="l">'+label+'</div><div class="v '+color+'">'+value+'</div></div>'}
+load();
+setInterval(load, 30000);
+
+// WebSocket real-time watchdog (every 15s)
+try {
+    var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    var ws = new WebSocket(protocol + '//' + location.host + '/ws/dashboard');
+    ws.onmessage = function(e) {
+        var d = JSON.parse(e.data);
+        if (d.type === 'watchdog') {
+            var w = d.data;
+            var wsHtml = '<div style="display:flex;gap:12px;flex-wrap:wrap">';
+            wsHtml += badge('Running', w.running?'✅':'❌', w.running?'green':'red');
+            wsHtml += badge('Uptime', w.uptime, 'purple');
+            wsHtml += badge('Checks', w.checks, 'yellow');
+            wsHtml += badge('Alerts', w.alerts, w.alerts>0?'red':'green');
+            for (var k in w.subsystems) {
+                var s = w.subsystems[k];
+                wsHtml += badge(k, s.status, s.status=='ok'?'green':'yellow');
+            }
+            wsHtml += '</div>';
+            document.getElementById('wdStatus').innerHTML = wsHtml;
+
+            // Update healer if data available
+            if (w.healer) {
+                var h = w.healer;
+                var hsHtml = '<div style="display:flex;gap:12px;flex-wrap:wrap">';
+                var colorMap={green:'var(--green)',yellow:'var(--yellow)',orange:'#f97316',red:'var(--red)',gray:'var(--muted)'};
+                var emojiMap={green:'🟢',yellow:'🟡',orange:'🟠',red:'🔴',gray:'⚪'};
+                var emoji=emojiMap[h.color]||'⚪';
+                hsHtml += badge('Status', emoji+' '+h.status, colorMap[h.color]||'var(--muted)');
+                hsHtml += badge('Running', h.running?'✅':'❌', h.running?'green':'red');
+                hsHtml += badge('Last Check', h.last_check_human, 'purple');
+                hsHtml += badge('Uptime', h.uptime_since_incident_human, 'purple');
+                hsHtml += badge('Heals', h.heals_successful+'/'+h.heals_performed, 'yellow');
+                hsHtml += badge('Checks', h.checks_total, 'green');
+                hsHtml += '</div>';
+                document.getElementById('healerStatus').innerHTML = hsHtml;
+            }
+        }
+    };
+    ws.onerror = function() { /* WebSocket fallback to poll */ };
+} catch(e) {} // Auto-refresh every 30s
+</script></body></html>""")
 
 # ── v2.18 插件市场 (增强卡片+URL安装+社区推荐) ──────────────────
 
@@ -4754,27 +4919,11 @@ brew install meshctx</pre>
 _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
 {% block content %}
 <style>
-/* ── 双栏布局: 侧边栏 + 对话区 ── */
-.chat-layout { display: flex; height: calc(100vh - 140px); gap: 0; min-height: 400px; }
-.chat-sidebar { width: 260px; min-width: 200px; border-right: 1px solid var(--border);
-  display: flex; flex-direction: column; background: var(--card-bg); border-radius: 12px 0 0 12px; }
-.sidebar-header { padding: 10px 12px; border-bottom: 1px solid var(--border); }
-.sidebar-list { flex: 1; overflow-y: auto; padding: 6px 8px; }
-.conv-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 13px;
-  border: 1px solid transparent; margin-bottom: 2px;
-  display: flex; justify-content: space-between; align-items: center; }
-.conv-item:hover { background: var(--surface); }
-.conv-item.active { background: var(--surface); border-color: var(--accent); }
-.conv-item-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
-.conv-item-time { font-size: 10px; color: var(--muted); margin-left: 8px; white-space: nowrap; }
-.conv-item-del { visibility: hidden; margin-left: 4px; font-size: 12px; color: var(--muted); cursor: pointer; }
-.conv-item:hover .conv-item-del { visibility: visible; }
-.conv-item-del:hover { color: #f85149; }
-.sidebar-empty { text-align: center; color: var(--muted); padding: 40px 20px; font-size: 13px; }
-
-.chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.chat-card { background: var(--card-bg); border: 1px solid var(--border); border-left: none;
-  border-radius: 0 12px 12px 0; display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+.chat-card {
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+  display: flex; flex-direction: column; height: calc(100vh - 140px); min-height: 400px;
+  overflow: hidden;
+}
 .chat-messages {
   flex: 1; overflow-y: auto; padding: 16px 20px;
   display: flex; flex-direction: column; gap: 12px;
@@ -4798,147 +4947,27 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
 .empty-chat { text-align: center; color: var(--muted); padding: 60px 20px; }
 .empty-chat h2 { font-size: 24px; margin-bottom: 8px; }
 .empty-chat p { font-size: 14px; }
-.stream-cursor { animation: blink 1s infinite; color: var(--accent); }
-@keyframes blink { 0%,50% { opacity: 1; } 51%,100% { opacity: 0; } }
-
-/* 响应式: 小屏幕时隐藏侧边栏 */
-@media (max-width: 700px) {
-  .chat-sidebar { display: none; }
-  .chat-card { border-left: 1px solid var(--border); border-radius: 12px; }
-}
-
-/* 模型选择器 */
-.chat-header-bar {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 16px; border-bottom: 1px solid var(--border);
-  background: var(--card-bg); flex-shrink: 0;
-}
-.chat-header-bar .model-label {
-  font-size: 11px; color: var(--muted); white-space: nowrap;
-}
-.chat-header-bar select {
-  background: var(--bg); color: var(--text);
-  border: 1px solid var(--border); border-radius: 6px;
-  padding: 4px 8px; font-size: 12px; font-family: inherit;
-  outline: none; cursor: pointer; min-width: 140px;
-}
-.chat-header-bar select:focus { border-color: var(--accent); }
 </style>
-
-<div class="chat-layout">
-  <!-- ── 侧边栏: 对话列表 ── -->
-  <div class="chat-sidebar">
-    <div class="sidebar-header">
-      <button onclick="newChat()" style="width:100%;background:var(--accent);color:#fff;border:none;
-        border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:600;">➕ 新对话</button>
-    </div>
-    <div class="sidebar-list" id="convList">
-      <div class="sidebar-empty">加载中...</div>
+<div class="chat-card">
+  <div class="chat-messages" id="chatMessages">
+    <div class="empty-chat">
+      <h2>💬 meshctx Chat</h2>
+      <p>输入消息开始对话</p>
     </div>
   </div>
-  <!-- ── 主对话区 ── -->
-  <div class="chat-main">
-    <div class="chat-card">
-      <div class="chat-header-bar">
-        <span class="model-label">🤖 模型:</span>
-        <select id="modelSelect" onchange="onModelChange()">
-          <option value="">默认</option>
-        </select>
-        <span id="currentModelLabel" style="font-size:11px;color:var(--accent);display:none;"></span>
-        <button onclick="loadModelList()" title="刷新模型列表" style="background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;padding:2px 6px;font-size:12px;color:var(--muted);">🔄</button>
-      </div>
-      <div class="chat-messages" id="chatMessages">
-        <div class="empty-chat">
-          <h2>💬 meshctx Chat</h2>
-          <p>输入消息开始对话</p>
-        </div>
-      </div>
-      <div class="chat-input-area">
-        <textarea id="userInput" rows="1" placeholder="输入消息... (Enter 发送, Shift+Enter 换行)"
-              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"
-              oninput="this.style.height='';this.style.height=Math.min(this.scrollHeight,150)+'px';"></textarea>
-        <button onclick="send()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;
-              padding:10px 18px;cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap;">{{ t("send") }}</button>
-      </div>
-    </div>
+  <div class="chat-input-area">
+    <textarea id="userInput" rows="1" placeholder="输入消息... (Enter 发送, Shift+Enter 换行)"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"
+          oninput="this.style.height='';this.style.height=Math.min(this.scrollHeight,150)+'px';"></textarea>
+    <button onclick="send()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;
+          padding:10px 18px;cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap;">{{ t("send") }}</button>
   </div>
 </div>
-
 <script>
 var _convId = null;
 var _projectId = null;
-var _currentModel = '';
 var _msgContainer = document.getElementById('chatMessages');
 var _emptyState = _msgContainer.querySelector('.empty-chat');
-
-// ═══════════════ 模型选择 ═══════════════
-var _modelCache = null;
-
-async function loadModelList() {
-  var sel = document.getElementById('modelSelect');
-  sel.disabled = true;
-  try {
-    var res = await fetch('/api/models');
-    var data = await res.json();
-    _modelCache = data;
-    sel.innerHTML = '<option value="">默认</option>';
-    var models = data.models || [];
-    var defaultModel = data.current || data.default || '';
-    for (var i = 0; i < models.length; i++) {
-      var m = models[i];
-      if (m.usable || m.configured) {
-        var label = m.id + (m.current ? ' ⭐' : '');
-        sel.innerHTML += '<option value="' + m.id + '">' + label + '</option>';
-      }
-    }
-    // 恢复当前选择
-    if (_currentModel) sel.value = _currentModel;
-    updateModelLabel();
-  } catch(e) {
-    console.warn('loadModelList failed:', e);
-  }
-  sel.disabled = false;
-}
-
-function updateModelLabel() {
-  var lbl = document.getElementById('currentModelLabel');
-  if (_currentModel) {
-    lbl.textContent = '当前: ' + _currentModel;
-    lbl.style.display = '';
-  } else if (_modelCache && _modelCache.current) {
-    lbl.textContent = '默认: ' + _modelCache.current;
-    lbl.style.display = '';
-  } else {
-    lbl.style.display = 'none';
-  }
-}
-
-function onModelChange() {
-  var sel = document.getElementById('modelSelect');
-  _currentModel = sel.value;
-  updateModelLabel();
-  if (!_convId) return;
-  fetch('/api/conversations/' + _convId + '/model', {
-    method: 'PATCH',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({model: _currentModel})
-  }).catch(function(){});
-}
-
-// ═══════════════ 工具函数 ═══════════════
-function escapeHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-function formatTime(ts) {
-  if(!ts) return '';
-  var d = new Date(ts * 1000);
-  var now = new Date();
-  var diff = now - d;
-  if (diff < 60000) return '刚刚';
-  if (diff < 3600000) return Math.floor(diff/60000) + '分钟前';
-  if (diff < 86400000) return Math.floor(diff/3600000) + '小时前';
-  return d.toLocaleDateString('zh-CN');
-}
 
 function addMessage(role, content) {
   if (_emptyState) { _emptyState.remove(); _emptyState = null; }
@@ -4950,296 +4979,35 @@ function addMessage(role, content) {
   return el;
 }
 
-// ═══════════════ 对话管理 ═══════════════
-async function loadConversations() {
-  try {
-    var res = await fetch('/api/conversations/browse?limit=50');
-    var data = await res.json();
-    var convs = data.conversations || [];
-    renderConvList(convs);
-    return convs;
-  } catch(e) {
-    document.getElementById('convList').innerHTML = '<div class="sidebar-empty">加载失败</div>';
-    return [];
-  }
-}
-
-function renderConvList(convs) {
-  var list = document.getElementById('convList');
-  if (!convs || convs.length === 0) {
-    list.innerHTML = '<div class="sidebar-empty">暂无对话<br>点击上方按钮开始</div>';
-    return;
-  }
-  var html = '';
-  for (var i = 0; i < convs.length; i++) {
-    var c = convs[i];
-    var title = c.title || '新对话';
-    var active = c.id === _convId ? ' active' : '';
-    html += '<div class="conv-item' + active + '" onclick="switchConv(\'' + c.id + '\')">' +
-      '<span class="conv-item-title">' + escapeHtml(title) + '</span>' +
-      '<span class="conv-item-time">' + formatTime(c.created_at) + '</span>' +
-      '<span class="conv-item-del" onclick="event.stopPropagation();deleteConv(\'' + c.id + '\')">✕</span>' +
-      '</div>';
-  }
-  list.innerHTML = html;
-}
-
-async function newChat() {
-  try {
-    var res = await fetch('/api/conversations', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({title: '新对话'})
-    });
-    var data = await res.json();
-    _convId = data.id;
-    _currentModel = '';
-    document.getElementById('modelSelect').value = '';
-    updateModelLabel();
-    // 清空消息区
-    document.getElementById('chatMessages').innerHTML = '<div class="empty-chat"><h2>💬 meshctx Chat</h2><p>输入消息开始对话</p></div>';
-    _emptyState = document.getElementById('chatMessages').querySelector('.empty-chat');
-    await loadConversations();
-    document.getElementById('userInput').focus();
-  } catch(e) {
-    console.error('newChat failed:', e);
-  }
-}
-
-async function switchConv(convId) {
-  if (_convId === convId) return;
-  _convId = convId;
-  var container = document.getElementById('chatMessages');
-  container.innerHTML = '';
-  _emptyState = null;
-  try {
-    var res = await fetch('/api/conversations/' + convId);
-    if (!res.ok) throw new Error('not found');
-    var data = await res.json();
-    // 恢复模型选择
-    _currentModel = data.model || '';
-    document.getElementById('modelSelect').value = _currentModel;
-    updateModelLabel();
-    if (data.messages && data.messages.length > 0) {
-      for (var i = 0; i < data.messages.length; i++) {
-        var m = data.messages[i];
-        addMessage(m.role, m.content);
-      }
-    } else {
-      container.innerHTML = '<div class="empty-chat"><h2>💬 meshctx Chat</h2><p>输入消息开始对话</p></div>';
-      _emptyState = container.querySelector('.empty-chat');
-    }
-  } catch(e) {
-    container.innerHTML = '<div class="empty-chat"><h2>💬 meshctx Chat</h2><p>输入消息开始对话</p></div>';
-    _emptyState = container.querySelector('.empty-chat');
-  }
-  loadConversations();
-}
-
-async function deleteConv(convId) {
-  if (!confirm('删除此对话？')) return;
-  try {
-    await fetch('/api/conversations/' + convId, {method: 'DELETE'});
-    if (_convId === convId) {
-      _convId = null;
-      document.getElementById('chatMessages').innerHTML = '<div class="empty-chat"><h2>💬 meshctx Chat</h2><p>输入消息开始对话</p></div>';
-      _emptyState = document.getElementById('chatMessages').querySelector('.empty-chat');
-    }
-    await loadConversations();
-  } catch(e) {}
-}
-
-async function saveMessageToConv(role, content) {
-  if (!_convId || !content) return;
-  try {
-    await fetch('/api/conversations/' + _convId + '/messages', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({role: role, content: content})
-    });
-  } catch(e) {}
-}
-
-async function autoTitleFromMsg(msg) {
-  if (!_convId) return;
-  try {
-    var res = await fetch('/api/conversations/' + _convId);
-    var data = await res.json();
-    if (data.title === '新对话' || !data.title) {
-      var newTitle = msg.slice(0, 30).replace(/\n/g, ' ');
-      await fetch('/api/conversations/' + _convId + '/rename', {
-        method: 'PATCH',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({title: newTitle})
-      });
-    }
-  } catch(e) {}
-}
-
-// ═══════════════ 斜杠命令 ═══════════════
-function handleSlashCommand(cmd) {
-  var parts = cmd.split(' ');
-  var action = parts[0].toLowerCase();
-
-  if (action === '/model' && parts.length > 1) {
-    var modelId = parts.slice(1).join(' ');
-    _currentModel = modelId;
-    var sel = document.getElementById('modelSelect');
-    // 尝试选中对应选项
-    for (var i = 0; i < sel.options.length; i++) {
-      if (sel.options[i].value === modelId) {
-        sel.value = modelId; break;
-      }
-    }
-    if (_convId) {
-      fetch('/api/conversations/' + _convId + '/model', {
-        method: 'PATCH',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({model: modelId})
-      });
-    }
-    addMessage('system', '✓ 模型已切换为: ' + modelId);
-  } else if (action === '/model') {
-    var current = _currentModel || '默认';
-    addMessage('system', '当前模型: ' + current);
-  } else if (action === '/models') {
-    fetch('/api/models').then(function(r){return r.json()}).then(function(d){
-      var list = (d.models||[]).map(function(m){return m.id + (m.current?' ⭐':'')}).join(', ');
-      addMessage('system', '可用模型: ' + list);
-    });
-  } else if (action === '/help') {
-    addMessage('system', '命令: /model <id> 切换模型 | /models 列出 | /model 当前 | /clear 清空 | /help');
-  } else if (action === '/clear') {
-    document.getElementById('chatMessages').innerHTML = '<div class="empty-chat"><h2>💬 meshctx Chat</h2><p>输入消息开始对话</p></div>';
-    _emptyState = document.getElementById('chatMessages').querySelector('.empty-chat');
-  } else {
-    addMessage('system', '未知命令: ' + cmd + ' (输入 /help 查看)');
-  }
-}
-
-// ═══════════════ 发送消息 ═══════════════
 async function send() {
   var input = document.getElementById('userInput');
   var text = input.value.trim();
   if (!text) return;
   input.value = ''; input.style.height = '';
-
-  // ── 斜杠命令处理 ──
-  if (text.startsWith('/')) {
-    handleSlashCommand(text);
-    return;
-  }
-
-  // 自动创建对话
-  if (!_convId) {
-    try {
-      var cr = await fetch('/api/conversations', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({title: text.slice(0, 30).replace(/\n/g, ' ')})
-      });
-      var cd = await cr.json();
-      _convId = cd.id;
-      loadConversations();
-    } catch(e) {}
-  }
-
   addMessage('user', text);
-  saveMessageToConv('user', text);
-  // 第一条消息作标题
-  autoTitleFromMsg(text);
-
-  // 流式SSE — 支持工具调用实时展示 (v3.115.22)
-  var aiEl = addMessage('assistant', '');
-  var cursor = document.createElement('span');
-  cursor.className = 'stream-cursor';
-  cursor.textContent = '▌';
-  aiEl.appendChild(cursor);
-
-  var streamText = '';
+  
   try {
-    var res = await fetch('/api/chat/stream', {
+    var res = await fetch('/api/chat', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         message: text,
         project_id: _projectId || null,
-        conversation_id: _convId || null,
-        model: _currentModel || undefined
+        conversation_id: _convId || null
       })
     });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-
-    var reader = res.body.getReader();
-    var decoder = new TextDecoder();
-    var buffer = '';
-
-    while (true) {
-      var chunk = await reader.read();
-      if (chunk.done) break;
-      buffer += decoder.decode(chunk.value, {stream: true});
-      var lines = buffer.split('\n');
-      buffer = lines.pop();
-
-      for (var i = 0; i < lines.length; i++) {
-        var line = lines[i];
-        if (!line.startsWith('data: ')) continue;
-        var data = line.slice(6);
-
-        if (data === '[DONE]') {
-          cursor.remove();
-          if (typeof marked !== 'undefined') {
-            aiEl.innerHTML = marked.parse(streamText);
-          } else {
-            aiEl.textContent = streamText;
-          }
-          saveMessageToConv('assistant', streamText);
-          return;
-        }
-
-        try {
-          var parsed = JSON.parse(data);
-          if (parsed.error) {
-            aiEl.textContent = '⚠️ ' + parsed.error;
-            cursor.remove();
-            saveMessageToConv('assistant', streamText || parsed.error);
-            return;
-          }
-          if (parsed.content) {
-            streamText += parsed.content;
-            if (typeof marked !== 'undefined') {
-              aiEl.innerHTML = marked.parse(streamText) + '<span class="stream-cursor">▌</span>';
-            } else {
-              aiEl.textContent = streamText;
-              cursor.remove();
-              cursor = document.createElement('span');
-              cursor.className = 'stream-cursor';
-              cursor.textContent = '▌';
-              aiEl.appendChild(cursor);
-            }
-          }
-        } catch (e) { /* skip malformed JSON */ }
-      }
+    var data = await res.json();
+    if (data.error) {
+      addMessage('assistant', '⚠️ ' + data.error);
+    } else {
+      if (!_convId) _convId = data.conversation_id;
+      if (!_projectId) _projectId = data.project_id;
+      addMessage('assistant', data.response || data.content || '(empty response)');
     }
-    cursor.remove();
-    saveMessageToConv('assistant', streamText);
   } catch (err) {
-    cursor.remove();
-    aiEl.textContent = '⚠️ 网络错误: ' + err.message;
-    saveMessageToConv('assistant', '⚠️ ' + err.message);
+    addMessage('assistant', '⚠️ 网络错误: ' + err.message);
   }
 }
-
-// ═══════════════ 初始化 ═══════════════
-(async function init() {
-  loadModelList();
-  var convs = await loadConversations();
-  if (convs.length > 0) {
-    // 自动恢复最近对话
-    _convId = convs[0].id;
-    switchConv(_convId);
-  }
-})();
 
 // v1.5.9: Desktop快速提问监听
 window.addEventListener('message', function(e){

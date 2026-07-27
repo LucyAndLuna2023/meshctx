@@ -13,8 +13,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .crypto import encrypt_key, decrypt_key, is_encrypted
-
 logger = logging.getLogger("meshctx.credential_pool")
 
 
@@ -282,18 +280,13 @@ class CredentialPoolManager:
     # ── Persistence ────────────────────────────────────────
 
     def _save(self):
-        """Save pools to disk if a pool_file was specified. Keys are encrypted at rest."""
+        """Save pools to disk if a pool_file was specified."""
         if not self._pool_file:
             return
         try:
-            data = {"pools": {}}
-            for name, pool in self.pools.items():
-                pool_dict = pool.to_dict()
-                # Encrypt each key at rest
-                for kd in pool_dict.get("keys", []):
-                    if kd.get("key") and not is_encrypted(kd["key"]):
-                        kd["key"] = encrypt_key(kd["key"])
-                data["pools"][name] = pool_dict
+            data = {
+                "pools": {name: pool.to_dict() for name, pool in self.pools.items()},
+            }
             p = Path(self._pool_file)
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(json.dumps(data, indent=2))
@@ -301,14 +294,10 @@ class CredentialPoolManager:
             logger.error(f"Failed to save credential pools: {e}")
 
     def _load(self):
-        """Load pools from disk. Keys are decrypted on load (backward-compat with plaintext)."""
+        """Load pools from disk."""
         try:
             data = json.loads(Path(self._pool_file).read_text())
             for name, pd in data.get("pools", {}).items():
-                # Decrypt keys that were stored encrypted
-                for kd in pd.get("keys", []):
-                    if kd.get("key") and is_encrypted(kd["key"]):
-                        kd["key"] = decrypt_key(kd["key"])
                 self.pools[name] = PoolConfig.from_dict(pd)
         except Exception as e:
             logger.error(f"Failed to load credential pools: {e}")

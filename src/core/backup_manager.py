@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """backup_manager — Backup snapshot management with policy-based rotation.
 
 Creates compressed archives (tar.gz) of directories, tracks metadata as JSON,
@@ -7,6 +5,9 @@ and supports restore, delete, and smart rotation (daily/weekly/monthly retention
 Uses only Python stdlib — shutil, tarfile, json, pathlib, datetime, os.
 """
 __all__ = ['BackupSnapshot', 'BackupManager']
+
+
+from __future__ import annotations
 
 import json
 import os
@@ -308,4 +309,9 @@ class BackupManager:
 
         return deleted
 
+
+# ---------------------------------------------------------------------------
+# _P compatibility stub — keeps module importable when real classes aren't
+# needed.  Module-level __getattr__ returns a _P proxy for any undefined name.
+# ---------------------------------------------------------------------------
 

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://xtyjsjlkljzdgvqpskyk.supabase.co https://api.github.com; img-src 'self' data: https://avatars.githubusercontent.com; frame-src https://xtyjsjlkljzdgvqpskyk.supabase.co;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://xtyjsjlkljzdgvqpskyk.supabase.co https://api.github.com; img-src 'self' data: https://avatars.githubusercontent.com; frame-src https://xtyjsjlkljzdgvqpskyk.supabase.co; form-action 'self' https://xtyjsjlkljzdgvqpskyk.supabase.co; base-uri 'self'; object-src 'none';">
 <title>Download MeshCtx</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -46,7 +46,6 @@ td:last-child{color:#00cec9;font-weight:600}
       <option value="ja" data-lang-key="opt_ja">日本語</option>
       <option value="ko" data-lang-key="opt_ko">한국어</option>
       <option value="es" data-lang-key="opt_es">Español</option>
-      <option value="ru" data-lang-key="opt_ru">Русский</option>
     </select>
   </div>
   <h1 data-lang-key="meta_title">Download MeshCtx</h1>
@@ -55,7 +54,7 @@ td:last-child{color:#00cec9;font-weight:600}
   <div class="cards">
     <div class="card">
       <h2 data-lang-key="installer_title">📦 Installer</h2>
-      <p data-lang-key="installer_desc">NSIS installer with 8 languages</p>
+      <p data-lang-key="installer_desc">NSIS installer with 7 languages</p>
       <div class="size" data-lang-key="installer_size">~212 MB</div>
       <a href="https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-setup.exe" class="btn btn-primary" data-lang-key="installer_btn">Download Setup</a>
     </div>
@@ -102,7 +101,7 @@ const L = {
         version_badge: "✨ Latest Release",
         dl_subtitle: "World's First Self-Evolving Agent System",
         installer_title: "📦 Installer",
-        installer_desc: "NSIS installer with 8 languages",
+        installer_desc: "NSIS installer with 7 languages",
         installer_size: "~212 MB",
         installer_btn: "Download Setup",
         portable_title: "📂 Portable",
@@ -128,7 +127,6 @@ const L = {
         opt_ja: "🇯🇵 日本語",
         opt_ko: "🇰🇷 한국어",
         opt_es: "🇪🇸 Español",
-        opt_ru: "🇷🇺 Русский",
         bench_dq: "Decision Quality",
         bench_fef: "FreeEnergy F",
         bench_rs: "Resource Survival",
@@ -145,7 +143,7 @@ const L = {
         version_badge: "✨ 最新版本",
         dl_subtitle: "全球首个自进化Agent系统",
         installer_title: "📦 安装程序",
-        installer_desc: "NSIS安装程序 支持8种语言",
+        installer_desc: "NSIS安装程序 支持7种语言",
         installer_size: "~212 MB",
         installer_btn: "下载安装程序",
         portable_title: "📂 便携版",
@@ -171,7 +169,6 @@ const L = {
         opt_ja: "🇯🇵 日本語",
         opt_ko: "🇰🇷 한국어",
         opt_es: "🇪🇸 Español",
-        opt_ru: "🇷🇺 Русский",
         bench_dq: "决策质量",
         bench_fef: "自由能F",
         bench_rs: "资源生存",
@@ -188,7 +185,7 @@ const L = {
         version_badge: "✨ Dernière Version",
         dl_subtitle: "Premier système d'agent auto-évolutif",
         installer_title: "📦 Installateur",
-        installer_desc: "Installateur NSIS avec 8 langues",
+        installer_desc: "Installateur NSIS avec 7 langues",
         installer_size: "~212 MB",
         installer_btn: "Télécharger",
         portable_title: "📂 Portable",
@@ -214,7 +211,6 @@ const L = {
         opt_ja: "🇯🇵 日本語",
         opt_ko: "🇰🇷 한국어",
         opt_es: "🇪🇸 Español",
-        opt_ru: "🇷🇺 Русский",
         bench_dq: "Qualité décision",
         bench_fef: "FreeEnergy F",
         bench_rs: "Survie ressources",
@@ -231,7 +227,7 @@ const L = {
         version_badge: "✨ Neueste Version",
         dl_subtitle: "Weltweit erstes selbstentwickelndes Agent-System",
         installer_title: "📦 Installationsprogramm",
-        installer_desc: "NSIS-Installationsprogramm mit 8 Sprachen",
+        installer_desc: "NSIS-Installationsprogramm mit 7 Sprachen",
         installer_size: "~212 MB",
         installer_btn: "Herunterladen",
         portable_title: "📂 Portable",
@@ -257,7 +253,6 @@ const L = {
         opt_ja: "🇯🇵 日本語",
         opt_ko: "🇰🇷 한국어",
         opt_es: "🇪🇸 Español",
-        opt_ru: "🇷🇺 Русский",
         bench_dq: "Entscheidungsqual.",
         bench_fef: "FreeEnergy F",
         bench_rs: "Ressourcenüberl.",
@@ -269,7 +264,7 @@ const L = {
         bench_br: "Gehirnregionen",
         bench_sim: "Simuliert",
     },
-    ja: { meta_title:"MeshCtx ダウンロード", version_badge:"✨ 最新リリース", dl_subtitle:"世界初の自己進化型Agentシステム", installer_title:"📦 インストーラー", installer_desc:"8言語対応NSISインストーラー", installer_size:"~212 MB", installer_btn:"ダウンロード", portable_title:"📂 ポータブル", portable_desc:"自己完結型ZIP — 解凍して実行", portable_size:"~210 MB", portable_btn:"ZIPダウンロード", exe_title:"⚙️ スタンドアロンEXE", exe_desc:"単一実行ファイル ランタイム内蔵", exe_size:"~215 MB", exe_btn:"EXEダウンロード", dmg_title:"🍎 macOS DMG", dmg_desc:"ネイティブmacOSアプリ", dmg_size:"~211 MB", dmg_btn:"DMGダウンロード", bench_title:"📊 ベンチマーク結果", bench_scenario:"シナリオ", bench_metric:"指標", bench_improvement:"改善"
+    ja: { meta_title:"MeshCtx ダウンロード", version_badge:"✨ 最新リリース", dl_subtitle:"世界初の自己進化型Agentシステム", installer_title:"📦 インストーラー", installer_desc:"7言語対応NSISインストーラー", installer_size:"~212 MB", installer_btn:"ダウンロード", portable_title:"📂 ポータブル", portable_desc:"自己完結型ZIP — 解凍して実行", portable_size:"~210 MB", portable_btn:"ZIPダウンロード", exe_title:"⚙️ スタンドアロンEXE", exe_desc:"単一実行ファイル ランタイム内蔵", exe_size:"~215 MB", exe_btn:"EXEダウンロード", dmg_title:"🍎 macOS DMG", dmg_desc:"ネイティブmacOSアプリ", dmg_size:"~211 MB", dmg_btn:"DMGダウンロード", bench_title:"📊 ベンチマーク結果", bench_scenario:"シナリオ", bench_metric:"指標", bench_improvement:"改善"
         opt_en: "🇺🇸 English",
         opt_zh: "🇨🇳 中文",
         opt_fr: "🇫🇷 Français",
@@ -277,7 +272,6 @@ const L = {
         opt_ja: "🇯🇵 日本語",
         opt_ko: "🇰🇷 한국어",
         opt_es: "🇪🇸 Español",
-        opt_ru: "🇷🇺 Русский",
         bench_dq: "決定品質",
         bench_fef: "自由エネルギーF",
         bench_rs: "リソース生存",
@@ -288,7 +282,7 @@ const L = {
         bench_supported: "サポート",
         bench_br: "脳領域",
         bench_sim: "シミュレート", },
-    ko: { meta_title:"MeshCtx 다운로드", version_badge:"✨ 최신 릴리스", dl_subtitle:"세계 최초의 자가 진화 Agent 시스템", installer_title:"📦 설치 프로그램", installer_desc:"8개 언어 NSIS 설치 프로그램", installer_size:"~212 MB", installer_btn:"다운로드", portable_title:"📂 휴대용", portable_desc:"자체 포함 ZIP — 압축 해제 후 실행", portable_size:"~210 MB", portable_btn:"ZIP 다운로드", exe_title:"⚙️ 독립형 EXE", exe_desc:"단일 실행 파일 런타임 내장", exe_size:"~215 MB", exe_btn:"EXE 다운로드", dmg_title:"🍎 macOS DMG", dmg_desc:"네이티브 macOS 앱", dmg_size:"~211 MB", dmg_btn:"DMG 다운로드", bench_title:"📊 벤치마크 결과", bench_scenario:"시나리오", bench_metric:"지표", bench_improvement:"개선"
+    ko: { meta_title:"MeshCtx 다운로드", version_badge:"✨ 최신 릴리스", dl_subtitle:"세계 최초의 자가 진화 Agent 시스템", installer_title:"📦 설치 프로그램", installer_desc:"7개 언어 NSIS 설치 프로그램", installer_size:"~212 MB", installer_btn:"다운로드", portable_title:"📂 휴대용", portable_desc:"자체 포함 ZIP — 압축 해제 후 실행", portable_size:"~210 MB", portable_btn:"ZIP 다운로드", exe_title:"⚙️ 독립형 EXE", exe_desc:"단일 실행 파일 런타임 내장", exe_size:"~215 MB", exe_btn:"EXE 다운로드", dmg_title:"🍎 macOS DMG", dmg_desc:"네이티브 macOS 앱", dmg_size:"~211 MB", dmg_btn:"DMG 다운로드", bench_title:"📊 벤치마크 결과", bench_scenario:"시나리오", bench_metric:"지표", bench_improvement:"개선"
         opt_en: "🇺🇸 English",
         opt_zh: "🇨🇳 中文",
         opt_fr: "🇫🇷 Français",
@@ -296,7 +290,6 @@ const L = {
         opt_ja: "🇯🇵 日本語",
         opt_ko: "🇰🇷 한국어",
         opt_es: "🇪🇸 Español",
-        opt_ru: "🇷🇺 Русский",
         bench_dq: "의사결정 품질",
         bench_fef: "자유에너지 F",
         bench_rs: "자원 생존",
@@ -307,7 +300,7 @@ const L = {
         bench_supported: "지원",
         bench_br: "뇌 영역",
         bench_sim: "시뮬레이션", },
-    es: { meta_title:"Descargar MeshCtx", version_badge:"✨ Última Versión", dl_subtitle:"Primer sistema de agente auto-evolutivo del mundo", installer_title:"📦 Instalador", installer_desc:"Instalador NSIS con 8 idiomas", installer_size:"~212 MB", installer_btn:"Descargar", portable_title:"📂 Portátil", portable_desc:"ZIP autocontenido — extraer y ejecutar", portable_size:"~210 MB", portable_btn:"Descargar ZIP", exe_title:"⚙️ EXE Independiente", exe_desc:"Ejecutable único, runtime integrado", exe_size:"~215 MB", exe_btn:"Descargar EXE", dmg_title:"🍎 macOS DMG", dmg_desc:"Paquete macOS nativo", dmg_size:"~211 MB", dmg_btn:"Descargar DMG", bench_title:"📊 Resultados Benchmark", bench_scenario:"Escenario", bench_metric:"Métrica", bench_improvement:"Mejora"
+    es: { meta_title:"Descargar MeshCtx", version_badge:"✨ Última Versión", dl_subtitle:"Primer sistema de agente auto-evolutivo del mundo", installer_title:"📦 Instalador", installer_desc:"Instalador NSIS con 7 idiomas", installer_size:"~212 MB", installer_btn:"Descargar", portable_title:"📂 Portátil", portable_desc:"ZIP autocontenido — extraer y ejecutar", portable_size:"~210 MB", portable_btn:"Descargar ZIP", exe_title:"⚙️ EXE Independiente", exe_desc:"Ejecutable único, runtime integrado", exe_size:"~215 MB", exe_btn:"Descargar EXE", dmg_title:"🍎 macOS DMG", dmg_desc:"Paquete macOS nativo", dmg_size:"~211 MB", dmg_btn:"Descargar DMG", bench_title:"📊 Resultados Benchmark", bench_scenario:"Escenario", bench_metric:"Métrica", bench_improvement:"Mejora"
         opt_en: "🇺🇸 English",
         opt_zh: "🇨🇳 中文",
         opt_fr: "🇫🇷 Français",
@@ -315,7 +308,6 @@ const L = {
         opt_ja: "🇯🇵 日本語",
         opt_ko: "🇰🇷 한국어",
         opt_es: "🇪🇸 Español",
-        opt_ru: "🇷🇺 Русский",
         bench_dq: "Calidad decisión",
         bench_fef: "FreeEnergy F",
         bench_rs: "Supervivencia rec.",
@@ -325,50 +317,7 @@ const L = {
         bench_models: "Modelos",
         bench_supported: "Soportados",
         bench_br: "Regiones cerebrales",
-        bench_sim: "Simuladas", },
-    ru: {
-        meta_title: "Скачать MeshCtx",
-        version_badge: "✨ Последняя версия",
-        dl_subtitle: "Первая в мире саморазвивающаяся агентная система",
-        installer_title: "📦 Установщик",
-        installer_desc: "NSIS установщик с 8 языками",
-        installer_size: "~212 МБ",
-        installer_btn: "Скачать установщик",
-        portable_title: "📂 Портативная",
-        portable_desc: "Автономный ZIP — распаковать и запустить",
-        portable_size: "~210 МБ",
-        portable_btn: "Скачать ZIP",
-        exe_title: "⚙️ Отдельный EXE",
-        exe_desc: "Один исполняемый файл, встроенная среда",
-        exe_size: "~215 МБ",
-        exe_btn: "Скачать EXE",
-        dmg_title: "🍎 macOS DMG",
-        dmg_desc: "Нативное приложение macOS",
-        dmg_size: "~211 МБ",
-        dmg_btn: "Скачать DMG",
-        bench_title: "📊 Результаты тестов",
-        bench_scenario: "Сценарий",
-        bench_metric: "Метрика",
-        bench_improvement: "Улучшение",
-        opt_en: "🇺🇸 English",
-        opt_zh: "🇨🇳 中文",
-        opt_fr: "🇫🇷 Français",
-        opt_de: "🇩🇪 Deutsch",
-        opt_ja: "🇯🇵 日本語",
-        opt_ko: "🇰🇷 한국어",
-        opt_es: "🇪🇸 Español",
-        opt_ru: "🇷🇺 Русский",
-        bench_dq: "Качество решений",
-        bench_fef: "Свободная энергия F",
-        bench_rs: "Выживаемость ресурсов",
-        bench_100t: "100 задач",
-        bench_conv: "Сходимость",
-        bench_ar: "Средняя награда",
-        bench_models: "Модели",
-        bench_supported: "Поддерживается",
-        bench_br: "Области мозга",
-        bench_sim: "Симуляция",
-    },
+        bench_sim: "Simuladas", }
 };
 
 function switchLang(lang) {

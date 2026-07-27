@@ -95,13 +95,13 @@ Reply with ONLY the JSON array, no other text."""
         text = re.sub(r'```', '', text)
         try:
             return json.loads(text)
-        except:
+    except Exception:
             # 尝试提取 JSON 数组
             m = re.search(r'\[.*\]', text, re.DOTALL)
             if m:
                 try:
                     return json.loads(m.group())
-                except:
+    except Exception:
                     pass
         return []
 
@@ -179,13 +179,14 @@ class LLMPREngine:
         return self._rule_pr(pr_type, diff)
 
     def _get_diff(self, base: str, head: str) -> str:
+        import shlex
         try:
             r = subprocess.run(
-                f"git diff {base}..{head} --stat && echo '---' && git diff {base}..{head} -- . ':(exclude)*.lock' ':(exclude)*.json'",
+                f"git diff {shlex.quote(base)}..{shlex.quote(head)} --stat && echo '---' && git diff {shlex.quote(base)}..{shlex.quote(head)} -- . ':(exclude)*.lock' ':(exclude)*.json'",
                 shell=True, capture_output=True, text=True, timeout=20, executable='/bin/bash'
             )
             return r.stdout[:4000]
-        except:
+    except Exception:
             return ""
 
     def _llm_pr(self, pr_type: str, diff: str) -> PRDescription:
@@ -212,7 +213,7 @@ Reply with ONLY the JSON object."""
                 breaking=data.get("breaking", False),
                 reviewer=data.get("reviewer", ""),
             )
-        except:
+    except Exception:
             return self._rule_pr(pr_type, diff)
 
     def _rule_pr(self, pr_type: str, diff: str) -> PRDescription:
@@ -273,7 +274,7 @@ Focus on: bugs, security, performance, error handling, naming. Reply with ONLY J
             )
             data = json.loads(re.sub(r'```(?:json)?\s*|```', '', resp.content).strip())
             return [ReviewComment(**c) for c in data if c.get("message")]
-        except:
+    except Exception:
             return self._rule_review(diff)
 
     def _rule_review(self, diff: str) -> list[ReviewComment]:

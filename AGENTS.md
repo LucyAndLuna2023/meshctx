@@ -14,8 +14,8 @@
 - 多Agent: swarm 0 worker vs CrewAI/AutoGen 成熟
 - 工具生态: 61% stub → 持续消减中
 - 可观测性: print日志 vs Langfuse 全链路 tracing
-- MCP协议: 已集成 (src/mcp_server.py, 312行, 13 defs/classes)
-- Docker沙箱: 已有 (docker-compose.yml + Dockerfile, 多模型API Key支持)
+- MCP协议: 未集成 vs 全部主流框架已集成
+- Docker沙箱: 无 vs 标准配置
 - 生产: 单机 vs 企业HA+灰度
 唯一护城河: IIT意识引擎(Φ计算) + JEPA世界模型 + 元认知 + SWE-bench 98.7%
 追赶优先级: P0=MCP(2天)+Docker(3天) P1=消stub+训练JEPA P2=观测+HA

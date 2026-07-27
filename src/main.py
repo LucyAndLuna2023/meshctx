@@ -512,7 +512,7 @@ app.add_middleware(
     allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
 )
 
 # ── Security Headers Middleware ───────────────────────────────
@@ -568,10 +568,18 @@ async def rate_limit_middleware(request: Request, call_next):
     client_ip = request.client.host if request.client else "unknown"
     now = time.time()
     
-    # Periodic cleanup
+    # Periodic cleanup: 滑动窗口过期清理，保留 30 分钟历史
     if now - _rate_limits_last_cleanup > RATE_CLEANUP_INTERVAL:
-        _rate_limits.clear()
-        _suspicious_ips.clear()
+        # 清理超过 1800s 的旧条目（而非全量清空）
+        expired_threshold = now - 1800
+        for ip in list(_rate_limits.keys()):
+            _rate_limits[ip] = [t for t in _rate_limits[ip] if now - t < RATE_WINDOW]
+            if not _rate_limits[ip]:
+                del _rate_limits[ip]
+        for ip in list(_suspicious_ips.keys()):
+            _suspicious_ips[ip] = [t for t in _suspicious_ips[ip] if now - t < _SUSPICIOUS_WINDOW]
+            if not _suspicious_ips[ip]:
+                del _suspicious_ips[ip]
         _rate_limits_last_cleanup = now
     
     # Suspicious IP check
@@ -725,6 +733,33 @@ async def metrics_middleware(request: Request, call_next):
     elapsed = (time.time() - t0) * 1000
     _metrics.record(elapsed)
     return response
+
+
+@app.middleware("http")
+async def csrf_middleware(request: Request, call_next):
+    """CSRF 保护：对状态变更请求验证 Origin/Referer"""
+    if request.method in ("POST", "PUT", "DELETE", "PATCH"):
+        origin = request.headers.get("origin", "")
+        referer = request.headers.get("referer", "")
+        host = request.headers.get("host", "")
+        # 允许同源请求（Origin 匹配 Host）
+        if origin:
+            origin_host = origin.split("://", 1)[-1] if "://" in origin else origin
+            if origin_host == host:
+                return await call_next(request)
+        # 允许 Referer 匹配 Host
+        if referer:
+            ref_host = referer.split("://", 1)[-1].split("/", 1)[0] if "://" in referer else referer.split("/", 1)[0]
+            if ref_host == host:
+                return await call_next(request)
+        # 允许 X-Requested-With（浏览器 fetch/XHR 自动带，跨域不可伪造）
+        if request.headers.get("x-requested-with", "").lower() == "xmlhttprequest":
+            return await call_next(request)
+        # 无 Origin/Referer 的非浏览器客户端（如 curl）放行
+        if not origin and not referer:
+            return await call_next(request)
+        return JSONResponse({"detail": "CSRF validation failed"}, status_code=403)
+    return await call_next(request)
 
 
 # ─── 静态文件 ────────────────────────────────────────────

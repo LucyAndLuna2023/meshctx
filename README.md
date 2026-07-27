@@ -1,16 +1,16 @@
 <p align="center">
   <img src="docs/assets/logo.png" alt="MeshCtx" width="200">
-  <h1 align="center">🧠 MeshCtx v3.115.31</h1>
-  <h3 align="center">世界第一全脑仿真自进化AI Agent · SDM突破性记忆 · 自修改代码 · 全量测试 · 17脑区 · 17模块 · Swarm代码生成 · 11工具链</h3>
+  <h1 align="center">🧠 MeshCtx v3.115.18</h1>
+  <h3 align="center">世界第一全脑仿真自进化AI Agent · SDM突破性记忆 · 自修改代码 · 全量测试 · 17脑区 · 17模块 · DeepSeek TUI竞品对标</h3>
 </p>
 
 <p align="center">
   <a href="LEGAL.md"><img src="https://img.shields.io/badge/license-AGPLv3+Commercial-blue"></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.10+-green"></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-3320-brightgreen"></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-1279-brightgreen"></a>
   <a href="#"><img src="https://img.shields.io/badge/modules-17-purple"></a>
   <a href="#"><img src="https://img.shields.io/badge/brain_regions-17-orange"></a>
-  <a href="#"><img src="https://img.shields.io/badge/languages-9-red"></a>
+  <a href="#"><img src="https://img.shields.io/badge/languages-7-red"></a>
   <a href="#"><img src="https://img.shields.io/badge/papers-3-blue"></a>
 </p>
 
@@ -56,12 +56,6 @@ meshctx desktop        # Windows桌面客户端
 ---
 
 ## 🧠 核心特性
-
-### 多模型自由切换 (v3.115.25) 🆕
-- **每会话独立模型**: 每个对话窗口可选择不同AI模型，切换会话自动恢复
-- **Web UI 下拉菜单**: 聊天页顶部一键切换，实时生效
-- **CLI 斜杠命令**: `/model deepseek:v4-pro` 切换，`/model` 查看当前，`/models` 列出可用
-- **跨平台统一**: Linux / Windows / macOS 浏览器访问同一套 Web UI
 
 ### 脑启发AI引擎
 - **17脑区全脑仿真**: 自由能原理 · 主动推理 · 全局工作空间 · 稳态调节

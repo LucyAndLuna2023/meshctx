@@ -1,7 +1,7 @@
 """
 meshctx Multi-Agent Orchestrator (v3.115.16)
 Task DAG decomposition → parallel execution → dependency resolution.
-Real implementation per iron law.
+Zero _P — real implementation per iron law.
 """
 from dataclasses import dataclass, field
 from enum import Enum

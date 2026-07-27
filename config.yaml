@@ -3,7 +3,7 @@ models:
   entries:
     deepseek:v4-pro:
       base_url: https://api.deepseek.com
-      key: enc:sk-b6c...613f
+      key: ${DEEPSEEK_API_KEY}
       model: ''
       provider: deepseek
 server:

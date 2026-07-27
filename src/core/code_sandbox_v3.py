@@ -1,4 +1,4 @@
-"""meshctx code_sandbox_v3 — v3.115.17: Docker isolation + subprocess hardening"""
+"""meshctx code_sandbox_v3 — v3.98 fixed"""
 from __future__ import annotations
 import hashlib
 import json
@@ -6,10 +6,8 @@ import os
 import subprocess
 import tempfile
 import time
-import shutil
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path
 from typing import Any
 
 
@@ -87,12 +85,6 @@ HIGH_RISK_PATTERNS = [
     r'requests\.',
 ]
 
-# Docker sandbox constants
-_DOCKER_IMAGE = "meshctx-sandbox:latest"
-_DOCKER_MEMORY_LIMIT = "512m"
-_DOCKER_CPU_LIMIT = 1.0
-_DOCKER_TIMEOUT_EXTRA = 5  # extra seconds for Docker overhead
-
 
 def _security_scan(code: str, language: SandboxLanguage) -> SandboxRiskLevel:
     import re
@@ -105,27 +97,9 @@ def _security_scan(code: str, language: SandboxLanguage) -> SandboxRiskLevel:
     return SandboxRiskLevel.LOW
 
 
-def _set_resource_limits():
-    """Set resource limits for subprocess hardening (Unix only)."""
-    try:
-        import resource
-        # CPU time: 30s soft, 35s hard
-        resource.setrlimit(resource.RLIMIT_CPU, (30, 35))
-        # Address space: 512MB
-        resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024, 1024 * 1024 * 1024))
-        # File size: 100MB
-        resource.setrlimit(resource.RLIMIT_FSIZE, (100 * 1024 * 1024, 200 * 1024 * 1024))
-        # NPROC: prevent fork bombs (max 50 processes)
-        resource.setrlimit(resource.RLIMIT_NPROC, (50, 100))
-        # NOFILE: limit open files
-        resource.setrlimit(resource.RLIMIT_NOFILE, (256, 512))
-    except Exception:
-        pass  # resource module not available (e.g. Windows)
-
-
 class CodeSandboxV3:
     def __init__(self, use_docker: bool | None = None, timeout: int = 30,
-                 max_output: int = 100000, enable_security_scan: bool = True):
+                 max_output: int = 100000, enable_security_scan: bool = False):
         if use_docker is None:
             use_docker = self._detect_docker()
         self._docker_available = bool(use_docker) if use_docker is not None else False
@@ -161,130 +135,6 @@ class CodeSandboxV3:
         )
         self._audit_entries.append(entry)
 
-    # ── Docker execution ───────────────────────────────────
-
-    def _run_in_docker(self, code: str, language: SandboxLanguage,
-                       timeout: int, exec_id: str,
-                       risk_level: SandboxRiskLevel) -> CodeSandboxResult:
-        """Execute code in an isolated Docker container."""
-        ext_map = {
-            SandboxLanguage.PYTHON: ".py",
-            SandboxLanguage.BASH: ".sh",
-            SandboxLanguage.JAVASCRIPT: ".js",
-            SandboxLanguage.GO: ".go",
-        }
-        cmd_map = {
-            SandboxLanguage.PYTHON: ["python3"],
-            SandboxLanguage.BASH: ["bash"],
-            SandboxLanguage.JAVASCRIPT: ["node"],
-            SandboxLanguage.GO: ["go", "run"],
-        }
-        ext = ext_map.get(language, ".txt")
-        cmd = cmd_map.get(language, ["cat"])
-
-        tmpdir = tempfile.mkdtemp(prefix="sandbox_")
-        code_path = os.path.join(tmpdir, f"code{ext}")
-        try:
-            with open(code_path, "w") as f:
-                f.write(code)
-
-            docker_cmd = [
-                "docker", "run", "--rm",
-                "--network=none",
-                f"--memory={_DOCKER_MEMORY_LIMIT}",
-                f"--cpus={_DOCKER_CPU_LIMIT}",
-                "--read-only",
-                "--tmpfs", "/tmp:rw,noexec,nosuid,size=128m",
-                "--security-opt=no-new-privileges",
-                "--cap-drop=ALL",
-                "--pids-limit=100",
-                "-v", f"{code_path}:/sandbox/code{ext}:ro",
-                "-w", "/sandbox",
-                _DOCKER_IMAGE,
-            ] + cmd + [f"/sandbox/code{ext}"]
-
-            result = subprocess.run(
-                docker_cmd,
-                capture_output=True, text=True,
-                timeout=timeout + _DOCKER_TIMEOUT_EXTRA,
-            )
-            output, truncated = self._truncate(result.stdout)
-            status = SandboxStatus.SUCCESS if result.returncode == 0 else SandboxStatus.ERROR
-            self._add_audit(code, language, status, risk_level, exec_id)
-            return CodeSandboxResult(
-                output=output, error=result.stderr, exit_code=result.returncode,
-                status=status, language=language, execution_id=exec_id,
-                truncated=truncated,
-            )
-        except subprocess.TimeoutExpired:
-            self._add_audit(code, language, SandboxStatus.TIMEOUT, risk_level, exec_id)
-            return CodeSandboxResult(
-                error="TIMEOUT: execution exceeded time limit",
-                status=SandboxStatus.TIMEOUT, language=language,
-                execution_id=exec_id,
-            )
-        except FileNotFoundError:
-            # Docker not found — fall through to subprocess
-            return self._run_subprocess(code, language, timeout, exec_id, risk_level)
-        except Exception as e:
-            self._add_audit(code, language, SandboxStatus.ERROR, risk_level, exec_id)
-            return CodeSandboxResult(
-                error=str(e), status=SandboxStatus.ERROR,
-                language=language, execution_id=exec_id,
-            )
-        finally:
-            shutil.rmtree(tmpdir, ignore_errors=True)
-
-    # ── Subprocess execution (hardened) ────────────────────
-
-    def _run_subprocess(self, code: str, language: SandboxLanguage,
-                        timeout: int, exec_id: str,
-                        risk_level: SandboxRiskLevel) -> CodeSandboxResult:
-        """Execute code via subprocess with resource limits (fallback when no Docker)."""
-        try:
-            result = subprocess.run(
-                self._build_cmd(code, language),
-                capture_output=True, text=True, timeout=timeout,
-                preexec_fn=_set_resource_limits if os.name != "nt" else None,
-            )
-            output, truncated = self._truncate(result.stdout)
-            status = SandboxStatus.SUCCESS if result.returncode == 0 else SandboxStatus.ERROR
-            self._add_audit(code, language, status, risk_level, exec_id)
-            return CodeSandboxResult(
-                output=output, error=result.stderr, exit_code=result.returncode,
-                status=status, language=language,
-                execution_id=exec_id, truncated=truncated,
-            )
-        except subprocess.TimeoutExpired:
-            self._add_audit(code, language, SandboxStatus.TIMEOUT, risk_level, exec_id)
-            return CodeSandboxResult(
-                error="TIMEOUT: execution exceeded time limit",
-                status=SandboxStatus.TIMEOUT, language=language,
-                execution_id=exec_id,
-            )
-        except Exception as e:
-            self._add_audit(code, language, SandboxStatus.ERROR, risk_level, exec_id)
-            return CodeSandboxResult(
-                error=str(e), status=SandboxStatus.ERROR,
-                language=language, execution_id=exec_id,
-            )
-
-    def _build_cmd(self, code: str, language: SandboxLanguage) -> list:
-        """Build the appropriate command for each language."""
-        if language == SandboxLanguage.PYTHON:
-            return ["python3", "-c", code]
-        elif language == SandboxLanguage.BASH:
-            return ["bash", "-c", code]
-        elif language == SandboxLanguage.JAVASCRIPT:
-            return ["node", "-e", code]
-        elif language == SandboxLanguage.GO:
-            # Go needs temp file — handled separately
-            raise NotImplementedError("Go in subprocess not supported, use Docker")
-        else:
-            raise ValueError(f"Unsupported language: {language}")
-
-    # ── Main execution entry ───────────────────────────────
-
     def run(self, code: str, language: SandboxLanguage | None = None,
             timeout: int | None = None) -> CodeSandboxResult:
         exec_id = self._gen_execution_id()
@@ -304,27 +154,103 @@ class CodeSandboxV3:
 
         effective_timeout = timeout if timeout is not None else self._timeout
 
-        # Prefer Docker when available
-        if self._docker_available:
-            return self._run_in_docker(code, lang, effective_timeout, exec_id, risk_level)
-
-        # Fallback: hardened subprocess
-        if lang == SandboxLanguage.GO:
+        if lang == SandboxLanguage.PYTHON:
+            return self._run_python_impl(code, effective_timeout, exec_id, risk_level)
+        elif lang == SandboxLanguage.BASH:
+            return self._run_bash_impl(code, effective_timeout, exec_id, risk_level)
+        elif lang == SandboxLanguage.JAVASCRIPT:
+            return self._run_js_impl(code, effective_timeout, exec_id, risk_level)
+        elif lang == SandboxLanguage.GO:
             return self._run_go_impl(code, effective_timeout, exec_id, risk_level)
-        return self._run_subprocess(code, lang, effective_timeout, exec_id, risk_level)
+        else:
+            return CodeSandboxResult(
+                error=f"Unsupported language: {lang.value}",
+                status=SandboxStatus.ERROR, language=lang,
+                execution_id=exec_id,
+            )
 
-    # ── Convenience methods ────────────────────────────────
+    def _run_python_impl(self, code: str, timeout: int, exec_id: str,
+                         risk_level: SandboxRiskLevel = SandboxRiskLevel.LOW) -> CodeSandboxResult:
+        try:
+            result = subprocess.run(
+                ["python3", "-c", code],
+                capture_output=True, text=True, timeout=timeout,
+            )
+            output, truncated = self._truncate(result.stdout)
+            status = SandboxStatus.SUCCESS if result.returncode == 0 else SandboxStatus.ERROR
+            self._add_audit(code, SandboxLanguage.PYTHON, status, risk_level, exec_id)
+            return CodeSandboxResult(
+                output=output, error=result.stderr, exit_code=result.returncode,
+                status=status, language=SandboxLanguage.PYTHON,
+                execution_id=exec_id, truncated=truncated,
+            )
+        except subprocess.TimeoutExpired:
+            self._add_audit(code, SandboxLanguage.PYTHON, SandboxStatus.TIMEOUT, SandboxRiskLevel.LOW, exec_id)
+            return CodeSandboxResult(
+                error="TIMEOUT: execution exceeded time limit",
+                status=SandboxStatus.TIMEOUT, language=SandboxLanguage.PYTHON,
+                execution_id=exec_id,
+            )
+        except Exception as e:
+            self._add_audit(code, SandboxLanguage.PYTHON, SandboxStatus.ERROR, SandboxRiskLevel.LOW, exec_id)
+            return CodeSandboxResult(
+                error=str(e), status=SandboxStatus.ERROR,
+                language=SandboxLanguage.PYTHON, execution_id=exec_id,
+            )
 
     def run_python(self, code: str) -> CodeSandboxResult:
         return self.run(code, language=SandboxLanguage.PYTHON)
 
+    def _run_bash_impl(self, code: str, timeout: int, exec_id: str,
+                       risk_level: SandboxRiskLevel = SandboxRiskLevel.LOW) -> CodeSandboxResult:
+        try:
+            result = subprocess.run(
+                ["bash", "-c", code],
+                capture_output=True, text=True, timeout=timeout,
+            )
+            output, truncated = self._truncate(result.stdout)
+            status = SandboxStatus.SUCCESS if result.returncode == 0 else SandboxStatus.ERROR
+            self._add_audit(code, SandboxLanguage.BASH, status, risk_level, exec_id)
+            return CodeSandboxResult(
+                output=output, error=result.stderr, exit_code=result.returncode,
+                status=status, language=SandboxLanguage.BASH,
+                execution_id=exec_id, truncated=truncated,
+            )
+        except subprocess.TimeoutExpired:
+            self._add_audit(code, SandboxLanguage.BASH, SandboxStatus.TIMEOUT, SandboxRiskLevel.LOW, exec_id)
+            return CodeSandboxResult(
+                error="TIMEOUT: execution exceeded time limit",
+                status=SandboxStatus.TIMEOUT, language=SandboxLanguage.BASH,
+                execution_id=exec_id,
+            )
+
     def run_bash(self, code: str) -> CodeSandboxResult:
         return self.run(code, language=SandboxLanguage.BASH)
 
+    def _run_js_impl(self, code: str, timeout: int, exec_id: str,
+                     risk_level: SandboxRiskLevel = SandboxRiskLevel.LOW) -> CodeSandboxResult:
+        try:
+            result = subprocess.run(
+                ["node", "-e", code],
+                capture_output=True, text=True, timeout=timeout,
+            )
+            output, truncated = self._truncate(result.stdout)
+            status = SandboxStatus.SUCCESS if result.returncode == 0 else SandboxStatus.ERROR
+            self._add_audit(code, SandboxLanguage.JAVASCRIPT, status, risk_level, exec_id)
+            return CodeSandboxResult(
+                output=output, error=result.stderr, exit_code=result.returncode,
+                status=status, language=SandboxLanguage.JAVASCRIPT,
+                execution_id=exec_id, truncated=truncated,
+            )
+        except subprocess.TimeoutExpired:
+            self._add_audit(code, SandboxLanguage.JAVASCRIPT, SandboxStatus.TIMEOUT, SandboxRiskLevel.LOW, exec_id)
+            return CodeSandboxResult(
+                error="TIMEOUT", status=SandboxStatus.TIMEOUT,
+                language=SandboxLanguage.JAVASCRIPT, execution_id=exec_id,
+            )
+
     def run_javascript(self, code: str) -> CodeSandboxResult:
         return self.run(code, language=SandboxLanguage.JAVASCRIPT)
-
-    # ── Go implementation (tempfile + subprocess) ──────────
 
     def _run_go_impl(self, code: str, timeout: int, exec_id: str,
                      risk_level: SandboxRiskLevel = SandboxRiskLevel.LOW) -> CodeSandboxResult:
@@ -337,7 +263,6 @@ class CodeSandboxV3:
                 compile_result = subprocess.run(
                     ["go", "build", "-o", exe_path, go_path],
                     capture_output=True, text=True, timeout=timeout,
-                    preexec_fn=_set_resource_limits if os.name != "nt" else None,
                 )
                 if compile_result.returncode != 0:
                     self._add_audit(code, SandboxLanguage.GO, SandboxStatus.ERROR, risk_level, exec_id)
@@ -349,7 +274,6 @@ class CodeSandboxV3:
                 result = subprocess.run(
                     [exe_path],
                     capture_output=True, text=True, timeout=timeout,
-                    preexec_fn=_set_resource_limits if os.name != "nt" else None,
                 )
                 output, truncated = self._truncate(result.stdout)
                 status = SandboxStatus.SUCCESS if result.returncode == 0 else SandboxStatus.ERROR
@@ -366,7 +290,7 @@ class CodeSandboxV3:
                     except OSError:
                         pass
         except subprocess.TimeoutExpired:
-            self._add_audit(code, SandboxLanguage.GO, SandboxStatus.TIMEOUT, risk_level, exec_id)
+            self._add_audit(code, SandboxLanguage.GO, SandboxStatus.TIMEOUT, SandboxRiskLevel.LOW, exec_id)
             return CodeSandboxResult(
                 error="TIMEOUT", status=SandboxStatus.TIMEOUT,
                 language=SandboxLanguage.GO, execution_id=exec_id,
@@ -374,8 +298,6 @@ class CodeSandboxV3:
 
     def run_go(self, code: str) -> CodeSandboxResult:
         return self.run(code, language=SandboxLanguage.GO)
-
-    # ── Audit ──────────────────────────────────────────────
 
     def get_audit_entries(self) -> list[AuditEntry]:
         return list(self._audit_entries)
@@ -397,10 +319,10 @@ class CodeSandboxV3:
 
     def available_runtimes(self) -> list[SandboxLanguage]:
         runtimes = [SandboxLanguage.PYTHON, SandboxLanguage.BASH]
-        import shutil as _shutil
-        if _shutil.which("node"):
+        import shutil
+        if shutil.which("node"):
             runtimes.append(SandboxLanguage.JAVASCRIPT)
-        if _shutil.which("go"):
+        if shutil.which("go"):
             runtimes.append(SandboxLanguage.GO)
         return runtimes
 

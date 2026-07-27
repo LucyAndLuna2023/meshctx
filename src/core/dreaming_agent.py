@@ -524,9 +524,10 @@ class DreamingPlugin(Plugin):
     """
 
     info = PluginInfo(
-        name="dreaming_agent",
-        version="0.1.0",
-        description="Subconscious dream-based learning via hippocampal replay during idle periods",
+        name="dreaming",
+        version="1.0.0",
+        description="DreamingAgent: 离线记忆整理 + 自动Skill生成 (对标Claude Code Dreaming)",
+        author="meshctx",
     )
 
     def __init__(self, **kw):

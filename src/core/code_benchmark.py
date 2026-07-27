@@ -88,6 +88,17 @@ class BenchmarkResult:
     latency_ms: float = 0.0
     details: list = field(default_factory=list)
 
+
+def _safe_builtins():
+    """Restricted builtins for exec() sandbox — 允许 import 但阻止危险 I/O"""
+    import builtins
+    safe = {k: v for k, v in vars(builtins).items()
+            if k not in ('open', 'eval', 'exec', 'compile', 'input', 'breakpoint',
+                         'memoryview', 'copyright', 'credits', 'license', 'help')}
+    safe['__builtins__'] = safe
+    return safe
+
+
 class CodeBenchmark:
     """真实代码评测引擎 — 内嵌 HumanEval 子集，零依赖"""
 
@@ -127,7 +138,7 @@ class CodeBenchmark:
     def _run_test(self, code: str) -> tuple:
         """在沙箱中运行测试代码"""
         try:
-            namespace = {}
+            namespace = {"__builtins__": _safe_builtins()}
             exec(code, namespace)
             return True, ""
         except AssertionError:
