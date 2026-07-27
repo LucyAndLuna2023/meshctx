@@ -6,7 +6,7 @@ MeshCtx 采用 **双重许可 (Dual License)** 结构：
 
 ### 框架层 — MIT 开源
 MeshCtx 平台框架（Web UI、API路由、插件系统、Chat界面、安装程序）遵循
-**GNU Affero General Public License v3 (MIT)**。
+**MIT License**。
 
 这意味着：
 - ✅ 你可以自由使用、修改、分发框架代码
