@@ -175,6 +175,176 @@ meshctx/
 ├── install.bat              # Windows安装脚本
 └── index.html               # 7语言主页 (gh-pages)
 ```
+## 📦 核心模块清单（273 模块）
+
+### 🧠 脑区 (22 模块)
+| 模块 | 行数 | 说明 |
+|------|------|------|
+| `brain` | 1292 | 全脑仿真主控 — 17脑区调度 |
+| `brain_acc` | 685 | 前扣带皮层 — 冲突监测与认知控制 |
+| `brain_amygdala` | 845 | 杏仁核 — 情绪标记与恐惧学习 |
+| `brain_basal_ganglia` | 676 | 基底节 — 动作选择与强化学习 |
+| `brain_brainstem` | 191 | 脑干 — 唤醒度与生命维持 |
+| `brain_cerebellar` | 679 | 小脑 — 时序预测与运动协调 |
+| `brain_dmn` | 695 | 默认模式网络 — 自传体记忆与心智漫游 |
+| `brain_hippocampal` | 294 | 海马体 — 情景记忆编码与回放 |
+| `brain_iit` | 542 | 整合信息理论 — 意识度量 Φ |
+| `brain_insula` | 766 | 岛叶 — 内感受与自我意识 |
+| `brain_mirror` | 759 | 镜像神经元 — 共情与意图理解 |
+| `brain_pfc` | 181 | 前额叶 — 执行功能与工作记忆 |
+| `brain_stdp` | 571 | 脉冲时序可塑性 — 突触学习规则 |
+| `brain_thalamic` | 513 | 丘脑 — 感觉门控与注意定向 |
+| `brain_visual` | 166 | 视觉皮层 — 层级特征提取 |
+| `active_inference` | 46 | 主动推理引擎 — 自由能最小化 |
+| `attractor_reasoner` | 319 | 吸引子推理 — Hopfield网络决策 |
+| `global_workspace` | 38 | 全局工作空间 — 意识广播 |
+| `brain_router` | 59 | 脑启发路由 — 模块选择 |
+| `brain_validator` | 275 | 脑状态校验 — 一致性验证 |
+| `brain_emotional` | 495 | 情绪系统 — 情感计算 |
+| `brain_nacc` | 137 | 伏隔核 — 奖赏预测误差 |
+
+### 💾 记忆 (13 模块)
+| 模块 | 行数 | 说明 |
+|------|------|------|
+| `breakthrough_memory` | 810 | 突破性记忆 — SDM模式组块引擎 |
+| `sdm_memory` | 520 | 稀疏分布记忆 — Kanerva SDM实现 |
+| `human_memory` | 637 | 类人记忆 — 6机制(组块/情绪/回放/再巩固/联想/遗忘) |
+| `memory_v5` | 346 | 4级分级内存注入 |
+| `memory_compactor` | 431 | 记忆压缩 — 摘要与合并 |
+| `memory_cleanup` | 159 | 记忆清理 — 过期与淘汰 |
+| `memory_export` | 181 | 记忆导出 — 跨会话迁移 |
+| `memory_formation` | 456 | 记忆形成 — 编码与索引 |
+| `memory_forgetting` | 212 | 遗忘曲线 — Ebbinghaus模型 |
+| `memory_graph` | 378 | 记忆图 — 实体关系网络 |
+| `recall_engine` | 294 | 回忆引擎 — 联想扩散检索 |
+| `forget_curve` | 124 | 遗忘曲线 — 自适应衰减率 |
+| `hippocampus_engine` | 403 | 海马引擎 — 模式分离与完成 |
+
+### 🤖 自主引擎 (8 模块)
+| 模块 | 行数 | 说明 |
+|------|------|------|
+| `autonomous_engine` | 916 | 自主引擎 — OODA循环调度 |
+| `autonomous_agent` | 416 | 自主Agent — 感知-决策-执行 |
+| `autonomous_action` | 512 | 自主行动 — 工具选择与执行 |
+| `autonomous_bugfix` | 156 | 自主修复 — 错误诊断与修补 |
+| `autonomous_health` | 111 | 自主健康 — 进程监控与恢复 |
+| `agent_swarm` | 299 | Agent蜂群 — Manager-Worker协同 |
+| `agent_swarm_v2` | 425 | Agent蜂群v2 — 投票/共识/集成 |
+| `swarm_codegen` | 651 | 蜂群代码生成 — 并行代码合成 |
+
+### 🔒 安全 (12 模块)
+| 模块 | 行数 | 说明 |
+|------|------|------|
+| `auth_v2` | 324 | 认证v2 — 密码+API Key+Session |
+| `code_sandbox_v3` | 482 | 代码沙箱v3 — Docker隔离执行 |
+| `prompt_shield` | 337 | 提示词盾 — 7类注入检测 |
+| `approval` | 169 | 审批引擎 — YOLO/smart/manual三级 |
+| `credential_pool` | 287 | 凭证池 — Key轮转与脱敏 |
+| `crypto` | 198 | 加密模块 — AES+HMAC+ed25519 |
+| `secret_scanner` | 145 | 密钥扫描 — 自动脱敏检测 |
+| `permission_manager` | 213 | 权限管理 — RBAC角色控制 |
+| `identity_guard` | 178 | 身份保护 — System Prompt固化 |
+| `audit_logger` | 670 | 审计日志 — 操作追溯 |
+| `behavior_compliance` | 568 | 行为合规 — 策略执行 |
+| `behavior_monitor` | 124 | 行为监控 — 异常检测 |
+
+### 📋 任务/工作流 (12 模块)
+| 模块 | 行数 | 说明 |
+|------|------|------|
+| `workflow_engine` | 723 | 工作流引擎 — DAG编排 |
+| `task_queue_v2` | 1110 | 任务队列v2 — 优先级+依赖 |
+| `agent_tasks` | 540 | Agent任务 — 重试+超时 |
+| `pipeline_engine` | 389 | 管道引擎 — 阶段流水线 |
+| `schedule_wakeup` | 82 | 定时唤醒 — Cron调度 |
+| `auto_deploy` | 45 | 自动部署 — CI/CD集成 |
+| `backup_manager` | 311 | 备份管理 — 快照+恢复 |
+| `backup_vault` | 669 | 备份仓库 — 版本化管理 |
+| `distributed_lock` | 875 | 分布式锁 — Redlock+Redis |
+| `load_balancer` | 456 | 负载均衡 — 最少连接 |
+| `retry` | 82 | 重试机制 — 指数退避 |
+| `cron` | 453 | Cron调度 — 持久化任务 |
+
+### 💻 代码引擎 (14 模块)
+| 模块 | 行数 | 说明 |
+|------|------|------|
+| `llm_code_engine` | 972 | LLM代码引擎 — AI写代码 |
+| `code_reviewer` | 234 | 代码审查 — 静态分析 |
+| `code_generator` | 312 | 代码生成 — 模板合成 |
+| `tool_repair` | 378 | 工具修复 — 7策略JSON修复 |
+| `llm_extractor` | 127 | LLM提取 — 结构化信息抽取 |
+| `model_adapter` | 386 | 模型适配 — 多Provider统一接口 |
+| `model_registry` | 553 | 模型注册 — 动态模型发现 |
+| `cost_router` | 289 | 成本路由 — flash/pro分级 |
+| `prompt_registry` | 312 | 提示词注册 — YAML模板版本化 |
+| `principle_extractor` | 42 | 原则提取 — 规则归纳 |
+| `advanced_inference` | 1028 | 高级推理 — 链式思维 |
+| `hybrid_reasoning` | 6 | 混合推理调度器 (stub) |
+| `image_gen` | 6 | 图像生成 (stub) |
+| `knowledge_transfer` | 48 | 知识迁移 — 跨域蒸馏 |
+
+### 🌐 网关/通知 (9 模块)
+| 模块 | 行数 | 说明 |
+|------|------|------|
+| `api_gateway` | 364 | API网关 — 路由+限流 |
+| `notification_hub` | 1138 | 通知中心 — 多渠道分发 |
+| `feishu_notify` | 171 | 飞书通知 — HMAC签名+卡片 |
+| `telegram_router` | 35 | Telegram路由 — Bot集成 |
+| `push_notify` | 234 | 推送通知 — Webhook广播 |
+| `message_bus` | 456 | 消息总线 — Pub-Sub |
+| `email_notify` | 189 | 邮件通知 — SMTP发送 |
+| `websocket_plugin` | 30 | WebSocket插件 — 实时推送 |
+| `platform_fs` | 10 | 平台文件系统 (stub) |
+
+### 🖥️ Web/UI (19 模块)
+| 模块 | 行数 | 说明 |
+|------|------|------|
+| `web_ui` | 456 | Web界面 — FastAPI模板 |
+| `context_portal` | 567 | 上下文门户 — 会话历史浏览 |
+| `browser_tool` | 423 | 浏览器工具 — Playwright集成 |
+| `web_crawler` | 412 | 网页爬虫 — 递归抓取 |
+| `chat_tools` | 345 | 聊天工具 — 文件/图片/代码 |
+| `dashboard` | 15 | 仪表盘 — 实时监控面板 |
+| `api_docs` | 90 | API文档 — 自动发现 |
+| `api_versioning` | 761 | API版本化 — 兼容管理 |
+| `dual_session` | 289 | 双Session — Planner/Executor |
+| `subagent_isolated` | 457 | 子Agent隔离 — 子进程沙箱 |
+| `tui_format` | 234 | TUI格式 — 6种输出样式 |
+| `config_chain` | 198 | 配置链 — 4级TOML覆盖 |
+| `i18n` | 567 | 国际化 — 9语言翻译 |
+| `soul` | 33 | 灵魂模块 — Agent人格 |
+| `action_gate` | 33 | 行动门控 — 危险操作拦截 |
+
+### ⚙️ 基础设施 (11 模块)
+| 模块 | 行数 | 说明 |
+|------|------|------|
+| `hotreload` | 114 | 热重载 — 配置变更检测 |
+| `config_hot_reload` | 512 | 配置热重载 — Watch+Apply |
+| `watchdog` | 40 | 看门狗 — 进程守护 |
+| `auto_healer` | 135 | 自动修复 — 症状→诊断→修复 |
+| `healer` | 16 | 修复器 — 自愈策略 |
+| `auto_tuner` | 232 | 自动调优 — PID参数自适应 |
+| `alert_engine` | 536 | 告警引擎 — Z-score异常检测 |
+| `retry` | 82 | 重试策略 — 指数退避+抖动 |
+| `plugin_autoload` | 6 | 插件自动加载 (stub) |
+| `federated` | 44 | 联邦学习 — 隐私保护聚合 |
+| `performance` | 49 | 性能分析 — Profiling报告 |
+
+### 📊 分析/指标 (15 模块)
+| 模块 | 行数 | 说明 |
+|------|------|------|
+| `benchmark_engine` | 104 | 基准测试引擎 |
+| `agent_benchmark` | 81 | Agent基准 — 任务完成率 |
+| `audit_logger` | 670 | 审计日志 — 操作追溯 |
+| `behavior_monitor` | 124 | 行为监控 — 异常检测 |
+| `brain_monitor` | 52 | 脑监控 — 脑区状态追踪 |
+| `quota_manager` | 912 | 配额管理 — Token预算控制 |
+| `insight_engine` | 345 | 洞察引擎 — 使用趋势分析 |
+| `metric_collector` | 234 | 指标采集 — 时序数据 |
+| `performance` | 49 | 性能分析 — Profiling |
+| `cost_router` | 289 | 成本路由 — 消耗追踪 |
+
+---
+
 ## 🔌 API 端点
 
 ### 聊天

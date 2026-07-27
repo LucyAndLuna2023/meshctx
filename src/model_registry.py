@@ -295,7 +295,7 @@ class ModelRegistry:
         try:
             with open(path) as f:
                 config = yaml.safe_load(f) or {}
-        except:
+        except Exception:
             return
         
         # 解密函数
@@ -304,7 +304,7 @@ class ModelRegistry:
                 try:
                     from src.core.crypto import decrypt_key
                     return decrypt_key(k)
-                except:
+                except Exception:
                     pass
             return k
         
@@ -465,7 +465,7 @@ class ModelClient:
             for tc in choice.message.tool_calls:
                 try:
                     args = json.loads(tc.function.arguments)
-                except:
+                except Exception:
                     args = {}
                 result["tool_calls"].append({"id": tc.id, "name": tc.function.name, "arguments": args})
         return result
@@ -513,7 +513,7 @@ class ModelClient:
                 tc = tool_acc[idx]
                 try:
                     args = json.loads(tc["args_str"])
-                except:
+                except Exception:
                     args = {}
                 parsed.append({"id": tc["id"], "name": tc["name"], "arguments": args})
             yield ("__TOOLS__", parsed, full_content)

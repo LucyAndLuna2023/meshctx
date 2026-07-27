@@ -71,8 +71,8 @@ def worktree_list() -> dict:
     try:
         r = subprocess.run(["git", "worktree", "list"], capture_output=True, text=True)
         result["git_worktrees"] = r.stdout.strip()
-    except:
-        pass
+    except Exception:
+        return False
     return result
 
 def worktree_remove(worktree_id: str, force: bool = False) -> dict:

@@ -269,7 +269,7 @@ class CronPlugin(Plugin):
             
             try:
                 should_run = parser(job.last_run)
-            except:
+            except Exception:
                 continue
             
             if should_run:
