@@ -179,9 +179,6 @@ class LLMPREngine:
         return self._rule_pr(pr_type, diff)
 
     def _get_diff(self, base: str, head: str) -> str:
-        import shlex
-        base = shlex.quote(str(base))
-        head = shlex.quote(str(head))
         try:
             # 分两步执行避免 shell=True
             r1 = subprocess.run(

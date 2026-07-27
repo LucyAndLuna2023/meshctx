@@ -102,7 +102,7 @@ def _search_files(pattern: str, path: str, glob: str) -> str:
                     content = f.read_text(errors="replace")
                     if pattern.lower() in content.lower():
                         matches.append(str(f))
-                except:
+                except Exception:
                     pass
         if not matches:
             return f"未找到包含 '{pattern}' 的文件"

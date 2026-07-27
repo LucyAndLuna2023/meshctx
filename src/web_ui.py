@@ -4109,7 +4109,7 @@ async def setup_page(request: Request):
                 for pid, pinfo in pcfg_data.items():
                     if pinfo.get("key"):
                         pcfg_keys[pid] = pinfo["key"]
-            except:
+            except Exception:
                 logger.debug("Suppressed except:: {}", exc_info=True)
         # 对于 provider_config 中有 key 但 config.yaml 中无 entry 的 provider，
         # 自动补全该 provider 下所有内置模型的 entries
@@ -4191,7 +4191,7 @@ async def setup_page(request: Request):
                     "key_full": raw_key,
                     "key_masked": raw_key[:6] + "****" + raw_key[-4:] if len(raw_key) > 10 else ("****" if raw_key else ""),
                 })
-    except:
+    except Exception:
         logger.debug("Suppressed except:: {}", exc_info=True)
     
     # 排序: 默认最前 → 已配置 → 按provider
@@ -4256,7 +4256,7 @@ async def save_api_key(
     try:
         from src.core.crypto import encrypt_key
         encrypted_key = encrypt_key(api_key)
-    except:
+    except Exception:
         logger.debug("Suppressed except:: {}", exc_info=True)
     config["models"]["entries"][model_id] = {
         "key": encrypted_key,
@@ -4274,7 +4274,7 @@ async def save_api_key(
     try:
         from src.model_registry import reset_registry
         reset_registry()
-    except:
+    except Exception:
         logger.debug("Suppressed except:: {}", exc_info=True)
 
     return RedirectResponse(url="/ui/setup?saved=1", status_code=303)
