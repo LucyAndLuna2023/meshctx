@@ -3,6 +3,13 @@
 # 6 角色: 法务 / 财务 / HR / DevOps / 安全 / 研发
 # ============================================================
 
+model_selector:                               # 模型选择器 (env覆盖)
+  default: "${MESHCTX_MODEL:-claude-sonnet-4}"
+  fallback: "${MESHCTX_FALLBACK:-deepseek}"
+  per_role:
+    security_guardian: "gpt-4o"
+    rnd_architect: "deepseek-coder"
+
 roles:
   legal_reviewer:
     id: legal-001

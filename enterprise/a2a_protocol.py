@@ -23,6 +23,7 @@ a2a_protocol.py — Agent-to-Agent 消息总线 (v1.0)
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import logging
 import time
@@ -106,8 +107,13 @@ class A2ABus:
         self._running = True
         if self.redis_url:
             try:
+                import os as _os
                 import redis.asyncio as aioredis
-                self._redis = await aioredis.from_url(self.redis_url)
+                url = self.redis_url
+                if url.startswith("redis://") and not url.startswith("rediss://"):
+                    if _os.environ.get("MESHCTX_REDIS_TLS", "").lower() in ("1", "true", "yes"):
+                        url = url.replace("redis://", "rediss://", 1)
+                self._redis = await aioredis.from_url(url)
                 asyncio.create_task(self._redis_listener())
             except ImportError:
                 logger.warning("redis not installed, using in-memory only")
@@ -135,9 +141,12 @@ class A2ABus:
         for topic in topics:
             for handler in self._subscribers.get(topic, []):
                 try:
-                    ret = handler(msg)
-                    if asyncio.iscoroutine(ret):
-                        await ret
+                    if inspect.iscoroutinefunction(handler):
+                        await handler(msg)
+                    else:
+                        result = handler(msg)
+                        if inspect.isawaitable(result):
+                            await result
                 except Exception as e:
                     logger.error(f"handler error on {topic}: {e}")
 
@@ -247,7 +256,12 @@ class A2ABus:
                         for topic in self._resolve_topics(a2a_msg):
                             for handler in self._subscribers.get(topic, []):
                                 try:
-                                    await handler(a2a_msg) if asyncio.iscoroutinefunction(handler) else handler(a2a_msg)
+                                    if inspect.iscoroutinefunction(handler):
+                                        await handler(a2a_msg)
+                                    else:
+                                        result = handler(a2a_msg)
+                                        if inspect.isawaitable(result):
+                                            await result
                                 except Exception as e:
                                     logger.error(f"redis handler error: {e}")
             except asyncio.CancelledError:

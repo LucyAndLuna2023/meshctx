@@ -201,10 +201,9 @@ class HumanInTheLoop:
             ]},
         ]
         # 通过 webhook 发送 (简化版)
-        import urllib.request
-        body = json.dumps({"blocks": blocks}).encode()
         try:
-            urllib.request.urlopen(urllib.request.Request(self.slack_webhook, data=body, headers={"Content-Type": "application/json"}))
+            async with httpx.AsyncClient(timeout=10) as client:
+                await client.post(self.slack_webhook, json={"blocks": blocks})
         except Exception as e:
             logger.error(f"slack notify failed: {e}")
 
@@ -231,10 +230,9 @@ class HumanInTheLoop:
                 ],
             },
         }
-        import urllib.request
-        body = json.dumps(card).encode()
         try:
-            urllib.request.urlopen(urllib.request.Request(self.feishu_webhook, data=body, headers={"Content-Type": "application/json"}))
+            async with httpx.AsyncClient(timeout=10) as client:
+                await client.post(self.feishu_webhook, json=card)
         except Exception as e:
             logger.error(f"feishu notify failed: {e}")
 
@@ -280,7 +278,21 @@ def create_webhook_handler(hitl: HumanInTheLoop):
     """创建 FastAPI webhook 路由 (Slack + 飞书)."""
 
     async def slack_webhook(request: dict):
-        """处理 Slack interactive payload."""
+        """处理 Slack interactive payload (含 HMAC-SHA256 签名校验)."""
+        # 签名校验
+        if hitl.slack_signing_secret:
+            import hmac as _hmac
+            import hashlib as _hashlib
+            timestamp = request.get("headers", {}).get("x-slack-request-timestamp", "")
+            sig = request.get("headers", {}).get("x-slack-signature", "")
+            body = request.get("body", "")
+            base = f"v0:{timestamp}:{body}"
+            computed = "v0=" + _hmac.new(
+                hitl.slack_signing_secret.encode(), base.encode(), _hashlib.sha256
+            ).hexdigest()
+            if not _hmac.compare_digest(computed, sig):
+                logger.warning("slack signature verification failed")
+                return {"text": "unauthorized"}
         payload = json.loads(request.get("payload", "{}"))
         action = payload.get("actions", [{}])[0]
         value = action.get("value", "")
