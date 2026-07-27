@@ -193,6 +193,8 @@ meshctx/
 | `brain_mirror` | 759 | 镜像神经元 — 共情与意图理解 |
 | `brain_pfc` | 181 | 前额叶 — 执行功能与工作记忆 |
 | `brain_stdp` | 571 | 脉冲时序可塑性 — 突触学习规则 |
+| `brain_ltp` | 279 | LTP 长时程增强 — NMDA-Ca²⁺-CaMKII-AMPA 分子级突触可塑性 |
+| `brain_gnostic` | 313 | Gnostic 直觉场 — Gestalt 完形识别 + 全局工作空间 |
 | `brain_thalamic` | 513 | 丘脑 — 感觉门控与注意定向 |
 | `brain_visual` | 166 | 视觉皮层 — 层级特征提取 |
 | `active_inference` | 46 | 主动推理引擎 — 自由能最小化 |

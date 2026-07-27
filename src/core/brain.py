@@ -1,8 +1,8 @@
 """
-MeshCtx Super Brain — 9-Region Cognitive Architecture
+MeshCtx Super Brain — 11-Region Cognitive Architecture
 ======================================================
 
-哺乳动物大脑9区域的工程化映射。每个区域解决一个真实问题。
+哺乳动物大脑11区域的工程化映射。每个区域解决一个真实问题。
 
 架构:
   ThalamicGate ──→ Cortex (Agent Loop) ──→ BasalGanglia (Action)
@@ -12,6 +12,8 @@ MeshCtx Super Brain — 9-Region Cognitive Architecture
   AmygdalaSalience ←── ACC (冲突) ──→ MirrorNeuron (心智)
        ↓                                  ↓
   DefaultModeNetwork (创意)          (他者建模)
+       ↓
+  LTP (突触增强) ←── GnosticField (直觉识别)
 
 License: MIT
 """
@@ -30,6 +32,10 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger("meshctx.brain")
+
+# ── External brain region modules ────────────────────────────────────────
+from .brain_ltp import LTPEngine, LTPEnsemble
+from .brain_gnostic import GnosticField, GestaltManager
 
 # ---------------------------------------------------------------------------
 # Shared types
@@ -1069,7 +1075,7 @@ class MirrorNeuron:
 
 class SuperBrain:
     """
-    超级大脑编排器 — 9区域协调调度
+    超级大脑编排器 — 11区域协调调度
 
     大脑状态机:
       IDLE → FOCUSED → REFLECTIVE → CREATIVE → IDLE
@@ -1078,7 +1084,7 @@ class SuperBrain:
     """
 
     def __init__(self, enable_daemon: bool = True):
-        # 9个区域
+        # 11个区域
         self.hippocampus = HippocampalReplay()
         self.amygdala = AmygdalaSalience()
         self.dmn = DefaultModeNetwork()
@@ -1088,6 +1094,8 @@ class SuperBrain:
         self.acc = ACCConflictMonitor()
         self.insula = Insula()
         self.mirror = MirrorNeuron()
+        self.ltp = LTPEnsemble(n_synapses=128)     # Region 10: 突触可塑性
+        self.gnostic = GestaltManager(dim=512)       # Region 11: 直觉识别
 
         self.state: BrainState = BrainState.IDLE
         self._event_queue: deque = deque(maxlen=200)
@@ -1147,10 +1155,33 @@ class SuperBrain:
                 salience=salience,
             )
 
+        # 7. LTP: 突触增强 — 高频重要事件触发长时程增强
+        if salience.value >= SalienceLevel.HIGH.value:
+            self.ltp.tetanize(voltage=-60, frequency=100, duration=500, p_stimulate=0.3)
+        ltp_state = self.ltp.get_ensemble_state()
+
+        # 8. Gnostic: 直觉识别 — 对事件负载进行gestalt模式匹配
+        gnostic_result = {"label": None, "system": 0, "confidence": 0.0}
+        if isinstance(event.payload, str) and len(event.payload) > 10:
+            try:
+                import numpy as np
+                embedding = np.random.randn(512) * 0.1  # placeholder: 实际应使用text embedding
+                gnostic_result = self.gnostic.intuit(embedding, require_confidence=0.6)
+            except Exception:
+                pass
+
         return {
             "salience": salience.name,
             "salience_level": salience.value,
             "state": self.state.value,
+            "ltp": {
+                "potentiated": ltp_state["potentiated"],
+                "memory_strength": ltp_state["memory_strength"],
+            },
+            "gnostic": {
+                "label": gnostic_result.get("label"),
+                "system": gnostic_result.get("system", 0),
+            },
         }
 
     # ── 状态循环 ──
