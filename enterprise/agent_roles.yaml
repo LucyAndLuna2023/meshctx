@@ -17,6 +17,8 @@ roles:
     icon: "⚖️"
     priority: high
     model: claude-sonnet-4
+    model_selector: "${MESHCTX_MODEL:-claude-sonnet-4}"  # 支持环境变量覆盖
+    model_fallback: "${MESHCTX_FALLBACK:-deepseek}"       # 降级模型
     temperature: 0.1
     max_tokens: 4096
     tools:
@@ -44,6 +46,8 @@ roles:
     icon: "💰"
     priority: high
     model: claude-sonnet-4
+    model_selector: "${MESHCTX_MODEL:-claude-sonnet-4}"  # 支持环境变量覆盖
+    model_fallback: "${MESHCTX_FALLBACK:-deepseek}"       # 降级模型
     temperature: 0.0
     max_tokens: 4096
     tools:
@@ -71,6 +75,8 @@ roles:
     icon: "👥"
     priority: medium
     model: claude-sonnet-4
+    model_selector: "${MESHCTX_MODEL:-claude-sonnet-4}"  # 支持环境变量覆盖
+    model_fallback: "${MESHCTX_FALLBACK:-deepseek}"       # 降级模型
     temperature: 0.3
     max_tokens: 4096
     tools:
@@ -95,6 +101,8 @@ roles:
     icon: "🔧"
     priority: high
     model: claude-sonnet-4
+    model_selector: "${MESHCTX_MODEL:-claude-sonnet-4}"  # 支持环境变量覆盖
+    model_fallback: "${MESHCTX_FALLBACK:-deepseek}"       # 降级模型
     temperature: 0.1
     max_tokens: 8192
     tools:
@@ -123,6 +131,8 @@ roles:
     icon: "🛡️"
     priority: critical
     model: claude-sonnet-4
+    model_selector: "${MESHCTX_MODEL:-claude-sonnet-4}"  # 支持环境变量覆盖
+    model_fallback: "${MESHCTX_FALLBACK:-deepseek}"       # 降级模型
     temperature: 0.0
     max_tokens: 4096
     tools:
@@ -152,6 +162,8 @@ roles:
     icon: "🏗️"
     priority: medium
     model: claude-sonnet-4
+    model_selector: "${MESHCTX_MODEL:-claude-sonnet-4}"  # 支持环境变量覆盖
+    model_fallback: "${MESHCTX_FALLBACK:-deepseek}"       # 降级模型
     temperature: 0.2
     max_tokens: 8192
     tools:

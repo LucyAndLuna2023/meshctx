@@ -161,8 +161,8 @@ class HumanInTheLoop:
 
     # ── Resolve (由 webhook 回调调用) ──────────────────────
 
-    def resolve(self, request_id: str, approved: bool, approver: str = "", comment: str = ""):
-        """解析审批结果."""
+    async def resolve(self, request_id: str, approved: bool, approver: str = "", comment: str = ""):
+        """解析审批结果 (async)."""
         req = self._pending.get(request_id)
         if not req:
             logger.warning(f"unknown request: {request_id}")

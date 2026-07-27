@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import uuid
 import logging
 import time
 from dataclasses import dataclass, field
@@ -64,11 +65,35 @@ class AgentInfo:
 class AgentRegistry:
     """分布式 Agent 注册中心 (支持 Redis/etcd 后端)."""
 
-    def __init__(self, backend: str = "memory"):
+    def __init__(self, backend: str = "memory", redis_url: str = ""):
         self._agents: Dict[str, AgentInfo] = {}
         self._backend = backend
+        self._redis_url = redis_url
+        self._redis = None
         self._lock = asyncio.Lock()
         self._watchers: List[Callable] = []
+
+    async def _init_backend(self):
+        """初始化后端 (Redis/etcd)."""
+        if self._backend == "redis" and self._redis_url:
+            try:
+                import redis.asyncio as aioredis
+                self._redis = await aioredis.from_url(self._redis_url)
+                # 加载已有 Agent
+                keys = await self._redis.keys("meshctx:agent:*")
+                for key in keys:
+                    data = await self._redis.hgetall(key)
+                    if data:
+                        agent = AgentInfo(
+                            agent_id=data.get(b"agent_id", b"").decode(),
+                            role=data.get(b"role", b"").decode(),
+                            status=AgentStatus(data.get(b"status", b"idle").decode()),
+                        )
+                        self._agents[agent.agent_id] = agent
+                logger.info(f"redis backend: loaded {len(keys)} agents")
+            except ImportError:
+                logger.warning("redis not installed, falling back to memory")
+                self._backend = "memory"
 
     # ── Register ────────────────────────────────────────────
 
@@ -83,6 +108,14 @@ class AgentRegistry:
             agent.registered_at = time.time()
             agent.last_heartbeat = time.time()
             self._agents[agent.agent_id] = agent
+            # Redis 持久化
+            if self._redis:
+                await self._redis.hset(f"meshctx:agent:{agent.agent_id}", mapping={
+                    "agent_id": agent.agent_id,
+                    "role": agent.role,
+                    "status": agent.status.value,
+                    "registered_at": str(agent.registered_at),
+                })
         logger.info(f"✅ registered: {agent.role} ({agent.agent_id})")
         await self._notify("register", agent)
         return agent.agent_id
@@ -147,6 +180,14 @@ class AgentRegistry:
             agent.last_heartbeat = time.time()
             agent.load = load
             agent.status = AgentStatus.BUSY if load > 0.8 else AgentStatus.IDLE
+            # Redis TTL 更新
+            if self._redis:
+                await self._redis.hset(f"meshctx:agent:{agent_id}", mapping={
+                    "status": agent.status.value,
+                    "load": str(agent.load),
+                    "last_heartbeat": str(agent.last_heartbeat),
+                })
+                await self._redis.expire(f"meshctx:agent:{agent_id}", 60)
         return True
 
     # ── Drain ───────────────────────────────────────────────
@@ -191,7 +232,7 @@ class AgentRegistry:
 # ═══════════════════════════════════════════════════════════════
 
 def _gen_id(role: str) -> str:
-    seed = f"{role}:{time.time()}:{id(role)}"
+    seed = f"{role}:{time.time()}:{uuid.uuid4().hex}"
     return f"{role[:8]}-{hashlib.sha256(seed.encode()).hexdigest()[:8]}"
 
 
