@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-{{ .Values.agents.name }}
+  labels:
+    app: meshctx
+    role: {{ .Values.agents.name }}
+spec:
+  replicas: {{ .Values.agents.replicas }}
+  selector:
+    matchLabels:
+      app: meshctx
+      role: {{ .Values.agents.name }}
+  template:
+    metadata:
+      labels:
+        app: meshctx
+        role: {{ .Values.agents.name }}
+    spec:
+      containers:
+        - name: meshctx-agent
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["meshctx", "agent", "--role", "{{ .Values.agents.name }}"]
+          env:
+            - name: MESHCTX_ROLE
+              value: "{{ .Values.agents.name }}"
+            - name: MESHCTX_MODEL
+              value: "{{ .Values.agents.model }}"
+            - name: MESHCTX_REGISTRY_BACKEND
+              value: "{{ .Values.registry.backend }}"
+            - name: MESHCTX_REDIS_URL
+              value: "{{ .Values.registry.redisUrl }}"
+          ports:
+            - containerPort: {{ .Values.service.port }}
+            - containerPort: {{ .Values.service.metricsPort }}
+              name: metrics
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10

@@ -1,0 +1,99 @@
+# MeshCtx Helm Chart 默认值
+
+replicaCount: 3
+
+image:
+  repository: meshctx/meshctx
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+  metricsPort: 9090
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: meshctx.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: meshctx-tls
+      hosts:
+        - meshctx.example.com
+
+resources:
+  limits:
+    cpu: "2"
+    memory: 4Gi
+  requests:
+    cpu: "0.5"
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Agent 注册中心配置
+registry:
+  backend: redis  # redis | etcd | memory
+  redisUrl: "redis://redis-master:6379/0"
+  heartbeatInterval: 10
+  agentTTL: 30
+
+# 人工审批配置
+hitl:
+  enabled: true
+  slackWebhook: ""
+  feishuWebhook: ""
+  approvalTimeout: 3600
+
+# 6 角色 Agent 副本
+agents:
+  legal:
+    replicas: 1
+    model: claude-sonnet-4
+  finance:
+    replicas: 1
+    model: claude-sonnet-4
+  hr:
+    replicas: 2
+    model: claude-sonnet-4
+  devops:
+    replicas: 2
+    model: claude-sonnet-4
+  security:
+    replicas: 3  # 安全 Agent 高可用
+    model: claude-sonnet-4
+  rnd:
+    replicas: 2
+    model: claude-sonnet-4
+
+# SSO (阶段 3)
+sso:
+  enabled: false
+  provider: oidc  # oidc | saml | ldap
+  issuerUrl: ""
+
+# 可观测性
+observability:
+  prometheus:
+    enabled: true
+  grafana:
+    enabled: false
+  loki:
+    enabled: false
+  jaeger:
+    enabled: false
+
+# 成本中心
+costCenter:
+  enabled: false
+  budgetCapUSD: 500
+  alertThreshold: 0.8

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-roles
+data:
+  agent_roles.yaml: |
+{{ .Files.Get "agent_roles.yaml" | indent 4 }}

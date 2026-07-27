@@ -1,0 +1,14 @@
+apiVersion: v2
+name: meshctx
+description: MeshCtx — 17-Brain Self-Improving Agent Platform
+type: application
+version: 0.1.0
+appVersion: "3.115.31"
+keywords:
+  - ai-agent
+  - multi-agent
+  - brain-emulation
+  - self-improving
+maintainers:
+  - name: MeshCtx Team
+    email: support@meshctx.com
