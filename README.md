@@ -8,7 +8,7 @@
   <a href="LEGAL.md"><img src="https://img.shields.io/badge/license-MIT+Commercial-blue"></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.10+-green"></a>
   <a href="#"><img src="https://img.shields.io/badge/tests-3320-brightgreen"></a>
-  <a href="#"><img src="https://img.shields.io/badge/modules-17-purple"></a>
+  <a href="#"><img src="https://img.shields.io/badge/modules-276-purple"></a>
   <a href="#"><img src="https://img.shields.io/badge/brain_regions-17-orange"></a>
   <a href="#"><img src="https://img.shields.io/badge/languages-9-red"></a>
   <a href="#"><img src="https://img.shields.io/badge/papers-3-blue"></a>
