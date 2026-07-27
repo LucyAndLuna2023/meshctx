@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        :root {--bg: #0f172a; --text: #e2e8f0; --muted: #94a3b8; --surface: #1e293b; --border: #334155; --accent: #6c5ce7; --hover: #1a2332;}
+        * {margin:0; padding:0; box-sizing:border-box;}
+        body {font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column;}
+        .topbar {height: 48px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 12px; flex-shrink: 0;}
+        .topbar .back {color: var(--muted); text-decoration: none; font-size: 18px;}
+        .topbar .back:hover {color: var(--text);}
+        .topbar .title {font-weight: 600; font-size: 14px; flex: 1;}
+        .layout {display: flex; flex: 1; overflow: hidden;}
+        .sidebar {width: 260px; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; flex-shrink: 0;}
+        .sidebar.collapsed {width: 0; overflow: hidden;}
+        .sidebar-header {padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;}
+        .sidebar-header .count {font-size: 11px; color: var(--accent);}
+        .sidebar-list {flex: 1; overflow-y: auto;}
+        .sidebar-item {padding: 10px 16px; font-size: 13px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+        .sidebar-item:hover {background: var(--hover);}
+        .sidebar-item.active {background: rgba(108,92,231,0.12); border-left: 2px solid var(--accent);}
+        .new-chat-btn {margin: 12px; padding: 10px; background: var(--accent); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px;}
+        .new-chat-btn:hover {opacity: 0.9;}
+        .toggle-sidebar {background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px 8px;}
+        .toggle-sidebar:hover {color: var(--text);}
+        .chat-embed {flex: 1; border: none; width: 100%;}
+        @media (max-width: 768px) {.sidebar {width: 0; position: absolute; z-index: 10; height: 100%;}.sidebar.mobile-open {width: 260px;}}
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <a href="/ui/v2" class="back">&larr;</a>
+        <span class="title">&#128172; {{ t("chat") }}</span>
+        <button class="toggle-sidebar" onclick="toggleSidebar()" title="History">&#128240; {{ t("v2_history") }}</button>
+    </div>
+    <div class="layout">
+        <div class="sidebar" id="chatSidebar">
+            <div class="sidebar-header">&#128240; {{ t("v2_history") }} <span class="count" id="historyCount"></span></div>
+            <button class="new-chat-btn" onclick="newChat()">{{ t("v2_new_chat") }}</button>
+            <div class="sidebar-list" id="historyList"><div style="padding:16px;color:var(--muted);">{{ t("v2_loading") }}</div></div>
+        </div>
+        <iframe src="/ui/chat" class="chat-embed" id="chatFrame"></iframe>
+    </div>
+    <script>
+        function toggleSidebar(){var s=document.getElementById('chatSidebar');if(window.innerWidth<=768){s.classList.toggle('mobile-open');}else{s.classList.toggle('collapsed');}}
+        function newChat(){document.getElementById('chatFrame').src='/ui/chat';setTimeout(loadHistory,500);}
+        function loadHistory(){var list=document.getElementById('historyList'),count=document.getElementById('historyCount');try{var tabId=localStorage.getItem('meshctx_active_tab')||'default';var data=JSON.parse(localStorage.getItem('meshctx_chat_'+tabId)||'[]');count.textContent=data.length;list.innerHTML=data.slice(-30).reverse().map(function(m){var p=(m.content||'').substring(0,40).replace(/</g,'&lt;');return '<div class="sidebar-item">'+p+'</div>';}).join('')||'<div style="padding:16px;color:var(--muted);">{{ t("v2_no_history") }}</div>';}catch(e){list.innerHTML='<div style="padding:16px;color:var(--muted);">{{ t("v2_load_failed") }}</div>';}}
+        loadHistory();setInterval(loadHistory,8000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ title }}</title>
+<style>
+    :root {--bg:#0f172a;--text:#e2e8f0;--surface:#1e293b;--border:#334155;--accent:#6c5ce7;--muted:#94a3b8;--orange:#f97316;}
+    * {margin:0;padding:0;box-sizing:border-box;}
+    body {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);padding:20px;}
+    .header {display:flex;align-items:center;gap:12px;margin-bottom:24px;border-bottom:1px solid var(--orange);padding-bottom:12px;}
+    .header a {color:var(--muted);text-decoration:none;font-size:18px;}
+    .header h2 {font-size:18px;color:var(--orange);}
+    .warning {background:rgba(249,115,22,0.1);border:1px solid var(--orange);border-radius:8px;padding:12px;font-size:12px;margin-bottom:20px;}
+    .grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+    .card {background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;cursor:pointer;transition:all .2s;text-decoration:none;color:var(--text);display:block;}
+    .card:hover {border-color:var(--orange);}
+    .card .icon {font-size:24px;margin-bottom:8px;}
+    .card .name {font-weight:600;font-size:15px;margin-bottom:4px;}
+    .card .desc {font-size:12px;color:var(--muted);}
+</style></head>
+<body>
+<div class="header"><a href="/ui/v2">&larr;</a><h2>&#128736; {{ t("v2_dev_panel") }}</h2></div>
+<div class="warning">&#9888; {{ t("v2_dev_warning") }}</div>
+<div class="grid">
+    <a href="/ui/?tab=brain" class="card"><div class="icon">&#129504;</div><div class="name">{{ t("v2_brain_map") }}</div><div class="desc">{{ t("v2_brain_desc") }}</div></a>
+    <a href="/ui/?tab=agent" class="card"><div class="icon">&#129302;</div><div class="name">{{ t("v2_agent_mgmt") }}</div><div class="desc">OODA loop &middot; Task monitor</div></a>
+    <a href="/ui/?tab=lab" class="card"><div class="icon">&#129514;</div><div class="name">{{ t("v2_lab") }}</div><div class="desc">{{ t("v2_lab_desc") }}</div></a>
+    <a href="/ui/?tab=sandbox-dt" class="card"><div class="icon">&#128421;</div><div class="name">{{ t("v2_sandbox") }}</div><div class="desc">{{ t("v2_sandbox_desc") }}</div></a>
+    <a href="/ui/?tab=win-dt" class="card"><div class="icon">&#129695;</div><div class="name">{{ t("v2_processes") }}</div><div class="desc">{{ t("v2_processes_desc") }}</div></a>
+    <a href="/ui/?tab=monitor" class="card"><div class="icon">&#128202;</div><div class="name">{{ t("v2_full_monitor") }}</div><div class="desc">{{ t("v2_monitor_desc") }}</div></a>
+</div>
+</body>
+</html>

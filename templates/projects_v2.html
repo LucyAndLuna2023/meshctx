@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        :root {--bg:#0f172a;--text:#e2e8f0;--muted:#94a3b8;--surface:#1e293b;--border:#334155;--accent:#6c5ce7;--hover:#1a2332;--radius:10px;}
+        * {margin:0;padding:0;box-sizing:border-box;}
+        body {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);padding:20px;min-height:100vh;}
+        .header {display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+        .header a {color:var(--muted);text-decoration:none;font-size:18px;}
+        .header h2 {font-size:18px;font-weight:600;}
+        .header .actions {flex:1;text-align:right;}
+        .header .new-btn {padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;}
+        .grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+        .card {background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:all .2s;text-decoration:none;color:var(--text);display:block;}
+        .card:hover {border-color:var(--accent);}
+        .card .name {font-weight:600;font-size:16px;margin-bottom:6px;}
+        .card .desc {font-size:13px;color:var(--muted);margin-bottom:12px;}
+        .card .meta {display:flex;gap:16px;font-size:11px;color:var(--muted);}
+        .card .status {display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500;}
+        .status-active {background:rgba(34,197,94,0.15);color:#22c55e;}
+        .status-draft {background:rgba(148,163,184,0.15);color:#94a3b8;}
+        .empty {text-align:center;padding:60px;color:var(--muted);}
+    </style>
+</head>
+<body>
+<div class="header">
+    <a href="/ui/v2">&larr;</a>
+    <h2>&#128194; {{ t("project") }}</h2>
+    <div class="actions"><button class="new-btn" onclick="location.href='/ui/projects/create'">{{ t("v2_new_project") }}</button></div>
+</div>
+<div id="projectList"><div style="text-align:center;padding:40px;color:var(--muted);">{{ t("v2_loading") }}</div></div>
+<script>
+    async function loadProjects(){try{var r=await fetch('/api/projects');var d=await r.json();var ps=d.projects||[];var el=document.getElementById('projectList');if(!ps.length){el.innerHTML='<div class="empty"><div style="font-size:48px;margin-bottom:12px;">&#128194;</div><div>{{ t("v2_no_projects") }}</div><div style="margin-top:8px;"><a href="/ui/projects/create" style="color:var(--accent);">{{ t("v2_create_first") }}</a></div></div>';return}el.innerHTML='<div class="grid">'+ps.map(function(p){var sc=p.status==='active'?'status-active':'status-draft';return'<a href="/ui/projects/'+p.id+'" class="card"><div class="name">'+(p.name||'Untitled')+' <span class="status '+sc+'">'+(p.status||'draft')+'</span></div><div class="desc">'+(p.description||'').substring(0,80)+'</div><div class="meta"><span>&#128337; '+(p.created_at||'-')+'</span></div></a>'}).join('')+'</div>'}catch(e){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">{{ t("v2_load_failed") }}</div>'}}
+    loadProjects();
+</script>
+</body>
+</html>

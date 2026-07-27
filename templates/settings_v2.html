@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ title }}</title>
+<style>
+    :root {--bg:#0f172a; --text:#e2e8f0; --surface:#1e293b; --border:#334155; --accent:#6c5ce7; --muted:#94a3b8;}
+    * {margin:0;padding:0;box-sizing:border-box;}
+    body {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);padding:20px;}
+    .header {display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+    .header a {color:var(--muted);text-decoration:none;font-size:18px;}
+    .header h2 {font-size:18px;}
+    .grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+    .card {background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;cursor:pointer;transition:all .2s;text-decoration:none;color:var(--text);display:block;}
+    .card:hover {border-color:var(--accent);}
+    .card .icon {font-size:24px;margin-bottom:8px;}
+    .card .name {font-weight:600;font-size:15px;margin-bottom:4px;}
+    .card .desc {font-size:12px;color:var(--muted);}
+</style></head>
+<body>
+<div class="header"><a href="/ui/v2">&larr;</a><h2>&#9881; {{ t("nav_settings") }}</h2></div>
+<div class="grid">
+    <a href="/ui/providers" class="card"><div class="icon">&#128268;</div><div class="name">{{ t("v2_model_mgmt") }}</div><div class="desc">{{ t("v2_model_mgmt_desc") }}</div></a>
+    <a href="/ui/plugins" class="card"><div class="icon">&#129521;</div><div class="name">{{ t("v2_plugins") }}</div><div class="desc">Install &middot; Enable &middot; Marketplace</div></a>
+    <a href="/ui/dashboard" class="card"><div class="icon">&#128202;</div><div class="name">{{ t("v2_system_status") }}</div><div class="desc">Monitor &middot; Resources &middot; Health</div></a>
+    <a href="/ui/memory" class="card"><div class="icon">&#128190;</div><div class="name">{{ t("v2_memory_mgmt") }}</div><div class="desc">Search &middot; Graph &middot; Stats</div></a>
+    <a href="/ui/continuity" class="card"><div class="icon">&#128279;</div><div class="name">Continuity</div><div class="desc">Project Continuity Score</div></a>
+    <a href="/ui/files" class="card"><div class="icon">&#128193;</div><div class="name">File Manager</div><div class="desc">Project file browser</div></a>
+</div>
+<div style="margin-top:24px;text-align:center;font-size:12px;color:var(--muted);">Dev Tools: <a href="/ui/v2/dev" style="color:var(--accent);">{{ t("v2_dev_panel") }}</a> or Ctrl+Shift+D</div>
+</body>
+</html>
