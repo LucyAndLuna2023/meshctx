@@ -1134,7 +1134,16 @@
     "dashboard_ws_info": "WebSocket /ws/health — 实时监控",
     "setup_text_f653ae": "配置飞书机器人Webhook，接收部署/健康/错误实时通知",
     "italian": "意大利语",
-    "arabic": "阿拉伯语"
+    "arabic": "阿拉伯语",
+    "v2_chat_desc": "AI 助手 · 多模型 · 上下文记忆",
+    "v2_projects_desc": "项目管理 · 会话 · 记忆 · 连续性",
+    "v2_model_mgmt": "模型管理",
+    "v2_model_mgmt_desc": "API 供应商 · 密钥 · 连接性",
+    "v2_plugins": "插件市场",
+    "v2_system_status": "系统状态",
+    "v2_memory_mgmt": "记忆管理",
+    "v2_dev_panel": "开发者面板",
+    "v2_dev_hint": "开发者工具: 按 Ctrl+Shift+D 或访问开发者面板"
   },
   "en": {
     "2d": "2D",
@@ -2318,7 +2327,16 @@
       }
     ],
     "italian": "Italian",
-    "arabic": "Arabic"
+    "arabic": "Arabic",
+    "v2_chat_desc": "AI Assistant · Multi-model · Context Memory",
+    "v2_projects_desc": "Project Mgmt · Sessions · Memory · Continuity",
+    "v2_model_mgmt": "Model Management",
+    "v2_model_mgmt_desc": "API Providers · Keys · Connectivity",
+    "v2_plugins": "Plugin Marketplace",
+    "v2_system_status": "System Status",
+    "v2_memory_mgmt": "Memory Management",
+    "v2_dev_panel": "Dev Panel",
+    "v2_dev_hint": "Dev Tools: Press Ctrl+Shift+D or visit Dev Panel"
   },
   "ja": {
     "2d": "2D",
@@ -3455,7 +3473,16 @@
     "dashboard_ws_info": "WebSocket /ws/health — リアルタイム監視",
     "setup_text_f653ae": "FeishuボットWebhookを設定して、デプロイ/正常性/エラーのリアルタイム通知を受信",
     "italian": "イタリア語",
-    "arabic": "アラビア語"
+    "arabic": "アラビア語",
+    "v2_chat_desc": "AIアシスタント · マルチモデル · コンテキストメモリ",
+    "v2_projects_desc": "プロジェクト管理 · セッション · メモリ · 継続性",
+    "v2_model_mgmt": "モデル管理",
+    "v2_model_mgmt_desc": "APIプロバイダー · キー · 接続",
+    "v2_plugins": "プラグインマーケット",
+    "v2_system_status": "システム状態",
+    "v2_memory_mgmt": "メモリ管理",
+    "v2_dev_panel": "開発パネル",
+    "v2_dev_hint": "開発ツール: Ctrl+Shift+D または開発パネル"
   },
   "ko": {
     "2d": "2D",
@@ -4592,7 +4619,16 @@
     "dashboard_ws_info": "WebSocket /ws/health — 실시간 모니터링",
     "setup_text_f653ae": "Feishu 봇 Webhook을 구성하여 배포/상태/오류 실시간 알림을 수신하세요",
     "italian": "이탈리아어",
-    "arabic": "아랍어"
+    "arabic": "아랍어",
+    "v2_chat_desc": "AI 어시스턴트 · 멀티모델 · 컨텍스트 메모리",
+    "v2_projects_desc": "프로젝트 관리 · 세션 · 메모리 · 연속성",
+    "v2_model_mgmt": "모델 관리",
+    "v2_model_mgmt_desc": "API 제공자 · 키 · 연결",
+    "v2_plugins": "플러그인 마켓플레이스",
+    "v2_system_status": "시스템 상태",
+    "v2_memory_mgmt": "메모리 관리",
+    "v2_dev_panel": "개발자 패널",
+    "v2_dev_hint": "개발자 도구: Ctrl+Shift+D 또는 개발자 패널"
   },
   "fr": {
     "2d": "2D",
@@ -5729,7 +5765,16 @@
     "dashboard_ws_info": "WebSocket /ws/health — Surveillance en temps réel",
     "setup_text_f653ae": "Configurer le Webhook du bot Feishu pour recevoir des notifications en temps réel de déploiement, santé et erreurs",
     "italian": "Italien",
-    "arabic": "Arabe"
+    "arabic": "Arabe",
+    "v2_chat_desc": "Assistant IA · Multi-modèle · Mémoire contextuelle",
+    "v2_projects_desc": "Gestion projet · Sessions · Mémoire · Continuité",
+    "v2_model_mgmt": "Gestion des modèles",
+    "v2_model_mgmt_desc": "Fournisseurs API · Clés · Connectivité",
+    "v2_plugins": "Place de marché",
+    "v2_system_status": "État du système",
+    "v2_memory_mgmt": "Gestion mémoire",
+    "v2_dev_panel": "Panneau dev",
+    "v2_dev_hint": "Outils dev: Ctrl+Shift+D ou Panneau dev"
   },
   "de": {
     "2d": "2D",
@@ -6866,7 +6911,16 @@
     "dashboard_ws_info": "WebSocket /ws/health — Echtzeit-Überwachung",
     "setup_text_f653ae": "Feishu-Bot-Webhook konfigurieren, um Echtzeit-Benachrichtigungen zu Deployment, Zustand und Fehlern zu erhalten",
     "italian": "Italienisch",
-    "arabic": "Arabisch"
+    "arabic": "Arabisch",
+    "v2_chat_desc": "KI-Assistent · Multi-Modell · Kontextspeicher",
+    "v2_projects_desc": "Projektverwaltung · Sitzungen · Speicher · Kontinuität",
+    "v2_model_mgmt": "Modellverwaltung",
+    "v2_model_mgmt_desc": "API-Anbieter · Schlüssel · Konnektivität",
+    "v2_plugins": "Plugin-Marktplatz",
+    "v2_system_status": "Systemstatus",
+    "v2_memory_mgmt": "Speicherverwaltung",
+    "v2_dev_panel": "Entwicklerpanel",
+    "v2_dev_hint": "Entwicklertools: Ctrl+Shift+D oder Entwicklerpanel"
   },
   "es": {
     "2d": "2D",
@@ -8003,7 +8057,16 @@
     "dashboard_ws_info": "WebSocket /ws/health — Monitoreo en tiempo real",
     "setup_text_f653ae": "Configurar el Webhook del bot Feishu para recibir notificaciones en tiempo real de despliegue, estado y errores",
     "italian": "Italiano",
-    "arabic": "Árabe"
+    "arabic": "Árabe",
+    "v2_chat_desc": "Asistente IA · Multimodelo · Memoria contextual",
+    "v2_projects_desc": "Gestión proyectos · Sesiones · Memoria · Continuidad",
+    "v2_model_mgmt": "Gestión de modelos",
+    "v2_model_mgmt_desc": "Proveedores API · Claves · Conectividad",
+    "v2_plugins": "Mercado de plugins",
+    "v2_system_status": "Estado del sistema",
+    "v2_memory_mgmt": "Gestión de memoria",
+    "v2_dev_panel": "Panel de desarrollo",
+    "v2_dev_hint": "Herramientas dev: Ctrl+Shift+D o Panel dev"
   },
   "it": {
     "2d": "2D",
@@ -9187,7 +9250,16 @@
       }
     ],
     "italian": "Italiano",
-    "arabic": "Arabo"
+    "arabic": "Arabo",
+    "v2_chat_desc": "Assistente IA · Multi-modello · Memoria contestuale",
+    "v2_projects_desc": "Gestione progetti · Sessioni · Memoria · Continuità",
+    "v2_model_mgmt": "Gestione modelli",
+    "v2_model_mgmt_desc": "Provider API · Chiavi · Connettività",
+    "v2_plugins": "Marketplace plugin",
+    "v2_system_status": "Stato sistema",
+    "v2_memory_mgmt": "Gestione memoria",
+    "v2_dev_panel": "Pannello sviluppatore",
+    "v2_dev_hint": "Strumenti dev: Ctrl+Shift+D o Pannello sviluppatore"
   },
   "ar": {
     "2d": "ثنائي الأبعاد",
@@ -10325,7 +10397,16 @@
     "setup_text_f653ae": "إعداد Webhook بوت Feishu لاستلام إشعارات النشر والصحة والأخطاء في الوقت الفعلي",
     "__available_langs__": "[{\"code\": \"zh\", \"name\": \"Chinese\", \"native\": \"中文\"}, {\"code\": \"en\", \"name\": \"English\", \"native\": \"English\"}, {\"code\": \"ja\", \"name\": \"Japanese\", \"native\": \"日本語\"}, {\"code\": \"ko\", \"name\": \"Korean\", \"native\": \"한국어\"}, {\"code\": \"fr\", \"name\": \"French\", \"native\": \"Français\"}, {\"code\": \"de\", \"name\": \"German\", \"native\": \"Deutsch\"}, {\"code\": \"es\", \"name\": \"Spanish\", \"native\": \"Español\"}, {\"code\": \"it\", \"name\": \"Italian\", \"native\": \"Italiano\"}, {\"code\": \"ar\", \"name\": \"Arabic\", \"native\": \"العربية\"}]",
     "italian": "الإيطالية",
-    "arabic": "العربية"
+    "arabic": "العربية",
+    "v2_chat_desc": "مساعد ذكي · متعدد النماذج · ذاكرة السياق",
+    "v2_projects_desc": "إدارة المشاريع · الجلسات · الذاكرة · الاستمرارية",
+    "v2_model_mgmt": "إدارة النماذج",
+    "v2_model_mgmt_desc": "مزودو API · المفاتيح · الاتصال",
+    "v2_plugins": "سوق الإضافات",
+    "v2_system_status": "حالة النظام",
+    "v2_memory_mgmt": "إدارة الذاكرة",
+    "v2_dev_panel": "لوحة المطور",
+    "v2_dev_hint": "أدوات المطور: Ctrl+Shift+D أو لوحة المطور"
   },
   "ru": {
     "2d": "2D",
@@ -11509,6 +11590,15 @@
       }
     ],
     "italian": "итальянский",
-    "arabic": "арабский"
+    "arabic": "арабский",
+    "v2_chat_desc": "ИИ-ассистент · Мультимодель · Контекстная память",
+    "v2_projects_desc": "Управление проектами · Сессии · Память · Непрерывность",
+    "v2_model_mgmt": "Управление моделями",
+    "v2_model_mgmt_desc": "API-провайдеры · Ключи · Подключение",
+    "v2_plugins": "Маркетплейс плагинов",
+    "v2_system_status": "Состояние системы",
+    "v2_memory_mgmt": "Управление памятью",
+    "v2_dev_panel": "Панель разработчика",
+    "v2_dev_hint": "Инструменты: Ctrl+Shift+D или Панель разработчика"
   }
 }
