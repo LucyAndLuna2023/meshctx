@@ -4,6 +4,11 @@ MeshCtx Super Brain — 11-Region Cognitive Architecture
 
 哺乳动物大脑11区域的工程化映射。每个区域解决一个真实问题。
 
+.. deprecated:: v4.0
+    此模块中的简化版脑区实现已被 ``brain_wired.UnifiedBrain`` 取代。
+    新代码请使用: ``from src.core.super_brain import UnifiedBrain, SuperBrain``
+    旧代码仍可工作 — SuperBrain 内部已委托给 brain_wired 的真实模块。
+
 架构:
   ThalamicGate ──→ Cortex (Agent Loop) ──→ BasalGanglia (Action)
        ↑                    ↓                      ↓
