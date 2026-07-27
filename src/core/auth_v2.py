@@ -220,7 +220,7 @@ def register_auth_routes(app):
         if password == _AUTH_PASSWORD:
             resp = JSONResponse({"status": "ok", "role": "admin"})
             resp.set_cookie("meshctx_session", _hash_session(),
-                          httponly=True, max_age=86400, samesite="lax")
+                          httponly=True, secure=True, max_age=86400, samesite="lax")
             return resp
         raise HTTPException(401, "密码错误")
 
