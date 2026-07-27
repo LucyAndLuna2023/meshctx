@@ -180,13 +180,21 @@ class LLMPREngine:
 
     def _get_diff(self, base: str, head: str) -> str:
         import shlex
+        base = shlex.quote(str(base))
+        head = shlex.quote(str(head))
         try:
-            r = subprocess.run(
-                f"git diff {shlex.quote(base)}..{shlex.quote(head)} --stat && echo '---' && git diff {shlex.quote(base)}..{shlex.quote(head)} -- . ':(exclude)*.lock' ':(exclude)*.json'",
-                shell=True, capture_output=True, text=True, timeout=20, executable='/bin/bash'
+            # 分两步执行避免 shell=True
+            r1 = subprocess.run(
+                ["git", "diff", f"{base}..{head}", "--stat"],
+                capture_output=True, text=True, timeout=20
             )
-            return r.stdout[:4000]
-    except Exception:
+            r2 = subprocess.run(
+                ["git", "diff", f"{base}..{head}", "--", ".", ":(exclude)*.lock", ":(exclude)*.json"],
+                capture_output=True, text=True, timeout=20
+            )
+            out = (r1.stdout + "---\n" + r2.stdout) if r1.returncode == 0 else r2.stdout
+            return out[:4000]
+        except Exception:
             return ""
 
     def _llm_pr(self, pr_type: str, diff: str) -> PRDescription:
