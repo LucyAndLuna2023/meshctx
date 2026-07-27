@@ -45,8 +45,32 @@ class WorkingMemory:
         self._step = 0
 
     def _embed(self, text: str) -> np.ndarray:
-        rng = np.random.RandomState(hash(text) % (2**31))
-        return rng.randn(self.embedding_dim) * 0.1
+        """语义嵌入 — 优先使用 sentence-transformers，回退到 TF-IDF/hash."""
+        # 尝试 sentence-transformers (真实语义)
+        if not hasattr(self, '_encoder'):
+            try:
+                from sentence_transformers import SentenceTransformer
+                self._encoder = SentenceTransformer('all-MiniLM-L6-v2')
+                self._encode_fn = lambda t: self._encoder.encode([t])[0]
+            except ImportError:
+                # 回退: sklearn TfidfVectorizer (有语义但不完美)
+                try:
+                    from sklearn.feature_extraction.text import TfidfVectorizer
+                    self._tfidf = TfidfVectorizer(max_features=self.embedding_dim)
+                    self._tfidf.fit([text])  # 在线学习
+                    self._encode_fn = lambda t: self._tfidf.transform([t]).toarray()[0][:self.embedding_dim]
+                except ImportError:
+                    # 最后回退: 确定性 hash (至少跨进程一致)
+                    import hashlib
+                    self._encode_fn = lambda t: np.array(
+                        [float(ord(c))/128.0 for c in hashlib.sha256(t.encode()).hexdigest()[:self.embedding_dim*2]]
+                    )[:self.embedding_dim]
+        
+        vec = self._encode_fn(text)
+        # pad or truncate
+        if len(vec) < self.embedding_dim:
+            vec = np.pad(vec, (0, self.embedding_dim - len(vec)))
+        return np.array(vec[:self.embedding_dim], dtype=float)
 
     def store(self, content: str, priority: float = 0.5) -> Optional[WMItem]:
         emb = self._embed(content)
