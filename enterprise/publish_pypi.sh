@@ -39,7 +39,7 @@ python3 -m py_compile src/core/brain_ltp.py && echo "   ✓ brain_ltp.py"
 python3 -m py_compile src/core/brain_gnostic.py && echo "   ✓ brain_gnostic.py"
 
 echo "🧪 test..."
-python3 -m pytest tests/ -q --tb=short 2>/dev/null && echo "   ✓ tests passed" || echo "   ⚠ no tests/ or failures (non-blocking)"
+python3 -m pytest tests/ -q --tb=short 2>/dev/null && echo "   ✓ tests passed" || { echo "   ❌ tests FAILED — blocking publish"; exit 1; }
 
 # ── 5. 构建 ──────────────────────────────────────────────
 rm -rf dist/ build/ *.egg-info

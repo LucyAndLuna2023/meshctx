@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import hmac
+import httpx
 import json
 import logging
 import time
@@ -298,16 +299,16 @@ def create_webhook_handler(hitl: HumanInTheLoop):
         value = action.get("value", "")
         if ":" in value:
             act, req_id = value.split(":", 1)
-            hitl.resolve(req_id, approved=(act == "approve"), approver=payload.get("user", {}).get("id", ""))
+            await hitl.resolve(req_id, approved=(act == "approve"), approver=payload.get("user", {}).get("id", ""))
         return {"text": "ok"}
 
     async def feishu_webhook(request: dict):
         """处理飞书卡片回调."""
         action = json.loads(request.get("action", {}).get("value", "{}"))
         if action.get("action") == "approve":
-            hitl.resolve(action["id"], approved=True, approver=request.get("open_id", ""))
+            await hitl.resolve(action["id"], approved=True, approver=request.get("open_id", ""))
         elif action.get("action") == "reject":
-            hitl.resolve(action["id"], approved=False, approver=request.get("open_id", ""))
+            await hitl.resolve(action["id"], approved=False, approver=request.get("open_id", ""))
         return {"code": 0}
 
     return slack_webhook, feishu_webhook

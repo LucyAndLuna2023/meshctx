@@ -16,7 +16,7 @@ docker build \
   --tag "$IMAGE:$TAG" \
   --tag "$IMAGE:latest" \
   --build-arg MESHCTX_VERSION="$TAG" \
-  --file "$REPO_ROOT/Dockerfile" \
+  --file "$REPO_ROOT/enterprise/Dockerfile" \
   "$REPO_ROOT"
 
 # ── 2. 验证 ──────────────────────────────────────────────

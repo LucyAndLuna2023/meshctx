@@ -248,3 +248,12 @@ def get_registry() -> AgentRegistry:
     if _registry is None:
         _registry = AgentRegistry()
     return _registry
+
+
+async def get_registry_async() -> AgentRegistry:
+    """异步获取 registry (含 Redis 后端初始化)."""
+    global _registry
+    if _registry is None:
+        _registry = AgentRegistry()
+        await _registry._init_backend()
+    return _registry
