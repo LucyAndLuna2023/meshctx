@@ -2884,6 +2884,7 @@ async def agent_loop_sse_alias(req: Request):
 async def sandbox_stream_status(req: Request):
     """沙箱流式状态 (v3.115.15 — QA修复)"""
     async def generate():
+        from datetime import datetime
         _SSE_MAX_DURATION = 300  # v3.33.1
         _start_ts = time.time()
         yield "event: status\ndata: {\"sandbox\":\"ready\",\"sessions\":0}\n\n"
@@ -2902,6 +2903,7 @@ async def sandbox_stream_status(req: Request):
 async def trace_stream(req: Request):
     """链路追踪SSE流 (v3.115.15 — QA修复)"""
     async def generate():
+        from datetime import datetime
         _SSE_MAX_DURATION = 300  # v3.33.1
         _start_ts = time.time()
         yield "event: status\ndata: {\"tracer\":\"ready\",\"spans\":0}\n\n"
