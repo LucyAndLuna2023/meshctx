@@ -104,9 +104,10 @@ class HippocampalReplay:
     def __init__(self, replay_speed: int = 15, max_episodes: int = 100):
         self.replay_speed = replay_speed
         self.episodes: deque = deque(maxlen=max_episodes)
-        self.discovered_patterns: List[Dict] = []
-        self.generated_skills: List[Dict] = []
+        # v3.33.1: bounded to maxlen=200
+        self.discovered_patterns: deque = deque(maxlen=200)
         self._index: Dict[str, List[int]] = {}  # 倒排索引加速模式匹配
+        self.generated_skills: deque = deque(maxlen=100)  # v3.33.1: 有界队列
 
     def record_episode(self, task: str, actions: List[str],
                        outcome: str, reflection: str,
@@ -205,6 +206,7 @@ class HippocampalReplay:
                     "source_pattern": p,
                 }
                 self.generated_skills.append(skill)
+                self._trim_list(self.generated_skills, 100)  # v3.33.1
 
     def get_state(self) -> Dict:
         return {
@@ -373,7 +375,8 @@ class DefaultModeNetwork:
     def __init__(self, creativity: float = 0.7):
         self.creativity = creativity
         self.concept_store: Dict[str, List[str]] = {}  # domain → concepts
-        self.ideas_generated: List[Dict] = []
+        # v3.33.1: bounded to maxlen=200
+        self.discovered_patterns: deque = deque(maxlen=200)
         self._last_wander: float = 0
 
     def add_concept(self, domain: str, concept: str, tags: List[str] = None):
@@ -416,6 +419,7 @@ class DefaultModeNetwork:
 
         if idea["quality"] > 0.5:
             self.ideas_generated.append(idea)
+            self._trim_list(self.ideas_generated, 200)  # v3.33.1
 
         self._last_wander = time.time()
         return idea
@@ -454,7 +458,7 @@ class ThalamicGate:
                  max_memories: int = 20):
         self.max_context_tokens = max_context_tokens
         self.max_memories = max_memories
-        self.current_focus: List[str] = []   # 当前焦点目标
+        self.current_focus: deque = deque(maxlen=50)   # v3.33.1: 有界队列
         self._attention_weights: Dict[str, float] = {}
 
     def set_focus(self, goals: List[str]):
@@ -738,8 +742,8 @@ class ACCConflictMonitor:
     """
 
     def __init__(self):
-        self.active_goals: List[Dict] = []
-        self.active_conflicts: List[Dict] = []
+        self.active_goals: deque = deque(maxlen=50)  # v3.33.1
+        self.active_conflicts: deque = deque(maxlen=30)  # v3.33.1
         self.resolved_conflicts: deque = deque(maxlen=200)
 
     def check_goal_conflict(self, goal_a: Dict, goal_b: Dict) -> Optional[Dict]:
@@ -778,8 +782,10 @@ class ACCConflictMonitor:
             conflict = self.check_goal_conflict(existing, goal)
             if conflict:
                 self.active_conflicts.append(conflict)
+                self._trim_list(self.active_conflicts, 50)  # v3.33.1
                 logger.warning(f"ACC: 检测到冲突 — {conflict['reason']}")
         self.active_goals.append(goal)
+        self._trim_list(self.active_goals, 100)  # v3.33.1
 
     def resolve_conflicts(self) -> List[Dict]:
         """
@@ -848,7 +854,7 @@ class Insula:
         self._latency_samples: deque = deque(maxlen=100)  # 响应延迟
         self._token_usage: deque = deque(maxlen=100)      # token消耗
         self.state: BrainState = BrainState.IDLE
-        self.alerts: List[Dict] = []
+        self.alerts: deque = deque(maxlen=200)  # v3.33.1
 
     def check(self) -> Dict:
         """
@@ -878,6 +884,7 @@ class Insula:
                 "report": report,
                 "timestamp": self._last_check,
             })
+            self._trim_list(self.alerts, 500)  # v3.33.1
         elif report["error_rate"] > 0.1 or report["memory_percent"] > 75:
             self.state = BrainState.RECOVERING
         elif self.state in (BrainState.ALERT, BrainState.RECOVERING):
@@ -887,6 +894,7 @@ class Insula:
                     "type": "recovery_complete",
                     "timestamp": self._last_check,
                 })
+                self._trim_list(self.alerts, 500)  # v3.33.1
 
         return report
 
@@ -1104,6 +1112,7 @@ class SuperBrain:
 
         self.state: BrainState = BrainState.IDLE
         self._event_queue: deque = deque(maxlen=200)
+        self._tick_count = 0  # v3.33.1: GC 计数器
         self._daemon_thread: Optional[threading.Thread] = None
         self._running = False
 
@@ -1112,6 +1121,12 @@ class SuperBrain:
 
     # ── 事件处理 ──
 
+
+    # ── v3.33.1: 内存上限保护 ──
+    def _trim_list(self, lst: list, max_size: int):
+        """防止无界列表导致 OOM"""
+        if len(lst) > max_size:
+            del lst[:-max_size]
     def process_event(self, event: BrainEvent,
                       context: Dict = None) -> Dict:
         """
@@ -1315,11 +1330,16 @@ class SuperBrain:
     def _daemon_loop(self):
         """后台循环 — 空闲时自动反思+创意"""
         while self._running:
+            self._tick_count += 1  # v3.33.1
             try:
                 if self.state in (BrainState.IDLE, BrainState.REFLECTIVE,
                                   BrainState.CREATIVE):
                     self.step()
-                time.sleep(5)
+                time.sleep(10)  # v3.33.1: 降低频率 5s->10s
+                # v3.33.1: 周期性 GC 防止内存碎片累积
+                if self._tick_count % 30 == 0:
+                    import gc
+                    gc.collect()
             except Exception as e:
                 logger.error(f"Brain daemon error: {e}")
                 time.sleep(10)
