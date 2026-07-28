@@ -895,7 +895,19 @@ def _import_from_meshctx_src(module_name: str, attr: str):
     if spec is None or spec.loader is None:
         raise ImportError(f"无法加载 {_mod_path}（文件不存在或格式错误）")
     mod = importlib.util.module_from_spec(spec)
+    # 确保父命名空间包存在，否则模块内相对导入 (from .core import ...) 会失败
+    # 因为 Python 按 __name__ 解析相对导入，而 _meshctx_src 不是真实包
+    import types
+    parts = _name.split(".")
+    for i in range(1, len(parts)):
+        parent = ".".join(parts[:i])
+        if parent not in sys.modules:
+            pkg = types.ModuleType(parent)
+            pkg.__path__ = []
+            pkg.__package__ = parent
+            sys.modules[parent] = pkg
     # 缓存到 sys.modules，避免后续 import 时又找错包
+    sys.modules[_name] = mod
     sys.modules.setdefault(module_name, mod)
     spec.loader.exec_module(mod)
     return getattr(mod, attr)
