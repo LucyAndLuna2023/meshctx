@@ -36,11 +36,11 @@
             <span class="nav-version">v{{ version }}</span>
         </div>
         <div class="nav-links">
-            <a href="/ui/" class="nav-link" data-lang-key="nav_dashboard">仪表板</a>
-            <a href="/ui/projects" class="nav-link" data-lang-key="nav_projects">项目</a>
-            <a href="/ui/memories" class="nav-link" data-lang-key="nav_memories">记忆</a>
-            <a href="/ui/continuity" class="nav-link" data-lang-key="nav_continuity">连续性</a>
-            <a href="/docs" class="nav-link" target="_blank" data-lang-key="nav_api">API</a>
+            <a href="/ui/" class="nav-link" data-lang-key="nav_dashboard">{{ t('nav_dashboard') }}</a>
+            <a href="/ui/projects" class="nav-link" data-lang-key="nav_projects">{{ t('nav_projects') }}</a>
+            <a href="/ui/memories" class="nav-link" data-lang-key="nav_memories">{{ t('nav_memories') }}</a>
+            <a href="/ui/continuity" class="nav-link" data-lang-key="nav_continuity">{{ t('nav_continuity') }}</a>
+            <a href="/docs" class="nav-link" target="_blank" data-lang-key="nav_api">{{ t('nav_api') }}</a>
         </div>
     </nav>
 
@@ -1237,18 +1237,16 @@ function changeLang(lang) {
     });
     // Sync dropdowns
     document.querySelectorAll('.lang-select').forEach(el => el.value = lang);
-    // Persist
+    // Persist to localStorage
     localStorage.setItem('meshctx_lang', lang);
-    // Sync to server
-    fetch('/api/lang/set', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({lang: lang})
-    }).catch(() => {});
+    // Persist to cookie (synchronous, no race condition on refresh)
+    document.cookie = 'meshctx_lang=' + lang + '; path=/; max-age=' + (365*24*3600) + '; SameSite=Lax';
+    // Also sync to server (best-effort, for cookie.js same-origin validation)
+    fetch('/api/lang/set', ...[truncated]
 }
 
-// Restore language: check localStorage first, then fallback to document lang
-const saved = localStorage.getItem('meshctx_lang') || document.documentElement.lang || 'en';
+// Restore language: server-rendered lang first, localStorage as fallback
+const saved = document.documentElement.lang || localStorage.getItem('meshctx_lang') || 'zh';
 const dropdown = document.querySelector('.lang-select');
 if (dropdown) dropdown.value = saved;
 changeLang(saved);
