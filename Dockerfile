@@ -19,12 +19,12 @@ COPY . .
 
 RUN mkdir -p /root/.meshctx/logs
 
-EXPOSE 3000
+EXPOSE 3001
 
-ENV MESHCTX_PORT=3000
+ENV MESHCTX_PORT=3001
 ENV MESHCTX_HOST=0.0.0.0
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD curl -f http://localhost:3000/health || exit 1
+    CMD curl -f http://localhost:3001/health || exit 1
 
-CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "3000"]
+CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "3001"]
