@@ -410,14 +410,19 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Healer/Optimizer init skipped: {e}")
     archiver.record("server_start", f"v{_ver}", "info")
     
+    _ARCHIVE_MAX_TICKS = 288  # v3.33.1: 最多运行 24h (288×300s)
+    _archive_ticks = 0
     async def auto_archive():
-        while True:
+        nonlocal _archive_ticks
+        while _archive_ticks < _ARCHIVE_MAX_TICKS:
             await asyncio.sleep(300)
+            _archive_ticks += 1
             try:
                 archiver.record("auto_save", "自动存档", "info")
                 archiver.save()
             except Exception as e:
                 logger.debug(f"存档: {e}")
+        logger.info("auto_archive: 达到最大 tick 数，优雅退出")
     asyncio.create_task(auto_archive())
     
     # v3.36: JEPA世界模型初始化 (杨立昆World Model)
@@ -1542,7 +1547,7 @@ async def install_plugin(request: Request):
     config.setdefault("plugins", {}).setdefault("installed", {})
     config["plugins"]["installed"][name] = {
         "version": plugin_info.get("version", "1.0.0"),
-        "installed_at": __import__("time").time(),
+        "installed_at": time.time(),
         "category": plugin_info.get("category", ""),
     }
     
@@ -2845,15 +2850,19 @@ async def sandbox_execute_stream(req: Request):
 @app.get("/api/agent/loop")
 async def agent_loop_sse(req: Request):
     """代理循环SSE流 (v3.115.15 — QA修复)"""
+    _SSE_MAX_DURATION = 300  # v3.33.1
+    _start_ts = time.time()
+    from src.core.kernel import Kernel  # v3.33.1: 预加载
     async def generate():
         yield "event: status\ndata: {\"agent\":\"meshctx\",\"status\":\"ready\",\"loop\":\"idle\"}\n\n"
         while True:
+            if time.time() - _start_ts > _SSE_MAX_DURATION:
+                break
             if await req.is_disconnected():
                 break
-            import asyncio
             await asyncio.sleep(5)
             try:
-                from src.core.kernel import Kernel
+                # Kernel preloaded above
                 k = Kernel.get()
                 loop_plugin = k.plugins.get("agent_loop") if k._started else None
                 status = "running" if (loop_plugin and getattr(loop_plugin, "_running", False)) else "idle"
@@ -2875,13 +2884,16 @@ async def agent_loop_sse_alias(req: Request):
 async def sandbox_stream_status(req: Request):
     """沙箱流式状态 (v3.115.15 — QA修复)"""
     async def generate():
+        _SSE_MAX_DURATION = 300  # v3.33.1
+        _start_ts = time.time()
         yield "event: status\ndata: {\"sandbox\":\"ready\",\"sessions\":0}\n\n"
         while True:
+            if time.time() - _start_ts > _SSE_MAX_DURATION:
+                break
             if await req.is_disconnected():
                 break
-            import asyncio
             await asyncio.sleep(3)
-            yield "event: heartbeat\ndata: {\"ts\":\"" + __import__("datetime").datetime.now().isoformat() + "\"}\n\n"
+            yield "event: heartbeat\ndata: {\"ts\":\"" + datetime.now().isoformat() + "\"}\n\n"
     return StreamingResponse(generate(), media_type="text/event-stream",
                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
@@ -2890,13 +2902,16 @@ async def sandbox_stream_status(req: Request):
 async def trace_stream(req: Request):
     """链路追踪SSE流 (v3.115.15 — QA修复)"""
     async def generate():
+        _SSE_MAX_DURATION = 300  # v3.33.1
+        _start_ts = time.time()
         yield "event: status\ndata: {\"tracer\":\"ready\",\"spans\":0}\n\n"
         while True:
+            if time.time() - _start_ts > _SSE_MAX_DURATION:
+                break
             if await req.is_disconnected():
                 break
-            import asyncio
             await asyncio.sleep(3)
-            yield "event: heartbeat\ndata: {\"ts\":\"" + __import__("datetime").datetime.now().isoformat() + "\"}\n\n"
+            yield "event: heartbeat\ndata: {\"ts\":\"" + datetime.now().isoformat() + "\"}\n\n"
     return StreamingResponse(generate(), media_type="text/event-stream",
                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
@@ -4984,13 +4999,13 @@ async def health_check():
         return {
             "status": "healthy" if result["error"] == 0 else "degraded",
             "version": __version__,
-            "time": __import__("time").time(),
+            "time": time.time(),
             "modules_ok": result["ok"],
             "modules_total": result["total"],
             "modules_error": result["error"],
         }
     except Exception:
-        return {"status": "healthy", "timestamp": __import__("time").time()}
+        return {"status": "healthy", "timestamp": time.time()}
 
 
 @app.get("/api/dashboard")

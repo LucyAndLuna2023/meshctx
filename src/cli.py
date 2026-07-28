@@ -20,6 +20,21 @@ import os
 import sys
 from pathlib import Path
 
+# ── 修复: 确保 from src.xxx 始终解析到 meshctx 自己的 src/ ──
+# 当有其他 pip install -e 包也有 src/ 目录时，Python 可能找错包
+# 根因: _EditableFinder 被 append 到 sys.meta_path 末尾，默认 PathFinder
+# 先遍历 sys.path，若其他包的路径排在前面就会抢走 src 包的解析。
+# sys.path 修复对顶层导入有效，但 src 已被加载，后续子模块用 src.__path__ 解析，
+# 所以必须同步修复 src.__path__。
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
+import src as _src_pkg
+_src_dir = os.path.join(_REPO_ROOT, 'src')
+if _src_pkg.__path__[0] != _src_dir:
+    _src_pkg.__path__[:] = [_src_dir] + [p for p in _src_pkg.__path__ if p != _src_dir]
+
 # ── readline: Linux/Mac 可用，Windows 不支持 ──
 try:
     import readline
@@ -851,14 +866,51 @@ def cmd_task(args):
 # start / stop / status
 # ═══════════════════════════════════════════════════
 
+def _import_from_meshctx_src(module_name: str, attr: str):
+    """从 meshctx 自身的 src 目录精确加载模块，不受其他同名 src 包干扰。
+    
+    问题背景：meshctx 用 'src' 作包名，若 venv 中还装了其他也用 'src'
+    的项目（如 casual-market-mcp），Python 的 import 可能找错包。
+    此函数基于 cli.py 自身的 __file__ 定位到正确的 src/ 目录加载。
+    """
+    import importlib.util
+    import os
+
+    _src_dir = os.path.dirname(os.path.abspath(__file__))
+    # 去掉 "src." 前缀，因为 _src_dir 已经是 src/ 目录
+    if module_name.startswith("src."):
+        rel = module_name[4:].replace(".", os.sep)
+    elif module_name == "src":
+        rel = ""
+    else:
+        rel = module_name.replace(".", os.sep)
+    
+    # 尝试 .py 文件或 package/__init__.py
+    _mod_path = os.path.join(_src_dir, f"{rel}.py")
+    if not os.path.exists(_mod_path):
+        _mod_path = os.path.join(_src_dir, rel, "__init__.py")
+
+    _name = f"_meshctx_src.{module_name}"
+    spec = importlib.util.spec_from_file_location(_name, _mod_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"无法加载 {_mod_path}（文件不存在或格式错误）")
+    mod = importlib.util.module_from_spec(spec)
+    # 缓存到 sys.modules，避免后续 import 时又找错包
+    sys.modules.setdefault(module_name, mod)
+    spec.loader.exec_module(mod)
+    return getattr(mod, attr)
+
+
 def cmd_start(args):
     """启动 meshctx v1.0 统一服务"""
     import uvicorn
-    from src.main import app
+    import sys
+
+    app = _import_from_meshctx_src("src.main", "app")
     
     port = args.port or 3001  # 默认端口 — 与 install.sh 和 main.py 保持一致
     host = '0.0.0.0'
-    from src.core import __version__
+    __version__ = _import_from_meshctx_src("src.core", "__version__")
     
     print(f"""
 ╔══════════════════════════════════════╗
@@ -1961,7 +2013,7 @@ def main():
         if sys.platform == "win32":
             threading.Thread(target=_open_browser, daemon=True).start()
         
-        from src.main import app
+        app = _import_from_meshctx_src("src.main", "app")
         host = os.environ.get("MESHCTX_HOST", "0.0.0.0")
         port = int(os.environ.get("MESHCTX_PORT", "3001"))
         uvicorn.run(app, host=host, port=port, log_level="info")
