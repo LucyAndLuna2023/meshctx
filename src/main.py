@@ -2492,6 +2492,86 @@ async def add_model(request: Request):
     return {"status": "ok", "id": model_id, "message": f"模型 {model_id} 已添加"}
 
 
+@app.post("/api/setup")
+async def setup_wizard(request: Request):
+    """设置向导 API — 从 templates/setup.html 调用，简化一键配置"""
+    from pathlib import Path
+    import yaml
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, t('error_invalid_json_body'))
+
+    provider = (body.get("provider") or "deepseek").strip()
+    api_key = (body.get("key") or "").strip()
+    model_name = (body.get("model") or "").strip()
+    base_url = (body.get("base_url") or "").strip()
+
+    if not api_key:
+        raise HTTPException(400, "请输入 API Key")
+
+    # provider → model defaults
+    provider_defaults = {
+        "deepseek": {"model_id": "deepseek:chat", "model": "deepseek-chat", "base_url": "https://api.deepseek.com/v1", "key_env": "DEEPSEEK_API_KEY"},
+        "openai": {"model_id": "openai:gpt-4o", "model": "gpt-4o", "base_url": "https://api.openai.com/v1", "key_env": "OPENAI_API_KEY"},
+        "bailian": {"model_id": "bailian:qwen-flash", "model": "qwen-plus", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "key_env": "BAILIAN_API_KEY"},
+        "anthropic": {"model_id": "anthropic:claude-sonnet", "model": "claude-sonnet-4-20250514", "base_url": "https://api.anthropic.com/v1", "key_env": "ANTHROPIC_API_KEY"},
+    }
+    defaults = provider_defaults.get(provider, provider_defaults["deepseek"])
+    model_id = defaults["model_id"]
+    actual_model = model_name or defaults["model"]
+    actual_url = base_url or defaults["base_url"]
+
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    config = {}
+    if config_path.exists():
+        with open(config_path) as f:
+            config = _yaml_load(f) or {}
+
+    config.setdefault("models", {})
+    config["models"].setdefault("entries", {})
+    config["models"]["entries"][model_id] = {
+        "key": api_key,
+        "model": actual_model,
+        "base_url": actual_url,
+        "provider": provider,
+    }
+    # 加密
+    try:
+        from src.core.crypto import encrypt_key
+        config["models"]["entries"][model_id]["key"] = encrypt_key(api_key)
+    except Exception:
+        logger.warning(f"加密 API key 失败，将明文存储: {model_id}")
+
+    if not config["models"].get("default"):
+        config["models"]["default"] = model_id
+
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+
+    # 环境变量
+    os.environ[defaults["key_env"]] = api_key
+
+    # 重置 registry 缓存
+    try:
+        from src.model_registry import reset_registry
+        reset_registry()
+    except Exception:
+        pass
+
+    # 统计已配置模型数
+    model_count = len(config["models"].get("entries", {}))
+
+    return {
+        "success": True,
+        "models": model_count,
+        "model_id": model_id,
+        "message": f"配置成功！{model_id} 已就绪",
+    }
+
+
 @app.put("/api/models/{model_id}")
 async def update_model(model_id: str, request: Request):
     """更新模型配置"""
