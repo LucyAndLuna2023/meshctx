@@ -526,7 +526,7 @@ class LightSDM:
 # 工厂函数
 # ---------------------------------------------------------------------------
 
-def get_sdm(mode: str = "full") -> SparseDistributedMemory:
+def get_sdm(mode: str = "medium") -> SparseDistributedMemory:
     """获取 SDM 实例
 
     Args:

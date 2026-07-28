@@ -101,6 +101,16 @@ class RealtimePush:
 
     def __init__(self):
         self.manager = ConnectionManager()
+        self._started: bool = False
+
+    async def start(self):
+        """启动实时推送服务 — 广播系统上线事件。"""
+        if self._started:
+            return
+        self._started = True
+        logger.info(
+            "RealtimePush started — connections=%d", self.manager.active_count,
+        )
 
     async def push_status(self, status: str):
         """推送 Agent 状态变更。"""

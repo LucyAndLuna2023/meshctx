@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+import logging
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
@@ -87,6 +88,16 @@ class AutoHealerV2:
                 })
         self._heal_count += len(actions)
         return actions
+
+    def start(self) -> None:
+        """启动自愈监控 — 执行初始健康检查。"""
+        initial = self.check_all()
+        ok_count = sum(1 for c in initial if c.status == "ok")
+        logger = logging.getLogger("meshctx.healer")
+        logger.info(
+            "AutoHealerV2 started — %d/%d checks OK",
+            ok_count, len(initial),
+        )
 
     # -- stats ----------------------------------------------------------------
 

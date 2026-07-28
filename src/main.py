@@ -250,9 +250,9 @@ async def lifespan(app: FastAPI):
 
     # v2.13: 启动WebSocket实时推送
     try:
-        from .core.realtime_push import get_hub
-        asyncio.create_task(get_hub().start())
-        logger.info("WebSocket实时推送已启动 (2s间隔)")
+        from .core.realtime_push import get_realtime
+        asyncio.create_task(get_realtime().start())
+        logger.info("WebSocket实时推送已启动")
     except Exception as e:
         logger.warning(f"WebSocket实时推送跳过: {e}")
 
@@ -266,16 +266,16 @@ async def lifespan(app: FastAPI):
 
     # v3.115.25: 初始化核心引擎（消除空壳）
     try:
-        from .core.memory_hierarchy import MemoryHierarchy
-        app.state.memory_hierarchy = MemoryHierarchy()
+        from .core.memory_hierarchy import HierarchicalMemoryStore
+        app.state.memory_hierarchy = HierarchicalMemoryStore()
         logger.info("MemoryHierarchy (4-tier L0-L4) 已初始化")
     except Exception as e:
         logger.warning(f"MemoryHierarchy初始化跳过: {e}")
 
     try:
         from .core.sdm_memory import get_sdm
-        app.state.sdm = get_sdm()
-        logger.info("SDM (Sparse Distributed Memory) 已初始化")
+        app.state.sdm = get_sdm(mode="lite")  # lite: 256bit×10K≈20MB, full 会吃 7.7GB
+        logger.info("SDM (Sparse Distributed Memory) 已初始化 (lite)")
     except Exception as e:
         logger.warning(f"SDM初始化跳过: {e}")
 
@@ -401,9 +401,9 @@ async def lifespan(app: FastAPI):
     # v2.21: 智能自愈 + 性能优化器
     try:
         from src.core.auto_healer import healer
-        from src.core.performance_optimizer import optimizer
+        from src.core.performance_optimizer import get_perf_optimizer
         app.state.healer = healer
-        app.state.optimizer = optimizer
+        app.state.optimizer = get_perf_optimizer()
         healer.start()
         logger.info("AutoHealer & PerformanceOptimizer started")
     except Exception as e:
