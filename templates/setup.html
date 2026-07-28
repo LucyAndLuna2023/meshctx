@@ -2,7 +2,7 @@
 <html lang="{{ __lang }}" dir="{{ 'rtl' if __lang == 'ar' else 'ltr' }}">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>meshctx 设置向导</title>
+<title>{{ t('setup_title') }}</title>
 <style>
 :root {--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#58a6ff;--green:#238636;}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -29,48 +29,60 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 </head>
 <body>
 <div class="card">
-<h1>🕸 欢迎使用 <span>meshctx</span></h1>
-<p class="sub">30秒完成配置，开始使用世界最智能的AI助手</p>
+<h1>🕸 {{ t('wizard_welcome') }} <span>meshctx</span></h1>
+<p class="sub">{{ t('wizard_subtitle') }}</p>
 
 <div id="step1" class="step">
-  <div class="step-label">第1步: 选择AI{{ t('provider_label') }}</div>
+  <div class="step-label">{{ t('wizard_step1') }}</div>
   <div class="provider-card selected" onclick="selectProvider('deepseek')" id="card-deepseek">
-    <div class="icon">🚀</div><div class="info"><div class="name">DeepSeek</div><div class="desc">免费额度 · 性价比最高 · 推荐</div></div>
+    <div class="icon">🚀</div><div class="info"><div class="name">DeepSeek</div><div class="desc">{{ t('wizard_deepseek_desc') }}</div></div>
   </div>
   <div class="provider-card" onclick="selectProvider('openai')" id="card-openai">
-    <div class="icon">🤖</div><div class="info"><div class="name">OpenAI</div><div class="desc">GPT-4o · 全球最强 · 付费</div></div>
+    <div class="icon">🤖</div><div class="info"><div class="name">OpenAI</div><div class="desc">{{ t('wizard_openai_desc') }}</div></div>
   </div>
   <div class="provider-card" onclick="selectProvider('bailian')" id="card-bailian">
-    <div class="icon">☁️</div><div class="info"><div class="name">阿里百炼</div><div class="desc">Qwen系列 · 百万token免费/月</div></div>
+    <div class="icon">☁️</div><div class="info"><div class="name">{{ t('setup_bailian') }}</div><div class="desc">{{ t('wizard_bailian_desc') }}</div></div>
   </div>
 </div>
 
 <div id="step2" class="step">
-  <div class="step-label">第2步: 输入API Key</div>
+  <div class="step-label">{{ t('wizard_step2') }}</div>
   <input type="password" id="apiKey" placeholder="sk-xxx...xxxx">
   <p style="font-size:0.8rem;color:var(--muted);margin-top:4px">
-    没有Key? <a href="#" id="getKeyLink" target="_blank" style="color:var(--accent)">点击获取 →</a>
+    {{ t('wizard_no_key') }} <a href="#" id="getKeyLink" target="_blank" style="color:var(--accent)">{{ t('wizard_get_key_link') }} →</a>
   </p>
 </div>
 
 <div id="step3" class="step" style="display:none;" x-show-advanced>
-  <div class="step-label">第3步: 高级选项 (可选)</div>
-  <input type="text" id="subModel" placeholder="子模型名，如 deepseek-chat (留空自动)">
-  <input type="text" id="baseUrl" placeholder="Base URL，如 https://api.deepseek.com/v1 (留空自动)">
+  <div class="step-label">{{ t('wizard_step3') }}</div>
+  <input type="text" id="subModel" placeholder="{{ t('wizard_submodel_placeholder') }}">
+  <input type="text" id="baseUrl" placeholder="{{ t('wizard_baseurl_placeholder') }}">
 </div>
 
 <div style="text-align:right;margin-bottom:4px;">
-  <a href="#" onclick="toggleAdvanced()" style="font-size:0.8rem;color:var(--muted);">⚙️ 高级选项</a>
+  <a href="#" onclick="toggleAdvanced()" style="font-size:0.8rem;color:var(--muted);">⚙️ {{ t('wizard_advanced') }}</a>
 </div>
 
-<button class="btn" onclick="setup()">🚀 完成配置</button>
-<button class="btn btn-ghost" onclick="skip()">跳过，稍后配置</button>
-<div class="skip"><a href="/ui/chat">直接使用 Web Chat →</a></div>
+<button class="btn" onclick="setup()">🚀 {{ t('wizard_finish') }}</button>
+<button class="btn btn-ghost" onclick="skip()">{{ t('wizard_skip') }}</button>
+<div class="skip"><a href="/ui/chat">{{ t('wizard_go_chat') }} →</a></div>
 
 <div id="result" class="result"></div>
 </div>
 
 <script>
+window.__wizard_i18n = {
+  enter_key: "{{ t('wizard_alert_enter_key') }}",
+  configuring: "{{ t('wizard_configuring') }}",
+  success: "{{ t('wizard_success') }}",
+  models_available: "{{ t('wizard_models_available') }}",
+  start_chat: "{{ t('wizard_start_chat') }}",
+  go_dashboard: "{{ t('wizard_go_dashboard') }}",
+  failed: "{{ t('wizard_failed') }}",
+  unknown_error: "{{ t('wizard_unknown_error') }}",
+  connection_error: "{{ t('wizard_connection_error') }}"
+};
+
 let provider = 'deepseek';
 const urls = {
   deepseek: 'https://platform.deepseek.com/api_keys',
@@ -87,12 +99,12 @@ function selectProvider(p) {
 
 async function setup() {
   const key = document.getElementById('apiKey').value.trim();
-  if (!key) { alert('请输入API Key'); return; }
-  
+  if (!key) { alert(window.__wizard_i18n.enter_key); return; }
+
   const result = document.getElementById('result');
   result.style.display = 'block';
-  result.innerHTML = '⏳ 正在配置...';
-  
+  result.innerHTML = '⏳ ' + window.__wizard_i18n.configuring;
+
   try {
     const resp = await fetch('/api/setup', {
       method: 'POST',
@@ -105,21 +117,21 @@ async function setup() {
       })
     });
     const data = await resp.json();
-    
+
     if (data.success) {
       result.className = 'result success';
       result.innerHTML = `
-        <p class="ok">✅ 配置完成!</p>
-        <p>可用模型: ${data.models}个 · ${data.model_id}</p>
+        <p class="ok">✅ ${window.__wizard_i18n.success}</p>
+        <p>${window.__wizard_i18n.models_available}: ${data.models} · ${data.model_id}</p>
         <p style="margin-top:12px">
-          <a href="/ui/chat" style="color:var(--accent)">→ 开始聊天</a> |
-          <a href="/ui/" style="color:var(--muted)">→ 管理控制台</a>
+          <a href="/ui/chat" style="color:var(--accent)">→ ${window.__wizard_i18n.start_chat}</a> |
+          <a href="/ui/" style="color:var(--muted)">→ ${window.__wizard_i18n.go_dashboard}</a>
         </p>`;
     } else {
-      result.innerHTML = '❌ 配置失败: ' + (data.error || data.detail || '未知错误');
+      result.innerHTML = '❌ ' + window.__wizard_i18n.failed + ': ' + (data.error || data.detail || window.__wizard_i18n.unknown_error);
     }
   } catch(e) {
-    result.innerHTML = '❌ 连接失败: ' + e.message;
+    result.innerHTML = '❌ ' + window.__wizard_i18n.connection_error + ': ' + e.message;
   }
 }
 
