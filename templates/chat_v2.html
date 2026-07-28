@@ -65,7 +65,7 @@
                 setTimeout(function(){
                     try { fid.contentWindow.postMessage({type:'newChat'}, '*'); } catch(e){}
                     loadHistory();
-                }, 500);
+                }, 800);
             };
 
             function loadHistory(){
@@ -98,11 +98,14 @@
                 fetch('/api/conversations/' + convId)
                 .then(function(r){ return r.json(); })
                 .then(function(d){
-                    if(d.messages){
-                        localStorage.setItem('meshctx_msgs', JSON.stringify(d.messages));
-                        localStorage.setItem('meshctx_conv_id', convId);
-                    }
+                    var msgs = d.messages || [];
+                    localStorage.setItem('meshctx_msgs', JSON.stringify(msgs));
+                    localStorage.setItem('meshctx_conv_id', convId);
                     fid.src = '/ui/chat?conv=' + convId;
+                    // Also postMessage to already-loaded iframe (avoid full reload when possible)
+                    setTimeout(function(){
+                        try { fid.contentWindow.postMessage({type:'openConv', convId: convId, messages: msgs}, '*'); } catch(e){}
+                    }, 800);
                     var items = document.querySelectorAll('.sidebar-item');
                     for(var i = 0; i < items.length; i++){ items[i].classList.remove('active'); }
                     var el = document.querySelector('.sidebar-item[data-id="' + convId + '"]');
@@ -123,6 +126,9 @@
 
             // Language change support
             window.updateLang = function(lang){
+                // Normalize and reject ja propagation from iframe
+                lang = (lang || 'zh').split('-')[0];
+                if (lang === 'ja') { lang = 'zh'; }
                 try {
                     var el = document.getElementById('i18n-data');
                     var all = el ? JSON.parse(el.textContent || '{}') : {};
