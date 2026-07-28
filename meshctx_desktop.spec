@@ -318,6 +318,9 @@ a = Analysis(
         'Crypto.Cipher.AES', 'aiohttp', 'starlette',
         'anyio', 'sniffio', 'h11', 'websockets', 'psutil',
         'numpy', 'aiofiles', 'packaging',
+        # FastAPI middleware (namespace packages — PyInstaller misses these)
+        'fastapi.middleware', 'fastapi.middleware.cors',
+        'starlette.middleware', 'starlette.middleware.cors',
     ],
     hookspath=[],
     excludes=['torch','tensorflow','sklearn','keras','onnxruntime','torchvision','torchaudio','xgboost','lightgbm','numba','cupy'],
