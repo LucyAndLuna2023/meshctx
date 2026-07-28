@@ -43,7 +43,7 @@
     "broken_status": "断裂",
     "button": "按钮",
     "cancel_btn": "取消",
-    "chat": "Chat",
+    "chat": "聊天",
     "chat_msg_1e203c": "用户消息: 请分析以上执行结果并回答",
     "chat_msg_2f2fde": "输入消息... (Enter 发送, Shift+Enter 换行",
     "chat_msg_338e82": "历史消息索引",
@@ -1212,7 +1212,61 @@
     "wizard_go_dashboard": "管理控制台",
     "wizard_failed": "配置失败",
     "wizard_unknown_error": "未知错误",
-    "wizard_connection_error": "连接失败"
+    "wizard_connection_error": "连接失败",
+    "nav_dashboard": "仪表板",
+    "nav_projects": "项目",
+    "nav_memories": "记忆",
+    "nav_continuity": "连续性",
+    "nav_api": "API",
+    "chat_new": "➕ 新对话",
+    "chat_welcome": "你好！我是 meshctx。我可以读文件、搜代码、执行命令。<br>试试看：读一下 README.md",
+    "__available_langs__": [
+      {
+        "code": "zh",
+        "name": "Chinese",
+        "native": "中文"
+      },
+      {
+        "code": "en",
+        "name": "English",
+        "native": "English"
+      },
+      {
+        "code": "ja",
+        "name": "Japanese",
+        "native": "日本語"
+      },
+      {
+        "code": "ko",
+        "name": "Korean",
+        "native": "한국어"
+      },
+      {
+        "code": "fr",
+        "name": "French",
+        "native": "Français"
+      },
+      {
+        "code": "de",
+        "name": "German",
+        "native": "Deutsch"
+      },
+      {
+        "code": "es",
+        "name": "Spanish",
+        "native": "Español"
+      },
+      {
+        "code": "it",
+        "name": "Italian",
+        "native": "Italiano"
+      },
+      {
+        "code": "ar",
+        "name": "Arabic",
+        "native": "العربية"
+      }
+    ]
   },
   "en": {
     "2d": "2D",
@@ -2474,7 +2528,14 @@
     "wizard_go_dashboard": "Dashboard",
     "wizard_failed": "Setup failed",
     "wizard_unknown_error": "Unknown error",
-    "wizard_connection_error": "Connection error"
+    "wizard_connection_error": "Connection error",
+    "nav_dashboard": "Dashboard",
+    "nav_projects": "Projects",
+    "nav_memories": "Memories",
+    "nav_continuity": "Continuity",
+    "nav_api": "API",
+    "chat_new": "➕ New Chat",
+    "chat_welcome": "Hello! I'm meshctx. I can read files, search code, and run commands.<br>Try: read README.md"
   },
   "ja": {
     "2d": "2D",
@@ -3689,7 +3750,61 @@
     "wizard_go_dashboard": "ダッシュボード",
     "wizard_failed": "設定失敗",
     "wizard_unknown_error": "不明なエラー",
-    "wizard_connection_error": "接続エラー"
+    "wizard_connection_error": "接続エラー",
+    "nav_dashboard": "ダッシュボード",
+    "nav_projects": "プロジェクト",
+    "nav_memories": "メモリ",
+    "nav_continuity": "連続性",
+    "nav_api": "API",
+    "chat_new": "➕ 新しいチャット",
+    "chat_welcome": "こんにちは！meshctxです。ファイルの読み取り、コード検索、コマンド実行ができます。<br>試してみて：README.mdを読んで",
+    "__available_langs__": [
+      {
+        "code": "zh",
+        "name": "Chinese",
+        "native": "中文"
+      },
+      {
+        "code": "en",
+        "name": "English",
+        "native": "English"
+      },
+      {
+        "code": "ja",
+        "name": "Japanese",
+        "native": "日本語"
+      },
+      {
+        "code": "ko",
+        "name": "Korean",
+        "native": "한국어"
+      },
+      {
+        "code": "fr",
+        "name": "French",
+        "native": "Français"
+      },
+      {
+        "code": "de",
+        "name": "German",
+        "native": "Deutsch"
+      },
+      {
+        "code": "es",
+        "name": "Spanish",
+        "native": "Español"
+      },
+      {
+        "code": "it",
+        "name": "Italian",
+        "native": "Italiano"
+      },
+      {
+        "code": "ar",
+        "name": "Arabic",
+        "native": "العربية"
+      }
+    ]
   },
   "ko": {
     "2d": "2D",
@@ -4855,7 +4970,110 @@
     "v2_load_failed": "로드 실패",
     "v2_new_chat": "+ 새 채팅",
     "v2_history": "기록",
-    "v2_no_history": "기록 없음"
+    "v2_no_history": "기록 없음",
+    "nav_dashboard": "대시보드",
+    "nav_projects": "프로젝트",
+    "nav_memories": "메모리",
+    "nav_continuity": "연속성",
+    "nav_api": "API",
+    "chat_new": "➕ 새 채팅",
+    "chat_welcome": "안녕하세요! meshctx입니다. 파일 읽기, 코드 검색, 명령 실행이 가능합니다.<br>시도해보세요: README.md 읽기",
+    "wizard_deepseek_desc": "Free quota · Best value · Recommended",
+    "wizard_step1": "Step 1: Choose AI Provider",
+    "wizard_openai_desc": "GPT-4o · World-class · Paid",
+    "setup_get_key": "Get Key",
+    "endpoint": "Endpoint",
+    "wizard_go_chat": "Go to Chat",
+    "wizard_alert_enter_key": "Please enter your API Key",
+    "setup_custom_provider": "Custom Provider",
+    "wizard_welcome": "Welcome to",
+    "error_network": "Network Error",
+    "wizard_step3": "Step 3: Advanced (optional)",
+    "setup_clean_unconfigured": "🗑 Clean Unconfigured",
+    "setup_test_success": "connected successfully",
+    "wizard_configuring": "Configuring...",
+    "wizard_step2": "Step 2: Enter API Key",
+    "wizard_models_available": "Models available",
+    "setup_testing": "Testing",
+    "setup_expand_all": "Show All",
+    "wizard_start_chat": "Start Chat",
+    "setup_quick_presets": "Quick Presets",
+    "wizard_unknown_error": "Unknown error",
+    "configure": "Configure",
+    "setup_show_more_hint": "Showing first 20 unconfigured models (total: {count})",
+    "wizard_success": "Setup complete!",
+    "wizard_get_key_link": "Get one here",
+    "wizard_advanced": "Advanced",
+    "setup_bailian": "Alibaba Bailian",
+    "setup_clean_confirm": "Delete all models without API keys? This cannot be undone.",
+    "setup_openai_compat": "Generic OpenAI",
+    "wizard_failed": "Setup failed",
+    "error_generic": "Error",
+    "error_key_url_required": "Please enter API Key or Base URL",
+    "wizard_baseurl_placeholder": "Base URL, e.g. https://api.deepseek.com/v1 (auto if empty)",
+    "setup_configure_key_prefix": "Configure API Key",
+    "__available_langs__": [
+      {
+        "code": "zh",
+        "name": "Chinese",
+        "native": "中文"
+      },
+      {
+        "code": "en",
+        "name": "English",
+        "native": "English"
+      },
+      {
+        "code": "ja",
+        "name": "Japanese",
+        "native": "日本語"
+      },
+      {
+        "code": "ko",
+        "name": "Korean",
+        "native": "한국어"
+      },
+      {
+        "code": "fr",
+        "name": "French",
+        "native": "Français"
+      },
+      {
+        "code": "de",
+        "name": "German",
+        "native": "Deutsch"
+      },
+      {
+        "code": "es",
+        "name": "Spanish",
+        "native": "Español"
+      },
+      {
+        "code": "it",
+        "name": "Italian",
+        "native": "Italiano"
+      },
+      {
+        "code": "ar",
+        "name": "Arabic",
+        "native": "العربية"
+      }
+    ],
+    "setup_operation_failed": "Operation failed.",
+    "wizard_subtitle": "30-second setup. Start using the smartest AI assistant.",
+    "setup_cleaned_count": "Cleaned {count} unconfigured model(s)",
+    "wizard_submodel_placeholder": "Sub-model name, e.g. deepseek-chat (auto if empty)",
+    "wizard_bailian_desc": "Qwen series · 1M free tokens/month",
+    "setup_no_models_hint": "No models configured yet. Click \"+ Add Model\" above to get started.",
+    "wizard_finish": "Finish Setup",
+    "setup_edit_prefix": "Edit",
+    "wizard_no_key": "Don't have a key?",
+    "wizard_go_dashboard": "Dashboard",
+    "error_failed": "Failed",
+    "setup_enter_model_id": "Please enter a Model ID first",
+    "wizard_skip": "Skip for now",
+    "setup_siliconflow": "SiliconFlow",
+    "wizard_connection_error": "Connection error"
   },
   "fr": {
     "2d": "2D",
@@ -6021,7 +6239,110 @@
     "v2_load_failed": "Échec du chargement",
     "v2_new_chat": "+ Nouveau chat",
     "v2_history": "Historique",
-    "v2_no_history": "Aucun historique"
+    "v2_no_history": "Aucun historique",
+    "nav_dashboard": "Tableau de bord",
+    "nav_projects": "Projets",
+    "nav_memories": "Mémoires",
+    "nav_continuity": "Continuité",
+    "nav_api": "API",
+    "chat_new": "➕ Nouveau chat",
+    "chat_welcome": "Bonjour ! Je suis meshctx. Je peux lire des fichiers, chercher du code et exécuter des commandes.<br>Essayez : lisez README.md",
+    "wizard_deepseek_desc": "Free quota · Best value · Recommended",
+    "wizard_step1": "Step 1: Choose AI Provider",
+    "wizard_openai_desc": "GPT-4o · World-class · Paid",
+    "setup_get_key": "Get Key",
+    "endpoint": "Endpoint",
+    "wizard_go_chat": "Go to Chat",
+    "wizard_alert_enter_key": "Please enter your API Key",
+    "setup_custom_provider": "Custom Provider",
+    "wizard_welcome": "Welcome to",
+    "error_network": "Network Error",
+    "wizard_step3": "Step 3: Advanced (optional)",
+    "setup_clean_unconfigured": "🗑 Clean Unconfigured",
+    "setup_test_success": "connected successfully",
+    "wizard_configuring": "Configuring...",
+    "wizard_step2": "Step 2: Enter API Key",
+    "wizard_models_available": "Models available",
+    "setup_testing": "Testing",
+    "setup_expand_all": "Show All",
+    "wizard_start_chat": "Start Chat",
+    "setup_quick_presets": "Quick Presets",
+    "wizard_unknown_error": "Unknown error",
+    "configure": "Configure",
+    "setup_show_more_hint": "Showing first 20 unconfigured models (total: {count})",
+    "wizard_success": "Setup complete!",
+    "wizard_get_key_link": "Get one here",
+    "wizard_advanced": "Advanced",
+    "setup_bailian": "Alibaba Bailian",
+    "setup_clean_confirm": "Delete all models without API keys? This cannot be undone.",
+    "setup_openai_compat": "Generic OpenAI",
+    "wizard_failed": "Setup failed",
+    "error_generic": "Error",
+    "error_key_url_required": "Please enter API Key or Base URL",
+    "wizard_baseurl_placeholder": "Base URL, e.g. https://api.deepseek.com/v1 (auto if empty)",
+    "setup_configure_key_prefix": "Configure API Key",
+    "__available_langs__": [
+      {
+        "code": "zh",
+        "name": "Chinese",
+        "native": "中文"
+      },
+      {
+        "code": "en",
+        "name": "English",
+        "native": "English"
+      },
+      {
+        "code": "ja",
+        "name": "Japanese",
+        "native": "日本語"
+      },
+      {
+        "code": "ko",
+        "name": "Korean",
+        "native": "한국어"
+      },
+      {
+        "code": "fr",
+        "name": "French",
+        "native": "Français"
+      },
+      {
+        "code": "de",
+        "name": "German",
+        "native": "Deutsch"
+      },
+      {
+        "code": "es",
+        "name": "Spanish",
+        "native": "Español"
+      },
+      {
+        "code": "it",
+        "name": "Italian",
+        "native": "Italiano"
+      },
+      {
+        "code": "ar",
+        "name": "Arabic",
+        "native": "العربية"
+      }
+    ],
+    "setup_operation_failed": "Operation failed.",
+    "wizard_subtitle": "30-second setup. Start using the smartest AI assistant.",
+    "setup_cleaned_count": "Cleaned {count} unconfigured model(s)",
+    "wizard_submodel_placeholder": "Sub-model name, e.g. deepseek-chat (auto if empty)",
+    "wizard_bailian_desc": "Qwen series · 1M free tokens/month",
+    "setup_no_models_hint": "No models configured yet. Click \"+ Add Model\" above to get started.",
+    "wizard_finish": "Finish Setup",
+    "setup_edit_prefix": "Edit",
+    "wizard_no_key": "Don't have a key?",
+    "wizard_go_dashboard": "Dashboard",
+    "error_failed": "Failed",
+    "setup_enter_model_id": "Please enter a Model ID first",
+    "wizard_skip": "Skip for now",
+    "setup_siliconflow": "SiliconFlow",
+    "wizard_connection_error": "Connection error"
   },
   "de": {
     "2d": "2D",
@@ -7187,7 +7508,110 @@
     "v2_load_failed": "Laden fehlgeschlagen",
     "v2_new_chat": "+ Neuer Chat",
     "v2_history": "Verlauf",
-    "v2_no_history": "Kein Verlauf"
+    "v2_no_history": "Kein Verlauf",
+    "nav_dashboard": "Dashboard",
+    "nav_projects": "Projekte",
+    "nav_memories": "Erinnerungen",
+    "nav_continuity": "Kontinuität",
+    "nav_api": "API",
+    "chat_new": "➕ Neuer Chat",
+    "chat_welcome": "Hallo! Ich bin meshctx. Ich kann Dateien lesen, Code suchen und Befehle ausführen.<br>Versuch: lies README.md",
+    "wizard_deepseek_desc": "Free quota · Best value · Recommended",
+    "wizard_step1": "Step 1: Choose AI Provider",
+    "wizard_openai_desc": "GPT-4o · World-class · Paid",
+    "setup_get_key": "Get Key",
+    "endpoint": "Endpoint",
+    "wizard_go_chat": "Go to Chat",
+    "wizard_alert_enter_key": "Please enter your API Key",
+    "setup_custom_provider": "Custom Provider",
+    "wizard_welcome": "Welcome to",
+    "error_network": "Network Error",
+    "wizard_step3": "Step 3: Advanced (optional)",
+    "setup_clean_unconfigured": "🗑 Clean Unconfigured",
+    "setup_test_success": "connected successfully",
+    "wizard_configuring": "Configuring...",
+    "wizard_step2": "Step 2: Enter API Key",
+    "wizard_models_available": "Models available",
+    "setup_testing": "Testing",
+    "setup_expand_all": "Show All",
+    "wizard_start_chat": "Start Chat",
+    "setup_quick_presets": "Quick Presets",
+    "wizard_unknown_error": "Unknown error",
+    "configure": "Configure",
+    "setup_show_more_hint": "Showing first 20 unconfigured models (total: {count})",
+    "wizard_success": "Setup complete!",
+    "wizard_get_key_link": "Get one here",
+    "wizard_advanced": "Advanced",
+    "setup_bailian": "Alibaba Bailian",
+    "setup_clean_confirm": "Delete all models without API keys? This cannot be undone.",
+    "setup_openai_compat": "Generic OpenAI",
+    "wizard_failed": "Setup failed",
+    "error_generic": "Error",
+    "error_key_url_required": "Please enter API Key or Base URL",
+    "wizard_baseurl_placeholder": "Base URL, e.g. https://api.deepseek.com/v1 (auto if empty)",
+    "setup_configure_key_prefix": "Configure API Key",
+    "__available_langs__": [
+      {
+        "code": "zh",
+        "name": "Chinese",
+        "native": "中文"
+      },
+      {
+        "code": "en",
+        "name": "English",
+        "native": "English"
+      },
+      {
+        "code": "ja",
+        "name": "Japanese",
+        "native": "日本語"
+      },
+      {
+        "code": "ko",
+        "name": "Korean",
+        "native": "한국어"
+      },
+      {
+        "code": "fr",
+        "name": "French",
+        "native": "Français"
+      },
+      {
+        "code": "de",
+        "name": "German",
+        "native": "Deutsch"
+      },
+      {
+        "code": "es",
+        "name": "Spanish",
+        "native": "Español"
+      },
+      {
+        "code": "it",
+        "name": "Italian",
+        "native": "Italiano"
+      },
+      {
+        "code": "ar",
+        "name": "Arabic",
+        "native": "العربية"
+      }
+    ],
+    "setup_operation_failed": "Operation failed.",
+    "wizard_subtitle": "30-second setup. Start using the smartest AI assistant.",
+    "setup_cleaned_count": "Cleaned {count} unconfigured model(s)",
+    "wizard_submodel_placeholder": "Sub-model name, e.g. deepseek-chat (auto if empty)",
+    "wizard_bailian_desc": "Qwen series · 1M free tokens/month",
+    "setup_no_models_hint": "No models configured yet. Click \"+ Add Model\" above to get started.",
+    "wizard_finish": "Finish Setup",
+    "setup_edit_prefix": "Edit",
+    "wizard_no_key": "Don't have a key?",
+    "wizard_go_dashboard": "Dashboard",
+    "error_failed": "Failed",
+    "setup_enter_model_id": "Please enter a Model ID first",
+    "wizard_skip": "Skip for now",
+    "setup_siliconflow": "SiliconFlow",
+    "wizard_connection_error": "Connection error"
   },
   "es": {
     "2d": "2D",
@@ -8353,7 +8777,110 @@
     "v2_load_failed": "Error de carga",
     "v2_new_chat": "+ Nuevo chat",
     "v2_history": "Historial",
-    "v2_no_history": "Sin historial"
+    "v2_no_history": "Sin historial",
+    "nav_dashboard": "Panel",
+    "nav_projects": "Proyectos",
+    "nav_memories": "Memorias",
+    "nav_continuity": "Continuidad",
+    "nav_api": "API",
+    "chat_new": "➕ Nuevo chat",
+    "chat_welcome": "¡Hola! Soy meshctx. Puedo leer archivos, buscar código y ejecutar comandos.<br>Prueba: lee README.md",
+    "wizard_deepseek_desc": "Free quota · Best value · Recommended",
+    "wizard_step1": "Step 1: Choose AI Provider",
+    "wizard_openai_desc": "GPT-4o · World-class · Paid",
+    "setup_get_key": "Get Key",
+    "endpoint": "Endpoint",
+    "wizard_go_chat": "Go to Chat",
+    "wizard_alert_enter_key": "Please enter your API Key",
+    "setup_custom_provider": "Custom Provider",
+    "wizard_welcome": "Welcome to",
+    "error_network": "Network Error",
+    "wizard_step3": "Step 3: Advanced (optional)",
+    "setup_clean_unconfigured": "🗑 Clean Unconfigured",
+    "setup_test_success": "connected successfully",
+    "wizard_configuring": "Configuring...",
+    "wizard_step2": "Step 2: Enter API Key",
+    "wizard_models_available": "Models available",
+    "setup_testing": "Testing",
+    "setup_expand_all": "Show All",
+    "wizard_start_chat": "Start Chat",
+    "setup_quick_presets": "Quick Presets",
+    "wizard_unknown_error": "Unknown error",
+    "configure": "Configure",
+    "setup_show_more_hint": "Showing first 20 unconfigured models (total: {count})",
+    "wizard_success": "Setup complete!",
+    "wizard_get_key_link": "Get one here",
+    "wizard_advanced": "Advanced",
+    "setup_bailian": "Alibaba Bailian",
+    "setup_clean_confirm": "Delete all models without API keys? This cannot be undone.",
+    "setup_openai_compat": "Generic OpenAI",
+    "wizard_failed": "Setup failed",
+    "error_generic": "Error",
+    "error_key_url_required": "Please enter API Key or Base URL",
+    "wizard_baseurl_placeholder": "Base URL, e.g. https://api.deepseek.com/v1 (auto if empty)",
+    "setup_configure_key_prefix": "Configure API Key",
+    "__available_langs__": [
+      {
+        "code": "zh",
+        "name": "Chinese",
+        "native": "中文"
+      },
+      {
+        "code": "en",
+        "name": "English",
+        "native": "English"
+      },
+      {
+        "code": "ja",
+        "name": "Japanese",
+        "native": "日本語"
+      },
+      {
+        "code": "ko",
+        "name": "Korean",
+        "native": "한국어"
+      },
+      {
+        "code": "fr",
+        "name": "French",
+        "native": "Français"
+      },
+      {
+        "code": "de",
+        "name": "German",
+        "native": "Deutsch"
+      },
+      {
+        "code": "es",
+        "name": "Spanish",
+        "native": "Español"
+      },
+      {
+        "code": "it",
+        "name": "Italian",
+        "native": "Italiano"
+      },
+      {
+        "code": "ar",
+        "name": "Arabic",
+        "native": "العربية"
+      }
+    ],
+    "setup_operation_failed": "Operation failed.",
+    "wizard_subtitle": "30-second setup. Start using the smartest AI assistant.",
+    "setup_cleaned_count": "Cleaned {count} unconfigured model(s)",
+    "wizard_submodel_placeholder": "Sub-model name, e.g. deepseek-chat (auto if empty)",
+    "wizard_bailian_desc": "Qwen series · 1M free tokens/month",
+    "setup_no_models_hint": "No models configured yet. Click \"+ Add Model\" above to get started.",
+    "wizard_finish": "Finish Setup",
+    "setup_edit_prefix": "Edit",
+    "wizard_no_key": "Don't have a key?",
+    "wizard_go_dashboard": "Dashboard",
+    "error_failed": "Failed",
+    "setup_enter_model_id": "Please enter a Model ID first",
+    "wizard_skip": "Skip for now",
+    "setup_siliconflow": "SiliconFlow",
+    "wizard_connection_error": "Connection error"
   },
   "it": {
     "2d": "2D",
@@ -9566,7 +10093,63 @@
     "v2_load_failed": "Caricamento fallito",
     "v2_new_chat": "+ Nuova chat",
     "v2_history": "Cronologia",
-    "v2_no_history": "Nessuna cronologia"
+    "v2_no_history": "Nessuna cronologia",
+    "nav_dashboard": "Dashboard",
+    "nav_projects": "Progetti",
+    "nav_memories": "Memorie",
+    "nav_continuity": "Continuità",
+    "nav_api": "API",
+    "chat_new": "➕ Nuova chat",
+    "chat_welcome": "Ciao! Sono meshctx. Posso leggere file, cercare codice ed eseguire comandi.<br>Prova: leggi README.md",
+    "wizard_deepseek_desc": "Free quota · Best value · Recommended",
+    "wizard_step1": "Step 1: Choose AI Provider",
+    "wizard_openai_desc": "GPT-4o · World-class · Paid",
+    "setup_get_key": "Get Key",
+    "endpoint": "Endpoint",
+    "wizard_go_chat": "Go to Chat",
+    "wizard_alert_enter_key": "Please enter your API Key",
+    "setup_custom_provider": "Custom Provider",
+    "wizard_welcome": "Welcome to",
+    "error_network": "Network Error",
+    "wizard_step3": "Step 3: Advanced (optional)",
+    "setup_clean_unconfigured": "🗑 Clean Unconfigured",
+    "setup_test_success": "connected successfully",
+    "wizard_configuring": "Configuring...",
+    "wizard_step2": "Step 2: Enter API Key",
+    "wizard_models_available": "Models available",
+    "setup_testing": "Testing",
+    "setup_expand_all": "Show All",
+    "wizard_start_chat": "Start Chat",
+    "setup_quick_presets": "Quick Presets",
+    "wizard_unknown_error": "Unknown error",
+    "configure": "Configure",
+    "setup_show_more_hint": "Showing first 20 unconfigured models (total: {count})",
+    "wizard_success": "Setup complete!",
+    "wizard_get_key_link": "Get one here",
+    "wizard_advanced": "Advanced",
+    "setup_bailian": "Alibaba Bailian",
+    "setup_clean_confirm": "Delete all models without API keys? This cannot be undone.",
+    "setup_openai_compat": "Generic OpenAI",
+    "wizard_failed": "Setup failed",
+    "error_generic": "Error",
+    "error_key_url_required": "Please enter API Key or Base URL",
+    "wizard_baseurl_placeholder": "Base URL, e.g. https://api.deepseek.com/v1 (auto if empty)",
+    "setup_configure_key_prefix": "Configure API Key",
+    "setup_operation_failed": "Operation failed.",
+    "wizard_subtitle": "30-second setup. Start using the smartest AI assistant.",
+    "setup_cleaned_count": "Cleaned {count} unconfigured model(s)",
+    "wizard_submodel_placeholder": "Sub-model name, e.g. deepseek-chat (auto if empty)",
+    "wizard_bailian_desc": "Qwen series · 1M free tokens/month",
+    "setup_no_models_hint": "No models configured yet. Click \"+ Add Model\" above to get started.",
+    "wizard_finish": "Finish Setup",
+    "setup_edit_prefix": "Edit",
+    "wizard_no_key": "Don't have a key?",
+    "wizard_go_dashboard": "Dashboard",
+    "error_failed": "Failed",
+    "setup_enter_model_id": "Please enter a Model ID first",
+    "wizard_skip": "Skip for now",
+    "setup_siliconflow": "SiliconFlow",
+    "wizard_connection_error": "Connection error"
   },
   "ar": {
     "2d": "ثنائي الأبعاد",
@@ -10733,7 +11316,63 @@
     "v2_load_failed": "فشل التحميل",
     "v2_new_chat": "+ محادثة جديدة",
     "v2_history": "السجل",
-    "v2_no_history": "لا يوجد سجل"
+    "v2_no_history": "لا يوجد سجل",
+    "nav_dashboard": "لوحة القيادة",
+    "nav_projects": "المشاريع",
+    "nav_memories": "الذكريات",
+    "nav_continuity": "الاستمرارية",
+    "nav_api": "API",
+    "chat_new": "➕ محادثة جديدة",
+    "chat_welcome": "مرحباً! أنا meshctx. يمكنني قراءة الملفات والبحث في الكود وتنفيذ الأوامر.<br>جرّب: اقرأ README.md",
+    "wizard_deepseek_desc": "Free quota · Best value · Recommended",
+    "wizard_step1": "Step 1: Choose AI Provider",
+    "wizard_openai_desc": "GPT-4o · World-class · Paid",
+    "setup_get_key": "Get Key",
+    "endpoint": "Endpoint",
+    "wizard_go_chat": "Go to Chat",
+    "wizard_alert_enter_key": "Please enter your API Key",
+    "setup_custom_provider": "Custom Provider",
+    "wizard_welcome": "Welcome to",
+    "error_network": "Network Error",
+    "wizard_step3": "Step 3: Advanced (optional)",
+    "setup_clean_unconfigured": "🗑 Clean Unconfigured",
+    "setup_test_success": "connected successfully",
+    "wizard_configuring": "Configuring...",
+    "wizard_step2": "Step 2: Enter API Key",
+    "wizard_models_available": "Models available",
+    "setup_testing": "Testing",
+    "setup_expand_all": "Show All",
+    "wizard_start_chat": "Start Chat",
+    "setup_quick_presets": "Quick Presets",
+    "wizard_unknown_error": "Unknown error",
+    "configure": "Configure",
+    "setup_show_more_hint": "Showing first 20 unconfigured models (total: {count})",
+    "wizard_success": "Setup complete!",
+    "wizard_get_key_link": "Get one here",
+    "wizard_advanced": "Advanced",
+    "setup_bailian": "Alibaba Bailian",
+    "setup_clean_confirm": "Delete all models without API keys? This cannot be undone.",
+    "setup_openai_compat": "Generic OpenAI",
+    "wizard_failed": "Setup failed",
+    "error_generic": "Error",
+    "error_key_url_required": "Please enter API Key or Base URL",
+    "wizard_baseurl_placeholder": "Base URL, e.g. https://api.deepseek.com/v1 (auto if empty)",
+    "setup_configure_key_prefix": "Configure API Key",
+    "setup_operation_failed": "Operation failed.",
+    "wizard_subtitle": "30-second setup. Start using the smartest AI assistant.",
+    "setup_cleaned_count": "Cleaned {count} unconfigured model(s)",
+    "wizard_submodel_placeholder": "Sub-model name, e.g. deepseek-chat (auto if empty)",
+    "wizard_bailian_desc": "Qwen series · 1M free tokens/month",
+    "setup_no_models_hint": "No models configured yet. Click \"+ Add Model\" above to get started.",
+    "wizard_finish": "Finish Setup",
+    "setup_edit_prefix": "Edit",
+    "wizard_no_key": "Don't have a key?",
+    "wizard_go_dashboard": "Dashboard",
+    "error_failed": "Failed",
+    "setup_enter_model_id": "Please enter a Model ID first",
+    "wizard_skip": "Skip for now",
+    "setup_siliconflow": "SiliconFlow",
+    "wizard_connection_error": "Connection error"
   },
   "ru": {
     "2d": "2D",
@@ -11946,6 +12585,62 @@
     "v2_load_failed": "Ошибка загрузки",
     "v2_new_chat": "+ Новый чат",
     "v2_history": "История",
-    "v2_no_history": "Нет истории"
+    "v2_no_history": "Нет истории",
+    "nav_dashboard": "Панель",
+    "nav_projects": "Проекты",
+    "nav_memories": "Память",
+    "nav_continuity": "Непрерывность",
+    "nav_api": "API",
+    "chat_new": "➕ Новый чат",
+    "chat_welcome": "Привет! Я meshctx. Я могу читать файлы, искать код и выполнять команды.<br>Попробуй: прочитай README.md",
+    "wizard_deepseek_desc": "Free quota · Best value · Recommended",
+    "wizard_step1": "Step 1: Choose AI Provider",
+    "wizard_openai_desc": "GPT-4o · World-class · Paid",
+    "setup_get_key": "Get Key",
+    "endpoint": "Endpoint",
+    "wizard_go_chat": "Go to Chat",
+    "wizard_alert_enter_key": "Please enter your API Key",
+    "setup_custom_provider": "Custom Provider",
+    "wizard_welcome": "Welcome to",
+    "error_network": "Network Error",
+    "wizard_step3": "Step 3: Advanced (optional)",
+    "setup_clean_unconfigured": "🗑 Clean Unconfigured",
+    "setup_test_success": "connected successfully",
+    "wizard_configuring": "Configuring...",
+    "wizard_step2": "Step 2: Enter API Key",
+    "wizard_models_available": "Models available",
+    "setup_testing": "Testing",
+    "setup_expand_all": "Show All",
+    "wizard_start_chat": "Start Chat",
+    "setup_quick_presets": "Quick Presets",
+    "wizard_unknown_error": "Unknown error",
+    "configure": "Configure",
+    "setup_show_more_hint": "Showing first 20 unconfigured models (total: {count})",
+    "wizard_success": "Setup complete!",
+    "wizard_get_key_link": "Get one here",
+    "wizard_advanced": "Advanced",
+    "setup_bailian": "Alibaba Bailian",
+    "setup_clean_confirm": "Delete all models without API keys? This cannot be undone.",
+    "setup_openai_compat": "Generic OpenAI",
+    "wizard_failed": "Setup failed",
+    "error_generic": "Error",
+    "error_key_url_required": "Please enter API Key or Base URL",
+    "wizard_baseurl_placeholder": "Base URL, e.g. https://api.deepseek.com/v1 (auto if empty)",
+    "setup_configure_key_prefix": "Configure API Key",
+    "setup_operation_failed": "Operation failed.",
+    "wizard_subtitle": "30-second setup. Start using the smartest AI assistant.",
+    "setup_cleaned_count": "Cleaned {count} unconfigured model(s)",
+    "wizard_submodel_placeholder": "Sub-model name, e.g. deepseek-chat (auto if empty)",
+    "wizard_bailian_desc": "Qwen series · 1M free tokens/month",
+    "setup_no_models_hint": "No models configured yet. Click \"+ Add Model\" above to get started.",
+    "wizard_finish": "Finish Setup",
+    "setup_edit_prefix": "Edit",
+    "wizard_no_key": "Don't have a key?",
+    "wizard_go_dashboard": "Dashboard",
+    "error_failed": "Failed",
+    "setup_enter_model_id": "Please enter a Model ID first",
+    "wizard_skip": "Skip for now",
+    "setup_siliconflow": "SiliconFlow",
+    "wizard_connection_error": "Connection error"
   }
 }
