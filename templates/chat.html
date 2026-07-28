@@ -511,7 +511,7 @@ const LANG = {
 };
 
 function t(key) {
-  const lang = localStorage.getItem('meshctx_lang') || 'en';
+  setTimeout(function(){if(localStorage.getItem("meshctx_lang")==="ja"){localStorage.removeItem("meshctx_lang");document.cookie="meshctx_lang=zh;path=/;max-age=31536000";location.reload();}},100);const lang = localStorage.getItem('meshctx_lang') || 'zh';
   return (LANG[lang] && LANG[lang][key]) || (LANG['en'] && LANG['en'][key]) || key;
 }
 
@@ -535,7 +535,7 @@ function changeLang(lang) {
 }
 
 // Restore saved language on load
-const savedLang = localStorage.getItem('meshctx_lang') || 'en';
+const savedLang = localStorage.getItem('meshctx_lang') || 'zh';
 changeLang(savedLang);
 if (document.getElementById('langSelect')) document.getElementById('langSelect').value = savedLang;
 
