@@ -20,6 +20,21 @@ import os
 import sys
 from pathlib import Path
 
+# ── 修复: 确保 from src.xxx 始终解析到 meshctx 自己的 src/ ──
+# 当有其他 pip install -e 包也有 src/ 目录时，Python 可能找错包
+# 根因: _EditableFinder 被 append 到 sys.meta_path 末尾，默认 PathFinder
+# 先遍历 sys.path，若其他包的路径排在前面就会抢走 src 包的解析。
+# sys.path 修复对顶层导入有效，但 src 已被加载，后续子模块用 src.__path__ 解析，
+# 所以必须同步修复 src.__path__。
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
+import src as _src_pkg
+_src_dir = os.path.join(_REPO_ROOT, 'src')
+if _src_pkg.__path__[0] != _src_dir:
+    _src_pkg.__path__[:] = [_src_dir] + [p for p in _src_pkg.__path__ if p != _src_dir]
+
 # ── readline: Linux/Mac 可用，Windows 不支持 ──
 try:
     import readline
