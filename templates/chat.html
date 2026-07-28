@@ -511,11 +511,13 @@ const LANG = {
 };
 
 function t(key) {
-  const lang = localStorage.getItem('meshctx_lang') || 'en';
+  var lang = localStorage.getItem('meshctx_lang') || 'zh';
+  if (lang === 'ja') { lang = 'zh'; localStorage.removeItem('meshctx_lang'); document.cookie='meshctx_lang=zh;path=/;max-age=31536000'; }
   return (LANG[lang] && LANG[lang][key]) || (LANG['en'] && LANG['en'][key]) || key;
 }
 
 function changeLang(lang) {
+  lang = (lang || 'zh').split('-')[0];
   document.documentElement.lang = lang;
   document.querySelectorAll('[data-lang-key]').forEach(el => {
     const key = el.dataset.langKey;
@@ -535,7 +537,13 @@ function changeLang(lang) {
 }
 
 // Restore saved language on load
-const savedLang = localStorage.getItem('meshctx_lang') || 'en';
+var savedLang = localStorage.getItem('meshctx_lang') || 'zh';
+// Auto-reset stale ja BEFORE changeLang propagates to parent frame
+if (savedLang === 'ja') {
+    savedLang = 'zh';
+    localStorage.removeItem('meshctx_lang');
+    document.cookie = 'meshctx_lang=zh; path=/; max-age=31536000; SameSite=Lax';
+}
 changeLang(savedLang);
 if (document.getElementById('langSelect')) document.getElementById('langSelect').value = savedLang;
 
@@ -1308,6 +1316,24 @@ function showToast(text) {
   style.textContent = '@keyframes fadeInOut{0%{opacity:0;transform:translateY(-8px)}10%{opacity:1;transform:translateY(0)}80%{opacity:1}100%{opacity:0}}';
   document.head.appendChild(style);
 })();
+// postMessage listener for cross-iframe communication with chat_v2.html
+window.addEventListener('message', function(e) {
+  var d = e.data;
+  if (!d || typeof d !== 'object') return;
+  if (d.type === 'newChat') { newChat(); }
+  else if (d.type === 'openConv' && d.convId) {
+    currentConvId = d.convId;
+    document.getElementById('messages').innerHTML = '';
+    messages = [];
+    if (d.messages && Array.isArray(d.messages)) {
+      messages = d.messages.filter(function(m){ return m.role==='user'||m.role==='assistant'; }).map(function(m){ return {role:m.role,content:m.content}; });
+      messages.forEach(function(m){ addMsg(m.role, m.content); });
+    }
+    localStorage.setItem('meshctx_conv_id', d.convId);
+    if (d.messages) { try { localStorage.setItem('meshctx_msgs', JSON.stringify(d.messages)); } catch(e){} }
+  }
+});
+
 </script>
 </body>
 </html>
