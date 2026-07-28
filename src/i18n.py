@@ -124,8 +124,12 @@ def parse_accept_language(header: str) -> str:
 
 
 def get_lang(request=None) -> str:
-    """获取当前语言（优先级：cookie > Accept-Language > 环境变量 > 默认 zh）"""
-    # 1. Cookie（手动选择）
+    """获取当前语言（优先级：cookie > 环境变量 > 默认 zh）
+
+    注意：v3.115.26 移除 Accept-Language 自动检测，因为浏览器语言≠用户意图。
+    用户通过 UI 切换语言时 JS 调用 /api/lang/set 设置 cookie，此后全站锁定。
+    """
+    # 1. Cookie（用户手动选择，跨请求持久化）
     if request is not None:
         try:
             cookie_lang = request.cookies.get("meshctx_lang")
@@ -133,15 +137,7 @@ def get_lang(request=None) -> str:
                 return cookie_lang
         except Exception:
             pass
-        # 2. Accept-Language 请求头（浏览器语言）
-        try:
-            accept = request.headers.get("Accept-Language", "")
-            detected = parse_accept_language(accept)
-            if detected:
-                return detected
-        except Exception:
-            pass
-    # 3. 环境变量 / 默认
+    # 2. 环境变量 / 默认
     global _current_lang
     env_lang = os.environ.get("MESHCTX_LANG", "")
     if env_lang and env_lang in TRANSLATIONS:
