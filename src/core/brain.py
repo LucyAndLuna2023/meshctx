@@ -206,7 +206,7 @@ class HippocampalReplay:
                     "source_pattern": p,
                 }
                 self.generated_skills.append(skill)
-                self._trim_list(self.generated_skills, 100)  # v3.33.1
+                # v3.33.1: deque(maxlen=100) 自动截断，无需 _trim_list
 
     def get_state(self) -> Dict:
         return {
@@ -377,6 +377,7 @@ class DefaultModeNetwork:
         self.concept_store: Dict[str, List[str]] = {}  # domain → concepts
         # v3.33.1: bounded to maxlen=200
         self.discovered_patterns: deque = deque(maxlen=200)
+        self.ideas_generated: deque = deque(maxlen=200)  # v3.33.1
         self._last_wander: float = 0
 
     def add_concept(self, domain: str, concept: str, tags: List[str] = None):
@@ -419,7 +420,7 @@ class DefaultModeNetwork:
 
         if idea["quality"] > 0.5:
             self.ideas_generated.append(idea)
-            self._trim_list(self.ideas_generated, 200)  # v3.33.1
+            # v3.33.1: deque(maxlen=200) 自动截断，无需 _trim_list
 
         self._last_wander = time.time()
         return idea
@@ -782,10 +783,10 @@ class ACCConflictMonitor:
             conflict = self.check_goal_conflict(existing, goal)
             if conflict:
                 self.active_conflicts.append(conflict)
-                self._trim_list(self.active_conflicts, 50)  # v3.33.1
+                # v3.33.1: deque(maxlen=30) 自动截断
                 logger.warning(f"ACC: 检测到冲突 — {conflict['reason']}")
         self.active_goals.append(goal)
-        self._trim_list(self.active_goals, 100)  # v3.33.1
+        # v3.33.1: deque(maxlen=50) 自动截断
 
     def resolve_conflicts(self) -> List[Dict]:
         """
@@ -884,7 +885,7 @@ class Insula:
                 "report": report,
                 "timestamp": self._last_check,
             })
-            self._trim_list(self.alerts, 500)  # v3.33.1
+            # v3.33.1: deque(maxlen=200) 自动截断
         elif report["error_rate"] > 0.1 or report["memory_percent"] > 75:
             self.state = BrainState.RECOVERING
         elif self.state in (BrainState.ALERT, BrainState.RECOVERING):
@@ -894,7 +895,7 @@ class Insula:
                     "type": "recovery_complete",
                     "timestamp": self._last_check,
                 })
-                self._trim_list(self.alerts, 500)  # v3.33.1
+                # v3.33.1: deque(maxlen=200) 自动截断
 
         return report
 
