@@ -4514,6 +4514,9 @@ def _validate_file_path(path: str) -> "Path":
     if not path:
         raise HTTPException(400, t('error_missing_file_path'))
 
+    # 项目根目录
+    _project_root = str(Path(__file__).resolve().parent.parent) if "__file__" in dir() else str(Path.cwd())
+    
     # WSL/Windows路径翻译 (非Windows平台静默跳过)
     resolved = path
     try:
@@ -4526,12 +4529,20 @@ def _validate_file_path(path: str) -> "Path":
         pass  # macOS/Linux — platform_fs不可用,留原路径
 
     file_path = Path(resolved).expanduser().resolve()
+    # 相对路径: 优先解析到项目根目录
+    if not file_path.exists() and not resolved.startswith("/") and not resolved.startswith("~"):
+        alt = Path(_project_root) / resolved
+        if alt.exists():
+            file_path = alt.resolve()
     sp = str(file_path)
 
     # 白名单: 只允许访问安全目录 (收紧: 仅数据目录,禁止整个/opt)
     data_dir = os.environ.get("MESHCTX_DATA_DIR", "/opt/meshctx/data")
+    meshctx_home = os.environ.get("MESHCTX_HOME", str(Path.home() / ".meshctx"))
     allowed_prefixes = [
         data_dir,
+        meshctx_home,
+        _project_root,
         "/opt/meshctx",
         "/opt/meshctx/data",
         "/opt/meshctx/projects",
