@@ -1597,45 +1597,45 @@ function addCodeRunButtons(container){
 
 _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
 {% block content %}
-<h2>⚙️ 模型管理</h2>
+<h2>{{ t('v2_model_mgmt') }}</h2>
 
 {% if flash == "success" %}
 <div class="flash flash-success">✅ {{ t("saved_config_auto") }}</div>
 {% elif flash == "error" %}
-<div class="flash flash-error">❌ 操作失败。</div>
+<div class="flash flash-error">❌ {{ t("setup_operation_failed") }}</div>
 {% elif flash == "deleted" %}
 <div class="flash flash-success">🗑 {{ t("deleted_ok") }}</div>
 {% endif %}
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0;">
-    <h3 style="margin:0;">已配置模型 <span style="color:var(--accent);" id="modelCount">{{ configured|length }}</span></h3>
-    <button class="btn btn-primary" onclick="showAddForm()" style="padding:10px 20px;">+ 添加模型</button>
+    <h3 style="margin:0;">{{ t('configured_models') }} <span style="color:var(--accent);" id="modelCount">{{ configured|length }}</span></h3>
+    <button class="btn btn-primary" onclick="showAddForm()" style="padding:10px 20px;">+ {{ t('setup_add_model') }}</button>
 </div>
 
 <!-- v2.17: 本地模型快捷预设 -->
 <div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px;">
-    <span style="font-size:12px;color:var(--muted);line-height:28px;">快捷预设:</span>
+    <span style="font-size:12px;color:var(--muted);line-height:28px;">{{ t('setup_quick_presets') }}:</span>
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('ollama','qwen2.5:7b','Ollama','http://{{ ollama_host }}:11434/v1','')">🦙 Ollama</button>
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('vllm','qwen','vLLM','http://{{ vllm_host }}:8000/v1','')">🚀 vLLM</button>
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('localai','gpt-3.5-turbo','LocalAI','http://{{ localai_host }}:8080/v1','')">🏠 LocalAI</button>
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('openai-compat','gpt-3.5-turbo','OpenAI兼容','https://your-api.com/v1','sk-...')">🔌 通用OpenAI</button>
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('custom','custom-model','自定义供应商','https://your-server.com','your-key')">⚙️ 完全自定义</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('openai-compat','gpt-3.5-turbo','{{ t('setup_openai_compat') }}','https://your-api.com/v1','sk-...')">🔌 {{ t('setup_openai_compat') }}</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('custom','custom-model','{{ t('setup_custom_provider') }}','https://your-server.com','your-key')">⚙️ {{ t('setup_custom_provider') }}</button>
 </div>
 
 <!-- 添加/编辑表单(默认隐藏) -->
 <div id="modelForm" style="display:none;margin-bottom:16px;">
     <div class="card">
-        <h3 id="formTitle">添加模型</h3>
+        <h3 id="formTitle">{{ t('setup_add_model') }}</h3>
         <input type="hidden" id="editModelId">
         <div class="form-group"><label>{{ t("model_id") }}</label><input id="fid" placeholder="deepseek:chat"></div>
         <div class="form-group"><label>{{ t("provider") }}</label><input id="fprovider" placeholder="deepseek"></div>
-        <div class="form-group"><label>API Key</label><input id="fkey" type="password" placeholder="sk-..."></div>
-        <div class="form-group"><label>模型名(可选)</label><input id="fmodel" placeholder="auto"></div>
-        <div class="form-group"><label>Base URL(可选)</label><input id="furl" placeholder="auto"></div>
+        <div class="form-group"><label>{{ t("api_key_label") }}</label><input id="fkey" type="password" placeholder="sk-..."></div>
+        <div class="form-group"><label>{{ t("model_name_label") }}</label><input id="fmodel" placeholder="auto"></div>
+        <div class="form-group"><label>{{ t("base_url_label") }}</label><input id="furl" placeholder="auto"></div>
         <div style="display:flex;gap:8px;">
             <button class="btn btn-primary" onclick="saveModel()">💾 {{ t("save") }}</button>
-            <button class="btn btn-ghost" onclick="hideForm()">取消</button>
-            <button class="btn btn-ghost" onclick="testFromForm()" style="margin-left:auto;">🔍 测试连接</button>
+            <button class="btn btn-ghost" onclick="hideForm()">{{ t('cancel_btn') }}</button>
+            <button class="btn btn-ghost" onclick="testFromForm()" style="margin-left:auto;">🔍 {{ t('setup_test_btn') }}</button>
         </div>
         <div id="testResult" style="margin-top:8px;font-size:13px;"></div>
     </div>
@@ -1647,26 +1647,26 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <div>
         <span style="color:var(--muted);font-size:12px;">
-            🟢 <b id="readyCount">{{ all_models|selectattr('ready')|list|length }}</b> 已配置
-            &nbsp;🔴 <b id="unreadyCount">{{ all_models|rejectattr('ready')|list|length }}</b> 未配置
+            🟢 <b id="readyCount">{{ all_models|selectattr('ready')|list|length }}</b> {{ t('configured') }}
+            &nbsp;🔴 <b id="unreadyCount">{{ all_models|rejectattr('ready')|list|length }}</b> {{ t('not_configured') }}
         </span>
     </div>
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;color:#f85149;" onclick="cleanUnconfigured()">🗑 清理未配置</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;color:#f85149;" onclick="cleanUnconfigured()">🗑 {{ t('setup_clean_unconfigured') }}</button>
 </div>
 {% if has_more_unconfigured %}
 <div style="text-align:center;margin-bottom:12px;">
-    <span style="color:var(--muted);font-size:11px;">仅显示前20个未配置模型 (共{{ total_unconfigured }}个)</span>
-    <a href="?all=1" style="color:var(--accent);font-size:11px;margin-left:8px;">展开全部 →</a>
+    <span style="color:var(--muted);font-size:11px;">{{ t('setup_show_more_hint').format(count=total_unconfigured) }}</span>
+    <a href="?all=1" style="color:var(--accent);font-size:11px;margin-left:8px;">{{ t('setup_expand_all') }} →</a>
 </div>
 {% endif %}
 <table style="width:100%;border-collapse:collapse;font-size:13px;">
 <thead><tr style="border-bottom:1px solid var(--border);text-align:left;color:var(--muted);">
-    <th style="padding:8px;">状态</th>
-    <th style="padding:8px;">模型ID</th>
-    <th style="padding:8px;">提供商</th>
-    <th style="padding:8px;">端点</th>
-    <th style="padding:8px;">Key</th>
-    <th style="padding:8px;">操作</th>
+    <th style="padding:8px;">{{ t('status') }}</th>
+    <th style="padding:8px;">{{ t('model_id') }}</th>
+    <th style="padding:8px;">{{ t('provider') }}</th>
+    <th style="padding:8px;">{{ t('endpoint') }}</th>
+    <th style="padding:8px;">{{ t('api_key_label') }}</th>
+    <th style="padding:8px;">{{ t('actions') }}</th>
 </tr></thead>
 <tbody>
 {% for m in all_models %}
@@ -1675,11 +1675,11 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
 <tr style="border-bottom:1px solid var(--border);{% if is_def %}background:rgba(108,92,231,0.08);{% endif %}" data-id="{{ m.id }}">
     <td style="padding:8px;">
         {% if is_def %}
-        <span style="background:var(--accent);color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">⭐ 默认</span>
+        <span style="background:var(--accent);color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">⭐ {{ t('default') }}</span>
         {% elif is_ready %}
-        <span style="color:#22c55e;font-size:11px;">🟢 已配置</span>
+        <span style="color:#22c55e;font-size:11px;">🟢 {{ t('configured') }}</span>
         {% else %}
-        <span style="color:#f85149;font-size:11px;">🔴 未配置</span>
+        <span style="color:#f85149;font-size:11px;">🔴 {{ t('not_configured') }}</span>
         {% endif %}
     </td>
     <td style="padding:8px;">
@@ -1691,9 +1691,9 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
         {% if m.base_url %}
         <code style="font-size:10px;background:#1e293b;padding:1px 4px;border-radius:3px;max-width:120px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ m.base_url }}">{{ m.base_url }}</code>
         {% elif is_ready %}
-        <span style="color:var(--muted);font-size:10px;">默认</span>
+        <span style="color:var(--muted);font-size:10px;">{{ t('default') }}</span>
         {% else %}
-        <span style="color:#f85149;font-size:10px;">未设置</span>
+        <span style="color:#f85149;font-size:10px;">{{ t('not_configured') }}</span>
         {% endif %}
     </td>
     <td style="padding:8px;">
@@ -1709,13 +1709,13 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
             <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;" onclick="editModel('{{ m.id }}','{{ m.provider }}','{{ m.key_full or '' }}','{{ m.model }}','{{ m.base_url or '' }}')">✏️</button>
             <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;" onclick="testModel('{{ m.id }}')">🔍</button>
             {% if not is_def %}
-            <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;color:#22c55e;" onclick="setDefault('{{ m.id }}')">⭐默认</button>
+            <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;color:#22c55e;" onclick="setDefault('{{ m.id }}')">⭐{{ t('default') }}</button>
             {% endif %}
             {% else %}
-            <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;color:var(--accent);" onclick="configureModel('{{ m.id }}')">⚡ 配置</button>
+            <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;color:var(--accent);" onclick="configureModel('{{ m.id }}')">⚡ {{ t('configure') }}</button>
             {% endif %}
             {% if not is_def %}
-            <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;color:#f85149;" onclick="if(confirm('确定删除 {{ m.id }}?'))deleteModel('{{ m.id }}')">✕</button>
+            <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;color:#f85149;" onclick="if(confirm('{{ t('delete_confirm') }} {{ m.id }}?'))deleteModel('{{ m.id }}')">✕</button>
             {% endif %}
         </div>
     </td>
@@ -1727,27 +1727,27 @@ _TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
 {% if not all_models %}
 <div class="card" style="text-align:center;padding:40px;color:var(--muted);">
     <p style="font-size:48px;margin-bottom:12px;">🔑</p>
-    <p>尚未配置任何模型。点击上方「+ 添加模型」开始。</p>
+    <p>{{ t('setup_no_models_hint') }}</p>
 </div>
 {% endif %}
 
 <!-- 获取Key链接 -->
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px;">
     <a href="https://platform.deepseek.com/api_keys" target="_blank" class="card" style="text-align:center;text-decoration:none;color:inherit;padding:12px;">
-        <span>🟢 DeepSeek</span><br><span style="color:#38bdf8;font-size:11px;">获取 Key →</span>
+        <span>🟢 DeepSeek</span><br><span style="color:#38bdf8;font-size:11px;">{{ t('setup_get_key') }} →</span>
     </a>
     <a href="https://bailian.console.aliyun.com/" target="_blank" class="card" style="text-align:center;text-decoration:none;color:inherit;padding:12px;">
-        <span>🔵 阿里百炼</span><br><span style="color:#38bdf8;font-size:11px;">获取 Key →</span>
+        <span>🔵 {{ t('setup_bailian') }}</span><br><span style="color:#38bdf8;font-size:11px;">{{ t('setup_get_key') }} →</span>
     </a>
     <a href="https://siliconflow.cn/" target="_blank" class="card" style="text-align:center;text-decoration:none;color:inherit;padding:12px;">
-        <span>🔴 硅基流动</span><br><span style="color:#38bdf8;font-size:11px;">获取 Key →</span>
+        <span>🔴 {{ t('setup_siliconflow') }}</span><br><span style="color:#38bdf8;font-size:11px;">{{ t('setup_get_key') }} →</span>
     </a>
 </div>
 
 <script>
 function showAddForm() {
     document.getElementById('modelForm').style.display = 'block';
-    document.getElementById('formTitle').textContent = '添加模型';
+    document.getElementById('formTitle').textContent = window.__t('setup_add_model');
     document.getElementById('editModelId').value = '';
     document.getElementById('fid').value = ''; document.getElementById('fid').disabled = false;
     document.getElementById('fprovider').value = 'deepseek';
@@ -1770,7 +1770,7 @@ function presetModel(id, model, provider, url, key) {
 
 function editModel(id, provider, key, model, url) {
     showAddForm();
-    document.getElementById('formTitle').textContent = '编辑 ' + id;
+    document.getElementById('formTitle').textContent = window.__t('setup_edit_prefix') + ' ' + id;
     document.getElementById('editModelId').value = id;
     document.getElementById('fid').value = id;
     document.getElementById('fid').disabled = false;
@@ -1790,8 +1790,8 @@ async function saveModel() {
         model: document.getElementById('fmodel').value.trim(),
         base_url: document.getElementById('furl').value.trim(),
     };
-    if (!body.id || !body.provider) { alert('ID和提供商为必填'); return; }
-    if (!body.key && !body.base_url) { alert('请填写API Key或Base URL'); return; }
+    if (!body.id || !body.provider) { alert(window.__t('error_id_provider_required')); return; }
+    if (!body.key && !body.base_url) { alert(window.__t('error_key_url_required')); return; }
     
     try {
         var res, data;
@@ -1818,38 +1818,38 @@ async function saveModel() {
         }
         data = await res.json();
         if (res.ok) { location.reload(); }
-        else { alert('失败: ' + (data.detail||data.message||JSON.stringify(data))); }
-    } catch(e) { alert('网络错误: ' + e.message); }
+        else { data = await res.json(); alert(window.__t('error_failed') + ': ' + (data.detail||data.message||JSON.stringify(data))); }
+    } catch(e) { alert(window.__t('error_network') + ': ' + e.message); }
 }
 async function deleteModel(id) {
     try {
         var res = await fetch('/api/models/' + id, {method: 'DELETE'});
         if (res.ok) location.reload();
-        else { var d = await res.json(); alert('失败: ' + (d.detail||'')); }
-    } catch(e) { alert('错误: ' + e.message); }
+        else { var d = await res.json(); alert(window.__t('error_failed') + ': ' + (d.detail||'')); }
+    } catch(e) { alert(window.__t('error_generic') + ': ' + e.message); }
 }
 async function setDefault(id) {
     try {
         var res = await fetch('/api/models/' + id + '/default', {method: 'PATCH'});
         if (res.ok) location.reload();
-        else { var d = await res.json(); alert('失败: ' + (d.detail||'')); }
-    } catch(e) { alert('错误: ' + e.message); }
+        else { var d = await res.json(); alert(window.__t('error_failed') + ': ' + (d.detail||'')); }
+    } catch(e) { alert(window.__t('error_generic') + ': ' + e.message); }
 }
 async function cleanUnconfigured() {
-    if (!confirm('确定删除所有未配置Key的模型吗？此操作不可撤销。')) return;
+    if (!confirm(window.__t('setup_clean_confirm'))) return;
     try {
         var res = await fetch('/api/models/clean-unconfigured', {method: 'POST'});
         var d = await res.json();
-        alert('已清理 ' + (d.deleted || 0) + ' 个未配置模型');
+        alert(window.__t('setup_cleaned_count').replace('{count}', d.deleted || 0));
         location.reload();
-    } catch(e) { alert('错误: ' + e.message); }
+    } catch(e) { alert(window.__t('error_generic') + ': ' + e.message); }
 }
 function configureModel(id) {
     showAddForm();
     document.getElementById('fid').value = id;
     document.getElementById('fid').disabled = false;
     document.getElementById('editModelId').value = id;
-    document.getElementById('formTitle').textContent = '配置 API Key — ' + id;
+    document.getElementById('formTitle').textContent = window.__t('setup_configure_key_prefix') + ' — ' + id;
     document.getElementById('fkey').focus();
 }
 async function testModel(id) {
@@ -1858,22 +1858,22 @@ async function testModel(id) {
     try {
         var res = await fetch('/api/models/' + id + '/test', {method: 'POST'});
         var d = await res.json();
-        if (d.status === 'ok') alert('✅ ' + id + ' 连接成功');
-        else alert('❌ ' + id + ': ' + (d.message||'失败'));
-    } catch(e) { alert('错误: ' + e.message); }
+        if (d.status === 'ok') alert('✅ ' + id + ' ' + window.__t('setup_test_success'));
+        else alert('❌ ' + id + ': ' + (d.message||window.__t('error_failed')));
+    } catch(e) { alert(window.__t('error_generic') + ': ' + e.message); }
     if (tr) tr.style.background = '';
 }
 async function testFromForm() {
     var id = document.getElementById('fid').value.trim();
-    if (!id) { alert('请先输入模型ID'); return; }
-    document.getElementById('testResult').innerHTML = '⏳ 测试中...';
+    if (!id) { alert(window.__t('setup_enter_model_id')); return; }
+    document.getElementById('testResult').innerHTML = '⏳ ' + window.__t('setup_testing') + '...';
     try {
         var res = await fetch('/api/models/' + id + '/test', {method: 'POST'});
         var d = await res.json();
         document.getElementById('testResult').innerHTML = d.status === 'ok' 
             ? '<span style="color:#22c55e;">✅ ' + d.message + '</span>'
-            : '<span style="color:#f85149;">❌ ' + (d.message||'失败') + '</span>';
-    } catch(e) { document.getElementById('testResult').innerHTML = '<span style="color:#f85149;">错误: ' + e.message + '</span>'; }
+            : '<span style="color:#f85149;">❌ ' + (d.message||window.__t('error_failed')) + '</span>';
+    } catch(e) { document.getElementById('testResult').innerHTML = '<span style="color:#f85149;">' + window.__t('error_generic') + ': ' + e.message + '</span>'; }
 }
 </script>
 {% endblock %}"""
@@ -4319,9 +4319,14 @@ async def delete_api_key(
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page(request: Request):
-    from fastapi.responses import HTMLResponse
+    import json
+    from src.i18n import get_lang as i18n_get_lang, TRANSLATIONS as i18n_translations, LANGUAGE_CODES
+    lang = i18n_get_lang(request)
+    i18n_json = json.dumps(i18n_translations.get(lang, i18n_translations.get('en', {})), ensure_ascii=False)
+    all_i18n = {lc: i18n_translations.get(lc, {}) for lc in LANGUAGE_CODES}
+    i18n_all_json = json.dumps(all_i18n, ensure_ascii=False)
     return HTMLResponse("""<!DOCTYPE html>
-<html lang="zh"><head><meta charset="UTF-8"><title>Dashboard - MeshCtx</title>
+<html lang="__LANG__"><head><meta charset="UTF-8"><title>Dashboard - MeshCtx</title>
 <style>
 :root{--bg:#0b0e1a;--card-bg:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08);--text:#e0e4f0;--muted:#8090b0;--accent:#6c5ce7;--green:#22c55e;--red:#f85149;--yellow:#fbbf24;--input-bg:#16213e;--surface:#16213e;--hover:rgba(255,255,255,0.06)}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -4350,7 +4355,9 @@ body.light .green{color:#16a34a}
 body.light .red{color:#dc2626}
 body.light .yellow{color:#d97706}
 body.light .purple{color:#7c3aed}
-</style></head><body>
+</style>
+<script>window.__lang="__LANG__";window.__i18n=__I18N__;window.__i18n_all=__I18N_ALL__;window.__t=function(k,l){var g=l||window.__lang;return(window.__i18n_all&&window.__i18n_all[g]&&window.__i18n_all[g][k])||(window.__i18n&&window.__i18n[k])||k;};</script>
+</head><body>
 <div class="container">
 <nav><a href="/ui/chat" data-nav="chat">Chat</a><a href="/ui/setup" data-nav="setup">Setup</a><a href="/ui/plugins" data-nav="plugins">Plugins</a><a href="/ui/files" data-nav="files">📁 Files</a><a href="/ui/dashboard" data-nav="dashboard" style="color:var(--accent);background:rgba(108,92,231,0.15);">Dashboard</a><span style="flex:1"></span><button onclick="toggleThemeDash()" id="themeBtnDash" title="切换明暗主题" style="background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;color:var(--text);">🌙</button></nav>
 <script>
@@ -4500,15 +4507,20 @@ try {
     };
     ws.onerror = function() { /* WebSocket fallback to poll */ };
 } catch(e) {} // Auto-refresh every 30s
-</script></body></html>""")
+</script></body></html>""".replace('__LANG__', lang).replace('__I18N__', i18n_json).replace('__I18N_ALL__', i18n_all_json))
 
 # ── v2.18 插件市场 (增强卡片+URL安装+社区推荐) ──────────────────
 
 @router.get("/plugins", response_class=HTMLResponse)
 async def plugins_page(request: Request):
-    from fastapi.responses import HTMLResponse
+    import json
+    from src.i18n import get_lang as i18n_get_lang, TRANSLATIONS as i18n_translations, LANGUAGE_CODES
+    lang = i18n_get_lang(request)
+    i18n_json = json.dumps(i18n_translations.get(lang, i18n_translations.get('en', {})), ensure_ascii=False)
+    all_i18n = {lc: i18n_translations.get(lc, {}) for lc in LANGUAGE_CODES}
+    i18n_all_json = json.dumps(all_i18n, ensure_ascii=False)
     return HTMLResponse("""<!DOCTYPE html>
-<html lang="zh">
+<html lang="__LANG__">
 <head><meta charset="UTF-8"><title>🔌 插件市场 - MeshCtx</title>
 <style>
 :root{--bg:#0b0e1a;--card-bg:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08);--text:#e0e4f0;--muted:#8090b0;--accent:#6c5ce7;--accent2:#00d48c;--danger:#f85149;--gold:#f0b90b;--green:#22c55e}
@@ -4621,7 +4633,9 @@ h2 .ver{font-size:11px;color:var(--muted);font-weight:400;margin-left:8px}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
 
 input,select{font-family:inherit}
-</style></head><body>
+</style>
+<script>window.__lang="__LANG__";window.__i18n=__I18N__;window.__i18n_all=__I18N_ALL__;window.__t=function(k,l){var g=l||window.__lang;return(window.__i18n_all&&window.__i18n_all[g]&&window.__i18n_all[g][k])||(window.__i18n&&window.__i18n[k])||k;};</script>
+</head><body>
 <div class="container">
 <nav>
 <a href="/ui/chat" data-nav="chat">💬 Chat</a><a href="/ui/setup" data-nav="setup">⚙ Setup</a><a href="/ui/files" data-nav="files">📁 Files</a>
@@ -4872,10 +4886,10 @@ function renderHistory(id){var e=document.getElementById('pane-history');if(e){e
   q('stat-files','/api/file/list','total',function(d){return (d.items||d.files||[]).length});
   q('stat-models','/api/models','total',function(d){return (d.models||[]).filter(function(m){return m.ready}).length});
 })();
-</script></body></html>""")
+</script></body></html>""".replace('__LANG__', lang).replace('__I18N__', i18n_json).replace('__I18N_ALL__', i18n_all_json))
 
-# ── v1.5.13 下载页面 ─────────────────────────────────────
 
+# ── Files Manager Enhanced v3.10 ────────────────────────────
 @router.get("/download", response_class=HTMLResponse)
 async def download_page(request: Request):
     html = r"""{% extends "base.html" %}
