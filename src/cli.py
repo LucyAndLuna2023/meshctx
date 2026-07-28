@@ -20,6 +20,12 @@ import os
 import sys
 from pathlib import Path
 
+# ── 修复: 确保 from src.xxx 始终解析到 meshctx 自己的 src/ ──
+# 当有其他 pip install -e 包也有 src/ 目录时，Python 可能找错包
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
 # ── readline: Linux/Mac 可用，Windows 不支持 ──
 try:
     import readline
