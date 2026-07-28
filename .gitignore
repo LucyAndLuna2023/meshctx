@@ -30,6 +30,13 @@ logs/
 .DS_Store
 Thumbs.db
 
+# meshctx 运行时数据（勿提交）
+.meshctx/
+.meshctx_backups/
+*_报告_*.md
+CODE_AUDIT_FIX_REPORT.md
+FIX_CPU_MEMORY_*.md
+
 # 部署敏感文件
 deploy.sh
 install.sh
