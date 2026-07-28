@@ -31,7 +31,7 @@ logging.basicConfig(
 logger = logging.getLogger("meshctx.desktop")
 
 # ── 全局配置 ─────────────────────────────────────────
-PORT = int(os.environ.get("MESHCTX_PORT", "3000"))
+PORT = int(os.environ.get("MESHCTX_PORT", "3001"))
 HOST = "127.0.0.1"
 TITLE = "meshctx Desktop v3.115.4"
 
@@ -43,7 +43,7 @@ else:
 LOGO_ICO = BASE_DIR / "logo.ico"
 
 
-def find_free_port(start=3000, max_tries=20):
+def find_free_port(start=3001, max_tries=20):
     import socket
     for port in range(start, start + max_tries):
         try:
