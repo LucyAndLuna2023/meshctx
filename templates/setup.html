@@ -46,11 +46,21 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 </div>
 
 <div id="step2" class="step">
-  <div class="step-label">第2步: 输入{{ t('api_key_label') }}</div>
-  <input type="password" id="apiKey" placeholder="sk-xxxxxxxxxxxxxxxx">
+  <div class="step-label">第2步: 输入API Key</div>
+  <input type="password" id="apiKey" placeholder="sk-xxx...xxxx">
   <p style="font-size:0.8rem;color:var(--muted);margin-top:4px">
     没有Key? <a href="#" id="getKeyLink" target="_blank" style="color:var(--accent)">点击获取 →</a>
   </p>
+</div>
+
+<div id="step3" class="step" style="display:none;" x-show-advanced>
+  <div class="step-label">第3步: 高级选项 (可选)</div>
+  <input type="text" id="subModel" placeholder="子模型名，如 deepseek-chat (留空自动)">
+  <input type="text" id="baseUrl" placeholder="Base URL，如 https://api.deepseek.com/v1 (留空自动)">
+</div>
+
+<div style="text-align:right;margin-bottom:4px;">
+  <a href="#" onclick="toggleAdvanced()" style="font-size:0.8rem;color:var(--muted);">⚙️ 高级选项</a>
 </div>
 
 <button class="btn" onclick="setup()">🚀 完成配置</button>
@@ -77,7 +87,7 @@ function selectProvider(p) {
 
 async function setup() {
   const key = document.getElementById('apiKey').value.trim();
-  if (!key) { alert('请输入{{ t('api_key_label') }}'); return; }
+  if (!key) { alert('请输入API Key'); return; }
   
   const result = document.getElementById('result');
   result.style.display = 'block';
@@ -87,7 +97,12 @@ async function setup() {
     const resp = await fetch('/api/setup', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({provider, key})
+      body: JSON.stringify({
+        provider,
+        key,
+        model: document.getElementById('subModel').value.trim(),
+        base_url: document.getElementById('baseUrl').value.trim(),
+      })
     });
     const data = await resp.json();
     
@@ -95,17 +110,22 @@ async function setup() {
       result.className = 'result success';
       result.innerHTML = `
         <p class="ok">✅ 配置完成!</p>
-        <p>可用模型: ${data.models}个</p>
+        <p>可用模型: ${data.models}个 · ${data.model_id}</p>
         <p style="margin-top:12px">
           <a href="/ui/chat" style="color:var(--accent)">→ 开始聊天</a> |
           <a href="/ui/" style="color:var(--muted)">→ 管理控制台</a>
         </p>`;
     } else {
-      result.innerHTML = '❌ 配置失败: ' + (data.error || '未知错误');
+      result.innerHTML = '❌ 配置失败: ' + (data.error || data.detail || '未知错误');
     }
   } catch(e) {
     result.innerHTML = '❌ 连接失败: ' + e.message;
   }
+}
+
+function toggleAdvanced() {
+  var el = document.getElementById('step3');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
 function skip() { window.location.href = '/ui/chat'; }
