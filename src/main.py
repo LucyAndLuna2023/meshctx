@@ -1009,6 +1009,16 @@ async def api_lang_set(request: LangSetRequest, req: Request = None):
     resp.set_cookie("meshctx_lang", request.lang, max_age=365*24*3600, path="/", samesite="lax")
     return resp
 
+
+@app.get("/api/lang/set")
+async def api_lang_set_get(lang: str = "zh"):
+    """GET方式设置语言 — 浏览器一键修复语言问题"""
+    from fastapi.responses import RedirectResponse
+    set_lang(lang)
+    resp = RedirectResponse(url="/ui/v2", status_code=302)
+    resp.set_cookie("meshctx_lang", lang, max_age=365*24*3600, path="/", samesite="lax")
+    return resp
+
 @app.get("/api/lang/get")
 async def api_lang_get():
     """获取当前语言"""
@@ -3511,15 +3521,6 @@ async def api_chat(request: Request):
         err_msg = str(e)
         status = 503 if any(kw in err_msg.lower() for kw in ('401', '403', 'unauthorized', 'invalid api key', 'invalid key', 'authentication')) else 500
         return JSONResponse({"error": f"模型调用失败: {err_msg}", "content": ""}, status_code=status)
-
-@app.get("/api/conversations/{conv_id}")
-async def api_load_conversation(conv_id: str):
-    """加载指定会话的完整消息历史"""
-    from src.core.conversation_store import Conversation
-    conv = Conversation.load(conv_id)
-    if not conv:
-        return JSONResponse({"error": "会话不存在"}, status_code=404)
-    return JSONResponse(conv.to_dict())
 
 @app.post("/api/chat/stream")
 async def api_chat_stream(request: Request):
