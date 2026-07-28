@@ -174,3 +174,11 @@ meshctx profile: 29 skills, status=online
 
 ### 审计
 - 004qa 深度审计: P1认证+P2校验+P2格式一致性，已修复闭环 (d276a6b)
+
+## v3.33.1 — CPU/内存优化 (2026-07-28)
+
+- 🔴 修复 4 个 while True 循环无超时保护（SSE 协程泄漏 + auto_archive 永不退出）
+- 🔴 修复 5 个无界 List[Dict]=[] → deque(maxlen=N)（brain.py 跨 4 类 OOM）
+- 🔴 Brain Daemon 降频 5s→10s + 每 30 tick GC
+- 🟡 SSE 循环内 import 预加载（消除重复模块查找）
+- 详见 FIX_CPU_MEMORY_20260728.md
