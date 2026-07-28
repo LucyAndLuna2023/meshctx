@@ -353,9 +353,19 @@ function switchLang(lang) {
 })();
 // ── Service Worker 注册 (PWA) ──
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/ui/sw.js')
-        .then(function(reg) { console.log('SW registered:', reg.scope); })
-        .catch(function(err) { console.log('SW registration failed:', err); });
+    // 先清掉旧 Service Worker 及其缓存（修复导航栏日语等缓存问题）
+    navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(r) { r.unregister(); });
+        return caches.keys();
+    }).then(function(keys) {
+        keys.forEach(function(k) { caches.delete(k); });
+        // 重新注册
+        return navigator.serviceWorker.register('/ui/sw.js?v=3.115.24');
+    }).then(function(reg) {
+        console.log('SW registered:', reg.scope);
+    }).catch(function() {
+        navigator.serviceWorker.register('/ui/sw.js?v=3.115.24').catch(function(){});
+    });
 }
 // ═══ Ctrl+K 全局命令面板 ═══
 var cmdCommands = [
@@ -4367,7 +4377,7 @@ body.light .purple{color:#7c3aed}
     plugins:{en:'Plugins',zh:'插件',ja:'プラグイン',ko:'플러그인',es:'Plugins',fr:'Plugins',de:'Plugins'},
     files:{en:'Files',zh:'文件',ja:'ファイル',ko:'파일',es:'Archivos',fr:'Fichiers',de:'Dateien'},
     dashboard:{en:'Dashboard',zh:'仪表板',ja:'ダッシュボード',ko:'대시보드',es:'Panel',fr:'Tableau de bord',de:'Dashboard'}};
-  var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'en';
+  var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'zh';if(lang==='ja'){lang='zh';localStorage.removeItem('meshctx_lang');document.cookie='meshctx_lang=zh;path=/;max-age=31536000';}
   document.querySelectorAll('[data-nav]').forEach(function(el){
     var k=el.getAttribute('data-nav'),v=L[k];
     if(v&&v[lang])el.textContent=(k==='files'?'📁 ':'')+v[lang];
@@ -4649,7 +4659,7 @@ input,select{font-family:inherit}
     setup:{en:'⚙ Setup',zh:'⚙ 设置',ja:'⚙ 設定',ko:'⚙ 설정',es:'⚙ Configuración',fr:'⚙ Configuration',de:'⚙ Einrichtung'},
     plugins:{en:'🔌 Plugins',zh:'🔌 插件',ja:'🔌 プラグイン',ko:'🔌 플러그인',es:'🔌 Plugins',fr:'🔌 Plugins',de:'🔌 Plugins'},
     files:{en:'📁 Files',zh:'📁 文件',ja:'📁 ファイル',ko:'📁 파일',es:'📁 Archivos',fr:'📁 Fichiers',de:'📁 Dateien'}};
-  var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'en';
+  var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'zh';if(lang==='ja'){lang='zh';localStorage.removeItem('meshctx_lang');document.cookie='meshctx_lang=zh;path=/;max-age=31536000';}
   document.querySelectorAll('[data-nav]').forEach(function(el){
     var k=el.getAttribute('data-nav'),v=L[k];
     if(v&&v[lang])el.textContent=v[lang];
@@ -5273,7 +5283,7 @@ _TEMPLATES["files.html"] = r"""{% extends "base.html" %}
     plugins:{en:'Plugins',zh:'插件',ja:'プラグイン',ko:'플러그인',es:'Plugins',fr:'Plugins',de:'Plugins'},
     files:{en:'Files',zh:'文件',ja:'ファイル',ko:'파일',es:'Archivos',fr:'Fichiers',de:'Dateien'},
     dashboard:{en:'Dashboard',zh:'仪表板',ja:'ダッシュボード',ko:'대시보드',es:'Panel',fr:'Tableau de bord',de:'Dashboard'}};
-  var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'en';
+  var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'zh';if(lang==='ja'){lang='zh';localStorage.removeItem('meshctx_lang');document.cookie='meshctx_lang=zh;path=/;max-age=31536000';}
   document.querySelectorAll('[data-nav]').forEach(function(el){
     var k=el.getAttribute('data-nav'),v=L[k];
     if(v&&v[lang])el.textContent=(k==='files'?'📁 ':'')+v[lang];
@@ -5687,7 +5697,7 @@ async def manifest():
 async def service_worker():
     """Service Worker — 网络优先 + 缓存回退"""
     sw_js = r"""
-const CACHE_NAME = 'meshctx-v1';
+const CACHE_NAME = 'meshctx-v3.115.24';
 const PRECACHE_URLS = [
     '/ui/',
     '/ui/manifest.json',
