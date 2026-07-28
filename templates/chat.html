@@ -541,9 +541,40 @@ if (document.getElementById('langSelect')) document.getElementById('langSelect')
 
 // ===== Chat Logic =====
 let messages = [];
+let currentConvId = null;
 let model = 'deepseek:v4-flash';
 let currentHybridInfo = null;
 let profile = "{{ profile }}";
+
+// BUG-B fix: 初始化时从 URL ?conv= 或 localStorage 恢复对话历史
+(async function initChat() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const convParam = urlParams.get('conv');
+  const savedConvId = localStorage.getItem('meshctx_conv_id');
+  currentConvId = convParam || savedConvId;
+
+  if (currentConvId) {
+    try {
+      const r = await fetch('/api/conversations/' + currentConvId);
+      const d = await r.json();
+      if (d.messages && Array.isArray(d.messages)) {
+        messages = d.messages
+          .filter(m => m.role === 'user' || m.role === 'assistant')
+          .map(m => ({role: m.role, content: m.content}));
+        messages.forEach(m => addMsg(m.role, m.content));
+        return;
+      }
+    } catch(e) { /* fall through to localStorage */ }
+  }
+  // 兜底：从 localStorage 恢复
+  try {
+    const saved = localStorage.getItem('meshctx_msgs');
+    if (saved) {
+      messages = JSON.parse(saved);
+      messages.forEach(m => addMsg(m.role, m.content));
+    }
+  } catch(e) {}
+})();
 
 function getTimestamp() {
   const d = new Date();
@@ -684,6 +715,13 @@ async function send() {
     addMsg('ai', data.content, data.tool_result);
     messages.push({role:'assistant', content:data.content});
     
+    // BUG-B fix: 保存 conv_id 和消息到 localStorage
+    if (data.conv_id) {
+      currentConvId = data.conv_id;
+      localStorage.setItem('meshctx_conv_id', data.conv_id);
+    }
+    try { localStorage.setItem('meshctx_msgs', JSON.stringify(messages)); } catch(e) {}
+    
     document.getElementById('tokenCount').textContent = 
       `Tokens: ${data.tokens || 0}`;
     
@@ -759,6 +797,9 @@ function switchModel() {
 
 function newChat() {
   messages = [];
+  currentConvId = null;
+  localStorage.removeItem('meshctx_conv_id');
+  localStorage.removeItem('meshctx_msgs');
   document.getElementById('messages').innerHTML = '';
   addMsg('ai', t('chat_new_chat'));
   // 通知父页面刷新历史
