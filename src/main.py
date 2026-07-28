@@ -1009,6 +1009,16 @@ async def api_lang_set(request: LangSetRequest, req: Request = None):
     resp.set_cookie("meshctx_lang", request.lang, max_age=365*24*3600, path="/", samesite="lax")
     return resp
 
+
+@app.get("/api/lang/set")
+async def api_lang_set_get(lang: str = "zh"):
+    """GET方式设置语言 — 浏览器一键修复语言问题"""
+    from fastapi.responses import RedirectResponse
+    set_lang(lang)
+    resp = RedirectResponse(url="/ui/v2", status_code=302)
+    resp.set_cookie("meshctx_lang", lang, max_age=365*24*3600, path="/", samesite="lax")
+    return resp
+
 @app.get("/api/lang/get")
 async def api_lang_get():
     """获取当前语言"""
