@@ -18,7 +18,7 @@ def pytest_configure(config):
 @pytest.fixture(scope="function")
 def server_url(request):
     """提供默认server_url，UI测试可override。"""
-    return "http://localhost:3000"
+    return "http://localhost:3001"
 
 
 def pytest_collection_modifyitems(items):
