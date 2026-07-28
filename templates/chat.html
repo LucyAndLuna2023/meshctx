@@ -511,7 +511,7 @@ const LANG = {
 };
 
 function t(key) {
-  const lang = localStorage.getItem('meshctx-lang') || 'en';
+  const lang = localStorage.getItem('meshctx_lang') || 'en';
   return (LANG[lang] && LANG[lang][key]) || (LANG['en'] && LANG['en'][key]) || key;
 }
 
@@ -527,7 +527,7 @@ function changeLang(lang) {
       }
     }
   });
-  localStorage.setItem('meshctx-lang', lang);
+  localStorage.setItem('meshctx_lang', lang);
   var sel = document.getElementById('langSelect');
   if (sel) sel.value = lang;
   // 通知父页面（chat_v2 侧边栏）也更新语言
@@ -535,7 +535,7 @@ function changeLang(lang) {
 }
 
 // Restore saved language on load
-const savedLang = localStorage.getItem('meshctx-lang') || 'en';
+const savedLang = localStorage.getItem('meshctx_lang') || 'en';
 changeLang(savedLang);
 if (document.getElementById('langSelect')) document.getElementById('langSelect').value = savedLang;
 

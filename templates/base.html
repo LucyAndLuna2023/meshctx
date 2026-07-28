@@ -1238,7 +1238,7 @@ function changeLang(lang) {
     // Sync dropdowns
     document.querySelectorAll('.lang-select').forEach(el => el.value = lang);
     // Persist
-    localStorage.setItem('meshctx-lang', lang);
+    localStorage.setItem('meshctx_lang', lang);
     // Sync to server
     fetch('/api/lang/set', {
         method: 'POST',
@@ -1248,7 +1248,7 @@ function changeLang(lang) {
 }
 
 // Restore language: check localStorage first, then fallback to document lang
-const saved = localStorage.getItem('meshctx-lang') || document.documentElement.lang || 'en';
+const saved = localStorage.getItem('meshctx_lang') || document.documentElement.lang || 'en';
 const dropdown = document.querySelector('.lang-select');
 if (dropdown) dropdown.value = saved;
 changeLang(saved);

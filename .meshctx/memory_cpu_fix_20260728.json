@@ -1,0 +1,35 @@
+{
+  "id": "cpu_memory_fix_20260728",
+  "timestamp": "2026-07-28T08:40:00+08:00",
+  "type": "optimization",
+  "summary": "meshctx 死机根因：4 个 while True 无超时 + 5 个无界列表 OOM + Brain Daemon 满载 + SSE import 泄漏",
+  "files_changed": [
+    "src/main.py",
+    "src/core/brain.py"
+  ],
+  "fixes": {
+    "main.py": [
+      "auto_archive: while True -> while _archive_ticks < 288 (24h 超时)",
+      "agent_loop_sse: 300s 超时 + Kernel 预加载",
+      "sandbox_stream_status: 300s 超时 + 缩进修正",
+      "trace_stream: 300s 超时 + 缩进修正",
+      "循环内 import asyncio/__import__ 移除"
+    ],
+    "brain.py": [
+      "ThalamicGate.current_focus: List[str]=[] -> deque(maxlen=50)",
+      "ACCConflictMonitor.active_goals: List[Dict]=[] -> deque(maxlen=50)",
+      "ACCConflictMonitor.active_conflicts: List[Dict]=[] -> deque(maxlen=30)",
+      "Insula.alerts: List[Dict]=[] -> deque(maxlen=200)",
+      "HippocampalReplay.generated_skills: List[Dict]=[] -> deque(maxlen=100)",
+      "Daemon loop: 5s->10s + 每30tick gc.collect()"
+    ]
+  },
+  "pending_manual": [
+    "重启 meshctx 服务使修改生效",
+    "pyright-langserver 加 --max-memory=512",
+    "hermes 实例加 systemd MemoryMax 限制"
+  ],
+  "backup": ".meshctx_backups/cpu_fix_20260728_084037",
+  "report": "FIX_CPU_MEMORY_20260728.md",
+  "script": "scripts/fix_cpu_memory.py"
+}
