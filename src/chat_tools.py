@@ -16,28 +16,128 @@ TOOLS = {
     "read_file": {
         "desc": "读取文件内容。参数: path(文件路径), limit(行数,默认100)",
         "fn": lambda args: _read_file(args.get("path",""), args.get("limit",100)),
+        "openai": {
+            "type": "function",
+            "function": {
+                "name": "read_file",
+                "description": "读取文件内容。用于查看代码、配置、日志等文本文件",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string", "description": "文件路径(绝对或相对)"},
+                        "limit": {"type": "integer", "description": "最大显示行数, 默认100", "default": 100},
+                    },
+                    "required": ["path"],
+                },
+            },
+        },
+        "icon": "📖",
     },
     "write_file": {
         "desc": "写入文件。参数: path(文件路径), content(内容)",
         "fn": lambda args: _write_file(args.get("path",""), args.get("content","")),
+        "openai": {
+            "type": "function",
+            "function": {
+                "name": "write_file",
+                "description": "写入文件内容。创建或覆盖文件",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string", "description": "文件路径"},
+                        "content": {"type": "string", "description": "要写入的内容"},
+                    },
+                    "required": ["path", "content"],
+                },
+            },
+        },
+        "icon": "✏️",
     },
     "list_dir": {
         "desc": "列出目录。参数: path(目录路径)",
         "fn": lambda args: _list_dir(args.get("path",".")),
+        "openai": {
+            "type": "function",
+            "function": {
+                "name": "list_dir",
+                "description": "列出目录中的文件和子目录",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string", "description": "目录路径, 默认当前目录", "default": "."},
+                    },
+                    "required": [],
+                },
+            },
+        },
+        "icon": "📁",
     },
     "run_cmd": {
         "desc": "执行终端命令。参数: cmd(命令)",
         "fn": lambda args: _run_cmd(args.get("cmd","")),
+        "openai": {
+            "type": "function",
+            "function": {
+                "name": "run_cmd",
+                "description": "执行 Shell 终端命令。用于安装依赖、git 操作、构建、运行脚本等",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "cmd": {"type": "string", "description": "要执行的命令"},
+                    },
+                    "required": ["cmd"],
+                },
+            },
+        },
+        "icon": "💻",
     },
     "search_files": {
         "desc": "搜索文件内容。参数: pattern(搜索词), path(目录,默认.), glob(文件过滤,如*.py)",
         "fn": lambda args: _search_files(args.get("pattern",""), args.get("path","."), args.get("glob","*")),
+        "openai": {
+            "type": "function",
+            "function": {
+                "name": "search_files",
+                "description": "搜索文件内容(使用 ripgrep)。按正则模式搜索，支持文件过滤",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "pattern": {"type": "string", "description": "搜索关键词或正则表达式"},
+                        "path": {"type": "string", "description": "搜索目录, 默认当前目录", "default": "."},
+                        "glob": {"type": "string", "description": "文件过滤, 如 *.py, 默认 *", "default": "*"},
+                    },
+                    "required": ["pattern"],
+                },
+            },
+        },
+        "icon": "🔍",
     },
     "web_search": {
         "desc": "联网搜索网页信息(股票、新闻、天气等实时数据优先用此工具)。参数: query(搜索词)",
         "fn": lambda args: _web_search(args.get("query","")),
+        "openai": {
+            "type": "function",
+            "function": {
+                "name": "web_search",
+                "description": "联网搜索网页信息。用于查股票、新闻、天气、实时数据等",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "搜索关键词"},
+                    },
+                    "required": ["query"],
+                },
+            },
+        },
+        "icon": "🌐",
     },
 }
+
+# ── OpenAI 格式工具列表 (供 cli.py 的 _chat_loop 使用) ──
+TOOLS_OPENAI = [v["openai"] for v in TOOLS.values()]
+
+# ── 工具图标映射 ──
+TOOL_ICONS = {name: info["icon"] for name, info in TOOLS.items()}
 
 def _read_file(path: str, limit: int = 100) -> str:
     try:
@@ -153,7 +253,7 @@ def _web_search(query: str) -> str:
 # ═══════════════════════════════════════════════════
 
 def execute_tool(response_text: str) -> Optional[str]:
-    """从AI回复中提取工具调用并执行"""
+    """从AI回复中提取工具调用并执行 (旧版兼容)"""
     # 匹配格式: {"tool": "xxx", "path": "yyy", ...}
     match = re.search(r'\{["\']tool["\']\s*:\s*["\'](\w+)["\'](.*?)\}', response_text, re.DOTALL)
     if not match:
@@ -172,6 +272,13 @@ def execute_tool(response_text: str) -> Optional[str]:
     
     result = TOOLS[tool_name]["fn"](args)
     return f"[工具: {tool_name}]\n{result}"
+
+
+def exec_tool(name: str, args: dict) -> str:
+    """直接执行工具 (供 cli.py _chat_loop 调用)"""
+    if name not in TOOLS:
+        return f"未知工具: {name}"
+    return TOOLS[name]["fn"](args)
 
 
 def get_tools_prompt() -> str:

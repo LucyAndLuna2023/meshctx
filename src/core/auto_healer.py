@@ -38,6 +38,10 @@ class AutoHealerV2:
         self._heal_count: int = 0
         self._last_check: float = 0.0
 
+    def start(self):
+        """v3.115.20: 启动自愈服务 — 兼容 main.py 调用 start() 的约定。"""
+        pass
+
     # -- checks --------------------------------------------------------------
 
     def _check_cache(self) -> CheckResult:

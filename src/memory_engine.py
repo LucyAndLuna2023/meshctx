@@ -417,10 +417,19 @@ class MemoryEngine:
         return self.storage.get_project_memories(project_id)
 
     def delete_memory(self, memory_id: str) -> bool:
-        if memory_id not in self.memories:
-            return False
-        del self.memories[memory_id]
-        return True
+        if memory_id in self.memories:
+            del self.memories[memory_id]
+        # 同时从文件系统删除（memory_add 写入 ~/.meshctx/data/memories/）
+        import os as _os
+        from pathlib import Path as _Path
+        mem_file = _Path.home() / ".meshctx" / "data" / "memories" / f"{memory_id}.json"
+        try:
+            if mem_file.exists():
+                _os.remove(mem_file)
+                return True
+        except Exception:
+            pass
+        return memory_id in self.memories  # True if was in-memory
 
     # ── 助手管理 ──────────────────────────────────────────────
 

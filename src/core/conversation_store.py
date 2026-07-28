@@ -18,6 +18,7 @@ class Conversation:
     model: str = ""
     messages: list = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
+    updated_at: float = field(default_factory=time.time)
     
     @property
     def message_count(self) -> int:
@@ -26,7 +27,7 @@ class Conversation:
     def to_dict(self):
         return {"id": self.id, "title": self.title, "model": self.model,
                 "messages": self.messages, "message_count": self.message_count,
-                "created_at": self.created_at}
+                "created_at": self.created_at, "updated_at": self.updated_at}
     
     def add_message(self, role: str, content: str, **kw):
         self.messages.append({"role": role, "content": content, "time": time.time()})
@@ -37,6 +38,7 @@ class Conversation:
     
     def save(self):
         """Persist conversation to disk."""
+        self.updated_at = time.time()
         os.makedirs(DATA_DIR, exist_ok=True)
         path = os.path.join(DATA_DIR, f"{self.id}.json")
         with open(path, "w") as f:
@@ -52,7 +54,7 @@ class Conversation:
                     try:
                         with open(os.path.join(d, f)) as fh:
                             data = json.load(fh)
-                        convs.append({"id": data.get("id", f[:-5]), "title": data.get("title", ""), "model": data.get("model", ""), "created_at": data.get("created_at", 0)})
+                        convs.append({"id": data.get("id", f[:-5]), "title": data.get("title", ""), "model": data.get("model", ""), "created_at": data.get("created_at", 0), "updated_at": data.get("updated_at", data.get("created_at", 0))})
                     except Exception:
                         pass
         return convs

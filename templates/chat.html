@@ -288,10 +288,10 @@ body {
 <div class="header">
   <h1>🕸 meshctx Chat</h1>
   <select id="modelSelect" onchange="switchModel()">
-    <option value="deepseek:v4-pro">🏆 V4-Pro</option>
     <option value="deepseek:v4-flash" selected>⚡ V4-Flash</option>
     <option value="deepseek:chat">V3 Chat</option>
     <option value="deepseek:reasoner">🧠 R1</option>
+    <option value="deepseek:v4-pro">🏆 V4-Pro</option>
   </select>
   <select id="langSelect" onchange="changeLang(this.value)" style="width:auto">
     <option value="en">English</option>
@@ -530,6 +530,8 @@ function changeLang(lang) {
   localStorage.setItem('meshctx-lang', lang);
   var sel = document.getElementById('langSelect');
   if (sel) sel.value = lang;
+  // 通知父页面（chat_v2 侧边栏）也更新语言
+  if (window.parent && window.parent.updateLang) window.parent.updateLang(lang);
 }
 
 // Restore saved language on load
@@ -759,6 +761,8 @@ function newChat() {
   messages = [];
   document.getElementById('messages').innerHTML = '';
   addMsg('ai', t('chat_new_chat'));
+  // 通知父页面刷新历史
+  if (window.parent && window.parent.loadHistory) window.parent.loadHistory();
 }
 
 function toggleStatusPanel() {
@@ -791,6 +795,74 @@ const FILE_ICONS = {
 function fileIcon(path) {
   const ext = path.split('.').pop();
   return FILE_ICONS['.' + ext] || '📄';
+}
+
+// ── 动态加载全部模型 ──
+async function fetchModelList() {
+  try {
+    const resp = await fetch('/api/models');
+    const data = await resp.json();
+    const models = data.models || [];
+    const sel = document.getElementById('modelSelect');
+    // 按 provider 分组
+    const groups = {};
+    for (const m of models) {
+      const p = m.provider || 'other';
+      if (!groups[p]) groups[p] = [];
+      groups[p].push(m);
+    }
+    // 保留当前选项
+    const curVal = sel.value;
+    sel.innerHTML = '';
+    for (const [provider, list] of Object.entries(groups)) {
+      const og = document.createElement('optgroup');
+      og.label = provider;
+      for (const m of list) {
+        const o = document.createElement('option');
+        o.value = m.id || '';
+        // 用 emoji 区分常见 provider
+        const emoji = {deepseek:'🏆',openai:'🧠',anthropic:'🔮',google:'🌐',ollama:'🦙',custom:'🔧'}[provider] || '•';
+        o.textContent = emoji + ' ' + (m.name || m.id);
+        if (m.id === curVal) o.selected = true;
+        og.appendChild(o);
+      }
+      sel.appendChild(og);
+    }
+    // 追加自定义模型输入选项
+    const cuOpt = document.createElement('option');
+    cuOpt.value = '__custom__';
+    cuOpt.textContent = '🔧 自定义模型...';
+    sel.appendChild(cuOpt);
+    // 选中自定义时弹出输入框
+    sel.addEventListener('change', function(e) {
+      if (sel.value === '__custom__') {
+        const customId = prompt('输入模型 ID (如 ollama:llama3, openai:gpt-4o):');
+        if (customId && customId.trim()) {
+          const o = document.createElement('option');
+          o.value = customId.trim();
+          o.textContent = '🔧 ' + customId.trim();
+          o.selected = true;
+          sel.insertBefore(o, cuOpt);
+          model = customId.trim();
+        } else {
+          sel.value = curVal;
+        }
+        updateModelInfo();
+        return;
+      }
+      model = sel.value;
+      updateModelInfo();
+    });
+    updateModelInfo();
+  } catch(e) {
+    console.warn('Failed to load models:', e);
+  }
+}
+
+function updateModelInfo() {
+  document.getElementById('modelInfo').innerHTML = '<span data-lang-key="chat_model">模型</span>: ' + model;
+  var pm = document.getElementById('panelModel');
+  if (pm) pm.textContent = model;
 }
 
 async function fetchFileList() {
@@ -1068,6 +1140,8 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('panelModel').textContent = model;
   // Pre-fetch file list for @mention autocomplete
   fetchFileList();
+  // Dynamic model loading from /api/models
+  fetchModelList();
   // Init WebSocket realtime connection
   initRealtime();
 });

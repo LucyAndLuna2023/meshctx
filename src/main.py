@@ -549,7 +549,7 @@ async def security_headers_middleware(request: Request, call_next):
     """Add standard security headers to all responses"""
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"  # v3.115.20: DENY 导致 Firefox 连本地 localhost 都拦截
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
@@ -587,12 +587,20 @@ async def rate_limit_middleware(request: Request, call_next):
                 del _suspicious_ips[ip]
         _rate_limits_last_cleanup = now
     
-    # Suspicious IP check
+    # Suspicious IP check — v3.115.20: 加 5min 封禁过期 + 静态资源豁免
+    _static_prefixes = ("/static/", "/favicon.ico", "/ui/static/")
     if client_ip in _suspicious_ips:
         _suspicious_ips[client_ip] = [t for t in _suspicious_ips[client_ip] if now - t < _SUSPICIOUS_WINDOW]
         if len(_suspicious_ips[client_ip]) >= _SUSPICIOUS_THRESHOLD:
-            return JSONResponse(status_code=403,
-                content={"detail": "Access denied: suspicious activity detected"})
+            # 静态资源请求不触发封禁（浏览器预加载 favicon/CSS/JS）
+            if not any(request.url.path.startswith(p) for p in _static_prefixes):
+                # 封禁 5 分钟后自动过期
+                oldest_hit = min(_suspicious_ips[client_ip])
+                if now - oldest_hit < 300:
+                    return JSONResponse(status_code=403,
+                        content={"detail": "Access denied: suspicious activity detected"})
+                else:
+                    del _suspicious_ips[client_ip]  # 过期，清除
     
     # Rate limit check
     if client_ip not in _rate_limits:
@@ -640,15 +648,12 @@ app.middleware("http")(auth_middleware_v2)
 @app.get("/ui/login", response_class=HTMLResponse)
 async def login_page(request: Request, next: str = ""):
     lang = request.cookies.get("meshctx_lang", "en")
-    import json, os
-    _i18n_path = os.path.join(os.path.dirname(__file__), "i18n_translations.json")
+    import json
     try:
-        with open(_i18n_path, encoding="utf-8") as f:
-            _all_i18n = json.load(f)
-        _lang_data = _all_i18n.get(lang, _all_i18n.get("en", {}))
+        _lang_data = TRANSLATIONS.get(lang, TRANSLATIONS.get("en", {}))
     except Exception:
         _lang_data = {}
-    _i18n_json = json.dumps(_lang_data, ensure_ascii=False)
+    _i18n_json = json.dumps(dict(_lang_data), ensure_ascii=False)
     return HTMLResponse(content="""<!DOCTYPE html>
 <html lang=""" + '"' + lang + '"' + """><head><meta charset="UTF-8"><title>MeshCtx Login</title>
 <style>
@@ -837,7 +842,7 @@ from .core.realtime_push import create_realtime_router
 app.include_router(create_realtime_router())
 
 # ─── i18n 语言切换 ─────────────────────────────────────
-from .i18n import set_lang, get_lang, t
+from .i18n import set_lang, get_lang, t, TRANSLATIONS
 
 # 挂载引擎到 app.state
 app.state.kernel = None
@@ -943,14 +948,11 @@ async def live_dashboard(request: Request):
     # Inject i18n
     lang = request.cookies.get("meshctx_lang", "en")
     import json
-    _i18n_path = Path(__file__).parent / "i18n_translations.json"
     try:
-        with open(_i18n_path, encoding="utf-8") as f:
-            _all_i18n = json.load(f)
-        _lang_data = _all_i18n.get(lang, _all_i18n.get("en", {}))
+        _lang_data = TRANSLATIONS.get(lang, TRANSLATIONS.get("en", {}))
     except Exception:
         _lang_data = {}
-    _i18n_json = json.dumps(_lang_data, ensure_ascii=False)
+    _i18n_json = json.dumps(dict(_lang_data), ensure_ascii=False)
     i18n_script = f'<script>window.__i18n = {_i18n_json};window.__lang="{lang}";window.__t=function(k){{return (window.__i18n&&window.__i18n[k])||k;}};</script>'
     html = html.replace("</head>", i18n_script + "\n</head>")
     return HTMLResponse(content=html)
@@ -1254,7 +1256,7 @@ async def hermes_cluster_status():
                     bridge_rules = {"forward": len(plugin.bridge_rules.get("forward", [])),
                                    "receive": len(plugin.bridge_rules.get("receive", []))}
         except Exception:
-            logger.debug("Suppressed except Exception:: {}", exc_info=True)
+            logger.warning("Suppressed except Exception:: {}", exc_info=True)
 
         return {
             "hermes_instances": len(instances),
@@ -3360,7 +3362,8 @@ async def api_chat(request: Request):
     """非流式Chat API — 完整工具循环。用于前端chat.html"""
     from src.model_registry import get_registry
     from src.config import load_config
-    import json as _json
+    from src.core.conversation_store import Conversation
+    import json as _json, uuid
 
     try:
         body = await request.json()
@@ -3375,6 +3378,9 @@ async def api_chat(request: Request):
 
     if not msgs:
         return JSONResponse({"error": "请输入消息"}, status_code=400)
+
+    conv_id = body.get("conv_id") or body.get("conversation_id") or str(uuid.uuid4())[:8]
+    conv_title = body.get("conv_title") or ""
 
     model_id = body.get("model")
     if not model_id:
@@ -3435,11 +3441,17 @@ async def api_chat(request: Request):
             # No tool calls → return final content
             if not msg.tool_calls:
                 content = msg.content or ""
+                _save_conv = Conversation(id=conv_id, title=conv_title or (content[:30] + "..."), model=model_id, messages=msgs)
+                try:
+                    _save_conv.save()
+                except Exception:
+                    pass
                 return JSONResponse({
                     "content": content,
                     "tool_result": None,
                     "tokens": choice.usage.total_tokens if hasattr(choice, 'usage') and choice.usage else 0,
                     "hybrid_info": None,
+                    "conv_id": conv_id,
                 })
 
             # Process tool calls
@@ -3479,11 +3491,19 @@ async def api_chat(request: Request):
         except Exception:
             content = "处理超时，请重试"
 
+        # ── 自动保存对话 ──
+        try:
+            _save_conv = Conversation(id=conv_id, title=conv_title or (content[:30] + "..."), model=model_id, messages=msgs)
+            _save_conv.save()
+        except Exception:
+            pass
+
         return JSONResponse({
             "content": content,
             "tool_result": None,
             "tokens": 0,
             "hybrid_info": None,
+            "conv_id": conv_id,
         })
 
     except Exception as e:
@@ -3491,6 +3511,15 @@ async def api_chat(request: Request):
         err_msg = str(e)
         status = 503 if any(kw in err_msg.lower() for kw in ('401', '403', 'unauthorized', 'invalid api key', 'invalid key', 'authentication')) else 500
         return JSONResponse({"error": f"模型调用失败: {err_msg}", "content": ""}, status_code=status)
+
+@app.get("/api/conversations/{conv_id}")
+async def api_load_conversation(conv_id: str):
+    """加载指定会话的完整消息历史"""
+    from src.core.conversation_store import Conversation
+    conv = Conversation.load(conv_id)
+    if not conv:
+        return JSONResponse({"error": "会话不存在"}, status_code=404)
+    return JSONResponse(conv.to_dict())
 
 @app.post("/api/chat/stream")
 async def api_chat_stream(request: Request):
@@ -4142,13 +4171,24 @@ async def chat_compare_stream(req: Request):
 # 对话持久化 (v2.11)
 # ═══════════════════════════════════════════════════
 
+# v3.115.20: 对话搜索缓存 — 避免每次请求遍历所有JSON文件
+_search_cache: Dict[str, tuple] = {}  # {q: (results, timestamp)}
+_SEARCH_CACHE_TTL = 30  # 30秒TTL
+
 @app.get("/api/conversations/search")
 async def search_conversations(q: str = ""):
     """搜索对话历史"""
+    if not q:
+        return {"results": [], "query": q}
+    # 缓存命中
+    now = __import__("time").time()
+    if q in _search_cache:
+        cached_results, cached_time = _search_cache[q]
+        if now - cached_time < _SEARCH_CACHE_TTL:
+            return {"results": cached_results, "query": q, "cached": True}
     from src.core.conversation_store import Conversation, DATA_DIR
     import json
     results = []
-    if not q: return {"results": [], "query": q}
     from pathlib import Path as _Path
     for path in sorted(_Path(DATA_DIR).glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:50]:
         try:
@@ -4164,8 +4204,14 @@ async def search_conversations(q: str = ""):
                         "time": msg.get("time", 0),
                     })
         except Exception:
-            pass  # 非关键路径：silent fallback 是预期行为
-    return {"results": results[:20], "query": q}
+            pass
+    results = results[:20]
+    _search_cache[q] = (results, now)
+    # 限制缓存大小
+    if len(_search_cache) > 50:
+        oldest = min(_search_cache.keys(), key=lambda k: _search_cache[k][1])
+        del _search_cache[oldest]
+    return {"results": results, "query": q}
 
 
 @app.get("/api/conversations")
@@ -4697,7 +4743,7 @@ async def brain_status():
         from src.core.agent_loop import AgentLoopPlugin
         # 这里无法直接访问实例，返回模拟数据
     except Exception:
-        logger.debug("Suppressed except:: {}", exc_info=True)
+        logger.warning("Suppressed except:: {}", exc_info=True)
     
     # 生成各脑区模拟激活值 (后续接入真实数据)
     regions = [
@@ -4750,7 +4796,7 @@ async def cognitive_health_status():
             chm = loop.cognitive_health
             return chm.get_diagnosis()
     except Exception:
-        logger.debug("Suppressed except Exception:: {}", exc_info=True)
+        logger.warning("Suppressed except Exception:: {}", exc_info=True)
     chm = CognitiveHealthMonitor()
     return chm.get_diagnosis()
 
@@ -4766,7 +4812,7 @@ async def learn_loop_stats():
             ll = loop.learn_loop
             return ll.get_stats()
     except Exception:
-        logger.debug("Suppressed except Exception:: {}", exc_info=True)
+        logger.warning("Suppressed except Exception:: {}", exc_info=True)
     return {"error": "LearnLoop not initialized"}
 
 
@@ -5003,7 +5049,7 @@ async def system_status():
                 if pinfo.get("key"):
                     configured_ids.add(f"provider:{pid}")
         except Exception:
-            logger.debug("Suppressed except Exception:: {}", exc_info=True)
+            logger.warning("Suppressed except Exception:: {}", exc_info=True)
     configured = len(configured_ids)
     
     reg_path = Path(__file__).parent.parent / "plugins" / "registry.json"
@@ -5436,7 +5482,7 @@ async def context_projects():
                 with open(active_file) as f:
                     active_name = _json.load(f).get("project_name", "")
             except Exception:
-                logger.debug("Suppressed except Exception:: {}", exc_info=True)
+                logger.warning("Suppressed except Exception:: {}", exc_info=True)
 
         # 扫描 projects 目录
         if proj_dir.exists():
@@ -5756,7 +5802,7 @@ async def archive_save(request: Request):
             if key in ["version", "decisions", "rules", "progress"]:
                 archiver._context[key] = body[key]
     except Exception:
-        logger.debug("Suppressed except:: {}", exc_info=True)
+        logger.warning("Suppressed except:: {}", exc_info=True)
     path = archiver.save(force=True)
     return {"status": "ok", "path": path, "summary": archiver.get_summary()}
 
@@ -5954,7 +6000,7 @@ async def config_import(request: Request):
             import src.model_registry as mr
             mr._registry = None
         except Exception:
-            logger.debug("Suppressed except Exception:: {}", exc_info=True)
+            logger.warning("Suppressed except Exception:: {}", exc_info=True)
         # 统计导入的条目数
         imported = 0
         for section in ("models", "plugins", "mcp"):

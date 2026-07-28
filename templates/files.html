@@ -1,15 +1,156 @@
 {% extends "base.html" %}
 {% block title %}{{ title }} - meshctx{% endblock %}
 {% block content %}
-<div class="container" style="max-width:900px;margin:40px auto;padding:20px;">
+<style>
+.file-browser{max-width:1000px;margin:20px auto;padding:20px}
+.file-browser h2{margin-bottom:8px}
+.file-browser .path-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;background:var(--surface,#1e293b);padding:8px 14px;border-radius:8px;font-family:monospace;font-size:13px}
+.file-browser .path-bar code{color:#00d48c}
+.file-browser .toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.file-browser .toolbar input{flex:1;min-width:200px;background:var(--surface,#1e293b);border:1px solid var(--border,#334155);color:var(--text,#e2e8f0);padding:8px 12px;border-radius:6px;font-size:13px}
+.file-browser .toolbar button{background:var(--accent,#6c5ce7);color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px}
+.file-browser .toolbar button:hover{opacity:0.85}
+.file-browser .table{width:100%;border-collapse:collapse;font-size:13px}
+.file-browser .table th{text-align:left;padding:10px 12px;border-bottom:2px solid var(--border,#334155);color:var(--muted,#94a3b8);font-weight:500}
+.file-browser .table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);word-break:break-all}
+.file-browser .table tr:hover{background:rgba(255,255,255,0.02)}
+.file-browser .table .name{cursor:pointer;color:var(--accent,#58a6ff);max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-browser .table .name:hover{text-decoration:underline}
+.file-browser .table .size{color:var(--muted,#8b949e);white-space:nowrap}
+.file-browser .table .dir{color:#d29922}
+.file-browser .table .file-icon{color:var(--muted,#8b949e)}
+.file-browser .table .action{white-space:nowrap}
+.file-browser .table .action a{color:var(--accent,#58a6ff);text-decoration:none;margin-right:8px;font-size:12px}
+.file-browser .table .action a:hover{text-decoration:underline}
+.file-browser .stats{color:var(--muted,#8b949e);font-size:12px;margin-top:12px}
+.file-browser .loading,.file-browser .error{text-align:center;padding:40px;color:var(--muted,#94a3b8)}
+.file-browser .error{color:var(--danger,#f85149)}
+.preview-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center}
+.preview-overlay.active{display:flex}
+.preview-box{background:var(--surface,#1e293b);border:1px solid var(--border,#334155);border-radius:12px;max-width:800px;width:90%;max-height:80vh;display:flex;flex-direction:column}
+.preview-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border,#334155)}
+.preview-header h3{margin:0;font-size:14px}
+.preview-header button{background:none;border:none;color:var(--muted,#94a3b8);cursor:pointer;font-size:18px}
+.preview-body{padding:16px;overflow:auto;flex:1;font-family:monospace;font-size:12px;white-space:pre-wrap;word-break:break-all;max-height:60vh}
+</style>
+<div class="file-browser">
     <h2>📂 File Browser</h2>
-    <p style="color:#8090b0;margin-bottom:24px;">Browse and manage files in the meshctx workspace.</p>
-    <div class="card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-            <span style="font-size:20px;">📁</span>
-            <code style="background:#1a1a2e;padding:4px 12px;border-radius:6px;color:#00d48c;">~/.meshctx/</code>
+    <p id="pathDisplay" class="path-bar">📁 <code>~/.meshctx/</code></p>
+    <div class="toolbar">
+        <input id="searchInput" placeholder="Filter files...">
+        <button onclick="loadFiles()">🔍 Refresh</button>
+        <button onclick="navigateUp()">⬆ Up</button>
+    </div>
+    <div id="fileTable"></div>
+    <div id="fileStats" class="stats"></div>
+</div>
+<div class="preview-overlay" id="previewOverlay">
+    <div class="preview-box">
+        <div class="preview-header">
+            <h3 id="previewTitle">File Preview</h3>
+            <button onclick="closePreview()">✕</button>
         </div>
-        <p style="color:#8090b0;font-size:13px;">File management is available via CLI: <code style="background:#1a1a2e;padding:2px 8px;border-radius:4px;color:#00d48c;">mesctx files</code></p>
+        <div class="preview-body" id="previewBody">Loading...</div>
     </div>
 </div>
+<script>
+var currentPath = '';
+var allItems = [];
+
+function loadFiles(){
+    var t = document.getElementById('fileTable');
+    t.innerHTML = '<div class="loading">Loading...</div>';
+    fetch('/api/file/list?path=' + encodeURIComponent(currentPath || '.'))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        allItems = d.items || d.files || [];
+        renderFiles(allItems);
+        document.getElementById('fileStats').textContent = allItems.length + ' items';
+    })
+    .catch(function(e){
+        t.innerHTML = '<div class="error">Failed to load: ' + e.message + '</div>';
+    });
+}
+
+function renderFiles(items){
+    var t = document.getElementById('fileTable');
+    if(!items.length){ t.innerHTML='<div class="loading">Empty directory</div>'; return; }
+    var h = '<table class="table"><thead><tr><th>Name</th><th>Size</th><th>Action</th></tr></thead><tbody>';
+    // directories first
+    items.sort(function(a,b){
+        var aD = a.type==='dir'||a.is_dir?0:1, bD = b.type==='dir'||b.is_dir?0:1;
+        return aD-bD || (a.name||'').localeCompare(b.name||'');
+    });
+    items.forEach(function(it){
+        var name = it.name || it.path || '';
+        var isDir = it.type==='dir' || it.is_dir;
+        var size = isDir ? '-' : formatSize(it.size||0);
+        var icon = isDir ? '📁' : '📄';
+        h += '<tr>';
+        h += '<td><span class="name'+(isDir?' dir':'')+'" onclick="'+(isDir?'enterDir':'previewFile')+'(\''+esc(name)+'\')">'+icon+' '+escHtml(name)+'</span></td>';
+        h += '<td class="size">'+size+'</td>';
+        h += '<td class="action">';
+        if(!isDir) h += '<a href="javascript:previewFile(\''+esc(name)+'\')">View</a>';
+        if(isDir) h += '<a href="javascript:enterDir(\''+esc(name)+'\')">Open</a>';
+        h += '</td></tr>';
+    });
+    h += '</tbody></table>';
+    t.innerHTML = h;
+}
+
+function enterDir(name){
+    currentPath = currentPath ? currentPath + '/' + name : name;
+    document.getElementById('pathDisplay').innerHTML = '📁 <code>~/.meshctx/'+escHtml(currentPath)+'</code>';
+    loadFiles();
+}
+
+function navigateUp(){
+    if(!currentPath) return;
+    var parts = currentPath.split('/');
+    parts.pop();
+    currentPath = parts.join('/');
+    document.getElementById('pathDisplay').innerHTML = '📁 <code>~/.meshctx/'+(currentPath?escHtml(currentPath):'')+'</code>';
+    loadFiles();
+}
+
+function previewFile(name){
+    var fp = currentPath ? currentPath + '/' + name : name;
+    document.getElementById('previewTitle').textContent = fp;
+    document.getElementById('previewBody').textContent = 'Loading...';
+    document.getElementById('previewOverlay').classList.add('active');
+    fetch('/api/file/read?path=' + encodeURIComponent(fp))
+    .then(function(r){ return r.text(); })
+    .then(function(txt){
+        document.getElementById('previewBody').textContent = txt;
+    })
+    .catch(function(e){
+        document.getElementById('previewBody').textContent = 'Error: ' + e.message;
+    });
+}
+
+function closePreview(){
+    document.getElementById('previewOverlay').classList.remove('active');
+}
+
+function formatSize(bytes){
+    if(!bytes || bytes<0) return '0 B';
+    var u=['B','KB','MB','GB'], i=0;
+    while(bytes>=1024 && i<3){bytes/=1024;i++;}
+    return bytes.toFixed(1)+' '+u[i];
+}
+
+function esc(s){return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// search filter
+document.getElementById('searchInput').addEventListener('input', function(){
+    var q = this.value.toLowerCase();
+    if(!q){renderFiles(allItems);return;}
+    renderFiles(allItems.filter(function(it){
+        return (it.name||it.path||'').toLowerCase().indexOf(q)>=0;
+    }));
+});
+
+document.addEventListener('DOMContentLoaded', loadFiles);
+</script>
 {% endblock %}

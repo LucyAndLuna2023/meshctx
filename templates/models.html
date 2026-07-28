@@ -1,14 +1,110 @@
 {% extends "base.html" %}
 {% block title %}{{ title }} - meshctx{% endblock %}
 {% block content %}
-<div class="container" style="max-width:900px;margin:40px auto;padding:20px;">
-    <h2>🤖 Model Management</h2>
+<div class="container" style="max-width:1000px;margin:40px auto;padding:20px;">
+    <h2>🤖 {{ title }}</h2>
     <p style="color:#8090b0;margin-bottom:24px;">Configure and manage AI models across providers. Add API keys in <a href="/ui/setup" style="color:#6c5ce7;">Setup</a>.</p>
-    <div class="card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px;">
-        <h3>Built-in Models</h3>
-        <div id="model-list" style="margin-top:16px;">
-            <p style="color:#8090b0;">Loading models from registry...</p>
+    
+    <!-- 自定义模型添加 -->
+    <div class="card" style="background:rgba(108,92,231,0.08);border:1px solid rgba(108,92,231,0.2);border-radius:12px;padding:20px;margin-bottom:24px;">
+        <h3 style="margin:0 0 4px 0">🔧 Custom Local Model</h3>
+        <p style="color:#8090b0;margin:0 0 12px 0;font-size:14px">Add any OpenAI-compatible endpoint: Ollama, vLLM, LM Studio, llama.cpp, etc.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <input id="customModelId" placeholder="Model ID (e.g. ollama:llama3)" style="flex:1;min-width:180px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#e0e0e0">
+            <input id="customModelName" placeholder="Display name (optional)" style="flex:1;min-width:180px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#e0e0e0">
+            <input id="customBaseUrl" placeholder="Base URL (optional, for local)" style="flex:1;min-width:200px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#e0e0e0">
+            <button onclick="addCustomModel()" style="padding:8px 18px;background:#6c5ce7;color:#fff;border:none;border-radius:6px;cursor:pointer">➕ Add</button>
         </div>
     </div>
+
+    <!-- 搜索 -->
+    <div style="margin-bottom:16px">
+        <input id="modelSearch" placeholder="🔍 Filter models..." style="width:100%;max-width:400px;padding:8px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#e0e0e0" oninput="renderModels()">
+    </div>
+
+    <!-- 模型列表 -->
+    <div id="model-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+        <p style="color:#8090b0;grid-column:1/-1;text-align:center;padding:40px">⏳ Loading models from registry...</p>
+    </div>
 </div>
+
+<script>
+var ALL_MODELS = [];
+var CUSTOM_MODELS = JSON.parse(localStorage.getItem('meshctx_custom_models')||'[]');
+
+async function loadModels(){
+    try {
+        var r = await fetch('/api/models');
+        var d = await r.json();
+        ALL_MODELS = d.models || [];
+        renderModels();
+    } catch(e) {
+        document.getElementById('model-list').innerHTML = '<p style="color:#ff6b6b;grid-column:1/-1;text-align:center;padding:40px">❌ Failed to load models</p>';
+    }
+}
+
+function renderModels(){
+    var q = (document.getElementById('modelSearch').value||'').toLowerCase();
+    var all = ALL_MODELS.slice();
+    // Add custom models
+    CUSTOM_MODELS.forEach(function(m){ all.unshift(m); });
+    
+    // Filter
+    if(q) all = all.filter(function(m){ return (m.id||'').toLowerCase().includes(q) || (m.name||'').toLowerCase().includes(q) || (m.provider||'').toLowerCase().includes(q); });
+    
+    // Group by provider
+    var groups = {};
+    all.forEach(function(m){
+        var p = m.provider || 'other';
+        if(!groups[p]) groups[p] = [];
+        groups[p].push(m);
+    });
+    
+    var providers = Object.keys(groups).sort();
+    var html = '';
+    providers.forEach(function(p){
+        html += '<div style="grid-column:1/-1;color:#8090b0;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:8px">' + p + '</div>';
+        groups[p].forEach(function(m){
+            var emoji = m.provider==='ollama'?'🦙':m.provider==='custom'?'🔧':m.provider==='deepseek'?'🏆':m.provider==='openai'?'🧠':m.provider==='anthropic'?'🔮':m.provider==='google'?'🌐':'•';
+            var isCustom = CUSTOM_MODELS.some(function(c){ return c.id===m.id; });
+            html += '<div class="card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px;display:flex;align-items:center;gap:12px'+(isCustom?';border-color:rgba(108,92,231,0.3)':'')+'">';
+            html += '<span style="font-size:24px">'+emoji+'</span>';
+            html += '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(m.name||m.id)+'</div><div style="font-size:12px;color:#8090b0;font-family:monospace">'+m.id+'</div></div>';
+            if(isCustom){
+                html += '<button onclick="removeCustomModel(\''+m.id+'\')" style="background:none;border:none;color:#ff6b6b;cursor:pointer;font-size:16px" title="Remove">✕</button>';
+            }
+            html += '</div>';
+        });
+    });
+    if(!all.length) html = '<p style="color:#8090b0;grid-column:1/-1;text-align:center;padding:40px">No models match "'+q+'"</p>';
+    document.getElementById('model-list').innerHTML = html;
+}
+
+function addCustomModel(){
+    var id = document.getElementById('customModelId').value.trim();
+    if(!id) return alert('Please enter a Model ID');
+    var name = document.getElementById('customModelName').value.trim() || id;
+    var baseUrl = document.getElementById('customBaseUrl').value.trim();
+    
+    // Check duplicate
+    if(CUSTOM_MODELS.some(function(m){ return m.id===id; })) return alert('Model already exists');
+    
+    var m = {id:id, name:name, provider:'custom'};
+    if(baseUrl) m.base_url = baseUrl;
+    CUSTOM_MODELS.push(m);
+    localStorage.setItem('meshctx_custom_models', JSON.stringify(CUSTOM_MODELS));
+    document.getElementById('customModelId').value = '';
+    document.getElementById('customModelName').value = '';
+    document.getElementById('customBaseUrl').value = '';
+    renderModels();
+}
+
+function removeCustomModel(id){
+    CUSTOM_MODELS = CUSTOM_MODELS.filter(function(m){ return m.id!==id; });
+    localStorage.setItem('meshctx_custom_models', JSON.stringify(CUSTOM_MODELS));
+    renderModels();
+}
+
+loadModels();
+</script>
 {% endblock %}

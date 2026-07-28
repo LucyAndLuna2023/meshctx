@@ -621,3 +621,6 @@ class LegacyJEPAWorldModel:
 
 def get_jepa_world_model(latent_dim: int = 128) -> LegacyJEPAWorldModel:
     return LegacyJEPAWorldModel(latent_dim=latent_dim)
+
+# v3.115.20: 别名 — 调用方期望 get_world_model
+get_world_model = get_jepa_world_model

@@ -32,21 +32,120 @@
     <div class="topbar">
         <a href="/ui/v2" class="back">&larr;</a>
         <span class="title">&#128172; {{ t("chat") }}</span>
-        <button class="toggle-sidebar" onclick="toggleSidebar()" title="History">&#128240; {{ t("v2_history") }}</button>
+        <button class="toggle-sidebar" onclick="toggleSidebar()" title="History">&#128240; <span id="sidebarLabel">{{ t("v2_history") }}</span></button>
     </div>
     <div class="layout">
         <div class="sidebar" id="chatSidebar">
-            <div class="sidebar-header">&#128240; {{ t("v2_history") }} <span class="count" id="historyCount"></span></div>
-            <button class="new-chat-btn" onclick="newChat()">{{ t("v2_new_chat") }}</button>
-            <div class="sidebar-list" id="historyList"><div style="padding:16px;color:var(--muted);">{{ t("v2_loading") }}</div></div>
+            <div class="sidebar-header">&#128240; <span id="historyTitle">{{ t("v2_history") }}</span> <span class="count" id="historyCount"></span></div>
+            <button class="new-chat-btn" onclick="newChat()"><span id="newChatLabel">{{ t("v2_new_chat") }}</span></button>
+            <div class="sidebar-list" id="historyList"><div style="padding:16px;color:var(--muted);" id="loadingLabel">{{ t("v2_loading") }}</div></div>
         </div>
         <iframe src="/ui/chat" class="chat-embed" id="chatFrame"></iframe>
     </div>
     <script>
-        function toggleSidebar(){var s=document.getElementById('chatSidebar');if(window.innerWidth<=768){s.classList.toggle('mobile-open');}else{s.classList.toggle('collapsed');}}
-        function newChat(){document.getElementById('chatFrame').src='/ui/chat';setTimeout(loadHistory,500);}
-        function loadHistory(){var list=document.getElementById('historyList'),count=document.getElementById('historyCount');try{var tabId=localStorage.getItem('meshctx_active_tab')||'default';var data=JSON.parse(localStorage.getItem('meshctx_chat_'+tabId)||'[]');count.textContent=data.length;list.innerHTML=data.slice(-30).reverse().map(function(m){var p=(m.content||'').substring(0,40).replace(/</g,'&lt;');return '<div class="sidebar-item">'+p+'</div>';}).join('')||'<div style="padding:16px;color:var(--muted);">{{ t("v2_no_history") }}</div>';}catch(e){list.innerHTML='<div style="padding:16px;color:var(--muted);">{{ t("v2_load_failed") }}</div>';}}
-        loadHistory();setInterval(loadHistory,8000);
+        (function(){
+            // ── i18n client-side support ──
+            var I18N = JSON.parse(document.getElementById('i18n-data').textContent || '{}');
+            var LANG = document.getElementById('lang-data').textContent || 'zh';
+            window._t = function(k){ return (I18N[LANG]&&I18N[LANG][k]) || (I18N['en']&&I18N['en'][k]) || k; };
+
+            function t(k){return window._t(k);}
+
+            window.toggleSidebar = function(){
+                var s = document.getElementById('chatSidebar');
+                if(window.innerWidth <= 768){ s.classList.toggle('mobile-open'); }
+                else { s.classList.toggle('collapsed'); }
+            };
+
+            window.newChat = function(){
+                var fid = document.getElementById('chatFrame');
+                localStorage.removeItem('meshctx_msgs');
+                localStorage.removeItem('meshctx_conv_id');
+                fid.src = '/ui/chat';
+                setTimeout(function(){
+                    try { fid.contentWindow.postMessage({type:'newChat'}, '*'); } catch(e){}
+                    loadHistory();
+                }, 500);
+            };
+
+            function loadHistory(){
+                var list = document.getElementById('historyList');
+                var count = document.getElementById('historyCount');
+                fetch('/api/conversations')
+                .then(function(r){ return r.json(); })
+                .then(function(d){
+                    var convs = (d.conversations || []).sort(function(a,b){
+                        return (b.updated_at || b.created_at || 0) - (a.updated_at || a.created_at || 0);
+                    });
+                    count.textContent = convs.length;
+                    if(!convs.length){
+                        list.innerHTML = '<div style="padding:16px;color:var(--muted);">' + t('v2_no_history') + '</div>';
+                        return;
+                    }
+                    list.innerHTML = convs.slice(0, 30).map(function(c){
+                        var title = (c.title || 'Untitled').substring(0, 40).replace(/</g, '&lt;');
+                        return '<div class="sidebar-item" data-id="' + c.id + '" onclick="openConv(\'' + c.id + '\')">' + title + '</div>';
+                    }).join('');
+                })
+                .catch(function(e){
+                    list.innerHTML = '<div style="padding:16px;color:var(--muted);">' + t('v2_load_failed') + '</div>';
+                });
+            }
+            window.loadHistory = loadHistory;
+
+            window.openConv = function(convId){
+                var fid = document.getElementById('chatFrame');
+                fetch('/api/conversations/' + convId)
+                .then(function(r){ return r.json(); })
+                .then(function(d){
+                    if(d.messages){
+                        localStorage.setItem('meshctx_msgs', JSON.stringify(d.messages));
+                        localStorage.setItem('meshctx_conv_id', convId);
+                    }
+                    fid.src = '/ui/chat?conv=' + convId;
+                    var items = document.querySelectorAll('.sidebar-item');
+                    for(var i = 0; i < items.length; i++){ items[i].classList.remove('active'); }
+                    var el = document.querySelector('.sidebar-item[data-id="' + convId + '"]');
+                    if(el) el.classList.add('active');
+                });
+            };
+
+            // Listen for save events from the iframe
+            window.addEventListener('message', function(e){
+                if(e.data && e.data.type === 'saveConv'){
+                    fetch('/api/conversations', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({id: e.data.id, title: e.data.title, model: e.data.model})
+                    }).then(function(){ loadHistory(); });
+                }
+            });
+
+            // Language change support
+            window.updateLang = function(lang){
+                try {
+                    var el = document.getElementById('i18n-data');
+                    var all = el ? JSON.parse(el.textContent || '{}') : {};
+                    I18N = all;
+                    LANG = lang;
+                    // Update visible labels
+                    var els = {
+                        'sidebarLabel': 'v2_history', 'historyTitle': 'v2_history',
+                        'newChatLabel': 'v2_new_chat', 'loadingLabel': 'v2_loading'
+                    };
+                    for(var id in els){
+                        var lbl = document.getElementById(id);
+                        if(lbl) lbl.textContent = t(els[id]);
+                    }
+                } catch(e) { console.error('updateLang error:', e); }
+                loadHistory();
+            };
+
+            loadHistory();
+            setInterval(loadHistory, 15000);
+        })();
     </script>
+    <script id="i18n-data" type="application/json">{{ __i18n_all_json | safe }}</script>
+    <script id="lang-data" type="text/plain">{{ __lang }}</script>
 </body>
 </html>

@@ -1,32 +1,64 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ title }}</title>
+<title>meshctx Dev Panel</title>
 <style>
-    :root {--bg:#0f172a;--text:#e2e8f0;--surface:#1e293b;--border:#334155;--accent:#6c5ce7;--muted:#94a3b8;--orange:#f97316;}
+    :root {--bg:#0f172a;--text:#e2e8f0;--surface:#1e293b;--border:#334155;--accent:#6c5ce7;--muted:#94a3b8;--orange:#f97316;--green:#3fb950;--blue:#58a6ff;}
     * {margin:0;padding:0;box-sizing:border-box;}
-    body {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);padding:20px;}
+    body {font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);padding:20px;max-width:1000px;margin:0 auto;}
     .header {display:flex;align-items:center;gap:12px;margin-bottom:24px;border-bottom:1px solid var(--orange);padding-bottom:12px;}
-    .header a {color:var(--muted);text-decoration:none;font-size:18px;}
+    .header a.back {color:var(--muted);text-decoration:none;font-size:18px;}
     .header h2 {font-size:18px;color:var(--orange);}
     .warning {background:rgba(249,115,22,0.1);border:1px solid var(--orange);border-radius:8px;padding:12px;font-size:12px;margin-bottom:20px;}
+    .section{margin-bottom:20px}
+    .section h3{font-size:14px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px}
     .grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
     .card {background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;cursor:pointer;transition:all .2s;text-decoration:none;color:var(--text);display:block;}
-    .card:hover {border-color:var(--orange);}
+    .card:hover {border-color:var(--accent);transform:translateY(-2px);}
     .card .icon {font-size:24px;margin-bottom:8px;}
     .card .name {font-weight:600;font-size:15px;margin-bottom:4px;}
     .card .desc {font-size:12px;color:var(--muted);}
+    .card .badge{display:inline-block;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;background:var(--green);color:#000;vertical-align:middle}
+    .stats-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+    .stat-card{flex:1;min-width:140px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center}
+    .stat-card .value{font-size:24px;font-weight:700;color:var(--blue)}
+    .stat-card .label{font-size:11px;color:var(--muted);margin-top:4px}
 </style></head>
 <body>
-<div class="header"><a href="/ui/v2">&larr;</a><h2>&#128736; {{ t("v2_dev_panel") }}</h2></div>
-<div class="warning">&#9888; {{ t("v2_dev_warning") }}</div>
+<div class="header"><a class="back" href="/ui/v2">&larr;</a><h2>&#128736; Dev Panel</h2></div>
+<div class="warning">&#9888; Developer tools — some features require meshctx-core.</div>
+
+<div class="section"><h3>System Status</h3>
+<div class="stats-row" id="statsRow">
+    <div class="stat-card"><div class="value" id="statConvs">-</div><div class="label">Conversations</div></div>
+    <div class="stat-card"><div class="value" id="statPlugins">-</div><div class="label">Plugins</div></div>
+    <div class="stat-card"><div class="value" id="statSkills">-</div><div class="label">Skills</div></div>
+    <div class="stat-card"><div class="value" id="statFiles">-</div><div class="label">Files</div></div>
+</div></div>
+
+<div class="section"><h3>Tools &amp; Pages</h3>
 <div class="grid">
-    <a href="/ui/?tab=brain" class="card"><div class="icon">&#129504;</div><div class="name">{{ t("v2_brain_map") }}</div><div class="desc">{{ t("v2_brain_desc") }}</div></a>
-    <a href="/ui/?tab=agent" class="card"><div class="icon">&#129302;</div><div class="name">{{ t("v2_agent_mgmt") }}</div><div class="desc">OODA loop &middot; Task monitor</div></a>
-    <a href="/ui/?tab=lab" class="card"><div class="icon">&#129514;</div><div class="name">{{ t("v2_lab") }}</div><div class="desc">{{ t("v2_lab_desc") }}</div></a>
-    <a href="/ui/?tab=sandbox-dt" class="card"><div class="icon">&#128421;</div><div class="name">{{ t("v2_sandbox") }}</div><div class="desc">{{ t("v2_sandbox_desc") }}</div></a>
-    <a href="/ui/?tab=win-dt" class="card"><div class="icon">&#129695;</div><div class="name">{{ t("v2_processes") }}</div><div class="desc">{{ t("v2_processes_desc") }}</div></a>
-    <a href="/ui/?tab=monitor" class="card"><div class="icon">&#128202;</div><div class="name">{{ t("v2_full_monitor") }}</div><div class="desc">{{ t("v2_monitor_desc") }}</div></a>
-</div>
+    <a href="/ui/knowledge" class="card"><div class="icon">&#129504;</div><div class="name">Knowledge Base <span class="badge">live</span></div><div class="desc">Manage documents &amp; QA pairs</div></a>
+    <a href="/ui/plugins" class="card"><div class="icon">&#129302;</div><div class="name">Plugin Market <span class="badge">live</span></div><div class="desc">Install &amp; configure plugins</div></a>
+    <a href="/ui/models" class="card"><div class="icon">&#129514;</div><div class="name">Model Registry</div><div class="desc">View &amp; manage LLM models</div></a>
+    <a href="/ui/files" class="card"><div class="icon">&#128421;</div><div class="name">File Browser <span class="badge">live</span></div><div class="desc">Browse workspace files</div></a>
+    <a href="/ui/setup" class="card"><div class="icon">&#129695;</div><div class="name">Setup Wizard</div><div class="desc">Configure API keys &amp; models</div></a>
+    <a href="/ui/settings" class="card"><div class="icon">&#128202;</div><div class="name">Settings</div><div class="desc">Theme, language &amp; preferences</div></a>
+</div></div>
+<script>
+(function(){
+    // Load quick stats
+    function loadStat(url, elId, key){
+        fetch(url).then(function(r){return r.json()}).then(function(d){
+            var v = d[key] || (d.conversations?d.conversations.length:0) || (d.plugins?d.plugins.length:0) || (d.items?d.items.length:0) || (d.files?d.files.length:0) || (d.skills?d.skills.length:0) || '?';
+            document.getElementById(elId).textContent = typeof v==='number'?v:v;
+        }).catch(function(){ document.getElementById(elId).textContent='?'; });
+    }
+    loadStat('/api/conversations','statConvs','total');
+    loadStat('/api/plugins/market','statPlugins','total');
+    loadStat('/api/skills','statSkills','total');
+    loadStat('/api/file/list','statFiles','total');
+})();
+</script>
 </body>
 </html>

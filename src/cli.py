@@ -356,7 +356,7 @@ def cmd_chat(args):
     """meshctx chat — 流式+工具+会话持久化+一发模式"""
     _ensure_keys_loaded()
     from src.model_registry import get_registry
-    from src.chat_tools import TOOLS_OPENAI, execute_tool, TOOL_ICONS
+    from src.chat_tools import TOOLS_OPENAI, exec_tool, TOOL_ICONS
 
     reg = get_registry(args.config)
     model_id = args.model or os.environ.get("MESHCTX_MODEL")
@@ -464,7 +464,7 @@ def cmd_chat(args):
                 continue
 
         messages.append({"role": "user", "content": user})
-        session_id = _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, TOOL_ICONS)
+        session_id = _chat_loop(client, messages, TOOLS_OPENAI, exec_tool, TOOL_ICONS)
 
         # 自动保存会话
         if session_id and len(messages) > 3:
@@ -474,13 +474,13 @@ def cmd_chat(args):
 
 def _chat_one_shot(client, msg, args):
     """一发模式: 问一个问题，流式回答，退出"""
-    from src.chat_tools import TOOLS_OPENAI, execute_tool
+    from src.chat_tools import TOOLS_OPENAI, exec_tool
     messages = _build_system_msg(args)
     messages.append({"role": "user", "content": msg})
     profile = _get_profile_name(args.config, getattr(args, 'profile', None))
     prefix = f"[{profile}] " if profile else ""
     print(f"{prefix}meshctx> ", end="", flush=True)
-    _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, {}, max_turns=2)
+    _chat_loop(client, messages, TOOLS_OPENAI, exec_tool, {}, max_turns=2)
     print()
 
 
@@ -520,10 +520,14 @@ def _sanitize_messages(messages):
                     if not m.get("content"):
                         m["content"] = "(工具调用被中断)"
                     dropped += 1
-        # 孤儿 tool 消息检查
+        # 孤儿 tool 消息检查 — 向前查找最近的非 tool 消息
         if role == "tool":
-            prev = cleaned[-1] if cleaned else None
-            if not (prev and prev.get("role") == "assistant" and prev.get("tool_calls")):
+            prev_assistant = None
+            for pm in reversed(cleaned):
+                if pm.get("role") != "tool":
+                    prev_assistant = pm
+                    break
+            if not (prev_assistant and prev_assistant.get("role") == "assistant" and prev_assistant.get("tool_calls")):
                 dropped += 1
                 continue
         cleaned.append(m)
@@ -797,7 +801,7 @@ def cmd_agent(args):
     """自主Agent — 接收目标，自主循环直到完成"""
     _ensure_keys_loaded()
     from src.model_registry import get_registry
-    from src.chat_tools import TOOLS_OPENAI, execute_tool, TOOL_ICONS
+    from src.chat_tools import TOOLS_OPENAI, exec_tool, TOOL_ICONS
 
     reg = get_registry(args.config)
     model_id = args.model or os.environ.get("MESHCTX_MODEL")
@@ -818,7 +822,7 @@ def cmd_agent(args):
     for step in range(args.max_steps):
         print(f"\n-- 第 {step+1}/{args.max_steps} 步 --")
         print(f"{prefix}meshctx> ", end="", flush=True)
-        _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, TOOL_ICONS, max_turns=3)
+        _chat_loop(client, messages, TOOLS_OPENAI, exec_tool, TOOL_ICONS, max_turns=3)
 
         # 检查是否完成
         last_content = ""
@@ -841,7 +845,7 @@ def cmd_task(args):
     """一次性任务 — 接收描述，循环执行直到完成"""
     _ensure_keys_loaded()
     from src.model_registry import get_registry
-    from src.chat_tools import TOOLS_OPENAI, execute_tool, TOOL_ICONS
+    from src.chat_tools import TOOLS_OPENAI, exec_tool, TOOL_ICONS
 
     reg = get_registry(args.config)
     model_id = args.model or os.environ.get("MESHCTX_MODEL")
@@ -858,7 +862,7 @@ def cmd_task(args):
     profile = _get_profile_name(args.config, getattr(args, 'profile', None))
     prefix = f"[{profile}] " if profile else ""
     print(f"{prefix}meshctx> ", end="", flush=True)
-    _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, TOOL_ICONS, max_turns=args.max_steps)
+    _chat_loop(client, messages, TOOLS_OPENAI, exec_tool, TOOL_ICONS, max_turns=args.max_steps)
     print()
 
 
@@ -907,6 +911,12 @@ def _import_from_meshctx_src(module_name: str, attr: str):
             # _meshctx_src.src 需要指向真实的 src/ 目录才能找到子模块
             pkg.__path__ = [_src_dir] if parent.endswith(".src") or parent == "src" else []
             sys.modules[parent] = pkg
+    # 同时注册裸 'src' 命名空间包，否则 web_ui 等模块内 from src.web.routes... 会失败
+    if "src" not in sys.modules:
+        src_pkg = types.ModuleType("src")
+        src_pkg.__package__ = "src"
+        src_pkg.__path__ = [_src_dir]
+        sys.modules["src"] = src_pkg
     # 缓存到 sys.modules，避免后续 import 时又找错包
     sys.modules[_name] = mod
     sys.modules.setdefault(module_name, mod)

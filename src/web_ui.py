@@ -4242,6 +4242,8 @@ async def save_api_key(
         "deepseek": {"model_id": "deepseek:chat", "model": "deepseek-chat", "base_url": "https://api.deepseek.com/v1", "key_env": "DEEPSEEK_API_KEY"},
         "bailian": {"model_id": "bailian:qwen-flash", "model": "qwen-plus", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "key_env": "BAILIAN_API_KEY"},
         "siliconflow": {"model_id": "siliconflow:qwen-flash", "model": "Qwen/Qwen2.5-7B-Instruct", "base_url": "https://api.siliconflow.cn/v1", "key_env": "SILICONFLOW_API_KEY"},
+        "openai": {"model_id": "openai:gpt-4o", "model": "gpt-4o", "base_url": "https://api.openai.com/v1", "key_env": "OPENAI_API_KEY"},
+        "anthropic": {"model_id": "anthropic:claude-sonnet", "model": "claude-sonnet-4-20250514", "base_url": "https://api.anthropic.com/v1", "key_env": "ANTHROPIC_API_KEY"},
     }
     defaults = provider_defaults.get(provider, provider_defaults["deepseek"])
     actual_model = model_name or defaults["model"]
@@ -4846,6 +4848,8 @@ await loadInstalled();
 loadPlugins();
 renderCommunity();
 })();
+// 双保险：DOM 加载后再刷一次
+document.addEventListener('DOMContentLoaded', ()=> loadPlugins());
 
 // ── URL输入框回车支持 ──
 document.getElementById('urlInput').addEventListener('keydown',function(e){
@@ -4853,6 +4857,21 @@ if(e.key==='Enter') installFromUrl();
 });
 var paneHistory=document.createElement('div');paneHistory.id='pane-history';paneHistory.className='pane-history';paneHistory.style.display='none';document.body.appendChild(paneHistory);
 function renderHistory(id){var e=document.getElementById('pane-history');if(e){e.style.display='block';e.innerHTML='<h3>Session: '+id+'</h3>';}}
+// ── Desktop Dashboard Stats ──
+(function loadDashboard(){
+  function q(id,url,key,fn){
+    fetch(url).then(function(r){return r.json()}).then(function(d){
+      var v=fn?fn(d):(d[key]||0);
+      var el=document.getElementById(id);
+      if(el)el.textContent=v;
+    }).catch(function(){});
+  }
+  q('stat-convs','/api/conversations','total',function(d){return (d.conversations||[]).length});
+  q('stat-plugins','/api/plugins/market','total');
+  q('stat-skills','/api/skills','total',function(d){return (d.skills||[]).length});
+  q('stat-files','/api/file/list','total',function(d){return (d.items||d.files||[]).length});
+  q('stat-models','/api/models','total',function(d){return (d.models||[]).filter(function(m){return m.ready}).length});
+})();
 </script></body></html>""")
 
 # ── v1.5.13 下载页面 ─────────────────────────────────────
@@ -4964,10 +4983,25 @@ _TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
   </div>
 </div>
 <script>
-var _convId = null;
+var _convId = localStorage.getItem('meshctx_conv_id') || null;
 var _projectId = null;
 var _msgContainer = document.getElementById('chatMessages');
 var _emptyState = _msgContainer.querySelector('.empty-chat');
+
+// 恢复历史消息
+(function restoreChat() {
+  if (_convId) {
+    var saved = localStorage.getItem('meshctx_msgs');
+    if (saved) {
+      try {
+        var msgs = JSON.parse(saved);
+        for (var i = 0; i < msgs.length; i++) {
+          addMessage(msgs[i].role, msgs[i].content);
+        }
+      } catch(e) {}
+    }
+  }
+})();
 
 function addMessage(role, content) {
   if (_emptyState) { _emptyState.remove(); _emptyState = null; }
@@ -4979,13 +5013,26 @@ function addMessage(role, content) {
   return el;
 }
 
+// 保存当前消息到 localStorage
+function persistMessages() {
+  var els = _msgContainer.querySelectorAll('.msg');
+  var msgs = [];
+  for (var i = 0; i < els.length; i++) {
+    var role = els[i].classList.contains('user') ? 'user' : 'assistant';
+    msgs.push({role: role, content: els[i].textContent});
+  }
+  localStorage.setItem('meshctx_msgs', JSON.stringify(msgs));
+  localStorage.setItem('meshctx_conv_id', _convId || '');
+}
+
 async function send() {
   var input = document.getElementById('userInput');
   var text = input.value.trim();
   if (!text) return;
   input.value = ''; input.style.height = '';
   addMessage('user', text);
-  
+  persistMessages();
+
   try {
     var res = await fetch('/api/chat', {
       method: 'POST',
@@ -4993,20 +5040,37 @@ async function send() {
       body: JSON.stringify({
         message: text,
         project_id: _projectId || null,
-        conversation_id: _convId || null
+        conversation_id: _convId || null,
+        conv_id: _convId || null
       })
     });
     var data = await res.json();
     if (data.error) {
-      addMessage('assistant', '⚠️ ' + data.error);
+      addMessage('assistant', '\u26a0\ufe0f ' + data.error);
     } else {
-      if (!_convId) _convId = data.conversation_id;
+      if (!_convId && data.conversation_id) _convId = data.conversation_id;
+      if (!_convId && data.conv_id) _convId = data.conv_id;
       if (!_projectId) _projectId = data.project_id;
       addMessage('assistant', data.response || data.content || '(empty response)');
     }
+    persistMessages();
   } catch (err) {
-    addMessage('assistant', '⚠️ 网络错误: ' + err.message);
+    addMessage('assistant', '\u26a0\ufe0f 网络错误: ' + err.message);
+    persistMessages();
   }
+}
+
+// 新对话
+function newChat() {
+  _convId = null;
+  _msgContainer.innerHTML = '';
+  localStorage.removeItem('meshctx_msgs');
+  localStorage.removeItem('meshctx_conv_id');
+  // 恢复空状态提示
+  _emptyState = document.createElement('div');
+  _emptyState.className = 'empty-chat';
+  _emptyState.textContent = '开始新对话...';
+  _msgContainer.appendChild(_emptyState);
 }
 
 // v1.5.9: Desktop快速提问监听

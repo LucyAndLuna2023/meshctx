@@ -18,7 +18,7 @@
         "linux"
       ],
       "entry_point": "web-search/manifest.json",
-      "installs": 1,
+      "installs": 2,
       "builtin": false,
       "repo": "https://github.com/LucyAndLuna2023/meshctx/tree/main/plugins/web-search",
       "status": "active"
@@ -39,7 +39,7 @@
         "linux"
       ],
       "entry_point": "sandbox/manifest.json",
-      "installs": 157,
+      "installs": 158,
       "builtin": true,
       "repo": "",
       "status": "active"
@@ -61,7 +61,7 @@
         "linux"
       ],
       "entry_point": "file-browser/manifest.json",
-      "installs": 90,
+      "installs": 91,
       "builtin": true,
       "repo": "",
       "status": "active"
@@ -83,7 +83,7 @@
         "linux"
       ],
       "entry_point": "git-assistant/manifest.json",
-      "installs": 1,
+      "installs": 3,
       "builtin": false,
       "repo": "https://github.com/LucyAndLuna2023/meshctx/tree/main/plugins/git-assistant",
       "status": "active"
