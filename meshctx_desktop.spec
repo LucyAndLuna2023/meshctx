@@ -16,6 +16,8 @@ a = Analysis(
         ('src/core/__init__.py', 'src/core'),
         ('src/core/*.py', 'src/core'),
         ('src/*.py', 'src'),
+        # i18n 翻译表 (725KB, 10语言) — PyInstaller 不打 .json，必须显式声明
+        ('src/i18n_translations.json', 'src'),
         ('plugins/registry.json', 'plugins'),
     ],
     hiddenimports=collect_submodules('src.core') + collect_submodules('src') + [

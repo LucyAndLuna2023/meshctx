@@ -21,6 +21,8 @@ a = Analysis(
         ('src/core/__init__.py', 'src/core'),
         ('src/core/*.py', 'src/core'),
         ('src/*.py', 'src'),
+        # i18n 翻译表 (725KB, 10语言) — PyInstaller 不打 .json，必须显式声明
+        ('src/i18n_translations.json', 'src'),
     ],
     hiddenimports=[
         # 🔧 修复: 关键! 显式声明src和src.core为包 (解决Windows "parent package" 错误)
