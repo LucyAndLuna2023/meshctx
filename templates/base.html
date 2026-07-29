@@ -17,7 +17,7 @@
 </head>
 <body>
     <div class="lang-switch">
-        <select onchange="changeLang(this.value)" data-lang-key="lang_label" title="Language">
+        <select class="lang-select" onchange="changeLang(this.value);var d=document.getElementById('_lang_debug');if(d)d.textContent='onchange FIRED: '+this.value;" onclick="var d=document.getElementById('_lang_debug');if(d)d.textContent='onclick on select: '+this.value;" data-lang-key="lang_label" title="Language">
             <option value="en">🇺🇸 English</option>
             <option value="zh">🇨🇳 中文</option>
             <option value="ja">🇯🇵 日本語</option>
@@ -26,6 +26,7 @@
             <option value="fr">🇫🇷 Français</option>
             <option value="es">🇪🇸 Español</option>
             <option value="it">🇮🇹 Italiano</option>
+            <option value="ru">🇷🇺 Русский</option>
             <option value="ar">🇸🇦 العربية</option>
         </select>
     </div>
@@ -36,11 +37,11 @@
             <span class="nav-version">v{{ version }}</span>
         </div>
         <div class="nav-links">
-            <a href="/ui/" class="nav-link" data-lang-key="nav_dashboard">仪表板</a>
-            <a href="/ui/projects" class="nav-link" data-lang-key="nav_projects">项目</a>
-            <a href="/ui/memories" class="nav-link" data-lang-key="nav_memories">记忆</a>
-            <a href="/ui/continuity" class="nav-link" data-lang-key="nav_continuity">连续性</a>
-            <a href="/docs" class="nav-link" target="_blank" data-lang-key="nav_api">API</a>
+            <a href="/ui/" class="nav-link" data-lang-key="nav_dashboard">{{ t('nav_dashboard') }}</a>
+            <a href="/ui/projects" class="nav-link" data-lang-key="nav_projects">{{ t('nav_projects') }}</a>
+            <a href="/ui/memories" class="nav-link" data-lang-key="nav_memories">{{ t('nav_memories') }}</a>
+            <a href="/ui/continuity" class="nav-link" data-lang-key="nav_continuity">{{ t('nav_continuity') }}</a>
+            <a href="/docs" class="nav-link" target="_blank" data-lang-key="nav_api">{{ t('nav_api') }}</a>
         </div>
     </nav>
 
@@ -53,6 +54,16 @@
     </footer>
 
 <script>
+// ═══ Service Worker 强制清理（修复缓存导致的导航栏日语等问题）═══
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(r) { r.unregister(); });
+        return caches.keys();
+    }).then(function(keys) {
+        keys.forEach(function(k) { caches.delete(k); });
+    }).catch(function() {});
+}
+
 const LANG = {
     en: {
         lang_label:"Language",
@@ -1217,16 +1228,29 @@ function currentLang() {
 }
 
 function changeLang(lang) {
+    // DEBUG: show on page
+    var dbg = document.getElementById('_lang_debug');
+    if (dbg) dbg.textContent = 'changeLang called: ' + (lang || 'undefined') + ' @' + new Date().toISOString();
+    console.log('[changeLang] called with:', lang);
+    // Normalize: zh-CN→zh, en-US→en, ja-JP→ja (i18n keys are 2-char)
+    lang = (lang || 'zh').split('-')[0];
+    console.log('[changeLang] normalized:', lang);
     document.documentElement.lang = lang;
     // RTL support for Arabic
     document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
-    // Update all data-lang-key elements
+    // Update all data-lang-key elements (skip elements with children, like <select>)
+    var total=0, updated=0, skipped=0;
     document.querySelectorAll('[data-lang-key]').forEach(el => {
+        total++;
+        if (el.children.length > 0) { skipped++; return; }
         const key = el.dataset.langKey;
         if (LANG[lang] && LANG[lang][key]) {
-            el.innerHTML = LANG[lang][key];
+            el.textContent = LANG[lang][key];
+            updated++;
         }
     });
+    console.log('[changeLang] total=' + total + ' updated=' + updated + ' skipped=' + skipped);
+    if (dbg) dbg.textContent += ' | total='+total+' upd='+updated+' skip='+skipped;
     // Update all data-lang-* templated elements
     document.querySelectorAll('[data-lang-count]').forEach(el => {
         const key = el.dataset.langCount;
@@ -1237,21 +1261,20 @@ function changeLang(lang) {
     });
     // Sync dropdowns
     document.querySelectorAll('.lang-select').forEach(el => el.value = lang);
-    // Persist
-    localStorage.setItem('meshctx-lang', lang);
-    // Sync to server
-    fetch('/api/lang/set', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({lang: lang})
-    }).catch(() => {});
+    // Persist to localStorage
+    localStorage.setItem('meshctx_lang', lang);
+    // Persist to cookie (synchronous, no race condition on refresh)
+    document.cookie = 'meshctx_lang=' + lang + '; path=/; max-age=' + (365*24*3600) + '; SameSite=Lax';
+    // Also sync to server (best-effort, for cookie.js same-origin validation)
+    fetch('/api/lang/set', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lang:lang})}).catch(function(){})
 }
 
-// Restore language: check localStorage first, then fallback to document lang
-const saved = localStorage.getItem('meshctx-lang') || document.documentElement.lang || 'en';
+// Restore language: server-rendered lang first, localStorage as fallback
+var saved = document.documentElement.lang || localStorage.getItem('meshctx_lang') || 'zh';
 const dropdown = document.querySelector('.lang-select');
 if (dropdown) dropdown.value = saved;
 changeLang(saved);
 </script>
+<div id="_lang_debug" style="position:fixed;bottom:0;left:0;right:0;background:#ff0;color:#000;padding:4px 12px;font-size:11px;font-family:monospace;z-index:99999;text-align:center;">lang debug: waiting...</div>
 </body>
 </html>
