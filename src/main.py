@@ -86,6 +86,18 @@ def get_kernel() -> Kernel:
             _kernel.plugins.register(TokenSaverPlugin())
         except Exception as e:
             logger.warning(f"TokenSaverPlugin 加载失败: {e}")
+        # GenomicOptimizer — 基因组学启发的进化优化
+        try:
+            from .core.genomic_optimizer import GenomicOptimizerPlugin
+            _kernel.plugins.register(GenomicOptimizerPlugin(population_size=20))
+        except Exception as e:
+            logger.warning(f"GenomicOptimizerPlugin 加载失败: {e}")
+        # GenomicOptimizer — 基因组学启发的进化优化
+        try:
+            from .core.genomic_optimizer import GenomicOptimizerPlugin
+            _kernel.plugins.register(GenomicOptimizerPlugin(population_size=20))
+        except Exception as e:
+            logger.warning(f"GenomicOptimizerPlugin 加载失败: {e}")
         # WebSocket
         try:
             _kernel.plugins.register(WebSocketPlugin())
@@ -6328,3 +6340,146 @@ async def skills_list():
         return {"skills": [], "count": 0}
     except Exception:
         return {"skills": [], "count": 0}
+
+
+# ═══════════════════════════════════════════════════════════════
+# v3.116: 基因组学启发的智能优化 API
+# ═══════════════════════════════════════════════════════════════
+
+@app.get("/api/genomic/stats")
+async def genomic_stats():
+    """基因组优化器统计 — 种群、代际、最优参数"""
+    try:
+        from .core.genomic_optimizer import GenomicOptimizerPlugin
+        kernel = get_kernel()
+        plugin = kernel.plugins.get("genomic_optimizer")
+        if plugin and hasattr(plugin, "generate_report"):
+            return plugin.generate_report()
+        return {"status": "not_loaded"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.post("/api/genomic/evolve")
+async def genomic_evolve(steps: int = 1):
+    """手动触发进化 — 执行 N 代进化"""
+    try:
+        kernel = get_kernel()
+        plugin = kernel.plugins.get("genomic_optimizer")
+        if plugin and hasattr(plugin, "optimizer"):
+            new_genome = plugin.optimizer.evolve(steps=steps)
+            return {
+                "status": "evolved",
+                "generation": plugin.optimizer.generation,
+                "best_score": plugin.optimizer._best_score,
+                "best_genome": new_genome.to_dict() if new_genome else None,
+            }
+        return {"status": "not_loaded"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.get("/api/genomic/best")
+async def genomic_best():
+    """获取当前最优基因组"""
+    try:
+        from .core.genomic_optimizer import get_genomic_optimizer
+        opt = get_genomic_optimizer()
+        best = opt.best_genome
+        if best:
+            return {
+                "genome": best.to_dict(),
+                "score": opt._best_score,
+                "generation": opt.generation,
+            }
+        return {"status": "no_best_yet"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.post("/api/genomic/feedback")
+async def genomic_feedback(request: Request):
+    """记录基因组反馈"""
+    try:
+        body = await request.json()
+        from .core.genomic_optimizer import get_genomic_optimizer, AgentGenomeBridge
+        opt = get_genomic_optimizer()
+        bridge = getattr(opt, 'bridge', None)
+        if not bridge:
+            bridge = AgentGenomeBridge(opt)
+            setattr(opt, 'bridge', bridge)
+        bridge.record_task(
+            success=body.get("success", True),
+            latency_ms=body.get("latency_ms", 0),
+            tokens_used=body.get("tokens_used", 0),
+            user_accepted=body.get("user_accepted", True),
+        )
+        bridge.evolve_if_ready(min_feedback=body.get("min_feedback", 5))
+        return {"status": "recorded", "feedback_count": bridge._feedback_count}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.get("/api/epigenetic/stats")
+async def epigenetic_stats():
+    """表观遗传记忆统计 — 标记数、沉默数、激活度"""
+    try:
+        from .core.epigenetic_memory import EpigeneticMemoryManager
+        mgr = EpigeneticMemoryManager()
+        return mgr.stats()
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.post("/api/epigenetic/activate")
+async def epigenetic_activate(request: Request):
+    """激活记忆 — 上调表观标记"""
+    try:
+        body = await request.json()
+        from .core.epigenetic_memory import EpigeneticMemoryBridge
+        bridge = EpigeneticMemoryBridge()
+        bridge.on_memory_accessed(
+            memory_id=body.get("memory_id", ""),
+            project_id=body.get("project_id", ""),
+            project_name=body.get("project_name", ""),
+            topic=body.get("topic", ""),
+            strength=body.get("strength", 1.0),
+        )
+        return {"status": "activated", "memory_id": body.get("memory_id")}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@app.post("/api/crispr/analyze")
+async def crispr_analyze(request: Request):
+    """CRISPR 记忆分析 — 检测重复、矛盾、过期记忆"""
+    try:
+        body = await request.json()
+        from .core.crispr_cleaner import CRISPRMemoryBridge, MemoryWithEmbedding
+        bridge = CRISPRMemoryBridge()
+        memories = [
+            MemoryWithEmbedding(
+                memory_id=m.get("memory_id", ""),
+                content=m.get("content", ""),
+                embedding=m.get("embedding", []),
+                importance=m.get("importance", 0.5),
+                created_at=m.get("created_at", 0),
+                updated_at=m.get("updated_at", 0),
+                access_count=m.get("access_count", 0),
+            )
+            for m in body.get("memories", [])
+        ]
+        report = bridge.analyze(memories, dry_run=body.get("dry_run", True))
+        return {
+            "total": report.total_memories,
+            "duplicates": report.dedup_count,
+            "contradictions": report.contradiction_count,
+            "stale": report.stale_count,
+            "removable_ids": bridge.get_actionable_ids(),
+            "contradiction_pairs": [
+                {"a": c.memory_a_id, "b": c.memory_b_id, "confidence": c.confidence}
+                for c in bridge.get_contradictions()
+            ],
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
