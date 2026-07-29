@@ -1228,19 +1228,29 @@ function currentLang() {
 }
 
 function changeLang(lang) {
+    // DEBUG: show on page
+    var dbg = document.getElementById('_lang_debug');
+    if (dbg) dbg.textContent = 'changeLang called: ' + (lang || 'undefined') + ' @' + new Date().toISOString();
+    console.log('[changeLang] called with:', lang);
     // Normalize: zh-CN→zh, en-US→en, ja-JP→ja (i18n keys are 2-char)
     lang = (lang || 'zh').split('-')[0];
+    console.log('[changeLang] normalized:', lang);
     document.documentElement.lang = lang;
     // RTL support for Arabic
     document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
     // Update all data-lang-key elements (skip elements with children, like <select>)
+    var total=0, updated=0, skipped=0;
     document.querySelectorAll('[data-lang-key]').forEach(el => {
-        if (el.children.length > 0) return;
+        total++;
+        if (el.children.length > 0) { skipped++; return; }
         const key = el.dataset.langKey;
         if (LANG[lang] && LANG[lang][key]) {
             el.textContent = LANG[lang][key];
+            updated++;
         }
     });
+    console.log('[changeLang] total=' + total + ' updated=' + updated + ' skipped=' + skipped);
+    if (dbg) dbg.textContent += ' | total='+total+' upd='+updated+' skip='+skipped;
     // Update all data-lang-* templated elements
     document.querySelectorAll('[data-lang-count]').forEach(el => {
         const key = el.dataset.langCount;
@@ -1265,5 +1275,6 @@ const dropdown = document.querySelector('.lang-select');
 if (dropdown) dropdown.value = saved;
 changeLang(saved);
 </script>
+<div id="_lang_debug" style="position:fixed;bottom:0;left:0;right:0;background:#ff0;color:#000;padding:4px 12px;font-size:11px;font-family:monospace;z-index:99999;text-align:center;">lang debug: waiting...</div>
 </body>
 </html>
