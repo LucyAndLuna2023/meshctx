@@ -24,6 +24,9 @@ a = Analysis(
         ('src/*.py', 'src'),
         # i18n 翻译表 (725KB, 10语言) — PyInstaller 不打 .json，必须显式声明
         ('src/i18n_translations.json', 'src'),
+        # 🔧 v3.115.27: Jinja 模板 + 静态资源 — 否则 frozen 版 /ui/chat 500、/static/* 404
+        ('templates/', 'templates'),
+        ('static/', 'static'),
     ],
     hiddenimports=collect_submodules('src') + collect_submodules('fastapi') + collect_submodules('starlette') + collect_submodules('uvicorn') + collect_submodules('pydantic') + collect_submodules('jinja2') + [
         # 🔧 修复: 关键! 显式声明src和src.core为包 (解决Windows "parent package" 错误)

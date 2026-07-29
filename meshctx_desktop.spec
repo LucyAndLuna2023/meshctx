@@ -19,6 +19,9 @@ a = Analysis(
         # i18n 翻译表 (725KB, 10语言) — PyInstaller 不打 .json，必须显式声明
         ('src/i18n_translations.json', 'src'),
         ('plugins/registry.json', 'plugins'),
+        # 🔧 v3.115.27: Jinja 模板 + 静态资源 — frozen 版 FileSystemLoader 指向 _MEIPASS，缺了聊天页 500 / UI 无样式
+        ('templates/', 'templates'),
+        ('static/', 'static'),
     ],
     hiddenimports=collect_submodules('src') + collect_submodules('fastapi') + collect_submodules('starlette') + collect_submodules('uvicorn') + collect_submodules('pydantic') + collect_submodules('jinja2') + [
         # Desktop deps
@@ -342,6 +345,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.115.26',
-            'CFBundleVersion': '3.115.26',
+            'CFBundleShortVersionString': '3.115.27',
+            'CFBundleVersion': '3.115.27',
         }, version='version_info.txt')
