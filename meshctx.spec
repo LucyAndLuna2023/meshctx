@@ -21,6 +21,7 @@ a = Analysis(
         ('src/core/__init__.py', 'src/core'),
         ('src/core/*.py', 'src/core'),
         ('src/*.py', 'src'),
+        ('src/i18n_translations.json', 'src'),
     ],
     hiddenimports=[
         # 🔧 修复: 关键! 显式声明src和src.core为包 (解决Windows "parent package" 错误)
@@ -70,6 +71,8 @@ a = Analysis(
         'openai',
         'httpx',
         'fastapi',
+        'fastapi.middleware', 'fastapi.middleware.cors',
+        'fastapi.staticfiles', 'fastapi.responses',
         'uvicorn',
         'pydantic',
         'jinja2',

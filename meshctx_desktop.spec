@@ -16,6 +16,7 @@ a = Analysis(
         ('src/core/__init__.py', 'src/core'),
         ('src/core/*.py', 'src/core'),
         ('src/*.py', 'src'),
+        ('src/i18n_translations.json', 'src'),
         ('plugins/registry.json', 'plugins'),
     ],
     hiddenimports=collect_submodules('src.core') + collect_submodules('src') + [
@@ -314,9 +315,14 @@ a = Analysis(
         'src.core.tui_format',
         # Common deps
         'yaml', 'openai', 'httpx', 'fastapi', 'uvicorn',
+        'fastapi.middleware', 'fastapi.middleware.cors',
+        'fastapi.staticfiles', 'fastapi.responses',
+        'fastapi.routing', 'fastapi.requests',
         'pydantic', 'jinja2', 'Crypto', 'Crypto.Cipher',
         'Crypto.Cipher.AES', 'aiohttp', 'starlette',
         'anyio', 'sniffio', 'h11', 'websockets', 'psutil',
+        'starlette.middleware', 'starlette.middleware.gzip',
+        'starlette.responses',
         'numpy', 'aiofiles', 'packaging',
     ],
     hookspath=[],
