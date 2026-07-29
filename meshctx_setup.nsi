@@ -8,9 +8,9 @@ OutFile "dist\meshctx-setup.exe"
 InstallDir "$PROGRAMFILES\MeshCtx"
 RequestExecutionLevel admin
 
-!define VERSION "3.115.16"
-VIProductVersion "3.115.16.0"
-VIAddVersionKey "FileVersion" "3.115.16"
+!define VERSION "3.115.25"
+VIProductVersion "3.115.25.0"
+VIAddVersionKey "FileVersion" "3.115.25"
 VIAddVersionKey "ProductVersion" "3.115.16"
 VIAddVersionKey "ProductName" "MeshCtx Desktop"
 VIAddVersionKey "FileDescription" "MeshCtx Desktop Installer"
