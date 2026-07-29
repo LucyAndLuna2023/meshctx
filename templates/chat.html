@@ -534,6 +534,7 @@ function changeLang(lang) {
   lang = (lang || 'zh').split('-')[0];
   document.documentElement.lang = lang;
   document.querySelectorAll('[data-lang-key]').forEach(el => {
+    if (el.children.length > 0) return;
     const key = el.dataset.langKey;
     if (LANG[lang] && LANG[lang][key]) {
       if (el.tagName === 'TEXTAREA') {
