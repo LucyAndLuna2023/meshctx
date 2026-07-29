@@ -3721,15 +3721,18 @@ def _do_search_files(pattern: str, directory: str = "") -> str:
 
 def _do_terminal(cmd: str, workdir: str = "", timeout: int = 60) -> str:
     """在本机执行 shell 命令（需用户口头授权）"""
-    import subprocess as sp, shlex
+    import subprocess as sp
+    from src.core.sandbox import CodeScanner
+    # 安全: sandbox验证, 再shell=True保留管道/重定向
+    ok, err = CodeScanner.scan_bash(cmd)
+    if not ok:
+        return f"终端: 命令被安全策略拦截 - {err}"
     timeout = min(timeout, 300)  # 上限 5 分钟
     try:
         env = os.environ.copy()
         env["PATH"] = "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + env.get("PATH", "")
-        # 安全修复: 使用 shlex.split 避免 shell=True 命令注入
-        args = shlex.split(cmd)
         result = sp.run(
-            args, shell=False, capture_output=True, text=True,
+            cmd, shell=True, capture_output=True, text=True,
             timeout=timeout, cwd=workdir or os.getcwd(), env=env
         )
         out = result.stdout.strip()
@@ -5964,7 +5967,7 @@ async def code_run(request: Request):
         language = body.get("language") or body.get("lang", "python")
         if not code:
             return {"error": "code不能为空"}
-        # 🔒 P0-6: 危险命令检测（v3.115.15强化）
+        # 🔒 P0-6: 危险命令检测
         dangerous = ["rm -rf /", "mkfs\\.", "dd if=", "fork bomb",
                       "shutdown", "reboot", "chmod 777 /",
                       "curl.*\\|.*sh", "wget.*\\|.*sh",
@@ -5981,24 +5984,6 @@ async def code_run(request: Request):
                       "exec\\s*\\(", "eval\\s*\\(", "compile\\s*\\(",
                       "__import__\\s*\\(", "getattr\\s*\\(\\s*__builtins__",
                       "vars\\s*\\(\\s*\\)\\s*\\[", "base64", "codecs",
-                      "bytes\\s*\\(", "bytearray\\s*\\(", "memoryview\\s*\\(",
-                      "hex\\s*\\(", "oct\\s*\\(", "bin\\s*\\(",
-                      "chr\\s*\\(", "ord\\s*\\(", "str\\s*\\(", "repr\\s*\\(",
-                      "ascii\\s*\\(", "format\\s*\\(", "join\\s*\\(",
-                      "split\\s*\\(", "replace\\s*\\(", "strip\\s*\\(",
-                      "lstrip\\s*\\(", "rstrip\\s*\\(", "upper\\s*\\(",
-                      "lower\\s*\\(", "title\\s*\\(", "capitalize\\s*\\(",
-                      "swapcase\\s*\\(", "encode\\s*\\(", "decode\\s*\\(",
-                      "translate\\s*\\(", "maketrans\\s*\\(", "zfill\\s*\\(",
-                      "center\\s*\\(", "ljust\\s*\\(", "rjust\\s*\\(",
-                      "expandtabs\\s*\\(", "partition\\s*\\(", "rpartition\\s*\\(",
-                      "splitlines\\s*\\(", "rsplit\\s*\\(", "startswith\\s*\\(",
-                      "endswith\\s*\\(", "find\\s*\\(", "rfind\\s*\\(",
-                      "index\\s*\\(", "rindex\\s*\\(", "count\\s*\\(",
-                      "isalnum\\s*\\(", "isalpha\\s*\\(", "isdigit\\s*\\(",
-                      "isspace\\s*\\(", "istitle\\s*\\(", "isupper\\s*\\(",
-                      "islower\\s*\\(", "isidentifier\\s*\\(", "isprintable\\s*\\(",
-                      "isnumeric\\s*\\(", "isdecimal\\s*\\(", "isascii\\s*\\("
                       ]
         import re
         for pattern in dangerous:
@@ -6062,16 +6047,13 @@ async def terminal_exec(request: Request):
         cmd = body.get("cmd", "")
         if not cmd:
             return {"error": "cmd不能为空"}
-        # 危险命令检测
-        import re
-        dangerous = ["rm -rf /", "mkfs\\.", "dd if=", "fork bomb",
-                      "shutdown", "reboot", "chmod 777 /",
-                      "curl.*\\|.*sh", "wget.*\\|.*sh"]
-        for pattern in dangerous:
-            if re.search(pattern, cmd, re.IGNORECASE):
-                return {"error": "危险命令已被拦截", "blocked": True}
+        # 危险命令检测 — 用 sandbox 统一验证
+        from src.core.sandbox import CodeScanner
+        ok, err = CodeScanner.scan_bash(cmd)
+        if not ok:
+            return {"error": f"危险命令已被拦截: {err}", "blocked": True}
         result = subprocess.run(
-            shlex.split(cmd), shell=False,
+            cmd, shell=True,
             capture_output=True, text=True, timeout=30,
         )
         return {
