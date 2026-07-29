@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="{{ __lang }}">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
@@ -31,14 +31,14 @@
 <body>
     <div class="topbar">
         <a href="/ui/v2" class="back">&larr;</a>
-        <span class="title">&#128172; {{ t("chat") }}</span>
-        <button class="toggle-sidebar" onclick="toggleSidebar()" title="History">&#128240; <span id="sidebarLabel">{{ t("v2_history") }}</span></button>
+        <span class="title">&#128172; <span data-lang-key="chat">{{ t("chat") }}</span></span>
+        <button class="toggle-sidebar" onclick="toggleSidebar()" title="History">&#128240; <span id="sidebarLabel" data-lang-key="v2_history">{{ t("v2_history") }}</span></button>
     </div>
     <div class="layout">
         <div class="sidebar" id="chatSidebar">
-            <div class="sidebar-header">&#128240; <span id="historyTitle">{{ t("v2_history") }}</span> <span class="count" id="historyCount"></span></div>
-            <button class="new-chat-btn" onclick="newChat()"><span id="newChatLabel">{{ t("v2_new_chat") }}</span></button>
-            <div class="sidebar-list" id="historyList"><div style="padding:16px;color:var(--muted);" id="loadingLabel">{{ t("v2_loading") }}</div></div>
+            <div class="sidebar-header">&#128240; <span id="historyTitle" data-lang-key="v2_history">{{ t("v2_history") }}</span> <span class="count" id="historyCount"></span></div>
+            <button class="new-chat-btn" onclick="newChat()"><span id="newChatLabel" data-lang-key="v2_new_chat">{{ t("v2_new_chat") }}</span></button>
+            <div class="sidebar-list" id="historyList"><div style="padding:16px;color:var(--muted);" id="loadingLabel" data-lang-key="v2_loading">{{ t("v2_loading") }}</div></div>
         </div>
         <iframe src="/ui/chat" class="chat-embed" id="chatFrame"></iframe>
     </div>
@@ -124,28 +124,28 @@
                 }
             });
 
-            // Language change support
+            // Language change support — walks every [data-lang-key] element
             window.updateLang = function(lang){
-                // Normalize and reject ja propagation from iframe
                 lang = (lang || 'zh').split('-')[0];
-                if (lang === 'ja') { lang = 'zh'; }
                 try {
                     var el = document.getElementById('i18n-data');
                     var all = el ? JSON.parse(el.textContent || '{}') : {};
                     I18N = all;
                     LANG = lang;
-                    // Update visible labels
-                    var els = {
-                        'sidebarLabel': 'v2_history', 'historyTitle': 'v2_history',
-                        'newChatLabel': 'v2_new_chat', 'loadingLabel': 'v2_loading'
-                    };
-                    for(var id in els){
-                        var lbl = document.getElementById(id);
-                        if(lbl) lbl.textContent = t(els[id]);
-                    }
+                    document.documentElement.lang = lang;
+                    document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+                    document.querySelectorAll('[data-lang-key]').forEach(function(node){
+                        var v = t(node.getAttribute('data-lang-key'));
+                        if (v) node.textContent = v;
+                    });
                 } catch(e) { console.error('updateLang error:', e); }
                 loadHistory();
             };
+
+            // Cross-tab sync: another tab/iframe wrote meshctx_lang
+            window.addEventListener('storage', function(e){
+                if (e.key === 'meshctx_lang' && e.newValue) window.updateLang(e.newValue);
+            });
 
             loadHistory();
             setInterval(loadHistory, 15000);

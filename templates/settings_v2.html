@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="{{ __lang }}">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ title }}</title>
 <style>
@@ -17,15 +17,38 @@
     .card .desc {font-size:12px;color:var(--muted);}
 </style></head>
 <body>
-<div class="header"><a href="/ui/v2">&larr;</a><h2>&#9881; {{ t("nav_settings") }}</h2></div>
+<div class="header"><a href="/ui/v2">&larr;</a><h2>&#9881; <span data-lang-key="nav_settings">{{ t("nav_settings") }}</span></h2></div>
 <div class="grid">
-    <a href="/ui/providers" class="card"><div class="icon">&#128268;</div><div class="name">{{ t("v2_model_mgmt") }}</div><div class="desc">{{ t("v2_model_mgmt_desc") }}</div></a>
+    <a href="/ui/providers" class="card"><div class="icon">&#128268;</div><div class="name" data-lang-key="v2_model_mgmt">{{ t("v2_model_mgmt") }}</div><div class="desc" data-lang-key="v2_model_mgmt_desc">{{ t("v2_model_mgmt_desc") }}</div></a>
     <a href="/ui/plugins" class="card"><div class="icon">&#129521;</div><div class="name">{{ t("v2_plugins") }}</div><div class="desc">Install &middot; Enable &middot; Marketplace</div></a>
     <a href="/ui/dashboard" class="card"><div class="icon">&#128202;</div><div class="name">{{ t("v2_system_status") }}</div><div class="desc">Monitor &middot; Resources &middot; Health</div></a>
     <a href="/ui/memory" class="card"><div class="icon">&#128190;</div><div class="name">{{ t("v2_memory_mgmt") }}</div><div class="desc">Search &middot; Graph &middot; Stats</div></a>
     <a href="/ui/continuity" class="card"><div class="icon">&#128279;</div><div class="name">Continuity</div><div class="desc">Project Continuity Score</div></a>
     <a href="/ui/files" class="card"><div class="icon">&#128193;</div><div class="name">File Manager</div><div class="desc">Project file browser</div></a>
 </div>
-<div style="margin-top:24px;text-align:center;font-size:12px;color:var(--muted);">Dev Tools: <a href="/ui/v2/dev" style="color:var(--accent);">{{ t("v2_dev_panel") }}</a> or Ctrl+Shift+D</div>
+<div style="margin-top:24px;text-align:center;font-size:12px;color:var(--muted);">Dev Tools: <a href="/ui/v2/dev" style="color:var(--accent);" data-lang-key="v2_dev_panel">{{ t("v2_dev_panel") }}</a> or Ctrl+Shift+D</div>
+<script id="i18n-data" type="application/json">{{ __i18n_all_json | safe }}</script>
+<script id="lang-data" type="text/plain">{{ __lang }}</script>
+<script>
+(function(){
+    var I18N = JSON.parse(document.getElementById('i18n-data').textContent || '{}');
+    window.__v2lang = (document.getElementById('lang-data').textContent || 'zh').trim();
+    window.updateV2Lang = function(lang){
+        lang = (lang || 'zh').split('-')[0];
+        window.__v2lang = lang;
+        document.documentElement.lang = lang;
+        document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+        document.querySelectorAll('[data-lang-key]').forEach(function(el){
+            var k = el.getAttribute('data-lang-key');
+            var v = (I18N[lang] && I18N[lang][k]) || (I18N['en'] && I18N['en'][k]);
+            if (v) el.textContent = v;
+        });
+    };
+    window.addEventListener('storage', function(e){
+        if (e.key === 'meshctx_lang' && e.newValue) window.updateV2Lang(e.newValue);
+    });
+    if (window.__v2lang && window.__v2lang !== 'zh') window.updateV2Lang(window.__v2lang);
+})();
+</script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="{{ __lang }}">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
@@ -27,11 +27,32 @@
 <body>
 <div class="header">
     <a href="/ui/v2">&larr;</a>
-    <h2>&#128194; {{ t("project") }}</h2>
-    <div class="actions"><button class="new-btn" onclick="location.href='/ui/projects/create'">{{ t("v2_new_project") }}</button></div>
+    <h2>&#128194; <span data-lang-key="project">{{ t("project") }}</span></h2>
+    <div class="actions"><button class="new-btn" onclick="location.href='/ui/projects/create'" data-lang-key="v2_new_project">{{ t("v2_new_project") }}</button></div>
 </div>
-<div id="projectList"><div style="text-align:center;padding:40px;color:var(--muted);">{{ t("v2_loading") }}</div></div>
+<div id="projectList"><div style="text-align:center;padding:40px;color:var(--muted);" data-lang-key="v2_loading">{{ t("v2_loading") }}</div></div>
+<script id="i18n-data" type="application/json">{{ __i18n_all_json | safe }}</script>
+<script id="lang-data" type="text/plain">{{ __lang }}</script>
 <script>
+    (function(){
+        var I18N = JSON.parse(document.getElementById('i18n-data').textContent || '{}');
+        window.__v2lang = (document.getElementById('lang-data').textContent || 'zh').trim();
+        window.updateV2Lang = function(lang){
+            lang = (lang || 'zh').split('-')[0];
+            window.__v2lang = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+            document.querySelectorAll('[data-lang-key]').forEach(function(el){
+                var k = el.getAttribute('data-lang-key');
+                var v = (I18N[lang] && I18N[lang][k]) || (I18N['en'] && I18N['en'][k]);
+                if (v) el.textContent = v;
+            });
+        };
+        window.addEventListener('storage', function(e){
+            if (e.key === 'meshctx_lang' && e.newValue) window.updateV2Lang(e.newValue);
+        });
+        if (window.__v2lang && window.__v2lang !== 'zh') window.updateV2Lang(window.__v2lang);
+    })();
     async function loadProjects(){try{var r=await fetch('/api/projects');var d=await r.json();var ps=d.projects||[];var el=document.getElementById('projectList');if(!ps.length){el.innerHTML='<div class="empty"><div style="font-size:48px;margin-bottom:12px;">&#128194;</div><div>{{ t("v2_no_projects") }}</div><div style="margin-top:8px;"><a href="/ui/projects/create" style="color:var(--accent);">{{ t("v2_create_first") }}</a></div></div>';return}el.innerHTML='<div class="grid">'+ps.map(function(p){var sc=p.status==='active'?'status-active':'status-draft';return'<a href="/ui/projects/'+p.id+'" class="card"><div class="name">'+(p.name||'Untitled')+' <span class="status '+sc+'">'+(p.status||'draft')+'</span></div><div class="desc">'+(p.description||'').substring(0,80)+'</div><div class="meta"><span>&#128337; '+(p.created_at||'-')+'</span></div></a>'}).join('')+'</div>'}catch(e){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">{{ t("v2_load_failed") }}</div>'}}
     loadProjects();
 </script>

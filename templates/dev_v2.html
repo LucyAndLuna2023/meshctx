@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="{{ __lang }}">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>meshctx Dev Panel</title>
 <style>
@@ -45,8 +45,12 @@
     <a href="/ui/setup" class="card"><div class="icon">&#129695;</div><div class="name">Setup Wizard</div><div class="desc">Configure API keys &amp; models</div></a>
     <a href="/ui/settings" class="card"><div class="icon">&#128202;</div><div class="name">Settings</div><div class="desc">Theme, language &amp; preferences</div></a>
 </div></div>
+<script id="i18n-data" type="application/json">{{ __i18n_all_json | safe }}</script>
+<script id="lang-data" type="text/plain">{{ __lang }}</script>
 <script>
 (function(){
+    window.__SERVER_LANG = (document.getElementById('lang-data').textContent || 'zh').trim();
+    window.__i18n_all = JSON.parse(document.getElementById('i18n-data').textContent || '{}');
     // Load quick stats
     function loadStat(url, elId, key){
         fetch(url).then(function(r){return r.json()}).then(function(d){

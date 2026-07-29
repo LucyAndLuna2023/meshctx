@@ -17,7 +17,7 @@
 </head>
 <body>
     <div class="lang-switch">
-        <select onchange="changeLang(this.value)" data-lang-key="lang_label" title="Language">
+        <select class="lang-select" onchange="changeLang(this.value)" data-lang-key="lang_label" title="Language">
             <option value="en">🇺🇸 English</option>
             <option value="zh">🇨🇳 中文</option>
             <option value="ja">🇯🇵 日本語</option>
@@ -1259,8 +1259,6 @@ function changeLang(lang) {
 
 // Restore language: server-rendered lang first, localStorage as fallback
 var saved = document.documentElement.lang || localStorage.getItem('meshctx_lang') || 'zh';
-// Auto-reset stale ja from old Accept-Language detection
-if (saved === 'ja') { saved = 'zh'; localStorage.removeItem('meshctx_lang'); document.cookie = 'meshctx_lang=zh; path=/; max-age=' + (365*24*3600) + '; SameSite=Lax'; }
 const dropdown = document.querySelector('.lang-select');
 if (dropdown) dropdown.value = saved;
 changeLang(saved);

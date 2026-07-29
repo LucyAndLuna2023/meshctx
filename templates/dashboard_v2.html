@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="{{ __lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -44,25 +44,46 @@
     <button class="theme-btn" onclick="toggleTheme()" title="Switch Theme">&#127763;</button>
     <button class="gear-btn" onclick="openSettings()" title="Settings">&#9881;</button>
     <div class="container">
-        <div class="header"><div class="logo-text">&#129504; meshctx</div><div class="subtitle">{{ t("dashboard_subtitle") }}</div></div>
+        <div class="header"><div class="logo-text">&#129504; meshctx</div><div class="subtitle" data-lang-key="dashboard_subtitle">{{ t("dashboard_subtitle") }}</div></div>
         <div class="cards">
-            <a href="/ui/v2/chat" class="card"><div class="card-icon">&#128172;</div><div class="card-title">{{ t("chat") }}</div><div class="card-desc">{{ t("v2_chat_desc") }}</div></a>
-            <a href="/ui/v2/projects" class="card"><div class="card-icon">&#128194;</div><div class="card-title">{{ t("project") }}</div><div class="card-desc">{{ t("v2_projects_desc") }}</div></a>
+            <a href="/ui/v2/chat" class="card"><div class="card-icon">&#128172;</div><div class="card-title" data-lang-key="chat">{{ t("chat") }}</div><div class="card-desc" data-lang-key="v2_chat_desc">{{ t("v2_chat_desc") }}</div></a>
+            <a href="/ui/v2/projects" class="card"><div class="card-icon">&#128194;</div><div class="card-title" data-lang-key="project">{{ t("project") }}</div><div class="card-desc" data-lang-key="v2_projects_desc">{{ t("v2_projects_desc") }}</div></a>
         </div>
     </div>
     <div class="modal-overlay" id="settingsModal" onclick="closeSettings(event)">
         <div class="modal" onclick="event.stopPropagation()">
             <button class="modal-close" onclick="closeSettings()">&#10005;</button>
-            <h3>&#9881; {{ t("nav_settings") }}</h3>
-            <a href="/ui/providers" class="modal-item"><span class="mi-icon">&#128268;</span><div><div class="mi-label">{{ t("v2_model_mgmt") }}</div><div class="mi-desc">{{ t("v2_model_mgmt_desc") }}</div></div></a>
+            <h3>&#9881; <span data-lang-key="nav_settings">{{ t("nav_settings") }}</span></h3>
+            <a href="/ui/providers" class="modal-item"><span class="mi-icon">&#128268;</span><div><div class="mi-label" data-lang-key="v2_model_mgmt">{{ t("v2_model_mgmt") }}</div><div class="mi-desc" data-lang-key="v2_model_mgmt_desc">{{ t("v2_model_mgmt_desc") }}</div></div></a>
             <a href="/ui/plugins" class="modal-item"><span class="mi-icon">&#129521;</span><div><div class="mi-label">{{ t("v2_plugins") }}</div><div class="mi-desc">Install &middot; Enable &middot; Community</div></div></a>
             <a href="/ui/dashboard" class="modal-item"><span class="mi-icon">&#128202;</span><div><div class="mi-label">{{ t("v2_system_status") }}</div><div class="mi-desc">Monitor &middot; Resources &middot; Health</div></div></a>
             <a href="/ui/memory" class="modal-item"><span class="mi-icon">&#128190;</span><div><div class="mi-label">{{ t("v2_memory_mgmt") }}</div><div class="mi-desc">Search &middot; Graph &middot; Cleanup</div></div></a>
-            <div class="dev-hint">{{ t("v2_dev_hint") }}</div>
+            <div class="dev-hint" data-lang-key="v2_dev_hint">{{ t("v2_dev_hint") }}</div>
         </div>
     </div>
     <div class="footer">meshctx v2.15 &middot; <a href="/ui/v2/dev" style="color:var(--muted);">Dev</a></div>
+    <script id="i18n-data" type="application/json">{{ __i18n_all_json | safe }}</script>
+    <script id="lang-data" type="text/plain">{{ __lang }}</script>
     <script>
+        (function(){
+            var I18N = JSON.parse(document.getElementById('i18n-data').textContent || '{}');
+            window.__v2lang = (document.getElementById('lang-data').textContent || 'zh').trim();
+            window.updateV2Lang = function(lang){
+                lang = (lang || 'zh').split('-')[0];
+                window.__v2lang = lang;
+                document.documentElement.lang = lang;
+                document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+                document.querySelectorAll('[data-lang-key]').forEach(function(el){
+                    var k = el.getAttribute('data-lang-key');
+                    var v = (I18N[lang] && I18N[lang][k]) || (I18N['en'] && I18N['en'][k]);
+                    if (v) el.textContent = v;
+                });
+            };
+            window.addEventListener('storage', function(e){
+                if (e.key === 'meshctx_lang' && e.newValue) window.updateV2Lang(e.newValue);
+            });
+            if (window.__v2lang && window.__v2lang !== 'zh') window.updateV2Lang(window.__v2lang);
+        })();
         function toggleTheme(){var b=document.body;var t=b.getAttribute('data-theme')==='light'?'dark':'light';b.setAttribute('data-theme',t);localStorage.setItem('meshctx_theme',t);}
         function openSettings(){document.getElementById('settingsModal').classList.add('active');}
         function closeSettings(e){if(e&&e.target!==document.getElementById('settingsModal'))return;document.getElementById('settingsModal').classList.remove('active');}

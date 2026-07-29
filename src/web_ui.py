@@ -4377,7 +4377,7 @@ body.light .purple{color:#7c3aed}
     plugins:{en:'Plugins',zh:'插件',ja:'プラグイン',ko:'플러그인',es:'Plugins',fr:'Plugins',de:'Plugins'},
     files:{en:'Files',zh:'文件',ja:'ファイル',ko:'파일',es:'Archivos',fr:'Fichiers',de:'Dateien'},
     dashboard:{en:'Dashboard',zh:'仪表板',ja:'ダッシュボード',ko:'대시보드',es:'Panel',fr:'Tableau de bord',de:'Dashboard'}};
-  var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'zh';if(lang==='ja'){lang='zh';localStorage.removeItem('meshctx_lang');document.cookie='meshctx_lang=zh;path=/;max-age=31536000';}
+  var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'zh';
   document.querySelectorAll('[data-nav]').forEach(function(el){
     var k=el.getAttribute('data-nav'),v=L[k];
     if(v&&v[lang])el.textContent=(k==='files'?'📁 ':'')+v[lang];
@@ -4659,7 +4659,7 @@ input,select{font-family:inherit}
     setup:{en:'⚙ Setup',zh:'⚙ 设置',ja:'⚙ 設定',ko:'⚙ 설정',es:'⚙ Configuración',fr:'⚙ Configuration',de:'⚙ Einrichtung'},
     plugins:{en:'🔌 Plugins',zh:'🔌 插件',ja:'🔌 プラグイン',ko:'🔌 플러그인',es:'🔌 Plugins',fr:'🔌 Plugins',de:'🔌 Plugins'},
     files:{en:'📁 Files',zh:'📁 文件',ja:'📁 ファイル',ko:'📁 파일',es:'📁 Archivos',fr:'📁 Fichiers',de:'📁 Dateien'}};
-  var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'zh';if(lang==='ja'){lang='zh';localStorage.removeItem('meshctx_lang');document.cookie='meshctx_lang=zh;path=/;max-age=31536000';}
+  var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'zh';
   document.querySelectorAll('[data-nav]').forEach(function(el){
     var k=el.getAttribute('data-nav'),v=L[k];
     if(v&&v[lang])el.textContent=v[lang];
@@ -5283,7 +5283,7 @@ _TEMPLATES["files.html"] = r"""{% extends "base.html" %}
     plugins:{en:'Plugins',zh:'插件',ja:'プラグイン',ko:'플러그인',es:'Plugins',fr:'Plugins',de:'Plugins'},
     files:{en:'Files',zh:'文件',ja:'ファイル',ko:'파일',es:'Archivos',fr:'Fichiers',de:'Dateien'},
     dashboard:{en:'Dashboard',zh:'仪表板',ja:'ダッシュボード',ko:'대시보드',es:'Panel',fr:'Tableau de bord',de:'Dashboard'}};
-  var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'zh';if(lang==='ja'){lang='zh';localStorage.removeItem('meshctx_lang');document.cookie='meshctx_lang=zh;path=/;max-age=31536000';}
+  var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'zh';
   document.querySelectorAll('[data-nav]').forEach(function(el){
     var k=el.getAttribute('data-nav'),v=L[k];
     if(v&&v[lang])el.textContent=(k==='files'?'📁 ':'')+v[lang];
