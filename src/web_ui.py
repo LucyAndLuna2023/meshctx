@@ -264,6 +264,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
             <option value="de">Deutsch</option>
             <option value="es">Español</option>
             <option value="it">🇮🇹 Italiano</option>
+            <option value="ru">🇷🇺 Русский</option>
             <option value="ar">🇸🇦 العربية</option>
         </select>
         <button onclick="toggleTheme()" id="themeToggle" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:4px;font-size:14px;cursor:pointer;margin-left:4px;transition:border-color 0.3s ease,color 0.3s ease;" title="{{ t("toggle_theme") }}">🌙</button>
@@ -4372,11 +4373,11 @@ body.light .purple{color:#7c3aed}
 <nav><a href="/ui/chat" data-nav="chat">Chat</a><a href="/ui/setup" data-nav="setup">Setup</a><a href="/ui/plugins" data-nav="plugins">Plugins</a><a href="/ui/files" data-nav="files">📁 Files</a><a href="/ui/dashboard" data-nav="dashboard" style="color:var(--accent);background:rgba(108,92,231,0.15);">Dashboard</a><span style="flex:1"></span><button onclick="toggleThemeDash()" id="themeBtnDash" title="切换明暗主题" style="background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;color:var(--text);">🌙</button></nav>
 <script>
 (function(){
-  var L={chat:{en:'Chat',zh:'聊天',ja:'チャット',ko:'채팅',es:'Chat',fr:'Chat',de:'Chat'},
-    setup:{en:'Setup',zh:'设置',ja:'設定',ko:'설정',es:'Configuración',fr:'Configuration',de:'Einrichtung'},
-    plugins:{en:'Plugins',zh:'插件',ja:'プラグイン',ko:'플러그인',es:'Plugins',fr:'Plugins',de:'Plugins'},
-    files:{en:'Files',zh:'文件',ja:'ファイル',ko:'파일',es:'Archivos',fr:'Fichiers',de:'Dateien'},
-    dashboard:{en:'Dashboard',zh:'仪表板',ja:'ダッシュボード',ko:'대시보드',es:'Panel',fr:'Tableau de bord',de:'Dashboard'}};
+  var L={chat:{en:'Chat',zh:'聊天',ja:'チャット',ko:'채팅',es:'Chat',fr:'Chat',de:'Chat',ru:'Чат'},
+    setup:{en:'Setup',zh:'设置',ja:'設定',ko:'설정',es:'Configuración',fr:'Configuration',de:'Einrichtung',ru:'Настройка'},
+    plugins:{en:'Plugins',zh:'插件',ja:'プラグイン',ko:'플러그인',es:'Plugins',fr:'Plugins',de:'Plugins',ru:'Плагины'},
+    files:{en:'Files',zh:'文件',ja:'ファイル',ko:'파일',es:'Archivos',fr:'Fichiers',de:'Dateien',ru:'Файлы'},
+    dashboard:{en:'Dashboard',zh:'仪表板',ja:'ダッシュボード',ko:'대시보드',es:'Panel',fr:'Tableau de bord',de:'Dashboard',ru:'Панель'}};
   var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'zh';
   document.querySelectorAll('[data-nav]').forEach(function(el){
     var k=el.getAttribute('data-nav'),v=L[k];
@@ -4655,10 +4656,10 @@ input,select{font-family:inherit}
 </nav>
 <script>
 (function(){
-  var L={chat:{en:'💬 Chat',zh:'💬 聊天',ja:'💬 チャット',ko:'💬 채팅',es:'💬 Chat',fr:'💬 Chat',de:'💬 Chat'},
-    setup:{en:'⚙ Setup',zh:'⚙ 设置',ja:'⚙ 設定',ko:'⚙ 설정',es:'⚙ Configuración',fr:'⚙ Configuration',de:'⚙ Einrichtung'},
-    plugins:{en:'🔌 Plugins',zh:'🔌 插件',ja:'🔌 プラグイン',ko:'🔌 플러그인',es:'🔌 Plugins',fr:'🔌 Plugins',de:'🔌 Plugins'},
-    files:{en:'📁 Files',zh:'📁 文件',ja:'📁 ファイル',ko:'📁 파일',es:'📁 Archivos',fr:'📁 Fichiers',de:'📁 Dateien'}};
+  var L={chat:{en:'💬 Chat',zh:'💬 聊天',ja:'💬 チャット',ko:'💬 채팅',es:'💬 Chat',fr:'💬 Chat',de:'💬 Chat',ru:'💬 Чат'},
+    setup:{en:'⚙ Setup',zh:'⚙ 设置',ja:'⚙ 設定',ko:'⚙ 설정',es:'⚙ Configuración',fr:'⚙ Configuration',de:'⚙ Einrichtung',ru:'⚙ Настройка'},
+    plugins:{en:'🔌 Plugins',zh:'🔌 插件',ja:'🔌 プラグイン',ko:'🔌 플러그인',es:'🔌 Plugins',fr:'🔌 Plugins',de:'🔌 Plugins',ru:'🔌 Плагины'},
+    files:{en:'📁 Files',zh:'📁 文件',ja:'📁 ファイル',ko:'📁 파일',es:'📁 Archivos',fr:'📁 Fichiers',de:'📁 Dateien',ru:'📁 Файлы'}};
   var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'zh';
   document.querySelectorAll('[data-nav]').forEach(function(el){
     var k=el.getAttribute('data-nav'),v=L[k];
@@ -5278,11 +5279,11 @@ _TEMPLATES["files.html"] = r"""{% extends "base.html" %}
 <nav><a href="/ui/chat" data-nav="chat">Chat</a><a href="/ui/setup" data-nav="setup">Setup</a><a href="/ui/plugins" data-nav="plugins">Plugins</a><a href="/ui/files" data-nav="files" style="color:var(--accent);background:rgba(108,92,231,0.15);">📁 Files</a><a href="/ui/dashboard" data-nav="dashboard">Dashboard</a></nav>
 <script>
 (function(){
-  var L={chat:{en:'Chat',zh:'聊天',ja:'チャット',ko:'채팅',es:'Chat',fr:'Chat',de:'Chat'},
-    setup:{en:'Setup',zh:'设置',ja:'設定',ko:'설정',es:'Configuración',fr:'Configuration',de:'Einrichtung'},
-    plugins:{en:'Plugins',zh:'插件',ja:'プラグイン',ko:'플러그인',es:'Plugins',fr:'Plugins',de:'Plugins'},
-    files:{en:'Files',zh:'文件',ja:'ファイル',ko:'파일',es:'Archivos',fr:'Fichiers',de:'Dateien'},
-    dashboard:{en:'Dashboard',zh:'仪表板',ja:'ダッシュボード',ko:'대시보드',es:'Panel',fr:'Tableau de bord',de:'Dashboard'}};
+  var L={chat:{en:'Chat',zh:'聊天',ja:'チャット',ko:'채팅',es:'Chat',fr:'Chat',de:'Chat',ru:'Чат'},
+    setup:{en:'Setup',zh:'设置',ja:'設定',ko:'설정',es:'Configuración',fr:'Configuration',de:'Einrichtung',ru:'Настройка'},
+    plugins:{en:'Plugins',zh:'插件',ja:'プラグイン',ko:'플러그인',es:'Plugins',fr:'Plugins',de:'Plugins',ru:'Плагины'},
+    files:{en:'Files',zh:'文件',ja:'ファイル',ko:'파일',es:'Archivos',fr:'Fichiers',de:'Dateien',ru:'Файлы'},
+    dashboard:{en:'Dashboard',zh:'仪表板',ja:'ダッシュボード',ko:'대시보드',es:'Panel',fr:'Tableau de bord',de:'Dashboard',ru:'Панель'}};
   var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'zh';
   document.querySelectorAll('[data-nav]').forEach(function(el){
     var k=el.getAttribute('data-nav'),v=L[k];

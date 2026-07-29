@@ -20,7 +20,7 @@ a = Analysis(
         ('src/i18n_translations.json', 'src'),
         ('plugins/registry.json', 'plugins'),
     ],
-    hiddenimports=collect_submodules('src.core') + collect_submodules('src') + [
+    hiddenimports=collect_submodules('src') + collect_submodules('fastapi') + collect_submodules('starlette') + collect_submodules('uvicorn') + collect_submodules('pydantic') + collect_submodules('jinja2') + [
         # Desktop deps
         'webview', 'webview.platforms', 'webview.js',
         'webview.guilib', 'webview.util',
@@ -323,6 +323,8 @@ a = Analysis(
         # FastAPI middleware (namespace packages — PyInstaller misses these)
         'fastapi.middleware', 'fastapi.middleware.cors',
         'starlette.middleware', 'starlette.middleware.cors',
+        # 兜底: fastapi 生态运行时动态导入, collect_submodules 之外的散件
+        'pydantic_core', 'email_validator', 'multipart', 'python_multipart',
     ],
     hookspath=[],
     excludes=['torch','tensorflow','sklearn','keras','onnxruntime','torchvision','torchaudio','xgboost','lightgbm','numba','cupy'],
@@ -340,6 +342,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.115.25',
-            'CFBundleVersion': '3.115.25',
+            'CFBundleShortVersionString': '3.115.26',
+            'CFBundleVersion': '3.115.26',
         }, version='version_info.txt')

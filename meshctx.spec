@@ -4,6 +4,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 import sys, os
 from pathlib import Path
+from PyInstaller.utils.hooks import collect_submodules
 
 _here = os.path.dirname(os.path.abspath(SPECPATH)) if 'SPECPATH' in dir() else os.getcwd()
 
@@ -24,7 +25,7 @@ a = Analysis(
         # i18n 翻译表 (725KB, 10语言) — PyInstaller 不打 .json，必须显式声明
         ('src/i18n_translations.json', 'src'),
     ],
-    hiddenimports=[
+    hiddenimports=collect_submodules('src') + collect_submodules('fastapi') + collect_submodules('starlette') + collect_submodules('uvicorn') + collect_submodules('pydantic') + collect_submodules('jinja2') + [
         # 🔧 修复: 关键! 显式声明src和src.core为包 (解决Windows "parent package" 错误)
         'src',
         'src.core',
@@ -82,6 +83,7 @@ a = Analysis(
         'Crypto',
         'Crypto.Cipher',
         'Crypto.Cipher.AES',
+        'pydantic_core', 'email_validator', 'multipart', 'python_multipart',
     ],
     hookspath=[],
     runtime_hooks=[],
