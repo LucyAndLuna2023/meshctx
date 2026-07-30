@@ -348,74 +348,81 @@ class VoiceChat:
     # ── TTS ───────────────────────────────────────────────────
 
     def _system_tts(self, text: str, provider=None) -> bytes:
-        """Real TTS via system native tools."""
+        """Real TTS via system native tools. Temp files cleaned in finally."""
         import subprocess, tempfile, os, platform
         system = platform.system()
+        tmp_path = None
         try:
             if system == "Linux":
-                # espeak-ng → WAV
                 with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                    wav_path = f.name
+                    tmp_path = f.name
                 subprocess.run(
-                    ["espeak-ng", "-w", wav_path, text],
+                    ["espeak-ng", "-w", tmp_path, text],
                     capture_output=True, timeout=30
                 )
-                if os.path.exists(wav_path) and os.path.getsize(wav_path) > 0:
-                    with open(wav_path, "rb") as f:
+                if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0:
+                    with open(tmp_path, "rb") as f:
                         return f.read()
                 # fallback: espeak
                 subprocess.run(
-                    ["espeak", "-w", wav_path, text],
+                    ["espeak", "-w", tmp_path, text],
                     capture_output=True, timeout=30
                 )
-                if os.path.exists(wav_path):
-                    with open(wav_path, "rb") as f:
+                if os.path.exists(tmp_path):
+                    with open(tmp_path, "rb") as f:
                         return f.read()
             elif system == "Darwin":
-                # macOS say → AIFF
                 with tempfile.NamedTemporaryFile(suffix=".aiff", delete=False) as f:
-                    aiff_path = f.name
+                    tmp_path = f.name
                 subprocess.run(
-                    ["say", "-o", aiff_path, text],
+                    ["say", "-o", tmp_path, text],
                     capture_output=True, timeout=30
                 )
-                if os.path.exists(aiff_path) and os.path.getsize(aiff_path) > 0:
-                    with open(aiff_path, "rb") as f:
+                if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0:
+                    with open(tmp_path, "rb") as f:
                         return f.read()
             elif system == "Windows":
-                # Try pyttsx3
                 try:
                     import pyttsx3
                     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                        wav_path = f.name
+                        tmp_path = f.name
                     engine = pyttsx3.init()
-                    engine.save_to_file(text, wav_path)
+                    engine.save_to_file(text, tmp_path)
                     engine.runAndWait()
-                    if os.path.exists(wav_path) and os.path.getsize(wav_path) > 0:
-                        with open(wav_path, "rb") as f:
+                    if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0:
+                        with open(tmp_path, "rb") as f:
                             return f.read()
                 except ImportError:
                     pass
         except Exception:
             pass
-        return b""  # fallback to empty
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                try: os.unlink(tmp_path)
+                except Exception: pass
+        return b""
 
     def _system_stt(self, audio: bytes) -> str:
-        """Real STT via whisper if available."""
+        """Real STT via whisper if available. Temp files cleaned in finally."""
+        import tempfile, os
+        tmp_path = None
         try:
-            import tempfile, os
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
                 f.write(audio)
-                wav_path = f.name
+                tmp_path = f.name
             try:
                 import whisper
                 model = whisper.load_model("tiny")
-                result = model.transcribe(wav_path)
+                result = model.transcribe(tmp_path)
                 return result.get("text", "").strip()
             except ImportError:
                 pass
         except Exception:
             pass
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                try: os.unlink(tmp_path)
+                except Exception: pass
         return ""
 
     def speak_sync(self, text: str, provider: Optional[str] = None, **kw) -> TTSResult:

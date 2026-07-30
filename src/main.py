@@ -3986,7 +3986,7 @@ def _do_browser_snapshot(cache: dict) -> str:
 
 @app.post("/api/chat/compare")
 async def chat_compare(req: Request):
-    """多模型对比 — 同一问题并发问多个模型,返回排名"""
+    """多模型对比 — asyncio并行调多个模型,返回排名"""
     try:
         try: body = await req.json()
         except: raise HTTPException(400, "body must be JSON")
@@ -3996,47 +3996,48 @@ async def chat_compare(req: Request):
             return {"error": "请提供 message", "results": []}
         
         models = body.get("models", ["deepseek:v4-pro", "deepseek:v4-flash", "deepseek:chat"])
-        models = models[:5]  # max 5
+        models = models[:5]
         
         from src.model_registry import get_registry
-        from src.core.model_compare import ModelCompareEngine
+        import asyncio, time as _time
         reg = get_registry()
-        engine = ModelCompareEngine()
         
-        # Try each model in parallel-like sequential (real LLM calls)
-        t0 = __import__("time").time()
-        results = []
-        for mid in models:
-            t1 = __import__("time").time()
+        async def call_one(mid):
+            t1 = _time.time()
             entry = {"model": mid, "response": "", "error": "", "latency_ms": 0}
             try:
-                resp = reg.chat(
-                    messages=[{"role": "user", "content": message}],
-                    temperature=0.7, max_tokens=1024
+                # Run sync chat in thread pool for true parallelism
+                loop = asyncio.get_event_loop()
+                resp = await loop.run_in_executor(
+                    None, 
+                    lambda: reg.chat(
+                        messages=[{"role": "user", "content": message}],
+                        temperature=0.7, max_tokens=1024
+                    )
                 )
                 entry["response"] = resp.get("content", resp.get("response", str(resp)))
-                entry["latency_ms"] = (__import__("time").time() - t1) * 1000
+                entry["latency_ms"] = (_time.time() - t1) * 1000
             except Exception as e:
                 entry["error"] = str(e)
-                entry["latency_ms"] = (__import__("time").time() - t1) * 1000
-            results.append(entry)
+                entry["latency_ms"] = (_time.time() - t1) * 1000
+            return entry
         
-        # Rank by latency (faster = better) and response length (longer = more detailed)
+        t0 = _time.time()
+        results = await asyncio.gather(*[call_one(m) for m in models])
+        
         for r in results:
             if not r["error"]:
                 r["speed_score"] = round(100 * min(1, 1000 / max(r["latency_ms"], 1)), 1)
                 r["detail_score"] = round(min(100, len(r["response"]) / 10), 1)
                 r["score"] = round(r["speed_score"] * 0.4 + r["detail_score"] * 0.6, 1)
             else:
-                r["speed_score"] = 0
-                r["detail_score"] = 0
-                r["score"] = 0
+                r["speed_score"] = r["detail_score"] = r["score"] = 0
         
         results.sort(key=lambda r: r["score"], reverse=True)
         
         return {
             "message": message,
-            "total_time_ms": round((__import__("time").time() - t0) * 1000),
+            "total_time_ms": round((_time.time() - t0) * 1000),
             "results": results,
             "winner": results[0]["model"] if results else None
         }
