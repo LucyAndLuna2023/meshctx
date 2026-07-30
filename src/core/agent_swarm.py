@@ -28,7 +28,7 @@ class AgentIdentity:
         return sig == expected
 
 
-class TaskStatus(Enum):
+class SwarmTaskStatus(Enum):
     pending = "pending"
     assigned = "assigned"
     running = "running"
@@ -42,7 +42,7 @@ class SwarmTask:
     description: str = ""
     task_type: str = "general"
     worker_id: str = ""
-    status: TaskStatus = TaskStatus.pending
+    status: SwarmTaskStatus = SwarmTaskStatus.pending
     result: str = ""
     error: str = ""
     created_at: float = field(default_factory=time.time)
@@ -142,7 +142,7 @@ class ManagerAgent:
             t = self.tasks[task_id]
             t.result = result
             t.error = error
-            t.status = TaskStatus.done if not error else TaskStatus.failed
+            t.status = SwarmTaskStatus.done if not error else SwarmTaskStatus.failed
 
     def get_swarm_status(self, **kw):
         now = time.time()
@@ -157,8 +157,8 @@ class ManagerAgent:
             "manager_id": self.identity.agent_id,
             "workers": len(self.workers),
             "workers_online": sum(1 for w in self.workers.values() if now - w.last_heartbeat < 30),
-            "tasks_pending": sum(1 for t in self.tasks.values() if t.status == TaskStatus.pending),
-            "tasks_done": sum(1 for t in self.tasks.values() if t.status == TaskStatus.done),
+            "tasks_pending": sum(1 for t in self.tasks.values() if t.status == SwarmTaskStatus.pending),
+            "tasks_done": sum(1 for t in self.tasks.values() if t.status == SwarmTaskStatus.done),
             "workers_detail": workers_detail,
         }
 
@@ -203,12 +203,12 @@ class AgentPool:
         if agent_id in self.active_agents:
             entry = self.active_agents[agent_id]
             entry.status = "done"
-            entry.task.status = TaskStatus.done
+            entry.task.status = SwarmTaskStatus.done
             self.completed_results[agent_id] = entry.result or entry.task.result
             return entry.task
         for i, (aid, task) in enumerate(self.pending_queue):
             if aid == agent_id:
-                task.status = TaskStatus.done
+                task.status = SwarmTaskStatus.done
                 self.completed_results[agent_id] = task.result
                 self.pending_queue.pop(i)
                 return task
