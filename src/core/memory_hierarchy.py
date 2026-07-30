@@ -156,10 +156,10 @@ class KnowledgeGraph:
         return kg
 
 
-# ── MemoryItem ─────────────────────────────────────────────────────────
+# ── HierarchicalMemoryItem ─────────────────────────────────────────────────────────
 
 @dataclass
-class MemoryItem:
+class HierarchicalHierarchicalMemoryItem:
     """A single memory item with metadata."""
     level: MemoryLevel = MemoryLevel.L1
     key: str = ""
@@ -234,7 +234,7 @@ class MemoryItem:
         }
 
     @classmethod
-    def from_json_dict(cls, data: dict) -> MemoryItem:
+    def from_json_dict(cls, data: dict) -> HierarchicalMemoryItem:
         level_val = data.get("level", 0)
         level = MemoryLevel(level_val)
         return cls(
@@ -284,7 +284,7 @@ class HierarchicalMemoryStore:
     PERSISTENCE_VERSION: int = 1
 
     def __init__(self):
-        self._items: dict[str, MemoryItem] = {}
+        self._items: dict[str, HierarchicalMemoryItem] = {}
         self._ordered_ids: list[str] = []
         self.vector_index = VectorIndex(dim=384)
         self.knowledge_graph = KnowledgeGraph()
@@ -294,7 +294,7 @@ class HierarchicalMemoryStore:
 
     # ── store / retrieve ──
 
-    def store(self, item: MemoryItem):
+    def store(self, item: HierarchicalMemoryItem):
         self._items[item.id] = item
         if item.id not in self._ordered_ids:
             self._ordered_ids.append(item.id)
@@ -303,7 +303,7 @@ class HierarchicalMemoryStore:
             self.save_to_file(self._auto_save_path)
             self._auto_save_counter = 0
 
-    def retrieve(self, query: str, top_k: int = 5) -> list[MemoryItem]:
+    def retrieve(self, query: str, top_k: int = 5) -> list[HierarchicalHierarchicalMemoryItem]:
         results = []
         qlower = query.lower()
         for item in self._items.values():
@@ -321,12 +321,12 @@ class HierarchicalMemoryStore:
         results.sort(key=lambda x: x[0], reverse=True)
         return [item for _, item in results[:top_k]]
 
-    def recall(self, query: str) -> list[MemoryItem]:
+    def recall(self, query: str) -> list[HierarchicalHierarchicalMemoryItem]:
         return self.retrieve(query)
 
     def compact(self):
         """Deduplicate items by key, keeping the most recent (last stored)."""
-        seen: dict[str, MemoryItem] = {}
+        seen: dict[str, HierarchicalMemoryItem] = {}
         for item in self._items.values():
             seen[item.key] = item
         self._items = {item.id: item for item in seen.values()}
@@ -428,7 +428,7 @@ class HierarchicalMemoryStore:
         store = cls()
 
         for item_data in data.get("items", []):
-            item = MemoryItem.from_json_dict(item_data)
+            item = HierarchicalMemoryItem.from_json_dict(item_data)
             store._items[item.id] = item
             store._ordered_ids.append(item.id)
             if item.embedding:
@@ -472,7 +472,7 @@ class MemoryPlugin:
             content = event.data.get("content", "")
             speaker = event.data.get("role", "unknown")
             ts = event.data.get("timestamp", "")
-            self.store.store(MemoryItem(
+            self.store.store(HierarchicalHierarchicalMemoryItem(
                 content=content[:200],
                 source=event.source,
                 importance=0.8,

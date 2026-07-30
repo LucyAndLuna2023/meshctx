@@ -26,7 +26,7 @@ TASKS_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── Enums ──────────────────────────────────────────────────────────────────
 
-class TaskStatus(Enum):
+class AgentTaskStatus(Enum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -56,7 +56,7 @@ class AgentTask:
     name: str = ""
     title: str = ""
     description: str = ""
-    status: TaskStatus = field(default=TaskStatus.PENDING, compare=False)
+    status: AgentTaskStatus = field(default=AgentTaskStatus.PENDING, compare=False)
     priority: TaskPriority = field(default=TaskPriority.NORMAL, compare=False)
     dependencies: List[str] = field(default_factory=list, compare=False)
     dependents: List[str] = field(default_factory=list, compare=False)
@@ -145,8 +145,8 @@ class TaskQueue:
             # Unblock dependents
             for dep_id in task.dependents:
                 dep = self._by_id.get(dep_id)
-                if dep and dep.status == TaskStatus.BLOCKED:
-                    dep.status = TaskStatus.PENDING
+                if dep and dep.status == AgentTaskStatus.BLOCKED:
+                    dep.status = AgentTaskStatus.PENDING
             return True
 
     def update(self, task_id: str, **kwargs) -> Optional[AgentTask]:
@@ -174,7 +174,7 @@ class TaskQueue:
             self._heap.clear()
             self._by_id.clear()
 
-    def list_by_status(self, status: TaskStatus) -> List[AgentTask]:
+    def list_by_status(self, status: AgentTaskStatus) -> List[AgentTask]:
         """List tasks by status."""
         with self._lock:
             return [t for t in self._by_id.values() if t.status == status]
@@ -196,15 +196,15 @@ class TaskQueue:
         """Get tasks that are ready (no blocked dependencies)."""
         ready: List[AgentTask] = []
         for task in self._heap:
-            if task.status == TaskStatus.BLOCKED:
+            if task.status == AgentTaskStatus.BLOCKED:
                 continue
-            if task.status not in (TaskStatus.PENDING,):
+            if task.status not in (AgentTaskStatus.PENDING,):
                 continue
             # Check dependencies
             blocked = False
             for dep_id in task.dependencies:
                 dep = self._by_id.get(dep_id)
-                if dep and dep.status not in (TaskStatus.COMPLETED, TaskStatus.CANCELLED):
+                if dep and dep.status not in (AgentTaskStatus.COMPLETED, AgentTaskStatus.CANCELLED):
                     blocked = True
                     break
             if not blocked:
@@ -297,7 +297,7 @@ class TaskExecutor:
     def execute(self, task: AgentTask) -> threading.Thread:
         """Execute a task in a background thread."""
         def _run():
-            task.status = TaskStatus.RUNNING
+            task.status = AgentTaskStatus.RUNNING
             task.updated_at = time.time()
 
             for attempt in range(task.max_retries + 1):
@@ -315,7 +315,7 @@ class TaskExecutor:
                         result = None  # No handler — just mark complete
 
                     task.result = result
-                    task.status = TaskStatus.COMPLETED
+                    task.status = AgentTaskStatus.COMPLETED
                     self._results[task.id] = result
                     break
 
@@ -323,7 +323,7 @@ class TaskExecutor:
                     task.error = str(e)
                     task.retries = attempt + 1
                     if attempt >= task.max_retries:
-                        task.status = TaskStatus.FAILED
+                        task.status = AgentTaskStatus.FAILED
                     else:
                         time.sleep(0.5 * (attempt + 1))
 
@@ -331,15 +331,15 @@ class TaskExecutor:
             # Unblock dependents
             for dep_id in task.dependents:
                 dep = self.queue.get(dep_id)
-                if dep and dep.status == TaskStatus.BLOCKED:
+                if dep and dep.status == AgentTaskStatus.BLOCKED:
                     all_deps_done = all(
                         self.queue.get(d) and self.queue.get(d).status in (
-                            TaskStatus.COMPLETED, TaskStatus.CANCELLED
+                            AgentTaskStatus.COMPLETED, AgentTaskStatus.CANCELLED
                         )
                         for d in dep.dependencies
                     )
                     if all_deps_done:
-                        dep.status = TaskStatus.PENDING
+                        dep.status = AgentTaskStatus.PENDING
 
             with self._lock:
                 self._running.pop(task.id, None)
@@ -356,8 +356,8 @@ class TaskExecutor:
     def cancel(self, task_id: str) -> bool:
         with self._lock:
             task = self.queue.get(task_id)
-            if task and task.status == TaskStatus.RUNNING:
-                task.status = TaskStatus.CANCELLED
+            if task and task.status == AgentTaskStatus.RUNNING:
+                task.status = AgentTaskStatus.CANCELLED
                 task.updated_at = time.time()
                 return True
             return False
@@ -409,8 +409,8 @@ class TaskManager:
         # Check if blocked by dependencies
         for dep_id in task.dependencies:
             dep = self.queue.get(dep_id)
-            if dep and dep.status not in (TaskStatus.COMPLETED, TaskStatus.CANCELLED):
-                task.status = TaskStatus.BLOCKED
+            if dep and dep.status not in (AgentTaskStatus.COMPLETED, AgentTaskStatus.CANCELLED):
+                task.status = AgentTaskStatus.BLOCKED
                 # Register as dependent
                 dep.dependents.append(task.id)
                 break
@@ -425,10 +425,10 @@ class TaskManager:
         task = self.queue.get(task_id)
         if not task:
             return False
-        if task.status == TaskStatus.RUNNING:
+        if task.status == AgentTaskStatus.RUNNING:
             self.executor.cancel(task_id)
-        if task.status in (TaskStatus.PENDING, TaskStatus.BLOCKED):
-            return self.queue.update(task_id, status=TaskStatus.CANCELLED)
+        if task.status in (AgentTaskStatus.PENDING, AgentTaskStatus.BLOCKED):
+            return self.queue.update(task_id, status=AgentTaskStatus.CANCELLED)
         return False
 
     def remove_task(self, task_id: str) -> bool:
@@ -506,7 +506,7 @@ class TaskManager:
 
     # ── Query ─────────────────────────────────────────────────────────
 
-    def list_tasks(self, status: TaskStatus = None) -> List[Dict[str, Any]]:
+    def list_tasks(self, status: AgentTaskStatus = None) -> List[Dict[str, Any]]:
         if status:
             tasks = self.queue.list_by_status(status)
         else:

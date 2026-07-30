@@ -8,7 +8,7 @@ from typing import Optional
 
 
 @dataclass
-class PluginInfo:
+class MarketPluginInfo:
     name: str
     version: str
     description: str
@@ -92,25 +92,25 @@ class PluginEntry:
 class PluginMarket:
     """Plugin marketplace with registration, discovery, install, reviews, and version management."""
 
-    # Pre-populated official plugins (backwards compat: PluginInfo objects indexed by name)
+    # Pre-populated official plugins (backwards compat: MarketPluginInfo objects indexed by name)
     _OFFICIAL_PLUGINS: dict = {
-        "slack-gateway":        PluginInfo(name="slack-gateway", version="1.2.0", description="Slack消息集成网关", category="gateway"),
-        "discord-gateway":      PluginInfo(name="discord-gateway", version="1.1.0", description="Discord消息集成网关", category="gateway"),
-        "telegram-gateway":     PluginInfo(name="telegram-gateway", version="1.0.0", description="Telegram消息集成网关", category="gateway"),
-        "wechat-gateway":       PluginInfo(name="wechat-gateway", version="1.0.0", description="微信消息集成网关", category="gateway"),
-        "whatsapp-gateway":     PluginInfo(name="whatsapp-gateway", version="1.0.0", description="WhatsApp消息集成网关", category="gateway"),
-        "hierarchical-memory":  PluginInfo(name="hierarchical-memory", version="1.3.0", description="层次化记忆存储", category="memory"),
-        "sdm-memory":           PluginInfo(name="sdm-memory", version="1.0.0", description="SDM稀疏分布式记忆", category="memory"),
-        "memory-compactor":     PluginInfo(name="memory-compactor", version="1.0.0", description="记忆压缩与归档", category="memory"),
-        "knowledge-graph":      PluginInfo(name="knowledge-graph", version="2.0.0", description="知识图谱构建与查询", category="memory"),
-        "security-scanner":     PluginInfo(name="security-scanner", version="1.1.0", description="代码安全扫描", category="security"),
-        "prompt-shield":        PluginInfo(name="prompt-shield", version="1.0.0", description="Prompt注入防护", category="security"),
-        "code-reviewer":        PluginInfo(name="code-reviewer", version="1.2.0", description="AI代码审查", category="tools"),
-        "code-sandbox":         PluginInfo(name="code-sandbox", version="1.0.0", description="安全代码沙箱执行", category="tools"),
-        "deep-research":        PluginInfo(name="deep-research", version="1.1.0", description="深度研究代理", category="tools"),
-        "web-crawler":          PluginInfo(name="web-crawler", version="1.0.0", description="智能网页爬虫", category="tools"),
-        "monitoring-agent":     PluginInfo(name="monitoring-agent", version="1.0.0", description="系统监控代理", category="monitoring"),
-        "alert-engine":         PluginInfo(name="alert-engine", version="1.0.0", description="告警引擎", category="monitoring"),
+        "slack-gateway":        MarketPluginInfo(name="slack-gateway", version="1.2.0", description="Slack消息集成网关", category="gateway"),
+        "discord-gateway":      MarketPluginInfo(name="discord-gateway", version="1.1.0", description="Discord消息集成网关", category="gateway"),
+        "telegram-gateway":     MarketPluginInfo(name="telegram-gateway", version="1.0.0", description="Telegram消息集成网关", category="gateway"),
+        "wechat-gateway":       MarketPluginInfo(name="wechat-gateway", version="1.0.0", description="微信消息集成网关", category="gateway"),
+        "whatsapp-gateway":     MarketPluginInfo(name="whatsapp-gateway", version="1.0.0", description="WhatsApp消息集成网关", category="gateway"),
+        "hierarchical-memory":  MarketPluginInfo(name="hierarchical-memory", version="1.3.0", description="层次化记忆存储", category="memory"),
+        "sdm-memory":           MarketPluginInfo(name="sdm-memory", version="1.0.0", description="SDM稀疏分布式记忆", category="memory"),
+        "memory-compactor":     MarketPluginInfo(name="memory-compactor", version="1.0.0", description="记忆压缩与归档", category="memory"),
+        "knowledge-graph":      MarketPluginInfo(name="knowledge-graph", version="2.0.0", description="知识图谱构建与查询", category="memory"),
+        "security-scanner":     MarketPluginInfo(name="security-scanner", version="1.1.0", description="代码安全扫描", category="security"),
+        "prompt-shield":        MarketPluginInfo(name="prompt-shield", version="1.0.0", description="Prompt注入防护", category="security"),
+        "code-reviewer":        MarketPluginInfo(name="code-reviewer", version="1.2.0", description="AI代码审查", category="tools"),
+        "code-sandbox":         MarketPluginInfo(name="code-sandbox", version="1.0.0", description="安全代码沙箱执行", category="tools"),
+        "deep-research":        MarketPluginInfo(name="deep-research", version="1.1.0", description="深度研究代理", category="tools"),
+        "web-crawler":          MarketPluginInfo(name="web-crawler", version="1.0.0", description="智能网页爬虫", category="tools"),
+        "monitoring-agent":     MarketPluginInfo(name="monitoring-agent", version="1.0.0", description="系统监控代理", category="monitoring"),
+        "alert-engine":         MarketPluginInfo(name="alert-engine", version="1.0.0", description="告警引擎", category="monitoring"),
     }
 
     def __init__(self, data_dir=None):
@@ -125,8 +125,8 @@ class PluginMarket:
         self._plugins: dict[str, PluginEntry] = {}
         self._install_counts: dict[str, int] = {}
         self._installed_versions: dict[str, str] = {}
-        # Backwards compat: _installed maps name → PluginInfo for installed plugins
-        self._installed: dict[str, PluginInfo] = {}
+        # Backwards compat: _installed maps name → MarketPluginInfo for installed plugins
+        self._installed: dict[str, MarketPluginInfo] = {}
         self._disabled: set = set()
         self._load_state()
 
@@ -254,18 +254,18 @@ class PluginMarket:
         return results
 
     def search(self, query: str = None, category: str = None) -> list:
-        """Search plugins. Returns list of PluginInfo objects for backwards compat."""
+        """Search plugins. Returns list of MarketPluginInfo objects for backwards compat."""
         # Ensure all official plugins are registered
         for name in self._OFFICIAL_PLUGINS:
             self._ensure_registered(name)
 
         entries = self.discover(query=query, category=category)
-        # Convert to PluginInfo for backwards compat
+        # Convert to MarketPluginInfo for backwards compat
         results = []
         for e in entries:
             info = self._OFFICIAL_PLUGINS.get(e.name)
             if info is None:
-                info = PluginInfo(
+                info = MarketPluginInfo(
                     name=e.name, version=str(e.latest_version) if e.latest_version else "0.0.0",
                     description=e.description, category=e.category,
                 )
@@ -365,7 +365,7 @@ class PluginMarket:
         return {"success": True}
 
     def list_installed(self) -> list:
-        """Return list of installed PluginInfo objects."""
+        """Return list of installed MarketPluginInfo objects."""
         return [info for name, info in self._installed.items()]
 
     def get_categories(self) -> list:
