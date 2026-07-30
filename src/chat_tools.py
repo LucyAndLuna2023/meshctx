@@ -5,6 +5,8 @@ meshctx Chat 工具引擎 v2 — 原生 OpenAI function calling 格式
 import os, re, json, shlex, subprocess, urllib.request, urllib.parse
 from pathlib import Path
 from typing import Dict, Optional, List
+import logging
+logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════════
 # 工具执行函数
@@ -76,8 +78,8 @@ def _search_files(pattern: str, path: str = ".", glob: str = "*") -> str:
                     content = f.read_text(errors="replace")
                     if pattern.lower() in content.lower():
                         matches.append(str(f))
-                except:
-                    pass
+                except Exception as _e:
+                    logger.exception("Unexpected error: %s", _e)
         if not matches:
             return f"未找到包含 '{pattern}' 的文件"
         return "\n".join(matches[:20])
@@ -100,8 +102,8 @@ def _web_search(query: str) -> str:
         results = [re.sub(r'<[^>]+>', '', s).strip()[:200] for s in snippets[:5]]
         if results:
             return "\n".join(f"{i+1}. {r}" for i, r in enumerate(results))
-    except:
-        pass
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     try:
         url = f"https://cn.bing.com/search?q={urllib.parse.quote(query)}"
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
