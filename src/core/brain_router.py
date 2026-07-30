@@ -1,59 +1,211 @@
-"""meshctx brain_router — 脑启发路由"""
-import numpy as np
-import hashlib
+"""meshctx brain_router — 智能任务路由 (v3.115.36)
 
-class SymbolicProjector:
-    def __init__(self, symbol_dim=32, vector_dim=128, **kw):
-        self.symbol_dim = symbol_dim
-        self.vector_dim = vector_dim
-    def encode(self, text, **kw):
-        h = hashlib.sha256(text.encode()).digest()
-        vec = np.frombuffer(h, dtype=np.uint8).astype(float) / 255.0
-        if len(vec) < self.vector_dim:
-            vec = np.tile(vec, (self.vector_dim // len(vec) + 1))[:self.vector_dim]
-        return vec[:self.vector_dim]
-    def decode(self, vec, top_k=1, **kw):
-        return ["decoded_symbol"] * min(top_k, 3)
+Real routing based on task type analysis, not random numbers.
+Routes queries to optimal model based on task category, complexity, and cost."""
 
-class SparseAttentionRouter:
-    def __init__(self, num_experts=8, sparsity=2, **kw):
-        self.num_experts = num_experts
-        self.sparsity = sparsity
-    def route(self, query, **kw):
-        q = np.asarray(query, dtype=float)
-        # v3.115.16: deterministic routing based on query, not random
-        if q.ndim == 0:
-            q = np.array([q])
-        # Compute scores via dot product with learned preference vectors
-        seed = int(np.sum(np.abs(q)) * 1000) % 10000
-        rng = np.random.RandomState(seed)
-        preference = rng.randn(self.num_experts, len(q)) * 0.1
-        scores = np.abs(preference @ q)
-        scores = scores / (scores.max() + 1e-8)
-        # Keep only top-sparsity
-        threshold = np.sort(scores)[-self.sparsity]
-        scores[scores < threshold] = 0
-        if scores.sum() > 0:
-            scores /= scores.sum()
-        return scores
+import re
+from typing import Dict, List, Optional, Tuple
 
-class PsiParameterizedComplexity:
-    def __init__(self, **kw):
-        pass
-    def estimate(self, model_name, params=0, **kw):
-        return max(0.1, np.log10(max(params, 1)) * 0.5)
-    def get_optimal_model(self, target_psi, models, **kw):
-        return models[0] if models else "unknown"
 
-class BrainInspiredRouter:
-    def __init__(self, **kw):
-        self._projector = SymbolicProjector()
-        self._route_count = 0
-    def route(self, query, models, **kw):
-        self._route_count += 1
-        h = hashlib.sha256(query.encode()).digest()[0]
-        idx = h % len(models)
-        return models[idx]
-    def get_stats(self, **kw):
-        return {"projector": "active", "routes": self._route_count}
+# ── Task type detection ──────────────────────────────────────
 
+TASK_PATTERNS = {
+    "code": [
+        r"(写|编写|生成|创建).{0,5}(代码|程序|脚本|函数|类|class|def|function)",
+        r"(修|改|修复|debug|调试|重构|优化).{0,5}(代码|bug|错误|问题)",
+        r"(code|python|javascript|java|rust|go|c\+\+|编程|import|from\s+\w+\s+import)",
+        r"(git|commit|push|pull|merge|branch|repo|github)",
+        r"(api|endpoint|route|controller|middleware|数据库|database|sql|query)",
+    ],
+    "analysis": [
+        r"(分析|计算|统计|评估|审计|审查|检查|review|audit|analy)",
+        r"(数据|指标|性能|performance|benchmark|比较|对比|compare)",
+        r"(多少钱|价格|成本|cost|利润|收入|revenue)",
+        r"(报告|report|总结|summary|结论|conclusion)",
+    ],
+    "creative": [
+        r"(写|创作|生成).{0,5}(文章|故事|诗歌|blog|post|小说|剧本|文案)",
+        r"(翻译|translate|改写|rewrite|润色|polish)",
+        r"(创意|想法|idea|灵感|设计|design|头脑风暴|brainstorm)",
+    ],
+    "search": [
+        r"(搜索|查询|查找|找|查|search|find|lookup|什么是|什么是|谁|where|when|how)",
+        r"(最新|新闻|news|今天|today|现在|当前|current|实时)",
+        r"(股价|股票|天气|汇率|price|stock|weather)",
+    ],
+    "chat": [
+        r"(你好|hi|hello|hey|谢谢|thanks|再见|bye|晚安|早安)",
+        r"(怎么样|如何|how are|what's up|聊天|闲聊|talk|chat)",
+    ],
+}
+
+
+def classify_task(text: str) -> Tuple[str, float]:
+    """Classify task type from user message. Returns (category, confidence)."""
+    text_lower = text.lower().strip()
+    scores = {}
+    for category, patterns in TASK_PATTERNS.items():
+        score = 0.0
+        for pat in patterns:
+            if re.search(pat, text_lower):
+                score += 1.0
+        if score > 0:
+            scores[category] = min(score / len(patterns), 1.0)
+    
+    if not scores:
+        return ("chat", 0.5)
+    
+    best = max(scores, key=scores.get)
+    return (best, scores[best])
+
+
+def estimate_complexity(text: str) -> float:
+    """Estimate task complexity 0-1 from message length and structure."""
+    score = 0.0
+    # Length factor
+    length = len(text)
+    if length > 500:
+        score += 0.3
+    elif length > 200:
+        score += 0.2
+    elif length > 50:
+        score += 0.1
+    
+    # Code indicators
+    if re.search(r"(class|def|function|import|async|await)", text):
+        score += 0.2
+    if re.search(r"(多文件|multi.?file|架构|architecture|重构|refactor)", text):
+        score += 0.2
+    
+    # Multiple requirements
+    if len(re.findall(r"(\d+\.|[-*]\s|第[一二三])", text)) > 2:
+        score += 0.15
+    
+    return min(score, 1.0)
+
+
+# ── Model routing ────────────────────────────────────────────
+
+MODEL_ROUTES = {
+    "code": {
+        "fast": "deepseek:v4-flash",
+        "balanced": "deepseek:chat",
+        "powerful": "deepseek:v4-pro",
+    },
+    "analysis": {
+        "fast": "deepseek:v4-flash",
+        "balanced": "deepseek:v4-pro",
+        "powerful": "deepseek:v4-pro",
+    },
+    "creative": {
+        "fast": "deepseek:chat",
+        "balanced": "deepseek:v4-pro",
+        "powerful": "deepseek:v4-pro",
+    },
+    "search": {
+        "fast": "deepseek:v4-flash",
+        "balanced": "deepseek:v4-flash",
+        "powerful": "deepseek:chat",
+    },
+    "chat": {
+        "fast": "deepseek:v4-flash",
+        "balanced": "deepseek:chat",
+        "powerful": "deepseek:v4-pro",
+    },
+}
+
+# Cost estimates (tokens per $)
+MODEL_COST = {
+    "deepseek:v4-flash": 0.5,
+    "deepseek:chat": 1.0,
+    "deepseek:v4-pro": 2.0,
+}
+
+
+class SmartRouter:
+    """Intelligent model router — task-based, cost-aware."""
+
+    def __init__(self):
+        self._route_history: List[Dict] = []
+        self._cost_saved = 0.0
+
+    def route(self, text: str, preference: str = "balanced") -> Dict:
+        """Route a user message to the best model.
+
+        Args:
+            text: user message
+            preference: "fast", "balanced", or "powerful"
+
+        Returns dict with: model, task_type, confidence, complexity, reason
+        """
+        task_type, confidence = classify_task(text)
+        complexity = estimate_complexity(text)
+
+        # Adjust preference based on complexity
+        if complexity > 0.6 and preference == "fast":
+            preference = "balanced"  # complex tasks need better models
+        elif complexity > 0.8:
+            preference = "powerful"
+
+        routes = MODEL_ROUTES.get(task_type, MODEL_ROUTES["chat"])
+        model = routes.get(preference, routes["balanced"])
+
+        # Calculate cost estimate
+        cost = MODEL_COST.get(model, 1.0)
+
+        result = {
+            "model": model,
+            "task_type": task_type,
+            "confidence": round(confidence, 2),
+            "complexity": round(complexity, 2),
+            "preference": preference,
+            "estimated_cost": cost,
+            "reason": (
+                f"Task={task_type}({confidence:.0%}), "
+                f"complexity={complexity:.0%}, "
+                f"mode={preference} → {model}"
+            ),
+        }
+
+        # Track cost savings vs always using v4-pro
+        baseline_cost = MODEL_COST.get("deepseek:v4-pro", 2.0)
+        self._cost_saved += baseline_cost - cost
+        self._route_history.append(result)
+        if len(self._route_history) > 100:
+            self._route_history = self._route_history[-50:]
+
+        return result
+
+    def stats(self) -> Dict:
+        """Router statistics."""
+        if not self._route_history:
+            return {"routes": 0, "cost_saved": 0}
+        model_counts = {}
+        for r in self._route_history:
+            m = r["model"]
+            model_counts[m] = model_counts.get(m, 0) + 1
+        return {
+            "routes": len(self._route_history),
+            "cost_saved": round(self._cost_saved, 2),
+            "model_distribution": model_counts,
+            "last_route": self._route_history[-1] if self._route_history else None,
+        }
+
+    def list_models(self) -> List[Dict]:
+        """List available models with costs."""
+        return [
+            {"id": mid, "cost_level": cost}
+            for mid, cost in MODEL_COST.items()
+        ]
+
+
+# ── Singleton ────────────────────────────────────────────────
+
+_router: Optional[SmartRouter] = None
+
+
+def get_router() -> SmartRouter:
+    global _router
+    if _router is None:
+        _router = SmartRouter()
+    return _router

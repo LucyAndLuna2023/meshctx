@@ -316,6 +316,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"GenomicOptimizer初始化跳过: {e}")
 
+    # v3.115.36: 初始化智能路由器
+    try:
+        from .core.brain_router import get_router
+        app.state.router = get_router()
+        logger.info("SmartRouter 智能模型路由已初始化")
+    except Exception as e:
+        logger.warning(f"SmartRouter初始化跳过: {e}")
+
     watcher = ConfigWatcher()
     def _reload_config():
         logger.info("配置已变更，自动重载模型...")
@@ -4112,6 +4120,69 @@ async def list_open_models():
         }
     except Exception as e:
         return {"models": [], "error": str(e)}
+
+
+# ═══ Plugin Marketplace API (v3.115.36) ═══
+
+@app.get("/api/plugins/list")
+async def plugins_list():
+    """列出所有已发现插件"""
+    try:
+        from src.core.plugin_autoload import get_plugin_list
+        plugins = get_plugin_list()
+        return {"plugins": plugins, "count": len(plugins),
+                "plugins_dir": str(Path.home() / ".meshctx" / "plugins")}
+    except Exception as e:
+        return {"plugins": [], "error": str(e)}
+
+@app.post("/api/plugins/create")
+async def plugins_create(req: Request):
+    """创建示例插件"""
+    try:
+        body = await req.json() if req.headers.get('content-type') == 'application/json' else {}
+        from src.core.plugin_autoload import create_example_plugin
+        path = create_example_plugin(body.get("name", "hello_world"))
+        return {"status": "created", "path": str(path)}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/plugins/reload")
+async def plugins_reload():
+    """重新加载所有插件"""
+    try:
+        from src.core.plugin_autoload import load_all_plugins
+        loaded = load_all_plugins()
+        count = sum(1 for v in loaded.values() if v is not None)
+        return {"status": "reloaded", "loaded": count, "plugins": list(loaded.keys())}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+# ═══ Smart Router API (v3.115.36) ═══
+
+@app.post("/api/router/classify")
+async def router_classify(req: Request):
+    """智能路由 — 分析任务类型并推荐模型"""
+    try:
+        body = await req.json() if req.headers.get('content-type') == 'application/json' else {}
+        text = body.get("text", body.get("message", ""))
+        preference = body.get("preference", "balanced")
+        from src.core.brain_router import get_router, classify_task, estimate_complexity
+        router = get_router()
+        result = router.route(text, preference)
+        return {"status": "ok", **result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/router/stats")
+async def router_stats():
+    """智能路由 — 统计"""
+    try:
+        from src.core.brain_router import get_router
+        router = get_router()
+        return {"status": "ok", **router.stats()}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 # ═══════════════════════════════════════════════════

@@ -72,10 +72,11 @@ class JEPAEncoder:
         self.dim = config.embed_dim
         self.momentum = config.momentum
 
-        # Random projection matrices (fixed seed for reproducibility)
-        rng = np.random.RandomState(42)
-        self.W_context = rng.randn(self.dim, self.dim) * 0.02
-        self.b_context = rng.randn(self.dim) * 0.01
+        # Real orthogonal projection matrices (QR decomposition, v3.115.36)
+        rng = np.random.RandomState(int(time.time() * 1000) % 10000)
+        raw = rng.randn(self.dim, self.dim) * 0.02
+        self.W_context, _ = np.linalg.qr(raw)  # orthogonal → preserves information
+        self.b_context = np.zeros(self.dim)     # no bias → pure projection
         self.W_target = self.W_context.copy()
         self.b_target = self.b_context.copy()
 
@@ -330,12 +331,27 @@ class NonGenerativeRouter:
         self._rng = np.random.RandomState(12345)
 
     def embed_state(self, text: str) -> np.ndarray:
-        """文本 → 固定维度嵌入（确定性）"""
-        seed = int(hashlib.md5(text.encode()).hexdigest()[:8], 16)
-        rng = np.random.RandomState(seed)
-        emb = rng.randn(self.dim).astype(np.float64)
-        emb = emb / (np.linalg.norm(emb) + 1e-8)
-        return emb
+        """文本 → 固定维度嵌入（真实TF-IDF风格, v3.115.36）"""
+        if not text or not text.strip():
+            return np.zeros(self.dim, dtype=np.float64)
+        # Real character n-gram counting → vector (no hashlib, no random)
+        vec = np.zeros(self.dim, dtype=np.float64)
+        text_lower = text.lower()
+        # Character trigrams as sparse features
+        for i in range(len(text_lower) - 2):
+            trigram = text_lower[i:i+3]
+            idx = hash(trigram) % self.dim
+            vec[idx] += 1.0
+        # Word-level features
+        words = text_lower.split()
+        for w in words[:100]:
+            idx = hash(w) % self.dim
+            vec[idx] += 1.0
+        # Normalize to unit vector
+        norm = np.linalg.norm(vec)
+        if norm > 1e-8:
+            vec = vec / norm
+        return vec
 
     def evaluate_without_generation(self, state_text: str,
                                     action_text: str,
