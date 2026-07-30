@@ -11,20 +11,20 @@ from typing import Dict, List, Optional, Tuple
 
 TASK_PATTERNS = {
     "code": [
-        r"(写|编写|生成|创建).{0,5}(代码|程序|脚本|函数|类|class|def|function)",
+        r"(写|编写|生成|创建|帮我写).{0,10}(代码|程序|脚本|函数|类|class|def|function|模块|算法|组件|插件|plugin)",
         r"(修|改|修复|debug|调试|重构|优化).{0,5}(代码|bug|错误|问题)",
-        r"(code|python|javascript|java|rust|go|c\+\+|编程|import|from\s+\w+\s+import)",
-        r"(git|commit|push|pull|merge|branch|repo|github)",
-        r"(api|endpoint|route|controller|middleware|数据库|database|sql|query)",
+        r"(code|python|javascript|java|rust|go|c\+\+|编程|import\s|from\s+\w+\s+import|pip\s|npm\s|git\s|api\s)",
+        r"(git|commit|push|pull|merge|branch|repo|github|PR|pull request)",
+        r"(api|endpoint|route|controller|middleware|数据库|database|sql|query|docker|k8s|部署)",
     ],
     "analysis": [
-        r"(分析|计算|统计|评估|审计|审查|检查|review|audit|analy)",
+        r"(分析|计算|统计|评估|审查|检查|审计|review|audit|analy)",
         r"(数据|指标|性能|performance|benchmark|比较|对比|compare)",
         r"(多少钱|价格|成本|cost|利润|收入|revenue)",
         r"(报告|report|总结|summary|结论|conclusion)",
     ],
     "creative": [
-        r"(写|创作|生成).{0,5}(文章|故事|诗歌|blog|post|小说|剧本|文案)",
+        r"(写|创作|生成).{0,12}(文章|故事|诗歌|诗|blog|post|小说|剧本|文案|歌词|作曲)",
         r"(翻译|translate|改写|rewrite|润色|polish)",
         r"(创意|想法|idea|灵感|设计|design|头脑风暴|brainstorm)",
     ],
@@ -54,6 +54,11 @@ def classify_task(text: str) -> Tuple[str, float]:
     
     if not scores:
         return ("chat", 0.5)
+    
+    # Conflict resolution: creative > code (写诗 ≠ 写代码)
+    if "creative" in scores and "code" in scores:
+        if not re.search(r"(代码|程序|函数|脚本|class|def|function|module|api)", text_lower):
+            del scores["code"]
     
     best = max(scores, key=scores.get)
     return (best, scores[best])
