@@ -5,7 +5,7 @@ Bridges to semantic_index.py for vector search when numpy is available.
 
 Zero pip dependencies — Python stdlib only.
 """
-__all__ = ['logger', 'FileEntry', 'ScanResult', 'SearchResult', 'get_indexer', 'get_index']
+__all__ = ['logger', 'FileEntry', 'ScanResult', 'IndexSearchResult', 'get_indexer', 'get_index']
 
 
 import fnmatch
@@ -152,7 +152,7 @@ class ScanResult:
 
 
 @dataclass
-class SearchResult:
+class IndexSearchResult:
     """One search hit."""
     entry: FileEntry
     match_line: int = 0
@@ -325,12 +325,12 @@ class _Indexer:
                                 for i, line in enumerate(f, 1):
                                     if regex and regex.search(line):
                                         content = line.rstrip()
-                                        sr = SearchResult(entry=entry, match_line=i, match_content=content).to_dict()
+                                        sr = IndexSearchResult(entry=entry, match_line=i, match_content=content).to_dict()
                                         results.append(sr)
                                         break
                                     elif query and query.lower() in line.lower():
                                         content = line.rstrip()
-                                        sr = SearchResult(entry=entry, match_line=i, match_content=content).to_dict()
+                                        sr = IndexSearchResult(entry=entry, match_line=i, match_content=content).to_dict()
                                         results.append(sr)
                                         break
                             continue
@@ -338,7 +338,7 @@ class _Indexer:
                             pass
                     continue
 
-            results.append(SearchResult(entry=entry).to_dict())
+            results.append(IndexSearchResult(entry=entry).to_dict())
             if len(results) >= max_results:
                 break
 
