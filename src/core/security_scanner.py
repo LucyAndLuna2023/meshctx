@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 
-class Severity(Enum):
+class SecScannerSeverity(Enum):
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -27,7 +27,7 @@ class ScanModule(Enum):
 @dataclass
 class Finding:
     module: ScanModule = ScanModule.CODE_VULN
-    severity: Severity = Severity.INFO
+    severity: SecScannerSeverity = SecScannerSeverity.INFO
     title: str = ""
     description: str = ""
     file_path: str = ""
@@ -60,19 +60,19 @@ class ScanResult:
 
     @property
     def critical_count(self) -> int:
-        return sum(1 for f in self.findings if f.severity == Severity.CRITICAL)
+        return sum(1 for f in self.findings if f.severity == SecScannerSeverity.CRITICAL)
 
     @property
     def high_count(self) -> int:
-        return sum(1 for f in self.findings if f.severity == Severity.HIGH)
+        return sum(1 for f in self.findings if f.severity == SecScannerSeverity.HIGH)
 
     @property
     def medium_count(self) -> int:
-        return sum(1 for f in self.findings if f.severity == Severity.MEDIUM)
+        return sum(1 for f in self.findings if f.severity == SecScannerSeverity.MEDIUM)
 
     @property
     def low_count(self) -> int:
-        return sum(1 for f in self.findings if f.severity == Severity.LOW)
+        return sum(1 for f in self.findings if f.severity == SecScannerSeverity.LOW)
 
     def to_dict(self) -> dict:
         return {
@@ -116,7 +116,7 @@ class _VulnerabilityVisitor(ast.NodeVisitor):
             name = node.func.id
             if name == 'eval':
                 self.findings.append(Finding(
-                    module=ScanModule.CODE_VULN, severity=Severity.CRITICAL,
+                    module=ScanModule.CODE_VULN, severity=SecScannerSeverity.CRITICAL,
                     title="eval() 调用",
                     description="eval() has code injection risk",
                     file_path=self.file_path, line_number=node.lineno,
@@ -124,7 +124,7 @@ class _VulnerabilityVisitor(ast.NodeVisitor):
                 ))
             elif name == 'exec':
                 self.findings.append(Finding(
-                    module=ScanModule.CODE_VULN, severity=Severity.CRITICAL,
+                    module=ScanModule.CODE_VULN, severity=SecScannerSeverity.CRITICAL,
                     title="exec() 调用",
                     description="exec() has code injection risk",
                     file_path=self.file_path, line_number=node.lineno,
@@ -134,7 +134,7 @@ class _VulnerabilityVisitor(ast.NodeVisitor):
             if isinstance(node.func.value, ast.Name):
                 if node.func.value.id == 'pickle' and node.func.attr in ('load', 'loads'):
                     self.findings.append(Finding(
-                        module=ScanModule.CODE_VULN, severity=Severity.HIGH,
+                        module=ScanModule.CODE_VULN, severity=SecScannerSeverity.HIGH,
                         title="pickle deserialization",
                         description="Unsafe pickle deserialization",
                         file_path=self.file_path, line_number=node.lineno,
@@ -194,43 +194,43 @@ CVE_DATABASE = {
 # ── Code vulnerability patterns ───────────────────────────────
 
 CODE_PATTERNS = [
-    (re.compile(r'\beval\s*\('), "eval() usage", Severity.CRITICAL,
+    (re.compile(r'\beval\s*\('), "eval() usage", SecScannerSeverity.CRITICAL,
      "Avoid eval(); use safe alternatives"),
-    (re.compile(r'\bexec\s*\('), "exec() usage", Severity.CRITICAL,
+    (re.compile(r'\bexec\s*\('), "exec() usage", SecScannerSeverity.CRITICAL,
      "Avoid exec()"),
     (re.compile(r'PASSWORD\s*=\s*["\']', re.IGNORECASE), "Hardcoded secret",
-     Severity.HIGH, "Use environment variables for secrets"),
+     SecScannerSeverity.HIGH, "Use environment variables for secrets"),
     (re.compile(r'API_KEY\s*=\s*["\']', re.IGNORECASE), "Hardcoded secret",
-     Severity.HIGH, "Use environment variables for API keys"),
+     SecScannerSeverity.HIGH, "Use environment variables for API keys"),
     (re.compile(r'SECRET_KEY\s*=\s*["\']', re.IGNORECASE), "Hardcoded secret",
-     Severity.HIGH, "Use environment variables for secret keys"),
+     SecScannerSeverity.HIGH, "Use environment variables for secret keys"),
     (re.compile(r'\bpickle\.(load|loads)\s*\('), "pickle deserialization",
-     Severity.HIGH, "Avoid pickle for untrusted data"),
+     SecScannerSeverity.HIGH, "Avoid pickle for untrusted data"),
     (re.compile(r'yaml\.load\s*\([^)]*\)'), "Unsafe YAML loading",
-     Severity.HIGH, "Use yaml.safe_load() instead"),
+     SecScannerSeverity.HIGH, "Use yaml.safe_load() instead"),
     (re.compile(r'\bos\.system\s*\(.*f["\']'), "os.system() with f-string",
-     Severity.HIGH, "Use subprocess.run() with shell=False"),
+     SecScannerSeverity.HIGH, "Use subprocess.run() with shell=False"),
 ]
 
 # ── Config audit patterns ─────────────────────────────────────
 
 CONFIG_PATTERNS = [
     (re.compile(r'(?i)DEBUG\s*=\s*(?:1|True|true|yes|on)'), "DEBUG enabled",
-     Severity.HIGH, "Disable DEBUG in production"),
+     SecScannerSeverity.HIGH, "Disable DEBUG in production"),
     (re.compile(r'(?i)SECRET_KEY\s*=\s*["\'][^"\']{1,20}["\']'), "Weak SECRET_KEY",
-     Severity.HIGH, "Use a strong random SECRET_KEY"),
+     SecScannerSeverity.HIGH, "Use a strong random SECRET_KEY"),
     (re.compile(r'(?i)ALLOWED_HOSTS\s*=\s*\[.*\*.*\]'), "Wildcard ALLOWED_HOSTS",
-     Severity.MEDIUM, "Restrict ALLOWED_HOSTS"),
+     SecScannerSeverity.MEDIUM, "Restrict ALLOWED_HOSTS"),
     (re.compile(r'(?i)CORS_ALLOW_ALL_ORIGINS\s*=\s*(?:1|True|true)'), "CORS wildcard",
-     Severity.MEDIUM, "Restrict CORS origins"),
+     SecScannerSeverity.MEDIUM, "Restrict CORS origins"),
     (re.compile(r'(?i)DATABASE_URL\s*=\s*["\']?[^"\']*://[^:]+:[^@]+@'), "Hardcoded DB credentials",
-     Severity.HIGH, "Use environment variables for database credentials"),
+     SecScannerSeverity.HIGH, "Use environment variables for database credentials"),
     (re.compile(r'(?i)CSRF_COOKIE_SECURE\s*=\s*False'), "Insecure CSRF cookie",
-     Severity.MEDIUM, "Set CSRF_COOKIE_SECURE=True"),
+     SecScannerSeverity.MEDIUM, "Set CSRF_COOKIE_SECURE=True"),
     (re.compile(r'(?i)SESSION_COOKIE_SECURE\s*=\s*False'), "Insecure session cookie",
-     Severity.MEDIUM, "Set SESSION_COOKIE_SECURE=True"),
+     SecScannerSeverity.MEDIUM, "Set SESSION_COOKIE_SECURE=True"),
     (re.compile(r'(?i)LOG_LEVEL\s*=\s*["\']?DEBUG["\']?'), "DEBUG log level",
-     Severity.LOW, "Set LOG_LEVEL above DEBUG in production"),
+     SecScannerSeverity.LOW, "Set LOG_LEVEL above DEBUG in production"),
 ]
 
 
@@ -310,7 +310,7 @@ class SecurityScanner:
                     if _version_in_range(ver, range_spec):
                         title = f"{pkg.capitalize()} {ver} (CVE: {cve_id})"
                         findings.append(Finding(
-                            module=ScanModule.DEPENDENCIES, severity=Severity.HIGH,
+                            module=ScanModule.DEPENDENCIES, severity=SecScannerSeverity.HIGH,
                             title=title,
                             description=f"{pkg}=={ver} is affected by {cve_id} (affected: {range_spec})",
                             cve_id=cve_id,
@@ -354,7 +354,7 @@ class SecurityScanner:
         for r in report.results:
             report.all_findings.extend(r.findings)
         # Score calculation
-        penalty_map = {Severity.CRITICAL: 15, Severity.HIGH: 8, Severity.MEDIUM: 3, Severity.LOW: 1, Severity.INFO: 0}
+        penalty_map = {SecScannerSeverity.CRITICAL: 15, SecScannerSeverity.HIGH: 8, SecScannerSeverity.MEDIUM: 3, SecScannerSeverity.LOW: 1, SecScannerSeverity.INFO: 0}
         penalty = sum(penalty_map.get(f.severity, 0) for f in report.all_findings)
         report.score = max(0, 100 - penalty)
         if report.score >= 90:
