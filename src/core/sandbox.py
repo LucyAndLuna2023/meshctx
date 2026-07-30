@@ -409,6 +409,14 @@ exit_code = 0
 error_info = ""
 
 try:
+    # Security: log all sandbox executions for audit trail
+    logger.warning("Sandbox exec: %s chars of code", len(code))
+    # Validate code before execution
+    _dangerous = ['__import__', 'eval(', 'exec(', 'compile(', 'open(', 'os.', 'subprocess', 'shutil', 'sys.']
+    for _pat in _dangerous:
+        if _pat in code:
+            logger.critical("Sandbox blocked dangerous pattern: %s", _pat)
+            raise ValueError(f"Dangerous code pattern detected: {_pat}")
     exec(compile({code!r}, '<sandbox>', 'exec'), safe_builtins)
 except SystemExit as e:
     exit_code = e.code if isinstance(e.code, int) else 1
