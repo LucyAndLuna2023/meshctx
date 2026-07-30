@@ -73,7 +73,7 @@ class PluginBase(ABC):
         return f"Plugin({self.name} v{self.version})"
 
 
-class PluginManager:
+class SystemPluginManager:
     """插件管理器 — 负责注册、加载、调度"""
 
     def __init__(self, plugin_dir: Optional[str] = None):
@@ -343,13 +343,13 @@ class LoggingPlugin(PluginBase):
 
 
 # 全局单例
-_plugin_manager: Optional[PluginManager] = None
+_plugin_manager: Optional[SystemPluginManager] = None
 
 
-def get_plugin_manager(plugin_dir: str = None) -> PluginManager:
+def get_plugin_manager(plugin_dir: str = None) -> SystemPluginManager:
     global _plugin_manager
     if _plugin_manager is None:
-        _plugin_manager = PluginManager(plugin_dir)
+        _plugin_manager = SystemPluginManager(plugin_dir)
         # 注册内置插件
         _plugin_manager.register(ImportanceFilterPlugin)
         _plugin_manager.register(DeduplicationPlugin)
