@@ -6,6 +6,8 @@ import json
 import re
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+import logging
+logger = logging.getLogger(__name__)
 
 # 百炼 API 配置（从 .env 读取，回退到内置key）
 BAILIAN_API_KEY = os.environ.get("BAILIAN_API_KEY", "")
@@ -71,23 +73,23 @@ class LLMExtractor:
         # 尝试直接解析
         try:
             return json.loads(text)
-        except:
-            pass
+        except Exception as _e:
+            logger.exception("Unexpected error: %s", _e)
         # 尝试提取代码块中的JSON
         m = re.search(r'```(?:json)?\s*(\[.*?\])\s*```', text, re.DOTALL)
         if m:
             try:
                 return json.loads(m.group(1))
-            except:
-                pass
+            except Exception as _e:
+                logger.exception("Unexpected error: %s", _e)
         # 尝试找到第一个[和最后一个]
         start = text.find('[')
         end = text.rfind(']') + 1
         if start >= 0 and end > start:
             try:
                 return json.loads(text[start:end])
-            except:
-                pass
+            except Exception as _e:
+                logger.exception("Unexpected error: %s", _e)
         return []
 
     def generate_summary(self, messages: List[Dict]) -> str:

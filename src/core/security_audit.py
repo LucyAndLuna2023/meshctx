@@ -534,7 +534,7 @@ class SecurityAuditor:
 import enum as _enum
 
 
-class Severity(_enum.Enum):
+class SecuritySeverity(_enum.Enum):
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -545,7 +545,7 @@ class Severity(_enum.Enum):
 class SecurityEvent:
     """A single security event finding."""
 
-    def __init__(self, category: str, severity: Severity, description: str = "",
+    def __init__(self, category: str, severity: SecuritySeverity, description: str = "",
                  evidence: str = ""):
         self.category = category
         self.severity = severity
@@ -558,25 +558,25 @@ class SecurityAuditEngine:
 
     # Dangerous command patterns
     _CMD_PATTERNS = [
-        (["rm -rf /", "rm -rf", "del /f /s"], "dangerous_delete", Severity.CRITICAL),
-        (["sudo ", "chmod 777", "chown "], "privilege_escalation", Severity.HIGH),
-        (["wget ", "curl "], "data_exfil", Severity.MEDIUM),
-        (["/etc/passwd", "/etc/shadow"], "system_file_access", Severity.CRITICAL),
+        (["rm -rf /", "rm -rf", "del /f /s"], "dangerous_delete", SecuritySeverity.CRITICAL),
+        (["sudo ", "chmod 777", "chown "], "privilege_escalation", SecuritySeverity.HIGH),
+        (["wget ", "curl "], "data_exfil", SecuritySeverity.MEDIUM),
+        (["/etc/passwd", "/etc/shadow"], "system_file_access", SecuritySeverity.CRITICAL),
     ]
 
     # Credential patterns
     _CRED_PATTERNS = [
-        (r"api_key\s*[:=]\s*['\"]", "credential_leak", Severity.CRITICAL),
-        (r"sk-[a-zA-Z0-9]{20,}", "credential_leak", Severity.CRITICAL),
-        (r"ghp_[a-zA-Z0-9]{20,}", "credential_leak", Severity.CRITICAL),
-        (r"password\s*[:=]\s*['\"]", "credential_leak", Severity.HIGH),
+        (r"api_key\s*[:=]\s*['\"]", "credential_leak", SecuritySeverity.CRITICAL),
+        (r"sk-[a-zA-Z0-9]{20,}", "credential_leak", SecuritySeverity.CRITICAL),
+        (r"ghp_[a-zA-Z0-9]{20,}", "credential_leak", SecuritySeverity.CRITICAL),
+        (r"password\s*[:=]\s*['\"]", "credential_leak", SecuritySeverity.HIGH),
     ]
 
     # Injection patterns
     _INJECTION_PATTERNS = [
-        (r"eval\s*\(.*\$\(.*curl", "cmd_injection", Severity.CRITICAL),
-        (r"eval\s*\(.*curl", "cmd_injection", Severity.CRITICAL),
-        (r"sudo\s+rm\s+-rf", "cmd_injection", Severity.CRITICAL),
+        (r"eval\s*\(.*\$\(.*curl", "cmd_injection", SecuritySeverity.CRITICAL),
+        (r"eval\s*\(.*curl", "cmd_injection", SecuritySeverity.CRITICAL),
+        (r"sudo\s+rm\s+-rf", "cmd_injection", SecuritySeverity.CRITICAL),
     ]
 
     def __init__(self):
@@ -608,7 +608,7 @@ class SecurityAuditEngine:
         # Check sudo
         if "sudo " in text:
             events.append(SecurityEvent(
-                category="privilege_escalation", severity=Severity.HIGH,
+                category="privilege_escalation", severity=SecuritySeverity.HIGH,
                 description="Sudo command detected",
                 evidence=text[:80],
             ))
