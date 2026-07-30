@@ -80,7 +80,7 @@ class ReviewQuality(Enum):
 
 
 @dataclass
-class MemoryItem:
+class EbbinghausItem:
     """A single item tracked by the spaced repetition system.
 
     Tracks stability, difficulty, and review history for optimal scheduling.
@@ -203,7 +203,7 @@ class EbbinghausForgetting:
         self.power_law_beta = power_law_beta
 
         # Item store
-        self._items: Dict[str, MemoryItem] = {}
+        self._items: Dict[str, EbbinghausItem] = {}
 
         # Leitner boxes
         self._leitner_boxes: List[LeitnerBox] = []
@@ -393,7 +393,7 @@ class EbbinghausForgetting:
         # Get or create item
         item = self._items.get(item_id)
         if item is None:
-            item = MemoryItem(item_id=item_id)
+            item = EbbinghausItem(item_id=item_id)
             if item_data:
                 item.stability = item_data.get("stability", self.default_stability)
                 item.difficulty = item_data.get("difficulty", 0.3)
@@ -451,7 +451,7 @@ class EbbinghausForgetting:
             scheduled_days=new_interval,
         )
 
-    def get_item(self, item_id: str) -> Optional[MemoryItem]:
+    def get_item(self, item_id: str) -> Optional[EbbinghausItem]:
         """Retrieve a tracked memory item by ID."""
         return self._items.get(item_id)
 
