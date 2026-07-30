@@ -680,6 +680,50 @@ class DefaultModeNetwork:
         """Activate or deactivate DMN (task-positive vs default mode)."""
         self._default_mode_active = active
 
+    def curiosity_drive(self, topic: str = "", max_questions: int = 5) -> List[str]:
+        """v3.115.44: Curiosity-driven question generation.
+        
+        Generates exploratory questions based on knowledge gaps and novelty seeking.
+        Higher curiosity trait → more diverse questions.
+        """
+        curiosity = self.self_engine.model.traits.get('curiosity', 0.5)
+        questions = []
+        
+        # Gap-based: what don't we know about this topic?
+        known = [m.content for m in self.memory_store.memories 
+                if topic.lower() in m.content.lower()][:3]
+        if not known and topic:
+            questions.append(f"What is the fundamental nature of '{topic}'?")
+            questions.append(f"How does '{topic}' connect to other domains?")
+        
+        # Novelty-based: what haven't we explored?
+        if self.self_engine.model.traits.get('creativity', 0.5) > 0.5:
+            questions.append(f"What unconventional approach could transform '{topic}'?")
+        
+        # Depth-based: go deeper
+        if curiosity > 0.6:
+            questions.append(f"What are the deeper implications of '{topic}' that aren't obvious?")
+            questions.append(f"If we reversed our assumptions about '{topic}', what emerges?")
+        
+        # Cross-domain: connect unrelated ideas
+        all_topics = set()
+        for m in self.memory_store.memories[-10:]:
+            for w in m.content.split():
+                if len(w) > 4: all_topics.add(w.lower())
+        if len(all_topics) > 3:
+            sample = list(all_topics)[:3]
+            questions.append(f"How might '{topic}' relate to {', '.join(sample)}?")
+        
+        # Ensure minimum questions
+        if not questions:
+            questions = [
+                f"What do I not yet understand about this?",
+                f"What would a breakthrough look like?",
+                f"What assumptions am I making?",
+            ]
+        
+        return questions[:max_questions]
+
     @staticmethod
     def _infer_lifetime_period(content: str) -> str:
         """Heuristic inference of lifetime period from content context."""
