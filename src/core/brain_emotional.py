@@ -61,7 +61,7 @@ class EmotionalTag:
 
 
 @dataclass
-class MemoryItem:
+class EmotionalEmotionalMemoryItem:
     """A memory item tagged for emotional consolidation."""
     id: str
     content: str
@@ -266,8 +266,8 @@ class SleepConsolidator:
         self.theta_power: float = 0.5         # theta power during REM
         self._sleep_history: List[Dict] = []
 
-    def consolidate_sws(self, memories: List[MemoryItem],
-                         consolidation_rate: float = 0.05) -> List[MemoryItem]:
+    def consolidate_sws(self, memories: List[EmotionalEmotionalMemoryItem],
+                         consolidation_rate: float = 0.05) -> List[EmotionalEmotionalMemoryItem]:
         """
         SWS consolidation: hippocampal → neocortical transfer.
         Prioritizes high-arousal tagged memories.
@@ -303,8 +303,8 @@ class SleepConsolidator:
         })
         return memories
 
-    def consolidate_rem(self, memories: List[MemoryItem],
-                         plasticity_rate: float = 0.03) -> List[MemoryItem]:
+    def consolidate_rem(self, memories: List[EmotionalEmotionalMemoryItem],
+                         plasticity_rate: float = 0.03) -> List[EmotionalEmotionalMemoryItem]:
         """
         REM consolidation: synaptic plasticity strengthening.
         Emotional memories get extra strengthening.
@@ -337,9 +337,9 @@ class SleepConsolidator:
         })
         return memories
 
-    def sleep_cycle(self, memories: List[MemoryItem],
+    def sleep_cycle(self, memories: List[EmotionalEmotionalMemoryItem],
                     consolidation_rate: float = 0.05,
-                    plasticity_rate: float = 0.03) -> List[MemoryItem]:
+                    plasticity_rate: float = 0.03) -> List[EmotionalEmotionalMemoryItem]:
         """Run one full sleep cycle: SWS → REM."""
         for cycle in range(self.n_cycles):
             # Early cycles: more SWS; later cycles: more REM (Born et al., 2006)
@@ -375,13 +375,13 @@ class EmotionalConsolidation:
         self.detector = ValenceArousalDetector()
         self.ne_modulator = NoradrenergicModulator()
         self.sleep_consolidator = SleepConsolidator()
-        self.memories: List[MemoryItem] = []
+        self.memories: List[EmotionalEmotionalMemoryItem] = []
         self._tag_history: List[EmotionalTag] = []
         self._consolidation_epoch: int = 0
         self._rng = np.random.RandomState(42)
 
     def tag_experience(self, content: str,
-                        embedding: Optional[np.ndarray] = None) -> MemoryItem:
+                        embedding: Optional[np.ndarray] = None) -> EmotionalMemoryItem:
         """Tag a new experience with emotional metadata and register it."""
         tag = self.detector.tag_text(content)
 
@@ -394,7 +394,7 @@ class EmotionalConsolidation:
             f"{content}:{time.time()}:{len(self.memories)}".encode()
         ).hexdigest()[:12]
 
-        item = MemoryItem(
+        item = EmotionalEmotionalMemoryItem(
             id=mem_id,
             content=content,
             embedding=embedding,
@@ -488,7 +488,7 @@ class EmotionalConsolidation:
             return 'neutral'
         return 'neutral'
 
-    def get_priority_queue(self, top_k: int = 10) -> List[MemoryItem]:
+    def get_priority_queue(self, top_k: int = 10) -> List[EmotionalEmotionalMemoryItem]:
         """Return top-k memories by consolidation priority."""
         for m in self.memories:
             m.compute_priority()
