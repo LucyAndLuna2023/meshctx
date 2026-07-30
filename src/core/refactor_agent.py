@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import Any, Iterator
 
 
-class Severity(Enum):
+class RefactorSeverity(Enum):
     INFO = auto(); LOW = auto(); MEDIUM = auto(); HIGH = auto(); CRITICAL = auto()
 
 class Effort(Enum):
@@ -59,7 +59,7 @@ class CodeLocation:
 
 @dataclass(frozen=True)
 class RefactorSuggestion:
-    severity: Severity
+    severity: RefactorSeverity
     kind: RefactorKind
     location: CodeLocation
     description: str
@@ -661,19 +661,19 @@ class ComplexityReducer:
         loc = CodeLocation(file=report.file, line=report.line, col=0)
         rn = report.name
         rules = [
-            (report.line_count, self.max_lines, Severity.MEDIUM, RefactorKind.EXTRACT_METHOD,
+            (report.line_count, self.max_lines, RefactorSeverity.MEDIUM, RefactorKind.EXTRACT_METHOD,
              Effort.MODERATE, Impact.HIGH, "C001-long",
              f"'{rn}' {report.line_count} lines (>{self.max_lines}). Extract helpers."),
-            (report.cyclomatic, self.max_cyclomatic, Severity.HIGH, RefactorKind.SIMPLIFY,
+            (report.cyclomatic, self.max_cyclomatic, RefactorSeverity.HIGH, RefactorKind.SIMPLIFY,
              Effort.MODERATE, Impact.HIGH, "C002-cyclo",
              f"'{rn}' cyclomatic={report.cyclomatic} (>{self.max_cyclomatic}). Split."),
-            (report.nesting_depth, self.max_nesting, Severity.MEDIUM, RefactorKind.SIMPLIFY,
+            (report.nesting_depth, self.max_nesting, RefactorSeverity.MEDIUM, RefactorKind.SIMPLIFY,
              Effort.SMALL, Impact.MEDIUM, "C003-nest",
              f"'{rn}' nesting={report.nesting_depth} (>{self.max_nesting}). Flatten."),
-            (report.n_params, self.max_params, Severity.LOW, RefactorKind.SIMPLIFY,
+            (report.n_params, self.max_params, RefactorSeverity.LOW, RefactorKind.SIMPLIFY,
              Effort.MODERATE, Impact.MEDIUM, "C004-params",
              f"'{rn}' {report.n_params} params (>{self.max_params}). Group into class."),
-            (report.n_locals, self.max_locals, Severity.LOW, RefactorKind.EXTRACT_METHOD,
+            (report.n_locals, self.max_locals, RefactorSeverity.LOW, RefactorKind.EXTRACT_METHOD,
              Effort.MODERATE, Impact.MEDIUM, "C005-locals",
              f"'{rn}' {report.n_locals} locals (>{self.max_locals}). Extract."),
         ]
@@ -796,7 +796,7 @@ class ExtractMethod:
         )
 
         return RefactorSuggestion(
-            severity=Severity.LOW, kind=RefactorKind.EXTRACT_METHOD,
+            severity=RefactorSeverity.LOW, kind=RefactorKind.EXTRACT_METHOD,
             location=CodeLocation(file=fpath, line=start_line, col=0,
                                    end_line=end_line, end_col=0),
             rule_id="E001-extractable-block",
@@ -897,7 +897,7 @@ class RefactorAgent:
 
         if enabled.get(RefactorKind.DUPLICATE, False):
             for group in self._duplicates.detect(self._root):
-                sev = Severity.MEDIUM if group.similarity >= 0.95 else Severity.LOW
+                sev = RefactorSeverity.MEDIUM if group.similarity >= 0.95 else RefactorSeverity.LOW
                 imp = Impact.HIGH if group.similarity >= 0.95 else Impact.MEDIUM
                 ctx = (tuple(group.normalized_source.splitlines()[:6])
                        if group.normalized_source else ())
@@ -933,7 +933,7 @@ class RefactorAgent:
                                     cross_file=cross_file, dry_run=dry_run)
 
     def summarize(self, suggestions: list[RefactorSuggestion],
-                  *, min_severity: Severity = Severity.INFO) -> list[str]:
+                  *, min_severity: RefactorSeverity = RefactorSeverity.INFO) -> list[str]:
         flt = [s for s in suggestions if s.severity.value >= min_severity.value]
         sc, kc = Counter(s.severity for s in flt), Counter(s.kind for s in flt)
         return [
@@ -941,12 +941,12 @@ class RefactorAgent:
             f"  Files scanned: {len(self._renamer._trees)}",
             f"  Suggestions:   {len(flt)} total",
             "  By severity:",
-        ] + [f"    {s.name:<10} {sc[s]}" for s in Severity if sc[s]] + [
+        ] + [f"    {s.name:<10} {sc[s]}" for s in RefactorSeverity if sc[s]] + [
             "  By kind:",
         ] + [f"    {k.name:<18} {kc[k]}" for k in RefactorKind if kc[k]]
 
     def report(self, suggestions: list[RefactorSuggestion],
-               *, min_severity: Severity = Severity.INFO,
+               *, min_severity: RefactorSeverity = RefactorSeverity.INFO,
                max_items: int = 50) -> str:
         flt = [s for s in suggestions if s.severity.value >= min_severity.value]
         parts = self.summarize(flt, min_severity=min_severity)
