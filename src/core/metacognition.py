@@ -3,7 +3,7 @@ meshctx Meta-Cognition Loop — full implementation (v3.115.16)
 Self-evaluation → pattern extraction → knowledge graph update → behavior adjustment.
 Implements the core "gets smarter every time" claim from meshctx.com.
 """
-__all__ = ['TaskStatus', 'Strategy', 'LearnedPattern', 'MetaEvaluation', 'MetaCognitionEngine', 'get_meta_cognition']
+__all__ = ['MetaTaskStatus', 'Strategy', 'LearnedPattern', 'MetaEvaluation', 'MetaCognitionEngine', 'get_meta_cognition']
 
 from dataclasses import dataclass, field
 from enum import Enum
@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import json
 import time
 
-class TaskStatus(str, Enum):
+class MetaTaskStatus(str, Enum):
     PENDING = "pending"
     RUNNING = "running"
     SUCCESS = "success"
@@ -54,7 +54,7 @@ class MetaEvaluation:
     """Result of a meta-cognition evaluation cycle."""
     task_id: str
     task_description: str
-    status: TaskStatus
+    status: MetaTaskStatus
     duration_ms: float
     patterns_matched: List[str] = field(default_factory=list)
     patterns_learned: List[str] = field(default_factory=list)
@@ -85,7 +85,7 @@ class MetaCognitionEngine:
         self._pattern_id_counter = 0
     
     def evaluate(self, task_id: str, task_description: str,
-                 status: TaskStatus, duration_ms: float,
+                 status: MetaTaskStatus, duration_ms: float,
                  strategy_used: Strategy = None,
                  error_message: str = None,
                  tool_calls: List[str] = None) -> MetaEvaluation:
@@ -127,7 +127,7 @@ class MetaCognitionEngine:
                 if pid in self.patterns:
                     p = self.patterns[pid]
                     p.last_seen = time.time()
-                    if status == TaskStatus.SUCCESS:
+                    if status == MetaTaskStatus.SUCCESS:
                         p.success_count += 1
                     else:
                         p.failure_count += 1
@@ -139,24 +139,24 @@ class MetaCognitionEngine:
             
             return evaluation
     
-    def _self_evaluate(self, description: str, status: TaskStatus,
+    def _self_evaluate(self, description: str, status: MetaTaskStatus,
                        duration_ms: float, error: str) -> List[str]:
         """Generate self-evaluation insights."""
         insights = []
         
-        if status == TaskStatus.SUCCESS:
+        if status == MetaTaskStatus.SUCCESS:
             insights.append(f"Task completed successfully in {duration_ms:.0f}ms")
             if duration_ms < 1000:
                 insights.append("Task was fast — consider batching with similar tasks")
             elif duration_ms > 30000:
                 insights.append("Task was slow — consider decomposition for parallel execution")
-        elif status == TaskStatus.FAILED:
+        elif status == MetaTaskStatus.FAILED:
             insights.append(f"Task failed: {error or 'unknown error'}")
             if error and "timeout" in error.lower():
                 insights.append("Timeout detected — increase timeout or split task")
             if error and "permission" in error.lower():
                 insights.append("Permission error — check access rights")
-        elif status == TaskStatus.PARTIAL:
+        elif status == MetaTaskStatus.PARTIAL:
             insights.append("Task partially completed — review partial results")
         
         return insights
@@ -178,13 +178,13 @@ class MetaCognitionEngine:
         return matched
     
     def _learn_from_outcome(self, description: str, keywords: List[str],
-                            status: TaskStatus, strategy: Strategy,
+                            status: MetaTaskStatus, strategy: Strategy,
                             duration_ms: float, error: str) -> List[LearnedPattern]:
         """Learn new patterns from task outcome."""
         new_patterns = []
         
         # Create new pattern for novel keyword combinations
-        if keywords and status == TaskStatus.SUCCESS:
+        if keywords and status == MetaTaskStatus.SUCCESS:
             existing_triggers = set()
             for p in self.patterns.values():
                 existing_triggers.update(p.trigger_keywords)
@@ -204,7 +204,7 @@ class MetaCognitionEngine:
                 new_patterns.append(pattern)
         
         # Update failure reasons
-        if status == TaskStatus.FAILED and error:
+        if status == MetaTaskStatus.FAILED and error:
             for pid in self._match_patterns(keywords):
                 if pid in self.patterns:
                     reason = error[:100]
@@ -213,12 +213,12 @@ class MetaCognitionEngine:
         
         return new_patterns
     
-    def _adjust_strategies(self, status: TaskStatus, strategy: Strategy,
+    def _adjust_strategies(self, status: MetaTaskStatus, strategy: Strategy,
                           duration_ms: float) -> List[str]:
         """Adjust strategy confidence scores based on outcome."""
         suggestions = []
         
-        if status == TaskStatus.SUCCESS and strategy:
+        if status == MetaTaskStatus.SUCCESS and strategy:
             # Boost successful strategy
             self.strategy_scores[strategy] = min(
                 1.0, self.strategy_scores[strategy] + 0.05
@@ -228,7 +228,7 @@ class MetaCognitionEngine:
                 if s != strategy:
                     self.strategy_scores[s] = max(0.1, self.strategy_scores[s] - 0.01)
         
-        elif status == TaskStatus.FAILED and strategy:
+        elif status == MetaTaskStatus.FAILED and strategy:
             # Penalize failed strategy
             self.strategy_scores[strategy] = max(0.1, self.strategy_scores[strategy] - 0.1)
             # Suggest alternatives
