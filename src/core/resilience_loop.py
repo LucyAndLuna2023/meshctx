@@ -12,7 +12,7 @@ class CircuitState(Enum):
     HALF_OPEN = "half_open"
 
 
-class CircuitBreaker:
+class ResilienceBreaker:
     def __init__(self, name: str = "default", failure_threshold: int = 5,
                  recovery_timeout: float = 60.0):
         self.name = name

@@ -5,6 +5,8 @@ meshctx 统一模型适配器
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 import os
+import logging
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -92,8 +94,8 @@ class ModelAdapter:
                 for tc in choice.message.tool_calls:
                     try:
                         args = json.loads(tc.function.arguments)
-                    except:
-                        args = {}
+                    except Exception as _e:
+                        logger.exception("Unexpected error: %s", _e)
                     tool_calls.append({"id": tc.id, "name": tc.function.name, "arguments": args})
 
             return ModelResponse(
@@ -171,8 +173,8 @@ class ModelAdapter:
                 tc = tool_calls_acc[idx]
                 try:
                     args = json.loads(tc["args_str"])
-                except:
-                    args = {}
+                except Exception as _e:
+                    logger.exception("Unexpected error: %s", _e)
                 parsed_tools.append({"id": tc["id"], "name": tc["name"], "arguments": args})
 
             # Yield tool calls as a special marker at end
@@ -202,8 +204,8 @@ class ModelAdapter:
                 if text.startswith("json"):
                     text = text[4:]
             return json.loads(text)
-        except:
-            return []
+        except Exception as _e:
+            logger.exception("Unexpected error: %s", _e)
 
     def generate_skill(self, task_pattern: Dict) -> Optional[Dict]:
         """从成功模式生成 Skill 定义"""
@@ -235,8 +237,8 @@ class ModelAdapter:
                 if text.startswith("json"):
                     text = text[4:]
             return json.loads(text)
-        except:
-            return None
+        except Exception as _e:
+            logger.exception("Unexpected error: %s", _e)
 
     @property
     def is_ready(self) -> bool:
