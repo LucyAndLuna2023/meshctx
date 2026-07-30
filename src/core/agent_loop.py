@@ -2,10 +2,13 @@
 
 import time
 import uuid
+import logging
 from dataclasses import dataclass, field
 from typing import Optional
 
 from .agent_swarm import AgentPool, SwarmTask, TaskStatus, get_agent_pool
+
+logger = logging.getLogger(__name__)
 
 
 class PluginInfo:
@@ -103,47 +106,35 @@ class AgentLoopPlugin:
 
     def plan(self) -> dict:
         if not self.steps and self.objective:
-            # v3.115.43: DAG-based task planning
             self.steps = self._dag_plan(self.objective)
             self._current_step_idx = 0
             return {"summary": f"DAG planned {len(self.steps)} steps",
                     "steps": [s.description for s in self.steps],
                     "total_steps": len(self.steps)}
+        pending = self._pending_steps()
+        return {"summary": f"{pending} steps pending",
+                "steps": [s.description for s in self.steps if s.status == "pending"],
+                "total_steps": pending}
 
     def _dag_plan(self, objective: str) -> list:
         """DAG-aware task decomposition — dependencies, parallel groups."""
-        # Try real task_planner first
-        try:
-            from .workflow import WorkflowEngine
-            engine = WorkflowEngine()
-            dag = engine.build_dag(objective)
-            steps = []
-            for node_id, node in dag.get("nodes", {}).items():
-                steps.append(PlanStep(
-                    description=node.get("description", node_id),
-                    step_id=node_id,
-                ))
-            if steps:
-                logger.info(f"DAG plan: {len(steps)} nodes")
-                return steps
-        except Exception as e:
-            logger.debug(f"DAG planner skipped: {e}")
-
-        # Fallback: smart decomposition with dependencies
+        # Smart phase-based decomposition with dependency ordering
         phases = [
-            ("gather", "Gather context and requirements"),
-            ("analyze", "Analyze and break down problem"),
-            ("design", "Design solution approach"),
-            ("execute", "Execute implementation"),
-            ("verify", "Verify and validate results"),
-            ("deliver", "Deliver final output"),
+            ("gather", "Gather context and requirements", []),
+            ("analyze", "Analyze and break down problem", ["gather"]),
+            ("design", "Design solution approach", ["analyze"]),
+            ("execute", "Execute implementation", ["design"]),
+            ("verify", "Verify and validate results", ["execute"]),
+            ("deliver", "Deliver final output", ["verify"]),
         ]
         steps = []
-        for pid, desc in phases:
+        for pid, desc, deps in phases:
+            dep_str = f" (needs: {','.join(deps)})" if deps else ""
             steps.append(PlanStep(
-                description=f"[{pid}] {desc}: {objective[:60]}",
+                description=f"[{pid}]{dep_str} {desc}: {objective[:60]}",
                 step_id=f"{pid}_{len(steps)}",
             ))
+        logger.info(f"DAG plan: {len(steps)} phases with dependencies")
         return steps
 
     def _pending_steps(self) -> int:
@@ -251,9 +242,6 @@ class AgentLoopPlugin:
             if kw in desc:
                 return tt
         return "general"
-
-    def _pending_steps(self) -> int:
-        return sum(1 for s in self.steps if s.status == "pending")
 
     def _release_pool(self):
         if self._pool:
