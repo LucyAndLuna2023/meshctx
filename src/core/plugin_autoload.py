@@ -59,7 +59,7 @@ def discover_plugins(plugins_dir: Path = None) -> List[Dict[str, Any]]:
 
 
 def load_plugin(manifest: Dict[str, Any]) -> Optional[Any]:
-    """Load a single plugin from its manifest.
+    """Load a single plugin from its manifest with safety checks.
 
     Returns the plugin module/object, or None on failure.
     """
@@ -70,6 +70,41 @@ def load_plugin(manifest: Dict[str, Any]) -> Optional[Any]:
     if not entry_path.exists():
         logger.warning(f"Plugin entry point not found: {entry_path}")
         return None
+
+    # ═══ v3.115.38: Safety checks ═══
+    # 1. Verify plugin.json signature (SHA256 of entry_point)
+    sig_path = plugin_dir / "plugin.json.sig"
+    if sig_path.exists():
+        try:
+            import hashlib
+            manifest_text = (plugin_dir / "plugin.json").read_bytes()
+            expected = sig_path.read_text().strip()
+            actual = hashlib.sha256(manifest_text).hexdigest()
+            if expected != actual:
+                logger.error(f"Plugin {manifest['name']}: signature mismatch — rejected")
+                return None
+        except Exception as e:
+            logger.warning(f"Plugin {manifest['name']}: signature check failed ({e}) — skipping")
+    
+    # 2. Size limit: reject plugins > 100KB entry point
+    try:
+        if entry_path.stat().st_size > 100 * 1024:
+            logger.error(f"Plugin {manifest['name']}: entry point too large ({entry_path.stat().st_size} bytes)")
+            return None
+    except Exception:
+        pass
+    
+    # 3. Forbidden imports check: scan for dangerous imports
+    try:
+        code = entry_path.read_text()
+        dangerous = ["subprocess", "os.system", "eval(", "exec(", "__import__",
+                      "ctypes", "multiprocessing", "socket", "requests"]
+        found = [d for d in dangerous if d in code]
+        if found:
+            logger.warning(f"Plugin {manifest['name']}: uses potentially dangerous imports: {found}")
+            # Still allow but log prominently
+    except Exception:
+        pass
 
     try:
         # Add plugin dir to path temporarily

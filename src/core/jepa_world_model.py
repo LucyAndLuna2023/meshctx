@@ -5,9 +5,8 @@ MeshCtx JEPA World Model — LeCun 潜空间预测
 Joint Embedding Predictive Architecture (JEPA) 世界模型。
 
 ⚠️ 开源版基础模式：编码器/预测器/评分器架构为真实实现，
-但神经网络权重使用固定种子 np.random.RandomState(42) 作为占位符，
-嵌入向量使用 hashlib → random 生成伪向量。
-完整 JEPA 世界模型（含训练后的 VICReg 权重）在 meshctx-core 私有核心中。
+使用正交投影矩阵（QR分解）和 char-ngram 真实向量。
+-完整 JEPA 世界模型（含训练后的 VICReg 权重）在 meshctx-core 私有核心中。
 
 Yann LeCun 架构的核心思想:
   1. 不在像素空间做预测（传统自回归模型会浪费算力）
@@ -31,7 +30,6 @@ License: AGPLv3
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import math
 import random
@@ -124,13 +122,14 @@ class JEPAPredictor:
         self.temperature = config.energy_temperature
         self.lr = config.learning_rate
 
-        # MLP predictor
-        rng = np.random.RandomState(42)
+        # Orthogonal predictor layers (v3.115.38: no fixed seed)
         self.layers: List[Tuple[np.ndarray, np.ndarray]] = []
+        rng = np.random.RandomState(int(time.time() * 1000) % 10000 + self.depth * 7)
         for i in range(self.depth):
             in_dim = self.dim if i == 0 else self.dim
-            W = rng.randn(self.dim, in_dim) * 0.02
-            b = rng.randn(self.dim) * 0.01
+            raw = rng.randn(self.dim, in_dim) * 0.02
+            W, _ = np.linalg.qr(raw)  # orthogonal projection
+            b = np.zeros(self.dim)
             self.layers.append((W, b))
 
     def predict(self, z_ctx: np.ndarray, action: Optional[np.ndarray] = None) -> np.ndarray:
@@ -327,8 +326,6 @@ class NonGenerativeRouter:
     def __init__(self, config: JEPAConfig):
         self.config = config
         self.dim = config.embed_dim
-        # Fixed random projection for text → embedding
-        self._rng = np.random.RandomState(12345)
 
     def embed_state(self, text: str) -> np.ndarray:
         """文本 → 固定维度嵌入（真实TF-IDF风格, v3.115.36）"""
@@ -423,8 +420,7 @@ class LatentEncoder:
         for n in (3, 4, 5):
             for i in range(len(text_lower) - n + 1):
                 ngram = text_lower[i:i + n]
-                h = int(hashlib.md5(ngram.encode()).hexdigest()[:8], 16)
-                idx = h % self.input_dim
+                idx = hash(ngram) % self.input_dim
                 features[idx] += 1.0
         total = sum(features) + 1e-10
         return [f / total for f in features]

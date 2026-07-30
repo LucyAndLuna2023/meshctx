@@ -812,9 +812,10 @@ function loadMessages() {
     if (!raw) return;
     const items = JSON.parse(raw);
     if (!items || !items.length) return;
-    // Clear welcome placeholder if present
+    // Clear existing messages to prevent duplicates (v3.115.38)
     const msgsDiv = document.getElementById('messages');
     if (!msgsDiv) return;
+    msgsDiv.innerHTML = '';
     // Render each message
     items.forEach(m => {
       if (m.role === 'user' || m.role === 'ai') {
@@ -840,20 +841,20 @@ function loadMessages() {
 // ===== v3.115.30: Confirm Panel =====
 function showConfirmPanel() {
   const panel = document.getElementById('confirmPanel');
-  const inputArea = document.querySelector('.input-area');
-  if (!panel || !inputArea) return;
+  if (!panel) return;
   confirmActiveIdx = 0;
   panel.classList.add('show');
-  inputArea.style.display = 'none';
+  // Give panel focus for keyboard events (v3.115.38: don't hide textarea)
+  panel.setAttribute('tabindex', '0');
+  panel.focus();
   updateConfirmSelection();
 }
 
 function hideConfirmPanel() {
   const panel = document.getElementById('confirmPanel');
-  const inputArea = document.querySelector('.input-area');
-  if (!panel || !inputArea) return;
+  if (!panel) return;
   panel.classList.remove('show');
-  inputArea.style.display = '';
+  panel.removeAttribute('tabindex');
   document.getElementById('input').focus();
 }
 
@@ -1153,36 +1154,31 @@ function handleInputKeydown(e) {
       return;
     }
   }
-
-  // --- v3.115.30: confirm panel navigation ---
-  const cp = document.getElementById('confirmPanel');
-  if (cp && cp.classList.contains('show')) {
-    const opts = document.querySelectorAll('.confirm-option');
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      confirmActiveIdx = Math.min(confirmActiveIdx + 1, opts.length - 1);
-      updateConfirmSelection();
-      return;
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      confirmActiveIdx = Math.max(confirmActiveIdx - 1, 0);
-      updateConfirmSelection();
-      return;
-    }
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const active = document.querySelector('.confirm-option.active');
-      if (active) confirmAction(active.dataset.action);
-      return;
-    }
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      hideConfirmPanel();
-      return;
-    }
-  }
 }
+
+// v3.115.38: confirm panel keyboard — document-level (not textarea)
+document.addEventListener('keydown', function(e) {
+  const cp = document.getElementById('confirmPanel');
+  if (!cp || !cp.classList.contains('show')) return;
+  const opts = document.querySelectorAll('.confirm-option');
+  if (!opts.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    confirmActiveIdx = Math.min(confirmActiveIdx + 1, opts.length - 1);
+    updateConfirmSelection();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    confirmActiveIdx = Math.max(confirmActiveIdx - 1, 0);
+    updateConfirmSelection();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const active = document.querySelector('.confirm-option.active');
+    if (active) confirmAction(active.dataset.action);
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    hideConfirmPanel();
+  }
+});
 
 function refreshMentionSelection() {
   const dd = document.getElementById('mentionDropdown');
