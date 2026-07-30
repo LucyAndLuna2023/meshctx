@@ -45,7 +45,7 @@ logger = logging.getLogger("meshctx.behavior_compliance")
 # Enums & Data Structures
 # ═══════════════════════════════════════════════════════════════════
 
-class Severity(Enum):
+class ComplianceSeverity(Enum):
     """Violation severity levels."""
     INFO = auto()       # Advisory, not blocking
     WARNING = auto()    # Potentially problematic
@@ -57,8 +57,8 @@ class Severity(Enum):
 
     @property
     def numeric(self) -> int:
-        return {Severity.INFO: 0, Severity.WARNING: 1,
-                Severity.ERROR: 2, Severity.CRITICAL: 3}[self]
+        return {ComplianceSeverity.INFO: 0, ComplianceSeverity.WARNING: 1,
+                ComplianceSeverity.ERROR: 2, ComplianceSeverity.CRITICAL: 3}[self]
 
 
 class RuleID(Enum):
@@ -87,7 +87,7 @@ class RuleID(Enum):
 class Violation:
     """A recorded compliance violation."""
     rule_id: RuleID
-    severity: Severity
+    severity: ComplianceSeverity
     message: str
     context: str                   # e.g., "code_output", "user_prompt", "tool_result"
     snippet: str                   # Excerpt of the violating content
@@ -110,11 +110,11 @@ class ComplianceReport:
 
     @property
     def critical_count(self) -> int:
-        return sum(1 for v in self.violations if v.severity == Severity.CRITICAL)
+        return sum(1 for v in self.violations if v.severity == ComplianceSeverity.CRITICAL)
 
     @property
     def error_count(self) -> int:
-        return sum(1 for v in self.violations if v.severity == Severity.ERROR)
+        return sum(1 for v in self.violations if v.severity == ComplianceSeverity.ERROR)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -146,7 +146,7 @@ def _check_key_leak(content: str, context: str) -> List[Violation]:
             snippet = content[max(0, m.start() - 10):min(len(content), m.end() + 10)]
             violations.append(Violation(
                 rule_id=RuleID.NO_KEY_LEAK,
-                severity=Severity.CRITICAL,
+                severity=ComplianceSeverity.CRITICAL,
                 message=f"Detected {desc}: {name}",
                 context=context,
                 snippet=snippet,
@@ -156,21 +156,21 @@ def _check_key_leak(content: str, context: str) -> List[Violation]:
 
 # ── R002: No Dangerous Commands ─────────────────────────────────
 
-_DANGEROUS_CMD_PATTERNS: List[Tuple[str, Pattern, Severity]] = [
-    ("rm_rf_root", re.compile(r'\brm\s+-rf\s+/(?:\s|$|[*])'), Severity.CRITICAL),
-    ("rm_rf_home", re.compile(r'\brm\s+-rf\s+~/'), Severity.CRITICAL),
-    ("rm_rf_no_preserve", re.compile(r'\brm\s+-rf\s+\S+\s+--no-preserve-root'), Severity.CRITICAL),
-    ("fork_bomb", re.compile(r':\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:'), Severity.CRITICAL),
-    ("chmod_777_sys", re.compile(r'\bchmod\s+777\s+/(?:etc|bin|sbin|usr|lib|boot)'), Severity.CRITICAL),
-    ("dd_overwrite", re.compile(r'\bdd\s+if=\S+\s+of=/dev/\w+'), Severity.CRITICAL),
-    ("mkfs_force", re.compile(r'\bmkfs\b.*\b/dev/sd[a-z]'), Severity.CRITICAL),
-    ("shutdown_halt", re.compile(r'\b(?:shutdown|halt|poweroff|reboot)\s+(?:-h\s+)?now'), Severity.ERROR),
-    ("curl_pipe_sh", re.compile(r'\bcurl\s+\S+\s*\|\s*(?:ba)?sh\b'), Severity.ERROR),
-    ("eval_untrusted", re.compile(r'\beval\s+\$'), Severity.ERROR),
-    ("wget_pipe_sh", re.compile(r'\bwget\s+\S+\s+-O\s*-\s*\|\s*(?:ba)?sh\b'), Severity.ERROR),
-    ("iptables_flush", re.compile(r'\biptables\s+-F\b'), Severity.ERROR),
-    ("sql_injection", re.compile(r"(?i)(?:'|\s)(?:OR|AND)\s+['\"]?\s*\d\s*=\s*\d\s*(?:--|#|'|\")"), Severity.WARNING),
-    ("command_injection", re.compile(r'[;&|`]\s*(?:curl|wget|nc|bash|sh|python)', re.IGNORECASE), Severity.WARNING),
+_DANGEROUS_CMD_PATTERNS: List[Tuple[str, Pattern, ComplianceSeverity]] = [
+    ("rm_rf_root", re.compile(r'\brm\s+-rf\s+/(?:\s|$|[*])'), ComplianceSeverity.CRITICAL),
+    ("rm_rf_home", re.compile(r'\brm\s+-rf\s+~/'), ComplianceSeverity.CRITICAL),
+    ("rm_rf_no_preserve", re.compile(r'\brm\s+-rf\s+\S+\s+--no-preserve-root'), ComplianceSeverity.CRITICAL),
+    ("fork_bomb", re.compile(r':\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:'), ComplianceSeverity.CRITICAL),
+    ("chmod_777_sys", re.compile(r'\bchmod\s+777\s+/(?:etc|bin|sbin|usr|lib|boot)'), ComplianceSeverity.CRITICAL),
+    ("dd_overwrite", re.compile(r'\bdd\s+if=\S+\s+of=/dev/\w+'), ComplianceSeverity.CRITICAL),
+    ("mkfs_force", re.compile(r'\bmkfs\b.*\b/dev/sd[a-z]'), ComplianceSeverity.CRITICAL),
+    ("shutdown_halt", re.compile(r'\b(?:shutdown|halt|poweroff|reboot)\s+(?:-h\s+)?now'), ComplianceSeverity.ERROR),
+    ("curl_pipe_sh", re.compile(r'\bcurl\s+\S+\s*\|\s*(?:ba)?sh\b'), ComplianceSeverity.ERROR),
+    ("eval_untrusted", re.compile(r'\beval\s+\$'), ComplianceSeverity.ERROR),
+    ("wget_pipe_sh", re.compile(r'\bwget\s+\S+\s+-O\s*-\s*\|\s*(?:ba)?sh\b'), ComplianceSeverity.ERROR),
+    ("iptables_flush", re.compile(r'\biptables\s+-F\b'), ComplianceSeverity.ERROR),
+    ("sql_injection", re.compile(r"(?i)(?:'|\s)(?:OR|AND)\s+['\"]?\s*\d\s*=\s*\d\s*(?:--|#|'|\")"), ComplianceSeverity.WARNING),
+    ("command_injection", re.compile(r'[;&|`]\s*(?:curl|wget|nc|bash|sh|python)', re.IGNORECASE), ComplianceSeverity.WARNING),
 ]
 
 def _check_dangerous_cmd(content: str, context: str) -> List[Violation]:
@@ -210,7 +210,7 @@ def _check_data_fabrication(content: str, context: str) -> List[Violation]:
             snippet = content[max(0, m.start() - 15):min(len(content), m.end() + 15)]
             violations.append(Violation(
                 rule_id=RuleID.NO_DATA_FABRICATION,
-                severity=Severity.WARNING,
+                severity=ComplianceSeverity.WARNING,
                 message=f"Possible data fabrication: {name}",
                 context=context,
                 snippet=snippet,
@@ -238,7 +238,7 @@ def _check_bypass_approval(content: str, context: str) -> List[Violation]:
             snippet = content[max(0, m.start() - 10):min(len(content), m.end() + 10)]
             violations.append(Violation(
                 rule_id=RuleID.NO_BYPASS_APPROVAL,
-                severity=Severity.ERROR,
+                severity=ComplianceSeverity.ERROR,
                 message=f"Approval bypass attempt: {name}",
                 context=context,
                 snippet=snippet,
@@ -265,7 +265,7 @@ def _check_infinite_loop(content: str, context: str) -> List[Violation]:
             snippet = content[max(0, m.start() - 5):min(len(content), m.end() + 5)]
             violations.append(Violation(
                 rule_id=RuleID.NO_INFINITE_LOOP,
-                severity=Severity.WARNING,
+                severity=ComplianceSeverity.WARNING,
                 message=f"Potential infinite loop: {name}",
                 context=context,
                 snippet=snippet,
@@ -294,7 +294,7 @@ def _check_deception(content: str, context: str) -> List[Violation]:
             snippet = content[max(0, m.start() - 10):min(len(content), m.end() + 10)]
             violations.append(Violation(
                 rule_id=RuleID.NO_DECEPTION,
-                severity=Severity.ERROR,
+                severity=ComplianceSeverity.ERROR,
                 message=f"Deception signal: {name}",
                 context=context,
                 snippet=snippet,
@@ -341,7 +341,7 @@ class BehaviorCompliance:
     def __init__(
         self,
         enabled_rules: Optional[Set[RuleID]] = None,
-        min_severity: Severity = Severity.WARNING,
+        min_severity: ComplianceSeverity = ComplianceSeverity.WARNING,
         max_violation_history: int = 1000,
     ):
         """Initialize the compliance engine.
@@ -462,7 +462,7 @@ class BehaviorCompliance:
     def get_violations(
         self,
         rule_id: Optional[RuleID] = None,
-        min_severity: Optional[Severity] = None,
+        min_severity: Optional[ComplianceSeverity] = None,
         limit: int = 100,
     ) -> List[Violation]:
         """Query violation history with optional filters.
@@ -499,7 +499,7 @@ class BehaviorCompliance:
         """Disable a rule (it won't be checked)."""
         self.enabled_rules.discard(rule_id)
 
-    def set_min_severity(self, severity: Severity) -> None:
+    def set_min_severity(self, severity: ComplianceSeverity) -> None:
         """Set minimum severity threshold for reporting violations."""
         self.min_severity = severity
 
@@ -559,7 +559,7 @@ class BehaviorCompliance:
 
 def get_behavior_compliance(
     enabled_rules: Optional[Set[RuleID]] = None,
-    min_severity: Severity = Severity.WARNING,
+    min_severity: ComplianceSeverity = ComplianceSeverity.WARNING,
 ) -> BehaviorCompliance:
     """Factory for BehaviorCompliance with sensible defaults."""
     return BehaviorCompliance(
