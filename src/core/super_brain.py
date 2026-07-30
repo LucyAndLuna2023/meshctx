@@ -1,4 +1,8 @@
-"""meshctx super_brain — 13脑区全实现 (v3.115.16)"""
+"""meshctx super_brain — 13脑区全实现 (v3.115.16)
+
+⚠️ 开源版基础模式：脑区编排框架为真实实现，但脑区内核（神经网络权重、
+自由能预测、IIT 意识度量）使用确定性伪随机数作为占位符。
+完整 13 脑区 AI 引擎（含训练权重/ACT-R 认知模型）在 meshctx-core 私有核心中。"""
 import numpy as np
 from collections import defaultdict
 

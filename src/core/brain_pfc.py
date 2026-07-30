@@ -1,6 +1,10 @@
 """
 Prefrontal Cortex (PFC) — 前额叶皮层
 =====================================
+
+⚠️ 开源版基础模式：工作记忆使用 hash(text) → np.random 生成伪嵌入向量。
+完整 PFC（含训练后的 WorkingMemory/SimplePlanner）在 meshctx-core 私有核心中。
+
 核心功能:
   WorkingMemory    — N-back 工作记忆 (Goldman-Rakic 1995)
   TaskSwitcher     — 任务切换/执行控制 (Miller & Cohen 2001)

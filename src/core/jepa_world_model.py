@@ -4,6 +4,11 @@ MeshCtx JEPA World Model — LeCun 潜空间预测
 
 Joint Embedding Predictive Architecture (JEPA) 世界模型。
 
+⚠️ 开源版基础模式：编码器/预测器/评分器架构为真实实现，
+但神经网络权重使用固定种子 np.random.RandomState(42) 作为占位符，
+嵌入向量使用 hashlib → random 生成伪向量。
+完整 JEPA 世界模型（含训练后的 VICReg 权重）在 meshctx-core 私有核心中。
+
 Yann LeCun 架构的核心思想:
   1. 不在像素空间做预测（传统自回归模型会浪费算力）
   2. 在潜空间 (latent space) 做预测

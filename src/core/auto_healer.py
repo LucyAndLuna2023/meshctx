@@ -1,4 +1,7 @@
-"""meshctx auto_healer — automated health checks and self-healing."""
+"""meshctx auto_healer — automated health checks and self-healing.
+
+⚠️ 开源版 Stub 模式：健康检查返回硬编码结果，修复操作为空操作。
+完整自愈引擎（磁盘检查/内存泄漏检测/进程恢复）在 meshctx-core 私有核心中。"""
 
 from __future__ import annotations
 

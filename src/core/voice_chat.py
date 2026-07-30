@@ -1,4 +1,8 @@
-"""meshctx voice_chat — v3.103 Voice Chat Engine"""
+"""meshctx voice_chat — v3.103 Voice Chat Engine
+
+⚠️ 开源版 Stub 模式：TTS 语音合成和 STT 语音识别当前返回空数据。
+完整语音引擎在 meshctx-core 私有核心中。
+会话管理、语言映射、缓存系统为真实实现。"""
 
 import base64
 import hashlib

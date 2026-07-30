@@ -1,4 +1,8 @@
-"""meshctx web2api — v3.86 Web-to-API Proxy"""
+"""meshctx web2api — v3.86 Web-to-API Proxy
+
+⚠️ 开源版 Stub 模式：chat() 返回固定 stub 文本。
+完整 Web-to-API 代理（LLM 路由/多模型聚合）在 meshctx-core 私有核心中。
+数据类和提供者注册表为真实实现。"""
 
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional

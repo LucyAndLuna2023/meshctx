@@ -1,4 +1,8 @@
-"""Unified Loop — OODA loop engine for meshctx"""
+"""Unified Loop — OODA loop engine for meshctx
+
+⚠️ 开源版基础模式：OODA 阶段定义和意图分类为真实实现，
+但 ACT 阶段不执行实际操作（仅记录元数据）。
+完整 OODA 循环引擎在 meshctx-core 私有核心中。"""
 
 import time
 from enum import Enum, auto
