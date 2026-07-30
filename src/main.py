@@ -37,7 +37,7 @@ from .core import (
     PredictorPlugin, AgentLoopPlugin, PerformancePlugin,
     HealerPlugin, WebSocketPlugin, create_ws_routes,
     Event, EventPriority, MemoryItem, MemoryLevel,
-    TaskEvaluation, TaskStatus, PatternEngine,
+    TaskEvaluation, MetaTaskStatus, PatternEngine,
 )
 from .gateway import GatewayPlugin
 from .core.auth_v2 import auth_middleware_v2
@@ -706,7 +706,8 @@ async def auth_login(request: Request):
     if client_ip in _login_bans and now >= _login_bans[client_ip]:
         del _login_bans[client_ip]
     try: body = await request.json()
-    except: raise HTTPException(400)
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     password = body.get("password", "")
     if password == _AUTH_PASSWORD:
         # 成功：清除失败记录
@@ -1488,7 +1489,8 @@ async def plugin_market(search: str = "", category: str = ""):
 async def install_plugin(request: Request):
     """安装插件 — 持久化到config.yaml"""
     try: body = await request.json()
-    except: raise HTTPException(400)
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     name = body.get("name", "")
     if not name: raise HTTPException(400, "Missing plugin name")
     
@@ -1536,7 +1538,8 @@ async def install_plugin(request: Request):
 async def uninstall_plugin(request: Request):
     """卸载插件"""
     try: body = await request.json()
-    except: raise HTTPException(400)
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     name = body.get("name", "")
     
     import yaml
@@ -2410,8 +2413,8 @@ async def add_model(request: Request):
     import yaml
     try:
         body = await request.json()
-    except:
-        raise HTTPException(400, t('error_invalid_json_body'))
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     
     model_id = (body.get("id") or "").strip()
     provider = (body.get("provider") or "").strip()
@@ -2473,8 +2476,8 @@ async def update_model(model_id: str, request: Request):
     import yaml
     try:
         body = await request.json()
-    except:
-        raise HTTPException(400, t('error_invalid_json_body'))
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     
     config_path = Path.home() / ".meshctx" / "config.yaml"
     if not config_path.exists():
@@ -2534,8 +2537,8 @@ async def rename_model(model_id: str, request: Request):
     import yaml
     try:
         body = await request.json()
-    except:
-        raise HTTPException(400, t('error_invalid_json_body'))
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     
     rename_to = body.get("rename_to", "").strip()
     config_path = Path.home() / ".meshctx" / "config.yaml"
@@ -3084,7 +3087,8 @@ async def win_processes():
 async def win_process_kill(req: Request):
     """终止Windows进程"""
     try: body = await req.json()
-    except: raise HTTPException(400, t('error_body_must_be_json'))
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     
     pid = body.get("pid", 0)
     name = body.get("name", "")
@@ -3116,7 +3120,8 @@ async def win_browsers():
 async def win_open(req: Request):
     """在浏览器中打开URL"""
     try: body = await req.json()
-    except: raise HTTPException(400, t('error_body_must_be_json'))
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     
     url = body.get("url", "")
     browser = body.get("browser", "default")
@@ -3395,10 +3400,10 @@ async def api_chat_stream(request: Request):
 
     try:
         body = await request.json()
-    except:
-        return StreamingResponse(
-            iter(["data: [错误] 无效请求\n\n"]),
-            media_type="text/event-stream"
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
+        iter(["data: [错误] 无效请求\n\n"]),
+        media_type="text/event-stream"
         )
 
     msgs = body.get("messages", [])
@@ -3451,8 +3456,8 @@ async def api_chat_stream(request: Request):
         try:
             config = load_config()
             model_id = config.get("models", {}).get("default", "deepseek:v4-pro")
-        except:
-            model_id = "deepseek:v4-pro"
+        except Exception as _e:
+            logger.exception("Unexpected error: %s", _e)
 
     # ── 工具定义 ──
     SENSITIVE_TOOLS = {"write_file", "remote_write", "remote_exec", "terminal"}
@@ -3997,7 +4002,8 @@ async def chat_compare(req: Request):
     """多模型对比 — asyncio并行调多个模型,返回排名"""
     try:
         try: body = await req.json()
-        except: raise HTTPException(400, "body must be JSON")
+        except Exception as _e:
+            logger.exception("Unexpected error: %s", _e)
         
         message = body.get("message", "")
         if not message:
@@ -4059,7 +4065,8 @@ async def chat_compare(req: Request):
 async def chat_compare_stream(req: Request):
     """多模型对比流式 (SSE) — 逐个模型实时推送结果"""
     try: body = await req.json()
-    except: raise HTTPException(400, "body must be JSON")
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     
     message = body.get("message", "")
     model_ids = body.get("models", ["deepseek:chat", "openai:gpt-4o-mini"])
@@ -4226,7 +4233,8 @@ async def list_conversations():
 async def create_conversation(req: Request):
     """创建/保存对话"""
     try: body = await req.json()
-    except: body = {}
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     if not body or not body.get("title"):
         raise HTTPException(400, "title is required")
     
@@ -4244,7 +4252,8 @@ async def create_conversation(req: Request):
 async def add_message(conv_id: str, req: Request):
     """添加消息到对话"""
     try: body = await req.json()
-    except: raise HTTPException(400)
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     
     role = body.get("role", "user")
     content = body.get("content", "")
@@ -4276,7 +4285,8 @@ async def clear_conversations():
 async def rename_conversation(conv_id: str, req: Request):
     """重命名对话"""
     try: body = await req.json()
-    except: raise HTTPException(400, "Invalid JSON")
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     new_title = body.get("title", "").strip()
     if not new_title:
         raise HTTPException(400, "title is required")
@@ -4297,7 +4307,8 @@ async def prune_conversations_get():
 async def prune_conversations(req: Request):
     """清理旧对话 — 删除older_than_days之前的会话"""
     try: body = await req.json()
-    except: body = {}
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     older_than_days = body.get("older_than_days", 30)
     try:
         from src.core.conversation_store import Conversation
@@ -4378,7 +4389,8 @@ async def insights_record_session():
 async def insights_record_call(req: Request):
     """记录LLM API调用"""
     try: body = await req.json()
-    except: body = {}
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     from src.core.usage_insights import get_usage_insights
     get_usage_insights().record_llm_call(
         model=body.get("model", "unknown"),
@@ -4419,7 +4431,8 @@ async def config_backup():
 async def config_restore(req: Request):
     """一键恢复配置"""
     try: body = await req.json()
-    except: raise HTTPException(400)
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     
     import yaml
     from pathlib import Path
@@ -4445,7 +4458,8 @@ async def config_restore(req: Request):
 async def code_review(req: Request):
     """AI代码审查"""
     try: body = await req.json()
-    except: raise HTTPException(400)
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     
     files = body.get("files", [])  # [{path, content, language}]
     if not files:
@@ -4604,12 +4618,12 @@ async def diff_local_files(file1: str = "", file2: str = "", format: str = "side
         raise HTTPException(404, f"文件2不存在: {fp2}")
     try:
         t1 = fp1.read_text(encoding="utf-8")
-    except:
-        t1 = fp1.read_bytes().decode("latin-1")
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     try:
         t2 = fp2.read_text(encoding="utf-8")
-    except:
-        t2 = fp2.read_bytes().decode("latin-1")
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     engine = DiffEngine()
     diff_text = engine.generate(t1, t2, fp1.name)
     if format == "compact":
@@ -4633,8 +4647,8 @@ async def write_local_file(req: Request, path: str = ""):
     try:
         body = await req.json()
         content = body.get("content", "")
-    except:
-        raise HTTPException(400, "请使用 POST body: {\"content\": \"...\"}")
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     
     if not content:
         raise HTTPException(400, t('error_content_empty'))
@@ -4716,8 +4730,8 @@ async def brain_status():
         # 尝试从agent_loop获取super_brain实例
         from src.core.agent_loop import AgentLoopPlugin
         # 这里无法直接访问实例，返回模拟数据
-    except:
-        logger.debug("Suppressed except:: {}", exc_info=True)
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     
     # 生成各脑区模拟激活值 (后续接入真实数据)
     regions = [
@@ -4972,7 +4986,8 @@ async def list_hook_events():
 async def install_plugin_url(req: Request):
     """从URL安装插件 (v2.12)"""
     try: body = await req.json()
-    except: raise HTTPException(400)
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     url = (body.get("url") or "").strip()
     if not url: raise HTTPException(400, t('error_missing_url_short'))
     # Validate URL before attempting request
@@ -5197,8 +5212,8 @@ async def telegram_status():
         from src.core.telegram_router import get_telegram_router
         router = get_telegram_router()
         return {"status": "ok", "available": True, "message": "Telegram机器人可用"}
-    except:
-        return {"status": "disabled", "available": False, "message": "Telegram插件待配置"}
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
 
 
 @app.get("/api/gateway/status")
@@ -5229,7 +5244,8 @@ async def gateway_connectors_status():
 async def gateway_send_message(platform: str, req: Request):
     """发送消息到指定平台"""
     try: body = await req.json()
-    except: raise HTTPException(400)
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     channel = body.get("channel", "")
     text = body.get("text", "")
     if not channel or not text:
@@ -5244,7 +5260,8 @@ async def gateway_send_message(platform: str, req: Request):
 async def gateway_broadcast(req: Request):
     """广播消息到多个平台"""
     try: body = await req.json()
-    except: raise HTTPException(400)
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     text = body.get("text", "")
     platforms = body.get("platforms", None)
     if not text:
@@ -5265,7 +5282,8 @@ async def human_memory_stats():
 async def human_memory_encode(req: Request):
     """编码记忆 — 模式组块+情绪加权"""
     try: body = await req.json()
-    except: raise HTTPException(400)
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     text = body.get("text", "") or body.get("content", "")
     emotion_name = body.get("emotion", "NEUTRAL")
     context_tags = set(body.get("context_tags", []))
@@ -5282,7 +5300,8 @@ async def human_memory_encode(req: Request):
 async def human_memory_recall(req: Request):
     """回忆 — 联想扩散激活"""
     try: body = await req.json()
-    except: raise HTTPException(400)
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     query = body.get("query", "")
     context_tags = set(body.get("context_tags", []))
     top_k = body.get("top_k", 10)
@@ -5306,7 +5325,8 @@ async def human_memory_replay():
 async def human_memory_associate(req: Request):
     """建立记忆关联"""
     try: body = await req.json()
-    except: raise HTTPException(400)
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     chunk_id = body.get("chunk_id", "")
     related_ids = body.get("related_ids", [])
     weights = body.get("weights", None)
@@ -5616,7 +5636,8 @@ async def context_project_activate(request: Request):
 async def sandbox_run(request: Request):
     """代码沙箱执行"""
     try: body = await request.json()
-    except: raise HTTPException(400)
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     code = body.get("code", "")
     language = body.get("language", "python")
     if not code: raise HTTPException(400, t('error_code_empty'))
@@ -5654,7 +5675,8 @@ async def autonomous_metrics():
 async def autonomous_force_fix(req: Request):
     """手动触发自愈"""
     try: body = await req.json()
-    except: body = {}
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     symptoms = body.get("symptoms", ["manual_trigger"])
     root_cause = body.get("root_cause", "manual")
     fix_action = body.get("fix_action", "trigger_memory_cleanup")
@@ -5680,8 +5702,8 @@ async def cron_status():
     """定时任务状态"""
     try:
         return {"status": "ok", "jobs": 0, "message": "定时任务可用"}
-    except:
-        return {"status": "disabled", "message": "定时任务不可用"}
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
 
 
 
@@ -5708,7 +5730,8 @@ async def web_search(q: str = ""):
 async def data_analyze(request: Request):
     """数据分析 — CSV/JSON解析"""
     try: body = await request.json()
-    except: raise HTTPException(400)
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     data_str = body.get("data", "")
     fmt = body.get("format", "csv")
     try:
@@ -5759,8 +5782,8 @@ async def git_info():
         branch = subprocess.check_output(["git", "branch", "--show-current"], text=True, timeout=5).strip()
         log = subprocess.check_output(["git", "log", "--oneline", "-5"], text=True, timeout=5).strip()
         return {"status": "ok", "branch": branch, "recent": log.split("\n")}
-    except:
-        return {"status": "ok", "message": "Git not available in this environment"}
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
 
 
 
@@ -5825,8 +5848,8 @@ async def archive_save(request: Request):
         for key in body:
             if key in ["version", "decisions", "rules", "progress"]:
                 archiver._context[key] = body[key]
-    except:
-        logger.debug("Suppressed except:: {}", exc_info=True)
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     path = archiver.save(force=True)
     return {"status": "ok", "path": path, "summary": archiver.get_summary()}
 

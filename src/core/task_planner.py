@@ -43,7 +43,7 @@ logger = logging.getLogger("meshctx.task_planner")
 # 枚举与常量
 # ═══════════════════════════════════════════════════════════
 
-class TaskStatus(str, Enum):
+class PlanTaskStatus(str, Enum):
     """任务状态。"""
     PENDING = "pending"          # 等待依赖完成
     READY = "ready"              # 依赖满足, 可执行
@@ -97,7 +97,7 @@ class TaskStep:
     """
     id: str = field(default_factory=lambda: f"task_{uuid.uuid4().hex[:12]}")
     name: str = ""
-    status: TaskStatus = TaskStatus.PENDING
+    status: PlanTaskStatus = PlanTaskStatus.PENDING
     depends_on: List[str] = field(default_factory=list)
     estimate_seconds: float = 0.0
     actual_seconds: float = 0.0
@@ -130,16 +130,16 @@ class TaskStep:
     def is_terminal(self, **kw) -> bool:
         """是否处于终态。"""
         return self.status in (
-            TaskStatus.COMPLETED,
-            TaskStatus.FAILED,
-            TaskStatus.SKIPPED,
-            TaskStatus.CANCELLED,
+            PlanTaskStatus.COMPLETED,
+            PlanTaskStatus.FAILED,
+            PlanTaskStatus.SKIPPED,
+            PlanTaskStatus.CANCELLED,
         )
 
     @property
     def is_blocked(self, **kw) -> bool:
         """是否被阻塞 (等待依赖)。"""
-        return self.status == TaskStatus.PENDING
+        return self.status == PlanTaskStatus.PENDING
 
 
 @dataclass
@@ -187,11 +187,11 @@ class Plan:
 
     @property
     def completed_count(self, **kw) -> int:
-        return sum(1 for t in self.tasks.values() if t.status == TaskStatus.COMPLETED)
+        return sum(1 for t in self.tasks.values() if t.status == PlanTaskStatus.COMPLETED)
 
     @property
     def failed_count(self, **kw) -> int:
-        return sum(1 for t in self.tasks.values() if t.status == TaskStatus.FAILED)
+        return sum(1 for t in self.tasks.values() if t.status == PlanTaskStatus.FAILED)
 
     @property
     def progress_pct(self, **kw) -> float:
@@ -263,29 +263,29 @@ def _find_ready_tasks(tasks: Dict[str, TaskStep], running_ids: Set[str]) -> List
     """
     ready = []
     for tid, task in tasks.items():
-        if task.status != TaskStatus.PENDING:
+        if task.status != PlanTaskStatus.PENDING:
             continue
         if tid in running_ids:
             continue
 
         # 检查依赖是否全部完成
         if not task.depends_on:
-            task.status = TaskStatus.READY
+            task.status = PlanTaskStatus.READY
             ready.append(tid)
         else:
             all_deps_done = all(
-                tasks[dep].status == TaskStatus.COMPLETED
+                tasks[dep].status == PlanTaskStatus.COMPLETED
                 for dep in task.depends_on
             )
             if all_deps_done:
-                task.status = TaskStatus.READY
+                task.status = PlanTaskStatus.READY
                 ready.append(tid)
             # 如果有依赖失败, 标记当前任务为 SKIPPED
             elif any(
-                tasks[dep].status == TaskStatus.FAILED
+                tasks[dep].status == PlanTaskStatus.FAILED
                 for dep in task.depends_on
             ):
-                task.status = TaskStatus.SKIPPED
+                task.status = PlanTaskStatus.SKIPPED
                 task.error = "Skipped: dependency failed"
 
     return ready
@@ -495,8 +495,8 @@ class TaskPlanner:
 
         # 重置所有任务状态
         for task in plan.tasks.values():
-            if task.status not in (TaskStatus.COMPLETED, TaskStatus.SKIPPED):
-                task.status = TaskStatus.PENDING
+            if task.status not in (PlanTaskStatus.COMPLETED, PlanTaskStatus.SKIPPED):
+                task.status = PlanTaskStatus.PENDING
                 task.result = None
                 task.error = ""
                 task.actual_seconds = 0.0
@@ -589,7 +589,7 @@ class TaskPlanner:
 
                 # 检查是否有 handler (无 handler 视为立即完成)
                 if task.handler is None:
-                    task.status = TaskStatus.COMPLETED
+                    task.status = PlanTaskStatus.COMPLETED
                     task.completed_at = time.time()
                     logger.debug(f"No handler for task {tid}, marking completed")
                     continue
@@ -609,7 +609,7 @@ class TaskPlanner:
     ) -> None:
         """执行单个任务, 包含重试逻辑。"""
         task = plan.tasks[task_id]
-        task.status = TaskStatus.RUNNING
+        task.status = PlanTaskStatus.RUNNING
         task.started_at = time.time()
 
         for attempt in range(task.max_retries + 1):
@@ -623,7 +623,7 @@ class TaskPlanner:
                 )
 
                 task.result = result
-                task.status = TaskStatus.COMPLETED
+                task.status = PlanTaskStatus.COMPLETED
                 task.completed_at = time.time()
                 task.actual_seconds = task.completed_at - task.started_at
 
@@ -640,13 +640,13 @@ class TaskPlanner:
                     logger.info(f"Retrying task {task_id} (attempt {attempt + 2})")
                     await asyncio.sleep(2 ** attempt)  # 指数退避
                 else:
-                    task.status = TaskStatus.FAILED
+                    task.status = PlanTaskStatus.FAILED
                     task.error = error_msg
                     task.completed_at = time.time()
                     task.actual_seconds = task.completed_at - task.started_at
 
             except asyncio.CancelledError:
-                task.status = TaskStatus.CANCELLED
+                task.status = PlanTaskStatus.CANCELLED
                 task.error = "Cancelled"
                 task.completed_at = time.time()
                 return
@@ -661,7 +661,7 @@ class TaskPlanner:
                     logger.info(f"Retrying task {task_id} (attempt {attempt + 2})")
                     await asyncio.sleep(2 ** attempt)
                 else:
-                    task.status = TaskStatus.FAILED
+                    task.status = PlanTaskStatus.FAILED
                     task.error = error_msg
                     task.completed_at = time.time()
                     task.actual_seconds = task.completed_at - task.started_at
@@ -711,7 +711,7 @@ class TaskPlanner:
         # 移除任务 (仅 PENDING)
         if remove_task_ids:
             for tid in remove_task_ids:
-                if tid in plan.tasks and plan.tasks[tid].status == TaskStatus.PENDING:
+                if tid in plan.tasks and plan.tasks[tid].status == PlanTaskStatus.PENDING:
                     self.remove_task(plan_id, tid)
 
         # 添加新任务
@@ -756,7 +756,7 @@ class TaskPlanner:
         # 标记所有非终态任务为 CANCELLED
         for task in plan.tasks.values():
             if not task.is_terminal:
-                task.status = TaskStatus.CANCELLED
+                task.status = PlanTaskStatus.CANCELLED
 
         plan.completed_at = time.time()
         logger.info(f"Plan {plan_id} cancelled")

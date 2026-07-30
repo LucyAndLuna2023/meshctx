@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 
-class TaskStatus(Enum):
+class GoalTaskStatus(Enum):
     pending = "pending"
     ready = "ready"
     in_progress = "in_progress"
@@ -17,7 +17,7 @@ class TaskStatus(Enum):
 class Subtask:
     id: str
     title: str
-    status: TaskStatus = TaskStatus.pending
+    status: GoalTaskStatus = GoalTaskStatus.pending
     dependencies: list = field(default_factory=list)
     output: str = ""
     description: str = ""
@@ -113,7 +113,7 @@ class GoalDecomposer:
 
         template = _SUBTASK_TEMPLATES.get(goal_type, _SUBTASK_TEMPLATES["generic"])
         for tmpl in template:
-            status = TaskStatus.ready if not tmpl["deps"] else TaskStatus.pending
+            status = GoalTaskStatus.ready if not tmpl["deps"] else GoalTaskStatus.pending
             st = Subtask(
                 id=f"{goal.id}:{tmpl['id']}",
                 title=tmpl["title"],
@@ -132,7 +132,7 @@ class GoalDecomposer:
         goal = self._goals.get(goal_id)
         if not goal:
             return []
-        return [st for st in goal.subtasks if st.status == TaskStatus.ready]
+        return [st for st in goal.subtasks if st.status == GoalTaskStatus.ready]
 
     # ── 任务状态变更 ──────────────────────────────────────────────────
 
@@ -142,8 +142,8 @@ class GoalDecomposer:
         if not goal:
             return
         for st in goal.subtasks:
-            if st.id == task_id and st.status == TaskStatus.ready:
-                st.status = TaskStatus.in_progress
+            if st.id == task_id and st.status == GoalTaskStatus.ready:
+                st.status = GoalTaskStatus.in_progress
                 return
 
     def complete_task(self, goal_id: str, task_id: str, output: str = "", **kw):
@@ -153,7 +153,7 @@ class GoalDecomposer:
             return
         for st in goal.subtasks:
             if st.id == task_id:
-                st.status = TaskStatus.completed
+                st.status = GoalTaskStatus.completed
                 st.output = output
                 break
         self._refresh_dependencies(goal)
@@ -166,13 +166,13 @@ class GoalDecomposer:
             return
         for st in goal.subtasks:
             if st.id == task_id:
-                st.status = TaskStatus.failed
+                st.status = GoalTaskStatus.failed
                 st.output = reason
                 break
         # 阻塞所有依赖此任务的下游
         for st in goal.subtasks:
-            if task_id in st.dependencies and st.status not in (TaskStatus.completed, TaskStatus.failed):
-                st.status = TaskStatus.blocked
+            if task_id in st.dependencies and st.status not in (GoalTaskStatus.completed, GoalTaskStatus.failed):
+                st.status = GoalTaskStatus.blocked
         goal.progress = self._calc_progress(goal)
 
     # ── 依赖刷新 ──────────────────────────────────────────────────────
@@ -180,12 +180,12 @@ class GoalDecomposer:
     def _refresh_dependencies(self, goal: Goal, **kw):
         """根据上游完成情况,更新所有 pending/blocked 任务状态"""
         for st in goal.subtasks:
-            if st.status in (TaskStatus.completed, TaskStatus.failed, TaskStatus.in_progress):
+            if st.status in (GoalTaskStatus.completed, GoalTaskStatus.failed, GoalTaskStatus.in_progress):
                 continue
             if not st.dependencies:
                 # 无依赖但被阻塞 → 恢复
-                if st.status == TaskStatus.blocked:
-                    st.status = TaskStatus.ready
+                if st.status == GoalTaskStatus.blocked:
+                    st.status = GoalTaskStatus.ready
                 continue
 
             all_done = True
@@ -194,22 +194,22 @@ class GoalDecomposer:
                 dep = next((s for s in goal.subtasks if s.id == dep_id), None)
                 if dep is None:
                     continue
-                if dep.status != TaskStatus.completed:
+                if dep.status != GoalTaskStatus.completed:
                     all_done = False
-                if dep.status == TaskStatus.failed:
+                if dep.status == GoalTaskStatus.failed:
                     any_failed = True
 
             if any_failed:
-                st.status = TaskStatus.blocked
+                st.status = GoalTaskStatus.blocked
             elif all_done:
-                st.status = TaskStatus.ready
+                st.status = GoalTaskStatus.ready
 
     def _calc_progress(self, goal: Goal, **kw) -> float:
         """计算进度 (completed / total)"""
         total = len(goal.subtasks)
         if total == 0:
             return 0.0
-        completed = sum(1 for st in goal.subtasks if st.status == TaskStatus.completed)
+        completed = sum(1 for st in goal.subtasks if st.status == GoalTaskStatus.completed)
         return completed / total
 
     # ── 目标状态查询 ──────────────────────────────────────────────────
@@ -245,7 +245,7 @@ class GoalDecomposer:
         active = 0
         for goal in self._goals.values():
             all_done = all(
-                st.status == TaskStatus.completed for st in goal.subtasks
+                st.status == GoalTaskStatus.completed for st in goal.subtasks
             )
             if not all_done:
                 active += 1
