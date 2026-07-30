@@ -720,6 +720,9 @@ function addMsg(role, content, isTool) {
   }
 
   div.scrollIntoView({behavior:'smooth'});
+  // Keep messages[] in sync for API context
+  messages.push({role:role==='ai'?'assistant':'user', content:content});
+  saveMessages();
 }
 
 function toggleCollapse(id, btn) {
@@ -737,6 +740,7 @@ function toggleCollapse(id, btn) {
     wrapper.classList.add('collapsed-content');
     btn.textContent = t('chat_expand');
   }
+  saveMessages();
 }
 
 function copyMsg(btn) {
@@ -777,6 +781,60 @@ function showToast(msg) {
 
 function escapeHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ═══════ v3.115.31: localStorage persist for chat messages ═══════
+const LS_KEY = 'meshctx_chat_msgs';
+const LS_MAX = 50;  // keep max 50 messages
+
+function saveMessages() {
+  try {
+    const msgs = document.getElementById('messages');
+    if (!msgs) return;
+    const items = [];
+    msgs.querySelectorAll('.msg.user, .msg.ai').forEach(el => {
+      const bubble = el.querySelector('.bubble');
+      const wrapper = bubble ? bubble.querySelector('.collapsed-content') : null;
+      const role = el.classList.contains('user') ? 'user' : 'ai';
+      const raw = wrapper ? wrapper.textContent : (bubble ? bubble.textContent : '');
+      // Check if collapsed
+      const isCollapsed = wrapper && wrapper.style.maxHeight && wrapper.style.maxHeight !== 'none';
+      items.push({ role: role, content: raw, collapsed: isCollapsed });
+    });
+    // Keep only last LS_MAX
+    localStorage.setItem(LS_KEY, JSON.stringify(items.slice(-LS_MAX)));
+  } catch(e) { /* quota exceeded, ignore */ }
+}
+
+function loadMessages() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const items = JSON.parse(raw);
+    if (!items || !items.length) return;
+    // Clear welcome placeholder if present
+    const msgsDiv = document.getElementById('messages');
+    if (!msgsDiv) return;
+    // Render each message
+    items.forEach(m => {
+      if (m.role === 'user' || m.role === 'ai') {
+        addMsg(m.role, m.content);
+        // If previously expanded, expand it now
+        if (m.role === 'ai' && !m.collapsed && m.content.length > 300) {
+          const lastBubble = msgsDiv.querySelector('.msg.ai:last-child .bubble');
+          if (lastBubble) {
+            const wrapper = lastBubble.querySelector('.collapsed-content');
+            if (wrapper && wrapper.scrollHeight > 300) {
+              wrapper.style.maxHeight = 'none';
+              wrapper.classList.remove('collapsed-content');
+              const btn = lastBubble.querySelector('.collapse-toggle');
+              if (btn) btn.textContent = t('chat_collapse');
+            }
+          }
+        }
+      }
+    });
+  } catch(e) { /* parse error, ignore */ }
 }
 
 // ===== v3.115.30: Confirm Panel =====
@@ -843,7 +901,7 @@ async function send() {
   // Set agent to thinking
   setAgentStatus('thinking');
   
-  messages.push({role:'user', content:text});
+  // messages[] already pushed by addMsg()
   
   // Typing indicator
   const typingDiv = document.createElement('div');
@@ -861,7 +919,7 @@ async function send() {
     
     typingDiv.remove();
     addMsg('ai', data.content, data.tool_result);
-    messages.push({role:'assistant', content:data.content});
+    // messages[] already pushed by addMsg()
 
     // v3.115.30: auto-show confirm panel when agent asks permission
     if (maybeShowConfirm(data.content)) {
@@ -944,6 +1002,7 @@ function switchModel() {
 function newChat() {
   messages = [];
   document.getElementById('messages').innerHTML = '';
+  localStorage.removeItem(LS_KEY);
   addMsg('ai', t('chat_new_chat'));
 }
 
@@ -1285,6 +1344,8 @@ document.addEventListener('DOMContentLoaded', function() {
   fetchFileList();
   // Init WebSocket realtime connection
   initRealtime();
+  // v3.115.31: restore previous chat messages from localStorage
+  loadMessages();
 });
 
 // ══════════════════ WebSocket realtime ══════════════════
