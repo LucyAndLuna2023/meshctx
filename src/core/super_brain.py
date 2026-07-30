@@ -185,14 +185,42 @@ class STDPLearner:
 class DefaultModeNetwork:
     """Default Mode Network — resting state introspection and self-model."""
     def __init__(self, **kw):
-        self.self_model = {"confidence": 0.6, "competence": 0.5, "creativity": 0.4}
+        self.self_model = {"confidence": 0.6, "competence": 0.5, "creativity": 0.4,
+                          "task_history": [], "insights": []}
     def introspect(self, **kw):
-        return {"confidence": self.self_model["confidence"], "mood": "neutral"}
-    def mind_wander(self, **kw):
-        return "daydream about future possibilities"
-    def update_self_model(self, success=False, **kw):
+        return {
+            "confidence": self.self_model["confidence"],
+            "competence": self.self_model["competence"],
+            "creativity": self.self_model["creativity"],
+            "mood": "confident" if self.self_model["confidence"] > 0.6 else "neutral"
+        }
+    def mind_wander(self, recent_context="", **kw):
+        """Generate real introspections based on self-model state."""
+        thoughts = []
+        if self.self_model["confidence"] < 0.4:
+            thoughts.append("uncertain about recent decisions — consider asking clarifying questions")
+        if self.self_model["competence"] < 0.5:
+            thoughts.append("struggling with task complexity — suggest breaking into smaller steps")
+        if self.self_model["creativity"] > 0.6:
+            thoughts.append("exploring novel approaches to current problem")
+        if recent_context and len(recent_context) > 50:
+            thoughts.append(f"noticing pattern in recent context: {recent_context[:80]}...")
+        if not thoughts:
+            thoughts.append("stable state — maintaining current trajectory")
+        self.self_model["insights"].extend(thoughts)
+        if len(self.self_model["insights"]) > 20:
+            self.self_model["insights"] = self.self_model["insights"][-10:]
+        return thoughts
+    def update_self_model(self, success=False, task_type="", **kw):
         if success:
             self.self_model["confidence"] = min(1.0, self.self_model["confidence"] + 0.1)
+            self.self_model["competence"] = min(1.0, self.self_model["competence"] + 0.05)
+        else:
+            self.self_model["confidence"] = max(0.1, self.self_model["confidence"] - 0.05)
+            self.self_model["competence"] = max(0.1, self.self_model["competence"] - 0.03)
+        self.self_model["task_history"].append({"success": success, "type": task_type})
+        if len(self.self_model["task_history"]) > 50:
+            self.self_model["task_history"] = self.self_model["task_history"][-30:]
 
 
 class ConflictMonitor:
@@ -247,20 +275,38 @@ class SuperBrainOrchestrator:
     
     def step(self, observation, goal="", metrics=None, **kw):
         self._step_count += 1
-        # Full brain pipeline
+        # Full brain pipeline — real signals, no random
         s = self.amygdala.tag(observation, novelty=0.5, emotion=0.3, relevance=0.6)
         gated = self.thalamus.gate(s, priority=1.0)
-        phi = self.iit.compute_phi(np.random.randn(10))
-        prediction = self.cerebellum.predict("observe", observation)
+        
+        # Internal state derived from real brain activity, not random
+        pred = self.cerebellum.predict("observe", observation)
+        pred_err = self.cerebellum.mean_error()
         bg_score = self.basal_ganglia.evaluate("explore", {})
         anomaly = self.insula.detect_anomaly() if metrics else False
         dmn_state = self.dmn.introspect() if self._step_count % 5 == 0 else {}
         
-        self._internal_state = np.random.randn(10) * 0.1
+        # Build internal state vector from real signals (10 dims):
+        # [salience, gate, pred_error, bg_score, dopamine, anomaly_flag, 
+        #  dmn_confidence, step_norm, mirror_empathy, emotion_valence]
+        self._internal_state = np.array([
+            s,                                      # 0: salience
+            1.0 if gated else 0.0,                  # 1: gate state
+            min(pred_err, 1.0),                     # 2: prediction error
+            bg_score,                               # 3: basal ganglia score
+            self.basal_ganglia.dopamine,            # 4: dopamine level
+            1.0 if anomaly else 0.0,               # 5: anomaly flag
+            dmn_state.get("confidence", 0.5),       # 6: DMN confidence
+            min(self._step_count / 100.0, 1.0),     # 7: normalized step count
+            self.mirror.empathy_score("user"),      # 8: user empathy
+            self.emotion.emotional_state()["valence"],  # 9: emotional valence
+        ], dtype=float)
+        
+        phi = self.iit.compute_phi(self._internal_state)
         
         return {
             "salience": s, "gated": gated, "phi": phi,
-            "prediction": prediction, "basal_ganglia": bg_score,
+            "prediction": pred, "basal_ganglia": bg_score,
             "anomaly": anomaly, "dmn": dmn_state,
             "internal_state": self._internal_state.tolist(),
         }

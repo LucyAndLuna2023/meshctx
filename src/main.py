@@ -308,6 +308,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"PredictiveContext初始化跳过: {e}")
 
+    # v3.115.32: 初始化GenomicOptimizer 基因进化引擎
+    try:
+        from .core.genomic_optimizer import get_genomic_optimizer
+        app.state.genomic = get_genomic_optimizer()
+        logger.info("GenomicOptimizer 基因进化引擎已初始化 (pop=20)")
+    except Exception as e:
+        logger.warning(f"GenomicOptimizer初始化跳过: {e}")
+
     watcher = ConfigWatcher()
     def _reload_config():
         logger.info("配置已变更，自动重载模型...")
@@ -4941,6 +4949,65 @@ async def health_check():
         }
     except Exception:
         return {"status": "healthy", "timestamp": __import__("time").time()}
+
+
+# ═══ GenomicOptimizer API (v3.115.32) ═══
+
+@app.get("/api/genomic/stats")
+async def genomic_stats():
+    """基因组进化引擎 — 统计"""
+    try:
+        g = getattr(app.state, 'genomic', None)
+        if g is None:
+            return {"status": "not_initialized"}
+        return {"status": "active", **g.stats()}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/genomic/best")
+async def genomic_best():
+    """基因组进化引擎 — 最优基因组"""
+    try:
+        g = getattr(app.state, 'genomic', None)
+        if g is None:
+            return {"status": "not_initialized"}
+        best = g.best_genome
+        if best is None:
+            return {"status": "no_data", "message": "No evolution data yet"}
+        return {"status": "active", "genome": best.to_dict(), "score": g._best_score}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/genomic/evolve")
+async def genomic_evolve(request: Request):
+    """基因组进化引擎 — 手动触发进化"""
+    try:
+        g = getattr(app.state, 'genomic', None)
+        if g is None:
+            return {"status": "not_initialized"}
+        body = await request.json() if request.headers.get('content-type') == 'application/json' else {}
+        steps = body.get("steps", 1)
+        new_genome = g.evolve(steps=steps)
+        return {"status": "evolved", "generation": g.generation, "genome": new_genome.to_dict() if new_genome else None}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/genomic/feedback")
+async def genomic_feedback(request: Request):
+    """基因组进化引擎 — 记录任务反馈"""
+    try:
+        g = getattr(app.state, 'genomic', None)
+        if g is None:
+            return {"status": "not_initialized"}
+        body = await request.json()
+        active = g.get_active_genome()
+        g.record(active, success=body.get("success", True),
+                 latency_ms=body.get("latency_ms", 0),
+                 tokens_used=body.get("tokens_used", 0),
+                 user_accepted=body.get("user_accepted", True))
+        return {"status": "recorded", "feedback_count": g.evaluator._feedback_count if hasattr(g, 'evaluator') else 0}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 @app.get("/api/dashboard")
