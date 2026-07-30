@@ -5,6 +5,8 @@ meshctx Worktree — Git Worktree 隔离环境
 import os, subprocess, tempfile, shutil
 from pathlib import Path
 from typing import Optional
+import logging
+logger = logging.getLogger(__name__)
 
 _worktrees: dict[str, dict] = {}  # id -> {path, base_branch, git_dir}
 
@@ -71,8 +73,8 @@ def worktree_list() -> dict:
     try:
         r = subprocess.run(["git", "worktree", "list"], capture_output=True, text=True)
         result["git_worktrees"] = r.stdout.strip()
-    except:
-        pass
+    except Exception as _e:
+        logger.exception("Unexpected error: %s", _e)
     return result
 
 def worktree_remove(worktree_id: str, force: bool = False) -> dict:

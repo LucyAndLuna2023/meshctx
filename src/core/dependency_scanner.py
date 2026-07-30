@@ -48,7 +48,7 @@ logger = logging.getLogger("meshctx.dependency_scanner")
 # 常量和枚举
 # ═══════════════════════════════════════════════════════════
 
-class Severity(str, Enum):
+class DepScanSeverity(str, Enum):
     """严重级别"""
     CRITICAL = "critical"
     HIGH = "high"
@@ -91,7 +91,7 @@ LICENSE_COMPATIBILITY = {
 KNOWN_VULNERABILITIES = {
     "requests": [
         {
-            "cve": "CVE-2023-32681", "severity": Severity.MEDIUM,
+            "cve": "CVE-2023-32681", "severity": DepScanSeverity.MEDIUM,
             "fixed_in": "2.31.0",
             "description": "Requests 可能会在重定向时泄露 Proxy-Authorization header",
             "affected": "<2.31.0",
@@ -99,7 +99,7 @@ KNOWN_VULNERABILITIES = {
     ],
     "django": [
         {
-            "cve": "CVE-2024-XXXXX", "severity": Severity.HIGH,
+            "cve": "CVE-2024-XXXXX", "severity": DepScanSeverity.HIGH,
             "fixed_in": "5.0.1",
             "description": "Django 存在安全漏洞 (示例)",
             "affected": "<5.0.0",
@@ -107,7 +107,7 @@ KNOWN_VULNERABILITIES = {
     ],
     "pillow": [
         {
-            "cve": "CVE-2023-4863", "severity": Severity.CRITICAL,
+            "cve": "CVE-2023-4863", "severity": DepScanSeverity.CRITICAL,
             "fixed_in": "10.2.0",
             "description": "Pillow 图像解析漏洞导致远程代码执行",
             "affected": "<10.2.0",
@@ -115,7 +115,7 @@ KNOWN_VULNERABILITIES = {
     ],
     "cryptography": [
         {
-            "cve": "CVE-2024-26130", "severity": Severity.HIGH,
+            "cve": "CVE-2024-26130", "severity": DepScanSeverity.HIGH,
             "fixed_in": "42.0.4",
             "description": "Cryptography 存在 NULL 指针解引用",
             "affected": "<42.0.4",
@@ -164,13 +164,13 @@ class DependencyInfo:
         return len(self.vulnerabilities) > 0
 
     @property
-    def max_severity(self, **kw) -> Optional[Severity]:
+    def max_severity(self, **kw) -> Optional[DepScanSeverity]:
         if not self.vulnerabilities:
             return None
-        severities = [Severity(v["severity"].value if hasattr(v["severity"], "value") else v["severity"])
+        severities = [DepScanSeverity(v["severity"].value if hasattr(v["severity"], "value") else v["severity"])
                       for v in self.vulnerabilities]
-        severity_order = {Severity.CRITICAL: 4, Severity.HIGH: 3,
-                          Severity.MEDIUM: 2, Severity.LOW: 1, Severity.INFO: 0}
+        severity_order = {DepScanSeverity.CRITICAL: 4, DepScanSeverity.HIGH: 3,
+                          DepScanSeverity.MEDIUM: 2, DepScanSeverity.LOW: 1, DepScanSeverity.INFO: 0}
         return max(severities, key=lambda s: severity_order.get(s, 0))
 
 
