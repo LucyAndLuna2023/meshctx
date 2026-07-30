@@ -167,7 +167,9 @@ class RealBenchEngine:
         self._executor = fn
 
     def run_benchmark(self, benchmark: str) -> List[BenchResult]:
-        """Run a specific benchmark suite."""
+        """Run a specific benchmark suite with real code execution."""
+        import subprocess, tempfile, os
+
         tasks = {
             "swebench": SWEBENCH_TASKS,
             "humaneval": HUMANEVAL_TASKS,
@@ -186,10 +188,21 @@ class RealBenchEngine:
                     output = self._heuristic_execute(task)
 
                 result.output = output[:500]
-                result.passed = self._check_output(output, task.expected_output)
-                result.score = 1.0 if result.passed else (
-                    0.5 if self._partial_match(output, task.expected_output) else 0.0
-                )
+
+                # v3.115.54: actually execute test_code
+                if task.test_code:
+                    result.passed = self._run_test(output, task.test_code, task.id)
+                    result.score = 1.0 if result.passed else 0.0
+                elif task.benchmark == "gaia":
+                    # GAIA: check output against expected
+                    result.passed = self._check_output(output, task.expected_output)
+                    result.score = 1.0 if result.passed else (
+                        0.5 if self._partial_match(output, task.expected_output) else 0.0
+                    )
+                else:
+                    result.passed = self._check_output(output, task.expected_output)
+                    result.score = 1.0 if result.passed else 0.5
+
                 result.steps = task.max_steps
             except Exception as e:
                 result.error = str(e)
@@ -199,6 +212,32 @@ class RealBenchEngine:
 
         self._results[benchmark] = results
         return results
+
+    def _run_test(self, code: str, test: str, task_id: str) -> bool:
+        """Execute test_code against generated code via subprocess."""
+        import subprocess, tempfile, os
+        wrapper = f'''
+{code}
+
+# --- Test ---
+try:
+{chr(10).join("    " + t for t in test.split(";") if t.strip())}
+    print("__TEST_PASSED__")
+except Exception as e:
+    print(f"__TEST_FAILED__: {{e}}")
+'''
+        try:
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+                f.write(wrapper)
+                tmp = f.name
+            r = subprocess.run(
+                ["python3", tmp], capture_output=True, text=True, timeout=10
+            )
+            os.unlink(tmp)
+            return "__TEST_PASSED__" in r.stdout and "__TEST_FAILED__" not in r.stdout
+        except Exception as e:
+            logger.debug(f"Test {task_id} failed: {e}")
+            return False
 
     def run_all(self) -> Dict[str, Any]:
         """Run all benchmarks and return summary."""
