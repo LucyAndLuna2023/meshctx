@@ -48,7 +48,7 @@ class CircuitBreaker:
         return self.state == "open"
 
 
-class HealerPlugin:
+class AutonomousHealer:
     """Autonomous health checking and self-healing plugin."""
 
     def __init__(self):
@@ -100,12 +100,12 @@ class HealerPlugin:
 
 
 # Singleton
-_healer_instance: Optional[HealerPlugin] = None
+_healer_instance: Optional[AutonomousHealer] = None
 
 
-def get_health_monitor() -> HealerPlugin:
-    """Return the singleton HealerPlugin instance."""
+def get_health_monitor() -> AutonomousHealer:
+    """Return the singleton AutonomousHealer instance."""
     global _healer_instance
     if _healer_instance is None:
-        _healer_instance = HealerPlugin()
+        _healer_instance = AutonomousHealer()
     return _healer_instance
