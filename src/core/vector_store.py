@@ -16,7 +16,7 @@ class VectorDocument:
 
 
 @dataclass
-class SearchResult:
+class StoreSearchResult:
     id: str
     score: float
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -79,7 +79,7 @@ class VectorStore:
     def search(
         self, query: List[float], k: int = 10,
         filters: Optional[Dict[str, Any]] = None,
-    ) -> List[SearchResult]:
+    ) -> List[StoreSearchResult]:
         q = self._normalize(list(query))
         with self._lock:
             if not self._docs:
@@ -90,7 +90,7 @@ class VectorStore:
                     continue
                 scored.append((self._cosine(q, doc.vector), doc))
             scored.sort(key=lambda x: x[0], reverse=True)
-            return [SearchResult(id=d.id, score=s, metadata=d.metadata.copy())
+            return [StoreSearchResult(id=d.id, score=s, metadata=d.metadata.copy())
                     for s, d in scored[:k]]
 
     # ── delete ────────────────────────────────────────────

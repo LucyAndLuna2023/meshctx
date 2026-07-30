@@ -4,6 +4,8 @@ meshctx PushNotification — 推送通知到桌面/手机
 支持: Desktop (notify-send/terminal-notifier), Telegram, Webhook
 """
 import os, subprocess, json, urllib.request
+import logging
+logger = logging.getLogger(__name__)
 
 def push_notify(title: str, body: str = "", urgency: str = "normal",
                 platform: str = "auto") -> str:
@@ -37,8 +39,8 @@ def push_notify(title: str, body: str = "", urgency: str = "normal",
                 f"$n.Visible = $true; $n.ShowBalloonTip(5000)"],
                 timeout=10, capture_output=True)
             return f"Windows notification sent: {title}"
-        except:
-            pass
+        except Exception as _e:
+            logger.exception("Unexpected error: %s", _e)
     
     # Telegram
     if platform in ("auto", "telegram"):
@@ -54,8 +56,8 @@ def push_notify(title: str, body: str = "", urgency: str = "normal",
                     headers={"Content-Type": "application/json"})
                 urllib.request.urlopen(req, timeout=10)
                 return f"Telegram notification sent: {title}"
-            except:
-                pass
+            except Exception as _e:
+                logger.exception("Unexpected error: %s", _e)
     
     # Fallback: print to console
     print(f"\n{'='*50}\n🔔 {title}\n{body}\n{'='*50}")
