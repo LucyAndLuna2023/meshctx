@@ -212,7 +212,7 @@ class RealBenchEngine:
 
 # --- Test ---
 try:
-{chr(10).join("    " + t for t in test.split(";") if t.strip())}
+{chr(10).join("    " + t.strip() for t in test.split(";") if t.strip())}
     print("__TEST_PASSED__")
 except Exception as e:
     print(f"__TEST_FAILED__: {{e}}")
