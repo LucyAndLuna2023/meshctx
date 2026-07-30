@@ -26,7 +26,7 @@ class SemanticEntry:
         return self._ngrams
 
 @dataclass
-class SearchResult:
+class SemanticSearchResult:
     entry: SemanticEntry
     score: float
     matched_terms: List[str] = field(default_factory=list)
@@ -59,7 +59,7 @@ class SemanticIndex:
                 self._inverted[ngram].discard(id)
                 self._doc_freq[ngram] = max(0, self._doc_freq[ngram] - 1)
     
-    def search(self, query: str, top_k: int = 10, threshold: float = 0.0) -> List[SearchResult]:
+    def search(self, query: str, top_k: int = 10, threshold: float = 0.0) -> List[SemanticSearchResult]:
         query_ngrams = set()
         for w in re.findall(r'\w+', query.lower()):
             query_ngrams.add(w)
@@ -82,7 +82,7 @@ class SemanticIndex:
         for doc_id, score in sorted(scores.items(), key=lambda x: -x[1]):
             if score < threshold:
                 continue
-            results.append(SearchResult(
+            results.append(SemanticSearchResult(
                 entry=self.entries[doc_id],
                 score=score,
                 matched_terms=matched[doc_id][:5]
