@@ -12,6 +12,8 @@ import os
 import json
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
+import logging
+logger = logging.getLogger(__name__)
 
 # BUG-011: 本地模型主机可配置
 _OLLAMA_HOST = os.environ.get("MESHCTX_OLLAMA_HOST", "localhost")
@@ -295,8 +297,8 @@ class ModelRegistry:
         try:
             with open(path) as f:
                 config = yaml.safe_load(f) or {}
-        except:
-            return
+        except Exception as _e:
+            logger.exception("Unexpected error: %s", _e)
         
         # 解密函数
         def _decrypt(k):
@@ -304,8 +306,8 @@ class ModelRegistry:
                 try:
                     from src.core.crypto import decrypt_key
                     return decrypt_key(k)
-                except:
-                    pass
+                except Exception as _e:
+                    logger.exception("Unexpected error: %s", _e)
             return k
         
         models_section = config.get("models", {})
@@ -465,8 +467,8 @@ class ModelClient:
             for tc in choice.message.tool_calls:
                 try:
                     args = json.loads(tc.function.arguments)
-                except:
-                    args = {}
+                except Exception as _e:
+                    logger.exception("Unexpected error: %s", _e)
                 result["tool_calls"].append({"id": tc.id, "name": tc.function.name, "arguments": args})
         return result
 
@@ -511,8 +513,8 @@ class ModelClient:
                 tc = tool_acc[idx]
                 try:
                     args = json.loads(tc["args_str"])
-                except:
-                    args = {}
+                except Exception as _e:
+                    logger.exception("Unexpected error: %s", _e)
                 parsed.append({"id": tc["id"], "name": tc["name"], "arguments": args})
             yield ("__TOOLS__", parsed, full_content)
 

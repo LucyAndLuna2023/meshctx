@@ -1096,7 +1096,8 @@ def _send_webhook(config, notification):
             raw = r.read()
             try:
                 mid = _j.loads(raw).get("id", "") if raw else ""
-            except: mid = ""
+            except Exception as _e:
+                logger.exception("Unexpected error: %s", _e)
         return NotificationResult(success=True, channel=NotificationChannel.WEBHOOK,
                                   message_id=mid, latency_sec=elapsed)
     except Exception as e:

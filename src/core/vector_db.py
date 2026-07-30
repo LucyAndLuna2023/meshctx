@@ -52,7 +52,7 @@ class SearchHit:
         return max(self.vector_score, self.keyword_score)
 
 
-class SearchResult:
+class VectorSearchResult:
     """Iterable search result with metadata."""
 
     def __init__(
@@ -348,11 +348,11 @@ class VectorDB:
     def clear(self, **kw):
         self._backend.clear()
 
-    def search(self, query: str, top_k: int = 10, **kw) -> SearchResult:
+    def search(self, query: str, top_k: int = 10, **kw) -> VectorSearchResult:
         """Vector search."""
         return self._search(query, top_k, SearchType.VECTOR)
 
-    def keyword_search(self, query: str, top_k: int = 10, **kw) -> SearchResult:
+    def keyword_search(self, query: str, top_k: int = 10, **kw) -> VectorSearchResult:
         """Keyword-only search."""
         t0 = time.time()
         kw_results = self._backend.keyword_search(query, top_k=top_k)
@@ -367,7 +367,7 @@ class VectorDB:
                     keyword_score=score,
                 ))
         elapsed = (time.time() - t0) * 1000
-        return SearchResult(hits, search_type=SearchType.KEYWORD, total_indexed=self.count(), elapsed_ms=elapsed)
+        return VectorSearchResult(hits, search_type=SearchType.KEYWORD, total_indexed=self.count(), elapsed_ms=elapsed)
 
     def hybrid_search(
         self,
@@ -375,7 +375,7 @@ class VectorDB:
         top_k: int = 10,
         vector_weight: Optional[float] = None,
         keyword_weight: Optional[float] = None,
-    ) -> SearchResult:
+    ) -> VectorSearchResult:
         """Combined vector + keyword search."""
         vw = vector_weight if vector_weight is not None else self.config.vector_weight
         kw = keyword_weight if keyword_weight is not None else self.config.keyword_weight
@@ -415,9 +415,9 @@ class VectorDB:
                 ))
 
         elapsed = (time.time() - t0) * 1000
-        return SearchResult(hits, search_type=SearchType.HYBRID, total_indexed=self.count(), elapsed_ms=elapsed)
+        return VectorSearchResult(hits, search_type=SearchType.HYBRID, total_indexed=self.count(), elapsed_ms=elapsed)
 
-    def _search(self, query: str, top_k: int, search_type: SearchType, **kw) -> SearchResult:
+    def _search(self, query: str, top_k: int, search_type: SearchType, **kw) -> VectorSearchResult:
         t0 = time.time()
         query_vecs = self._backend.encoder.encode([query])
         query_vec = query_vecs[0]
@@ -433,7 +433,7 @@ class VectorDB:
                     vector_score=score,
                 ))
         elapsed = (time.time() - t0) * 1000
-        return SearchResult(hits, search_type=search_type, total_indexed=self.count(), elapsed_ms=elapsed)
+        return VectorSearchResult(hits, search_type=search_type, total_indexed=self.count(), elapsed_ms=elapsed)
 
 
 # ═══════════════════════════════════════════════════════════════
