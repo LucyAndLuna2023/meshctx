@@ -55,17 +55,28 @@ class CognitiveLoop:
     """
     
     def __init__(self):
-        try: from .brain_architecture import BrainLoop
-        except ImportError: BrainLoop = None
-        self.brain = BrainLoop() if BrainLoop else None
+        self._brain = None  # v3.115.52: true lazy init
+        self._brain_imported = False
         
         # 学习状态
-        self._cache: Dict[str, Tuple[str, float]] = {}  # query→(response, timestamp)
+        self._cache: Dict[str, Tuple[str, float]] = {}
         self._success_count = 0
         self._failure_count = 0
-        self._llm_calls_saved = 0  # 缓存命中次数
+        self._llm_calls_saved = 0
         self._hallucinations_caught = 0
         self._total_interactions = 0
+
+    @property
+    def brain(self):
+        """Lazy BrainLoop init — only import on first use."""
+        if self._brain is None and not self._brain_imported:
+            self._brain_imported = True
+            try:
+                from .brain_architecture import BrainLoop
+                self._brain = BrainLoop()
+            except ImportError:
+                pass
+        return self._brain
     
     def think(self, user_msg: str, conversation_history: List[Dict] = None,
               system_prompt: str = "") -> Dict[str, Any]:
