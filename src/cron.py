@@ -269,7 +269,8 @@ class CronPlugin(Plugin):
             
             try:
                 should_run = parser(job.last_run)
-            except:
+except Exception:
+                logger.debug(f"cron error", exc_info=True)
                 continue
             
             if should_run:

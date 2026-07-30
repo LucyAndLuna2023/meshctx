@@ -205,7 +205,9 @@ def register_auth_routes(app):
     @app.post("/api/auth/login")
     async def auth_login(request: Request):
         try: body = await request.json()
-        except: raise HTTPException(400)
+except Exception:
+            logger.debug(f"auth error", exc_info=True)
+            raise HTTPException(400)
         password = body.get("password", "")
         if password == _AUTH_PASSWORD:
             resp = JSONResponse({"status": "ok", "role": "admin"})
@@ -247,7 +249,9 @@ def register_auth_routes(app):
         """创建新 API Key → 返回完整 key（仅此一次）"""
         _require_admin(request)
         try: body = await request.json()
-        except: raise HTTPException(400)
+except Exception:
+            logger.debug(f"auth error", exc_info=True)
+            raise HTTPException(400)
 
         name = body.get("name", "unnamed")
         permissions = body.get("permissions", ["api"])

@@ -455,7 +455,8 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=5):
     for turn in range(max_turns):
         try:
             stream = client.chat_stream(messages, tools=tools_def)
-        except:
+except Exception:
+            logger.debug(f"cli error", exc_info=True)
             # Fallback: no tools
             stream = client.chat_stream(messages)
 
@@ -519,7 +520,8 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=5):
                     print(chunk, end="", flush=True)
                     full_text = chunk if 'full_text' not in dir() else full_text + chunk
             print()
-        except:
+except Exception:
+            logger.debug(f"cli error", exc_info=True)
             pass
 
     # 清理
@@ -679,7 +681,8 @@ def _list_sessions(sess_dir):
         try:
             d = json.loads(f.read_text())
             print(f"  {d['id']:<10} {d['name'][:30]:<30} ({len(d['messages'])}条)")
-        except:
+except Exception:
+            logger.debug(f"cli error", exc_info=True)
             print(f"  {f.stem:<10} (损坏)")
 
 

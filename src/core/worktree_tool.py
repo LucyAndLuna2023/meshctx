@@ -71,7 +71,9 @@ def worktree_list() -> dict:
     try:
         r = subprocess.run(["git", "worktree", "list"], capture_output=True, text=True)
         result["git_worktrees"] = r.stdout.strip()
-    except:
+except Exception:
+        logger.debug(f"worktree_tool error", exc_info=True)
+        raise
         pass
     return result
 

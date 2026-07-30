@@ -71,14 +71,16 @@ class LLMExtractor:
         # 尝试直接解析
         try:
             return json.loads(text)
-        except:
+except Exception:
+            logger.debug(f"llm_extractor error", exc_info=True)
             pass
         # 尝试提取代码块中的JSON
         m = re.search(r'```(?:json)?\s*(\[.*?\])\s*```', text, re.DOTALL)
         if m:
             try:
                 return json.loads(m.group(1))
-            except:
+except Exception:
+                logger.debug(f"llm_extractor error", exc_info=True)
                 pass
         # 尝试找到第一个[和最后一个]
         start = text.find('[')
@@ -86,7 +88,8 @@ class LLMExtractor:
         if start >= 0 and end > start:
             try:
                 return json.loads(text[start:end])
-            except:
+except Exception:
+                logger.debug(f"llm_extractor error", exc_info=True)
                 pass
         return []
 

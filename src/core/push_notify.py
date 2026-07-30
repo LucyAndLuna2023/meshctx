@@ -37,7 +37,8 @@ def push_notify(title: str, body: str = "", urgency: str = "normal",
                 f"$n.Visible = $true; $n.ShowBalloonTip(5000)"],
                 timeout=10, capture_output=True)
             return f"Windows notification sent: {title}"
-        except:
+except Exception:
+            logger.debug(f"push_notify: {text[:50]}...", exc_info=True)
             pass
     
     # Telegram
@@ -54,7 +55,8 @@ def push_notify(title: str, body: str = "", urgency: str = "normal",
                     headers={"Content-Type": "application/json"})
                 urllib.request.urlopen(req, timeout=10)
                 return f"Telegram notification sent: {title}"
-            except:
+except Exception:
+            logger.debug("push_notify failed", exc_info=True)
                 pass
     
     # Fallback: print to console

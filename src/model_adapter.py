@@ -92,7 +92,8 @@ class ModelAdapter:
                 for tc in choice.message.tool_calls:
                     try:
                         args = json.loads(tc.function.arguments)
-                    except:
+except Exception:
+                        logger.debug(f"model_adapter error", exc_info=True)
                         args = {}
                     tool_calls.append({"id": tc.id, "name": tc.function.name, "arguments": args})
 
@@ -171,7 +172,8 @@ class ModelAdapter:
                 tc = tool_calls_acc[idx]
                 try:
                     args = json.loads(tc["args_str"])
-                except:
+except Exception:
+                    logger.debug(f"model_adapter error", exc_info=True)
                     args = {}
                 parsed_tools.append({"id": tc["id"], "name": tc["name"], "arguments": args})
 
@@ -202,7 +204,8 @@ class ModelAdapter:
                 if text.startswith("json"):
                     text = text[4:]
             return json.loads(text)
-        except:
+except Exception:
+            logger.debug(f"model_adapter error", exc_info=True)
             return []
 
     def generate_skill(self, task_pattern: Dict) -> Optional[Dict]:
@@ -235,7 +238,8 @@ class ModelAdapter:
                 if text.startswith("json"):
                     text = text[4:]
             return json.loads(text)
-        except:
+except Exception:
+            logger.debug(f"model_adapter error", exc_info=True)
             return None
 
     @property

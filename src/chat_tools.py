@@ -76,7 +76,8 @@ def _search_files(pattern: str, path: str = ".", glob: str = "*") -> str:
                     content = f.read_text(errors="replace")
                     if pattern.lower() in content.lower():
                         matches.append(str(f))
-                except:
+except Exception:
+                    logger.debug(f"chat_tools error", exc_info=True)
                     pass
         if not matches:
             return f"未找到包含 '{pattern}' 的文件"
@@ -100,7 +101,8 @@ def _web_search(query: str) -> str:
         results = [re.sub(r'<[^>]+>', '', s).strip()[:200] for s in snippets[:5]]
         if results:
             return "\n".join(f"{i+1}. {r}" for i, r in enumerate(results))
-    except:
+except Exception:
+        logger.debug(f"chat_tools error", exc_info=True)
         pass
     try:
         url = f"https://cn.bing.com/search?q={urllib.parse.quote(query)}"

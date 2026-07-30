@@ -90,7 +90,8 @@ class BrowserTool:
         if full:
             try:
                 return await self._page.content()
-            except:
+except Exception:
+                logger.debug(f"browser_tool error", exc_info=True)
                 return self.state.snapshot
         return self.state.snapshot
     
