@@ -4186,6 +4186,55 @@ async def plugins_reload():
         return {"status": "error", "message": str(e)}
 
 
+# ═══ Cache Metrics + Benchmark API (v3.115.48) ═══
+
+@app.get("/api/cache/metrics")
+async def cache_metrics():
+    """缓存性能指标"""
+    import time, psutil
+    metrics = {
+        "timestamp": time.time(),
+        "memory_mb": round(psutil.Process().memory_info().rss / 1024 / 1024, 1),
+        "cpu_percent": psutil.cpu_percent(interval=0.1),
+        "disk_percent": psutil.disk_usage("/").percent,
+    }
+    g = getattr(app.state, 'genomic', None)
+    if g: metrics["genomic"] = g.stats()
+    r = getattr(app.state, 'router', None)
+    if r: metrics["router"] = r.stats()
+    return metrics
+
+
+@app.get("/api/benchmark")
+async def run_benchmark():
+    """快速性能基准"""
+    import time
+    results, t0 = {}, time.time()
+    try:
+        from src.core.vector_store import VectorStore
+        vs = VectorStore(dim=128)
+        t1 = time.time()
+        for i in range(100): vs.add(f"item_{i}", [float(i%128)/128]*128)
+        vs.search([0.5]*128, top_k=5)
+        results["vector_100ops_ms"] = round((time.time()-t1)*1000)
+    except Exception as e: results["vector"] = str(e)
+    try:
+        from src.core.super_brain import SuperBrainOrchestrator
+        brain = SuperBrainOrchestrator()
+        t1 = time.time()
+        for _ in range(10): brain.step("benchmark")
+        results["brain_10steps_ms"] = round((time.time()-t1)*1000)
+    except Exception as e: results["brain"] = str(e)
+    try:
+        from src.core.agent_debate import get_debate_engine
+        t1 = time.time()
+        get_debate_engine().quick_debate("Speed vs quality?")
+        results["debate_ms"] = round((time.time()-t1)*1000)
+    except Exception as e: results["debate"] = str(e)
+    results["total_ms"] = round((time.time()-t0)*1000)
+    return results
+
+
 # ═══ Smart Router API (v3.115.36) ═══
 
 @app.post("/api/router/classify")
