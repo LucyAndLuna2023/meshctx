@@ -282,9 +282,9 @@ except Exception as e:
         if "negative" in keywords and "age" in keywords:
             return "if age < 0: raise ValueError('Age cannot be negative')"
         if "memoization" in keywords or "fibonacci" in keywords:
-            return "from functools import lru_cache\n@lru_cache(maxsize=None)\ndef fibonacci(n): ..."
+            return "from functools import lru_cache\n@lru_cache(maxsize=None)\ndef fibonacci(n):\n    if n < 2: return n\n    return fibonacci(n-1) + fibonacci(n-2)"
         if "lru" in keywords and "cache" in keywords:
-            return "from collections import OrderedDict\nclass LRUCache:\n    def __init__(self, max_size): ..."
+            return "from collections import OrderedDict\nclass LRUCache:\n    def __init__(self, max_size):\n        self.cache = OrderedDict()\n        self.max_size = max_size\n    def get(self, key):\n        if key not in self.cache: return -1\n        self.cache.move_to_end(key)\n        return self.cache[key]\n    def put(self, key, value):\n        if key in self.cache: self.cache.move_to_end(key)\n        self.cache[key] = value\n        if len(self.cache) > self.max_size:\n            self.cache.popitem(last=False)"
         if "close_elements" in keywords:
             return "def has_close_elements(numbers, threshold):\n    for i in range(len(numbers)):\n        for j in range(i+1, len(numbers)):\n            if abs(numbers[i]-numbers[j]) < threshold:\n                return True\n    return False"
         if "paren_groups" in keywords:
