@@ -3,8 +3,11 @@ meshctx Worktree — Git Worktree 隔离环境
 对标: Claude Code EnterWorktree / ExitWorktree
 """
 import os, subprocess, tempfile, shutil
+import logging
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 _worktrees: dict[str, dict] = {}  # id -> {path, base_branch, git_dir}
 
@@ -71,9 +74,8 @@ def worktree_list() -> dict:
     try:
         r = subprocess.run(["git", "worktree", "list"], capture_output=True, text=True)
         result["git_worktrees"] = r.stdout.strip()
-except Exception:
-        logger.debug(f"worktree_tool error", exc_info=True)
-        raise
+    except Exception:
+        logger.debug("worktree_tool error", exc_info=True)
         pass
     return result
 

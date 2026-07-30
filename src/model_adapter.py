@@ -92,8 +92,8 @@ class ModelAdapter:
                 for tc in choice.message.tool_calls:
                     try:
                         args = json.loads(tc.function.arguments)
-except Exception:
-                        logger.debug(f"model_adapter error", exc_info=True)
+                    except Exception:
+                        logger.debug("model_adapter error", exc_info=True)
                         args = {}
                     tool_calls.append({"id": tc.id, "name": tc.function.name, "arguments": args})
 
@@ -172,8 +172,8 @@ except Exception:
                 tc = tool_calls_acc[idx]
                 try:
                     args = json.loads(tc["args_str"])
-except Exception:
-                    logger.debug(f"model_adapter error", exc_info=True)
+                except Exception:
+                    logger.debug("model_adapter chat error", exc_info=True)
                     args = {}
                 parsed_tools.append({"id": tc["id"], "name": tc["name"], "arguments": args})
 
@@ -204,8 +204,8 @@ except Exception:
                 if text.startswith("json"):
                     text = text[4:]
             return json.loads(text)
-except Exception:
-            logger.debug(f"model_adapter error", exc_info=True)
+        except Exception:
+            logger.debug("model_adapter error", exc_info=True)
             return []
 
     def generate_skill(self, task_pattern: Dict) -> Optional[Dict]:
@@ -238,8 +238,8 @@ except Exception:
                 if text.startswith("json"):
                     text = text[4:]
             return json.loads(text)
-except Exception:
-            logger.debug(f"model_adapter error", exc_info=True)
+        except Exception:
+            logger.debug("model_adapter error", exc_info=True)
             return None
 
     @property

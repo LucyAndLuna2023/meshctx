@@ -10,8 +10,11 @@ MeshCtx 极简模型系统 — 123模型 · 37供应商 · 零配置
 """
 import os
 import json
+import logging
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 # BUG-011: 本地模型主机可配置
 _OLLAMA_HOST = os.environ.get("MESHCTX_OLLAMA_HOST", "localhost")
@@ -295,8 +298,8 @@ class ModelRegistry:
         try:
             with open(path) as f:
                 config = yaml.safe_load(f) or {}
-except Exception:
-                logger.debug(f"_scan_env error", exc_info=True)
+        except Exception:
+            logger.debug("_scan_env error", exc_info=True)
             return
         
         # 解密函数
@@ -305,8 +308,8 @@ except Exception:
                 try:
                     from src.core.crypto import decrypt_key
                     return decrypt_key(k)
-except Exception:
-                    logger.debug(f"_decrypt error", exc_info=True)
+                except Exception:
+                    logger.debug("_decrypt error", exc_info=True)
                     pass
             return k
         
@@ -467,8 +470,8 @@ class ModelClient:
             for tc in choice.message.tool_calls:
                 try:
                     args = json.loads(tc.function.arguments)
-except Exception:
-                    logger.debug(f"chat_stream error", exc_info=True)
+                except Exception:
+                    logger.debug("chat_stream error", exc_info=True)
                     args = {}
                 result["tool_calls"].append({"id": tc.id, "name": tc.function.name, "arguments": args})
         return result
@@ -514,8 +517,8 @@ except Exception:
                 tc = tool_acc[idx]
                 try:
                     args = json.loads(tc["args_str"])
-except Exception:
-                    logger.debug(f"chat error", exc_info=True)
+                except Exception:
+                    logger.debug("chat error", exc_info=True)
                     args = {}
                 parsed.append({"id": tc["id"], "name": tc["name"], "arguments": args})
             yield ("__TOOLS__", parsed, full_content)

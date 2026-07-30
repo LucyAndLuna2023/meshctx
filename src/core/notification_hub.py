@@ -1096,8 +1096,8 @@ def _send_webhook(config, notification):
             raw = r.read()
             try:
                 mid = _j.loads(raw).get("id", "") if raw else ""
-except Exception:
-                logger.debug(f"notification_hub error", exc_info=True)
+            except Exception:
+                logger.debug("notification_hub error", exc_info=True)
                 mid = ""
         return NotificationResult(success=True, channel=NotificationChannel.WEBHOOK,
                                   message_id=mid, latency_sec=elapsed)

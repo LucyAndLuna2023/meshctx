@@ -2,9 +2,11 @@
 meshctx Heartbeat — 心跳监控
 对标: OpenClaw heartbeat
 """
-import time, threading, json, os
+import time, threading, json, os, logging
 from pathlib import Path
 from typing import Callable, Optional
+
+logger = logging.getLogger(__name__)
 
 HB_DIR = Path(os.environ.get("MESHCTX_STATE_DIR", Path.home() / ".meshctx")) / "heartbeats"
 HB_DIR.mkdir(parents=True, exist_ok=True)
@@ -48,8 +50,8 @@ def heartbeat_start(name: str, interval_seconds: int = 60,
                     if on_miss:
                         try:
                             on_miss(name, hb["misses"])
-except Exception:
-                            logger.debug("heartbeat error", exc_info=True)
+                        except Exception:
+                            logger.debug("heartbeat callback error", exc_info=True)
                             pass
             else:
                 hb["misses"] = 0
