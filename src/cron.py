@@ -269,8 +269,8 @@ class CronPlugin(Plugin):
             
             try:
                 should_run = parser(job.last_run)
-            except:
-                continue
+            except Exception as _e:
+                logger.exception("Unexpected error: %s", _e)
             
             if should_run:
                 job.last_run = now

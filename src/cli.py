@@ -19,6 +19,8 @@ import json
 import os
 import sys
 from pathlib import Path
+import logging
+logger = logging.getLogger(__name__)
 
 # ── readline: Linux/Mac 可用，Windows 不支持 ──
 try:
@@ -455,8 +457,8 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=5):
     for turn in range(max_turns):
         try:
             stream = client.chat_stream(messages, tools=tools_def)
-        except:
-            # Fallback: no tools
+        except Exception as _e:
+            logger.exception("Unexpected error: %s", _e)
             stream = client.chat_stream(messages)
 
         tool_data = None
@@ -519,8 +521,8 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=5):
                     print(chunk, end="", flush=True)
                     full_text = chunk if 'full_text' not in dir() else full_text + chunk
             print()
-        except:
-            pass
+        except Exception as _e:
+            logger.exception("Unexpected error: %s", _e)
 
     # 清理
     if len(messages) > 40:
@@ -679,8 +681,8 @@ def _list_sessions(sess_dir):
         try:
             d = json.loads(f.read_text())
             print(f"  {d['id']:<10} {d['name'][:30]:<30} ({len(d['messages'])}条)")
-        except:
-            print(f"  {f.stem:<10} (损坏)")
+        except Exception as _e:
+            logger.exception("Unexpected error: %s", _e)
 
 
 # ═══════════════════════════════════════════════════
