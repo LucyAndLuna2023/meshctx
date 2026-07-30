@@ -93,6 +93,10 @@ class AgentLoopPlugin:
         reflect_result = self.reflect(act_result)
         self._outcome = reflect_result.get("outcome", "continue")
         self._log("reflect", f"outcome: {self._outcome}")
+
+        # v3.115.46: online learning integration
+        self._learn_from_step(act_result)
+        
         if self._iteration >= self._max_iterations:
             self._outcome = "max_iterations"
         if self._outcome in ("done", "failed", "max_iterations"):
@@ -248,6 +252,21 @@ class AgentLoopPlugin:
             for s in self.steps:
                 if s.agent_id:
                     self._pool.close(s.agent_id)
+
+    def _learn_from_step(self, act_result: dict):
+        """v3.115.46: Feed step outcome to OnlineLearner."""
+        try:
+            from .online_learning import OnlineLearner, SignalType
+            learner = OnlineLearner()
+            success = act_result.get("status") == "done"
+            learner.record_feedback(
+                signal_type=SignalType.EXPLICIT_ACCEPT if success else SignalType.EXPLICIT_REJECT,
+                context=self.objective[:200],
+                output_text=act_result.get("summary", ""),
+                rating=0.8 if success else 0.2,
+            )
+        except Exception:
+            pass  # non-critical
 
     def _log(self, phase: str, msg: str):
         entry = {"phase": phase, "message": msg, "ts": time.time()}
