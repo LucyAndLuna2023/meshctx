@@ -48,7 +48,7 @@ class PluginInstance:
     load_error: Optional[str] = None
 
 
-class PluginManager:
+class PluginManagerEngine:
     """Real plugin manager — discovery, loading, lifecycle, hot-reload."""
     
     def __init__(self, plugin_dirs: List[str] = None):
@@ -290,11 +290,11 @@ class PluginManager:
 
 
 # ── Global singleton ──
-_global_manager: Optional[PluginManager] = None
+_global_manager: Optional[PluginManagerEngine] = None
 
-def get_plugin_manager() -> PluginManager:
+def get_plugin_manager() -> PluginManagerEngine:
     global _global_manager
     if _global_manager is None:
-        _global_manager = PluginManager()
+        _global_manager = PluginManagerEngine()
         _global_manager.discover()
     return _global_manager
