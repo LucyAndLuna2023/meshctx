@@ -217,6 +217,46 @@ body {
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } }
 
+/* ---- Confirmation Panel (v3.115.30) ---- */
+.confirm-panel {
+  display: none;
+  padding: 14px 18px;
+  background: var(--surface);
+  border-top: 2px solid var(--accent);
+  border-radius: 12px 12px 0 0;
+  animation: slideUp .25s ease;
+}
+.confirm-panel.show { display: block; }
+.confirm-panel .confirm-title {
+  font-size: 13px; color: var(--accent); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px; font-weight: 600;
+}
+.confirm-options { display: flex; flex-direction: column; gap: 4px; }
+.confirm-option {
+  padding: 10px 14px; border-radius: 8px;
+  font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+  transition: background .15s, border-color .15s;
+  border: 1.5px solid transparent;
+}
+.confirm-option:hover { background: #1f6feb12; }
+.confirm-option.active {
+  background: #1f6feb1a; border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+.confirm-option .co-icon { font-size: 17px; flex-shrink: 0; }
+.confirm-option .co-label { flex: 1; font-weight: 500; }
+.confirm-option .co-hint { font-size: 11px; color: var(--muted); }
+.confirm-hint {
+  margin-top: 10px; font-size: 11px; color: var(--muted);
+  display: flex; gap: 16px; justify-content: center;
+}
+.confirm-hint kbd {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 6px; font-family: monospace; font-size: 10px;
+}
+@keyframes slideUp { from { opacity: 0; transform: translateY(12px); } }
+
 /* ---- @mention dropdown ---- */
 .mention-dropdown {
   position: absolute; bottom: 100%; left: 0;
@@ -324,6 +364,32 @@ body {
     onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}; handleInputKeydown(event)"></textarea>
   <button id="sendBtn" onclick="send()" data-lang-key="chat_send">{{ t('chat_send') }}</button>
 </div>
+<!-- v3.115.30: Keyboard-confirm panel -->
+<div class="confirm-panel" id="confirmPanel">
+  <div class="confirm-title">🔐 <span data-lang-key="confirm_title">需要你的确认</span></div>
+  <div class="confirm-options" id="confirmOptions">
+    <div class="confirm-option active" data-action="agree" onclick="confirmAction('agree')">
+      <span class="co-icon">✅</span>
+      <span class="co-label" data-lang-key="confirm_agree">同意</span>
+      <span class="co-hint" data-lang-key="confirm_agree_hint">允许执行</span>
+    </div>
+    <div class="confirm-option" data-action="reject" onclick="confirmAction('reject')">
+      <span class="co-icon">❌</span>
+      <span class="co-label" data-lang-key="confirm_reject">拒绝</span>
+      <span class="co-hint" data-lang-key="confirm_reject_hint">不允许</span>
+    </div>
+    <div class="confirm-option" data-action="custom" onclick="confirmAction('custom')">
+      <span class="co-icon">💬</span>
+      <span class="co-label" data-lang-key="confirm_other">其他</span>
+      <span class="co-hint" data-lang-key="confirm_other_hint">自行输入回复</span>
+    </div>
+  </div>
+  <div class="confirm-hint">
+    <span><kbd>↑↓</kbd> <span data-lang-key="confirm_nav_hint">选择</span></span>
+    <span><kbd>Enter</kbd> <span data-lang-key="confirm_enter_hint">确认</span></span>
+    <span><kbd>Esc</kbd> <span data-lang-key="confirm_esc_hint">取消</span></span>
+  </div>
+</div>
 <div class="info-bar">
   <span id="modelInfo"><span data-lang-key="chat_model">模型</span>: deepseek:v4-flash</span>
   <span id="hybridMode" style="color:var(--accent)">⚡ <span data-lang-key="chat_direct">直出</span></span>
@@ -394,7 +460,14 @@ const LANG = {
     chat_explore:"Explore", chat_new_chat:"New chat started. How can I help?",
     chat_error:"Error: ", chat_copied:"📋 Copied",
     chat_expand:"📖 Expand", chat_collapse:"📖 Collapse",
-    chat_tool:"🔧 Tool"
+    chat_tool:"🔧 Tool",
+    confirm_title:"Permission Required", confirm_agree:"Agree",
+    confirm_agree_hint:"Allow execution", confirm_reject:"Reject",
+    confirm_reject_hint:"Deny", confirm_other:"Other",
+    confirm_other_hint:"Type custom reply",
+    confirm_agree_reply:"Yes, go ahead.",
+    confirm_reject_reply:"No, do not proceed.",
+    confirm_nav_hint:"Navigate", confirm_enter_hint:"Confirm", confirm_esc_hint:"Cancel"
   },
   zh: {
     chat_new:"➕ 新对话", chat_console:"← 控制台",
@@ -408,7 +481,14 @@ const LANG = {
     chat_explore:"探索", chat_new_chat:"新对话开始。有什么可以帮你的？",
     chat_error:"错误: ", chat_copied:"📋 已复制",
     chat_expand:"📖 展开全部", chat_collapse:"📖 收起",
-    chat_tool:"🔧 工具"
+    chat_tool:"🔧 工具",
+    confirm_title:"需要你的确认", confirm_agree:"同意",
+    confirm_agree_hint:"允许执行", confirm_reject:"拒绝",
+    confirm_reject_hint:"不允许", confirm_other:"其他",
+    confirm_other_hint:"自行输入回复",
+    confirm_agree_reply:"同意，请继续。",
+    confirm_reject_reply:"拒绝，不要执行。",
+    confirm_nav_hint:"选择", confirm_enter_hint:"确认", confirm_esc_hint:"取消"
   },
   ja: {
     chat_new:"➕ 新しいチャット", chat_console:"← コンソール",
@@ -422,7 +502,14 @@ const LANG = {
     chat_explore:"探索", chat_new_chat:"新しいチャットを開始しました。何をお手伝いしましょうか？",
     chat_error:"エラー: ", chat_copied:"📋 コピーしました",
     chat_expand:"📖 展開", chat_collapse:"📖 折りたたむ",
-    chat_tool:"🔧 ツール"
+    chat_tool:"🔧 ツール",
+    confirm_title:"確認が必要です", confirm_agree:"同意",
+    confirm_agree_hint:"実行を許可", confirm_reject:"拒否",
+    confirm_reject_hint:"許可しない", confirm_other:"その他",
+    confirm_other_hint:"自由に入力",
+    confirm_agree_reply:"はい、続けてください。",
+    confirm_reject_reply:"いいえ、実行しないでください。",
+    confirm_nav_hint:"選択", confirm_enter_hint:"決定", confirm_esc_hint:"キャンセル"
   },
   ko: {
     chat_new:"➕ 새 채팅", chat_console:"← 콘솔",
@@ -436,7 +523,14 @@ const LANG = {
     chat_explore:"탐색", chat_new_chat:"새 채팅이 시작되었습니다. 무엇을 도와드릴까요?",
     chat_error:"오류: ", chat_copied:"📋 복사됨",
     chat_expand:"📖 펼치기", chat_collapse:"📖 접기",
-    chat_tool:"🔧 도구"
+    chat_tool:"🔧 도구",
+    confirm_title:"확인이 필요합니다", confirm_agree:"동의",
+    confirm_agree_hint:"실행 허용", confirm_reject:"거부",
+    confirm_reject_hint:"허용 안 함", confirm_other:"기타",
+    confirm_other_hint:"직접 입력",
+    confirm_agree_reply:"예, 계속하세요.",
+    confirm_reject_reply:"아니요, 실행하지 마세요.",
+    confirm_nav_hint:"선택", confirm_enter_hint:"확인", confirm_esc_hint:"취소"
   },
   de: {
     chat_new:"➕ Neuer Chat", chat_console:"← Konsole",
@@ -450,7 +544,14 @@ const LANG = {
     chat_explore:"Erkunden", chat_new_chat:"Neuer Chat gestartet. Wie kann ich helfen?",
     chat_error:"Fehler: ", chat_copied:"📋 Kopiert",
     chat_expand:"📖 Erweitern", chat_collapse:"📖 Einklappen",
-    chat_tool:"🔧 Werkzeug"
+    chat_tool:"🔧 Werkzeug",
+    confirm_title:"Bestätigung erforderlich", confirm_agree:"Zustimmen",
+    confirm_agree_hint:"Ausführung erlauben", confirm_reject:"Ablehnen",
+    confirm_reject_hint:"Nicht erlauben", confirm_other:"Andere",
+    confirm_other_hint:"Eigene Antwort",
+    confirm_agree_reply:"Ja, bitte fortfahren.",
+    confirm_reject_reply:"Nein, nicht ausführen.",
+    confirm_nav_hint:"Navigieren", confirm_enter_hint:"Bestätigen", confirm_esc_hint:"Abbrechen"
   },
   fr: {
     chat_new:"➕ Nouveau chat", chat_console:"← Console",
@@ -464,7 +565,14 @@ const LANG = {
     chat_explore:"Explorer", chat_new_chat:"Nouveau chat commencé. Comment puis-je aider ?",
     chat_error:"Erreur : ", chat_copied:"📋 Copié",
     chat_expand:"📖 Développer", chat_collapse:"📖 Réduire",
-    chat_tool:"🔧 Outil"
+    chat_tool:"🔧 Outil",
+    confirm_title:"Confirmation requise", confirm_agree:"Accepter",
+    confirm_agree_hint:"Autoriser l'exécution", confirm_reject:"Refuser",
+    confirm_reject_hint:"Ne pas autoriser", confirm_other:"Autre",
+    confirm_other_hint:"Saisie libre",
+    confirm_agree_reply:"Oui, continuez.",
+    confirm_reject_reply:"Non, n'exécutez pas.",
+    confirm_nav_hint:"Naviguer", confirm_enter_hint:"Confirmer", confirm_esc_hint:"Annuler"
   },
   es: {
     chat_new:"➕ Nuevo chat", chat_console:"← Consola",
@@ -478,7 +586,14 @@ const LANG = {
     chat_explore:"Explorar", chat_new_chat:"Nuevo chat iniciado. ¿Cómo puedo ayudar?",
     chat_error:"Error: ", chat_copied:"📋 Copiado",
     chat_expand:"📖 Expandir", chat_collapse:"📖 Contraer",
-    chat_tool:"🔧 Herramienta"
+    chat_tool:"🔧 Herramienta",
+    confirm_title:"Confirmación requerida", confirm_agree:"Aceptar",
+    confirm_agree_hint:"Permitir ejecución", confirm_reject:"Rechazar",
+    confirm_reject_hint:"No permitir", confirm_other:"Otro",
+    confirm_other_hint:"Escribir respuesta",
+    confirm_agree_reply:"Sí, adelante.",
+    confirm_reject_reply:"No, no ejecutar.",
+    confirm_nav_hint:"Navegar", confirm_enter_hint:"Confirmar", confirm_esc_hint:"Cancelar"
   },
   it: {
     chat_new:"➕ Nuova chat", chat_console:"← Console",
@@ -492,7 +607,14 @@ const LANG = {
     chat_explore:"Esplora", chat_new_chat:"Nuova chat avviata. Come posso aiutare?",
     chat_error:"Errore: ", chat_copied:"📋 Copiato",
     chat_expand:"📖 Espandi", chat_collapse:"📖 Comprimi",
-    chat_tool:"🔧 Strumento"
+    chat_tool:"🔧 Strumento",
+    confirm_title:"Conferma richiesta", confirm_agree:"Accetta",
+    confirm_agree_hint:"Consenti esecuzione", confirm_reject:"Rifiuta",
+    confirm_reject_hint:"Non consentire", confirm_other:"Altro",
+    confirm_other_hint:"Scrivi risposta",
+    confirm_agree_reply:"Sì, procedi.",
+    confirm_reject_reply:"No, non eseguire.",
+    confirm_nav_hint:"Naviga", confirm_enter_hint:"Conferma", confirm_esc_hint:"Annulla"
   },
   ar: {
     chat_new:"➕ محادثة جديدة", chat_console:"← لوحة التحكم",
@@ -506,7 +628,14 @@ const LANG = {
     chat_explore:"استكشاف", chat_new_chat:"تم بدء محادثة جديدة. كيف يمكنني المساعدة؟",
     chat_error:"خطأ: ", chat_copied:"📋 تم النسخ",
     chat_expand:"📖 توسيع", chat_collapse:"📖 طي",
-    chat_tool:"🔧 أداة"
+    chat_tool:"🔧 أداة",
+    confirm_title:"مطلوب تأكيد", confirm_agree:"موافقة",
+    confirm_agree_hint:"السماح بالتنفيذ", confirm_reject:"رفض",
+    confirm_reject_hint:"عدم السماح", confirm_other:"أخرى",
+    confirm_other_hint:"اكتب ردًا مخصصًا",
+    confirm_agree_reply:"نعم، تابع.",
+    confirm_reject_reply:"لا، لا تنفذ.",
+    confirm_nav_hint:"تنقل", confirm_enter_hint:"تأكيد", confirm_esc_hint:"إلغاء"
   }
 };
 
@@ -542,6 +671,7 @@ let messages = [];
 let model = 'deepseek:v4-flash';
 let currentHybridInfo = null;
 let profile = "{{ profile }}";
+let confirmActiveIdx = 0;  // v3.115.30: confirm panel selection
 
 function getTimestamp() {
   const d = new Date();
@@ -649,6 +779,57 @@ function escapeHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ===== v3.115.30: Confirm Panel =====
+function showConfirmPanel() {
+  const panel = document.getElementById('confirmPanel');
+  const inputArea = document.querySelector('.input-area');
+  if (!panel || !inputArea) return;
+  confirmActiveIdx = 0;
+  panel.classList.add('show');
+  inputArea.style.display = 'none';
+  updateConfirmSelection();
+}
+
+function hideConfirmPanel() {
+  const panel = document.getElementById('confirmPanel');
+  const inputArea = document.querySelector('.input-area');
+  if (!panel || !inputArea) return;
+  panel.classList.remove('show');
+  inputArea.style.display = '';
+  document.getElementById('input').focus();
+}
+
+function updateConfirmSelection() {
+  document.querySelectorAll('.confirm-option').forEach((opt, i) => {
+    opt.classList.toggle('active', i === confirmActiveIdx);
+  });
+}
+
+function confirmAction(action) {
+  const input = document.getElementById('input');
+  hideConfirmPanel();
+  if (action === 'agree') {
+    input.value = t('confirm_agree_reply');
+    send();
+  } else if (action === 'reject') {
+    input.value = t('confirm_reject_reply');
+    send();
+  } else {
+    input.value = '';
+    input.focus();
+  }
+}
+
+function maybeShowConfirm(msg) {
+  const patterns = [
+    /可以吗/, /允许我/, /同意吗/, /是否/, /行吗/,
+    /需要.*权限/, /需要.*授权/, /需要.*确认/,
+    /\bmay\s+I\b/i, /\bcan\s+I\b/i, /\bpermission\b/i,
+    /\ballow\s+me\b/i, /\bis\s+it\s+ok\b/i, /\bok\?\s*$/im
+  ];
+  return patterns.some(p => p.test(msg));
+}
+
 async function send() {
   const input = document.getElementById('input');
   const text = input.value.trim();
@@ -681,8 +862,13 @@ async function send() {
     typingDiv.remove();
     addMsg('ai', data.content, data.tool_result);
     messages.push({role:'assistant', content:data.content});
-    
-    document.getElementById('tokenCount').textContent = 
+
+    // v3.115.30: auto-show confirm panel when agent asks permission
+    if (maybeShowConfirm(data.content)) {
+      showConfirmPanel();
+    }
+
+    document.getElementById('tokenCount').textContent =
       `Tokens: ${data.tokens || 0}`;
     
     // v1.5.26: 更新混合推理状态指示器
@@ -905,6 +1091,35 @@ function handleInputKeydown(e) {
     }
     if (e.key === 'Escape') {
       hideMentionDropdown();
+      return;
+    }
+  }
+
+  // --- v3.115.30: confirm panel navigation ---
+  const cp = document.getElementById('confirmPanel');
+  if (cp && cp.classList.contains('show')) {
+    const opts = document.querySelectorAll('.confirm-option');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      confirmActiveIdx = Math.min(confirmActiveIdx + 1, opts.length - 1);
+      updateConfirmSelection();
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      confirmActiveIdx = Math.max(confirmActiveIdx - 1, 0);
+      updateConfirmSelection();
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const active = document.querySelector('.confirm-option.active');
+      if (active) confirmAction(active.dataset.action);
+      return;
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      hideConfirmPanel();
       return;
     }
   }
