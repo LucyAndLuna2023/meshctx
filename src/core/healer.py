@@ -4,9 +4,7 @@ class HealthStatus:
     DEGRADED = "degraded"
     FAILING = "failing"
 
-class CircuitBreaker:
-    def __init__(self, *a, **kw): pass
-    def check(self): return True
+from .autonomous_health import CircuitBreaker  # was stub
 
 class HealerPlugin:
     info = type('Info', (), {'name': 'healer', 'version': '0.1', 'dependencies': [], 'category': 'health', 'description': 'Healer stub'})()

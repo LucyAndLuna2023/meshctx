@@ -5,10 +5,10 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Optional
 
-from .agent_swarm import AgentPool, SwarmTask, TaskStatus, get_agent_pool
+from .agent_swarm import AgentPool, SwarmTask, SwarmTaskStatus, get_agent_pool
 
 
-class PluginInfo:
+class LoopPluginInfo:
     """Plugin identity descriptor (stable API)."""
     def __init__(self, name="agent_loop", version="0.1.0", description=""):
         self.name = name
@@ -37,7 +37,7 @@ class AgentLoopPlugin:
 
     def __init__(self, objective: str = "", context: dict | None = None,
                  max_iterations: int = 10, pool_max_slots: int = 5):
-        self.info = PluginInfo(
+        self.info = LoopPluginInfo(
             name="agent_loop", version="0.2.0",
             description="Plan/Act/Reflect agent cycle with AgentPool delegation")
         self.kernel = None
@@ -147,10 +147,10 @@ class AgentLoopPlugin:
             for s in self.steps:
                 if s.status == "running" and s.agent_id:
                     task = self._pool.wait(s.agent_id, timeout=0.001)
-                    if task and task.status == TaskStatus.done:
+                    if task and task.status == SwarmTaskStatus.done:
                         s.status = "done"
                         s.result = task.result or "done via pool"
-                    elif task and task.status == TaskStatus.failed:
+                    elif task and task.status == SwarmTaskStatus.failed:
                         s.status = "failed"
                         s.error = task.error or "pool failure"
         done = sum(1 for s in self.steps if s.status == "done")

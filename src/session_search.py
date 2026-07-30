@@ -13,7 +13,7 @@ except ImportError:
     from src.core.kernel import Event, EventPriority, Plugin, PluginInfo
 
 @dataclass
-class SearchResult:
+class SessionSearchResult:
     session_id: str; title: str; snippet: str
     score: float; timestamp: float; match_type: str
 
@@ -64,7 +64,7 @@ class FTS5SessionSearch:
         self._conn.commit()
     
     def search(self, query: str, limit: int = 10,
-               before: float = None, after: float = None) -> List[SearchResult]:
+               before: float = None, after: float = None) -> List[SessionSearchResult]:
         """BM25全文搜索"""
         # 转义FTS5特殊字符
         safe_query = query.replace('"', '""')
@@ -97,7 +97,7 @@ class FTS5SessionSearch:
             # BM25分数归一化
             score = min(1.0, max(0.1, 1.0 / (1.0 + abs(rank))))
             
-            results.append(SearchResult(
+            results.append(SessionSearchResult(
                 session_id=sid, title=title,
                 snippet=snip or title,
                 score=round(score, 3),

@@ -12,7 +12,7 @@ class ResearchStatus(str, Enum):
     FAILED = "failed"
 
 @dataclass
-class SearchResult:
+class ResearchSearchResult:
     title: str = ""
     url: str = ""
     snippet: str = ""
@@ -153,12 +153,12 @@ class DeepResearchEngine:
 
     def _search_html_fallback(self, query):
         return [
-            SearchResult(
+            ResearchSearchResult(
                 title=f"Result for: {query[:50]}",
                 url=f"https://example.com/search?q={query[:30]}",
                 snippet=f"Information about {query[:60]}",
             ),
-            SearchResult(
+            ResearchSearchResult(
                 title=f"More about {query[:50]}",
                 url=f"https://example.com/more?q={query[:30]}",
                 snippet=f"Additional details on {query[:60]}",
