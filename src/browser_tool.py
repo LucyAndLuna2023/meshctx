@@ -90,8 +90,8 @@ class BrowserTool:
         if full:
             try:
                 return await self._page.content()
-            except:
-                return self.state.snapshot
+            except Exception as _e:
+                logger.exception("Unexpected error: %s", _e)
         return self.state.snapshot
     
     async def click(self, ref: str) -> Dict:
