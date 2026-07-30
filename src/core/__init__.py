@@ -18,8 +18,9 @@ from types import ModuleType
 _STRICT = os.environ.get('MESHCTX_STRICT', '').strip() in ('1', 'true', 'yes')
 
 # ═══════════════ 通用 Stub (阶段1: 添加诊断) ═══════════════
-class _StubClass:
-    __slots__ = ('_warned',)  # 减少内存, 单例仅一个 set
+class _StubProxy:
+    """Graceful degradation proxy — returns self for any attribute access.
+    Used when meshctx-core (private) is not installed."""
 
     def __init__(self, *a, **kw):
         object.__setattr__(self, '_warned', set())
@@ -72,7 +73,7 @@ class _StubClass:
     def __iter__(self): return iter([])
     def __len__(self): return 0
 
-_stub = _StubClass()
+_stub = _StubProxy()
 
 # ═══════════════ 已知stub模块映射 ═══════════════
 _known = {
@@ -225,7 +226,7 @@ def __dir__():
 
 
 # ═══════════════ 阶段1: 模块可用性查询 API ═══════════════
-def has_module(name):
+def has_module(name) -> bool:
     """检查 meshctx-core 子模块是否可用 (非 stub)。
 
     用法:
@@ -249,7 +250,7 @@ def has_module(name):
 
 
 @lru_cache(maxsize=1)
-def available_modules():
+def available_modules() -> list:
     """列出当前可用的 meshctx-core 子模块。
 
     返回: list[str] — 已加载或可导入的模块名

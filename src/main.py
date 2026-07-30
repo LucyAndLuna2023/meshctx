@@ -3262,6 +3262,15 @@ def _dispatch_tool(name: str, args: dict, approved_tools: set, page_cache: dict)
         return f"未知工具: {name}"
 
 
+# v3.115.41: async LLM helper — non-blocking via thread pool
+async def _call_llm(client, **kwargs):
+    import asyncio
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(
+        None, lambda c=client, kw=kwargs: c.client.chat.completions.create(**kw)
+    )
+
+
 @app.post("/api/chat")
 async def api_chat(request: Request):
     """非流式Chat API — 完整工具循环。用于前端chat.html"""
@@ -3309,7 +3318,7 @@ async def api_chat(request: Request):
         for _round in range(max_rounds):
             try:
                 if tools_ok:
-                    resp = client.client.chat.completions.create(
+                    resp = await _call_llm(client, 
                         model=client.model_name,
                         messages=msgs,
                         temperature=0.7,
@@ -3318,7 +3327,7 @@ async def api_chat(request: Request):
                         tool_choice="auto",
                     )
                 else:
-                    resp = client.client.chat.completions.create(
+                    resp = await _call_llm(client, 
                         model=client.model_name,
                         messages=msgs,
                         temperature=0.7,
@@ -3327,7 +3336,7 @@ async def api_chat(request: Request):
             except Exception as e:
                 if "tools" in str(e).lower() or "tool" in str(e).lower():
                     tools_ok = False
-                    resp = client.client.chat.completions.create(
+                    resp = await _call_llm(client, 
                         model=client.model_name,
                         messages=msgs,
                         temperature=0.7,
@@ -3376,7 +3385,7 @@ async def api_chat(request: Request):
         # Max rounds reached
         # Make one final call without tools to get a text response
         try:
-            resp = client.client.chat.completions.create(
+            resp = await _call_llm(client, 
                 model=client.model_name,
                 messages=msgs,
                 temperature=0.7,
@@ -3494,7 +3503,7 @@ async def api_chat_stream(request: Request):
                 # 发送请求给模型 (尝试 tools，失败则降级)
                 try:
                     if _tools_ok:
-                        resp = client.client.chat.completions.create(
+                        resp = await _call_llm(client, 
                             model=client.model_name,
                             messages=msgs,
                             temperature=0.7,
@@ -3503,7 +3512,7 @@ async def api_chat_stream(request: Request):
                             tool_choice="auto",
                         )
                     else:
-                        resp = client.client.chat.completions.create(
+                        resp = await _call_llm(client, 
                             model=client.model_name,
                             messages=msgs,
                             temperature=0.7,
@@ -3514,7 +3523,7 @@ async def api_chat_stream(request: Request):
                     # 如果模型不支持 tools，降级重试
                     if 'tool' in err_msg.lower() or 'not support' in err_msg.lower() or 'invalid' in err_msg.lower():
                         _tools_ok = False
-                        resp = client.client.chat.completions.create(
+                        resp = await _call_llm(client, 
                             model=client.model_name,
                             messages=msgs,
                             temperature=0.7,

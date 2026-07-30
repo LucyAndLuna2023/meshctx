@@ -33,7 +33,7 @@ def _ensure_bs4():
         )
 
 
-def _fetch_page(url: str, timeout: int = 15, headers: dict | None = None) -> str | None:
+def _fetch_page(url: str, timeout: int = 15, headers: Optional[dict] = None) -> Optional[str]:
     """Fetch a page and return raw HTML."""
     requests = _ensure_requests()
     default_headers = {
@@ -60,7 +60,7 @@ def _fetch_page(url: str, timeout: int = 15, headers: dict | None = None) -> str
 
 def web_scrape(url: str, selector: str = "", extract: str = "text",
                attribute: str = "", limit: int = 50, timeout: int = 15,
-               headers: dict | None = None) -> dict:
+               headers: Optional[dict] = None) -> dict:
     """Scrape content from a single URL.
 
     Args:
