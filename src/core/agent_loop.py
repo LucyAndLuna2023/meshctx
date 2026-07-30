@@ -258,12 +258,12 @@ class AgentLoopPlugin:
         try:
             from .online_learning import OnlineLearner, SignalType
             learner = OnlineLearner()
-            success = act_result.get("status") == "done"
+            # Step reached without error = success
             learner.record_feedback(
-                signal_type=SignalType.EXPLICIT_ACCEPT if success else SignalType.EXPLICIT_REJECT,
+                signal_type=SignalType.EXPLICIT_ACCEPT,
                 context=self.objective[:200],
                 output_text=act_result.get("summary", ""),
-                rating=0.8 if success else 0.2,
+                rating=0.8,
             )
         except Exception:
             pass  # non-critical
