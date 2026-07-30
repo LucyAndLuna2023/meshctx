@@ -67,18 +67,46 @@ class Web2APIProxy:
         if provider_name not in self._providers:
             raise ValueError(f"Unknown provider: {provider_name}")
         self._request_count += 1
-        # Stub: return empty response
-        return ProxyResponse(
-            content="This is a stub response from Web2API proxy.",
-            model=request.model,
-        )
+        # Real LLM routing via model_registry (v3.115.33)
+        try:
+            from src.model_registry import get_registry
+            reg = get_registry()
+            resp = reg.chat(
+                messages=request.messages,
+                temperature=request.temperature,
+                max_tokens=request.max_tokens or 1024
+            )
+            content = resp.get("content", resp.get("response", str(resp)))
+            return ProxyResponse(content=content, model=request.model)
+        except Exception as e:
+            self._error_count += 1
+            return ProxyResponse(
+                content=f"[Web2API Error] {e}",
+                model=request.model,
+            )
 
     def chat_stream(self, provider_name: str, request: ProxyRequest, **kw):
         if provider_name not in self._providers:
             raise ValueError(f"Unknown provider: {provider_name}")
         self._request_count += 1
-        # Stub: yield one chunk
-        yield "This is a stub stream chunk from Web2API proxy."
+        # Real LLM streaming via model_registry (v3.115.33)
+        try:
+            from src.model_registry import get_registry
+            reg = get_registry()
+            for chunk in reg.chat_stream(
+                messages=request.messages,
+                temperature=request.temperature,
+                max_tokens=request.max_tokens or 1024
+            ):
+                if isinstance(chunk, dict):
+                    delta = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                    if delta:
+                        yield delta
+                elif isinstance(chunk, str):
+                    yield chunk
+        except Exception as e:
+            self._error_count += 1
+            yield f"[Web2API Error] {e}"
 
 
 # ═══════════════════════════════════════════════════════════════

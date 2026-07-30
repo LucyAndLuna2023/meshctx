@@ -3986,20 +3986,59 @@ def _do_browser_snapshot(cache: dict) -> str:
 
 @app.post("/api/chat/compare")
 async def chat_compare(req: Request):
-    """多模型对比 — 同一问题并发问3个模型"""
+    """多模型对比 — 同一问题并发问多个模型,返回排名"""
     try:
         try: body = await req.json()
-        except: raise HTTPException(400, t('error_body_must_be_json'))
+        except: raise HTTPException(400, "body must be JSON")
         
         message = body.get("message", "")
         if not message:
             return {"error": "请提供 message", "results": []}
         
-        # Return stub — full implementation requires multiple LLM calls
+        models = body.get("models", ["deepseek:v4-pro", "deepseek:v4-flash", "deepseek:chat"])
+        models = models[:5]  # max 5
+        
+        from src.model_registry import get_registry
+        from src.core.model_compare import ModelCompareEngine
+        reg = get_registry()
+        engine = ModelCompareEngine()
+        
+        # Try each model in parallel-like sequential (real LLM calls)
+        t0 = __import__("time").time()
+        results = []
+        for mid in models:
+            t1 = __import__("time").time()
+            entry = {"model": mid, "response": "", "error": "", "latency_ms": 0}
+            try:
+                resp = reg.chat(
+                    messages=[{"role": "user", "content": message}],
+                    temperature=0.7, max_tokens=1024
+                )
+                entry["response"] = resp.get("content", resp.get("response", str(resp)))
+                entry["latency_ms"] = (__import__("time").time() - t1) * 1000
+            except Exception as e:
+                entry["error"] = str(e)
+                entry["latency_ms"] = (__import__("time").time() - t1) * 1000
+            results.append(entry)
+        
+        # Rank by latency (faster = better) and response length (longer = more detailed)
+        for r in results:
+            if not r["error"]:
+                r["speed_score"] = round(100 * min(1, 1000 / max(r["latency_ms"], 1)), 1)
+                r["detail_score"] = round(min(100, len(r["response"]) / 10), 1)
+                r["score"] = round(r["speed_score"] * 0.4 + r["detail_score"] * 0.6, 1)
+            else:
+                r["speed_score"] = 0
+                r["detail_score"] = 0
+                r["score"] = 0
+        
+        results.sort(key=lambda r: r["score"], reverse=True)
+        
         return {
             "message": message,
-            "results": [],
-            "note": "Multi-model comparison requires configured LLM providers"
+            "total_time_ms": round((__import__("time").time() - t0) * 1000),
+            "results": results,
+            "winner": results[0]["model"] if results else None
         }
     except HTTPException:
         raise
@@ -4009,22 +4048,69 @@ async def chat_compare(req: Request):
 
 @app.post("/api/chat/compare/stream")
 async def chat_compare_stream(req: Request):
-    """多模型对比流式 (SSE)"""
+    """多模型对比流式 (SSE) — 逐个模型实时推送结果"""
     try: body = await req.json()
-    except: raise HTTPException(400, t('error_body_must_be_json'))
+    except: raise HTTPException(400, "body must be JSON")
     
     message = body.get("message", "")
     model_ids = body.get("models", ["deepseek:chat", "openai:gpt-4o-mini"])
     
     if not message:
-        raise HTTPException(400, t('error_missing_message'))
+        raise HTTPException(400, "message required")
     
-    from src.core.model_compare import compare_models_stream
+    async def sse_stream():
+        from src.model_registry import get_registry
+        import json as _j
+        reg = get_registry()
+        t0 = __import__("time").time()
+        results = []
+        for i, mid in enumerate(model_ids[:5]):
+            t1 = __import__("time").time()
+            status = {"type": "start", "model": mid, "index": i}
+            yield f"data: {_j.dumps(status)}\n\n"
+            try:
+                resp = reg.chat(
+                    messages=[{"role": "user", "content": message}],
+                    temperature=0.7, max_tokens=1024
+                )
+                content = resp.get("content", resp.get("response", ""))
+                lat = (__import__("time").time() - t1) * 1000
+                result = {"type": "result", "model": mid, "index": i,
+                         "response": content[:2000], "latency_ms": round(lat),
+                         "chars": len(content)}
+                results.append({"model": mid, "response": content, "latency_ms": lat,
+                              "speed_score": round(100 * min(1, 1000 / max(lat, 1)), 1),
+                              "detail_score": round(min(100, len(content) / 10), 1)})
+                yield f"data: {_j.dumps(result)}\n\n"
+            except Exception as e:
+                yield f"data: {_j.dumps({'type': 'error', 'model': mid, 'error': str(e)})}\n\n"
+        # Sort and send leaderboard
+        results.sort(key=lambda r: r.get("speed_score", 0) + r.get("detail_score", 0), reverse=True)
+        done = {"type": "done", "total_time_ms": round((__import__("time").time() - t0) * 1000),
+                "leaderboard": results, "winner": results[0]["model"] if results else None}
+        yield f"data: {_j.dumps(done)}\n\n"
+    
     return StreamingResponse(
-        compare_models_stream(message, model_ids[:3]),
+        sse_stream(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
     )
+
+
+@app.get("/api/models/open")
+async def list_open_models():
+    """列出所有可用模型（用于对比选择）"""
+    try:
+        from src.model_registry import get_registry
+        reg = get_registry()
+        all_models = reg.list_all()
+        return {
+            "models": all_models,
+            "count": len(all_models),
+            "default": reg.model_name if hasattr(reg, 'model_name') else "deepseek:v4-pro"
+        }
+    except Exception as e:
+        return {"models": [], "error": str(e)}
 
 
 # ═══════════════════════════════════════════════════

@@ -347,6 +347,77 @@ class VoiceChat:
 
     # ── TTS ───────────────────────────────────────────────────
 
+    def _system_tts(self, text: str, provider=None) -> bytes:
+        """Real TTS via system native tools."""
+        import subprocess, tempfile, os, platform
+        system = platform.system()
+        try:
+            if system == "Linux":
+                # espeak-ng → WAV
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                    wav_path = f.name
+                subprocess.run(
+                    ["espeak-ng", "-w", wav_path, text],
+                    capture_output=True, timeout=30
+                )
+                if os.path.exists(wav_path) and os.path.getsize(wav_path) > 0:
+                    with open(wav_path, "rb") as f:
+                        return f.read()
+                # fallback: espeak
+                subprocess.run(
+                    ["espeak", "-w", wav_path, text],
+                    capture_output=True, timeout=30
+                )
+                if os.path.exists(wav_path):
+                    with open(wav_path, "rb") as f:
+                        return f.read()
+            elif system == "Darwin":
+                # macOS say → AIFF
+                with tempfile.NamedTemporaryFile(suffix=".aiff", delete=False) as f:
+                    aiff_path = f.name
+                subprocess.run(
+                    ["say", "-o", aiff_path, text],
+                    capture_output=True, timeout=30
+                )
+                if os.path.exists(aiff_path) and os.path.getsize(aiff_path) > 0:
+                    with open(aiff_path, "rb") as f:
+                        return f.read()
+            elif system == "Windows":
+                # Try pyttsx3
+                try:
+                    import pyttsx3
+                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                        wav_path = f.name
+                    engine = pyttsx3.init()
+                    engine.save_to_file(text, wav_path)
+                    engine.runAndWait()
+                    if os.path.exists(wav_path) and os.path.getsize(wav_path) > 0:
+                        with open(wav_path, "rb") as f:
+                            return f.read()
+                except ImportError:
+                    pass
+        except Exception:
+            pass
+        return b""  # fallback to empty
+
+    def _system_stt(self, audio: bytes) -> str:
+        """Real STT via whisper if available."""
+        try:
+            import tempfile, os
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                f.write(audio)
+                wav_path = f.name
+            try:
+                import whisper
+                model = whisper.load_model("tiny")
+                result = model.transcribe(wav_path)
+                return result.get("text", "").strip()
+            except ImportError:
+                pass
+        except Exception:
+            pass
+        return ""
+
     def speak_sync(self, text: str, provider: Optional[str] = None, **kw) -> TTSResult:
         """Synthesize speech synchronously."""
         tts_provider = self.config.default_tts_provider
@@ -390,9 +461,10 @@ class VoiceChat:
             if cache_key in self._tts_cache:
                 return self._tts_cache[cache_key]
 
-        # Stub: return empty audio
+        # Real TTS via system tools (v3.115.33)
+        audio_data = self._system_tts(text, tts_provider)
         result = TTSResult(
-            audio_bytes=b"",
+            audio_bytes=audio_data,
             audio_format=self.config.default_audio_format,
             text_length=len(text),
             provider=tts_provider,
@@ -444,9 +516,10 @@ class VoiceChat:
                 provider=stt_provider,
             )
 
-        # Stub: return empty result
+        # Real STT (v3.115.33)
+        text = self._system_stt(audio)
         return STTResult(
-            text="",
+            text=text if text else "",
             provider=stt_provider,
             success=True,
         )

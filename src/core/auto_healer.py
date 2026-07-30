@@ -1,14 +1,15 @@
-"""meshctx auto_healer — automated health checks and self-healing.
+"""meshctx auto_healer — automated health checks and self-healing (v3.115.33)
 
-⚠️ 开源版 Stub 模式：健康检查返回硬编码结果，修复操作为空操作。
-完整自愈引擎（磁盘检查/内存泄漏检测/进程恢复）在 meshctx-core 私有核心中。"""
+Real implementation: psutil-based disk/memory/cpu checks, connectivity test.
+No more hardcoded results."""
 
 from __future__ import annotations
 
 import time
+import os
+import shutil
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
-
 
 # ---------------------------------------------------------------------------
 # CheckResult
@@ -16,8 +17,6 @@ from typing import Any, Callable, Dict, List, Optional
 
 @dataclass
 class CheckResult:
-    """Outcome of a single health check."""
-
     name: str
     status: str = "ok"  # "ok", "warn", "critical", "unknown"
     message: str = ""
@@ -25,41 +24,147 @@ class CheckResult:
 
 
 # ---------------------------------------------------------------------------
-# AutoHealerV2
+# AutoHealerV2 — real health checks
 # ---------------------------------------------------------------------------
 
 class AutoHealerV2:
-    """Automated health-check runner with self-healing actions.
-
-    Runs a set of built-in checks (cache, memory, disk, …), reports status,
-    and applies healing actions when problems are detected.
-    """
-
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._check_count: int = 0
         self._heal_count: int = 0
         self._last_check: float = 0.0
+        self._uptime_start: float = time.time()
 
-    # -- checks --------------------------------------------------------------
+    # -- real checks ----------------------------------------------------------
 
     def _check_cache(self) -> CheckResult:
         """Check internal cache health."""
-        return CheckResult(name="cache", status="ok", message="cache healthy")
+        import tempfile
+        try:
+            tmp = tempfile.gettempdir()
+            test_file = os.path.join(tmp, ".meshctx_health_test")
+            with open(test_file, "w") as f:
+                f.write("test")
+            os.remove(test_file)
+            return CheckResult(name="cache", status="ok", message="cache r/w OK")
+        except Exception as e:
+            return CheckResult(name="cache", status="warn", message=f"cache issue: {e}")
 
     def _check_memory(self) -> CheckResult:
-        """Check memory usage."""
-        return CheckResult(name="memory", status="ok", message="memory within limits")
+        """Check real memory usage via psutil or /proc/meminfo."""
+        try:
+            import psutil
+            mem = psutil.virtual_memory()
+            pct = mem.percent
+            gb_used = mem.used / (1024**3)
+            gb_total = mem.total / (1024**3)
+            if pct > 90:
+                return CheckResult(name="memory", status="critical",
+                    message=f"memory critical: {pct:.1f}% ({gb_used:.1f}/{gb_total:.1f} GB)",
+                    details={"percent": pct, "used_gb": round(gb_used, 1), "total_gb": round(gb_total, 1)})
+            elif pct > 75:
+                return CheckResult(name="memory", status="warn",
+                    message=f"memory high: {pct:.1f}%",
+                    details={"percent": pct})
+            return CheckResult(name="memory", status="ok",
+                message=f"memory OK: {pct:.1f}%",
+                details={"percent": pct})
+        except ImportError:
+            # Fallback to /proc/meminfo on Linux
+            try:
+                with open("/proc/meminfo") as f:
+                    lines = f.read()
+                import re
+                total = int(re.search(r"MemTotal:\s+(\d+)", lines).group(1))
+                avail = int(re.search(r"MemAvailable:\s+(\d+)", lines).group(1))
+                pct = (total - avail) / total * 100
+                if pct > 90:
+                    return CheckResult(name="memory", status="critical",
+                        message=f"memory critical: {pct:.1f}%")
+                elif pct > 75:
+                    return CheckResult(name="memory", status="warn",
+                        message=f"memory high: {pct:.1f}%")
+                return CheckResult(name="memory", status="ok",
+                    message=f"memory OK: {pct:.1f}%")
+            except Exception:
+                return CheckResult(name="memory", status="unknown", message="cannot read memory")
 
     def _check_disk(self) -> CheckResult:
-        """Check disk space."""
-        return CheckResult(name="disk", status="ok", message="disk space adequate")
+        """Check real disk space."""
+        try:
+            import psutil
+            disk = psutil.disk_usage("/")
+            pct = disk.percent
+            gb_free = disk.free / (1024**3)
+            if pct > 95:
+                return CheckResult(name="disk", status="critical",
+                    message=f"disk critical: {pct:.1f}% used, {gb_free:.1f} GB free",
+                    details={"percent": pct, "free_gb": round(gb_free, 1)})
+            elif pct > 85:
+                return CheckResult(name="disk", status="warn",
+                    message=f"disk low: {pct:.1f}% used, {gb_free:.1f} GB free",
+                    details={"percent": pct})
+            return CheckResult(name="disk", status="ok",
+                message=f"disk OK: {gb_free:.1f} GB free",
+                details={"percent": pct, "free_gb": round(gb_free, 1)})
+        except ImportError:
+            try:
+                stat = shutil.disk_usage("/")
+                pct = (stat.used / stat.total) * 100
+                gb_free = stat.free / (1024**3)
+                if pct > 95:
+                    return CheckResult(name="disk", status="critical",
+                        message=f"disk critical: {pct:.1f}% used")
+                elif pct > 85:
+                    return CheckResult(name="disk", status="warn",
+                        message=f"disk low: {pct:.1f}% used")
+                return CheckResult(name="disk", status="ok",
+                    message=f"disk OK: {gb_free:.1f} GB free")
+            except Exception:
+                return CheckResult(name="disk", status="unknown", message="cannot read disk")
 
     def _check_connectivity(self) -> CheckResult:
-        """Check network / API connectivity."""
-        return CheckResult(name="connectivity", status="warn", message="latency elevated")
+        """Check network connectivity."""
+        import socket
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(3)
+            s.connect(("8.8.8.8", 53))
+            s.close()
+            return CheckResult(name="connectivity", status="ok", message="network reachable")
+        except Exception:
+            return CheckResult(name="connectivity", status="warn", message="network unreachable")
+
+    def _check_cpu(self) -> CheckResult:
+        """Check CPU load."""
+        try:
+            import psutil
+            pct = psutil.cpu_percent(interval=0.5)
+            if pct > 90:
+                return CheckResult(name="cpu", status="critical",
+                    message=f"CPU critical: {pct:.1f}%", details={"percent": pct})
+            elif pct > 70:
+                return CheckResult(name="cpu", status="warn",
+                    message=f"CPU high: {pct:.1f}%", details={"percent": pct})
+            return CheckResult(name="cpu", status="ok",
+                message=f"CPU OK: {pct:.1f}%", details={"percent": pct})
+        except ImportError:
+            try:
+                load = os.getloadavg()[0]
+                cores = os.cpu_count() or 1
+                pct = load / cores * 100
+                if pct > 90:
+                    return CheckResult(name="cpu", status="critical",
+                        message=f"CPU critical: load {load:.1f}")
+                elif pct > 70:
+                    return CheckResult(name="cpu", status="warn",
+                        message=f"CPU high: load {load:.1f}")
+                return CheckResult(name="cpu", status="ok",
+                    message=f"CPU OK: load {load:.1f}")
+            except Exception:
+                return CheckResult(name="cpu", status="unknown", message="cannot read CPU")
 
     def check_all(self) -> List[CheckResult]:
-        """Run every registered health check and return results."""
+        """Run every real health check."""
         self._last_check = time.time()
         self._check_count += 1
 
@@ -68,56 +173,63 @@ class AutoHealerV2:
             self._check_memory,
             self._check_disk,
             self._check_connectivity,
+            self._check_cpu,
         ]
-
         return [fn() for fn in checks]
 
     # -- healing -------------------------------------------------------------
 
     def heal(self, checks: List[CheckResult]) -> List[Dict[str, Any]]:
-        """Apply healing actions for any non-ok check results.
-
-        Returns a list of action descriptors.
-        """
+        """Apply healing actions for non-ok checks."""
         actions: List[Dict[str, Any]] = []
         for c in checks:
             if c.status != "ok":
-                actions.append({
+                action = {
                     "check": c.name,
                     "status": c.status,
-                    "action": "heal",
+                    "message": c.message,
+                    "action": "logged" if c.status == "warn" else "alert",
                     "timestamp": time.time(),
-                })
+                }
+                # Real healing: clear Python cache for memory pressure
+                if c.name == "memory" and c.status in ("critical", "warn"):
+                    try:
+                        import gc
+                        gc.collect()
+                        action["action"] = "gc_collected"
+                    except Exception:
+                        pass
+                actions.append(action)
         self._heal_count += len(actions)
         return actions
 
     # -- stats ----------------------------------------------------------------
 
     def get_stats(self) -> Dict[str, Any]:
-        """Return aggregate health statistics."""
+        uptime = time.time() - self._uptime_start
         return {
-            "checks": max(self._check_count, 3),
+            "checks": self._check_count,
             "heals": self._heal_count,
             "last_check": self._last_check,
-            "uptime": 0.0,
+            "uptime_seconds": round(uptime),
+            "uptime_human": f"{uptime/3600:.1f}h",
         }
 
-
     def get_dashboard_report(self) -> Dict[str, Any]:
-        """Return a dashboard-friendly health report."""
+        checks = self.check_all()
+        ok = sum(1 for c in checks if c.status == "ok")
+        warn = sum(1 for c in checks if c.status == "warn")
+        crit = sum(1 for c in checks if c.status == "critical")
+        total = len(checks)
+        score = round(100 * ok / max(total, 1), 1)
         return {
-            "status": "healthy",
-            "color": "green",
-            "health_score": 98.5,
-            "predictions": [],
+            "status": "healthy" if crit == 0 else "degraded",
+            "color": "green" if crit == 0 else ("yellow" if warn > 0 else "red"),
+            "health_score": score,
+            "checks": [{"name": c.name, "status": c.status, "message": c.message} for c in checks],
+            "ok": ok, "warn": warn, "critical": crit,
             "heals_performed": self._heal_count,
-            "uptime_human": "0h",
-            "running": True,
-            "last_check_human": "N/A",
-            "uptime_since_incident_human": "N/A",
-            "heals_successful": self._heal_count,
-            "checks_total": max(self._check_count, 3),
-            "plugins": {},
+            "uptime_human": f"{(time.time()-self._uptime_start)/3600:.1f}h",
         }
 
 
@@ -125,14 +237,9 @@ class AutoHealerV2:
 # Singleton
 # ---------------------------------------------------------------------------
 
-_healer: AutoHealerV2
-
-# Eager singleton for direct import compatibility
-healer: AutoHealerV2 = AutoHealerV2()
-_healer = healer
+_healer: AutoHealerV2 = AutoHealerV2()
+healer: AutoHealerV2 = _healer
 
 
 def get_auto_healer() -> AutoHealerV2:
-    """Return the module-level singleton :class:`AutoHealerV2`."""
-    global _healer, healer
     return _healer
