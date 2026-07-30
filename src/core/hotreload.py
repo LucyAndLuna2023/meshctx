@@ -31,7 +31,8 @@ class ConfigWatcher:
     
     def _get_mtime(self, **kw) -> float:
         try: return self.path.stat().st_mtime if self.path.exists() else 0
-        except: return 0
+        except Exception as _e:
+            logger.exception("Unexpected error: %s", _e)
     
     def _watch_loop(self, **kw):
         while self._running:
