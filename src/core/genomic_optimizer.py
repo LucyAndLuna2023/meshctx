@@ -780,3 +780,39 @@ def get_genomic_optimizer() -> GenomicOptimizer:
         if not _genomic_optimizer._best:
             _genomic_optimizer.initialize()
     return _genomic_optimizer
+
+
+# ═══ L4 Genetic Memory Export (v3.115.49) ═══
+
+def export_genetic_memory() -> Dict[str, Any]:
+    """Export L4 genetic memory — evolution lineage + best genomes."""
+    g = get_genomic_optimizer()
+    memory = {
+        "layer": "L4",
+        "type": "genetic_memory",
+        "generation": g.generation,
+        "population_size": len(g._population),
+        "best_score": g._best_score,
+        "best_genome": g._best.to_dict() if g._best else None,
+        "diversity": g.niche.diversity_score(g._population),
+        "lineage": [],
+    }
+    # Extract lineage from population
+    for genome in g._population[:5]:
+        memory["lineage"].append({
+            "parent_id": genome.parent_id,
+            "generation": genome.generation,
+            "mutation_count": genome.mutation_count,
+            "temperature": round(genome.temperature, 3),
+            "top_p": round(genome.top_p, 3),
+            "prompt_style": genome.system_prompt_style,
+        })
+    # Persist to disk
+    try:
+        import json
+        fpath = GenomicOptimizer.DATA_DIR / "genetic_memory_l4.json"
+        fpath.write_text(json.dumps(memory, indent=2, ensure_ascii=False))
+    except Exception:
+        pass
+    return memory
+
