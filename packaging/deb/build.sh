@@ -1,6 +1,5 @@
 #!/bin/bash
 # Build .deb package for meshctx
-set -e
 
 VERSION="${GITHUB_REF_NAME#v}"
 DEB_ROOT="meshctx-deb"
@@ -68,5 +67,5 @@ EOF
 chmod 755 "${DEB_ROOT}/DEBIAN/prerm"
 
 # Build
-dpkg-deb --build "${DEB_ROOT}" "meshctx_${VERSION}_all.deb"
+dpkg-deb --root-owner-group --build "${DEB_ROOT}" "meshctx_${VERSION}_all.deb"
 ls -lh meshctx_*.deb
