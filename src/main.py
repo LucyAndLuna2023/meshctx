@@ -275,7 +275,7 @@ async def lifespan(app: FastAPI):
 
     try:
         from .core.sdm_memory import get_sdm
-        app.state.sdm = get_sdm()
+        app.state.sdm = get_sdm("lite")  # lite mode: 10K locations, ~20MB — 防VM/低内存OOM
         logger.info("SDM (Sparse Distributed Memory) 已初始化")
     except Exception as e:
         logger.warning(f"SDM初始化跳过: {e}")

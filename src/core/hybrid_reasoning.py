@@ -206,7 +206,9 @@ class Reflexion:
 class HybridReasoningScheduler:
     """混合推理调度器 — 根据问题类型选择推理策略"""
 
-    def __init__(self):
+    def __init__(self, threshold: float = 1.5, adaptive: bool = True):
+        self.threshold = threshold
+        self.adaptive = adaptive
         self.cot = ChainOfThought(max_steps=5)
         self.tot = TreeOfThoughts(breadth=3, max_depth=4)
         self.reflexion = Reflexion(max_reflections=3)
