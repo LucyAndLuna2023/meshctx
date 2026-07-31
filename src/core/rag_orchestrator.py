@@ -2,7 +2,7 @@
 meshctx RAG Orchestrator — chunking, retrieval, augmentation. Pure Python, stdlib only.
 """
 
-import logging, math, re, threading, time
+import logging, math, random, re, threading, time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
@@ -230,7 +230,6 @@ class QueryExpander:
             found = False
             for base, syns in cls._SYNONYMS.items():
                 if clean.lower() == base:
-                    import random
                     substituted_words.append(random.choice(syns) + suffix)
                     found = True
                     break
