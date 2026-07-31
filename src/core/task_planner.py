@@ -321,6 +321,9 @@ class TaskPlanner:
         self.total_tasks_executed: int = 0
         self._stats_lock = threading.Lock()
 
+        # SelfFeedback log (AutoGPT pattern)
+        self._feedback_log: List[Dict] = []
+
     # ── Plan 管理 ──────────────────────────────────────────
 
     def create_plan(
@@ -665,6 +668,120 @@ class TaskPlanner:
                     task.error = error_msg
                     task.completed_at = time.time()
                     task.actual_seconds = task.completed_at - task.started_at
+
+    # ── 动态重规划 ─────────────────────────────────────────
+
+    # ── SelfFeedback (AutoGPT pattern) ────────────────────
+
+    def add_feedback(self, plan_id: str, task_id: str,
+                     score: float, notes: str = ""):
+        """Post-execution self-feedback for a completed task.
+
+        Inspired by AutoGPT's SelfFeedback loop: after each task,
+        evaluate the result quality and record it for future planning.
+        The feedback log drives adaptive retry decisions and time estimates.
+
+        Args:
+            plan_id: Plan ID.
+            task_id: Task ID.
+            score: 0.0–1.0 quality score (1.0 = perfect).
+            notes: Optional human-readable feedback notes.
+        """
+        plan = self.get_plan(plan_id)
+        if plan is None or task_id not in plan.tasks:
+            return
+        task = plan.tasks[task_id]
+        entry = {
+            "task_id": task_id,
+            "task_name": task.name,
+            "score": max(0.0, min(1.0, score)),
+            "duration_s": task.actual_seconds,
+            "estimate_s": task.estimate_seconds,
+            "retries": task.retry_count,
+            "status": task.status.value,
+            "notes": notes,
+            "timestamp": time.time(),
+        }
+        self._feedback_log.append(entry)
+        if len(self._feedback_log) > 500:
+            self._feedback_log = self._feedback_log[-500:]
+        logger.debug(
+            f"Feedback: {task.name} score={score:.2f} "
+            f"actual={task.actual_seconds:.1f}s vs est={task.estimate_seconds:.1f}s"
+        )
+
+    def auto_feedback(self, plan_id: str, task_id: str) -> Dict[str, Any]:
+        """Heuristic auto-feedback: score task without LLM.
+
+        Computes a quality score based on:
+          - Success/failure status
+          - Timing accuracy (actual vs estimated)
+          - Retry count penalty
+          - Result data presence
+
+        Returns feedback dict suitable for add_feedback().
+        """
+        plan = self.get_plan(plan_id)
+        if plan is None or task_id not in plan.tasks:
+            return {"score": 0.0, "notes": "task not found"}
+        task = plan.tasks[task_id]
+
+        # Base score
+        if task.status == TaskStatus.COMPLETED:
+            score = 0.85
+        elif task.status == TaskStatus.FAILED:
+            score = 0.1
+        else:
+            score = 0.4  # skipped/cancelled
+
+        notes_parts = []
+
+        # Timing accuracy bonus/penalty
+        if task.actual_seconds > 0 and task.estimate_seconds > 0:
+            ratio = task.actual_seconds / max(task.estimate_seconds, 0.1)
+            if ratio <= 1.0:
+                score += 0.05  # on time or faster
+            elif ratio <= 1.5:
+                score -= 0.05  # slightly late
+            else:
+                score -= 0.1   # significantly late
+                notes_parts.append(f"慢{ratio:.1f}x")
+
+        # Retry penalty
+        if task.retry_count > 0:
+            score -= 0.05 * task.retry_count
+            notes_parts.append(f"重试{task.retry_count}次")
+
+        # Result quality: has meaningful data?
+        if task.result and isinstance(task.result, dict) and len(task.result) > 0:
+            score += 0.05
+        elif task.result:
+            score += 0.02
+
+        # Clamp
+        score = max(0.0, min(1.0, round(score, 2)))
+
+        if not notes_parts:
+            notes_parts.append("正常完成" if task.status == TaskStatus.COMPLETED else task.status.value)
+
+        return {"score": score, "notes": "; ".join(notes_parts)}
+
+    def get_feedback_log(self, limit: int = 20) -> List[Dict]:
+        """Get recent feedback entries."""
+        return self._feedback_log[-limit:]
+
+    def get_feedback_stats(self) -> Dict[str, Any]:
+        """Aggregated feedback statistics."""
+        if not self._feedback_log:
+            return {"entries": 0}
+        scores = [e["score"] for e in self._feedback_log]
+        return {
+            "entries": len(self._feedback_log),
+            "avg_score": round(sum(scores) / len(scores), 3),
+            "min_score": min(scores),
+            "max_score": max(scores),
+            "above_80pct": sum(1 for s in scores if s >= 0.8),
+        }
 
     # ── 动态重规划 ─────────────────────────────────────────
 

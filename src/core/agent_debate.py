@@ -161,6 +161,160 @@ class DebateEngine:
         self._history.append(result)
         return result
 
+    def groupchat(self, question: str, personas: Optional[List[str]] = None,
+                  llm_call: Optional[Callable] = None,
+                  consensus_threshold: float = 0.75,
+                  max_turns: int = 8) -> DebateResult:
+        """GroupChat-style debate with dynamic speaker selection.
+
+        Inspired by AutoGen's GroupChat pattern:
+          - Instead of fixed 3-round structure, speakers are selected
+            dynamically based on relevance to the conversation.
+          - Debate continues until consensus > threshold or max_turns reached.
+          - Each turn: pick the most relevant agent who hasn't spoken
+            recently, generate their position, update agreement.
+
+        Args:
+            question: The question to debate.
+            personas: Agents to include (default: all 5).
+            llm_call: Optional LLM for argument generation.
+            consensus_threshold: Stop when agreement >= this (0.0–1.0).
+            max_turns: Maximum number of turns before forcing consensus.
+
+        Returns:
+            DebateResult with all positions and consensus.
+        """
+        if personas is None:
+            personas = list(DEBATE_PERSONAS.keys())
+        personas = personas[:5]
+
+        available = list(personas)
+        positions: List[DebatePosition] = []
+        turn = 0
+
+        # First turn: pick highest-confidence persona (optimist or pragmatist)
+        first = "pragmatist" if "pragmatist" in available else available[0]
+        available.remove(first)
+        persona = DEBATE_PERSONAS[first]
+        argument = (llm_call(
+            f"As {first}, give your opening position on: {question}"
+        ) if llm_call else self._heuristic_argument(first, persona, question))
+
+        pos = DebatePosition(agent=first, argument=argument,
+                            confidence={"optimist": 0.72, "skeptic": 0.45,
+                                        "pragmatist": 0.55, "innovator": 0.68,
+                                        "ethicist": 0.50}.get(first, 0.55))
+        positions.append(pos)
+
+        recent_speakers: List[str] = [first]  # sliding window of last 3
+
+        while turn < max_turns and available:
+            turn += 1
+
+            # Calculate agreement among current positions
+            agreement = self._calc_agreement(positions)
+            # Only stop early if we have enough agents AND consensus is high
+            if len(positions) >= self.min_agents and agreement >= consensus_threshold:
+                logger.debug(f"GroupChat consensus reached at turn {turn}: {agreement:.2f}")
+                break
+
+            # Speaker selection: score each available agent by relevance
+            # to the most recent argument. In a real LLM-based system,
+            # this would be an embedding similarity; here we use a
+            # keyword-overlap heuristic.
+            last_arg = positions[-1].argument.lower()
+            best_agent = None
+            best_score = -1.0
+
+            for name in available:
+                persona = DEBATE_PERSONAS.get(name, {})
+                questions = " ".join(persona.get("questions", [])).lower()
+                style = persona.get("style", "").lower()
+
+                # Relevance = keyword overlap + persona match
+                score = 0.0
+                for word in last_arg.split():
+                    if len(word) > 4 and word in questions:
+                        score += 0.2
+                    if len(word) > 4 and word in style:
+                        score += 0.1
+
+                # Bonus for agents who haven't spoken recently
+                if name not in recent_speakers:
+                    score += 0.3
+
+                if score > best_score:
+                    best_score = score
+                    best_agent = name
+
+            if best_agent is None:
+                # Fallback: just pick the first available
+                best_agent = available[0]
+
+            available.remove(best_agent)
+            persona = DEBATE_PERSONAS[best_agent]
+
+            # Generate argument considering previous positions
+            prev_summary = "; ".join(
+                f"{p.agent}: {p.argument[:80]}" for p in positions[-3:]
+            )
+            prompt = (
+                f"As {best_agent} ({persona['style']}), respond to: {question}\n"
+                f"Previous discussion: {prev_summary}\n"
+                f"Your unique perspective: {' '.join(persona['questions'])}"
+            )
+            if llm_call:
+                try:
+                    argument = llm_call(prompt)
+                except Exception:
+                    argument = self._heuristic_argument(best_agent, persona, question)
+            else:
+                argument = self._heuristic_argument(best_agent, persona, question)
+
+            pos = DebatePosition(
+                agent=best_agent,
+                argument=argument,
+                # Vary confidence by persona for realistic agreement calculation
+                confidence={
+                    "optimist": 0.72, "skeptic": 0.45,
+                    "pragmatist": 0.55, "innovator": 0.68,
+                    "ethicist": 0.50,
+                }.get(best_agent, 0.55),
+            )
+            positions.append(pos)
+
+            # Track recent speakers
+            recent_speakers.append(best_agent)
+            if len(recent_speakers) > 3:
+                recent_speakers = recent_speakers[-3:]
+
+        # Synthesis
+        if llm_call:
+            try:
+                syn_prompt = (
+                    f"Question: {question}\n\n"
+                    + "\n".join(f"{p.agent}: {p.argument[:120]}" for p in positions)
+                    + "\n\nSynthesize a consensus (max 2 sentences):"
+                )
+                consensus = llm_call(syn_prompt)
+            except Exception:
+                consensus = self._heuristic_consensus(positions)
+        else:
+            consensus = self._heuristic_consensus(positions)
+
+        final_agreement = self._calc_agreement(positions)
+        result = DebateResult(
+            question=question,
+            rounds=turn + 1,
+            positions=positions,
+            consensus=consensus,
+            consensus_confidence=final_agreement,
+            minority_view=positions[-1].argument if len(positions) > 2 else "",
+            agreement_score=final_agreement,
+        )
+        self._history.append(result)
+        return result
+
     def quick_debate(self, question: str) -> Dict[str, str]:
         """Quick heuristic debate (no LLM)."""
         personas = ["optimist", "skeptic"]
