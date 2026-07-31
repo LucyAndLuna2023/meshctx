@@ -15,92 +15,73 @@ jobs:
 
     - name: Create .deb package
       run: |
-        VERSION=${GITHUB_REF_NAME#v}
+        VERSION="${GITHUB_REF_NAME#v}"
         mkdir -p meshctx-deb/DEBIAN
         mkdir -p meshctx-deb/opt/meshctx
         mkdir -p meshctx-deb/etc/systemd/system
         mkdir -p meshctx-deb/usr/local/bin
-        
-        # Copy source
+
         cp -r src meshctx-deb/opt/meshctx/
-        cp -r plugins meshctx-deb/opt/meshctx/
+        cp -r plugins meshctx-deb/opt/meshctx/  2>/dev/null || true
         cp -r docs meshctx-deb/opt/meshctx/
         cp meshctx.yaml meshctx-deb/opt/meshctx/
         cp requirements.txt meshctx-deb/opt/meshctx/ 2>/dev/null || true
-        
-        # Create launcher script
-        cat > meshctx-deb/usr/local/bin/meshctx << 'LAUNCHER'
-#!/bin/bash
-cd /opt/meshctx
-exec python3 -m uvicorn src.main:app --host 0.0.0.0 --port 3000 "$@"
-LAUNCHER
+
+        # Launcher script
+        echo '#!/bin/bash'           >  meshctx-deb/usr/local/bin/meshctx
+        echo 'cd /opt/meshctx'       >> meshctx-deb/usr/local/bin/meshctx
+        echo 'exec python3 -m uvicorn src.main:app --host 0.0.0.0 --port 3000 "$@"' >> meshctx-deb/usr/local/bin/meshctx
         chmod 755 meshctx-deb/usr/local/bin/meshctx
-        
-        # Create systemd service
-        cat > meshctx-deb/etc/systemd/system/meshctx.service << 'SERVICE'
-[Unit]
-Description=MeshCtx AI Agent
-After=network.target
 
-[Service]
-Type=simple
-User=meshctx
-WorkingDirectory=/opt/meshctx
-ExecStart=/usr/local/bin/meshctx
-Restart=on-failure
-RestartSec=5
+        # Systemd service
+        echo '[Unit]'                         >  meshctx-deb/etc/systemd/system/meshctx.service
+        echo 'Description=MeshCtx AI Agent'   >> meshctx-deb/etc/systemd/system/meshctx.service
+        echo 'After=network.target'           >> meshctx-deb/etc/systemd/system/meshctx.service
+        echo ''                               >> meshctx-deb/etc/systemd/system/meshctx.service
+        echo '[Service]'                      >> meshctx-deb/etc/systemd/system/meshctx.service
+        echo 'Type=simple'                    >> meshctx-deb/etc/systemd/system/meshctx.service
+        echo 'User=meshctx'                   >> meshctx-deb/etc/systemd/system/meshctx.service
+        echo 'WorkingDirectory=/opt/meshctx'  >> meshctx-deb/etc/systemd/system/meshctx.service
+        echo 'ExecStart=/usr/local/bin/meshctx' >> meshctx-deb/etc/systemd/system/meshctx.service
+        echo 'Restart=on-failure'             >> meshctx-deb/etc/systemd/system/meshctx.service
+        echo 'RestartSec=5'                   >> meshctx-deb/etc/systemd/system/meshctx.service
+        echo ''                               >> meshctx-deb/etc/systemd/system/meshctx.service
+        echo '[Install]'                      >> meshctx-deb/etc/systemd/system/meshctx.service
+        echo 'WantedBy=multi-user.target'     >> meshctx-deb/etc/systemd/system/meshctx.service
 
-[Install]
-WantedBy=multi-user.target
-SERVICE
-        
         # Control file
-        cat > meshctx-deb/DEBIAN/control << EOF
-Package: meshctx
-Version: ${VERSION}
-Section: utils
-Priority: optional
-Architecture: all
-Depends: python3, python3-pip
-Maintainer: MeshCtx <jason.liu@meshctx.com>
-Description: World's first self-evolving AI agent
- 13 brain regions, 100+ models, 28 providers.
- Framework-only package (brain modules require meshctx-core).
-EOF
+        {
+          echo "Package: meshctx"
+          echo "Version: ${VERSION}"
+          echo "Section: utils"
+          echo "Priority: optional"
+          echo "Architecture: all"
+          echo "Depends: python3, python3-pip"
+          echo "Maintainer: MeshCtx <jason.liu@meshctx.com>"
+          echo "Description: World first self-evolving AI agent"
+          echo " 13 brain regions, 100+ models, 28 providers."
+        } > meshctx-deb/DEBIAN/control
 
-        # Post-install
-        cat > meshctx-deb/DEBIAN/postinst << 'DONE'
-#!/bin/bash
-set -e
-useradd -r -s /bin/false meshctx 2>/dev/null || true
-chown -R meshctx:meshctx /opt/meshctx
-pip3 install -r /opt/meshctx/requirements.txt 2>/dev/null || true
-systemctl daemon-reload
-echo "MeshCtx v${VERSION} installed."
-echo "Start: systemctl start meshctx"
-echo "Web UI: http://localhost:3000/ui/chat"
-DONE
+        # Post-install and pre-remove from packaging/
+        cp packaging/deb/postinst meshctx-deb/DEBIAN/postinst
         chmod 755 meshctx-deb/DEBIAN/postinst
-        
-        # Pre-remove
-        cat > meshctx-deb/DEBIAN/prerm << 'PRERM'
-#!/bin/bash
-systemctl stop meshctx 2>/dev/null || true
-systemctl disable meshctx 2>/dev/null || true
-PRERM
+
+        echo '#!/bin/bash'                                        >  meshctx-deb/DEBIAN/prerm
+        echo 'systemctl stop meshctx 2>/dev/null || true'        >> meshctx-deb/DEBIAN/prerm
+        echo 'systemctl disable meshctx 2>/dev/null || true'     >> meshctx-deb/DEBIAN/prerm
         chmod 755 meshctx-deb/DEBIAN/prerm
-        
-        dpkg-deb --build meshctx-deb meshctx_${VERSION}_all.deb
+
+        dpkg-deb --build meshctx-deb meshctx_"${VERSION}"_all.deb
         ls -lh meshctx_*.deb
 
-    - name: Upload Artifact (always)
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: meshctx-deb
         path: meshctx_*_all.deb
         retention-days: 7
 
-    - name: Upload to Release (tag only)
+    - name: Upload to Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:

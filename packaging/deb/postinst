@@ -1,0 +1,10 @@
+#!/bin/bash
+# Post-install script for meshctx .deb package
+set -e
+useradd -r -s /bin/false meshctx 2>/dev/null || true
+chown -R meshctx:meshctx /opt/meshctx
+pip3 install -r /opt/meshctx/requirements.txt 2>/dev/null || true
+systemctl daemon-reload
+echo "MeshCtx installed."
+echo "Start: systemctl start meshctx"
+echo "Web UI: http://localhost:3000/ui/chat"
