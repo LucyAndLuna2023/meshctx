@@ -2,7 +2,7 @@
 """MeshCtx Desktop — PyInstaller spec v2.41 FULL"""
 import sys, os
 from PyInstaller.utils.hooks import collect_submodules
-_here = os.path.dirname(os.path.abspath(SPECPATH))
+_here = os.getcwd()
 block_cipher = None
 
 a = Analysis(
