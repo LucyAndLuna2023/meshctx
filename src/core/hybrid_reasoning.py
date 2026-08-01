@@ -238,25 +238,24 @@ class HybridReasoningScheduler:
             else:
                 method = "cot"
 
-        if method == "cot":
-            self._stats["cot"] += 1
-            result = self.cot.reason(question, llm_call)
-            self._trace.end_span(span, outputs={"method": "cot"})
-            return result
-        elif method == "tot":
-            self._stats["tot"] += 1
-            result = self.tot.reason(question, llm_call)
-            self._trace.end_span(span, outputs={"method": "tot"})
-            return result
-        elif method == "reflexion":
-            self._stats["reflexion"] += 1
-            result = self.reflexion.reason(question, llm_call=llm_call)
-            self._trace.end_span(span, outputs={"method": "reflexion"})
-            return result
-        else:
-            result = self.cot.reason(question, llm_call)
-            self._trace.end_span(span, outputs={"method": "cot"})
-            return result
+        try:
+            if method == "cot":
+                self._stats["cot"] += 1
+                return self.cot.reason(question, llm_call)
+            elif method == "tot":
+                self._stats["tot"] += 1
+                return self.tot.reason(question, llm_call)
+            elif method == "reflexion":
+                self._stats["reflexion"] += 1
+                return self.reflexion.reason(question, llm_call=llm_call)
+            else:
+                return self.cot.reason(question, llm_call)
+        except Exception as e:
+            self._trace.end_span(span, error=str(e))
+            raise
+        finally:
+            if not span.is_complete:
+                self._trace.end_span(span, outputs={"method": method})
 
     def stats(self) -> Dict:
         return dict(self._stats)
