@@ -115,3 +115,30 @@ def test_singleton():
     a = get_trace_logger()
     b = get_trace_logger()
     assert a is b
+
+
+class TestSpanBounded:
+    """002 审计缺陷回归: span 悬挂泄漏 → 双保险 (deque上限 + 审计立即闭合)"""
+
+    def test_deque_caps_memory(self):
+        """deque(maxlen=5000) — 超过上限旧 span 被丢弃, 不 OOM"""
+        from src.core.observability import MAX_SPANS, TraceLogger
+        tl = TraceLogger(enabled=True)
+        n = MAX_SPANS + 200
+        for i in range(n):
+            s = tl.start_span("tool", f"t{i}")
+            tl.end_span(s)
+        spans = tl.spans()
+        assert len(spans) == MAX_SPANS  # 截断到上限
+        # 最旧的被丢弃, 最新的保留
+        assert spans[0].name == "t200"
+        assert spans[-1].name == f"t{n-1}"
+
+    def test_trace_logger_stats_respects_cap(self):
+        from src.core.observability import MAX_SPANS, TraceLogger
+        tl = TraceLogger(enabled=True)
+        for i in range(MAX_SPANS + 100):
+            s = tl.start_span("llm", "x")
+            tl.end_span(s)
+        st = tl.stats()
+        assert st["total"] == MAX_SPANS

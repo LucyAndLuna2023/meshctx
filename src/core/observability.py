@@ -11,8 +11,12 @@ import os
 import threading
 import time
 import uuid
+from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Deque, Dict, List, Optional
+
+# 内存 span 上限 — 防止长期运行无界增长 (OOM 防护)
+MAX_SPANS = int(os.environ.get("MESHCTX_MAX_SPANS", "5000"))
 
 
 @dataclass
@@ -68,7 +72,7 @@ class TraceLogger:
     def __init__(self, trace_dir: Optional[str] = None,
                  enabled: bool = True):
         self._lock = threading.RLock()
-        self._spans: List[Span] = []
+        self._spans: Deque[Span] = deque(maxlen=MAX_SPANS)
         self.enabled = enabled
         self.trace_dir = trace_dir or os.environ.get("MESHCTX_TRACE_DIR")
         if self.trace_dir:
@@ -124,7 +128,7 @@ class TraceLogger:
 
     def recent(self, limit: int = 50) -> List[Span]:
         with self._lock:
-            return list(self._spans[-limit:])
+            return list(self._spans)[-limit:]
 
     def spans(self) -> List[Span]:
         with self._lock:

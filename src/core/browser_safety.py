@@ -273,15 +273,17 @@ class BrowserSafetyGate:
     # ── P1-4: 审计接 observability ────────────────────────
     def _audit_append(self, action_type: str, url: str, level: str,
                       decision: str, reason: str = "", action_id: str = "-") -> AuditEntry:
-        """写内存审计 + 同步 observability trace span"""
+        """写内存审计 + 同步 observability trace span (瞬时事件, 立即闭合)"""
         entry = AuditEntry(time.time(), action_id, action_type, url, level, decision, reason)
         self._audit.append(entry)
         try:
             from src.core.observability import get_trace_logger
             tl = get_trace_logger()
             if tl is not None:
-                tl.start_span("browser", f"browser.{action_type}",
-                              {"url": url, "level": level, "decision": decision, "reason": reason})
+                # 审计为瞬时事件: start 后立即 end, 避免 span 悬挂泄漏
+                span = tl.start_span("browser", f"browser.{action_type}",
+                                     {"url": url, "level": level, "decision": decision, "reason": reason})
+                tl.end_span(span, outputs={"decision": decision})
         except Exception:
             pass  # observability 不可用不影响核心
         return entry
