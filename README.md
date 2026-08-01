@@ -1,16 +1,16 @@
 <p align="center">
   <img src="docs/assets/logo.png" alt="MeshCtx" width="200">
-  <h1 align="center">🧠 MeshCtx v3.115.18</h1>
-  <h3 align="center">世界第一全脑仿真自进化AI Agent · SDM突破性记忆 · 自修改代码 · 全量测试 · 17脑区 · 17模块 · DeepSeek TUI竞品对标</h3>
+  <h1 align="center">🧠 MeshCtx v3.116.0</h1>
+  <h3 align="center">世界第一全脑仿真自进化AI Agent · SDM突破性记忆 · 自修改代码 · 全量测试 · 17脑区 · 17模块 · GenomicOptimizer 自进化 · 可观测性追踪</h3>
 </p>
 
 <p align="center">
   <a href="LEGAL.md"><img src="https://img.shields.io/badge/license-AGPLv3+Commercial-blue"></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.10+-green"></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-1279-brightgreen"></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-3404-brightgreen"></a>
   <a href="#"><img src="https://img.shields.io/badge/modules-17-purple"></a>
   <a href="#"><img src="https://img.shields.io/badge/brain_regions-17-orange"></a>
-  <a href="#"><img src="https://img.shields.io/badge/languages-7-red"></a>
+  <a href="#"><img src="https://img.shields.io/badge/languages-10-red"></a>
   <a href="#"><img src="https://img.shields.io/badge/papers-3-blue"></a>
 </p>
 
@@ -56,6 +56,27 @@ meshctx desktop        # Windows桌面客户端
 ---
 
 ## 🧠 核心特性
+
+### 🧬 GenomicOptimizer 基因进化引擎 (v3.116) 🆕
+- 遗传算法自动进化 Agent 自身参数：temperature · top_p · prompt style · memory weights
+- 变异(高斯扰动) · 大跳跃变异(模拟转座子) · 交叉 · 精英保留 · 生态位保护防早熟
+- 784行零依赖纯Python实现，线程安全，约10代后优于人工调参
+
+### 🔍 可观测性追踪 (v3.116) 🆕
+- Span/TraceLogger 结构化追踪：llm · tool · chain 全链路
+- 线程安全(RLock) + 可选磁盘 JSONL 导出，零依赖
+- 注入 hybrid_reasoning 调度与 tool_orchestrator 执行
+
+### 🔄 RAG 查询改写 + RRF 融合 (v3.116) 🆕
+- 多路查询改写(同义/子问题/扩展) + Reciprocal Rank Fusion 重排序
+- 检索召回率与相关性显著提升
+
+### 🛡️ 会话式终端安全沙箱 (v3.116) 🆕
+- 会话上下文连续 + 三级危险分级(普通/危险/高危)
+- 危险命令拦截确认，高危命令强制审批
+
+### 🗳️ SelfFeedback 任务后自评 + GroupChat 群辩 (v3.116) 🆕
+- 任务规划后自动反馈迭代，多角色动态发言选择
 
 ### 脑启发AI引擎
 - **17脑区全脑仿真**: 自由能原理 · 主动推理 · 全局工作空间 · 稳态调节
@@ -141,6 +162,7 @@ curl -X POST http://manager:3001/swarm/execute \
 | v2.42 | **Hooks引擎** (8事件) | 956 |
 | v2.43 | **Agent团队** (6角色+4模式) | 975 |
 | v3.115 | **DeepSeek TUI竞品对标** (17模块·4200行) | **130** |
+| v3.116 | **开源Agent框架挖掘** (RAG+RRF · 终端沙箱 · SelfFeedback · GroupChat · GenomicOptimizer · 可观测性) | **3404** |
 
 ---
 
@@ -152,8 +174,16 @@ meshctx/
 │   ├── main.py              # FastAPI 主应用
 │   ├── web_ui.py            # Web UI 模板
 │   ├── cli.py               # CLI 命令行
-│   ├── i18n.py              # 7语言国际化
-│   └── core/                # 9个核心模块
+│   ├── i18n.py              # 10语言国际化
+│   └── core/                # 核心模块
+│       ├── hybrid_reasoning.py  # 混合推理调度 (注入追踪)
+│       ├── observability.py     # Span/TraceLogger 可观测性
+│       ├── tool_orchestrator.py # 工具编排 (注入追踪)
+│       ├── rag_orchestrator.py  # RAG查询改写+RRF融合
+│       ├── terminal_sandbox.py  # 会话式终端安全沙箱
+│       ├── task_planner.py      # 任务规划+SelfFeedback
+│       ├── agent_debate.py      # Agent辩论+GroupChat
+│       ├── genomic_optimizer.py # 基因进化引擎
 │       ├── dual_session.py      # Planner/Executor 双session引擎
 │       ├── prompt_registry.py   # YAML模板注册表 + 版本化
 │       ├── subagent_isolated.py # 子进程真隔离 subagent
@@ -163,11 +193,11 @@ meshctx/
 │       ├── tui_format.py        # 6种TUI输出格式注入
 │       ├── tool_repair.py       # 7策略JSON修复层
 │       └── memory_v5.py         # 4级分级内存注入
-├── tests/                   # 130个测试
+├── tests/                   # 3404个测试
 ├── docs/                    # 文档站点
 ├── install.sh               # Linux一键安装
 ├── install.bat              # Windows安装脚本
-└── index.html               # 7语言主页 (gh-pages)
+└── index.html               # 10语言主页 (gh-pages)
 ```
 ## 🔌 API 端点
 
@@ -215,7 +245,7 @@ meshctx/
 
 | 平台 | 安装方式 | 状态 |
 |------|---------|------|
-| Windows | NSIS安装包 (7语言) | ✅ |
+| Windows | NSIS安装包 (10语言) | ✅ |
 | Linux | curl\|bash 一键脚本 | ✅ |
 | macOS | DMG + Homebrew | ✅ |
 | WSL | 同Linux | ✅ |
