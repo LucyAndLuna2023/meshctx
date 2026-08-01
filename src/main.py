@@ -3254,10 +3254,8 @@ def _dispatch_tool(name: str, args: dict, approved_tools: set, page_cache: dict)
     elif name == "remote_exec":
         return _do_remote_exec(args.get("cmd", ""), args.get("host", ""),
                                args.get("user", ""), args.get("password", ""), args.get("port", 22))
-    elif name == "browser_navigate":
-        return _do_browser_navigate(args.get("url", ""), page_cache)
-    elif name == "browser_snapshot":
-        return _do_browser_snapshot(page_cache)
+    elif name in ("browser_navigate", "browser_snapshot", "browser_click", "browser_type"):
+        return _safe_browser(name, args, page_cache)
     else:
         return f"未知工具: {name}"
 
@@ -3585,10 +3583,8 @@ async def api_chat_stream(request: Request):
                             result = _do_remote_exec(args.get("cmd", ""), args.get("host", ""),
                                                      args.get("user", ""), args.get("password", ""),
                                                      args.get("port", 22))
-                        elif name == "browser_navigate":
-                            result = _do_browser_navigate(args.get("url", ""), _page_cache)
-                        elif name == "browser_snapshot":
-                            result = _do_browser_snapshot(_page_cache)
+                        elif name in ("browser_navigate", "browser_snapshot", "browser_click", "browser_type"):
+                            result = _safe_browser(name, args, _page_cache)
                         else:
                             result = f"未知工具: {name}"
 
@@ -3948,8 +3944,51 @@ def _do_remote_write(path: str, content: str, host: str = "", user: str = "", pa
 
 # ── 浏览器工具 (纯 Python, requests + bs4, 零版本依赖) ──
 
+def _run_async(coro):
+    """同步上下文跑 async 协程 (兼容已在运行 loop 的线程)"""
+    import concurrent.futures
+    try:
+        asyncio.get_running_loop()
+        with concurrent.futures.ThreadPoolExecutor(1) as ex:
+            return ex.submit(lambda: asyncio.run(coro)).result(timeout=60)
+    except RuntimeError:
+        return asyncio.run(coro)
+
+
+def _safe_browser(name: str, args: dict, page_cache: dict) -> str:
+    """浏览器工具安全路由 (v3.117):
+    ① 已授权 → 走 BrowserSafetyGate (真实浏览器, 三级分级)
+    ② 未授权 → browser_navigate/snapshot 回退纯HTTP只读抓取;
+               browser_click/type 返回 403 提示授权
+    """
+    try:
+        from src.core.browser_safety import get_browser_gate
+        gate = _run_async(get_browser_gate())
+        if gate.state == "authorized":
+            result = _run_async(gate.execute({"type": name.replace("browser_", ""), **args}))
+            if isinstance(result, dict):
+                if result.get("need_confirm"):
+                    return f"[需用户确认] {result.get('reason', '')} action_id={result.get('action_id')} — 请提示用户确认"
+                if result.get("ok"):
+                    snap = result.get("snapshot") or result.get("result")
+                    if isinstance(snap, str):
+                        return snap[:2000]
+                    return json.dumps(result, ensure_ascii=False)[:2000]
+                return f"[浏览器操作失败] {result.get('error', '')}"
+        # 未授权 / 失败 → fallback
+        if name == "browser_navigate":
+            return _do_browser_navigate(args.get("url", ""), page_cache)
+        if name == "browser_snapshot":
+            return _do_browser_snapshot(page_cache)
+        if name in ("browser_click", "browser_type"):
+            return "[浏览器未授权] 请先调用 POST /api/browser/authorize 授权浏览器控制"
+        return f"未知浏览器工具: {name}"
+    except Exception as e:
+        return f"[浏览器工具异常] {e}"
+
+
 def _do_browser_navigate(url: str, cache: dict) -> str:
-    """抓取网页并缓存"""
+    """抓取网页并缓存（纯HTTP只读fallback）"""
     import re
     try:
         import requests
@@ -6858,3 +6897,63 @@ async def skills_list():
         return {"skills": [], "count": 0}
     except Exception:
         return {"skills": [], "count": 0}
+
+
+# ══════════════════════════════════════════════════════════════
+# Browser Control API (v3.117) — 经 BrowserSafetyGate 单点
+# ══════════════════════════════════════════════════════════════
+@app.post("/api/browser/authorize")
+async def browser_authorize():
+    """授权浏览器控制 (默认拒绝 → 用户主动授权)"""
+    try:
+        from src.core.browser_safety import get_browser_gate
+        gate = await get_browser_gate()
+        return await gate.authorize()
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@app.post("/api/browser/revoke")
+async def browser_revoke():
+    """撤销授权 + 销毁浏览器"""
+    try:
+        from src.core.browser_safety import get_browser_gate
+        gate = await get_browser_gate()
+        return await gate.revoke()
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@app.post("/api/browser/action")
+async def browser_action(request: Request):
+    """执行浏览器操作 (过 SafetyGate 三级分级)"""
+    try:
+        body = await request.json()
+        from src.core.browser_safety import get_browser_gate
+        gate = await get_browser_gate()
+        return await gate.execute(body)
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@app.post("/api/browser/confirm")
+async def browser_confirm(request: Request):
+    """用户确认/拒绝挂起的 confirm 级操作"""
+    try:
+        body = await request.json()
+        from src.core.browser_safety import get_browser_gate
+        gate = await get_browser_gate()
+        return await gate.confirm(body.get("action_id", ""), bool(body.get("approved", False)))
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@app.get("/api/browser/session")
+async def browser_session():
+    """会话状态: 授权状态 + 待确认列表 + 最近审计"""
+    try:
+        from src.core.browser_safety import get_browser_gate
+        gate = await get_browser_gate()
+        return gate.session()
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
