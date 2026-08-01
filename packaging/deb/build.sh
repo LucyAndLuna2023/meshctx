@@ -1,7 +1,12 @@
 #!/bin/bash
 # Build .deb package for meshctx
-
+# VERSION: tag (v3.116.0) 时取 tag；main 分支构建时回退读 version_info.txt
 VERSION="${GITHUB_REF_NAME#v}"
+if [[ ! "${VERSION}" =~ ^[0-9] ]]; then
+  # 非 tag (如 main 分支 push) — 从 version_info.txt 提取版本号
+  VERSION=$(grep -oE "filevers=\([0-9, ]+\)" version_info.txt | head -1 | grep -oE "[0-9]+" | paste -sd. -)
+fi
+echo "Building meshctx version: ${VERSION}"
 DEB_ROOT="meshctx-deb"
 
 mkdir -p "${DEB_ROOT}/DEBIAN"
