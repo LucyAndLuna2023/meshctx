@@ -89,33 +89,54 @@ class BrowserSafetyGate:
             self._state = "idle"
         return self._state
 
-    async def authorize(self) -> Dict:
-        """授权并启动浏览器 (默认拒绝 → 用户主动授权)"""
+    async def authorize(self, cdp_url: str = "") -> Dict:
+        """授权并启动浏览器 (默认拒绝 → 用户主动授权)
+        cdp_url 非空 → 连接用户已开的 Chrome 复用登录态 (P1-2)"""
         if self._tool is None:
             from src.browser_tool import BrowserTool
             self._tool = BrowserTool()
         try:
-            await self._tool._ensure_browser()
+            if cdp_url:
+                r = await self._tool.connect_cdp(cdp_url)
+                if "error" in r and not r.get("connected"):
+                    return {"ok": False, "error": r["error"]}
+            else:
+                await self._tool._ensure_browser()
+            # P1-1: 授权时加载已加密 cookie 恢复登录态
+            try:
+                from src.core.browser_cookie_vault import get_cookie_vault
+                cookies = await get_cookie_vault().load()
+                if cookies:
+                    await self._tool.add_cookies(cookies)
+                    logger.info(f"已从 vault 恢复 {len(cookies)} 个 cookie")
+            except Exception as e:
+                logger.warning(f"cookie 恢复失败: {e}")
         except Exception as e:
             return {"ok": False, "error": f"浏览器启动失败: {e}，请先 pip install playwright && playwright install chromium"}
         self._state = "authorized"
         self._authorized_at = time.time()
         self._last_activity = time.time()
         self._first_action_done = False
-        self._audit.append(AuditEntry(time.time(), "-", "authorize", "", "auto", "executed"))
-        logger.info("Browser 已授权")
-        return {"ok": True, "state": "authorized"}
+        self._audit_append("authorize", "", "auto", "executed", "用户授权")
+        logger.info(f"Browser 已授权{' (CDP: ' + cdp_url + ')' if cdp_url else ''}")
+        return {"ok": True, "state": "authorized", "cdp": cdp_url or ""}
 
     async def revoke(self) -> Dict:
-        """撤销授权 + 销毁浏览器进程"""
+        """撤销授权 + 保存cookie (P1-1) + 销毁浏览器进程"""
         if self._tool is not None:
             try:
+                # P1-1: revoke 时加密保存当前 cookie 到 vault
+                cookies = await self._tool.get_cookies()
+                if cookies:
+                    from src.core.browser_cookie_vault import get_cookie_vault
+                    await get_cookie_vault().save(cookies)
+                    logger.info(f"已加密保存 {len(cookies)} 个 cookie")
                 await self._tool.close()
             except Exception:
                 pass
         self._state = "denied"
         self._pending.clear()
-        self._audit.append(AuditEntry(time.time(), "-", "revoke", "", "auto", "executed"))
+        self._audit_append("revoke", "", "auto", "executed", "撤销授权")
         logger.info("Browser 已撤销")
         return {"ok": True, "state": "idle"}
 
@@ -172,18 +193,16 @@ class BrowserSafetyGate:
         action_id = self._new_action_id()
 
         if level == LEVEL_BLOCKED:
-            self._audit.append(AuditEntry(
-                time.time(), action_id, action.get("type", ""),
-                action.get("url", ""), level, "denied", reason))
+            self._audit_append(action.get("type", ""), action.get("url", ""),
+                              level, "denied", reason, action_id)
             return {"ok": False, "error": f"危险操作已拦截: {reason}", "code": 403, "action_id": action_id}
 
         if level == LEVEL_CONFIRM:
             async with self._lock:
                 self._pending[action_id] = PendingAction(
                     action_id, action, level, reason, time.time())
-            self._audit.append(AuditEntry(
-                time.time(), action_id, action.get("type", ""),
-                action.get("url", ""), level, "pending", reason))
+            self._audit_append(action.get("type", ""), action.get("url", ""),
+                              level, "pending", reason, action_id)
             return {"ok": False, "need_confirm": True, "action_id": action_id,
                     "reason": reason, "code": 202}
 
@@ -197,13 +216,11 @@ class BrowserSafetyGate:
         if pa is None:
             return {"ok": False, "error": "确认项不存在或已过期"}
         if not approved:
-            self._audit.append(AuditEntry(
-                time.time(), action_id, pa.action.get("type", ""),
-                pa.action.get("url", ""), pa.level, "denied", "用户拒绝"))
+            self._audit_append(pa.action.get("type", ""), pa.action.get("url", ""),
+                              pa.level, "denied", "用户拒绝", action_id)
             return {"ok": False, "error": "用户拒绝", "code": 403}
-        self._audit.append(AuditEntry(
-            time.time(), action_id, pa.action.get("type", ""),
-            pa.action.get("url", ""), pa.level, "approved"))
+        self._audit_append(pa.action.get("type", ""), pa.action.get("url", ""),
+                          pa.level, "approved", "", action_id)
         return await self._run(action_id, pa.action, pa.level)
 
     # ── 底层执行 (已过安全闸) ──────────────────────────────
@@ -239,21 +256,35 @@ class BrowserSafetyGate:
 
             has_err = "error" in result
             decision = "error" if has_err else "executed"
-            self._audit.append(AuditEntry(
-                time.time(), action_id, atype, action.get("url", ""), level, decision))
+            self._audit_append(atype, action.get("url", ""), level, decision, "", action_id)
             result["ok"] = not has_err
             result["action_id"] = action_id
             return result
         except Exception as e:
             logger.error(f"browser action {atype} failed: {e}")
-            self._audit.append(AuditEntry(
-                time.time(), action_id, atype, action.get("url", ""), level, "error", str(e)))
+            self._audit_append(atype, action.get("url", ""), level, "error", str(e), action_id)
             return {"ok": False, "error": str(e), "action_id": action_id}
 
     # ── 工具方法 ───────────────────────────────────────────
     def _new_action_id(self) -> str:
         self._next_action_id += 1
         return f"a{int(time.time())}_{self._next_action_id}"
+
+    # ── P1-4: 审计接 observability ────────────────────────
+    def _audit_append(self, action_type: str, url: str, level: str,
+                      decision: str, reason: str = "", action_id: str = "-") -> AuditEntry:
+        """写内存审计 + 同步 observability trace span"""
+        entry = AuditEntry(time.time(), action_id, action_type, url, level, decision, reason)
+        self._audit.append(entry)
+        try:
+            from src.core.observability import get_trace_logger
+            tl = get_trace_logger()
+            if tl is not None:
+                tl.start_span("browser", f"browser.{action_type}",
+                              {"url": url, "level": level, "decision": decision, "reason": reason})
+        except Exception:
+            pass  # observability 不可用不影响核心
+        return entry
 
     def audit_log(self, limit: int = 50) -> List[Dict]:
         """审计日志查询"""

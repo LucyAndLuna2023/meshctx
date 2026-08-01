@@ -166,6 +166,138 @@ class BrowserTool:
         self._browser = None
         self._page = None
         logger.info("Browser 已关闭")
+
+    # ── P1: CDP 登录态复用 + Cookie 注入 ──────────────
+    async def connect_cdp(self, cdp_url: str = "http://127.0.0.1:9222") -> Dict:
+        """连接用户已开的 Chrome (需 --remote-debugging-port=9222)
+        复用其登录态/标签页, 免重复登录"""
+        if self._browser is not None:
+            await self.close()
+        try:
+            from playwright.async_api import async_playwright
+            self._playwright = await async_playwright().start()
+            self._browser = await self._playwright.chromium.connect_over_cdp(cdp_url)
+            contexts = self._browser.contexts
+            if not contexts:
+                return {"error": "CDP 连接成功但无 context", "cdp": cdp_url}
+            self._page = contexts[0].pages[0] if contexts[0].pages else await contexts[0].new_page()
+            await self._update_snapshot()
+            logger.info(f"CDP 已连接: {cdp_url}, 标签数={len(contexts[0].pages)}")
+            return {"connected": True, "cdp": cdp_url, "tabs": len(contexts[0].pages),
+                    "url": self.state.url}
+        except ImportError:
+            raise ImportError("需要安装: pip install playwright && playwright install chromium")
+        except Exception as e:
+            logger.error(f"CDP 连接失败: {e}")
+            return {"error": f"CDP 连接失败: {e}. 请用 --remote-debugging-port=9222 启动 Chrome"}
+
+    async def get_cookies(self) -> List[Dict]:
+        """获取当前 context 全部 cookie (供 vault 加密保存)"""
+        if self._browser is None:
+            return []
+        try:
+            context = self._browser.contexts[0]
+            return await context.cookies()
+        except Exception as e:
+            logger.warning(f"get_cookies 失败: {e}")
+            return []
+
+    async def add_cookies(self, cookies: List[Dict]) -> bool:
+        """注入 cookie (授权恢复登录态)"""
+        if self._browser is None or not cookies:
+            return False
+        try:
+            context = self._browser.contexts[0]
+            await context.add_cookies(cookies)
+            return True
+        except Exception as e:
+            logger.warning(f"add_cookies 失败: {e}")
+            return False
+
+    # ── P1: 多标签管理 ────────────────────────────────
+    async def list_tabs(self) -> Dict:
+        """列出当前 context 全部标签页"""
+        if self._browser is None:
+            return {"tabs": []}
+        try:
+            pages = self._browser.contexts[0].pages
+            tabs = [{"index": i, "url": p.url, "title": await p.title(),
+                     "active": p is self._page} for i, p in enumerate(pages)]
+            return {"tabs": tabs, "active": self._page.url if self._page else ""}
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def new_tab(self, url: str = "") -> Dict:
+        """新开标签页"""
+        await self._ensure_browser()
+        try:
+            context = self._browser.contexts[0]
+            page = await context.new_page()
+            if url:
+                if not url.startswith("http"):
+                    url = "https://" + url
+                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            self._page = page
+            await self._update_snapshot()
+            return {"new_tab": True, "url": self.state.url}
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def switch_tab(self, index: int) -> Dict:
+        """切换到指定标签页 (0-based)"""
+        if self._browser is None:
+            return {"error": "浏览器未启动"}
+        try:
+            pages = self._browser.contexts[0].pages
+            if index < 0 or index >= len(pages):
+                return {"error": f"标签索引 {index} 超出范围 (共 {len(pages)} 个)"}
+            self._page = pages[index]
+            self.state.url = self._page.url
+            self.state.title = await self._page.title()
+            await self._update_snapshot()
+            return {"switched": index, "url": self.state.url}
+        except Exception as e:
+            return {"error": str(e)}
+
+    async def close_tab(self, index: int = -1) -> Dict:
+        """关闭标签页 (默认当前)"""
+        if self._browser is None:
+            return {"error": "浏览器未启动"}
+        try:
+            pages = self._browser.contexts[0].pages
+            if len(pages) <= 1:
+                return {"error": "至少保留一个标签页"}
+            idx = index if index >= 0 else pages.index(self._page)
+            if idx < 0 or idx >= len(pages):
+                return {"error": f"标签索引 {idx} 超出范围"}
+            await pages[idx].close()
+            # 切到剩余第一个
+            pages = self._browser.contexts[0].pages
+            self._page = pages[0]
+            self.state.url = self._page.url
+            self.state.title = await self._page.title()
+            await self._update_snapshot()
+            return {"closed": idx, "remaining": len(pages)}
+        except Exception as e:
+            return {"error": str(e)}
+
+    # ── P1: frame 支持 (evaluate 可指定 frame) ────────
+    async def evaluate_frame(self, js: str, frame_selector: str = "") -> Any:
+        """在指定 frame 内执行 JS (frame_selector 空 → 主 frame)"""
+        await self._ensure_browser()
+        try:
+            if frame_selector:
+                frame = self._page.frames[0]  # 简单取首个子 frame 兜底
+                for f in self._page.frames:
+                    if frame_selector in (f.name or "") or frame_selector in (f.url or ""):
+                        frame = f
+                        break
+                result = await frame.evaluate(js)
+            else:
+                result = await self._page.evaluate(js)
+            return {"result": result}
+        except Exception as e:
+            return {"error": str(e)}
     
     async def _update_snapshot(self):
         """更新页面快照"""

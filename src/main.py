@@ -6903,12 +6903,18 @@ async def skills_list():
 # Browser Control API (v3.117) — 经 BrowserSafetyGate 单点
 # ══════════════════════════════════════════════════════════════
 @app.post("/api/browser/authorize")
-async def browser_authorize():
-    """授权浏览器控制 (默认拒绝 → 用户主动授权)"""
+async def browser_authorize(request: Request):
+    """授权浏览器控制 (默认拒绝 → 用户主动授权)
+    body: {"cdp_url": "http://127.0.0.1:9222"} 可选 — 连接已开 Chrome 复用登录态"""
     try:
+        body = {}
+        try:
+            body = await request.json()
+        except Exception:
+            pass
         from src.core.browser_safety import get_browser_gate
         gate = await get_browser_gate()
-        return await gate.authorize()
+        return await gate.authorize(cdp_url=body.get("cdp_url", ""))
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
