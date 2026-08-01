@@ -6,6 +6,8 @@ Routes tasks to optimal tool combinations, not just single tools."""
 import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from src.core.observability import get_trace_logger
+
 logger = logging.getLogger("meshctx.orchestrator")
 
 
@@ -67,6 +69,7 @@ class ToolOrchestrator:
             "web_extract": "browser_navigate",
             "browser_navigate": "web_search",
         }
+        self._trace = get_trace_logger()
 
     def plan(self, task: str, available_tools: List[str] = None) -> Dict[str, Any]:
         """Plan tool sequence for a task.
@@ -122,7 +125,15 @@ class ToolOrchestrator:
                      task: str) -> List[Dict]:
         """Execute a tool plan sequentially, with fallback."""
         results = []
+        plan_span = self._trace.start_span(
+            "chain", "ToolOrchestrator.execute_plan",
+            inputs={"task": task[:200], "tools": plan.get("tools", [])})
         for tool_name in plan.get("tools", []):
+            tool_span = self._trace.start_span(
+                "tool", f"tool:{tool_name}",
+                inputs={"task": task[:200]},
+                parent_id=plan_span.span_id,
+                trace_id=plan_span.trace_id)
             result = {"tool": tool_name, "output": "", "error": "", "fallback_used": False}
             try:
                 output = tool_executor(tool_name, task)
@@ -139,10 +150,17 @@ class ToolOrchestrator:
                     except Exception as e2:
                         result["error"] = str(e2)
                         self._stats["errors"] += 1
+                        self._trace.error_span(tool_span, e2)
+                        continue
                 else:
                     result["error"] = str(e)
                     self._stats["errors"] += 1
+                    self._trace.error_span(tool_span, e)
+                    continue
+            self._trace.end_span(tool_span, outputs=result)
             results.append(result)
+        self._trace.end_span(plan_span,
+                             outputs={"n_results": len(results)})
         return results
 
     def suggest_tools(self, task: str, top_k: int = 3) -> List[Tuple[str, float]]:

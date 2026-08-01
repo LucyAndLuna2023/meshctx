@@ -203,6 +203,9 @@ class Reflexion:
         )
 
 
+from src.core.observability import get_trace_logger
+
+
 class HybridReasoningScheduler:
     """混合推理调度器 — 根据问题类型选择推理策略"""
 
@@ -213,11 +216,15 @@ class HybridReasoningScheduler:
         self.tot = TreeOfThoughts(breadth=3, max_depth=4)
         self.reflexion = Reflexion(max_reflections=3)
         self._stats = {"cot": 0, "tot": 0, "reflexion": 0, "total": 0}
+        self._trace = get_trace_logger()
 
     def schedule(self, question: str, llm_call: Callable = None,
                  method: str = "auto", **kw) -> ReasoningResult:
         """Route to best reasoning method based on question type."""
         self._stats["total"] += 1
+        span = self._trace.start_span(
+            "chain", "HybridReasoningScheduler.schedule",
+            inputs={"question": question[:200], "method": method})
 
         if method == "auto":
             # Heuristic routing
@@ -233,15 +240,23 @@ class HybridReasoningScheduler:
 
         if method == "cot":
             self._stats["cot"] += 1
-            return self.cot.reason(question, llm_call)
+            result = self.cot.reason(question, llm_call)
+            self._trace.end_span(span, outputs={"method": "cot"})
+            return result
         elif method == "tot":
             self._stats["tot"] += 1
-            return self.tot.reason(question, llm_call)
+            result = self.tot.reason(question, llm_call)
+            self._trace.end_span(span, outputs={"method": "tot"})
+            return result
         elif method == "reflexion":
             self._stats["reflexion"] += 1
-            return self.reflexion.reason(question, llm_call=llm_call)
+            result = self.reflexion.reason(question, llm_call=llm_call)
+            self._trace.end_span(span, outputs={"method": "reflexion"})
+            return result
         else:
-            return self.cot.reason(question, llm_call)
+            result = self.cot.reason(question, llm_call)
+            self._trace.end_span(span, outputs={"method": "cot"})
+            return result
 
     def stats(self) -> Dict:
         return dict(self._stats)
