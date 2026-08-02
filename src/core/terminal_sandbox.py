@@ -20,6 +20,7 @@ Example:
 import asyncio
 import json
 import logging
+import os
 import re
 import time
 import uuid
@@ -28,6 +29,10 @@ from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("meshctx.terminal_sandbox")
+
+# 交互授权: 仅当显式开启 (MESHCTX_CONFIRM=1 或 CLI 场景) 才挂载，
+# 避免 Web/服务场景误弹终端菜单。
+_USE_INTERACTIVE = os.environ.get("MESHCTX_CONFIRM", "") in ("1", "yes", "true")
 
 
 # ═══════════════════════════════════════════════════════════
@@ -275,7 +280,41 @@ class TerminalSession:
             )
 
         if assessment.tier == DangerTier.NEEDS_CONFIRM:
-            if confirm_fn and not confirm_fn(code, assessment):
+            # 默认交互授权（OpenClaw 风格三选一），仅当显式开启时挂载
+            if confirm_fn is None and _USE_INTERACTIVE:
+                try:
+                    from .interactive_approval import ask_approval
+                    decision = ask_approval(
+                        action_desc=code,
+                        risk="HIGH" if assessment.patterns_matched else "MEDIUM",
+                        timeout=float(os.environ.get("MESHCTX_CONFIRM_TIMEOUT", "30")),
+                    )
+                    if decision.action == "suggest":
+                        logger.warning(f"Session {self.session_id}: 操作人建议 — {decision.suggest_text}")
+                        return CellResult(
+                            cell_id=cell_id, code=code, mode=mode,
+                            stdout="", stderr=f"已按操作人建议拒绝: {decision.suggest_text}",
+                            return_code=-1, duration_ms=0,
+                            danger_tier=DangerTier.NEEDS_CONFIRM,
+                            error="User suggested alternative",
+                        )
+                    if not decision.approved:
+                        logger.info(f"Session {self.session_id} cell {cell_id}: 用户拒绝授权")
+                        return CellResult(
+                            cell_id=cell_id, code=code, mode=mode,
+                            stdout="", stderr="用户拒绝授权", return_code=-1,
+                            duration_ms=0, danger_tier=DangerTier.NEEDS_CONFIRM,
+                            error="User rejected",
+                        )
+                except Exception as exc:  # 交互授权失败 → fail-safe 拒绝
+                    logger.error(f"交互授权异常 → 拒绝: {exc}")
+                    return CellResult(
+                        cell_id=cell_id, code=code, mode=mode,
+                        stdout="", stderr=f"授权系统异常，已拒绝: {exc}", return_code=-1,
+                        duration_ms=0, danger_tier=DangerTier.NEEDS_CONFIRM,
+                        error=f"Approval error: {exc}",
+                    )
+            elif confirm_fn and not confirm_fn(code, assessment):
                 logger.info(f"Session {self.session_id} cell {cell_id}: user rejected")
                 return CellResult(
                     cell_id=cell_id, code=code, mode=mode,

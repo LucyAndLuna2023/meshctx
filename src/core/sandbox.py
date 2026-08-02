@@ -44,7 +44,7 @@ import uuid
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger("meshctx.sandbox")
 
@@ -473,6 +473,7 @@ class Sandbox:
         max_output_bytes: int = 10 * 1024 * 1024,   # 10 MB
         safe_dirs: List[str] = None,
         timeout: float = None,  # backward-compat alias for default_timeout
+        confirm_fn: Optional[Callable[[str], bool]] = None,
     ):
         if timeout is not None:
             default_timeout = timeout
@@ -484,6 +485,7 @@ class Sandbox:
         self.bash_mem_limit = bash_mem_limit
         self.max_output_bytes = max_output_bytes
         self.safe_dirs = safe_dirs or SAFE_PATHS
+        self.confirm_fn = confirm_fn
 
         # 统计
         self._stats: Dict[str, Any] = {
@@ -575,6 +577,22 @@ class Sandbox:
                 self._record(result)
                 logger.warning(f"Blocked Bash execution: {reason}")
                 return result
+
+            # 授权确认（OpenClaw 风格）：危险命令执行前必须操作人同意
+            if self.confirm_fn is not None:
+                from .approval import ApprovalEngine  # 延迟导入避免循环
+                check = ApprovalEngine(mode="smart").check(code)
+                if check.requires_approval and not self.confirm_fn(code):
+                    result = ExecutionResult(
+                        execution_id=execution_id,
+                        status=ExecutionStatus.ERROR,
+                        stderr=f"用户拒绝授权: {check.reason}",
+                        mode=mode,
+                        code_truncated=code_truncated,
+                    )
+                    self._record(result)
+                    logger.warning(f"User rejected Bash execution: {reason}")
+                    return result
 
         # 根据模式执行
         if mode == "python":
@@ -1015,7 +1033,12 @@ def get_sandbox() -> Sandbox:
     """获取 Sandbox 全局实例，自动创建"""
     global _sandbox
     if _sandbox is None:
-        _sandbox = Sandbox()
+        # MESHCTX_CONFIRM=1 时默认挂载交互授权（OpenClaw 风格）
+        confirm_fn = None
+        if os.environ.get("MESHCTX_CONFIRM", "") in ("1", "yes", "true"):
+            from .interactive_approval import make_confirm_fn
+            confirm_fn = lambda code: make_confirm_fn()(code, None)  # noqa: E731
+        _sandbox = Sandbox(confirm_fn=confirm_fn)
     return _sandbox
 
 

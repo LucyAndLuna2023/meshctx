@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
+from .interactive_approval import ApprovalDecision  # noqa: F401 (类型+交互决策)
+
 
 class RiskLevel(str, Enum):
     LOW = "low"
@@ -118,6 +120,8 @@ class ApprovalEngine:
     def __init__(self, mode: str = "smart", yolo: bool = False):
         self.mode = mode
         self.yolo = yolo
+        self.last_suggestion: str = ""   # 最近一次操作人建议
+        self.last_decision: str = ""     # approve / deny / suggest / timeout
 
     def set_mode(self, mode: str):
         """切换审批模式：manual / smart / off"""
@@ -156,13 +160,38 @@ class ApprovalEngine:
 
         return ApprovalResult(requires_approval=False, reason="Smart 模式 — 未检测到危险", risk_level=RiskLevel.LOW)
 
-    def request(self, command: str, reason: str = "") -> bool:
-        """请求用户审批（同步/CLI模式）"""
+    def request_decision(self, command: str, reason: str = "") -> "ApprovalDecision":
+        """请求用户审批（同步/CLI 交互式三选一）。
+
+        返回 ApprovalDecision:
+            approve  → 同意执行
+            deny     → 拒绝执行
+            suggest  → 拒绝并给出操作建议（suggest_text 可读）
+            timeout  → 非交互/超时（fail-safe 拒绝）
+        """
+        from .interactive_approval import ask_approval  # 延迟导入避免循环
         result = self.check(command)
         if not result.requires_approval:
-            return True
-        # 在真实环境中会弹出交互式审批 — stub 返回 False
-        return False
+            self.last_decision = "approve"
+            return ApprovalDecision("approve", auto=True)
+
+        decision = ask_approval(
+            action_desc=f"{reason} :: {command}" if reason else command,
+            risk=result.risk_level.value,
+        )
+        self.last_decision = decision.action
+        self.last_suggestion = decision.suggest_text
+        return decision
+
+    def request(self, command: str, reason: str = "") -> bool:
+        """请求用户审批（同步/CLI 模式）。
+
+        交互式三选一（同意/拒绝/给建议）：
+            - 同意 → True
+            - 拒绝 / 超时 / 建议 → False（建议文本存入 self.last_suggestion）
+        """
+        decision = self.request_decision(command, reason)
+        return decision.approved
 
     def stats(self) -> dict:
         """返回审批统计"""
