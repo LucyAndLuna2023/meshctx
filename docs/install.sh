@@ -7,7 +7,7 @@ set -e
 
 GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[0;33m'; RED='\033[0;31m'; NC='\033[0m'
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.115.15"
+VERSION="3.117.0"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/releases/download/v${VERSION}/meshctx-src.tar.gz"
 PORT=3001
