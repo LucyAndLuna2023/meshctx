@@ -15,7 +15,7 @@ from typing import Any, Callable, Dict, List, Optional
 # CheckResult
 # ---------------------------------------------------------------------------
 
-@dataclass
+@dataclass(slots=True)
 class CheckResult:
     name: str
     status: str = "ok"  # "ok", "warn", "critical", "unknown"
@@ -180,7 +180,12 @@ class AutoHealerV2:
     # -- healing -------------------------------------------------------------
 
     def heal(self, checks: List[CheckResult]) -> List[Dict[str, Any]]:
-        """Apply healing actions for non-ok checks."""
+        """Apply healing actions for non-ok checks.
+
+        Graded response per 002 audit:
+        - warn (75%+): gc.collect() only
+        - critical (90%+): gc.collect() + set throttle flag to pause new tasks
+        """
         actions: List[Dict[str, Any]] = []
         for c in checks:
             if c.status != "ok":
@@ -188,20 +193,54 @@ class AutoHealerV2:
                     "check": c.name,
                     "status": c.status,
                     "message": c.message,
-                    "action": "logged" if c.status == "warn" else "alert",
+                    "action": "logged",
                     "timestamp": time.time(),
                 }
-                # Real healing: clear Python cache for memory pressure
-                if c.name == "memory" and c.status in ("critical", "warn"):
+                if c.name == "memory":
                     try:
                         import gc
-                        gc.collect()
+                        collected = gc.collect()
+                    except Exception:
+                        collected = -1
+
+                    if c.status == "critical":
+                        # 90%+ memory — gc + throttle new tasks
+                        action["action"] = "gc_collected_and_throttled"
+                        action["gc_collected"] = collected
+                        self._should_throttle = True
+                        logger.critical(
+                            f"Memory critical: {c.message}, GC={collected}, throttling new tasks"
+                        )
+                    elif c.status == "warn":
+                        # 75%+ memory — gc only
                         action["action"] = "gc_collected"
+                        action["gc_collected"] = collected
+                        self._should_throttle = False
+                        logger.warning(
+                            f"Memory warn: {c.message}, GC={collected}"
+                        )
+                    else:
+                        self._should_throttle = False
+                elif c.name == "disk" and c.status == "critical":
+                    # Disk critical — clean temp files
+                    try:
+                        self._cleanup_temp_files()
+                        action["action"] = "cleaned_temp_files"
                     except Exception:
                         pass
+                elif c.name == "cpu" and c.status == "critical":
+                    self._should_throttle = True
+                    action["action"] = "throttled"
+
                 actions.append(action)
+
         self._heal_count += len(actions)
         return actions
+
+    @property
+    def should_throttle(self) -> bool:
+        """Whether the kernel should pause accepting new tasks (memory/cpu critical)."""
+        return getattr(self, '_should_throttle', False)
 
     # -- stats ----------------------------------------------------------------
 

@@ -85,7 +85,7 @@ class CircuitBreakerError(Exception):
 # 数据结构
 # ═══════════════════════════════════════════════════════════
 
-@dataclass
+@dataclass(slots=True)
 class WindowEntry:
     """滑动窗口中的单次调用记录。"""
     success: bool
@@ -94,7 +94,7 @@ class WindowEntry:
     error: str = ""
 
 
-@dataclass
+@dataclass(slots=True)
 class CBConfig:
     """熔断器配置。
 
@@ -126,7 +126,7 @@ class CBConfig:
         }
 
 
-@dataclass
+@dataclass(slots=True)
 class CBStats:
     """熔断器统计信息。"""
     state: CBState = CBState.CLOSED

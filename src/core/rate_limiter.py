@@ -64,7 +64,7 @@ class RateLimitTier(Enum):
 # Tier Config
 # ═══════════════════════════════════════════════════════════
 
-@dataclass
+@dataclass(slots=True)
 class TierConfig:
     """Configuration for a rate limit tier."""
     capacity: int
@@ -75,7 +75,7 @@ class TierConfig:
 # RateLimitResult
 # ═══════════════════════════════════════════════════════════
 
-@dataclass
+@dataclass(slots=True)
 class RateLimitResult:
     """Result of a rate-limit check."""
     allowed: bool = True
@@ -167,7 +167,7 @@ class SlidingWindow:
                 break
         else:
             idx = len(self.timestamps)
-        self.timestamps = self.timestamps[idx:]
+        del self.timestamps[:idx]
 
     def add(self) -> bool:
         """Record a request.  Returns True if within limit."""

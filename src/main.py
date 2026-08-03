@@ -16,6 +16,8 @@ import os
 import sys
 import time
 import random
+import resource
+import signal
 import shlex
 import numpy as np
 import subprocess
@@ -485,6 +487,48 @@ async def lifespan(app: FastAPI):
         await ag.stop()
     logger.info("meshctx v1.0 已停止")
 
+
+# ═══════════════════════════════════════════════════════════
+# Memory limit: soft RLIMIT_AS to catch leaks before OOM
+# ═══════════════════════════════════════════════════════════
+MEMORY_SOFT_MB = int(os.environ.get("MESHCTX_MEMORY_SOFT_MB", 1024))
+
+def _setup_memory_limit():
+    """Set RLIMIT_AS soft limit. Only soft limit per 002 audit — no hard limit."""
+    try:
+        soft = MEMORY_SOFT_MB * 1024 * 1024
+        _, hard = resource.getrlimit(resource.RLIMIT_AS)
+        resource.setrlimit(resource.RLIMIT_AS, (soft, hard))
+        logger.info(f"Memory soft limit: {MEMORY_SOFT_MB}MB")
+    except Exception as e:
+        logger.warning(f"Memory limit not set: {e}")
+
+def _memory_signal_handler(signum, frame):
+    """SIGSEGV handler — graceful degradation on memory exhaustion."""
+    logger.critical("Memory exhausted (SIGSEGV). Attempting graceful shutdown...")
+    import gc
+    gc.collect()
+    # Try to free resources before the process dies
+    try:
+        import psutil
+        mem = psutil.Process().memory_info()
+        logger.critical(f"RSS at crash: {mem.rss / 1024 / 1024:.1f}MB")
+    except Exception:
+        pass
+
+_setup_memory_limit()
+signal.signal(signal.SIGSEGV, _memory_signal_handler)
+
+# GC tuning — more frequent gen-0 collection (default 700,10,10 → 500,5,5)
+import gc as _gc
+_gc.set_threshold(500, 5, 5)
+logger.debug(f"GC thresholds: {_gc.get_threshold()}")
+
+# tracemalloc — only when MESHCTX_TRACE_MALLOC=1 (debug/diagnostic)
+if os.environ.get("MESHCTX_TRACE_MALLOC"):
+    import tracemalloc
+    tracemalloc.start(25)  # 25 frames for meaningful tracebacks
+    logger.info("tracemalloc enabled (MESHCTX_TRACE_MALLOC=1)")
 
 app = FastAPI(
     title="MeshCtx API",

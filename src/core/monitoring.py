@@ -11,6 +11,11 @@ _METRICS: Dict[str, float] = {}
 _LOCK = threading.Lock()
 _START_TIME = time.time()
 
+# CPU delta sampling state (per 002 audit: cumulative avg → delta)
+_last_utime: int = 0
+_last_stime: int = 0
+_last_cpu_sample: float = 0.0
+
 
 def get_memory_rss_mb() -> float:
     """Get current process RSS in MB (Linux-only, graceful fallback)."""
@@ -25,20 +30,30 @@ def get_memory_rss_mb() -> float:
 
 
 def get_cpu_percent() -> float:
-    """Get rough CPU usage (user+system time delta)."""
+    """Get CPU usage via /proc/stat delta sampling (accurate at any uptime)."""
+    global _last_utime, _last_stime, _last_cpu_sample
     try:
         with open(f"/proc/{os.getpid()}/stat") as f:
             fields = f.read().split()
-            # fields[13]=utime, fields[14]=stime (in clock ticks)
             utime = int(fields[13])
             stime = int(fields[14])
-            total = utime + stime
-            uptime = time.time() - _START_TIME
-            if uptime > 0:
-                return min(100.0, (total / os.sysconf(os.sysconf_names['SC_CLK_TCK'])) / uptime * 100)
+
+        now = time.time()
+        clk_tck = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
+
+        if _last_cpu_sample > 0 and now > _last_cpu_sample:
+            delta_time = now - _last_cpu_sample
+            delta_total = (utime + stime) - (_last_utime + _last_stime)
+            cpu_pct = (delta_total / clk_tck) / delta_time * 100
+        else:
+            cpu_pct = 0.0
+
+        _last_utime = utime
+        _last_stime = stime
+        _last_cpu_sample = now
+        return min(100.0, max(0.0, cpu_pct))
     except Exception:
-        pass
-    return 0.0
+        return 0.0
 
 
 def increment_counter(name: str, delta: int = 1):

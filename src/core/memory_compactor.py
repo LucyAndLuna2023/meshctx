@@ -25,7 +25,7 @@ class CompressionStrategy(str, Enum):
 
 TIER_ORDER = {MemoryTier.COLD: 0, MemoryTier.WARM: 1, MemoryTier.HOT: 2}
 
-@dataclass
+@dataclass(slots=True)
 class MemoryEntry:
     entry_id: str = field(default_factory=lambda: f"mem_{uuid.uuid4().hex[:8]}")
     content: str = ""
@@ -50,7 +50,7 @@ class MemoryEntry:
         self.entry_id = value
 
 
-@dataclass
+@dataclass(slots=True)
 class CompactionResult:
     original: Any = None
     compacted: str = ""
@@ -70,7 +70,7 @@ class CompactionResult:
         self.compacted_size = value
 
 
-@dataclass
+@dataclass(slots=True)
 class CompactionStats:
     total_processed: int = 0
     total_entries: int = 0
@@ -84,7 +84,7 @@ class CompactionStats:
     compactions_run: int = 0
 
 
-@dataclass
+@dataclass(slots=True)
 class RetrievalResult:
     entries: list = field(default_factory=list)
     relevance_scores: list = field(default_factory=list)
@@ -95,7 +95,7 @@ class RetrievalResult:
     retrieval_time_ms: float = 0.0
 
 
-@dataclass
+@dataclass(slots=True)
 class TierMigrationResult:
     moved_up: int = 0
     moved_down: int = 0

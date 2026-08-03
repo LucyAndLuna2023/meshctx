@@ -85,7 +85,7 @@ DEFAULT_UNIT_COST = 0.0
 # 数据结构
 # ═══════════════════════════════════════════════════════════
 
-@dataclass
+@dataclass(slots=True)
 class MeterEntry:
     """计量条目"""
     tenant: str
@@ -109,7 +109,7 @@ class MeterEntry:
         }
 
 
-@dataclass
+@dataclass(slots=True)
 class QuotaRule:
     """配额规则"""
     tenant: str
@@ -122,7 +122,7 @@ class QuotaRule:
     created_at: float = field(default_factory=time.time)
 
 
-@dataclass
+@dataclass(slots=True)
 class UsageWindow:
     """时间窗口聚合"""
     start: float                     # 窗口起始时间戳
@@ -154,14 +154,21 @@ class UsageAggregator:
         self._entries: List[MeterEntry] = []
         self._lock = threading.RLock()
         self._max_entries = 100000  # 最多保留 10 万条
+        self._model_index: Dict[str, List[MeterEntry]] = {}  # O(1) model lookup
+        self._tenant_index: Dict[str, List[MeterEntry]] = {}
 
     def add(self, entry: MeterEntry, **kw) -> None:
         """添加计量条目"""
         with self._lock:
             self._entries.append(entry)
-            # 限制内存
+            # Maintain model & tenant indices
+            model_key = entry.model or "unknown"
+            self._model_index.setdefault(model_key, []).append(entry)
+            self._tenant_index.setdefault(entry.tenant, []).append(entry)
+            # 限制内存: trim + rebuild indices
             if len(self._entries) > self._max_entries:
                 self._entries = self._entries[-self._max_entries:]
+                self._rebuild_indices()
 
     def aggregate(
         self,
@@ -195,14 +202,25 @@ class UsageAggregator:
                 total += entry.value
             return total
 
+    def _rebuild_indices(self):
+        """Rebuild model/tenant indices after trim. Called under lock."""
+        self._model_index.clear()
+        self._tenant_index.clear()
+        for e in self._entries:
+            mk = e.model or "unknown"
+            self._model_index.setdefault(mk, []).append(e)
+            self._tenant_index.setdefault(e.tenant, []).append(e)
+
     def aggregate_by_model(
         self, tenant: str, metric: str,
         start_time: float = None, end_time: float = None,
     ) -> Dict[str, float]:
-        """按模型聚合"""
+        """按模型聚合 — O(k) via model_index where k = specific tenant entries."""
         with self._lock:
-            by_model = {}
-            for entry in self._entries:
+            by_model: Dict[str, float] = {}
+            # Use tenant_index for fast tenant scoping, fallback to full scan
+            candidates = self._tenant_index.get(tenant, self._entries)
+            for entry in candidates:
                 if entry.tenant != tenant:
                     continue
                 if entry.metric != metric:
@@ -211,9 +229,8 @@ class UsageAggregator:
                     continue
                 if end_time and entry.timestamp > end_time:
                     continue
-                by_model[entry.model or "unknown"] = (
-                    by_model.get(entry.model, 0.0) + entry.value
-                )
+                mk = entry.model or "unknown"
+                by_model[mk] = by_model.get(mk, 0.0) + entry.value
             return by_model
 
     def aggregate_by_time_buckets(
