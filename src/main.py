@@ -580,7 +580,7 @@ if os.environ.get("MESHCTX_TRACE_MALLOC"):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="3.117.0",
+    version="3.118.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -4055,7 +4055,7 @@ def _run_async(coro):
 
 
 def _safe_browser(name: str, args: dict, page_cache: dict) -> str:
-    """浏览器工具安全路由 (v3.117):
+    """浏览器工具安全路由 (v3.118):
     ① 已授权 → 走 BrowserSafetyGate (真实浏览器, 三级分级)
     ② 未授权 → browser_navigate/snapshot 回退纯HTTP只读抓取;
                browser_click/type 返回 403 提示授权
@@ -6999,7 +6999,7 @@ async def skills_list():
 
 
 # ══════════════════════════════════════════════════════════════
-# Browser Control API (v3.117) — 经 BrowserSafetyGate 单点
+# Browser Control API (v3.118) — 经 BrowserSafetyGate 单点
 # ══════════════════════════════════════════════════════════════
 @app.post("/api/browser/authorize")
 async def browser_authorize(request: Request):

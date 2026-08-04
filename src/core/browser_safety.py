@@ -1,5 +1,5 @@
 """
-MeshCtx Browser Safety Gate — 浏览器控制安全层 (v3.117)
+MeshCtx Browser Safety Gate — 浏览器控制安全层 (v3.118)
 
 在已有 BrowserTool (browser_tool.py, 256行 Playwright 封装) 外层包裹:
   ① 授权状态机 (idle → authorized → denied, 默认拒绝, 30min超时)

@@ -1,5 +1,5 @@
 """
-MeshCtx Browser Cookie Vault — 浏览器 Cookie 加密持久化 (v3.117 P1)
+MeshCtx Browser Cookie Vault — 浏览器 Cookie 加密持久化 (v3.118 P1)
 
 安全模型:
   · Fernet 对称加密 (cryptography 库, 已依赖)
