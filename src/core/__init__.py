@@ -166,6 +166,7 @@ _known = {
     'data_pipeline': ['DataPipeline','PipelineStage','DataRecord','get_data_pipeline'],
     'api_gateway': ['APIGateway','APIRoute','get_api_gateway'],
     'memory_compactor': ['MemoryCompactor','CompactionResult','get_memory_compactor'],
+    'resource_manager': ['ResourceManager','ResourceState','ResourceEvent','get_resource_manager'],
     'vector_db': ['VectorDB','VectorRecord','get_vector_db'],
     'prompt_optimizer': ['PromptOptimizer','OptimizedPrompt','get_prompt_optimizer'],
     'web_crawler': ['WebCrawler','CrawlResult','get_web_crawler'],

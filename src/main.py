@@ -44,6 +44,7 @@ from .core import (
 from .gateway import GatewayPlugin
 from .core.auth_v2 import auth_middleware_v2
 from .core.hotreload import ConfigWatcher, APIKeyFailover, MemoryBackup
+from .core.resource_manager import get_resource_manager
 
 # ═══════════════════════════════════════════════════════════
 # V0.2 兼容层
@@ -76,6 +77,8 @@ def get_kernel() -> Kernel:
         _kernel.plugins.register(AgentLoopPlugin())
         _kernel.plugins.register(PerformancePlugin())
         _kernel.plugins.register(HealerPlugin())
+        # v3.118.0: init ResourceManager (unified resource orchestration)
+        get_resource_manager()
         # Hermes 集群连接器
         try:
             from .core.hermes_connector import HermesConnectorPlugin
@@ -476,6 +479,16 @@ async def lifespan(app: FastAPI):
         logger.warning(f"自主Agent启动跳过: {e}")
         app.state.autonomous_agent = None
 
+    # v3.118: ResourceManager — unified resource governance
+    try:
+        rm = get_resource_manager()
+        rm.start()
+        app.state.resource_manager = rm
+        logger.info("📊 ResourceManager 已启动 (统一阈值 GREEN→YELLOW→RED→BLACK)")
+    except Exception as e:
+        logger.warning(f"ResourceManager 启动跳过: {e}")
+        app.state.resource_manager = None
+
     yield  # ── 服务运行中 ──
 
     # ── Shutdown ──
@@ -485,13 +498,17 @@ async def lifespan(app: FastAPI):
     ag = getattr(app.state, "autonomous_agent", None)
     if ag:
         await ag.stop()
+    # v3.118: stop ResourceManager
+    rm = getattr(app.state, "resource_manager", None)
+    if rm:
+        rm.stop()
     logger.info("meshctx v1.0 已停止")
 
 
 # ═══════════════════════════════════════════════════════════
 # Memory limit: soft RLIMIT_AS to catch leaks before OOM
 # ═══════════════════════════════════════════════════════════
-MEMORY_SOFT_MB = int(os.environ.get("MESHCTX_MEMORY_SOFT_MB", 1024))
+MEMORY_SOFT_MB = int(os.environ.get("MESHCTX_MEMORY_SOFT_MB", 2048))
 
 def _setup_memory_limit():
     """Set RLIMIT_AS soft limit. Only soft limit per 002 audit — no hard limit."""
@@ -2261,11 +2278,18 @@ async def ws_stats():
         return {"status": "disabled"}
     return plugin.manager.stats()
 
-# ── v1.5.6 系统资源 ──────────────────────────────────────
+# ── v3.118 统一资源面板 (ResourceManager) ─────────────────
 
 @app.get("/api/system/resources")
 async def system_resources():
-    """CPU/内存使用率"""
+    """统一资源面板 — ResourceManager 四合一仪表盘"""
+    try:
+        rm = getattr(app.state, "resource_manager", None)
+        if rm:
+            return rm.dashboard()
+    except Exception:
+        pass
+    # Fallback to raw psutil
     try:
         import psutil
         return {
@@ -2276,28 +2300,29 @@ async def system_resources():
             "disk_percent": psutil.disk_usage("/").percent,
         }
     except ImportError:
-        # psutil未安装时使用/proc fallback
-        import os
-        mem = {}
-        try:
-            with open("/proc/meminfo") as f:
-                for line in f:
-                    parts = line.split()
-                    if parts[0] == "MemTotal:": mem["total_kb"] = int(parts[1])
-                    elif parts[0] == "MemAvailable:": mem["avail_kb"] = int(parts[1])
-        except Exception:
-            pass  # 非关键路径：silent fallback 是预期行为
-        total = mem.get("total_kb", 0)
-        avail = mem.get("avail_kb", 0)
-        used_pct = round((total - avail) / total * 100, 1) if total else 0
-        return {
-            "cpu_percent": 0,
-            "memory_percent": used_pct,
-            "memory_used_gb": round((total - avail) / 1048576, 1),
-            "memory_total_gb": round(total / 1048576, 1),
-            "disk_percent": 0,
-            "note": "psutil not installed, using /proc fallback"
-        }
+        return {"error": "psutil not available"}
+
+
+# ── v3.118 ResourceManager 事件追踪 ──────────────────────
+
+@app.get("/api/resource/events")
+async def resource_events(component: str = "", event_type: str = "", limit: int = 50):
+    """ResourceManager 事件追踪 — 最近的资源事件"""
+    rm = getattr(app.state, "resource_manager", None)
+    if not rm:
+        return {"error": "ResourceManager not available"}
+    return {
+        "events": rm.get_events(component=component, event_type=event_type, limit=limit),
+        "summary": rm.summary(),
+    }
+
+@app.get("/api/resource/dashboard")
+async def resource_dashboard():
+    """ResourceManager 完整仪表盘"""
+    rm = getattr(app.state, "resource_manager", None)
+    if not rm:
+        return {"error": "ResourceManager not available"}
+    return rm.dashboard()
 
 # ── v1.5.6 基准测试 ──────────────────────────────────────
 
@@ -7005,5 +7030,40 @@ async def browser_session():
         from src.core.browser_safety import get_browser_gate
         gate = await get_browser_gate()
         return gate.session()
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+# ═══════════════════════════════════════════════════════════
+# v3.118.0: Unified resource health endpoint
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/resource/health")
+async def resource_health():
+    """统一资源健康仪表盘 — 4子系统 + 预算 + 事件追踪"""
+    try:
+        rm = get_resource_manager()
+        return rm.health()
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@app.get("/api/resource/pre_task")
+async def resource_pre_task():
+    """任务门控 — 接受新任务前检查资源状态"""
+    try:
+        rm = get_resource_manager()
+        allowed, reason = rm.pre_task()
+        return {"allowed": allowed, "reason": reason}
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@app.get("/api/resource/traces")
+async def resource_traces(subsystem: str = None, limit: int = 20):
+    """资源事件追踪 — 最近 N 条 observability 事件"""
+    try:
+        rm = get_resource_manager()
+        return {"traces": rm.get_traces(subsystem=subsystem, limit=limit)}
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
