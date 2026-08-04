@@ -130,7 +130,7 @@ class TaskDAG:
             ok, reason = get_resource_manager().pre_task()
             if not ok:
                 raise RuntimeError(f"System overloaded — task rejected: {reason}")
-        except Exception:
+        except ImportError:
             pass
         node = TaskNode(description=description, role=role)
         if depends_on:

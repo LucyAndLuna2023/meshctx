@@ -428,7 +428,7 @@ class TaskPlanner:
             if not ok:
                 logger.warning(f"Resource gate blocked task '{name}': {reason}")
                 raise RuntimeError(f"System overloaded — task rejected: {reason}")
-        except Exception:
+        except ImportError:
             pass  # permissive fallback if RM unavailable
 
         task = TaskStep(
