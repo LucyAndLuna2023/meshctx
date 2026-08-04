@@ -125,7 +125,67 @@ class ResourceManager:
             self._usage_meter = get_usage_meter()
         return self._usage_meter
 
-    # ── observability trace ────────────────────────────────
+    # ── lifecycle ──────────────────────────────────────────
+
+    def start(self):
+        """Start background health loop (no-op, tick is on-demand)."""
+        logger.info("ResourceManager started")
+
+    def stop(self):
+        """Stop background health loop."""
+        logger.info("ResourceManager stopped")
+
+    # ── task gating ───────────────────────────────────────
+
+    def can_accept(self, component: str = "swarm") -> bool:
+        """Gate: accept new task for component?"""
+        ok, _ = self.pre_task()
+        return ok
+
+    # ── budget management ──────────────────────────────────
+
+    def allocate(self, component: str, amount_mb: float) -> bool:
+        """Try to allocate `amount_mb` from component's budget."""
+        try:
+            limit = getattr(self._budget, component, 100)
+            return amount_mb <= limit
+        except Exception:
+            return True  # permissive fallback
+
+    def free(self, component: str, amount_mb: float):
+        """Release budget allocation (no-op for now)."""
+        pass
+
+    # ── dashboard / events ─────────────────────────────────
+
+    def dashboard(self) -> Dict[str, Any]:
+        """Unified resource dashboard (alias for health)."""
+        return self.health()
+
+    def summary(self) -> str:
+        """One-line status summary."""
+        d = self.health()
+        return f"[{d['status'].upper()}] budget={d['budget']['total_mb']}MB uptime={d['uptime_seconds']}s"
+
+    def get_events(self, component: str = "", event_type: str = "",
+                   limit: int = 50) -> List[Dict]:
+        """Retrieve recent resource events (filterable)."""
+        result = []
+        for e in reversed(self._events):
+            if component and e.subsystem != component:
+                continue
+            if event_type and e.action != event_type:
+                continue
+            result.append({
+                "component": e.subsystem,
+                "type": e.action,
+                "level": e.level.value,
+                "detail": str(e.details),
+                "timestamp": e.timestamp,
+            })
+            if len(result) >= limit:
+                break
+        return result
 
     def trace(self, subsystem: str, action: str,
               level: ResourceLevel = ResourceLevel.OK,
