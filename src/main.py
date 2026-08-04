@@ -506,26 +506,52 @@ async def lifespan(app: FastAPI):
 
 
 # ═══════════════════════════════════════════════════════════
-# Memory limit: soft RLIMIT_AS to catch leaks before OOM
+# Memory limit: platform-aware soft limit to catch leaks
 # ═══════════════════════════════════════════════════════════
 MEMORY_SOFT_MB = int(os.environ.get("MESHCTX_MEMORY_SOFT_MB", 2048))
 
+_IS_LINUX = sys.platform == "linux"
+_IS_MACOS = sys.platform == "darwin"
+_IS_WINDOWS = sys.platform == "win32"
+
+
 def _setup_memory_limit():
-    """Set RLIMIT_AS soft limit. Only soft limit per 002 audit — no hard limit."""
-    try:
-        soft = MEMORY_SOFT_MB * 1024 * 1024
-        _, hard = resource.getrlimit(resource.RLIMIT_AS)
-        resource.setrlimit(resource.RLIMIT_AS, (soft, hard))
-        logger.info(f"Memory soft limit: {MEMORY_SOFT_MB}MB")
-    except Exception as e:
-        logger.warning(f"Memory limit not set: {e}")
+    """Platform-aware memory soft limit.
+
+    Linux:   RLIMIT_AS (virtual address space)
+    macOS:   RLIMIT_AS (also POSIX, but kernel may ignore soft limit)
+    Windows: WMI/psutil polling fallback — RLIMIT_AS not available
+    """
+    soft_bytes = MEMORY_SOFT_MB * 1024 * 1024
+
+    if _IS_LINUX or _IS_MACOS:
+        try:
+            _, hard = resource.getrlimit(resource.RLIMIT_AS)
+            resource.setrlimit(resource.RLIMIT_AS, (soft_bytes, hard))
+            logger.info(f"Memory soft limit: {MEMORY_SOFT_MB}MB "
+                       f"(RLIMIT_AS, {sys.platform})")
+        except Exception as e:
+            logger.warning(f"RLIMIT_AS not available on {sys.platform}: {e}")
+    elif _IS_WINDOWS:
+        logger.info(f"Memory soft limit: {MEMORY_SOFT_MB}MB (policy only, "
+                     "RLIMIT_AS not available on Windows)")
+        # Windows: register periodic RSS check via psutil in auto_healer
+        try:
+            from .core.auto_healer import get_auto_healer
+            healer = get_auto_healer()
+            healer.register_limit_mb(MEMORY_SOFT_MB)
+        except Exception:
+            pass
+    else:
+        logger.info(f"Memory soft limit: {MEMORY_SOFT_MB}MB (policy only, "
+                     f"unknown platform {sys.platform})")
+
 
 def _memory_signal_handler(signum, frame):
-    """SIGSEGV handler — graceful degradation on memory exhaustion."""
-    logger.critical("Memory exhausted (SIGSEGV). Attempting graceful shutdown...")
+    """SIGSEGV/SIGBUS handler — graceful degradation on memory exhaustion."""
     import gc
+    logger.critical(f"Memory signal {signum} received. Attempting graceful shutdown...")
     gc.collect()
-    # Try to free resources before the process dies
     try:
         import psutil
         mem = psutil.Process().memory_info()
@@ -533,8 +559,12 @@ def _memory_signal_handler(signum, frame):
     except Exception:
         pass
 
+
 _setup_memory_limit()
-signal.signal(signal.SIGSEGV, _memory_signal_handler)
+if _IS_LINUX or _IS_MACOS:
+    signal.signal(signal.SIGSEGV, _memory_signal_handler)
+    if hasattr(signal, 'SIGBUS'):
+        signal.signal(signal.SIGBUS, _memory_signal_handler)
 
 # GC tuning — more frequent gen-0 collection (default 700,10,10 → 500,5,5)
 import gc as _gc

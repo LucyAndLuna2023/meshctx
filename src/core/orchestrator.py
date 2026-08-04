@@ -124,6 +124,14 @@ class TaskDAG:
     
     def add_task(self, description: str, role: AgentRole = AgentRole.GENERAL,
                  depends_on: List[str] = None) -> TaskNode:
+        # v3.118.0: resource gate
+        try:
+            from .resource_manager import get_resource_manager
+            ok, reason = get_resource_manager().pre_task()
+            if not ok:
+                raise RuntimeError(f"System overloaded — task rejected: {reason}")
+        except Exception:
+            pass
         node = TaskNode(description=description, role=role)
         if depends_on:
             node.dependencies = set(depends_on)

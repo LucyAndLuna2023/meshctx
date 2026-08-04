@@ -421,6 +421,16 @@ class TaskPlanner:
         if plan.status not in (PlanStatus.DRAFT, PlanStatus.REPLANNING):
             raise ValueError(f"Cannot add tasks to plan in '{plan.status.value}' state")
 
+        # v3.118.0: resource gate — reject new tasks when system is throttling
+        try:
+            from .resource_manager import get_resource_manager
+            ok, reason = get_resource_manager().pre_task()
+            if not ok:
+                logger.warning(f"Resource gate blocked task '{name}': {reason}")
+                raise RuntimeError(f"System overloaded — task rejected: {reason}")
+        except Exception:
+            pass  # permissive fallback if RM unavailable
+
         task = TaskStep(
             name=name,
             handler=handler,

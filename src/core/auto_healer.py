@@ -33,6 +33,8 @@ class AutoHealerV2:
         self._heal_count: int = 0
         self._last_check: float = 0.0
         self._uptime_start: float = time.time()
+        self._should_throttle: bool = False
+        self._soft_limit_mb: int = 2048  # Windows fallback: policy-only limit
 
     # -- real checks ----------------------------------------------------------
 
@@ -241,6 +243,11 @@ class AutoHealerV2:
     def should_throttle(self) -> bool:
         """Whether the kernel should pause accepting new tasks (memory/cpu critical)."""
         return getattr(self, '_should_throttle', False)
+
+    def register_limit_mb(self, limit_mb: int):
+        """Windows fallback: register a policy-only memory limit for periodic checks."""
+        self._soft_limit_mb = limit_mb
+        logger.info(f"AutoHealer: soft limit registered at {limit_mb}MB")
 
     # -- stats ----------------------------------------------------------------
 
