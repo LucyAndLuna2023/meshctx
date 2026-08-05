@@ -3317,11 +3317,21 @@ meshctx 是一个模块化 AI Agent 平台，开源版（当前运行）提供�
 | remote_read | 🔒 SSH 远程读取文件（需 host/user/password） |
 | remote_write | 🔒 SSH 远程写入文件（需 host/user/password） |
 
+## 搜索架构（多引擎自动回退）
+
+web_search 使用5引擎链式回退：
+1. **DDGS**（DuckDuckGo，默认）→ 失败自动跳到下一引擎
+2. **Brave Search API**（需 BRAVE_API_KEY 环境变量）→ 免费2000次/月
+3. **SearXNG**（需 SEARXNG_URL 环境变量，CloudCone自建）
+4. **Google**（直接HTTP，Android移动端UA）
+5. **Startpage**（Google代理，w-gl解析）
+
+→ 一条路不通，下一条自动顶上。你只需正常调用 web_search，引擎切换对LLM透明。
+
 ## 重要规则
 
-- ⚠️ web_search 必须用英文关键词（中文搜索返回空结果）
-- ⚠️ 如果 web_search 连续2次返回「无搜索结果」，立即停止搜索，改用 web_extract 抓取已知URL，或 browser_navigate 访问具体网页
-- ⚠️ 不要反复调用 web_search 尝试不同关键词——如果2次都没结果，说明搜索服务不可用
+- ⚠️ web_search 优先用英文关键词（多引擎对英文效果好）
+- ⚠️ 如果连续2次返回「所有搜索引擎均失败」，立即停止搜索，改用 web_extract 抓取已知URL
 - 查询实时信息必须先调用 web_search
 - 用户提供服务器信息（IP/用户名/密码）时，直接传入 remote_* 工具参数
 - 读取/分析本机文件用 read_file
@@ -3850,8 +3860,9 @@ async def api_chat_stream(request: Request):
 
 
 def _do_web_search(query: str) -> str:
-    """使用 DuckDuckGo 搜索（DDGS库 backend=html, 通过SOCKS5代理）"""
-    import os
+    """多引擎搜索（ddgs → SearXNG → Brave → Google → web_extract），自动回退"""
+    import os, re, json, urllib.parse
+    import requests as _requests
     from src.config import load_config as _load_search_config
 
     try:
@@ -3864,24 +3875,22 @@ def _do_web_search(query: str) -> str:
         max_results = 20
         timeout = 15
 
-    try:
-        from ddgs import DDGS
+    proxies = None
+    if proxy_url and proxy_url.strip():
+        proxies = {"http": proxy_url, "https": proxy_url}
 
-        ddgs_kwargs = {"timeout": timeout}
-        if proxy_url and proxy_url.strip():
-            ddgs_kwargs["proxy"] = proxy_url.strip()
+    ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    headers = {"User-Agent": ua, "Accept-Language": "en-US,en;q=0.9"}
 
-        with DDGS(**ddgs_kwargs) as ddgs:
-            results = list(ddgs.text(query, max_results=max(max_results, 20)))
-
+    # ── 格式化搜索结果 ──
+    def _fmt_results(results: list) -> str:
         if not results:
             return "无搜索结果"
-
         lines = []
         for i, r in enumerate(results[:max_results]):
-            title = r.get("title", "")
-            body = r.get("body", "")
-            href = r.get("href", "")
+            title = r.get("title", "") or r.get("name", "")
+            body = r.get("body", "") or r.get("snippet", "") or r.get("description", "")
+            href = r.get("href", "") or r.get("url", "") or r.get("link", "")
             lines.append(f"{i+1}. {title}")
             if body:
                 lines.append(f"   {body[:300]}")
@@ -3889,12 +3898,121 @@ def _do_web_search(query: str) -> str:
                 lines.append(f"   {href}")
             lines.append("")
         return "\n".join(lines).strip()
-    except ImportError:
-        pass
-    except Exception as e:
-        return f"搜索失败: {e}"
 
-    return "无搜索结果（搜索库未安装）"
+    errors = []
+
+    # ── 引擎1: DDGS (DuckDuckGo) ──
+    try:
+        from ddgs import DDGS
+        kwargs = {"timeout": timeout}
+        if proxy_url and proxy_url.strip():
+            kwargs["proxy"] = proxy_url.strip()
+        with DDGS(**kwargs) as ddgs:
+            results = list(ddgs.text(query, max_results=max(20, max_results)))
+        if results:
+            return _fmt_results(results)
+        errors.append("ddgs: 无结果")
+    except ImportError:
+        errors.append("ddgs: 未安装")
+    except Exception as e:
+        errors.append(f"ddgs: {e}")
+
+    # ── 引擎2: Brave Search API (免费 2000次/月) ──
+    brave_key = os.environ.get("BRAVE_API_KEY", "")
+    if brave_key:
+        try:
+            resp = _requests.get(
+                "https://api.search.brave.com/res/v1/web/search",
+                params={"q": query, "count": min(max_results, 20)},
+                headers={**headers, "Accept": "application/json",
+                         "X-Subscription-Token": brave_key, "Accept-Encoding": "gzip"},
+                proxies=proxies, timeout=timeout
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                web = data.get("web", {}).get("results", [])
+                if web:
+                    return _fmt_results(web)
+                errors.append("brave: 无结果")
+            else:
+                errors.append(f"brave: HTTP {resp.status_code}")
+        except Exception as e:
+            errors.append(f"brave: {e}")
+
+    # ── 引擎3: SearXNG (CloudCone 自建) ──
+    searxng_url = os.environ.get("SEARXNG_URL", "")
+    if searxng_url:
+        try:
+            resp = _requests.get(
+                f"{searxng_url}/search",
+                params={"q": query, "format": "json", "categories": "general"},
+                headers=headers, proxies=proxies, timeout=timeout
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                results = data.get("results", [])
+                if results:
+                    return _fmt_results(results)
+                errors.append("searxng: 无结果")
+            else:
+                errors.append(f"searxng: HTTP {resp.status_code}")
+        except Exception as e:
+            errors.append(f"searxng: {e}")
+
+    # ── 引擎4: Google 直接HTTP (text mode) ──
+    try:
+        google_url = f"https://www.google.com/search?q={urllib.parse.quote(query)}&hl=en&num=20&ie=UTF-8"
+        resp = _requests.get(google_url, headers={**headers, "User-Agent":
+            "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36"}, proxies=proxies, timeout=timeout+5)
+        if resp.status_code == 200:
+            # 尝试多种解析方式
+            for pattern in [
+                r'<h3[^>]*>([^<]+)</h3>.*?<a[^>]*href="([^"]+)"[^>]*>.*?<span[^>]*>([^<]{20,300})</span>',
+                r'"title":"([^"]+)","link":"([^"]+)"',
+                r'<h3[^>]*>([^<]+)</h3>',
+            ]:
+                matches = re.findall(pattern, resp.text[:200000], re.DOTALL)
+                if matches:
+                    google_results = []
+                    for m in matches[:max_results]:
+                        if isinstance(m, tuple):
+                            t, url, *rest = m
+                            body = rest[0] if rest else ""
+                        else:
+                            t, url, body = m, "", ""
+                        google_results.append({"title": t.strip(), "href": url.strip(), "body": body.strip()[:300]})
+                    if google_results:
+                        return _fmt_results(google_results)
+            errors.append("google: 无法解析结果")
+        else:
+            errors.append(f"google: HTTP {resp.status_code}")
+    except Exception as e:
+        errors.append(f"google: {e}")
+
+    # ── 引擎5: Startpage ──
+    try:
+        sp_url = f"https://www.startpage.com/sp/search?query={urllib.parse.quote(query)}&num=20"
+        resp = _requests.get(sp_url, headers=headers, proxies=proxies, timeout=timeout+5)
+        if resp.status_code == 200:
+            # Startpage uses w-gl classes
+            results = []
+            titles = re.findall(r'class="w-gl__result-title[^"]*"[^>]*>([^<]+)', resp.text)
+            hrefs = re.findall(r'class="w-gl__result-url[^"]*"[^>]*>([^<]+)', resp.text)
+            descs = re.findall(r'class="w-gl__description[^"]*"[^>]*>([^<]+)', resp.text)
+            for i in range(min(len(titles), max_results)):
+                entry = {"title": titles[i].strip()}
+                if i < len(hrefs): entry["href"] = hrefs[i].strip()
+                if i < len(descs): entry["body"] = descs[i].strip()[:300]
+                results.append(entry)
+            if results:
+                return _fmt_results(results)
+            errors.append("startpage: 无法解析")
+        else:
+            errors.append(f"startpage: HTTP {resp.status_code}")
+    except Exception as e:
+        errors.append(f"startpage: {e}")
+
+    return f"所有搜索引擎均失败 ({'; '.join(errors)})"
 
 
 def _do_web_extract(url: str) -> str:
