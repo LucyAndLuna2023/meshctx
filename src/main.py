@@ -3677,13 +3677,13 @@ async def api_chat_stream(request: Request):
                 yield "data: [DONE]\n\n"
                 return
 
-            max_rounds = int(body.get("max_rounds", 5))
+            max_rounds = int(body.get("max_rounds", 12))
             _web_search_count = 0
-            _max_web_searches = 3
+            _max_web_searches = 999  # 不限制搜索次数，由 max_rounds 防死循环
             _tools_ok = True
             _start_time = time.time()
             for _round in range(max_rounds):
-                if time.time() - _start_time > 180:
+                if time.time() - _start_time > 300:
                     yield f"data: {_json.dumps({'token': '\n\n[已达到最大处理时间 180 秒，已中止]'})}\n\n"
                     break
                 # 发送请求给模型 — 使用 ModelClient.chat_stream() 逐 token 推送
@@ -3740,8 +3740,9 @@ async def api_chat_stream(request: Request):
                 if msg.tool_calls:
                     # tokens 已逐字推送，无需重复
 
-                    # 记录 assistant 消息
-                    msgs.append({"role": "assistant", "content": msg.content or "", "tool_calls": [
+                    # 记录 assistant 消息（tool_calls 时 content 必须为 null 或省略，不能用 ""）
+                    assistant_content = msg.content or None
+                    msgs.append({"role": "assistant", "content": assistant_content, "tool_calls": [
                         {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
                         for tc in msg.tool_calls
                     ]})
@@ -3788,7 +3789,9 @@ async def api_chat_stream(request: Request):
                         if name == "web_search":
                             if _web_search_count >= _max_web_searches:
                                 yield f"data: {_json.dumps({'tool_start': name, 'args': args, 'require_approval': False})}\n\n"
-                                yield f"data: {_json.dumps({'tool_result': f'[搜索已达上限 {_max_web_searches} 次，请基于已有数据撰写报告]'})}\n\n"
+                                limit_msg = f"[搜索已达上限 {_max_web_searches} 次，请基于已有数据撰写报告]"
+                                yield f"data: {_json.dumps({'tool_result': limit_msg})}\n\n"
+                                msgs.append({"role": "tool", "tool_call_id": tc.id, "content": limit_msg})
                                 continue
                             _web_search_count += 1
                         tool_tasks.append((tc, name, args))
