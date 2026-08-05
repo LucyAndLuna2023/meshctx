@@ -3823,18 +3823,34 @@ async def api_chat_stream(request: Request):
 
 
 def _do_web_search(query: str) -> str:
-    """执行网页搜索（多引擎回退：Bing → Google → DuckDuckGo）"""
-    import urllib.parse, re, requests
+    """执行网页搜索（多引擎回退：Bing → Google → DuckDuckGo），支持SOCKS5/HTTP代理"""
+    import urllib.parse, re, requests, os
+    from src.config import load_config as _load_search_config
 
-    def _fetch(url, ua, timeout=5):
+    # ── 代理配置 ──
+    proxies = None
+    try:
+        cfg = _load_search_config()
+        proxy_url = cfg.get("search", {}).get("proxy", os.environ.get("MESHCTX_SEARCH_PROXY", ""))
+        max_results = int(cfg.get("search", {}).get("max_results", 20))
+        timeout = int(cfg.get("search", {}).get("timeout", 15))
+    except Exception:
+        proxy_url = os.environ.get("MESHCTX_SEARCH_PROXY", "")
+        max_results = 20
+        timeout = 15
+
+    if proxy_url and proxy_url.strip():
+        proxies = {"http": proxy_url, "https": proxy_url}
+        logger.info(f"web_search 使用代理: {proxy_url}")
+
+    def _fetch(url, ua, t=timeout):
         import urllib3
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         try:
-            resp = requests.get(url, headers={"User-Agent": ua}, timeout=timeout)
+            resp = requests.get(url, headers={"User-Agent": ua}, timeout=t, proxies=proxies, verify=False)
             return resp.text
         except requests.exceptions.SSLError:
-            logger.warning(f"SSL验证失败，降级为verify=False: {url[:60]}")
-            resp = requests.get(url, headers={"User-Agent": ua}, timeout=timeout, verify=False)
+            resp = requests.get(url, headers={"User-Agent": ua}, timeout=t, proxies=proxies, verify=False)
             return resp.text
 
     def _strip_html(s):
@@ -3843,7 +3859,7 @@ def _do_web_search(query: str) -> str:
     # 引擎1: Bing（最快，国内可用）
     try:
         url = f"https://cn.bing.com/search?q={urllib.parse.quote(query)}&setlang=zh-cn"
-        html = _fetch(url, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", 8)
+        html = _fetch(url, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         snippets = []
         # 多种 Bing 结果模式
         for pat in [
@@ -3856,7 +3872,8 @@ def _do_web_search(query: str) -> str:
             if snippets:
                 break
         if snippets:
-            results = [_strip_html(s)[:200] for s in snippets[:8] if _strip_html(s)]
+            limit = max_results if max_results > 0 else len(snippets)
+            results = [_strip_html(s)[:300] for s in snippets[:limit] if _strip_html(s)]
             if results:
                 return "\n".join(f"{i+1}. {r}" for i, r in enumerate(results))
     except Exception:
@@ -3865,12 +3882,13 @@ def _do_web_search(query: str) -> str:
     # 引擎2: Google（国际通用）
     try:
         url = f"https://www.google.com/search?q={urllib.parse.quote(query)}&hl=zh-CN"
-        html = _fetch(url, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", 10)
+        html = _fetch(url, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         snippets = re.findall(r'<div class="BNeawe s3v9rd AP7Wnd">(.*?)</div>', html, re.DOTALL)
         if not snippets:
             snippets = re.findall(r'<span class="aCOpRe">(.*?)</span>', html, re.DOTALL)
         if snippets:
-            results = [_strip_html(s)[:200] for s in snippets[:8] if _strip_html(s)]
+            limit = max_results if max_results > 0 else len(snippets)
+            results = [_strip_html(s)[:300] for s in snippets[:limit] if _strip_html(s)]
             if results:
                 return "\n".join(f"{i+1}. {r}" for i, r in enumerate(results))
     except Exception:
@@ -3879,10 +3897,11 @@ def _do_web_search(query: str) -> str:
     # 引擎3: DuckDuckGo（最后的备选）
     try:
         url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
-        html = _fetch(url, "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", 6)
+        html = _fetch(url, "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
         snippets = re.findall(r'class="result__snippet"[^>]*>(.*?)<', html, re.DOTALL)
         if snippets:
-            results = [_strip_html(s)[:200] for s in snippets[:8] if _strip_html(s)]
+            limit = max_results if max_results > 0 else len(snippets)
+            results = [_strip_html(s)[:300] for s in snippets[:limit] if _strip_html(s)]
             if results:
                 return "\n".join(f"{i+1}. {r}" for i, r in enumerate(results))
     except Exception:
@@ -3892,22 +3911,34 @@ def _do_web_search(query: str) -> str:
 
 
 def _do_web_extract(url: str) -> str:
-    """抓取网页内容"""
-    import requests, re
+    """抓取网页内容（支持SOCKS5/HTTP代理）"""
+    import requests, re, os
+    from src.config import load_config as _load_extract_config
+
+    # ── 代理配置 ──
+    proxies = None
+    try:
+        cfg = _load_extract_config()
+        proxy_url = cfg.get("search", {}).get("proxy", os.environ.get("MESHCTX_SEARCH_PROXY", ""))
+    except Exception:
+        proxy_url = os.environ.get("MESHCTX_SEARCH_PROXY", "")
+
+    if proxy_url and proxy_url.strip():
+        proxies = {"http": proxy_url, "https": proxy_url}
+
     try:
         try:
-            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15)
+            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}, timeout=20, proxies=proxies, verify=False)
         except requests.exceptions.SSLError:
-            logger.warning(f"SSL验证失败，降级为verify=False: {url[:60]}")
             import urllib3
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15, verify=False)
+            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}, timeout=20, proxies=proxies, verify=False)
         html = resp.text
         text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL)
         text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL)
         text = re.sub(r'<[^>]+>', ' ', text)
         text = re.sub(r'\s+', ' ', text).strip()
-        return text[:8000]
+        return text[:12000]
     except Exception as e:
         return f"抓取失败: {e}"
 
