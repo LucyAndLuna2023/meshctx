@@ -3305,7 +3305,7 @@ meshctx 是一个模块化 AI Agent 平台，开源版（当前运行）提供�
 
 | 工具 | 用途 |
 |------|------|
-| web_search | 搜索网页获取实时数据（价格、新闻、天气、股票等） |
+| web_search | 搜索网页获取实时数据（⚠️ 用英文关键词，中文搜索效果差） |
 | web_extract | 抓取指定网页的完整内容 |
 | terminal   | 🔒 在本机执行 shell 命令（运行程序、安装软件、管理系统等） |
 | browser_navigate | 抓取网页并提取可读文本（标题、链接、正文） |
@@ -3319,6 +3319,9 @@ meshctx 是一个模块化 AI Agent 平台，开源版（当前运行）提供�
 
 ## 重要规则
 
+- ⚠️ web_search 必须用英文关键词（中文搜索返回空结果）
+- ⚠️ 如果 web_search 连续2次返回「无搜索结果」，立即停止搜索，改用 web_extract 抓取已知URL，或 browser_navigate 访问具体网页
+- ⚠️ 不要反复调用 web_search 尝试不同关键词——如果2次都没结果，说明搜索服务不可用
 - 查询实时信息必须先调用 web_search
 - 用户提供服务器信息（IP/用户名/密码）时，直接传入 remote_* 工具参数
 - 读取/分析本机文件用 read_file
@@ -3680,6 +3683,7 @@ async def api_chat_stream(request: Request):
             max_rounds = int(body.get("max_rounds", 12))
             _web_search_count = 0
             _max_web_searches = 999  # 不限制搜索次数，由 max_rounds 防死循环
+            _empty_search_streak = 0  # 连续空搜索结果计数
             _tools_ok = True
             _start_time = time.time()
             for _round in range(max_rounds):
@@ -3798,6 +3802,7 @@ async def api_chat_stream(request: Request):
                         yield f"data: {_json.dumps({'tool_start': name, 'args': args, 'require_approval': False})}\n\n"
 
                     # 并发执行
+                    empty_search_count = 0
                     with ThreadPoolExecutor(max_workers=min(len(tool_tasks), 5)) as executor:
                         futures = {executor.submit(_exec_one, name, args): (tc, name)
                                    for tc, name, args in tool_tasks}
@@ -3807,8 +3812,27 @@ async def api_chat_stream(request: Request):
                                 result = future.result(timeout=60)
                             except Exception as e:
                                 result = f"工具执行失败: {e}"
-                            yield f"data: {_json.dumps({'tool_result': result[:500]})}\n\n"
+                            # 追踪空搜索结果
+                            if name == "web_search" and result.strip() in ("无搜索结果", "搜索失败:", ""):
+                                empty_search_count += 1
+                            yield f"data: {_json.dumps({'tool_result': result[:500]})}\\n\\n"
                             msgs.append({"role": "tool", "tool_call_id": tc.id, "content": result[:16000]})
+
+                    # 死循环检测：本轮所有 web_search 均无结果
+                    if empty_search_count > 0 and all(
+                        tc.function.name != "web_search" or 
+                        any(m.get("tool_call_id") == tc.id and m.get("content","").strip() in ("无搜索结果","搜索失败:","") 
+                            for m in msgs[-len(msg.tool_calls):])
+                        for tc in msg.tool_calls if tc.function.name == "web_search"
+                    ):
+                        _empty_search_streak += 1
+                    else:
+                        _empty_search_streak = 0 if empty_search_count == 0 else _empty_search_streak
+
+                    # 连续3轮搜索全空 → 强制中断，要求LLM基于已有数据输出
+                    if _empty_search_streak >= 3:
+                        yield f"data: {_json.dumps({'token': '\\n\\n[搜索服务暂不可用，请基于已获取的信息直接给出结论，不要再搜索]'})}\\n\\n"
+                        msgs.append({"role": "system", "content": "⚠️ 搜索服务连续多轮无结果。请立即基于已获取的所有信息输出最终结果，不要再调用 web_search。如果你没有足够数据，诚实说明并用 web_extract 或 browser_navigate 尝试替代方案，或者直接告诉用户当前情况。"})
 
                     continue  # 下一轮，让模型基于工具结果回复
 
@@ -3826,8 +3850,8 @@ async def api_chat_stream(request: Request):
 
 
 def _do_web_search(query: str) -> str:
-    """使用 DuckDuckGo HTML 接口搜索（通过代理翻墙）"""
-    import urllib.parse, re, requests, os
+    """使用 DuckDuckGo 搜索（DDGS库 backend=html, 通过SOCKS5代理）"""
+    import os
     from src.config import load_config as _load_search_config
 
     try:
@@ -3840,47 +3864,38 @@ def _do_web_search(query: str) -> str:
         max_results = 20
         timeout = 15
 
-    proxies = None
-    if proxy_url and proxy_url.strip():
-        proxies = {"http": proxy_url, "https": proxy_url}
-
-    import urllib3
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-    ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-
-    # DuckDuckGo HTML 接口（最稳定，绕过 Bing 限制）
     try:
-        url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
-        resp = requests.get(url, headers={"User-Agent": ua}, timeout=timeout, proxies=proxies)
-        html = resp.text
+        from duckduckgo_search import DDGS
 
-        snippets = re.findall(r'<a class="result__snippet"[^>]*>(.*?)</a>', html, re.DOTALL)
-        titles = re.findall(r'<a[^>]*class="result__a"[^>]*>(.*?)</a>', html, re.DOTALL)
-        urls_raw = re.findall(r'<a class="result__url"[^>]*>\s*(.*?)\s*</a>', html, re.DOTALL)
+        ddgs_kwargs = {"timeout": timeout}
+        if proxy_url and proxy_url.strip():
+            ddgs_kwargs["proxy"] = proxy_url.strip()
 
-        if not snippets:
+        with DDGS(**ddgs_kwargs) as ddgs:
+            # backend="html" 最稳定（不依赖 Bing API）
+            results = list(ddgs.text(query, max_results=max(max_results, 20), backend="html"))
+
+        if not results:
             return "无搜索结果"
 
-        def _strip(s):
-            s = re.sub(r'<[^>]+>', '', s)
-            s = s.replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
-            s = s.replace('&#x27;', "'").replace('&quot;', '"')
-            return s.strip()
-
         lines = []
-        for i in range(min(len(snippets), max_results)):
-            title = _strip(titles[i]) if i < len(titles) else ""
-            body = _strip(snippets[i])[:300]
-            url_text = _strip(urls_raw[i]) if i < len(urls_raw) else ""
+        for i, r in enumerate(results[:max_results]):
+            title = r.get("title", "")
+            body = r.get("body", "")
+            href = r.get("href", "")
             lines.append(f"{i+1}. {title}")
-            lines.append(f"   {body}")
-            if url_text:
-                lines.append(f"   {url_text}")
+            if body:
+                lines.append(f"   {body[:300]}")
+            if href:
+                lines.append(f"   {href}")
             lines.append("")
         return "\n".join(lines).strip()
+    except ImportError:
+        pass
     except Exception as e:
         return f"搜索失败: {e}"
+
+    return "无搜索结果（搜索库未安装）"
 
 
 def _do_web_extract(url: str) -> str:
