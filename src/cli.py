@@ -782,7 +782,7 @@ def cmd_start(args):
 ╚══════════════════════════════════════╝
     """)
     
-    uvicorn.run(app, host=host, port=port, log_level="info")
+    uvicorn.run(app, host=host, port=port, log_level="info", timeout_keep_alive=300)
 
 
 def cmd_stop(args):
@@ -1876,7 +1876,7 @@ def main():
         from src.main import app
         host = os.environ.get("MESHCTX_HOST", "0.0.0.0")
         port = int(os.environ.get("MESHCTX_PORT", "3001"))
-        uvicorn.run(app, host=host, port=port, log_level="info")
+        uvicorn.run(app, host=host, port=port, log_level="info", timeout_keep_alive=300)
         return
     args.func(args)
 
