@@ -3325,8 +3325,8 @@ meshctx 是一个模块化 AI Agent 平台，开源版（当前运行）提供�
 - 最终回复用中文，数据用表格呈现
 - 被问到 meshctx 自身架构时，参考上方「关于 meshctx」诚实回答，不要搜索源码"""
 
-SENSITIVE_TOOLS = {"write_file", "remote_write", "remote_exec", "terminal"}
-DESTRUCTIVE_TOOLS = {"write_file", "remote_write", "remote_exec", "terminal"}
+SENSITIVE_TOOLS = set()
+DESTRUCTIVE_TOOLS = set()  # 所有工具自动批准
 
 
 def _dispatch_tool(name: str, args: dict, approved_tools: set, page_cache: dict) -> str:
@@ -3366,6 +3366,89 @@ async def _call_llm(client, **kwargs):
     return await loop.run_in_executor(
         None, lambda c=client, kw=kwargs: c.client.chat.completions.create(**kw)
     )
+
+
+async def _call_llm_stream(client, **kwargs):
+    """流式 LLM 调用 — 逐 token yield (text_content, finish_reason)，最后 yield (full_message, None)
+    
+    使用 asyncio.Queue 桥接同步流式 HTTP → 异步生成器。
+    """
+    import asyncio, threading
+
+    q: asyncio.Queue = asyncio.Queue()
+    done = threading.Event()
+
+    def _stream():
+        try:
+            response = client.client.chat.completions.create(stream=True, **kwargs)
+            collected_content = []
+            collected_tool_calls = {}
+            finish_reason = None
+            for chunk in response:
+                delta = chunk.choices[0].delta if chunk.choices else None
+                if delta is None:
+                    continue
+                if delta.content:
+                    collected_content.append(delta.content)
+                    q.put_nowait(("token", delta.content))
+                if delta.tool_calls:
+                    for tc in delta.tool_calls:
+                        idx = tc.index
+                        if idx not in collected_tool_calls:
+                            collected_tool_calls[idx] = {"id": tc.id or "", "function": {"name": "", "arguments": ""}}
+                        if tc.id:
+                            collected_tool_calls[idx]["id"] = tc.id
+                        if tc.function:
+                            if tc.function.name:
+                                collected_tool_calls[idx]["function"]["name"] += tc.function.name
+                            if tc.function.arguments:
+                                collected_tool_calls[idx]["function"]["arguments"] += tc.function.arguments
+                if chunk.choices[0].finish_reason:
+                    finish_reason = chunk.choices[0].finish_reason
+
+            # Build pseudo response
+            class PseudoMsg: pass
+            msg = PseudoMsg()
+            msg.content = "".join(collected_content) or None
+            msg.tool_calls = None
+            if collected_tool_calls:
+                msg.tool_calls = []
+                for idx in sorted(collected_tool_calls):
+                    tc = collected_tool_calls[idx]
+                    ptc = PseudoMsg()
+                    ptc.id = tc["id"]
+                    ptc.type = "function"
+                    ptc.function = PseudoMsg()
+                    ptc.function.name = tc["function"]["name"]
+                    ptc.function.arguments = tc["function"]["arguments"]
+                    msg.tool_calls.append(ptc)
+            class PseudoChoice: pass
+            class PseudoResp: pass
+            choice = PseudoChoice()
+            choice.message = msg
+            choice.finish_reason = finish_reason
+            resp = PseudoResp()
+            resp.choices = [choice]
+            q.put_nowait(("done", resp))
+        except Exception as e:
+            q.put_nowait(("error", str(e)))
+        finally:
+            done.set()
+
+    t = threading.Thread(target=_stream, daemon=True)
+    t.start()
+
+    while not done.is_set() or not q.empty():
+        try:
+            kind, val = await asyncio.wait_for(q.get(), timeout=0.1)
+            yield kind, val
+        except asyncio.TimeoutError:
+            continue
+
+    # Drain remaining
+    while not q.empty():
+        kind, val = q.get_nowait()
+        yield kind, val
 
 
 @app.post("/api/chat")
@@ -3419,7 +3502,7 @@ async def api_chat(request: Request):
                         model=client.model_name,
                         messages=msgs,
                         temperature=0.7,
-                        max_tokens=4096,
+                        max_tokens=16384,
                         tools=TOOLS,
                         tool_choice="auto",
                     )
@@ -3428,7 +3511,7 @@ async def api_chat(request: Request):
                         model=client.model_name,
                         messages=msgs,
                         temperature=0.7,
-                        max_tokens=4096,
+                        max_tokens=16384,
                     )
             except Exception as e:
                 if "tools" in str(e).lower() or "tool" in str(e).lower():
@@ -3437,7 +3520,7 @@ async def api_chat(request: Request):
                         model=client.model_name,
                         messages=msgs,
                         temperature=0.7,
-                        max_tokens=4096,
+                        max_tokens=16384,
                     )
                 else:
                     raise
@@ -3486,7 +3569,7 @@ async def api_chat(request: Request):
                 model=client.model_name,
                 messages=msgs,
                 temperature=0.7,
-                max_tokens=4096,
+                max_tokens=16384,
             )
             content = resp.choices[0].message.content or ""
         except Exception:
@@ -3576,8 +3659,8 @@ async def api_chat_stream(request: Request):
             model_id = "deepseek:v4-pro"
 
     # ── 工具定义 ──
-    SENSITIVE_TOOLS = {"write_file", "remote_write", "remote_exec", "terminal"}
-    DESTRUCTIVE_TOOLS = {"write_file", "remote_write", "remote_exec", "terminal"}
+    SENSITIVE_TOOLS = set()
+    DESTRUCTIVE_TOOLS = set()  # 所有工具自动批准，不弹确认框
     _approved_tools = set()  # 本次流中已批准的工具
     _page_cache = {}  # 浏览器页面缓存: {url: {title, links, text, html}}
 
@@ -3597,45 +3680,59 @@ async def api_chat_stream(request: Request):
             max_rounds = int(body.get("max_rounds", 150))  # 默认150轮（用户要求 ≥150）
             _tools_ok = True  # 模型是否支持 tools
             for _round in range(max_rounds):
-                # 发送请求给模型 (尝试 tools，失败则降级)
+                # 发送请求给模型 — 使用 ModelClient.chat_stream() 逐 token 推送
                 try:
                     if _tools_ok:
-                        resp = await _call_llm(client, 
-                            model=client.model_name,
-                            messages=msgs,
-                            temperature=0.7,
-                            max_tokens=4096,
-                            tools=TOOLS,
-                            tool_choice="auto",
-                        )
+                        stream = client.chat_stream(
+                            msgs, temperature=0.7, max_tokens=16384, tools=TOOLS)
                     else:
-                        resp = await _call_llm(client, 
-                            model=client.model_name,
-                            messages=msgs,
-                            temperature=0.7,
-                            max_tokens=4096,
-                        )
+                        stream = client.chat_stream(
+                            msgs, temperature=0.7, max_tokens=16384)
                 except Exception as tool_err:
                     err_msg = str(tool_err)
-                    # 如果模型不支持 tools，降级重试
                     if 'tool' in err_msg.lower() or 'not support' in err_msg.lower() or 'invalid' in err_msg.lower():
                         _tools_ok = False
-                        resp = await _call_llm(client, 
-                            model=client.model_name,
-                            messages=msgs,
-                            temperature=0.7,
-                            max_tokens=4096,
-                        )
+                        stream = client.chat_stream(
+                            msgs, temperature=0.7, max_tokens=16384)
                     else:
                         raise
-                choice = resp.choices[0]
-                msg = choice.message
+
+                tool_calls_raw = None
+                msg_content = ""
+                for item in stream:
+                    if isinstance(item, tuple) and item[0] == "__TOOLS__":
+                        # ("__TOOLS__", parsed_tools_list, full_text)
+                        tool_calls_raw = item[1]
+                        msg_content = item[2]
+                    elif isinstance(item, str):
+                        yield f"data: {_json.dumps({'token': item})}\n\n"
+                        msg_content += item
+
+                # Build pseudo msg for tool processing
+                class _PM: pass
+                msg = _PM()
+                msg.content = msg_content or None
+                msg.tool_calls = None
+                if tool_calls_raw:
+                    msg.tool_calls = []
+                    for tc in tool_calls_raw:
+                        ptc = _PM()
+                        ptc.id = tc["id"]
+                        ptc.type = "function"
+                        ptc.function = _PM()
+                        ptc.function.name = tc["name"]
+                        ptc.function.arguments = json.dumps(tc["arguments"])
+                        msg.tool_calls.append(ptc)
+                class _PC: pass
+                class _PR: pass
+                choice = _PC()
+                choice.message = msg
+                resp = _PR()
+                resp.choices = [choice]
 
                 # 如果模型要调用工具
                 if msg.tool_calls:
-                    # 先输出模型文本(如有)
-                    if msg.content:
-                        yield f"data: {_json.dumps({'token': msg.content})}\n\n"
+                    # tokens 已逐字推送，无需重复
 
                     # 记录 assistant 消息
                     msgs.append({"role": "assistant", "content": msg.content or "", "tool_calls": [
@@ -3687,15 +3784,12 @@ async def api_chat_stream(request: Request):
                         else:
                             result = f"未知工具: {name}"
 
-                        yield f"data: {_json.dumps({'tool_result': result[:200]})}\n\n"
-                        msgs.append({"role": "tool", "tool_call_id": tc.id, "content": result[:4000]})
+                        yield f"data: {_json.dumps({'tool_result': result[:500]})}\n\n"
+                        msgs.append({"role": "tool", "tool_call_id": tc.id, "content": result[:16000]})
 
                     continue  # 下一轮，让模型基于工具结果回复
 
-                # 模型直接回复文本
-                if msg.content:
-                    yield f"data: {_json.dumps({'token': msg.content})}\n\n"
-
+                # 模型直接回复文本 — tokens 已逐字推送，直接结束
                 yield "data: [DONE]\n\n"
                 return
 
