@@ -484,10 +484,12 @@ class ModelClient:
             kwargs["tools"] = tools
             kwargs["tool_choice"] = "auto"
 
-        tool_acc = {}  # idx → {id, name, args_str}
+        tool_acc = {}
         full_content = ""
+        response = None
         try:
-            for chunk in self.client.chat.completions.create(**kwargs):
+            response = self.client.chat.completions.create(**kwargs)
+            for chunk in response:
                 delta = chunk.choices[0].delta if chunk.choices else None
                 if delta is None:
                     continue
@@ -508,6 +510,12 @@ class ModelClient:
                                 tool_acc[idx]["args_str"] += tc.function.arguments
         except Exception as e:
             yield f"\n[错误: {e}]"
+        finally:
+            if response is not None:
+                try:
+                    response.close()
+                except Exception:
+                    pass
 
         # After stream ends, yield tool calls if any
         if tool_acc:
