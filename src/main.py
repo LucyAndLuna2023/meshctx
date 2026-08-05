@@ -3865,15 +3865,14 @@ def _do_web_search(query: str) -> str:
         timeout = 15
 
     try:
-        from duckduckgo_search import DDGS
+        from ddgs import DDGS
 
         ddgs_kwargs = {"timeout": timeout}
         if proxy_url and proxy_url.strip():
             ddgs_kwargs["proxy"] = proxy_url.strip()
 
         with DDGS(**ddgs_kwargs) as ddgs:
-            # backend="html" 最稳定（不依赖 Bing API）
-            results = list(ddgs.text(query, max_results=max(max_results, 20), backend="html"))
+            results = list(ddgs.text(query, max_results=max(max_results, 20)))
 
         if not results:
             return "无搜索结果"
