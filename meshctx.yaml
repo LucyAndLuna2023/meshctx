@@ -9,10 +9,10 @@ kernel:
 
 # ── 模型 (30+内置, 零配置) ────────────────────────
 models:
-  default: bailian:qwen-flash
+  default: deepseek:chat
   entries:
-    bailian:qwen-flash:
-      key: "${BAILIAN_API_KEY}"
+    deepseek:chat:
+      key: "${DEEPSEEK_API_KEY}"
 
 # ── 记忆 ──────────────────────────────────────────
 memory:
