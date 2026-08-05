@@ -3880,7 +3880,18 @@ async def api_chat_stream(request: Request):
                 yield "data: [DONE]\n\n"
                 return
 
-            yield f"data: {_json.dumps({'error': '达到最大工具调用轮次'})}\n\n"
+            # 达到最大轮次 → 去掉工具做最后文本输出（mirror /api/chat）
+            try:
+                resp = await _call_llm(client,
+                    model=client.model_name,
+                    messages=msgs,
+                    temperature=0.7,
+                    max_tokens=16384,
+                )
+                final_content = resp.choices[0].message.content or "处理超时，请重试"
+                yield f"data: {_json.dumps({'content': final_content})}\n\n"
+            except Exception:
+                yield f"data: {_json.dumps({'content': '处理超时，请重试'})}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as e:
             yield f"data: {_json.dumps({'error': str(e)})}\n\n"
