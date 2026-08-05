@@ -3706,7 +3706,10 @@ async def api_chat_stream(request: Request):
 
             max_rounds = int(body.get("max_rounds", 8))
             _web_search_count = 0
-            _max_web_searches = 999  # 不限制搜索次数，由 max_rounds 防死循环
+            _max_web_searches = 10   # 单轮最多搜索10次
+            _max_total_tools = 15    # 单轮最多工具调用15次（硬性安全上限）
+            _total_tool_calls = 0     # 本轮总工具调用次数
+            _last_tool_names = []     # 上轮工具调用列表，用于检测重复模式
             _empty_search_streak = 0  # 连续空搜索结果轮次
             _total_search_calls = 0   # 本轮总搜索次数（含成功和失败）
             _tools_ok = True
