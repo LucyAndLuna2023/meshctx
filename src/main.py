@@ -3704,7 +3704,7 @@ async def api_chat_stream(request: Request):
                 yield "data: [DONE]\n\n"
                 return
 
-            max_rounds = int(body.get("max_rounds", 12))
+            max_rounds = int(body.get("max_rounds", 8))
             _web_search_count = 0
             _max_web_searches = 999  # 不限制搜索次数，由 max_rounds 防死循环
             _empty_search_streak = 0  # 连续空搜索结果轮次
@@ -3863,15 +3863,16 @@ async def api_chat_stream(request: Request):
                     # 连续3轮搜索全空 → 强制中断
                     if _empty_search_streak >= 3:
                         yield f"data: {_json.dumps({'token': '\\n\\n[搜索服务暂不可用，请基于已获取的信息直接给出结论，不要再搜索]'})}\\n\\n"
-                        msgs.append({"role": "system", "content": "⚠️ 搜索服务连续3轮无结果。请立即基于已获取的所有信息输出最终结果，不要再调用 web_search。如果你没有足够数据，诚实说明并用 web_extract 或 browser_navigate 尝试替代方案，或者直接告诉用户当前情况。"})
+                        msgs.append({"role": "user",
+                            "content": "⚠️ [系统强制停止] 搜索服务连续3轮无结果。请立即基于已获取的所有信息输出最终结果，不要再调用 web_search。如果没有足够数据，诚实说明现状并直接告诉用户。"})
 
                     # ── 死循环检测2：总搜索次数超限（即使每次成功也需停止） ──
-                    elif _total_search_calls >= 8:
-                        yield f"data: {_json.dumps({'token': '\\n\\n[已累计搜索 {} 次，数据充足，请立即输出结论]'.format(_total_search_calls)})}\\n\\n"
-                        msgs.append({"role": "system", "content": f"⚠️ 你已累计调用 web_search {_total_search_calls} 次，数据已经非常充足。请立即基于所有已获取的信息输出最终结论和报告。不要再调用任何搜索工具。如果还需要补充，直接告诉用户。"})
-                    elif _total_search_calls >= 5:
-                        yield f"data: {_json.dumps({'token': '\\n\\n[已搜索 {} 次，请基于现有数据输出，避免无限搜索]'.format(_total_search_calls)})}\\n\\n"
-                        msgs.append({"role": "system", "content": f"⚠️ 已搜索 {_total_search_calls} 次，数据已充足。建议在下一轮基于现有数据给出结论，除非有关键信息缺失。"})
+                    elif _total_search_calls >= 6:
+                        yield f"data: {_json.dumps({'token': '\\n\\n[已搜索 {} 次，搜索已终止，请立即输出结论]'.format(_total_search_calls)})}\\n\\n"
+                        msgs.append({"role": "user",
+                            "content": f"⚠️ [系统强制停止] 你已调用 web_search {_total_search_calls} 次，数据已经非常充足。请立即基于所有已获取的信息输出最终报告。不要再搜索。"})
+                        # 硬阻断：从TOOLS列表中移除web_search，下轮无法再调用
+                        TOOLS[:] = [t for t in TOOLS if t["function"]["name"] != "web_search"]
 
                     continue  # 下一轮，让模型基于工具结果回复
 
