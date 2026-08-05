@@ -132,6 +132,24 @@ body {
   color: var(--muted); display: flex; gap: 16px;
 }
 .typing { color: var(--muted); font-style: italic; }
+.typing-dots::after {
+  content: '';
+  animation: dots 1.4s infinite;
+}
+@keyframes dots {
+  0%, 20% { content: ''; }
+  40% { content: '.'; }
+  60% { content: '..'; }
+  80%, 100% { content: '...'; }
+}
+.tool-bubble { background: var(--bg); border: 1px dashed var(--accent); font-size: 13px; padding: 6px 12px; }
+.tool-msg .avatar, .tool-result .avatar { font-size: 14px; min-width: 24px; text-align: center; }
+.tool-msg .bubble, .tool-result .bubble { max-width: 85%; }
+.stream-progress {
+  color: var(--orange); font-size: 12px; margin-top: 4px;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
 /* ---- Status Panel (fixed bottom-right) ---- */
 .status-panel {
@@ -686,7 +704,7 @@ function addMsg(role, content, isTool) {
   const contentId = 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
 
   let extraActions = '';
-  if (role === 'ai' && content.length > 300) {
+  if (role === 'ai' && content.length > 10000) {
     extraActions = `<button class="action-btn collapse-toggle" onclick="toggleCollapse('${contentId}',this)">${t('chat_expand')}</button>`;
   }
 
@@ -708,7 +726,7 @@ function addMsg(role, content, isTool) {
   document.getElementById('messages').appendChild(div);
 
   // Auto-collapse long AI responses
-  if (role === 'ai' && content.length > 300) {
+  if (role === 'ai' && content.length > 10000) {
     const el = document.getElementById(contentId);
     if (el) {
       const wrapper = el.querySelector('.collapsed-content');
@@ -821,7 +839,7 @@ function loadMessages() {
       if (m.role === 'user' || m.role === 'ai') {
         addMsg(m.role, m.content);
         // If previously expanded, expand it now
-        if (m.role === 'ai' && !m.collapsed && m.content.length > 300) {
+        if (m.role === 'ai' && !m.collapsed && m.content.length > 10000) {
           const lastBubble = msgsDiv.querySelector('.msg.ai:last-child .bubble');
           if (lastBubble) {
             const wrapper = lastBubble.querySelector('.collapsed-content');
@@ -907,53 +925,127 @@ async function send() {
   // Typing indicator
   const typingDiv = document.createElement('div');
   typingDiv.className = 'msg ai typing-msg';
-  typingDiv.innerHTML = `<div class="avatar">🤖</div><div class="bubble typing">${t('chat_thinking')}</div>`;
+  typingDiv.innerHTML = `<div class="avatar">🤖</div><div><div class="bubble typing"><span class="typing-dots">${t('chat_thinking')}</span></div><div class="stream-progress">🔄 正在处理你的请求...</div></div>`;
   document.getElementById('messages').appendChild(typingDiv);
   
   try {
-    const resp = await fetch('/api/chat', {
+    // SSE streaming with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 min timeout
+    
+    const resp = await fetch('/api/chat/stream', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({messages, model})
+      body: JSON.stringify({messages, model}),
+      signal: controller.signal
     });
-    const data = await resp.json();
-    
-    typingDiv.remove();
-    addMsg('ai', data.content, data.tool_result);
-    // messages[] already pushed by addMsg()
 
-    // v3.115.30: auto-show confirm panel when agent asks permission
-    if (maybeShowConfirm(data.content)) {
-      showConfirmPanel();
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let aiContent = '';
+    let hasToolStart = false;
+
+    // Replace typing indicator with real content on first token
+    let aiMsgAdded = false;
+    const msgContainer = document.getElementById('messages');
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, {stream: true});
+      const lines = chunk.split(/\r?\n/);
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          
+          if (parsed.token) {
+            // Remove typing indicator on first real token
+            if (!aiMsgAdded) {
+              typingDiv.remove();
+              aiMsgAdded = true;
+            }
+            aiContent += parsed.token;
+            // Update or create the AI message bubble
+            let aiDiv = document.querySelector('.msg.ai.streaming');
+            if (!aiDiv) {
+              aiDiv = document.createElement('div');
+              aiDiv.className = 'msg ai streaming';
+              aiDiv.innerHTML = `<div class="avatar">🤖</div><div class="bubble"></div>`;
+              msgContainer.appendChild(aiDiv);
+            }
+            aiDiv.querySelector('.bubble').textContent = aiContent;
+            msgContainer.scrollTop = msgContainer.scrollHeight;
+          }
+          else if (parsed.tool_start) {
+            if (!aiMsgAdded) {
+              typingDiv.remove();
+              aiMsgAdded = true;
+            }
+            hasToolStart = true;
+            const toolDiv = document.createElement('div');
+            toolDiv.className = 'msg ai tool-msg';
+            toolDiv.innerHTML = `<div class="avatar">🔧</div><div class="bubble tool-bubble">🔄 调用工具: <strong>${parsed.tool_start}</strong>${parsed.require_approval ? ' ⚠️需确认' : ''}</div>`;
+            msgContainer.appendChild(toolDiv);
+            msgContainer.scrollTop = msgContainer.scrollHeight;
+          }
+          else if (parsed.tool_result) {
+            if (parsed.tool_result && !parsed.error) {
+              const resDiv = document.createElement('div');
+              resDiv.className = 'msg ai tool-result';
+              const preview = String(parsed.tool_result).substring(0, 100);
+              resDiv.innerHTML = `<div class="avatar">✅</div><div class="bubble tool-bubble">${preview}${String(parsed.tool_result).length > 100 ? '...' : ''}</div>`;
+              msgContainer.appendChild(resDiv);
+              msgContainer.scrollTop = msgContainer.scrollHeight;
+            }
+          }
+          else if (parsed.error) {
+            if (!aiMsgAdded) {
+              typingDiv.remove();
+              aiMsgAdded = true;
+            }
+            // Ensure error is displayed
+            if (aiContent) {
+              aiContent += '\n\n[错误: ' + parsed.error + ']';
+            } else {
+              aiContent = '[错误: ' + parsed.error + ']';
+            }
+            let aiDiv = document.querySelector('.msg.ai.streaming');
+            if (aiDiv) {
+              aiDiv.querySelector('.bubble').textContent = aiContent;
+            }
+          }
+        } catch(e) {
+          // Skip non-JSON lines
+        }
+      }
     }
+
+    // Cleanup: remove streaming class
+    const streamingDiv = document.querySelector('.msg.ai.streaming');
+    if (streamingDiv) streamingDiv.classList.remove('streaming');
+
+    // If nothing came through, show error
+    if (!aiContent && !hasToolStart) {
+      if (!aiMsgAdded) typingDiv.remove();
+      addMsg('ai', '[无响应] 请重试');
+    }
+
+    // Push to messages array
+    messages.push({role: 'assistant', content: aiContent});
 
     document.getElementById('tokenCount').textContent =
-      `Tokens: ${data.tokens || 0}`;
-    
-    // v1.5.26: 更新混合推理状态指示器
-    if (data.hybrid_info) {
-      currentHybridInfo = data.hybrid_info;
-      const modeIcon = data.hybrid_info.strategy === 'explore' ? '🧭' : '⚡';
-      const modeText = data.hybrid_info.strategy === 'explore' ? t('chat_explore') : t('chat_direct');
-      document.getElementById('hybridMode').innerHTML = `${modeIcon} ${modeText}`;
-      document.getElementById('hybridMode').style.color = 
-        data.hybrid_info.strategy === 'explore' ? 'var(--orange)' : 'var(--accent)';
-      document.getElementById('freeEnergy').textContent = 
-        `F=${data.hybrid_info.free_energy.toFixed(3)} | ${data.hybrid_info.policy}`;
-      
-      // Update status panel
-      updateStatusPanel(data.hybrid_info);
-    } else if (data.content && !data.hybrid_info) {
-      document.getElementById('hybridMode').innerHTML = `⚡ ${t('chat_direct')}`;
-      document.getElementById('hybridMode').style.color = 'var(--accent)';
-      document.getElementById('freeEnergy').textContent = '';
-      
-      updateStatusPanel(null);
-    }
-    
-    // Set agent back to idle
+      `Tokens: ${aiContent.length}`;
+
+    clearTimeout(timeoutId);
     setAgentStatus('idle');
   } catch(e) {
+    clearTimeout(timeoutId);
     typingDiv.remove();
     addMsg('ai', t('chat_error') + e.message);
     setAgentStatus('idle');
