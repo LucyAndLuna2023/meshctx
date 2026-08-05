@@ -3863,7 +3863,8 @@ async def api_chat_stream(request: Request):
                     # 连续3轮搜索全空 → 强制中断
                     if _empty_search_streak >= 3:
                         yield f"data: {_json.dumps({'token': '\\n\\n[搜索服务暂不可用，请基于已获取的信息直接给出结论，不要再搜索]'})}\\n\\n"
-                        msgs.append({"role": "system", "content": "⚠️ 搜索服务连续3轮无结果。请立即基于已获取的所有信息输出最终结果，不要再调用 web_search。如果你没有足够数据，诚实说明并用 web_extract 或 browser_navigate 尝试替代方案，或者直接告诉用户当前情况。"})
+                        msgs.append({"role": "user",
+                            "content": "⚠️ [系统强制停止] 搜索服务连续3轮无结果。请立即基于已获取的所有信息输出最终结果，不要再调用 web_search。如果没有足够数据，诚实说明现状并直接告诉用户。"})
 
                     # ── 死循环检测2：总搜索次数超限（即使每次成功也需停止） ──
                     elif _total_search_calls >= 8:
