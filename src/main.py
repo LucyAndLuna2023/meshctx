@@ -3287,6 +3287,7 @@ TOOLS = [
     {"type": "function", "function": {"name": "remote_exec", "description": "🔒[需授权] 通过 SSH 在远程服务器执行命令。用户提供服务器信息时请传入 host/user/password 参数。", "parameters": {"type": "object", "properties": {"cmd": {"type": "string", "description": "要执行的 shell 命令"}, "host": {"type": "string", "description": "服务器地址"}, "user": {"type": "string", "description": "SSH 用户名"}, "password": {"type": "string", "description": "SSH 密码"}, "port": {"type": "integer", "description": "SSH 端口(默认 22)", "default": 22}}, "required": ["cmd", "host"]}}},
     {"type": "function", "function": {"name": "browser_navigate", "description": "抓取网页并提取可读文本（纯Python，无需Playwright）。参数: url", "parameters": {"type": "object", "properties": {"url": {"type": "string", "description": "网页URL"}}, "required": ["url"]}}},
     {"type": "function", "function": {"name": "browser_snapshot", "description": "获取当前已抓取页面的结构化内容（标题、链接、文本）。需先调用 browser_navigate", "parameters": {"type": "object", "properties": {}}}},
+    {"type": "function", "function": {"name": "save_memory", "description": "保存重要信息到持久化记忆，跨会话保留。用户告诉你重要信息（密码、配置、偏好等）时务必调用。", "parameters": {"type": "object", "properties": {"fact": {"type": "string", "description": "要记住的事实，一句话概括"}}, "required": ["fact"]}}},
 ]
 
 SYSTEM_PROMPT = """你是 meshctx AI 助手，运行在用户本机。
@@ -3679,7 +3680,20 @@ async def api_chat_stream(request: Request):
 
     # 确保 system prompt 在最前面
     if not msgs or msgs[0].get("role") != "system":
-        msgs.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
+        # 注入持久化记忆到 system prompt
+        memory_context = ""
+        mem_file = Path(__file__).parent.parent.parent / ".meshctx" / "persistent_memory.json"
+        if mem_file.exists():
+            try:
+                import json as _json_local
+                mem_data = _json_local.loads(mem_file.read_text(encoding="utf-8"))
+                if isinstance(mem_data, dict) and mem_data.get("entries"):
+                    memory_context = "\n\n## 🔒 持久化记忆（跨会话保留）\n\n"
+                    for entry in mem_data["entries"]:
+                        memory_context += f"- {entry}\n"
+            except Exception:
+                pass
+        msgs.insert(0, {"role": "system", "content": SYSTEM_PROMPT + memory_context})
 
     async def generate():
         try:
@@ -3693,11 +3707,12 @@ async def api_chat_stream(request: Request):
             max_rounds = int(body.get("max_rounds", 12))
             _web_search_count = 0
             _max_web_searches = 999  # 不限制搜索次数，由 max_rounds 防死循环
-            _empty_search_streak = 0  # 连续空搜索结果计数
+            _empty_search_streak = 0  # 连续空搜索结果轮次
+            _total_search_calls = 0   # 本轮总搜索次数（含成功和失败）
             _tools_ok = True
-            _start_time = time.time()
+            _start_ts = time.time()
             for _round in range(max_rounds):
-                if time.time() - _start_time > 300:
+                if time.time() - _start_ts > 300:
                     yield f"data: {_json.dumps({'token': '\n\n[已达到最大处理时间 180 秒，已中止]'})}\n\n"
                     break
                 # 发送请求给模型 — 使用 ModelClient.chat_stream() 逐 token 推送
@@ -3792,6 +3807,8 @@ async def api_chat_stream(request: Request):
                                                    args.get("port", 22))
                         elif name in ("browser_navigate", "browser_snapshot", "browser_click", "browser_type"):
                             return _safe_browser(name, args, _page_cache)
+                        elif name == "save_memory":
+                            return _do_save_memory(args.get("fact", ""))
                         else:
                             return f"未知工具: {name}"
 
@@ -3813,6 +3830,7 @@ async def api_chat_stream(request: Request):
 
                     # 并发执行
                     empty_search_count = 0
+                    round_search_count = 0
                     with ThreadPoolExecutor(max_workers=min(len(tool_tasks), 5)) as executor:
                         futures = {executor.submit(_exec_one, name, args): (tc, name)
                                    for tc, name, args in tool_tasks}
@@ -3822,13 +3840,16 @@ async def api_chat_stream(request: Request):
                                 result = future.result(timeout=60)
                             except Exception as e:
                                 result = f"工具执行失败: {e}"
-                            # 追踪空搜索结果
-                            if name == "web_search" and result.strip() in ("无搜索结果", "搜索失败:", ""):
-                                empty_search_count += 1
+                            # 追踪搜索
+                            if name == "web_search":
+                                _total_search_calls += 1
+                                round_search_count += 1
+                                if result.strip() in ("无搜索结果", "搜索失败:", ""):
+                                    empty_search_count += 1
                             yield f"data: {_json.dumps({'tool_result': result[:500]})}\\n\\n"
                             msgs.append({"role": "tool", "tool_call_id": tc.id, "content": result[:16000]})
 
-                    # 死循环检测：本轮所有 web_search 均无结果
+                    # ── 死循环检测1：连续空搜索 ──
                     if empty_search_count > 0 and all(
                         tc.function.name != "web_search" or 
                         any(m.get("tool_call_id") == tc.id and m.get("content","").strip() in ("无搜索结果","搜索失败:","") 
@@ -3839,10 +3860,18 @@ async def api_chat_stream(request: Request):
                     else:
                         _empty_search_streak = 0 if empty_search_count == 0 else _empty_search_streak
 
-                    # 连续3轮搜索全空 → 强制中断，要求LLM基于已有数据输出
+                    # 连续3轮搜索全空 → 强制中断
                     if _empty_search_streak >= 3:
                         yield f"data: {_json.dumps({'token': '\\n\\n[搜索服务暂不可用，请基于已获取的信息直接给出结论，不要再搜索]'})}\\n\\n"
-                        msgs.append({"role": "system", "content": "⚠️ 搜索服务连续多轮无结果。请立即基于已获取的所有信息输出最终结果，不要再调用 web_search。如果你没有足够数据，诚实说明并用 web_extract 或 browser_navigate 尝试替代方案，或者直接告诉用户当前情况。"})
+                        msgs.append({"role": "system", "content": "⚠️ 搜索服务连续3轮无结果。请立即基于已获取的所有信息输出最终结果，不要再调用 web_search。如果你没有足够数据，诚实说明并用 web_extract 或 browser_navigate 尝试替代方案，或者直接告诉用户当前情况。"})
+
+                    # ── 死循环检测2：总搜索次数超限（即使每次成功也需停止） ──
+                    elif _total_search_calls >= 8:
+                        yield f"data: {_json.dumps({'token': '\\n\\n[已累计搜索 {} 次，数据充足，请立即输出结论]'.format(_total_search_calls)})}\\n\\n"
+                        msgs.append({"role": "system", "content": f"⚠️ 你已累计调用 web_search {_total_search_calls} 次，数据已经非常充足。请立即基于所有已获取的信息输出最终结论和报告。不要再调用任何搜索工具。如果还需要补充，直接告诉用户。"})
+                    elif _total_search_calls >= 5:
+                        yield f"data: {_json.dumps({'token': '\\n\\n[已搜索 {} 次，请基于现有数据输出，避免无限搜索]'.format(_total_search_calls)})}\\n\\n"
+                        msgs.append({"role": "system", "content": f"⚠️ 已搜索 {_total_search_calls} 次，数据已充足。建议在下一轮基于现有数据给出结论，除非有关键信息缺失。"})
 
                     continue  # 下一轮，让模型基于工具结果回复
 
@@ -3858,6 +3887,27 @@ async def api_chat_stream(request: Request):
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 
+
+
+def _do_save_memory(fact: str) -> str:
+    """保存事实到持久化记忆文件"""
+    import json as _json_mem
+    from pathlib import Path as _Path
+    mem_file = _Path.home() / ".meshctx" / "persistent_memory.json"
+    try:
+        if mem_file.exists():
+            data = _json_mem.loads(mem_file.read_text(encoding="utf-8"))
+        else:
+            data = {"entries": []}
+        if fact.strip() not in data["entries"]:
+            data["entries"].append(fact.strip())
+            mem_file.parent.mkdir(parents=True, exist_ok=True)
+            mem_file.write_text(_json_mem.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+            return f"✅ 已记住: {fact}"
+        else:
+            return f"已存在: {fact}"
+    except Exception as e:
+        return f"记忆保存失败: {e}"
 
 def _do_web_search(query: str) -> str:
     """多引擎搜索（ddgs → SearXNG → Brave → Google → web_extract），自动回退"""
