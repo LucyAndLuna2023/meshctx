@@ -3693,11 +3693,12 @@ async def api_chat_stream(request: Request):
             max_rounds = int(body.get("max_rounds", 12))
             _web_search_count = 0
             _max_web_searches = 999  # 不限制搜索次数，由 max_rounds 防死循环
-            _empty_search_streak = 0  # 连续空搜索结果计数
+            _empty_search_streak = 0  # 连续空搜索结果轮次
+            _total_search_calls = 0   # 本轮总搜索次数（含成功和失败）
             _tools_ok = True
-            _start_time = time.time()
+            _start_ts = time.time()
             for _round in range(max_rounds):
-                if time.time() - _start_time > 300:
+                if time.time() - _start_ts > 300:
                     yield f"data: {_json.dumps({'token': '\n\n[已达到最大处理时间 180 秒，已中止]'})}\n\n"
                     break
                 # 发送请求给模型 — 使用 ModelClient.chat_stream() 逐 token 推送
@@ -3813,6 +3814,7 @@ async def api_chat_stream(request: Request):
 
                     # 并发执行
                     empty_search_count = 0
+                    round_search_count = 0
                     with ThreadPoolExecutor(max_workers=min(len(tool_tasks), 5)) as executor:
                         futures = {executor.submit(_exec_one, name, args): (tc, name)
                                    for tc, name, args in tool_tasks}
@@ -3822,13 +3824,16 @@ async def api_chat_stream(request: Request):
                                 result = future.result(timeout=60)
                             except Exception as e:
                                 result = f"工具执行失败: {e}"
-                            # 追踪空搜索结果
-                            if name == "web_search" and result.strip() in ("无搜索结果", "搜索失败:", ""):
-                                empty_search_count += 1
+                            # 追踪搜索
+                            if name == "web_search":
+                                _total_search_calls += 1
+                                round_search_count += 1
+                                if result.strip() in ("无搜索结果", "搜索失败:", ""):
+                                    empty_search_count += 1
                             yield f"data: {_json.dumps({'tool_result': result[:500]})}\\n\\n"
                             msgs.append({"role": "tool", "tool_call_id": tc.id, "content": result[:16000]})
 
-                    # 死循环检测：本轮所有 web_search 均无结果
+                    # ── 死循环检测1：连续空搜索 ──
                     if empty_search_count > 0 and all(
                         tc.function.name != "web_search" or 
                         any(m.get("tool_call_id") == tc.id and m.get("content","").strip() in ("无搜索结果","搜索失败:","") 
@@ -3839,10 +3844,18 @@ async def api_chat_stream(request: Request):
                     else:
                         _empty_search_streak = 0 if empty_search_count == 0 else _empty_search_streak
 
-                    # 连续3轮搜索全空 → 强制中断，要求LLM基于已有数据输出
+                    # 连续3轮搜索全空 → 强制中断
                     if _empty_search_streak >= 3:
                         yield f"data: {_json.dumps({'token': '\\n\\n[搜索服务暂不可用，请基于已获取的信息直接给出结论，不要再搜索]'})}\\n\\n"
-                        msgs.append({"role": "system", "content": "⚠️ 搜索服务连续多轮无结果。请立即基于已获取的所有信息输出最终结果，不要再调用 web_search。如果你没有足够数据，诚实说明并用 web_extract 或 browser_navigate 尝试替代方案，或者直接告诉用户当前情况。"})
+                        msgs.append({"role": "system", "content": "⚠️ 搜索服务连续3轮无结果。请立即基于已获取的所有信息输出最终结果，不要再调用 web_search。如果你没有足够数据，诚实说明并用 web_extract 或 browser_navigate 尝试替代方案，或者直接告诉用户当前情况。"})
+
+                    # ── 死循环检测2：总搜索次数超限（即使每次成功也需停止） ──
+                    elif _total_search_calls >= 8:
+                        yield f"data: {_json.dumps({'token': '\\n\\n[已累计搜索 {} 次，数据充足，请立即输出结论]'.format(_total_search_calls)})}\\n\\n"
+                        msgs.append({"role": "system", "content": f"⚠️ 你已累计调用 web_search {_total_search_calls} 次，数据已经非常充足。请立即基于所有已获取的信息输出最终结论和报告。不要再调用任何搜索工具。如果还需要补充，直接告诉用户。"})
+                    elif _total_search_calls >= 5:
+                        yield f"data: {_json.dumps({'token': '\\n\\n[已搜索 {} 次，请基于现有数据输出，避免无限搜索]'.format(_total_search_calls)})}\\n\\n"
+                        msgs.append({"role": "system", "content": f"⚠️ 已搜索 {_total_search_calls} 次，数据已充足。建议在下一轮基于现有数据给出结论，除非有关键信息缺失。"})
 
                     continue  # 下一轮，让模型基于工具结果回复
 
