@@ -2,9 +2,12 @@
 meshctx Chat 工具引擎 v2 — 原生 OpenAI function calling 格式
 对标 Hermes: read_file, write_file, search_files, terminal, web_search, list_dir
 """
+import logging
 import os, re, json, shlex, subprocess, urllib.request, urllib.parse
 from pathlib import Path
 from typing import Dict, Optional, List
+
+logger = logging.getLogger("meshctx.chat_tools")
 
 # ═══════════════════════════════════════════════════
 # 工具执行函数
@@ -54,7 +57,7 @@ def _run_cmd(cmd: str) -> str:
     try:
         env = os.environ.copy()
         env['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:' + env.get('PATH', '')
-        r = subprocess.run(shlex.split(cmd), shell=False, capture_output=True, text=True, timeout=30, cwd=os.getcwd(), env=env)
+        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30, cwd=os.getcwd(), env=env)
         out = r.stdout[:3000]
         if r.stderr:
             out += "\n[stderr]\n" + r.stderr[:500]
@@ -85,39 +88,127 @@ def _search_files(pattern: str, path: str = ".", glob: str = "*") -> str:
     except Exception as e:
         return f"搜索失败: {e}"
 
+def _get_proxy() -> str:
+    """读取搜索代理配置: meshctx.yaml > env > None"""
+    import yaml
+    config_paths = [
+        Path(__file__).parent.parent / "meshctx.yaml",
+        Path.home() / ".meshctx" / "config.yaml",
+    ]
+    for cp in config_paths:
+        if cp.exists():
+            try:
+                cfg = yaml.safe_load(cp.read_text())
+                proxy = cfg.get("search", {}).get("proxy", "")
+                if proxy:
+                    return proxy
+            except Exception:
+                pass
+    # 环境变量回退
+    for env_var in ["ALL_PROXY", "HTTPS_PROXY", "HTTP_PROXY"]:
+        val = os.environ.get(env_var, "")
+        if val:
+            return val
+    return ""
+
+
 def _web_search(query: str) -> str:
+    """多引擎网页搜索: ddgs(代理翻墙) → cn.bing.com(直连兜底)"""
     date_keywords = ['今天', '今日', '最新', '实时', '当前', '目前']
     if any(k in query for k in date_keywords):
         from datetime import datetime
         today = datetime.now().strftime('%Y年%m月%d日')
         if today not in query:
             query = f"{query} {today}"
+
+    proxy = _get_proxy()
+
+    # 引擎1: ddgs 库 (DuckDuckGo API, 质量最高, 需代理翻墙)
+    if proxy:
+        try:
+            result = _search_ddgs_api(query, proxy)
+            if result:
+                return result
+        except Exception:
+            logger.debug("chat_tools ddgs error", exc_info=True)
+
+    # 引擎2: cn.bing.com 直连 (中文/兜底)
     try:
-        url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
-        req = urllib.request.Request(url, headers={"User-Agent": "meshctx/1.0"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            html = resp.read().decode()
-        snippets = re.findall(r'class="result__snippet"[^>]*>(.*?)<', html, re.DOTALL)
-        results = [re.sub(r'<[^>]+>', '', s).strip()[:200] for s in snippets[:5]]
-        if results:
-            return "\n".join(f"{i+1}. {r}" for i, r in enumerate(results))
+        result = _search_bing_cn(query)
+        if result:
+            return result
     except Exception:
-        logger.debug("chat_tools error", exc_info=True)
-        pass
+        logger.debug("chat_tools bing cn error", exc_info=True)
+
+    return "搜索失败: 所有搜索引擎均不可用"
+
+
+def _search_ddgs_api(query: str, proxy: str) -> str:
+    """DuckDuckGo API — 通过 ddgs 库, 质量最高"""
+    import importlib, sys as _sys
+    # 覆盖环境变量（确保 ddgs 模块使用代理）
+    os.environ['ALL_PROXY'] = proxy
+    os.environ['HTTPS_PROXY'] = proxy
+    os.environ['HTTP_PROXY'] = proxy
+    # 如果已导入，强制重新加载以使用新代理
+    if 'ddgs' in _sys.modules:
+        importlib.reload(_sys.modules['ddgs'])
     try:
-        url = f"https://cn.bing.com/search?q={urllib.parse.quote(query)}"
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            html = resp.read().decode()
-        snippets = re.findall(r'<p[^>]* class="b_lineclamp[^\"]*"[^>]*>(.*?)</p>', html, re.DOTALL)
-        if not snippets:
-            snippets = re.findall(r'<div class="b_caption"[^>]*>.*?<p>(.*?)</p>', html, re.DOTALL)
-        if not snippets:
-            snippets = re.findall(r'<span class="c-abstract"[^>]*>(.*?)</span>', html, re.DOTALL)
-        results = [re.sub(r'<[^>]+>', '', s).strip()[:200] for s in snippets[:5] if s.strip()]
-        return "\n".join(f"{i+1}. {r}" for i, r in enumerate(results)) if results else "无搜索结果"
+        from ddgs import DDGS
+        with DDGS(timeout=15) as ddgs:
+            results = list(ddgs.text(query, max_results=6))
+        if not results:
+            return ""
+        lines = []
+        for i, r in enumerate(results):
+            title = r.get("title", "")
+            body = r.get("body", "")[:200]
+            href = r.get("href", "")
+            if title:
+                lines.append(f"{i+1}. {title}\n   {body}\n   {href}")
+        return "\n".join(lines) if lines else ""
+    except ImportError:
+        return ""
     except Exception as e:
-        return f"搜索失败: {e}"
+        return ""
+
+
+
+def _search_bing_cn(query: str) -> str:
+    """cn.bing.com 直连 — 中文内容"""
+    url = f"https://cn.bing.com/search?q={urllib.parse.quote(query)}"
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    })
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        raw = resp.read().decode(errors='replace')
+    return _parse_bing_html(raw)
+
+
+def _parse_bing_html(raw: str) -> str:
+    """解析 Bing HTML 搜索结果"""
+    import html as _html
+    html_text = _html.unescape(raw)
+    algos = re.findall(r'<li class="b_algo"[^>]*>(.*?)</li>', html_text, re.DOTALL)
+    if not algos:
+        return ""
+    results = []
+    for algo in algos[:8]:
+        title_m = re.search(r'<h2[^>]*><a[^>]*>(.*?)</a>', algo, re.DOTALL)
+        title = re.sub(r'<[^>]+>', '', title_m.group(1)).strip() if title_m else ""
+        url_m = re.search(r'<a[^>]*href="(https?://[^"]+)"', algo)
+        url_text = url_m.group(1) if url_m else ""
+        cap_m = re.search(r'<div class="b_caption"[^>]*>(.*?)</div>', algo, re.DOTALL)
+        snippet = ""
+        if cap_m:
+            raw_text = re.sub(r'<[^>]+>', ' ', cap_m.group(1))
+            snippet = re.sub(r'\\s+', ' ', raw_text).strip()[:250]
+        if title and snippet:
+            results.append(f"{len(results)+1}. {title}\n   {snippet}\n   {url_text}")
+        elif title:
+            results.append(f"{len(results)+1}. {title}\n   {url_text}")
+    return "\n".join(results[:6]) if results else ""
 
 # ═══════════════════════════════════════════════════
 # OpenAI Function Calling 工具定义
