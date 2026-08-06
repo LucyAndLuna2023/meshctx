@@ -3,7 +3,10 @@ meshctx LLM驱动记忆提取器 — 使用百炼API进行智能记忆提取
 """
 import os
 import json
+import logging
 import re
+
+logger = logging.getLogger("meshctx.llm_extractor")
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
