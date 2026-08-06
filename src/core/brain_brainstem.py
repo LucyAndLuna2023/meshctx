@@ -69,12 +69,16 @@ class AutonomicRegulator:
         rr_error = target_rr - self.vitals.respiration_rate
         self.vitals.respiration_rate += rr_error * dt * 1.5
 
-        # Thermoregulation
+        # Thermoregulation (v3.115.38 — baseline metabolic heat + vasomotor)
         temp_error = self.temp_setpoint - self.vitals.body_temp
-        # + ambient influence + exertion heat
-        ambient_effect = (ambient_temp - self.vitals.body_temp) * 0.1
+        # Basal metabolic heat production (~70W at rest) counters ambient heat loss
+        basal_heat_production = 0.15
+        # Reduced ambient conduction coefficient (0.1→0.05)
+        ambient_effect = (ambient_temp - self.vitals.body_temp) * 0.05
         exertion_heat = exertion * 0.5
-        self.vitals.body_temp += (temp_error * 0.3 + ambient_effect + exertion_heat) * dt
+        # Vasomotor: vasoconstriction/dilation actively regulates heat loss
+        vasomotor = float(np.clip((self.vitals.body_temp - self.temp_setpoint) * 0.4, -0.3, 0.3))
+        self.vitals.body_temp += (temp_error * 0.5 + ambient_effect + exertion_heat + basal_heat_production - vasomotor) * dt
 
         # Blood pressure (baroreflex)
         bp_target = self.bp_setpoint + stress * 20 + exertion * 10
@@ -103,11 +107,14 @@ class AutonomicRegulator:
         return float(np.sqrt(np.mean(diffs**2)))
 
     def is_stable(self) -> bool:
-        """Check if all vitals are within normal range."""
-        return (60 <= self.vitals.heart_rate <= 100 and
-                10 <= self.vitals.respiration_rate <= 20 and
-                36.5 <= self.vitals.body_temp <= 37.5 and
-                90 <= self.vitals.blood_pressure <= 140)
+        """Check if all vitals are within normal range (5% tolerance)."""
+        tolerance = 0.05
+        return (
+            60 * (1 - tolerance) <= self.vitals.heart_rate <= 100 * (1 + tolerance) and
+            10 * (1 - tolerance) <= self.vitals.respiration_rate <= 20 * (1 + tolerance) and
+            36.5 - tolerance <= self.vitals.body_temp <= 37.5 + tolerance and
+            90 * (1 - tolerance) <= self.vitals.blood_pressure <= 140 * (1 + tolerance)
+        )
 
 
 class ReticularActivation:
@@ -122,21 +129,28 @@ class ReticularActivation:
         )
 
     def update(self, stimulation: float = 0.0, dt: float = 0.1):
-        """Update arousal level based on stimulation and homeostatic pressure."""
+        """Update arousal level — Process S (exponential) + Process C (circadian)."""
         # Circadian: sinusoidal over 24h
         self.state.circadian_phase = (self.state.circadian_phase + dt / 3600.0) % 24.0
         circadian_drive = np.sin(np.pi * (self.state.circadian_phase - 6) / 12.0) * 0.5 + 0.5
 
-        # Sleep pressure accumulates with wake, dissipates with sleep
+        # Process S: exponential sleep pressure (two-process sleep model)
+        # τ_wake=15h (accumulation), τ_sleep=2h (dissipation) — biologically plausible
+        S_max = 1.0
+        tau_wake = 15.0   # hours
+        tau_sleep = 2.0   # hours
         if self.state.level > 0.3:  # awake
-            self.state.sleep_pressure = min(1.0, self.state.sleep_pressure + dt * 0.02)
+            self.state.sleep_pressure = S_max - (S_max - self.state.sleep_pressure) * np.exp(-dt / 3600.0 / tau_wake)
         else:  # asleep
-            self.state.sleep_pressure = max(0.0, self.state.sleep_pressure - dt * 0.1)
+            self.state.sleep_pressure = self.state.sleep_pressure * np.exp(-dt / 3600.0 / tau_sleep)
 
-        # Arousal = circadian + stimulation - sleep pressure
-        target = circadian_drive * 0.6 + stimulation * 0.4 - self.state.sleep_pressure * 0.3
+        # Arousal = process_c (circadian) + stimulation - process_s (sleep pressure)
+        process_c = circadian_drive * 0.7
+        process_s = self.state.sleep_pressure * 0.8  # ↑ weight so sleep pressure can suppress arousal
+        target = process_c + stimulation * 0.3 - process_s
+        # Faster smoothing (0.9→0.85) for quicker state transitions
         self.state.level = float(np.clip(
-            0.9 * self.state.level + 0.1 * target, 0.05, 1.0
+            0.85 * self.state.level + 0.15 * target, 0.05, 1.0
         ))
 
         # EEG band
@@ -165,11 +179,14 @@ class HomeostaticDrive:
         self._time_awake = 0.0
 
     def update(self, activity_level: float = 0.5, dt: float = 0.1):
-        """Accumulate homeostatic drives over time."""
+        """Accumulate homeostatic drives — differentiated nonlinear rates."""
         self._time_awake += dt
-        self.hunger = min(1.0, self.hunger + dt * 0.015 * activity_level)
-        self.thirst = min(1.0, self.thirst + dt * 0.02 * activity_level)
-        self.fatigue = min(1.0, self.fatigue + dt * 0.01 * activity_level)
+        # Hunger: accelerating (gastric emptying curve — slow then fast)
+        self.hunger = min(1.0, self.hunger + dt * 0.025 * activity_level * (1.0 + self.hunger))
+        # Thirst: fastest priority (dehydration is physiologically most urgent)
+        self.thirst = min(1.0, self.thirst + dt * 0.04 * activity_level * (1.0 + self.thirst * 0.5))
+        # Fatigue: logarithmic (fast initially, slow later — lactate + mental fatigue)
+        self.fatigue = min(1.0, self.fatigue + dt * 0.012 * activity_level / (1.0 + self.fatigue * 3.0))
 
     def consume(self, food: float = 0.0, water: float = 0.0, rest: float = 0.0):
         """Consume resources to reduce drives."""

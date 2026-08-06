@@ -3287,7 +3287,6 @@ TOOLS = [
     {"type": "function", "function": {"name": "remote_exec", "description": "🔒[需授权] 通过 SSH 在远程服务器执行命令。用户提供服务器信息时请传入 host/user/password 参数。", "parameters": {"type": "object", "properties": {"cmd": {"type": "string", "description": "要执行的 shell 命令"}, "host": {"type": "string", "description": "服务器地址"}, "user": {"type": "string", "description": "SSH 用户名"}, "password": {"type": "string", "description": "SSH 密码"}, "port": {"type": "integer", "description": "SSH 端口(默认 22)", "default": 22}}, "required": ["cmd", "host"]}}},
     {"type": "function", "function": {"name": "browser_navigate", "description": "抓取网页并提取可读文本（纯Python，无需Playwright）。参数: url", "parameters": {"type": "object", "properties": {"url": {"type": "string", "description": "网页URL"}}, "required": ["url"]}}},
     {"type": "function", "function": {"name": "browser_snapshot", "description": "获取当前已抓取页面的结构化内容（标题、链接、文本）。需先调用 browser_navigate", "parameters": {"type": "object", "properties": {}}}},
-    {"type": "function", "function": {"name": "save_memory", "description": "保存重要信息到持久化记忆，跨会话保留。用户告诉你重要信息（密码、配置、偏好等）时务必调用。", "parameters": {"type": "object", "properties": {"fact": {"type": "string", "description": "要记住的事实，一句话概括"}}, "required": ["fact"]}}},
 ]
 
 SYSTEM_PROMPT = """你是 meshctx AI 助手，运行在用户本机。
@@ -3306,7 +3305,7 @@ meshctx 是一个模块化 AI Agent 平台，开源版（当前运行）提供�
 
 | 工具 | 用途 |
 |------|------|
-| web_search | 搜索网页获取实时数据（⚠️ 用英文关键词，中文搜索效果差） |
+| web_search | 搜索网页获取实时数据（价格、新闻、天气、股票等） |
 | web_extract | 抓取指定网页的完整内容 |
 | terminal   | 🔒 在本机执行 shell 命令（运行程序、安装软件、管理系统等） |
 | browser_navigate | 抓取网页并提取可读文本（标题、链接、正文） |
@@ -3318,21 +3317,8 @@ meshctx 是一个模块化 AI Agent 平台，开源版（当前运行）提供�
 | remote_read | 🔒 SSH 远程读取文件（需 host/user/password） |
 | remote_write | 🔒 SSH 远程写入文件（需 host/user/password） |
 
-## 搜索架构（多引擎自动回退）
-
-web_search 使用5引擎链式回退：
-1. **DDGS**（DuckDuckGo，默认）→ 失败自动跳到下一引擎
-2. **Brave Search API**（需 BRAVE_API_KEY 环境变量）→ 免费2000次/月
-3. **SearXNG**（需 SEARXNG_URL 环境变量，CloudCone自建）
-4. **Google**（直接HTTP，Android移动端UA）
-5. **Startpage**（Google代理，w-gl解析）
-
-→ 一条路不通，下一条自动顶上。你只需正常调用 web_search，引擎切换对LLM透明。
-
 ## 重要规则
 
-- ⚠️ web_search 优先用英文关键词（多引擎对英文效果好）
-- ⚠️ 如果连续2次返回「所有搜索引擎均失败」，立即停止搜索，改用 web_extract 抓取已知URL
 - 查询实时信息必须先调用 web_search
 - 用户提供服务器信息（IP/用户名/密码）时，直接传入 remote_* 工具参数
 - 读取/分析本机文件用 read_file
@@ -3673,27 +3659,14 @@ async def api_chat_stream(request: Request):
             model_id = "deepseek:v4-pro"
 
     # ── 工具定义 ──
-    SENSITIVE_TOOLS = set()
-    DESTRUCTIVE_TOOLS = set()  # 所有工具自动批准，不弹确认框
+    SENSITIVE_TOOLS = {"terminal", "write_file", "remote_write", "remote_exec"}
+    DESTRUCTIVE_TOOLS = SENSITIVE_TOOLS
     _approved_tools = set()  # 本次流中已批准的工具
     _page_cache = {}  # 浏览器页面缓存: {url: {title, links, text, html}}
 
     # 确保 system prompt 在最前面
     if not msgs or msgs[0].get("role") != "system":
-        # 注入持久化记忆到 system prompt
-        memory_context = ""
-        mem_file = Path(__file__).parent.parent.parent / ".meshctx" / "persistent_memory.json"
-        if mem_file.exists():
-            try:
-                import json as _json_local
-                mem_data = _json_local.loads(mem_file.read_text(encoding="utf-8"))
-                if isinstance(mem_data, dict) and mem_data.get("entries"):
-                    memory_context = "\n\n## 🔒 持久化记忆（跨会话保留）\n\n"
-                    for entry in mem_data["entries"]:
-                        memory_context += f"- {entry}\n"
-            except Exception:
-                pass
-        msgs.insert(0, {"role": "system", "content": SYSTEM_PROMPT + memory_context})
+        msgs.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
 
     async def generate():
         try:
@@ -3704,16 +3677,14 @@ async def api_chat_stream(request: Request):
                 yield "data: [DONE]\n\n"
                 return
 
-            max_rounds = int(body.get("max_rounds", 8))
+            max_rounds = int(body.get("max_rounds", 12))
             _web_search_count = 0
-            _max_web_searches = 999  # 不限制搜索次数，由 max_rounds 防死循环
-            _empty_search_streak = 0  # 连续空搜索结果轮次
-            _total_search_calls = 0   # 本轮总搜索次数（含成功和失败）
+            _max_web_searches = float('inf')  # 不限制搜索次数，由 max_rounds 防死循环
             _tools_ok = True
-            _start_ts = time.time()
+            _start_time = time.time()
             for _round in range(max_rounds):
-                if time.time() - _start_ts > 300:
-                    yield f"data: {_json.dumps({'token': '\n\n[已达到最大处理时间 180 秒，已中止]'})}\n\n"
+                if time.time() - _start_time > 300:
+                    yield f"data: {_json.dumps({'token': '\n\n[已达到最大处理时间 300 秒，已中止]'})}\n\n"
                     break
                 # 发送请求给模型 — 使用 ModelClient.chat_stream() 逐 token 推送
                 try:
@@ -3807,8 +3778,6 @@ async def api_chat_stream(request: Request):
                                                    args.get("port", 22))
                         elif name in ("browser_navigate", "browser_snapshot", "browser_click", "browser_type"):
                             return _safe_browser(name, args, _page_cache)
-                        elif name == "save_memory":
-                            return _do_save_memory(args.get("fact", ""))
                         else:
                             return f"未知工具: {name}"
 
@@ -3818,19 +3787,18 @@ async def api_chat_stream(request: Request):
                         name = tc.function.name
                         args = _json.loads(tc.function.arguments)
                         if name == "web_search":
-                            if _web_search_count >= _max_web_searches:
-                                yield f"data: {_json.dumps({'tool_start': name, 'args': args, 'require_approval': False})}\n\n"
-                                limit_msg = f"[搜索已达上限 {_max_web_searches} 次，请基于已有数据撰写报告]"
-                                yield f"data: {_json.dumps({'tool_result': limit_msg})}\n\n"
-                                msgs.append({"role": "tool", "tool_call_id": tc.id, "content": limit_msg})
-                                continue
                             _web_search_count += 1
+                        require_approval = name in DESTRUCTIVE_TOOLS
+                        if require_approval and args.get('__approved') != True:
+                            yield f"data: {_json.dumps({'tool_start': name, 'args': args, 'require_approval': True})}\n\n"
+                            reject_msg = f"[工具 {name} 需要审批，请设置 __approved=True 参数后重试]"
+                            yield f"data: {_json.dumps({'tool_result': reject_msg})}\n\n"
+                            msgs.append({"role": "tool", "tool_call_id": tc.id, "content": reject_msg})
+                            continue
                         tool_tasks.append((tc, name, args))
-                        yield f"data: {_json.dumps({'tool_start': name, 'args': args, 'require_approval': False})}\n\n"
+                        yield f"data: {_json.dumps({'tool_start': name, 'args': args, 'require_approval': require_approval})}\n\n"
 
                     # 并发执行
-                    empty_search_count = 0
-                    round_search_count = 0
                     with ThreadPoolExecutor(max_workers=min(len(tool_tasks), 5)) as executor:
                         futures = {executor.submit(_exec_one, name, args): (tc, name)
                                    for tc, name, args in tool_tasks}
@@ -3840,39 +3808,8 @@ async def api_chat_stream(request: Request):
                                 result = future.result(timeout=60)
                             except Exception as e:
                                 result = f"工具执行失败: {e}"
-                            # 追踪搜索
-                            if name == "web_search":
-                                _total_search_calls += 1
-                                round_search_count += 1
-                                if result.strip() in ("无搜索结果", "搜索失败:", ""):
-                                    empty_search_count += 1
-                            yield f"data: {_json.dumps({'tool_result': result[:500]})}\\n\\n"
+                            yield f"data: {_json.dumps({'tool_result': result[:500]})}\n\n"
                             msgs.append({"role": "tool", "tool_call_id": tc.id, "content": result[:16000]})
-
-                    # ── 死循环检测1：连续空搜索 ──
-                    if empty_search_count > 0 and all(
-                        tc.function.name != "web_search" or 
-                        any(m.get("tool_call_id") == tc.id and m.get("content","").strip() in ("无搜索结果","搜索失败:","") 
-                            for m in msgs[-len(msg.tool_calls):])
-                        for tc in msg.tool_calls if tc.function.name == "web_search"
-                    ):
-                        _empty_search_streak += 1
-                    else:
-                        _empty_search_streak = 0 if empty_search_count == 0 else _empty_search_streak
-
-                    # 连续3轮搜索全空 → 强制中断
-                    if _empty_search_streak >= 3:
-                        yield f"data: {_json.dumps({'token': '\\n\\n[搜索服务暂不可用，请基于已获取的信息直接给出结论，不要再搜索]'})}\\n\\n"
-                        msgs.append({"role": "user",
-                            "content": "⚠️ [系统强制停止] 搜索服务连续3轮无结果。请立即基于已获取的所有信息输出最终结果，不要再调用 web_search。如果没有足够数据，诚实说明现状并直接告诉用户。"})
-
-                    # ── 死循环检测2：总搜索次数超限（即使每次成功也需停止） ──
-                    elif _total_search_calls >= 6:
-                        yield f"data: {_json.dumps({'token': '\\n\\n[已搜索 {} 次，搜索已终止，请立即输出结论]'.format(_total_search_calls)})}\\n\\n"
-                        msgs.append({"role": "user",
-                            "content": f"⚠️ [系统强制停止] 你已调用 web_search {_total_search_calls} 次，数据已经非常充足。请立即基于所有已获取的信息输出最终报告。不要再搜索。"})
-                        # 硬阻断：从TOOLS列表中移除web_search，下轮无法再调用
-                        TOOLS[:] = [t for t in TOOLS if t["function"]["name"] != "web_search"]
 
                     continue  # 下一轮，让模型基于工具结果回复
 
@@ -3880,18 +3817,7 @@ async def api_chat_stream(request: Request):
                 yield "data: [DONE]\n\n"
                 return
 
-            # 达到最大轮次 → 去掉工具做最后文本输出（mirror /api/chat）
-            try:
-                resp = await _call_llm(client,
-                    model=client.model_name,
-                    messages=msgs,
-                    temperature=0.7,
-                    max_tokens=16384,
-                )
-                final_content = resp.choices[0].message.content or "处理超时，请重试"
-                yield f"data: {_json.dumps({'content': final_content})}\n\n"
-            except Exception:
-                yield f"data: {_json.dumps({'content': '处理超时，请重试'})}\n\n"
+            yield f"data: {_json.dumps({'error': '达到最大工具调用轮次'})}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as e:
             yield f"data: {_json.dumps({'error': str(e)})}\n\n"
@@ -3900,31 +3826,9 @@ async def api_chat_stream(request: Request):
     return StreamingResponse(generate(), media_type="text/event-stream")
 
 
-
-def _do_save_memory(fact: str) -> str:
-    """保存事实到持久化记忆文件"""
-    import json as _json_mem
-    from pathlib import Path as _Path
-    mem_file = _Path.home() / ".meshctx" / "persistent_memory.json"
-    try:
-        if mem_file.exists():
-            data = _json_mem.loads(mem_file.read_text(encoding="utf-8"))
-        else:
-            data = {"entries": []}
-        if fact.strip() not in data["entries"]:
-            data["entries"].append(fact.strip())
-            mem_file.parent.mkdir(parents=True, exist_ok=True)
-            mem_file.write_text(_json_mem.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-            return f"✅ 已记住: {fact}"
-        else:
-            return f"已存在: {fact}"
-    except Exception as e:
-        return f"记忆保存失败: {e}"
-
 def _do_web_search(query: str) -> str:
-    """多引擎搜索（ddgs → SearXNG → Brave → Google → web_extract），自动回退"""
-    import os, re, json, urllib.parse
-    import requests as _requests
+    """使用 DuckDuckGo HTML 接口搜索（通过代理翻墙）"""
+    import urllib.parse, re, requests, os
     from src.config import load_config as _load_search_config
 
     try:
@@ -3941,146 +3845,87 @@ def _do_web_search(query: str) -> str:
     if proxy_url and proxy_url.strip():
         proxies = {"http": proxy_url, "https": proxy_url}
 
-    ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-    headers = {"User-Agent": ua, "Accept-Language": "en-US,en;q=0.9"}
+    import urllib3
+    import warnings
 
-    # ── 格式化搜索结果 ──
-    def _fmt_results(results: list) -> str:
-        if not results:
-            return "无搜索结果"
+    ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
+    # DuckDuckGo HTML 接口（最稳定，绕过 Bing 限制）
+    try:
+        url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            resp = requests.get(url, headers={"User-Agent": ua}, timeout=timeout, proxies=proxies)
+        html = resp.text
+
+        snippets = re.findall(r'<a class="result__snippet"[^>]*>(.*?)</a>', html, re.DOTALL)
+        titles = re.findall(r'<a[^>]*class="result__a"[^>]*>(.*?)</a>', html, re.DOTALL)
+        urls_raw = re.findall(r'<a class="result__url"[^>]*>\s*(.*?)\s*</a>', html, re.DOTALL)
+
+        if not snippets:
+            # 尝试备用: 搜索 "No results" 或空结果
+            if 'no results' in html.lower() or 'class="no-results"' in html:
+                return "无搜索结果"
+            # HTML 结构可能变了，给出提示而非静默
+            return "搜索结果解析失败（DDG HTML 结构可能已变更），请稍后重试或使用 web_extract 直接访问目标 URL"
+
+        def _strip(s):
+            import html as _html
+            s = re.sub(r'<[^>]+>', '', s)
+            return _html.unescape(s).strip()
+
         lines = []
-        for i, r in enumerate(results[:max_results]):
-            title = r.get("title", "") or r.get("name", "")
-            body = r.get("body", "") or r.get("snippet", "") or r.get("description", "")
-            href = r.get("href", "") or r.get("url", "") or r.get("link", "")
+        for i in range(min(len(snippets), max_results)):
+            title = _strip(titles[i]) if i < len(titles) else ""
+            body = _strip(snippets[i])[:300]
+            url_text = _strip(urls_raw[i]) if i < len(urls_raw) else ""
             lines.append(f"{i+1}. {title}")
-            if body:
-                lines.append(f"   {body[:300]}")
-            if href:
-                lines.append(f"   {href}")
+            lines.append(f"   {body}")
+            if url_text:
+                lines.append(f"   {url_text}")
             lines.append("")
         return "\n".join(lines).strip()
-
-    errors = []
-
-    # ── 引擎1: DDGS (DuckDuckGo) ──
-    try:
-        from ddgs import DDGS
-        kwargs = {"timeout": timeout}
-        if proxy_url and proxy_url.strip():
-            kwargs["proxy"] = proxy_url.strip()
-        with DDGS(**kwargs) as ddgs:
-            results = list(ddgs.text(query, max_results=max(20, max_results)))
-        if results:
-            return _fmt_results(results)
-        errors.append("ddgs: 无结果")
-    except ImportError:
-        errors.append("ddgs: 未安装")
     except Exception as e:
-        errors.append(f"ddgs: {e}")
+        return f"搜索失败: {e}"
 
-    # ── 引擎2: Brave Search API (免费 2000次/月) ──
-    brave_key = os.environ.get("BRAVE_API_KEY", "")
-    if brave_key:
-        try:
-            resp = _requests.get(
-                "https://api.search.brave.com/res/v1/web/search",
-                params={"q": query, "count": min(max_results, 20)},
-                headers={**headers, "Accept": "application/json",
-                         "X-Subscription-Token": brave_key, "Accept-Encoding": "gzip"},
-                proxies=proxies, timeout=timeout
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                web = data.get("web", {}).get("results", [])
-                if web:
-                    return _fmt_results(web)
-                errors.append("brave: 无结果")
-            else:
-                errors.append(f"brave: HTTP {resp.status_code}")
-        except Exception as e:
-            errors.append(f"brave: {e}")
 
-    # ── 引擎3: SearXNG (CloudCone 自建) ──
-    searxng_url = os.environ.get("SEARXNG_URL", "")
-    if searxng_url:
-        try:
-            resp = _requests.get(
-                f"{searxng_url}/search",
-                params={"q": query, "format": "json", "categories": "general"},
-                headers=headers, proxies=proxies, timeout=timeout
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                results = data.get("results", [])
-                if results:
-                    return _fmt_results(results)
-                errors.append("searxng: 无结果")
-            else:
-                errors.append(f"searxng: HTTP {resp.status_code}")
-        except Exception as e:
-            errors.append(f"searxng: {e}")
-
-    # ── 引擎4: Google 直接HTTP (text mode) ──
+def _validate_url(url: str) -> str:
+    """验证 URL 安全性，拒绝内网/危险 scheme"""
+    from urllib.parse import urlparse
+    import ipaddress
+    parsed = urlparse(url)
+    scheme = parsed.scheme.lower()
+    # 拒绝非 HTTP(S)
+    if scheme not in ('http', 'https'):
+        return f"拒绝: 不支持的协议 {scheme}，仅允许 http/https"
+    host = parsed.hostname
+    if not host:
+        return f"拒绝: 无法解析主机名"
+    # 拒绝内网/特殊 IP
     try:
-        google_url = f"https://www.google.com/search?q={urllib.parse.quote(query)}&hl=en&num=20&ie=UTF-8"
-        resp = _requests.get(google_url, headers={**headers, "User-Agent":
-            "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36"}, proxies=proxies, timeout=timeout+5)
-        if resp.status_code == 200:
-            # 尝试多种解析方式
-            for pattern in [
-                r'<h3[^>]*>([^<]+)</h3>.*?<a[^>]*href="([^"]+)"[^>]*>.*?<span[^>]*>([^<]{20,300})</span>',
-                r'"title":"([^"]+)","link":"([^"]+)"',
-                r'<h3[^>]*>([^<]+)</h3>',
-            ]:
-                matches = re.findall(pattern, resp.text[:200000], re.DOTALL)
-                if matches:
-                    google_results = []
-                    for m in matches[:max_results]:
-                        if isinstance(m, tuple):
-                            t, url, *rest = m
-                            body = rest[0] if rest else ""
-                        else:
-                            t, url, body = m, "", ""
-                        google_results.append({"title": t.strip(), "href": url.strip(), "body": body.strip()[:300]})
-                    if google_results:
-                        return _fmt_results(google_results)
-            errors.append("google: 无法解析结果")
-        else:
-            errors.append(f"google: HTTP {resp.status_code}")
-    except Exception as e:
-        errors.append(f"google: {e}")
-
-    # ── 引擎5: Startpage ──
-    try:
-        sp_url = f"https://www.startpage.com/sp/search?query={urllib.parse.quote(query)}&num=20"
-        resp = _requests.get(sp_url, headers=headers, proxies=proxies, timeout=timeout+5)
-        if resp.status_code == 200:
-            # Startpage uses w-gl classes
-            results = []
-            titles = re.findall(r'class="w-gl__result-title[^"]*"[^>]*>([^<]+)', resp.text)
-            hrefs = re.findall(r'class="w-gl__result-url[^"]*"[^>]*>([^<]+)', resp.text)
-            descs = re.findall(r'class="w-gl__description[^"]*"[^>]*>([^<]+)', resp.text)
-            for i in range(min(len(titles), max_results)):
-                entry = {"title": titles[i].strip()}
-                if i < len(hrefs): entry["href"] = hrefs[i].strip()
-                if i < len(descs): entry["body"] = descs[i].strip()[:300]
-                results.append(entry)
-            if results:
-                return _fmt_results(results)
-            errors.append("startpage: 无法解析")
-        else:
-            errors.append(f"startpage: HTTP {resp.status_code}")
-    except Exception as e:
-        errors.append(f"startpage: {e}")
-
-    return f"所有搜索引擎均失败 ({'; '.join(errors)})"
+        ip = ipaddress.ip_address(host)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved:
+            return f"拒绝: {host} 属于内网/保留地址，不允许访问"
+    except ValueError:
+        pass  # hostname, 继续
+    # 拒绝 localhost 及其变体
+    if host.lower() in ('localhost', '127.0.0.1', '::1', '0.0.0.0'):
+        return f"拒绝: 不允许访问 localhost"
+    # 拒绝云元数据端点
+    if host == '169.254.169.254':
+        return f"拒绝: 云元数据地址不允许访问"
+    return ""  # 空字符串 = 通过
 
 
 def _do_web_extract(url: str) -> str:
     """抓取网页内容（支持SOCKS5/HTTP代理）"""
-    import requests, re, os
+    import requests, re, os, warnings
     from src.config import load_config as _load_extract_config
+
+    # ── SSRF 安全校验 ──
+    err = _validate_url(url)
+    if err:
+        return err
 
     # ── 代理配置 ──
     proxies = None
@@ -4094,12 +3939,10 @@ def _do_web_extract(url: str) -> str:
         proxies = {"http": proxy_url, "https": proxy_url}
 
     try:
-        try:
-            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}, timeout=20, proxies=proxies, verify=False)
-        except requests.exceptions.SSLError:
-            import urllib3
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}, timeout=20, proxies=proxies, verify=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+                              timeout=20, proxies=proxies, verify=False)
         html = resp.text
         text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL)
         text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL)

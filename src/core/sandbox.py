@@ -721,7 +721,8 @@ class Sandbox:
             return ExecutionResult(
                 execution_id=execution_id,
                 status=ExecutionStatus.ERROR,
-                stderr=f"沙箱执行异常: {e}\n{traceback.format_exc()}",
+                # Python 3.14兼容: 避免 traceback.format_exc() 在内存压力下触发 tokenize.py 递归
+                stderr=f"沙箱执行异常: {e.__class__.__name__}: {e}",
                 duration_ms=duration,
                 timeout_seconds=timeout,
                 mode="python",

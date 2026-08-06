@@ -26,6 +26,8 @@ from .brain_emotional import EmotionalConsolidation
 from .brain_stdp import STDPLearner
 from .brain_dmn import DefaultModeNetwork
 from .brain_acc import ACC
+from .brain_brainstem import AutonomicRegulator, ReticularActivation, HomeostaticDrive
+from .brain_nacc import RewardPredictor, MotivationSignal, WantingVsLiking
 
 logger = logging.getLogger("meshctx.brain")
 
@@ -52,6 +54,13 @@ class BrainLoop:
         self.stdp = STDPLearner()
         self.dmn = DefaultModeNetwork()
         self.acc = ACC()
+        # ── v3.115.38: Brainstem + NAcc integration ──
+        self.brainstem = AutonomicRegulator()
+        self.reticular = ReticularActivation()
+        self.homeostatic = HomeostaticDrive()
+        self.reward_predictor = RewardPredictor(n_states=16)
+        self.motivation = MotivationSignal()
+        self.wanting_liking = WantingVsLiking()
         
         self._steps = 0
         self._successes = 0
@@ -64,9 +73,7 @@ class BrainLoop:
         self._steps += 1
         
         try:
-            # 1. Thalamus: always pass (gate handled at cognitive loop level)
-            
-            # 2. Amygdala: 情感分析 (真实brain_amygdala)
+            # 1. Amygdala: 情感分析 (真实brain_amygdala)
             threat = self.amygdala.detect_threat(observation)
             emotion = {
                 'valence': -threat.score if hasattr(threat, 'score') else -0.3,
@@ -137,10 +144,31 @@ class BrainLoop:
                 emotional_valence=emotion.get('valence', 0),
                 emotional_arousal=emotion.get('arousal', 0)
             )
+
+            # ── v3.115.38: Brainstem + NAcc integration (after all cognitive steps) ──
+            try:
+                self.brainstem.update(exertion=confidence, stress=conflict)
+                self.reticular.update(stimulation=confidence)
+                self.homeostatic.update(activity_level=confidence)
+                # NAcc: reward prediction update
+                reward_outcome = self.reward_predictor.update(
+                    hash(observation) % 16, emotion.get('valence', 0) * 0.5 + 0.5
+                )
+                self.motivation.run_cycle(
+                    dopamine_signal=reward_outcome.dopamine_signal,
+                    effort=0.1,
+                )
+                self.wanting_liking.process_reward(
+                    reward=emotion.get('valence', 0),
+                    dopamine=reward_outcome.dopamine_signal,
+                )
+            except Exception:
+                pass
             
             logger.info(
                 f"🧠 BrainLoop step={self._steps} action={action} "
-                f"Φ={phi:.2f} conf={confidence:.2f} conflict={conflict:.2f}"
+                f"Φ={phi:.2f} conf={confidence:.2f} conflict={conflict:.2f} "
+                f"motiv={self.motivation.motivation:.2f} stable={self.brainstem.is_stable()}"
             )
             
             return {
@@ -153,6 +181,18 @@ class BrainLoop:
                 'intention': intention,
                 'anomaly': anomaly,
                 'phi': phi,
+                # v3.115.38: Brainstem + NAcc outputs
+                'vitals': self.brainstem.vitals,
+                'arousal': self.reticular.state.level,
+                'sleep_pressure': self.reticular.state.sleep_pressure,
+                'homeostatic_drives': {
+                    'hunger': self.homeostatic.hunger,
+                    'thirst': self.homeostatic.thirst,
+                    'fatigue': self.homeostatic.fatigue,
+                },
+                'motivation': self.motivation.motivation,
+                'wanting_liking': self.wanting_liking.state(),
+                'stable': self.brainstem.is_stable(),
             }
             
         except Exception as e:
@@ -182,6 +222,20 @@ class BrainLoop:
                                      'success' if success else 'failure', success)
             except Exception as e:
                 logger.debug(f"Cerebellum learn: {e}")
+
+            # ── v3.115.38: NAcc post-outcome learning ──
+            try:
+                outcome_reward = 1.0 if success else (reward if reward < 0 else -0.2)
+                self.reward_predictor.update(
+                    hash(observation) % 16, outcome_reward
+                )
+                self.motivation.consume_reward(abs(reward) if success else 0.0)
+                self.wanting_liking.process_reward(
+                    reward=1.0 if success else -0.3,
+                    dopamine=0.7 if success else 0.1,
+                )
+            except Exception:
+                pass
             
             if success:
                 self._successes += 1
@@ -212,4 +266,17 @@ class BrainLoop:
             'hippocampus': self.hippocampus.stats(),
             'errors': len(self._errors),
             'last_error': self._errors[-1] if self._errors else None,
+            # v3.115.38: Brainstem + NAcc stats
+            'stable': self.brainstem.is_stable(),
+            'vitals': {
+                'hr': round(self.brainstem.vitals.heart_rate, 1),
+                'temp': round(self.brainstem.vitals.body_temp, 1),
+                'bp': round(self.brainstem.vitals.blood_pressure, 0),
+                'rr': round(self.brainstem.vitals.respiration_rate, 1),
+            },
+            'arousal': round(self.reticular.state.level, 2),
+            'sleep_pressure': round(self.reticular.state.sleep_pressure, 2),
+            'motivation': round(self.motivation.motivation, 2),
+            'wanting_liking': self.wanting_liking.state(),
+            'reward_pe': round(self.reward_predictor.mean_pe(), 4),
         }
