@@ -220,6 +220,7 @@ async function saveProfile(){
     var sb = _getSupabase();
     var meta = {
         full_name: document.getElementById('pf-name').value,
+        display_name: document.getElementById('pf-name').value,
         avatar_url: document.getElementById('pf-avatar').value,
         bio: document.getElementById('pf-bio').value,
         website: document.getElementById('pf-website').value,

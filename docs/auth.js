@@ -311,7 +311,7 @@ async function signUpWithEmail() {
         email: email,
         password: password,
         options: {
-            data: { full_name: name || email.split('@')[0] },
+            data: { full_name: name || email.split('@')[0], display_name: name || email.split('@')[0] },
             emailRedirectTo: window.location.origin + '/'
         }
     });
@@ -526,7 +526,7 @@ function updateAuthUI() {
         if (userMenu) userMenu.style.display = 'flex';
         if (userName) {
             var meta = _user.user_metadata || {};
-            userName.textContent = meta.full_name || meta.display_name || meta.user_name || _user.email || 'User';
+            userName.textContent = meta.display_name || meta.full_name || meta.user_name || _user.email || 'User';
         }
         if (userAvatar) {
             var avatarUrl = (_user.user_metadata || {}).avatar_url || '';
