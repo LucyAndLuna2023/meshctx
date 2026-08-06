@@ -2098,6 +2098,47 @@ async def api_tasks_history():
         return {"status": "error", "error": str(e)}
 
 
+@app.post("/api/tasks/{task_id}/complete")
+async def api_task_complete(task_id: str):
+    """标记任务为已完成"""
+    try:
+        # 1. Try autonomous_engine first
+        try:
+            from src.core.autonomous_engine import get_autonomous_engine
+            engine = get_autonomous_engine()
+            if engine and hasattr(engine, "complete"):
+                engine.complete(task_id)
+                return {"status": "ok", "task_id": task_id, "new_status": "done"}
+        except Exception:
+            pass
+
+        # 2. Try agent_tasks TaskManager
+        try:
+            from src.core.agent_tasks import get_task_manager, TaskStatus
+            mgr = get_task_manager()
+            task = mgr.get_task(task_id)
+            if task:
+                task.status = TaskStatus.COMPLETED
+                return {"status": "ok", "task_id": task_id, "new_status": "completed"}
+        except Exception:
+            pass
+
+        # 3. Try agent_swarm distributed_mesh
+        try:
+            from src.core.distributed_mesh import get_distributed_mesh
+            dm = get_distributed_mesh()
+            if dm and hasattr(dm, "complete_task"):
+                ok = dm.complete_task(task_id)
+                if ok:
+                    return {"status": "ok", "task_id": task_id, "new_status": "done"}
+        except Exception:
+            pass
+
+        return {"status": "not_found", "task_id": task_id}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
 @app.get("/api/cache/stats")
 async def api_cache_stats():
     """缓存统计"""
@@ -3704,17 +3745,72 @@ async def api_chat_stream(request: Request):
                 yield "data: [DONE]\n\n"
                 return
 
-            max_rounds = int(body.get("max_rounds", 8))
-            _web_search_count = 0
-            _max_web_searches = 999  # 不限制搜索次数，由 max_rounds 防死循环
-            _empty_search_streak = 0  # 连续空搜索结果轮次
-            _total_search_calls = 0   # 本轮总搜索次数（含成功和失败）
+            max_rounds = int(body.get("max_rounds", 4))
             _tools_ok = True
             _start_ts = time.time()
             for _round in range(max_rounds):
                 if time.time() - _start_ts > 300:
                     yield f"data: {_json.dumps({'token': '\n\n[已达到最大处理时间 180 秒，已中止]'})}\n\n"
                     break
+
+                # Phase: Deliver if last round, else Search
+                if _round == max_rounds - 1:
+                    _tools_ok = False
+                    print(f"[TRACE] R{_round}: DELIVER _tools_ok={_tools_ok}", file=sys.stderr, flush=True)
+                    yield f"data: {_json.dumps({'token': '\n\n📝 **Deliver** — 基于已获取的真实数据生成最终报告...\n\n'})}\n\n"
+                    # 注入 Deliver 指令：告诉模型它已进入交付阶段，必须直接输出文本
+                    msgs.append({"role": "system", "content": "你已进入最终交付阶段。不要再搜索，不要调用任何工具，不要输出 DSML/XML 工具调用标签。直接基于已获取的所有信息，输出完整的最终答案。使用 Markdown 格式。"})
+                    _deliver_text = ""
+                    _got_content = False
+                    try:
+                        _deliver_stream = client.chat_stream(
+                            msgs, temperature=0.7, max_tokens=16384)
+                        for _item in _deliver_stream:
+                            if isinstance(_item, tuple) and _item[0] == "__TOOLS__":
+                                continue
+                            elif isinstance(_item, str):
+                                _deliver_text += _item
+                                # 实时过滤 DSML：检测到 DSML 起始后停止输出
+                                if not _got_content:
+                                    for _tag in ('<||DSML||', '<\uff5c\uff5cDSML\uff5c\uff5c'):
+                                        if _tag in _deliver_text:
+                                            _deliver_text = _deliver_text.split(_tag)[0]
+                                            _got_content = True
+                                            break
+                                if _got_content:
+                                    continue  # DSML 之后的内容跳过
+                                yield f"data: {_json.dumps({'token': _item})}\n\n"
+                    except Exception:
+                        pass
+                    # Fallback: 如果流式没产生有效内容，用非流式 API
+                    _deliver_text = _deliver_text.strip()
+                    if len(_deliver_text) < 30:
+                        try:
+                            _fallback = await _call_llm(client,
+                                model=client.model_name,
+                                messages=msgs,
+                                temperature=0.7, max_tokens=16384)
+                            _deliver_text = (_fallback.choices[0].message.content or "").strip()
+                            # 过滤 DSML
+                            for _tag in ('<||DSML||', '<\uff5c\uff5cDSML\uff5c\uff5c'):
+                                if _tag in _deliver_text:
+                                    _deliver_text = _deliver_text.split(_tag)[0].strip()
+                            if _deliver_text:
+                                yield f"data: {_json.dumps({'token': _deliver_text})}\n\n"
+                        except Exception:
+                            yield f"data: {_json.dumps({'token': '处理超时，请重试'})}\n\n"
+                    elif _got_content:
+                        # 流式产生内容但被 DSML 截断了，补发清理后的内容
+                        pass  # _deliver_text already yielded as tokens before DSML
+                    yield "data: [DONE]\n\n"
+                    return
+                elif _round == 0:
+                    print(f"[TRACE] R{_round}: SEARCH _tools_ok={_tools_ok}", file=sys.stderr, flush=True)
+                    yield f"data: {_json.dumps({'token': '\n\n🔍 第1/{}轮搜索...\n'.format(max_rounds - 1)})}\n\n"
+                else:
+                    print(f"[TRACE] R{_round}: SEARCH _tools_ok={_tools_ok}", file=sys.stderr, flush=True)
+                    yield f"data: {_json.dumps({'token': '\n\n🔍 第{}/{}轮搜索...\n'.format(_round + 1, max_rounds - 1)})}\n\n"
+
                 # 发送请求给模型 — 使用 ModelClient.chat_stream() 逐 token 推送
                 try:
                     if _tools_ok:
@@ -3737,7 +3833,11 @@ async def api_chat_stream(request: Request):
                 for item in stream:
                     if isinstance(item, tuple) and item[0] == "__TOOLS__":
                         # ("__TOOLS__", parsed_tools_list, full_text)
-                        tool_calls_raw = item[1]
+                        # Guard: skip tool_calls if _tools_ok is False (Deliver phase)
+                        if _tools_ok:
+                            tool_calls_raw = item[1]
+                        else:
+                            print(f"[TRACE] R{_round}: IGNORE tool_calls _tools_ok={_tools_ok}", file=sys.stderr, flush=True)
                         msg_content = item[2]
                     elif isinstance(item, str):
                         yield f"data: {_json.dumps({'token': item})}\n\n"
@@ -3817,20 +3917,11 @@ async def api_chat_stream(request: Request):
                     for tc in msg.tool_calls:
                         name = tc.function.name
                         args = _json.loads(tc.function.arguments)
-                        if name == "web_search":
-                            if _web_search_count >= _max_web_searches:
-                                yield f"data: {_json.dumps({'tool_start': name, 'args': args, 'require_approval': False})}\n\n"
-                                limit_msg = f"[搜索已达上限 {_max_web_searches} 次，请基于已有数据撰写报告]"
-                                yield f"data: {_json.dumps({'tool_result': limit_msg})}\n\n"
-                                msgs.append({"role": "tool", "tool_call_id": tc.id, "content": limit_msg})
-                                continue
-                            _web_search_count += 1
+
                         tool_tasks.append((tc, name, args))
                         yield f"data: {_json.dumps({'tool_start': name, 'args': args, 'require_approval': False})}\n\n"
 
                     # 并发执行
-                    empty_search_count = 0
-                    round_search_count = 0
                     with ThreadPoolExecutor(max_workers=min(len(tool_tasks), 5)) as executor:
                         futures = {executor.submit(_exec_one, name, args): (tc, name)
                                    for tc, name, args in tool_tasks}
@@ -3840,39 +3931,10 @@ async def api_chat_stream(request: Request):
                                 result = future.result(timeout=60)
                             except Exception as e:
                                 result = f"工具执行失败: {e}"
-                            # 追踪搜索
-                            if name == "web_search":
-                                _total_search_calls += 1
-                                round_search_count += 1
-                                if result.strip() in ("无搜索结果", "搜索失败:", ""):
-                                    empty_search_count += 1
                             yield f"data: {_json.dumps({'tool_result': result[:500]})}\\n\\n"
                             msgs.append({"role": "tool", "tool_call_id": tc.id, "content": result[:16000]})
 
-                    # ── 死循环检测1：连续空搜索 ──
-                    if empty_search_count > 0 and all(
-                        tc.function.name != "web_search" or 
-                        any(m.get("tool_call_id") == tc.id and m.get("content","").strip() in ("无搜索结果","搜索失败:","") 
-                            for m in msgs[-len(msg.tool_calls):])
-                        for tc in msg.tool_calls if tc.function.name == "web_search"
-                    ):
-                        _empty_search_streak += 1
-                    else:
-                        _empty_search_streak = 0 if empty_search_count == 0 else _empty_search_streak
 
-                    # 连续3轮搜索全空 → 强制中断
-                    if _empty_search_streak >= 3:
-                        yield f"data: {_json.dumps({'token': '\\n\\n[搜索服务暂不可用，请基于已获取的信息直接给出结论，不要再搜索]'})}\\n\\n"
-                        msgs.append({"role": "user",
-                            "content": "⚠️ [系统强制停止] 搜索服务连续3轮无结果。请立即基于已获取的所有信息输出最终结果，不要再调用 web_search。如果没有足够数据，诚实说明现状并直接告诉用户。"})
-
-                    # ── 死循环检测2：总搜索次数超限（即使每次成功也需停止） ──
-                    elif _total_search_calls >= 6:
-                        yield f"data: {_json.dumps({'token': '\\n\\n[已搜索 {} 次，搜索已终止，请立即输出结论]'.format(_total_search_calls)})}\\n\\n"
-                        msgs.append({"role": "user",
-                            "content": f"⚠️ [系统强制停止] 你已调用 web_search {_total_search_calls} 次，数据已经非常充足。请立即基于所有已获取的信息输出最终报告。不要再搜索。"})
-                        # 硬阻断：从TOOLS列表中移除web_search，下轮无法再调用
-                        TOOLS[:] = [t for t in TOOLS if t["function"]["name"] != "web_search"]
 
                     continue  # 下一轮，让模型基于工具结果回复
 
