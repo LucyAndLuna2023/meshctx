@@ -2,7 +2,10 @@
 meshctx 统一模型适配器
 一行切换百炼/DeepSeek/OpenAI，不换代码
 """
+import logging
 from typing import Dict, List, Optional, Any
+
+logger = logging.getLogger("meshctx.model_adapter")
 from dataclasses import dataclass
 import os
 
