@@ -16,9 +16,12 @@ import argparse
 import asyncio
 import atexit
 import json
+import logging
 import os
 import sys
 from pathlib import Path
+
+logger = logging.getLogger("meshctx.cli")
 
 # ── readline: Linux/Mac 可用，Windows 不支持 ──
 try:
@@ -341,7 +344,7 @@ def cmd_chat(args):
     """meshctx chat — 流式+工具+会话持久化+一发模式"""
     _ensure_keys_loaded()
     from src.model_registry import get_registry
-    from src.chat_tools import TOOLS_OPENAI, execute_tool, TOOL_ICONS
+    from src.chat_tools import TOOLS_OPENAI, execute_tool, TOOL_ICONS, trim_messages
 
     reg = get_registry(args.config)
     model_id = args.model or os.environ.get("MESHCTX_MODEL")
@@ -410,7 +413,23 @@ def cmd_chat(args):
     prompt = f"{profile_tag}You> " if profile_tag else "You> "
     while True:
         try:
-            user = input(prompt).strip()
+            if _HAS_READLINE:
+                # 多行输入：空行提交，支持粘贴长文本
+                lines = []
+                first = True
+                while True:
+                    p = prompt if first else '... '
+                    first = False
+                    try:
+                        line = input(p)
+                    except EOFError:
+                        break
+                    if line == '':
+                        break  # 空行提交
+                    lines.append(line)
+                user = '\n'.join(lines).strip()
+            else:
+                user = input(prompt).strip()
         except (EOFError, KeyboardInterrupt):
             break
         if not user:
@@ -453,11 +472,15 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=5):
     session_id = uuid.uuid4().hex[:8]
 
     for turn in range(max_turns):
+        is_deliver = (turn == max_turns - 1)  # 最后一轮强制 Deliver
+
         try:
-            stream = client.chat_stream(messages, tools=tools_def)
+            if is_deliver:
+                stream = client.chat_stream(messages)  # 不传 tools
+            else:
+                stream = client.chat_stream(messages, tools=tools_def)
         except Exception:
             logger.debug("cli error", exc_info=True)
-            # Fallback: no tools
             stream = client.chat_stream(messages)
 
         tool_data = None
@@ -465,12 +488,19 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=5):
 
         for chunk in stream:
             if isinstance(chunk, tuple) and chunk[0] == "__TOOLS__":
-                tool_data = chunk
+                if not is_deliver:
+                    tool_data = chunk
+                # Deliver 阶段忽略 __TOOLS__
             else:
                 print(chunk, end="", flush=True)
                 full_text += chunk
 
         print()
+
+        # Deliver 阶段：直接结束
+        if is_deliver:
+            messages.append({"role": "assistant", "content": full_text.strip() or "处理完成"})
+            break
 
         if tool_data:
             _, tool_calls, fc = tool_data
@@ -508,29 +538,9 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=5):
         else:
             messages.append({"role": "assistant", "content": full_text})
         break
-    else:
-        # max_turns 耗尽，强制最后一轮获取模型回复
-        print("\n  ⏳ ", end="", flush=True)
-        try:
-            stream = client.chat_stream(messages, tools=tools_def)
-            for chunk in stream:
-                if isinstance(chunk, tuple) and chunk[0] == "__TOOLS__":
-                    pass  # 忽略工具调用，只取文本
-                else:
-                    print(chunk, end="", flush=True)
-                    full_text = chunk if 'full_text' not in dir() else full_text + chunk
-            print()
-        except Exception:
-            logger.debug("cli error", exc_info=True)
-            pass
 
-    # 清理
-    if len(messages) > 40:
-        system = messages[0] if messages[0]["role"] == "system" else None
-        recent = messages[-30:]
-        messages.clear()
-        if system: messages.append(system)
-        messages.extend(recent)
+    # 清理 — 确保不切断 assistant(tool_calls) + tool 配对（公共函数，UI 共用）
+    messages[:] = trim_messages(messages, max_len=40, keep=30)
     return session_id
 
 
@@ -669,7 +679,20 @@ def _load_session(sess_dir, sid):
     if not file.exists():
         return None
     data = json.loads(file.read_text())
-    return data.get("messages", [])
+    messages = data.get("messages", [])
+    # 修复孤立 tool 消息：收集所有 assistant.tool_calls 中的 call_id
+    known_ids = set()
+    for m in messages:
+        if m.get("role") == "assistant" and m.get("tool_calls"):
+            for tc in m["tool_calls"]:
+                known_ids.add(tc.get("id", ""))
+    # 过滤掉没有对应 assistant+tool_calls 的孤立 tool 消息
+    cleaned = []
+    for m in messages:
+        if m.get("role") == "tool" and m.get("tool_call_id") not in known_ids:
+            continue
+        cleaned.append(m)
+    return cleaned
 
 def _list_sessions(sess_dir):
     import json
