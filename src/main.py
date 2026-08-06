@@ -2098,6 +2098,47 @@ async def api_tasks_history():
         return {"status": "error", "error": str(e)}
 
 
+@app.post("/api/tasks/{task_id}/complete")
+async def api_task_complete(task_id: str):
+    """标记任务为已完成"""
+    try:
+        # 1. Try autonomous_engine first
+        try:
+            from src.core.autonomous_engine import get_autonomous_engine
+            engine = get_autonomous_engine()
+            if engine and hasattr(engine, "complete"):
+                engine.complete(task_id)
+                return {"status": "ok", "task_id": task_id, "new_status": "done"}
+        except Exception:
+            pass
+
+        # 2. Try agent_tasks TaskManager
+        try:
+            from src.core.agent_tasks import get_task_manager, TaskStatus
+            mgr = get_task_manager()
+            task = mgr.get_task(task_id)
+            if task:
+                task.status = TaskStatus.COMPLETED
+                return {"status": "ok", "task_id": task_id, "new_status": "completed"}
+        except Exception:
+            pass
+
+        # 3. Try agent_swarm distributed_mesh
+        try:
+            from src.core.distributed_mesh import get_distributed_mesh
+            dm = get_distributed_mesh()
+            if dm and hasattr(dm, "complete_task"):
+                ok = dm.complete_task(task_id)
+                if ok:
+                    return {"status": "ok", "task_id": task_id, "new_status": "done"}
+        except Exception:
+            pass
+
+        return {"status": "not_found", "task_id": task_id}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
 @app.get("/api/cache/stats")
 async def api_cache_stats():
     """缓存统计"""
@@ -3376,7 +3417,7 @@ def _dispatch_tool(name: str, args: dict, approved_tools: set, page_cache: dict)
 # v3.115.41: async LLM helper — non-blocking via thread pool
 async def _call_llm(client, **kwargs):
     import asyncio
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         None, lambda c=client, kw=kwargs: c.client.chat.completions.create(**kw)
     )
@@ -3468,6 +3509,7 @@ async def _call_llm_stream(client, **kwargs):
 @app.post("/api/chat")
 async def api_chat(request: Request):
     """非流式Chat API — 完整工具循环。用于前端chat.html"""
+    import asyncio
     from src.model_registry import get_registry
     from src.config import load_config
     import json as _json
@@ -3504,7 +3546,7 @@ async def api_chat(request: Request):
         if not client:
             return JSONResponse({"error": "模型未配置，请在Setup页面设置API Key"}, status_code=503)
 
-        max_rounds = int(body.get("max_rounds", 10))
+        max_rounds = int(body.get("max_rounds", 4))
         approved_tools = set()
         page_cache = {}
         tools_ok = True
@@ -3573,7 +3615,12 @@ async def api_chat(request: Request):
                         continue
                     approved_tools.add(name)
 
-                result = _dispatch_tool(name, args, approved_tools, page_cache)
+                # 在独立线程中执行工具，避免阻塞事件循环
+                import concurrent.futures
+                loop = asyncio.get_running_loop()
+                result = await loop.run_in_executor(
+                    None, _dispatch_tool, name, args, approved_tools, page_cache
+                )
                 msgs.append({"role": "tool", "tool_call_id": tc.id, "content": result[:8000]})
 
         # Max rounds reached
@@ -3607,6 +3654,7 @@ async def api_chat_stream(request: Request):
     """流式Chat API — SSE逐token推送 + web_search 工具"""
     from src.model_registry import get_registry
     from src.config import load_config
+    from src.chat_tools import trim_messages
     import json as _json
 
     try:
@@ -3704,17 +3752,73 @@ async def api_chat_stream(request: Request):
                 yield "data: [DONE]\n\n"
                 return
 
-            max_rounds = int(body.get("max_rounds", 8))
-            _web_search_count = 0
-            _max_web_searches = 999  # 不限制搜索次数，由 max_rounds 防死循环
-            _empty_search_streak = 0  # 连续空搜索结果轮次
-            _total_search_calls = 0   # 本轮总搜索次数（含成功和失败）
+            max_rounds = int(body.get("max_rounds", 4))
             _tools_ok = True
             _start_ts = time.time()
             for _round in range(max_rounds):
                 if time.time() - _start_ts > 300:
-                    yield f"data: {_json.dumps({'token': '\n\n[已达到最大处理时间 180 秒，已中止]'})}\n\n"
+                    yield f"data: {_json.dumps({'token': '\\n\\n[已达到最大处理时间 300 秒，已中止]'})}\\n\\n"
                     break
+
+                # Phase: Deliver if last round, else Search
+                if _round == max_rounds - 1:
+                    _tools_ok = False
+                    print(f"[TRACE] R{_round}: DELIVER _tools_ok={_tools_ok}", file=sys.stderr, flush=True)
+                    yield f"data: {_json.dumps({'token': '\n\n📝 **Deliver** — 基于已获取的真实数据生成最终报告...\n\n'})}\n\n"
+                    # Deliver 指令：直接不传 tools 调用 chat_stream（与 CLI 一致）。
+                    # 不往 msgs 末尾 append system（API 要求 system 在 messages[0]，
+                    # 追加到末尾会被模型忽略或 400 报错）
+                    _deliver_text = ""
+                    _got_content = False
+                    try:
+                        _deliver_stream = client.chat_stream(
+                            msgs, temperature=0.7, max_tokens=16384)
+                        for _item in _deliver_stream:
+                            if isinstance(_item, tuple) and _item[0] == "__TOOLS__":
+                                continue
+                            elif isinstance(_item, str):
+                                _deliver_text += _item
+                                # 实时过滤 DSML：检测到 DSML 起始后停止输出
+                                if not _got_content:
+                                    for _tag in ('<||DSML||', '<\uff5c\uff5cDSML\uff5c\uff5c'):
+                                        if _tag in _deliver_text:
+                                            _deliver_text = _deliver_text.split(_tag)[0]
+                                            _got_content = True
+                                            break
+                                if _got_content:
+                                    continue  # DSML 之后的内容跳过
+                                yield f"data: {_json.dumps({'token': _item})}\n\n"
+                    except Exception:
+                        pass
+                    # Fallback: 如果流式没产生有效内容，用非流式 API
+                    _deliver_text = _deliver_text.strip()
+                    if len(_deliver_text) < 30:
+                        try:
+                            _fallback = await _call_llm(client,
+                                model=client.model_name,
+                                messages=msgs,
+                                temperature=0.7, max_tokens=16384)
+                            _deliver_text = (_fallback.choices[0].message.content or "").strip()
+                            # 过滤 DSML
+                            for _tag in ('<||DSML||', '<\uff5c\uff5cDSML\uff5c\uff5c'):
+                                if _tag in _deliver_text:
+                                    _deliver_text = _deliver_text.split(_tag)[0].strip()
+                            if _deliver_text:
+                                yield f"data: {_json.dumps({'token': _deliver_text})}\n\n"
+                        except Exception:
+                            yield f"data: {_json.dumps({'token': '处理超时，请重试'})}\n\n"
+                    elif _got_content:
+                        # 流式产生内容但被 DSML 截断了，补发清理后的内容
+                        pass  # _deliver_text already yielded as tokens before DSML
+                    yield "data: [DONE]\n\n"
+                    return
+                elif _round == 0:
+                    print(f"[TRACE] R{_round}: SEARCH _tools_ok={_tools_ok}", file=sys.stderr, flush=True)
+                    yield f"data: {_json.dumps({'token': '\n\n🔍 第1/{}轮搜索...\n'.format(max_rounds - 1)})}\n\n"
+                else:
+                    print(f"[TRACE] R{_round}: SEARCH _tools_ok={_tools_ok}", file=sys.stderr, flush=True)
+                    yield f"data: {_json.dumps({'token': '\n\n🔍 第{}/{}轮搜索...\n'.format(_round + 1, max_rounds - 1)})}\n\n"
+
                 # 发送请求给模型 — 使用 ModelClient.chat_stream() 逐 token 推送
                 try:
                     if _tools_ok:
@@ -3737,7 +3841,11 @@ async def api_chat_stream(request: Request):
                 for item in stream:
                     if isinstance(item, tuple) and item[0] == "__TOOLS__":
                         # ("__TOOLS__", parsed_tools_list, full_text)
-                        tool_calls_raw = item[1]
+                        # Guard: skip tool_calls if _tools_ok is False (Deliver phase)
+                        if _tools_ok:
+                            tool_calls_raw = item[1]
+                        else:
+                            print(f"[TRACE] R{_round}: IGNORE tool_calls _tools_ok={_tools_ok}", file=sys.stderr, flush=True)
                         msg_content = item[2]
                     elif isinstance(item, str):
                         yield f"data: {_json.dumps({'token': item})}\n\n"
@@ -3776,8 +3884,8 @@ async def api_chat_stream(request: Request):
                         for tc in msg.tool_calls
                     ]})
 
-                    # 并发执行工具调用 (hermes 用的是 ThreadPoolExecutor)
-                    from concurrent.futures import ThreadPoolExecutor, as_completed
+                    # 并发执行工具调用 (asyncio.wait, 见下方)
+                    from concurrent.futures import ThreadPoolExecutor
 
                     def _exec_one(name, args):
                         if name == "web_search":
@@ -3817,62 +3925,38 @@ async def api_chat_stream(request: Request):
                     for tc in msg.tool_calls:
                         name = tc.function.name
                         args = _json.loads(tc.function.arguments)
-                        if name == "web_search":
-                            if _web_search_count >= _max_web_searches:
-                                yield f"data: {_json.dumps({'tool_start': name, 'args': args, 'require_approval': False})}\n\n"
-                                limit_msg = f"[搜索已达上限 {_max_web_searches} 次，请基于已有数据撰写报告]"
-                                yield f"data: {_json.dumps({'tool_result': limit_msg})}\n\n"
-                                msgs.append({"role": "tool", "tool_call_id": tc.id, "content": limit_msg})
-                                continue
-                            _web_search_count += 1
+
                         tool_tasks.append((tc, name, args))
                         yield f"data: {_json.dumps({'tool_start': name, 'args': args, 'require_approval': False})}\n\n"
 
-                    # 并发执行
-                    empty_search_count = 0
-                    round_search_count = 0
-                    with ThreadPoolExecutor(max_workers=min(len(tool_tasks), 5)) as executor:
-                        futures = {executor.submit(_exec_one, name, args): (tc, name)
-                                   for tc, name, args in tool_tasks}
-                        for future in as_completed(futures, timeout=120):
-                            tc, name = futures[future]
-                            try:
-                                result = future.result(timeout=60)
-                            except Exception as e:
-                                result = f"工具执行失败: {e}"
-                            # 追踪搜索
-                            if name == "web_search":
-                                _total_search_calls += 1
-                                round_search_count += 1
-                                if result.strip() in ("无搜索结果", "搜索失败:", ""):
-                                    empty_search_count += 1
-                            yield f"data: {_json.dumps({'tool_result': result[:500]})}\\n\\n"
-                            msgs.append({"role": "tool", "tool_call_id": tc.id, "content": result[:16000]})
+                    # 并发执行 (通过 run_in_executor 避免阻塞事件循环)
+                    loop = asyncio.get_running_loop()
+                    futures_map = {}
+                    for tc, name, args in tool_tasks:
+                        futures_map[loop.run_in_executor(None, _exec_one, name, args)] = (tc, name)
+                    # NOTE(002): Python 3.12 的 asyncio.as_completed() 迭代时 yield 的是
+                    # 内部协程对象(_wait_for_one) 而非 Future → futures_map[future] 会 KeyError，
+                    # 导致所有工具调用直接失败("CLI能完成、UI不能"根因)。改用 asyncio.wait。
+                    done_futures, pending_futures = await asyncio.wait(
+                        list(futures_map.keys()), timeout=120)
+                    for pf in pending_futures:
+                        pf.cancel()
+                        tc, name = futures_map[pf]
+                        timeout_msg = f"[工具 {name} 执行超过120秒，已超时中止]"
+                        yield f"data: {_json.dumps({'tool_result': timeout_msg})}\n\n"
+                        msgs.append({"role": "tool", "tool_call_id": tc.id, "content": timeout_msg})
+                    for future in done_futures:
+                        tc, name = futures_map[future]
+                        try:
+                            result = await future
+                        except Exception as e:
+                            result = f"工具执行失败: {e}"
+                        yield f"data: {_json.dumps({'tool_result': result[:500]})}\n\n"
+                        msgs.append({"role": "tool", "tool_call_id": tc.id, "content": result[:16000]})
+                    # 防止多轮工具调用后 msgs 无限膨胀 → token 超限（CLI/UI 共用清理）
+                    if len(msgs) > 40:
+                        msgs[:] = trim_messages(msgs, max_len=40, keep=30)
 
-                    # ── 死循环检测1：连续空搜索 ──
-                    if empty_search_count > 0 and all(
-                        tc.function.name != "web_search" or 
-                        any(m.get("tool_call_id") == tc.id and m.get("content","").strip() in ("无搜索结果","搜索失败:","") 
-                            for m in msgs[-len(msg.tool_calls):])
-                        for tc in msg.tool_calls if tc.function.name == "web_search"
-                    ):
-                        _empty_search_streak += 1
-                    else:
-                        _empty_search_streak = 0 if empty_search_count == 0 else _empty_search_streak
-
-                    # 连续3轮搜索全空 → 强制中断
-                    if _empty_search_streak >= 3:
-                        yield f"data: {_json.dumps({'token': '\\n\\n[搜索服务暂不可用，请基于已获取的信息直接给出结论，不要再搜索]'})}\\n\\n"
-                        msgs.append({"role": "user",
-                            "content": "⚠️ [系统强制停止] 搜索服务连续3轮无结果。请立即基于已获取的所有信息输出最终结果，不要再调用 web_search。如果没有足够数据，诚实说明现状并直接告诉用户。"})
-
-                    # ── 死循环检测2：总搜索次数超限（即使每次成功也需停止） ──
-                    elif _total_search_calls >= 6:
-                        yield f"data: {_json.dumps({'token': '\\n\\n[已搜索 {} 次，搜索已终止，请立即输出结论]'.format(_total_search_calls)})}\\n\\n"
-                        msgs.append({"role": "user",
-                            "content": f"⚠️ [系统强制停止] 你已调用 web_search {_total_search_calls} 次，数据已经非常充足。请立即基于所有已获取的信息输出最终报告。不要再搜索。"})
-                        # 硬阻断：从TOOLS列表中移除web_search，下轮无法再调用
-                        TOOLS[:] = [t for t in TOOLS if t["function"]["name"] != "web_search"]
 
                     continue  # 下一轮，让模型基于工具结果回复
 
@@ -3922,161 +4006,9 @@ def _do_save_memory(fact: str) -> str:
         return f"记忆保存失败: {e}"
 
 def _do_web_search(query: str) -> str:
-    """多引擎搜索（ddgs → SearXNG → Brave → Google → web_extract），自动回退"""
-    import os, re, json, urllib.parse
-    import requests as _requests
-    from src.config import load_config as _load_search_config
-
-    try:
-        cfg = _load_search_config()
-        proxy_url = cfg.get("search", {}).get("proxy", os.environ.get("MESHCTX_SEARCH_PROXY", ""))
-        max_results = int(cfg.get("search", {}).get("max_results", 20))
-        timeout = int(cfg.get("search", {}).get("timeout", 15))
-    except Exception:
-        proxy_url = os.environ.get("MESHCTX_SEARCH_PROXY", "")
-        max_results = 20
-        timeout = 15
-
-    proxies = None
-    if proxy_url and proxy_url.strip():
-        proxies = {"http": proxy_url, "https": proxy_url}
-
-    ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-    headers = {"User-Agent": ua, "Accept-Language": "en-US,en;q=0.9"}
-
-    # ── 格式化搜索结果 ──
-    def _fmt_results(results: list) -> str:
-        if not results:
-            return "无搜索结果"
-        lines = []
-        for i, r in enumerate(results[:max_results]):
-            title = r.get("title", "") or r.get("name", "")
-            body = r.get("body", "") or r.get("snippet", "") or r.get("description", "")
-            href = r.get("href", "") or r.get("url", "") or r.get("link", "")
-            lines.append(f"{i+1}. {title}")
-            if body:
-                lines.append(f"   {body[:300]}")
-            if href:
-                lines.append(f"   {href}")
-            lines.append("")
-        return "\n".join(lines).strip()
-
-    errors = []
-
-    # ── 引擎1: DDGS (DuckDuckGo) ──
-    try:
-        from ddgs import DDGS
-        kwargs = {"timeout": timeout}
-        if proxy_url and proxy_url.strip():
-            kwargs["proxy"] = proxy_url.strip()
-        with DDGS(**kwargs) as ddgs:
-            results = list(ddgs.text(query, max_results=max(20, max_results)))
-        if results:
-            return _fmt_results(results)
-        errors.append("ddgs: 无结果")
-    except ImportError:
-        errors.append("ddgs: 未安装")
-    except Exception as e:
-        errors.append(f"ddgs: {e}")
-
-    # ── 引擎2: Brave Search API (免费 2000次/月) ──
-    brave_key = os.environ.get("BRAVE_API_KEY", "")
-    if brave_key:
-        try:
-            resp = _requests.get(
-                "https://api.search.brave.com/res/v1/web/search",
-                params={"q": query, "count": min(max_results, 20)},
-                headers={**headers, "Accept": "application/json",
-                         "X-Subscription-Token": brave_key, "Accept-Encoding": "gzip"},
-                proxies=proxies, timeout=timeout
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                web = data.get("web", {}).get("results", [])
-                if web:
-                    return _fmt_results(web)
-                errors.append("brave: 无结果")
-            else:
-                errors.append(f"brave: HTTP {resp.status_code}")
-        except Exception as e:
-            errors.append(f"brave: {e}")
-
-    # ── 引擎3: SearXNG (CloudCone 自建) ──
-    searxng_url = os.environ.get("SEARXNG_URL", "")
-    if searxng_url:
-        try:
-            resp = _requests.get(
-                f"{searxng_url}/search",
-                params={"q": query, "format": "json", "categories": "general"},
-                headers=headers, proxies=proxies, timeout=timeout
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                results = data.get("results", [])
-                if results:
-                    return _fmt_results(results)
-                errors.append("searxng: 无结果")
-            else:
-                errors.append(f"searxng: HTTP {resp.status_code}")
-        except Exception as e:
-            errors.append(f"searxng: {e}")
-
-    # ── 引擎4: Google 直接HTTP (text mode) ──
-    try:
-        google_url = f"https://www.google.com/search?q={urllib.parse.quote(query)}&hl=en&num=20&ie=UTF-8"
-        resp = _requests.get(google_url, headers={**headers, "User-Agent":
-            "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36"}, proxies=proxies, timeout=timeout+5)
-        if resp.status_code == 200:
-            # 尝试多种解析方式
-            for pattern in [
-                r'<h3[^>]*>([^<]+)</h3>.*?<a[^>]*href="([^"]+)"[^>]*>.*?<span[^>]*>([^<]{20,300})</span>',
-                r'"title":"([^"]+)","link":"([^"]+)"',
-                r'<h3[^>]*>([^<]+)</h3>',
-            ]:
-                matches = re.findall(pattern, resp.text[:200000], re.DOTALL)
-                if matches:
-                    google_results = []
-                    for m in matches[:max_results]:
-                        if isinstance(m, tuple):
-                            t, url, *rest = m
-                            body = rest[0] if rest else ""
-                        else:
-                            t, url, body = m, "", ""
-                        google_results.append({"title": t.strip(), "href": url.strip(), "body": body.strip()[:300]})
-                    if google_results:
-                        return _fmt_results(google_results)
-            errors.append("google: 无法解析结果")
-        else:
-            errors.append(f"google: HTTP {resp.status_code}")
-    except Exception as e:
-        errors.append(f"google: {e}")
-
-    # ── 引擎5: Startpage ──
-    try:
-        sp_url = f"https://www.startpage.com/sp/search?query={urllib.parse.quote(query)}&num=20"
-        resp = _requests.get(sp_url, headers=headers, proxies=proxies, timeout=timeout+5)
-        if resp.status_code == 200:
-            # Startpage uses w-gl classes
-            results = []
-            titles = re.findall(r'class="w-gl__result-title[^"]*"[^>]*>([^<]+)', resp.text)
-            hrefs = re.findall(r'class="w-gl__result-url[^"]*"[^>]*>([^<]+)', resp.text)
-            descs = re.findall(r'class="w-gl__description[^"]*"[^>]*>([^<]+)', resp.text)
-            for i in range(min(len(titles), max_results)):
-                entry = {"title": titles[i].strip()}
-                if i < len(hrefs): entry["href"] = hrefs[i].strip()
-                if i < len(descs): entry["body"] = descs[i].strip()[:300]
-                results.append(entry)
-            if results:
-                return _fmt_results(results)
-            errors.append("startpage: 无法解析")
-        else:
-            errors.append(f"startpage: HTTP {resp.status_code}")
-    except Exception as e:
-        errors.append(f"startpage: {e}")
-
-    return f"所有搜索引擎均失败 ({'; '.join(errors)})"
-
-
+    """网页搜索 → 委托 chat_tools (ddgs+代理 → Bing兜底)"""
+    from src.chat_tools import _web_search as _ws
+    return _ws(query)
 def _do_web_extract(url: str) -> str:
     """抓取网页内容（支持SOCKS5/HTTP代理）"""
     import requests, re, os
@@ -4111,102 +4043,42 @@ def _do_web_extract(url: str) -> str:
 
 
 def _do_read_file(path: str, offset: int = 1, limit: int = 200) -> str:
-    """读取本机文件"""
-    try:
-        p = Path(path).expanduser().resolve()
-        if not p.exists():
-            return f"文件不存在: {path}"
-        if p.stat().st_size > 10 * 1024 * 1024:
-            return f"文件过大({p.stat().st_size}字节)，请用 offset/limit 分段读取"
-        # 敏感路径告警
-        sensitive_prefixes = (
-            str(Path.home() / ".ssh"), "/etc/shadow", "/etc/passwd",
-            "/var/run/secrets", "/proc/self/environ"
-        )
-        warning = ""
-        if str(p).startswith(sensitive_prefixes):
-            warning = "⚠️ 警告: 正在读取敏感文件\n"
-        lines = p.read_text(errors='replace').split('\n')
-        total = len(lines)
-        start = max(1, offset) - 1
-        end = min(start + limit, total)
-        result = '\n'.join(f"{i+1}|{l}" for i, l in enumerate(lines[start:end], start))
-        header = warning + f"文件: {path} (行 {start+1}-{end} / 共 {total} 行)\n"
-        return header + result
-    except Exception as e:
-        return f"读取失败: {e}"
+    """读取本机文件 → 委托 chat_tools"""
+    from src.chat_tools import _read_file as _rf
+    return _rf(path, limit)
 
 
 def _do_write_file(path: str, content: str) -> str:
-    """写入本机文件"""
-    try:
-        p = Path(path).expanduser().resolve()
-        # 禁止写入系统关键路径
-        forbidden = ("/etc/", "/boot/", "/sys/", "/proc/", "/dev/")
-        if str(p).startswith(forbidden):
-            return f"写入拒绝: {path} 位于系统保护目录，禁止写入"
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content, encoding='utf-8')
-        return f"已写入: {path} ({len(content)} 字符)"
-    except Exception as e:
-        return f"写入失败: {e}"
+    """写入本机文件 → 委托 chat_tools"""
+    from src.chat_tools import _write_file as _wf
+    return _wf(path, content)
 
 
 def _do_search_files(pattern: str, directory: str = "") -> str:
-    """搜索本机文件"""
-    import subprocess
-    try:
-        d = Path(directory).expanduser().resolve() if directory else Path.home()
-        if not d.exists():
-            d = Path.home()
-        # 用 find + grep 快速搜索
-        result = subprocess.run(
-            ["find", str(d), "-maxdepth", "4", "-type", "f", "-iname", f"*{pattern}*", "-not", "-path", "*/.git/*", "-not", "-path", "*/node_modules/*", "-not", "-path", "*/__pycache__/*"],
-            capture_output=True, text=True, timeout=10
-        )
-        files = [l for l in result.stdout.strip().split('\n') if l]
-        if files:
-            return f"找到 {len(files)} 个文件:\n" + '\n'.join(files[:30])
-        # 按内容搜索
-        result2 = subprocess.run(
-            ["grep", "-rl", "--max-depth=3", pattern, str(d)],
-            capture_output=True, text=True, timeout=10
-        )
-        files2 = [l for l in result2.stdout.strip().split('\n') if l]
-        return f"按内容找到 {len(files2)} 个文件:\n" + '\n'.join(files2[:20]) if files2 else f"未找到匹配 '{pattern}' 的文件"
-    except Exception as e:
-        return f"搜索失败: {e}"
+    """搜索本机文件 → 委托 chat_tools"""
+    from src.chat_tools import _search_files as _sf
+    return _sf(pattern, directory or ".")
 
 
 # ── 本地终端执行 ──
 
 def _do_terminal(cmd: str, workdir: str = "", timeout: int = 60) -> str:
-    """在本机执行 shell 命令（需用户口头授权）"""
-    import subprocess as sp
-    from src.core.sandbox import CodeScanner
-    # 安全: sandbox验证, 再shell=True保留管道/重定向
-    ok, err = CodeScanner.scan_bash(cmd)
-    if not ok:
-        return f"终端: 命令被安全策略拦截 - {err}"
-    timeout = min(timeout, 300)  # 上限 5 分钟
-    try:
-        env = os.environ.copy()
-        env["PATH"] = "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + env.get("PATH", "")
-        result = sp.run(
-            cmd, shell=True, capture_output=True, text=True,
-            timeout=timeout, cwd=workdir or os.getcwd(), env=env
-        )
-        out = result.stdout.strip()
-        err = result.stderr.strip()
-        response = (out + "\n" + err).strip()[:8000]
-        if not response:
-            response = f"(exit={result.returncode})"
-        sysname = {"linux": "Linux", "darwin": "macOS", "win32": "Windows"}.get(sys.platform, sys.platform)
-        return f"终端 [{sysname}]:\n{response}"
-    except sp.TimeoutExpired:
-        return f"终端超时（{timeout}s），命令被中断"
-    except Exception as e:
-        return f"终端执行失败: {e}"
+    """在本机执行 shell 命令 → 委托 chat_tools"""
+    from src.chat_tools import _run_cmd as _rc
+    import os as _os
+    if workdir:
+        _cwd = _os.getcwd()
+        try:
+            _os.chdir(workdir)
+        except Exception:
+            pass
+        result = _rc(cmd)
+        try:
+            _os.chdir(_cwd)
+        except Exception:
+            pass
+        return result
+    return _rc(cmd)
 
 
 # ── 远程文件工具 (SSH: paramiko 纯 Python → 原生 ssh 回退) ──
@@ -4491,7 +4363,7 @@ async def chat_compare(req: Request):
             entry = {"model": mid, "response": "", "error": "", "latency_ms": 0}
             try:
                 # Run sync chat in thread pool for true parallelism
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 resp = await loop.run_in_executor(
                     None, 
                     lambda: reg.chat(
