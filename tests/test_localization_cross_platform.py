@@ -490,7 +490,7 @@ class TestTranslationCompleteness:
     def test_no_duplicate_values_in_same_lang(self):
         """检测可能的复制粘贴错误(同一语言中大量重复值)"""
         for lang_code in ["zh", "en", "ja"]:
-            values = list(i18n.TRANSLATIONS[lang_code].values())
+            values = [v for v in i18n.TRANSLATIONS[lang_code].values() if isinstance(v, str)]
             # 允许一些重复(如 "Chat" 在多个key中出现)
             # 但如果超过30%的值重复,可能有问题
             unique_ratio = len(set(values)) / len(values) if values else 1
