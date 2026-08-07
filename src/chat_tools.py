@@ -700,6 +700,15 @@ TOOLS = [
 ]
 
 
+# 解析工具 schema 中的桌面占位符（跨平台：每台机器加载时注入真实桌面目录）
+for _t in TOOLS:
+    _fn = _t.get("function", {})
+    _fn["description"] = _fn.get("description", "").replace("{__USER_DESKTOP__}", USER_DESKTOP)
+    for _p in (_fn.get("parameters", {}) or {}).get("properties", {}).values():
+        if isinstance(_p, dict) and "description" in _p:
+            _p["description"] = _p["description"].replace("{__USER_DESKTOP__}", USER_DESKTOP)
+
+
 # ═══════════════════════════════════════════════════════════
 # 统一工具实现 —— CLI 与 UI 共用
 # ═══════════════════════════════════════════════════════════
