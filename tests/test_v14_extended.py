@@ -2,6 +2,8 @@
 import pytest, sys, os, json, tempfile
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 class TestConfigPersistence:
     """配置持久化测试"""
@@ -118,7 +120,7 @@ class TestDesktopLauncher:
     def test_desktop_script_syntax(self):
         """meshctx_desktop.py语法正确"""
         import py_compile
-        py_compile.compile("/home/administrator/meshctx-local/meshctx_desktop.py", doraise=True)
+        py_compile.compile(os.path.join(PROJECT_ROOT, "meshctx_desktop.py"), doraise=True)
 
     def test_i18n_all_languages_load(self):
         """所有7语言翻译可加载"""
@@ -132,15 +134,19 @@ class TestDesktopLauncher:
 class TestWebsiteContent:
     """官网内容验证"""
 
+    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
     def test_readme_version(self):
         """README包含当前版本"""
-        with open("/home/administrator/meshctx-local/README.md") as f:
+        readme = os.path.join(self.PROJECT_ROOT, "README.md")
+        with open(readme, encoding="utf-8") as f:
             content = f.read()
         assert "v2.12" in content or "v2.1" in content or "v2." in content
 
     def test_index_html_has_7_langs(self):
         """官网有7种语言"""
-        with open("/home/administrator/meshctx-local/docs/index.html") as f:
+        index_html = os.path.join(self.PROJECT_ROOT, "docs", "index.html")
+        with open(index_html, encoding="utf-8") as f:
             content = f.read()
         assert "Español" in content
         assert "Deutsch" in content

@@ -14,7 +14,7 @@ class TestKG:
     def test_neighbors(self):
         kg = KnowledgeGraph(); kg.add_edge("a","b"); kg.add_edge("a","c")
         n = kg.query_neighbors("a")
-        assert "a" in n; assert len(n["a"]) == 2
+        assert n["node"]["id"] == "a"; assert len(n["outgoing"]) == 2; assert n["degree"] == 2
 
     def test_shortest_path(self):
         kg = KnowledgeGraph()
@@ -33,10 +33,10 @@ class TestKG:
         results = kg.search("python")
         assert len(results) >= 1
 
-    def test_dot(self):
+    def test_to_dict(self):
         kg = KnowledgeGraph(); kg.add_edge("x","y")
-        dot = kg.to_dot()
-        assert "digraph" in dot; assert "x" in dot
+        d = kg.to_dict()
+        assert "nodes" in d; assert "edges" in d
 
     def test_singleton(self):
         assert get_knowledge_graph() is get_knowledge_graph()

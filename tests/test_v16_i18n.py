@@ -55,15 +55,15 @@ class TestI18nInit:
         lang = i18n.get_lang()
         assert lang == "en"
 
-    def test_i18n_init_7_languages(self):
-        """TRANSLATIONS dict has exactly 7 languages"""
+    def test_i18n_init_10_languages(self):
+        """TRANSLATIONS dict has exactly 10 languages"""
         import src.i18n as i18n
-        assert len(i18n.TRANSLATIONS) == 7
+        assert len(i18n.TRANSLATIONS) == 10
 
     def test_i18n_all_lang_codes_present(self):
         """All required language codes are present"""
         import src.i18n as i18n
-        expected = {"zh", "en", "ja", "ko", "fr", "de", "es"}
+        expected = {"zh", "en", "ja", "ko", "fr", "de", "es", "it", "ar", "ru"}
         assert expected == set(i18n.TRANSLATIONS.keys())
 
 
@@ -254,10 +254,10 @@ class TestI18nAvailableLanguages:
     """Test get_available_languages()"""
 
     def test_i18n_available_languages_count(self):
-        """Returns exactly 7 language entries"""
+        """Returns exactly 10 language entries"""
         import src.i18n as i18n
         langs = i18n.get_available_languages()
-        assert len(langs) == 7
+        assert len(langs) == 10
 
     def test_i18n_available_languages_structure(self):
         """Each entry has code, name, native fields"""
