@@ -3678,7 +3678,8 @@ async def api_chat_stream(request: Request):
                     _round_txt = f"\n\n🔍 第{ev['round'] + 1}/{ev['total']}轮搜索...\n"
                     yield f"data: {_json.dumps({'token': _round_txt})}\n\n"
                 elif ev["type"] == "deliver":
-                    yield f"data: {_json.dumps({'token': '\n\n📝 **Deliver** — 基于已获取的真实数据生成最终报告...\n\n'})}\n\n"
+                    _deliver_txt = "\n\n📝 **Deliver** — 基于已获取的真实数据生成最终报告...\n\n"
+                    yield f"data: {_json.dumps({'token': _deliver_txt})}\n\n"
                 elif ev["type"] == "tool_start":
                     yield f"data: {_json.dumps({'tool_start': ev['name'], 'args': ev['args'], 'require_approval': False})}\n\n"
                 elif ev["type"] == "tool_result":

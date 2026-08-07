@@ -160,39 +160,42 @@ class TestHomeostasis:
 
 
 class TestBrainRouter:
-    """脑启发路由器基本合约"""
+    """智能路由 SmartRouter 基本合约（旧脑启发类已重构为 SmartRouter）"""
     
     def test_symbolic_projector(self):
-        from src.core.brain_router import SymbolicProjector
-        sp = SymbolicProjector(symbol_dim=32, vector_dim=128)
-        vec = sp.encode("hello")
-        assert vec.shape == (128,)
-        decoded = sp.decode(vec, top_k=1)
-        assert len(decoded) > 0
+        # 旧 SymbolicProjector 已重构移除 → 验证 SmartRouter 任务分类投影
+        from src.core.brain_router import classify_task
+        task_type, confidence = classify_task("帮我写一段 Python 冒泡排序代码")
+        assert isinstance(task_type, str)
+        assert 0.0 <= confidence <= 1.0
     
     def test_sparse_attention(self):
-        from src.core.brain_router import SparseAttentionRouter
-        sar = SparseAttentionRouter(num_experts=8, sparsity=2)
-        query = np.random.randn(64) * 0.1
-        scores = sar.route(query)
-        assert scores.shape == (8,)
-        assert np.count_nonzero(scores) <= 2
+        # 旧 SparseAttentionRouter 已重构移除 → 验证 SmartRouter 稀疏路由偏好
+        from src.core.brain_router import SmartRouter
+        sr = SmartRouter()
+        result = sr.route("什么是量子纠缠", preference="fast")
+        assert result["model"]
+        assert result["task_type"]
+        assert result["preference"] == "fast"
     
     def test_psi_complexity(self):
-        from src.core.brain_router import PsiParameterizedComplexity
-        psc = PsiParameterizedComplexity()
-        psi = psc.estimate("gpt-4", params=1000000000000)
-        assert psi > 0
-        optimal = psc.get_optimal_model(5.0, ["small-model", "medium-model", "large-model"])
-        assert optimal in ["small-model", "medium-model", "large-model"]
+        # 旧 PsiParameterizedComplexity 已重构移除 → 验证复杂度估计
+        from src.core.brain_router import estimate_complexity
+        simple = estimate_complexity("你好")
+        complex_ = estimate_complexity("请详细分析这段包含循环、递归、多线程、异步和异常处理的复杂代码的时空复杂度")
+        assert 0.0 <= simple <= 1.0
+        assert 0.0 <= complex_ <= 1.0
+        assert complex_ >= simple
     
     def test_brain_inspired_router(self):
-        from src.core.brain_router import BrainInspiredRouter
-        bir = BrainInspiredRouter()
-        result = bir.route("test query", ["model-a", "model-b", "model-c"])
-        assert result in ["model-a", "model-b", "model-c"]
-        stats = bir.get_stats()
-        assert 'projector' in stats
+        # 旧 BrainInspiredRouter 已重构移除 → 验证 SmartRouter 路由决策
+        from src.core.brain_router import SmartRouter
+        sr = SmartRouter()
+        result = sr.route("写一个排序算法", preference="balanced")
+        # SmartRouter.route 返回 dict, 含 model 字段
+        assert "model" in result
+        stats = sr.stats()
+        assert "routes" in stats
 
 
 class TestSuperBrain:
@@ -267,7 +270,8 @@ class TestSuperBrain:
         intro = dmn.introspect()
         assert 'confidence' in intro
         daydream = dmn.mind_wander()
-        assert isinstance(daydream, str)
+        assert isinstance(daydream, list) and len(daydream) >= 1
+        assert all(isinstance(t, str) for t in daydream)
         dmn.update_self_model(success=True)
         assert dmn.self_model['confidence'] > 0.6
 

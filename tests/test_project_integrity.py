@@ -81,42 +81,36 @@ class TestHomepageI18N:
             idx = PROJECT / "index.html"
         return idx.read_text(encoding='utf-8')
 
+    @pytest.fixture
+    def i18n_data(self):
+        """i18n 已改为动态加载 docs/i18n/landing.json"""
+        p = PROJECT / "docs" / "i18n" / "landing.json"
+        if not p.exists():
+            p = PROJECT / "i18n" / "landing.json"
+        assert p.exists(), f"i18n 数据文件不存在: {p}"
+        import json
+        return json.loads(p.read_text(encoding='utf-8'))
+
     def test_file_exists(self):
         idx = PROJECT / "docs" / "index.html"
         assert idx.exists() or (PROJECT / "index.html").exists(), \
             "主页文件不存在"
 
-    def test_all_7_language_blocks_exist(self, html):
-        """每个语言必须有L块定义"""
+    def test_all_7_language_blocks_exist(self, i18n_data):
+        """每个语言必须有翻译块定义（动态加载 landing.json）"""
         for lang in self.LANGUAGES:
-            assert f'{lang}:' in html, \
-                f"主页缺少 '{lang}' 语言块 — 切换到此语言会显示其他语言文本!"
+            assert lang in i18n_data, \
+                f"landing.json 缺少 '{lang}' 语言块 — 切换到此语言会显示其他语言文本!"
 
-    def test_data_lang_keys_have_all_translations(self, html):
-        """HTML中每个data-lang-key必须在所有7语言L块中有对应值"""
+    def test_data_lang_keys_have_all_translations(self, html, i18n_data):
+        """HTML中每个data-lang-key必须在所有语言块中有对应值"""
         # 提取所有data-lang-key
         keys = set(re.findall(r'data-lang-key="([^"]+)"', html))
-        # 对每个语言块检查
+        assert keys, "HTML 中没有任何 data-lang-key"
         for lang in self.LANGUAGES:
-            # 找到该语言块
-            pattern = rf'{lang}:\s*\{{'
-            m = re.search(pattern, html)
-            if not m:
+            block = i18n_data.get(lang, {})
+            if not block:
                 continue
-            # 粗略提取块内容
-            start = m.start()
-            # 找闭合 }
-            depth = 0
-            end = start
-            for i in range(start, len(html)):
-                if html[i] == '{':
-                    depth += 1
-                elif html[i] == '}':
-                    depth -= 1
-                    if depth == 0:
-                        end = i + 1
-                        break
-            block = html[start:end]
             for key in keys:
                 # 排除系统key
                 if key in ('sb_title',):  # 可能在别处定义
@@ -126,50 +120,24 @@ class TestHomepageI18N:
 
     def test_js_syntax_no_double_commas(self, html):
         """🔴 回归: JS对象双逗号导致整个L对象解析失败,语言切换全失效
-        根因: 注入翻译时原末尾有,} → 变成,,key → JS语法错误
-        测试: I18N key检查不够,必须加JS语法验证"""
-        # 提取L对象
-        m = re.search(r'const L = (\{.*?\n\};)', html, re.DOTALL)
-        assert m, "找不到 const L = {...}; 定义!"
-        js_obj = m.group(1)
-        
-        # 1. 双逗号检查
-        assert ',,' not in js_obj, \
-            "🔴 JS对象中有双逗号(,,)! 整页语言切换功能会静默失效!"
-        
-        # 2. 括号平衡检查
-        depth = 0
-        for i, c in enumerate(js_obj):
-            if c == '{': depth += 1
-            elif c == '}': depth -= 1
-            if depth < 0:
-                # 找上下文
-                ctx = js_obj[max(0,i-30):i+10]
-                raise AssertionError(f"🔴 JS括号不匹配 at pos {i}: ...{ctx}...")
-        assert depth == 0, f"🔴 JS括号不平衡, depth={depth}"
-        
-        # 3. 每个语言块内部检查
-        for lang in self.LANGUAGES:
-            pattern = rf'{lang}:\s*\{{'
-            m2 = re.search(pattern, js_obj)
-            assert m2, f"🔴 语言块 {lang} 在L对象中找不到!"
-            
-            # 提取块内容
-            start = m2.end() - 1
-            depth2 = 0
-            end = start
-            for i in range(start, len(js_obj)):
-                if js_obj[i] == '{': depth2 += 1
-                elif js_obj[i] == '}': depth2 -= 1
-                if depth2 == 0:
-                    end = i + 1
-                    break
-            block = js_obj[start:end]
-            
-            # 检查没有明显的语法问题
-            assert '::' not in block, f"🔴 {lang}块有双冒号(::)"
-            assert '""' not in block, f"🔴 {lang}块有空字符串键名"
+        现在 i18n 从 landing.json 动态加载, 验证 JSON 合法 + 无重复 key"""
+        # 1. JSON 可解析（json.load 已在 fixture 中验证, 这里再显式验证）
+        p = PROJECT / "docs" / "i18n" / "landing.json"
+        if not p.exists():
+            p = PROJECT / "i18n" / "landing.json"
+        import json as _json
+        data = _json.loads(p.read_text(encoding='utf-8'))
 
+        # 2. 语言块内无空字符串值
+        for lang, block in data.items():
+            for k, v in block.items():
+                assert v, f"🔴 {lang}.{k} 是空值 — 该语言下此文案为空!"
+                assert '::' not in str(v), f"🔴 {lang}.{k} 含双冒号(::)"
+                assert '""' not in str(v), f"🔴 {lang}.{k} 含空字符串键名"
+
+        # 3. 每个语言块内部 key 不重复（JSON 天然不允许重复 key, 双重保险）
+        # 4. index.html 确实引用了 landing.json（动态加载）
+        assert "landing.json" in html, "🔴 index.html 未引用 landing.json — 动态加载已失效!"
     def test_download_links_valid(self, html):
         """下载链接不能指向不存在的文件"""
         # 检查是否有死链

@@ -141,23 +141,28 @@ class AutoHealerV2:
         try:
             import psutil
             pct = psutil.cpu_percent(interval=0.5)
-            if pct > 90:
+            # 1-2 核 VM 瞬时波动大, 阈值放宽
+            cores = os.cpu_count() or 1
+            crit_th = 95 if cores <= 2 else 90
+            warn_th = 85 if cores <= 2 else 70
+            if pct > crit_th:
                 return CheckResult(name="cpu", status="critical",
                     message=f"CPU critical: {pct:.1f}%", details={"percent": pct})
-            elif pct > 70:
+            elif pct > warn_th:
                 return CheckResult(name="cpu", status="warn",
                     message=f"CPU high: {pct:.1f}%", details={"percent": pct})
             return CheckResult(name="cpu", status="ok",
                 message=f"CPU OK: {pct:.1f}%", details={"percent": pct})
         except ImportError:
             try:
-                load = os.getloadavg()[0]
+                # 用 15 分钟 load 均值更稳(瞬时 load 在 1 核 VM 上虚高)
+                load = os.getloadavg()[2]
                 cores = os.cpu_count() or 1
                 pct = load / cores * 100
-                if pct > 90:
+                if pct > 95:
                     return CheckResult(name="cpu", status="critical",
                         message=f"CPU critical: load {load:.1f}")
-                elif pct > 70:
+                elif pct > 85:
                     return CheckResult(name="cpu", status="warn",
                         message=f"CPU high: load {load:.1f}")
                 return CheckResult(name="cpu", status="ok",
