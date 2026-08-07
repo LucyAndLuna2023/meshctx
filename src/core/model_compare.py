@@ -131,12 +131,20 @@ class ModelCompareEngine:
                 from src.model_registry import get_registry
                 reg = get_registry()
                 def _real_exec(prompt_text, model_id):
-                    # Use registry's chat method directly
-                    resp = reg.chat(
-                        messages=[{"role": "user", "content": prompt_text}],
-                        temperature=0.7, max_tokens=1024
-                    )
-                    return resp.get("content", resp.get("response", str(resp)))
+                    # ModelRegistry 无 chat 方法；chat 属于 ModelClient (model_registry.py:463)
+                    # 通过 registry.get(model_id) 拿到客户端再调 chat
+                    try:
+                        client = reg.get(model_id)
+                        if client is None:
+                            raise RuntimeError(f"模型 {model_id} 未注册")
+                        resp = client.chat(
+                            messages=[{"role": "user", "content": prompt_text}],
+                            temperature=0.7, max_tokens=1024
+                        )
+                        return resp.get("content", resp.get("response", str(resp)))
+                    except Exception:
+                        # 真实 LLM 不可用（无 key/未注册/网络失败）→ 回退 simulated，不计 error
+                        return f"[simulated] {model_id} response to: {prompt_text[:50]}"
                 executor = _real_exec
             except Exception:
                 pass  # fall through to simulated

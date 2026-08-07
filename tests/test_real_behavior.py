@@ -108,11 +108,16 @@ class TestExeBuild:
 class TestNSIS:
     """NSIS安装包验证"""
 
-    def test_nsis_7_languages(self):
-        """Bug#3: NSIS缺少语言"""
+    def test_nsis_9_languages(self):
+        """Bug#3: NSIS缺少语言 — 已扩至9语言"""
         nsi = (PROJECT / "meshctx_setup.nsi").read_text()
         langs = re.findall(r'!insertmacro MUI_LANGUAGE "([^"]+)"', nsi)
-        assert len(langs) == 7, f"应为7语言,实际{len(langs)}: {langs}"
+        expected = {
+            "SimpChinese", "English", "Japanese", "Korean",
+            "German", "French", "Spanish", "Italian", "Arabic",
+        }
+        assert len(langs) >= 7, f"语言数异常: {langs}"
+        assert expected.issubset(set(langs)), f"缺少语言: {expected - set(langs)}"
 
     def test_nsis_mui_order_correct(self):
         """v3.33.9自定义radio方案: MUI_LANGUAGE在MUI_PAGE之前(编译时顺序)"""
