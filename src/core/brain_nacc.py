@@ -26,12 +26,15 @@ class RewardOutcome:
 
 
 class RewardPredictor:
-    """VTA→NAcc TD learning of reward prediction."""
+    """VTA→NAcc TD(λ) learning of reward prediction (v3.115.38)."""
 
-    def __init__(self, n_states: int = 10, learning_rate: float = 0.1, gamma: float = 0.95):
+    def __init__(self, n_states: int = 10, learning_rate: float = 0.3, gamma: float = 0.95, lambda_: float = 0.7):
         self.lr = learning_rate
         self.gamma = gamma
+        self.lambda_ = lambda_
         self.value = np.zeros(n_states)
+        # Eligibility traces — each state has its own trace for multi-step credit assignment
+        self.eligibility = np.zeros(n_states)
         self.n_updates = 0
         self._pe_history: deque = deque(maxlen=100)
 
@@ -49,7 +52,16 @@ class RewardPredictor:
             td_target = reward
 
         pe = td_target - predicted
-        self.value[idx] += self.lr * pe
+
+        # ═══ TD(λ) with eligibility traces (v3.115.38) ═══
+        # Decay all eligibility traces: e(s) ← γλ e(s)
+        self.eligibility *= self.gamma * self.lambda_
+        # Current state gets credit: e(s_t) += 1
+        self.eligibility[idx] += 1.0
+        # Update ALL states proportionally to their eligibility
+        self.value += self.lr * pe * self.eligibility
+        self.value = np.clip(self.value, -10.0, 10.0)
+
         self.n_updates += 1
         self._pe_history.append(pe)
 
@@ -62,6 +74,19 @@ class RewardPredictor:
             prediction_error=float(pe),
             dopamine_signal=float(da)
         )
+
+    def reset_with_optimistic_init(self, optimism: float = 0.5):
+        """Optimistic initialization — all states start with positive value to encourage exploration."""
+        self.value = np.full(len(self.value), optimism)
+        self.eligibility = np.zeros(len(self.value))
+        self._pe_history.clear()
+        self.n_updates = 0
+
+    def pretrain_hints(self, reward_states: Dict[int, float]):
+        """Seed known reward states for faster convergence."""
+        for sidx, rval in reward_states.items():
+            idx = min(sidx, len(self.value) - 1)
+            self.value[idx] = rval
 
     def mean_pe(self) -> float:
         if not self._pe_history:
@@ -101,6 +126,18 @@ class MotivationSignal:
     def should_act(self, threshold: float = 0.3) -> bool:
         return self.motivation > threshold
 
+    def run_cycle(self, dopamine_signal: float, effort: float = 0.0, satiety_decay: float = 0.005):
+        """Single-cycle update for BrainLoop integration."""
+        self.update(dopamine_signal, effort)
+        self.decay_satiety(satiety_decay)
+
+    def reset(self):
+        """Reset to initial state."""
+        self.tonic_da = 0.3
+        self.motivation = 0.5
+        self.satiety = 0.0
+        self._da_history.clear()
+
     def consume_reward(self, reward_magnitude: float):
         """Consuming reward increases satiety."""
         self.satiety = min(1.0, self.satiety + reward_magnitude * 0.2)
@@ -118,12 +155,15 @@ class WantingVsLiking:
         self.craving = 0.0
 
     def process_reward(self, reward: float, dopamine: float):
-        """Update wanting/liking based on reward outcome."""
-        # Liking: hedonic impact — moves slowly
+        """Update wanting/liking based on reward outcome — with sensitization (v3.115.38)."""
+        # Liking: hedonic impact — moves slowly, no sensitization
         self.liking = 0.9 * self.liking + 0.1 * max(0.0, reward)
 
-        # Wanting: incentive salience — sensitizes with dopamine
-        self.wanting = 0.85 * self.wanting + 0.15 * max(0.0, dopamine)
+        # Wanting: incentive salience — sensitizes with repeated dopamine spikes
+        # da_factor > 1 when dopamine is high relative to baseline → wanting grows faster
+        da_factor = 1.0 + max(0.0, dopamine - 0.2) * 2.0  # 1.0–2.6× range
+        self.wanting = 0.85 * self.wanting + 0.15 * max(0.0, dopamine) * da_factor
+        self.wanting = min(self.wanting, 1.0)
 
         # Craving: mismatch between wanting and liking
         self.craving = max(0.0, self.wanting - self.liking)

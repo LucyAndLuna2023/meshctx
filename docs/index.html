@@ -170,15 +170,16 @@
             <span class="lang-dropdown">
                 <button class="lang-dropdown-toggle" onclick="document.querySelector('.lang-dropdown-menu').classList.toggle('show')" id="langToggle">🌐 EN ▾</button>
                 <div class="lang-dropdown-menu" id="langMenu">
+                    <button onclick="switchLang('ar');closeDropdown()">🇸🇦 العربية</button>
+                    <button onclick="switchLang('de');closeDropdown()">🇩🇪 Deutsch</button>
                     <button class="active" onclick="switchLang('en');closeDropdown()">🇺🇸 English</button>
-                    <button onclick="switchLang('zh');closeDropdown()">🇨🇳 中文</button>
-                    <button onclick="switchLang('ja');closeDropdown()">🇯🇵 日本語</button>
-                    <button onclick="switchLang('ko');closeDropdown()">🇰🇷 한국어</button>
                     <button onclick="switchLang('es');closeDropdown()">🇪🇸 Español</button>
                     <button onclick="switchLang('fr');closeDropdown()">🇫🇷 Français</button>
-                    <button onclick="switchLang('de');closeDropdown()">🇩🇪 Deutsch</button>
                     <button onclick="switchLang('it');closeDropdown()">🇮🇹 Italiano</button>
-                    <button onclick="switchLang('ar');closeDropdown()">🇸🇦 العربية</button>
+                    <button onclick="switchLang('ja');closeDropdown()">🇯🇵 日本語</button>
+                    <button onclick="switchLang('ko');closeDropdown()">🇰🇷 한국어</button>
+                    <button onclick="switchLang('ru');closeDropdown()">🇷🇺 Русский</button>
+                    <button onclick="switchLang('zh');closeDropdown()">🇨🇳 中文</button>
                 </div>
             </span>
         </div>
@@ -538,7 +539,7 @@ if (L && Object.keys(L).length > 0 && L['en']) {
                 <input type="text" id="signin-captcha" data-lang-key-placeholder="auth_captcha_placeholder" placeholder="Enter the code above" maxlength="6" autocomplete="off">
             </div>
 
-            <button class="btn-submit" id="signin-btn" onclick="signInWithEmail()" data-lang-key="auth_signin_btn">Sign In</button>
+            <button class="btn-submit" id="signin-btn" onclick="signInWithEmail()" data-lang-key="auth_btn_signin">Sign In</button>
             <div class="auth-divider"><span data-lang-key="auth_divider">or continue with</span></div>
             <button class="btn-oauth btn-oauth-github" onclick="signInWithOAuth('github')">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -576,7 +577,7 @@ if (L && Object.keys(L).length > 0 && L['en']) {
                 <label data-lang-key="auth_label_pw2">Confirm Password</label>
                 <input type="password" id="recovery-password2" data-lang-key-placeholder="auth_ph_pw2" placeholder="Re-enter your new password" autocomplete="new-password">
             </div>
-            <button class="btn-submit" id="recovery-btn" onclick="confirmPasswordReset()" data-lang-key="auth_recovery_btn">Update Password</button>
+            <button class="btn-submit" id="recovery-btn" onclick="confirmPasswordReset()" data-lang-key="auth_btn_recovery">Update Password</button>
             <div class="auth-error" id="auth-error-recovery"></div>
         </div>
 
@@ -615,7 +616,7 @@ if (L && Object.keys(L).length > 0 && L['en']) {
                 <input type="text" id="signup-captcha" data-lang-key-placeholder="auth_captcha_placeholder" placeholder="Enter the code above" maxlength="6" autocomplete="off">
             </div>
 
-            <button class="btn-submit" id="signup-btn" onclick="signUpWithEmail()" data-lang-key="auth_signup_btn">Create Account</button>
+            <button class="btn-submit" id="signup-btn" onclick="signUpWithEmail()" data-lang-key="auth_btn_signup">Create Account</button>
             <div class="auth-divider"><span data-lang-key="auth_divider">or continue with</span></div>
             <button class="btn-oauth btn-oauth-github" onclick="signInWithOAuth('github')">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>

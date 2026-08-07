@@ -1,5 +1,11 @@
 /* ═══ Auth Modal & Profile Styles ═══ */
 
+:root {
+    --surface: #1a1a2e;
+    --accent: #8b5cf6;
+    --fg-dim: #64748b;
+}
+
 /* Nav auth button */
 .btn-auth {
     display: inline-flex; align-items: center; gap: 6px;
@@ -239,9 +245,6 @@
 .captcha-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .captcha-refresh { font-size: 0.75rem; color: var(--accent); cursor: pointer; white-space: nowrap; }
 .captcha-refresh:hover { text-decoration: underline; }
-#signup-captcha { width: 100%; padding: 8px 10px; font-size: 0.9rem; letter-spacing: 4px; text-transform: uppercase;
+#signup-captcha, #signin-captcha { width: 100%; padding: 8px 10px; font-size: 0.9rem; letter-spacing: 4px; text-transform: uppercase;
     background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); box-sizing: border-box; }
-#signup-captcha:focus { border-color: var(--accent); outline: none; }
-#signin-captcha { width: 100%; padding: 8px 10px; font-size: 0.9rem; letter-spacing: 4px; text-transform: uppercase;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); box-sizing: border-box; }
-#signin-captcha:focus { border-color: var(--accent); outline: none; }
+#signup-captcha:focus, #signin-captcha:focus { border-color: var(--accent); outline: none; }

@@ -37,30 +37,38 @@ def pytest_collection_modifyitems(items):
 
 @pytest.fixture(autouse=True)
 def _reset_global_state():
-    """每个测试后重置全局单例，防止测试间状态污染。"""
+    """每个测试后重置全局单例，防止测试间状态污染。
+
+    Python 3.14兼容: 使用 sys.modules 检查模块是否已加载，
+    避免强制导入 src.main 等重型模块导致 MemoryError（#13048）。
+    """
     yield
-    import importlib
+    import sys
     # 重置 kernel 全局实例
-    try:
-        from src.core.kernel import Kernel
-        Kernel._instance = None
-    except Exception:
-        pass
+    if "src.core.kernel" in sys.modules:
+        try:
+            from src.core.kernel import Kernel
+            Kernel._instance = None
+        except Exception:
+            pass
     # 重置 notification_hub
-    try:
-        from src.core import notification_hub
-        notification_hub._global_notification_hub = None
-    except Exception:
-        pass
+    if "src.core" in sys.modules:
+        try:
+            from src.core import notification_hub
+            notification_hub._global_notification_hub = None
+        except Exception:
+            pass
     # 重置 healer
-    try:
-        from src.core.healer import AUTO_HEALER
-        AUTO_HEALER._instance = None
-    except Exception:
-        pass
+    if "src.core.healer" in sys.modules:
+        try:
+            from src.core.healer import AUTO_HEALER
+            AUTO_HEALER._instance = None
+        except Exception:
+            pass
     # 重置 rate limiter（全量测试累积导致429）
-    try:
-        from src import main
-        main._rate_limit_store.clear()
-    except Exception:
-        pass
+    if "src.main" in sys.modules:
+        try:
+            from src import main
+            main._rate_limit_store.clear()
+        except Exception:
+            pass

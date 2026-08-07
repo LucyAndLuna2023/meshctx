@@ -311,11 +311,11 @@ async function signUpWithEmail() {
         email: email,
         password: password,
         options: {
-            data: { full_name: name || email.split('@')[0] },
+            data: { full_name: name || email.split('@')[0], display_name: name || email.split('@')[0] },
             emailRedirectTo: window.location.origin + '/'
         }
     });
-    btn.disabled = false; btn.textContent = _t('auth_signup_btn', 'Create Account');
+    btn.disabled = false; btn.textContent = _t('auth_btn_signup', 'Create Account');
 
     if (error) { showAuthError(error.message); return; }
 
@@ -332,7 +332,7 @@ async function signUpWithEmail() {
     // Email confirmation is on — identities is empty [] for new users
     // "already registered" returns 422 error from Supabase, caught above
     showAuthError(_t('auth_confirm', 'Check your email for a confirmation link!'));
-    } catch(e) { btn.disabled = false; btn.textContent = _t('auth_signup_btn', 'Create Account'); showAuthError(_t('auth_err_network', 'Network or server error. Please try again.')); }
+    } catch(e) { btn.disabled = false; btn.textContent = _t('auth_btn_signup', 'Create Account'); showAuthError(_t('auth_err_network', 'Network or server error. Please try again.')); }
 }
 
 // ═══ Email Sign In ═══
@@ -354,7 +354,7 @@ async function signInWithEmail() {
 
     try {
     var { data, error } = await sb.auth.signInWithPassword({ email: email, password: password });
-    btn.disabled = false; btn.textContent = _t('auth_signin_btn', 'Sign In');
+    btn.disabled = false; btn.textContent = _t('auth_btn_signin', 'Sign In');
 
     if (error) { showAuthError(error.message); return; }
     if (!data || !data.session || !data.session.access_token) {
@@ -366,7 +366,7 @@ async function signInWithEmail() {
     _user = data.user;
     updateAuthUI();
     hideAuthModal();
-    } catch(e) { btn.disabled = false; btn.textContent = _t('auth_signin_btn', 'Sign In'); showAuthError(_t('auth_err_network', 'Network or server error. Please try again.')); }
+    } catch(e) { btn.disabled = false; btn.textContent = _t('auth_btn_signin', 'Sign In'); showAuthError(_t('auth_err_network', 'Network or server error. Please try again.')); }
 }
 
 // ═══ OAuth (GitHub) ═══
@@ -449,7 +449,7 @@ async function confirmPasswordReset() {
     try {
         var { data, error } = await sb.auth.updateUser({ password: pw });
         btn.disabled = false;
-        btn.textContent = _t('auth_recovery_btn', 'Update Password');
+        btn.textContent = _t('auth_btn_recovery', 'Update Password');
         if (error) { showAuthError(error.message); return; }
 
         // Success — clear recovery params, show signin
@@ -462,7 +462,7 @@ async function confirmPasswordReset() {
         showAuthModal('signin');
     } catch(e) {
         btn.disabled = false;
-        btn.textContent = _t('auth_recovery_btn', 'Update Password');
+        btn.textContent = _t('auth_btn_recovery', 'Update Password');
         showAuthError(_t('auth_err_network', 'Network error. Please try again.'));
     }
 }
@@ -526,7 +526,7 @@ function updateAuthUI() {
         if (userMenu) userMenu.style.display = 'flex';
         if (userName) {
             var meta = _user.user_metadata || {};
-            userName.textContent = meta.full_name || meta.display_name || meta.user_name || _user.email || 'User';
+            userName.textContent = meta.display_name || meta.full_name || meta.user_name || _user.email || 'User';
         }
         if (userAvatar) {
             var avatarUrl = (_user.user_metadata || {}).avatar_url || '';

@@ -787,16 +787,6 @@ function copyMsg(btn) {
   });
 }
 
-function showToast(msg) {
-  const existing = document.querySelector('.copy-toast');
-  if (existing) existing.remove();
-  const t = document.createElement('div');
-  t.className = 'copy-toast';
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 1500);
-}
-
 function escapeHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
@@ -931,6 +921,7 @@ async function send() {
   try {
     // SSE streaming with timeout
     const controller = new AbortController();
+    window.streamingAbortController = controller;
     const timeoutId = setTimeout(() => controller.abort(), 360000); // 6 min timeout (后端墙钟 300s)
     
     const resp = await fetch('/api/chat/stream', {
@@ -1505,14 +1496,14 @@ function handleWsMessage(msg) {
       if (msg.role === 'assistant' && msg.content) {
         const msgs = document.getElementById('messages');
         // Avoid duplicating if user just sent and we're streaming
-        if (streamingAbortController) break;
+        if (window.streamingAbortController) break;
         // Check last message isn't already this one
         const lastMsg = msgs.lastElementChild;
         if (lastMsg && lastMsg.classList.contains('ai')) {
           const content = lastMsg.querySelector('.collapsed-content');
           if (content && content.textContent.trim() === msg.content.trim()) break;
         }
-        appendMessage('ai', msg.content);
+        addMsg('ai', msg.content, false);
       }
       if (msg.role === 'system' && msg.content) {
         showToast(msg.content);
@@ -1535,9 +1526,15 @@ function handleWsMessage(msg) {
 }
 
 function updateStatusDot(status) {
-  const dot = document.getElementById('statusDot');
+  const statusMap = { online: 'green', idle: 'gray', thinking: 'orange' };
+  const dot = document.querySelector('#panelAgentStatus .status-dot');
   if (dot) {
-    dot.className = 'status-dot ' + status;
+    dot.className = 'status-dot ' + (statusMap[status] || 'gray');
+  }
+  // Also update the parent span class
+  const agentSpan = document.getElementById('panelAgentStatus');
+  if (agentSpan) {
+    agentSpan.className = 'value agent-' + status;
   }
 }
 

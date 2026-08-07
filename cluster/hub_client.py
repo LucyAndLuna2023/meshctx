@@ -921,10 +921,15 @@ def _cli():
                     with open(machine_inbox, "a") as f:
                         f.write(json.dumps({**data, "received_at": datetime.now(timezone.utc).isoformat()}, ensure_ascii=False) + "\n")
                         f.flush()
-                    # Write to profile inbox — fallback to from_profile if to_profile not set
+                    # Write to profile inbox — fallback to from_profile if to_profile not set or not a valid dir
                     target_profile = data.get("to_profile", "") or data.get("from_profile", "")
                     if target_profile:
                         profile_inbox = os.path.expanduser(f"~/.hermes/profiles/{target_profile}/.hub_inbox")
+                        # Fallback: if target_profile dir doesn't exist, try the other one
+                        if not os.path.isdir(os.path.dirname(profile_inbox)):
+                            fallback = data.get("from_profile", "") if target_profile == data.get("to_profile", "") else data.get("to_profile", "")
+                            if fallback and fallback != target_profile:
+                                profile_inbox = os.path.expanduser(f"~/.hermes/profiles/{fallback}/.hub_inbox")
                         os.makedirs(os.path.dirname(profile_inbox), exist_ok=True)
                         with open(profile_inbox, "a") as f:
                             f.write(json.dumps({**data, "received_at": datetime.now(timezone.utc).isoformat()}, ensure_ascii=False) + "\n")
@@ -1136,9 +1141,14 @@ def _cli():
                                 f.write(json.dumps({**data, "received_at": datetime.now(timezone.utc).isoformat()}, ensure_ascii=False) + "\n")
                                 f.flush()
                             # Write to profile inbox if applicable
-                            to_profile = data.get("to_profile", "")
+                            to_profile = data.get("to_profile", "") or data.get("from_profile", "")
                             if to_profile:
                                 profile_inbox = os.path.expanduser(f"~/.hermes/profiles/{to_profile}/.hub_inbox")
+                                # Fallback: if to_profile is not a valid profile dir, try from_profile
+                                if not os.path.isdir(os.path.dirname(profile_inbox)):
+                                    fallback = data.get("from_profile", "") or data.get("to_profile", "")
+                                    if fallback and fallback != to_profile:
+                                        profile_inbox = os.path.expanduser(f"~/.hermes/profiles/{fallback}/.hub_inbox")
                                 os.makedirs(os.path.dirname(profile_inbox), exist_ok=True)
                                 with open(profile_inbox, "a") as f:
                                     f.write(json.dumps({**data, "received_at": datetime.now(timezone.utc).isoformat()}, ensure_ascii=False) + "\n")

@@ -224,6 +224,10 @@ class DeepCerebellarNuclei:
         # DCN has rebound excitation after Purkinje inhibition
         self.rebound_factor: float = 0.3
         self._prev_inhibition = np.zeros(n_neurons)
+        # Adaptive output scaling — calibrates DCN magnitude to state space (v3.115.38)
+        self.output_scale: float = 0.02
+        self.scale_adaptation_rate: float = 0.01
+        self.target_activation: float = 0.3
 
     def integrate(self, purkinje_inhibition: np.ndarray,
                   mossy_excitation: np.ndarray,
@@ -253,8 +257,14 @@ class DeepCerebellarNuclei:
         # Rebound excitation: if previous inhibition was strong, add rebound
         rebound = np.maximum(0, -self._prev_inhibition) * self.rebound_factor
 
-        # Firing rate model (sigmoid)
-        output = self.baseline_rate * (1.0 + np.tanh(net_input + rebound))
+        # Firing rate model (sigmoid) + adaptive output scaling
+        raw_output = self.baseline_rate * (1.0 + np.tanh(net_input + rebound))
+        # Adaptive scaling: drive DCN output mean toward target activation level
+        output = raw_output * self.output_scale
+        # Adapt scale based on activation deviation
+        self.output_scale *= (1.0 + self.scale_adaptation_rate *
+            np.clip(self.target_activation - np.mean(np.abs(output)), -0.5, 0.5))
+        self.output_scale = float(np.clip(self.output_scale, 0.001, 0.1))
 
         self._prev_inhibition = p_inh.copy()
         return output
@@ -287,9 +297,20 @@ class InternalForwardModel:
         self.W2 = rng.randn(state_dim, hidden_dim) * 0.1 / np.sqrt(hidden_dim)
         self.b2 = np.zeros(state_dim)
 
-        self.learning_rate = learning_rate
-        self.momentum_W1 = np.zeros_like(self.W1)
-        self.momentum_W2 = np.zeros_like(self.W2)
+        # Adam optimizer state (v3.115.38 — replaces plain momentum)
+        self.learning_rate = learning_rate * 3.0  # 0.02→0.06 baseline
+        self.beta1: float = 0.9
+        self.beta2: float = 0.999
+        self.eps: float = 1e-8
+        self.t: int = 0
+        self.m_W1 = np.zeros_like(self.W1)
+        self.v_W1 = np.zeros_like(self.W1)
+        self.m_W2 = np.zeros_like(self.W2)
+        self.v_W2 = np.zeros_like(self.W2)
+        self.m_b1 = np.zeros_like(self.b1)
+        self.v_b1 = np.zeros_like(self.b1)
+        self.m_b2 = np.zeros_like(self.b2)
+        self.v_b2 = np.zeros_like(self.b2)
 
         # Prediction error history
         self.error_history: deque = deque(maxlen=100)
@@ -297,8 +318,9 @@ class InternalForwardModel:
 
     def predict(self, state: np.ndarray, command: np.ndarray) -> np.ndarray:
         """
-        Predict next sensory state given current state + motor command.
-        x̂_{t+1} = f(x_t, u_t)
+        Predict next sensory state — residual learning (v3.115.38).
+        Network learns Δ (change) rather than absolute next state.
+        Default prior: state remains unchanged (zero-order hold).
         """
         # Concatenate state + command
         if len(state) < self.state_dim:
@@ -310,7 +332,10 @@ class InternalForwardModel:
 
         # Forward pass through 2-layer network
         h = np.tanh(self.W1 @ x + self.b1)
-        prediction = self.W2 @ h + self.b2
+        delta = self.W2 @ h + self.b2  # Network predicts change Δ
+
+        # Residual connection: prediction = state*0.5 + Δ (zero-order hold prior)
+        prediction = state[:self.state_dim] * 0.5 + delta
 
         return prediction[:self.state_dim]
 
@@ -358,13 +383,27 @@ class InternalForwardModel:
         dW1 = np.outer(dh_raw, x)
         db1 = dh_raw
 
-        # Momentum update
-        self.momentum_W2 = 0.9 * self.momentum_W2 - self.learning_rate * dW2
-        self.momentum_W1 = 0.9 * self.momentum_W1 - self.learning_rate * dW1
-        self.W2 += self.momentum_W2
-        self.b2 -= self.learning_rate * db2
-        self.W1 += self.momentum_W1
-        self.b1 -= self.learning_rate * db1
+        # Adam update (v3.115.38 — replaces momentum)
+        self.t += 1
+        # W2 update
+        self.m_W2 = self.beta1 * self.m_W2 + (1 - self.beta1) * dW2
+        self.v_W2 = self.beta2 * self.v_W2 + (1 - self.beta2) * dW2**2
+        m_hat_W2 = self.m_W2 / (1 - self.beta1**self.t)
+        v_hat_W2 = self.v_W2 / (1 - self.beta2**self.t)
+        self.W2 -= self.learning_rate * m_hat_W2 / (np.sqrt(v_hat_W2) + self.eps)
+        self.b2 -= self.learning_rate * db2 / (np.sqrt(self.v_b2 / (1 - self.beta2**self.t)) + self.eps)
+        # W1 update
+        self.m_W1 = self.beta1 * self.m_W1 + (1 - self.beta1) * dW1
+        self.v_W1 = self.beta2 * self.v_W1 + (1 - self.beta2) * dW1**2
+        m_hat_W1 = self.m_W1 / (1 - self.beta1**self.t)
+        v_hat_W1 = self.v_W1 / (1 - self.beta2**self.t)
+        self.W1 -= self.learning_rate * m_hat_W1 / (np.sqrt(v_hat_W1) + self.eps)
+        # b1, b2 moment accumulators (simple update for biases)
+        self.m_b1 = self.beta1 * self.m_b1 + (1 - self.beta1) * db1
+        self.v_b1 = self.beta2 * self.v_b1 + (1 - self.beta2) * db1**2
+        self.m_b2 = self.beta1 * self.m_b2 + (1 - self.beta1) * db2
+        self.v_b2 = self.beta2 * self.v_b2 + (1 - self.beta2) * db2**2
+        self.b1 -= self.learning_rate * self.m_b1 / (1 - self.beta1**self.t) / (np.sqrt(self.v_b1 / (1 - self.beta2**self.t)) + self.eps)
 
         self.total_updates += 1
 
@@ -383,14 +422,21 @@ class InternalForwardModel:
         return float(confidence)
 
     def reset_weights(self):
-        """Reinitialize weights."""
+        """Reinitialize weights and Adam state."""
         rng = np.random.RandomState(123)
-        self.W1 = rng.randn(self.hidden_dim, self.input_dim) * 0.1
+        self.W1 = rng.randn(self.hidden_dim, self.input_dim) * 0.1 / np.sqrt(self.input_dim)
         self.b1 = np.zeros(self.hidden_dim)
-        self.W2 = rng.randn(self.state_dim, self.hidden_dim) * 0.1
+        self.W2 = rng.randn(self.state_dim, self.hidden_dim) * 0.1 / np.sqrt(self.hidden_dim)
         self.b2 = np.zeros(self.state_dim)
-        self.momentum_W1 = np.zeros_like(self.W1)
-        self.momentum_W2 = np.zeros_like(self.W2)
+        self.m_W1 = np.zeros_like(self.W1)
+        self.v_W1 = np.zeros_like(self.W1)
+        self.m_W2 = np.zeros_like(self.W2)
+        self.v_W2 = np.zeros_like(self.W2)
+        self.m_b1 = np.zeros_like(self.b1)
+        self.v_b1 = np.zeros_like(self.b1)
+        self.m_b2 = np.zeros_like(self.b2)
+        self.v_b2 = np.zeros_like(self.b2)
+        self.t = 0
         self.error_history.clear()
         self.total_updates = 0
 
@@ -629,14 +675,22 @@ class CerebellarForwardModel:
         """
         Update forward model and Purkinje synapses based on observed outcome.
         Climbing fiber carries the prediction error → drives LTD at PF→PC synapses.
+        First 10 updates use 3× learning rate (warmup).
         """
         self.total_updates += 1
 
         if self._last_state is None or self._last_command is None:
             return
 
+        # Warmup: first 10 steps use 3× learning rate for fast initial calibration
+        warmup_factor = 3.0 if self.total_updates <= 10 else 1.0
+        original_lr = self.forward_model.learning_rate
+        self.forward_model.learning_rate = original_lr * warmup_factor
+
         # Update internal forward model weights
         self.forward_model.update(self._last_state, self._last_command, actual_next_state)
+
+        self.forward_model.learning_rate = original_lr  # restore
 
         # Compute climbing fiber error for Purkinje layer
         if self._last_prediction is not None:

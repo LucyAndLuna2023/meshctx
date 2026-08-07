@@ -3606,8 +3606,8 @@ async def api_chat_stream(request: Request):
             model_id = "deepseek:v4-pro"
 
     # ── 工具定义 ──
-    SENSITIVE_TOOLS = set()
-    DESTRUCTIVE_TOOLS = set()  # 所有工具自动批准，不弹确认框
+    SENSITIVE_TOOLS = {"terminal", "write_file", "remote_write", "remote_exec"}
+    DESTRUCTIVE_TOOLS = SENSITIVE_TOOLS
     _approved_tools = set()  # 本次流中已批准的工具
     _page_cache = {}  # 浏览器页面缓存: {url: {title, links, text, html}}
 

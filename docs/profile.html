@@ -189,7 +189,7 @@ async function initProfile(){
     document.getElementById('profile-email-display').textContent = u.email;
     // Load metadata
     var m = u.user_metadata || {};
-    document.getElementById('pf-name').value = m.display_name || m.full_name || m.name || '';
+    document.getElementById('pf-name').value = m.full_name || m.display_name || m.name || '';
     document.getElementById('pf-avatar').value = m.avatar_url || '';
     document.getElementById('pf-bio').value = m.bio || '';
     document.getElementById('pf-website').value = m.website || '';
@@ -200,29 +200,18 @@ async function initProfile(){
 async function loadEmails(sb){
     var el = document.getElementById('pf-emails');
     el.innerHTML = '';
-    // Fetch identities (linked emails) — guarded: Supabase js v2 may not have this method
-    var identities = [];
-    try {
-        var r = sb.auth.getUserIdentities ? await sb.auth.getUserIdentities() : null;
-        identities = r && r.data ? r.data.identities || [] : [];
-    } catch(e) { /* getUserIdentities not available — fallback to empty */ }
-    // Get the main user email first
+    // Get the main user email — Supabase v2 does not expose linked identities
     var u = (await sb.auth.getSession()).data.session.user;
     var primary = u.email;
     var all = [{email:primary, id:'primary'}];
-    for(var i=0; i<identities.length; i++){
-        if(identities[i].identity_data && identities[i].identity_data.email && identities[i].identity_data.email !== primary){
-            all.push({email:identities[i].identity_data.email, id:identities[i].id});
-        }
-    }
     var curLang = (localStorage.getItem('meshctx-lang') || 'en');
-    var rmLabel = L[curLang] && L[curLang]['profile_em_remove'] ? L[curLang]['profile_em_remove'] : (L['en'] && L['en']['profile_em_remove']) || 'Remove';
     var pmLabel = L[curLang] && L[curLang]['profile_em_primary'] ? L[curLang]['profile_em_primary'] : (L['en'] && L['en']['profile_em_primary']) || 'Primary';
     for(var j=0; j<all.length; j++){
         var em = all[j];
         var div = document.createElement('div');
         div.className = 'email-row';
-        var emailSpan = document.createElement('span'); emailSpan.className = 'email-addr'; emailSpan.textContent = em.email; div.appendChild(emailSpan); if (em.id==='primary') { var primarySpan = document.createElement('span'); primarySpan.className = 'email-primary'; primarySpan.textContent = pmLabel; div.appendChild(primarySpan); } else { var rmBtn = document.createElement('button'); rmBtn.className = 'btn btn-danger btn-sm'; rmBtn.textContent = rmLabel; rmBtn.setAttribute('onclick', "removeEmail(this,'"+em.id+"')"); div.appendChild(rmBtn); }
+        var emailSpan = document.createElement('span'); emailSpan.className = 'email-addr'; emailSpan.textContent = em.email; div.appendChild(emailSpan);
+        var primarySpan = document.createElement('span'); primarySpan.className = 'email-primary'; primarySpan.textContent = pmLabel; div.appendChild(primarySpan);
         el.appendChild(div);
     }
 }
@@ -231,6 +220,7 @@ async function saveProfile(){
     var sb = _getSupabase();
     var meta = {
         full_name: document.getElementById('pf-name').value,
+        display_name: document.getElementById('pf-name').value,
         avatar_url: document.getElementById('pf-avatar').value,
         bio: document.getElementById('pf-bio').value,
         website: document.getElementById('pf-website').value,
