@@ -1,4 +1,10 @@
 """conftest: 全局conftest，统一跳过Playwright测试如果浏览器未安装。"""
+import os
+
+# 统一禁用 API 认证——测试面向功能验证，认证在 auth_v2 单测单独覆盖。
+# 否则 /api/chat/stream、/projects 等未带 Bearer 的测试在裸跑环境 401。
+os.environ.setdefault("MESHCTX_AUTH_DISABLED", "1")
+
 import pytest
 
 # 检查Chromium是否可用
