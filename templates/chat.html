@@ -931,7 +931,7 @@ async function send() {
   try {
     // SSE streaming with timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 min timeout
+    const timeoutId = setTimeout(() => controller.abort(), 360000); // 6 min timeout (后端墙钟 300s)
     
     const resp = await fetch('/api/chat/stream', {
       method: 'POST',
@@ -964,13 +964,14 @@ async function send() {
         try {
           const parsed = JSON.parse(data);
           
-          if (parsed.token) {
+          if (parsed.token || parsed.content) {
             // Remove typing indicator on first real token
+            const streamPiece = parsed.token !== undefined ? parsed.token : parsed.content;
             if (!aiMsgAdded) {
               typingDiv.remove();
               aiMsgAdded = true;
             }
-            aiContent += parsed.token;
+            aiContent += streamPiece;
             // Update or create the AI message bubble
             let aiDiv = document.querySelector('.msg.ai.streaming');
             if (!aiDiv) {
@@ -988,6 +989,9 @@ async function send() {
               aiMsgAdded = true;
             }
             hasToolStart = true;
+            // 冻结当前文本气泡：工具气泡按真实事件顺序插入，而不是堆到正文后面
+            const curBubble = document.querySelector('.msg.ai.streaming');
+            if (curBubble) curBubble.classList.remove('streaming');
             const toolDiv = document.createElement('div');
             toolDiv.className = 'msg ai tool-msg';
             toolDiv.innerHTML = `<div class="avatar">🔧</div><div class="bubble tool-bubble">🔄 调用工具: <strong>${parsed.tool_start}</strong>${parsed.require_approval ? ' ⚠️需确认' : ''}</div>`;

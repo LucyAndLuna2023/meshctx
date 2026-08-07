@@ -16,9 +16,12 @@ import argparse
 import asyncio
 import atexit
 import json
+import logging
 import os
 import sys
 from pathlib import Path
+
+logger = logging.getLogger("meshctx.cli")
 
 # ── readline: Linux/Mac 可用，Windows 不支持 ──
 try:
@@ -341,7 +344,7 @@ def cmd_chat(args):
     """meshctx chat — 流式+工具+会话持久化+一发模式"""
     _ensure_keys_loaded()
     from src.model_registry import get_registry
-    from src.chat_tools import TOOLS_OPENAI, execute_tool, TOOL_ICONS
+    from src.chat_tools import TOOLS, execute_tool, TOOL_ICONS, trim_messages
 
     reg = get_registry(args.config)
     model_id = args.model or os.environ.get("MESHCTX_MODEL")
@@ -409,13 +412,37 @@ def cmd_chat(args):
     # ── REPL ──
     prompt = f"{profile_tag}You> " if profile_tag else "You> "
     while True:
+        quit_requested = False
         try:
-            user = input(prompt).strip()
+            if _HAS_READLINE:
+                # 多行输入：空行提交，支持粘贴长文本；EOF 或 /quit 直接退出
+                lines = []
+                first = True
+                eof_hit = False
+                while True:
+                    p = prompt if first else '... '
+                    first = False
+                    try:
+                        line = input(p)
+                    except EOFError:
+                        eof_hit = True
+                        break
+                    if line == '':
+                        break  # 空行提交
+                    if line.strip() == "/quit":
+                        quit_requested = True
+                        break
+                    lines.append(line)
+                user = '\n'.join(lines).strip()
+                if eof_hit and not lines:
+                    break  # EOF：正常退出（修复管道/EOF 下的死循环）
+            else:
+                user = input(prompt).strip()
         except (EOFError, KeyboardInterrupt):
             break
         if not user:
             continue
-        if user == "/quit":
+        if user == "/quit" or quit_requested:
             break
 
         # 斜杠命令
@@ -427,7 +454,7 @@ def cmd_chat(args):
                 continue
 
         messages.append({"role": "user", "content": user})
-        session_id = _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, TOOL_ICONS)
+        session_id = _chat_loop(client, messages, TOOLS, execute_tool, TOOL_ICONS)
 
         # 自动保存会话
         if session_id and len(messages) > 3:
@@ -437,101 +464,53 @@ def cmd_chat(args):
 
 def _chat_one_shot(client, msg, args):
     """一发模式: 问一个问题，流式回答，退出"""
-    from src.chat_tools import TOOLS_OPENAI, execute_tool
+    from src.chat_tools import TOOLS, execute_tool
     messages = _build_system_msg(args)
     messages.append({"role": "user", "content": msg})
     profile = _get_profile_name(args.config, getattr(args, 'profile', None))
     prefix = f"[{profile}] " if profile else ""
     print(f"{prefix}meshctx> ", end="", flush=True)
-    _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, {}, max_turns=2)
+    _chat_loop(client, messages, TOOLS, execute_tool, {}, max_turns=2)
     print()
 
 
-def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=5):
-    """核心对话循环 — 流式输出 + 原生 function calling"""
-    import uuid, json
+def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6):
+    """核心对话循环 — 与 UI /api/chat/stream 共用同一套 agent_loop 逻辑"""
+    import uuid
     session_id = uuid.uuid4().hex[:8]
 
-    for turn in range(max_turns):
-        try:
-            stream = client.chat_stream(messages, tools=tools_def)
-        except Exception:
-            logger.debug("cli error", exc_info=True)
-            # Fallback: no tools
-            stream = client.chat_stream(messages)
+    def _on_event(ev):
+        if ev["type"] == "token":
+            print(ev["text"], end="", flush=True)
+        elif ev["type"] == "round":
+            print(f"\n🔍 第{ev['round'] + 1}/{ev['total']}轮搜索...", flush=True)
+        elif ev["type"] == "deliver":
+            print("\n📝 **Deliver** — 基于已获取的真实数据生成最终报告...\n", flush=True)
+        elif ev["type"] == "tool_start":
+            name, args = ev["name"], ev["args"]
+            print(f"  {icons.get(name, '🔧')} {_tool_summary(name, args)}", flush=True)
+        elif ev["type"] == "tool_result":
+            first_line = (ev["result"] or "").split('\n')[0][:120]
+            print(f"    ✅ {first_line}", flush=True)
+        elif ev["type"] == "error":
+            print(f"\n[错误: {ev['text']}]", flush=True)
+        elif ev["type"] == "timed_out":
+            print(f"\n{ev.get('text', '[已达到最大处理时间，已中止]')}", flush=True)
 
-        tool_data = None
-        full_text = ""
+    async def _run():
+        from src.agent_loop import run_agent_loop
+        async for ev in run_agent_loop(
+            client, messages,
+            tools=tools_def,
+            exec_tool=exec_tool,
+            max_rounds=max_turns,
+            system_prompt=None,
+        ):
+            _on_event(ev)
 
-        for chunk in stream:
-            if isinstance(chunk, tuple) and chunk[0] == "__TOOLS__":
-                tool_data = chunk
-            else:
-                print(chunk, end="", flush=True)
-                full_text += chunk
-
-        print()
-
-        if tool_data:
-            _, tool_calls, fc = tool_data
-            full_text = fc
-
-            if full_text:
-                messages.append({"role": "assistant", "content": full_text,
-                                 "tool_calls": [{"id": tc["id"], "type": "function",
-                                                  "function": {"name": tc["name"], "arguments": json.dumps(tc["arguments"], ensure_ascii=False)}}
-                                                 for tc in tool_calls]})
-            else:
-                messages.append({"role": "assistant", "content": None,
-                                 "tool_calls": [{"id": tc["id"], "type": "function",
-                                                  "function": {"name": tc["name"], "arguments": json.dumps(tc["arguments"], ensure_ascii=False)}}
-                                                 for tc in tool_calls]})
-
-            for tc in tool_calls:
-                name = tc["name"]
-                args = tc["arguments"]
-                icon = icons.get(name, "🔧")
-                summary = _tool_summary(name, args)
-                print(f"  {icon} {summary}", flush=True)
-
-                result = exec_tool(name, args)
-                if result:
-                    first_line = result.split('\n')[0][:120]
-                    print(f"    ✅ {first_line}", flush=True)
-
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tc["id"],
-                    "content": result,
-                })
-            continue  # next turn
-        else:
-            messages.append({"role": "assistant", "content": full_text})
-        break
-    else:
-        # max_turns 耗尽，强制最后一轮获取模型回复
-        print("\n  ⏳ ", end="", flush=True)
-        try:
-            stream = client.chat_stream(messages, tools=tools_def)
-            for chunk in stream:
-                if isinstance(chunk, tuple) and chunk[0] == "__TOOLS__":
-                    pass  # 忽略工具调用，只取文本
-                else:
-                    print(chunk, end="", flush=True)
-                    full_text = chunk if 'full_text' not in dir() else full_text + chunk
-            print()
-        except Exception:
-            logger.debug("cli error", exc_info=True)
-            pass
-
-    # 清理
-    if len(messages) > 40:
-        system = messages[0] if messages[0]["role"] == "system" else None
-        recent = messages[-30:]
-        messages.clear()
-        if system: messages.append(system)
-        messages.extend(recent)
+    asyncio.run(_run())
     return session_id
+
 
 
 def _tool_summary(name, args):
@@ -552,37 +531,13 @@ def _tool_summary(name, args):
 
 
 def _build_system_msg(args):
-    """构建系统提示，含项目上下文"""
-    from src.soul import get_soul_prompt
-    import platform
-
-    is_wsl = "microsoft" in platform.uname().release.lower()
-    wsl_info = ""
-    if is_wsl:
-        wsl_info = "\n⚠️ WSL 环境: C:\\ → /mnt/c/  D:\\ → /mnt/d/  可访问Windows文件。"
-
-    project_ctx = ""
-    if hasattr(args, 'project') and args.project:
-        import pathlib
-        proj = pathlib.Path(args.project).expanduser()
-        if proj.exists():
-            for fname in ["AGENTS.md", "CODEBUDDY.md", "CLAUDE.md", ".cursorrules"]:
-                fpath = proj / fname
-                if fpath.exists():
-                    project_ctx = f"\n\n## 项目上下文 ({proj.name})\n{fpath.read_text(encoding='utf-8',errors='replace')[:3000]}"
-                    break
-
-    soul_prompt = get_soul_prompt()
-    from src.chat_tools import get_tools_prompt
-
-    return [{"role": "system", "content": f"""你是 meshctx 助手，运行在用户本地机器。
-有完整的本地文件系统访问权限，可以读写文件、执行命令。
-{wsl_info}
-{project_ctx}
-
-{soul_prompt}
-
-{get_tools_prompt()}"""}]
+    """构建系统提示（与 UI 共用同一份 build_system_prompt，保证两端提示词逐字一致）"""
+    from src.chat_tools import build_system_prompt
+    content = build_system_prompt(
+        project_dir=getattr(args, 'project', None) or None,
+        include_memory=True,
+    )
+    return [{"role": "system", "content": content}]
 
 
 def _handle_slash(cmd, reg, client, SESS, messages, session_id):
@@ -669,7 +624,20 @@ def _load_session(sess_dir, sid):
     if not file.exists():
         return None
     data = json.loads(file.read_text())
-    return data.get("messages", [])
+    messages = data.get("messages", [])
+    # 修复孤立 tool 消息：收集所有 assistant.tool_calls 中的 call_id
+    known_ids = set()
+    for m in messages:
+        if m.get("role") == "assistant" and m.get("tool_calls"):
+            for tc in m["tool_calls"]:
+                known_ids.add(tc.get("id", ""))
+    # 过滤掉没有对应 assistant+tool_calls 的孤立 tool 消息
+    cleaned = []
+    for m in messages:
+        if m.get("role") == "tool" and m.get("tool_call_id") not in known_ids:
+            continue
+        cleaned.append(m)
+    return cleaned
 
 def _list_sessions(sess_dir):
     import json
@@ -694,7 +662,7 @@ def cmd_agent(args):
     """自主Agent — 接收目标，自主循环直到完成"""
     _ensure_keys_loaded()
     from src.model_registry import get_registry
-    from src.chat_tools import TOOLS_OPENAI, execute_tool, TOOL_ICONS
+    from src.chat_tools import TOOLS, execute_tool, TOOL_ICONS
 
     reg = get_registry(args.config)
     model_id = args.model or os.environ.get("MESHCTX_MODEL")
@@ -715,7 +683,7 @@ def cmd_agent(args):
     for step in range(args.max_steps):
         print(f"\n-- 第 {step+1}/{args.max_steps} 步 --")
         print(f"{prefix}meshctx> ", end="", flush=True)
-        _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, TOOL_ICONS, max_turns=3)
+        _chat_loop(client, messages, TOOLS, execute_tool, TOOL_ICONS, max_turns=3)
 
         # 检查是否完成
         last_content = ""
@@ -738,7 +706,7 @@ def cmd_task(args):
     """一次性任务 — 接收描述，循环执行直到完成"""
     _ensure_keys_loaded()
     from src.model_registry import get_registry
-    from src.chat_tools import TOOLS_OPENAI, execute_tool, TOOL_ICONS
+    from src.chat_tools import TOOLS, execute_tool, TOOL_ICONS
 
     reg = get_registry(args.config)
     model_id = args.model or os.environ.get("MESHCTX_MODEL")
@@ -755,7 +723,7 @@ def cmd_task(args):
     profile = _get_profile_name(args.config, getattr(args, 'profile', None))
     prefix = f"[{profile}] " if profile else ""
     print(f"{prefix}meshctx> ", end="", flush=True)
-    _chat_loop(client, messages, TOOLS_OPENAI, execute_tool, TOOL_ICONS, max_turns=args.max_steps)
+    _chat_loop(client, messages, TOOLS, execute_tool, TOOL_ICONS, max_turns=args.max_steps)
     print()
 
 

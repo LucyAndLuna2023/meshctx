@@ -53,6 +53,7 @@ from .memory_engine import MemoryEngine
 from .models import Project, Conversation, Message, Memory, Agent, AgentSession
 from .config import load_config
 
+from src.chat_tools import SYSTEM_PROMPT, TOOLS, build_system_prompt  # 统一提示词与工具集（CLI/UI 共用）
 logger = logging.getLogger("meshctx.server")
 
 # ─── 全局状态 ────────────────────────────────────────────
@@ -2098,6 +2099,47 @@ async def api_tasks_history():
         return {"status": "error", "error": str(e)}
 
 
+@app.post("/api/tasks/{task_id}/complete")
+async def api_task_complete(task_id: str):
+    """标记任务为已完成"""
+    try:
+        # 1. Try autonomous_engine first
+        try:
+            from src.core.autonomous_engine import get_autonomous_engine
+            engine = get_autonomous_engine()
+            if engine and hasattr(engine, "complete"):
+                engine.complete(task_id)
+                return {"status": "ok", "task_id": task_id, "new_status": "done"}
+        except Exception:
+            pass
+
+        # 2. Try agent_tasks TaskManager
+        try:
+            from src.core.agent_tasks import get_task_manager, TaskStatus
+            mgr = get_task_manager()
+            task = mgr.get_task(task_id)
+            if task:
+                task.status = TaskStatus.COMPLETED
+                return {"status": "ok", "task_id": task_id, "new_status": "completed"}
+        except Exception:
+            pass
+
+        # 3. Try agent_swarm distributed_mesh
+        try:
+            from src.core.distributed_mesh import get_distributed_mesh
+            dm = get_distributed_mesh()
+            if dm and hasattr(dm, "complete_task"):
+                ok = dm.complete_task(task_id)
+                if ok:
+                    return {"status": "ok", "task_id": task_id, "new_status": "done"}
+        except Exception:
+            pass
+
+        return {"status": "not_found", "task_id": task_id}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
 @app.get("/api/cache/stats")
 async def api_cache_stats():
     """缓存统计"""
@@ -3275,70 +3317,6 @@ async def win_software():
 
 # ── 工具定义（模块级，流式和非流式共用）──
 
-TOOLS = [
-    {"type": "function", "function": {"name": "web_search", "description": "搜索网页获取实时信息（价格、新闻、天气等）。返回搜索结果摘要。", "parameters": {"type": "object", "properties": {"query": {"type": "string", "description": "搜索关键词"}}, "required": ["query"]}}},
-    {"type": "function", "function": {"name": "web_extract", "description": "抓取指定 URL 的网页内容，返回纯文本。用于获取搜索结果的详细信息。", "parameters": {"type": "object", "properties": {"url": {"type": "string", "description": "要抓取的网页 URL"}}, "required": ["url"]}}},
-    {"type": "function", "function": {"name": "read_file", "description": "读取本机文件。参数: path(文件路径), offset(起始行,默认1), limit(行数,默认200)", "parameters": {"type": "object", "properties": {"path": {"type": "string", "description": "文件路径"}, "offset": {"type": "integer", "description": "起始行号", "default": 1}, "limit": {"type": "integer", "description": "读取行数", "default": 200}}, "required": ["path"]}}},
-    {"type": "function", "function": {"name": "write_file", "description": "写入本机文件（覆盖）。参数: path(文件路径), content(内容)", "parameters": {"type": "object", "properties": {"path": {"type": "string", "description": "文件路径"}, "content": {"type": "string", "description": "要写入的内容"}}, "required": ["path", "content"]}}},
-    {"type": "function", "function": {"name": "search_files", "description": "搜索本机文件（按名称或内容）。参数: pattern(搜索模式), dir(目录,默认HOME)", "parameters": {"type": "object", "properties": {"pattern": {"type": "string", "description": "搜索关键词或文件通配符"}, "dir": {"type": "string", "description": "搜索目录，默认用户 HOME"}}, "required": ["pattern"]}}},
-    {"type": "function", "function": {"name": "terminal", "description": "🔒[需授权] 在本机执行 shell 命令。可以运行任何程序、脚本、安装软件、管理系统等。等同于用户在终端操作电脑。", "parameters": {"type": "object", "properties": {"cmd": {"type": "string", "description": "要执行的 shell 命令"}, "workdir": {"type": "string", "description": "工作目录(可选，默认当前目录)"}, "timeout": {"type": "integer", "description": "超时秒数(默认 60)", "default": 60}}, "required": ["cmd"]}}},
-    {"type": "function", "function": {"name": "remote_read", "description": "🔒[需授权] 通过 SSH 读取远程服务器文件。用户提供服务器信息时请传入 host/user/password 参数。", "parameters": {"type": "object", "properties": {"path": {"type": "string", "description": "远程服务器文件路径"}, "host": {"type": "string", "description": "服务器地址"}, "user": {"type": "string", "description": "SSH 用户名"}, "password": {"type": "string", "description": "SSH 密码"}, "port": {"type": "integer", "description": "SSH 端口(默认 22)", "default": 22}}, "required": ["path", "host"]}}},
-    {"type": "function", "function": {"name": "remote_write", "description": "🔒[需授权] 通过 SSH 写入远程服务器文件。用户提供服务器信息时请传入 host/user/password 参数。", "parameters": {"type": "object", "properties": {"path": {"type": "string", "description": "远程文件路径"}, "content": {"type": "string", "description": "要写入的内容"}, "host": {"type": "string", "description": "服务器地址"}, "user": {"type": "string", "description": "SSH 用户名"}, "password": {"type": "string", "description": "SSH 密码"}, "port": {"type": "integer", "description": "SSH 端口(默认 22)", "default": 22}}, "required": ["path", "content", "host"]}}},
-    {"type": "function", "function": {"name": "remote_exec", "description": "🔒[需授权] 通过 SSH 在远程服务器执行命令。用户提供服务器信息时请传入 host/user/password 参数。", "parameters": {"type": "object", "properties": {"cmd": {"type": "string", "description": "要执行的 shell 命令"}, "host": {"type": "string", "description": "服务器地址"}, "user": {"type": "string", "description": "SSH 用户名"}, "password": {"type": "string", "description": "SSH 密码"}, "port": {"type": "integer", "description": "SSH 端口(默认 22)", "default": 22}}, "required": ["cmd", "host"]}}},
-    {"type": "function", "function": {"name": "browser_navigate", "description": "抓取网页并提取可读文本（纯Python，无需Playwright）。参数: url", "parameters": {"type": "object", "properties": {"url": {"type": "string", "description": "网页URL"}}, "required": ["url"]}}},
-    {"type": "function", "function": {"name": "browser_snapshot", "description": "获取当前已抓取页面的结构化内容（标题、链接、文本）。需先调用 browser_navigate", "parameters": {"type": "object", "properties": {}}}},
-    {"type": "function", "function": {"name": "save_memory", "description": "保存重要信息到持久化记忆，跨会话保留。用户告诉你重要信息（密码、配置、偏好等）时务必调用。", "parameters": {"type": "object", "properties": {"fact": {"type": "string", "description": "要记住的事实，一句话概括"}}, "required": ["fact"]}}},
-]
-
-SYSTEM_PROMPT = """你是 meshctx AI 助手，运行在用户本机。
-
-## 关于 meshctx
-
-meshctx 是一个模块化 AI Agent 平台，开源版（当前运行）提供：
-- **基础设施层（完整）**：沙箱执行、多通道通知（飞书/邮件/SMS）、认证、工作流编排、向量搜索、网页爬虫、日历引擎
-- **AI 增强层（基础模式）**：脑启发路由、SDM 记忆、突破性记忆、OODA 循环框架
-- **完整版能力**（需 meshctx-core 私有核心）：全局工作空间理论、多脑区竞争、自由能预测、JEPA 世界模型、多 Agent Swarm
-- **你的角色**：你是 meshctx 的前端对话界面，直接帮助用户完成任务
-
-当被问到 meshctx 自身架构时，诚实说明：开源版提供扎实的基础设施，高级 AI 能力（17脑区/意识点火等）在私有核心中。
-
-## 可用工具
-
-| 工具 | 用途 |
-|------|------|
-| web_search | 搜索网页获取实时数据（⚠️ 用英文关键词，中文搜索效果差） |
-| web_extract | 抓取指定网页的完整内容 |
-| terminal   | 🔒 在本机执行 shell 命令（运行程序、安装软件、管理系统等） |
-| browser_navigate | 抓取网页并提取可读文本（标题、链接、正文） |
-| browser_snapshot | 获取已缓存页面的结构化内容 |
-| read_file  | 读取本机文件 |
-| write_file | 写入本机文件 |
-| search_files | 搜索本机文件（按名称或内容） |
-| remote_exec | 🔒 SSH 远程执行命令（需 host/user/password） |
-| remote_read | 🔒 SSH 远程读取文件（需 host/user/password） |
-| remote_write | 🔒 SSH 远程写入文件（需 host/user/password） |
-
-## 搜索架构（多引擎自动回退）
-
-web_search 使用5引擎链式回退：
-1. **DDGS**（DuckDuckGo，默认）→ 失败自动跳到下一引擎
-2. **Brave Search API**（需 BRAVE_API_KEY 环境变量）→ 免费2000次/月
-3. **SearXNG**（需 SEARXNG_URL 环境变量，CloudCone自建）
-4. **Google**（直接HTTP，Android移动端UA）
-5. **Startpage**（Google代理，w-gl解析）
-
-→ 一条路不通，下一条自动顶上。你只需正常调用 web_search，引擎切换对LLM透明。
-
-## 重要规则
-
-- ⚠️ web_search 优先用英文关键词（多引擎对英文效果好）
-- ⚠️ 如果连续2次返回「所有搜索引擎均失败」，立即停止搜索，改用 web_extract 抓取已知URL
-- 查询实时信息必须先调用 web_search
-- 用户提供服务器信息（IP/用户名/密码）时，直接传入 remote_* 工具参数
-- 读取/分析本机文件用 read_file
-- 最终回复用中文，数据用表格呈现
-- 被问到 meshctx 自身架构时，参考上方「关于 meshctx」诚实回答，不要搜索源码"""
-
 SENSITIVE_TOOLS = set()
 DESTRUCTIVE_TOOLS = set()  # 所有工具自动批准
 
@@ -3369,6 +3347,10 @@ def _dispatch_tool(name: str, args: dict, approved_tools: set, page_cache: dict)
                                args.get("user", ""), args.get("password", ""), args.get("port", 22))
     elif name in ("browser_navigate", "browser_snapshot", "browser_click", "browser_type"):
         return _safe_browser(name, args, page_cache)
+    elif name == "save_memory":
+        return _do_save_memory(args.get("fact", ""))
+    elif name == "save_docx":
+        return _do_save_docx(args.get("path", ""), args.get("title", ""), args.get("content", ""))
     else:
         return f"未知工具: {name}"
 
@@ -3376,7 +3358,7 @@ def _dispatch_tool(name: str, args: dict, approved_tools: set, page_cache: dict)
 # v3.115.41: async LLM helper — non-blocking via thread pool
 async def _call_llm(client, **kwargs):
     import asyncio
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(
         None, lambda c=client, kw=kwargs: c.client.chat.completions.create(**kw)
     )
@@ -3468,6 +3450,7 @@ async def _call_llm_stream(client, **kwargs):
 @app.post("/api/chat")
 async def api_chat(request: Request):
     """非流式Chat API — 完整工具循环。用于前端chat.html"""
+    import asyncio
     from src.model_registry import get_registry
     from src.config import load_config
     import json as _json
@@ -3494,9 +3477,9 @@ async def api_chat(request: Request):
         except Exception:
             model_id = "deepseek:v4-pro"
 
-    # 确保 system prompt 在最前面
+    # 确保 system prompt 在最前面（与 CLI 同一份完整提示词：记忆+工具规则+桌面路径）
     if not msgs or msgs[0].get("role") != "system":
-        msgs.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
+        msgs.insert(0, {"role": "system", "content": build_system_prompt()})
 
     try:
         reg = get_registry()
@@ -3504,89 +3487,36 @@ async def api_chat(request: Request):
         if not client:
             return JSONResponse({"error": "模型未配置，请在Setup页面设置API Key"}, status_code=503)
 
-        max_rounds = int(body.get("max_rounds", 10))
-        approved_tools = set()
+        max_rounds = int(body.get("max_rounds", 6))
         page_cache = {}
-        tools_ok = True
 
-        for _round in range(max_rounds):
-            try:
-                if tools_ok:
-                    resp = await _call_llm(client, 
-                        model=client.model_name,
-                        messages=msgs,
-                        temperature=0.7,
-                        max_tokens=16384,
-                        tools=TOOLS,
-                        tool_choice="auto",
-                    )
-                else:
-                    resp = await _call_llm(client, 
-                        model=client.model_name,
-                        messages=msgs,
-                        temperature=0.7,
-                        max_tokens=16384,
-                    )
-            except Exception as e:
-                if "tools" in str(e).lower() or "tool" in str(e).lower():
-                    tools_ok = False
-                    resp = await _call_llm(client, 
-                        model=client.model_name,
-                        messages=msgs,
-                        temperature=0.7,
-                        max_tokens=16384,
-                    )
-                else:
-                    raise
+        # ═══ 统一循环（与 /api/chat/stream、CLI 同一套 agent_loop）═══
+        from src.agent_loop import run_agent_loop
 
-            choice = resp.choices[0]
-            msg = choice.message
+        def _exec_ns(name, args):
+            return _dispatch_tool(name, args, set(), page_cache)
 
-            # No tool calls → return final content
-            if not msg.tool_calls:
-                content = msg.content or ""
-                return JSONResponse({
-                    "content": content,
-                    "tool_result": None,
-                    "tokens": choice.usage.total_tokens if hasattr(choice, 'usage') and choice.usage else 0,
-                    "hybrid_info": None,
-                })
+        _err_text = ""
 
-            # Process tool calls
-            msgs.append({"role": "assistant", "content": msg.content or "", "tool_calls": [
-                {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
-                for tc in msg.tool_calls
-            ]})
+        async def _collect():
+            nonlocal _err_text
+            async for ev in run_agent_loop(
+                client, msgs,
+                tools=TOOLS,
+                exec_tool=_exec_ns,
+                max_rounds=max_rounds,
+                system_prompt=None,
+            ):
+                if ev["type"] == "error":
+                    _err_text = ev["text"]
 
-            for tc in msg.tool_calls:
-                name = tc.function.name
-                try:
-                    args = _json.loads(tc.function.arguments)
-                except Exception:
-                    args = {}
+        await _collect()
 
-                # 敏感工具检查
-                if name in DESTRUCTIVE_TOOLS and name not in approved_tools:
-                    if not args.get("__approved"):
-                        msgs.append({"role": "tool", "tool_call_id": tc.id,
-                                     "content": "refused: 敏感工具需要确认。请设置 __approved: true"})
-                        continue
-                    approved_tools.add(name)
-
-                result = _dispatch_tool(name, args, approved_tools, page_cache)
-                msgs.append({"role": "tool", "tool_call_id": tc.id, "content": result[:8000]})
-
-        # Max rounds reached
-        # Make one final call without tools to get a text response
-        try:
-            resp = await _call_llm(client, 
-                model=client.model_name,
-                messages=msgs,
-                temperature=0.7,
-                max_tokens=16384,
-            )
-            content = resp.choices[0].message.content or ""
-        except Exception:
+        if _err_text:
+            content = f"[错误: {_err_text}]"
+        elif msgs and msgs[-1].get("role") == "assistant":
+            content = msgs[-1].get("content") or ""
+        else:
             content = "处理超时，请重试"
 
         return JSONResponse({
@@ -3607,6 +3537,7 @@ async def api_chat_stream(request: Request):
     """流式Chat API — SSE逐token推送 + web_search 工具"""
     from src.model_registry import get_registry
     from src.config import load_config
+    from src.chat_tools import trim_messages
     import json as _json
 
     try:
@@ -3654,7 +3585,9 @@ async def api_chat_stream(request: Request):
                 system_prompt = brain_result['enhanced_prompt']
             logger.info(f"🧠 CognitiveLoop: cache={brain_log['cache_hit']} ctx={brain_log['context_injected']} Φ={brain_log['phi']:.2f}")
             # ═══ 缓存命中 → 直接返回，跳过LLM ═══
-            if brain_result.get('cache_hit') and brain_result.get('response'):
+            # （默认关闭：CLI 无此缓存层，UI/CLI 行为需一致；需要时设 MESHCTX_ENABLE_COGNITIVE=1）
+            if (os.environ.get("MESHCTX_ENABLE_COGNITIVE") == "1"
+                    and brain_result.get('cache_hit') and brain_result.get('response')):
                 async def cached_stream():
                     yield f"data: {brain_result['response']}\n\n"
                     yield "data: [DONE]\n\n"
@@ -3678,22 +3611,9 @@ async def api_chat_stream(request: Request):
     _approved_tools = set()  # 本次流中已批准的工具
     _page_cache = {}  # 浏览器页面缓存: {url: {title, links, text, html}}
 
-    # 确保 system prompt 在最前面
-    if not msgs or msgs[0].get("role") != "system":
-        # 注入持久化记忆到 system prompt
-        memory_context = ""
-        mem_file = Path(__file__).parent.parent.parent / ".meshctx" / "persistent_memory.json"
-        if mem_file.exists():
-            try:
-                import json as _json_local
-                mem_data = _json_local.loads(mem_file.read_text(encoding="utf-8"))
-                if isinstance(mem_data, dict) and mem_data.get("entries"):
-                    memory_context = "\n\n## 🔒 持久化记忆（跨会话保留）\n\n"
-                    for entry in mem_data["entries"]:
-                        memory_context += f"- {entry}\n"
-            except Exception:
-                pass
-        msgs.insert(0, {"role": "system", "content": SYSTEM_PROMPT + memory_context})
+    # 统一循环(run_agent_loop)负责注入 system 到 messages[0]；与 CLI 共用同一份完整提示词
+    _full_system_prompt = build_system_prompt()
+
 
     async def generate():
         try:
@@ -3704,194 +3624,72 @@ async def api_chat_stream(request: Request):
                 yield "data: [DONE]\n\n"
                 return
 
-            max_rounds = int(body.get("max_rounds", 8))
-            _web_search_count = 0
-            _max_web_searches = 999  # 不限制搜索次数，由 max_rounds 防死循环
-            _empty_search_streak = 0  # 连续空搜索结果轮次
-            _total_search_calls = 0   # 本轮总搜索次数（含成功和失败）
-            _tools_ok = True
-            _start_ts = time.time()
-            for _round in range(max_rounds):
-                if time.time() - _start_ts > 300:
-                    yield f"data: {_json.dumps({'token': '\n\n[已达到最大处理时间 180 秒，已中止]'})}\n\n"
-                    break
-                # 发送请求给模型 — 使用 ModelClient.chat_stream() 逐 token 推送
-                try:
-                    if _tools_ok:
-                        stream = client.chat_stream(
-                            msgs, temperature=0.7, max_tokens=16384, tools=TOOLS)
-                    else:
-                        stream = client.chat_stream(
-                            msgs, temperature=0.7, max_tokens=16384)
-                except Exception as tool_err:
-                    err_msg = str(tool_err)
-                    if 'tool' in err_msg.lower() or 'not support' in err_msg.lower() or 'invalid' in err_msg.lower():
-                        _tools_ok = False
-                        stream = client.chat_stream(
-                            msgs, temperature=0.7, max_tokens=16384)
-                    else:
-                        raise
+            max_rounds = int(body.get("max_rounds", 6))
 
-                tool_calls_raw = None
-                msg_content = ""
-                for item in stream:
-                    if isinstance(item, tuple) and item[0] == "__TOOLS__":
-                        # ("__TOOLS__", parsed_tools_list, full_text)
-                        tool_calls_raw = item[1]
-                        msg_content = item[2]
-                    elif isinstance(item, str):
-                        yield f"data: {_json.dumps({'token': item})}\n\n"
-                        msg_content += item
+            # 工具执行（与 CLI 共用同一套 chat_tools；并发由统一循环管理）
+            def _exec_one(name, args):
+                if name == "web_search":
+                    return _do_web_search(args.get("query", ""))
+                elif name == "web_extract":
+                    return _do_web_extract(args.get("url", ""))
+                elif name == "read_file":
+                    return _do_read_file(args.get("path", ""), args.get("offset", 1), args.get("limit", 200))
+                elif name == "write_file":
+                    return _do_write_file(args.get("path", ""), args.get("content", ""),
+                                          args.get("if_exists", "rename"))
+                elif name == "search_files":
+                    return _do_search_files(args.get("pattern", ""), args.get("dir", str(Path.home())))
+                elif name == "terminal":
+                    return _do_terminal(args.get("cmd", ""), args.get("workdir", ""),
+                                        args.get("timeout", 60))
+                elif name == "remote_read":
+                    return _do_remote_read(args.get("path", ""), args.get("host", ""),
+                                           args.get("user", ""), args.get("password", ""),
+                                           args.get("port", 22))
+                elif name == "remote_write":
+                    return _do_remote_write(args.get("path", ""), args.get("content", ""),
+                                            args.get("host", ""), args.get("user", ""),
+                                            args.get("password", ""), args.get("port", 22))
+                elif name == "remote_exec":
+                    return _do_remote_exec(args.get("cmd", ""), args.get("host", ""),
+                                           args.get("user", ""), args.get("password", ""),
+                                           args.get("port", 22))
+                elif name in ("browser_navigate", "browser_snapshot", "browser_click", "browser_type"):
+                    return _safe_browser(name, args, _page_cache)
+                elif name == "save_memory":
+                    return _do_save_memory(args.get("fact", ""))
+                elif name == "save_docx":
+                    return _do_save_docx(args.get("path", ""), args.get("title", ""), args.get("content", ""))
+                else:
+                    return f"未知工具: {name}"
 
-                # Build pseudo msg for tool processing
-                class _PM: pass
-                msg = _PM()
-                msg.content = msg_content or None
-                msg.tool_calls = None
-                if tool_calls_raw:
-                    msg.tool_calls = []
-                    for tc in tool_calls_raw:
-                        ptc = _PM()
-                        ptc.id = tc["id"]
-                        ptc.type = "function"
-                        ptc.function = _PM()
-                        ptc.function.name = tc["name"]
-                        ptc.function.arguments = json.dumps(tc["arguments"])
-                        msg.tool_calls.append(ptc)
-                class _PC: pass
-                class _PR: pass
-                choice = _PC()
-                choice.message = msg
-                resp = _PR()
-                resp.choices = [choice]
-
-                # 如果模型要调用工具
-                if msg.tool_calls:
-                    # tokens 已逐字推送，无需重复
-
-                    # 记录 assistant 消息（tool_calls 时 content 必须为 null 或省略，不能用 ""）
-                    assistant_content = msg.content or None
-                    msgs.append({"role": "assistant", "content": assistant_content, "tool_calls": [
-                        {"id": tc.id, "type": "function", "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
-                        for tc in msg.tool_calls
-                    ]})
-
-                    # 并发执行工具调用 (hermes 用的是 ThreadPoolExecutor)
-                    from concurrent.futures import ThreadPoolExecutor, as_completed
-
-                    def _exec_one(name, args):
-                        if name == "web_search":
-                            return _do_web_search(args.get("query", ""))
-                        elif name == "web_extract":
-                            return _do_web_extract(args.get("url", ""))
-                        elif name == "read_file":
-                            return _do_read_file(args.get("path", ""), args.get("offset", 1), args.get("limit", 200))
-                        elif name == "write_file":
-                            return _do_write_file(args.get("path", ""), args.get("content", ""))
-                        elif name == "search_files":
-                            return _do_search_files(args.get("pattern", ""), args.get("dir", str(Path.home())))
-                        elif name == "terminal":
-                            return _do_terminal(args.get("cmd", ""), args.get("workdir", ""),
-                                                args.get("timeout", 60))
-                        elif name == "remote_read":
-                            return _do_remote_read(args.get("path", ""), args.get("host", ""),
-                                                   args.get("user", ""), args.get("password", ""),
-                                                   args.get("port", 22))
-                        elif name == "remote_write":
-                            return _do_remote_write(args.get("path", ""), args.get("content", ""),
-                                                    args.get("host", ""), args.get("user", ""),
-                                                    args.get("password", ""), args.get("port", 22))
-                        elif name == "remote_exec":
-                            return _do_remote_exec(args.get("cmd", ""), args.get("host", ""),
-                                                   args.get("user", ""), args.get("password", ""),
-                                                   args.get("port", 22))
-                        elif name in ("browser_navigate", "browser_snapshot", "browser_click", "browser_type"):
-                            return _safe_browser(name, args, _page_cache)
-                        elif name == "save_memory":
-                            return _do_save_memory(args.get("fact", ""))
-                        else:
-                            return f"未知工具: {name}"
-
-                    # 先发出所有 tool_start 事件（web_search 超限的在单线程中拒绝）
-                    tool_tasks = []
-                    for tc in msg.tool_calls:
-                        name = tc.function.name
-                        args = _json.loads(tc.function.arguments)
-                        if name == "web_search":
-                            if _web_search_count >= _max_web_searches:
-                                yield f"data: {_json.dumps({'tool_start': name, 'args': args, 'require_approval': False})}\n\n"
-                                limit_msg = f"[搜索已达上限 {_max_web_searches} 次，请基于已有数据撰写报告]"
-                                yield f"data: {_json.dumps({'tool_result': limit_msg})}\n\n"
-                                msgs.append({"role": "tool", "tool_call_id": tc.id, "content": limit_msg})
-                                continue
-                            _web_search_count += 1
-                        tool_tasks.append((tc, name, args))
-                        yield f"data: {_json.dumps({'tool_start': name, 'args': args, 'require_approval': False})}\n\n"
-
-                    # 并发执行
-                    empty_search_count = 0
-                    round_search_count = 0
-                    with ThreadPoolExecutor(max_workers=min(len(tool_tasks), 5)) as executor:
-                        futures = {executor.submit(_exec_one, name, args): (tc, name)
-                                   for tc, name, args in tool_tasks}
-                        for future in as_completed(futures, timeout=120):
-                            tc, name = futures[future]
-                            try:
-                                result = future.result(timeout=60)
-                            except Exception as e:
-                                result = f"工具执行失败: {e}"
-                            # 追踪搜索
-                            if name == "web_search":
-                                _total_search_calls += 1
-                                round_search_count += 1
-                                if result.strip() in ("无搜索结果", "搜索失败:", ""):
-                                    empty_search_count += 1
-                            yield f"data: {_json.dumps({'tool_result': result[:500]})}\\n\\n"
-                            msgs.append({"role": "tool", "tool_call_id": tc.id, "content": result[:16000]})
-
-                    # ── 死循环检测1：连续空搜索 ──
-                    if empty_search_count > 0 and all(
-                        tc.function.name != "web_search" or 
-                        any(m.get("tool_call_id") == tc.id and m.get("content","").strip() in ("无搜索结果","搜索失败:","") 
-                            for m in msgs[-len(msg.tool_calls):])
-                        for tc in msg.tool_calls if tc.function.name == "web_search"
-                    ):
-                        _empty_search_streak += 1
-                    else:
-                        _empty_search_streak = 0 if empty_search_count == 0 else _empty_search_streak
-
-                    # 连续3轮搜索全空 → 强制中断
-                    if _empty_search_streak >= 3:
-                        yield f"data: {_json.dumps({'token': '\\n\\n[搜索服务暂不可用，请基于已获取的信息直接给出结论，不要再搜索]'})}\\n\\n"
-                        msgs.append({"role": "user",
-                            "content": "⚠️ [系统强制停止] 搜索服务连续3轮无结果。请立即基于已获取的所有信息输出最终结果，不要再调用 web_search。如果没有足够数据，诚实说明现状并直接告诉用户。"})
-
-                    # ── 死循环检测2：总搜索次数超限（即使每次成功也需停止） ──
-                    elif _total_search_calls >= 6:
-                        yield f"data: {_json.dumps({'token': '\\n\\n[已搜索 {} 次，搜索已终止，请立即输出结论]'.format(_total_search_calls)})}\\n\\n"
-                        msgs.append({"role": "user",
-                            "content": f"⚠️ [系统强制停止] 你已调用 web_search {_total_search_calls} 次，数据已经非常充足。请立即基于所有已获取的信息输出最终报告。不要再搜索。"})
-                        # 硬阻断：从TOOLS列表中移除web_search，下轮无法再调用
-                        TOOLS[:] = [t for t in TOOLS if t["function"]["name"] != "web_search"]
-
-                    continue  # 下一轮，让模型基于工具结果回复
-
-                # 模型直接回复文本 — tokens 已逐字推送，直接结束
-                yield "data: [DONE]\n\n"
-                return
-
-            # 达到最大轮次 → 去掉工具做最后文本输出（mirror /api/chat）
-            try:
-                resp = await _call_llm(client,
-                    model=client.model_name,
-                    messages=msgs,
-                    temperature=0.7,
-                    max_tokens=16384,
-                )
-                final_content = resp.choices[0].message.content or "处理超时，请重试"
-                yield f"data: {_json.dumps({'content': final_content})}\n\n"
-            except Exception:
-                yield f"data: {_json.dumps({'content': '处理超时，请重试'})}\n\n"
+            # ═══ 统一循环（与 CLI _chat_loop 同一套逻辑）═══
+            from src.agent_loop import run_agent_loop
+            async for ev in run_agent_loop(
+                client, msgs,
+                tools=TOOLS,
+                exec_tool=_exec_one,
+                max_rounds=max_rounds,
+                system_prompt=_full_system_prompt,
+            ):
+                if ev["type"] == "token":
+                    yield f"data: {_json.dumps({'token': ev['text']})}\n\n"
+                elif ev["type"] == "round":
+                    _round_txt = f"\n\n🔍 第{ev['round'] + 1}/{ev['total']}轮搜索...\n"
+                    yield f"data: {_json.dumps({'token': _round_txt})}\n\n"
+                elif ev["type"] == "deliver":
+                    yield f"data: {_json.dumps({'token': '\n\n📝 **Deliver** — 基于已获取的真实数据生成最终报告...\n\n'})}\n\n"
+                elif ev["type"] == "tool_start":
+                    yield f"data: {_json.dumps({'tool_start': ev['name'], 'args': ev['args'], 'require_approval': False})}\n\n"
+                elif ev["type"] == "tool_result":
+                    yield f"data: {_json.dumps({'tool_result': ev['result'][:500]})}\n\n"
+                elif ev["type"] == "final":
+                    yield f"data: {_json.dumps({'content': ev['text']})}\n\n"
+                elif ev["type"] == "timed_out":
+                    yield f"data: {_json.dumps({'token': ev['text']})}\n\n"
+                elif ev["type"] == "error":
+                    yield f"data: {_json.dumps({'error': ev['text']})}\n\n"
+                # timed_out_done: 超时消息已发，忽略
             yield "data: [DONE]\n\n"
         except Exception as e:
             yield f"data: {_json.dumps({'error': str(e)})}\n\n"
@@ -3902,314 +3700,52 @@ async def api_chat_stream(request: Request):
 
 
 def _do_save_memory(fact: str) -> str:
-    """保存事实到持久化记忆文件"""
-    import json as _json_mem
-    from pathlib import Path as _Path
-    mem_file = _Path.home() / ".meshctx" / "persistent_memory.json"
-    try:
-        if mem_file.exists():
-            data = _json_mem.loads(mem_file.read_text(encoding="utf-8"))
-        else:
-            data = {"entries": []}
-        if fact.strip() not in data["entries"]:
-            data["entries"].append(fact.strip())
-            mem_file.parent.mkdir(parents=True, exist_ok=True)
-            mem_file.write_text(_json_mem.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-            return f"✅ 已记住: {fact}"
-        else:
-            return f"已存在: {fact}"
-    except Exception as e:
-        return f"记忆保存失败: {e}"
+    """保存事实到持久化记忆 → 委托 chat_tools（与 CLI 共用）"""
+    from src.chat_tools import _save_memory as _sm
+    return _sm(fact)
+
+
+def _do_save_docx(path: str, title: str, content: str) -> str:
+    """直接生成 Word(.docx) 报告 → 委托 chat_tools（与 CLI 共用）"""
+    from src.chat_tools import _save_docx as _sd
+    return _sd(path, title, content)
+
 
 def _do_web_search(query: str) -> str:
-    """多引擎搜索（ddgs → SearXNG → Brave → Google → web_extract），自动回退"""
-    import os, re, json, urllib.parse
-    import requests as _requests
-    from src.config import load_config as _load_search_config
-
-    try:
-        cfg = _load_search_config()
-        proxy_url = cfg.get("search", {}).get("proxy", os.environ.get("MESHCTX_SEARCH_PROXY", ""))
-        max_results = int(cfg.get("search", {}).get("max_results", 20))
-        timeout = int(cfg.get("search", {}).get("timeout", 15))
-    except Exception:
-        proxy_url = os.environ.get("MESHCTX_SEARCH_PROXY", "")
-        max_results = 20
-        timeout = 15
-
-    proxies = None
-    if proxy_url and proxy_url.strip():
-        proxies = {"http": proxy_url, "https": proxy_url}
-
-    ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-    headers = {"User-Agent": ua, "Accept-Language": "en-US,en;q=0.9"}
-
-    # ── 格式化搜索结果 ──
-    def _fmt_results(results: list) -> str:
-        if not results:
-            return "无搜索结果"
-        lines = []
-        for i, r in enumerate(results[:max_results]):
-            title = r.get("title", "") or r.get("name", "")
-            body = r.get("body", "") or r.get("snippet", "") or r.get("description", "")
-            href = r.get("href", "") or r.get("url", "") or r.get("link", "")
-            lines.append(f"{i+1}. {title}")
-            if body:
-                lines.append(f"   {body[:300]}")
-            if href:
-                lines.append(f"   {href}")
-            lines.append("")
-        return "\n".join(lines).strip()
-
-    errors = []
-
-    # ── 引擎1: DDGS (DuckDuckGo) ──
-    try:
-        from ddgs import DDGS
-        kwargs = {"timeout": timeout}
-        if proxy_url and proxy_url.strip():
-            kwargs["proxy"] = proxy_url.strip()
-        with DDGS(**kwargs) as ddgs:
-            results = list(ddgs.text(query, max_results=max(20, max_results)))
-        if results:
-            return _fmt_results(results)
-        errors.append("ddgs: 无结果")
-    except ImportError:
-        errors.append("ddgs: 未安装")
-    except Exception as e:
-        errors.append(f"ddgs: {e}")
-
-    # ── 引擎2: Brave Search API (免费 2000次/月) ──
-    brave_key = os.environ.get("BRAVE_API_KEY", "")
-    if brave_key:
-        try:
-            resp = _requests.get(
-                "https://api.search.brave.com/res/v1/web/search",
-                params={"q": query, "count": min(max_results, 20)},
-                headers={**headers, "Accept": "application/json",
-                         "X-Subscription-Token": brave_key, "Accept-Encoding": "gzip"},
-                proxies=proxies, timeout=timeout
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                web = data.get("web", {}).get("results", [])
-                if web:
-                    return _fmt_results(web)
-                errors.append("brave: 无结果")
-            else:
-                errors.append(f"brave: HTTP {resp.status_code}")
-        except Exception as e:
-            errors.append(f"brave: {e}")
-
-    # ── 引擎3: SearXNG (CloudCone 自建) ──
-    searxng_url = os.environ.get("SEARXNG_URL", "")
-    if searxng_url:
-        try:
-            resp = _requests.get(
-                f"{searxng_url}/search",
-                params={"q": query, "format": "json", "categories": "general"},
-                headers=headers, proxies=proxies, timeout=timeout
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                results = data.get("results", [])
-                if results:
-                    return _fmt_results(results)
-                errors.append("searxng: 无结果")
-            else:
-                errors.append(f"searxng: HTTP {resp.status_code}")
-        except Exception as e:
-            errors.append(f"searxng: {e}")
-
-    # ── 引擎4: Google 直接HTTP (text mode) ──
-    try:
-        google_url = f"https://www.google.com/search?q={urllib.parse.quote(query)}&hl=en&num=20&ie=UTF-8"
-        resp = _requests.get(google_url, headers={**headers, "User-Agent":
-            "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36"}, proxies=proxies, timeout=timeout+5)
-        if resp.status_code == 200:
-            # 尝试多种解析方式
-            for pattern in [
-                r'<h3[^>]*>([^<]+)</h3>.*?<a[^>]*href="([^"]+)"[^>]*>.*?<span[^>]*>([^<]{20,300})</span>',
-                r'"title":"([^"]+)","link":"([^"]+)"',
-                r'<h3[^>]*>([^<]+)</h3>',
-            ]:
-                matches = re.findall(pattern, resp.text[:200000], re.DOTALL)
-                if matches:
-                    google_results = []
-                    for m in matches[:max_results]:
-                        if isinstance(m, tuple):
-                            t, url, *rest = m
-                            body = rest[0] if rest else ""
-                        else:
-                            t, url, body = m, "", ""
-                        google_results.append({"title": t.strip(), "href": url.strip(), "body": body.strip()[:300]})
-                    if google_results:
-                        return _fmt_results(google_results)
-            errors.append("google: 无法解析结果")
-        else:
-            errors.append(f"google: HTTP {resp.status_code}")
-    except Exception as e:
-        errors.append(f"google: {e}")
-
-    # ── 引擎5: Startpage ──
-    try:
-        sp_url = f"https://www.startpage.com/sp/search?query={urllib.parse.quote(query)}&num=20"
-        resp = _requests.get(sp_url, headers=headers, proxies=proxies, timeout=timeout+5)
-        if resp.status_code == 200:
-            # Startpage uses w-gl classes
-            results = []
-            titles = re.findall(r'class="w-gl__result-title[^"]*"[^>]*>([^<]+)', resp.text)
-            hrefs = re.findall(r'class="w-gl__result-url[^"]*"[^>]*>([^<]+)', resp.text)
-            descs = re.findall(r'class="w-gl__description[^"]*"[^>]*>([^<]+)', resp.text)
-            for i in range(min(len(titles), max_results)):
-                entry = {"title": titles[i].strip()}
-                if i < len(hrefs): entry["href"] = hrefs[i].strip()
-                if i < len(descs): entry["body"] = descs[i].strip()[:300]
-                results.append(entry)
-            if results:
-                return _fmt_results(results)
-            errors.append("startpage: 无法解析")
-        else:
-            errors.append(f"startpage: HTTP {resp.status_code}")
-    except Exception as e:
-        errors.append(f"startpage: {e}")
-
-    return f"所有搜索引擎均失败 ({'; '.join(errors)})"
-
-
+    """网页搜索 → 委托 chat_tools (ddgs+代理 → Bing兜底)"""
+    from src.chat_tools import _web_search as _ws
+    return _ws(query)
 def _do_web_extract(url: str) -> str:
-    """抓取网页内容（支持SOCKS5/HTTP代理）"""
-    import requests, re, os
-    from src.config import load_config as _load_extract_config
-
-    # ── 代理配置 ──
-    proxies = None
-    try:
-        cfg = _load_extract_config()
-        proxy_url = cfg.get("search", {}).get("proxy", os.environ.get("MESHCTX_SEARCH_PROXY", ""))
-    except Exception:
-        proxy_url = os.environ.get("MESHCTX_SEARCH_PROXY", "")
-
-    if proxy_url and proxy_url.strip():
-        proxies = {"http": proxy_url, "https": proxy_url}
-
-    try:
-        try:
-            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}, timeout=20, proxies=proxies, verify=False)
-        except requests.exceptions.SSLError:
-            import urllib3
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}, timeout=20, proxies=proxies, verify=False)
-        html = resp.text
-        text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL)
-        text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL)
-        text = re.sub(r'<[^>]+>', ' ', text)
-        text = re.sub(r'\s+', ' ', text).strip()
-        return text[:12000]
-    except Exception as e:
-        return f"抓取失败: {e}"
+    """抓取网页内容 → 委托 chat_tools（与 CLI 共用）"""
+    from src.chat_tools import _web_extract as _we
+    return _we(url)
 
 
 def _do_read_file(path: str, offset: int = 1, limit: int = 200) -> str:
-    """读取本机文件"""
-    try:
-        p = Path(path).expanduser().resolve()
-        if not p.exists():
-            return f"文件不存在: {path}"
-        if p.stat().st_size > 10 * 1024 * 1024:
-            return f"文件过大({p.stat().st_size}字节)，请用 offset/limit 分段读取"
-        # 敏感路径告警
-        sensitive_prefixes = (
-            str(Path.home() / ".ssh"), "/etc/shadow", "/etc/passwd",
-            "/var/run/secrets", "/proc/self/environ"
-        )
-        warning = ""
-        if str(p).startswith(sensitive_prefixes):
-            warning = "⚠️ 警告: 正在读取敏感文件\n"
-        lines = p.read_text(errors='replace').split('\n')
-        total = len(lines)
-        start = max(1, offset) - 1
-        end = min(start + limit, total)
-        result = '\n'.join(f"{i+1}|{l}" for i, l in enumerate(lines[start:end], start))
-        header = warning + f"文件: {path} (行 {start+1}-{end} / 共 {total} 行)\n"
-        return header + result
-    except Exception as e:
-        return f"读取失败: {e}"
+    """读取本机文件 → 委托 chat_tools"""
+    from src.chat_tools import _read_file as _rf
+    return _rf(path, limit)
 
 
-def _do_write_file(path: str, content: str) -> str:
-    """写入本机文件"""
-    try:
-        p = Path(path).expanduser().resolve()
-        # 禁止写入系统关键路径
-        forbidden = ("/etc/", "/boot/", "/sys/", "/proc/", "/dev/")
-        if str(p).startswith(forbidden):
-            return f"写入拒绝: {path} 位于系统保护目录，禁止写入"
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content, encoding='utf-8')
-        return f"已写入: {path} ({len(content)} 字符)"
-    except Exception as e:
-        return f"写入失败: {e}"
+def _do_write_file(path: str, content: str, if_exists: str = "rename") -> str:
+    """写入本机文件 → 委托 chat_tools"""
+    from src.chat_tools import _write_file as _wf
+    return _wf(path, content, if_exists)
 
 
 def _do_search_files(pattern: str, directory: str = "") -> str:
-    """搜索本机文件"""
-    import subprocess
-    try:
-        d = Path(directory).expanduser().resolve() if directory else Path.home()
-        if not d.exists():
-            d = Path.home()
-        # 用 find + grep 快速搜索
-        result = subprocess.run(
-            ["find", str(d), "-maxdepth", "4", "-type", "f", "-iname", f"*{pattern}*", "-not", "-path", "*/.git/*", "-not", "-path", "*/node_modules/*", "-not", "-path", "*/__pycache__/*"],
-            capture_output=True, text=True, timeout=10
-        )
-        files = [l for l in result.stdout.strip().split('\n') if l]
-        if files:
-            return f"找到 {len(files)} 个文件:\n" + '\n'.join(files[:30])
-        # 按内容搜索
-        result2 = subprocess.run(
-            ["grep", "-rl", "--max-depth=3", pattern, str(d)],
-            capture_output=True, text=True, timeout=10
-        )
-        files2 = [l for l in result2.stdout.strip().split('\n') if l]
-        return f"按内容找到 {len(files2)} 个文件:\n" + '\n'.join(files2[:20]) if files2 else f"未找到匹配 '{pattern}' 的文件"
-    except Exception as e:
-        return f"搜索失败: {e}"
+    """搜索本机文件 → 委托 chat_tools"""
+    from src.chat_tools import _search_files as _sf
+    return _sf(pattern, directory or ".")
 
 
 # ── 本地终端执行 ──
 
 def _do_terminal(cmd: str, workdir: str = "", timeout: int = 60) -> str:
-    """在本机执行 shell 命令（需用户口头授权）"""
-    import subprocess as sp
-    from src.core.sandbox import CodeScanner
-    # 安全: sandbox验证, 再shell=True保留管道/重定向
-    ok, err = CodeScanner.scan_bash(cmd)
-    if not ok:
-        return f"终端: 命令被安全策略拦截 - {err}"
-    timeout = min(timeout, 300)  # 上限 5 分钟
-    try:
-        env = os.environ.copy()
-        env["PATH"] = "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + env.get("PATH", "")
-        result = sp.run(
-            cmd, shell=True, capture_output=True, text=True,
-            timeout=timeout, cwd=workdir or os.getcwd(), env=env
-        )
-        out = result.stdout.strip()
-        err = result.stderr.strip()
-        response = (out + "\n" + err).strip()[:8000]
-        if not response:
-            response = f"(exit={result.returncode})"
-        sysname = {"linux": "Linux", "darwin": "macOS", "win32": "Windows"}.get(sys.platform, sys.platform)
-        return f"终端 [{sysname}]:\n{response}"
-    except sp.TimeoutExpired:
-        return f"终端超时（{timeout}s），命令被中断"
-    except Exception as e:
-        return f"终端执行失败: {e}"
+    """本机执行 shell 命令 → 委托 chat_tools（含 CodeScanner 危险命令拦截）"""
+    from src.chat_tools import _terminal as _term
+    return _term(cmd, workdir, timeout)
 
-
-# ── 远程文件工具 (SSH: paramiko 纯 Python → 原生 ssh 回退) ──
 
 def _ssh_connect(host: str, user: str = "", password: str = "", port: int = 22):
     """建立 SSH 连接。凭据来源：参数 > 环境变量。
@@ -4308,52 +3844,22 @@ def _ssh_write_file(client, path: str, content: str, host: str = "", user: str =
 
 
 def _do_remote_exec(cmd: str, host: str = "", user: str = "", password: str = "", port: int = 22) -> str:
-    """通过 SSH 在远程服务器执行命令"""
-    client, h, u, err = _ssh_connect(host, user, password, port)
-    if err:
-        return f"远程执行失败: {err}"
-    try:
-        out = _ssh_exec_cmd(client, cmd, host=h, user=u, password=password, port=port)
-        return f"远程执行 [{u}@{h}]:\n{out[:4000]}" if out else f"远程执行完成 [{u}@{h}] (无输出)"
-    except Exception as e:
-        return f"远程执行失败: {e}"
-    finally:
-        if client:
-            client.close()
+    """SSH 远程执行 → 委托 chat_tools（与 CLI 共用）"""
+    from src.chat_tools import _remote_exec as _re
+    return _re(cmd, host, user, password, port)
 
 
 def _do_remote_read(path: str, host: str = "", user: str = "", password: str = "", port: int = 22) -> str:
-    """通过 SSH 读取远程文件"""
-    client, h, u, err = _ssh_connect(host, user, password, port)
-    if err:
-        return f"远程读取失败: {err}"
-    try:
-        content = _ssh_read_file(client, path, host=h, user=u, password=password, port=port)
-        lines = content.split('\n')
-        return f"远程文件: {u}@{h}:{path} ({len(lines)} 行)\n" + '\n'.join(f"{i+1}|{l}" for i, l in enumerate(lines[:500]))
-    except Exception as e:
-        return f"远程读取失败: {e}"
-    finally:
-        if client:
-            client.close()
+    """SSH 远程读取 → 委托 chat_tools（与 CLI 共用）"""
+    from src.chat_tools import _remote_read as _rr
+    return _rr(path, host, user, password, port)
 
 
 def _do_remote_write(path: str, content: str, host: str = "", user: str = "", password: str = "", port: int = 22) -> str:
-    """通过 SSH 写入远程文件"""
-    client, h, u, err = _ssh_connect(host, user, password, port)
-    if err:
-        return f"远程写入失败: {err}"
-    try:
-        _ssh_write_file(client, path, content, host=h, user=u, password=password, port=port)
-        return f"已写入远程文件: {u}@{h}:{path} ({len(content)} 字符)"
-    except Exception as e:
-        return f"远程写入失败: {e}"
-    finally:
-        if client:
-            client.close()
+    """SSH 远程写入 → 委托 chat_tools（与 CLI 共用）"""
+    from src.chat_tools import _remote_write as _rw
+    return _rw(path, content, host, user, password, port)
 
-
-# ── 浏览器工具 (纯 Python, requests + bs4, 零版本依赖) ──
 
 def _run_async(coro):
     """同步上下文跑 async 协程 (兼容已在运行 loop 的线程)"""
@@ -4491,7 +3997,7 @@ async def chat_compare(req: Request):
             entry = {"model": mid, "response": "", "error": "", "latency_ms": 0}
             try:
                 # Run sync chat in thread pool for true parallelism
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 resp = await loop.run_in_executor(
                     None, 
                     lambda: reg.chat(
@@ -5193,6 +4699,19 @@ async def code_review(req: Request):
 # ═══════════════════════════════════════════════════
 
 
+def _default_data_dir() -> str:
+    """跨平台数据目录默认值：Linux=/opt/meshctx/data；Windows=%LOCALAPPDATA%/meshctx/data；macOS=~/Library/Application Support/meshctx/data"""
+    try:
+        if os.name == "nt":
+            base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
+            return os.path.join(base, "meshctx", "data")
+        if sys.platform == "darwin":
+            return str(Path.home() / "Library" / "Application Support" / "meshctx" / "data")
+    except Exception:
+        pass
+    return "/opt/meshctx/data"
+
+
 def _validate_file_path(path: str) -> "Path":
     """路径白名单校验 — 防止路径遍历攻击 (C-1/C-2)"""
     from pathlib import Path
@@ -5216,23 +4735,23 @@ def _validate_file_path(path: str) -> "Path":
     sp = str(file_path)
 
     # 白名单: 只允许访问安全目录 (收紧: 仅数据目录,禁止整个/opt)
-    data_dir = os.environ.get("MESHCTX_DATA_DIR", "/opt/meshctx/data")
-    allowed_prefixes = [
-        data_dir,
-        "/opt/meshctx",
-        "/opt/meshctx/data",
-        "/opt/meshctx/projects",
-        "/opt/meshctx/plugins",
-        "/opt/meshctx/logs",
-        "/home/",
-        "/Users/",  # macOS
-        "/tmp/",
-        "/tmp",  # resolve() strips trailing /
-        "/var/tmp/",
-        "/mnt/c/Users/",
-        "/mnt/d/",
-        "/mnt/e/",
-    ]
+    data_dir = os.environ.get("MESHCTX_DATA_DIR") or _default_data_dir()
+    is_wsl = bool(os.environ.get("WSL_DISTRO_NAME")) or os.path.isdir("/mnt/c")
+    allowed_prefixes = [data_dir]
+    if os.name == "nt":
+        # Windows 原生: 数据目录 + 用户主目录（含 OneDrive 重定向场景）
+        _user = os.environ.get("USERPROFILE") or str(Path.home())
+        if _user:
+            allowed_prefixes.append(_user.rstrip("\\/") + os.sep)
+    else:
+        allowed_prefixes += ["/home/", "/Users/", "/tmp/", "/tmp", "/var/tmp/"]
+        # WSL 专属 Windows 挂载前缀 — 仅 WSL 环境放行
+        if is_wsl:
+            allowed_prefixes += ["/mnt/c/Users/", "/mnt/d/", "/mnt/e/"]
+    # 兼容默认部署目录（Linux 服务器）
+    for _extra in ("/opt/meshctx", "/opt/meshctx/data", "/opt/meshctx/projects",
+                   "/opt/meshctx/plugins", "/opt/meshctx/logs"):
+        allowed_prefixes.append(_extra)
     # Windows路径
     win_allowed = ["C:\\Users\\", "D:\\", "E:\\", "C:\\Users/", "D:/", "E:/"]
 

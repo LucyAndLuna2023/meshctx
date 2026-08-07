@@ -2,9 +2,18 @@
 meshctx 统一模型适配器
 一行切换百炼/DeepSeek/OpenAI，不换代码
 """
+import logging
+import time
 from typing import Dict, List, Optional, Any
+
+logger = logging.getLogger("meshctx.model_adapter")
 from dataclasses import dataclass
 import os
+
+# 流式输出超时(秒)
+_STREAM_READ_TIMEOUT = 60
+_STREAM_IDLE_TIMEOUT = 60
+_CLIENT_TIMEOUT = 120
 
 
 @dataclass
@@ -50,7 +59,8 @@ class ModelAdapter:
 
         try:
             from openai import OpenAI
-            self._client = OpenAI(api_key=api_key, base_url=base_url)
+            self._client = OpenAI(api_key=api_key, base_url=base_url,
+                                timeout=_CLIENT_TIMEOUT)
             self._model = model
             self._ready = True
         except ImportError:
@@ -137,8 +147,14 @@ class ModelAdapter:
         tool_calls_acc = {}  # index -> {id, name, args_str}
         final_content = ""
 
+        _last_chunk = time.monotonic()
         try:
-            for chunk in self._client.chat.completions.create(**kwargs):
+            for chunk in self._client.chat.completions.create(**kwargs, timeout=_STREAM_READ_TIMEOUT):
+                _now = time.monotonic()
+                if _now - _last_chunk > _STREAM_IDLE_TIMEOUT:
+                    yield "\n[流式错误: 流式响应空闲超时]"
+                    return
+                _last_chunk = _now
                 delta = chunk.choices[0].delta if chunk.choices else None
                 if delta is None:
                     continue

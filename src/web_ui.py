@@ -1317,8 +1317,8 @@ async function send() {
                 streamText.innerHTML += '<span style="color:#fca5a5;">' + parsed.error + '</span>';
                 cursor.remove();
                 throw new Error(parsed.error); // 触发重试
-              } else if (parsed.token) {
-                var token = parsed.token.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+              } else if (parsed.token || parsed.content) {
+                var token = (parsed.token !== undefined ? parsed.token : parsed.content).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
                 streamText.innerHTML += token;
                 // 自动滚动到底部
                 var msgDiv = document.getElementById('messages');
@@ -2682,12 +2682,25 @@ function renderAgent(d){
   if(tasks.length>0){
     for(var i=0; i<Math.min(tasks.length,8); i++){
       var tk = tasks[i];
-      taskHTML += '<div class="row"><span style="color:var(--muted);font-family:monospace;font-size:10px;">'+tk.id+'</span><span style="flex:1">'+(tk.description||tk.id||'')+'</span><span class="tag '+tagByStatus(tk.status)+'">'+(tk.status||'pending')+'</span></div>';
+      taskHTML += '<div class="row task-row" data-task-id="'+tk.id+'" onclick="toggleTask(this,\''+tk.id+'\')" style="cursor:pointer"><span style="color:var(--muted);font-family:monospace;font-size:10px;">'+tk.id+'</span><span style="flex:1">'+(tk.description||tk.id||'')+'</span><span class="tag '+tagByStatus(tk.status)+'" id="task-status-'+tk.id+'">'+(tk.status||'pending')+'</span></div>';
     }
   } else {
     taskHTML = '<div class="empty">😴 暂无任务记录</div>';
   }
   document.getElementById('agentTaskList').innerHTML = taskHTML;
+}
+
+function toggleTask(el, taskId) {
+  var statusEl = document.getElementById('task-status-'+taskId);
+  if (!statusEl || statusEl.textContent === 'done' || statusEl.textContent === 'completed') return;
+  fetch('/api/tasks/'+taskId+'/complete', {method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    if (d.status === 'ok') {
+      statusEl.textContent = d.new_status || 'done';
+      statusEl.className = 'tag tag-ok';
+      el.style.opacity = '0.6';
+      el.style.textDecoration = 'line-through';
+    }
+  }).catch(function(e){ console.error('Task complete error:', e); });
 }
 
 // ── Monitor Tab ──

@@ -10,11 +10,19 @@ MeshCtx 极简模型系统 — 123模型 · 37供应商 · 零配置
 """
 import os
 import json
+import re
 import logging
+import time
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
+
+# 流式输出超时(秒): HTTP 每次读块超时 / 整体空闲超时
+STREAM_READ_TIMEOUT = 60
+STREAM_IDLE_TIMEOUT = 60
+# 非流式调用与客户端默认总超时(秒)
+CLIENT_TIMEOUT = 120
 
 # BUG-011: 本地模型主机可配置
 _OLLAMA_HOST = os.environ.get("MESHCTX_OLLAMA_HOST", "localhost")
@@ -414,6 +422,7 @@ class ModelRegistry:
             self._clients[model_id] = OpenAI(
                 api_key=cfg["key"],
                 base_url=cfg["base_url"],
+                timeout=CLIENT_TIMEOUT,
             )
         
         return ModelClient(
@@ -479,7 +488,8 @@ class ModelClient:
     def chat_stream(self, messages: List[Dict], temperature=0.7, max_tokens=4096, tools=None):
         """流式对话 — 逐token返回，最后可能返回 tool_calls"""
         kwargs = dict(model=self.model_name, messages=messages, temperature=temperature, max_tokens=max_tokens, stream=True,
-                      stream_options={"include_usage": True})
+                      stream_options={"include_usage": True},
+                      timeout=STREAM_READ_TIMEOUT)
         if tools:
             kwargs["tools"] = tools
             kwargs["tool_choice"] = "auto"
@@ -487,15 +497,55 @@ class ModelClient:
         tool_acc = {}
         full_content = ""
         response = None
+        _last_chunk = time.monotonic()
+        # DSML（<tool_calls> 文本块）状态机：流式抑制 + 收集，供尾部解析为工具调用
+        # deepseek 会把标签写成 <｜tool_calls>/<｜invoke>（全角竖线 U+FF5C），开闭检测需容忍
+        _dsml_open_re, _dsml_close_re = re.compile(r'<[\uff5c|]?tool_calls>'), re.compile(r'</[\uff5c|]?tool_calls>')
+        _tail, _inside, _dsml_buf, dsml_blocks = "", False, "", []
         try:
             response = self.client.chat.completions.create(**kwargs)
             for chunk in response:
+                _now = time.monotonic()
+                if _now - _last_chunk > STREAM_IDLE_TIMEOUT:
+                    yield "[错误: 流式响应空闲超时]"
+                    return
+                _last_chunk = _now
                 delta = chunk.choices[0].delta if chunk.choices else None
                 if delta is None:
                     continue
                 if delta.content:
                     full_content += delta.content
-                    yield delta.content
+                    text = delta.content
+                    while text:
+                        if not _inside:
+                            probe = _tail + text
+                            _m = _dsml_open_re.search(probe)
+                            if _m is None:
+                                emit = probe[: max(0, len(probe) - 16)]
+                                if emit:
+                                    yield emit
+                                _tail = probe[-16:] if len(probe) >= 16 else probe
+                                text = ""
+                            else:
+                                head = probe[:_m.start()]
+                                if head:
+                                    yield head
+                                _tail = ""
+                                rest = probe[_m.end():]
+                                _inside = True
+                                _dsml_buf = ""
+                                text = rest
+                        else:
+                            _mc = _dsml_close_re.search(text)
+                            if _mc is None:
+                                _dsml_buf += text
+                                text = ""
+                            else:
+                                _dsml_buf += text[:_mc.start()]
+                                dsml_blocks.append(_dsml_buf)
+                                _inside = False
+                                _dsml_buf = ""
+                                text = text[_mc.end():]
                 if delta.tool_calls:
                     for tc in delta.tool_calls:
                         idx = tc.index
@@ -516,11 +566,15 @@ class ModelClient:
                     response.close()
                 except Exception:
                     pass
+            if _tail:
+                yield _tail
+            if _inside and _dsml_buf and "<invoke" in _dsml_buf:
+                dsml_blocks.append(_dsml_buf)
 
-        # After stream ends, yield tool calls if any
+        from src.chat_tools import parse_dsml_tool_calls, strip_dsml_tool_calls
+        parsed = []
         if tool_acc:
             import json
-            parsed = []
             for idx in sorted(tool_acc.keys()):
                 tc = tool_acc[idx]
                 try:
@@ -529,7 +583,11 @@ class ModelClient:
                     logger.debug("chat error", exc_info=True)
                     args = {}
                 parsed.append({"id": tc["id"], "name": tc["name"], "arguments": args})
-            yield ("__TOOLS__", parsed, full_content)
+        elif dsml_blocks:
+            for _bi, _blk in enumerate(dsml_blocks):
+                parsed.extend(parse_dsml_tool_calls(_blk, prefix=f"dsml_{_bi}"))
+        if parsed:
+            yield ("__TOOLS__", parsed, strip_dsml_tool_calls(full_content))
 
 
 # ── 全局单例 ──────────────────────────────────────────
