@@ -1,277 +1,95 @@
 """Agent Loop — Plan/Act/Reflect cycle plugin with AgentPool delegation"""
+# NOTE: 本文件为 meshctx 开源接口 stub。核心实现位于私有仓库 meshctx-core。
+# 商业/完整版: pip install meshctx-core (需授权)。访问接口将抛 NotImplementedError。
+from __future__ import annotations
+from enum import Enum
+from abc import ABC
+__all__ = []
 
-import time
-import uuid
-import logging
-from dataclasses import dataclass, field
-from typing import Optional
+class _MeshCtxStubProxy:
+    """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
+    def __init__(self, name):
+        self._name = name
+    def __getattr__(self, attr):
+        return _MeshCtxStubProxy(f"{self._name}.{attr}")
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError(f"meshctx-core required (private repo): {self._name}")
+    def __repr__(self):
+        return f"<meshctx stub {self._name}>"
 
-from .agent_swarm import AgentPool, SwarmTask, TaskStatus, get_agent_pool
+def __getattr__(name):
+    return _MeshCtxStubProxy(name)
 
-logger = logging.getLogger(__name__)
-
-
+__all__ = []
+__all__ = []
+__all__ = []
 class PluginInfo:
     """Plugin identity descriptor (stable API)."""
-    def __init__(self, name="agent_loop", version="0.1.0", description=""):
-        self.name = name
-        self.version = version
-        self.description = description
+    def __init__(self, name = 'agent_loop', version = '0.1.0', description = ''):
+        raise NotImplementedError("meshctx-core required (private repo)")
 
 
 class LoopPhase:
-    plan = "plan"
-    act = "act"
-    reflect = "reflect"
+    plan = 'plan'
+    act = 'act'
+    reflect = 'reflect'
 
-
-@dataclass
 class PlanStep:
-    step_id: str = field(default_factory=lambda: f"step_{uuid.uuid4().hex[:8]}")
-    description: str = ""
-    agent_id: Optional[str] = None
-    status: str = "pending"
-    result: str = ""
-    error: str = ""
-
+    pass
 
 class AgentLoopPlugin:
     """Plan/Act/Reflect agent cycle plugin."""
-
-    def __init__(self, objective: str = "", context: dict | None = None,
-                 max_iterations: int = 10, pool_max_slots: int = 5):
-        self.info = PluginInfo(
-            name="agent_loop", version="0.2.0",
-            description="Plan/Act/Reflect agent cycle with AgentPool delegation")
-        self.kernel = None
-        self._running = False
-        self._phase = LoopPhase.plan
-        self.objective: str = objective
-        self.context: dict = context or {}
-        self.steps: list = []
-        self._current_step_idx: int = 0
-        self._iteration: int = 0
-        self._max_iterations: int = max_iterations
-        self._started_at: Optional[float] = None
-        self._last_step_at: Optional[float] = None
-        self._pool: Optional[AgentPool] = None
-        self._pool_max_slots: int = pool_max_slots
-        self._reflection_log: list = []
-        self._outcome: str = ""
+    def __init__(self, objective: str = '', context: dict | None = None, max_iterations: int = 10, pool_max_slots: int = 5):
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     async def on_load(self, kernel) -> bool:
-        self.kernel = kernel
-        pool = get_agent_pool(max_slots=self._pool_max_slots)
-        object.__setattr__(self, '_pool', pool)
-        self._log("plan", "AgentLoopPlugin loaded")
-        return True
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def start(self):
-        self._running = True
-        self._started_at = time.time()
-        self._iteration = 0
-        self._phase = LoopPhase.plan
-        self._log("plan", f"Starting loop — objective: {self.objective[:80]}")
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def stop(self):
-        self._running = False
-        self._log("reflect", "Loop stopped")
-        self._release_pool()
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def step(self) -> dict:
-        if not self._running:
-            return {"phase": "idle", "iteration": self._iteration, "outcome": "stopped"}
-        self._iteration += 1
-        self._last_step_at = time.time()
-        self._phase = LoopPhase.plan
-        plan_result = self.plan()
-        self._log("plan", plan_result.get("summary", "planning done"))
-        self._phase = LoopPhase.act
-        act_result = self.act()
-        self._log("act", act_result.get("summary", "action done"))
-        self._phase = LoopPhase.reflect
-        reflect_result = self.reflect(act_result)
-        self._outcome = reflect_result.get("outcome", "continue")
-        self._log("reflect", f"outcome: {self._outcome}")
-
-        # v3.115.46: online learning integration
-        self._learn_from_step(act_result)
-        
-        if self._iteration >= self._max_iterations:
-            self._outcome = "max_iterations"
-        if self._outcome in ("done", "failed", "max_iterations"):
-            self._running = False
-        return {
-            "phase": self._phase, "iteration": self._iteration,
-            "outcome": self._outcome, "steps_remaining": self._pending_steps(),
-            "pool_status": self._pool.status() if self._pool else {},
-            "plan": plan_result, "act": act_result, "reflect": reflect_result,
-        }
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def plan(self) -> dict:
-        if not self.steps and self.objective:
-            self.steps = self._dag_plan(self.objective)
-            self._current_step_idx = 0
-            return {"summary": f"DAG planned {len(self.steps)} steps",
-                    "steps": [s.description for s in self.steps],
-                    "total_steps": len(self.steps)}
-        pending = self._pending_steps()
-        return {"summary": f"{pending} steps pending",
-                "steps": [s.description for s in self.steps if s.status == "pending"],
-                "total_steps": pending}
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def _dag_plan(self, objective: str) -> list:
         """DAG-aware task decomposition — dependencies, parallel groups."""
-        # Smart phase-based decomposition with dependency ordering
-        phases = [
-            ("gather", "Gather context and requirements", []),
-            ("analyze", "Analyze and break down problem", ["gather"]),
-            ("design", "Design solution approach", ["analyze"]),
-            ("execute", "Execute implementation", ["design"]),
-            ("verify", "Verify and validate results", ["execute"]),
-            ("deliver", "Deliver final output", ["verify"]),
-        ]
-        steps = []
-        for pid, desc, deps in phases:
-            dep_str = f" (needs: {','.join(deps)})" if deps else ""
-            steps.append(PlanStep(
-                description=f"[{pid}]{dep_str} {desc}: {objective[:60]}",
-                step_id=f"{pid}_{len(steps)}",
-            ))
-        logger.info(f"DAG plan: {len(steps)} phases with dependencies")
-        return steps
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def _pending_steps(self) -> int:
-        return sum(1 for s in self.steps if s.status == "pending")
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def act(self) -> dict:
-        pending = [s for s in self.steps if s.status == "pending"]
-        if not pending:
-            return {"summary": "no pending steps", "action": "idle"}
-        step = pending[0]
-        step.status = "running"
-        use_pool = self._should_delegate(step)
-        if use_pool and self._pool and self._pool.available_slots() > 0:
-            task = SwarmTask(description=step.description,
-                             task_type=self._infer_task_type(step.description))
-            agent_id = self._pool.spawn(task)
-            step.agent_id = agent_id
-            return {"summary": f"Dispatched to pool agent {agent_id}",
-                    "action": "pool_spawn", "step": step.description,
-                    "agent_id": agent_id}
-        step.result = f"Completed: {step.description}"
-        step.status = "done"
-        return {"summary": f"Executed inline: {step.description[:60]}",
-                "action": "inline", "step": step.description, "result": step.result}
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def reflect(self, act_result: dict) -> dict:
-        if self._pool:
-            for s in self.steps:
-                if s.status == "running" and s.agent_id:
-                    task = self._pool.wait(s.agent_id, timeout=0.001)
-                    if task and task.status == TaskStatus.done:
-                        s.status = "done"
-                        s.result = task.result or "done via pool"
-                    elif task and task.status == TaskStatus.failed:
-                        s.status = "failed"
-                        s.error = task.error or "pool failure"
-        done = sum(1 for s in self.steps if s.status == "done")
-        failed = sum(1 for s in self.steps if s.status == "failed")
-        pending = sum(1 for s in self.steps if s.status == "pending")
-        running = sum(1 for s in self.steps if s.status == "running")
-        total = len(self.steps)
-        if total > 0 and done == total:
-            return {"outcome": "done", "reason": f"All {total} steps completed",
-                    "done": done, "failed": failed}
-        if total > 0 and failed > 0 and done + failed == total:
-            return {"outcome": "failed", "reason": f"{failed} step(s) failed",
-                    "done": done, "failed": failed}
-        if running:
-            return {"outcome": "wait_pool", "reason": f"{running} agent(s) running",
-                    "done": done, "pending": pending}
-        return {"outcome": "continue", "reason": f"{pending} step(s) remaining",
-                "done": done, "pending": pending}
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def stats(self) -> dict:
-        now = time.time()
-        done = sum(1 for s in self.steps if s.status == "done")
-        failed = sum(1 for s in self.steps if s.status == "failed")
-        pending = sum(1 for s in self.steps if s.status == "pending")
-        running = sum(1 for s in self.steps if s.status == "running")
-        return {
-            "running": self._running, "phase": self._phase,
-            "iteration": self._iteration, "max_iterations": self._max_iterations,
-            "objective": self.objective[:120] if self.objective else "",
-            "steps_total": len(self.steps), "steps_done": done,
-            "steps_failed": failed, "steps_pending": pending,
-            "steps_running": running, "outcome": self._outcome,
-            "elapsed": round(now - self._started_at, 3) if self._started_at else 0,
-            "last_step_elapsed": round(now - self._last_step_at, 3) if self._last_step_at else 0,
-            "pool": self._pool.status() if self._pool else {},
-            "reflection_log_len": len(self._reflection_log),
-        }
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def _decompose_objective(self, objective: str) -> list:
-        keywords = {
-            "search": "Search and gather information",
-            "analyze": "Analyze collected data",
-            "design": "Design solution approach",
-            "code": "Write implementation code",
-            "review": "Review and validate results",
-            "write": "Compose output document",
-            "test": "Run tests and verify",
-            "deploy": "Deploy or publish results",
-        }
-        obj_lower = objective.lower()
-        matched = [desc for kw, desc in keywords.items() if kw in obj_lower]
-        if not matched:
-            matched = ["Research and gather context", "Analyze requirements",
-                       "Produce deliverable", "Review and finalize"]
-        steps = []
-        for desc in matched:
-            steps.append(PlanStep(description=f"{desc}: {objective[:50]}"))
-        return steps
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def _should_delegate(self, step: PlanStep) -> bool:
-        heavy = {"code", "analyze", "research", "deploy", "test", "write"}
-        return any(kw in step.description.lower() for kw in heavy)
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def _infer_task_type(self, description: str) -> str:
-        mapping = {"search": "research", "research": "research",
-                   "analyze": "code", "code": "code",
-                   "write": "research", "review": "code",
-                   "test": "code", "deploy": "code"}
-        desc = description.lower()
-        for kw, tt in mapping.items():
-            if kw in desc:
-                return tt
-        return "general"
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def _release_pool(self):
-        if self._pool:
-            for s in self.steps:
-                if s.agent_id:
-                    self._pool.close(s.agent_id)
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def _learn_from_step(self, act_result: dict):
         """v3.115.46: Feed step outcome to OnlineLearner."""
-        try:
-            from .online_learning import OnlineLearner, SignalType
-            learner = OnlineLearner()
-            # Step reached without error = success
-            learner.record_feedback(
-                signal_type=SignalType.EXPLICIT_ACCEPT,
-                context=self.objective[:200],
-                output_text=act_result.get("summary", ""),
-                rating=0.8,
-            )
-        except Exception:
-            pass  # non-critical
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def _log(self, phase: str, msg: str):
-        entry = {"phase": phase, "message": msg, "ts": time.time()}
-        self._reflection_log.append(entry)
-        if len(self._reflection_log) > 100:
-            self._reflection_log = self._reflection_log[-50:]
+        raise NotImplementedError("meshctx-core required (private repo)")
 
 

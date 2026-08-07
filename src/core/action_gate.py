@@ -1,33 +1,43 @@
 """meshctx Action Gate — real implementation (v3.115.16)"""
-import logging
-from typing import Callable, Dict, Any
-logger = logging.getLogger("meshctx.gate")
+# NOTE: 本文件为 meshctx 开源接口 stub。核心实现位于私有仓库 meshctx-core。
+# 商业/完整版: pip install meshctx-core (需授权)。访问接口将抛 NotImplementedError。
+from __future__ import annotations
+from enum import Enum
+from abc import ABC
+__all__ = []
 
+class _MeshCtxStubProxy:
+    """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
+    def __init__(self, name):
+        self._name = name
+    def __getattr__(self, attr):
+        return _MeshCtxStubProxy(f"{self._name}.{attr}")
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError(f"meshctx-core required (private repo): {self._name}")
+    def __repr__(self):
+        return f"<meshctx stub {self._name}>"
+
+def __getattr__(name):
+    return _MeshCtxStubProxy(name)
+
+__all__ = []
+__all__ = []
+__all__ = []
 class ActionGate:
     """Gate sensitive actions behind approval checks."""
     def __init__(self):
-        self._rules: Dict[str, Callable[[Dict], bool]] = {}
-        self._require_approval = set()
-    
-    def protect(self, action: str, rule: Callable[[Dict], bool] = None, require_approval: bool = True):
-        if require_approval:
-            self._require_approval.add(action)
-        if rule:
-            self._rules[action] = rule
-    
-    def can_execute(self, action: str, context: dict = None) -> bool:
-        if action in self._require_approval:
-            return context.get("approved", False) if context else False
-        rule = self._rules.get(action)
-        return rule(context) if rule else True
-    
-    def list_protected(self) -> list:
-        return sorted(self._require_approval)
+        raise NotImplementedError("meshctx-core required (private repo)")
 
-_gate = ActionGate()
-_gate.protect("write_file")
-_gate.protect("remote_exec")
-_gate.protect("delete_project")
+    def protect(self, action: str, rule: Callable[[Dict], bool] = None, require_approval: bool = True):
+        raise NotImplementedError("meshctx-core required (private repo)")
+
+    def can_execute(self, action: str, context: dict = None) -> bool:
+        raise NotImplementedError("meshctx-core required (private repo)")
+
+    def list_protected(self) -> list:
+        raise NotImplementedError("meshctx-core required (private repo)")
+
 
 def get_action_gate() -> ActionGate:
-    return _gate
+    raise NotImplementedError("meshctx-core required (private repo)")
+

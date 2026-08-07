@@ -1,40 +1,52 @@
 """看门狗 — 开源版"""
-import logging, threading, time
-from pathlib import Path
-logger = logging.getLogger("meshctx.watchdog")
-HEARTBEAT_FILE = Path("/tmp/.meshctx_heartbeat")
+# NOTE: 本文件为 meshctx 开源接口 stub。核心实现位于私有仓库 meshctx-core。
+# 商业/完整版: pip install meshctx-core (需授权)。访问接口将抛 NotImplementedError。
+from __future__ import annotations
+from enum import Enum
+from abc import ABC
+__all__ = []
 
+class _MeshCtxStubProxy:
+    """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
+    def __init__(self, name):
+        self._name = name
+    def __getattr__(self, attr):
+        return _MeshCtxStubProxy(f"{self._name}.{attr}")
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError(f"meshctx-core required (private repo): {self._name}")
+    def __repr__(self):
+        return f"<meshctx stub {self._name}>"
+
+def __getattr__(name):
+    return _MeshCtxStubProxy(name)
+
+__all__ = []
+__all__ = []
+__all__ = []
 class WatchdogDaemon:
-    def __init__(self, *a, **kw): 
-        self._running = False
-        self._thread = None
-        self._alerts = []
-    
+    def __init__(self, *a, **kw):
+        raise NotImplementedError("meshctx-core required (private repo)")
+
     def start(self, **kw):
-        self._running = True
-        self._thread = threading.Thread(target=self._beat, daemon=True)
-        self._thread.start()
-        logger.info("Watchdog started (stub mode)")
-    
+        raise NotImplementedError("meshctx-core required (private repo)")
+
     def _beat(self, **kw):
-        while self._running:
-            try:
-                with open(HEARTBEAT_FILE, "w") as f:
-                    f.write(str(time.time()))
-            except Exception:
-                pass  # 心跳文件写入失败不影响守护进程（磁盘满/权限），非关键路径
-            time.sleep(5)
-    
-    def stop(self): self._running = False
-    def stats(self): return {"uptime": 0}
-    def get_status(self): return {"status": "ok", "uptime": 0, "alerts": len(self._alerts)}
-    
+        raise NotImplementedError("meshctx-core required (private repo)")
+
+    def stop(self):
+        raise NotImplementedError("meshctx-core required (private repo)")
+
+    def stats(self):
+        raise NotImplementedError("meshctx-core required (private repo)")
+
+    def get_status(self):
+        raise NotImplementedError("meshctx-core required (private repo)")
+
     async def _check_all(self):
         """全面健康检查"""
-        import asyncio
-        if hasattr(asyncio, 'sleep'):
-            await asyncio.sleep(0)
-        return {"status": "healthy", "checks_passed": True, "alerts": len(self._alerts)}
+        raise NotImplementedError("meshctx-core required (private repo)")
 
-_daemon = WatchdogDaemon()
-def get_daemon(): return _daemon
+
+def get_daemon():
+    raise NotImplementedError("meshctx-core required (private repo)")
+

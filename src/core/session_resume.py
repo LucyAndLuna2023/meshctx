@@ -1,69 +1,79 @@
 """Session Resume — 开源版 (stub)"""
-import json
-import logging
-from pathlib import Path
+# NOTE: 本文件为 meshctx 开源接口 stub。核心实现位于私有仓库 meshctx-core。
+# 商业/完整版: pip install meshctx-core (需授权)。访问接口将抛 NotImplementedError。
+from __future__ import annotations
+from enum import Enum
+from abc import ABC
+__all__ = []
 
-logger = logging.getLogger("meshctx.session_resume")
+class _MeshCtxStubProxy:
+    """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
+    def __init__(self, name):
+        self._name = name
+    def __getattr__(self, attr):
+        return _MeshCtxStubProxy(f"{self._name}.{attr}")
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError(f"meshctx-core required (private repo): {self._name}")
+    def __repr__(self):
+        return f"<meshctx stub {self._name}>"
 
+def __getattr__(name):
+    return _MeshCtxStubProxy(name)
 
+__all__ = []
+__all__ = []
+__all__ = []
 class SessionState:
     """Represents a stored session state."""
     def __init__(self, id, profile, messages):
-        self.id = id
-        self.profile = profile
-        self.messages = messages
+        raise NotImplementedError("meshctx-core required (private repo)")
 
 
 class SessionResumeEngine:
     """Engine for saving and resuming sessions using file-based storage."""
-
     def __init__(self, storage):
-        self.storage = Path(storage)
-        self.storage.mkdir(parents=True, exist_ok=True)
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def _session_path(self, session_id):
-        return self.storage / f"{session_id}.json"
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def save(self, session_id, data):
         """Save session data to disk."""
-        path = self._session_path(session_id)
-        path.write_text(json.dumps(data))
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def resume(self, session_id):
         """Resume a session. Returns session data dict or None if not found."""
-        path = self._session_path(session_id)
-        if not path.exists():
-            return None
-        return json.loads(path.read_text())
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def list_recent(self, limit):
         """List up to `limit` most recently modified sessions."""
-        paths = sorted(
-            self.storage.glob("*.json"),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )
-        return [json.loads(p.read_text()) for p in paths[:limit]]
+        raise NotImplementedError("meshctx-core required (private repo)")
 
     def get_stats(self):
         """Return statistics about stored sessions."""
-        sessions = list(self.storage.glob("*.json"))
-        return {"sessions": len(sessions)}
+        raise NotImplementedError("meshctx-core required (private repo)")
 
 
 class _SessionResume:
-    def resume(self, *a, **kw): return None
-    def stats(self): return {}
+    def resume(self, *a, **kw):
+        raise NotImplementedError("meshctx-core required (private repo)")
+
+    def stats(self):
+        raise NotImplementedError("meshctx-core required (private repo)")
+
     def detect_previous_session(self, **kw):
         """检测是否存在上次会话存档"""
-        return None  # 开源版不实现自动恢复
+        raise NotImplementedError("meshctx-core required (private repo)")
+
     def restore(self, session_id, **kw):
         """恢复指定会话"""
-        return {"context_continuity": 0, "items_restored": {"decisions": 0, "rules": 0}, "resume_time_ms": 0}
+        raise NotImplementedError("meshctx-core required (private repo)")
+
     def apply_to_kernel(self, kernel, **kw):
         """将会话上下文注入内核"""
-        return []
+        raise NotImplementedError("meshctx-core required (private repo)")
 
-_resume = _SessionResume()
-def get_session_resume(): return _resume
+
+def get_session_resume():
+    raise NotImplementedError("meshctx-core required (private repo)")
 

@@ -16,6 +16,21 @@
 
 ---
 
+## 🔓 开源 / 🔒 闭源架构
+
+MeshCtx 采用 **开源接口 + 闭源核心** 的双仓库架构：
+
+| 仓库 | 可见性 | 内容 |
+|------|--------|------|
+| **meshctx** (本仓库) | 🔓 公开 | 开源安全模块（完整实现）+ 核心模块的**接口 stub**（签名+文档保留，供外部对接/扩展） |
+| **meshctx-core** | 🔒 私有 | 33 个核心模块的**完整实现**（AgentSwarm · Kernel · SuperBrain · Sandbox · MultiAgent · AutonomousEngine 等） |
+
+**对开发者**：公开仓库的 `src/core/*.py` 是完整接口定义（函数/类签名、docstring、枚举常量），可直接 `from src.core.agent_swarm import AgentIdentity` 进行类型对接与二次开发；调用实现时抛 `NotImplementedError("meshctx-core required")` 提示需商业授权。
+
+**商业授权**：`pip install meshctx-core`（私有仓库，需授权）后自动获得完整实现，公开仓库代码零改动即可无缝切换。
+
+---
+
 ## 🚀 快速安装
 
 ### Windows
