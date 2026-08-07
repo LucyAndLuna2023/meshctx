@@ -481,6 +481,14 @@ class RateLimiter:
                 "active_clients": len(self._buckets),
             }
 
+    def get_stats(self) -> Dict[str, Any]:
+        """Alias for stats() — 与其他子系统 (healer/compactor/usage_meter) 命名一致.
+
+        resource_manager.health() 调用 self.rate_limiter.get_stats(),
+        此前该方法不存在导致 health() 被 except 吞掉返回 error（三平台均受影响）。
+        """
+        return self.stats()
+
     def client_stats(self, bucket_key: Optional[str] = None) -> Dict[str, Any]:
         """Return per-client stats, optionally filtered."""
         result: Dict[str, Any] = {}
