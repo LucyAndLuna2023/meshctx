@@ -120,6 +120,8 @@ BUILTIN_MODELS = {
     "moonshot:kimi":           {"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"moonshot-v1-8k","key_env":"MOONSHOT_API_KEY"},
     "moonshot:kimi-32k":       {"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"moonshot-v1-32k","key_env":"MOONSHOT_API_KEY"},
     "moonshot:kimi-128k":      {"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"moonshot-v1-128k","key_env":"MOONSHOT_API_KEY"},
+    "moonshot:kimi-k2.7-code":{"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"kimi-k2.7-code","key_env":"MOONSHOT_API_KEY"},
+    "moonshot:kimi-k3":        {"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"kimi-k3","key_env":"MOONSHOT_API_KEY"},
     # ── 字节豆包 (火山引擎) ────────────────────────────
     "doubao:pro-32k":          {"provider":"doubao","base_url":"https://ark.cn-beijing.volces.com/api/v3","model":"doubao-pro-32k","key_env":"DOUBAO_API_KEY"},
     "doubao:pro-128k":         {"provider":"doubao","base_url":"https://ark.cn-beijing.volces.com/api/v3","model":"doubao-pro-128k","key_env":"DOUBAO_API_KEY"},
@@ -460,8 +462,18 @@ class ModelClient:
     model_id: str
     model_name: str
 
+    # 推理类模型只接受 temperature=1（Kimi K2.7/K3 等）
+    _TEMP_LOCKED_MODELS = ("kimi-k2.7-code", "kimi-k3", "kimi-k2.5", "kimi-k2.6")
+
+    def _sanitize_temp(self, temperature: float) -> float:
+        """对只接受 temperature=1 的推理模型强制锁定为 1，其余保持原值"""
+        if self.model_name in self._TEMP_LOCKED_MODELS:
+            return 1.0
+        return temperature
+
     def chat(self, messages: List[Dict], temperature=0.7, max_tokens=4096, tools=None) -> Dict:
         """发送对话请求"""
+        temperature = self._sanitize_temp(temperature)
         kwargs = dict(model=self.model_name, messages=messages, temperature=temperature, max_tokens=max_tokens)
         if tools:
             kwargs["tools"] = tools
@@ -487,6 +499,7 @@ class ModelClient:
 
     def chat_stream(self, messages: List[Dict], temperature=0.7, max_tokens=4096, tools=None):
         """流式对话 — 逐token返回，最后可能返回 tool_calls"""
+        temperature = self._sanitize_temp(temperature)
         kwargs = dict(model=self.model_name, messages=messages, temperature=temperature, max_tokens=max_tokens, stream=True,
                       stream_options={"include_usage": True},
                       timeout=STREAM_READ_TIMEOUT)
