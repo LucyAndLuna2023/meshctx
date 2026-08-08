@@ -97,5 +97,5 @@ curl -fsSL https://cdn.jsdelivr.net/gh/LucyAndLuna2023/meshctx@main/install.sh |
 ```bash
 cd ~/.meshctx && source venv/bin/activate
 python -c "from src.core import __version__; print(__version__)"
-# 应输出: 3.115.1
+# 应输出: 3.118.0
 ```
