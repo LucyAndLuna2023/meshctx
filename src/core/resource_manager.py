@@ -33,6 +33,44 @@ from typing import Any, Dict, List, Optional, Tuple
 logger = logging.getLogger("meshctx.resource_manager")
 
 
+class _StubSubsystem:
+    """核心闭源子系统 (auto_healer/memory_compactor/rate_limiter/usage_meter)
+    未安装时的优雅降级 — 所有查询返回"健康/无限制"默认值, 不抛错."""
+    should_throttle = False
+    level = "healthy"
+    status = "ok"
+    _active = True
+
+    def __getattr__(self, name):
+        # 未定义属性 → 返回 bound stub (可调用, 返回空 dict — 与 get_stats/check 语义兼容)
+        return _StubMethod(name)
+
+    def __bool__(self):
+        return False
+
+
+class _StubMethod:
+    """Stub 子系统的任意方法 — 调用返回空 dict (与 check_all/get_stats/check 兼容)"""
+    def __init__(self, name):
+        self._name = name
+
+    def __call__(self, *a, **kw):
+        if self._name in ("check", "pre_task", "can_accept"):
+            return True, ""
+        if self._name.startswith("is_"):
+            return False
+        return {}
+
+    def __getattr__(self, name):
+        return _StubMethod(f"{self._name}.{name}")
+
+    def __bool__(self):
+        return False
+
+
+# ═══════════════════════════════════════════════════════════
+
+
 # ═══════════════════════════════════════════════════════════
 # Unified threshold model
 # ═══════════════════════════════════════════════════════════
@@ -100,29 +138,41 @@ class ResourceManager:
     @property
     def healer(self):
         if self._healer is None:
-            from src.core.auto_healer import get_auto_healer
-            self._healer = get_auto_healer()
+            try:
+                from src.core.auto_healer import get_auto_healer
+                self._healer = get_auto_healer()
+            except Exception:
+                self._healer = _StubSubsystem()  # 核心闭源未装: 优雅降级
         return self._healer
 
     @property
     def compactor(self):
         if self._compactor is None:
-            from src.core.memory_compactor import get_memory_compactor
-            self._compactor = get_memory_compactor()
+            try:
+                from src.core.memory_compactor import get_memory_compactor
+                self._compactor = get_memory_compactor()
+            except Exception:
+                self._compactor = _StubSubsystem()
         return self._compactor
 
     @property
     def rate_limiter(self):
         if self._rate_limiter is None:
-            from src.core.rate_limiter import get_rate_limiter
-            self._rate_limiter = get_rate_limiter()
+            try:
+                from src.core.rate_limiter import get_rate_limiter
+                self._rate_limiter = get_rate_limiter()
+            except Exception:
+                self._rate_limiter = _StubSubsystem()
         return self._rate_limiter
 
     @property
     def usage_meter(self):
         if self._usage_meter is None:
-            from src.core.usage_meter import get_usage_meter
-            self._usage_meter = get_usage_meter()
+            try:
+                from src.core.usage_meter import get_usage_meter
+                self._usage_meter = get_usage_meter()
+            except Exception:
+                self._usage_meter = _StubSubsystem()
         return self._usage_meter
 
     # ── lifecycle ──────────────────────────────────────────
