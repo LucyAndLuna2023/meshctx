@@ -226,7 +226,13 @@ async def lifespan(app: FastAPI):
     config = load_config()
     worker_count = config.get("kernel", {}).get("worker_count", 4)
     k = get_kernel()  # lazily creates kernel + registers all plugins
-    await k.start(worker_count=worker_count)
+    try:
+        await k.start(worker_count=worker_count)
+    except NotImplementedError as e:
+        # P0 修复 (codex 审计): stub 模式 (meshctx-core 未装) 容错启动 —
+        # 跳过 kernel 核心启动, UI/基础API 仍可用; 核心功能调用时显式报错
+        logger.warning(f"[meshctx-core stub] kernel.start() 跳过: {e}")
+        logger.warning("[meshctx-core stub] 核心功能 (内存/心跳/网关插件) 不可用 — 安装 meshctx-core 私有包后完整启用")
     pc = getattr(k.plugins, "plugin_count", len(getattr(k.plugins, "_plugins", {})))
     logger.info(f"插件: {pc} 已加载")
 
