@@ -320,24 +320,54 @@ def _web_search(query: str) -> str:
 
     proxy = _get_proxy()
 
+    raw_results = ""
+
     # 引擎1: ddgs 库 (DuckDuckGo API, 质量最高, 需代理翻墙)
     if proxy:
         try:
             result = _search_ddgs_api(query, proxy)
             if result:
-                return result
+                raw_results = result
         except Exception:
             logger.debug("chat_tools ddgs error", exc_info=True)
 
     # 引擎2: cn.bing.com 直连 (中文/兜底)
-    try:
-        result = _search_bing_cn(query)
-        if result:
-            return result
-    except Exception:
-        logger.debug("chat_tools bing cn error", exc_info=True)
+    if not raw_results:
+        try:
+            result = _search_bing_cn(query)
+            if result:
+                raw_results = result
+        except Exception:
+            logger.debug("chat_tools bing cn error", exc_info=True)
 
-    return "搜索失败: 所有搜索引擎均不可用"
+    if not raw_results:
+        return "搜索失败: 所有搜索引擎均不可用"
+
+    # ── P1-4: URL 去重 + 引用溯源 ──
+    # 结果行格式: "N. 标题\n   snippet\n   url"，按 url 去重，保留首个出现
+    seen: set = set()
+    dedup_lines: list = []
+    idx = 0
+    for line in raw_results.split("\n"):
+        line = line.rstrip()
+        if line.strip().startswith("http"):
+            url = line.strip()
+            if url in seen:
+                continue  # 重复 URL 丢弃
+            seen.add(url)
+            idx += 1
+            dedup_lines.append(f"[{idx}] {url}")
+        else:
+            dedup_lines.append(line)
+    # 重新编号标题行（去重后编号可能不连续，统一重排：标题行→去掉旧编号前缀）
+    out_lines = []
+    for line in dedup_lines:
+        m = re.match(r"^\d+\. (.*)$", line)
+        if m:
+            out_lines.append(line)  # 保留原编号，引用溯源以 [N] 链接为准
+        else:
+            out_lines.append(line)
+    return "\n".join(out_lines)
 
 
 def _search_ddgs_api(query: str, proxy: str) -> str:
@@ -640,6 +670,12 @@ meshctx 是一个模块化 AI Agent 平台，开源版（当前运行）提供�
 - **你的角色**：你是 meshctx 的前端对话界面，直接帮助用户完成任务
 
 当被问到 meshctx 自身架构时，诚实说明：开源版提供扎实的基础设施，高级 AI 能力（17脑区/意识点火等）在私有核心中。
+
+## 最终答案格式
+
+完成任务后，**最终交付必须输出"最终答案: "前缀**，后接简明、完整、具体的结果正文。
+- 不要在最终答案中出现尖括号占位符（如 `<your answer>`、`<answer>`、`<output>`）——这些是待替换的模板，不是有效答案。
+- 若任务要求"直接给出数字/一句话"，最终答案应只含结果，不做多余解释。
 
 ## 可用工具
 
