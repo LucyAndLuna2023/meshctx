@@ -33,6 +33,32 @@ from typing import Any, Dict, List, Optional, Tuple
 logger = logging.getLogger("meshctx.resource_manager")
 
 
+class _StubSubsystem:
+    """核心闭源子系统 (auto_healer/memory_compactor/rate_limiter/usage_meter)
+    未安装时的优雅降级 — 所有查询返回"健康/无限制"默认值, 不抛错."""
+    should_throttle = False
+    level = "healthy"
+    status = "ok"
+    _active = True
+
+    def __getattr__(self, name):
+        # 数值/布尔类查询 → 无限制默认; 其它属性 → 返回 self 以支持链式调用
+        if name.startswith(("get_", "count", "usage", "memory", "total", "current", "available")):
+            return 0
+        if name.startswith(("is_", "has_", "should_", "can_")):
+            return False
+        return self
+
+    def __call__(self, *a, **kw):
+        return self
+
+    def __bool__(self):
+        return False
+
+
+# ═══════════════════════════════════════════════════════════
+
+
 # ═══════════════════════════════════════════════════════════
 # Unified threshold model
 # ═══════════════════════════════════════════════════════════
@@ -100,29 +126,41 @@ class ResourceManager:
     @property
     def healer(self):
         if self._healer is None:
-            from src.core.auto_healer import get_auto_healer
-            self._healer = get_auto_healer()
+            try:
+                from src.core.auto_healer import get_auto_healer
+                self._healer = get_auto_healer()
+            except Exception:
+                self._healer = _StubSubsystem()  # 核心闭源未装: 优雅降级
         return self._healer
 
     @property
     def compactor(self):
         if self._compactor is None:
-            from src.core.memory_compactor import get_memory_compactor
-            self._compactor = get_memory_compactor()
+            try:
+                from src.core.memory_compactor import get_memory_compactor
+                self._compactor = get_memory_compactor()
+            except Exception:
+                self._compactor = _StubSubsystem()
         return self._compactor
 
     @property
     def rate_limiter(self):
         if self._rate_limiter is None:
-            from src.core.rate_limiter import get_rate_limiter
-            self._rate_limiter = get_rate_limiter()
+            try:
+                from src.core.rate_limiter import get_rate_limiter
+                self._rate_limiter = get_rate_limiter()
+            except Exception:
+                self._rate_limiter = _StubSubsystem()
         return self._rate_limiter
 
     @property
     def usage_meter(self):
         if self._usage_meter is None:
-            from src.core.usage_meter import get_usage_meter
-            self._usage_meter = get_usage_meter()
+            try:
+                from src.core.usage_meter import get_usage_meter
+                self._usage_meter = get_usage_meter()
+            except Exception:
+                self._usage_meter = _StubSubsystem()
         return self._usage_meter
 
     # ── lifecycle ──────────────────────────────────────────
