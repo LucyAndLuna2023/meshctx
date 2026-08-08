@@ -29,7 +29,7 @@ API:
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -45,11 +45,18 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+logger = "logger"
+@dataclass
 class SecretFinding:
     """密钥发现结果。"""
+    secret_type: str = None
+    line_number: int = None
+    line_content: str = None
+    match: str = None
+    confidence: float = None
+    file_path: Optional[str] = None
+    context: Optional[str] = None
+    scanner_version: str = '1.0.0'
     def __repr__(self) -> str:
         raise NotImplementedError("meshctx-core required (private repo)")
 
@@ -128,3 +135,5 @@ def get_secret_scanner(credential_pool = None) -> SecretScanner:
     """获取全局 SecretScanner 单例。"""
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["SecretFinding", "SecretScanner", "scan", "redact", "scan_text", "scan_file", "scan_directory", "scan_paths", "add_rule", "remove_rule", "list_rules", "get_stats", "get_scanner_stats", "reset_stats", "generate_report", "get_secret_scanner"]

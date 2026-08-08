@@ -4,7 +4,7 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -20,12 +20,17 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+@dataclass
 class BrainDimension:
     """A single dimension of brain state recovery measurement."""
-    pass
+    dim_id: str = None
+    name: str = None
+    category: str = None
+    module: str = None
+    description: str = ''
+    recovery_score: float = 0.0
+    current: float = 0.0
+    reproducibility: int = 0
 
 class BrainStateValidator:
     """Brain state validator — measures recovery profile across 13 dimensions."""
@@ -69,3 +74,5 @@ def get_brain_validator() -> BrainStateValidator:
     """Get or create the singleton brain validator."""
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["BrainDimension", "BrainStateValidator", "measure_dimension", "measure_all", "get_recovery_profile", "check_reproducibility", "compare_alignment", "get_history", "get_trend", "get_brain_validator"]

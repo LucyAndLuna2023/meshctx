@@ -7,7 +7,7 @@ No more hardcoded results."""
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -23,11 +23,12 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+@dataclass(slots=True)
 class CheckResult:
-    pass
+    name: str = None
+    status: str = 'ok'
+    message: str = ''
+    details: Dict[str, Any] = None
 
 class AutoHealerV2:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -79,3 +80,5 @@ class AutoHealerV2:
 def get_auto_healer() -> AutoHealerV2:
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["CheckResult", "AutoHealerV2", "check_all", "heal", "should_throttle", "register_limit_mb", "get_stats", "get_dashboard_report", "get_auto_healer"]

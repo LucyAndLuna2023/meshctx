@@ -8,7 +8,6 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -24,9 +23,6 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
 class HippocampalReplay:
     """Memory replay and consolidation during rest periods."""
     def __init__(self, max_traces = 50, **kw):
@@ -212,3 +208,5 @@ class SuperBrainOrchestrator:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+
+__all__ = ["HippocampalReplay", "encode", "should_replay", "replay", "SalienceTagger", "tag", "average_salience", "ThalamicGate", "gate", "adapt", "IITConsciousness", "compute_phi", "average_phi", "CerebellarForwardModel", "predict", "learn", "mean_error", "BasalGanglia", "evaluate", "reinforce", "MirrorNeurons", "observe", "infer_intention", "empathy_score", "Insula", "sense", "detect_anomaly", "EmotionalConsolidation", "consolidate", "emotional_state", "STDPLearner", "stdp", "update_weight", "DefaultModeNetwork", "introspect", "mind_wander", "update_self_model", "ConflictMonitor", "detect", "ActionSelector", "register_action", "select", "update_value", "SuperBrainOrchestrator", "step", "get_stats"]

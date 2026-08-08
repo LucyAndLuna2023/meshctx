@@ -4,7 +4,6 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -20,9 +19,7 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+_original_safe_load = "_original_safe_load"
 def _patched_safe_load(stream):
     raise NotImplementedError("meshctx-core required (private repo)")
 
@@ -45,3 +42,5 @@ def decrypt_key(key: str) -> str:
 def is_encrypted(key: str) -> bool:
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["get_crypto", "encrypt_key", "decrypt_key", "is_encrypted"]

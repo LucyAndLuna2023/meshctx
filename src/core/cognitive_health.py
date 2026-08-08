@@ -17,7 +17,6 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -33,9 +32,6 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
 class CognitiveHealthMonitor:
     """认知健康监控器 — 主动检测Agent衰减"""
     SCORE_WARNING = 60.0
@@ -96,3 +92,5 @@ class CognitiveHealthMonitor:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+
+__all__ = ["CognitiveHealthMonitor", "record_free_energy", "record_confidence", "record_output", "get_free_energy_trend", "get_confidence_trend", "get_repeat_ratio", "compute_score", "update_score", "should_suggest_new_session", "get_diagnosis", "check", "reset"]

@@ -9,7 +9,6 @@ concurrent agent execution.
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -25,9 +24,7 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+logger = "logger"
 class TeamResult:
     """Single agent result placed on the shared result queue."""
     def __init__(self, team_id: str, agent_name: str, role: str, message: str, response: str, latency_ms: float):
@@ -67,6 +64,7 @@ class Team:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+_registry_lock = "_registry_lock"
 def team_create(name: str, agents: list[dict], process_fn: Callable[..., str] | None = None) -> str:
     """Create a new team of agents."""
     raise NotImplementedError("meshctx-core required (private repo)")
@@ -83,3 +81,5 @@ def team_list() -> list[dict]:
     """List all currently active teams."""
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["TeamResult", "to_dict", "AgentContext", "run", "Team", "send", "stats", "team_create", "team_send", "team_delete", "team_list"]

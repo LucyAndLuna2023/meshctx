@@ -30,7 +30,7 @@ License: AGPLv3
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -46,8 +46,7 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-logger = 'logger'
+logger = "logger"
 class EngineState(Enum):
     INIT = 'init'
     RUNNING = 'running'
@@ -64,8 +63,18 @@ class TaskPriority(Enum):
     LOW = 3
     BACKGROUND = 4
 
+@dataclass(order=True)
 class ScheduledTask:
     """调度任务"""
+    priority: int = None
+    task_id: str = None
+    action: str = None
+    payload: Any = None
+    scheduled_at: float = None
+    timeout: float = 300.0
+    retries: int = 3
+    retry_count: int = 0
+    status: str = 'pending'
     def __post_init__(self):
         raise NotImplementedError("meshctx-core required (private repo)")
 
@@ -260,10 +269,10 @@ def get_autonomous_engine() -> AutonomousEngine:
     raise NotImplementedError("meshctx-core required (private repo)")
 
 class Severity(Enum):
-    INFO = 'INFO'
-    WARNING = 'WARNING'
-    ERROR = 'ERROR'
-    CRITICAL = 'CRITICAL'
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"
 
 class IncidentStatus(Enum):
     OPEN = 'open'
@@ -273,14 +282,37 @@ class IncidentStatus(Enum):
     FIXED = 'fixed'
     RESOLVED = 'resolved'
 
+@dataclass
 class MetricPoint:
-    pass
+    value: float = None
+    timestamp: float = None
+    labels: Dict[str, str] = None
 
+@dataclass
 class FixRecord:
-    pass
+    fix_id: str = None
+    incident_id: str = None
+    action: str = None
+    success: bool = True
+    success_count: int = 0
+    timestamp: float = None
+    details: str = ''
 
+@dataclass
 class Incident:
+    id: str = None
+    title: str = None
+    severity: Severity = None
+    symptoms: List[str] = None
+    status: IncidentStatus = None
+    created_at: float = None
+    fingerprint: str = ''
+    root_cause: str = ''
+    fix_applied: str = ''
+    detected_at: float = None
     def __post_init__(self):
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+
+__all__ = ["EngineState", "TaskPriority", "ScheduledTask", "HeartbeatMonitor", "beat", "is_alive", "get_uptime", "TaskQueue", "push", "pop", "complete", "fail", "peek", "size", "get_stats", "AutoHealer", "record_error", "diagnose", "heal", "AutonomousEngine", "start", "stop", "submit_task", "attach_brain", "get_status_page", "resolve", "get_health", "learn_fix", "get_health_report", "get_autonomous_engine", "Severity", "IncidentStatus", "MetricPoint", "FixRecord", "Incident"]

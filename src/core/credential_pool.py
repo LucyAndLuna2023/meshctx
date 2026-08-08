@@ -8,7 +8,7 @@ meshctx Credential Pool — 凭证管理与轮换
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -24,11 +24,17 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+logger = "logger"
+@dataclass
 class PooledKey:
     """A single API key in a credential pool."""
+    key: str = None
+    provider: str = ''
+    status: str = 'active'
+    call_count: int = 0
+    label: str = ''
+    exhausted_reason: str = ''
+    exhausted_at: float = 0.0
     def to_dict(self) -> Dict[str, Any]:
         raise NotImplementedError("meshctx-core required (private repo)")
 
@@ -36,8 +42,14 @@ class PooledKey:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+@dataclass
 class PoolConfig:
     """Configuration for a credential pool."""
+    provider: str = ''
+    strategy: str = 'round_robin'
+    keys: List[PooledKey] = None
+    cooldown_seconds: int = 300
+    _round_robin_index: int = None
     def to_dict(self) -> Dict[str, Any]:
         raise NotImplementedError("meshctx-core required (private repo)")
 
@@ -47,6 +59,7 @@ class PoolConfig:
 
 class CredentialPoolManager:
     """Manages multiple credential pools for different providers."""
+    VALID_STRATEGIES = {'round_robin', 'least_used', 'random'}
     def __init__(self, pool_file: Optional[str] = None):
         raise NotImplementedError("meshctx-core required (private repo)")
 
@@ -123,3 +136,5 @@ def reset_credential_pool():
     """Reset the global CredentialPoolManager singleton."""
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["PooledKey", "to_dict", "from_dict", "PoolConfig", "CredentialPoolManager", "list_providers", "ensure_pool", "set_strategy", "add_key", "list_keys", "remove_key", "get_key", "mark_exhausted", "mark_revoked", "reset_key", "reset_provider", "clear_all", "get_stats", "get_credential_pool", "reset_credential_pool"]

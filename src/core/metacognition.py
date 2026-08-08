@@ -8,7 +8,7 @@ Implements the core "gets smarter every time" claim from meshctx.com.
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -24,10 +24,6 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
-__all__ = ['TaskStatus', 'Strategy', 'LearnedPattern', 'MetaEvaluation', 'MetaCognitionEngine', 'get_meta_cognition']
 class TaskStatus(str, Enum):
     PENDING = 'pending'
     RUNNING = 'running'
@@ -44,15 +40,35 @@ class Strategy(str, Enum):
     RETRY = 'retry'
     FALLBACK = 'fallback'
 
+@dataclass
 class LearnedPattern:
     """A pattern extracted from task execution history."""
+    pattern_id: str = None
+    trigger_keywords: List[str] = None
+    successful_strategy: Strategy = None
+    failure_reasons: List[str] = None
+    success_count: int = 0
+    failure_count: int = 0
+    avg_duration_ms: float = 0.0
+    last_seen: float = None
+    confidence: float = 0.0
     def success_rate(self) -> float:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+@dataclass
 class MetaEvaluation:
     """Result of a meta-cognition evaluation cycle."""
-    pass
+    task_id: str = None
+    task_description: str = None
+    status: TaskStatus = None
+    duration_ms: float = None
+    patterns_matched: List[str] = None
+    patterns_learned: List[str] = None
+    strategy_used: Optional[Strategy] = None
+    insights: List[str] = None
+    improvement_suggestions: List[str] = None
+    timestamp: float = None
 
 class MetaCognitionEngine:
     """Post-task self-evaluation and continuous learning engine."""
@@ -105,3 +121,5 @@ class MetaCognitionEngine:
 def get_meta_cognition() -> MetaCognitionEngine:
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["TaskStatus", "Strategy", "LearnedPattern", "success_rate", "MetaEvaluation", "MetaCognitionEngine", "evaluate", "best_strategy", "recommend_strategy", "stats", "reset", "get_meta_cognition"]

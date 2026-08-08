@@ -4,7 +4,7 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -20,9 +20,6 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
 class AgentIdentity:
     def __init__(self, agent_id = None, **kw):
         raise NotImplementedError("meshctx-core required (private repo)")
@@ -41,10 +38,28 @@ class TaskStatus(Enum):
     done = 'done'
     failed = 'failed'
 
+@dataclass
 class SwarmTask:
-    pass
+    task_id: str = None
+    description: str = ''
+    task_type: str = 'general'
+    worker_id: str = ''
+    status: TaskStatus = None
+    result: str = ''
+    error: str = ''
+    created_at: float = None
 
+@dataclass
 class WorkerInfo:
+    worker_id: str = ''
+    name: str = ''
+    address: str = ''
+    public_key: str = ''
+    capabilities: list = None
+    status: str = 'online'
+    last_heartbeat: float = None
+    total_tasks: int = 0
+    completed_tasks: int = 0
     def to_dict(self):
         raise NotImplementedError("meshctx-core required (private repo)")
 
@@ -83,8 +98,13 @@ class WorkerAgent:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+@dataclass
 class AgentPoolEntry:
-    pass
+    agent_id: str = None
+    task: SwarmTask = None
+    spawned_at: float = None
+    status: str = 'running'
+    result: str = ''
 
 class AgentPool:
     """Agent pool with slot management for parallel sub-agents."""
@@ -137,3 +157,5 @@ def get_agent_pool(max_slots: int = 5) -> AgentPool:
 def reset_agent_pool():
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["AgentIdentity", "sign_request", "verify_request", "TaskStatus", "SwarmTask", "WorkerInfo", "to_dict", "ManagerAgent", "start", "stop", "register_worker", "update_heartbeat", "submit_task", "find_worker", "receive_result", "get_swarm_status", "WorkerAgent", "AgentPoolEntry", "AgentPool", "spawn", "wait", "close", "available_slots", "status", "get_swarm_manager", "get_swarm_worker", "init_swarm_manager", "init_swarm_worker", "get_agent_pool", "reset_agent_pool"]

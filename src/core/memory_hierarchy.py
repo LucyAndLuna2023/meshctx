@@ -4,7 +4,7 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -20,10 +20,8 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
 class MemoryLevel(Enum):
+    SENSORY = "SENSORY"
     L0 = 0
     L1 = 1
     L2 = 2
@@ -91,8 +89,31 @@ class KnowledgeGraph:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+@dataclass
 class MemoryItem:
     """A single memory item with metadata."""
+    level: MemoryLevel = None
+    key: str = ''
+    value: str = ''
+    id: str = ''
+    content: str = ''
+    summary: str = ''
+    project_id: str = ''
+    conversation_id: str = ''
+    source: str = ''
+    importance: float = 0.5
+    access_count: int = 0
+    review_count: int = 0
+    tags: list[str] = None
+    entities: list[str] = None
+    confidence: float = 0.5
+    is_corrected: bool = False
+    correction_history: list[dict] = None
+    related_memory_ids: list[str] = None
+    embedding: Optional[list[float]] = None
+    created_at: float = 0.0
+    last_accessed: float = 0.0
+    last_reviewed: float = 0.0
     def __post_init__(self):
         raise NotImplementedError("meshctx-core required (private repo)")
 
@@ -159,6 +180,7 @@ class HierarchicalMemoryStore:
 
 class MemoryPlugin:
     """Memory plugin for kernel integration."""
+    info = "info"
     def __init__(self, **kw):
         raise NotImplementedError("meshctx-core required (private repo)")
 
@@ -173,3 +195,5 @@ class MemoryPlugin:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+
+__all__ = ["MemoryLevel", "VectorIndex", "dim", "add", "count", "search", "to_dict", "from_dict", "KnowledgeGraph", "add_entity", "add_relation", "link_memory", "search_entities", "get_related_memories", "get_stats", "MemoryItem", "current_retention", "to_json_dict", "from_json_dict", "EbbinghausForgetting", "decay", "HierarchicalMemoryStore", "store", "retrieve", "recall", "compact", "stats", "set_auto_save", "save_to_file", "load_from_file", "MemoryPlugin", "on_load", "on_event", "generate_report"]

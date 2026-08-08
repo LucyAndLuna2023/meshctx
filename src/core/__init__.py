@@ -12,6 +12,19 @@ import sys, logging, warnings, os
 from functools import lru_cache
 from types import ModuleType
 
+# ═══════════════ meshctx-core 检测 (P0-4, codex 审计) ═══════════════
+# 启动时检查私有核心是否安装, 未安装则给出明确告警
+try:
+    import meshctx_core  # noqa: F401
+    _HAS_MESHCTX_CORE = True
+except ImportError:
+    _HAS_MESHCTX_CORE = False
+    if not os.environ.get('MESHCTX_QUIET', ''):
+        warnings.warn(
+            "meshctx running in STUB mode: meshctx-core (private) NOT installed. "
+            "高级能力将优雅降级。安装完整版: pip install meshctx-core (需授权)。",
+            RuntimeWarning, stacklevel=2)
+
 # ═══════════════ MESHCTX_STRICT 开关 ═══════════════
 # 设置环境变量 MESHCTX_STRICT=1 可启用严格模式:
 #   stub 访问不再静默失败, 而是 raise ImportError
@@ -46,12 +59,15 @@ class _StubProxy:
         return self
 
     def __call__(self, *a, **kw):
+        # P0-2 修复 (codex 审计): 禁止静默假运行 — 调用 stub 必须显式失败
         if _STRICT:
             raise ImportError(
                 "meshctx stub called — meshctx-core not installed. "
                 "Unset MESHCTX_STRICT for graceful degradation.")
-        self._warn_once('__call__')
-        return self
+        raise NotImplementedError(
+            f"meshctx-core required (private repo): {self.__class__.__name__} was called. "
+            f"Install meshctx-core for full implementation, or set MESHCTX_STRICT=1 "
+            f"to raise ImportError instead of NotImplementedError.")
 
     def __bool__(self):
         if _STRICT:

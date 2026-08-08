@@ -15,7 +15,6 @@ OODA Learn闭环 — 学习阶段实现
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -31,9 +30,6 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
 class LearnLoop:
     """OODA Learn阶段处理器"""
     ERROR_STRATEGY_MAP = {'knowledge_gap': 'explore_random', 'tool_error': 'safe_path', 'timeout': 'defer_decision', 'resource_exhausted': 'safe_path', 'validation_error': 'balanced', 'network_error': 'defer_decision'}
@@ -74,3 +70,5 @@ class LearnLoop:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+
+__all__ = ["LearnLoop", "record_outcome", "is_habit", "get_habit_strategy", "suggest_strategy", "get_stats", "to_free_energy_observation", "to_active_inference_feedback"]
