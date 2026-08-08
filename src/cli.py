@@ -346,6 +346,8 @@ def cmd_chat(args):
     from src.model_registry import get_registry
     from src.chat_tools import TOOLS, execute_tool, TOOL_ICONS, trim_messages
 
+    max_turns = getattr(args, 'max_rounds', 0) or int(os.environ.get("MESHCTX_MAX_ROUNDS", "6"))
+
     reg = get_registry(args.config)
     model_id = args.model or os.environ.get("MESHCTX_MODEL")
     client = reg.get(model_id)
@@ -454,7 +456,7 @@ def cmd_chat(args):
                 continue
 
         messages.append({"role": "user", "content": user})
-        session_id = _chat_loop(client, messages, TOOLS, execute_tool, TOOL_ICONS)
+        session_id = _chat_loop(client, messages, TOOLS, execute_tool, TOOL_ICONS, max_turns=max_turns)
 
         # 自动保存会话
         if session_id and len(messages) > 3:
@@ -1641,6 +1643,7 @@ def main():
     c.add_argument("--project", help="项目上下文目录 (自动加载 AGENTS.md)")
     c.add_argument("--continue", dest="continue_session", help="恢复历史会话ID")
     c.add_argument("--new", dest="new_session", action="store_true", help="强制新会话(跳过自动恢复)")
+    c.add_argument("--max-rounds", type=int, default=0, help="搜索轮次上限 (默认6=5搜+1交付; 0则读环境变量 MESHCTX_MAX_ROUNDS)")
     c.add_argument("message", nargs="?", help="一发模式: 直接问一个问题")
     c.set_defaults(func=cmd_chat)
 

@@ -256,9 +256,11 @@ async def run_agent_loop(
         loop = asyncio.get_running_loop()
         resp = await loop.run_in_executor(
             None, lambda: client.chat(messages, temperature=0.7, max_tokens=max_tokens))
-        final_content = resp.get("content") or "处理超时，请重试"
+        final_content = resp.get("content") or ""
     except Exception:
-        final_content = "处理超时，请重试"
+        final_content = ""
+    if not final_content or final_content == "处理超时，请重试":
+        final_content = "已达搜索轮次上限，先交付当前成果。你可以继续输入，我会在保留上下文的基础上追加轮次。"
     messages.append({"role": "assistant", "content": final_content})
     yield {"type": "final", "text": final_content}
     yield {"type": "done"}
