@@ -1,0 +1,29 @@
+[
+  {
+    "instance_id": "swebench_pro__django__001",
+    "repo": "https://github.com/django/django.git",
+    "base_commit": "abc123def456",
+    "problem_statement": "修复 Django ORM 中 annotate() 和 values() 同时使用时的查询结果错误。当在 QuerySet 上先使用 annotate() 添加聚合字段，再使用 values() 选择特定字段时，SQL GROUP BY 子句生成不正确。",
+    "hint": "查看 django/db/models/sql/query.py 中的 get_aggregation() 方法",
+    "gold_patch": "--- a/django/db/models/sql/query.py\n+++ b/django/db/models/sql/query.py\n@@ -450,7 +450,8 @@ def get_aggregation(self, using, added_aggregate_names):\n-        for alias in self.values_select:\n+        for alias in list(self.values_select):\n+            if alias not in added_aggregate_names:\n                 outer_query.add_annotation(alias, ...)\n",
+    "test_cmd": "pytest tests/aggregation/"
+  },
+  {
+    "instance_id": "swebench_pro__flask__002",
+    "repo": "https://github.com/pallets/flask.git",
+    "base_commit": "def789abc012",
+    "problem_statement": "修复 Flask 中 async 视图函数在请求上下文中抛出 RuntimeError 的问题。当使用 @app.route 装饰的 async 函数访问 request 对象时，在某些并发场景下出现 'Working outside of request context' 错误。",
+    "hint": "检查 flask/app.py 中 ensure_sync 包装器是否正确传递上下文",
+    "gold_patch": "--- a/flask/app.py\n+++ b/flask/app.py\n@@ -870,7 +870,8 @@ def ensure_sync(self, func):\n-        if asyncio.iscoroutinefunction(func):\n+        from .ctx import copy_current_request_context\n+        if asyncio.iscoroutinefunction(func):\n+            func = copy_current_request_context(func)\n             return self.async_to_sync(func)\n",
+    "test_cmd": "pytest tests/test_async.py"
+  },
+  {
+    "instance_id": "swebench_pro__requests__003",
+    "repo": "https://github.com/psf/requests.git",
+    "base_commit": "345abc678def",
+    "problem_statement": "修复 requests 库在 HTTP/2 连接复用时的连接泄漏问题。当使用同一个 Session 发送多个请求到相同主机时，底层 socket 没有被正确释放，导致文件描述符泄漏。",
+    "hint": "查看 requests/adapters.py 中 HTTPAdapter 的 close() 方法",
+    "gold_patch": "--- a/requests/adapters.py\n+++ b/requests/adapters.py\n@@ -230,6 +230,9 @@ def close(self):\n-        for conn in self.poolmanager.pools.values():\n+        pools = list(self.poolmanager.pools.values())\n+        for conn in pools:\n+            conn.close()\n+        self.poolmanager.clear()\n",
+    "test_cmd": "pytest tests/test_requests.py -k session"
+  }
+]

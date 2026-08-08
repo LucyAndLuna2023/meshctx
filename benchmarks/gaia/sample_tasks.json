@@ -1,0 +1,58 @@
+[
+  {
+    "task_id": "gaia__l1__001",
+    "level": 1,
+    "question": "2024年诺贝尔物理学奖授予了谁？他们因为在哪个领域的贡献而获奖？",
+    "ground_truth": "John Hopfield 和 Geoffrey Hinton，人工神经网络和机器学习",
+    "answer_type": "text"
+  },
+  {
+    "task_id": "gaia__l1__002",
+    "level": 1,
+    "question": "Python 编程语言的官方吉祥物叫什么名字？",
+    "ground_truth": "没有官方吉祥物",
+    "answer_type": "text"
+  },
+  {
+    "task_id": "gaia__l1__003",
+    "level": 1,
+    "question": "光在真空中的传播速度是多少？（以 km/s 为单位，保留整数）",
+    "ground_truth": "299792",
+    "answer_type": "number"
+  },
+  {
+    "task_id": "gaia__l2__001",
+    "level": 2,
+    "question": "在太阳系中，哪颗行星的卫星数量最多？截至2025年有多少颗已确认的卫星？",
+    "ground_truth": "土星，274",
+    "answer_type": "text"
+  },
+  {
+    "task_id": "gaia__l2__002",
+    "level": 2,
+    "question": "世界上最长的河流是哪条？它的长度是多少公里？这条河流经多少个国家和地区？",
+    "ground_truth": "尼罗河，6650公里，11个国家",
+    "answer_type": "text"
+  },
+  {
+    "task_id": "gaia__l2__003",
+    "level": 2,
+    "question": "Linux 内核中第一个用 Rust 语言编写的驱动程序是在哪个版本合并的？该驱动程序用于什么硬件？",
+    "ground_truth": "Linux 6.1，Apple M1 GPU 驱动（Asahi Linux 项目）",
+    "answer_type": "text"
+  },
+  {
+    "task_id": "gaia__l3__001",
+    "level": 3,
+    "question": "2023年全球可再生能源发电量占总发电量的比例是多少？中国、美国和欧盟中哪个地区的可再生能源发电量最高（以 TWh 计）？",
+    "ground_truth": "约30%，中国",
+    "answer_type": "text"
+  },
+  {
+    "task_id": "gaia__l3__002",
+    "level": 3,
+    "question": "在人类基因组中，编码蛋白质的基因大约有多少个？其中有多少个基因的功能目前仍不完全清楚？",
+    "ground_truth": "约20000个蛋白质编码基因，约30%功能不完全清楚",
+    "answer_type": "text"
+  }
+]

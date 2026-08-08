@@ -1,0 +1,68 @@
+[
+  {
+    "task_id": "termbench__file_ops__001",
+    "category": "文件操作",
+    "difficulty": "easy",
+    "prompt": "在当前目录创建一个名为 'data' 的文件夹，在其中创建一个 'config.json' 文件，内容为 {\"version\": \"2.0\", \"debug\": false}，然后输出文件内容。",
+    "setup_commands": ["mkdir -p /tmp/termbench_test && cd /tmp/termbench_test"],
+    "expected_output": "{\"version\": \"2.0\", \"debug\": false}",
+    "expected_exit_code": 0,
+    "success_criteria": [
+      "version.*2\\.0",
+      "debug.*false"
+    ]
+  },
+  {
+    "task_id": "termbench__text_proc__002",
+    "category": "文本处理",
+    "difficulty": "medium",
+    "prompt": "创建一个包含 10 行随机数字的文本文件 numbers.txt（每行一个 1-100 的随机数），然后使用 awk 或 sort 命令找出其中的最大值和最小值并输出。",
+    "setup_commands": ["cd /tmp/termbench_test 2>/dev/null || mkdir -p /tmp/termbench_test && cd /tmp/termbench_test"],
+    "expected_output": "",
+    "expected_exit_code": 0,
+    "success_criteria": [
+      "最大值|最大.*\\d+",
+      "最小值|最小.*\\d+"
+    ]
+  },
+  {
+    "task_id": "termbench__sys_info__003",
+    "category": "系统信息",
+    "difficulty": "easy",
+    "prompt": "获取当前系统的 CPU 核心数、总内存（GB）和可用磁盘空间（GB），以 JSON 格式输出。",
+    "setup_commands": [],
+    "expected_output": "",
+    "expected_exit_code": 0,
+    "success_criteria": [
+      "cpu|核心",
+      "memory|内存|mem",
+      "disk|磁盘|disk"
+    ]
+  },
+  {
+    "task_id": "termbench__net_ops__004",
+    "category": "网络操作",
+    "difficulty": "medium",
+    "prompt": "检查 google.com 是否可达（ping 或 curl），然后使用 curl 获取 https://httpbin.org/json 的响应，提取其中的 'slideshow' 标题并输出。",
+    "setup_commands": [],
+    "expected_output": "",
+    "expected_exit_code": 0,
+    "success_criteria": [
+      "slideshow"
+    ]
+  },
+  {
+    "task_id": "termbench__process__005",
+    "category": "进程管理",
+    "difficulty": "medium",
+    "prompt": "列出当前系统占用 CPU 最高的 3 个进程的 PID、进程名和 CPU 使用率，以表格形式输出。",
+    "setup_commands": [],
+    "expected_output": "",
+    "expected_exit_code": 0,
+    "success_criteria": [
+      "PID",
+      "CPU",
+      "\\d+"
+    ]
+  }
+]

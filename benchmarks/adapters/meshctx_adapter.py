@@ -40,7 +40,7 @@ class MeshctxAdapter:
             max_steps: agent 最大步数
         """
         self.project_path = project_path or self._detect_project_path()
-        self.model = model or os.environ.get("MESHCTX_MODEL", "deepseek-v4-pro")
+        self.model = model or os.environ.get("MESHCTX_MODEL", "deepseek:v4-pro")
         self.timeout = timeout
         self.max_steps = max_steps
 
