@@ -21,7 +21,7 @@ meshctx SelfModifyEngine v3.48 — 安全自修改引擎
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -37,9 +37,6 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
 class ChangeType(Enum):
     """变更类型"""
     OPTIMIZE = 'optimize'
@@ -56,8 +53,25 @@ class ChangeStatus(Enum):
     FAILED = 'failed'
     ROLLED_BACK = 'rolled_back'
 
+@dataclass
 class CodeChange:
     """代码变更记录"""
+    change_id: str = None
+    file_path: str = ''
+    original_content: str = ''
+    proposed_content: str = ''
+    proposed_diff: str = ''
+    change_type: ChangeType = None
+    reason: str = ''
+    status: ChangeStatus = None
+    analysis_confidence: float = 0.5
+    tests_passed: bool = False
+    test_results: Dict[str, Any] = None
+    sdb_approved: bool = False
+    sdb_record_id: str = ''
+    diff_stats: Dict[str, Any] = None
+    backup_path: str = ''
+    rollback_available: bool = False
     def generate_diff(self):
         """生成 unified diff"""
         raise NotImplementedError("meshctx-core required (private repo)")
@@ -134,3 +148,5 @@ def get_self_modify_engine(**kwargs) -> SelfModifyEngine:
     """获取 SelfModifyEngine 单例。"""
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["ChangeType", "ChangeStatus", "CodeChange", "generate_diff", "SelfModifyEngine", "analyze_file", "analyze_src", "propose_change", "test_change", "gate_change", "ApplyResult", "apply_change", "rollback_change", "autonomous_improve", "get_history", "get_stats", "get_self_modify_engine"]

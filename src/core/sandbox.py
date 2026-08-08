@@ -30,7 +30,7 @@ meshctx Sandbox v3.50 — 安全代码执行沙箱
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -46,9 +46,7 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+logger = "logger"
 class ExecutionStatus(str, Enum):
     SUCCESS = 'success'
     ERROR = 'error'
@@ -57,8 +55,21 @@ class ExecutionStatus(str, Enum):
     BLOCKED = 'blocked'
     MEMORY_LIMIT = 'memory_limit'
 
+@dataclass
 class ExecutionResult:
     """沙箱执行结果"""
+    execution_id: str = ''
+    status: ExecutionStatus = None
+    stdout: str = ''
+    stderr: str = ''
+    return_code: int = 0
+    duration_ms: float = 0.0
+    peak_memory_mb: float = 0.0
+    timeout_seconds: float = 30.0
+    blocked_reason: str = ''
+    mode: str = 'python'
+    code_truncated: str = ''
+    created_at: float = None
     def exit_code(self):
         raise NotImplementedError("meshctx-core required (private repo)")
 
@@ -147,6 +158,7 @@ class InlineSandbox:
 
 class SandboxPlugin:
     """meshctx Plugin 适配器"""
+    info = "info"
     state = 'inactive'
     def __init__(self, **kw):
         raise NotImplementedError("meshctx-core required (private repo)")
@@ -169,3 +181,7 @@ def init_sandbox(default_timeout: float = 30.0, max_timeout: float = 300.0, pyth
     """初始化 Sandbox 全局单例"""
     raise NotImplementedError("meshctx-core required (private repo)")
 
+CodeSandboxV2 = "CodeSandboxV2"
+SandboxResult = "SandboxResult"
+
+__all__ = ["ExecutionStatus", "ExecutionResult", "exit_code", "output", "error", "to_dict", "is_success", "CodeScanner", "scan_python", "scan_bash", "Sandbox", "run_python", "run_bash", "execute", "get_sandbox_stats", "get_history", "clear_history", "reset_stats", "InlineSandbox", "eval", "SandboxPlugin", "on_load", "on_unload", "generate_report", "get_sandbox", "init_sandbox"]

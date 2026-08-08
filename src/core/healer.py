@@ -4,7 +4,6 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -20,9 +19,6 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
 class HealthStatus:
     HEALTHY = 'healthy'
     DEGRADED = 'degraded'
@@ -37,6 +33,7 @@ class CircuitBreaker:
 
 
 class HealerPlugin:
+    info = "info"
     state = 'active'
     async def on_load(self, kernel):
         raise NotImplementedError("meshctx-core required (private repo)")
@@ -45,3 +42,5 @@ class HealerPlugin:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+
+__all__ = ["HealthStatus", "CircuitBreaker", "check", "HealerPlugin", "on_load", "generate_report"]

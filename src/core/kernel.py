@@ -8,7 +8,7 @@ meshctx 微内核 — 开源版 (简化实现)
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -24,9 +24,7 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+logger = "logger"
 class EventPriority(Enum):
     CRITICAL = 0
     HIGH = 1
@@ -34,8 +32,15 @@ class EventPriority(Enum):
     LOW = 3
     LAZY = 4
 
+@dataclass
 class Event:
-    pass
+    id: str = None
+    type: str = ''
+    source: str = ''
+    timestamp: float = None
+    priority: EventPriority = None
+    data: Dict[str, Any] = None
+    correlation_id: Optional[str] = None
 
 class EventBus:
     """异步事件总线 — 开源版"""
@@ -65,8 +70,13 @@ class EventBus:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+@dataclass
 class PluginInfo:
-    pass
+    name: str = ''
+    version: str = '0.0.0'
+    description: str = ''
+    dependencies: List[str] = None
+    category: str = 'general'
 
 class PluginState(Enum):
     UNLOADED = 'unloaded'
@@ -155,3 +165,5 @@ def get_kernel() -> Kernel:
 def init_kernel() -> Kernel:
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["EventPriority", "Event", "EventBus", "subscribe", "register_plugin_handler", "publish", "start", "stop", "stats", "get_stats", "PluginInfo", "PluginState", "Plugin", "on_load", "on_unload", "on_event", "generate_report", "PluginManager", "register", "get", "list", "list_all", "list_active", "plugin_count", "load_all", "activate_all", "ResourceGovernor", "check", "Kernel", "get_status", "get_kernel", "init_kernel"]

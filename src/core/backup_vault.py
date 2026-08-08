@@ -4,7 +4,7 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -20,9 +20,6 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
 class BackupType(Enum):
     FULL = 'full'
     INCREMENTAL = 'incremental'
@@ -36,17 +33,47 @@ class BackupStatus(Enum):
     PENDING = 'pending'
     COMPLETED = 'completed'
 
+@dataclass
 class BackupResult:
-    pass
+    success: bool = None
+    backup_id: str = ''
+    error_message: str = ''
+    total_files: int = 0
+    total_bytes: int = 0
+    duration_seconds: float = 0.0
 
+@dataclass
 class RestoreResult:
-    pass
+    success: bool = None
+    backup_id: str = ''
+    error_message: str = ''
+    files_restored: int = 0
+    bytes_restored: int = 0
 
+@dataclass
 class BackupManifest:
-    pass
+    backup_id: str = None
+    backup_type: str = None
+    source_path: str = None
+    target: str = None
+    created_at: str = None
+    encrypted: bool = False
+    checksum_algorithm: str = 'sha256'
+    total_files: int = 0
+    total_bytes: int = 0
+    parent_backup_id: Optional[str] = None
 
+@dataclass
 class BackupEntry:
-    pass
+    backup_id: str = None
+    backup_type: str = None
+    source_path: str = None
+    target: str = None
+    created_at: str = None
+    encrypted: bool = False
+    status: str = 'completed'
+    total_files: int = 0
+    total_bytes: int = 0
 
 def get_backup_vault(**kw) -> 'BackupVault':
     raise NotImplementedError("meshctx-core required (private repo)")
@@ -54,6 +81,9 @@ def get_backup_vault(**kw) -> 'BackupVault':
 def reset_backup_vault():
     raise NotImplementedError("meshctx-core required (private repo)")
 
+SKIP_PARTS = {'.git', '__pycache__', 'venv', '.venv', 'node_modules', '.tox', '.eggs', '.mypy_cache', '.pytest_cache'}
+VALID_BACKUP_TYPES = {'full', 'incremental'}
+VALID_TARGETS = {'local', 's3', 'remote'}
 def _collect_files(source: Path) -> dict:
     """Collect regular files from source. Returns {relpath: abs_path}."""
     raise NotImplementedError("meshctx-core required (private repo)")
@@ -158,3 +188,5 @@ class BackupVault:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+
+__all__ = ["BackupType", "BackupTarget", "BackupStatus", "BackupResult", "RestoreResult", "BackupManifest", "BackupEntry", "get_backup_vault", "reset_backup_vault", "BackupVault", "is_encrypted", "generate_key", "set_encryption_key", "add_backup_path", "list_backup_paths", "remove_backup_path", "suggest_backup_paths", "backup", "find_backups", "restore", "get_stats", "get_setup_instructions", "create_backup", "get_manifest", "restore_backup", "list_backups", "delete_backup", "verify_backup", "get_backup_stats", "clear_all"]

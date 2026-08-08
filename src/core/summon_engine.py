@@ -8,7 +8,7 @@ License: AGPLv3
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -24,9 +24,7 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+logger = "logger"
 class SummonStatus(Enum):
     PENDING = 'pending'
     RUNNING = 'running'
@@ -35,7 +33,18 @@ class SummonStatus(Enum):
     TIMEOUT = 'timeout'
     DISMISSED = 'dismissed'
 
+@dataclass
 class SummonResult:
+    agent_id: str = None
+    description: str = None
+    task: str = ''
+    status: SummonStatus = None
+    result: str = ''
+    error: str = ''
+    duration: float = 0.0
+    tokens_used: int = 0
+    role: str = 'general'
+    created_at: float = None
     def is_active(self) -> bool:
         raise NotImplementedError("meshctx-core required (private repo)")
 
@@ -121,6 +130,7 @@ class SummonEngine:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+_engine_lock = "_engine_lock"
 def get_summon_engine() -> SummonEngine:
     """获取SummonEngine单例"""
     raise NotImplementedError("meshctx-core required (private repo)")
@@ -129,3 +139,5 @@ def reset_summon_engine() -> None:
     """重置SummonEngine单例"""
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["SummonStatus", "SummonResult", "is_active", "is_success", "to_dict", "TaskExecutor", "set_llm_callback", "execute", "execute_async", "cancel", "active_futures", "shutdown", "SummonEngine", "summon", "summon_parallel", "active_agents", "dismiss", "get_stats", "get_history", "summon_result", "get_summon_engine", "reset_summon_engine"]

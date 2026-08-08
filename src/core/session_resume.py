@@ -4,7 +4,6 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -20,9 +19,7 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+logger = "logger"
 class SessionState:
     """Represents a stored session state."""
     def __init__(self, id, profile, messages):
@@ -74,6 +71,9 @@ class _SessionResume:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+_resume = "_resume"
 def get_session_resume():
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["SessionState", "SessionResumeEngine", "save", "resume", "list_recent", "get_stats", "stats", "detect_previous_session", "restore", "apply_to_kernel", "get_session_resume"]

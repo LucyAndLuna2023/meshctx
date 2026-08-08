@@ -7,7 +7,6 @@ meshctx Heartbeat — 心跳监控
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -23,9 +22,9 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+logger = "logger"
+HB_DIR = "HB_DIR"
+_hb_lock = "_hb_lock"
 def heartbeat_start(name: str, interval_seconds: int = 60, on_miss: Callable = None, max_misses: int = 3) -> dict:
     """启动心跳监控"""
     raise NotImplementedError("meshctx-core required (private repo)")
@@ -42,3 +41,5 @@ def heartbeat_stop(name: str) -> dict:
     """停止心跳监控"""
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["heartbeat_start", "heartbeat_ping", "heartbeat_status", "heartbeat_stop"]
