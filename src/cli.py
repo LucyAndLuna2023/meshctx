@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import sys
+import time
 from pathlib import Path
 
 logger = logging.getLogger("meshctx.cli")
@@ -476,23 +477,40 @@ def _chat_one_shot(client, msg, args):
     print()
 
 
-def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6):
-    """核心对话循环 — 与 UI /api/chat/stream 共用同一套 agent_loop 逻辑"""
+def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, collect_output=False):
+    """核心对话循环 — 与 UI /api/chat/stream 共用同一套 agent_loop 逻辑
+
+    collect_output=True 时，收集最终答案与工具调用记录并返回
+    (final_answer, tool_calls_list)，供 --json-output 结构化输出使用。
+    """
     import uuid
     session_id = uuid.uuid4().hex[:8]
+    _final_answer = ""
+    _tool_calls = []
 
     def _on_event(ev):
+        nonlocal _final_answer, _tool_calls
         if ev["type"] == "token":
             print(ev["text"], end="", flush=True)
+            if collect_output:
+                _final_answer += ev["text"]
         elif ev["type"] == "round":
             print(f"\n🔍 第{ev['round'] + 1}/{ev['total']}轮搜索...", flush=True)
         elif ev["type"] == "deliver":
             print("\n📝 **Deliver** — 基于已获取的真实数据生成最终报告...\n", flush=True)
         elif ev["type"] == "tool_start":
             name, args = ev["name"], ev["args"]
+            if collect_output:
+                _tool_calls.append({"name": name, "args": args, "status": "start"})
             print(f"  {icons.get(name, '🔧')} {_tool_summary(name, args)}", flush=True)
         elif ev["type"] == "tool_result":
             first_line = (ev["result"] or "").split('\n')[0][:120]
+            if collect_output:
+                for tc in reversed(_tool_calls):
+                    if tc.get("name") == ev["name"] and tc.get("status") == "start":
+                        tc["status"] = "done"
+                        tc["result"] = (ev["result"] or "")[:500]
+                        break
             print(f"    ✅ {first_line}", flush=True)
         elif ev["type"] == "error":
             print(f"\n[错误: {ev['text']}]", flush=True)
@@ -511,6 +529,8 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6):
             _on_event(ev)
 
     asyncio.run(_run())
+    if collect_output:
+        return _final_answer.strip(), _tool_calls, session_id
     return session_id
 
 
@@ -725,8 +745,23 @@ def cmd_task(args):
     profile = _get_profile_name(args.config, getattr(args, 'profile', None))
     prefix = f"[{profile}] " if profile else ""
     print(f"{prefix}meshctx> ", end="", flush=True)
-    _chat_loop(client, messages, TOOLS, execute_tool, TOOL_ICONS, max_turns=args.max_steps)
+    collect = bool(getattr(args, 'json_output', False))
+    result = _chat_loop(client, messages, TOOLS, execute_tool, TOOL_ICONS,
+                        max_turns=args.max_steps, collect_output=collect)
     print()
+    if collect:
+        # ── P0-1: 结构化 JSON 输出（benchmark/harness 解析用）──
+        final_answer, tool_calls, session_id = result
+        out = {
+            "final_answer": final_answer,
+            "tool_calls": tool_calls,
+            "session_id": session_id,
+            "model": client.model_id,
+            "max_steps": args.max_steps,
+        }
+        print("\n---MESHCTX_JSON_OUTPUT---")
+        print(json.dumps(out, ensure_ascii=False))
+        print("---END_MESHCTX_JSON_OUTPUT---")
 
 
 # ═══════════════════════════════════════════════════
@@ -1664,6 +1699,8 @@ def main():
     tk.add_argument("description", nargs="+", help="任务描述")
     tk.add_argument("--project", help="项目上下文")
     tk.add_argument("--max-steps", type=int, default=5, help="最大步数 (默认5)")
+    tk.add_argument("--json-output", action="store_true",
+                    help="结构化输出: 结束时打印 JSON(final_answer/tool_calls/session_id)，供 benchmark/harness 解析")
     tk.set_defaults(func=cmd_task)
 
     # start/stop/status/evolve/web

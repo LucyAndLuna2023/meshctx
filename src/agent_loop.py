@@ -21,7 +21,7 @@ import json
 import time
 from typing import Any, Callable, Dict, List, Optional
 
-from src.chat_tools import trim_messages
+from src.chat_tools import trim_messages, strip_dsml_tool_calls
 
 DEFAULT_WALL_CLOCK = 300.0      # 整轮处理墙钟上限(秒)
 DEFAULT_TOOL_TIMEOUT = 120.0    # 单批工具执行超时(秒)
@@ -34,6 +34,21 @@ FINAL_HINT = (
     "必须立即完成文件生成：Word 报告用 save_docx 工具，其他文件用 write_file/terminal。"
     "然后直接输出最终交付总结（含保存路径）。"
 )
+
+# ── P0-2 占位符 self-check ──
+# benchmark prompt 常含 <your answer> / <answer> 等格式占位符，模型有时会字面返回。
+# 在最终交付文本里检测到占位符 → 视为未完成任务，强制重试一次（注入替换指令）。
+PLACEHOLDER_PATTERNS = ("<your answer>", "<your_answer>", "<answer>", "<ANSWER>", "<output>")
+PLACEHOLDER_RETRY_HINT = (
+    "[系统提示] 你的上一条输出包含未替换的格式占位符（如 <your answer>），这不是有效答案。"
+    "请直接给出真实、完整、具体的最终答案正文，不要输出任何尖括号占位符。"
+)
+
+
+def _contains_placeholder(text: str) -> bool:
+    """检测最终文本是否含未替换的占位符。"""
+    low = text.lower()
+    return any(p.lower() in low for p in PLACEHOLDER_PATTERNS)
 
 
 async def run_agent_loop(
@@ -236,6 +251,17 @@ async def run_agent_loop(
                         final_text = ""
                 if not final_text:
                     final_text = "处理完成（文件已生成）"
+                # ── P0-2 占位符 self-check：命中占位符视为未完成任务，重试一次 ──
+                if _contains_placeholder(final_text):
+                    try:
+                        _resp2 = await loop.run_in_executor(
+                            None, lambda: client.chat(
+                                messages + [{"role": "assistant", "content": final_text},
+                                            {"role": "user", "content": PLACEHOLDER_RETRY_HINT}],
+                                temperature=0.7, max_tokens=max_tokens))
+                        final_text = strip_dsml_tool_calls(_resp2.get("content") or "").strip()
+                    except Exception:
+                        pass
                 yield {"type": "token", "text": final_text}
                 messages.append({"role": "assistant", "content": final_text})
                 yield {"type": "done"}
@@ -244,6 +270,18 @@ async def run_agent_loop(
             continue  # 下一轮，让模型基于工具结果回复
 
         # 模型直接回复文本 → 结束
+        if _contains_placeholder(msg_content or ""):
+            # P0-2 占位符 self-check：命中则重试一次
+            try:
+                _loop3 = asyncio.get_running_loop()
+                _resp3 = await _loop3.run_in_executor(
+                    None, lambda: client.chat(
+                        messages + [{"role": "assistant", "content": msg_content or ""},
+                                    {"role": "user", "content": PLACEHOLDER_RETRY_HINT}],
+                        temperature=0.7, max_tokens=max_tokens))
+                msg_content = strip_dsml_tool_calls(_resp3.get("content") or "").strip()
+            except Exception:
+                pass
         messages.append({"role": "assistant", "content": msg_content})
         yield {"type": "done"}
         return
