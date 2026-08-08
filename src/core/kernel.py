@@ -145,18 +145,26 @@ class ResourceGovernor:
 
 
 class Kernel:
-    """微内核 — 开源版"""
+    """微内核 — 开源版 (stub: 最小内存版, 核心功能需 meshctx-core)"""
     def __init__(self):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        # stub 模式: 构造成功, 基础属性可用; 核心方法调用时显式抛错
+        from .kernel import EventBus, PluginManager
+        self._started = False
+        self.event_bus = EventBus()
+        self.plugin_manager = PluginManager()
+        self.plugins = self.plugin_manager  # 别名兼容
+        self.bus = self.event_bus  # 别名兼容
+        self._plugins = {}
 
     def get_status(self):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return {"started": self._started, "plugins": len(self._plugins), "bus_stats": {"events": 0, "subscriptions": 3}}
 
     async def start(self, **kwargs):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        # P0 修复 (codex 审计): stub 模式禁止静默假运行 — 核心启动显式失败
+        raise NotImplementedError("meshctx-core required (private repo): kernel.start()")
 
     async def stop(self):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        raise NotImplementedError("meshctx-core required (private repo): kernel.stop()")
 
 
 def get_kernel() -> Kernel:
