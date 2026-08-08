@@ -69,32 +69,47 @@ def get_kernel() -> Kernel:
     global _kernel
     if _kernel is None:
         _kernel = Kernel()
-        # v3.115.16: 插件在首次get_kernel()时加载
-        _kernel.plugins.register(MemoryPlugin())
+        # P0 修复 (codex 审计): stub 模式 (meshctx-core 未装) 容错 —
+        # 插件构造/注册可能抛 NotImplementedError, 逐个容错, 服务照常启动
+        def _try_register(plugin_factory, label: str):
+            try:
+                plugin = plugin_factory()
+                _kernel.plugins.register(plugin)
+            except NotImplementedError as e:
+                logger.warning(f"[meshctx-core stub] 插件 {label} 注册跳过: {e}")
+            except Exception as e:
+                logger.warning(f"插件 {label} 注册失败: {e}")
+
+        _try_register(lambda: MemoryPlugin(), "MemoryPlugin")
         if MetaCognitionPlugin and callable(MetaCognitionPlugin):
-            _kernel.plugins.register(MetaCognitionPlugin())
-        _kernel.plugins.register(OrchestratorPlugin())
-        _kernel.plugins.register(PredictorPlugin())
-        _kernel.plugins.register(AgentLoopPlugin())
-        _kernel.plugins.register(PerformancePlugin())
-        _kernel.plugins.register(HealerPlugin())
+            _try_register(lambda: MetaCognitionPlugin(), "MetaCognitionPlugin")
+        _try_register(lambda: OrchestratorPlugin(), "OrchestratorPlugin")
+        _try_register(lambda: PredictorPlugin(), "PredictorPlugin")
+        _try_register(lambda: AgentLoopPlugin(), "AgentLoopPlugin")
+        _try_register(lambda: PerformancePlugin(), "PerformancePlugin")
+        _try_register(lambda: HealerPlugin(), "HealerPlugin")
         # v3.118.0: init ResourceManager (unified resource orchestration)
-        get_resource_manager()
+        try:
+            get_resource_manager()
+        except NotImplementedError as e:
+            logger.warning(f"[meshctx-core stub] ResourceManager 跳过: {e}")
+        except Exception as e:
+            logger.warning(f"ResourceManager 初始化失败: {e}")
         # Hermes 集群连接器
         try:
             from .core.hermes_connector import HermesConnectorPlugin
-            _kernel.plugins.register(HermesConnectorPlugin())
+            _try_register(lambda: HermesConnectorPlugin(), "HermesConnectorPlugin")
         except Exception as e:
             logger.warning(f"HermesConnectorPlugin 加载失败: {e}")
         # TokenSaver
         try:
             from .core.token_saver import TokenSaverPlugin
-            _kernel.plugins.register(TokenSaverPlugin())
+            _try_register(lambda: TokenSaverPlugin(), "TokenSaverPlugin")
         except Exception as e:
             logger.warning(f"TokenSaverPlugin 加载失败: {e}")
         # WebSocket
         try:
-            _kernel.plugins.register(WebSocketPlugin())
+            _try_register(lambda: WebSocketPlugin(), "WebSocketPlugin")
         except Exception as e:
             logger.warning(f"WebSocketPlugin 加载失败: {e}")
     return _kernel
@@ -226,7 +241,13 @@ async def lifespan(app: FastAPI):
     config = load_config()
     worker_count = config.get("kernel", {}).get("worker_count", 4)
     k = get_kernel()  # lazily creates kernel + registers all plugins
-    await k.start(worker_count=worker_count)
+    try:
+        await k.start(worker_count=worker_count)
+    except NotImplementedError as e:
+        # P0 修复 (codex 审计): stub 模式 (meshctx-core 未装) 容错启动 —
+        # 跳过 kernel 核心启动, UI/基础API 仍可用; 核心功能调用时显式报错
+        logger.warning(f"[meshctx-core stub] kernel.start() 跳过: {e}")
+        logger.warning("[meshctx-core stub] 核心功能 (内存/心跳/网关插件) 不可用 — 安装 meshctx-core 私有包后完整启用")
     pc = getattr(k.plugins, "plugin_count", len(getattr(k.plugins, "_plugins", {})))
     logger.info(f"插件: {pc} 已加载")
 
@@ -389,8 +410,14 @@ async def lifespan(app: FastAPI):
     logger.info("═══════════════════════════════════════════")
 
     # v2.18: 会话自动存档
-    archiver = get_archiver()
-    from src.core import __version__ as _ver; archiver.init_session(_ver)
+    archiver = None  # stub 模式下可能不可用
+    try:
+        archiver = get_archiver()
+        from src.core import __version__ as _ver; archiver.init_session(_ver)
+    except NotImplementedError as e:
+        logger.warning(f"[meshctx-core stub] session archiver 跳过: {e}")
+    except Exception as e:
+        logger.warning(f"session archiver 初始化失败: {e}")
     
     # 🔴 v3.35: Session Auto-Resume — 服务器重启自动恢复上下文
     try:
@@ -431,11 +458,17 @@ async def lifespan(app: FastAPI):
         logger.info("AutoHealer & PerformanceOptimizer started")
     except Exception as e:
         logger.warning(f"Healer/Optimizer init skipped: {e}")
-    archiver.record("server_start", f"v{_ver}", "info")
+    if archiver is not None:
+        try:
+            archiver.record("server_start", f"v{_ver}", "info")
+        except Exception as e:
+            logger.debug(f"存档: {e}")
     
     async def auto_archive():
         while True:
             await asyncio.sleep(300)
+            if archiver is None:
+                return
             try:
                 archiver.record("auto_save", "自动存档", "info")
                 archiver.save()
