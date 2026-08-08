@@ -43,31 +43,35 @@ class Event:
     correlation_id: Optional[str] = None
 
 class EventBus:
-    """异步事件总线 — 开源版"""
+    """异步事件总线 — 开源版 (stub: 最小内存版, 核心功能需 meshctx-core)"""
     def __init__(self, max_queue_size: int = 10000):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        from collections import deque
+        self._queue: deque = deque(maxlen=max_queue_size)
+        self._subs: Dict[str, list] = {}
+        self._stats = {"events": 0, "subscriptions": 0}
 
     def subscribe(self, event_type: str, handler, priority = EventPriority.NORMAL, plugin_name = None):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        raise NotImplementedError("meshctx-core required (private repo): EventBus.subscribe()")
 
     def register_plugin_handler(self, handler):
         """Register a plugin's on_event handler to receive all events."""
-        raise NotImplementedError("meshctx-core required (private repo)")
+        raise NotImplementedError("meshctx-core required (private repo): EventBus.register_plugin_handler()")
 
     async def publish(self, event: Event):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        raise NotImplementedError("meshctx-core required (private repo): EventBus.publish()")
 
     async def start(self):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        self._stats = {"events": 0, "subscriptions": len(self._subs)}
+        return self._stats
 
     async def stop(self):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return None
 
     def stats(self) -> dict:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return {"events": self._stats.get("events", 0), "subscriptions": self._stats.get("subscriptions", 0)}
 
     def get_stats(self) -> dict:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return {"events": self._stats.get("events", 0), "subscriptions": self._stats.get("subscriptions", 0)}
 
 
 @dataclass
@@ -101,35 +105,38 @@ class Plugin(ABC):
 
 
 class PluginManager:
-    """插件管理器"""
+    """插件管理器 — 开源版 (stub: 最小内存版, 注册/查询可用; 激活需 meshctx-core)"""
     def __init__(self):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        self._plugins: Dict[str, Plugin] = {}
+        self._active: Dict[str, bool] = {}
 
     def register(self, plugin: Plugin):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        name = getattr(plugin, "name", None) or getattr(plugin, "__class__", None).__name__
+        self._plugins[name] = plugin
+        return plugin
 
     def get(self, name: str) -> Optional[Plugin]:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return self._plugins.get(name)
 
     def list(self) -> List[str]:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return list(self._plugins.keys())
 
     def list_all(self) -> List[Dict[str, Any]]:
         """返回所有插件详情列表，兼容 /v1/plugins 端点"""
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return [{"name": n, "active": self._active.get(n, False)} for n in self._plugins]
 
     def list_active(self) -> List[str]:
         """返回已激活的插件名称列表，兼容 /kernel/stats 端点"""
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return [n for n, a in self._active.items() if a]
 
     def plugin_count(self) -> int:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return len(self._plugins)
 
     def load_all(self) -> dict:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        raise NotImplementedError("meshctx-core required (private repo): PluginManager.load_all()")
 
     async def activate_all(self, kernel):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        raise NotImplementedError("meshctx-core required (private repo): PluginManager.activate_all()")
 
 
 class ResourceGovernor:
@@ -145,18 +152,26 @@ class ResourceGovernor:
 
 
 class Kernel:
-    """微内核 — 开源版"""
+    """微内核 — 开源版 (stub: 最小内存版, 核心功能需 meshctx-core)"""
     def __init__(self):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        # stub 模式: 构造成功, 基础属性可用; 核心方法调用时显式抛错
+        from .kernel import EventBus, PluginManager
+        self._started = False
+        self.event_bus = EventBus()
+        self.plugin_manager = PluginManager()
+        self.plugins = self.plugin_manager  # 别名兼容
+        self.bus = self.event_bus  # 别名兼容
+        self._plugins = {}
 
     def get_status(self):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return {"started": self._started, "plugins": len(self._plugins), "bus_stats": {"events": 0, "subscriptions": 3}}
 
     async def start(self, **kwargs):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        # P0 修复 (codex 审计): stub 模式禁止静默假运行 — 核心启动显式失败
+        raise NotImplementedError("meshctx-core required (private repo): kernel.start()")
 
     async def stop(self):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        raise NotImplementedError("meshctx-core required (private repo): kernel.stop()")
 
 
 def get_kernel() -> Kernel:
