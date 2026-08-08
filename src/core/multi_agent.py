@@ -36,7 +36,7 @@ Agent间通信、上下文隔离和结果聚合。
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -52,9 +52,7 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+logger = "logger"
 class AgentStatus(str, Enum):
     IDLE = 'idle'
     BUSY = 'busy'
@@ -68,8 +66,23 @@ class MessagePriority(str, Enum):
     HIGH = 'high'
     URGENT = 'urgent'
 
+@dataclass
 class AgentHandle:
     """Agent 句柄 — 指向注册的 specialist agent"""
+    agent_id: str = None
+    name: str = ''
+    role: str = ''
+    tools: List[str] = None
+    capabilities: List[str] = None
+    status: AgentStatus = None
+    registered_at: float = None
+    last_active: float = 0.0
+    total_handled: int = 0
+    total_errors: int = 0
+    avg_response_ms: float = 0.0
+    context_size: int = 0
+    max_context_size: int = 50
+    metadata: Dict = None
     def to_dict(self, **kw) -> Dict:
         raise NotImplementedError("meshctx-core required (private repo)")
 
@@ -77,21 +90,45 @@ class AgentHandle:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+@dataclass
 class _Msg:
     """Agent 间传递的消息"""
+    message_id: str = ''
+    from_agent: str = ''
+    to_agent: str = ''
+    content: str = ''
+    message_type: str = 'text'
+    priority: MessagePriority = None
+    context: Dict = None
+    created_at: float = None
+    ttl: int = 300
     def is_expired(self, **kw) -> bool:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+@dataclass
 class AgentResult:
     """Agent 处理结果"""
+    agent_id: str = None
+    message_id: str = ''
+    content: str = ''
+    status: str = 'success'
+    confidence: float = 1.0
+    duration_ms: float = 0.0
+    metadata: Dict = None
+    created_at: float = None
     def to_dict(self, **kw) -> Dict:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+@dataclass
 class RouteDecision:
     """路由决策结果"""
-    pass
+    target_agent: Optional[AgentHandle] = None
+    confidence: float = 0.0
+    reasoning: str = ''
+    alternatives: List[Tuple[AgentHandle, float]] = None
+    rule_matched: str = ''
 
 class IntentRouter:
     """意图路由器 — 根据消息内容和上下文决定路由到哪个 specialist"""
@@ -292,6 +329,7 @@ class MultiAgentOrchestrator:
 
 class MultiAgentPlugin:
     """meshctx Plugin 适配器"""
+    info = "info"
     state = 'inactive'
     def __init__(self, **kw):
         raise NotImplementedError("meshctx-core required (private repo)")
@@ -322,12 +360,25 @@ class MessageType:
     RESPONSE = 'response'
     ERROR = 'error'
 
+@dataclass
 class AgentCapability:
     """v1.6 Agent capability descriptor"""
-    pass
+    name: str = None
+    description: str = ''
+    inputs: List[str] = None
+    outputs: List[str] = None
 
+@dataclass
 class AgentMessage:
     """v1.6 Agent message — unified with v3.50 fields for internal compat"""
+    sender_id: str = ''
+    target_id: str = ''
+    topic: str = ''
+    payload: Any = None
+    msg_id: str = ''
+    msg_type: str = None
+    timestamp: float = None
+    ttl: float = 60.0
     def __post_init__(self):
         raise NotImplementedError("meshctx-core required (private repo)")
 
@@ -410,3 +461,5 @@ class AgentManager:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+
+__all__ = ["AgentStatus", "MessagePriority", "AgentHandle", "to_dict", "from_dict", "is_expired", "AgentResult", "RouteDecision", "IntentRouter", "route", "add_rule", "remove_rule", "get_routing_stats", "send", "receive", "peek", "get_inbox_size", "clear_inbox", "remove_agent", "get_bus_stats", "ContextManager", "add_message", "get_context", "get_summary", "get_full_context", "clear_context", "get_all_context_stats", "MultiAgentOrchestrator", "start", "stop", "register_agent", "unregister_agent", "get_agent", "list_agents", "set_agent_status", "register_handler", "route_message", "route_with_decision", "broadcast", "send_agent_message", "get_agent_messages", "aggregate_results", "get_orchestrator_status", "get_agent_status", "add_context", "clear_agent_context", "form_collaboration", "spawn_agent", "dispatch_task", "collect_result", "get_task_result", "get_cluster_status", "MultiAgentPlugin", "on_load", "on_unload", "generate_report", "get_multi_agent", "init_multi_agent", "MessageType", "AgentCapability", "AgentMessage", "AgentNode", "can_accept_tasks", "get_info", "MessageBus", "register", "unregister", "find_agents_by_capability", "find_idle_agent", "get_stats", "CollaborationProtocol", "delegate", "AgentManager", "create_agent"]

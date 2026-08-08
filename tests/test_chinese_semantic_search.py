@@ -17,6 +17,19 @@ try:
 except ImportError:
     HAS_JIEBA = False
 
+# 依赖 src.core.memory_v2 (核心闭源实现) — stub 模式下自动 skip
+def _core_stub() -> bool:
+    try:
+        from src.core import _HAS_MESHCTX_CORE
+        return not _HAS_MESHCTX_CORE
+    except Exception:
+        return False
+
+pytestmark = pytest.mark.skipif(
+    _core_stub(),
+    reason="依赖 meshctx-core 核心模块 (memory_v2), stub 模式下跳过; 安装 meshctx-core 后自动恢复"
+)
+
 
 class TestChineseTokenization:
     """验证中文分词正确性"""

@@ -7,7 +7,7 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -23,9 +23,6 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
 class RiskLevel(str, Enum):
     LOW = 'low'
     MEDIUM = 'medium'
@@ -37,8 +34,14 @@ class ApprovalMode(str, Enum):
     SMART = 'smart'
     OFF = 'off'
 
+@dataclass
 class ApprovalResult:
     """审批检查结果"""
+    requires_approval: bool = True
+    reason: str = ''
+    risk_level: RiskLevel = None
+    yolo_override: bool = False
+    action: str = 'prompt'
     def __post_init__(self):
         raise NotImplementedError("meshctx-core required (private repo)")
 
@@ -69,3 +72,5 @@ class ApprovalEngine:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+
+__all__ = ["RiskLevel", "ApprovalMode", "ApprovalResult", "ApprovalEngine", "set_mode", "check", "request_decision", "request", "stats"]

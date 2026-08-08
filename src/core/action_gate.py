@@ -4,7 +4,6 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -20,9 +19,7 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+logger = "logger"
 class ActionGate:
     """Gate sensitive actions behind approval checks."""
     def __init__(self):
@@ -38,6 +35,9 @@ class ActionGate:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+_gate = "_gate"
 def get_action_gate() -> ActionGate:
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["ActionGate", "protect", "can_execute", "list_protected", "get_action_gate"]

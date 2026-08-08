@@ -8,7 +8,6 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -24,15 +23,14 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
 class LoopPhase(Enum):
-    IDLE = 'IDLE'
-    OBSERVE = 'OBSERVE'
-    ORIENT = 'ORIENT'
-    DECIDE = 'DECIDE'
-    ACT = 'ACT'
-    LEARN = 'LEARN'
-    VERIFY = 'VERIFY'
+    IDLE = "IDLE"
+    OBSERVE = "OBSERVE"
+    ORIENT = "ORIENT"
+    DECIDE = "DECIDE"
+    ACT = "ACT"
+    LEARN = "LEARN"
+    VERIFY = "VERIFY"
 
 class LoopState:
     """State tracker for the unified loop."""
@@ -75,3 +73,5 @@ def get_unified_loop() -> UnifiedLoopEngine:
     """Get the singleton UnifiedLoopEngine instance."""
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["LoopPhase", "LoopState", "UnifiedLoopEngine", "run_once", "get_metrics", "get_history", "reset", "get_unified_loop"]

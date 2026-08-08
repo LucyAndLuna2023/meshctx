@@ -12,7 +12,6 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -28,9 +27,8 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+logger = "logger"
+ARCHIVE_DIR = "ARCHIVE_DIR"
 class SessionArchiver:
     """会话自动存档器"""
     def __init__(self, **kw):
@@ -72,3 +70,5 @@ class SessionArchiver:
 def get_archiver() -> SessionArchiver:
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["SessionArchiver", "init_session", "record", "snapshot_memory", "save", "load_latest", "load_snapshot", "list_archives", "get_summary", "get_archiver"]

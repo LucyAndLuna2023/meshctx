@@ -4,7 +4,7 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -20,11 +20,13 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+@dataclass
 class AgentIdentity:
     """Identity for an agent in the governance system."""
+    id: str = ''
+    name: str = ''
+    role: str = 'worker'
+    agent_id: str = ''
     def __post_init__(self):
         raise NotImplementedError("meshctx-core required (private repo)")
 
@@ -69,3 +71,5 @@ def get_governance():
     """Singleton accessor for AgentGovernance."""
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["AgentIdentity", "AgentGovernance", "register", "record_usage", "check_quota", "audit", "add_policy", "evaluate", "get_stats", "get_governance"]

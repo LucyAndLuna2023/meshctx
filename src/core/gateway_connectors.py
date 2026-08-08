@@ -4,7 +4,7 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -20,18 +20,26 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+@dataclass
 class GatewayMessage:
     """An incoming message from a gateway platform."""
+    platform: str = ''
+    channel_id: str = ''
+    user_id: str = ''
+    user_name: str = ''
+    text: str = ''
+    thread_id: str = ''
     def raw_payload(self) -> dict:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+@dataclass
 class ConnectorStatus:
     """Status of a gateway connector."""
-    pass
+    platform: str = None
+    connected: bool = False
+    messages_received: int = 0
+    errors: int = 0
 
 class BaseConnector:
     """Base class for gateway connectors."""
@@ -123,3 +131,5 @@ def reset_gateway():
     """Reset the global GatewayManager singleton."""
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["GatewayMessage", "raw_payload", "ConnectorStatus", "BaseConnector", "connect", "disconnect", "get_status", "SlackConnector", "DiscordConnector", "WhatsAppConnector", "verify_webhook", "handle_webhook", "GatewayManager", "add_connector", "remove_connector", "send_to_platform", "broadcast", "get_gateway", "reset_gateway"]

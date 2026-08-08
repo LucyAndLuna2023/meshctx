@@ -4,7 +4,7 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -20,9 +20,7 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+logger = "logger"
 class PluginInfo:
     """Plugin identity descriptor (stable API)."""
     def __init__(self, name = 'agent_loop', version = '0.1.0', description = ''):
@@ -34,8 +32,14 @@ class LoopPhase:
     act = 'act'
     reflect = 'reflect'
 
+@dataclass
 class PlanStep:
-    pass
+    step_id: str = None
+    description: str = ''
+    agent_id: Optional[str] = None
+    status: str = 'pending'
+    result: str = ''
+    error: str = ''
 
 class AgentLoopPlugin:
     """Plan/Act/Reflect agent cycle plugin."""
@@ -93,3 +97,5 @@ class AgentLoopPlugin:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+
+__all__ = ["PluginInfo", "LoopPhase", "PlanStep", "AgentLoopPlugin", "on_load", "start", "stop", "step", "plan", "act", "reflect", "stats"]

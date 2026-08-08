@@ -4,7 +4,7 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
+from dataclasses import dataclass, field
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -20,11 +20,12 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
+@dataclass
 class ModuleCheck:
-    pass
+    module: str = None
+    status: str = None
+    latency_ms: float = None
+    error: str = ''
 
 class RealtimeHealthMonitor:
     """Real-time health monitor for meshctx modules."""
@@ -52,3 +53,5 @@ def get_health_monitor() -> RealtimeHealthMonitor:
     """Return the global singleton health monitor."""
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["ModuleCheck", "RealtimeHealthMonitor", "check_module", "check_all", "get_summary", "subscribe", "get_health_monitor"]

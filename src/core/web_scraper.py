@@ -10,7 +10,7 @@ Tool name: web_scraper
 import re
 import sys
 import urllib.parse
-from typing import Any
+from typing import Any, Optional
 
 
 def _ensure_requests():

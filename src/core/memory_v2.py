@@ -4,7 +4,6 @@
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
-__all__ = []
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -20,9 +19,6 @@ class _MeshCtxStubProxy:
 def __getattr__(name):
     return _MeshCtxStubProxy(name)
 
-__all__ = []
-__all__ = []
-__all__ = []
 class _ResultItem:
     """search 返回的结果对象，含 .text 和 .score 属性兼容"""
     def __init__(self, text, score, **kw):
@@ -71,6 +67,7 @@ class _Stub:
         raise NotImplementedError("meshctx-core required (private repo)")
 
 
+logger = "logger"
 class MemoryManager:
     def __init__(self):
         raise NotImplementedError("meshctx-core required (private repo)")
@@ -91,3 +88,5 @@ class MemoryManager:
 def get_memory_manager():
     raise NotImplementedError("meshctx-core required (private repo)")
 
+
+__all__ = ["TfidfVectorizer", "tokenize", "fit", "fit_transform", "VectorStore", "add", "rebuild_index", "search", "MemoryManager", "delete", "stats", "get_memory_manager"]
