@@ -1595,7 +1595,7 @@ function addCodeRunButtons(container){
 }</script>
 """
 
-_TEMPLATES["setup.html"] = r"""{% extends "base.html" %}
+_TEMPLATES["models.html"] = r"""{% extends "base.html" %}
 {% block content %}
 <h2>⚙️ 模型管理</h2>
 
@@ -4105,13 +4105,17 @@ async def chat_page(request: Request):
         profile = ""
     return _render("chat.html", {"request": request, "title": "Chat", "profile": profile}, request)
 
-@router.get("/setup", response_class=HTMLResponse)
-async def setup_page(request: Request):
+def _build_model_context(request: Request):
+    """构建模型配置页上下文（flash + configured 列表 + 折叠状态）。
+    setup_page(向导) 与 models_page(模型管理) 复用同一逻辑。
+    """
     flash = ""
     if request.query_params.get("saved") == "1":
         flash = "success"
     elif request.query_params.get("error") == "1":
         flash = "error"
+    elif request.query_params.get("deleted") == "1":
+        flash = "deleted"
     
     # 合并内置模型 + 已配置模型
     configured = []
@@ -4242,6 +4246,12 @@ async def setup_page(request: Request):
         configured = ready + unready
         has_more = True
     
+    return flash, configured, has_more, unconfigured_count
+
+
+@router.get("/setup", response_class=HTMLResponse)
+async def setup_page(request: Request):
+    flash, configured, has_more, unconfigured_count = _build_model_context(request)
     return _render("setup.html", {
         "request": request, "title": "Setup",
         "flash": flash, "configured": configured,
@@ -4525,7 +4535,7 @@ window.addEventListener('message', function(e){
 
 # ── 模型列表页面 ────────────────────────────────────────────
 
-_TEMPLATES["models.html"] = r"""{% extends "base.html" %}
+_TEMPLATES["models_list.html"] = r"""{% extends "base.html" %}
 {% block content %}
 <h2>🤖 模型列表</h2>
 <div style="display:flex;gap:12px;margin:16px 0;flex-wrap:wrap;">
@@ -4585,7 +4595,13 @@ loadModels();
 
 @router.get("/models", response_class=HTMLResponse)
 async def models_page(request: Request):
-    return _render("models.html", {"request": request, "title": "Models"}, request)
+    flash, configured, has_more, unconfigured_count = _build_model_context(request)
+    return _render("models.html", {
+        "request": request, "title": "Models",
+        "flash": flash, "configured": configured,
+        "has_more_unconfigured": has_more,
+        "total_unconfigured": unconfigured_count,
+    }, request)
 
 
 # ── 供应商列表页面 ───────────────────────────────────────────

@@ -114,19 +114,22 @@ class TestModelConfigFlow:
 
 
 class TestSetupPage:
-    """Setup页集成测试"""
+    """Setup页 + 模型管理页 集成测试
+
+    v3.x 路由演进: /ui/setup = 向导(选provider+输key); /ui/models = 完整模型管理(添加/编辑/删除/预设)
+    """
 
     def test_setup_page_loads(self, client):
-        """验证Setup页面正常加载"""
+        """验证Setup向导页面正常加载"""
         resp = client.get("/ui/setup")
         assert resp.status_code == 200
         html = resp.text
-        # 检查关键元素
-        assert "已配置" in html or "添加模型" in html or "Setup" in html
+        # 向导页关键元素: provider 选择卡片 + 完成配置按钮
+        assert "DeepSeek" in html or "selectProvider" in html or "skip" in html
 
     def test_setup_page_has_presets(self, client):
-        """验证快捷预设按钮存在"""
-        resp = client.get("/ui/setup")
+        """验证模型管理页快捷预设按钮存在"""
+        resp = client.get("/ui/models")
         assert resp.status_code == 200
         html = resp.text
         assert "Ollama" in html
@@ -134,16 +137,16 @@ class TestSetupPage:
         assert "完全自定义" in html
 
     def test_setup_page_has_model_list(self, client):
-        """验证模型列表存在"""
-        resp = client.get("/ui/setup")
+        """验证模型管理页模型列表存在"""
+        resp = client.get("/ui/models")
         assert resp.status_code == 200
         html = resp.text
-        # Should have model rows or empty state
+        # 模型行或空状态或添加按钮
         assert "data-id=" in html or "尚未配置" in html or "添加模型" in html
 
     def test_setup_js_functions_present(self, client):
-        """验证关键JS函数存在且语法正确"""
-        resp = client.get("/ui/setup")
+        """验证模型管理页关键JS函数存在且语法正确"""
+        resp = client.get("/ui/models")
         assert resp.status_code == 200
         html = resp.text
         required_fns = [
