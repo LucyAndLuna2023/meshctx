@@ -28,6 +28,10 @@ from .brain_dmn import DefaultModeNetwork
 from .brain_acc import ACC
 from .brain_brainstem import AutonomicRegulator, ReticularActivation, HomeostaticDrive
 from .brain_nacc import RewardPredictor, MotivationSignal, WantingVsLiking
+from .brain_pfc import WorkingMemory, TaskSwitcher, SimplePlanner
+from .brain_visual import FeatureExtractor, VisualBuffer
+from .brain_ltp import LTPEngine, LTPEnsemble
+from .brain_gnostic import GnosticField, GestaltManager
 
 logger = logging.getLogger("meshctx.brain")
 
@@ -61,6 +65,16 @@ class BrainLoop:
         self.reward_predictor = RewardPredictor(n_states=16)
         self.motivation = MotivationSignal()
         self.wanting_liking = WantingVsLiking()
+        # ── 17脑区补齐 (v3.118.0): PFC/Visual/LTP/Gnostic ──
+        self.working_memory = WorkingMemory()
+        self.task_switcher = TaskSwitcher()
+        self.planner = SimplePlanner()
+        self.visual = FeatureExtractor()
+        self.visual_buffer = VisualBuffer()
+        self.ltp = LTPEngine()
+        self.ltp_ensemble = LTPEnsemble()
+        self.gnostic = GnosticField()
+        self.gestalt = GestaltManager()
         
         self._steps = 0
         self._successes = 0
