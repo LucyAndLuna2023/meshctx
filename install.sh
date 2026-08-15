@@ -500,9 +500,9 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.117.0"
+VERSION="3.118.0"
 REPO="LucyAndLuna2023/meshctx"
-SRC_URL="https://github.com/${REPO}/releases/download/v${VERSION}/meshctx-src.tar.gz"
+SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 PORT=3001
 
 echo ""
@@ -600,6 +600,12 @@ mkdir -p "${INSTALL_DIR}"
 tar xzf "${TARBALL}" -C "${INSTALL_DIR}" || {
     echo -e "${RED}✗ $(T extract_fail)${NC}"; exit 1
 }
+# 处理 tag 归档顶层目录 (meshctx-<branch>/)，把源码拍平到 INSTALL_DIR
+_SUBDIR=$(find "${INSTALL_DIR}" -maxdepth 1 -mindepth 1 -type d | head -1)
+if [ -n "$_SUBDIR" ] && [ -f "${_SUBDIR}/src/main.py" ]; then
+    mv "${_SUBDIR}"/* "${_SUBDIR}"/.[!.]* "${INSTALL_DIR}"/ 2>/dev/null || true
+    rmdir "${_SUBDIR}" 2>/dev/null || true
+fi
 
 # ── Restore user config ────────────────────────────────────
 if [ -n "$CONFIG_BACKUP" ] && [ -d "$CONFIG_BACKUP" ]; then
