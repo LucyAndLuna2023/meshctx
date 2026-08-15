@@ -566,7 +566,10 @@ TARBALL="${TMPDIR}/meshctx-src.tar.gz"
 trap "rm -rf ${TMPDIR}" EXIT
 
 DOWNLOAD_OK=0
-if command -v wget >/dev/null 2>&1; then
+# 支持本地预置源码包（离线/受限网络环境：GitHub 不可直连时）
+if [ -n "$MESHCTX_SRC_TARBALL" ] && [ -f "$MESHCTX_SRC_TARBALL" ]; then
+    cp "$MESHCTX_SRC_TARBALL" "$TARBALL" && DOWNLOAD_OK=1
+elif command -v wget >/dev/null 2>&1; then
     wget -q --timeout=120 --tries=3 -O "${TARBALL}" "${SRC_URL}" && DOWNLOAD_OK=1
 else
     curl -fsSL --connect-timeout 60 --retry 3 -o "${TARBALL}" "${SRC_URL}" && DOWNLOAD_OK=1
