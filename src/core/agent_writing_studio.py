@@ -148,6 +148,14 @@ class AgentWritingStudio:
             for role, t in ROLE_WRITING_TEMPLATES.items()
         ]
 
+    def list_builtin(self) -> List[Dict]:
+        """列出内置智能体（coder/reviewer/architect/tester/researcher/devops）。"""
+        return [a.to_dict() for name, a in self.tm.agents.items() if name in BUILTIN_AGENTS]
+
+    def list_custom(self) -> List[Dict]:
+        """列出用户自定义智能体。"""
+        return [a.to_dict() for name, a in self.tm.agents.items() if name not in BUILTIN_AGENTS]
+
     # ── 写作：按角色 + 领域起草系统提示词 ───────────────────
 
     def draft_prompt(self, role: str, domain: str = "通用任务",

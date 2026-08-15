@@ -259,5 +259,73 @@ class TestTuningSkills:
         assert len(r["history"]) == 3
 
 
+class TestWebCrewsUI:
+    """对标 hermes-studio / penguin-harness 的 Web UI 层（十语言 + 页面渲染）。"""
+
+    def test_i18n_ten_languages_have_new_keys(self):
+        from src.i18n import TRANSLATIONS
+        for key in ("crew_title", "agent_library_title", "tuning_title",
+                    "crew_dag_title", "tuning_loop_title"):
+            for lang in ("zh", "en", "ja", "ko", "fr", "de", "es", "it", "ar", "ru"):
+                assert key in TRANSLATIONS[lang], f"{lang} 缺 {key}"
+                assert TRANSLATIONS[lang][key], f"{lang}.{key} 为空"
+
+    def test_new_templates_render(self):
+        import src.web_crews  # noqa: F401  触发模板注册到 web_ui._TEMPLATES
+        from src.web_ui import _render
+        r1 = _render("crews.html", {
+            "crew": [{"name": "research", "steps": [{"agent": "a", "instruction": "i"}],
+                      "est_low": 0.01, "est_high": 0.05}],
+            "conductor": [], "msg": None, "err": None}, None)
+        r2 = _render("agents_library.html",
+                     {"builtin": [], "custom": [], "roles": ["coder"]}, None)
+        r3 = _render("tuning.html",
+                     {"skills": [], "roles": ["coder"], "result": None}, None)
+        r4 = _render("crews_dag.html",
+                     {"dag": [{"agent": "a", "instruction": "i"}], "feed": []}, None)
+        for name, resp in (("crews", r1), ("agents", r2), ("tuning", r3), ("dag", r4)):
+            assert resp.status_code == 200, name
+            assert len(resp.body) > 1000, name
+
+    def test_web_crews_router_mounted(self):
+        import src.main as m
+
+        def collect(routes):
+            out = []
+            for r in routes:
+                if hasattr(r, "path"):
+                    out.append(r.path)
+                elif hasattr(r, "original_router"):
+                    out.extend(collect(r.original_router.routes))
+                elif hasattr(r, "routes"):
+                    out.extend(collect(r.routes))
+            return out
+        paths = set(collect(m.app.routes))
+        for p in ("/ui/crews", "/ui/crews/dag", "/ui/agents", "/ui/tuning"):
+            assert p in paths, f"缺少路由 {p}"
+
+    def test_writing_studio_list_builtin_custom(self):
+        from src.core.agent_writing_studio import AgentWritingStudio, BUILTIN_AGENTS
+        s = AgentWritingStudio()
+        builtin = s.list_builtin()
+        assert len(builtin) == len(BUILTIN_AGENTS)
+        assert all(a["name"] in BUILTIN_AGENTS for a in builtin)
+        # 自定义 agent 不应出现在 builtin 列表
+        s.create_agent("__tui_custom__", "general", "test prompt")
+        assert all(a["name"] != "__tui_custom__" for a in s.list_builtin())
+        assert any(a["name"] == "__tui_custom__" for a in s.list_custom())
+        s.delete_agent("__tui_custom__")
+
+    def test_cost_tracker_get_feed(self):
+        from src.core.agent_crew_cost_tracker import CrewCostTracker
+        t = CrewCostTracker(storage_dir="/tmp/crew_feed_test.json")
+        t.reset()
+        t.track_run("build", "feed 测试任务", tokens=1200, cost_usd=0.018)
+        feed = t.get_feed()
+        assert feed and feed[0]["agent"] == "build"
+        assert feed[0]["tokens"] == 1200
+        t.reset()
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))

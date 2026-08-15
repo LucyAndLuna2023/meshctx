@@ -945,6 +945,10 @@ from .core.session_archiver import get_archiver, SessionArchiver
 from .core.watchdog import WatchdogDaemon, get_daemon, HEARTBEAT_FILE
 app.include_router(web_ui_router)
 
+# ─── Crews / 智能体库 / Tuning Web UI（对标 hermes-studio / penguin-harness）──
+from .web_crews import router as web_crews_router
+app.include_router(web_crews_router)
+
 # ─── WebSocket 实时推送路由 ──────────────────────────────
 from .core.realtime_push import create_realtime_router
 app.include_router(create_realtime_router())

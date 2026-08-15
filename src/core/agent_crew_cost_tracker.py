@@ -191,6 +191,24 @@ class CrewCostTracker:
         reports = [self.get_crew_report(t) for t in templates]
         return sorted(reports, key=lambda r: r["total_cost_usd"], reverse=True)
 
+    def get_feed(self) -> List[Dict[str, Any]]:
+        """实时活动流（activity feed）：最近 Crew 运行记录，倒序展示。
+
+        对标 hermes-studio / Ti-Work 的 crew activity feed。每条：
+          {ts, agent, event, tokens, cost_usd}
+        """
+        feed = []
+        for r in sorted(self.records, key=lambda x: x.created_at, reverse=True):
+            ts = time.strftime("%H:%M:%S", time.localtime(r.created_at))
+            feed.append({
+                "ts": ts,
+                "agent": r.template,
+                "event": f"{r.goal[:40]} · {r.tokens:,} tokens · ${r.cost_usd:.4f}",
+                "tokens": r.tokens,
+                "cost_usd": r.cost_usd,
+            })
+        return feed
+
     def reset(self, template_name: str = "") -> int:
         """清空成本记录（对标 Ti-Work 的重置控制）。"""
         if template_name:
