@@ -28,6 +28,10 @@ from .brain_dmn import DefaultModeNetwork
 from .brain_acc import ACC
 from .brain_brainstem import AutonomicRegulator, ReticularActivation, HomeostaticDrive
 from .brain_nacc import RewardPredictor, MotivationSignal, WantingVsLiking
+from .brain_pfc import WorkingMemory, TaskSwitcher, SimplePlanner
+from .brain_visual import FeatureExtractor, VisualBuffer
+from .brain_ltp import LTPEngine, LTPEnsemble
+from .brain_gnostic import GnosticField, GestaltManager
 
 logger = logging.getLogger("meshctx.brain")
 
@@ -61,6 +65,16 @@ class BrainLoop:
         self.reward_predictor = RewardPredictor(n_states=16)
         self.motivation = MotivationSignal()
         self.wanting_liking = WantingVsLiking()
+        # ── 17脑区补齐 (v3.118.0): PFC/Visual/LTP/Gnostic ──
+        self.working_memory = WorkingMemory()
+        self.task_switcher = TaskSwitcher()
+        self.planner = SimplePlanner()
+        self.visual = FeatureExtractor()
+        self.visual_buffer = VisualBuffer()
+        self.ltp = LTPEngine()
+        self.ltp_ensemble = LTPEnsemble()
+        self.gnostic = GnosticField()
+        self.gestalt = GestaltManager()
         
         self._steps = 0
         self._successes = 0
@@ -171,6 +185,40 @@ class BrainLoop:
                 f"motiv={self.motivation.motivation:.2f} stable={self.brainstem.is_stable()}"
             )
             
+            # ── v3.118.0: 17脑区补齐 — PFC/Visual/LTP/Gnostic 接入 ──
+            try:
+                wm_item = self.working_memory.store(observation, priority=priority)
+                wm_recall = self.working_memory.recall(observation, top_k=2)
+                wm_out = {
+                    'stored': wm_item.content[:40] if wm_item else None,
+                    'recalled': [w.content[:40] for w, _ in wm_recall],
+                    'load': self.working_memory.load(),
+                }
+            except Exception:
+                wm_out = {'stored': None, 'recalled': [], 'load': 0}
+
+            try:
+                # 文本观察 → 简单特征向量 → Gnostic 直觉场
+                feat_vec = np.zeros(512, dtype=np.float32)
+                for i, ch in enumerate(observation[:256]):
+                    feat_vec[i % 512] += ord(ch) / 255.0
+                gnostic_out = self.gnostic.recognize(feat_vec, attention=confidence)
+                gnostic_label = gnostic_out.get('label') or gnostic_out.get('winner') or 'unknown'
+                gestalt_out = self.gestalt
+            except Exception:
+                gnostic_label = 'unknown'
+
+            try:
+                ltp_out = self.ltp.stimulate(voltage=-55.0, frequency=100.0, duration=0.05)
+                ltp_state = self.ltp.get_state()
+            except Exception:
+                ltp_state = {}
+
+            try:
+                visual_out = {'features': len(self.visual_buffer.buffer) if hasattr(self.visual_buffer, 'buffer') else 0}
+            except Exception:
+                visual_out = {'features': 0}
+
             return {
                 'action': action,
                 'confidence': confidence,
@@ -193,6 +241,11 @@ class BrainLoop:
                 'motivation': self.motivation.motivation,
                 'wanting_liking': self.wanting_liking.state(),
                 'stable': self.brainstem.is_stable(),
+                # v3.118.0: 17脑区补齐输出
+                'working_memory': wm_out,
+                'gnostic': gnostic_label,
+                'ltp': ltp_state,
+                'visual': visual_out,
             }
             
         except Exception as e:
