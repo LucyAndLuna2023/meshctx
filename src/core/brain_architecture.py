@@ -28,6 +28,11 @@ from .brain_dmn import DefaultModeNetwork
 from .brain_acc import ACC
 from .brain_brainstem import AutonomicRegulator, ReticularActivation, HomeostaticDrive
 from .brain_nacc import RewardPredictor, MotivationSignal, WantingVsLiking
+# ── v3.115.18+ 恢复: PFC/Visual/LTP/Gnostic 四脑区 (文件恢复自 git 对象库) ──
+from .brain_pfc import WorkingMemory, TaskSwitcher, SimplePlanner
+from .brain_visual import GaborFilterBank, FeatureExtractor, VisualBuffer
+from .brain_ltp import LTPEngine
+from .brain_gnostic import GnosticField
 
 logger = logging.getLogger("meshctx.brain")
 
@@ -41,6 +46,10 @@ class BrainLoop:
     """
     
     def __init__(self):
+        self._steps = 0
+        self._successes = 0
+        self._failures = 0
+        self._errors = []
         # 全部真实脑区
         self.thalamus = ThalamicGate()
         self.amygdala = AmygdalaSalience()
@@ -61,6 +70,26 @@ class BrainLoop:
         self.reward_predictor = RewardPredictor(n_states=16)
         self.motivation = MotivationSignal()
         self.wanting_liking = WantingVsLiking()
+        # ── v3.115.18+ 恢复: PFC/Visual/LTP/Gnostic (try/except 兜底, 不影响旧脑区) ──
+        try:
+            self.pfc_wm = WorkingMemory()
+            self.pfc_task = TaskSwitcher()
+            self.pfc_planner = SimplePlanner()
+            self.visual_gabor = GaborFilterBank()
+            self.visual_extractor = FeatureExtractor()
+            self.visual_buffer = VisualBuffer()
+            self.ltp = LTPEngine()
+            self.gnostic = GnosticField()
+        except Exception as e:
+            self.pfc_wm = None
+            self.pfc_task = None
+            self.pfc_planner = None
+            self.visual_gabor = None
+            self.visual_extractor = None
+            self.visual_buffer = None
+            self.ltp = None
+            self.gnostic = None
+            self._errors.append(f"brain_region_init: {e}")
         
         self._steps = 0
         self._successes = 0
@@ -165,6 +194,53 @@ class BrainLoop:
             except Exception:
                 pass
             
+            # ── v3.115.18+ 恢复: PFC/Visual/LTP/Gnostic 脑区调用 (try/except 兜底) ──
+            try:
+                self.pfc_wm.store(observation[:120], priority=confidence)
+                wm_items = self.pfc_wm.recall(observation[:50], top_k=2)
+                pfc_load = self.pfc_wm.load()
+            except Exception:
+                wm_items, pfc_load = [], 0
+            try:
+                pfc_rule = self.pfc_task.select_rule(
+                    np.array([confidence, conflict, phi])
+                )[0]
+            except Exception:
+                pfc_rule = 0
+            try:
+                pfc_plan = self.pfc_planner.plan(
+                    observation[:80], actions,
+                    transition_fn=lambda s, a: f"{s}→{a}",
+                    goal_fn=lambda s: confidence,
+                )
+            except Exception:
+                pfc_plan = []
+            try:
+                visual_edges = self.visual_gabor.apply(
+                    np.zeros((16, 16), dtype=np.float32)
+                )
+            except Exception:
+                visual_edges = []
+            try:
+                ltp_potentiated = self.ltp.is_potentiated()
+                self.ltp.stimulate(
+                    voltage=-65.0 + 40.0 * confidence,
+                    frequency=100.0,
+                )
+            except Exception:
+                ltp_potentiated = False
+            try:
+                gnostic_result = self.gnostic.recognize(
+                    np.array(
+                        [confidence, conflict, phi,
+                         float(len(observation) % 64),
+                         emotion.get('valence', 0)],
+                        dtype=np.float32,
+                    )
+                )
+            except Exception:
+                gnostic_result = {}
+            
             logger.info(
                 f"🧠 BrainLoop step={self._steps} action={action} "
                 f"Φ={phi:.2f} conf={confidence:.2f} conflict={conflict:.2f} "
@@ -193,6 +269,15 @@ class BrainLoop:
                 'motivation': self.motivation.motivation,
                 'wanting_liking': self.wanting_liking.state(),
                 'stable': self.brainstem.is_stable(),
+                # v3.115.18+ 恢复: PFC/Visual/LTP/Gnostic outputs
+                'pfc': {
+                    'working_memory_load': pfc_load,
+                    'selected_rule': pfc_rule,
+                    'plan_steps': len(pfc_plan),
+                },
+                'visual_edges': len(visual_edges),
+                'ltp_potentiated': ltp_potentiated,
+                'gnostic': gnostic_result if isinstance(gnostic_result, dict) else {},
             }
             
         except Exception as e:

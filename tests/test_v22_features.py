@@ -3,9 +3,25 @@ v2.22 新增功能测试 — 自愈2.0 + 多Agent2.0
 """
 import pytest
 import requests
+import socket
 import time
 
 BASE = "http://127.0.0.1:3001"
+
+
+def _service_up(host: str = "127.0.0.1", port: int = 3001, timeout: float = 0.5) -> bool:
+    """检测 meshctx 服务是否已启动（e2e 集成测试前置条件）。"""
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+pytestmark = pytest.mark.skipif(
+    not _service_up(),
+    reason="meshctx 服务未启动 (127.0.0.1:3001) — e2e 集成测试需先启动服务",
+)
 
 
 class TestAutoHealerV2:

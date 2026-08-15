@@ -73,13 +73,26 @@ def pytest_collection_modifyitems(items):
             )
 
 
+def _clear_rate_limits():
+    """清空全局限流器状态（防 DDoS 特性在批量测试中产生 429 噪音）。"""
+    import sys
+    if "src.main" in sys.modules:
+        try:
+            from src import main
+            main._rate_limits.clear()
+            main._suspicious_ips.clear()
+        except Exception:
+            pass
+
+
 @pytest.fixture(autouse=True)
 def _reset_global_state():
-    """每个测试后重置全局单例，防止测试间状态污染。
+    """每个测试前后重置全局单例，防止测试间状态污染。
 
     Python 3.14兼容: 使用 sys.modules 检查模块是否已加载，
     避免强制导入 src.main 等重型模块导致 MemoryError（#13048）。
     """
+    _clear_rate_limits()
     yield
     import sys
     # 重置 kernel 全局实例
@@ -103,10 +116,4 @@ def _reset_global_state():
             AUTO_HEALER._instance = None
         except Exception:
             pass
-    # 重置 rate limiter（全量测试累积导致429）
-    if "src.main" in sys.modules:
-        try:
-            from src import main
-            main._rate_limit_store.clear()
-        except Exception:
-            pass
+    _clear_rate_limits()

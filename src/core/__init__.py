@@ -115,6 +115,13 @@ _known = {
     'session_resume': ['get_session_resume'],
     'jepa_world_model': ['JEPAWorldModel','JEPAPredictor','JEPARouter','LatentEncoder','get_jepa_world_model'],
     'brain': ['SuperBrain','get_super_brain','HippocampalReplay','AmygdalaSalience','DefaultModeNetwork','ThalamicGate','CerebellarForwardModel','BasalGanglia','ACCConflictMonitor','Insula','MirrorNeuron','BrainEvent','BrainState','SalienceLevel'],
+    # 脑区模块 (v3.115.18+ 真实实现, 非stub): 保证 from src.core import brain_xxx 拿到真实模块
+    'brain_pfc': ['WorkingMemory','TaskSwitcher','SimplePlanner','WMItem','PlanStep'],
+    'brain_visual': ['GaborFilterBank','FeatureExtractor','VisualBuffer','VisualFeature','EdgeDetected'],
+    'brain_ltp': ['LTPEngine','LTPEnsemble','LTPConstants','NMDARState','SynapticState'],
+    'brain_gnostic': ['GnosticField','GestaltManager','Pattern','FieldState'],
+    'brain_nacc': ['RewardPredictor','MotivationSignal','WantingVsLiking'],
+    'brain_brainstem': ['AutonomicRegulator','ReticularActivation','HomeostaticDrive'],
     'sdm_memory': ['SparseDistributedMemory','LightSDM','HardLocation','get_sdm','get_light_sdm'],
     'context_portal': ['ContextPortal','ContextItem','MemoryPrefetchTable','PatternLearner','get_context_portal'],
     'autonomous_engine': ['AutonomousEngine','EngineState','TaskQueue','HeartbeatMonitor','AutoHealer','TaskPriority','ScheduledTask','get_autonomous_engine'],
