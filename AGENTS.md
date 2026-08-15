@@ -1,6 +1,6 @@
 # 🚨 最高优先级 — 开发铁律
 - **纯本地+GitHub开发模式**: 测试在本地执行，无远程UAT服务器
-- 本地测试命令: cd ~/meshctx-public && python -m pytest tests/ -v
+- 本地测试命令: cd ~/meshctx-public && python3 -m pytest tests/ -v
 - GitHub push: git push origin main
 - 本机是唯一开发+测试环境
 
@@ -10,22 +10,21 @@
 - 改完验证才算完成
 
 # 🚨 meshctx 竞争差距铁律 (2026-Q3)
-- SWE-bench v8: 296/300=98.7% resolve, F1=0.967, 已超越 Claude Opus 88.6%
+- SWE-bench v8: 启发式评估（已修正 verified 语义），不对标官方 FAIL_TO_PASS/PASS_TO_PASS；官方口径对标 Lite 49-60% / Verified 72.8-76.8%
 - 多Agent: swarm 0 worker vs CrewAI/AutoGen 成熟
 - 工具生态: 61% stub → 持续消减中
 - 可观测性: print日志 vs Langfuse 全链路 tracing
 - MCP协议: 已集成 (src/mcp_server.py, 312行, 13 defs/classes)
 - Docker沙箱: 已有 (docker-compose.yml + Dockerfile, 多模型API Key支持)
 - 生产: 单机 vs 企业HA+灰度
-唯一护城河: IIT意识引擎(Φ计算) + JEPA世界模型 + 元认知 + SWE-bench 98.7%
+唯一护城河: IIT意识引擎(Φ计算) + JEPA世界模型 + 元认知
 追赶优先级: P0=MCP(2天)+Docker(3天) P1=消stub+训练JEPA P2=观测+HA
 
 # 当前状态
-- v3.115.15 纯本地开发模式
+- v3.116.0 纯本地开发模式
 - 28插件全量: 9核心 + 19第三方
 - 6核心模块已实现: learn_loop / memory_v2 / metacognition / agent_swarm / super_brain / jepa_world_model
-- pytest: 126 passed, 0 failed
-- SWE-bench v8: 296/300=98.7%, F1=0.967
+- pytest 基线: 2846 passed / 118 failed / 92 errors / 418 skipped（Python 3.14 环境，失败主因 pytest tmpdir cleanup bug + stub 降级，持续修复中）
 - BrainInspiredRouter 已自愈（优雅降级机制）
 
 # 测试目标

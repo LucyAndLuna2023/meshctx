@@ -1,5 +1,5 @@
 """
-MeshCtx 17脑区 能力基准测试 v9 (全API修复版)
+MeshCtx 14脑区 能力基准测试 v9 (全API修复版)
 ==========================================
 """
 import sys, os, time, json, numpy as np
@@ -312,7 +312,7 @@ for r in R:
     scores[m].append(r.sc())
 
 print("="*70)
-print("  MeshCtx 17脑区 能力基准测试 v9")
+print("  MeshCtx 14脑区 能力基准测试 v9")
 print("="*70)
 total_s=0; total_n=0
 for mod in sorted(scores):

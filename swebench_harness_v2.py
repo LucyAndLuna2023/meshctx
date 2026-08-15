@@ -1552,10 +1552,28 @@ def compute_scores(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     avg_confidence = sum(confidences) / n
     avg_duration = sum(durations) / n
 
-    # SWE-bench style: resolved = valid patch with some file overlap
-    resolved_count = sum(1 for r in results
-                        if r["patch"]["is_syntax_valid"]
-                        and r["gold_comparison"]["file_f1"] > 0)
+    # SWE-bench-style verified resolution requires actually running
+    # FAIL_TO_PASS + PASS_TO_PASS tests in the target repo. This harness
+    # currently performs *heuristic* evaluation only (syntax + file overlap).
+    # verified_resolved_count is computed only when per-instance results carry
+    # real test execution outcome; otherwise it is None (NOT comparable to the
+    # official SWE-bench leaderboard).
+    verified_resolved_count = sum(
+        1 for r in results
+        if r.get("test_verification", {}).get("resolved") is True
+    )
+    verified_attempted = sum(
+        1 for r in results
+        if "test_verification" in r
+    )
+    verified_resolved_count = verified_resolved_count if verified_attempted > 0 else None
+
+    # Heuristic overlap metric (NOT the official SWE-bench % Resolved).
+    # Kept for backward compatibility with earlier score files, but renamed
+    # in new fields to make the semantics unambiguous.
+    patch_overlap_count = sum(1 for r in results
+                              if r["patch"]["is_syntax_valid"]
+                              and r["gold_comparison"]["file_f1"] > 0)
 
     # Also count instances with any file overlap
     file_match_count = sum(1 for r in results
@@ -1563,14 +1581,30 @@ def compute_scores(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 
     score = {
         "framework": "meshctx SWE-bench Harness v2.0 (repo-clone enhanced)",
+        "score_schema_version": "v3.0",  # v3: resolved semantics corrected + versioned scoring
         "dataset": "SWE-bench-lite",
+        # Heuristic-only: does NOT run FAIL_TO_PASS/PASS_TO_PASS tests.
+        "evaluation_method": "heuristic_overlap",
+        "official_swebench_comparable": False,
         "total_instances": n,
         "patch_generated": patch_generated_count,
         "syntax_valid": syntax_valid_count,
         "success_count": success_count,
-        "resolved_count": resolved_count,
         "file_match_count": file_match_count,
-        "resolve_rate_pct": round(resolved_count / n * 100, 1),
+
+        # Backward-compatible aliases (heuristic, see patch_overlap_count).
+        "resolved_count": patch_overlap_count,
+        "resolve_rate_pct": round(patch_overlap_count / n * 100, 1),
+
+        # Corrected semantics.
+        "patch_overlap_count": patch_overlap_count,
+        "patch_overlap_rate_pct": round(patch_overlap_count / n * 100, 1),
+        "verified_resolved_count": verified_resolved_count,
+        "verified_resolve_rate_pct": (
+            round(verified_resolved_count / verified_attempted * 100, 1)
+            if (verified_attempted > 0 and verified_resolved_count is not None)
+            else None
+        ),
 
         "file_f1_mean": round(avg_f1, 3),
         "file_f1_max": round(max(f1_scores), 3),
@@ -1672,8 +1706,9 @@ def main():
     print(f"  Patches:        {scores['patch_generated']}")
     print(f"  Syntax valid:   {scores['syntax_valid']}")
     print(f"  File matches:   {scores['file_match_count']}")
-    print(f"  Resolved:       {scores['resolved_count']}")
-    print(f"  Resolve rate:   {scores['resolve_rate_pct']}%")
+    print(f"  Patch overlap:  {scores['patch_overlap_count']}")
+    print(f"  Overlap rate:   {scores['patch_overlap_rate_pct']}% (heuristic, NOT official % Resolved)")
+    print(f"  Verified resolved: {scores['verified_resolved_count']} (None = no FAIL_TO_PASS/PASS_TO_PASS run)")
     print(f"  File F1 mean:   {scores['file_f1_mean']}")
     print(f"  Line sim mean:  {scores['line_similarity_mean']}")
     print(f"  Avg duration:   {scores['avg_duration_ms']:.0f}ms")
