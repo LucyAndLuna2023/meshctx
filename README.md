@@ -1,7 +1,7 @@
 <p align="center">
   <img src="docs/assets/logo.png" alt="MeshCtx" width="200">
   <h1 align="center">🧠 MeshCtx v3.116.0</h1>
-  <h3 align="center">全脑仿真自进化AI Agent · SDM突破性记忆 · 自修改代码 · 全量测试 · 14脑区 · 14模块 · GenomicOptimizer 自进化 · 可观测性追踪</h3>
+  <h3 align="center">全脑仿真自进化AI Agent · SDM突破性记忆 · 自修改代码 · 全量测试 · 17脑区 · 14模块 · GenomicOptimizer 自进化 · 可观测性追踪</h3>
 </p>
 
 <p align="center">
@@ -104,7 +104,7 @@ meshctx desktop        # Windows桌面客户端
 - 任务规划后自动反馈迭代，多角色动态发言选择
 
 ### 脑启发AI引擎
-- **14脑区全脑仿真**: 自由能原理 · 主动推理 · 全局工作空间 · 稳态调节
+- **17脑区全脑仿真**: 自由能原理 · 主动推理 · 全局工作空间 · 稳态调节
 - **混合推理调度**: 自由能驱动的探索vs直出决策
 - **超级大脑**: 海马回放 · 杏仁核情绪标记 · 默认模式网络 · 丘脑门控
 - **元认知**: 自我评估 · 错误分类 · 行为调整

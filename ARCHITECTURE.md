@@ -40,7 +40,7 @@
 | 核心模块 | 200+ 个 Python 文件 |
 | 测试 | ~1059 (含 152 已修复模块) |
 | README 定位 | "全脑仿真自进化AI Agent" |
-| 关键能力 | SDM突破性记忆 · 自修改代码 · 14脑区 · 14模块 · DeepSeek TUI竞品对标 |
+| 关键能力 | SDM突破性记忆 · 自修改代码 · 17脑区 · 14模块 · DeepSeek TUI竞品对标 |
 
 **9 个核心公开模块** (README 列出的):
 - `dual_session.py` — Planner/Executor 双 session 引擎

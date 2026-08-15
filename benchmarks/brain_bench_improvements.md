@@ -724,7 +724,7 @@ self.want_liking.process_reward(action_success, nacc_state.dopamine_signal)
 | P0 | 将 NAcc 集成到 BrainLoop | 奖励预测、动机调节 |
 | P1 | 脑干 → 认知循环联动 | 疲劳→降低并发/推迟任务 |
 | P1 | NAcc → 动作选择联动 | 奖励预测指导 BasalGanglia |
-| P2 | 统一所有14脑区到 BrainLoop | 真正完整的13→14脑区架构 |
+| P2 | 统一所有17脑区到 BrainLoop | 真正完整的13→17脑区架构 |
 
 ### 4.3 建议的集成代码
 
