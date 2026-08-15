@@ -1,5 +1,5 @@
 """
-MeshCtx Brain Architecture — 13脑区全导入版本 (v3.115.16)
+MeshCtx Brain Architecture — 17脑区全导入版本 (v3.118.0)
 所有脑区从独立文件导入，非简化实现。
 
 002审计修复:
@@ -38,7 +38,7 @@ logger = logging.getLogger("meshctx.brain")
 
 class BrainLoop:
     """
-    完整13脑区回路 — 每次决策经过所有脑区处理。
+    完整17脑区回路 — 每次决策经过所有脑区处理。
     
     与之前版本的区别: 所有脑区从 brain_*.py 导入(8268行真实算法)，
     非内联简化版。
@@ -101,7 +101,7 @@ class BrainLoop:
     
     def think(self, observation: str, available_actions: List[str] = None,
               priority: float = 0.5) -> Dict[str, Any]:
-        """完整13脑区认知循环"""
+        """完整17脑区认知循环"""
         self._steps += 1
         
         try:
@@ -250,18 +250,6 @@ class BrainLoop:
                 f"motiv={self.motivation.motivation:.2f} stable={self.brainstem.is_stable()}"
             )
             
-            # ── v3.118.0: 17脑区补齐 — PFC/Visual/LTP/Gnostic 接入 ──
-            try:
-                wm_item = self.working_memory.store(observation, priority=priority)
-                wm_recall = self.working_memory.recall(observation, top_k=2)
-                wm_out = {
-                    'stored': wm_item.content[:40] if wm_item else None,
-                    'recalled': [w.content[:40] for w, _ in wm_recall],
-                    'load': self.working_memory.load(),
-                }
-            except Exception:
-                wm_out = {'stored': None, 'recalled': [], 'load': 0}
-
             try:
                 # 文本观察 → 简单特征向量 → Gnostic 直觉场
                 feat_vec = np.zeros(512, dtype=np.float32)
@@ -269,7 +257,6 @@ class BrainLoop:
                     feat_vec[i % 512] += ord(ch) / 255.0
                 gnostic_out = self.gnostic.recognize(feat_vec, attention=confidence)
                 gnostic_label = gnostic_out.get('label') or gnostic_out.get('winner') or 'unknown'
-                gestalt_out = self.gestalt
             except Exception:
                 gnostic_label = 'unknown'
 
