@@ -1,24 +1,49 @@
-"""Memory Hierarchy — hierarchical memory store with persistence (v3.115+)"""
-# NOTE: 本文件为 meshctx 开源接口 stub。核心实现位于私有仓库 meshctx-core。
-# 商业/完整版: pip install meshctx-core (需授权)。访问接口将抛 NotImplementedError。
+"""Memory Hierarchy — hierarchical memory store with persistence (v3.115+)
+
+本文件为 meshctx 开源实现（优雅降级版）：
+  - 提供完整的、可工作的内存层级存储 / 向量索引 / 知识图谱 / 持久化功能，
+    供开源社区开发、测试与二次开发使用。
+  - 商业/完整版（更大规模、分布式、加密存储等增强能力）位于私有仓库
+    meshctx-core（pip install meshctx-core，需授权）。
+  - 设置环境变量 MESHCTX_STRICT=1 时，未安装 meshctx-core 的导入将抛 ImportError，
+    以便在需要完整实现的场景下显式失败而非静默降级。
+"""
 from __future__ import annotations
+
+import json
+import math
+import os
+import time
+import uuid
 from enum import Enum
 from abc import ABC
 from dataclasses import dataclass, field
+from typing import Optional
+
+_STRICT = os.environ.get("MESHCTX_STRICT") == "1"
+
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
+
     def __init__(self, name):
         self._name = name
+
     def __getattr__(self, attr):
         return _MeshCtxStubProxy(f"{self._name}.{attr}")
+
     def __call__(self, *args, **kwargs):
         raise NotImplementedError(f"meshctx-core required (private repo): {self._name}")
+
     def __repr__(self):
         return f"<meshctx stub {self._name}>"
 
+
 def __getattr__(name):
+    if _STRICT:
+        raise ImportError(f"meshctx-core required (private repo): {name}")
     return _MeshCtxStubProxy(name)
+
 
 class MemoryLevel(Enum):
     SENSORY = "SENSORY"
@@ -32,75 +57,158 @@ class MemoryLevel(Enum):
     LONG_TERM = 3
     ARCHIVAL = 4
 
-class VectorIndex:
-    """Simple in-memory cosine-similarity vector index."""
-    def __init__(self, dim: int = 384):
-        raise NotImplementedError("meshctx-core required (private repo)")
 
+class VectorIndex:
+    """Simple in-memory cosine-similarity vector index (open-source fallback)."""
+
+    def __init__(self, dim: int = 384):
+        self._dim = int(dim)
+        self._vectors: dict[str, list[float]] = {}
+
+    @property
     def dim(self) -> int:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return self._dim
 
     def add(self, item_id: str, embedding: list[float]):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        if not embedding:
+            return
+        self._vectors[item_id] = [float(x) for x in embedding]
+        # 自适应维度：以首个实际向量维度为准
+        self._dim = len(embedding)
 
     def count(self) -> int:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return len(self._vectors)
 
     def search(self, query: list[float], top_k: int = 5) -> list[tuple[str, float]]:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        if not self._vectors or not query:
+            return []
+        scored = []
+        for item_id, emb in self._vectors.items():
+            scored.append((item_id, self._cosine_similarity(query, emb)))
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return scored[:top_k]
 
     def _cosine_similarity(self, a: list[float], b: list[float]) -> float:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        if len(a) != len(b):
+            # 维度不一致时按最短维度对齐比较
+            n = min(len(a), len(b))
+            a, b = a[:n], b[:n]
+        dot = sum(x * y for x, y in zip(a, b))
+        na = math.sqrt(sum(x * x for x in a))
+        nb = math.sqrt(sum(y * y for y in b))
+        if na == 0.0 or nb == 0.0:
+            return 0.0
+        return dot / (na * nb)
 
     def to_dict(self) -> dict:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return {
+            "dim": self._dim,
+            "vectors": [
+                {"id": item_id, "embedding": emb}
+                for item_id, emb in self._vectors.items()
+            ],
+        }
 
-    def from_dict(cls, data: dict) -> VectorIndex:
-        raise NotImplementedError("meshctx-core required (private repo)")
+    @classmethod
+    def from_dict(cls, data: dict) -> "VectorIndex":
+        vi = cls(dim=int(data.get("dim", 384)))
+        for entry in data.get("vectors", []):
+            vi.add(entry["id"], entry["embedding"])
+        # 空时保持文件记录的 dim
+        if not data.get("vectors"):
+            vi._dim = int(data.get("dim", 384))
+        return vi
 
 
 class KnowledgeGraph:
-    """Simple entity-relation knowledge graph."""
+    """Simple entity-relation knowledge graph (open-source fallback)."""
+
     def __init__(self):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        self._entities: dict[str, dict] = {}
+        self._relations: dict[tuple, float] = {}
+        self._entity_memories: dict[str, set] = {}
 
     def add_entity(self, name: str, etype: str, properties: dict | None = None):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        self._entities[name] = {"type": etype, "properties": dict(properties or {})}
 
     def add_relation(self, source: str, relation: str, target: str, weight: float = 1.0):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        self._relations[(source, relation, target)] = float(weight)
 
     def link_memory(self, entity: str, memory_id: str):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        self._entity_memories.setdefault(entity, set()).add(memory_id)
 
     def search_entities(self, query: str) -> set[str]:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        q = (query or "").lower()
+        out = set()
+        for name, info in self._entities.items():
+            if q in name.lower() or q in str(info.get("type", "")).lower():
+                out.add(name)
+        return out
 
     def get_related_memories(self, entity: str) -> set[str]:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return set(self._entity_memories.get(entity, set()))
 
     def get_stats(self) -> dict:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return {
+            "entities": len(self._entities),
+            "relations": len(self._relations),
+            "entity_memory_links": sum(len(v) for v in self._entity_memories.values()),
+        }
 
     def to_dict(self) -> dict:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return {
+            "entities": {
+                name: {
+                    "type": info["type"],
+                    "properties": info["properties"],
+                }
+                for name, info in self._entities.items()
+            },
+            "relations": [
+                {
+                    "source": s,
+                    "relation": r,
+                    "target": t,
+                    "weight": w,
+                }
+                for (s, r, t), w in self._relations.items()
+            ],
+            "entity_memories": {
+                name: sorted(mems) for name, mems in self._entity_memories.items()
+            },
+        }
 
-    def from_dict(cls, data: dict) -> KnowledgeGraph:
-        raise NotImplementedError("meshctx-core required (private repo)")
+    @classmethod
+    def from_dict(cls, data: dict) -> "KnowledgeGraph":
+        kg = cls()
+        for name, info in (data.get("entities") or {}).items():
+            if isinstance(info, dict):
+                kg._entities[name] = {
+                    "type": info.get("type", "concept"),
+                    "properties": dict(info.get("properties") or {}),
+                }
+        for rel in data.get("relations") or []:
+            kg._relations[(rel["source"], rel["relation"], rel["target"])] = float(
+                rel.get("weight", 1.0)
+            )
+        for name, mems in (data.get("entity_memories") or {}).items():
+            kg._entity_memories[name] = set(mems)
+        return kg
 
 
 @dataclass
 class MemoryItem:
     """A single memory item with metadata."""
+
     level: MemoryLevel = None
-    key: str = ''
-    value: str = ''
-    id: str = ''
-    content: str = ''
-    summary: str = ''
-    project_id: str = ''
-    conversation_id: str = ''
-    source: str = ''
+    key: str = ""
+    value: str = ""
+    id: str = ""
+    content: str = ""
+    summary: str = ""
+    project_id: str = ""
+    conversation_id: str = ""
+    source: str = ""
     importance: float = 0.5
     access_count: int = 0
     review_count: int = 0
@@ -114,86 +222,304 @@ class MemoryItem:
     created_at: float = 0.0
     last_accessed: float = 0.0
     last_reviewed: float = 0.0
+
     def __post_init__(self):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        if not self.id:
+            self.id = uuid.uuid4().hex
+        if self.tags is None:
+            self.tags = []
+        if self.entities is None:
+            self.entities = []
+        if self.correction_history is None:
+            self.correction_history = []
+        if self.related_memory_ids is None:
+            self.related_memory_ids = []
+        if self.content == "" and self.value:
+            self.content = self.value
+        if self.created_at == 0.0:
+            self.created_at = time.time()
 
     def current_retention(self) -> float:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        """当前保留度（0~1），由 Ebbinghaus 遗忘曲线估算。"""
+        elapsed = max(0.0, time.time() - self.last_reviewed if self.last_reviewed else 0.0)
+        return max(0.05, min(1.0, math.exp(-elapsed / (3600.0 * 24.0))))
 
     def to_dict(self) -> dict:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return self.to_json_dict()
 
     def to_json_dict(self) -> dict:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return {
+            "id": self.id,
+            "level": self.level.value if isinstance(self.level, MemoryLevel) else self.level,
+            "key": self.key,
+            "value": self.value,
+            "content": self.content,
+            "summary": self.summary,
+            "project_id": self.project_id,
+            "conversation_id": self.conversation_id,
+            "source": self.source,
+            "importance": self.importance,
+            "access_count": self.access_count,
+            "review_count": self.review_count,
+            "tags": list(self.tags or []),
+            "entities": list(self.entities or []),
+            "confidence": self.confidence,
+            "is_corrected": self.is_corrected,
+            "correction_history": list(self.correction_history or []),
+            "related_memory_ids": list(self.related_memory_ids or []),
+            "embedding": list(self.embedding) if self.embedding is not None else None,
+            "created_at": self.created_at,
+            "last_accessed": self.last_accessed,
+            "last_reviewed": self.last_reviewed,
+        }
 
-    def from_json_dict(cls, data: dict) -> MemoryItem:
-        raise NotImplementedError("meshctx-core required (private repo)")
+    @classmethod
+    def from_json_dict(cls, data: dict) -> "MemoryItem":
+        level = data.get("level")
+        if isinstance(level, str):
+            level = MemoryLevel(level)
+        elif isinstance(level, (int, float)):
+            level = MemoryLevel(int(level))
+        else:
+            level = MemoryLevel.WORKING
+        return cls(
+            id=data.get("id", ""),
+            level=level,
+            key=data.get("key", ""),
+            value=data.get("value", ""),
+            content=data.get("content", ""),
+            summary=data.get("summary", ""),
+            project_id=data.get("project_id", ""),
+            conversation_id=data.get("conversation_id", ""),
+            source=data.get("source", ""),
+            importance=data.get("importance", 0.5),
+            access_count=data.get("access_count", 0),
+            review_count=data.get("review_count", 0),
+            tags=data.get("tags", []),
+            entities=data.get("entities", []),
+            confidence=data.get("confidence", 0.5),
+            is_corrected=data.get("is_corrected", False),
+            correction_history=data.get("correction_history", []),
+            related_memory_ids=data.get("related_memory_ids", []),
+            embedding=data.get("embedding"),
+            created_at=data.get("created_at", 0.0),
+            last_accessed=data.get("last_accessed", 0.0),
+            last_reviewed=data.get("last_reviewed", 0.0),
+        )
 
 
 class EbbinghausForgetting:
-    """Ebbinghaus forgetting curve model."""
-    def __init__(self):
-        raise NotImplementedError("meshctx-core required (private repo)")
+    """Ebbinghaus forgetting curve model (open-source fallback)."""
+
+    def __init__(self, strength: float = 1.0, stability: float = 24.0):
+        self.strength = strength
+        self.stability = stability
 
     def decay(self, elapsed_hours: float = 0.0) -> float:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        """返回经过 elapsed_hours 小时后的记忆保留度（0~1）。"""
+        if elapsed_hours <= 0:
+            return 1.0
+        return max(0.0, math.exp(-float(elapsed_hours) / max(1e-6, self.stability)))
 
 
 class HierarchicalMemoryStore:
-    """Hierarchical memory store with persistence, vector index, and knowledge graph."""
+    """Hierarchical memory store with persistence, vector index, and knowledge graph.
+
+    开源降级实现：内存存储 + JSON 文件持久化（原子写入）。
+    完整实现（分布式/加密/大规模）见 meshctx-core。
+    """
+
+    PERSISTENCE_VERSION = 1
+
+    _LEVEL_DISPLAY = {-1: "SENSORY", 0: "L0", 1: "SHORT_TERM", 2: "WORKING", 3: "LONG_TERM", 4: "ARCHIVAL"}
+
     def __init__(self):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        self._items: dict[str, MemoryItem] = {}
+        self.vector_index = VectorIndex(dim=384)
+        self.knowledge_graph = KnowledgeGraph()
+        self._auto_save_path: str | None = None
+        self._auto_save_threshold: int = 0
+        self._pending_writes: int = 0
+
+    @staticmethod
+    def _level_key(item: MemoryItem) -> str:
+        lv = item.level
+        if isinstance(lv, MemoryLevel):
+            if lv == MemoryLevel.SENSORY:
+                return "SENSORY"
+            return HierarchicalMemoryStore._LEVEL_DISPLAY.get(lv.value, str(lv.value))
+        return HierarchicalMemoryStore._LEVEL_DISPLAY.get(int(lv), str(lv))
 
     def store(self, item: MemoryItem):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        if not item.id:
+            item.id = uuid.uuid4().hex
+        if item.created_at == 0.0:
+            item.created_at = time.time()
+        self._items[item.id] = item
+        if item.embedding:
+            self.vector_index.add(item.id, item.embedding)
+        # auto-save 计数
+        if self._auto_save_path and self._auto_save_threshold > 0:
+            self._pending_writes += 1
+            if self._pending_writes >= self._auto_save_threshold:
+                self.save_to_file(self._auto_save_path)
+                self._pending_writes = 0
 
     def retrieve(self, query: str, top_k: int = 5) -> list[MemoryItem]:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        q = (query or "").lower()
+        out = []
+        for item in self._items.values():
+            haystack = " ".join(
+                [item.key, item.value, item.content, item.summary]
+            ).lower()
+            if q and q in haystack:
+                out.append(item)
+        # 无词匹配时返回全部（按重要性排序）
+        if not out and q == "":
+            out = list(self._items.values())
+        out.sort(key=lambda x: x.importance, reverse=True)
+        return out[:top_k] if top_k > 0 else out
 
     def recall(self, query: str) -> list[MemoryItem]:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return self.retrieve(query, top_k=0)
 
     def compact(self):
         """Deduplicate items by key, keeping the most recent (last stored)."""
-        raise NotImplementedError("meshctx-core required (private repo)")
+        seen: dict[str, MemoryItem] = {}
+        for item in self._items.values():
+            seen[item.key] = item
+        self._items = {item.id: item for item in seen.values()}
 
     def _all_items(self):
         """Yield (id, item) pairs for all stored items."""
-        raise NotImplementedError("meshctx-core required (private repo)")
+        yield from self._items.items()
 
-    _LEVEL_DISPLAY = {-1: 'SENSORY', 0: 'L0', 1: 'SHORT_TERM', 2: 'WORKING', 3: 'LONG_TERM', 4: 'ARCHIVAL'}
     def get_stats(self) -> dict:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        counts = {name: {"count": 0} for name in ["SENSORY", "L0", "SHORT_TERM", "WORKING", "LONG_TERM", "ARCHIVAL"]}
+        for item in self._items.values():
+            key = self._level_key(item)
+            counts.setdefault(key, {"count": 0})
+            counts[key]["count"] += 1
+        return {
+            **counts,
+            "total_items": len(self._items),
+            "vector_index": {"count": self.vector_index.count()},
+            "knowledge_graph": self.knowledge_graph.get_stats(),
+        }
 
     def stats(self) -> dict:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return self.get_stats()
 
     def set_auto_save(self, path: str, threshold: int = 0):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        self._auto_save_path = path
+        self._auto_save_threshold = int(threshold)
+        self._pending_writes = 0
 
     def save_to_file(self, path: str) -> str:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        data = {
+            "version": self.PERSISTENCE_VERSION,
+            "meta": {
+                "saved_at": time.time(),
+                "total_items": len(self._items),
+                "total_stores": len(self._items),
+                "vector_count": self.vector_index.count(),
+                "graph_stats": self.knowledge_graph.get_stats(),
+            },
+            "items": [item.to_json_dict() for item in self._items.values()],
+            "vector_index": self.vector_index.to_dict(),
+            "knowledge_graph": self.knowledge_graph.to_dict(),
+        }
+        abs_path = os.path.abspath(path)
+        tmp_path = abs_path + ".tmp"
+        try:
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            os.replace(tmp_path, abs_path)
+        except OSError:
+            # 失败时不遗留 .tmp 部分文件
+            if os.path.exists(tmp_path):
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+            raise
+        return abs_path
 
-    def load_from_file(cls, path: str) -> HierarchicalMemoryStore:
-        raise NotImplementedError("meshctx-core required (private repo)")
+    @classmethod
+    def load_from_file(cls, path: str) -> "HierarchicalMemoryStore":
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"memory snapshot not found: {path}")
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            raise IOError(f"invalid memory snapshot JSON: {e}")
+        version = data.get("version")
+        if version != cls.PERSISTENCE_VERSION:
+            raise ValueError(
+                f"版本不兼容: 文件 version={version}, 当前 PERSISTENCE_VERSION={cls.PERSISTENCE_VERSION}"
+            )
+        store = cls()
+        for entry in data.get("items", []):
+            item = MemoryItem.from_json_dict(entry)
+            store._items[item.id] = item
+            if item.embedding:
+                store.vector_index.add(item.id, item.embedding)
+        if "vector_index" in data:
+            store.vector_index = VectorIndex.from_dict(data["vector_index"])
+        if "knowledge_graph" in data:
+            store.knowledge_graph = KnowledgeGraph.from_dict(data["knowledge_graph"])
+        return store
 
 
 class MemoryPlugin:
-    """Memory plugin for kernel integration."""
-    info = "info"
+    """Memory plugin for kernel integration (open-source fallback)."""
+
+    info = "meshctx memory plugin (open-source fallback)"
+
     def __init__(self, **kw):
-        raise NotImplementedError("meshctx-core required (private repo)")
+        self.kernel = None
+        self.store = HierarchicalMemoryStore()
+        self._config = dict(kw)
 
     async def on_load(self, kernel) -> bool:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        self.kernel = kernel
+        return True
 
     async def on_event(self, event):
         """Handle events like message.added → store in memory."""
-        raise NotImplementedError("meshctx-core required (private repo)")
+        try:
+            etype = getattr(event, "type", None)
+            if etype == "message.added":
+                payload = getattr(event, "payload", {}) or {}
+                text = payload.get("text") or payload.get("content") or ""
+                if text:
+                    self.store.store(
+                        MemoryItem(
+                            level=MemoryLevel.WORKING,
+                            key=f"msg:{time.time_ns()}",
+                            value=text,
+                            source=payload.get("source", "user"),
+                        )
+                    )
+        except Exception:
+            pass
 
     def generate_report(self) -> dict:
-        raise NotImplementedError("meshctx-core required (private repo)")
+        return {
+            "plugin": "memory",
+            "info": self.info,
+            "stats": self.store.get_stats(),
+        }
 
 
-
-__all__ = ["MemoryLevel", "VectorIndex", "dim", "add", "count", "search", "to_dict", "from_dict", "KnowledgeGraph", "add_entity", "add_relation", "link_memory", "search_entities", "get_related_memories", "get_stats", "MemoryItem", "current_retention", "to_json_dict", "from_json_dict", "EbbinghausForgetting", "decay", "HierarchicalMemoryStore", "store", "retrieve", "recall", "compact", "stats", "set_auto_save", "save_to_file", "load_from_file", "MemoryPlugin", "on_load", "on_event", "generate_report"]
+__all__ = [
+    "MemoryLevel", "VectorIndex", "dim", "add", "count", "search", "to_dict", "from_dict",
+    "KnowledgeGraph", "add_entity", "add_relation", "link_memory", "search_entities",
+    "get_related_memories", "get_stats",
+    "MemoryItem", "current_retention", "to_json_dict", "from_json_dict",
+    "EbbinghausForgetting", "decay",
+    "HierarchicalMemoryStore", "store", "retrieve", "recall", "compact", "stats",
+    "set_auto_save", "save_to_file", "load_from_file",
+    "MemoryPlugin", "on_load", "on_event", "generate_report",
+]

@@ -31,6 +31,7 @@ from __future__ import annotations
 from enum import Enum
 from abc import ABC
 from dataclasses import dataclass, field
+import re
 
 class _MeshCtxStubProxy:
     """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
@@ -91,14 +92,62 @@ class ExecutionResult:
 
 
 class CodeScanner:
-    """代码安全扫描器 — 检测危险模式"""
-    def scan_python(cls, code: str, **kw) -> List[str]:
-        """扫描 Python 代码中的危险模式"""
-        raise NotImplementedError("meshctx-core required (private repo)")
+    """代码安全扫描器 — 检测危险模式（开源降级版）
 
-    def scan_bash(cls, command: str, **kw) -> Tuple[bool, str]:
-        """扫描 Bash 命令"""
-        raise NotImplementedError("meshctx-core required (private repo)")
+    完整版（更强规则库、语义分析、自定义策略）见 meshctx-core。
+    本实现提供基础但可工作的危险模式检测，保障终端/沙箱在开源环境安全可用。
+    """
+
+    _BASH_DANGEROUS = (
+        (r"rm\s+-[a-z]*r[a-z]*f[a-z]*\s+(/\s*$|/\*)", "rm -rf 根目录"),
+        (r":\(\)\s*\{", "fork bomb"),
+        (r"\bmkfs\b", "格式化磁盘"),
+        (r"\bdd\s+if=", "dd 覆写磁盘"),
+        (r">\s*/dev/sd", "覆写块设备"),
+        (r"\bshutdown\b", "关机"),
+        (r"\breboot\b", "重启"),
+        (r"\bhalt\b", "停机"),
+        (r"\bpoweroff\b", "断电"),
+        (r"\bchmod\s+-R\s+777\s+/", "chmod -R 777 /"),
+        (r"\bmv\s+/\s", "移动根目录"),
+        (r"\bcurl\b.*\|\s*(ba)?sh", "curl|sh 远程执行"),
+        (r"\bwget\b.*\|\s*(ba)?sh", "wget|sh 远程执行"),
+        (r"\bpython3?\b.*\|\s*(ba)?sh", "python|sh 管道执行"),
+    )
+
+    _PYTHON_DANGEROUS = {
+        "os.system": r"os\.system\s*\(",
+        "subprocess_shell": r"subprocess\.[a-z_]+\([^)]*shell\s*=\s*True",
+        "subprocess": r"\bsubprocess\.",
+        "eval": r"\beval\s*\(",
+        "exec": r"\bexec\s*\(",
+        "open_write": r"\bopen\([^)]*['\"][wa]['\"]",
+        "shutil_rmtree": r"shutil\.rmtree\s*\(",
+        "socket": r"\bsocket\.(socket|connect|create_connection)\s*\(",
+        "__import__": r"__import__\s*\(",
+        "ctypes": r"\bctypes\.(CDLL|WinDLL|PyDLL)\s*\(",
+        "pickle_loads": r"pickle\.loads\s*\(",
+        "yaml_load": r"yaml\.load\s*\([^)]*\)",
+        "file_delete": r"os\.(remove|unlink|rmdir)\s*\(",
+    }
+
+    @classmethod
+    def scan_python(cls, code: str, **kw) -> list:
+        """扫描 Python 代码中的危险模式，返回命中的危险模式名列表（空列表=安全）。"""
+        if not isinstance(code, str) or not code.strip():
+            return []
+        return [name for name, pat in cls._PYTHON_DANGEROUS.items() if re.search(pat, code)]
+
+    @classmethod
+    def scan_bash(cls, command: str, **kw) -> tuple:
+        """扫描 Bash 命令，返回 (是否安全, 原因)。"""
+        if not isinstance(command, str) or not command.strip():
+            return False, "空命令"
+        cmd = command.strip()
+        for pat, reason in cls._BASH_DANGEROUS:
+            if re.search(pat, cmd):
+                return False, reason
+        return True, ""
 
 
 _PYTHON_RUNNER_TEMPLATE = '\nimport sys\nimport json\nimport time\nimport traceback\nimport resource\n\n# 资源限制\ntry:\n    resource.setrlimit(resource.RLIMIT_CPU, ({cpu_limit}, {cpu_limit} + 2))\n    resource.setrlimit(resource.RLIMIT_AS, ({mem_limit}, {mem_limit}))\nexcept Exception:\n    pass  # 非 root 可能设置失败, 忽略\n\n# 覆盖内置危险函数\n_original_open = open\ndef safe_open(file, mode=\'r\', *args, **kwargs):\n    """限制文件访问到安全目录"""\n    import os\n    file_path = os.path.abspath(str(file))\n    safe_prefixes = {safe_paths}\n    is_safe = any(file_path.startswith(p) for p in safe_prefixes)\n    # 允许读 /tmp, /var/tmp, /dev/null 等\n    if not is_safe:\n        # 检查是否是相对路径或当前目录\n        if not os.path.isabs(file_path):\n            is_safe = True\n        else:\n            raise PermissionError(f"文件访问被拒绝: {{file_path}}")\n    return _original_open(file, mode, *args, **kwargs)\n\n# 沙箱环境\n__builtins__ = dict(vars(__builtins__))\n__builtins__[\'open\'] = safe_open\n# 移除危险函数\nfor _danger in [\'exec\', \'eval\', \'compile\', \'__import__\']:\n    __builtins__.pop(_danger, None)\n\n# 注入安全模块\nimport math\nimport json as _json_mod\nimport re\nimport collections\nimport itertools\nimport functools\nimport random\nimport datetime\nimport statistics\nimport hashlib\nimport uuid as _uuid_mod\nimport csv\nimport io\nimport textwrap\nimport string\nimport copy\nimport enum\n\nsafe_builtins = {{\n    \'True\': True, \'False\': False, \'None\': None,\n    \'abs\': abs, \'all\': all, \'any\': any, \'bin\': bin,\n    \'bool\': bool, \'bytes\': bytes, \'callable\': callable,\n    \'chr\': chr, \'dict\': dict, \'dir\': dir, \'divmod\': divmod,\n    \'enumerate\': enumerate, \'filter\': filter, \'float\': float,\n    \'format\': format, \'frozenset\': frozenset, \'getattr\': getattr,\n    \'hasattr\': hasattr, \'hash\': hash, \'hex\': hex, \'id\': id,\n    \'input\': input, \'int\': int, \'isinstance\': isinstance,\n    \'issubclass\': issubclass, \'iter\': iter, \'len\': len,\n    \'list\': list, \'map\': map, \'max\': max, \'min\': min,\n    \'next\': next, \'object\': object, \'oct\': oct, \'ord\': ord,\n    \'pow\': pow, \'print\': print, \'property\': property,\n    \'range\': range, \'repr\': repr, \'reversed\': reversed,\n    \'round\': round, \'set\': set, \'slice\': slice, \'sorted\': sorted,\n    \'str\': str, \'sum\': sum, \'super\': super, \'tuple\': tuple,\n    \'type\': type, \'vars\': vars, \'zip\': zip,\n    # 安全模块\n    \'math\': math, \'json\': _json_mod, \'re\': re,\n    \'datetime\': datetime, \'random\': random, \'statistics\': statistics,\n    \'hashlib\': hashlib, \'uuid\': _uuid_mod, \'csv\': csv,\n    \'io\': io, \'textwrap\': textwrap, \'string\': string,\n    \'copy\': copy, \'enum\': enum, \'collections\': collections,\n    \'itertools\': itertools, \'functools\': functools,\n    \'open\': safe_open,\n}}\n\n# 捕获输出\nfrom io import StringIO\n_stdout = StringIO()\n_stderr = StringIO()\nsys.stdout = _stdout\nsys.stderr = _stderr\n\nstart_time = time.time()\nexit_code = 0\nerror_info = ""\n\ntry:\n    exec(compile({code!r}, \'<sandbox>\', \'exec\'), safe_builtins)\nexcept SystemExit as e:\n    exit_code = e.code if isinstance(e.code, int) else 1\nexcept Exception as e:\n    exit_code = 1\n    error_info = traceback.format_exc()\nfinally:\n    duration = (time.time() - start_time) * 1000\n\n# 收集输出\nstdout_text = _stdout.getvalue()\nstderr_text = _stderr.getvalue() + error_info\n\n# 内存使用 (近似)\npeak_mem = 0.0\ntry:\n    import tracemalloc\n    if tracemalloc.is_tracing():\n        _, peak = tracemalloc.get_traced_memory()\n        peak_mem = peak / (1024 * 1024)\nexcept Exception:\n    pass\n\nresult = {{\n    "exit_code": exit_code,\n    "stdout": stdout_text,\n    "stderr": stderr_text,\n    "duration_ms": duration,\n    "peak_memory_mb": peak_mem,\n}}\n\nsys.stdout = sys.__stdout__\nsys.stderr = sys.__stderr__\nprint(json.dumps(result))\n'

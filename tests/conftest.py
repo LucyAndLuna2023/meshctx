@@ -38,6 +38,10 @@ _CORE_MODULE_HINTS = (
     "gateway_connectors", "learn_loop", "memory_hierarchy", "approval",
     "action_gate", "agent_governance", "auto_healer", "brain_validator",
     "cognitive_health", "healer", "sdb_framework",
+    # ── 测试文件名级精确匹配 (v2026-08-15: 文件名与模块名不一致, 需精确短名) ──
+    "v46_sdb", "v68_backup", "v32_secret", "v59_health",
+    "v30_cognitive_learn", "smoke_v31153", "v39_gateway",
+    "v1_integration", "TestAutonomousEngine",
 )
 
 # stub 模式下忽略依赖闭源核心实现的测试文件 (import 之前拦截, 防止 NotImplementedError)

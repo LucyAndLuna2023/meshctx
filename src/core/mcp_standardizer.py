@@ -353,12 +353,19 @@ def generate_schema_from_dict(data, name="root"):
 
 def discover_functions_in_module(module_path):
     import importlib.util
+    import sys
     mod_name = os.path.splitext(os.path.basename(module_path))[0]
     spec = importlib.util.spec_from_file_location(mod_name, module_path)
     if spec is None or spec.loader is None:
         return []
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # 先注册到 sys.modules: dataclass 等装饰器在 exec_module 期间
+    # 会通过 sys.modules[cls.__module__] 查找模块上下文。
+    sys.modules[mod_name] = module
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.modules.pop(mod_name, None)
     funcs = []
     for fname, obj in inspect.getmembers(module):
         if inspect.isfunction(obj) and not fname.startswith("_"):

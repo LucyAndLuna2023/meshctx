@@ -269,10 +269,10 @@ def get_autonomous_engine() -> AutonomousEngine:
     raise NotImplementedError("meshctx-core required (private repo)")
 
 class Severity(Enum):
-    INFO = "INFO"
-    WARNING = "WARNING"
-    ERROR = "ERROR"
-    CRITICAL = "CRITICAL"
+    INFO = 0
+    WARNING = 1
+    ERROR = 2
+    CRITICAL = 3
 
 class IncidentStatus(Enum):
     OPEN = 'open'
