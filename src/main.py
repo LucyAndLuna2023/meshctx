@@ -226,7 +226,10 @@ async def lifespan(app: FastAPI):
     logger.info("═══════════════════════════════════════════")
     logger.info("  meshctx v1.0 启动中...")
     logger.info("═══════════════════════════════════════════")
-    
+
+    # 审计修复 (2026-08-15): 内存限制从模块顶层移至此处 — 服务启动时才设置 (功能保留)
+    _setup_memory_limit()
+
     # v2.33: 加载API Key — 从.env和provider_config.json
     _load_api_keys_on_startup()
     
@@ -599,7 +602,9 @@ def _memory_signal_handler(signum, frame):
         pass
 
 
-_setup_memory_limit()
+# 审计修复 (2026-08-15): _setup_memory_limit() 原在模块顶层调用, import 即设 RLIMIT_AS=2GB,
+# 导致 Python 3.14 下 import src.main 触发 MemoryError (pytest/uvicorn 导入均受污染)。
+# 现移至 lifespan startup — 服务真正启动时才设置内存限制, 功能保留。
 if _IS_LINUX or _IS_MACOS:
     signal.signal(signal.SIGSEGV, _memory_signal_handler)
     if hasattr(signal, 'SIGBUS'):
