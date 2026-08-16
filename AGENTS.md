@@ -4,6 +4,14 @@
 - GitHub push: git push origin main
 - 本机是唯一开发+测试环境
 
+# 🚨 开源+闭源整体铁律 (最高优先级·护城河)
+- **开源仓库(LucyAndLuna2023/meshctx) + 闭源仓库(LucyAndLuna2023/meshctx-core) = 产品的【一个整体】，缺一不可**
+- **闭源 119 个 src/core 模块 = 核心护城河**（IIT意识引擎/JEPA世界模型/元认知等核心实现），不可删除、不可遗漏、不可轻视
+- **安装时必须【全部安装、不能分离】**：开源 284 模块 + 闭源 119 模块 = 完整产品
+- 闭源 119 模块与开源的关系：**112 个覆盖开源同名 stub + 7 个闭源独有模块**（desktop_tool / lsp_tool / mcp_gateway / obs_integration / patch_generator / ppt_generator / spreadsheet_tool，开源仓库完全没有）
+- **三平台安装脚本（install.sh / install-mac.sh / install.bat）必须同时拉取开源 + 闭源**，闭源代码覆盖/补充到同一安装目录 `~/.meshctx`，安装后不得缺失任何闭源模块
+- 验证标准：安装完成后 `~/.meshctx/src/core/*.py` 模块数 ≥ 开源284 + 闭源独有7（即闭源真实实现替换 stub 后仍完整）
+
 # 🚨 自主行动铁律
 - 不问/不等/自己做/只汇报结果
 - 用户说修什么就修什么
