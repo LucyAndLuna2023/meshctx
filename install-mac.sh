@@ -579,9 +579,9 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.115.15"
+VERSION="3.118.0"
 REPO="LucyAndLuna2023/meshctx"
-SRC_URL="https://github.com/${REPO}/releases/download/v${VERSION}/meshctx-src.tar.gz"
+SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 PORT=3001
 LAUNCHD_LABEL="com.meshctx.server"
 
@@ -784,6 +784,12 @@ else
     tar xzf "${TARBALL}" -C "${INSTALL_DIR}" 2>/dev/null || {
         echo -e "${RED}✗ 解压失败${NC}"; exit 1
     }
+    # 处理 tag 归档顶层目录 (meshctx-<tag>/)，把源码拍平到 INSTALL_DIR
+    _SUBDIR=$(find "${INSTALL_DIR}" -maxdepth 1 -mindepth 1 -type d | head -1)
+    if [ -n "$_SUBDIR" ] && [ -f "${_SUBDIR}/src/main.py" ]; then
+        mv "${_SUBDIR}"/* "${_SUBDIR}"/.[!.]* "${INSTALL_DIR}"/ 2>/dev/null || true
+        rmdir "${_SUBDIR}" 2>/dev/null || true
+    fi
 fi
 
 # 恢复用户配置
