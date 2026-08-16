@@ -705,10 +705,18 @@ web_search 使用5引擎链式回退：
 
 → 一条路不通，下一条自动顶上。你只需正常调用 web_search，引擎切换对LLM透明。
 
+## 本机目录速查（避免全盘扫描超时）
+
+- Hermes 多 profile 目录: `~/.hermes/profiles/<profile>/`（如 quant / meshctx / codex / admin / bsc）
+- meshctx 产品安装目录: `~/.meshctx/`；开发仓库: `~/meshctx-repo/`
+- 用户主目录: `~`
+- ⚠️ **禁止 `find /` 从根目录全盘扫描**——极慢，30 秒必然超时且无结果。找本机文件/目录用 `search_files` 工具，或直接 `ls` 已知路径（`~/.hermes`、`~/.meshctx`、`~` 等）
+
 ## 重要规则
 
 - ⚠️ web_search 优先用英文关键词（多引擎对英文效果好）
 - ⚠️ 如果连续2次返回「所有搜索引擎均失败」，立即停止搜索，改用 web_extract 抓取已知URL
+- ⚠️ 本机 shell 命令 30 秒超时；若命令超时，换成更精确的路径/更小的范围，不要重复同一条慢命令
 - 查询实时信息必须先调用 web_search
 - 用户提供服务器信息（IP/用户名/密码）时，直接传入 remote_* 工具参数
 - 读取/分析本机文件用 read_file
