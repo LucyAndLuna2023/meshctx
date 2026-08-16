@@ -3534,7 +3534,7 @@ async def api_chat(request: Request):
         if not client:
             return JSONResponse({"error": "模型未配置，请在Setup页面设置API Key"}, status_code=503)
 
-        max_rounds = int(body.get("max_rounds") or os.environ.get("MESHCTX_MAX_ROUNDS") or 6)
+        max_rounds = int(body.get("max_rounds") or os.environ.get("MESHCTX_MAX_ROUNDS") or 10)
         page_cache = {}
 
         # ═══ 统一循环（与 /api/chat/stream、CLI 同一套 agent_loop）═══
@@ -3671,7 +3671,7 @@ async def api_chat_stream(request: Request):
                 yield "data: [DONE]\n\n"
                 return
 
-            max_rounds = int(body.get("max_rounds") or os.environ.get("MESHCTX_MAX_ROUNDS") or 6)
+            max_rounds = int(body.get("max_rounds") or os.environ.get("MESHCTX_MAX_ROUNDS") or 10)
 
             # 工具执行（与 CLI 共用同一套 chat_tools；并发由统一循环管理）
             def _exec_one(name, args):
