@@ -245,10 +245,8 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         <a href="/ui/projects" class="{% if '/ui/projects' in request.url.path %}active{% endif %}">{{ t("projects") }}</a>
         <a href="/ui/memories" class="{% if '/ui/memories' in request.url.path %}active{% endif %}">{{ t("memories") }}</a>
         <a href="/ui/continuity" class="{% if '/ui/continuity' in request.url.path %}active{% endif %}">{{ t("continuity") }}</a>
-        <a href="/ui/memory" class="{% if '/ui/memory' in request.url.path %}active{% endif %}">🧠 {{ t("memories") }}</a>
         <a href="/ui/chat" class="{% if '/ui/chat' in request.url.path %}active{% endif %}">{{ t("chat") }}</a>
         <a href="/ui/setup" class="{% if '/ui/setup' in request.url.path %}active{% endif %}">{{ t("setup") }}</a>
-        <a href="/ui/dashboard" class="{% if '/ui/dashboard' in request.url.path %}active{% endif %}">📊 {{ t("dashboard") }}</a>
         <a href="/ui/plugins" class="{% if '/ui/plugins' in request.url.path %}active{% endif %}">🔌 {{ t("plugins") }}</a>
         <a href="/ui/files" class="{% if '/ui/files' in request.url.path %}active{% endif %}">📁 {{ t("files") }}</a>
         <a href="/docs" target="_blank" class="" style="color:#f59e0b;">📚 {{ t("api_docs") }}</a>
@@ -3659,6 +3657,9 @@ def _render(template_name: str, context: dict, request = None) -> HTMLResponse:
     def _scoped_t(key: str) -> str:
         return i18n_translations.get(lang, i18n_translations.get('en', {})).get(key, i18n_translations.get('en', {}).get(key, key))
     context['t'] = _scoped_t
+    # 注入 request（base.html 导航栏 active 判断依赖 request.url.path）
+    if request is not None:
+        context.setdefault('request', request)
     context['__i18n_json'] = _get_i18n_json(lang)
     context['__i18n_all_json'] = _get_i18n_all_json()
     context['__lang'] = lang
