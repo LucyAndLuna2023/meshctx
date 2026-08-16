@@ -80,11 +80,11 @@
 
 <!-- ═══ Tab 2: 记忆搜索 ═══ -->
 <div class="mem-panel" id="panel-graph">
-<h1>🔍 记忆搜索</h1>
+<h1>{{ t('🔍 记忆搜索') }}</h1>
 <p class="subtitle">按关键词搜索所有项目的记忆，快速定位关键信息</p>
 
 <div class="mem-search">
-    <input type="text" id="memSearchInput" placeholder="输入关键词搜索记忆..." onkeydown="if(event.key==='Enter')searchMemories()">
+    <input type="text" id="memSearchInput" placeholder="{{ t('输入关键词搜索记忆...') }}" onkeydown="if(event.key==='Enter')searchMemories()">
     <button onclick="searchMemories()">🔍 搜索</button>
 </div>
 <div id="memSearchResults"></div>
@@ -114,18 +114,18 @@ async function loadMemData() {
 async function searchMemories() {
     var q = document.getElementById('memSearchInput').value.trim();
     var container = document.getElementById('memSearchResults');
-    if (!q) { container.innerHTML = '<div class="graph-placeholder"><div class="icon">🔎</div>输入关键词后点击搜索</div>'; return; }
+    if (!q) { container.innerHTML = window.__t('<div class="graph-placeholder"><div class="icon">🔎</div>输入关键词后点击搜索</div>'); return; }
 
-    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">⏳ 搜索中...</div>';
+    container.innerHTML = window.__t('<div style="text-align:center;padding:40px;color:var(--muted)">⏳ 搜索中...</div>');
 
     try {
         var r = await fetch('/api/memories/search?q=' + encodeURIComponent(q));
         var d = await r.json();
         if (!d.memories || !d.memories.length) {
-            container.innerHTML = '<div class="graph-placeholder"><div class="icon">📭</div>未找到匹配 "<b>'+q+'</b>" 的记忆</div>';
+            container.innerHTML = window.__t('<div class="graph-placeholder"><div class="icon">📭</div>未找到匹配 "<b>')+q+window.__t('</b>" 的记忆</div>');
             return;
         }
-        var html = '<div style="margin-top:8px;font-size:12px;color:var(--muted);margin-bottom:12px">找到 <b>'+d.memories.length+'</b> 条结果</div>';
+        var html = window.__t('<div style="margin-top:8px;font-size:12px;color:var(--muted);margin-bottom:12px">找到 <b>')+d.memories.length+window.__t('</b> 条结果</div>');
         html += '<div class="memories-grid">';
         d.memories.forEach(function(m){
             var stars = Math.floor((m.importance||0.5)*3);
@@ -142,7 +142,7 @@ async function searchMemories() {
         html += '</div>';
         container.innerHTML = html;
     } catch(e) {
-        container.innerHTML = '<div class="graph-placeholder"><div class="icon">❌</div>搜索失败: '+e.message+'</div>';
+        container.innerHTML = window.__t('<div class="graph-placeholder"><div class="icon">❌</div>搜索失败: ')+e.message+'</div>';
     }
 }
 
