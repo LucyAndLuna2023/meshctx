@@ -482,8 +482,6 @@ document.addEventListener('keydown', function(e) {
     }
     connect();
 })();
-  }
-}
 
 // ═══ Compare Modal Functions ═══
 function cancelCompare(){
