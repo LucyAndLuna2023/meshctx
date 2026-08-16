@@ -493,7 +493,7 @@ function cancelCompare(){
 }
 function startCompare(){
   var checks = document.querySelectorAll('#compareModelList input[type=checkbox]:checked');
-  if(checks.length < 2){ alert('请至少选择2个模型进行对比'); return; }
+  if(checks.length < 2){ alert(window.__t('请至少选择2个模型进行对比')); return; }
   var models = [];
   checks.forEach(function(c){ models.push(c.value); });
   localStorage.setItem('meshctx_compare_models', JSON.stringify(models));
@@ -501,8 +501,8 @@ function startCompare(){
   compareMode = true;
   var btn = document.getElementById('compareBtn');
   btn.style.background = '#22c55e';
-  btn.textContent = '⚡ 对比中';
-  document.getElementById('userInput').placeholder = '对比模式: 同时问'+models.length+'个模型...';
+  btn.textContent = window.__t('⚡ 对比中');
+  document.getElementById('userInput').placeholder = window.__t('对比模式: 同时问')+models.length+window.__t('个模型...');
 }
 function closeCompare(){
   document.getElementById('compareResults').style.display = 'none';
@@ -542,7 +542,7 @@ async function compareSend(msg){
     html += '</div>';
     document.getElementById(loadId).outerHTML = html;
   } catch(e) {
-    document.getElementById(loadId).outerHTML = '<div style="color:#fca5a5;">对比失败: '+e.message+'</div>';
+    document.getElementById(loadId).outerHTML = window.__t('<div style="color:#fca5a5;">对比失败: ')+e.message+'</div>';
   }
 }
 
@@ -552,7 +552,7 @@ async function loadTemplates() {
         var res = await fetch('/api/prompts');
         var data = await res.json();
         var sel = document.getElementById('promptTemplate');
-        sel.innerHTML = '<option value="">-- 选择模板 --</option>';
+        sel.innerHTML = window.__t('<option value="">-- 选择模板 --</option>');
         if (data && data.prompts) {
             data.prompts.forEach(function(p) {
                 var opt = document.createElement('option');
@@ -570,11 +570,11 @@ async function loadTemplate(name) {
         var res = await fetch('/api/prompts/' + encodeURIComponent(name));
         var data = await res.json();
         document.getElementById('userInput').value = data.content || '';
-    } catch(e) { alert('加载模板失败: ' + e.message); }
+    } catch(e) { alert(window.__t('加载模板失败: ') + e.message); }
 }
 
 async function saveAsTemplate() {
-    var name = prompt('模板名称:');
+    var name = prompt(window.__t('模板名称:'));
     if (!name || !name.trim()) return;
     var content = document.getElementById('userInput').value;
     try {
@@ -585,19 +585,19 @@ async function saveAsTemplate() {
         });
         if (!res.ok) { var err = await res.json(); alert(err.detail || '保存失败'); return; }
         loadTemplates();
-    } catch(e) { alert('保存失败: ' + e.message); }
+    } catch(e) { alert(window.__t('保存失败: ') + e.message); }
 }
 
 async function deleteTemplate() {
     var sel = document.getElementById('promptTemplate');
     var name = sel.value;
-    if (!name) { alert('请先选择模板'); return; }
-    if (!confirm('删除模板 "' + name + '"?')) return;
+    if (!name) { alert(window.__t('请先选择模板')); return; }
+    if (!confirm(window.__t('删除模板 "') + name + '"?')) return;
     try {
         var res = await fetch('/api/prompts/' + encodeURIComponent(name), {method: 'DELETE'});
         if (!res.ok) { var err = await res.json(); alert(err.detail || '删除失败'); return; }
         loadTemplates();
-    } catch(e) { alert('删除失败: ' + e.message); }
+    } catch(e) { alert(window.__t('删除失败: ') + e.message); }
 }
 
 // ── 系统提示词 ──
@@ -641,7 +641,7 @@ function exportChat() {
     var md = '# MeshCtx Chat Export\n\n';
     var tabId = localStorage.getItem('meshctx_active_tab') || 'default';
     var history = JSON.parse(localStorage.getItem('meshctx_chat_' + tabId) || '[]');
-    if(history.length === 0) { alert('当前无对话可导出'); return; }
+    if(history.length === 0) { alert(window.__t('当前无对话可导出')); return; }
     history.forEach(function(m) {
         var role = m.role === 'user' ? '**🧑 User:**' : '**🤖 AI:**';
         md += role + '\n\n' + m.content + '\n\n---\n\n';
@@ -923,7 +923,7 @@ async function send() {
         var parts = msg.split(' ');
         var cmd = parts[0];
         var fpath = parts.slice(1).join(' ');
-        if (!fpath) { alert('用法: /read 文件路径  或  /ls 目录路径'); return; }
+        if (!fpath) { alert(window.__t('用法: /read 文件路径  或  /ls 目录路径')); return; }
         var apiUrl = cmd === '/read' ? '/api/file/read?path=' + encodeURIComponent(fpath)
                                      : '/api/file/list?path=' + encodeURIComponent(fpath);
         try {
@@ -937,13 +937,13 @@ async function send() {
                 fullMsg = '[目录: ' + data.path + ']\n' + listing + '\n\n用户消息: 请分析以上目录结构';
             }
             msg = cmd + ' ' + fpath;
-        } catch(e) { alert('读取失败: ' + e.message); return; }
+        } catch(e) { alert(window.__t('读取失败: ') + e.message); return; }
     }
     
     // v2.7: Web搜索 /search 
     if (msg.startsWith('/search ')) {
         var query = msg.substring(8).trim();
-        if (!query) { alert('用法: /search 搜索词'); return; }
+        if (!query) { alert(window.__t('用法: /search 搜索词')); return; }
         try {
             var res = await fetch('/api/search?q=' + encodeURIComponent(query));
             var data = await res.json();
@@ -954,7 +954,7 @@ async function send() {
             }
             fullMsg = searchBlock + '\n用户消息: 请基于以上搜索结果回答';
             msg = '/search ' + query;
-        } catch(e) { alert('搜索失败: ' + e.message); return; }
+        } catch(e) { alert(window.__t('搜索失败: ') + e.message); return; }
     }
     
     // v2.7: 代码沙箱 /run python|bash|js 代码
@@ -970,7 +970,7 @@ async function send() {
             if (lang === 'js') lang = 'javascript';
             if (lang === 'sh') lang = 'bash';
         }
-        if (!code) { alert('用法: /run [python|bash|js] 代码'); return; }
+        if (!code) { alert(window.__t('用法: /run [python|bash|js] 代码')); return; }
         try {
             var runRes = await fetch('/api/sandbox/execute', {
                 method:'POST', headers:{'Content-Type':'application/json'},
@@ -982,20 +982,20 @@ async function send() {
             runBlock += '[退出码: ' + runData.exit_code + ' | 耗时: ' + runData.duration_ms + 'ms | 方式: ' + (runData.method||'unknown') + ']\\n';
             fullMsg = runBlock + '\\n用户消息: 请分析以上执行结果并回答';
             msg = '/run ' + lang + ' ' + code.substring(0, 50);
-        } catch(e) { alert('沙箱执行失败: ' + e.message); return; }
+        } catch(e) { alert(window.__t('沙箱执行失败: ') + e.message); return; }
     }
     
     // v2.7: 项目上下文 /context 查询
     if (msg.startsWith('/context ')) {
         var query = msg.substring(9).trim();
-        if (!query) { alert('用法: /context 搜索词'); return; }
+        if (!query) { alert(window.__t('用法: /context 搜索词')); return; }
         try {
             var ctxRes = await fetch('/api/project/context?q=' + encodeURIComponent(query));
             var ctxData = await ctxRes.json();
             var ctxBlock = '[项目上下文: ' + query + ']\\n```\\n' + ctxData.context + '\\n```\\n';
             fullMsg = ctxBlock + '\\n用户消息: 请基于以上项目上下文回答';
             msg = '/context ' + query;
-        } catch(e) { alert('项目索引失败: ' + e.message); return; }
+        } catch(e) { alert(window.__t('项目索引失败: ') + e.message); return; }
     }
     
     // v2.10.1: Windows管理 /win 命令
@@ -1014,7 +1014,7 @@ async function send() {
                 });
                 fullMsg = svcBlock + '\n用户消息: 以上是Windows服务列表';
                 msg = '/win services';
-            } catch(e) { alert('获取服务失败: ' + e.message); return; }
+            } catch(e) { alert(window.__t('获取服务失败: ') + e.message); return; }
         } else if (action === 'processes' || action === 'ps') {
             try {
                 var procRes = await fetch('/api/win/processes');
@@ -1025,7 +1025,7 @@ async function send() {
                 });
                 fullMsg = procBlock + '\n用户消息: 以上是Windows进程列表';
                 msg = '/win processes';
-            } catch(e) { alert('获取进程失败: ' + e.message); return; }
+            } catch(e) { alert(window.__t('获取进程失败: ') + e.message); return; }
         } else if (action === 'system' || action === 'sys') {
             try {
                 var sysRes = await fetch('/api/win/system');
@@ -1033,9 +1033,9 @@ async function send() {
                 fullMsg = '[Windows System Info]\n' + JSON.stringify(sysData, null, 2)
                     + '\n用户消息: 以上是Windows系统信息';
                 msg = '/win system';
-            } catch(e) { alert('获取系统信息失败: ' + e.message); return; }
+            } catch(e) { alert(window.__t('获取系统信息失败: ') + e.message); return; }
         } else if (action === 'exec' || action === 'ps1') {
-            if (!arg) { alert('用法: /win exec <PowerShell命令>'); return; }
+            if (!arg) { alert(window.__t('用法: /win exec <PowerShell命令>')); return; }
             try {
                 var execRes = await fetch('/api/win/execute', {
                     method:'POST', headers:{'Content-Type':'application/json'},
@@ -1048,7 +1048,7 @@ async function send() {
                     + '[Exit: ' + execData.exit_code + ' | ' + execData.duration_ms + 'ms]'
                     + '\n用户消息: 请分析以上PowerShell执行结果';
                 msg = '/win exec ' + arg.substring(0,50);
-            } catch(e) { alert('PowerShell执行失败: ' + e.message); return; }
+            } catch(e) { alert(window.__t('PowerShell执行失败: ') + e.message); return; }
         } else if (action === 'software' || action === 'apps') {
             try {
                 var swRes = await fetch('/api/win/software');
@@ -1059,9 +1059,9 @@ async function send() {
                 });
                 fullMsg = swBlock + '\n用户消息: 以上是已安装软件列表';
                 msg = '/win software';
-            } catch(e) { alert('获取软件列表失败: ' + e.message); return; }
+            } catch(e) { alert(window.__t('获取软件列表失败: ') + e.message); return; }
         } else {
-            alert('用法: /win services|processes|system|software|exec <PS命令>');
+            alert(window.__t('用法: /win services|processes|system|software|exec <PS命令>'));
             return;
         }
     }
@@ -1070,24 +1070,24 @@ async function send() {
     if (msg.startsWith('/diff ')) {
         var parts = msg.substring(6).trim();
         var spaceIdx = parts.indexOf(' ');
-        if (spaceIdx === -1) { alert('用法: /diff 文件1路径 文件2路径'); return; }
+        if (spaceIdx === -1) { alert(window.__t('用法: /diff 文件1路径 文件2路径')); return; }
         var file1 = parts.substring(0, spaceIdx);
         var file2 = parts.substring(spaceIdx + 1);
         try {
             var diffRes = await fetch('/api/diff?file1=' + encodeURIComponent(file1) + '&file2=' + encodeURIComponent(file2) + '&format=compact');
-            if (!diffRes.ok) { var de = await diffRes.json(); alert('Diff失败: ' + (de.detail || de)); return; }
+            if (!diffRes.ok) { var de = await diffRes.json(); alert(window.__t('Diff失败: ') + (de.detail || de)); return; }
             var diffData = await diffRes.json();
             // 在消息区插入 diff 预览卡片
             var diffCard = document.createElement('div');
             diffCard.style.cssText = 'margin:8px 0;background:#0a1628;border:1px solid #6366f1;border-radius:10px;overflow:hidden;';
-            diffCard.innerHTML = '<div style="background:#1e1b4b;padding:6px 14px;font-size:12px;color:#a5b4fc;display:flex;justify-content:space-between;align-items:center;"><span>📊 Diff: <b>' + file1 + '</b> ←→ <b>' + file2 + '</b> (' + diffData.hunks + ' hunks)</span><span style="font-size:10px;color:#818cf8;cursor:pointer;" onclick="this.parentElement.nextElementSibling.style.display=this.parentElement.nextElementSibling.style.display==\'none\'?\'\':\'none\';this.textContent=this.parentElement.nextElementSibling.style.display==\'none\'?\'展开 ▸\':\'收起 ▾\'">收起 ▾</span></div><div style="max-height:400px;overflow-y:auto;padding:4px;">' + diffData.html + '</div>';
+            diffCard.innerHTML = '<div style="background:#1e1b4b;padding:6px 14px;font-size:12px;color:#a5b4fc;display:flex;justify-content:space-between;align-items:center;"><span>📊 Diff: <b>' + file1 + '</b> ←→ <b>' + file2 + '</b> (' + diffData.hunks + ' hunks)</span><span style="font-size:10px;color:#818cf8;cursor:pointer;" onclick="this.parentElement.nextElementSibling.style.display=this.parentElement.nextElementSibling.style.display==\'none\'?\'\':\'none\';this.textContent=this.parentElement.nextElementSibling.style.display==\'none\'?\'展开 ▸\':\'收起 ▾\window.__t('">收起 ▾</span></div><div style="max-height:400px;overflow-y:auto;padding:4px;">') + diffData.html + '</div>';
             document.getElementById('messages').appendChild(diffCard);
             document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
             // 发送给 AI 分析
             var diffBlock = '[Diff: ' + file1 + ' ←→ ' + file2 + ' (' + diffData.hunks + ' hunks)]';
             fullMsg = diffBlock + '\n用户消息: 请分析以上diff';
             msg = '/diff ' + file1 + ' ' + file2;
-        } catch(e) { alert('Diff失败: ' + e.message); return; }
+        } catch(e) { alert(window.__t('Diff失败: ') + e.message); return; }
     }
 
     // v2.12: Agent统计 /stats 命令
@@ -1105,7 +1105,7 @@ async function send() {
                 '❤️ Health: '+(statsData.health||'unknown')+'\n';
             fullMsg = statsBlock + '\n用户消息: 请分析以上Agent运行统计';
             msg = '/stats';
-        } catch(e) { alert('统计获取失败: '+e.message); return; }
+        } catch(e) { alert(window.__t('统计获取失败: ')+e.message); return; }
     }
     
     // v2.16: @文件引用自动补全 — 检测 @[文件名](路径) 并注入文件内容
@@ -1186,7 +1186,7 @@ async function send() {
     // 创建AI消息气泡(流式填充)
     const aiBubble = document.createElement('div');
     aiBubble.style.cssText = 'margin:8px 0;padding:8px;background:#1e293b;border-radius:8px;color:#e2e8f0;position:relative;';
-    aiBubble.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><strong style="color:#38bdf8;">AI:</strong><button id="stopStreamBtn" onclick="event.stopPropagation();window._abortStream()" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;display:none;">⏹ 停止</button></div><span class="streamText"></span><span class="cursor">▊</span>';
+    aiBubble.innerHTML = window.__t('<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><strong style="color:#38bdf8;">AI:</strong><button id="stopStreamBtn" onclick="event.stopPropagation();window._abortStream()" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;display:none;">⏹ 停止</button></div><span class="streamText"></span><span class="cursor">▊</span>');
     div.appendChild(aiBubble);
     const streamText = aiBubble.querySelector('.streamText');
     const cursor = aiBubble.querySelector('.cursor');
@@ -1197,7 +1197,7 @@ async function send() {
     var statusEl = document.createElement('div');
     statusEl.className = 'stream-status';
     statusEl.style.cssText = 'color:#64748b;font-size:10px;margin-bottom:4px;';
-    statusEl.textContent = '🔵 思考中...';
+    statusEl.textContent = window.__t('🔵 思考中...');
     aiBubble.insertBefore(statusEl, aiBubble.firstChild);
     
     // 全局中断函数
@@ -1247,7 +1247,7 @@ async function send() {
       if (retryCount > 0) {
         // 重试前等待
         var waitMs = Math.pow(2, retryCount-1) * 1000;
-        streamText.innerHTML += '<div style="color:#fbbf24;font-size:11px;margin:4px 0;">⏳ 重试 ' + retryCount + '/' + maxRetries + ' (等待' + (waitMs/1000) + 's)...</div>';
+        streamText.innerHTML += window.__t('<div style="color:#fbbf24;font-size:11px;margin:4px 0;">⏳ 重试 ') + retryCount + '/' + maxRetries + window.__t(' (等待') + (waitMs/1000) + 's)...</div>';
         await new Promise(function(r){setTimeout(r, waitMs);});
       }
       try {
@@ -1278,7 +1278,7 @@ async function send() {
             var data = line.slice(6);
 
             if (data === '[DONE]') {
-              if(statusEl) statusEl.textContent = '✅ 完成 (' + new Date().toLocaleTimeString() + ')';
+              if(statusEl) statusEl.textContent = window.__t('✅ 完成 (') + new Date().toLocaleTimeString() + ')';
               if(cursor) cursor.style.display = 'none';
               chatHistory.push({role:'assistant', content:streamText.innerHTML});
               saveHistory();
@@ -1324,8 +1324,8 @@ async function send() {
                 var msgDiv = document.getElementById('messages');
                 if(msgDiv) msgDiv.scrollTop = msgDiv.scrollHeight;
                 // 首token到达，更新状态
-                if(statusEl && statusEl.textContent === '🔵 思考中...') {
-                    statusEl.textContent = '🟢 生成中...';
+                if(statusEl && statusEl.textContent === window.__t('🔵 思考中...')) {
+                    statusEl.textContent = window.__t('🟢 生成中...');
                 }
               } else if (parsed.tool_call) {
                 // v1.5.22: 工具调用内联展示
@@ -1338,13 +1338,13 @@ async function send() {
         }
       } catch(e) {
         if (e.name === 'AbortError') {
-          streamText.innerHTML += '<span style="color:#fbbf24;">⏹ 已中断</span>';
+          streamText.innerHTML += window.__t('<span style="color:#fbbf24;">⏹ 已中断</span>');
           cursor.remove();
           break;
         }
         retryCount++;
         if (retryCount > maxRetries) {
-          streamText.innerHTML += '<span style="color:#fca5a5;">❌ 失败(重试' + maxRetries + '次): ' + e.message + '</span>';
+          streamText.innerHTML += window.__t('<span style="color:#fca5a5;">❌ 失败(重试') + maxRetries + window.__t('次): ') + e.message + '</span>';
           cursor.remove();
         }
       }
@@ -1394,7 +1394,7 @@ async function runCodeBlock(code, lang, preEl){
   if(oldOut) oldOut.remove();
   
   var runBtn = wrapper.querySelector('.run-btn');
-  if(runBtn){ runBtn.textContent = '⏳'; runBtn.disabled = true; runBtn.title='运行中...'; }
+  if(runBtn){ runBtn.textContent = '⏳'; runBtn.disabled = true; runBtn.title=window.__t('运行中...'); }
   
   // 显示停止按钮
   var stopBtn = wrapper.querySelector('.stop-btn');
@@ -1403,7 +1403,7 @@ async function runCodeBlock(code, lang, preEl){
   // 创建输出区域
   var output = document.createElement('div');
   output.className = 'code-output';
-  output.innerHTML = '<div class="code-output-header"><span>▶ 输出</span><button class="output-toggle" onclick="this.parentNode.nextSibling.classList.toggle(\'collapsed\');this.textContent=this.textContent===\'展开\'?\'收起\':\'展开\'">收起</button></div><pre class="code-output-body" style="margin:0;padding:8px;white-space:pre-wrap;word-break:break-all;max-height:400px;overflow-y:auto;">⏳ 执行中...</pre>';
+  output.innerHTML = window.__t('<div class="code-output-header"><span>▶ 输出</span><button class="output-toggle" onclick="this.parentNode.nextSibling.classList.toggle(\')collapsed\');this.textContent=this.textContent===\'展开\'?\'收起\':\'展开\window.__t('">收起</button></div><pre class="code-output-body" style="margin:0;padding:8px;white-space:pre-wrap;word-break:break-all;max-height:400px;overflow-y:auto;">⏳ 执行中...</pre>');
   wrapper.appendChild(output);
   
   var outBody = output.querySelector('.code-output-body');
@@ -1424,17 +1424,17 @@ async function runCodeBlock(code, lang, preEl){
     if(d.error){
       outBody.style.color = '#fca5a5';
       outBody.textContent = '❌ ' + d.error + '\n\n⏱ ' + elapsed + 's';
-      output.querySelector('.code-output-header span').textContent = '✗ 错误';
+      output.querySelector('.code-output-header span').textContent = window.__t('✗ 错误');
       output.querySelector('.code-output-header span').style.color = '#fca5a5';
     } else {
       outBody.textContent = (d.output||'(无输出)') + (d.exit_code!==undefined ? '\n\n[退出码: '+d.exit_code+' | ⏱ '+elapsed+'s]' : '\n\n[⏱ '+elapsed+'s]');
       if(d.exit_code===0){
         outBody.style.color = '#22c55e';
-        output.querySelector('.code-output-header span').textContent = '✓ 成功';
+        output.querySelector('.code-output-header span').textContent = window.__t('✓ 成功');
         output.querySelector('.code-output-header span').style.color = '#22c55e';
       } else {
         outBody.style.color = '#fbbf24';
-        output.querySelector('.code-output-header span').textContent = '⚠ 警告';
+        output.querySelector('.code-output-header span').textContent = window.__t('⚠ 警告');
         output.querySelector('.code-output-header span').style.color = '#fbbf24';
       }
     }
@@ -1442,21 +1442,21 @@ async function runCodeBlock(code, lang, preEl){
     if(outBody.textContent.length > 500){
       outBody.classList.add('collapsed');
       outBody.style.maxHeight = '120px';
-      output.querySelector('.output-toggle').textContent = '展开';
+      output.querySelector('.output-toggle').textContent = window.__t('展开');
     }
   } catch(e){
     if(e.name === 'AbortError'){
       outBody.style.color = '#fbbf24';
-      outBody.textContent = '⏹ 已手动停止';
-      output.querySelector('.code-output-header span').textContent = '⏹ 已停止';
+      outBody.textContent = window.__t('⏹ 已手动停止');
+      output.querySelector('.code-output-header span').textContent = window.__t('⏹ 已停止');
     } else {
       outBody.style.color = '#fca5a5';
-      outBody.textContent = '❌ 请求失败: ' + e.message;
-      output.querySelector('.code-output-header span').textContent = '✗ 失败';
+      outBody.textContent = window.__t('❌ 请求失败: ') + e.message;
+      output.querySelector('.code-output-header span').textContent = window.__t('✗ 失败');
     }
   }
   
-  if(runBtn){ runBtn.textContent = '▶'; runBtn.disabled = false; runBtn.title='运行此代码块'; }
+  if(runBtn){ runBtn.textContent = '▶'; runBtn.disabled = false; runBtn.title=window.__t('运行此代码块'); }
   if(stopBtn) stopBtn.style.display = 'none';
   _runningAbort = null;
 }
@@ -1715,7 +1715,7 @@ _TEMPLATES["models.html"] = r"""{% extends "base.html" %}
             <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;color:var(--accent);" onclick="configureModel('{{ m.id }}')">⚡ 配置</button>
             {% endif %}
             {% if not is_def %}
-            <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;color:#f85149;" onclick="if(confirm('确定删除 {{ m.id }}?'))deleteModel('{{ m.id }}')">✕</button>
+            <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;color:#f85149;" onclick="if(confirm(window.__t('确定删除')+'{{ m.id }}?')))deleteModel('{{ m.id }}')">✕</button>
             {% endif %}
         </div>
     </td>
@@ -1747,7 +1747,7 @@ _TEMPLATES["models.html"] = r"""{% extends "base.html" %}
 <script>
 function showAddForm() {
     document.getElementById('modelForm').style.display = 'block';
-    document.getElementById('formTitle').textContent = '添加模型';
+    document.getElementById('formTitle').textContent = window.__t('添加模型');
     document.getElementById('editModelId').value = '';
     document.getElementById('fid').value = ''; document.getElementById('fid').disabled = false;
     document.getElementById('fprovider').value = 'deepseek';
@@ -1770,7 +1770,7 @@ function presetModel(id, model, provider, url, key) {
 
 function editModel(id, provider, key, model, url) {
     showAddForm();
-    document.getElementById('formTitle').textContent = '编辑 ' + id;
+    document.getElementById('formTitle').textContent = window.__t('编辑 ') + id;
     document.getElementById('editModelId').value = id;
     document.getElementById('fid').value = id;
     document.getElementById('fid').disabled = false;
@@ -1790,8 +1790,8 @@ async function saveModel() {
         model: document.getElementById('fmodel').value.trim(),
         base_url: document.getElementById('furl').value.trim(),
     };
-    if (!body.id || !body.provider) { alert('ID和提供商为必填'); return; }
-    if (!body.key && !body.base_url) { alert('请填写API Key或Base URL'); return; }
+    if (!body.id || !body.provider) { alert(window.__t('ID和提供商为必填')); return; }
+    if (!body.key && !body.base_url) { alert(window.__t('请填写API Key或Base URL')); return; }
     
     try {
         var res, data;
@@ -1818,38 +1818,38 @@ async function saveModel() {
         }
         data = await res.json();
         if (res.ok) { location.reload(); }
-        else { alert('失败: ' + (data.detail||data.message||JSON.stringify(data))); }
-    } catch(e) { alert('网络错误: ' + e.message); }
+        else { alert(window.__t('失败: ') + (data.detail||data.message||JSON.stringify(data))); }
+    } catch(e) { alert(window.__t('网络错误: ') + e.message); }
 }
 async function deleteModel(id) {
     try {
         var res = await fetch('/api/models/' + id, {method: 'DELETE'});
         if (res.ok) location.reload();
-        else { var d = await res.json(); alert('失败: ' + (d.detail||'')); }
-    } catch(e) { alert('错误: ' + e.message); }
+        else { var d = await res.json(); alert(window.__t('失败: ') + (d.detail||'')); }
+    } catch(e) { alert(window.__t('错误: ') + e.message); }
 }
 async function setDefault(id) {
     try {
         var res = await fetch('/api/models/' + id + '/default', {method: 'PATCH'});
         if (res.ok) location.reload();
-        else { var d = await res.json(); alert('失败: ' + (d.detail||'')); }
-    } catch(e) { alert('错误: ' + e.message); }
+        else { var d = await res.json(); alert(window.__t('失败: ') + (d.detail||'')); }
+    } catch(e) { alert(window.__t('错误: ') + e.message); }
 }
 async function cleanUnconfigured() {
-    if (!confirm('确定删除所有未配置Key的模型吗？此操作不可撤销。')) return;
+    if (!confirm(window.__t('确定删除所有未配置Key的模型吗？此操作不可撤销。'))) return;
     try {
         var res = await fetch('/api/models/clean-unconfigured', {method: 'POST'});
         var d = await res.json();
-        alert('已清理 ' + (d.deleted || 0) + ' 个未配置模型');
+        alert(window.__t('已清理 ') + (d.deleted || 0) + window.__t(' 个未配置模型'));
         location.reload();
-    } catch(e) { alert('错误: ' + e.message); }
+    } catch(e) { alert(window.__t('错误: ') + e.message); }
 }
 function configureModel(id) {
     showAddForm();
     document.getElementById('fid').value = id;
     document.getElementById('fid').disabled = false;
     document.getElementById('editModelId').value = id;
-    document.getElementById('formTitle').textContent = '配置 API Key — ' + id;
+    document.getElementById('formTitle').textContent = window.__t('配置 API Key — ') + id;
     document.getElementById('fkey').focus();
 }
 async function testModel(id) {
@@ -1858,22 +1858,22 @@ async function testModel(id) {
     try {
         var res = await fetch('/api/models/' + id + '/test', {method: 'POST'});
         var d = await res.json();
-        if (d.status === 'ok') alert('✅ ' + id + ' 连接成功');
+        if (d.status === 'ok') alert('✅ ' + id + window.__t(' 连接成功'));
         else alert('❌ ' + id + ': ' + (d.message||'失败'));
-    } catch(e) { alert('错误: ' + e.message); }
+    } catch(e) { alert(window.__t('错误: ') + e.message); }
     if (tr) tr.style.background = '';
 }
 async function testFromForm() {
     var id = document.getElementById('fid').value.trim();
-    if (!id) { alert('请先输入模型ID'); return; }
-    document.getElementById('testResult').innerHTML = '⏳ 测试中...';
+    if (!id) { alert(window.__t('请先输入模型ID')); return; }
+    document.getElementById('testResult').innerHTML = window.__t('⏳ 测试中...');
     try {
         var res = await fetch('/api/models/' + id + '/test', {method: 'POST'});
         var d = await res.json();
         document.getElementById('testResult').innerHTML = d.status === 'ok' 
             ? '<span style="color:#22c55e;">✅ ' + d.message + '</span>'
             : '<span style="color:#f85149;">❌ ' + (d.message||'失败') + '</span>';
-    } catch(e) { document.getElementById('testResult').innerHTML = '<span style="color:#f85149;">错误: ' + e.message + '</span>'; }
+    } catch(e) { document.getElementById('testResult').innerHTML = window.__t('<span style="color:#f85149;">错误: ') + e.message + '</span>'; }
 }
 </script>
 {% endblock %}"""
@@ -2358,13 +2358,13 @@ function renderPerf(){
     });
     el.innerHTML = html;
   }).catch(function(e){
-    el.innerHTML = '<span style=\"color:var(--muted);font-size:11px;\">索引未就绪</span>';
+    el.innerHTML = window.__t('<span style=\"color:var(--muted);font-size:11px;\">索引未就绪</span>');
   });
 }
 
 // ═══ Quick Actions v2.9 ═══
 function quickSearch(){
-  var q = prompt('🔍 网页搜索:');
+  var q = prompt(window.__t('🔍 网页搜索:'));
   if(!q) return;
   document.querySelector('.tab[data-pane="chat"]').click();
   var iframe = document.getElementById('chatFrame');
@@ -2376,11 +2376,11 @@ function quickSearch(){
 // ═══ Windows Admin Panel v2.10.1 ═══
 function winExec(){
   var cmd = document.getElementById('winPsCmd').value.trim();
-  if(!cmd){alert('请输入PowerShell命令');return;}
+  if(!cmd){alert(window.__t('请输入PowerShell命令'));return;}
   var el = document.getElementById('winPsResult');
   el.style.display = 'block';
   el.style.color = '#94a3b8';
-  el.textContent = '⏳ 执行中...';
+  el.textContent = window.__t('⏳ 执行中...');
   fetch('/api/win/execute', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({command:cmd, timeout:30})
@@ -2390,13 +2390,13 @@ function winExec(){
     el.textContent = out;
     el.style.color = d.success ? '#22c55e' : '#fca5a5';
   }).catch(function(e){
-    el.textContent = '失败: '+e.message;
+    el.textContent = window.__t('失败: ')+e.message;
     el.style.color = '#fca5a5';
   });
 }
 function winLoadServices(){
   var el = document.getElementById('winContent');
-  el.innerHTML = '<span style="color:var(--muted);">⏳ 加载服务列表...</span>';
+  el.innerHTML = window.__t('<span style="color:var(--muted);">⏳ 加载服务列表...</span>');
   fetch('/api/win/services').then(function(r){return r.json()}).then(function(d){
     var html = '<div class="card"><h3>🔧 Windows 服务</h3><div style="max-height:400px;overflow-y:auto;">';
     (d.services||[]).forEach(function(s){
@@ -2407,11 +2407,11 @@ function winLoadServices(){
     });
     html += '</div></div>';
     el.innerHTML = html;
-  }).catch(function(e){el.innerHTML='<span style="color:#fca5a5;">加载失败: '+e.message+'</span>';});
+  }).catch(function(e){el.innerHTML=window.__t('<span style="color:#fca5a5;">加载失败: ')+e.message+'</span>';});
 }
 function winLoadProcesses(){
   var el = document.getElementById('winContent');
-  el.innerHTML = '<span style="color:var(--muted);">⏳ 加载进程列表...</span>';
+  el.innerHTML = window.__t('<span style="color:var(--muted);">⏳ 加载进程列表...</span>');
   fetch('/api/win/processes').then(function(r){return r.json()}).then(function(d){
     var html = '<div class="card"><h3>📊 进程 Top 30</h3><div style="max-height:400px;overflow-y:auto;">';
     html += '<table style="width:100%;font-size:11px;border-collapse:collapse;"><tr style="color:var(--muted);"><th style="text-align:left;">PID</th><th style="text-align:left;">名称</th><th>CPU</th><th>内存</th></tr>';
@@ -2423,7 +2423,7 @@ function winLoadProcesses(){
     });
     html += '</table></div></div>';
     el.innerHTML = html;
-  }).catch(function(e){el.innerHTML='<span style="color:#fca5a5;">加载失败: '+e.message+'</span>';});
+  }).catch(function(e){el.innerHTML=window.__t('<span style="color:#fca5a5;">加载失败: ')+e.message+'</span>';});
 }
 function winLoadSystem(){
   var el = document.getElementById('winContent');
@@ -2435,11 +2435,11 @@ function winLoadSystem(){
     }
     html += '</div></div>';
     el.innerHTML = html;
-  }).catch(function(e){el.innerHTML='<span style="color:#fca5a5;">加载失败: '+e.message+'</span>';});
+  }).catch(function(e){el.innerHTML=window.__t('<span style="color:#fca5a5;">加载失败: ')+e.message+'</span>';});
 }
 function winLoadSoftware(){
   var el = document.getElementById('winContent');
-  el.innerHTML = '<span style="color:var(--muted);">⏳ 扫描已安装软件...</span>';
+  el.innerHTML = window.__t('<span style="color:var(--muted);">⏳ 扫描已安装软件...</span>');
   fetch('/api/win/software').then(function(r){return r.json()}).then(function(d){
     var html = '<div class="card"><h3>📦 已安装软件</h3><div style="max-height:400px;overflow-y:auto;">';
     (d.software||[]).slice(0,30).forEach(function(s){
@@ -2451,7 +2451,7 @@ function winLoadSoftware(){
     });
     html += '</div></div>';
     el.innerHTML = html;
-  }).catch(function(e){el.innerHTML='<span style="color:#fca5a5;">加载失败: '+e.message+'</span>';});
+  }).catch(function(e){el.innerHTML=window.__t('<span style="color:#fca5a5;">加载失败: ')+e.message+'</span>';});
 }
 
 // ═══ Agent Monitor v2.12.5 ═══
@@ -2475,7 +2475,7 @@ function renderAgentMonitor(){
     });
     el.innerHTML = html;
   }).catch(function(e){
-    el.innerHTML = '<span style="color:var(--muted);font-size:11px;">监控未就绪</span>';
+    el.innerHTML = window.__t('<span style="color:var(--muted);font-size:11px;">监控未就绪</span>');
   });
 }
 
@@ -2502,7 +2502,7 @@ function renderMemory(){
     });
     el.innerHTML = html || '<span style="color:var(--muted);">记忆数据获取中...</span>';
   }).catch(function(e){
-    el.innerHTML = '<span style="color:var(--muted);">记忆系统未就绪</span>';
+    el.innerHTML = window.__t('<span style="color:var(--muted);">记忆系统未就绪</span>');
   });
 }
 
@@ -2588,7 +2588,7 @@ function fetchSummary(){
     updateLiveTag();
   }).catch(function(e){
     console.error('Summary fetch error:', e);
-    document.getElementById('liveTag').textContent = '⚠ 离线';
+    document.getElementById('liveTag').textContent = window.__t('⚠ 离线');
     document.getElementById('sysDot').style.background = 'var(--danger)';
   });
 }
@@ -2667,7 +2667,7 @@ function renderAgent(d){
     if(i<3) oodaHTML += '<div class="ooda-arrow">→</div>';
   }
   document.getElementById('oodaBox').innerHTML = oodaHTML;
-  document.getElementById('oodaRefreshTag').textContent = '循环#'+(oo.cycle_count||0)+' · '+curPhase;
+  document.getElementById('oodaRefreshTag').textContent = window.__t('循环#')+(oo.cycle_count||0)+' · '+curPhase;
   // 按钮状态
   var btnStart = document.getElementById('btnAgentStart');
   var btnStop = document.getElementById('btnAgentStop');
@@ -2889,7 +2889,7 @@ function renderBrain(){
       '<div style="font-size:10px;color:var(--muted);">状态: '+(d.state||'unknown')+' · 9脑区</div></div>';
     document.getElementById('brainMonitor').innerHTML = html;
   }).catch(function(e){
-    document.getElementById('brainMonitor').innerHTML = '<div class="stat-card" style="grid-column:1/-1;text-align:center;color:var(--muted);">🧠 等待后端连接...</div>';
+    document.getElementById('brainMonitor').innerHTML = window.__t('<div class="stat-card" style="grid-column:1/-1;text-align:center;color:var(--muted);">🧠 等待后端连接...</div>');
   });
 }
 
@@ -2919,14 +2919,14 @@ function renderPlugins(){
 }
 function installPlugin(name){
   fetch('/api/plugins/install/'+name, {method:'POST'}).then(function(r){return r.json()}).then(function(d){
-    alert(d.status==='ok'?'✅ '+name+' 安装成功!':d.message||'失败');
+    alert(d.status==='ok'?'✅ '+name+window.__t(' 安装成功!'):d.message||'失败');
     renderPlugins();
   });
 }
 function uninstallPlugin(name){
-  if(!confirm('卸载 '+name+'?')) return;
+  if(!confirm(window.__t('卸载 ')+name+'?')) return;
   fetch('/api/plugins/uninstall/'+name, {method:'POST'}).then(function(r){return r.json()}).then(function(d){
-    alert(d.status==='ok'?'🗑 '+name+' 已卸载':d.message);
+    alert(d.status==='ok'?'🗑 '+name+window.__t(' 已卸载'):d.message);
     renderPlugins();
   });
 }
@@ -2936,23 +2936,23 @@ function controlAgent(action){
   var btnStart = document.getElementById('btnAgentStart');
   var btnStop = document.getElementById('btnAgentStop');
   if(action==='start'){
-    btnStart.textContent = '⏳ 启动中...'; btnStart.disabled = true;
+    btnStart.textContent = window.__t('⏳ 启动中...'); btnStart.disabled = true;
     fetch('/agent/start', {method:'POST'}).then(function(r){return r.json()}).then(function(d){
       btnStart.style.display = 'none'; btnStop.style.display = '';
-      btnStart.textContent = '▶ 启动'; btnStart.disabled = false;
+      btnStart.textContent = window.__t('▶ 启动'); btnStart.disabled = false;
       fetchSummary();
     }).catch(function(e){
-      btnStart.textContent = '▶ 启动'; btnStart.disabled = false;
+      btnStart.textContent = window.__t('▶ 启动'); btnStart.disabled = false;
       console.error(e);
     });
   } else if(action==='stop'){
-    btnStop.textContent = '⏳ 停止中...'; btnStop.disabled = true;
+    btnStop.textContent = window.__t('⏳ 停止中...'); btnStop.disabled = true;
     fetch('/agent/stop', {method:'POST'}).then(function(r){return r.json()}).then(function(d){
       btnStop.style.display = 'none'; btnStart.style.display = '';
-      btnStop.textContent = '⏹ 停止'; btnStop.disabled = false;
+      btnStop.textContent = window.__t('⏹ 停止'); btnStop.disabled = false;
       fetchSummary();
     }).catch(function(e){
-      btnStop.textContent = '⏹ 停止'; btnStop.disabled = false;
+      btnStop.textContent = window.__t('⏹ 停止'); btnStop.disabled = false;
       console.error(e);
     });
   }
@@ -2961,13 +2961,13 @@ function controlAgent(action){
 // ═══ 预测器训练 ═══
 function trainPredictor(){
   var btn = event.target;
-  btn.textContent = '⏳ 训练中...'; btn.disabled = true;
+  btn.textContent = window.__t('⏳ 训练中...'); btn.disabled = true;
   fetch('/predictor/learn', {method:'POST'}).then(function(r){return r.json()}).then(function(d){
-    btn.textContent = '✅ 完成';
-    setTimeout(function(){ btn.textContent = '🧠 训练'; btn.disabled = false; fetchSummary(); }, 1500);
+    btn.textContent = window.__t('✅ 完成');
+    setTimeout(function(){ btn.textContent = window.__t('🧠 训练'); btn.disabled = false; fetchSummary(); }, 1500);
   }).catch(function(e){
-    btn.textContent = '❌ 失败';
-    setTimeout(function(){ btn.textContent = '🧠 训练'; btn.disabled = false; }, 2000);
+    btn.textContent = window.__t('❌ 失败');
+    setTimeout(function(){ btn.textContent = window.__t('🧠 训练'); btn.disabled = false; }, 2000);
     console.error(e);
   });
 }
@@ -3030,8 +3030,8 @@ function toggleTheme(){
 function runBenchmark(){
   var btn = event.target;
   var panel = document.getElementById('benchPanel');
-  btn.textContent = '⏳ 测试中...'; btn.disabled = true;
-  panel.innerHTML = '<div class=stat><span>⏳</span><span>正在运行基准测试...</span></div>';
+  btn.textContent = window.__t('⏳ 测试中...'); btn.disabled = true;
+  panel.innerHTML = window.__t('<div class=stat><span>⏳</span><span>正在运行基准测试...</span></div>');
   fetch('/api/benchmark/run', {method:'POST'}).then(function(r){return r.json()}).then(function(d){
     if(d.status==='ok'){
       panel.innerHTML = [
@@ -3044,10 +3044,10 @@ function runBenchmark(){
     }else{
       panel.innerHTML = '<div class=stat><span>❌</span><span>'+d.error+'</span></div>';
     }
-    btn.textContent = '⚡ 基准测试'; btn.disabled = false;
+    btn.textContent = window.__t('⚡ 基准测试'); btn.disabled = false;
   }).catch(function(e){
-    panel.innerHTML = '<div class=stat><span>❌</span><span>请求失败</span></div>';
-    btn.textContent = '⚡ 基准测试'; btn.disabled = false;
+    panel.innerHTML = window.__t('<div class=stat><span>❌</span><span>请求失败</span></div>');
+    btn.textContent = window.__t('⚡ 基准测试'); btn.disabled = false;
   });
 }
 
@@ -3078,11 +3078,11 @@ function switchQuickModel(){
     body:JSON.stringify({model_id:modelId})
   }).then(function(r){return r.json()}).then(function(d){
     var live = document.getElementById('liveTag');
-    live.textContent = '✅ 已切换: ' + d.current;
+    live.textContent = window.__t('✅ 已切换: ') + d.current;
     setTimeout(function(){ live.textContent = 'LIVE'; }, 3000);
     fetchModels(); // 刷新选中状态
   }).catch(function(e){
-    alert('切换失败: ' + e);
+    alert(window.__t('切换失败: ') + e);
   });
 }
 
@@ -3117,14 +3117,14 @@ function renderProviders(){
     }
     html += '</div>';
     document.getElementById('providerList').innerHTML = html;
-  }).catch(function(e){ document.getElementById('providerList').innerHTML = '<span class=error-block>加载失败</span>'; });
+  }).catch(function(e){ document.getElementById('providerList').innerHTML = window.__t('<span class=error-block>加载失败</span>'); });
   // v1.5.17: 同时加载MCP服务器
   loadMcpServers();
 }
 
 function showKeyInput(pid){
   var name = {'deepseek':'DeepSeek','openai':'OpenAI','anthropic':'Anthropic','bailian':'阿里百炼'}[pid]||pid;
-  var key = prompt('输入 '+name+' API Key (留空删除):');
+  var key = prompt(window.__t('输入 ')+name+window.__t(' API Key (留空删除):'));
   if(key===null) return;
   fetch('/api/providers', {
     method:'POST',
@@ -3134,7 +3134,7 @@ function showKeyInput(pid){
     renderProviders();
     fetchModels(); // 刷新模型就绪状态
     fetchSummary();
-  }).catch(function(e){ alert('保存失败: '+e); });
+  }).catch(function(e){ alert(window.__t('保存失败: ')+e); });
 }
 
 function testProvider(pid){
@@ -3146,15 +3146,15 @@ function testProvider(pid){
     } else {
       btn.textContent = '❌ '+d.status; btn.style.color = 'var(--danger)';
     }
-    setTimeout(function(){ btn.textContent = '🔍 测试'; btn.disabled = false; btn.style.color = ''; renderProviders(); }, 2000);
+    setTimeout(function(){ btn.textContent = window.__t('🔍 测试'); btn.disabled = false; btn.style.color = ''; renderProviders(); }, 2000);
   }).catch(function(e){
-    btn.textContent = '⚠ 错误'; btn.disabled = false;
-    setTimeout(function(){ btn.textContent = '🔍 测试'; renderProviders(); }, 2000);
+    btn.textContent = window.__t('⚠ 错误'); btn.disabled = false;
+    setTimeout(function(){ btn.textContent = window.__t('🔍 测试'); renderProviders(); }, 2000);
   });
 }
 
 function deleteProvider(pid){
-  if(!confirm('确认删除 '+pid+' 的API Key?')) return;
+  if(!confirm(window.__t('确认删除 ')+pid+window.__t(' 的API Key?'))) return;
   fetch('/api/providers/'+pid, {method:'DELETE'}).then(function(r){return r.json()}).then(function(d){
     renderProviders(); fetchModels(); fetchSummary();
   });
@@ -3169,7 +3169,7 @@ function renderHistory(){
     var el = document.getElementById('historySessions');
     if(!el) return;
     if(!d.sessions || d.sessions.length === 0){
-      el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px;">暂无存档会话<br><span style="font-size:11px;">Chat对话完成后自动存档</span></div>';
+      el.innerHTML = window.__t('<div style="color:var(--muted);text-align:center;padding:20px;">暂无存档会话<br><span style="font-size:11px;">Chat对话完成后自动存档</span></div>');
       return;
     }
     var html = '';
@@ -3189,7 +3189,7 @@ function renderHistory(){
     el.innerHTML = html;
   }).catch(function(e){
     var el = document.getElementById('historySessions');
-    if(el) el.innerHTML = '<div style="color:#fca5a5;">加载失败: '+e.message+'</div>';
+    if(el) el.innerHTML = window.__t('<div style="color:#fca5a5;">加载失败: ')+e.message+'</div>';
   });
 }
 
@@ -3206,7 +3206,7 @@ function viewSession(sid){
       html += '<div style="color:#cbd5e1;">'+content+'</div>';
       html += '</div>';
     });
-    html += '<button onclick="document.getElementById(\'sessionDetail\').innerHTML=\'\'" style="margin-top:10px;background:#334155;color:#e2e8f0;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;">关闭</button>';
+    html += '<button onclick="document.getElementById(\'sessionDetail\').innerHTML=\'\window.__t('" style="margin-top:10px;background:#334155;color:#e2e8f0;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;">关闭</button>');
     html += '</div>';
     var detail = document.getElementById('sessionDetail');
     if(!detail){
@@ -3290,7 +3290,7 @@ function loadMeshctxMd(){
   // 加载项目列表
   fetch('/api/context/projects').then(function(r){return r.json()}).then(function(pd){
     if(pd.projects && pd.projects.length > 0){
-      selector.innerHTML = '<option value="">(自动检测)</option>';
+      selector.innerHTML = window.__t('<option value="">(自动检测)</option>');
       pd.projects.forEach(function(p){
         var sel = p.path === pd.active ? ' selected' : '';
         selector.innerHTML += '<option value="'+p.path+'"'+sel+'>'+p.title+' ('+p.name+')</option>';
@@ -3318,7 +3318,7 @@ function loadMeshctxMd(){
         '<div style="margin-top:6px;"><button onclick="createMeshctxMd()" style="background:#2563eb;color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;">+ 创建模板</button></div>';
       if(previewEl) previewEl.style.display = 'none';
     }
-  }).catch(function(e){ statusEl.innerHTML = '<span class=error-block>加载失败: '+e.message+'</span>'; });
+  }).catch(function(e){ statusEl.innerHTML = window.__t('<span class=error-block>加载失败: ')+e.message+'</span>'; });
 }
 
 function switchProject(path){
@@ -3335,10 +3335,10 @@ function createMeshctxMd(){
   var content = '# 项目名称\n\n## 技术栈\n- Python 3.10+\n- FastAPI\n\n## 项目简介\n简要描述你的项目...\n\n## 关键约定\n- 使用TDD\n- 70测试必须全过';
   navigator.clipboard.writeText(content).then(function(){
     var el = document.getElementById('meshctxMdStatus');
-    el.innerHTML += '<br><span style="color:#22c55e;">✅ 模板已复制! 创建 .meshctx.md 后刷新</span>';
+    el.innerHTML += window.__t('<br><span style="color:#22c55e;">✅ 模板已复制! 创建 .meshctx.md 后刷新</span>');
   });
 }
-  }).catch(function(e){ document.getElementById('meshctxMdStatus').innerHTML = '<span class=error-block>加载失败</span>'; });
+  }).catch(function(e){ document.getElementById('meshctxMdStatus').innerHTML = window.__t('<span class=error-block>加载失败</span>'); });
 }
 
 // ═══ v1.5.16 会话历史 ═══
@@ -3362,7 +3362,7 @@ function loadConversations(search){
       }
     }
     document.getElementById('convHistoryList').innerHTML = html;
-  }).catch(function(e){ document.getElementById('convHistoryList').innerHTML = '<span class=error-block>加载失败</span>'; });
+  }).catch(function(e){ document.getElementById('convHistoryList').innerHTML = window.__t('<span class=error-block>加载失败</span>'); });
 }
 
 function searchConversations(){
@@ -3397,15 +3397,15 @@ function loadMcpServers(){
       }
     }
     document.getElementById('mcpServerList').innerHTML = html;
-  }).catch(function(e){ document.getElementById('mcpServerList').innerHTML = '<span class=error-block>加载失败</span>'; });
+  }).catch(function(e){ document.getElementById('mcpServerList').innerHTML = window.__t('<span class=error-block>加载失败</span>'); });
 }
 
 function showAddMcpForm(){
-  var name = prompt('MCP服务器名称:');
+  var name = prompt(window.__t('MCP服务器名称:'));
   if(!name) return;
-  var command = prompt('命令 (如 npx 或 python):');
+  var command = prompt(window.__t('命令 (如 npx 或 python):'));
   if(!command) return;
-  var argsStr = prompt('参数 (空格分隔, 可选):','');
+  var argsStr = prompt(window.__t('参数 (空格分隔, 可选):'),'');
   var args = argsStr ? argsStr.trim().split(/\\s+/) : [];
   
   fetch('/api/mcp-servers', {
@@ -3414,8 +3414,8 @@ function showAddMcpForm(){
     body:JSON.stringify({name:name, command:command, args:args})
   }).then(function(r){return r.json()}).then(function(d){
     if(d.success) loadMcpServers();
-    else alert('添加失败: '+JSON.stringify(d));
-  }).catch(function(e){ alert('请求失败: '+e); });
+    else alert(window.__t('添加失败: ')+JSON.stringify(d));
+  }).catch(function(e){ alert(window.__t('请求失败: ')+e); });
 }
 
 function toggleMcp(sid){
@@ -3425,7 +3425,7 @@ function toggleMcp(sid){
 }
 
 function deleteMcp(sid){
-  if(!confirm('确认删除此MCP服务器?')) return;
+  if(!confirm(window.__t('确认删除此MCP服务器?'))) return;
   fetch('/api/mcp-servers/'+sid, {method:'DELETE'}).then(function(r){return r.json()}).then(function(d){
     loadMcpServers();
   });
@@ -3439,30 +3439,30 @@ startAutoRefresh();
 function saveFeishu(){
   var url = document.getElementById('feishuUrl').value.trim();
   var secret = document.getElementById('feishuSecret').value.trim();
-  if(!url){ alert('请输入Webhook URL'); return; }
+  if(!url){ alert(window.__t('请输入Webhook URL')); return; }
   localStorage.setItem('meshctx_feishu_url', url);
   localStorage.setItem('meshctx_feishu_secret', secret);
-  document.getElementById('feishuStatus').innerHTML = '<span style="color:#22c55e;">✅ 已保存</span>';
+  document.getElementById('feishuStatus').innerHTML = window.__t('<span style="color:#22c55e;">✅ 已保存</span>');
   setTimeout(function(){ document.getElementById('feishuStatus').innerHTML = ''; }, 2000);
 }
 function testFeishu(){
   var url = document.getElementById('feishuUrl').value.trim();
   var secret = document.getElementById('feishuSecret').value.trim();
-  if(!url){ alert('请先输入Webhook URL'); return; }
+  if(!url){ alert(window.__t('请先输入Webhook URL')); return; }
   var statusEl = document.getElementById('feishuStatus');
-  statusEl.innerHTML = '<span style="color:#94a3b8;">⏳ 发送测试消息...</span>';
+  statusEl.innerHTML = window.__t('<span style="color:#94a3b8;">⏳ 发送测试消息...</span>');
   fetch('/api/feishu/test', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({webhook_url:url, secret:secret})
   }).then(function(r){return r.json()}).then(function(d){
     if(d.success){
-      statusEl.innerHTML = '<span style="color:#22c55e;">✅ 测试成功！请查看飞书群消息</span>';
+      statusEl.innerHTML = window.__t('<span style="color:#22c55e;">✅ 测试成功！请查看飞书群消息</span>');
       saveFeishu();
     }else{
-      statusEl.innerHTML = '<span style="color:#fca5a5;">❌ 发送失败，请检查Webhook地址</span>';
+      statusEl.innerHTML = window.__t('<span style="color:#fca5a5;">❌ 发送失败，请检查Webhook地址</span>');
     }
   }).catch(function(e){
-    statusEl.innerHTML = '<span style="color:#fca5a5;">❌ 请求失败: '+e.message+'</span>';
+    statusEl.innerHTML = window.__t('<span style="color:#fca5a5;">❌ 请求失败: ')+e.message+'</span>';
   });
 }
 // Load saved feishu config on init
@@ -3479,12 +3479,12 @@ function saveMultiNotify(){
     var val = document.getElementById(id).value.trim();
     if(val) localStorage.setItem('meshctx_'+id, val);
   });
-  document.getElementById('multiNotifyStatus').innerHTML = '<span style="color:#22c55e;">✅ 已保存</span>';
+  document.getElementById('multiNotifyStatus').innerHTML = window.__t('<span style="color:#22c55e;">✅ 已保存</span>');
   setTimeout(function(){ document.getElementById('multiNotifyStatus').innerHTML = ''; }, 2000);
 }
 function testMultiNotify(){
   var el = document.getElementById('multiNotifyStatus');
-  el.innerHTML = '<span style="color:#94a3b8;">⏳ 发送中...</span>';
+  el.innerHTML = window.__t('<span style="color:#94a3b8;">⏳ 发送中...</span>');
   var body = {text: '✅ MeshCtx v2.14 多通道通知测试成功!'};
   var tg = document.getElementById('tgToken').value.trim();
   var tcid = document.getElementById('tgChatId').value.trim();
@@ -3497,8 +3497,8 @@ function testMultiNotify(){
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify(body)
   }).then(function(r){return r.json()}).then(function(d){
-    if(d.success) el.innerHTML = '<span style="color:#22c55e;">✅ 广播成功: '+JSON.stringify(d.results)+'</span>';
-    else el.innerHTML = '<span style="color:#fca5a5;">❌ 发送失败</span>';
+    if(d.success) el.innerHTML = window.__t('<span style="color:#22c55e;">✅ 广播成功: ')+JSON.stringify(d.results)+'</span>';
+    else el.innerHTML = window.__t('<span style="color:#fca5a5;">❌ 发送失败</span>');
     saveMultiNotify();
   });
 }
@@ -3514,11 +3514,11 @@ function runSandbox(){
   var lang = document.getElementById('sandboxLang').value;
   var code = document.getElementById('sandboxCode').value;
   var timeout = parseInt(document.getElementById('sandboxTimeout').value) || 30;
-  if(!code.trim()){ alert('请输入代码'); return; }
+  if(!code.trim()){ alert(window.__t('请输入代码')); return; }
   var resultEl = document.getElementById('sandboxResult');
   resultEl.style.display = 'block';
   resultEl.style.color = '#94a3b8';
-  resultEl.textContent = '⏳ 执行中...\n';
+  resultEl.textContent = window.__t('⏳ 执行中...\n');
   
   // Use SSE streaming
   fetch('/api/sandbox/execute/stream', {
@@ -3546,7 +3546,7 @@ function runSandbox(){
               }else if(d.type==='stderr' && d.line){
                 resultEl.textContent += '[STDERR] ' + d.line + '\n';
               }else if(d.type==='done'){
-                resultEl.textContent += '\n[退出码: '+d.exit_code+' | 耗时: '+d.duration_ms+'ms | '+d.method+']';
+                resultEl.textContent += window.__t('\n[退出码: ')+d.exit_code+window.__t(' | 耗时: ')+d.duration_ms+'ms | '+d.method+']';
                 resultEl.style.color = d.exit_code===0 ? '#22c55e' : '#fca5a5';
               }else if(d.type==='error'){
                 resultEl.textContent += '\n[ERROR] ' + d.message;
@@ -3561,7 +3561,7 @@ function runSandbox(){
     }
     read();
   }).catch(function(e){
-    resultEl.textContent = '执行失败: ' + e.message;
+    resultEl.textContent = window.__t('执行失败: ') + e.message;
     resultEl.style.color = '#fca5a5';
   });
 }
@@ -3569,7 +3569,7 @@ function runSandbox(){
 // ═══ Project Indexer v2.8 ═══
 function searchProject(){
   var q = document.getElementById('projectQuery').value.trim();
-  if(!q){alert('请输入搜索词');return;}
+  if(!q){alert(window.__t('请输入搜索词'));return;}
   fetch('/api/project/search?q=' + encodeURIComponent(q) + '&top_k=10').then(function(r){return r.json()}).then(function(d){
     var results = d.results || [];
     var html = '';
@@ -3594,14 +3594,14 @@ function searchProject(){
 
 function refreshProjectIndex(){
   var statsEl = document.getElementById('projectStats');
-  statsEl.textContent = '⏳ 扫描中...';
+  statsEl.textContent = window.__t('⏳ 扫描中...');
   fetch('/api/project/index').then(function(r){return r.json()}).then(function(d){
     var langs = [];
     for(var l in d.languages) langs.push(l+':'+d.languages[l]);
-    statsEl.innerHTML = '📊 <b>'+d.total_files+'</b> 文件 · <b>'+(d.total_size/1024/1024).toFixed(1)+'MB</b> · <b>'+d.total_lines.toLocaleString()+'</b> 行 · '+langs.join(', ');
+    statsEl.innerHTML = '📊 <b>'+d.total_files+window.__t('</b> 文件 · <b>')+(d.total_size/1024/1024).toFixed(1)+'MB</b> · <b>'+d.total_lines.toLocaleString()+window.__t('</b> 行 · ')+langs.join(', ');
     document.getElementById('projectResults').innerHTML = '';
   }).catch(function(e){
-    statsEl.textContent = '❌ 扫描失败: ' + e.message;
+    statsEl.textContent = window.__t('❌ 扫描失败: ') + e.message;
   });
 }
 
