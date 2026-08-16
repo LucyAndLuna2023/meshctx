@@ -167,8 +167,41 @@ class MCPServer:
     
     async def _handle_memory_search(self, args: Dict) -> str:
         query = args.get("query", "")
-        # 这里需要注入实际的 memory engine
-        return json.dumps({"query": query, "results": []}, ensure_ascii=False)
+        top_k = int(args.get("top_k") or 10)
+        project_id = args.get("project_id")
+        if not query:
+            return json.dumps({"error": "缺少 query 参数"}, ensure_ascii=False)
+        try:
+            from .memory_engine import MemoryEngine
+            engine = MemoryEngine(use_llm=False, use_vector_store=False)
+            engine._load_existing_data()
+            # 关键词检索：memories(key/value) + conversations(title) 双源命中
+            hits = []
+            for m in engine.memories.values():
+                if project_id and m.project_id != project_id:
+                    continue
+                score = 0
+                if query.lower() in m.key.lower():
+                    score = max(score, 2.0 + m.importance)
+                if query.lower() in m.value.lower():
+                    score = max(score, 1.0 + m.importance)
+                if score:
+                    hits.append((score, {"id": m.id, "type": "memory", "project_id": m.project_id,
+                                         "key": m.key, "value": m.value[:500], "importance": m.importance}))
+            for c in engine.conversations.values():
+                if project_id and c.project_id != project_id:
+                    continue
+                title = getattr(c, "title", "") or ""
+                if query.lower() in title.lower():
+                    hits.append((1.5, {"id": c.id, "type": "conversation", "project_id": c.project_id,
+                                       "title": title}))
+            hits.sort(key=lambda x: x[0], reverse=True)
+            results = [h[1] for h in hits[:top_k]]
+            return json.dumps({"query": query, "count": len(results), "results": results},
+                              ensure_ascii=False)
+        except Exception as e:
+            logger.error(f"memory_search 失败: {e}")
+            return json.dumps({"error": f"memory_search 失败: {e}"}, ensure_ascii=False)
     
     async def _handle_model_chat(self, args: Dict) -> str:
         from .model_registry import get_registry
@@ -181,16 +214,84 @@ class MCPServer:
     
     async def _handle_skill_execute(self, args: Dict) -> str:
         name = args.get("skill_name", "")
-        return json.dumps({"skill": name, "result": "executed"})
-    
+        skill_input = args.get("input") or {}
+        if not name:
+            return json.dumps({"error": "缺少 skill_name 参数"}, ensure_ascii=False)
+        try:
+            from .skill_manager import SkillManager
+            sm = SkillManager()
+            skill = sm.get(name)
+            if not skill:
+                return json.dumps({"skill": name, "error": f"Skill 未注册: {name}"},
+                                  ensure_ascii=False)
+            # 真实执行：有 steps 时顺序执行（命令/工具步骤），否则返回元数据
+            outputs = []
+            for step in skill.steps or []:
+                if isinstance(step, str) and step.startswith("!"):
+                    import subprocess
+                    try:
+                        r = subprocess.run(step[1:], shell=True, capture_output=True,
+                                           text=True, timeout=30)
+                        outputs.append({"step": step, "stdout": r.stdout[:2000],
+                                        "returncode": r.returncode})
+                    except Exception as e:
+                        outputs.append({"step": step, "error": str(e)})
+                else:
+                    outputs.append({"step": str(step), "status": "recorded"})
+            skill.usage_count += 1
+            sm._save(skill)
+            return json.dumps({
+                "skill": name,
+                "description": skill.description,
+                "steps_executed": len(outputs),
+                "outputs": outputs,
+            }, ensure_ascii=False)
+        except Exception as e:
+            logger.error(f"skill_execute 失败: {e}")
+            return json.dumps({"error": f"skill_execute 失败: {e}"}, ensure_ascii=False)
+
     async def _handle_session_search(self, args: Dict) -> str:
-        return json.dumps({"query": args.get("query"), "results": []})
-    
+        query = args.get("query", "")
+        limit = int(args.get("limit") or 10)
+        if not query:
+            return json.dumps({"error": "缺少 query 参数"}, ensure_ascii=False)
+        try:
+            from .session_search import FTS5SessionSearch
+            searcher = FTS5SessionSearch()
+            results = searcher.search(query, limit=limit)
+            return json.dumps({"query": query, "count": len(results), "results": results},
+                              ensure_ascii=False)
+        except Exception as e:
+            logger.error(f"session_search 失败: {e}")
+            return json.dumps({"error": f"session_search 失败: {e}"}, ensure_ascii=False)
+
     async def _handle_browser_navigate(self, args: Dict) -> str:
-        return json.dumps({"url": args.get("url"), "status": "navigated"})
-    
+        url = args.get("url", "")
+        if not url:
+            return json.dumps({"error": "缺少 url 参数"}, ensure_ascii=False)
+        try:
+            from .browser_tool import BrowserTool
+            tool = BrowserTool()
+            result = await tool.navigate(url)
+            return json.dumps({"url": url, **result}, ensure_ascii=False)
+        except Exception as e:
+            logger.error(f"browser_navigate 失败: {e}")
+            return json.dumps({"url": url, "error": str(e)}, ensure_ascii=False)
+
     async def _handle_tts(self, args: Dict) -> str:
-        return json.dumps({"text": args.get("text"), "status": "synthesized"})
+        text = args.get("text", "")
+        voice = args.get("voice")
+        if not text:
+            return json.dumps({"error": "缺少 text 参数"}, ensure_ascii=False)
+        try:
+            from .tts import TTSEngine
+            engine = TTSEngine()
+            output = await engine.synthesize(text, voice=voice)
+            return json.dumps({"text": text[:200], "status": "synthesized",
+                               "output": output}, ensure_ascii=False)
+        except Exception as e:
+            logger.error(f"tts_speak 失败: {e}")
+            return json.dumps({"error": f"tts_speak 失败: {e}"}, ensure_ascii=False)
     
     # ── MCP 协议处理 ─────────────────────────────────────
     
@@ -203,8 +304,8 @@ class MCPServer:
             "error": {"code": code, "message": message},
         }
     
-    def handle_request(self, request: Dict) -> Dict:
-        """处理 MCP JSON-RPC 请求"""
+    async def handle_request(self, request: Dict) -> Dict:
+        """处理 MCP JSON-RPC 请求 (async — 兼容 stdio/HTTP 传输)"""
         method = request.get("method", "")
         params = request.get("params", {})
         req_id = request.get("id")
@@ -229,8 +330,7 @@ class MCPServer:
                     return self._rpc_error(req_id, -32601, f"Tool not found: {tool_name}")
                 
                 tool_args = params.get("arguments", {})
-                import asyncio as _asyncio
-                result = _asyncio.run(tool.handler(tool_args))
+                result = await tool.handler(tool_args)
                 
                 return self._rpc_response(req_id, {
                     "content": [{"type": "text", "text": str(result)}],
@@ -264,7 +364,7 @@ class MCPServer:
                     break
                 
                 request = json.loads(line.strip())
-                response = self.handle_request(request)
+                response = await self.handle_request(request)
                 
                 if response is not None:
                     sys.stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
@@ -302,7 +402,7 @@ class MCPPlugin(Plugin):
     async def _on_request(self, event: Event):
         """处理内部 MCP 请求"""
         request = event.data.get("request", {})
-        response = self.server.handle_request(request)
+        response = await self.server.handle_request(request)
         if response:
             await self.kernel.bus.publish(Event(
                 type="mcp.response",

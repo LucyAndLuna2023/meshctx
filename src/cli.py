@@ -1069,10 +1069,40 @@ def cmd_search(args):
 
 
 def cmd_browser(args):
-    """Browser 工具"""
-    print(t("i18n_common_a69c42"))
-    if args.action == "open" and args.target:
-        print(f"{t('i18n_common_b0d841')}{args.target}")
+    """Browser 工具 — Playwright 真实实现"""
+    from src.browser_tool import BrowserTool
+    tool = BrowserTool()
+
+    async def _run():
+        if args.action == "open":
+            if not args.target:
+                print(t("i18n_common_cb4a08"))
+                return
+            result = await tool.navigate(args.target)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        elif args.action == "snap":
+            content = await tool.snapshot(full=False)
+            print(content)
+        elif args.action == "click":
+            if not args.target:
+                print(t("i18n_common_cb4a08"))
+                return
+            result = await tool.click(args.target)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        elif args.action == "type":
+            if not args.target:
+                print(t("i18n_common_cb4a08"))
+                return
+            text = getattr(args, 'text', '') or ''
+            result = await tool.type_text(args.target, text)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    try:
+        asyncio.run(_run())
+    except ImportError as e:
+        print(f"✗ {e}")
+    except Exception as e:
+        print(f"✗ Browser 操作失败: {e}")
 
 
 def cmd_profile(args):

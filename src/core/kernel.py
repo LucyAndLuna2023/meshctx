@@ -81,6 +81,9 @@ class PluginInfo:
     description: str = ''
     dependencies: List[str] = None
     category: str = 'general'
+    author: str = ''          # 插件作者/维护者 (mcp_server.py 等插件会传)
+    homepage: str = ''        # 项目主页
+    license: str = ''         # 许可证
 
 class PluginState(Enum):
     UNLOADED = 'unloaded'
