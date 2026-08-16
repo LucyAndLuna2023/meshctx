@@ -3613,8 +3613,11 @@ function refreshProjectIndex(){
 # ── DictLoader 初始化 ───────────────────────────────────────────
 from src.i18n import t as i18n_t, get_lang as i18n_get_lang, TRANSLATIONS as i18n_translations, LANGUAGES, LANGUAGE_CODES
 _jinja_env = Environment(loader=ChoiceLoader([
-    FileSystemLoader(os.path.join(os.path.dirname(__file__), '..', 'templates')),
+    # 内嵌模板(DictLoader)优先: 它是运行时权威版本, 且 PyInstaller 打包时只有它。
+    # 若 FileSystemLoader 在前, 磁盘上的旧 templates/*.html 会覆盖内嵌模板,
+    # 导致 web_ui.py 里的修复(如 i18n)不生效。(2026-08-16 实测踩坑)
     DictLoader(_TEMPLATES),
+    FileSystemLoader(os.path.join(os.path.dirname(__file__), '..', 'templates')),
 ]), autoescape=False)
 _jinja_env.globals['t'] = i18n_t
 _jinja_env.globals['lang'] = i18n_get_lang
