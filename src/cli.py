@@ -24,6 +24,14 @@ from pathlib import Path
 
 logger = logging.getLogger("meshctx.cli")
 
+# ── 自愈: 强制优先从本安装目录加载 src 包, 防止被外部 editable install / PYTHONPATH 劫持 ──
+# 2026-08-16 实测: Hermes venv 残留的 meshctx editable install 把 src 映射到开发仓库,
+# 导致 meshctx chat 误加载开源 stub (STUB 降级)。此处把 cli.py 所在安装目录的父目录
+# 提到 sys.path[0], 保证 import src 永远命中本安装目录的完整实现。
+_SRC_PARENT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SRC_PARENT not in sys.path:
+    sys.path.insert(0, _SRC_PARENT)
+
 # ── readline: Linux/Mac 可用，Windows 不支持 ──
 try:
     import readline
