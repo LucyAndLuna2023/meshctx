@@ -249,6 +249,12 @@ def _run_cmd(cmd: str) -> str:
         _extra = _default_path_dirs()
         if _extra:
             env['PATH'] = os.pathsep.join(_extra) + os.pathsep + env.get('PATH', '')
+        # 全盘扫描拦截（机制层，不依赖模型自觉）：find/grep/du/locate 以根目录 / 为目标必然超时
+        _full_scan = re.search(r'\b(?:find|grep|du|locate)(?:\s+[^;&|]*)?\s+/(?:\s|$)', cmd or '')
+        if _full_scan:
+            return ("[安全拦截] 已阻止从根目录 '/' 的全盘扫描（30秒必超时且无意义）。"
+                    "请改用精确路径，例如: ls ~/.hermes/profiles/quant、search_files 工具、"
+                    "find ~/.hermes -name '...'")
         # 危险命令检测（CLI/UI 统一，与 /api/terminal 一致）；shell=True 支持 &&/管道/重定向
         from src.core.sandbox import CodeScanner
         ok, err = CodeScanner.scan_bash(cmd)
@@ -260,7 +266,8 @@ def _run_cmd(cmd: str) -> str:
             out += "\n[stderr]\n" + r.stderr[:500]
         return out or f"(exit={r.returncode})"
     except subprocess.TimeoutExpired:
-        return "命令超时(30秒)"
+        return ("命令超时(30秒)。请缩小范围重试，例如限制目录深度、指定具体路径，"
+                "不要对整个文件系统做遍历。")
     except Exception as e:
         return f"执行失败: {e}"
 
