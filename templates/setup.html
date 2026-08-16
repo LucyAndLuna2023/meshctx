@@ -2,7 +2,7 @@
 <html lang="{{ __lang }}" dir="{{ 'rtl' if __lang == 'ar' else 'ltr' }}">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>meshctx 设置向导</title>
+<title>{{ t('meshctx 设置向导') }}</title>
 <style>
 :root {--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#58a6ff;--green:#238636;}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -77,11 +77,11 @@ function selectProvider(p) {
 
 async function setup() {
   const key = document.getElementById('apiKey').value.trim();
-  if (!key) { alert('请输入{{ t('api_key_label') }}'); return; }
+  if (!key) { alert(window.__t('请输入{{ t(')api_key_label') }}'); return; }
   
   const result = document.getElementById('result');
   result.style.display = 'block';
-  result.innerHTML = '⏳ 正在配置...';
+  result.innerHTML = window.__t('⏳ 正在配置...');
   
   try {
     const resp = await fetch('/api/setup', {
@@ -95,16 +95,16 @@ async function setup() {
       result.className = 'result success';
       result.innerHTML = `
         <p class="ok">✅ 配置完成!</p>
-        <p>可用模型: ${data.models}个</p>
+        <p>{{ t('可用模型: ${data.models}个') }}</p>
         <p style="margin-top:12px">
           <a href="/ui/chat" style="color:var(--accent)">→ 开始聊天</a> |
           <a href="/ui/" style="color:var(--muted)">→ 管理控制台</a>
         </p>`;
     } else {
-      result.innerHTML = '❌ 配置失败: ' + (data.error || '未知错误');
+      result.innerHTML = window.__t('❌ 配置失败: ') + (data.error || '未知错误');
     }
   } catch(e) {
-    result.innerHTML = '❌ 连接失败: ' + e.message;
+    result.innerHTML = window.__t('❌ 连接失败: ') + e.message;
   }
 }
 
