@@ -741,6 +741,35 @@ else
     echo -e "  ${YELLOW}⚠${NC} $(T version_warn)"
 fi
 
+# ── 闭源核心组件 (meshctx-core · 一体产品) ─────────────────
+# 开源 + 闭源是一个整体产品：提供 MESHCTX_CORE_TOKEN 则一并安装闭源核心
+# （从私有仓库 LucyAndLuna2023/meshctx-core 拉取真实核心算法模块），
+# 未提供 token 则保留开源 stub 降级，之后可随时重跑补装。
+CORE_TOKEN="${MESHCTX_CORE_TOKEN:-}"
+if [ -z "$CORE_TOKEN" ] && [ -f "${INSTALL_DIR}/.env" ]; then
+    CORE_TOKEN=$(sed -n 's/^MESHCTX_CORE_TOKEN=//p' "${INSTALL_DIR}/.env" 2>/dev/null | tr -d '"'"'"'\r')
+fi
+if [ -n "$CORE_TOKEN" ] && command -v git >/dev/null 2>&1; then
+    echo -e "${CYAN}[6/6]${NC} 安装闭源核心 meshctx-core ..."
+    CORE_TMP=$(mktemp -d)
+    if git clone --depth 1 "https://${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" "${CORE_TMP}/core" >/dev/null 2>&1; then
+        # 真实核心算法模块落地到 src/core（开源 __init__ 的 stub 路由自动识别并启用完整版）
+        cp -rf "${CORE_TMP}/core/src/core/." "${INSTALL_DIR}/src/core/" 2>/dev/null || true
+        # 兼容包 meshctx_core：让 import meshctx_core 成功，运行时识别为完整版（不再 STUB 提示）
+        mkdir -p "${INSTALL_DIR}/meshctx_core"
+        if [ -f "${CORE_TMP}/core/src/__init__.py" ]; then
+            cp -f "${CORE_TMP}/core/src/__init__.py" "${INSTALL_DIR}/meshctx_core/__init__.py"
+        else
+            printf '"""meshctx-core 闭源核心 (一体安装)"""\n' > "${INSTALL_DIR}/meshctx_core/__init__.py"
+        fi
+        ln -sfn "${INSTALL_DIR}/src/core" "${INSTALL_DIR}/meshctx_core/core"
+        echo -e "  ${GREEN}✓${NC} 闭源核心已一体安装（完整版）"
+    else
+        echo -e "  ${YELLOW}⚠${NC} 闭源核心拉取失败（token/网络），本次为开源 stub 模式"
+    fi
+    rm -rf "${CORE_TMP}"
+fi
+
 # ── Done ────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}╔══════════════════════════════════════════════════╗${NC}"
