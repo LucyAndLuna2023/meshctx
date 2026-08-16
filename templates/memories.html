@@ -84,7 +84,7 @@
 <p class="subtitle">按关键词搜索所有项目的记忆，快速定位关键信息</p>
 
 <div class="mem-search">
-    <input type="text" id="memSearchInput" placeholder="输入关键词搜索记忆..." onkeydown="if(event.key==='Enter')searchMemories()">
+    <input type="text" id="memSearchInput" placeholder="{{ t('输入关键词搜索记忆...') }}" onkeydown="if(event.key==='Enter')searchMemories()">
     <button onclick="searchMemories()">🔍 搜索</button>
 </div>
 <div id="memSearchResults"></div>

@@ -118,7 +118,7 @@ input,select{font-family:inherit}
 <a href="/ui/chat" data-nav="chat">💬 Chat</a><a href="/ui/setup" data-nav="setup">⚙ Setup</a><a href="/ui/files" data-nav="files">📁 Files</a>
 <a href="/ui/plugins" data-nav="plugins" class="active">🔌 插件市场</a>
 <span style="flex:1"></span>
-<button onclick="toggleThemePlugins()" id="themeBtnPlugins" title="切换明暗主题" style="background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;color:var(--text);">🌙</button>
+<button onclick="toggleThemePlugins()" id="themeBtnPlugins" title="{{ t('切换明暗主题') }}" style="background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;color:var(--text);">🌙</button>
 </nav>
 <script>
 (function(){
@@ -139,9 +139,9 @@ input,select{font-family:inherit}
 
 <!-- ═══ 搜索/筛选 ═══ -->
 <div class="toolbar">
-<input id="pluginSearch" placeholder="🔍 搜索插件..." aria-label="搜索插件" oninput="loadPlugins()">
+<input id="pluginSearch" placeholder="{{ t('🔍 搜索插件...') }}" aria-label="{{ t('搜索插件') }}" oninput="loadPlugins()">
 <select id="pluginCat" onchange="loadPlugins()"><option value="">📂 全部分类</option></select>
-<button class="btn btn-outline" onclick="loadPlugins()" title="刷新">🔄</button>
+<button class="btn btn-outline" onclick="loadPlugins()" title="{{ t('刷新') }}">🔄</button>
 </div>
 
 <!-- ═══ 插件列表 ═══ -->

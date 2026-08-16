@@ -419,7 +419,7 @@ body {
 <div class="status-panel" id="statusPanel">
   <div class="status-panel-title">
     📊 <span data-lang-key="chat_status_panel">状态面板</span>
-    <button onclick="toggleStatusPanel()" title="收起">−</button>
+    <button onclick="toggleStatusPanel()" title="{{ t('收起') }}">−</button>
   </div>
   <div class="status-row">
     <span class="label" data-lang-key="chat_mode">当前模式</span>
@@ -455,7 +455,7 @@ body {
   <div class="cmd-palette">
     <div class="cmd-palette-input">
       <span style="font-size:16px">🔍</span>
-      <input type="text" id="cmdPaletteInput" placeholder="输入指令... 或输入关键词搜索"
+      <input type="text" id="cmdPaletteInput" placeholder="{{ t('输入指令... 或输入关键词搜索') }}"
         autocomplete="off" autofocus>
       <span class="cmd-palette-hint">Esc</span>
     </div>
