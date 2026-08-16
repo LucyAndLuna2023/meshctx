@@ -356,6 +356,7 @@ def cmd_chat(args):
     from src.chat_tools import TOOLS, execute_tool, TOOL_ICONS, trim_messages
 
     max_turns = getattr(args, 'max_rounds', 0) or int(os.environ.get("MESHCTX_MAX_ROUNDS", "30"))
+    wall_clock = getattr(args, 'wall_clock', 0.0) or float(os.environ.get("MESHCTX_WALL_CLOCK", "1200"))
 
     reg = get_registry(args.config)
     model_id = args.model or os.environ.get("MESHCTX_MODEL")
@@ -532,6 +533,7 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
             tools=tools_def,
             exec_tool=exec_tool,
             max_rounds=max_turns,
+            wall_clock=wall_clock,
             system_prompt=None,
         ):
             _on_event(ev)
@@ -1687,6 +1689,7 @@ def main():
     c.add_argument("--continue", dest="continue_session", help="恢复历史会话ID")
     c.add_argument("--new", dest="new_session", action="store_true", help="强制新会话(跳过自动恢复)")
     c.add_argument("--max-rounds", type=int, default=0, help="搜索轮次上限 (默认30=29搜+1交付; 0则读环境变量 MESHCTX_MAX_ROUNDS)")
+    c.add_argument("--wall-clock", type=float, default=0.0, help="整轮处理墙钟上限秒 (默认1200; 0则读环境变量 MESHCTX_WALL_CLOCK)")
     c.add_argument("message", nargs="?", help="一发模式: 直接问一个问题")
     c.set_defaults(func=cmd_chat)
 

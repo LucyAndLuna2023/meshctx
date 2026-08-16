@@ -23,7 +23,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from src.chat_tools import trim_messages, strip_dsml_tool_calls
 
-DEFAULT_WALL_CLOCK = 300.0      # 整轮处理墙钟上限(秒)
+DEFAULT_WALL_CLOCK = 1200.0     # 整轮处理墙钟上限(秒) — 30轮×平均40秒/轮，留余量
 DEFAULT_TOOL_TIMEOUT = 120.0    # 单批工具执行超时(秒)
 DEFAULT_MAX_SEARCH_CALLS = 8    # web_search 防循环上限
 DEFAULT_MAX_TOKENS = 16384
