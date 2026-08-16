@@ -752,7 +752,12 @@ fi
 if [ -n "$CORE_TOKEN" ] && command -v git >/dev/null 2>&1; then
     echo -e "${CYAN}[6/6]${NC} 安装闭源核心 meshctx-core ..."
     CORE_TMP=$(mktemp -d)
-    if git clone --depth 1 "https://${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" "${CORE_TMP}/core" >/dev/null 2>&1; then
+    CORE_CLONE_OK=0
+    git clone --depth 1 "https://${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" "${CORE_TMP}/core" >/dev/null 2>&1 && CORE_CLONE_OK=1
+    if [ "$CORE_CLONE_OK" != "1" ] && [ -n "${MESHCTX_GIT_PROXY:-}" ]; then
+        git -c http.proxy="$MESHCTX_GIT_PROXY" -c https.proxy="$MESHCTX_GIT_PROXY" clone --depth 1 "https://${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" "${CORE_TMP}/core" >/dev/null 2>&1 && CORE_CLONE_OK=1
+    fi
+    if [ "$CORE_CLONE_OK" = "1" ]; then
         # 真实核心算法模块落地到 src/core（开源 __init__ 的 stub 路由自动识别并启用完整版）
         cp -rf "${CORE_TMP}/core/src/core/." "${INSTALL_DIR}/src/core/" 2>/dev/null || true
         # 兼容包 meshctx_core：让 import meshctx_core 成功，运行时识别为完整版（不再 STUB 提示）
