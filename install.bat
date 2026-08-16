@@ -68,6 +68,36 @@ call venv\Scripts\activate.bat
 pip install -q fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging 2>nul
 echo   OK
 
+REM ── [5/5] 闭源核心组件 (meshctx-core · 一体产品) ─────
+echo [5/5] 安装闭源核心 meshctx-core ...
+set "CORE_CLONE_OK="
+if not defined MESHCTX_CORE_TOKEN (
+    if exist "%INSTALL_DIR%\.env" (
+        for /f "usebackq tokens=1,* delims==" %%a in ("%INSTALL_DIR%\.env") do (
+            if /i "%%a"=="MESHCTX_CORE_TOKEN" set "MESHCTX_CORE_TOKEN=%%~b"
+        )
+    )
+)
+if defined MESHCTX_CORE_TOKEN (
+    where git >nul 2>nul && (
+        set "CORE_TMP=%TEMP%\meshctx_core_%RANDOM%"
+        git clone --depth 1 "https://!MESHCTX_CORE_TOKEN!@github.com/LucyAndLuna2023/meshctx-core.git" "!CORE_TMP!\core" >nul 2>nul && set "CORE_CLONE_OK=1"
+        if not defined CORE_CLONE_OK (
+            if defined MESHCTX_GIT_PROXY (
+                git -c http.proxy="!MESHCTX_GIT_PROXY!" -c https.proxy="!MESHCTX_GIT_PROXY!" clone --depth 1 "https://!MESHCTX_CORE_TOKEN!@github.com/LucyAndLuna2023/meshctx-core.git" "!CORE_TMP!\core" >nul 2>nul && set "CORE_CLONE_OK=1"
+            )
+        )
+        if defined CORE_CLONE_OK (
+            for /r "!CORE_TMP!\core\src\core" %%f in (*.py) do if /i not "%%~nxf"=="__init__.py" copy /y "%%f" "%INSTALL_DIR%\src\core\" >nul 2>nul
+            echo   [OK] 闭源核心已一体安装（完整版）
+        ) else (
+            echo   [WARN] 闭源核心拉取失败（token/网络），本次为开源 stub 模式
+        )
+        if exist "!CORE_TMP!" rmdir /s /q "!CORE_TMP!" 2>nul
+    )
+)
+echo   OK
+
 echo.
 echo   %_T_DONE%
 echo     %INSTALL_DIR%\venv\Scripts\python -m src.cli setup

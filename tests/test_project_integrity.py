@@ -27,10 +27,13 @@ class TestInstallScript:
         assert (PROJECT / "docs" / "install.sh").exists(), "docs/install.sh 不存在"
 
     def test_no_git_clone_dependency(self):
-        """GFW阻断GitHub,脚本不能依赖git clone"""
+        """开源主体用 curl 下载 tarball；git clone 只允许用于可选闭源核心 meshctx-core"""
         content = (PROJECT / "install.sh").read_text()
-        assert "git clone" not in content, \
-            "install.sh包含git clone — 中国用户无法访问GitHub!"
+        assert "curl" in content and "tar.gz" in content, "install.sh缺少curl下载开源包"
+        for line in content.splitlines():
+            if "git clone" in line or "clone --depth" in line:
+                assert "meshctx-core" in line, \
+                    f"install.sh的git clone必须只用于闭源核心meshctx-core: {line.strip()}"
 
     def test_has_download_url(self):
         """必须有从同一服务器下载tarball的URL"""
@@ -243,9 +246,14 @@ class TestWindowsInstallBat:
         assert (PROJECT / "install.bat").exists(), "install.bat 不存在"
 
     def test_no_git_clone(self):
+        """开源主体必须用 curl 下载 tarball；git clone 只允许用于可选闭源核心 meshctx-core"""
         content = (PROJECT / "install.bat").read_text()
-        assert "git clone" not in content, \
-            "install.bat包含git clone — 中国用户无法访问GitHub!"
+        assert "curl -fsSL" in content, "install.bat缺少curl下载开源包"
+        git_clone_lines = [l for l in content.splitlines()
+                           if "git clone" in l or "clone --depth" in l]
+        for line in git_clone_lines:
+            assert "meshctx-core" in line, \
+                f"install.bat的git clone必须只用于闭源核心meshctx-core: {line.strip()}"
 
     def test_has_python_check(self):
         content = (PROJECT / "install.bat").read_text()
@@ -343,13 +351,15 @@ class TestRegressionPrevention:
             "🔴 spec必须包含collect_submodules('src')!"
 
     def test_install_sh_no_git_clone(self):
-        """🔴 Bug: install.sh依赖git clone → 中国用户无法安装"""
+        """🔴 开源主体不能依赖 git clone；git clone 只允许用于可选闭源核心 meshctx-core"""
         for sh_file in ["install.sh", "docs/install.sh"]:
             path = PROJECT / sh_file
             if path.exists():
                 content = path.read_text()
-                assert "git clone" not in content, \
-                    f"🔴 {sh_file}包含git clone! GFW阻断GitHub,中国用户无法安装!"
+                for line in content.splitlines():
+                    if "git clone" in line or "clone --depth" in line:
+                        assert "meshctx-core" in line, \
+                            f"🔴 {sh_file}的git clone必须只用于闭源核心meshctx-core: {line.strip()}"
                 assert "git@" not in content, \
                     f"🔴 {sh_file}包含git@! 需要SSH密钥,普通用户无法使用!"
 

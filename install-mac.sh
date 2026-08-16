@@ -809,6 +809,33 @@ if [ -n "${CONFIG_BACKUP}" ] && [ -d "${CONFIG_BACKUP}" ]; then
     [ "${RESTORED}" = "0" ] || echo -e "  ${GREEN}✓${NC} 用户配置已恢复（密码已重置）"
 fi
 
+# ── [6/6] 闭源核心组件 (meshctx-core · 一体产品) ─────
+# 开源 + 闭源是一个整体产品：提供 MESHCTX_CORE_TOKEN 则一并安装闭源核心
+# （从私有仓库 LucyAndLuna2023/meshctx-core 拉取真实核心算法模块），
+# 未提供 token 则保留开源 stub 降级，之后可随时重跑补装。
+CORE_TOKEN="${MESHCTX_CORE_TOKEN:-}"
+if [ -z "$CORE_TOKEN" ] && [ -f "${INSTALL_DIR}/.env" ]; then
+    CORE_TOKEN=$(sed -n 's/^MESHCTX_CORE_TOKEN=//p' "${INSTALL_DIR}/.env" 2>/dev/null | tr -d '"\r')
+fi
+if [ -n "$CORE_TOKEN" ] && command -v git >/dev/null 2>&1; then
+    echo -e "${CYAN}[6/6]${NC} 安装闭源核心 meshctx-core ..."
+    CORE_TMP=$(mktemp -d)
+    CORE_CLONE_OK=0
+    git clone --depth 1 "https://${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" "${CORE_TMP}/core" >/dev/null 2>&1 && CORE_CLONE_OK=1
+    if [ "$CORE_CLONE_OK" != "1" ] && [ -n "${MESHCTX_GIT_PROXY:-}" ]; then
+        git -c http.proxy="$MESHCTX_GIT_PROXY" -c https.proxy="$MESHCTX_GIT_PROXY" clone --depth 1 "https://${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" "${CORE_TMP}/core" >/dev/null 2>&1 && CORE_CLONE_OK=1
+    fi
+    if [ "$CORE_CLONE_OK" = "1" ]; then
+        # 真实核心算法模块落地到 src/core（保留开源 __init__.py 的 stub 路由，
+        # 闭源业务模块覆盖同名 stub + 补入闭源独有模块，检测逻辑按 desktop_tool.py 落地判定完整版）
+        find "${CORE_TMP}/core/src/core" -maxdepth 1 -name '*.py' ! -name '__init__.py' -exec cp -f {} "${INSTALL_DIR}/src/core/" \;
+        echo -e "  ${GREEN}✓${NC} 闭源核心已一体安装（完整版）"
+    else
+        echo -e "  ${YELLOW}⚠${NC} 闭源核心拉取失败（token/网络），本次为开源 stub 模式"
+    fi
+    rm -rf "${CORE_TMP}"
+fi
+
 cd "${INSTALL_DIR}"
 
 # 创建 venv
