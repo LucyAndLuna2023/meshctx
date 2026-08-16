@@ -118,14 +118,14 @@ input,select{font-family:inherit}
 <a href="/ui/chat" data-nav="chat">💬 Chat</a><a href="/ui/setup" data-nav="setup">⚙ Setup</a><a href="/ui/files" data-nav="files">📁 Files</a>
 <a href="/ui/plugins" data-nav="plugins" class="active">🔌 插件市场</a>
 <span style="flex:1"></span>
-<button onclick="toggleThemePlugins()" id="themeBtnPlugins" title="切换明暗主题" style="background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;color:var(--text);">🌙</button>
+<button onclick="toggleThemePlugins()" id="themeBtnPlugins" title="{{ t('切换明暗主题') }}" style="background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;color:var(--text);">🌙</button>
 </nav>
 <script>
 (function(){
-  var L={chat:{en:'💬 Chat',zh:'💬 聊天',ja:'💬 チャット',ko:'💬 채팅',es:'💬 Chat',fr:'💬 Chat',de:'💬 Chat'},
-    setup:{en:'⚙ Setup',zh:'⚙ 设置',ja:'⚙ 設定',ko:'⚙ 설정',es:'⚙ Configuración',fr:'⚙ Configuration',de:'⚙ Einrichtung'},
-    plugins:{en:'🔌 Plugins',zh:'🔌 插件',ja:'🔌 プラグイン',ko:'🔌 플러그인',es:'🔌 Plugins',fr:'🔌 Plugins',de:'🔌 Plugins'},
-    files:{en:'📁 Files',zh:'📁 文件',ja:'📁 ファイル',ko:'📁 파일',es:'📁 Archivos',fr:'📁 Fichiers',de:'📁 Dateien'}};
+  var L={chat:{en:'💬 Chat',zh:window.__t('💬 聊天'),ja:'💬 チャット',ko:'💬 채팅',es:'💬 Chat',fr:'💬 Chat',de:'💬 Chat'},
+    setup:{en:'⚙ Setup',zh:window.__t('⚙ 设置'),ja:window.__t('⚙ 設定'),ko:'⚙ 설정',es:'⚙ Configuración',fr:'⚙ Configuration',de:'⚙ Einrichtung'},
+    plugins:{en:'🔌 Plugins',zh:window.__t('🔌 插件'),ja:'🔌 プラグイン',ko:'🔌 플러그인',es:'🔌 Plugins',fr:'🔌 Plugins',de:'🔌 Plugins'},
+    files:{en:'📁 Files',zh:window.__t('📁 文件'),ja:'📁 ファイル',ko:'📁 파일',es:'📁 Archivos',fr:'📁 Fichiers',de:'📁 Dateien'}};
   var lang=localStorage.getItem('meshctx_lang')||document.cookie.match(/meshctx_lang=([^;]+)/)?.[1]||'en';
   document.querySelectorAll('[data-nav]').forEach(function(el){
     var k=el.getAttribute('data-nav'),v=L[k];
@@ -139,9 +139,9 @@ input,select{font-family:inherit}
 
 <!-- ═══ 搜索/筛选 ═══ -->
 <div class="toolbar">
-<input id="pluginSearch" placeholder="🔍 搜索插件..." aria-label="搜索插件" oninput="loadPlugins()">
+<input id="pluginSearch" placeholder="{{ t('🔍 搜索插件...') }}" aria-label="{{ t('搜索插件') }}" oninput="loadPlugins()">
 <select id="pluginCat" onchange="loadPlugins()"><option value="">📂 全部分类</option></select>
-<button class="btn btn-outline" onclick="loadPlugins()" title="刷新">🔄</button>
+<button class="btn btn-outline" onclick="loadPlugins()" title="{{ t('刷新') }}">🔄</button>
 </div>
 
 <!-- ═══ 插件列表 ═══ -->
@@ -154,7 +154,7 @@ input,select{font-family:inherit}
 <!-- ═══ URL安装 ═══ -->
 <div class="divider"></div>
 <div class="url-bar">
-<h3>🔗 从 URL 安装插件</h3>
+<h3>{{ t('🔗 从 URL 安装插件') }}</h3>
 <p style="font-size:12px;color:var(--muted);margin-bottom:12px">支持 GitHub 仓库地址、直接 ZIP 链接或插件注册表 URL</p>
 <div class="url-input-row">
 <input id="urlInput" placeholder="https://github.com/user/plugin-repo" aria-label="Plugin URL" oninput="parseUrl()">
@@ -213,27 +213,27 @@ async function loadPlugins(){
 var q=document.getElementById('pluginSearch').value;
 var cat=document.getElementById('pluginCat').value;
 var list=document.getElementById('pluginList');
-list.innerHTML='<div style="text-align:center;color:var(--muted);padding:60px 20px;grid-column:1/-1"><div style="font-size:40px;margin-bottom:12px">⏳</div>加载中...</div>';
+list.innerHTML=window.__t('<div style="text-align:center;color:var(--muted);padding:60px 20px;grid-column:1/-1"><div style="font-size:40px;margin-bottom:12px">⏳</div>加载中...</div>');
 try{
 var r=await fetch('/api/plugins/market?search='+encodeURIComponent(q)+'&category='+encodeURIComponent(cat));
 var d=await r.json();
-if(!d.plugins.length){list.innerHTML='<div style="text-align:center;color:var(--muted);padding:60px 20px;grid-column:1/-1"><div style="font-size:40px;margin-bottom:12px">📭</div>暂无插件</div>';return}
+if(!d.plugins.length){list.innerHTML=window.__t('<div style="text-align:center;color:var(--muted);padding:60px 20px;grid-column:1/-1"><div style="font-size:40px;margin-bottom:12px">📭</div>暂无插件</div>');return}
 list.innerHTML=d.plugins.map(function(p){
 var isInstalled = _installed[p.name] !== undefined;
 var isBuiltin = p.builtin;
 var statusHtml, btnHtml;
 if(isBuiltin && isInstalled){
-  statusHtml='<span class="status-badge status-active">✅ 已激活</span>';
+  statusHtml=window.__t('<span class="status-badge status-active">✅ 已激活</span>');
   btnHtml='';
 }else if(isInstalled){
-  statusHtml='<span class="status-badge status-installed">📦 已安装</span>';
-  btnHtml='<button class="btn btn-danger" onclick="uninstallPlugin(&quot;'+p.name+'&quot;,this)">🗑 卸载</button>';
+  statusHtml=window.__t('<span class="status-badge status-installed">📦 已安装</span>');
+  btnHtml='<button class="btn btn-danger" onclick="uninstallPlugin(&quot;'+p.name+window.__t('&quot;,this)">🗑 卸载</button>');
 }else if(isBuiltin){
-  statusHtml='<span class="status-badge status-not-installed">🔒 内置</span>';
-  btnHtml='<button class="btn btn-primary" onclick="installPlugin(&quot;'+p.name+'&quot;,this)">⚡ 激活</button>';
+  statusHtml=window.__t('<span class="status-badge status-not-installed">🔒 内置</span>');
+  btnHtml='<button class="btn btn-primary" onclick="installPlugin(&quot;'+p.name+window.__t('&quot;,this)">⚡ 激活</button>');
 }else{
-  statusHtml='<span class="status-badge status-not-installed">📥 可安装</span>';
-  btnHtml='<button class="btn btn-primary" onclick="installPlugin(&quot;'+p.name+'&quot;,this)">📥 安装</button>';
+  statusHtml=window.__t('<span class="status-badge status-not-installed">📥 可安装</span>');
+  btnHtml='<button class="btn btn-primary" onclick="installPlugin(&quot;'+p.name+window.__t('&quot;,this)">📥 安装</button>');
 }
 var rating = p.rating || (3+(Math.random()*2)).toFixed(1);
 var downloads = p.downloads || Math.floor(Math.random()*5000+100);
@@ -253,30 +253,30 @@ return '<div class="card">'
 }).join('');
 var sel=document.getElementById('pluginCat');
 var cur=sel.value;
-sel.innerHTML='<option value="">📂 全部分类</option>'+d.categories.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join('');
+sel.innerHTML=window.__t('<option value="">📂 全部分类</option>')+d.categories.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join('');
 sel.value=cur;
-}catch(e){list.innerHTML='<div style="color:#f85149;padding:40px 20px;text-align:center;grid-column:1/-1"><div style="font-size:40px;margin-bottom:12px">❌</div>加载失败: '+e.message+'</div>'}
+}catch(e){list.innerHTML=window.__t('<div style="color:#f85149;padding:40px 20px;text-align:center;grid-column:1/-1"><div style="font-size:40px;margin-bottom:12px">❌</div>加载失败: ')+e.message+'</div>'}
 }
 
 // ── 安装插件 ──
 async function installPlugin(name,btn){
-btn.textContent='⏳ 安装中...';btn.disabled=true;
+btn.textContent=window.__t('⏳ 安装中...');btn.disabled=true;
 try{
 var r=await fetch('/api/plugins/install',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})});
-if(r.ok){_installed[name]={};showToast('✅ '+name+' 安装成功！','success');loadPlugins()}
-else{var d=await r.json();showToast('❌ '+(d.detail||'安装失败'),'error');btn.textContent='📥 安装';btn.disabled=false}
-}catch(e){showToast('❌ '+e.message,'error');btn.textContent='📥 安装';btn.disabled=false}
+if(r.ok){_installed[name]={};showToast('✅ '+name+window.__t(' 安装成功！'),'success');loadPlugins()}
+else{var d=await r.json();showToast('❌ '+(d.detail||'安装失败'),'error');btn.textContent=window.__t('📥 安装');btn.disabled=false}
+}catch(e){showToast('❌ '+e.message,'error');btn.textContent=window.__t('📥 安装');btn.disabled=false}
 }
 
 // ── 卸载插件 ──
 async function uninstallPlugin(name,btn){
-if(!confirm('确定要卸载 '+name+' 吗？此操作不可恢复。'))return;
-btn.textContent='⏳ 卸载中...';btn.disabled=true;
+if(!confirm(window.__t('确定要卸载 ')+name+window.__t(' 吗？此操作不可恢复。')))return;
+btn.textContent=window.__t('⏳ 卸载中...');btn.disabled=true;
 try{
 var r=await fetch('/api/plugins/uninstall',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})});
-if(r.ok){delete _installed[name];showToast('🗑 '+name+' 已卸载','success');loadPlugins();}
-else{var d=await r.json();showToast('❌ '+(d.detail||'卸载失败'),'error');btn.textContent='✅ 已安装';btn.disabled=false}
-}catch(e){showToast('❌ '+e.message,'error');btn.textContent='✅ 已安装';btn.disabled=false}
+if(r.ok){delete _installed[name];showToast('🗑 '+name+window.__t(' 已卸载'),'success');loadPlugins();}
+else{var d=await r.json();showToast('❌ '+(d.detail||'卸载失败'),'error');btn.textContent=window.__t('✅ 已安装');btn.disabled=false}
+}catch(e){showToast('❌ '+e.message,'error');btn.textContent=window.__t('✅ 已安装');btn.disabled=false}
 }
 
 // ── URL解析(预览) ──
@@ -287,37 +287,37 @@ if(!url){info.style.display='none';return}
 info.style.display='block';
 if(url.includes('github.com')){
   var m=url.match(/github\\.com\\/([^\\/]+)\\/([^\\/]+)/);
-  if(m){info.innerHTML='🔍 检测到 GitHub 仓库: <b>'+m[1]+'/'+m[2]+'</b> — 将自动克隆并安装';return}
+  if(m){info.innerHTML=window.__t('🔍 检测到 GitHub 仓库: <b>')+m[1]+'/'+m[2]+window.__t('</b> — 将自动克隆并安装');return}
 }
-if(url.endsWith('.zip')){info.innerHTML='📦 检测到 ZIP 文件 — 将下载并解压安装';return}
-info.innerHTML='🔗 将从该 URL 下载安装插件';
+if(url.endsWith('.zip')){info.innerHTML=window.__t('📦 检测到 ZIP 文件 — 将下载并解压安装');return}
+info.innerHTML=window.__t('🔗 将从该 URL 下载安装插件');
 }
 
 // ── URL安装 ──
 async function installFromUrl(){
 var url=document.getElementById('urlInput').value.trim();
-if(!url){showToast('⚠️ 请输入插件URL','error');return}
+if(!url){showToast(window.__t('⚠️ 请输入插件URL'),'error');return}
 var btn=event.target;
-btn.textContent='⏳ 解析中...';btn.disabled=true;
+btn.textContent=window.__t('⏳ 解析中...');btn.disabled=true;
 try{
 var r=await fetch('/api/plugins/install-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url})});
 var d=await r.json();
-if(r.ok){showToast('✅ 插件安装成功！','success');document.getElementById('urlInput').value='';document.getElementById('parsedInfo').style.display='none';loadInstalled();loadPlugins();}
+if(r.ok){showToast(window.__t('✅ 插件安装成功！'),'success');document.getElementById('urlInput').value='';document.getElementById('parsedInfo').style.display='none';loadInstalled();loadPlugins();}
 else{showToast('❌ '+(d.detail||d.message||'安装失败'),'error')}
 }catch(e){showToast('❌ '+e.message,'error')}
-btn.textContent='📥 安装';btn.disabled=false;
+btn.textContent=window.__t('📥 安装');btn.disabled=false;
 }
 
 // ── 社区推荐数据 ──
 var communityPlugins = [
-  {icon:'🌐',name:'Web Scraper Pro',desc:'智能网页抓取与内容提取插件，支持动态页面和反爬虫',author:'@scraper-dev',stars:4.8,downloads:3200,tag:'热门'},
-  {icon:'📊',name:'Data Analyzer',desc:'数据分析与可视化，支持 CSV/JSON/Parquet 格式',author:'@data-team',stars:4.6,downloads:1800,tag:'推荐'},
-  {icon:'🎨',name:'Image Generator',desc:'基于 Stable Diffusion 的图片生成插件',author:'@ai-artist',stars:4.5,downloads:2100,tag:'热门'},
-  {icon:'🔊',name:'Voice Assistant',desc:'语音输入/输出插件，支持中英文实时转写',author:'@voice-lab',stars:4.3,downloads:950,tag:'新'},
-  {icon:'📝',name:'Note Taker',desc:'会议记录自动摘要，支持导出 Markdown/PDF',author:'@productivity',stars:4.7,downloads:1600,tag:'推荐'},
-  {icon:'🛡️',name:'Security Guard',desc:'代码安全扫描与漏洞检测，集成 OWASP 规则',author:'@sec-team',stars:4.9,downloads:2800,tag:'热门'},
-  {icon:'🌍',name:'i18n Helper',desc:'多语言翻译辅助，支持 50+ 语言自动检测',author:'@locale-dev',stars:4.2,downloads:720,tag:''},
-  {icon:'🔗',name:'API Bridge',desc:'快速对接第三方 API，自动生成调用代码',author:'@api-guild',stars:4.4,downloads:1400,tag:'推荐'}
+  {icon:'🌐',name:'Web Scraper Pro',desc:window.__t('智能网页抓取与内容提取插件，支持动态页面和反爬虫'),author:'@scraper-dev',stars:4.8,downloads:3200,tag:window.__t('热门')},
+  {icon:'📊',name:'Data Analyzer',desc:window.__t('数据分析与可视化，支持 CSV/JSON/Parquet 格式'),author:'@data-team',stars:4.6,downloads:1800,tag:window.__t('推荐')},
+  {icon:'🎨',name:'Image Generator',desc:window.__t('基于 Stable Diffusion 的图片生成插件'),author:'@ai-artist',stars:4.5,downloads:2100,tag:window.__t('热门')},
+  {icon:'🔊',name:'Voice Assistant',desc:window.__t('语音输入/输出插件，支持中英文实时转写'),author:'@voice-lab',stars:4.3,downloads:950,tag:window.__t('新')},
+  {icon:'📝',name:'Note Taker',desc:window.__t('会议记录自动摘要，支持导出 Markdown/PDF'),author:'@productivity',stars:4.7,downloads:1600,tag:window.__t('推荐')},
+  {icon:'🛡️',name:'Security Guard',desc:window.__t('代码安全扫描与漏洞检测，集成 OWASP 规则'),author:'@sec-team',stars:4.9,downloads:2800,tag:window.__t('热门')},
+  {icon:'🌍',name:'i18n Helper',desc:window.__t('多语言翻译辅助，支持 50+ 语言自动检测'),author:'@locale-dev',stars:4.2,downloads:720,tag:''},
+  {icon:'🔗',name:'API Bridge',desc:window.__t('快速对接第三方 API，自动生成调用代码'),author:'@api-guild',stars:4.4,downloads:1400,tag:window.__t('推荐')}
 ];
 
 function renderCommunity(){
@@ -328,7 +328,7 @@ grid.innerHTML=communityPlugins.map(function(p){
     +'<div class="cc-name">'+p.name+(p.tag?' <span class="status-badge status-coming" style="margin-left:4px">'+p.tag+'</span>':'')+'</div>'
     +'<div class="cc-desc">'+p.desc+'</div>'
     +renderStars(p.stars,p.downloads)
-    +'<div class="cc-meta"><span>👤 '+p.author+'</span><span class="status-badge status-coming">即将上线</span></div>'
+    +'<div class="cc-meta"><span>👤 '+p.author+window.__t('</span><span class="status-badge status-coming">即将上线</span></div>')
     +'</div>';
 }).join('');
 }
