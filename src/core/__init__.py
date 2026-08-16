@@ -13,13 +13,17 @@ from functools import lru_cache
 from types import ModuleType
 
 # ═══════════════ meshctx-core 检测 (P0-4, codex 审计) ═══════════════
-# 启动时检查私有核心是否安装, 未安装则给出明确告警
+# 一体安装铁律(2026-08-16): 开源+闭源是一个整体产品, 安装时闭源真实核心模块
+# 直接落地到 src/core/。完整版判定: import meshctx_core 成功, 或闭源独有模块
+# (desktop_tool 等) 文件已落地。
 try:
     import meshctx_core  # noqa: F401
     _HAS_MESHCTX_CORE = True
 except ImportError:
-    _HAS_MESHCTX_CORE = False
-    if not os.environ.get('MESHCTX_QUIET', ''):
+    _HAS_MESHCTX_CORE = os.path.exists(
+        os.path.join(os.path.dirname(__file__), 'desktop_tool.py')
+    )
+    if not _HAS_MESHCTX_CORE and not os.environ.get('MESHCTX_QUIET', ''):
         warnings.warn(
             "meshctx running in STUB mode: meshctx-core (private) NOT installed. "
             "高级能力将优雅降级。安装完整版: pip install meshctx-core (需授权)。",
@@ -232,6 +236,14 @@ def __getattr__(name):
             except (ImportError, AttributeError):
                 globals()[name] = _stub
                 return _stub
+    # 一体安装: 闭源独有模块(desktop_tool 等)以真实文件落地在 src/core/ 下,
+    # 先按文件名导入 src.core.{name}, 失败再回退 meshctx_core 兼容包
+    try:
+        mod = __import__(f'src.core.{name}', fromlist=['__name__'])
+        globals()[name] = mod
+        return mod
+    except ImportError:
+        pass
     try:
         mod = __import__('meshctx_core.core', fromlist=[name])
         attr = getattr(mod, name, _stub)

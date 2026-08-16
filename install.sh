@@ -758,16 +758,9 @@ if [ -n "$CORE_TOKEN" ] && command -v git >/dev/null 2>&1; then
         git -c http.proxy="$MESHCTX_GIT_PROXY" -c https.proxy="$MESHCTX_GIT_PROXY" clone --depth 1 "https://${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" "${CORE_TMP}/core" >/dev/null 2>&1 && CORE_CLONE_OK=1
     fi
     if [ "$CORE_CLONE_OK" = "1" ]; then
-        # 真实核心算法模块落地到 src/core（开源 __init__ 的 stub 路由自动识别并启用完整版）
-        cp -rf "${CORE_TMP}/core/src/core/." "${INSTALL_DIR}/src/core/" 2>/dev/null || true
-        # 兼容包 meshctx_core：让 import meshctx_core 成功，运行时识别为完整版（不再 STUB 提示）
-        mkdir -p "${INSTALL_DIR}/meshctx_core"
-        if [ -f "${CORE_TMP}/core/src/__init__.py" ]; then
-            cp -f "${CORE_TMP}/core/src/__init__.py" "${INSTALL_DIR}/meshctx_core/__init__.py"
-        else
-            printf '"""meshctx-core 闭源核心 (一体安装)"""\n' > "${INSTALL_DIR}/meshctx_core/__init__.py"
-        fi
-        ln -sfn "${INSTALL_DIR}/src/core" "${INSTALL_DIR}/meshctx_core/core"
+        # 真实核心算法模块落地到 src/core（保留开源 __init__.py 的 stub 路由,
+        # 闭源业务模块覆盖同名 stub + 补入闭源独有模块, 检测逻辑按 desktop_tool.py 落地判定完整版）
+        find "${CORE_TMP}/core/src/core" -maxdepth 1 -name '*.py' ! -name '__init__.py' -exec cp -f {} "${INSTALL_DIR}/src/core/" \;
         echo -e "  ${GREEN}✓${NC} 闭源核心已一体安装（完整版）"
     else
         echo -e "  ${YELLOW}⚠${NC} 闭源核心拉取失败（token/网络），本次为开源 stub 模式"
