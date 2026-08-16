@@ -3612,13 +3612,22 @@ function refreshProjectIndex(){
 
 # ── DictLoader 初始化 ───────────────────────────────────────────
 from src.i18n import t as i18n_t, get_lang as i18n_get_lang, TRANSLATIONS as i18n_translations, LANGUAGES, LANGUAGE_CODES
-_jinja_env = Environment(loader=ChoiceLoader([
-    # 内嵌模板(DictLoader)优先: 它是运行时权威版本, 且 PyInstaller 打包时只有它。
-    # 若 FileSystemLoader 在前, 磁盘上的旧 templates/*.html 会覆盖内嵌模板,
-    # 导致 web_ui.py 里的修复(如 i18n)不生效。(2026-08-16 实测踩坑)
-    DictLoader(_TEMPLATES),
-    FileSystemLoader(os.path.join(os.path.dirname(__file__), '..', 'templates')),
-]), autoescape=False)
+# 内嵌模板(DictLoader)默认优先: 它是运行时权威版本, 且 PyInstaller 打包时只有它。
+# 若 FileSystemLoader 在前, 磁盘上的旧 templates/*.html 会覆盖内嵌模板,
+# 导致 web_ui.py 里的修复(如 i18n)不生效。(2026-08-16 实测踩坑)
+# 设置 MESHCTX_CUSTOM_TEMPLATES=1 可恢复 FileSystemLoader 优先(用户自定义模板能力)。
+_CUSTOM_TEMPLATES = os.environ.get('MESHCTX_CUSTOM_TEMPLATES', '').strip() in ('1', 'true', 'yes')
+if _CUSTOM_TEMPLATES:
+    _template_loaders = [
+        FileSystemLoader(os.path.join(os.path.dirname(__file__), '..', 'templates')),
+        DictLoader(_TEMPLATES),
+    ]
+else:
+    _template_loaders = [
+        DictLoader(_TEMPLATES),
+        FileSystemLoader(os.path.join(os.path.dirname(__file__), '..', 'templates')),
+    ]
+_jinja_env = Environment(loader=ChoiceLoader(_template_loaders), autoescape=False)
 _jinja_env.globals['t'] = i18n_t
 _jinja_env.globals['lang'] = i18n_get_lang
 
