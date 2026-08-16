@@ -169,10 +169,10 @@ async function loadSystemDashboard() {
     var r = await fetch('/api/system/status');
     var d = await r.json();
     var s = '';
-    s += sysCard('版本', d.version, 'purple');
-    s += sysCard('模型', d.models.configured+'/'+d.models.builtin, 'green');
-    s += sysCard('插件', d.plugins.available, 'yellow');
-    s += sysCard('会话', d.sessions.total, 'green');
+    s += sysCard(window.__t('版本'), d.version, 'purple');
+    s += sysCard(window.__t('模型'), d.models.configured+'/'+d.models.builtin, 'green');
+    s += sysCard(window.__t('插件'), d.plugins.available, 'yellow');
+    s += sysCard(window.__t('会话'), d.sessions.total, 'green');
     s += sysCard('Python', d.server.python, 'purple');
     document.getElementById('sysStats').innerHTML = s;
 

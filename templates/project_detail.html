@@ -12,7 +12,7 @@
             <span class="badge badge-{{ project.status }}">{{ project.status }}</span>
             <form method="POST" action="/ui/projects/{{ project.id }}/delete"
                   onsubmit="return confirm((LANG[currentLang()]||{}).project_detail_delete_confirm||'Delete this project?')">
-                <button type="submit" class="btn btn-danger">🗑 <span data-lang-key="delete">删除</span></button>
+                <button type="submit" class="btn btn-danger">🗑 <span data-lang-key="delete">{{ t('删除') }}</span></button>
             </form>
         </div>
     </div>
@@ -22,7 +22,7 @@
 <div class="card continuity-card"
      style="border-left: 4px solid {{ continuity_color(continuity.continuity_score) }}">
     <div class="continuity-header">
-        <h3 data-lang-key="project_detail_continuity">📊 连续性检测</h3>
+        <h3 data-lang-key="project_detail_continuity">{{ t('📊 连续性检测') }}</h3>
         <div class="continuity-score" style="color:{{ continuity_color(continuity.continuity_score) }}">
             <span class="score-big">{{ "%.0f"|format(continuity.continuity_score * 100) }}%</span>
             <span class="score-label">{{ continuity_label(continuity.continuity_score) }}</span>
@@ -30,23 +30,23 @@
     </div>
     <div class="continuity-details">
         <div class="cont-item">
-            <span class="cont-label" data-lang-key="project_detail_sessions">会话数</span>
+            <span class="cont-label" data-lang-key="project_detail_sessions">{{ t('会话数') }}</span>
             <span class="cont-value">{{ continuity.conversation_count }}</span>
         </div>
         <div class="cont-item">
-            <span class="cont-label" data-lang-key="project_detail_memories">记忆数</span>
+            <span class="cont-label" data-lang-key="project_detail_memories">{{ t('记忆数') }}</span>
             <span class="cont-value">{{ continuity.memory_count }}</span>
         </div>
         <div class="cont-item">
-            <span class="cont-label" data-lang-key="project_detail_active_sessions">活跃会话</span>
+            <span class="cont-label" data-lang-key="project_detail_active_sessions">{{ t('活跃会话') }}</span>
             <span class="cont-value">{{ continuity.active_session_count }}</span>
         </div>
         <div class="cont-item">
-            <span class="cont-label" data-lang-key="project_detail_total_sessions">总会话</span>
+            <span class="cont-label" data-lang-key="project_detail_total_sessions">{{ t('总会话') }}</span>
             <span class="cont-value">{{ continuity.total_session_count }}</span>
         </div>
         <div class="cont-item">
-            <span class="cont-label" data-lang-key="project_detail_last_activity">最近活动</span>
+            <span class="cont-label" data-lang-key="project_detail_last_activity">{{ t('最近活动') }}</span>
             <span class="cont-value">{{ format_dt(continuity.last_active) }}</span>
         </div>
     </div>
@@ -55,7 +55,7 @@
 <!-- 会话列表 -->
 <div class="section">
     <div class="section-header">
-        <h2 data-lang-key="project_detail_conversations">💬 会话列表</h2>
+        <h2 data-lang-key="project_detail_conversations">{{ t('💬 会话列表') }}</h2>
         <span>({{ conversations|length }})</span>
     </div>
 
@@ -64,11 +64,11 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th data-lang-key="project_detail_conv_title">标题</th>
-                    <th data-lang-key="project_detail_conv_messages">消息数</th>
-                    <th data-lang-key="project_detail_conv_active">活跃会话</th>
-                    <th data-lang-key="project_detail_conv_updated">更新时间</th>
-                    <th data-lang-key="project_detail_conv_actions">操作</th>
+                    <th data-lang-key="project_detail_conv_title">{{ t('标题') }}</th>
+                    <th data-lang-key="project_detail_conv_messages">{{ t('消息数') }}</th>
+                    <th data-lang-key="project_detail_conv_active">{{ t('活跃会话') }}</th>
+                    <th data-lang-key="project_detail_conv_updated">{{ t('更新时间') }}</th>
+                    <th data-lang-key="project_detail_conv_actions">{{ t('操作') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -92,7 +92,7 @@
                     </td>
                     <td class="text-sm">{{ format_dt(c.conversation.updated_at) }}</td>
                     <td>
-                        <a href="/ui/conversations/{{ c.conversation.id }}" class="btn btn-xs" data-lang-key="project_detail_view_btn">查看</a>
+                        <a href="/ui/conversations/{{ c.conversation.id }}" class="btn btn-xs" data-lang-key="project_detail_view_btn">{{ t('查看') }}</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -100,14 +100,14 @@
         </table>
     </div>
     {% else %}
-    <div class="empty-state"><p data-lang-key="project_detail_no_sessions">暂无会话</p></div>
+    <div class="empty-state"><p data-lang-key="project_detail_no_sessions">{{ t('暂无会话') }}</p></div>
     {% endif %}
 </div>
 
 <!-- 记忆列表 -->
 <div class="section">
     <div class="section-header">
-        <h2 data-lang-key="project_detail_memories_section">🧠 项目记忆</h2>
+        <h2 data-lang-key="project_detail_memories_section">{{ t('🧠 项目记忆') }}</h2>
         <span>({{ memories|length }})</span>
     </div>
 
@@ -118,14 +118,14 @@
             <div class="memory-item-key">{{ mem.key }}</div>
             <div class="memory-item-value">{{ truncate(mem.value, 120) }}</div>
             <div class="memory-item-meta">
-                <span><span data-lang-key="project_detail_importance">重要性:</span> {{ "%.0f"|format(mem.importance * 100) }}%</span>
+                <span><span data-lang-key="project_detail_importance">{{ t('重要性:') }}</span> {{ "%.0f"|format(mem.importance * 100) }}%</span>
                 <span>{{ format_dt(mem.created_at) }}</span>
             </div>
         </div>
         {% endfor %}
     </div>
     {% else %}
-    <div class="empty-state"><p data-lang-key="project_detail_no_memories">暂无记忆</p></div>
+    <div class="empty-state"><p data-lang-key="project_detail_no_memories">{{ t('暂无记忆') }}</p></div>
     {% endif %}
 </div>
 
@@ -133,17 +133,17 @@
 {% if agent_sessions %}
 <div class="section">
     <div class="section-header">
-        <h2 data-lang-key="project_detail_agent_sessions">🤖 Agent 会话</h2>
+        <h2 data-lang-key="project_detail_agent_sessions">{{ t('🤖 Agent 会话') }}</h2>
         <span>({{ agent_sessions|length }})</span>
     </div>
     <div class="table-container">
         <table class="data-table">
             <thead>
                 <tr>
-                    <th data-lang-key="project_detail_agent_id">会话ID</th>
+                    <th data-lang-key="project_detail_agent_id">{{ t('会话ID') }}</th>
                     <th data-lang-key="project_detail_agent_name">Agent</th>
-                    <th data-lang-key="project_detail_agent_start">开始时间</th>
-                    <th data-lang-key="project_detail_agent_end">结束时间</th>
+                    <th data-lang-key="project_detail_agent_start">{{ t('开始时间') }}</th>
+                    <th data-lang-key="project_detail_agent_end">{{ t('结束时间') }}</th>
                     <th>{{ t('project_status') }}</th>
                 </tr>
             </thead>
@@ -156,9 +156,9 @@
                     <td class="text-sm">{{ format_dt(s.ended_at) }}</td>
                     <td>
                         {% if s.ended_at %}
-                        <span class="badge badge-archived" data-lang-key="project_detail_ended">已结束</span>
+                        <span class="badge badge-archived" data-lang-key="project_detail_ended">{{ t('已结束') }}</span>
                         {% else %}
-                        <span class="badge badge-active" data-lang-key="project_detail_active_status">活跃</span>
+                        <span class="badge badge-active" data-lang-key="project_detail_active_status">{{ t('活跃') }}</span>
                         {% endif %}
                     </td>
                 </tr>
