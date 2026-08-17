@@ -1076,8 +1076,7 @@ async function send() {
             // 在消息区插入 diff 预览卡片
             var diffCard = document.createElement('div');
             diffCard.style.cssText = 'margin:8px 0;background:#0a1628;border:1px solid #6366f1;border-radius:10px;overflow:hidden;';
-            diffCard.innerHTML = '<div style="background:#1e1b4b;padding:6px 14px;font-size:12px;color:#a5b4fc;display:flex;justify-content:space-between;align-items:center;"><span>📊 Diff: <b>' + file1 + '</b> ←→ <b>' + file2 + '</b> (' + diffData.hunks + ' hunks)</span><span style="font-size:10px;color:#818cf8;cursor:pointer;" onclick="this.parentElement.nextElementSibling.style.display=this.parentElement.nextElementSibling.style.display==\'none\'?\'\':\'none\';this.textContent=this.parentElement.nextElementSibling.style.display==\'none\'?\'展开 ▸\':\'收起 ▾\window.__t('">收起 ▾</span></div><div style="max-height:400px;overflow-y:auto;padding:4px;">') + diffData.html + '</div>';
-            document.getElementById('messages').appendChild(diffCard);
+            diffCard.innerHTML = '<div style="background:#1e1b4b;padding:6px 14px;font-size:12px;color:#a5b4fc;display:flex;justify-content:space-between;align-items:center;"><span>📊 Diff: <b>' + file1 + '</b> ←→ <b>' + file2 + '</b> (' + diffData.hunks + ' hunks)</span><span style="font-size:10px;color:#818cf8;cursor:pointer;" onclick="this.parentElement.nextElementSibling.style.display=this.parentElement.nextElementSibling.style.display==\'none\'?\'\':\'none\';this.textContent=this.parentElement.nextElementSibling.style.display==\'none\'?\'展开 ▸\':\'收起 ▾\'">收起 ▾</span></div><div style="max-height:400px;overflow-y:auto;padding:4px;">' + diffData.html + '</div>';            document.getElementById('messages').appendChild(diffCard);
             document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
             // 发送给 AI 分析
             var diffBlock = '[Diff: ' + file1 + ' ←→ ' + file2 + ' (' + diffData.hunks + ' hunks)]';
@@ -1399,8 +1398,7 @@ async function runCodeBlock(code, lang, preEl){
   // 创建输出区域
   var output = document.createElement('div');
   output.className = 'code-output';
-  output.innerHTML = window.__t('<div class="code-output-header"><span>▶ 输出</span><button class="output-toggle" onclick="this.parentNode.nextSibling.classList.toggle(\')collapsed\');this.textContent=this.textContent===\'展开\'?\'收起\':\'展开\window.__t('">收起</button></div><pre class="code-output-body" style="margin:0;padding:8px;white-space:pre-wrap;word-break:break-all;max-height:400px;overflow-y:auto;">⏳ 执行中...</pre>');
-  wrapper.appendChild(output);
+  output.innerHTML = '<div class="code-output-header"><span>▶ 输出</span><button class="output-toggle" onclick="this.parentNode.nextSibling.classList.toggle(\'collapsed\');this.textContent=this.textContent===\'展开\'?\'收起\':\'展开\'">收起</button></div><pre class="code-output-body" style="margin:0;padding:8px;white-space:pre-wrap;word-break:break-all;max-height:400px;overflow-y:auto;">⏳ 执行中...</pre>';  wrapper.appendChild(output);
   
   var outBody = output.querySelector('.code-output-body');
   var startTime = Date.now();
@@ -3202,8 +3200,7 @@ function viewSession(sid){
       html += '<div style="color:#cbd5e1;">'+content+'</div>';
       html += '</div>';
     });
-    html += '<button onclick="document.getElementById(\'sessionDetail\').innerHTML=\'\window.__t('" style="margin-top:10px;background:#334155;color:#e2e8f0;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;">关闭</button>');
-    html += '</div>';
+    html += '<button onclick="document.getElementById(\'sessionDetail\').innerHTML=\'\'" style="margin-top:10px;background:#334155;color:#e2e8f0;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;">关闭</button>';    html += '</div>';
     var detail = document.getElementById('sessionDetail');
     if(!detail){
       detail = document.createElement('div');
@@ -4437,139 +4434,6 @@ brew install meshctx</pre>
 
 
 # ── Chat 页面模板 ────────────────────────────────────────────
-
-_TEMPLATES["chat.html"] = r"""{% extends "base.html" %}
-{% block content %}
-<style>
-.chat-card {
-  background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
-  display: flex; flex-direction: column; height: calc(100vh - 140px); min-height: 400px;
-  overflow: hidden;
-}
-.chat-messages {
-  flex: 1; overflow-y: auto; padding: 16px 20px;
-  display: flex; flex-direction: column; gap: 12px;
-}
-.chat-input-area {
-  border-top: 1px solid var(--border); padding: 12px 16px;
-  display: flex; gap: 8px; align-items: flex-end;
-}
-.chat-input-area textarea {
-  flex: 1; background: var(--bg); color: var(--text);
-  border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px;
-  font-size: 14px; font-family: inherit; resize: none; min-height: 44px; max-height: 150px;
-  outline: none; line-height: 1.5;
-}
-.chat-input-area textarea:focus { border-color: var(--accent); }
-.msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.55; word-break: break-word; }
-.msg.user { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
-.msg.assistant { align-self: flex-start; background: var(--surface); color: var(--text); border-bottom-left-radius: 4px; }
-.msg pre { background: #0f172a; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; font-size: 12px; }
-.msg code { font-size: 12px; background: rgba(108,92,231,0.2); padding: 2px 5px; border-radius: 3px; }
-.empty-chat { text-align: center; color: var(--muted); padding: 60px 20px; }
-.empty-chat h2 { font-size: 24px; margin-bottom: 8px; }
-.empty-chat p { font-size: 14px; }
-</style>
-<div class="chat-card">
-  <div class="chat-messages" id="chatMessages">
-    <div class="empty-chat">
-      <h2>💬 meshctx Chat</h2>
-      <p>{{ t('输入消息开始对话') }}</p>
-    </div>
-  </div>
-  <div class="chat-input-area">
-    <textarea id="userInput" rows="1" placeholder="{{ t('输入消息... (Enter 发送, Shift+Enter 换行)') }}"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"
-          oninput="this.style.height='';this.style.height=Math.min(this.scrollHeight,150)+'px';"></textarea>
-    <button onclick="send()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;
-          padding:10px 18px;cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap;">{{ t("send") }}</button>
-  </div>
-</div>
-<script>
-var _convId = null;
-var _projectId = null;
-var _msgContainer = document.getElementById('chatMessages');
-var _emptyState = _msgContainer.querySelector('.empty-chat');
-
-function addMessage(role, content) {
-  if (_emptyState) { _emptyState.remove(); _emptyState = null; }
-  var el = document.createElement('div');
-  el.className = 'msg ' + role;
-  el.textContent = content;
-  _msgContainer.appendChild(el);
-  _msgContainer.scrollTop = _msgContainer.scrollHeight;
-  _chatLog.push({role: role, content: content});
-  _saveChatLog();
-  return el;
-}
-
-// ── 会话持久化 (修复: 跳转/后退后历史丢失) ──
-var _chatTab = localStorage.getItem('meshctx_active_tab') || 'default';
-var _chatLog = [];
-function _saveChatLog() {
-  try { localStorage.setItem('meshctx_chat_' + _chatTab, JSON.stringify(_chatLog)); } catch(e) {}
-}
-function _restoreChatLog() {
-  try {
-    var saved = JSON.parse(localStorage.getItem('meshctx_chat_' + _chatTab) || '[]');
-    if (!saved.length) return;
-    _chatLog = saved;
-    saved.forEach(function(m) {
-      if (_emptyState) { _emptyState.remove(); _emptyState = null; }
-      var el = document.createElement('div');
-      el.className = 'msg ' + m.role;
-      el.textContent = m.content;
-      _msgContainer.appendChild(el);
-    });
-    _msgContainer.scrollTop = _msgContainer.scrollHeight;
-  } catch(e) {}
-}
-_restoreChatLog();
-
-async function send() {
-  var input = document.getElementById('userInput');
-  var text = input.value.trim();
-  if (!text) return;
-  input.value = ''; input.style.height = '';
-  addMessage('user', text);
-  
-  try {
-    var res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        message: text,
-        project_id: _projectId || null,
-        conversation_id: _convId || null
-      })
-    });
-    var data = await res.json();
-    if (data.error) {
-      addMessage('assistant', '⚠️ ' + data.error);
-    } else {
-      if (!_convId) _convId = data.conversation_id;
-      if (!_projectId) _projectId = data.project_id;
-      addMessage('assistant', data.response || data.content || '(empty response)');
-    }
-  } catch (err) {
-    addMessage('assistant', '⚠️ 网络错误: ' + err.message);
-  }
-}
-
-// v1.5.9: Desktop快速提问监听
-window.addEventListener('message', function(e){
-  var d = e.data;
-  if(d && d.type === 'meshctx-quick-ask' && d.message){
-    document.getElementById('userInput').value = d.message;
-    send();
-  }
-});
-</script>
-{% endblock %}
-"""
-
-
-# ── 模型列表页面 ────────────────────────────────────────────
 
 _TEMPLATES["models_list.html"] = r"""{% extends "base.html" %}
 {% block content %}
