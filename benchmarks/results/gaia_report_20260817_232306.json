@@ -3,26 +3,27 @@
   "version": "2026",
   "summary": {
     "total_tasks": 8,
-    "correct": 1,
-    "incorrect": 7,
-    "accuracy": 0.125,
+    "correct": 3,
+    "incorrect": 5,
+    "accuracy": 0.375,
     "exact_match_rate": 0.125,
-    "avg_f1": 0.2146
+    "avg_f1": 0.2582,
+    "note": "2026-08-17 评分器增强(实体匹配+核心答案提取)后重评: agent 内容正确但格式不同不再误判"
   },
   "by_level": {
     "1": {
       "total": 3,
-      "correct": 1,
+      "correct": 2,
       "exact_match": 1,
-      "accuracy": 0.3333,
-      "avg_f1": 0.4841
+      "accuracy": 0.6667,
+      "avg_f1": 0.4737
     },
     "2": {
       "total": 3,
-      "correct": 0,
+      "correct": 1,
       "exact_match": 0,
-      "accuracy": 0.0,
-      "avg_f1": 0.0881
+      "accuracy": 0.3333,
+      "avg_f1": 0.2149
     },
     "3": {
       "total": 2,
@@ -38,11 +39,11 @@
       "level": 1,
       "level_label": "Level 1 — 基础信息检索与推理",
       "answer_type": "text",
-      "correct": false,
+      "correct": true,
       "exact_match": false,
       "normalized_match": false,
-      "f1_score": 0.4523,
-      "similarity": 0.1558,
+      "f1_score": 0.4211,
+      "similarity": 0.381,
       "agent": {
         "raw_answer": "搜索英文结果不佳，让我用更精确的英文关键词再搜索。搜索引擎返回结果不佳，让我直接抓取诺贝尔奖官网或维基百科的权威信息。我已经从诺贝尔奖官网获取到权威信息。2024年诺贝尔物理学奖授予了 John J. Hopfield 和 Geoffrey Hinton，因为他们在\"利用人工神经网络实现机器学习的基础性发现和发明\"方面做出了贡献。\n\n答案: 2024年诺贝尔物理学奖授予了约翰·J·霍普菲尔德（John J. Hopfield）和杰弗里·辛顿（Geoffrey Hinton），以表彰他们在\"利用人工神经网络实现机器学习的基础性发现和发明\"方面的贡献。",
         "elapsed_seconds": 9.93,
@@ -50,7 +51,8 @@
         "timed_out": false,
         "output_length": 4196
       },
-      "ground_truth": "John Hopfield 和 Geoffrey Hinton，人工神经网络和机器学习"
+      "ground_truth": "John Hopfield 和 Geoffrey Hinton，人工神经网络和机器学习",
+      "entity_match": true
     },
     {
       "task_id": "gaia__l1__002",
@@ -61,7 +63,7 @@
       "exact_match": false,
       "normalized_match": false,
       "f1_score": 0.0,
-      "similarity": 0.1,
+      "similarity": 0.0,
       "agent": {
         "raw_answer": "Python 编程语言的官方吉祥物是\"蛇\"（蟒蛇），名字叫 **Monty**。\n\n答案: Monty",
         "elapsed_seconds": 2.75,
@@ -69,7 +71,8 @@
         "timed_out": false,
         "output_length": 640
       },
-      "ground_truth": "没有官方吉祥物"
+      "ground_truth": "没有官方吉祥物",
+      "entity_match": false
     },
     {
       "task_id": "gaia__l1__003",
@@ -80,7 +83,7 @@
       "exact_match": true,
       "normalized_match": true,
       "f1_score": 1.0,
-      "similarity": 0.6,
+      "similarity": 1.0,
       "agent": {
         "raw_answer": "答案: 299792",
         "elapsed_seconds": 2.39,
@@ -88,7 +91,8 @@
         "timed_out": false,
         "output_length": 566
       },
-      "ground_truth": "299792"
+      "ground_truth": "299792",
+      "entity_match": true
     },
     {
       "task_id": "gaia__l2__001",
@@ -98,8 +102,8 @@
       "correct": false,
       "exact_match": false,
       "normalized_match": false,
-      "f1_score": 0.1026,
-      "similarity": 0.0096,
+      "f1_score": 0.4,
+      "similarity": 0.0625,
       "agent": {
         "raw_answer": "我需要查找太阳系中卫星数量最多的行星以及截至2025年已确认的卫星数量。让我搜索最新信息。搜索返回了无关结果。让我用更精确的英文关键词搜索。让我抓取 NASA 关于土星卫星的页面获取准确数据。NASA 页面提供了关键信息。页面显示：\n\n- \"Saturn has **293 confirmed moons** in its orbit as of August 2026\"\n- \"In March 2025, astronomers confirmed the discovery of **128 small moons** around Saturn\"\n- 表格标题显示 \"**274** Known Natural Satellites of Saturn\"（已命名的卫星，即 IAU 编号）\n\n问题问的是\"截至2025年有多少颗已确认的卫星\"。让我分析一下：\n\n2025年3月，天文学家确认了128颗新卫星，使土星卫星总数达到274颗。这发生在2025年。所以截至2025年，土星有 **274** 颗已确认的卫星。\n\nNASA 页面确认：\n- 2025年3月确认128颗新卫星，总数达到274颗\n- 截至2026年8月为293颗（后来又有新增）\n\n问题问的是\"截至2025年\"，所以答案是 **274** 颗（2025年3月确认128颗新卫星后的总数）。\n\n土星是太阳系中卫星数量最多的行星。\n\n**答案: 土星（Saturn），274颗已确认卫星**",
         "elapsed_seconds": 11.0,
@@ -107,18 +111,19 @@
         "timed_out": false,
         "output_length": 6362
       },
-      "ground_truth": "土星，274"
+      "ground_truth": "土星，274",
+      "entity_match": false
     },
     {
       "task_id": "gaia__l2__002",
       "level": 2,
       "level_label": "Level 2 — 多步推理与工具使用",
       "answer_type": "text",
-      "correct": false,
+      "correct": true,
       "exact_match": false,
       "normalized_match": false,
-      "f1_score": 0.0488,
-      "similarity": 0.0344,
+      "f1_score": 0.0909,
+      "similarity": 0.1975,
       "agent": {
         "raw_answer": "搜索不够精确，让我用更具体的英文关键词搜索。让我获取更详细的信息，确认尼罗河的长度和流经的国家。让我搜索更精确的信息。搜索效果不佳。让我尝试用更精确的关键词。搜索引擎效果不好。让我尝试用 browser_navigate 直接访问维基百科。网络无法直接访问维基百科。让我尝试其他搜索方式。基于我对世界地理的可靠知识，我可以直接回答这个问题。\n\n世界上最长的河流是**尼罗河（Nile River）**。其长度为 **6,650 公里**（约 4,132 英里），流经 **11 个国家**：布隆迪、刚果（金）、卢旺达、坦桑尼亚、乌干达、肯尼亚、埃塞俄比亚、厄立特里亚、南苏丹、苏丹和埃及。\n\n> 注：关于\"最长河流\"存在一定争议，亚马逊河（Amazon）在某些测量标准下（包括支流源头）长度可达约 6,400–7,000 公里，但传统上公认尼罗河为世界最长河流。\n\n答案: 尼罗河，长度 6,650 公里，流经 11 个国家和地区（布隆迪、刚果民主共和国、卢旺达、坦桑尼亚、乌干达、肯尼亚、埃塞俄比亚、厄立特里亚、南苏丹、苏丹、埃及）。",
         "elapsed_seconds": 32.21,
@@ -126,7 +131,8 @@
         "timed_out": false,
         "output_length": 7037
       },
-      "ground_truth": "尼罗河，6650公里，11个国家"
+      "ground_truth": "尼罗河，6650公里，11个国家",
+      "entity_match": true
     },
     {
       "task_id": "gaia__l2__003",
@@ -136,8 +142,8 @@
       "correct": false,
       "exact_match": false,
       "normalized_match": false,
-      "f1_score": 0.1129,
-      "similarity": 0.0094,
+      "f1_score": 0.1538,
+      "similarity": 0.1409,
       "agent": {
         "raw_answer": "I'll research this question about the first Rust driver merged into the Linux kernel.The search didn't return relevant results. Let me try a more specific search.The search engine isn't returning good results. Let me try web_extract on a known article about the first Rust driver.The search engine keeps returning irrelevant results. Let me try browsing a known article directly.The search engine is having trouble. Let me try browsing a known article about the first Rust driver in the Linux kernel. I recall the first Rust driver merged was the Apple Silicon GPU (AGX) driver by Asahi Linux, merged in kernel 6.1. Let me verify with a direct article.The Wikipedia article on Rust for Linux gives me important information. Let me analyze this carefully.\n\nThe Wikipedia article states:\n- \"In December 2023, the first drivers written in Rust were accepted, and released in kernel version 6.8.\"\n- The ASIX AX88772A and Realtek Generic FE-GE physical layer network drivers were the first Rust-written drivers merged, in Linux 6.8.\n- The Apple Silicon AGX GPU DRM driver (Asahi Linux) is also a notable Rust driver but it's separate.\n\nThe question asks: \"Linux 内核中第一个用 Rust 语言编写的驱动程序是在哪个版本合并的？该驱动程序用于什么硬件？\"\n\nThe first Rust-written device driver merged into the Linux kernel was the network PHY drivers (ASIX AX88772A and Realtek FE-GE) merged in kernel 6.8.\n\nWait, but there's some ambiguity. Let me think about this. The question asks about \"the first driver written in Rust\". \n\nActually, there's nuance here. Linux 6.1 merged the Rust infrastructure (the \"Rust support\" framework) but not a driver. The first actual driver written in Rust was merged in Linux 6.8 - these were the network PHY drivers (ASIX AX88772A and Realtek Generic FE-GE).\n\nLet me verify this with additional sources to be certain. The Phoronix article \"The First Rust-Written Network PHY Driver Set To Land In Linux 6.8\" confirms this.\n\nSo the answer:\n- Version: Linux 6.8\n- Hardware: network PHY (physical layer) devices - specifically ASIX AX88772A and Realtek Generic FE-GE network PHY chips\n\nLet me confirm the exact hardware. The first Rust drivers were the network PHY drivers. Let me verify the specific hardware.\n\nThe ASIX AX88772A is a USB Ethernet controller (USB-to-Ethernet adapter). The Realtek FE-GE (Fast Ethernet to Gigabit Ethernet) PHY.\n\nActually let me reconsider. The question asks about \"第一个用 Rust 语言编写的驱动程序\". The first Rust driver merged in the kernel was the network PHY driver for ASIX AX88772A and Realtek FE-GE.\n\nLet me provide the answer. The first Rust-written driver was merged in Linux 6.8, and it was for network PHY hardware (physical layer) devices - specifically the ASIX AX88772A and Realtek FE-GE network PHY chips.\n\nLet me verify with a bit more detail to be precise about the hardware.The Phoronix page didn't give me the specific article content. However, I have enough information from the Wikipedia article. Let me confirm the key facts:\n\n1. The Rust infrastructure was merged in Linux 6.1 (October 2022)\n2. The **first drivers written in Rust** were accepted in December 2023 and released in kernel version 6.8 (March 2024)\n3. These first Rust drivers were the **network PHY drivers** for ASIX AX88772A and Realtek Generic FE-GE physical layer chips\n\nLet me verify the specific hardware with one more source to be thorough.\n\nThe Wikipedia article clearly states: \"In December 2023, the first drivers written in Rust were accepted, and released in kernel version 6.8.\" And this is confirmed by the Phoronix article title \"The First Rust-Written Network PHY Driver Set To Land In Linux 6.8\".\n\nThe first Rust-written drivers were the network PHY (physical layer) drivers:\n- ASIX AX88772A (USB Ethernet adapter)\n- Realtek Generic FE-GE (Fast Ethernet / Gigabit Ethernet) PHY\n\nSo the answer:\n- **版本**: Linux 6.8\n- **硬件**: 网络 PHY（物理层）芯片，具体为 ASIX AX88772A 和 Realtek Generic FE-GE 网络 PHY 芯片\n\nLet me provide the final answer.\n\n答案: 第一个用 Rust 编写的驱动程序在 Linux 内核 **6.8** 版本合并（2023年12月被接受，随 6.8 于2024年3月发布）。该驱动程序用于**网络 PHY（物理层）芯片**——具体为 ASIX AX88772A 和 Realtek Generic FE-GE 网络 PHY 硬件。",
         "elapsed_seconds": 25.04,
@@ -145,7 +151,8 @@
         "timed_out": false,
         "output_length": 14533
       },
-      "ground_truth": "Linux 6.1，Apple M1 GPU 驱动（Asahi Linux 项目）"
+      "ground_truth": "Linux 6.1，Apple M1 GPU 驱动（Asahi Linux 项目）",
+      "entity_match": false
     },
     {
       "task_id": "gaia__l3__001",
@@ -156,7 +163,7 @@
       "exact_match": false,
       "normalized_match": false,
       "f1_score": 0.0,
-      "similarity": 0.0063,
+      "similarity": 0.0,
       "agent": {
         "raw_answer": "搜索结果不理想。让我尝试用英文搜索获取更准确的数据。搜索引擎返回的结果不相关。让我尝试直接抓取一些已知的权威数据源，比如 IEA、Ember 等。让我尝试抓取 Ember 的全球电力回顾报告或者 IEA 的数据。让我搜索更具体的信息。我从 Ember 的 Global Electricity Review 2024 报告中获取到了关键数据。报告中明确提到：\"Renewables generated a record 30% of global electricity in 2023\"。现在我需要获取中国、美国和欧盟各自的可再生能源发电量（以 TWh 计）来比较哪个地区最高。\n\n让我继续阅读该报告的更多章节，特别是关于中国、美国和欧盟的部分。我需要获取中国、美国和欧盟各自的可再生能源发电量数据。让我查看 Ember 的各个国家/地区页面，或者直接查看 Ember 的年度电力数据。让我先搜索这些具体数字。这些页面提供的是2025年的最新数据，而不是2023年的数据。我需要找到2023年具体的可再生能源发电量数据（TWh）。让我查看 Ember 的年度电力数据集，或者尝试获取 Global Electricity Review 2024 报告中关于具体国家/地区的TWh数据。\n\n让我查看 Ember 的年度电力数据 CSV 文件，或者搜索具体数字。让我尝试通过 Ember 的数据 API 或 CSV 文件获取 2023 年各地区的可再生能源发电量数据。让我尝试直接下载 Ember 的 CSV 数据文件。从页面可以看到有 \"Yearly electricity data – Global (CSV)\" 的链接。让我尝试找到实际的 CSV 下载链接。\n\n<DSML｜｜tool_calls>\n<DSML｜｜invoke name=\"browser_navigate\">\n<DSML｜｜parameter name=\"url\" string=\"true\">https://ember-energy.org/data-catalogue/yearly-electricity-data/</DSML｜｜parameter>\n</DSML｜｜invoke>\n</DSML｜｜tool_calls>",
         "elapsed_seconds": 75.69,
@@ -164,7 +171,8 @@
         "timed_out": false,
         "output_length": 19824
       },
-      "ground_truth": "约30%，中国"
+      "ground_truth": "约30%，中国",
+      "entity_match": false
     },
     {
       "task_id": "gaia__l3__002",
@@ -175,7 +183,7 @@
       "exact_match": false,
       "normalized_match": false,
       "f1_score": 0.0,
-      "similarity": 0.0266,
+      "similarity": 0.0,
       "agent": {
         "raw_answer": "搜索没有返回有效结果。让我用更具体的关键词搜索。搜索引擎似乎没有返回有效结果。让我尝试抓取已知的相关页面，比如维基百科关于人类基因组的内容。网络似乎不可用。让我尝试其他搜索方式。搜索引擎持续返回无关结果。让我尝试抓取其他已知URL获取信息。搜索仍然没有返回有用的结果。让我尝试访问一些已知的基因组相关资源。这些页面没有直接给出我需要的信息。让我尝试用terminal搜索本地是否有相关资源，或者尝试其他URL。\n\n基于我的知识，让我回忆并验证这些数据。人类基因组中编码蛋白质的基因大约有20,000-25,000个。根据最新的研究（如Ensembl/NCBI数据），大约有20,000个左右。其中有多少功能不完全清楚，这是一个需要查找具体数据的问题。\n\n让我尝试用不同的搜索关键词。基于我的知识库，我可以回答这个问题，但让我尝试再获取一些验证信息。搜索引擎持续失败。让我尝试通过其他方式获取信息。\n\n<DSML｜｜tool_calls>\n<DSML｜｜invoke name=\"web_extract\">\n<DSML｜｜parameter name=\"url\" string=\"true\">https://www.science.org/content/article/human-genome-still-has-thousands-uncharacterized-genes</DSML｜｜parameter>\n</DSML｜｜invoke>\n</DSML｜｜tool_calls>",
         "elapsed_seconds": 61.13,
@@ -183,7 +191,8 @@
         "timed_out": false,
         "output_length": 11895
       },
-      "ground_truth": "约20000个蛋白质编码基因，约30%功能不完全清楚"
+      "ground_truth": "约20000个蛋白质编码基因，约30%功能不完全清楚",
+      "entity_match": false
     }
   ]
 }
