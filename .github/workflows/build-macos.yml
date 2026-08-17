@@ -1,22 +1,37 @@
-name: Build macOS Release
+name: Build macOS
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
     paths:
       - 'src/**'
+      - 'templates/**'
+      - 'static/**'
       - 'meshctx_desktop.py'
-      - 'meshctx_desktop.spec'
-      - 'requirements.txt'
+      - 'meshctx.yaml'
+      - '.github/workflows/build-macos.yml'
   workflow_dispatch:
+  release:
+    types: [published]
 
 permissions:
   contents: write
 
 jobs:
   build-macos:
-    runs-on: macos-14
+    # 双架构: macos-14 = arm64(Apple Silicon), macos-13 = x86_64(Intel)
+    # 修复(2026-08-17): 原单 runner macos-14 只产 arm64, Intel Mac 无法运行(bad CPU type)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14
+            asset_suffix: ""
+            expected_arch: "arm64"
+          - runner: macos-13
+            asset_suffix: "-intel"
+            expected_arch: "x86_64"
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
 
@@ -66,12 +81,19 @@ jobs:
             exit 1
           fi
 
+      - name: Verify architecture
+        run: |
+          BIN=dist/meshctx-desktop
+          [ -d dist/meshctx-desktop.app ] && BIN=dist/meshctx-desktop.app/Contents/MacOS/meshctx-desktop
+          file "$BIN" | tee /tmp/file_arch.txt
+          grep -qE "${{ matrix.expected_arch }}" /tmp/file_arch.txt || { echo "FAIL: arch mismatch, expected ${{ matrix.expected_arch }}"; exit 1; }
+
       - name: Package as .tar.gz
         if: success()
         run: |
           if [ -f dist/meshctx-desktop ]; then
             cp README.md dist/
-            tar -czf meshctx-macos.tar.gz -C dist meshctx-desktop README.md
+            tar -czf meshctx-macos${{ matrix.asset_suffix }}.tar.gz -C dist meshctx-desktop README.md
           fi
 
       - name: Package as .dmg (主页 meshctx.com 下载链接)
@@ -81,8 +103,8 @@ jobs:
             mkdir -p dmgroot
             cp dist/meshctx-desktop dmgroot/meshctx
             cp README.md dmgroot/
-            hdiutil create -volname "meshctx" -srcfolder dmgroot -ov -format UDZO meshctx-macos.dmg
-            ls -lh meshctx-macos.dmg
+            hdiutil create -volname "meshctx" -srcfolder dmgroot -ov -format UDZO meshctx-macos${{ matrix.asset_suffix }}.dmg
+            ls -lh meshctx-macos${{ matrix.asset_suffix }}.dmg
           else
             echo "FAIL: binary not found for dmg"
             exit 1
@@ -91,18 +113,19 @@ jobs:
       - name: Upload Artifact (always)
         uses: actions/upload-artifact@v4
         with:
-          name: meshctx-macos
+          name: meshctx-macos${{ matrix.asset_suffix }}
           path: |
-            meshctx-macos.tar.gz
-            meshctx-macos.dmg
+            meshctx-macos${{ matrix.asset_suffix }}.tar.gz
+            meshctx-macos${{ matrix.asset_suffix }}.dmg
           retention-days: 7
 
       - name: Upload to Release (tag only)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          update_release: true
           files: |
-            meshctx-macos.tar.gz
-            meshctx-macos.dmg
+            meshctx-macos${{ matrix.asset_suffix }}.tar.gz
+            meshctx-macos${{ matrix.asset_suffix }}.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
