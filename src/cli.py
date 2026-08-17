@@ -466,7 +466,7 @@ def cmd_chat(args):
                 continue
 
         messages.append({"role": "user", "content": user})
-        session_id = _chat_loop(client, messages, TOOLS, execute_tool, TOOL_ICONS, max_turns=max_turns)
+        session_id = _chat_loop(client, messages, TOOLS, execute_tool, TOOL_ICONS, max_turns=max_turns, wall_clock=wall_clock)
 
         # 自动保存会话
         if session_id and len(messages) > 3:
@@ -486,20 +486,26 @@ def _chat_one_shot(client, msg, args):
     print()
 
 
-def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, collect_output=False):
+def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, collect_output=False, wall_clock=None):
     """核心对话循环 — 与 UI /api/chat/stream 共用同一套 agent_loop 逻辑
 
     collect_output=True 时，收集最终答案与工具调用记录并返回
     (final_answer, tool_calls_list)，供 --json-output 结构化输出使用。
+
+    wall_clock: 总处理时间上限(秒)。传入则优先；否则读环境变量
+    MESHCTX_WALL_CLOCK（默认 1200）。此前该变量仅在 cmd_chat 局部定义,
+    task/agent 等调用方触发 NameError（ae1dbf9 修复）— 此处统一兜底,
+    同时让 cmd_chat 的 --wall-clock 参数真正传入生效。
     """
     import uuid
     import os as _os
     session_id = uuid.uuid4().hex[:8]
     _final_answer = ""
     _tool_calls = []
-    # wall_clock: 总处理时间上限(秒)。此前仅在 cmd_chat 局部定义, task/agent 等
-    # 调用方触发 NameError → 修复: 在此兜底读取(环境变量 MESHCTX_WALL_CLOCK, 默认 1200)
-    wall_clock = float(_os.environ.get("MESHCTX_WALL_CLOCK", "1200"))
+    if wall_clock is None:
+        wall_clock = float(_os.environ.get("MESHCTX_WALL_CLOCK", "1200"))
+    else:
+        wall_clock = float(wall_clock)
 
     def _on_event(ev):
         nonlocal _final_answer, _tool_calls
