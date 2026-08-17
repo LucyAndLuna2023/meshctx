@@ -74,12 +74,27 @@ jobs:
             tar -czf meshctx-macos.tar.gz -C dist meshctx-desktop README.md
           fi
 
+      - name: Package as .dmg (主页 meshctx.com 下载链接)
+        if: success()
+        run: |
+          if [ -f dist/meshctx-desktop ]; then
+            mkdir -p dmgroot
+            cp dist/meshctx-desktop dmgroot/meshctx
+            cp README.md dmgroot/
+            hdiutil create -volname "meshctx" -srcfolder dmgroot -ov -format UDZO meshctx-macos.dmg
+            ls -lh meshctx-macos.dmg
+          else
+            echo "FAIL: binary not found for dmg"
+            exit 1
+          fi
+
       - name: Upload Artifact (always)
         uses: actions/upload-artifact@v4
         with:
           name: meshctx-macos
           path: |
             meshctx-macos.tar.gz
+            meshctx-macos.dmg
           retention-days: 7
 
       - name: Upload to Release (tag only)
@@ -88,5 +103,6 @@ jobs:
         with:
           files: |
             meshctx-macos.tar.gz
+            meshctx-macos.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
