@@ -493,9 +493,13 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
     (final_answer, tool_calls_list)，供 --json-output 结构化输出使用。
     """
     import uuid
+    import os as _os
     session_id = uuid.uuid4().hex[:8]
     _final_answer = ""
     _tool_calls = []
+    # wall_clock: 总处理时间上限(秒)。此前仅在 cmd_chat 局部定义, task/agent 等
+    # 调用方触发 NameError → 修复: 在此兜底读取(环境变量 MESHCTX_WALL_CLOCK, 默认 1200)
+    wall_clock = float(_os.environ.get("MESHCTX_WALL_CLOCK", "1200"))
 
     def _on_event(ev):
         nonlocal _final_answer, _tool_calls
