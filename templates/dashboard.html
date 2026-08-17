@@ -23,8 +23,8 @@
 
 <!-- ═══ Tab 栏 ═══ -->
 <div class="dash-tabs">
-    <button class="dash-tab active" onclick="switchDashTab('projects')" id="tab-projects">📊 项目总览</button>
-    <button class="dash-tab" onclick="switchDashTab('system')" id="tab-system">🖥️ 系统监控</button>
+    <button class="dash-tab active" onclick="switchDashTab('projects')" id="tab-projects">📊 {{ t('dashboard_tab_projects') }}</button>
+    <button class="dash-tab" onclick="switchDashTab('system')" id="tab-system">🖥️ {{ t('dashboard_tab_system') }}</button>
 </div>
 
 <!-- ═══ Tab 1: 项目总览 ═══ -->
@@ -64,8 +64,8 @@
 
 <div class="section">
     <div class="section-header">
-        <h2 data-lang-key="dashboard_projects_overview">📋 项目连续性概览</h2>
-        <a href="/ui/projects" class="btn btn-sm" data-lang-key="dashboard_view_all">全部项目 →</a>
+        <h2>📋 {{ t('dashboard_projects_overview') }}</h2>
+        <a href="/ui/projects" class="btn btn-sm">{{ t('dashboard_view_all') }}</a>
     </div>
 
     {% if project_data %}
@@ -73,15 +73,15 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th data-lang-key="projects_table_name">项目名称</th>
-                    <th data-lang-key="projects_table_status">状态</th>
-                    <th data-lang-key="projects_table_sessions">会话数</th>
-                    <th data-lang-key="projects_table_memories">记忆数</th>
-                    <th data-lang-key="dashboard_table_active_sessions">活跃会话</th>
-                    <th data-lang-key="dashboard_table_continuity_score">连续性评分</th>
-                    <th data-lang-key="dashboard_continuity_label">连续性</th>
-                    <th data-lang-key="dashboard_last_active">最近活动</th>
-                    <th data-lang-key="projects_table_actions">操作</th>
+                    <th>{{ t('projects_table_name') }}</th>
+                    <th>{{ t('projects_table_status') }}</th>
+                    <th>{{ t('projects_table_sessions') }}</th>
+                    <th>{{ t('projects_table_memories') }}</th>
+                    <th>{{ t('dashboard_table_active_sessions') }}</th>
+                    <th>{{ t('dashboard_table_continuity_score') }}</th>
+                    <th>{{ t('dashboard_continuity_label') }}</th>
+                    <th>{{ t('dashboard_last_active') }}</th>
+                    <th>{{ t('projects_table_actions') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -114,7 +114,7 @@
                     </td>
                     <td class="text-sm">{{ format_dt(item.continuity.last_active) }}</td>
                     <td>
-                        <a href="/ui/projects/{{ item.project.id }}" class="btn btn-xs" data-lang-key="projects_detail_btn">详情</a>
+                        <a href="/ui/projects/{{ item.project.id }}" class="btn btn-xs">{{ t('projects_detail_btn') }}</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -123,7 +123,7 @@
     </div>
     {% else %}
     <div class="empty-state">
-        <p><span data-lang-key="dashboard_empty">暂无项目，</span><a href="/ui/projects"><span data-lang-key="dashboard_create_now">立即创建</span></a></p>
+        <p>{{ t('dashboard_empty') }}<a href="/ui/projects">{{ t('dashboard_create_now') }}</a></p>
     </div>
     {% endif %}
 </div>
@@ -131,16 +131,16 @@
 
 <!-- ═══ Tab 2: 系统监控 ═══ -->
 <div class="dash-panel" id="panel-system">
-<h2 style="margin-bottom:16px;">🖥️ 系统监控</h2>
+<h2 style="margin-bottom:16px;">🖥️ {{ t('dashboard_tab_system') }}</h2>
 <div class="sys-grid" id="sysStats"></div>
 
 <div class="card" style="margin-bottom:16px;text-align:left">
 <h3 style="margin-bottom:8px">🛡️ Watchdog</h3>
-<div id="wdStatus" style="font-size:12px;color:var(--muted)">⏳ 加载中...</div>
+<div id="wdStatus" style="font-size:12px;color:var(--muted)">⏳ {{ t('dashboard_loading') }}</div>
 </div>
 <div class="card" style="margin-bottom:16px;text-align:left">
 <h3 style="margin-bottom:8px">🏥 Auto-Healer</h3>
-<div id="healerStatus" style="font-size:12px;color:var(--muted)">⏳ 加载中...</div>
+<div id="healerStatus" style="font-size:12px;color:var(--muted)">⏳ {{ t('dashboard_loading') }}</div>
 </div>
 <h3 style="margin-top:8px;">🔌 API Endpoints</h3>
 <table><thead><tr><th>Endpoint</th><th>Latency</th><th>Status</th></tr></thead><tbody id="epTable"></tbody></table>

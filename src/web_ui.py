@@ -21,7 +21,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }} - meshctx</title>
+    <title>{% block title %}{{ title }}{% endblock %} - meshctx</title>
     <style>
         /* ═══ CSS 变量：深色主题(默认) ═══ */
         :root {
