@@ -118,13 +118,17 @@ class TestCodeBlockUIRendering:
     """前端代码块渲染测试 — 验证模板包含必要元素"""
 
     def test_chat_html_has_run_button_js(self):
-        """Chat页面继承base.html，包含代码运行JS"""
+        """Chat页面独立(磁盘模板)，代码运行JS在 web_ui.py 内嵌 base.html"""
         from src.web_ui import _TEMPLATES
-        chat = _TEMPLATES.get("chat.html", "")
         base = _TEMPLATES.get("base.html", "")
-        # v3.115.16: chat.html extends base.html — JS functions live in base
-        assert 'extends "base.html"' in chat
+        # v3.115.16+ : chat.html 为独立磁盘模板(不 extends base.html)
+        # 代码块工具栏 JS(runCodeBlock/▶运行/⏹停止/📋复制/🌐预览)位于内嵌 base.html(web_ui.py)
         assert "runCodeBlock" in base
+        assert "run-btn" in base
+        # 磁盘 chat.html 存在且为独立页(走 FileSystemLoader, 不在 _TEMPLATES)
+        import os
+        assert os.path.exists("templates/chat.html")
+        assert "{% extends" not in open("templates/chat.html", encoding="utf-8").read()
 
     def test_chat_html_has_marked_highlight(self):
         """Chat/Base页面有marked.js和highlight.js"""
