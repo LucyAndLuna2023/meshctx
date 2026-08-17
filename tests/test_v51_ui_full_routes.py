@@ -68,18 +68,19 @@ class TestNavbarUnique:
     """导航栏无重复项 — 002 修复的重复 dashboard/memories"""
 
     def test_navbar_no_duplicate_links(self, client):
-        html = client.get("/ui/chat").text
+        # /ui/chat 是独立聊天页(无导航), 改测带导航的 dashboard 页
+        html = client.get("/ui/dashboard").text
         links = re.findall(r'<a href="(/ui/[^"]*)"[^>]*>', html)
-        # 只统计导航区(header .nav)的链接
-        nav_match = re.search(r'<div class="nav">(.*?)</div>', html, re.S)
+        # 只统计导航区(header .nav)的链接 — 模板用单引号, 兼容单/双引号
+        nav_match = re.search(r"<div class=['\"]nav['\"]>(.*?)</div>", html, re.S)
         assert nav_match, "未找到导航栏 .nav"
         nav_html = nav_match.group(1)
-        nav_hrefs = re.findall(r'href="(/ui/[^"]*)"', nav_html)
+        nav_hrefs = re.findall(r"href=[\"'](/ui/[^\"']*)[\"']", nav_html)
         dupes = {h for h in nav_hrefs if nav_hrefs.count(h) > 1}
         assert not dupes, f"导航栏存在重复链接: {dupes}"
         # 关键重复项不再出现
-        assert nav_html.count('href="/ui/dashboard"') == 0, "导航栏残留 /ui/dashboard"
-        assert nav_html.count('href="/ui/memory"') == 0, "导航栏残留 /ui/memory"
+        assert nav_html.count('href="/ui/dashboard"') + nav_html.count("href='/ui/dashboard'") == 0, "导航栏残留 /ui/dashboard"
+        assert nav_html.count('href="/ui/memory"') + nav_html.count("href='/ui/memory'") == 0, "导航栏残留 /ui/memory"
 
 
 class TestServiceWorker:
