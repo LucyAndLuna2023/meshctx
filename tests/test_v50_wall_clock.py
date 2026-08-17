@@ -85,3 +85,61 @@ def test_wall_clock_timeout_effective():
         assert "round" not in types[idx + 1:], "timed_out 后不应再有轮次事件"
 
     asyncio.run(_go())
+
+
+# ---- ae1dbf9 回归锁定：_chat_loop 不再 NameError + wall_clock 参数传递 ----
+
+class _NoopClient:
+    """最小 client：不真正跑模型，仅让 _chat_loop 能走到 run_agent_loop"""
+
+    model_id = "test-model"
+
+    def chat_stream(self, messages, temperature=0.7, max_tokens=16384, tools=None):
+        return iter([("", [], "")])
+
+
+def _run_chat_loop(monkeypatch, wall_clock_arg=None, env_wall_clock=None):
+    """以给定 wall_clock 调用 _chat_loop，返回 run_agent_loop 收到的 wall_clock 值"""
+    captured = {}
+
+    async def _fake_loop(client, messages, **kwargs):
+        captured.update(kwargs)
+        if False:  # pragma: no cover
+            yield None
+
+    monkeypatch.setattr("src.agent_loop.run_agent_loop", _fake_loop)
+    if env_wall_clock is not None:
+        monkeypatch.setenv("MESHCTX_WALL_CLOCK", str(env_wall_clock))
+    else:
+        monkeypatch.delenv("MESHCTX_WALL_CLOCK", raising=False)
+
+    from src.cli import _chat_loop
+    kwargs = {"max_turns": 1}
+    if wall_clock_arg is not None:
+        kwargs["wall_clock"] = wall_clock_arg
+    _chat_loop(_NoopClient(), [{"role": "user", "content": "hi"}], [], lambda n, a: "ok", {}, **kwargs)
+    return captured.get("wall_clock")
+
+
+def test_chat_loop_no_nameerror(monkeypatch):
+    """ae1dbf9 回归：_chat_loop 不再因 wall_clock NameError 崩溃（task/agent 全线恢复）"""
+    wc = _run_chat_loop(monkeypatch)
+    assert wc is not None, "_chat_loop 必须正常执行并传递 wall_clock（不抛 NameError）"
+
+
+def test_chat_loop_wall_clock_cli_param_priority(monkeypatch):
+    """cmd_chat 的 --wall-clock 参数优先于环境变量"""
+    wc = _run_chat_loop(monkeypatch, wall_clock_arg=777, env_wall_clock=500)
+    assert wc == 777.0, f"--wall-clock 应优先，实际 {wc}"
+
+
+def test_chat_loop_wall_clock_env_fallback(monkeypatch):
+    """未传参数时回退到 MESHCTX_WALL_CLOCK 环境变量"""
+    wc = _run_chat_loop(monkeypatch, env_wall_clock=600)
+    assert wc == 600.0, f"应读环境变量 600，实际 {wc}"
+
+
+def test_chat_loop_wall_clock_default_1200(monkeypatch):
+    """无参数且无环境变量时默认 1200"""
+    wc = _run_chat_loop(monkeypatch)
+    assert wc == 1200.0, f"默认应为 1200，实际 {wc}"
