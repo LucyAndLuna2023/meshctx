@@ -1,0 +1,13 @@
+{
+  "benchmark": "Terminal-Bench 2.0",
+  "version": "2026",
+  "summary": {
+    "total_tasks": 0,
+    "passed": 0,
+    "failed": 0,
+    "pass_rate": 0.0,
+    "avg_total_score": 0.0
+  },
+  "dimensions": {},
+  "per_task": []
+}

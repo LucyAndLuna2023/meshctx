@@ -1,0 +1,189 @@
+{
+  "benchmark": "GAIA",
+  "version": "2026",
+  "summary": {
+    "total_tasks": 8,
+    "correct": 0,
+    "incorrect": 8,
+    "accuracy": 0.0,
+    "exact_match_rate": 0.0,
+    "avg_f1": 0.0
+  },
+  "by_level": {
+    "1": {
+      "total": 3,
+      "correct": 0,
+      "exact_match": 0,
+      "accuracy": 0.0,
+      "avg_f1": 0.0
+    },
+    "2": {
+      "total": 3,
+      "correct": 0,
+      "exact_match": 0,
+      "accuracy": 0.0,
+      "avg_f1": 0.0
+    },
+    "3": {
+      "total": 2,
+      "correct": 0,
+      "exact_match": 0,
+      "accuracy": 0.0,
+      "avg_f1": 0.0
+    }
+  },
+  "per_task": [
+    {
+      "task_id": "gaia__l1__001",
+      "level": 1,
+      "level_label": "Level 1 — 基础信息检索与推理",
+      "answer_type": "text",
+      "correct": false,
+      "exact_match": false,
+      "normalized_match": false,
+      "f1_score": 0.0,
+      "similarity": 0.093,
+      "agent": {
+        "raw_answer": "<your answer>\"。",
+        "elapsed_seconds": 1.06,
+        "exit_code": 1,
+        "timed_out": false,
+        "output_length": 365
+      },
+      "ground_truth": "John Hopfield 和 Geoffrey Hinton，人工神经网络和机器学习"
+    },
+    {
+      "task_id": "gaia__l1__002",
+      "level": 1,
+      "level_label": "Level 1 — 基础信息检索与推理",
+      "answer_type": "text",
+      "correct": false,
+      "exact_match": false,
+      "normalized_match": false,
+      "f1_score": 0.0,
+      "similarity": 0.0,
+      "agent": {
+        "raw_answer": "<your answer>\"。",
+        "elapsed_seconds": 1.16,
+        "exit_code": 1,
+        "timed_out": false,
+        "output_length": 355
+      },
+      "ground_truth": "没有官方吉祥物"
+    },
+    {
+      "task_id": "gaia__l1__003",
+      "level": 1,
+      "level_label": "Level 1 — 基础信息检索与推理",
+      "answer_type": "number",
+      "correct": false,
+      "exact_match": false,
+      "normalized_match": false,
+      "f1_score": 0.0,
+      "similarity": 0.0,
+      "agent": {
+        "raw_answer": "<your answer>\"。",
+        "elapsed_seconds": 1.26,
+        "exit_code": 1,
+        "timed_out": false,
+        "output_length": 367
+      },
+      "ground_truth": "299792"
+    },
+    {
+      "task_id": "gaia__l2__001",
+      "level": 2,
+      "level_label": "Level 2 — 多步推理与工具使用",
+      "answer_type": "text",
+      "correct": false,
+      "exact_match": false,
+      "normalized_match": false,
+      "f1_score": 0.0,
+      "similarity": 0.0,
+      "agent": {
+        "raw_answer": "<your answer>\"。",
+        "elapsed_seconds": 1.5,
+        "exit_code": 1,
+        "timed_out": false,
+        "output_length": 368
+      },
+      "ground_truth": "土星，274"
+    },
+    {
+      "task_id": "gaia__l2__002",
+      "level": 2,
+      "level_label": "Level 2 — 多步推理与工具使用",
+      "answer_type": "text",
+      "correct": false,
+      "exact_match": false,
+      "normalized_match": false,
+      "f1_score": 0.0,
+      "similarity": 0.0,
+      "agent": {
+        "raw_answer": "<your answer>\"。",
+        "elapsed_seconds": 1.28,
+        "exit_code": 1,
+        "timed_out": false,
+        "output_length": 368
+      },
+      "ground_truth": "尼罗河，6650公里，11个国家"
+    },
+    {
+      "task_id": "gaia__l2__003",
+      "level": 2,
+      "level_label": "Level 2 — 多步推理与工具使用",
+      "answer_type": "text",
+      "correct": false,
+      "exact_match": false,
+      "normalized_match": false,
+      "f1_score": 0.0,
+      "similarity": 0.0976,
+      "agent": {
+        "raw_answer": "<your answer>\"。",
+        "elapsed_seconds": 1.22,
+        "exit_code": 1,
+        "timed_out": false,
+        "output_length": 382
+      },
+      "ground_truth": "Linux 6.1，Apple M1 GPU 驱动（Asahi Linux 项目）"
+    },
+    {
+      "task_id": "gaia__l3__001",
+      "level": 3,
+      "level_label": "Level 3 — 复杂推理与多模态理解",
+      "answer_type": "text",
+      "correct": false,
+      "exact_match": false,
+      "normalized_match": false,
+      "f1_score": 0.0,
+      "similarity": 0.0,
+      "agent": {
+        "raw_answer": "<your answer>\"。",
+        "elapsed_seconds": 1.19,
+        "exit_code": 1,
+        "timed_out": false,
+        "output_length": 394
+      },
+      "ground_truth": "约30%，中国"
+    },
+    {
+      "task_id": "gaia__l3__002",
+      "level": 3,
+      "level_label": "Level 3 — 复杂推理与多模态理解",
+      "answer_type": "text",
+      "correct": false,
+      "exact_match": false,
+      "normalized_match": false,
+      "f1_score": 0.0,
+      "similarity": 0.0,
+      "agent": {
+        "raw_answer": "<your answer>\"。",
+        "elapsed_seconds": 1.23,
+        "exit_code": 1,
+        "timed_out": false,
+        "output_length": 376
+      },
+      "ground_truth": "约20000个蛋白质编码基因，约30%功能不完全清楚"
+    }
+  ]
+}

@@ -1,0 +1,289 @@
+{
+  "benchmark": "Terminal-Bench 2.0",
+  "version": "2026",
+  "summary": {
+    "total_tasks": 5,
+    "passed": 5,
+    "failed": 0,
+    "pass_rate": 1.0,
+    "avg_total_score": 0.969
+  },
+  "dimensions": {
+    "exit_code": {
+      "avg_score": 1.0,
+      "weight": 0.15
+    },
+    "timeout": {
+      "avg_score": 1.0,
+      "weight": 0.1
+    },
+    "stdout_match": {
+      "avg_score": 0.98,
+      "weight": 0.5
+    },
+    "stderr_check": {
+      "avg_score": 1.0,
+      "weight": 0.1
+    },
+    "efficiency": {
+      "avg_score": 0.86,
+      "weight": 0.15
+    }
+  },
+  "per_task": [
+    {
+      "task_id": "termbench__file_ops__001",
+      "passed": true,
+      "total_score": 0.95,
+      "dimensions": {
+        "exit_code": {
+          "score": 1.0,
+          "expected": 0,
+          "actual": 0,
+          "weight": 0.15
+        },
+        "timeout": {
+          "score": 1.0,
+          "timed_out": false,
+          "elapsed_seconds": 3.57,
+          "weight": 0.1
+        },
+        "stdout_match": {
+          "score": 0.9,
+          "method": "fuzzy",
+          "weight": 0.5
+        },
+        "stderr_check": {
+          "score": 1.0,
+          "has_error": false,
+          "weight": 0.1
+        },
+        "efficiency": {
+          "score": 1.0,
+          "elapsed_seconds": 3.57,
+          "weight": 0.15
+        }
+      },
+      "success_criteria": [
+        {
+          "criterion": "version.*2\\.0",
+          "matched": true
+        },
+        {
+          "criterion": "debug.*false",
+          "matched": true
+        }
+      ],
+      "agent": {
+        "elapsed_seconds": 3.57,
+        "exit_code": 0,
+        "timed_out": false,
+        "output_length": 1179
+      }
+    },
+    {
+      "task_id": "termbench__text_proc__002",
+      "passed": true,
+      "total_score": 0.985,
+      "dimensions": {
+        "exit_code": {
+          "score": 1.0,
+          "expected": 0,
+          "actual": 0,
+          "weight": 0.15
+        },
+        "timeout": {
+          "score": 1.0,
+          "timed_out": false,
+          "elapsed_seconds": 6.64,
+          "weight": 0.1
+        },
+        "stdout_match": {
+          "score": 1.0,
+          "method": "none",
+          "weight": 0.5
+        },
+        "stderr_check": {
+          "score": 1.0,
+          "has_error": false,
+          "weight": 0.1
+        },
+        "efficiency": {
+          "score": 0.9,
+          "elapsed_seconds": 6.64,
+          "weight": 0.15
+        }
+      },
+      "success_criteria": [
+        {
+          "criterion": "最大值|最大.*\\d+",
+          "matched": true
+        },
+        {
+          "criterion": "最小值|最小.*\\d+",
+          "matched": true
+        }
+      ],
+      "agent": {
+        "elapsed_seconds": 6.64,
+        "exit_code": 0,
+        "timed_out": false,
+        "output_length": 2502
+      }
+    },
+    {
+      "task_id": "termbench__sys_info__003",
+      "passed": true,
+      "total_score": 1.0,
+      "dimensions": {
+        "exit_code": {
+          "score": 1.0,
+          "expected": 0,
+          "actual": 0,
+          "weight": 0.15
+        },
+        "timeout": {
+          "score": 1.0,
+          "timed_out": false,
+          "elapsed_seconds": 3.94,
+          "weight": 0.1
+        },
+        "stdout_match": {
+          "score": 1.0,
+          "method": "none",
+          "weight": 0.5
+        },
+        "stderr_check": {
+          "score": 1.0,
+          "has_error": false,
+          "weight": 0.1
+        },
+        "efficiency": {
+          "score": 1.0,
+          "elapsed_seconds": 3.94,
+          "weight": 0.15
+        }
+      },
+      "success_criteria": [
+        {
+          "criterion": "cpu|核心",
+          "matched": true
+        },
+        {
+          "criterion": "memory|内存|mem",
+          "matched": true
+        },
+        {
+          "criterion": "disk|磁盘|disk",
+          "matched": true
+        }
+      ],
+      "agent": {
+        "elapsed_seconds": 3.94,
+        "exit_code": 0,
+        "timed_out": false,
+        "output_length": 1055
+      }
+    },
+    {
+      "task_id": "termbench__net_ops__004",
+      "passed": true,
+      "total_score": 0.91,
+      "dimensions": {
+        "exit_code": {
+          "score": 1.0,
+          "expected": 0,
+          "actual": 0,
+          "weight": 0.15
+        },
+        "timeout": {
+          "score": 1.0,
+          "timed_out": false,
+          "elapsed_seconds": 60.03,
+          "weight": 0.1
+        },
+        "stdout_match": {
+          "score": 1.0,
+          "method": "none",
+          "weight": 0.5
+        },
+        "stderr_check": {
+          "score": 1.0,
+          "has_error": false,
+          "weight": 0.1
+        },
+        "efficiency": {
+          "score": 0.4,
+          "elapsed_seconds": 60.03,
+          "weight": 0.15
+        }
+      },
+      "success_criteria": [
+        {
+          "criterion": "slideshow",
+          "matched": true
+        }
+      ],
+      "agent": {
+        "elapsed_seconds": 60.03,
+        "exit_code": 0,
+        "timed_out": false,
+        "output_length": 8138
+      }
+    },
+    {
+      "task_id": "termbench__process__005",
+      "passed": true,
+      "total_score": 1.0,
+      "dimensions": {
+        "exit_code": {
+          "score": 1.0,
+          "expected": 0,
+          "actual": 0,
+          "weight": 0.15
+        },
+        "timeout": {
+          "score": 1.0,
+          "timed_out": false,
+          "elapsed_seconds": 4.79,
+          "weight": 0.1
+        },
+        "stdout_match": {
+          "score": 1.0,
+          "method": "none",
+          "weight": 0.5
+        },
+        "stderr_check": {
+          "score": 1.0,
+          "has_error": false,
+          "weight": 0.1
+        },
+        "efficiency": {
+          "score": 1.0,
+          "elapsed_seconds": 4.79,
+          "weight": 0.15
+        }
+      },
+      "success_criteria": [
+        {
+          "criterion": "PID",
+          "matched": true
+        },
+        {
+          "criterion": "CPU",
+          "matched": true
+        },
+        {
+          "criterion": "\\d+",
+          "matched": true
+        }
+      ],
+      "agent": {
+        "elapsed_seconds": 4.79,
+        "exit_code": 0,
+        "timed_out": false,
+        "output_length": 1801
+      }
+    }
+  ]
+}
