@@ -13,3 +13,6 @@ packaging>=21.0
 jieba>=0.42
 tiktoken>=0.5.0
 
+
+# Browser automation (meshctx browser command) - 001geo audit 2026-08-16
+playwright>=1.45.0

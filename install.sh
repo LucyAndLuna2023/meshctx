@@ -684,10 +684,14 @@ source venv/bin/activate
 # 依赖
 pip install -q --upgrade pip 2>/dev/null
 pip install -q -r requirements.txt 2>/dev/null || {
-    pip install -q fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging python-multipart 2>/dev/null || {
+    pip install -q fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging python-multipart playwright 2>/dev/null || {
         echo -e "${RED}✗ $(T dep_fail)${NC}"; exit 1
     }
 }
+
+# Playwright 浏览器内核 (meshctx browser 子命令需要, 001geo审计建议 2026-08-16)
+pip install -q playwright 2>/dev/null || true
+$PYTHON_BIN -m playwright install chromium --with-deps 2>/dev/null || $PYTHON_BIN -m playwright install chromium 2>/dev/null || true
 
 # meshctx 命令
 mkdir -p ~/bin
