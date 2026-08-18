@@ -55,6 +55,41 @@ def _contains_placeholder(text: str) -> bool:
     return any(m.lower() in low for m in DSML_BLOCK_MARKERS)
 
 
+def _compress_tool_result(name: str, result, base_dir=None):
+    """T2: 工具调用帧压缩 — 长输出落盘，消息里只留摘要（≤3 行）+ 路径。
+
+    短输出（≤3000 字节）原样返回；长输出落盘到 tool_outputs/，
+    返回 (压缩后文本, 是否落盘)。
+    """
+    import hashlib
+    import os
+    import time as _time
+    text = str(result or "")
+    if len(text) <= 3000:
+        return text, False
+    try:
+        if base_dir is None:
+            from src.cross_platform_engine import CrossPlatformStorage
+            base = CrossPlatformStorage().base_path / "tool_outputs"
+        else:
+            base = base_dir
+        os.makedirs(base, exist_ok=True)
+        digest = hashlib.md5((name + text[:200]).encode("utf-8", errors="replace")).hexdigest()[:8]
+        path = os.path.join(str(base), f"{int(_time.time())}_{digest}.txt")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(text)
+    except Exception as e:
+        path = f"[落盘失败: {e}]"
+    lines = [ln for ln in text.splitlines() if ln.strip()]
+    head = lines[:3]
+    summary = (f"[工具输出已压缩] {name} | 全文 {len(text)} 字节 / {len(lines)} 行\n"
+               + "\n".join(head))
+    if len(lines) > 3:
+        summary += f"\n…(省略 {len(lines) - 3} 行)"
+    summary += f"\n全文路径: {path}"
+    return summary, True
+
+
 async def run_agent_loop(
     client,
     messages: List[Dict],
@@ -188,7 +223,8 @@ async def run_agent_loop(
                 except Exception as e:
                     result = f"工具执行失败: {e}"
                 yield {"type": "tool_result", "name": name, "result": result}
-                messages.append({"role": "tool", "tool_call_id": tc.id, "content": result[:16000]})
+                _compressed, _ = _compress_tool_result(name, result)
+                messages.append({"role": "tool", "tool_call_id": tc.id, "content": _compressed})
 
             # 防消息无限膨胀（CLI/UI 共用）
             if len(messages) > 40:
@@ -243,7 +279,8 @@ async def run_agent_loop(
                         except Exception as _e:
                             _res = f"工具执行失败: {_e}"
                         yield {"type": "tool_result", "name": _nm, "result": _res}
-                        messages.append({"role": "tool", "tool_call_id": _tc["id"], "content": _res[:16000]})
+                        _compressed, _ = _compress_tool_result(_nm, _res)
+                        messages.append({"role": "tool", "tool_call_id": _tc["id"], "content": _compressed})
                     if len(messages) > 40:
                         messages[:] = trim_messages(messages, max_len=40, keep=30)
                 if len(final_text) < 30:

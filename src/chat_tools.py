@@ -602,10 +602,118 @@ TOOLS = TOOL_EXECUTORS
 has_tool_call = lambda text: bool(re.search(r'\{["\']tool["\']\s*:', text))
 
 
-def build_system_prompt(project_dir: str = None, include_memory: bool = True) -> str:
+def _memory_base_paths():
+    """记忆数据目录列表（平台感知路径，T3 检索式注入使用）。"""
+    import os as _os
+    from pathlib import Path as _Path
+    dirs = []
+    try:
+        from src.cross_platform_engine import CrossPlatformStorage
+        dirs.append(CrossPlatformStorage().base_path / "memories")
+    except Exception:
+        pass
+    dirs.append(_Path.home() / ".meshctx" / "data" / "memories")
+    # Windows 兼容：若在 WSL 也尝试 APPDATA 路径
+    appdata = _os.environ.get("APPDATA")
+    if appdata:
+        dirs.append(_Path(appdata) / "meshctx" / "data" / "memories")
+    return dirs
+
+
+def _memory_item_score(item) -> float:
+    """记忆条目注入排序分数 = importance × retention（Ebbinghaus 遗忘曲线）。
+
+    item 可为 dict（JSON 落盘）或 MemoryItem 对象。
+    """
+    import math as _math
+    import time as _time
+    get = item.get if isinstance(item, dict) else lambda k, d=None: getattr(item, k, d)
+    imp = float(get("importance", 0.5) or 0.5)
+    lr = get("last_reviewed") or get("last_accessed") or 0.0
+    elapsed = max(0.0, _time.time() - float(lr)) if lr else 0.0
+    retention = max(0.05, min(1.0, _math.exp(-elapsed / (3600.0 * 24.0))))
+    return imp * retention
+
+
+def _collect_memory_entries(current_query: str = None, base_dirs: list = None, max_entries: int = 30):
+    """T3: 检索式记忆注入 — 收集记忆条目并按 importance×retention 排序。
+
+    - current_query 存在时：关键词相关性优先（top_k 检索）
+    - 否则：按 importance×retention 降序（最近/高频自然靠前）
+    - 固定上限 max_entries，记忆段长度与记忆总量解耦。
+    """
+    import json as _json
+    import time as _time
+    from pathlib import Path as _Path
+    rows = []  # list[dict]
+
+    def _add(key, value, **meta):
+        value = str(value or "").strip()
+        if not value:
+            return
+        if any(r["value"] == value for r in rows):
+            return
+        rows.append({"key": key or "", "value": value, **meta})
+
+    # 来源1: persistent_memory.json（纯文本 entries）
+    mem_file = _Path.home() / ".meshctx" / "persistent_memory.json"
+    if mem_file.exists():
+        try:
+            data = _json.loads(mem_file.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and data.get("entries"):
+                for e in data["entries"]:
+                    _add("", e, importance=0.5, last_reviewed=0.0, created_at=0.0)
+        except Exception:
+            pass
+
+    # 来源2: memories/*.json（结构化记忆，带 importance/key）
+    dirs = base_dirs if base_dirs is not None else _memory_base_paths()
+    seen_dirs = set()
+    for mem_dir in dirs:
+        try:
+            mem_dir = _Path(mem_dir)
+            if not mem_dir.exists() or str(mem_dir) in seen_dirs:
+                continue
+            seen_dirs.add(str(mem_dir))
+            for fp in sorted(mem_dir.glob("*.json")):
+                try:
+                    m = _json.loads(fp.read_text(encoding="utf-8"))
+                    _add(m.get("key", ""), m.get("value") or m.get("content", ""),
+                         importance=float(m.get("importance", 0.5) or 0.5),
+                         last_reviewed=float(m.get("last_reviewed", 0.0) or 0.0),
+                         created_at=float(m.get("created_at", 0.0) or 0.0))
+                except Exception:
+                    continue
+        except Exception:
+            continue
+
+    # 排序：query 相关优先 → score 降序；无 query → score 降序
+    if current_query:
+        q = (current_query or "").lower()
+        qwords = [w for w in q.split() if len(w) >= 2]
+
+        def _rel(r):
+            hay = (r["key"] + " " + r["value"]).lower()
+            hits = sum(1 for w in qwords if w in hay)
+            # 完整 query 命中加权
+            return hits + (2 if q and q in hay else 0)
+
+        rows.sort(key=lambda r: (_rel(r), _memory_item_score(r)), reverse=True)
+    else:
+        rows.sort(key=lambda r: (_memory_item_score(r), r.get("created_at", 0.0)), reverse=True)
+
+    return [r["value"] for r in rows[:max_entries]]
+
+
+def build_system_prompt(project_dir: str = None, include_memory: bool = True,
+                        current_query: str = None) -> str:
     """CLI 与 UI 共用的完整系统提示词 — 保证两端逐字一致。
 
-    构成: SYSTEM_PROMPT + WSL 提示 + 项目上下文(AGENTS.md等) + 持久化记忆 + get_tools_prompt()
+    T1 前缀稳定化: system prompt 三段式——
+      稳定段（SYSTEM_PROMPT + WSL 提示 + 项目上下文 + 工具定义）恒在最前、逐字节不变，
+      记忆段按 key 稳定排序 + 固定上限（30 条），动态段最后。
+      同任务多轮调用时 provider（DeepSeek/Anthropic/OpenAI）按前缀自动缓存命中。
+    T3 检索式记忆注入: current_query 传入时按相关性 top_k 注入，记忆段长度恒定。
     """
     import platform as _platform
     from pathlib import Path as _Path
@@ -620,41 +728,14 @@ def build_system_prompt(project_dir: str = None, include_memory: bool = True) ->
                 if fpath.exists():
                     parts.append(f"\n\n## 项目上下文 ({proj.name})\n{fpath.read_text(encoding='utf-8', errors='replace')[:3000]}")
                     break
+    # 稳定段末尾: 工具定义（恒在记忆段之前 → 前缀稳定可缓存）
+    parts.append("\n\n" + get_tools_prompt())
+    # 记忆段: 检索式注入，按 importance×retention 排序，固定上限
     if include_memory:
-        # 来源1: persistent_memory.json（save_memory 工具/规则兜底写入）
-        entries = []
-        mem_file = _Path.home() / ".meshctx" / "persistent_memory.json"
-        if mem_file.exists():
-            try:
-                mem_data = json.loads(mem_file.read_text(encoding="utf-8"))
-                if isinstance(mem_data, dict) and mem_data.get("entries"):
-                    entries = list(mem_data["entries"])
-            except Exception:
-                pass
-        # 来源2: MemoryEngine(17脑区) 落盘记忆 —— 平台感知路径
-        #   （修复 cc0c9113: 17脑区记忆体系此前从未被对话链路读取）
-        #   Windows: %APPDATA%/meshctx/data; mac: ~/Library/Application Support/meshctx/data; linux: ~/.meshctx/data
-        try:
-            from src.cross_platform_engine import CrossPlatformStorage
-            mem_dir = CrossPlatformStorage().base_path / "memories"
-        except Exception:
-            mem_dir = _Path.home() / ".meshctx" / "data" / "memories"
-        if mem_dir.exists():
-            try:
-                for fp in sorted(mem_dir.glob("*.json"))[:80]:
-                    try:
-                        m = json.loads(fp.read_text(encoding="utf-8"))
-                        val = str(m.get("value") or "").strip()
-                        if val and val not in entries:
-                            entries.append(val)
-                    except Exception:
-                        continue
-            except Exception:
-                pass
+        entries = _collect_memory_entries(current_query=current_query, max_entries=30)
         if entries:
             parts.append("\n\n## 🔒 持久化记忆（跨会话保留）\n\n")
-            parts.append("\n".join(f"- {e}" for e in entries[:30]))
-    parts.append("\n\n" + get_tools_prompt())
+            parts.append("\n".join(f"- {e}" for e in entries))
     return "".join(parts)
 
 

@@ -24,6 +24,8 @@ class ModelResponse:
     tokens_used: int = 0
     finish_reason: str = "stop"
     tool_calls: Optional[List[Dict]] = None
+    cache_hit_tokens: int = 0
+    cache_miss_tokens: int = 0
 
     def __post_init__(self):
         if self.tool_calls is None:
@@ -43,6 +45,8 @@ class ModelAdapter:
         self.cfg = model_config
         self.provider = model_config.get("provider", "bailian")
         self._client = None
+        self.cache_stats = {"hits": 0, "misses": 0,
+                            "hit_tokens": 0, "miss_tokens": 0, "requests": 0}
         self._init_client()
 
     def _init_client(self):
@@ -95,6 +99,22 @@ class ModelAdapter:
             content = choice.message.content or ""
             content = content.encode('utf-8', errors='surrogateescape').decode('utf-8', errors='replace')
 
+            # T1: provider context caching 命中统计
+            hit_tokens = miss_tokens = 0
+            if getattr(resp, "usage", None):
+                hit_tokens = int(getattr(resp.usage, "prompt_cache_hit_tokens", 0) or 0)
+                miss_tokens = int(getattr(resp.usage, "prompt_cache_miss_tokens", 0) or 0)
+            self.cache_stats["requests"] += 1
+            self.cache_stats["hit_tokens"] += hit_tokens
+            self.cache_stats["miss_tokens"] += miss_tokens
+            if hit_tokens > 0:
+                self.cache_stats["hits"] += 1
+            else:
+                self.cache_stats["misses"] += 1
+            if hit_tokens or miss_tokens:
+                logger.info("prompt cache: hit=%d miss=%d tokens (req #%d)",
+                            hit_tokens, miss_tokens, self.cache_stats["requests"])
+
             # Extract tool calls if present
             tool_calls = []
             if choice.message.tool_calls:
@@ -113,6 +133,8 @@ class ModelAdapter:
                 tokens_used=resp.usage.total_tokens if resp.usage else 0,
                 finish_reason=choice.finish_reason or "stop",
                 tool_calls=tool_calls,
+                cache_hit_tokens=hit_tokens,
+                cache_miss_tokens=miss_tokens,
             )
         except Exception as e:
             return ModelResponse(
