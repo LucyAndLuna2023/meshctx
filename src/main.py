@@ -4772,6 +4772,12 @@ def _validate_file_path(path: str) -> "Path":
     if not path:
         raise HTTPException(400, t('error_missing_file_path'))
 
+    # 路径长度防护 (C-2): 超长路径在 OS 层触发 ENAMETOOLONG (OSError 36),
+    # 若不加拦截, 攻击者可用数千字符 path 打挂 /api/file/read 等接口 (ASGI 异常)。
+    # Linux PATH_MAX=4096 / 单组件 NAME_MAX=255, 此处按 PATH_MAX 拦截。
+    if len(path) > 4096:
+        raise HTTPException(400, "路径过长 (最大4096字符)")
+
     # WSL/Windows路径翻译 (非Windows平台静默跳过)
     resolved = path
     try:
@@ -4783,7 +4789,11 @@ def _validate_file_path(path: str) -> "Path":
     except ImportError:
         pass  # macOS/Linux — platform_fs不可用,留原路径
 
-    file_path = Path(resolved).expanduser().resolve()
+    try:
+        file_path = Path(resolved).expanduser().resolve()
+    except OSError as e:
+        # 兜底: 即使长度检查被绕过(如 Unicode 规范化后超长), 也不让 OSError 冒泡成 ASGI 异常
+        raise HTTPException(400, f"路径无效: {e}")
     sp = str(file_path)
 
     # 白名单: 只允许访问安全目录 (收紧: 仅数据目录,禁止整个/opt)
