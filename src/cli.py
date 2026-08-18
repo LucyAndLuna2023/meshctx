@@ -773,13 +773,14 @@ def _write_structured_memories(items: List[Dict]) -> int:
     try:
         mem_dir.mkdir(parents=True, exist_ok=True)
         store = HierarchicalMemoryStore()
-        # 加载已有记忆（T3 兼容字段）
+        # 加载已有记忆（T3 兼容字段；保留原 id，避免重写后文件名漂移导致目录膨胀）
         for fp in sorted(mem_dir.glob("*.json")):
             try:
                 m = _json.loads(fp.read_text(encoding="utf-8"))
                 if m.get("value") or m.get("content"):
                     store.store(MemoryItem(
-                        key=m.get("key", ""), value=m.get("value") or m.get("content", ""),
+                        id=m.get("id", ""), key=m.get("key", ""),
+                        value=m.get("value") or m.get("content", ""),
                         importance=float(m.get("importance", 0.5) or 0.5),
                         level=MemoryLevel.LONG_TERM,
                         last_reviewed=float(m.get("last_reviewed", 0.0) or 0.0),
@@ -792,6 +793,14 @@ def _write_structured_memories(items: List[Dict]) -> int:
             store.store_with_merge(MemoryItem(
                 key=it["key"], value=it["value"], importance=it["importance"],
                 level=MemoryLevel.LONG_TERM, last_reviewed=_time.time()))
+        # 清理孤儿文件：删除不在当前 store 中的旧文件（防止 id 漂移累积 2^N 膨胀）
+        current_ids = {_id for _id, _item in store._all_items()}
+        for fp in mem_dir.glob("*.json"):
+            if fp.stem not in current_ids:
+                try:
+                    fp.unlink()
+                except OSError:
+                    pass
         # 写回（每文件一条，文件名 = item id）
         for _id, item in store._all_items():
             fp = mem_dir / f"{_id}.json"
