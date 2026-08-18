@@ -398,11 +398,16 @@ class GAIAScorer:
             return 0.0
 
         agent_lower = agent_answer.lower()
+        # 去除数字千分位逗号后的文本，用于子串匹配
+        agent_lower_nocomma = re.sub(r"[,，]", "", agent_lower)
         hit = 0
         for ent in ref_entities:
-            # 数字：宽松匹配（值包含即可）
+            # 数字：先宽松子串匹配；失败则做数值近似匹配（“约”语义下 20,000 vs 19,664 视为同一事实）
             if ent.isdigit():
-                if ent in re.sub(r"[,，]", "", agent_lower):
+                if ent in agent_lower_nocomma:
+                    hit += 1
+                    continue
+                if self._numeric_near(ent, agent_lower_nocomma):
                     hit += 1
                 continue
             # 英文多词实体（含中间名/缩写，如 "John J. Hopfield"）：
@@ -417,6 +422,26 @@ class GAIAScorer:
                 hit += 1
 
         return hit / len(ref_entities)
+
+    @staticmethod
+    def _numeric_near(ent_num: str, agent_lower_nocomma: str) -> bool:
+        """数值近似匹配：agent 答案中出现与参考答案数字相差 ≤5%（或绝对差 ≤2）的数字即命中。
+
+        适用于 GAIA 常见“约 X”表述：如参考答案 20000，agent 写 19,664 或 20000 均应算命中。
+        """
+        try:
+            ref_val = float(ent_num)
+        except ValueError:
+            return False
+        tol = max(2.0, 0.05 * abs(ref_val))
+        for m in re.finditer(r"\d+(?:\.\d+)?", agent_lower_nocomma):
+            try:
+                val = float(m.group())
+            except ValueError:
+                continue
+            if abs(val - ref_val) <= tol:
+                return True
+        return False
 
 
 def score_from_file(
