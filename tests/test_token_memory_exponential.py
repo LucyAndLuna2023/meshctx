@@ -131,6 +131,24 @@ class TestM2Merge:
         items = s.retrieve("", top_k=0)
         assert len(items) == 1, "相似度≥阈值应合并"
 
+    def test_write_structured_memories_no_file_bloat(self, monkeypatch, tmp_path):
+        """多次调用不产生孤儿文件（回归: 原实现每次全量重写 id 漂移 → 2^N 膨胀）。"""
+        from src import cli
+        import src.cross_platform_engine as cpe
+        mem_dir = tmp_path / "memories"
+        mem_dir.mkdir(parents=True)
+        monkeypatch.setattr(
+            cpe, "CrossPlatformStorage",
+            type("Fake", (), {"base_path": tmp_path}))
+        items = [
+            {"key": "k1", "value": "事实一", "importance": 0.5},
+            {"key": "k2", "value": "事实二", "importance": 0.6},
+        ]
+        for _ in range(8):
+            cli._write_structured_memories(items)
+        files = list(mem_dir.glob("*.json"))
+        assert len(files) == 2, f"文件数应恒定=2, 实际 {len(files)}"
+
 
 # ═══════════ M3: 遗忘曲线排序注入 ═══════════
 
