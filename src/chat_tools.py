@@ -621,15 +621,34 @@ def build_system_prompt(project_dir: str = None, include_memory: bool = True) ->
                     parts.append(f"\n\n## 项目上下文 ({proj.name})\n{fpath.read_text(encoding='utf-8', errors='replace')[:3000]}")
                     break
     if include_memory:
+        # 来源1: persistent_memory.json（save_memory 工具/规则兜底写入）
+        entries = []
         mem_file = _Path.home() / ".meshctx" / "persistent_memory.json"
         if mem_file.exists():
             try:
                 mem_data = json.loads(mem_file.read_text(encoding="utf-8"))
                 if isinstance(mem_data, dict) and mem_data.get("entries"):
-                    parts.append("\n\n## 🔒 持久化记忆（跨会话保留）\n\n")
-                    parts.append("\n".join(f"- {e}" for e in mem_data["entries"]))
+                    entries = list(mem_data["entries"])
             except Exception:
                 pass
+        # 来源2: MemoryEngine(17脑区) 落盘记忆 data/memories/*.json
+        #   （修复 cc0c9113: 17脑区记忆体系此前从未被对话链路读取）
+        mem_dir = _Path.home() / ".meshctx" / "data" / "memories"
+        if mem_dir.exists():
+            try:
+                for fp in sorted(mem_dir.glob("*.json"))[:80]:
+                    try:
+                        m = json.loads(fp.read_text(encoding="utf-8"))
+                        val = str(m.get("value") or "").strip()
+                        if val and val not in entries:
+                            entries.append(val)
+                    except Exception:
+                        continue
+            except Exception:
+                pass
+        if entries:
+            parts.append("\n\n## 🔒 持久化记忆（跨会话保留）\n\n")
+            parts.append("\n".join(f"- {e}" for e in entries[:30]))
     parts.append("\n\n" + get_tools_prompt())
     return "".join(parts)
 

@@ -368,6 +368,7 @@ def cmd_chat(args):
     # ── 一发模式: meshctx chat "问题" ──
     if args.message:
         _chat_one_shot(client, args.message, args)
+        _auto_save_memory([_build_system_msg(args)[0], {"role": "user", "content": args.message}])
         return
 
     # ── 会话前缀
@@ -472,6 +473,9 @@ def cmd_chat(args):
         if session_id and len(messages) > 3:
             _save_session(SESS, session_id, messages)
             last_marker.write_text(session_id)
+
+    # ── 对话结束：自动写入记忆体系（修复 cc0c9113: CLI 记忆从未落盘）──
+    _auto_save_memory(messages)
 
 
 def _chat_one_shot(client, msg, args):
@@ -580,6 +584,98 @@ def _build_system_msg(args):
         include_memory=True,
     )
     return [{"role": "system", "content": content}]
+
+
+# ── 对话→记忆 自动写入管线（修复 cc0c9113: CLI 记忆从未落盘）──
+
+def _extract_user_facts(messages: List[Dict]) -> List[str]:
+    """规则式抽取用户明确陈述的事实/偏好（无 LLM 依赖）。
+
+    命中模式: 记住/我叫/我是/我喜欢/我的项目/我的目标 等明确陈述。
+    仅在用户消息中抽取，避免把工具调用/推理噪声写入记忆。
+    """
+    import re as _re
+    patterns = [
+        _re.compile(r'^(?:请记住|记住|记一下|记下来)[:：,，]?\s*(.{4,200})$'),
+        _re.compile(r'^(?:我叫|我是|我的名字(?:是|叫)?|名字(?:是|叫)?)[:：]?\s*(.{2,100})$'),
+        _re.compile(r'^(?:我喜欢|我偏好|我习惯|我常用|我使用|我在用|我负责|我是做)[:：]?\s*(.{4,200})$'),
+        _re.compile(r'^我(?:的)?(?:项目|工作|团队|公司|职位|角色)[:：是]?\s*(.{2,200})$'),
+        _re.compile(r'^(?:我的目标|我的计划|我打算|我要做|我需要)[:：]?\s*(.{4,200})$'),
+        _re.compile(r'^(?:请务必|请注意|重要提示|关键要求)[:：,，]?\s*(.{4,200})$'),
+    ]
+    facts = []
+    for msg in messages:
+        if msg.get("role") != "user":
+            continue
+        content = (msg.get("content") or "").strip()
+        if not content or len(content) > 800:
+            continue
+        for pat in patterns:
+            m = pat.match(content)
+            if m:
+                fact = m.group(1).strip()
+                if fact and fact not in facts:
+                    facts.append(fact)
+                break
+    return facts
+
+
+def _auto_save_memory(messages: List[Dict]) -> None:
+    """对话结束后自动把对话写入记忆体系（双通道，零阻塞失败）。
+
+    通道1 — MemoryEngine(17脑区): start_conversation + add_message，
+            add_message 内部 _extract_memories 自动抽取并落盘到 data/memories/。
+    通道2 — persistent_memory.json 规则兜底: build_system_prompt 实际读取的持久记忆。
+
+    根因（002 报障 cc0c9113）：save_memory 工具依赖 LLM 主动调用 → 永不触发；
+    此处由 CLI 对话生命周期兜底自动保存，修复『对话→记忆』管线缺失。
+    """
+    if not messages or len(messages) < 2:
+        return
+    # 通道1: MemoryEngine
+    try:
+        from src.memory_engine import MemoryEngine
+        from datetime import datetime as _dt
+        me = MemoryEngine(use_llm=False, use_vector_store=False)
+        conv = None
+        for msg in messages:
+            role = msg.get("role")
+            if role == "system" or role == "tool":
+                continue
+            if role == "assistant" and msg.get("tool_calls"):
+                continue  # 跳过工具调用帧
+            content = (msg.get("content") or "").strip()
+            if not content:
+                continue
+            if conv is None:
+                # start_conversation 要求 project 已存在 → 先确保 default 项目
+                # （create_project 以 uuid 为 key，注册 "default" 别名便于复用）
+                proj = me.projects.get("default")
+                if proj is None:
+                    try:
+                        proj = me.create_project(name="default", description="CLI 对话默认项目")
+                        me.projects["default"] = proj
+                    except Exception:
+                        proj = None
+                conv = me.start_conversation(
+                    getattr(proj, "id", None) or "default",
+                    title=f"CLI 对话 {_dt.now().strftime('%Y-%m-%d %H:%M')}")
+            try:
+                me.add_message(conv.id, role or "user", content[:2000])
+            except Exception:
+                pass
+    except Exception:
+        pass
+    # 通道2: persistent_memory.json 规则兜底
+    try:
+        from src.chat_tools import _save_memory
+        for fact in _extract_user_facts(messages):
+            try:
+                _save_memory(fact)
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 
 def _handle_slash(cmd, reg, client, SESS, messages, session_id):
