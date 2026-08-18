@@ -365,6 +365,53 @@ class HierarchicalMemoryStore:
                 self.save_to_file(self._auto_save_path)
                 self._pending_writes = 0
 
+    def store_with_merge(self, item: MemoryItem, sim_threshold: float = 0.9) -> MemoryItem:
+        """M2: 记忆合并去重 — key 相等或相似度≥阈值时合并，importance 累加。
+
+        判定顺序：① key 相等 ② 向量余弦相似度 ③ 文本相似度（difflib 兜底）。
+        合并策略：importance 累加（封顶 1.0），value 保留最新，last_reviewed 取最新。
+        """
+        import difflib
+        target = None
+        for ex in self._items.values():
+            # ① key 相等
+            if ex.key and item.key and ex.key == item.key:
+                target = ex
+                break
+            # ② 向量相似度
+            if getattr(ex, "embedding", None) and getattr(item, "embedding", None):
+                try:
+                    ex_emb = list(ex.embedding)
+                    it_emb = list(item.embedding)
+                    dot = sum(a * b for a, b in zip(ex_emb, it_emb))
+                    norm_ex = sum(a * a for a in ex_emb) ** 0.5
+                    norm_it = sum(b * b for b in it_emb) ** 0.5
+                    if norm_ex and norm_it and (dot / (norm_ex * norm_it)) >= sim_threshold:
+                        target = ex
+                        break
+                except Exception:
+                    pass
+            # ③ 文本相似度兜底（仅比较 value；key 已在①判定）
+            a = (ex.value or ex.content or "").strip()
+            b = (item.value or item.content or "").strip()
+            if a and b and difflib.SequenceMatcher(None, a, b).ratio() >= sim_threshold:
+                target = ex
+                break
+        if target is not None:
+            target.importance = min(1.0, float(getattr(target, "importance", 0) or 0)
+                                    + float(getattr(item, "importance", 0) or 0))
+            if item.value:
+                target.value = item.value
+            old_lr = float(getattr(target, "last_reviewed", 0) or 0)
+            new_lr = float(getattr(item, "last_reviewed", 0) or 0)
+            target.last_reviewed = max(old_lr, new_lr)
+            if getattr(item, "embedding", None):
+                target.embedding = item.embedding
+                self.vector_index.add(target.id, item.embedding)
+            return target
+        self.store(item)
+        return item
+
     def retrieve(self, query: str, top_k: int = 5) -> list[MemoryItem]:
         q = (query or "").lower()
         out = []

@@ -621,9 +621,185 @@ def _extract_user_facts(messages: List[Dict]) -> List[str]:
     return facts
 
 
-def _auto_save_memory(messages: List[Dict]) -> None:
-    """对话结束后自动把对话写入记忆体系（双通道，零阻塞失败）。
+def _llm_batch_extract_memories(messages: List[Dict]) -> List[Dict]:
+    """M1: 对话结束 LLM 批量抽取 — 整段对话一次抽 5-20 条结构化记忆。
 
+    使用 config.yaml 的 deepseek 模型（key 从环境变量/`~/.meshctx/.env` 读取）。
+    失败时返回空列表，由调用方回退规则式抽取。
+    """
+    import json as _json
+    import os as _os
+    try:
+        # 读取模型配置（不落日志、不打印 key）
+        model = "deepseek-chat"
+        base_url = "https://api.deepseek.com"
+        api_key = _os.environ.get("DEEPSEEK_API_KEY", "")
+        env_path = _os.path.expanduser("~/.meshctx/.env")
+        if _os.path.exists(env_path):
+            for line in open(env_path, encoding="utf-8"):
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                k = k.strip()
+                v = v.strip().strip('"').strip("'")
+                if k == "DEEPSEEK_API_KEY" and v:
+                    api_key = v
+                elif k == "MESHCTX_MODEL" and v:
+                    model = v
+        if not api_key:
+            return []
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key, base_url=base_url, timeout=60)
+        dialogue = []
+        for msg in messages:
+            role = msg.get("role")
+            if role in ("system", "tool"):
+                continue
+            if role == "assistant" and msg.get("tool_calls"):
+                continue
+            content = (msg.get("content") or "").strip()
+            if content:
+                dialogue.append(f"[{role}] {content[:400]}")
+        if not dialogue:
+            return []
+        prompt = (
+            "你是记忆抽取系统。从以下对话中一次性抽取所有值得长期记住的信息，"
+            "输出 JSON 数组（5-20 条）。每条字段：key(简短关键词)、value(1-2句话概括)、"
+            "importance(0-1 浮点数)、category(fact/preference/decision/task/context/other)。"
+            "没有值得记住的信息输出 []。只输出 JSON 数组，不要其他内容。\n\n对话:\n"
+            + "\n".join(dialogue)[:8000]
+        )
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=2000,
+        )
+        raw = (resp.choices[0].message.content or "").strip()
+        # JSON 解析（代码块/首尾 [] 兜底）
+        try:
+            items = _json.loads(raw)
+        except Exception:
+            import re as _re
+            m = _re.search(r"```(?:json)?\s*(\[.*?\])\s*```", raw, _re.DOTALL)
+            if not m:
+                start, end = raw.find("["), raw.rfind("]") + 1
+                if start >= 0 and end > start:
+                    m = type("_M", (), {"group": lambda self, i: raw[start:end]})()
+            items = _json.loads(m.group(1)) if m else []
+        if not isinstance(items, list):
+            return []
+        out = []
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            value = str(it.get("value") or "").strip()
+            if not value:
+                continue
+            out.append({
+                "key": str(it.get("key") or "").strip()[:80],
+                "value": value[:500],
+                "importance": max(0.0, min(1.0, float(it.get("importance", 0.5) or 0.5))),
+                "category": str(it.get("category", "other") or "other")[:40],
+            })
+        return out[:20]
+    except Exception:
+        return []
+
+
+def _merge_persistent_entries(items: List[Dict]) -> int:
+    """M2: 合并去重写入 persistent_memory.json（key 相等或文本相似度≥0.9 合并）。
+
+    返回新增条数。
+    """
+    import difflib
+    import json as _json
+    from pathlib import Path as _Path
+    mem_file = _Path.home() / ".meshctx" / "persistent_memory.json"
+    try:
+        if mem_file.exists():
+            data = _json.loads(mem_file.read_text(encoding="utf-8"))
+        else:
+            data = {"entries": []}
+        entries = list(data.get("entries", []))
+        added = 0
+        for it in items:
+            value = it["value"]
+            merged = False
+            for i, ex in enumerate(entries):
+                if ex == value or difflib.SequenceMatcher(None, ex, value).ratio() >= 0.9:
+                    entries[i] = value  # 保留最新
+                    merged = True
+                    break
+            if not merged:
+                entries.append(value)
+                added += 1
+        data["entries"] = entries[-500:]
+        mem_file.parent.mkdir(parents=True, exist_ok=True)
+        mem_file.write_text(_json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        return added
+    except Exception:
+        return 0
+
+
+def _write_structured_memories(items: List[Dict]) -> int:
+    """M1/M2: 结构化记忆写入 memories/*.json（带 importance/key/last_reviewed，供 T3 检索）。
+
+    使用 HierarchicalMemoryStore.store_with_merge 合并去重。
+    返回新增条数。
+    """
+    import json as _json
+    import time as _time
+    from pathlib import Path as _Path
+    try:
+        from src.core.memory_hierarchy import HierarchicalMemoryStore, MemoryItem, MemoryLevel
+        from src.cross_platform_engine import CrossPlatformStorage
+        mem_dir = CrossPlatformStorage().base_path / "memories"
+    except Exception:
+        mem_dir = _Path.home() / ".meshctx" / "data" / "memories"
+    try:
+        mem_dir.mkdir(parents=True, exist_ok=True)
+        store = HierarchicalMemoryStore()
+        # 加载已有记忆（T3 兼容字段）
+        for fp in sorted(mem_dir.glob("*.json")):
+            try:
+                m = _json.loads(fp.read_text(encoding="utf-8"))
+                if m.get("value") or m.get("content"):
+                    store.store(MemoryItem(
+                        key=m.get("key", ""), value=m.get("value") or m.get("content", ""),
+                        importance=float(m.get("importance", 0.5) or 0.5),
+                        level=MemoryLevel.LONG_TERM,
+                        last_reviewed=float(m.get("last_reviewed", 0.0) or 0.0),
+                        created_at=float(m.get("created_at", 0.0) or 0.0),
+                    ))
+            except Exception:
+                continue
+        before = len(list(store._all_items()))
+        for it in items:
+            store.store_with_merge(MemoryItem(
+                key=it["key"], value=it["value"], importance=it["importance"],
+                level=MemoryLevel.LONG_TERM, last_reviewed=_time.time()))
+        # 写回（每文件一条，文件名 = item id）
+        for _id, item in store._all_items():
+            fp = mem_dir / f"{_id}.json"
+            fp.write_text(_json.dumps({
+                "id": _id, "key": item.key, "value": item.value,
+                "importance": item.importance,
+                "level": "LONG_TERM",
+                "last_reviewed": getattr(item, "last_reviewed", 0.0),
+                "created_at": getattr(item, "created_at", 0.0),
+            }, ensure_ascii=False, indent=2), encoding="utf-8")
+        return len(list(store._all_items())) - before
+    except Exception:
+        return 0
+
+
+def _auto_save_memory(messages: List[Dict]) -> None:
+    """对话结束后自动把对话写入记忆体系（三通道，零阻塞失败）。
+
+    通道0 — LLM 批量抽取（M1）: 整段对话一次抽 5-20 条结构化记忆，写入
+            persistent_memory.json（M2 合并去重）与 memories/*.json（带 importance）。
     通道1 — MemoryEngine(17脑区): start_conversation + add_message，
             add_message 内部 _extract_memories 自动抽取并落盘到 data/memories/。
     通道2 — persistent_memory.json 规则兜底: build_system_prompt 实际读取的持久记忆。
@@ -633,6 +809,14 @@ def _auto_save_memory(messages: List[Dict]) -> None:
     """
     if not messages or len(messages) < 2:
         return
+    # 通道0: LLM 批量抽取（M1 + M2）
+    try:
+        items = _llm_batch_extract_memories(messages)
+        if items:
+            _write_structured_memories(items)
+            _merge_persistent_entries(items)
+    except Exception:
+        pass
     # 通道1: MemoryEngine
     try:
         from src.memory_engine import MemoryEngine
