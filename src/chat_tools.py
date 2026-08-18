@@ -88,7 +88,7 @@ _DSML_PARAM_RE = re.compile(r'<parameter\s+name="([^"]+)"[^>]*>(.*?)</parameter>
 _DSML_BLOCK_RE = re.compile(r'<tool_calls>.*?</tool_calls>', re.S)
 
 
-_DSML_TAG_NOISE_RE = re.compile(r'<(\s*/?\s*)[｜|]+([A-Za-z_][A-Za-z_0-9]*)')
+_DSML_TAG_NOISE_RE = re.compile(r'<(\s*/?\s*)(?:DSML[｜|]*)?[｜|]+([A-Za-z_][A-Za-z_0-9]*)')
 
 
 def _clean_dsml_tags(text: str) -> str:

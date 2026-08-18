@@ -335,20 +335,26 @@ class GAIAScorer:
 
     @staticmethod
     def _extract_core_answer(raw: str) -> str:
-        """从 agent 原始输出中提取核心答案（'答案:'/'最终答案' 标记之后的最后一段）。"""
+        """从 agent 原始输出中提取核心答案（'答案:'/'最终答案' 标记之后的最后一段）。
+
+        取所有标记中出现位置**最靠右**的一个（最终答案通常在文本末尾），
+        而不是候选中最长的（推理过程中可能含更长的「所以答案是...」片段，导致误截）。
+        """
         if not raw:
             return ""
         # 常见答案标记（中英文）
         markers = ["最终答案:", "答案:", "Answer:", "Final Answer:", "答案是", "结论:", "结果是"]
-        best = ""
+        best_idx = -1
+        best_marker = ""
         for m in markers:
             idx = raw.rfind(m)
-            if idx != -1:
-                cand = raw[idx + len(m):].strip().split("\n")[0].strip()
-                if cand and len(cand) > len(best):
-                    best = cand
-        if best:
-            return best
+            if idx > best_idx:
+                best_idx = idx
+                best_marker = m
+        if best_idx != -1:
+            cand = raw[best_idx + len(best_marker):].strip().split("\n")[0].strip()
+            if cand:
+                return cand
         # 无标记：取最后一段
         parts = [p.strip() for p in raw.split("\n") if p.strip()]
         return parts[-1] if parts else raw.strip()

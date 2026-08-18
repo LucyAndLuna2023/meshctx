@@ -39,16 +39,20 @@ FINAL_HINT = (
 # benchmark prompt 常含 <your answer> / <answer> 等格式占位符，模型有时会字面返回。
 # 在最终交付文本里检测到占位符 → 视为未完成任务，强制重试一次（注入替换指令）。
 PLACEHOLDER_PATTERNS = ("<your answer>", "<your_answer>", "<answer>", "<ANSWER>", "<output>")
+# DSML 工具调用文本块（模型未走原生 function-call 而写成文本，交付时不应作为最终答案）
+DSML_BLOCK_MARKERS = ("<tool_calls>", "<DSML", "｜｜tool_calls", "||tool_calls")
 PLACEHOLDER_RETRY_HINT = (
-    "[系统提示] 你的上一条输出包含未替换的格式占位符（如 <your answer>），这不是有效答案。"
-    "请直接给出真实、完整、具体的最终答案正文，不要输出任何尖括号占位符。"
+    "[系统提示] 你的上一条输出包含未替换的格式占位符或工具调用文本（如 <your answer> 或 <DSML||tool_calls>），"
+    "这不是有效答案。请直接给出真实、完整、具体的最终答案正文，不要输出任何占位符或工具调用。"
 )
 
 
 def _contains_placeholder(text: str) -> bool:
-    """检测最终文本是否含未替换的占位符。"""
+    """检测最终文本是否含未替换的占位符或未收敛的 DSML 工具调用块。"""
     low = text.lower()
-    return any(p.lower() in low for p in PLACEHOLDER_PATTERNS)
+    if any(p.lower() in low for p in PLACEHOLDER_PATTERNS):
+        return True
+    return any(m.lower() in low for m in DSML_BLOCK_MARKERS)
 
 
 async def run_agent_loop(
