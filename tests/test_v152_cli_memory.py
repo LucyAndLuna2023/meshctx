@@ -24,7 +24,9 @@ from src.chat_tools import build_system_prompt
 def iso_home(monkeypatch):
     tmp = tempfile.mkdtemp(prefix="cli_mem_test_")
     os.makedirs(os.path.join(tmp, ".meshctx"), exist_ok=True)
-    monkeypatch.setenv("HOME", tmp)
+    monkeypatch.setenv("HOME", tmp)                                          # Linux/macOS Path.home()
+    monkeypatch.setenv("USERPROFILE", tmp)                                   # Windows Path.home()
+    monkeypatch.setenv("APPDATA", os.path.join(tmp, "AppData", "Roaming"))   # Windows CrossPlatformStorage
     yield tmp
     shutil.rmtree(tmp, ignore_errors=True)
 
@@ -75,7 +77,8 @@ def test_auto_save_memory_dual_channel(iso_home):
     assert any("量化" in e for e in data["entries"])
 
     # 通道1
-    mem_dir = os.path.join(iso_home, ".meshctx", "data", "memories")
+    from src.cross_platform_engine import CrossPlatformStorage
+    mem_dir = str(CrossPlatformStorage().base_path / "memories")  # 平台感知: mac→~/Library/Application Support/meshctx/data, win/linux→~/.meshctx/data
     files = [f for f in os.listdir(mem_dir) if f.endswith(".json")]
     assert files, "MemoryEngine 应有记忆落盘"
     mem = json.load(open(os.path.join(mem_dir, files[0]), encoding="utf-8"))

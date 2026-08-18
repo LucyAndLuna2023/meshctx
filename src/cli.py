@@ -20,6 +20,7 @@ import logging
 import os
 import sys
 import time
+from typing import Dict, List, Optional
 from pathlib import Path
 
 logger = logging.getLogger("meshctx.cli")

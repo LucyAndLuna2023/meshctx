@@ -631,9 +631,14 @@ def build_system_prompt(project_dir: str = None, include_memory: bool = True) ->
                     entries = list(mem_data["entries"])
             except Exception:
                 pass
-        # 来源2: MemoryEngine(17脑区) 落盘记忆 data/memories/*.json
+        # 来源2: MemoryEngine(17脑区) 落盘记忆 —— 平台感知路径
         #   （修复 cc0c9113: 17脑区记忆体系此前从未被对话链路读取）
-        mem_dir = _Path.home() / ".meshctx" / "data" / "memories"
+        #   Windows: %APPDATA%/meshctx/data; mac: ~/Library/Application Support/meshctx/data; linux: ~/.meshctx/data
+        try:
+            from src.cross_platform_engine import CrossPlatformStorage
+            mem_dir = CrossPlatformStorage().base_path / "memories"
+        except Exception:
+            mem_dir = _Path.home() / ".meshctx" / "data" / "memories"
         if mem_dir.exists():
             try:
                 for fp in sorted(mem_dir.glob("*.json"))[:80]:
