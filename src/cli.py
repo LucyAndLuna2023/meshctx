@@ -645,8 +645,20 @@ def _llm_batch_extract_memories(messages: List[Dict]) -> List[Dict]:
                 v = v.strip().strip('"').strip("'")
                 if k == "DEEPSEEK_API_KEY" and v:
                     api_key = v
-                elif k == "MESHCTX_MODEL" and v:
-                    model = v
+        # 模型名/base_url 从 config.yaml 读（MESHCTX_MODEL 是内部 provider:model 格式，不能直接用于 API）
+        cfg_path = _os.path.expanduser("~/.meshctx/config.yaml")
+        if _os.path.exists(cfg_path):
+            try:
+                import yaml as _yaml
+                cfg = _yaml.safe_load(open(cfg_path, encoding="utf-8")) or {}
+                entries = (cfg.get("models") or {}).get("entries") or {}
+                default = (cfg.get("models") or {}).get("default") or "deepseek"
+                entry = entries.get(default) or entries.get("deepseek") or {}
+                model = entry.get("model") or model
+                if entry.get("base_url"):
+                    base_url = entry["base_url"].rstrip("/")
+            except Exception:
+                pass
         if not api_key:
             return []
         from openai import OpenAI
