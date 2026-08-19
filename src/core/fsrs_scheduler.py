@@ -37,6 +37,7 @@ __all__ = [
 DEFAULT_W = {
     "w8": 0.8,      # stability increase gain
     "w6": 0.03,     # difficulty reduction on success
+    "w9": 1.2,      # retrievability exponent (FSRS v4)
 }
 
 
@@ -187,10 +188,19 @@ class FSRSScheduler:
         return card.retrievability(now)
 
     # ── core update rules ────────────────────────────────────
-    def _next_stability(self, card: MemoryCard, grade: int) -> float:
+    def _next_stability(self, card: MemoryCard, grade: int, retrievability: float) -> float:
         if _grade_is_pass(grade):
+            # 首次复习（last_review=0，无 R 可依）: 用经验初始增益，
+            # 避免 R=1.0 时标准公式增益=1（首次复习无进展）。
+            if card.last_review <= 0:
+                f = _success_factor(grade)
+                gain = math.exp(self.w["w8"] * (11.0 - card.difficulty) * f)
+                return max(card.stability * gain, 0.01)
+            # FSRS v4: S' = S * (1 + exp(w8*(11-D)) * (R^(-w9) - 1) * f)
+            # 复习时保留度 R 越高，本次成功对稳定性的增益越小（间隔与遗忘状态相关）
             f = _success_factor(grade)
-            gain = math.exp(self.w["w8"] * (11.0 - card.difficulty) * f)
+            r_factor = max(0.0, retrievability ** (-self.w["w9"]) - 1.0)
+            gain = 1.0 + math.exp(self.w["w8"] * (11.0 - card.difficulty)) * r_factor * f
             return max(card.stability * gain, 0.01)
         # lapse: stability decays, interval resets
         return max(card.stability * self.decay_factor, 0.01)
@@ -231,7 +241,7 @@ class FSRSScheduler:
         est_r = card.retrievability(now)
 
         card.difficulty = self._next_difficulty(card.difficulty, grade)
-        card.stability = self._next_stability(card, grade)
+        card.stability = self._next_stability(card, grade, est_r)
         card.interval_days = self._next_interval(card.stability, grade, card.reviews)
         card.last_review = now
         card.next_review = now + card.interval_days * 86400.0

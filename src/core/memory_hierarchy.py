@@ -249,12 +249,14 @@ class MemoryItem:
         """当前保留度（0~1），由 Ebbinghaus 遗忘曲线估算。
 
         用 per-item FSRS stability（小时）替代固定 24h 衰减。
-        R(t) = e^(-t / S)。未复习过（last_reviewed=0）按创建时间起算。
+        R(t) = 10^(-t / S)（与 fsrs_scheduler.MemoryCard.retrievability 同底，
+        避免 e底/10底 双模型导致 review_urgency 与 FSRS 调度不一致）。
+        未复习过（last_reviewed=0）按创建时间起算。
         """
         base = self.last_reviewed if self.last_reviewed else self.created_at
         elapsed = max(0.0, time.time() - base)
         s_seconds = max(1e-6, float(self.stability or 24.0) * 3600.0)  # 小时→秒
-        return max(0.05, min(1.0, math.exp(-elapsed / s_seconds)))
+        return max(0.05, min(1.0, 10.0 ** (-elapsed / s_seconds)))
 
     def review_urgency(self) -> float:
         """FSRS 检索紧迫度：importance × (1 - R)。
@@ -489,7 +491,9 @@ class HierarchicalMemoryStore:
         from .fsrs_scheduler import FSRSScheduler, MemoryCard, grade_from_confidence
 
         if grade is None:
-            grade = grade_from_confidence(confidence) if confidence is not None else 4
+            # 默认 grade=3（保守）：无 confidence 时按"勉强通过"处理，
+            # 避免默认 grade=4 导致 stability 每次增长数十倍的乐观膨胀。
+            grade = grade_from_confidence(confidence) if confidence is not None else 3
 
         # 复用 FSRSScheduler 状态机（S 以天为单位，MemoryItem 存小时 → 转换）
         sched = FSRSScheduler()
