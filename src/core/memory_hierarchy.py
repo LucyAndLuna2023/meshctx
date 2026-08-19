@@ -228,6 +228,8 @@ class MemoryItem:
     ease_factor: float = 2.5           # SM-2 ease factor (legacy)
     next_review: float = 0.0           # unix ts of next scheduled review
     lapses: int = 0                    # times forgotten
+    # ── Schema layer (phase-2, task 4) ──
+    schema_layer: str = "episodic"     # episodic | semantic | core
 
     def __post_init__(self):
         if not self.id:
@@ -306,6 +308,7 @@ class MemoryItem:
             "ease_factor": self.ease_factor,
             "next_review": self.next_review,
             "lapses": self.lapses,
+            "schema_layer": self.schema_layer,
         }
 
     @classmethod
@@ -345,6 +348,7 @@ class MemoryItem:
             ease_factor=data.get("ease_factor", 2.5),
             next_review=data.get("next_review", 0.0),
             lapses=data.get("lapses", 0),
+            schema_layer=data.get("schema_layer", "episodic"),
         )
 
 
@@ -554,6 +558,17 @@ class HierarchicalMemoryStore:
         for item in self._items.values():
             seen[item.key] = item
         self._items = {item.id: item for item in seen.values()}
+
+    def consolidate(self, **kw) -> dict:
+        """图式化三层收敛（phase-2 task4）：情景→语义→核心 管线。
+
+        对标 Mem0 consolidate：同主题 ≥3 条合并为 1 条语义摘要，
+        高频语义提升为核心层原则，被合并情景条目降权。
+        返回 stats dict（含 grouped/deduped/semantic_created 等）。
+        """
+        from .schema_consolidator import run_consolidation
+
+        return run_consolidation(self, **kw)
 
     def _all_items(self):
         """Yield (id, item) pairs for all stored items."""
