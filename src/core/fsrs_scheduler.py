@@ -151,12 +151,14 @@ class FSRSScheduler:
         default_stability: float = 1.0,
         default_difficulty: float = 5.0,
         decay_factor: float = 0.5,
+        max_stability: float = 3650.0,   # 安全上限 10 年（py-fsrs 亦有 hard cap）
     ):
         self.target_retention = target_retention
         self.w = {**DEFAULT_W, **(w or {})}
         self.default_stability = default_stability
         self.default_difficulty = default_difficulty
         self.decay_factor = decay_factor
+        self.max_stability = max_stability
         self._cards: Dict[str, MemoryCard] = {}
 
     # ── storage ──────────────────────────────────────────────
@@ -195,27 +197,28 @@ class FSRSScheduler:
             if card.last_review <= 0:
                 f = _success_factor(grade)
                 gain = math.exp(self.w["w8"] * (11.0 - card.difficulty) * f)
-                return max(card.stability * gain, 0.01)
+                return min(max(card.stability * gain, 0.01), self.max_stability)
             # FSRS v4: S' = S * (1 + exp(w8*(11-D)) * (R^(-w9) - 1) * f)
             # 复习时保留度 R 越高，本次成功对稳定性的增益越小（间隔与遗忘状态相关）
             f = _success_factor(grade)
             r_factor = max(0.0, retrievability ** (-self.w["w9"]) - 1.0)
             gain = 1.0 + math.exp(self.w["w8"] * (11.0 - card.difficulty)) * r_factor * f
-            return max(card.stability * gain, 0.01)
+            return min(max(card.stability * gain, 0.01), self.max_stability)
         # lapse: stability decays, interval resets
         return max(card.stability * self.decay_factor, 0.01)
 
     def _next_interval(self, stability: float, grade: int, reviews: int) -> float:
         if not _grade_is_pass(grade):
             return 1.0
-        # inverse power-law: I = S * (R_target^(-1/0.25) - 1); clamp >= 1 day
-        if self.target_retention > 0 and self.target_retention < 1:
-            factor = self.target_retention ** (-4.0) - 1.0
-        else:
-            factor = 0.5
         if reviews == 0:
-            return max(1.0, min(stability, 1.0))
-        return max(1.0, stability * max(factor, 0.1))
+            return 1.0
+        # 幂律自洽: R(t)=10^(-t/S) 的逆解 t = -S·log10(R_target)
+        # 使复习间隔与自身遗忘曲线互逆（审计点2）: r=0.9 → 0.046·S
+        if 0 < self.target_retention < 1:
+            factor = -math.log10(self.target_retention)
+        else:
+            factor = 0.046
+        return max(1.0, stability * factor)
 
     def _next_difficulty(self, difficulty: float, grade: int) -> float:
         if _grade_is_pass(grade):

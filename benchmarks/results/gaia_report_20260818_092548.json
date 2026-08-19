@@ -1,0 +1,90 @@
+{
+  "benchmark": "GAIA",
+  "version": "2026",
+  "summary": {
+    "total_tasks": 3,
+    "correct": 1,
+    "incorrect": 2,
+    "accuracy": 0.3333,
+    "exact_match_rate": 0.0,
+    "avg_f1": 0.2467
+  },
+  "by_level": {
+    "2": {
+      "total": 1,
+      "correct": 0,
+      "exact_match": 0,
+      "accuracy": 0.0,
+      "avg_f1": 0.24
+    },
+    "3": {
+      "total": 2,
+      "correct": 1,
+      "exact_match": 0,
+      "accuracy": 0.5,
+      "avg_f1": 0.25
+    }
+  },
+  "per_task": [
+    {
+      "task_id": "gaia__l2__003",
+      "level": 2,
+      "level_label": "Level 2 — 多步推理与工具使用",
+      "answer_type": "text",
+      "correct": false,
+      "exact_match": false,
+      "normalized_match": false,
+      "entity_match": false,
+      "f1_score": 0.24,
+      "similarity": 0.2857,
+      "agent": {
+        "raw_answer": "我已通过 Wikipedia 的 \"Rust for Linux\" 条目和 Linux 内核源码（v6.8 标签下的 `drivers/net/phy/ax88796b_rust.rs`，提交记录 \"net: phy: add Rust Asix PHY driver\"，2023-12-15 提交）核实了答案。\n\n关键事实：\n- Rust 基础设施在 Linux 6.1 合并，但当时没有任何 Rust 驱动。\n- 第一个用 Rust 编写的驱动程序于 2023 年 12 月被接受，随 **Linux 6.8** 发布。\n- 该驱动是 ASIX（亚信）以太网 PHY 驱动，支持 AX88772A / AX88772C / AX88796B 芯片。\n\n答案: Linux 6.8；ASIX AX88772A 以太网 PHY（网络 PHY 芯片）",
+        "elapsed_seconds": 188.8,
+        "exit_code": 0,
+        "timed_out": false,
+        "output_length": 18590
+      },
+      "ground_truth": "Linux 6.1，Apple M1 GPU 驱动（Asahi Linux 项目）"
+    },
+    {
+      "task_id": "gaia__l3__001",
+      "level": 3,
+      "level_label": "Level 3 — 复杂推理与多模态理解",
+      "answer_type": "text",
+      "correct": true,
+      "exact_match": false,
+      "normalized_match": false,
+      "entity_match": true,
+      "f1_score": 0.5,
+      "similarity": 0.8571,
+      "agent": {
+        "raw_answer": "根据 Ember《全球电力评论 2024》(Global Electricity Review 2024) 的权威数据，我已完成核实：\n\n1. **2023 年全球可再生能源发电占比**：可再生能源首次提供了全球 30% 的电力（由太阳能和风能增长驱动）。\n2. **中国、美国、欧盟中可再生能源发电量（TWh）最高者**：中国。2023 年中国可再生能源发电量约 2,900 TWh，远超欧盟（约 1,200 TWh）和美国（约 900 TWh）。\n\n答案: 30%，中国",
+        "elapsed_seconds": 49.71,
+        "exit_code": 0,
+        "timed_out": false,
+        "output_length": 8120
+      },
+      "ground_truth": "约30%，中国"
+    },
+    {
+      "task_id": "gaia__l3__002",
+      "level": 3,
+      "level_label": "Level 3 — 复杂推理与多模态理解",
+      "answer_type": "text",
+      "correct": false,
+      "exact_match": false,
+      "normalized_match": false,
+      "entity_match": false,
+      "f1_score": 0.0,
+      "similarity": 0.5814,
+      "agent": {
+        "raw_answer": "答案: 约 20,000 个蛋白质编码基因，其中约 3,000 个基因的功能目前仍不完全清楚。",
+        "elapsed_seconds": 51.58,
+        "exit_code": 0,
+        "timed_out": false,
+        "output_length": 9186
+      },
+      "ground_truth": "约20000个蛋白质编码基因，约30%功能不完全清楚"
+    }
+  ]
+}

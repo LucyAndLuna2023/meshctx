@@ -256,6 +256,7 @@ class MemoryItem:
         base = self.last_reviewed if self.last_reviewed else self.created_at
         elapsed = max(0.0, time.time() - base)
         s_seconds = max(1e-6, float(self.stability or 24.0) * 3600.0)  # 小时→秒
+        # 统一 10 底与 FSRS 一致（审计点3）: R(t)=10^(-t/S)
         return max(0.05, min(1.0, 10.0 ** (-elapsed / s_seconds)))
 
     def review_urgency(self) -> float:

@@ -26,18 +26,25 @@ class TestFSRSScheduler:
         assert card.stability == 1.0
         r1 = sched.review(card, grade=4)
         assert r1.passed
-        assert card.stability > 1.0, "成功复习后稳定性应上升"
-        assert card.interval_days >= 1.0
+        # FSRS-4: 新卡首次成功 S'=S 不涨（审计点4 保守化）
+        assert card.stability == pytest.approx(1.0)
+        assert card.interval_days == 1.0
         assert card.reviews == 1
         assert card.last_review > 0 and card.next_review > card.last_review
+        # 第二次成功开始按公式增长
+        r2 = sched.review(card, grade=4)
+        assert card.stability > 1.0, "第二次成功稳定性应上升"
+        assert card.interval_days > 1.0, "第二次成功间隔应大于1天"
 
     def test_perfect_grade_strengthens_more_than_minimal_pass(self):
         from src.core.fsrs_scheduler import FSRSScheduler
         s1 = FSRSScheduler()
         c1 = s1.get_or_create("a")
         s1.review(c1, grade=3)
+        s1.review(c1, grade=3)
         s2 = FSRSScheduler()
         c2 = s2.get_or_create("b")
+        s2.review(c2, grade=5)
         s2.review(c2, grade=5)
         assert c2.stability > c1.stability, "grade5 应比 grade3 增益更大"
 
@@ -140,8 +147,9 @@ class TestRecordRecallClosedLoop:
         item = MemoryItem(key="k1", value="v1")
         store.store(item)
         s0 = item.stability
-        store.record_recall(item.id, grade=5)
-        assert item.stability > s0, "成功回忆后 stability 应上升"
+        store.record_recall(item.id, grade=5)   # 首次: FSRS-4 不涨
+        store.record_recall(item.id, grade=5)   # 第二次: 开始强化
+        assert item.stability > s0, "重复成功回忆后 stability 应上升（LTP 两阶段巩固）"
 
     def test_confidence_calibration(self):
         from src.core.memory_hierarchy import HierarchicalMemoryStore, MemoryItem

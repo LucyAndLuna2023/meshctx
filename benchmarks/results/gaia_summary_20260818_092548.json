@@ -1,0 +1,8 @@
+{
+  "total_tasks": 3,
+  "correct": 1,
+  "incorrect": 2,
+  "accuracy": 0.3333,
+  "exact_match_rate": 0.0,
+  "avg_f1": 0.2467
+}

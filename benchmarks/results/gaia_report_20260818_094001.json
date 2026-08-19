@@ -1,0 +1,63 @@
+{
+  "benchmark": "GAIA",
+  "version": "2026",
+  "summary": {
+    "total_tasks": 2,
+    "correct": 1,
+    "incorrect": 1,
+    "accuracy": 0.5,
+    "exact_match_rate": 0.0,
+    "avg_f1": 0.2
+  },
+  "by_level": {
+    "3": {
+      "total": 2,
+      "correct": 1,
+      "exact_match": 0,
+      "accuracy": 0.5,
+      "avg_f1": 0.2
+    }
+  },
+  "per_task": [
+    {
+      "task_id": "gaia__l3__001",
+      "level": 3,
+      "level_label": "Level 3 — 复杂推理与多模态理解",
+      "answer_type": "text",
+      "correct": true,
+      "exact_match": false,
+      "normalized_match": false,
+      "entity_match": true,
+      "f1_score": 0.4,
+      "similarity": 0.3846,
+      "agent": {
+        "raw_answer": "我已通过 Ember《全球电力评论 2024》确认了两个关键事实：\n\n1. **2023 年全球可再生能源发电量占比**：可再生能源首次达到全球发电量的 **30%**（Ember Global Electricity Review 2024 头条结论）。\n\n2. **中国、美国、欧盟中可再生能源发电量最高者**：报告明确提到中国是 2023 年可再生能源增长的主要贡献者（贡献了全球新增太阳能的 51%、新增风能的 60%）。按 2023 年发电量（TWh）计，中国可再生能源发电约 3,194 TWh，远高于欧盟（约 1,190 TWh）和美国（约 830 TWh），中国是全球最大的可再生能源发电国。\n\n答案: 30%，中国（China）",
+        "elapsed_seconds": 69.36,
+        "exit_code": 0,
+        "timed_out": false,
+        "output_length": 11348
+      },
+      "ground_truth": "约30%，中国"
+    },
+    {
+      "task_id": "gaia__l3__002",
+      "level": 3,
+      "level_label": "Level 3 — 复杂推理与多模态理解",
+      "answer_type": "text",
+      "correct": false,
+      "exact_match": false,
+      "normalized_match": false,
+      "entity_match": false,
+      "f1_score": 0.0,
+      "similarity": 0.0,
+      "agent": {
+        "raw_answer": "**最终答案：** 关于\"人类约 20,000 个蛋白质编码基因中，约 3,000 个功能未知\"这一说法的核实结果如下。\n\n## 核实结论\n\n**基本事实正确，具体数字需按口径区分。** 该说法源自 2023 年发表的 Unknome（\"未知基因组\"）数据库及其论文。\n\n| 项目 | 核实数据 | 来源 |\n|------|---------|------|\n| 人类蛋白质编码基因总数 | **约 20,000 个**（论文用 19,664 个） | Unknome 官网 / PLOS Biology 2023 |\n| 功能\"几乎一无所知\"的基因 | **1,723 个**（knownness 评分 ≤1，即无任何功能注释） | 牛津 Dunn School 官方报道 |\n| 仍\"未被充分表征\"的比例 | **约五分之一（~1/5）的人类基因组** | 同一报道 |\n| \"约 3,000 个\"的说法 | 属于**约数估算**，与\"1/5≈4,000 个未充分表征\"和\"1,723 个严格未知\"两个口径之间，约 3,000 处于合理区间 | 记忆中的约数 |\n\n## 关键来源\n\n1. **论文**：Rocha J. 等，*Functional unknomics: Systematic screening of conserved genes of unknown function*，**PLOS Biology**，2023 年 8 月，21(8): e3002222，PMID: 37552676，DOI: 10.1371/journal.pbio.3002222\n2. **创建者**：Matthew Freeman（牛津大学 Dunn School of Pathology）与 Sean Munro（剑桥 MRC 分子生物学实验室 LMB）\n3. **数据库**：Unknome（unknome.org / unknome.mrc-lmb.cam.ac.uk），最新版 v3（2026 年 3 月 18 日更新），按 PANTHER 家族 + Gene Ontology 注释对每个蛋白打\"knownness 已知度\"分数，分数越低说明了解越少。\n\n## 精确数字说明\n\n- **严格口径（已知度 ≤1，完全无功能注释）**：1,723 / 19,664 个基因\n- **宽口径（\"poorly characterised\" 未被充分表征）**：约占 1/5 ≈ 4,000 个\n- 因此\"约 3,000 个功能不清楚\"是这两个口径之间的合理约数，**方向正确，但最权威的精确数字是 1,723 个**。\n\n（注：本次任务为信息核实，未要求生成文件，故未输出文档。）",
+        "elapsed_seconds": 293.08,
+        "exit_code": 0,
+        "timed_out": false,
+        "output_length": 35029
+      },
+      "ground_truth": "约20000个蛋白质编码基因，约30%功能不完全清楚"
+    }
+  ]
+}

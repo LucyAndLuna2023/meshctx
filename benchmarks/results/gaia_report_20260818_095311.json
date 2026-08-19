@@ -1,0 +1,43 @@
+{
+  "benchmark": "GAIA",
+  "version": "2026",
+  "summary": {
+    "total_tasks": 1,
+    "correct": 1,
+    "incorrect": 0,
+    "accuracy": 1.0,
+    "exact_match_rate": 0.0,
+    "avg_f1": 0.5
+  },
+  "by_level": {
+    "1": {
+      "total": 1,
+      "correct": 1,
+      "exact_match": 0,
+      "accuracy": 1.0,
+      "avg_f1": 0.5
+    }
+  },
+  "per_task": [
+    {
+      "task_id": "gaia__l1__002",
+      "level": 1,
+      "level_label": "Level 1 — 基础信息检索与推理",
+      "answer_type": "text",
+      "correct": true,
+      "exact_match": false,
+      "normalized_match": false,
+      "entity_match": true,
+      "f1_score": 0.5,
+      "similarity": 0.3043,
+      "agent": {
+        "raw_answer": "最终答案: Python 编程语言**没有官方吉祥物**。\n\nPython Software Foundation 的标志是两条交错的蛇（\"two snakes\" logo），但它们只是商标图形，没有名字，也没有像 Rust 的 Ferris（螃蟹）、Go 的 Gopher（地鼠）或 PHP 的 elePHPant（大象）那样的官方吉祥物。",
+        "elapsed_seconds": 287.04,
+        "exit_code": 0,
+        "timed_out": false,
+        "output_length": 24003
+      },
+      "ground_truth": "没有官方吉祥物"
+    }
+  ]
+}
