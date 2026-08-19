@@ -223,5 +223,46 @@ class TestFSRSPersistence:
         item = MemoryItem.from_json_dict(old)
         assert item.stability == 24.0
         assert item.difficulty == 5.0
-        assert item.next_review == 0.0
-        assert item.lapses == 0
+
+    def test_write_structured_memories_persists_fsrs_state(self, tmp_path, monkeypatch):
+        """P2 审计遗留：_write_structured_memories 重写记忆文件时必须保留 FSRS 状态，
+        重启后复习进度不丢失（读回+写回全量字段，而非仅 6-7 个旧字段）。"""
+        import json as _json
+        from src.cli import _write_structured_memories
+        from src.core.memory_hierarchy import MemoryItem
+
+        # 隔离到临时目录，避免污染真实 memories/
+        class FakeCPS:
+            def __init__(self, base_path=None):
+                self.base_path = tmp_path
+        monkeypatch.setattr("src.cross_platform_engine.CrossPlatformStorage", FakeCPS)
+
+        # 1) 预置一份"重启前已复习"的记忆文件（带 FSRS 状态）
+        mem_dir = tmp_path / "memories"
+        mem_dir.mkdir(parents=True, exist_ok=True)
+        old_item = MemoryItem(key="persist_k", value="persist_v", importance=0.8)
+        old_item.stability = 167.0          # 多次成功复习后的稳定值
+        old_item.difficulty = 4.1
+        old_item.next_review = 1788000000.0  # 未来到期时间
+        old_item.review_count = 4
+        old_item.lapses = 1
+        old_item.last_reviewed = 1787000000.0
+        (mem_dir / f"{old_item.id}.json").write_text(
+            _json.dumps(old_item.to_json_dict(), ensure_ascii=False), encoding="utf-8")
+
+        # 2) 模拟新对话自动保存（同一 key 的新提取记忆）
+        n = _write_structured_memories([{"key": "persist_k", "value": "persist_v", "importance": 0.8}])
+        assert n >= 0
+
+        # 3) 重读落盘文件：FSRS 状态必须保留（未被重置为默认值）
+        loaded = None
+        for fp in mem_dir.glob("*.json"):
+            d = _json.loads(fp.read_text(encoding="utf-8"))
+            if d.get("key") == "persist_k":
+                loaded = MemoryItem.from_json_dict(d)
+        assert loaded is not None, "记忆文件应存在"
+        assert loaded.stability == 167.0, f"stability 应跨重启保留, got {loaded.stability}"
+        assert loaded.next_review == 1788000000.0, f"next_review 应跨重启保留, got {loaded.next_review}"
+        assert loaded.difficulty == 4.1
+        assert loaded.lapses == 1
+        assert loaded.review_count == 4

@@ -778,14 +778,8 @@ def _write_structured_memories(items: List[Dict]) -> int:
             try:
                 m = _json.loads(fp.read_text(encoding="utf-8"))
                 if m.get("value") or m.get("content"):
-                    store.store(MemoryItem(
-                        id=m.get("id", ""), key=m.get("key", ""),
-                        value=m.get("value") or m.get("content", ""),
-                        importance=float(m.get("importance", 0.5) or 0.5),
-                        level=MemoryLevel.LONG_TERM,
-                        last_reviewed=float(m.get("last_reviewed", 0.0) or 0.0),
-                        created_at=float(m.get("created_at", 0.0) or 0.0),
-                    ))
+                    # 全量恢复（含 FSRS 状态: stability/difficulty/next_review/lapses 等）
+                    store.store(MemoryItem.from_json_dict(m))
             except Exception:
                 continue
         before = len(list(store._all_items()))
@@ -801,16 +795,10 @@ def _write_structured_memories(items: List[Dict]) -> int:
                     fp.unlink()
                 except OSError:
                     pass
-        # 写回（每文件一条，文件名 = item id）
+        # 写回（每文件一条，文件名 = item id；全量字段含 FSRS 状态）
         for _id, item in store._all_items():
             fp = mem_dir / f"{_id}.json"
-            fp.write_text(_json.dumps({
-                "id": _id, "key": item.key, "value": item.value,
-                "importance": item.importance,
-                "level": "LONG_TERM",
-                "last_reviewed": getattr(item, "last_reviewed", 0.0),
-                "created_at": getattr(item, "created_at", 0.0),
-            }, ensure_ascii=False, indent=2), encoding="utf-8")
+            fp.write_text(_json.dumps(item.to_json_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
         return len(list(store._all_items())) - before
     except Exception:
         return 0
