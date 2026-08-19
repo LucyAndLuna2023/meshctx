@@ -123,6 +123,9 @@ MeshCtx:       Pattern chunking → Emotional weighting → Hippocampal replay �
 - **Reconsolidation**: Each recall updates the memory (core human learning mechanism)
 - **Associative spread**: Weighted link propagation (smell → scene → person → conversation)
 - **Adaptive forgetting**: Forget details, keep patterns — forgetting is a feature, not a bug
+- **FSRS spaced repetition** (phase-1): Per-memory stability/difficulty (D/S/R) state machine schedules every recall at the edge of forgetting — reviews land exactly when retrieval is about to fail, cutting injection tokens while maximizing retention
+- **Active recall write-back**: Every hit + confirmation rewrites stability and re-schedules the next review (test-effect / retrieval practice theory); forgetful lapses are punished with a stability halving
+- **CMA-ES self-tuning** (phase-1): Continuous parameters (temperature / top_p / memory weights / FSRS weights) optimized via covariance-matrix-adaptation evolution — replaces blind GA mutation with gradient-free global optimization
 
 ### 🐝 Agent Swarm — Manager-Worker Multi-Agent (v3.34)
 ```bash
