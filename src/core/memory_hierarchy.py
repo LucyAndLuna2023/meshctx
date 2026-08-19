@@ -222,6 +222,12 @@ class MemoryItem:
     created_at: float = 0.0
     last_accessed: float = 0.0
     last_reviewed: float = 0.0
+    # ── FSRS spaced-repetition state (phase-1) ──
+    stability: float = 24.0            # S (hours, kept in hours for backward compat)
+    difficulty: float = 5.0            # D in [0, 10]
+    ease_factor: float = 2.5           # SM-2 ease factor (legacy)
+    next_review: float = 0.0           # unix ts of next scheduled review
+    lapses: int = 0                    # times forgotten
 
     def __post_init__(self):
         if not self.id:
@@ -240,9 +246,30 @@ class MemoryItem:
             self.created_at = time.time()
 
     def current_retention(self) -> float:
-        """当前保留度（0~1），由 Ebbinghaus 遗忘曲线估算。"""
-        elapsed = max(0.0, time.time() - self.last_reviewed if self.last_reviewed else 0.0)
-        return max(0.05, min(1.0, math.exp(-elapsed / (3600.0 * 24.0))))
+        """当前保留度（0~1），由 Ebbinghaus 遗忘曲线估算。
+
+        用 per-item FSRS stability（小时）替代固定 24h 衰减。
+        R(t) = e^(-t / S)。未复习过（last_reviewed=0）按创建时间起算。
+        """
+        base = self.last_reviewed if self.last_reviewed else self.created_at
+        elapsed = max(0.0, time.time() - base)
+        s_seconds = max(1e-6, float(self.stability or 24.0) * 3600.0)  # 小时→秒
+        return max(0.05, min(1.0, math.exp(-elapsed / s_seconds)))
+
+    def review_urgency(self) -> float:
+        """FSRS 检索紧迫度：importance × (1 - R)。
+
+        到期/即将遗忘的高价值记忆获得更高注入优先级。
+        """
+        r = self.current_retention()
+        return float(self.importance or 0.5) * (1.0 - r)
+
+    def is_due(self, now: float | None = None) -> bool:
+        """是否到期（next_review <= now 或从未安排复习）。"""
+        now = now or time.time()
+        if self.next_review <= 0:
+            return True
+        return now >= self.next_review
 
     def to_dict(self) -> dict:
         return self.to_json_dict()
@@ -271,6 +298,11 @@ class MemoryItem:
             "created_at": self.created_at,
             "last_accessed": self.last_accessed,
             "last_reviewed": self.last_reviewed,
+            "stability": self.stability,
+            "difficulty": self.difficulty,
+            "ease_factor": self.ease_factor,
+            "next_review": self.next_review,
+            "lapses": self.lapses,
         }
 
     @classmethod
@@ -305,6 +337,11 @@ class MemoryItem:
             created_at=data.get("created_at", 0.0),
             last_accessed=data.get("last_accessed", 0.0),
             last_reviewed=data.get("last_reviewed", 0.0),
+            stability=data.get("stability", 24.0),
+            difficulty=data.get("difficulty", 5.0),
+            ease_factor=data.get("ease_factor", 2.5),
+            next_review=data.get("next_review", 0.0),
+            lapses=data.get("lapses", 0),
         )
 
 
@@ -424,11 +461,87 @@ class HierarchicalMemoryStore:
         # 无词匹配时返回全部（按重要性排序）
         if not out and q == "":
             out = list(self._items.values())
-        out.sort(key=lambda x: x.importance, reverse=True)
+        # M3+FSRS: 按检索价值排序 = importance × (1 - R)（到期紧迫优先）
+        out.sort(key=lambda x: x.review_urgency(), reverse=True)
         return out[:top_k] if top_k > 0 else out
 
     def recall(self, query: str) -> list[MemoryItem]:
         return self.retrieve(query, top_k=0)
+
+    # ── FSRS 复习闭环（phase-1）──────────────────────────────
+
+    def record_recall(
+        self,
+        item_id: str,
+        grade: int | None = None,
+        confidence: float | None = None,
+    ) -> MemoryItem | None:
+        """主动回忆回写：检索命中/复习成功时更新 FSRS 调度状态。
+
+        修复历史缺陷：last_reviewed 只写不更新。
+        更新：last_reviewed / review_count / stability / difficulty /
+        ease_factor / next_review / confidence。
+        """
+        item = self._items.get(item_id)
+        if item is None:
+            return None
+
+        from .fsrs_scheduler import FSRSScheduler, MemoryCard, grade_from_confidence
+
+        if grade is None:
+            grade = grade_from_confidence(confidence) if confidence is not None else 4
+
+        # 复用 FSRSScheduler 状态机（S 以天为单位，MemoryItem 存小时 → 转换）
+        sched = FSRSScheduler()
+        card = MemoryCard(
+            item_id=item.id,
+            difficulty=item.difficulty,
+            stability=item.stability / 24.0,
+            interval_days=(
+                item.next_review - (item.last_reviewed or item.created_at)
+            ) / 86400.0 if item.next_review else 1.0,
+            reviews=item.review_count,
+            lapses=item.lapses,
+            last_review=item.last_reviewed or item.created_at,
+            next_review=item.next_review,
+        )
+        sched.set_card(card)
+        sched.review(card, grade=grade)
+
+        now = time.time()
+        item.last_reviewed = now
+        item.review_count = card.reviews
+        item.stability = card.stability * 24.0          # 天 → 小时
+        item.difficulty = card.difficulty
+        item.next_review = card.next_review
+        item.lapses = card.lapses
+        if confidence is not None:
+            item.confidence = max(0.0, min(1.0, confidence))
+        item.last_accessed = now
+        return item
+
+    def record_lapse(self, item_id: str) -> MemoryItem | None:
+        """遗忘惩罚（主动遗忘）：grade=0 → stability 减半、间隔重置 1 天。"""
+        return self.record_recall(item_id, grade=0)
+
+    def get_due_items(self, now: float | None = None) -> list[MemoryItem]:
+        """FSRS 到期条目：用于复习调度与预算裁剪（token 节省）。"""
+        now = now or time.time()
+        return [it for it in self._items.values() if it.is_due(now)]
+
+    def fsrs_stats(self) -> dict:
+        """FSRS 闭环统计。"""
+        items = list(self._items.values())
+        if not items:
+            return {"total_items": 0, "due_items": 0}
+        return {
+            "total_items": len(items),
+            "due_items": len(self.get_due_items()),
+            "avg_stability_hours": sum(float(i.stability or 24.0) for i in items) / len(items),
+            "avg_difficulty": sum(float(i.difficulty or 5.0) for i in items) / len(items),
+            "total_reviews": sum(i.review_count for i in items),
+            "total_lapses": sum(i.lapses for i in items),
+        }
 
     def compact(self):
         """Deduplicate items by key, keeping the most recent (last stored)."""

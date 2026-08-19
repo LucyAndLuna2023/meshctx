@@ -502,6 +502,53 @@ class GenomicOptimizer:
             self._persist_best()
             return self._best
 
+    # ── CMA-ES 增强路径（phase-1）───────────────────────────
+
+    def optimize_with_cmaes(
+        self,
+        fitness_fn,
+        iters: int = 40,
+        dims: Tuple[str, ...] = ("temperature", "top_p", "memory_weight"),
+    ) -> "Genome":
+        """用 CMA-ES 优化连续参数子空间（temperature/top_p/memory_weight）。
+
+        fitness_fn: Callable[[Genome], float] — 对候选基因组返回适应度（越高越好）。
+        相比 GA 的高斯盲变异，CMA-ES 自适应协方差，能学习参数间相关性，
+        在平滑连续面上收敛快 5-10 倍。
+        """
+        from .cmaes_optimizer import CmaesOptimizer
+
+        default = Genome()
+        bounds = []
+        for d in dims:
+            rng = getattr(default, f"{d}_range")
+            bounds.append((float(rng[0]), float(rng[1])))
+
+        def _wrapped(x):
+            g = default.clone()
+            for d, v in zip(dims, x):
+                setattr(g, d, float(v))
+            return float(fitness_fn(g))
+
+        opt = CmaesOptimizer(dim=len(dims), bounds=bounds)
+        result = opt.run(_wrapped, iters=iters)
+
+        best_g = default.clone()
+        for d, v in zip(dims, result.best_x):
+            setattr(best_g, d, float(v))
+        best_g.retrieval_top_k = int(round(best_g.retrieval_top_k))
+        best_g.generation = self._generation + 1
+
+        with self._lock:
+            self._best = best_g
+            self._best_score = result.best_fitness
+            self._persist_best()
+        logger.info(
+            f"CMA-ES done: {iters} iters, best_f={result.best_fitness:.4f}, "
+            f"params={tuple(round(v,3) for v in result.best_x)}"
+        )
+        return best_g
+
     def _evolve_one_generation(self):
         """一代进化。"""
         pop = self._population
