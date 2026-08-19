@@ -621,9 +621,11 @@ def _memory_base_paths():
 
 
 def _memory_item_score(item) -> float:
-    """记忆条目注入排序分数 = importance × retention（Ebbinghaus 遗忘曲线）。
+    """记忆条目注入排序分数 = importance × retention × schema_layer 加成。
 
     item 可为 dict（JSON 落盘）或 MemoryItem 对象。
+    P3-4: semantic/core 层优先级高于 episodic（核心原则常驻，情景详情按需检索）
+    —— 让三层图式化结构真正影响 token 分配。
     """
     import math as _math
     import time as _time
@@ -632,7 +634,9 @@ def _memory_item_score(item) -> float:
     lr = get("last_reviewed") or get("last_accessed") or 0.0
     elapsed = max(0.0, _time.time() - float(lr)) if lr else 0.0
     retention = max(0.05, min(1.0, _math.exp(-elapsed / (3600.0 * 24.0))))
-    return imp * retention
+    layer = get("schema_layer", None) or "episodic"
+    layer_bonus = {"core": 1.25, "semantic": 1.15, "episodic": 1.0}.get(layer, 1.0)
+    return imp * retention * layer_bonus
 
 
 def _collect_memory_entries(current_query: str = None, base_dirs: list = None, max_entries: int = 30):
@@ -681,7 +685,8 @@ def _collect_memory_entries(current_query: str = None, base_dirs: list = None, m
                     _add(m.get("key", ""), m.get("value") or m.get("content", ""),
                          importance=float(m.get("importance", 0.5) or 0.5),
                          last_reviewed=float(m.get("last_reviewed", 0.0) or 0.0),
-                         created_at=float(m.get("created_at", 0.0) or 0.0))
+                         created_at=float(m.get("created_at", 0.0) or 0.0),
+                         schema_layer=m.get("schema_layer") or "episodic")
                 except Exception:
                     continue
         except Exception:

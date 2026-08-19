@@ -786,7 +786,8 @@ def _write_structured_memories(items: List[Dict]) -> int:
         for it in items:
             store.store_with_merge(MemoryItem(
                 key=it["key"], value=it["value"], importance=it["importance"],
-                level=MemoryLevel.LONG_TERM, last_reviewed=_time.time()))
+                level=MemoryLevel.LONG_TERM, last_reviewed=_time.time(),
+                category=str(it.get("category", "other") or "other")[:40]))
         # 清理孤儿文件：删除不在当前 store 中的旧文件（防止 id 漂移累积 2^N 膨胀）
         current_ids = {_id for _id, _item in store._all_items()}
         for fp in mem_dir.glob("*.json"):
@@ -795,6 +796,8 @@ def _write_structured_memories(items: List[Dict]) -> int:
                     fp.unlink()
                 except OSError:
                     pass
+        # P3-1: 图式化收敛自动触发（节流 <1h；纯本地无副作用，失败零阻塞）
+        _maybe_auto_consolidate(store, mem_dir)
         # 写回（每文件一条，文件名 = item id；全量字段含 FSRS 状态）
         for _id, item in store._all_items():
             fp = mem_dir / f"{_id}.json"
@@ -802,6 +805,37 @@ def _write_structured_memories(items: List[Dict]) -> int:
         return len(list(store._all_items())) - before
     except Exception:
         return 0
+
+
+def _maybe_auto_consolidate(store, mem_dir) -> None:
+    """P3-1: consolidate 自动触发（002 审计建议包）。
+
+    每次对话保存末尾触发图式化收敛，内部节流：距上次收敛 <1h 跳过。
+    纯本地、无副作用、失败零阻塞——保证不破坏对话保存主流程。
+    """
+    import time as _t
+    marker = mem_dir / ".last_consolidate"
+    try:
+        now = _t.time()
+        if marker.exists():
+            try:
+                last = float(marker.read_text(encoding="utf-8").strip())
+            except (ValueError, OSError):
+                last = 0.0
+            if now - last < 3600:
+                return
+        stats = store.consolidate()
+        marker.write_text(str(now), encoding="utf-8")
+        if stats and stats.get("semantic_created"):
+            try:
+                from src.utils.logger import get_logger
+                get_logger("meshctx.memory").info(
+                    "auto-consolidate: %s semantic created, %s grouped",
+                    stats.get("semantic_created"), stats.get("grouped_items"))
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 
 def _auto_save_memory(messages: List[Dict]) -> None:

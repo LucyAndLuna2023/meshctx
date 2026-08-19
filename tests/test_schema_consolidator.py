@@ -43,7 +43,8 @@ def _meeting(theme: str, detail: str, importance: float = 0.6, **kw) -> MemoryIt
 class TestThemeGroup:
     def test_extract_theme_from_entity(self):
         it = _meeting("产品发布", "确认发布日期")
-        assert extract_theme(it) == "entity:产品发布"
+        # P3-2: '产品发布' 含 '发布' → 同义词归一化为 release
+        assert extract_theme(it) == "entity:release"
 
     def test_extract_theme_fallback_to_topic(self):
         it = MemoryItem(value="讨论预算审批流程", entities=[])
@@ -88,7 +89,7 @@ class TestMergeSemantic:
         ]
         sem = merge_to_semantic(group)
         assert sem.schema_layer == SCHEMA_SEMANTIC
-        assert sem.key.startswith("schema:entity:产品发布")
+        assert sem.key.startswith("schema:entity:release")
         assert len(sem.related_memory_ids) == 3
         # importance 取组内最大、stability 继承（不重新学习）
         assert sem.importance == pytest.approx(0.7)
@@ -105,7 +106,8 @@ class TestPromoteCore:
         cores = promote_to_core(sems, min_freq=2)
         assert len(cores) == 1
         assert cores[0].schema_layer == SCHEMA_CORE
-        assert "代码规范" in cores[0].value
+        # P3-2: '代码规范' 归一化为 entity:code → core 值用规范主题键
+        assert "entity:code" in cores[0].value
 
     def test_rare_semantic_not_promoted(self):
         sems = [merge_to_semantic([_meeting("一次性事件", f"点{i}") for i in range(3)])]

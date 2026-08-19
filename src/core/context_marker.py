@@ -156,7 +156,7 @@ def update_markers(
 def auto_tag_item(item) -> dict:
     """从记忆元数据自动打语境标记（入库钩子用）。
 
-    从 value/content 关键词 + source/project_id 生成初始 context_tags。
+    从 value/content 关键词 + source/project_id + M1 category 生成初始 context_tags。
     返回新 dict（不修改入参）。
     """
     tags: dict[str, float] = {}
@@ -170,6 +170,11 @@ def auto_tag_item(item) -> dict:
     pid = str(getattr(item, "project_id", "") or "").strip()
     if pid:
         tags[f"project:{pid}"] = 1.0
+    # P3-3: M1 category（fact/preference/decision/task/context/other）并入语境标记
+    get = item.get if isinstance(item, dict) else lambda k, d=None: getattr(item, k, d)
+    cat = str(get("category", "") or "").strip()
+    if cat and cat != "other":
+        tags[f"category:{cat}"] = 1.0
     return {k: min(MARK_MAX, v) for k, v in tags.items()}
 
 

@@ -54,19 +54,59 @@ def extract_theme(item) -> str:
     优先级：① entities 中首个实体 → "entity:<名>"
             ② value/content 高频 token（≥2 字符）→ "topic:<词>"
     无可用信息 → "topic:general"
+    P3-2: 输出前经同义词归一化（周会/会议/例会 → meeting 组），
+    避免同主题变体分到不同组导致收敛效率下降。
     """
-    entities = list(getattr(item, "entities", None) or [])
+    get = item.get if isinstance(item, dict) else lambda k, d=None: getattr(item, k, d)
+    entities = list(get("entities", None) or [])
     if entities:
         name = str(entities[0]).strip()
         if name:
-            return f"entity:{name[:48]}"
+            return _normalize_theme(f"entity:{name[:48]}")
 
-    text = str(getattr(item, "value", "") or getattr(item, "content", "") or "")
+    text = str(get("value", "") or get("content", "") or "")
     tokens = _tokenize(text)
     if tokens:
         top_word, cnt = tokens[0]
-        return f"topic:{top_word[:48]}"
+        return _normalize_theme(f"topic:{top_word[:48]}")
     return "topic:general"
+
+
+# ── P3-2 同义词归一化（002 审计建议） ──────────────────────────
+# 同主题变体（中英常用业务词）→ 规范键，使 '周会/会议/例会' 收敛到同一组。
+SYNONYM_CANON = {
+    # 会议
+    "周会": "meeting", "例会": "meeting", "会议": "meeting", "早会": "meeting",
+    "meeting": "meeting", "standup": "meeting",
+    # 发布/部署
+    "部署": "release", "发布": "release", "上线": "release", "灰度": "release",
+    "release": "release", "deploy": "release",
+    # 预算
+    "预算": "budget", "预算审批": "budget", "budget": "budget",
+    # 用户
+    "用户": "user", "客户": "user", "user": "user", "customer": "user",
+    # 测试
+    "测试": "testing", "回归": "testing", "test": "testing",
+    # 文档
+    "文档": "doc", "doc": "doc", "documentation": "doc",
+    # 招聘
+    "招聘": "hiring", "面试": "hiring", "hiring": "hiring", "interview": "hiring",
+    # 代码
+    "代码": "code", "code": "code",
+}
+
+
+def _normalize_theme(theme: str) -> str:
+    """主题键同义词归一化：'entity:周会' → 'entity:meeting'；'topic:发布新版' → 'topic:release'。"""
+    prefix, _, stem = theme.partition(":")
+    s = stem.strip().lower()
+    if s in SYNONYM_CANON:
+        return f"{prefix}:{SYNONYM_CANON[s]}"
+    # 包含匹配（token 片段含同义词，如 '发布新版' 含 '发布'）→ 取首个命中规范键
+    for k, canon in SYNONYM_CANON.items():
+        if k and k in s:
+            return f"{prefix}:{canon}"
+    return theme
 
 
 def _tokenize(text: str) -> list[tuple[str, int]]:

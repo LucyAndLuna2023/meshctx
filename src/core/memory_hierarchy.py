@@ -232,6 +232,8 @@ class MemoryItem:
     schema_layer: str = "episodic"     # episodic | semantic | core
     # ── Epigenetic context markers (phase-2, task 5) ──
     context_tags: dict = field(default_factory=dict)   # {context_tag: weight}
+    # ── M1 category (P3-3: fact/preference/decision/task/context/other) ──
+    category: str = "other"
 
     def __post_init__(self):
         if not self.id:
@@ -312,6 +314,7 @@ class MemoryItem:
             "lapses": self.lapses,
             "schema_layer": self.schema_layer,
             "context_tags": dict(self.context_tags or {}),
+            "category": self.category,
         }
 
     @classmethod
@@ -353,6 +356,7 @@ class MemoryItem:
             lapses=data.get("lapses", 0),
             schema_layer=data.get("schema_layer", "episodic"),
             context_tags=data.get("context_tags") or {},
+            category=data.get("category") or "other",
         )
 
 
