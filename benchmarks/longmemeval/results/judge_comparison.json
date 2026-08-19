@@ -1,0 +1,12 @@
+{
+  "baseline": {
+    "correct": 39.0,
+    "total": 48,
+    "accuracy": 0.8125
+  },
+  "meshctx_brainv2": {
+    "correct": 35.0,
+    "total": 48,
+    "accuracy": 0.7291666666666666
+  }
+}

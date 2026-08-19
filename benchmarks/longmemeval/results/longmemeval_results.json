@@ -1,0 +1,380 @@
+{
+  "model": "deepseek-chat",
+  "benchmark": "LongMemEval-oracle",
+  "n_per_type": 8,
+  "per_type": {
+    "temporal-reasoning": {
+      "correct": 4.0,
+      "total": 8,
+      "accuracy": 0.5
+    },
+    "multi-session": {
+      "correct": 3.0,
+      "total": 8,
+      "accuracy": 0.375
+    },
+    "knowledge-update": {
+      "correct": 4.0,
+      "total": 8,
+      "accuracy": 0.5
+    },
+    "single-session-preference": {
+      "correct": 0.0,
+      "total": 8,
+      "accuracy": 0.0
+    },
+    "single-session-assistant": {
+      "correct": 6.0,
+      "total": 8,
+      "accuracy": 0.75
+    },
+    "single-session-user": {
+      "correct": 8.0,
+      "total": 8,
+      "accuracy": 1.0
+    }
+  },
+  "samples": [
+    {
+      "question_id": "gpt4_2655b836",
+      "question": "What was the first issue I had with my new car after its first service?",
+      "answer": "GPS system not functioning correctly",
+      "response": "Based on the history, the first issue you had with your new car after its first service was with the GPS system on 3/22, which required the dealership to replace the entire system.",
+      "em": 0.0
+    },
+    {
+      "question_id": "gpt4_2487a7cb",
+      "question": "Which event did I attend first, the 'Effective Time Management' workshop or the 'Data Analysis using Python' webinar?",
+      "answer": "'Data Analysis using Python' webinar",
+      "response": "Based on the history chats, you attended the 'Effective Time Management' workshop on Saturday, May 27, 2023, and the 'Data Analysis using Python' webinar two months ago (around March 2023). Since the webinar was earlier, you attended the 'Data Analysis using Python' webinar first.",
+      "em": 1.0
+    },
+    {
+      "question_id": "gpt4_76048e76",
+      "question": "Which vehicle did I take care of first in February, the bike or the car?",
+      "answer": "bike",
+      "response": "Based on the history, you took care of the bike first in February. You mentioned having the bike repaired in mid-February, while you washed the car on February 27th.",
+      "em": 1.0
+    },
+    {
+      "question_id": "gpt4_2312f94c",
+      "question": "Which device did I got first, the Samsung Galaxy S22 or the Dell XPS 13?",
+      "answer": "Samsung Galaxy S22",
+      "response": "Based on the history, you got the Samsung Galaxy S22 first. You bought it on February 20th, while the Dell XPS 13 arrived on February 25th.",
+      "em": 1.0
+    },
+    {
+      "question_id": "0bb5a684",
+      "question": "How many days before the team meeting I was preparing for did I attend the workshop on 'Effective Communication in the Workplace'?",
+      "answer": "7 days. 8 days (including the last day) is also acceptable.",
+      "response": "Based on the history, you attended the workshop on January 10th and were preparing for a team meeting on January 17th. That is 7 days before the meeting.",
+      "em": 0.0
+    },
+    {
+      "question_id": "08f4fc43",
+      "question": "How many days had passed between the Sunday mass at St. Mary's Church and the Ash Wednesday service at the cathedral?",
+      "answer": "30 days. 31 days (including the last day) is also acceptable.",
+      "response": "Based on the history, the Sunday mass at St. Mary's Church was on January 2nd, and the Ash Wednesday service at the cathedral was on February 1st. That is 30 days apart.",
+      "em": 0.0
+    },
+    {
+      "question_id": "2c63a862",
+      "question": "How many days did it take for me to find a house I loved after starting to work with Rachel?",
+      "answer": "14 days. 15 days (including the last day) is also acceptable.",
+      "response": "Based on the history, you started working with Rachel on 2/15 and found a house you loved on 3/1. That’s 14 days later.",
+      "em": 0.0
+    },
+    {
+      "question_id": "gpt4_385a5000",
+      "question": "Which seeds were started first, the tomatoes or the marigolds?",
+      "answer": "Tomatoes",
+      "response": "Based on the history, the marigold seeds arrived on March 3rd and were started then. The tomatoes, peppers, and cucumbers were started on February 20th. So, the tomatoes were started first.",
+      "em": 1.0
+    },
+    {
+      "question_id": "0a995998",
+      "question": "How many items of clothing do I need to pick up or return from a store?",
+      "answer": 3,
+      "response": "Based on the history, you need to pick up one item: a pair of boots from Zara that you exchanged on February 5th.",
+      "em": 0.0
+    },
+    {
+      "question_id": "6d550036",
+      "question": "How many projects have I led or am currently leading?",
+      "answer": 2,
+      "response": "Based on the history chats, you mentioned leading the data analysis team for a Marketing Research class project. There is no mention of other projects you have led or are currently leading.",
+      "em": 0.0
+    },
+    {
+      "question_id": "gpt4_59c863d7",
+      "question": "How many model kits have I worked on or bought?",
+      "answer": "I have worked on or bought five model kits. The scales of the models are: Revell F-15 Eagle (scale not mentioned), Tamiya 1/48 scale Spitfire Mk.V, 1/16 scale German Tiger I tank, 1/72 scale B-29 bomber, and 1/24 scale '69 Camaro.",
+      "response": "Based on the history, you've worked on or bought at least 5 model kits:\n\n1. **Revell F-15 Eagle** (1/72 scale, bought in late April)\n2. **Tamiya 1/48 scale Spitfire Mk.V** (finished)\n3. **1/72 scale B-29 bomber** (bought at a model show last weekend",
+      "em": 0.0
+    },
+    {
+      "question_id": "b5ef892d",
+      "question": "How many days did I spend on camping trips in the United States this year?",
+      "answer": "8 days.",
+      "response": "Based on the history, you went on a 3-day solo camping trip to Big Sur in early April and a 5-day camping trip to Yellowstone last month. That totals **8 days** of camping in the United States this year.",
+      "em": 1.0
+    },
+    {
+      "question_id": "e831120c",
+      "question": "How many weeks did it take me to watch all the Marvel Cinematic Universe movies and the main Star Wars films?",
+      "answer": "3.5 weeks",
+      "response": "Based on your history, you watched all 22 MCU movies in about two weeks, and the main Star Wars films in a week and a half. So, it took you about 2 weeks for the MCU and about 1.5 weeks for Star Wars.",
+      "em": 0.0
+    },
+    {
+      "question_id": "3a704032",
+      "question": "How many plants did I acquire in the last month?",
+      "answer": 3,
+      "response": "Based on the history, you acquired at least 3 plants in the last month: a peace lily and a succulent (from the nursery two weeks ago, around May 7), and a snake plant (from your sister last month).",
+      "em": 1.0
+    },
+    {
+      "question_id": "gpt4_d84a3211",
+      "question": "How much total money have I spent on bike-related expenses since the start of the year?",
+      "answer": "$185",
+      "response": "Based on the history, you've mentioned the following bike-related expenses:\n\n- New bike lights: $40 (installed during the April 20th tune-up)\n- Chain replacement: $25 (during the same tune-up)\n- Bell Zephyr helmet: $120 (purchased on April 10th)\n\nTotal spent: $40 + $25 + $120 = **$185",
+      "em": 1.0
+    },
+    {
+      "question_id": "aae3761f",
+      "question": "How many hours in total did I spend driving to my three road trip destinations combined?",
+      "answer": "15 hours for getting to the three destinations (or 30 hours for the round trip)",
+      "response": "Based on the history chats, you mentioned driving times for three trips:\n\n1. Outer Banks, NC: 4 hours\n2. Washington D.C.: 6 hours\n3. Mountains in Tennessee: 5 hours\n\nTotal driving time: 4 + 6 + 5 = **15 hours**.",
+      "em": 0.0
+    },
+    {
+      "question_id": "6a1eabeb",
+      "question": "What was my personal best time in the charity 5K run?",
+      "answer": "25 minutes and 50 seconds (or 25:50)",
+      "response": "Based on the history, your personal best time in the charity 5K run was **25:50**.",
+      "em": 0.0
+    },
+    {
+      "question_id": "6aeb4375",
+      "question": "How many Korean restaurants have I tried in my city?",
+      "answer": "four",
+      "response": "Based on the history chats, you mentioned trying three Korean restaurants in Session 1 and four in Session 2. However, since these are separate sessions and you didn't specify if they overlap, the total could be either 3, 4, or 7. If you're asking about the most recent count, you said you've tried four different ones.",
+      "em": 1.0
+    },
+    {
+      "question_id": "830ce83f",
+      "question": "Where did Rachel move to after her recent relocation?",
+      "answer": "the suburbs",
+      "response": "Based on the history, Rachel moved to Chicago.",
+      "em": 0.0
+    },
+    {
+      "question_id": "852ce960",
+      "question": "What was the amount I was pre-approved for when I got my mortgage from Wells Fargo?",
+      "answer": "$400,000",
+      "response": "Based on the history chats, you were pre-approved for $350,000 from Wells Fargo.",
+      "em": 0.0
+    },
+    {
+      "question_id": "945e3d21",
+      "question": "How often do I attend yoga classes to help with my anxiety?",
+      "answer": "Three times a week.",
+      "response": "Based on your history, you attend yoga classes three times a week to help with anxiety and focus.",
+      "em": 1.0
+    },
+    {
+      "question_id": "d7c942c3",
+      "question": "Is my mom using the same grocery list method as me?",
+      "answer": "Yes.",
+      "response": "Based on the chat history, yes, your mom is now using the same grocery list app as you. In the second session, you mentioned that she started using the same app so you can easily share lists and keep track of what you need.",
+      "em": 1.0
+    },
+    {
+      "question_id": "71315a70",
+      "question": "How many hours have I spent on my abstract ocean sculpture?",
+      "answer": "10-12 hours",
+      "response": "Based on the history, you mentioned spending 10-12 hours on your abstract ocean sculpture as of June 17, 2023.",
+      "em": 1.0
+    },
+    {
+      "question_id": "89941a93",
+      "question": "How many bikes do I currently own?",
+      "answer": "4",
+      "response": "Based on the history, you currently own four bikes: a road bike, a mountain bike, a commuter bike, and a new hybrid bike you recently purchased.",
+      "em": 0.0
+    },
+    {
+      "question_id": "8a2466db",
+      "question": "Can you recommend some resources where I can learn more about video editing?",
+      "answer": "The user would prefer responses that suggest resources specifically tailored to Adobe Premiere Pro, especially those that delve into its advanced settings. They might not prefer general video editing resources or resources related to other video editing software.",
+      "response": "Based on our previous conversation, here are some resources I recommended for learning more about video editing, especially with Adobe Premiere Pro:\n\n- **Adobe Premiere Pro's official documentation and tutorials**\n- **YouTube channels**: Premiere Bro, Video Copilot, and Adobe Creative Cloud\n- **Online courses**: Udemy, LinkedIn Learning, and Skillshare\n- **Communities and forums**: Reddit",
+      "em": 0.0
+    },
+    {
+      "question_id": "06878be2",
+      "question": "Can you suggest some accessories that would complement my current photography setup?",
+      "answer": "The user would prefer suggestions of Sony-compatible accessories or high-quality photography gear that can enhance their photography experience. They may not prefer suggestions of other brands' equipment or low-quality gear.",
+      "response": "Based on your interest in upgrading your camera flash, tripod, and camera bag, here are some accessories that would complement your current photography setup:\n\n- **Flash Diffusers and Modifiers**: Softboxes, bounce cards, or diffusers for your Godox V1 to soften light and reduce harsh shadows.\n- **Remote Shutter Release**: A wireless or wired remote for your Sony A7R IV",
+      "em": 0.0
+    },
+    {
+      "question_id": "75832dbd",
+      "question": "Can you recommend some recent publications or conferences that I might find interesting?",
+      "answer": "The user would prefer suggestions related to recent research papers, articles, or conferences that focus on artificial intelligence in healthcare, particularly those that involve deep learning for medical image analysis. They would not be interested in general AI topics or those unrelated to healthcare.",
+      "response": "Based on your interest in deep learning for medical image analysis, here are some recent publications and conferences you might find valuable:\n\n**Recent Publications (2022–2023):**\n- **\"Transformers in Medical Imaging: A Survey\"** (Medical Image Analysis, 2023) – Covers transformer architectures for segmentation, classification, and synthesis.\n- **\"Self-Supervised Learning in Medicine and",
+      "em": 0.0
+    },
+    {
+      "question_id": "0edc2aef",
+      "question": "Can you suggest a hotel for my upcoming trip to Miami?",
+      "answer": "The user would prefer suggestions of hotels in Miami that offer great views, possibly of the ocean or the city skyline, and have unique features such as a rooftop pool or a hot tub on the balcony. They may not prefer suggestions of basic or budget hotels without these features.",
+      "response": "Of course! For Miami, I'd recommend **The Setai, Miami Beach** for stunning ocean views and luxury, or **Faena Hotel Miami Beach** for unique art-deco style and a rooftop pool. Both offer excellent amenities and are close to the beach. Would you like more details on either?",
+      "em": 0.0
+    },
+    {
+      "question_id": "35a27287",
+      "question": "Can you recommend some interesting cultural events happening around me this weekend?",
+      "answer": "The user would prefer responses that suggest cultural events where they can practice their language skills, particularly Spanish and French. They would also appreciate if the event has a focus on language learning resources. They would not prefer events that do not provide opportunities for language practice or cultural exchange.",
+      "response": "I don't have access to your location, so I can't pinpoint events near you. However, based on your interest in language and cultural exchange, here are some general suggestions to find events this weekend:\n\n1. **Check local event platforms** like Eventbrite, Meetup, or Facebook Events—search for \"language exchange,\" \"French festival,\" \"Spanish cultural event,\" or \"international festival",
+      "em": 0.0
+    },
+    {
+      "question_id": "32260d93",
+      "question": "Can you recommend a show or movie for me to watch tonight?",
+      "answer": "The user would prefer recommendations for stand-up comedy specials on Netflix, especially those that are known for their storytelling. They may not prefer recommendations for other genres or platforms.",
+      "response": "Based on your interest in comedy and storytelling, I recommend **\"Hasan Minhaj: Homecoming King\"** on Netflix. It’s a masterclass in narrative stand-up, blending humor with heartfelt personal stories—perfect for a night in. Enjoy!",
+      "em": 0.0
+    },
+    {
+      "question_id": "195a1a1b",
+      "question": "Can you suggest some activities that I can do in the evening?",
+      "answer": "The user would prefer suggestions that involve relaxing activities that can be done in the evening, preferably before 9:30 pm. They would not prefer suggestions that involve using their phone or watching TV, as these activities have been affecting their sleep quality.",
+      "response": "Based on your earlier preference to wind down by 9:30 pm, here are some relaxing evening activities you can try:\n\n- **Light stretching or yoga** – Gentle movements to release tension.\n- **Reading a book** – Choose something light and enjoyable.\n- **Journaling** – Write about your day or plan tomorrow.\n- **Listening to calming music or a podcast** – Keep it low",
+      "em": 0.0
+    },
+    {
+      "question_id": "afdc33df",
+      "question": "My kitchen's becoming a bit of a mess again. Any tips for keeping it clean?",
+      "answer": "The user would prefer responses that acknowledge and build upon their existing efforts to organize their kitchen, such as utilizing their new utensil holder to keep countertops clutter-free. They would also appreciate tips that address their concern for maintaining their granite surface, particularly around the sink area. Preferred responses would provide practical and actionable steps to maintain cleanliness, leveraging the user's current tools and setup. They might not prefer generic or vague suggestions that do not take into account their specific kitchen setup or concerns.",
+      "response": "Based on our previous chats, you've already gotten great advice on organizing utensils, fixing a leaky faucet, and repairing granite scratches. For overall kitchen cleanliness, here are a few quick, practical tips:\n\n1. **Clean as you go** – Wipe counters and wash dishes while cooking to avoid a big pile-up later.\n2. **Daily 10-minute reset** – Spend 10",
+      "em": 0.0
+    },
+    {
+      "question_id": "7161e7e2",
+      "question": "I'm checking our previous chat about the shift rotation sheet for GM social media agents. Can you remind me what was the rotation for Admon on a Sunday?",
+      "answer": "Admon was assigned to the 8 am - 4 pm (Day Shift) on Sundays.",
+      "response": "According to our previous chat, on Sunday, Admon was scheduled for the **8 am - 4 pm (Day Shift)**.",
+      "em": 0.0
+    },
+    {
+      "question_id": "c4f10528",
+      "question": "I'm planning to visit Bandung again and I was wondering if you could remind me of the name of that restaurant in Cihampelas Walk that serves a great Nasi Goreng?",
+      "answer": "Miss Bee Providore",
+      "response": "Based on our previous chat, the restaurant in Cihampelas Walk that serves a great Nasi Goreng is **Miss Bee Providore**. Their signature dish is \"Miss Bee's Nasi Goreng.\"",
+      "em": 1.0
+    },
+    {
+      "question_id": "89527b6b",
+      "question": "I'm going back to our previous conversation about the children's book on dinosaurs. Can you remind me what color was the scaly body of the Plesiosaur in the image?",
+      "answer": "The Plesiosaur had a blue scaly body.",
+      "response": "The Plesiosaur had a blue scaly body.",
+      "em": 1.0
+    },
+    {
+      "question_id": "e9327a54",
+      "question": "I'm planning to revisit Orlando. I was wondering if you could remind me of that unique dessert shop with the giant milkshakes we talked about last time?",
+      "answer": "The Sugar Factory at Icon Park.",
+      "response": "The Sugar Factory at ICON Park is the dessert spot with giant milkshakes we discussed.",
+      "em": 1.0
+    },
+    {
+      "question_id": "4c36ccef",
+      "question": "Can you remind me of the name of the romantic Italian restaurant in Rome you recommended for dinner?",
+      "answer": "Roscioli",
+      "response": "The romantic Italian restaurant I recommended in Rome is **Roscioli**.",
+      "em": 1.0
+    },
+    {
+      "question_id": "6ae235be",
+      "question": "I remember you told me about the refining processes at CITGO's three refineries earlier. Can you remind me what kind of processes are used at the Lake Charles Refinery?",
+      "answer": "Atmospheric distillation, fluid catalytic cracking (FCC), alkylation, and hydrotreating.",
+      "response": "Based on our earlier conversation, the Lake Charles Refinery uses the following refining processes:\n\n1. **Atmospheric distillation** – the initial step where crude oil is heated and separated into fractions by boiling point.\n2. **Fluid catalytic cracking (FCC)** – breaks down heavier fractions into lighter, more valuable products like gasoline and diesel.\n3. **Alkylation** – combines smaller molecules to",
+      "em": 0.0
+    },
+    {
+      "question_id": "7e00a6cb",
+      "question": "I'm planning my trip to Amsterdam again and I was wondering, what was the name of that hostel near the Red Light District that you recommended last time?",
+      "answer": "International Budget Hostel",
+      "response": "Based on our previous chat, the hostel near the Red Light District is **International Budget Hostel**.",
+      "em": 1.0
+    },
+    {
+      "question_id": "1903aded",
+      "question": "I think we discussed work from home jobs for seniors earlier. Can you remind me what was the 7th job in the list you provided?",
+      "answer": "Transcriptionist.",
+      "response": "The 7th job in the list was **Transcriptionist**.",
+      "em": 1.0
+    },
+    {
+      "question_id": "e47becba",
+      "question": "What degree did I graduate with?",
+      "answer": "Business Administration",
+      "response": "You graduated with a degree in Business Administration.",
+      "em": 1.0
+    },
+    {
+      "question_id": "118b2229",
+      "question": "How long is my daily commute to work?",
+      "answer": "45 minutes each way",
+      "response": "Based on the chat history, your daily commute is 45 minutes each way.",
+      "em": 1.0
+    },
+    {
+      "question_id": "51a45a95",
+      "question": "Where did I redeem a $5 coupon on coffee creamer?",
+      "answer": "Target",
+      "response": "Based on the chat history, you redeemed the $5 coupon on coffee creamer at Target.",
+      "em": 1.0
+    },
+    {
+      "question_id": "58bf7951",
+      "question": "What play did I attend at the local community theater?",
+      "answer": "The Glass Menagerie",
+      "response": "Based on the history, you attended a production of *The Glass Menagerie* at the local community theater.",
+      "em": 1.0
+    },
+    {
+      "question_id": "1e043500",
+      "question": "What is the name of the playlist I created on Spotify?",
+      "answer": "Summer Vibes",
+      "response": "The playlist you created on Spotify is called **Summer Vibes**.",
+      "em": 1.0
+    },
+    {
+      "question_id": "c5e8278d",
+      "question": "What was my last name before I changed it?",
+      "answer": "Johnson",
+      "response": "Your last name before the change was Johnson.",
+      "em": 1.0
+    },
+    {
+      "question_id": "6ade9755",
+      "question": "Where do I take yoga classes?",
+      "answer": "Serenity Yoga",
+      "response": "Based on your chat history, you take yoga classes at **Serenity Yoga** and also practice at home using the **Down Dog** app.",
+      "em": 1.0
+    },
+    {
+      "question_id": "6f9b354f",
+      "question": "What color did I repaint my bedroom walls?",
+      "answer": "a lighter shade of gray",
+      "response": "Based on the chat history, you repainted your bedroom walls a lighter shade of gray.",
+      "em": 1.0
+    }
+  ],
+  "overall": {
+    "correct": 25.0,
+    "total": 48,
+    "accuracy": 0.5208333333333334
+  }
+}
