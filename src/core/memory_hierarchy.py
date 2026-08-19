@@ -230,6 +230,8 @@ class MemoryItem:
     lapses: int = 0                    # times forgotten
     # ── Schema layer (phase-2, task 4) ──
     schema_layer: str = "episodic"     # episodic | semantic | core
+    # ── Epigenetic context markers (phase-2, task 5) ──
+    context_tags: dict = field(default_factory=dict)   # {context_tag: weight}
 
     def __post_init__(self):
         if not self.id:
@@ -309,6 +311,7 @@ class MemoryItem:
             "next_review": self.next_review,
             "lapses": self.lapses,
             "schema_layer": self.schema_layer,
+            "context_tags": dict(self.context_tags or {}),
         }
 
     @classmethod
@@ -349,6 +352,7 @@ class MemoryItem:
             next_review=data.get("next_review", 0.0),
             lapses=data.get("lapses", 0),
             schema_layer=data.get("schema_layer", "episodic"),
+            context_tags=data.get("context_tags") or {},
         )
 
 
@@ -456,7 +460,12 @@ class HierarchicalMemoryStore:
         self.store(item)
         return item
 
-    def retrieve(self, query: str, top_k: int = 5) -> list[MemoryItem]:
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 5,
+        context: str | dict | None = None,
+    ) -> list[MemoryItem]:
         q = (query or "").lower()
         out = []
         for item in self._items.values():
@@ -468,12 +477,24 @@ class HierarchicalMemoryStore:
         # 无词匹配时返回全部（按重要性排序）
         if not out and q == "":
             out = list(self._items.values())
+        # 语境条件排序（phase-2 task5）：非全局分数，按当前语境加权
+        if context:
+            from .context_marker import merge_active_context, rank_by_context
+
+            active = (
+                context
+                if isinstance(context, dict)
+                else merge_active_context(text=str(context))
+            )
+            ranked = rank_by_context(out, active)
+            out = [it for it, _ in ranked]
+            return out[:top_k] if top_k > 0 else out
         # M3+FSRS: 按检索价值排序 = importance × (1 - R)（到期紧迫优先）
         out.sort(key=lambda x: x.review_urgency(), reverse=True)
         return out[:top_k] if top_k > 0 else out
 
-    def recall(self, query: str) -> list[MemoryItem]:
-        return self.retrieve(query, top_k=0)
+    def recall(self, query: str, context: str | dict | None = None) -> list[MemoryItem]:
+        return self.retrieve(query, top_k=0, context=context)
 
     # ── FSRS 复习闭环（phase-1）──────────────────────────────
 
