@@ -469,10 +469,14 @@ class HierarchicalMemoryStore:
         query: str,
         top_k: int = 5,
         context: str | dict | None = None,
+        include_archived: bool = False,
     ) -> list[MemoryItem]:
         q = (query or "").lower()
         out = []
         for item in self._items.values():
+            # 第三阶段：ARCHIVAL 层默认不参与检索注入（可恢复，非删除）
+            if not include_archived and getattr(item, "level", None) == MemoryLevel.ARCHIVAL:
+                continue
             haystack = " ".join(
                 [item.key, item.value, item.content, item.summary]
             ).lower()
@@ -480,7 +484,8 @@ class HierarchicalMemoryStore:
                 out.append(item)
         # 无词匹配时返回全部（按重要性排序）
         if not out and q == "":
-            out = list(self._items.values())
+            out = [it for it in self._items.values()
+                   if include_archived or getattr(it, "level", None) != MemoryLevel.ARCHIVAL]
         # 语境条件排序（phase-2 task5）：非全局分数，按当前语境加权
         if context:
             from .context_marker import merge_active_context, rank_by_context

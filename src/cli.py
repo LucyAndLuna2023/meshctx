@@ -834,6 +834,18 @@ def _maybe_auto_consolidate(store, mem_dir) -> None:
                     stats.get("semantic_created"), stats.get("grouped_items"))
             except Exception:
                 pass
+        # 第三阶段：主动遗忘修剪（低价值高遗忘 → ARCHIVAL 层，不删除可恢复）
+        try:
+            from src.core.offline_consolidation import archive_candidates, prune_to_archival
+            cands = prune_to_archival(store)
+            if cands:
+                archived = archive_candidates(store, cands)
+                if archived:
+                    from src.utils.logger import get_logger
+                    get_logger("meshctx.memory").info(
+                        "auto-prune: %s memories archived to ARCHIVAL layer", len(archived))
+        except Exception:
+            pass
     except Exception:
         pass
 
