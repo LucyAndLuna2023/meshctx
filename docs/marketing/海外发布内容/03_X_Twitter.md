@@ -31,7 +31,7 @@ amygdala = salience detection
 
 3/8 The memory system is Sparse Distributed Memory (Kanerva SDM):
 O(2^1000) address space — that's 10^296x larger than any vector DB agent memory.
-- **Memory Engine v2 (2026-08)**: FSRS spaced repetition + schema consolidation (episodic→semantic→core, auto-triggered) + context markers + sleep-phase offline consolidation & ARCHIVAL pruning (recoverable). LongMemEval: EM 54.2% / semantic judge 83.3% (vs GPT-4o no-memory baseline 60–64%); 16KB curated 33.3% vs truncation 25.0% (+8.3pp, 4.5× fewer tokens); tool output 5008B→223B (−95.5%).
+- **Memory Engine v2 (2026-08)**: FSRS spaced repetition + schema consolidation (episodic→semantic→core, auto-triggered) + context markers + sleep-phase offline consolidation & ARCHIVAL pruning (recoverable). LongMemEval: EM 52-54% (48Q oracle subset) / semantic judge 83.3% (~81-85% of GPT-4o no-memory full-context 60–64%); 16KB curated 33.3% vs truncation 25.0% (+8.3pp, 4.5× fewer tokens); tool output 5008B→223B (−95.5%).
 100:1 fractal compression. Predictive pre-activation before retrieval.
 
 4/8 🧬 The part I'm most proud of: GenomicOptimizer.

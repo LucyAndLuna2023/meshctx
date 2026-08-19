@@ -27,7 +27,7 @@ What makes it different from Cursor/Copilot/Claude Code:
 
 1. 17-region full-brain architecture (not a single black-box LLM call)
 2. Sparse Distributed Memory (Kanerva SDM) — O(2^1000) address space for long-term memory
-- **Memory Engine v2 (2026-08)**: FSRS spaced repetition + schema consolidation (episodic→semantic→core, auto-triggered) + context markers + sleep-phase offline consolidation & ARCHIVAL pruning (recoverable). LongMemEval: EM 54.2% / semantic judge 83.3% (vs GPT-4o no-memory baseline 60–64%); 16KB curated 33.3% vs truncation 25.0% (+8.3pp, 4.5× fewer tokens); tool output 5008B→223B (−95.5%).
+- **Memory Engine v2 (2026-08)**: FSRS spaced repetition + schema consolidation (episodic→semantic→core, auto-triggered) + context markers + sleep-phase offline consolidation & ARCHIVAL pruning (recoverable). LongMemEval: EM 52-54% (48Q oracle subset) / semantic judge 83.3% (~81-85% of GPT-4o no-memory full-context 60–64%); 16KB curated 33.3% vs truncation 25.0% (+8.3pp, 4.5× fewer tokens); tool output 5008B→223B (−95.5%).
 3. Self-evolution loop: after every task it evaluates itself, extracts patterns, updates its knowledge graph
 4. GenomicOptimizer: a 784-line genetic algorithm engine that evolves its own hyperparameters (temperature, top_p, prompt style, memory weights) using mutation → crossover → elitism → niche preservation. It literally gets smarter at tuning itself.
 5. 5-model swarm consensus voting for code review/generation
