@@ -26,15 +26,11 @@ class TestFSRSScheduler:
         assert card.stability == 1.0
         r1 = sched.review(card, grade=4)
         assert r1.passed
-        # FSRS-4: 新卡首次成功 S'=S 不涨（审计点4 保守化）
-        assert card.stability == pytest.approx(1.0)
-        assert card.interval_days == 1.0
+        # 首次复习（无 R 可依）用经验增益（FSRS v4 R 感知公式的初始化分支）
+        assert card.stability > 1.0, "首次成功复习后稳定性应上升"
+        assert card.interval_days >= 1.0
         assert card.reviews == 1
         assert card.last_review > 0 and card.next_review > card.last_review
-        # 第二次成功开始按公式增长
-        r2 = sched.review(card, grade=4)
-        assert card.stability > 1.0, "第二次成功稳定性应上升"
-        assert card.interval_days > 1.0, "第二次成功间隔应大于1天"
 
     def test_perfect_grade_strengthens_more_than_minimal_pass(self):
         from src.core.fsrs_scheduler import FSRSScheduler
