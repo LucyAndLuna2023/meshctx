@@ -374,6 +374,35 @@ class EbbinghausForgetting:
         return max(0.0, math.exp(-float(elapsed_hours) / max(1e-6, self.stability)))
 
 
+# ── M1 规则分类（P2-4: 写入触发条件）──────────────────────────
+# 写入时若 category 未显式指定（默认 other）则自动分类。
+# 顺序即优先级：task（祈使/待办）> preference（主观）> decision（结论）> context > fact（陈述兜底）。
+_CATEGORY_RULES: list = [
+    ("task", ("任务", "待办", "todo", "请帮我", "帮我", "记得", "需要做", "计划", "安排",
+              "下一步", "务必", "不要忘", "请确保", "请检查", "尽快", "要完成")),
+    ("preference", ("喜欢", "偏好", "偏爱", "不喜欢", "讨厌", "更爱", "习惯", "通常",
+                    "最好", "优先", "倾向", "首选", "介意", "prefer", "favorite", "喜欢用")),
+    ("decision", ("决定", "结论", "选定", "采用", "放弃", "最终", "敲定", "拍板",
+                  "定了", "确认用", "approved", "decided", "拍板")),
+    ("context", ("当前", "现在", "最近", "正在进行", "环境", "项目背景", "上下文",
+                 "设置", "正在做", "目前", "工作目录", "当前状态", "本次会话")),
+    ("fact", ("是", "位于", "成立于", "拥有", "总部", "等于", "属于", "出生于",
+              "毕业于", "工作于", "从事", "负责", "is ", "works at")),
+]
+
+
+def classify_memory(text: str) -> str:
+    """M1 规则分类：fact/preference/decision/task/context/other。"""
+    t = (text or "").strip().lower()
+    if not t:
+        return "other"
+    for cat, kws in _CATEGORY_RULES:
+        for kw in kws:
+            if kw in t:
+                return cat
+    return "other"
+
+
 class HierarchicalMemoryStore:
     """Hierarchical memory store with persistence, vector index, and knowledge graph.
 
@@ -407,6 +436,10 @@ class HierarchicalMemoryStore:
             item.id = uuid.uuid4().hex
         if item.created_at == 0.0:
             item.created_at = time.time()
+        # M1 触发条件（P2-4）：category 未显式指定（默认 other）→ 写入时自动规则分类
+        if (getattr(item, "category", "other") or "other") == "other":
+            hay = " ".join([item.key, item.value, item.content, item.summary])
+            item.category = classify_memory(hay)
         self._items[item.id] = item
         if item.embedding:
             self.vector_index.add(item.id, item.embedding)
@@ -482,6 +515,9 @@ class HierarchicalMemoryStore:
             ).lower()
             if q and q in haystack:
                 out.append(item)
+                # M3 接线（P2-2）：检索命中即视为一次被动复习，回写 last_reviewed
+                # 并推进 FSRS 调度（防抖 1h，避免同轮高频检索重复刷写；q 为空不触发）
+                self._auto_review(item)
         # 无词匹配时返回全部（按重要性排序）
         if not out and q == "":
             out = [it for it in self._items.values()
@@ -506,6 +542,20 @@ class HierarchicalMemoryStore:
         return self.retrieve(query, top_k=0, context=context)
 
     # ── FSRS 复习闭环（phase-1）──────────────────────────────
+
+    def _auto_review(self, item: "MemoryItem") -> None:
+        """M3 接线辅助：检索命中自动复习（被动回忆回写），防抖 1 小时。
+
+        仅当距上次复习/创建超过阈值才回写，避免同轮多次检索
+        对同一条目重复刷写 last_reviewed / stability。
+        """
+        now = time.time()
+        base = item.last_reviewed or item.created_at
+        if now - base >= 3600.0:
+            try:
+                self.record_recall(item.id, grade=3)  # 保守 grade=3
+            except Exception:
+                pass  # 回写失败不影响检索本身
 
     def record_recall(
         self,

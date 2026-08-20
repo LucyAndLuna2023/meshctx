@@ -94,16 +94,72 @@ def calc_salience(text, question, tagger):
     return tagger.tag(text, novelty=novelty, emotion=emotion, relevance=relevance)
 
 
+def p2_item_score(r) -> float:
+    """P2 注入排序分 = importance × retention × layer 加成。
+
+    与 src.chat_tools._memory_item_score 同口径（P2-1）：
+    retention 统一 10 底 R=10^(-t/S)，S 为 per-item FSRS stability（小时）。
+    """
+    imp = float(r.get("importance", 0.5) or 0.5)
+    base = float(r.get("last_reviewed", 0.0) or 0.0) or float(r.get("created_at", 0.0) or 0.0)
+    elapsed = max(0.0, time.time() - base) if base else 0.0
+    s_sec = max(1e-6, float(r.get("stability", 24.0) or 24.0) * 3600.0)
+    retention = max(0.05, min(1.0, 10.0 ** (-elapsed / s_sec)))
+    layer = r.get("schema_layer", "episodic") or "episodic"
+    layer_bonus = {"core": 1.25, "semantic": 1.15, "episodic": 1.0}.get(layer, 1.0)
+    return imp * retention * layer_bonus
+
+
 def build_history(msgs, mode="full", top_k=8, gate_openness=1.0, question=""):
     """按模式构建历史文本:
     - full: 原始顺序全量（基线）
     - brain: SalienceTagger 标记 → ThalamicGate 过滤 → 高显著性前置（top_k 截断）
     - brainv2: 海马体巩固——高显著性记忆要点前置 + 原始会话保持时序（不截断）
+    - p2: P2 检索注入——10底 FSRS(stability)×T3相关性×M1分类 排序选 top_k 前置 + 原始时序
     """
     if mode == "full":
         parts = [f"### Session {si+1}:\nSession Content:\n{json.dumps(m, ensure_ascii=False)}"
                  for si, role, m in msgs]
         return "\n\n".join(parts)
+
+    if mode == "p2":
+        # ── P2 记忆注入管线（004 P2-1~P2-4，与 _memory_item_score 同口径）──
+        # retention 统一 10 底 + per-item FSRS stability；T3 相关性词命中；
+        # M1 分类（preference/decision→core 加成, fact→semantic）
+        try:
+            from src.core.memory_hierarchy import classify_memory
+        except Exception:
+            def classify_memory(t):
+                return "other"
+        tagger = SalienceTagger()
+        scored = []
+        now = time.time()
+        n = len(msgs)
+        for i, (si, role, content) in enumerate(msgs):
+            s = calc_salience(content, question, tagger)
+            s_score = float(getattr(s, "score", s)) if not isinstance(s, (int, float)) else float(s)
+            imp = min(1.0, 0.25 + s_score * 0.75)
+            q = (question or "").lower()
+            qwords = [w for w in q.split() if len(w) >= 2]
+            hay = content.lower()
+            rel = sum(1 for w in qwords if w in hay) + (2 if q and q in hay else 0)
+            cat = classify_memory(content)
+            layer = "core" if cat in ("preference", "decision") else ("semantic" if cat == "fact" else "episodic")
+            # 模拟 FSRS：importance 高→stability 高；会话越早→复习次数越多→越稳定
+            stability = 24.0 + imp * 96.0 + (n - i) * 6.0
+            created = now - (n - i) * 3600.0  # 越早的会话越久远（真实时间衰减）
+            scored.append({"key": f"s{si}", "value": content, "importance": imp,
+                           "last_reviewed": 0.0, "created_at": created, "stability": stability,
+                           "schema_layer": layer, "_rel": rel, "_si": si, "_role": role})
+        scored.sort(key=lambda r: (r["_rel"], p2_item_score(r)), reverse=True)
+        top = scored[:top_k]
+        top.sort(key=lambda r: r["_si"])  # 注入段内保持时序
+        mem_block = "## 记忆要点（P2 检索注入 · 10底FSRS×相关性）\n" + "\n".join(
+            f"- ({p2_item_score(r):.2f}) [{r['_role']}] {r['value'][:160]}" for r in top)
+        full_block = "\n\n".join(
+            f"### Session {si+1}:\nSession Content:\n{json.dumps({'role': role, 'content': content}, ensure_ascii=False)}"
+            for si, role, content in msgs)
+        return mem_block + "\n\n## 原始会话（保持时间顺序）\n\n" + full_block
 
     # 脑区标记 + 门控（共用）
     tagger = SalienceTagger()
@@ -223,9 +279,14 @@ def main():
         print(f"  最优 top_k={best_k}；基因组进化后 retrieval_top_k={evolved.retrieval_top_k} memory_weight={evolved.memory_weight:.2f}", flush=True)
 
     # ── 全量评估: 脑区精选 v2(记忆要点前置 + 原始时序) ──
-    print(f"\n== 全量评估: MeshCtx 脑区增强 v2（记忆要点前置 top_k={best_k} + 原始时序）==", flush=True)
+    print(f"\n== 全量评估: MeshCtx 脑区增强 v2（记忆要点前置 top_k={best_k} + 原始时序）==\n", flush=True)
     c_brain, t_brain, det_brain = evaluate(all_samples, mode="brainv2", top_k=best_k, gate_openness=0.8)
     brain_acc = c_brain / t_brain if t_brain else 0
+
+    # ── P2 检索注入评估（独立结果文件，不覆盖 brainv2 归档）──
+    print(f"\n== 全量评估: P2 检索注入（10底FSRS×T3相关性×M1分类，top_k={best_k}）==\n", flush=True)
+    c_p2, t_p2, det_p2 = evaluate(all_samples, mode="p2", top_k=best_k, gate_openness=0.8)
+    p2_acc = c_p2 / t_p2 if t_p2 else 0
 
     results = {
         "model": MODEL,
@@ -241,11 +302,24 @@ def main():
     }
     out = os.path.join(OUT, "meshctx_memory_enhanced_results.json")
     json.dump(results, open(out, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+
+    # P2 注入结果（独立归档，供 v5 报告对比）
+    out_p2 = os.path.join(OUT, "p2_injection_results.json")
+    json.dump({
+        "model": MODEL,
+        "benchmark": "LongMemEval-oracle + P2 检索注入(10底FSRS×T3相关×M1分类)",
+        "n_per_type": N_PER_TYPE,
+        "top_k": best_k,
+        "baseline_full_history_accuracy": 0.5208333333333334,
+        "p2_injection": {"correct": c_p2, "total": t_p2, "accuracy": p2_acc},
+        "samples": det_p2,
+    }, open(out_p2, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+
     print("\n=== 结果 ===")
     print(f"基线(全量历史): 52.1% (25/48)")
     print(f"MeshCtx 脑区精选: {c_brain}/{t_brain} = {brain_acc:.1%}")
-    print(f"提升: {brain_acc - 0.5208:+.1%}")
-    print("保存:", out)
+    print(f"P2 检索注入: {c_p2}/{t_p2} = {p2_acc:.1%}   vs 基线 {p2_acc - 0.5208:+.1%}")
+    print(f"保存:", out, "|", out_p2)
 
 
 if __name__ == "__main__":

@@ -468,6 +468,9 @@ def cmd_chat(args):
                 continue
 
         messages.append({"role": "user", "content": user})
+        # T3 接线（P2-3）：每轮以当前用户消息重建 system（相关性检索注入记忆段；
+        # 记忆段在稳定段之后，前缀缓存不受影响）
+        messages[0] = _build_system_msg(args, current_query=user)[0]
         session_id = _chat_loop(client, messages, TOOLS, execute_tool, TOOL_ICONS, max_turns=max_turns, wall_clock=wall_clock)
 
         # 自动保存会话
@@ -482,7 +485,7 @@ def cmd_chat(args):
 def _chat_one_shot(client, msg, args):
     """一发模式: 问一个问题，流式回答，退出"""
     from src.chat_tools import TOOLS, execute_tool
-    messages = _build_system_msg(args)
+    messages = _build_system_msg(args, current_query=msg)
     messages.append({"role": "user", "content": msg})
     profile = _get_profile_name(args.config, getattr(args, 'profile', None))
     prefix = f"[{profile}] " if profile else ""
@@ -577,12 +580,17 @@ def _tool_summary(name, args):
     return f"{name}: {str(args)[:80]}"
 
 
-def _build_system_msg(args):
-    """构建系统提示（与 UI 共用同一份 build_system_prompt，保证两端提示词逐字一致）"""
+def _build_system_msg(args, current_query=None):
+    """构建系统提示（与 UI 共用同一份 build_system_prompt，保证两端提示词逐字一致）
+
+    T3 接线（P2-3）：current_query 传入当前用户消息 → 记忆段按相关性 top_k 检索注入
+    （记忆段位于稳定段之后，不破坏 T1 前缀缓存）。
+    """
     from src.chat_tools import build_system_prompt
     content = build_system_prompt(
         project_dir=getattr(args, 'project', None) or None,
         include_memory=True,
+        current_query=current_query,
     )
     return [{"role": "system", "content": content}]
 

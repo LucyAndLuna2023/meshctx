@@ -626,14 +626,19 @@ def _memory_item_score(item) -> float:
     item 可为 dict（JSON 落盘）或 MemoryItem 对象。
     P3-4: semantic/core 层优先级高于 episodic（核心原则常驻，情景详情按需检索）
     —— 让三层图式化结构真正影响 token 分配。
+    P2-1: retention 统一 10 底 + per-item FSRS stability（与 MemoryItem.current_retention
+    同口径 R=10^(-t/S)，消除 e底/固定24h 与 FSRS 调度不一致）。
     """
-    import math as _math
     import time as _time
     get = item.get if isinstance(item, dict) else lambda k, d=None: getattr(item, k, d)
     imp = float(get("importance", 0.5) or 0.5)
     lr = get("last_reviewed") or get("last_accessed") or 0.0
-    elapsed = max(0.0, _time.time() - float(lr)) if lr else 0.0
-    retention = max(0.05, min(1.0, _math.exp(-elapsed / (3600.0 * 24.0))))
+    base = float(lr) if lr else float(get("created_at", 0.0) or 0.0)
+    elapsed = max(0.0, _time.time() - base) if base else 0.0
+    stability_h = float(get("stability", 24.0) or 24.0)  # FSRS stability（小时）
+    s_seconds = max(1e-6, stability_h * 3600.0)
+    # 统一 10 底（与 MemoryItem.current_retention 一致，审计点3）: R(t)=10^(-t/S)
+    retention = max(0.05, min(1.0, 10.0 ** (-elapsed / s_seconds)))
     layer = get("schema_layer", None) or "episodic"
     layer_bonus = {"core": 1.25, "semantic": 1.15, "episodic": 1.0}.get(layer, 1.0)
     return imp * retention * layer_bonus
@@ -686,6 +691,7 @@ def _collect_memory_entries(current_query: str = None, base_dirs: list = None, m
                          importance=float(m.get("importance", 0.5) or 0.5),
                          last_reviewed=float(m.get("last_reviewed", 0.0) or 0.0),
                          created_at=float(m.get("created_at", 0.0) or 0.0),
+                         stability=float(m.get("stability", 24.0) or 24.0),
                          schema_layer=m.get("schema_layer") or "episodic")
                 except Exception:
                     continue

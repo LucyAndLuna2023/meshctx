@@ -3526,7 +3526,9 @@ async def api_chat(request: Request):
 
     # 确保 system prompt 在最前面（与 CLI 同一份完整提示词：记忆+工具规则+桌面路径）
     if not msgs or msgs[0].get("role") != "system":
-        msgs.insert(0, {"role": "system", "content": build_system_prompt()})
+        # T3 接线（P2-3）：以最后一条用户消息作为 current_query 做相关性检索注入
+        msgs.insert(0, {"role": "system", "content": build_system_prompt(
+            current_query=(msgs[-1].get("content", "") if msgs else ""))})
 
     try:
         reg = get_registry()
@@ -3661,7 +3663,8 @@ async def api_chat_stream(request: Request):
     _page_cache = {}  # 浏览器页面缓存: {url: {title, links, text, html}}
 
     # 统一循环(run_agent_loop)负责注入 system 到 messages[0]；与 CLI 共用同一份完整提示词
-    _full_system_prompt = build_system_prompt()
+    # T3 接线（P2-3）：以当前用户消息作为 current_query 做相关性检索注入
+    _full_system_prompt = build_system_prompt(current_query=user_msg)
 
 
     async def generate():
