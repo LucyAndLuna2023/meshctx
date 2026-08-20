@@ -644,10 +644,62 @@ def _memory_item_score(item) -> float:
     return imp * retention * layer_bonus
 
 
+def _split_query_terms(text: str):
+    """T3 轻量分词（零依赖）：英文按空格/非字母数字切，中文按 2-gram 滑动。
+
+    解决中文 query 整串无法匹配的已知局限（2026-08-20 如实记录）。
+    若环境装有 jieba 可替换为 jieba.lcut，但 2-gram 已够相关性粗筛。
+    """
+    import re as _re
+    t = (text or "").lower()
+    ascii_terms = [w for w in _re.split(r"[^a-z0-9]+", t) if len(w) >= 2]
+    cjk_terms = []
+    for seg in _re.findall(r"[\u4e00-\u9fff]+", t):
+        if len(seg) >= 2:
+            cjk_terms.extend(seg[i:i + 2] for i in range(len(seg) - 1))
+    return ascii_terms + cjk_terms
+
+
+def _maybe_review_memory_file(fp) -> None:
+    """P2 复习闭环覆盖面（002 建议②）：prompt 注入命中的结构化记忆条目触发 FSRS 复习。
+
+    与 _auto_review 同口径（grade=3 保守 + 防抖 1h）；回写失败不影响注入本身。
+    """
+    try:
+        import json as _json2
+        import time as _time2
+        from pathlib import Path as _Path2
+        from src.core.fsrs_scheduler import FSRSScheduler, MemoryCard
+        fp = _Path2(fp)
+        if not fp.exists():
+            return
+        m = _json2.loads(fp.read_text(encoding="utf-8"))
+        now = _time2.time()
+        last = float(m.get("last_reviewed", 0.0) or 0.0)
+        if last and now - last < 3600.0:
+            return  # 防抖 1h（与 _auto_review 一致）
+        sched = FSRSScheduler()
+        card = MemoryCard(
+            item_id=m.get("id") or fp.stem,
+            difficulty=float(m.get("difficulty", 5.0) or 5.0),
+            stability=float(m.get("stability", 24.0) or 24.0) / 24.0,  # 小时→天
+            interval_days=float(m.get("interval_days", 1.0) or 1.0),
+            reviews=int(m.get("review_count", 0) or 0),
+        )
+        sched.review(card, grade=3)  # 保守 grade=3（与 record_recall 默认一致）
+        m["stability"] = round(card.stability * 24.0, 2)  # 天→小时
+        m["last_reviewed"] = now
+        m["review_count"] = card.reviews
+        m["difficulty"] = round(card.difficulty, 4)
+        fp.write_text(_json2.dumps(m, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass  # 复习回写失败不影响记忆注入
+
+
 def _collect_memory_entries(current_query: str = None, base_dirs: list = None, max_entries: int = 30):
     """T3: 检索式记忆注入 — 收集记忆条目并按 importance×retention 排序。
 
-    - current_query 存在时：关键词相关性优先（top_k 检索）
+    - current_query 存在时：关键词相关性优先（top_k 检索，中英文均支持）
     - 否则：按 importance×retention 降序（最近/高频自然靠前）
     - 固定上限 max_entries，记忆段长度与记忆总量解耦。
     """
@@ -692,7 +744,8 @@ def _collect_memory_entries(current_query: str = None, base_dirs: list = None, m
                          last_reviewed=float(m.get("last_reviewed", 0.0) or 0.0),
                          created_at=float(m.get("created_at", 0.0) or 0.0),
                          stability=float(m.get("stability", 24.0) or 24.0),
-                         schema_layer=m.get("schema_layer") or "episodic")
+                         schema_layer=m.get("schema_layer") or "episodic",
+                         _src=str(fp))
                 except Exception:
                     continue
         except Exception:
@@ -701,15 +754,20 @@ def _collect_memory_entries(current_query: str = None, base_dirs: list = None, m
     # 排序：query 相关优先 → score 降序；无 query → score 降序
     if current_query:
         q = (current_query or "").lower()
-        qwords = [w for w in q.split() if len(w) >= 2]
+        qterms = _split_query_terms(q)
 
         def _rel(r):
             hay = (r["key"] + " " + r["value"]).lower()
-            hits = sum(1 for w in qwords if w in hay)
+            hits = sum(1 for w in qterms if w in hay)
             # 完整 query 命中加权
             return hits + (2 if q and q in hay else 0)
 
         rows.sort(key=lambda r: (_rel(r), _memory_item_score(r)), reverse=True)
+        # P2 复习闭环覆盖面（002 建议②）：注入 top-k 命中条目触发 FSRS 复习（防抖 1h）
+        for r in rows[:max_entries]:
+            src = r.get("_src")
+            if src and _rel(r) > 0:
+                _maybe_review_memory_file(src)
     else:
         rows.sort(key=lambda r: (_memory_item_score(r), r.get("created_at", 0.0)), reverse=True)
 

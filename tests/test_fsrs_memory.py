@@ -337,25 +337,48 @@ class TestP2MemoryOptimization:
         assert item.review_count == prev
 
     def test_collect_memory_entries_stability_roundtrip_and_query_rank(self, tmp_path):
-        """T3：stability 字段 roundtrip；current_query 相关性优先于纯分数。
-
-        注：中文 query 无分词（split 按空格），相关性用英文词验证；
-        中文分词相关性为已知局限，留待后续优化。
-        """
+        """T3：stability 字段 roundtrip；current_query 相关性优先于纯分数（中英文均支持）。"""
         import json as _json
         from src.chat_tools import _collect_memory_entries
         mem_dir = tmp_path / "memories"
         mem_dir.mkdir(parents=True, exist_ok=True)
         # 高 stability 但无关查询
         (mem_dir / "a.json").write_text(_json.dumps({
-            "key": "misc", "value": "random chat content about weather", "importance": 0.9,
+            "key": "misc", "value": "随机闲聊内容", "importance": 0.9,
             "last_reviewed": 0.0, "created_at": 0.0, "stability": 240.0,
             "schema_layer": "episodic"}, ensure_ascii=False), encoding="utf-8")
         # 低 stability 但强相关
         (mem_dir / "b.json").write_text(_json.dumps({
-            "key": "deploy", "value": "production deployment steps: backup then release", "importance": 0.5,
+            "key": "deploy", "value": "生产环境部署步骤：先备份再发布", "importance": 0.5,
             "last_reviewed": 0.0, "created_at": 0.0, "stability": 24.0,
             "schema_layer": "semantic"}, ensure_ascii=False), encoding="utf-8")
-        rows = _collect_memory_entries(current_query="how to deploy production", base_dirs=[str(mem_dir)], max_entries=10)
+        rows = _collect_memory_entries(current_query="生产环境如何部署", base_dirs=[str(mem_dir)], max_entries=10)
         assert rows, "应收集到记忆条目"
-        assert "production" in rows[0], f"current_query 相关性应优先, 首条={rows[0][:40]}"
+        assert "部署" in rows[0], f"中文 2-gram 相关性应优先, 首条={rows[0][:40]}"
+
+    def test_prompt_injection_review_coverage(self, tmp_path):
+        """P2 复习覆盖面：注入命中条目触发 FSRS 复习回写；防抖 1h 内不重复。"""
+        import json as _json
+        from src.chat_tools import _collect_memory_entries, _maybe_review_memory_file
+        mem_dir = tmp_path / "memories"
+        mem_dir.mkdir(parents=True, exist_ok=True)
+        fp = mem_dir / "deploy.json"
+        fp.write_text(_json.dumps({
+            "id": "deploy1", "key": "deploy", "value": "生产环境部署步骤：先备份再发布",
+            "importance": 0.5, "last_reviewed": 0.0, "created_at": 0.0,
+            "stability": 24.0, "schema_layer": "semantic"}, ensure_ascii=False), encoding="utf-8")
+        rows = _collect_memory_entries(current_query="生产环境如何部署", base_dirs=[str(mem_dir)], max_entries=10)
+        assert rows, "应收集到记忆条目"
+        m = _json.loads(fp.read_text(encoding="utf-8"))
+        assert m["review_count"] >= 1, "注入命中条目应触发复习回写"
+        assert m["last_reviewed"] > 0
+        # 防抖：立即再次收集 → review_count 不增长
+        _collect_memory_entries(current_query="生产环境如何部署", base_dirs=[str(mem_dir)], max_entries=10)
+        m2 = _json.loads(fp.read_text(encoding="utf-8"))
+        assert m2["review_count"] == m["review_count"], "防抖 1h 内不应重复刷写"
+        # 回拨 last_reviewed → 再次触发
+        m["last_reviewed"] = 0.0
+        fp.write_text(_json.dumps(m, ensure_ascii=False), encoding="utf-8")
+        _maybe_review_memory_file(str(fp))
+        m3 = _json.loads(fp.read_text(encoding="utf-8"))
+        assert m3["review_count"] == m["review_count"] + 1, "回拨后应再次触发复习"

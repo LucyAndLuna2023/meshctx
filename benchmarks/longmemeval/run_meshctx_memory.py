@@ -140,9 +140,14 @@ def build_history(msgs, mode="full", top_k=8, gate_openness=1.0, question=""):
             s_score = float(getattr(s, "score", s)) if not isinstance(s, (int, float)) else float(s)
             imp = min(1.0, 0.25 + s_score * 0.75)
             q = (question or "").lower()
-            qwords = [w for w in q.split() if len(w) >= 2]
+            try:
+                from src.chat_tools import _split_query_terms
+            except Exception:
+                def _split_query_terms(t):
+                    return [w for w in (t or "").lower().split() if len(w) >= 2]
+            qterms = _split_query_terms(q)
             hay = content.lower()
-            rel = sum(1 for w in qwords if w in hay) + (2 if q and q in hay else 0)
+            rel = sum(1 for w in qterms if w in hay) + (2 if q and q in hay else 0)
             cat = classify_memory(content)
             layer = "core" if cat in ("preference", "decision") else ("semantic" if cat == "fact" else "episodic")
             # 模拟 FSRS：importance 高→stability 高；会话越早→复习次数越多→越稳定
