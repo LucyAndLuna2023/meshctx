@@ -3526,9 +3526,10 @@ async def api_chat(request: Request):
 
     # 确保 system prompt 在最前面（与 CLI 同一份完整提示词：记忆+工具规则+桌面路径）
     if not msgs or msgs[0].get("role") != "system":
-        # T3 接线（P2-3）：以最后一条用户消息作为 current_query 做相关性检索注入
-        msgs.insert(0, {"role": "system", "content": build_system_prompt(
-            current_query=(msgs[-1].get("content", "") if msgs else ""))})
+        # T3 接线（P2-3）：以最后一条 role==user 消息作为 current_query 做相关性检索注入
+        #（避免末条是 assistant 时误取；002 fb890903 ①）
+        _cur_q = next((m.get("content", "") for m in reversed(msgs) if m.get("role") == "user"), "")
+        msgs.insert(0, {"role": "system", "content": build_system_prompt(current_query=_cur_q)})
 
     try:
         reg = get_registry()
@@ -3613,7 +3614,8 @@ async def api_chat_stream(request: Request):
         )
 
     # ═══ CognitiveLoop 脑区主决策 (v3.115.16) ═══
-    user_msg = msgs[-1].get("content", "") if msgs else ""
+    # 最后一条 role==user 消息作为 current_query（避免末条是 assistant 时误取；002 fb890903 ①）
+    user_msg = next((m.get("content", "") for m in reversed(msgs) if m.get("role") == "user"), "")
     system_prompt = body.get("system", body.get("system_prompt", ""))
     brain_result = {}
     try:

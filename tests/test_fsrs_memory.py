@@ -266,3 +266,96 @@ class TestFSRSPersistence:
         assert loaded.difficulty == 4.1
         assert loaded.lapses == 1
         assert loaded.review_count == 4
+
+
+# ═══════════ G. P2 优化验收（002 审计 41ab3fe5 建议补充） ═══════════
+
+class TestP2MemoryOptimization:
+    """P2-1~P2-4 验收：10底stability排序 / M1分类 / M3防抖回写 / T3相关性注入。"""
+
+    def test_score_prefers_higher_stability_same_recency(self):
+        """同 recency 下 stability 高者排序靠前（10底 retention 生效）。"""
+        from src.chat_tools import _memory_item_score
+        now = time.time()
+        base = {"importance": 0.5, "last_reviewed": now - 3600 * 10,
+                "created_at": now - 3600 * 10, "schema_layer": "episodic"}
+        low = dict(base, key="a", value="v", stability=1.0)
+        high = dict(base, key="b", value="v", stability=240.0)
+        assert _memory_item_score(high) > _memory_item_score(low), \
+            "同 recency 下 stability 240h 应显著高于 1h（10^(-t/S)）"
+
+    def test_score_floor_and_importance_scale(self):
+        """retention floor 0.05 生效；importance 线性放大。"""
+        from src.chat_tools import _memory_item_score
+        now = time.time()
+        r = {"key": "a", "value": "v", "importance": 0.9,
+             "last_reviewed": now - 3600 * 24 * 30, "created_at": now - 3600 * 24 * 30,
+             "stability": 1.0, "schema_layer": "episodic"}
+        s = _memory_item_score(r)
+        assert 0.04 < s <= 0.9, f"floor 后应 >0（实得 {s}）且 ≤importance"
+
+    def test_classify_memory_rules(self):
+        """M1 规则分类：task>preference>decision>context>fact。"""
+        from src.core.memory_hierarchy import classify_memory
+        assert classify_memory("请帮我部署到生产环境") == "task"
+        assert classify_memory("记得明天买牛奶") == "task"
+        assert classify_memory("我喜欢深色主题") == "preference"
+        assert classify_memory("用户偏好简洁风格") == "preference"
+        assert classify_memory("我决定采用方案B") == "decision"
+        assert classify_memory("这家公司成立于2015年") == "fact"
+        assert classify_memory("随便写点什么") == "other"
+
+    def test_store_auto_categorizes_other_only(self):
+        """M1 触发条件：category=other 才自动分类，显式指定不覆盖。"""
+        from src.core.memory_hierarchy import HierarchicalMemoryStore, MemoryItem
+        store = HierarchicalMemoryStore()
+        auto = MemoryItem(key="k1", value="请帮我部署", importance=0.5)
+        store.store(auto)
+        assert auto.category == "task", f"应自动分类为 task, got {auto.category}"
+        explicit = MemoryItem(key="k2", value="请帮我部署", importance=0.5, category="fact")
+        store.store(explicit)
+        assert explicit.category == "fact", "显式 category 不应被覆盖"
+
+    def test_auto_review_debounce_and_writeback(self):
+        """M3 防抖：刚复习 1h 内不重复刷写；超时后 record_recall 回写。"""
+        from src.core.memory_hierarchy import HierarchicalMemoryStore, MemoryItem
+        store = HierarchicalMemoryStore()
+        item = MemoryItem(key="k", value="hello world")
+        store.store(item)
+        # 刚创建（created≈now）→ 距上次复习 <1h → 不触发
+        store._auto_review(item)
+        assert item.review_count == 0 and item.last_reviewed == 0.0
+        # 模拟 2h 前复习过 → 触发回写（grade=3 保守）
+        item.last_reviewed = time.time() - 7200.0
+        store._auto_review(item)
+        assert item.review_count >= 1
+        assert item.last_reviewed > time.time() - 10
+        assert item.stability > 0
+        # 刚回写 → 1h 防抖内不再刷写
+        prev = item.review_count
+        store._auto_review(item)
+        assert item.review_count == prev
+
+    def test_collect_memory_entries_stability_roundtrip_and_query_rank(self, tmp_path):
+        """T3：stability 字段 roundtrip；current_query 相关性优先于纯分数。
+
+        注：中文 query 无分词（split 按空格），相关性用英文词验证；
+        中文分词相关性为已知局限，留待后续优化。
+        """
+        import json as _json
+        from src.chat_tools import _collect_memory_entries
+        mem_dir = tmp_path / "memories"
+        mem_dir.mkdir(parents=True, exist_ok=True)
+        # 高 stability 但无关查询
+        (mem_dir / "a.json").write_text(_json.dumps({
+            "key": "misc", "value": "random chat content about weather", "importance": 0.9,
+            "last_reviewed": 0.0, "created_at": 0.0, "stability": 240.0,
+            "schema_layer": "episodic"}, ensure_ascii=False), encoding="utf-8")
+        # 低 stability 但强相关
+        (mem_dir / "b.json").write_text(_json.dumps({
+            "key": "deploy", "value": "production deployment steps: backup then release", "importance": 0.5,
+            "last_reviewed": 0.0, "created_at": 0.0, "stability": 24.0,
+            "schema_layer": "semantic"}, ensure_ascii=False), encoding="utf-8")
+        rows = _collect_memory_entries(current_query="how to deploy production", base_dirs=[str(mem_dir)], max_entries=10)
+        assert rows, "应收集到记忆条目"
+        assert "production" in rows[0], f"current_query 相关性应优先, 首条={rows[0][:40]}"

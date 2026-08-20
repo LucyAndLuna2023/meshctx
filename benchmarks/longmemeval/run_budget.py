@@ -86,6 +86,54 @@ def brain_budget(msgs, question):
     return "\n\n".join(parts)
 
 
+def p2_budget(msgs, question):
+    """P2 检索注入: 10底FSRS×T3相关性×M1分类 排序后累积到 BUDGET
+
+    P2 优化管线（004 P2-1~P2-4）在预算场景的对照：
+    - _memory_item_score 同口径（10底 + per-item stability）
+    - T3 相关性（question 词命中）优先
+    - M1 分类（preference/decision→core 加成, fact→semantic）
+    """
+    from run_meshctx_memory import p2_item_score, calc_salience
+    tagger_import = __import__("src.core.super_brain", fromlist=["SalienceTagger"])
+    SalienceTagger = tagger_import.SalienceTagger
+    try:
+        from src.core.memory_hierarchy import classify_memory
+    except Exception:
+        def classify_memory(t):
+            return "other"
+    tagger = SalienceTagger()
+    now = time.time()
+    n = len(msgs)
+    scored = []
+    for i, (si, role, content) in enumerate(msgs):
+        s = calc_salience(content, question, tagger)
+        s_score = float(getattr(s, "score", s)) if not isinstance(s, (int, float)) else float(s)
+        imp = min(1.0, 0.25 + s_score * 0.75)
+        q = (question or "").lower()
+        qwords = [w for w in q.split() if len(w) >= 2]
+        hay = content.lower()
+        rel = sum(1 for w in qwords if w in hay) + (2 if q and q in hay else 0)
+        cat = classify_memory(content)
+        layer = "core" if cat in ("preference", "decision") else ("semantic" if cat == "fact" else "episodic")
+        # 模拟 FSRS：importance 高→stability 高；会话越早→复习次数越多→更稳定
+        stability = 24.0 + imp * 96.0 + (n - i) * 6.0
+        created = now - (n - i) * 3600.0
+        scored.append({"key": f"s{si}", "value": content, "importance": imp,
+                       "last_reviewed": 0.0, "created_at": created, "stability": stability,
+                       "schema_layer": layer, "_rel": rel, "_si": si, "_role": role})
+    scored.sort(key=lambda r: (r["_rel"], p2_item_score(r)), reverse=True)
+    parts, total = [], 0
+    for r in scored:
+        block = (f"### Session {r['_si'] + 1}:\nSession Content:\n"
+                 f"{json.dumps({'role': r['_role'], 'content': r['value']}, ensure_ascii=False)}")
+        if total + len(block) > BUDGET:
+            break
+        parts.append(block)
+        total += len(block)
+    return "\n\n".join(parts)
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     data = json.load(open(DATA, encoding="utf-8"))
@@ -96,7 +144,8 @@ def main():
     print(f"Token 预算公平对比: {len(samples)} 样本, 预算 {BUDGET//1000}KB\n", flush=True)
 
     results = {}
-    for mode, builder in [("full_truncated", full_truncated), ("brain_budget", brain_budget), ("full", None)]:
+    for mode, builder in [("full_truncated", full_truncated), ("brain_budget", brain_budget),
+                          ("p2_budget", p2_budget), ("full", None)]:
         em_c, j_c, total = 0, 0, 0
         print(f"== 模式: {mode} ==", flush=True)
         for e in samples:
