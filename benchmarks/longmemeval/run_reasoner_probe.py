@@ -27,28 +27,16 @@ if os.path.exists(env_path):
             key = ln.split("=", 1)[1].strip().strip('"').strip("'")
             break
 assert key, "DEEPSEEK_API_KEY 未找到"
-client = openai.OpenAI(api_key=key, base_url="https://api.deepseek.com")
+from model_io import ask as ask_io, resolve_model_id as _resolve_mid
+MODEL_ID = _resolve_mid()
 
 PROBE_MODEL = "deepseek-reasoner"  # 探针模型
 MAX_TOKENS = 500  # reasoner 最终输出上限（thinking 独立计）
 
 
 def ask_r(prompt, max_tokens=MAX_TOKENS):
-    for attempt in range(3):
-        try:
-            resp = client.chat.completions.create(
-                model=PROBE_MODEL,
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant. Answer concisely."},
-                    {"role": "user", "content": prompt},
-                ],
-                max_tokens=max_tokens,
-            )
-            return resp.choices[0].message.content or ""
-        except Exception as e:
-            print(f"  [retry{attempt}] {str(e)[:120]}", flush=True)
-            time.sleep(3)
-    return ""
+    """统一模型调用（model_io，MODEL_ID 切换任意主流模型）"""
+    return ask_io(prompt, max_tokens=max_tokens, temperature=1.0)
 
 
 def build_full(msgs):

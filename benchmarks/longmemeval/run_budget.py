@@ -22,15 +22,8 @@ from run_judge import judge
 DATA = "/home/administrator/benchmarks-ext/LongMemEval/data/longmemeval_oracle.json"
 OUT = "/home/administrator/benchmarks-ext/results"
 
-key = None
-if os.path.exists("/home/administrator/.meshctx/.env"):
-    for ln in open("/home/administrator/.meshctx/.env", encoding="utf-8"):
-        ln = ln.strip()
-        if ln.startswith("DEEPSEEK_API_KEY="):
-            key = ln.split("=", 1)[1].strip().strip('"').strip("'")
-            break
-assert key
-client = openai.OpenAI(api_key=key, base_url="https://api.deepseek.com")
+from model_io import ask as _ask_io, resolve_model_id as _resolve_mid
+MODEL = _resolve_mid()  # 模型无关：MODEL_ID 切换任意主流模型（见 model_io.py）
 
 ANSWER_TEMPLATE = (
     "I will give you several history chats between you and a user. "
@@ -42,18 +35,8 @@ BUDGET = 16 * 1000  # 16KB
 
 
 def ask(prompt, max_tokens=80):
-    for attempt in range(3):
-        try:
-            r = client.chat.completions.create(
-                model="deepseek-chat",
-                messages=[{"role": "system", "content": "You are a helpful assistant. Answer concisely."},
-                          {"role": "user", "content": prompt}],
-                max_tokens=max_tokens, temperature=0.0,
-            )
-            return r.choices[0].message.content or ""
-        except Exception:
-            time.sleep(3)
-    return ""
+    """统一模型调用（模型无关：MODEL_ID 切换任意主流模型，见 model_io.py）"""
+    return _ask_io(prompt, max_tokens=max_tokens, temperature=0.0)
 
 
 def full_truncated(msgs, question):
