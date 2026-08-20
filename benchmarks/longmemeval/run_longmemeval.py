@@ -14,23 +14,14 @@ import re
 import string
 import time
 
-import openai
 
 DATA = "/home/administrator/benchmarks-ext/LongMemEval/data/longmemeval_oracle.json"
 OUT = "/home/administrator/benchmarks-ext/results"
 MODEL = "deepseek-chat"
 N_PER_TYPE = 8  # 每类取前 N 问
 
-key = None
-env_path = "/home/administrator/.meshctx/.env"
-if os.path.exists(env_path):
-    for ln in open(env_path, encoding="utf-8"):
-        ln = ln.strip()
-        if ln.startswith("DEEPSEEK_API_KEY="):
-            key = ln.split("=", 1)[1].strip().strip('"').strip("'")
-            break
-assert key, "DEEPSEEK_API_KEY 未找到"
-client = openai.OpenAI(api_key=key, base_url="https://api.deepseek.com")
+from model_io import ask as _ask_io, resolve_model_id as _resolve_mid
+MODEL = _resolve_mid()  # 模型无关：MODEL_ID 切换任意主流模型（见 model_io.py）
 
 ANSWER_TEMPLATE = (
     "I will give you several history chats between you and a user. "
@@ -71,23 +62,8 @@ def best_subspan_em(prediction: str, ground_truths) -> float:
 
 
 def ask(prompt, max_tokens=80):
-    for attempt in range(3):
-        try:
-            resp = client.chat.completions.create(
-                model=MODEL,
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant. Answer concisely."},
-                    {"role": "user", "content": prompt},
-                ],
-                max_tokens=max_tokens,
-                temperature=0.0,
-            )
-            return resp.choices[0].message.content or ""
-        except Exception as e:
-            print(f"  [retry {attempt+1}] {e}", flush=True)
-            time.sleep(3)
-    return ""
-
+    """统一模型调用（模型无关：MODEL_ID 切换任意主流模型，见 model_io.py）"""
+    return _ask_io(prompt, max_tokens=max_tokens, temperature=0.0)
 
 def run():
     os.makedirs(OUT, exist_ok=True)

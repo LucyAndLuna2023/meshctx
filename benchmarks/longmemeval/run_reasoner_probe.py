@@ -16,21 +16,11 @@ from run_meshctx_memory import (
     flatten_sessions, best_subspan_em,
 )
 
-import openai
+import openai  # noqa: F401  （保留兼容；实际调用全走 model_io）
 
-env_path = "/home/administrator/.meshctx/.env"
-key = None
-if os.path.exists(env_path):
-    for ln in open(env_path, encoding="utf-8"):
-        ln = ln.strip()
-        if ln.startswith("DEEPSEEK_API_KEY="):
-            key = ln.split("=", 1)[1].strip().strip('"').strip("'")
-            break
-assert key, "DEEPSEEK_API_KEY 未找到"
-from model_io import ask as ask_io, resolve_model_id as _resolve_mid
-MODEL_ID = _resolve_mid()
-
-PROBE_MODEL = "deepseek-reasoner"  # 探针模型
+from model_io import ask as ask_io, resolve_model_id as _resolve_mid, model_name as _model_name
+MODEL_ID = _resolve_mid()  # 模型无关：MODEL_ID 切换任意主流模型
+PROBE_MODEL = _model_name()  # 实际调用的模型名（registry 解析）
 MAX_TOKENS = 500  # reasoner 最终输出上限（thinking 独立计）
 
 

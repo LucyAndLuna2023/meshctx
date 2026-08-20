@@ -9,19 +9,11 @@ import json
 import os
 import time
 
-import openai
 
 OUT = "/home/administrator/benchmarks-ext/results"
 
-key = None
-if os.path.exists("/home/administrator/.meshctx/.env"):
-    for ln in open("/home/administrator/.meshctx/.env", encoding="utf-8"):
-        ln = ln.strip()
-        if ln.startswith("DEEPSEEK_API_KEY="):
-            key = ln.split("=", 1)[1].strip().strip('"').strip("'")
-            break
-assert key
-client = openai.OpenAI(api_key=key, base_url="https://api.deepseek.com")
+from model_io import ask as _ask_io, resolve_model_id as _resolve_mid
+MODEL = _resolve_mid()  # 模型无关：MODEL_ID 切换任意主流模型（见 model_io.py）
 
 JUDGE_PROMPT = """You are an evaluator. Given a QUESTION, a GOLD ANSWER (what the correct response should contain or fulfil), and a MODEL RESPONSE, decide whether the MODEL RESPONSE correctly fulfils the question and conveys/contains the gold answer (or a semantically equivalent correct answer).
 
@@ -37,23 +29,15 @@ Your verdict (yes/no):"""
 
 
 def judge(question, answer, response):
+    """统一模型评估（模型无关：MODEL_ID 切换任意主流模型，见 model_io.py）"""
     for attempt in range(3):
         try:
-            r = client.chat.completions.create(
-                model="deepseek-chat",
-                messages=[
-                    {"role": "system", "content": "You are a strict but fair evaluator. Reply only yes or no."},
-                    {"role": "user", "content": JUDGE_PROMPT.format(question=question, answer=answer, response=response[:800])},
-                ],
-                max_tokens=8,
-                temperature=0.0,
-            )
-            txt = (r.choices[0].message.content or "").strip().lower()
+            txt = (_ask_io(JUDGE_PROMPT.format(question=question, answer=answer, response=response[:800]),
+                           max_tokens=8, temperature=0.0) or "").strip().lower()
             return 1.0 if txt.startswith("yes") else 0.0
         except Exception as e:
             time.sleep(3)
     return 0.0
-
 
 def rescore(name, path):
     data = json.load(open(path, encoding="utf-8"))

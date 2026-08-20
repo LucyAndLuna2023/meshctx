@@ -32,14 +32,27 @@
 
 ## 3. 接入配置
 
-每个模型只需配置对应 `key` 环境变量（`.env` 或系统环境均可）：
+每个模型只需配置对应 `key` 环境变量（`.env` 或系统环境**均可**）。
+`model_io` 按 `model_registry.BUILTIN_MODELS` 的 `key_env` 字段自动解析**任意 provider** 的 key：
 
 ```bash
-# .env 示例
+# .env 示例（任意 provider 的 key 都能被自动读取）
 DEEPSEEK_API_KEY=sk-xxx
 OPENAI_API_KEY=sk-xxx
 ANTHROPIC_API_KEY=sk-xxx
+GEMINI_API_KEY=sk-xxx
+XAI_API_KEY=sk-xxx
+OPENROUTER_API_KEY=sk-xxx
+QWEN_API_KEY=sk-xxx
+GLM_API_KEY=sk-xxx
+MOONSHOT_API_KEY=sk-xxx
+DOUBAO_API_KEY=sk-xxx
+HUNYUAN_API_KEY=sk-xxx
+SPARK_API_KEY=sk-xxx
 ```
+
+> 说明：key 缺省时 `model_io` 还会回退尝试 `OPENAI_API_KEY`/`DEEPSEEK_API_KEY`
+> 这类 OpenAI 兼容通用 key；仍无则抛 `RuntimeError` 明确报错（不静默）。
 
 自定义模型（一行注册）：
 

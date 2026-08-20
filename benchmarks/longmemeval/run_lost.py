@@ -15,7 +15,6 @@ import string
 import sys
 import time
 
-import openai
 
 # ── 配置 ──
 DATA = "/home/administrator/benchmarks-ext/lost-in-the-middle-main/qa_data"
@@ -24,19 +23,9 @@ MODEL = "deepseek-chat"
 N_PER_FILE = 15  # 每文件取前 N 问（控制成本）
 
 # 读取 API key
-key = None
-for p in ["/home/administrator/.meshctx/.env"]:
-    if os.path.exists(p):
-        for ln in open(p, encoding="utf-8"):
-            ln = ln.strip()
-            if ln.startswith("DEEPSEEK_API_KEY="):
-                key = ln.split("=", 1)[1].strip().strip('"').strip("'")
-                break
-    if key:
-        break
-assert key, "DEEPSEEK_API_KEY 未找到"
+from model_io import ask as _ask_io, resolve_model_id as _resolve_mid
+MODEL = _resolve_mid()  # 模型无关：MODEL_ID 切换任意主流模型（见 model_io.py）
 
-client = openai.OpenAI(api_key=key, base_url="https://api.deepseek.com")
 
 PROMPT_TEMPLATE = (
     "Write a high-quality answer for the given question using only the provided "
@@ -75,23 +64,8 @@ def build_search_results(ctxs):
 
 
 def ask(prompt, max_tokens=64):
-    for attempt in range(3):
-        try:
-            resp = client.chat.completions.create(
-                model=MODEL,
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant. Answer concisely."},
-                    {"role": "user", "content": prompt},
-                ],
-                max_tokens=max_tokens,
-                temperature=0.0,
-            )
-            return resp.choices[0].message.content or ""
-        except Exception as e:
-            print(f"  [retry {attempt+1}] {e}", flush=True)
-            time.sleep(3)
-    return ""
-
+    """统一模型调用（模型无关：MODEL_ID 切换任意主流模型，见 model_io.py）"""
+    return _ask_io(prompt, max_tokens=max_tokens, temperature=0.0)
 
 def load_samples(n_docs, pos):
     """pos: begin/middle/end — 官方文件位置分位数（10→0/4/9, 20→0/9/19, 30→0/14/29）"""
