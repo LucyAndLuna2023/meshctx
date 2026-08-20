@@ -503,6 +503,7 @@ class HierarchicalMemoryStore:
         top_k: int = 5,
         context: str | dict | None = None,
         include_archived: bool = False,
+        jepa_boost: bool = False,
     ) -> list[MemoryItem]:
         q = (query or "").lower()
         out = []
@@ -518,6 +519,25 @@ class HierarchicalMemoryStore:
                 # M3 接线（P2-2）：检索命中即视为一次被动复习，回写 last_reviewed
                 # 并推进 FSRS 调度（防抖 1h，避免同轮高频检索重复刷写；q 为空不触发）
                 self._auto_review(item)
+        # JEPA 非生成式语义补充召回（默认关；开启时对未命中条目做潜空间余弦粗筛，
+        # 实测 30 池 recall@5=56.7%（随机 3.3%，见 benchmarks/jepa/results 与 docs/jepa.md））
+        if jepa_boost and q:
+            from .jepa_world_model import jepa_prescreen
+
+            missed = [it for it in self._items.values()
+                      if getattr(it, "level", None) != MemoryLevel.ARCHIVAL
+                      and it not in out and (it.key or it.value or it.content or it.summary)]
+            if missed:
+                idxs = jepa_prescreen(
+                    q,
+                    [" ".join([it.key, it.value, it.content, it.summary]) for it in missed],
+                    top_k=max(top_k, 3),
+                )
+                for i in idxs:
+                    item = missed[i]
+                    if item not in out:
+                        out.append(item)
+                        self._auto_review(item)
         # 无词匹配时返回全部（按重要性排序）
         if not out and q == "":
             out = [it for it in self._items.values()

@@ -6240,13 +6240,12 @@ async def jepa_perceive(request: Request):
     try:
         body = await request.json()
         text = body.get("state", body.get("text", ""))
-        obs = np.random.randn(wm.config.embed_dim) * 0.01
-        if text:
-            # 用文本hash作为观测
-            h = abs(hash(text)) % (10 ** 8)
-            np.random.seed(h)
-            obs = np.random.randn(wm.config.embed_dim) * 0.1
-            np.random.seed()
+        # 真实观测：char-trigram 向量化（替代原 hash 随机数假观测，修复 v3.36）
+        router = getattr(request.app.state, 'jepa_router', None)
+        if router is not None and text:
+            obs = np.asarray(router.embed_state(text), dtype=np.float64)
+        else:
+            obs = np.zeros(wm.config.embed_dim)
         z = wm.perceive(obs)
         return {"status": "ok", "state_version": wm.world_state.version,
                 "embedding_preview": z.ravel()[:8].tolist()}
@@ -6264,8 +6263,14 @@ async def jepa_predict(request: Request):
         body = await request.json()
         state_text = body.get("state", "")
         action_text = body.get("action", "")
-        z_state = np.random.randn(wm.config.embed_dim) * 0.01
-        z_action = np.random.randn(wm.config.embed_dim) * 0.01
+        # 真实观测：char-trigram 向量化（修复 v3.36 假观测）
+        router = getattr(request.app.state, 'jepa_router', None)
+        if router is not None:
+            z_state = np.asarray(router.embed_state(state_text), dtype=np.float64) if state_text else np.zeros(wm.config.embed_dim)
+            z_action = np.asarray(router.embed_state(action_text), dtype=np.float64) if action_text else None
+        else:
+            z_state = np.zeros(wm.config.embed_dim)
+            z_action = None
         z_pred, energy = wm.predict(z_state, z_action)
         return {
             "status": "ok",

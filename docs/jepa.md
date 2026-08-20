@@ -47,7 +47,8 @@ LLM 只对候选做精排/推理（token 只花在刀刃上）
 
 ### 3.2 直接检索（jepa_memory_validation.py，100 样本）
 - recall@1 / MRR = 100%（oracle 亦 100%，random 35%）
-- ⚠️ 局限：该场景答案 session 与问题天然高相似，区分度弱，仅作机制冒烟
+- ⚠️ 局限：该场景答案 session 与问题天然高字符重叠、高相似，区分度弱，仅作机制冒烟，
+  非产品级指标；数据归档于 `benchmarks/jepa/results/jepa_validation_results.json` 的 `small_pool` 字段
 
 ### 3.3 结果归档
 - `benchmarks/jepa/results/jepa_pool_validation_results.json`
