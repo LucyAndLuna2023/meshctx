@@ -676,7 +676,9 @@ def _maybe_review_memory_file(fp) -> None:
         m = _json2.loads(fp.read_text(encoding="utf-8"))
         now = _time2.time()
         last = float(m.get("last_reviewed", 0.0) or 0.0)
-        if last and now - last < 3600.0:
+        created = float(m.get("created_at", 0.0) or 0.0)
+        base = last or created  # 与 _auto_review 的「last_reviewed or created_at」语义对齐（002 非阻塞①）
+        if base and now - base < 3600.0:
             return  # 防抖 1h（与 _auto_review 一致）
         sched = FSRSScheduler()
         card = MemoryCard(
