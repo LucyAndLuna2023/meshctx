@@ -638,3 +638,60 @@ class LegacyJEPAWorldModel:
 
 def get_jepa_world_model(latent_dim: int = 128) -> LegacyJEPAWorldModel:
     return LegacyJEPAWorldModel(latent_dim=latent_dim)
+
+
+# ── 工厂函数（main.py 初始化入口，修复 v3.36 从未成功初始化的问题）──────────
+
+_world_model_instance: Optional["JEPAWorldModel"] = None
+_non_gen_router_instance: Optional["NonGenerativeRouter"] = None
+
+
+def get_world_model(config: Optional[JEPAConfig] = None) -> JEPAWorldModel:
+    """获取 JEPA 世界模型单例（真实实现：正交投影编码器 + 潜空间预测器 + 能量评分）"""
+    global _world_model_instance
+    if _world_model_instance is None:
+        cfg = config or JEPAConfig()
+        _world_model_instance = JEPAWorldModel(cfg)
+    return _world_model_instance
+
+
+def get_non_generative_router(config: Optional[JEPAConfig] = None) -> NonGenerativeRouter:
+    """获取非生成式路由器单例（不开 LLM 即评估文本相关性，用于记忆注入预筛等）"""
+    global _non_gen_router_instance
+    if _non_gen_router_instance is None:
+        cfg = config or JEPAConfig()
+        _non_gen_router_instance = NonGenerativeRouter(cfg)
+    return _non_gen_router_instance
+
+
+def jepa_prescreen(query: str, candidates: List[str], top_k: int = 5,
+                   threshold: float = 0.10) -> List[int]:
+    """JEPA 非生成式预筛：不开 LLM，用 char-trigram 潜空间余弦为候选文本排序。
+
+    真实用途（经 LongMemEval 30 池 v2 验证，recall@1=18.3% / recall@5=56.7% / MRR=0.36，
+    随机基线 3.3%，5.5× 提升；详见 benchmarks/jepa/results/ 与 docs/jepa.md）：
+    在精确子串检索之外补充语义相关召回，
+    或作为大候选池的零成本粗筛（先筛 Top-K 再走 LLM 精排）。
+
+    参数：
+        query: 检索查询文本
+        candidates: 候选文本列表（与调用方条目一一对应）
+        top_k: 返回的前 K 个候选索引
+        threshold: 余弦相似度下限（低于此值的候选不返回）
+    返回：候选索引列表（按余弦降序），与 candidates 下标对应。
+    """
+    if not query or not candidates:
+        return []
+    router = get_non_generative_router()
+    q_vec = np.asarray(router.embed_state(query), dtype=np.float64)
+    q_norm = np.linalg.norm(q_vec) + 1e-8
+    scored = []
+    for i, c in enumerate(candidates):
+        if not c or not c.strip():
+            continue
+        d_vec = np.asarray(router.embed_state(c), dtype=np.float64)
+        cos = float(np.dot(q_vec, d_vec) / (q_norm * (np.linalg.norm(d_vec) + 1e-8)))
+        if cos >= threshold:
+            scored.append((cos, i))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [i for _, i in scored[:top_k]]

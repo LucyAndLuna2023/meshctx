@@ -140,14 +140,20 @@ These features appear in the comparison table but are currently auto-generated s
 
 | Feature | Module | Status | Target |
 |---------|--------|--------|--------|
-| JEPA World Model | jepa_world_model.py (66L) | 🚧 STUB | v3.40 |
 | Desktop Agent | desktop_agent.py (54L) | 🚧 STUB (desktop_tool.py is REAL) | v3.40 |
 | Smart Permissions | smart_permissions.py (44L) | 🚧 STUB | v3.41 |
-| JEPA Router | jepa_router.py (50L) | 🚧 STUB | v3.41 |
+| JEPA Router | jepa_router.py (121L) | 🚧 STUB（基础路由已实现；预测式模型选择待完整版） | v3.41 |
 | Knowledge Graph | knowledge_graph.py/v2 (50L each) | 🚧 STUB | v3.42 |
 | SDB Framework | sdb_framework.py (50L) | 🚧 STUB | v3.42 |
 | Attractor Reasoner | attractor_reasoner.py (48L) | 🚧 STUB | v3.43 |
 | Meta-Cognition | metacognition.py (94L) | 🚧 STUB | v3.43 |
+
+> **JEPA World Model（jepa_world_model.py 696L）已实测 ✅（不再 STUB）**——真实用途：**非生成式记忆预筛**。
+> query 到达时**不开 LLM**，用 JEPA 潜空间（char-trigram 余弦）先捞 top-k 候选记忆，只对候选开 LLM。
+> 实测（benchmarks/jepa/results/，LongMemEval oracle 数据）：
+> - **30 条大池**（1 正 + 29 干扰）：recall@1 **18.3%** / recall@5 **56.7%** / MRR 0.36，**5.5× 于随机基线**（3.3%）
+> - 含义：LLM 调用量可从 30 条降到 top-5（≈17%），仍保住 56.7% 召回——「决策 token≈0、省 30~35%」的量化机制
+> - 完整 VICReg 训练权重在 meshctx-core 私有核心（开源版为 QR 正交投影 + char-ngram 基础模式）
 | Predictive Pre-Compute | predictive_precompute.py (44L) | 🚧 STUB | v3.44 |
 | Evolution Tracker | evolution_tracker.py (46L) | 🚧 STUB | v3.44 |
 

@@ -1,0 +1,10 @@
+{
+  "n_samples": 60,
+  "pool_size": 30,
+  "jepa_pool_recall@1": 0.1833,
+  "jepa_pool_recall@5": 0.5667,
+  "jepa_pool_mrr": 0.3606,
+  "random_baseline_recall@1": 0.0333,
+  "note": "30条大池（1正+29干扰），不开 LLM 潜空间余弦捞答案 session",
+  "ts": "2026-08-20 22:02:39"
+}

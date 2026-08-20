@@ -1,0 +1,17 @@
+{
+  "n_samples": 100,
+  "jepa_non_generative": {
+    "recall@1": 1.0,
+    "recall@3": 1.0,
+    "mrr": 1.0,
+    "avg_rank": 0.0,
+    "note": "不开 LLM，char-trigram 潜空间余弦排序"
+  },
+  "baselines": {
+    "oracle_recall@1": 1.0,
+    "oracle_recall@3": 1.0,
+    "random_recall@1": 0.35
+  },
+  "avg_energy": 0.2217,
+  "ts": "2026-08-20 22:02:36"
+}
