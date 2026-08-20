@@ -1,0 +1,446 @@
+{
+  "model": "deepseek-chat",
+  "benchmark": "LongMemEval-oracle + P2 检索注入(10底FSRS×T3相关×M1分类)",
+  "n_per_type": 8,
+  "top_k": 12,
+  "baseline_full_history_accuracy": 0.5208333333333334,
+  "p2_injection": {
+    "correct": 24.0,
+    "total": 48,
+    "accuracy": 0.5
+  },
+  "samples": [
+    {
+      "qid": "gpt4_2655b836",
+      "question": "What was the first issue I had with my new car after its first service?",
+      "answer": "GPS system not functioning correctly",
+      "response": "Based on the history, the first issue you had with your new car after its first service was a problem with the GPS system on 3/22, which required the dealership to replace the entire system.",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "gpt4_2487a7cb",
+      "question": "Which event did I attend first, the 'Effective Time Management' workshop or the 'Data Analysis using Python' webinar?",
+      "answer": "'Data Analysis using Python' webinar",
+      "response": "Based on the history, you attended the 'Effective Time Management' workshop first. You mentioned it in a session before the 'Data Analysis using Python' webinar.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "gpt4_76048e76",
+      "question": "Which vehicle did I take care of first in February, the bike or the car?",
+      "answer": "bike",
+      "response": "Based on the history, you took care of the bike first in February. You mentioned having your bike repaired in mid-February, while you washed your car on February 27th.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "gpt4_2312f94c",
+      "question": "Which device did I got first, the Samsung Galaxy S22 or the Dell XPS 13?",
+      "answer": "Samsung Galaxy S22",
+      "response": "Based on the chat history, you got the Samsung Galaxy S22 first. You bought it on February 20th, while the Dell XPS 13 arrived on February 25th (after being pre-ordered on January 28th).",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "0bb5a684",
+      "question": "How many days before the team meeting I was preparing for did I attend the workshop on 'Effective Communication in the Workplace'?",
+      "answer": "7 days. 8 days (including the last day) is also acceptable.",
+      "response": "Based on the history, you attended the workshop on January 10th, and your team meeting is on January 17th. That means you attended the workshop **7 days** before the meeting.",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "08f4fc43",
+      "question": "How many days had passed between the Sunday mass at St. Mary's Church and the Ash Wednesday service at the cathedral?",
+      "answer": "30 days. 31 days (including the last day) is also acceptable.",
+      "response": "Based on the history, the Sunday mass at St. Mary's Church was on January 2nd, and the Ash Wednesday service at the cathedral was on February 1st. The number of days between January 2nd and February 1st is 30 days (January has 31 days, so from Jan 2 to Feb 1 is 30 days).",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "2c63a862",
+      "question": "How many days did it take for me to find a house I loved after starting to work with Rachel?",
+      "answer": "14 days. 15 days (including the last day) is also acceptable.",
+      "response": "Based on the history, you started working with Rachel on February 15th and found a house you loved on March 1st. That’s 14 days later.",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "gpt4_385a5000",
+      "question": "Which seeds were started first, the tomatoes or the marigolds?",
+      "answer": "Tomatoes",
+      "response": "Based on the history, the marigold seeds were started first. The user mentioned starting marigold seeds on March 3rd, while the tomatoes, peppers, and cucumbers were started on February 20th. Wait, that means the tomatoes were started earlier (February 20th) than the marigolds (March 3rd). So the to",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "0a995998",
+      "question": "How many items of clothing do I need to pick up or return from a store?",
+      "answer": 3,
+      "response": "Based on the chat history, you need to pick up one item: a pair of boots from Zara that you exchanged on February 5th. There are no other items mentioned that need to be returned or picked up.",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "6d550036",
+      "question": "How many projects have I led or am currently leading?",
+      "answer": 2,
+      "response": "Based on the history, you have led one project: a data analysis team for a Marketing Research class project, where you conducted a comprehensive market analysis for a new product launch.",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "gpt4_59c863d7",
+      "question": "How many model kits have I worked on or bought?",
+      "answer": "I have worked on or bought five model kits. The scales of the models are: Revell F-15 Eagle (scale not mentioned), Tamiya 1/48 scale Spitfire Mk.V, 1/16 scale German Tiger I tank, 1/72 scale B-29 bomber, and 1/24 scale '69 Camaro.",
+      "response": "Based on the history, you've worked on or bought at least four model kits:\n\n1. **Revell F-15 Eagle** (finished, simple kit)\n2. **Tamiya 1/48 Spitfire Mk.V** (finished)\n3. **1/72 B-29 bomber** (new kit, bought at a model show)\n4. **1/24 '",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "b5ef892d",
+      "question": "How many days did I spend on camping trips in the United States this year?",
+      "answer": "8 days.",
+      "response": "Based on the history, you went on a 3-day solo camping trip to Big Sur in early April. No other camping trips are mentioned. So, you spent **3 days** camping in the U.S. this year.",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "e831120c",
+      "question": "How many weeks did it take me to watch all the Marvel Cinematic Universe movies and the main Star Wars films?",
+      "answer": "3.5 weeks",
+      "response": "Based on the history, you watched all 22 MCU movies in about two weeks, and the main Star Wars films in a week and a half. So, it took you about 3.5 weeks total for both marathons.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "3a704032",
+      "question": "How many plants did I acquire in the last month?",
+      "answer": 3,
+      "response": "Based on the history, you acquired a peace lily and a succulent from a nursery two weeks ago, and a snake plant from your sister last month. That makes **3 plants** in the last month.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "gpt4_d84a3211",
+      "question": "How much total money have I spent on bike-related expenses since the start of the year?",
+      "answer": "$185",
+      "response": "Based on the history, you've mentioned the following bike-related expenses:\n\n- New bike lights: $40 (installed during the April 20th tune-up)\n- Chain replacement: $25 (during the same tune-up)\n- Bell Zephyr helmet: $120 (purchased on April 10th)\n\nTotal spent: $40 + $25 + $120 = **$185",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "aae3761f",
+      "question": "How many hours in total did I spend driving to my three road trip destinations combined?",
+      "answer": "15 hours for getting to the three destinations (or 30 hours for the round trip)",
+      "response": "Based on the history, you mentioned driving times for three trips:\n\n1. **Outer Banks, NC**: 4 hours  \n2. **Washington D.C.**: 6 hours  \n3. **Tennessee mountains**: 5 hours  \n\n**Total driving time = 4 + 6 + 5 = 15 hours.**",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "6a1eabeb",
+      "question": "What was my personal best time in the charity 5K run?",
+      "answer": "25 minutes and 50 seconds (or 25:50)",
+      "response": "Based on the history, your personal best time in the charity 5K run was **25:50**.",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "6aeb4375",
+      "question": "How many Korean restaurants have I tried in my city?",
+      "answer": "four",
+      "response": "Based on the history, you mentioned trying three different Korean restaurants in one conversation and four in another. So, you've tried at least four Korean restaurants in your city.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "830ce83f",
+      "question": "Where did Rachel move to after her recent relocation?",
+      "answer": "the suburbs",
+      "response": "Based on the history, Rachel moved to Chicago, then later moved back to the suburbs (though the specific suburb is not mentioned).",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "852ce960",
+      "question": "What was the amount I was pre-approved for when I got my mortgage from Wells Fargo?",
+      "answer": "$400,000",
+      "response": "Based on the history, you were pre-approved for $350,000 from Wells Fargo.",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "945e3d21",
+      "question": "How often do I attend yoga classes to help with my anxiety?",
+      "answer": "Three times a week.",
+      "response": "Based on your conversation, you attend yoga classes **three times a week** to help with your anxiety and focus.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "d7c942c3",
+      "question": "Is my mom using the same grocery list method as me?",
+      "answer": "Yes.",
+      "response": "Based on the chat history, your mom is now using the same grocery list app as you, so you can share lists and keep track of what you need together.",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "71315a70",
+      "question": "How many hours have I spent on my abstract ocean sculpture?",
+      "answer": "10-12 hours",
+      "response": "Based on the history, you've spent 10-12 hours on your abstract ocean sculpture.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "89941a93",
+      "question": "How many bikes do I currently own?",
+      "answer": "4",
+      "response": "Based on the history, you currently own four bikes: a road bike, a mountain bike, a commuter bike, and a new hybrid bike.",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "8a2466db",
+      "question": "Can you recommend some resources where I can learn more about video editing?",
+      "answer": "The user would prefer responses that suggest resources specifically tailored to Adobe Premiere Pro, especially those that delve into its advanced settings. They might not prefer general video editing resources or resources related to other video editing software.",
+      "response": "Based on our previous conversation, I recommended several resources for learning Adobe Premiere Pro, including:\n\n- **Adobe Premiere Pro's official documentation and tutorials**\n- **YouTube channels** like Premiere Bro, Video Copilot, and Adobe Creative Cloud\n- **Online courses** on platforms like Ud",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "06878be2",
+      "question": "Can you suggest some accessories that would complement my current photography setup?",
+      "answer": "The user would prefer suggestions of Sony-compatible accessories or high-quality photography gear that can enhance their photography experience. They may not prefer suggestions of other brands' equipment or low-quality gear.",
+      "response": "Based on your history, you have a Sony A7R IV, a Godox V1 flash, a Sony 24-70mm f/2.8 lens, and you're considering a Gitzo GT3543LS tripod. Here are some accessories that would complement your setup:\n\n1. **Camera Bag**: Since you're a Sony user, consider a bag from Think Tank Photo,",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "75832dbd",
+      "question": "Can you recommend some recent publications or conferences that I might find interesting?",
+      "answer": "The user would prefer suggestions related to recent research papers, articles, or conferences that focus on artificial intelligence in healthcare, particularly those that involve deep learning for medical image analysis. They would not be interested in general AI topics or those unrelated to healthcare.",
+      "response": "Based on your interest in explainable AI and deep learning for medical image analysis, here are some recent publications and conferences you might find interesting:\n\n**Recent Publications (2021–2023):**\n- \"Explainable AI in Medical Imaging: A Review\" (2022) – updates on XAI methods and clinical appl",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "0edc2aef",
+      "question": "Can you suggest a hotel for my upcoming trip to Miami?",
+      "answer": "The user would prefer suggestions of hotels in Miami that offer great views, possibly of the ocean or the city skyline, and have unique features such as a rooftop pool or a hot tub on the balcony. They may not prefer suggestions of basic or budget hotels without these features.",
+      "response": "I'd be happy to help you find a hotel in Miami! To give you the best recommendations, could you share a few details? For example:\n\n- What's your budget?\n- Do you prefer a beachfront location, downtown, or another area?\n- Any specific amenities you're looking for (e.g., pool, spa, rooftop bar, pet-fr",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "35a27287",
+      "question": "Can you recommend some interesting cultural events happening around me this weekend?",
+      "answer": "The user would prefer responses that suggest cultural events where they can practice their language skills, particularly Spanish and French. They would also appreciate if the event has a focus on language learning resources. They would not prefer events that do not provide opportunities for language practice or cultural exchange.",
+      "response": "Based on our previous chats, I don't have access to your specific location, so I can't pinpoint exact events near you. However, here are some ways to find cultural events this weekend:\n\n1. **Check Eventbrite or Meetup** – Search for \"language festival,\" \"cultural exchange,\" \"French culture,\" or \"Spa",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "32260d93",
+      "question": "Can you recommend a show or movie for me to watch tonight?",
+      "answer": "The user would prefer recommendations for stand-up comedy specials on Netflix, especially those that are known for their storytelling. They may not prefer recommendations for other genres or platforms.",
+      "response": "Based on your interest in strong storytelling in comedy, I recommend **\"Hasan Minhaj: Homecoming King\"** on Netflix. It’s a masterclass in weaving personal anecdotes with cultural commentary, perfect for inspiring your own stand-up craft. Enjoy your night!",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "195a1a1b",
+      "question": "Can you suggest some activities that I can do in the evening?",
+      "answer": "The user would prefer suggestions that involve relaxing activities that can be done in the evening, preferably before 9:30 pm. They would not prefer suggestions that involve using their phone or watching TV, as these activities have been affecting their sleep quality.",
+      "response": "Based on your history, you’ve already received suggestions for winding down by 9:30 pm, including relaxation techniques, electronic detox, and preparing your sleep environment. For additional evening activities, here are some ideas that align with your goal of relaxing and preparing for sleep:\n\n- **",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "afdc33df",
+      "question": "My kitchen's becoming a bit of a mess again. Any tips for keeping it clean?",
+      "answer": "The user would prefer responses that acknowledge and build upon their existing efforts to organize their kitchen, such as utilizing their new utensil holder to keep countertops clutter-free. They would also appreciate tips that address their concern for maintaining their granite surface, particularly around the sink area. Preferred responses would provide practical and actionable steps to maintain cleanliness, leveraging the user's current tools and setup. They might not prefer generic or vague suggestions that do not take into account their specific kitchen setup or concerns.",
+      "response": "Based on your past questions, you've dealt with a leaky faucet, scratched granite, a messy utensil holder, and a garbage disposal. Here are some quick, targeted tips to keep your kitchen clean and prevent those issues from coming back:\n\n1. **For the faucet & sink:** Wipe down the faucet and sink are",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "7161e7e2",
+      "question": "I'm checking our previous chat about the shift rotation sheet for GM social media agents. Can you remind me what was the rotation for Admon on a Sunday?",
+      "answer": "Admon was assigned to the 8 am - 4 pm (Day Shift) on Sundays.",
+      "response": "Based on our previous chat, Admon's rotation on Sunday was the **8 am - 4 pm (Day Shift)**.",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "c4f10528",
+      "question": "I'm planning to visit Bandung again and I was wondering if you could remind me of the name of that restaurant in Cihampelas Walk that serves a great Nasi Goreng?",
+      "answer": "Miss Bee Providore",
+      "response": "Based on our previous conversation, the restaurant in Cihampelas Walk that serves a great Nasi Goreng is **Miss Bee Providore**. Their signature dish is called **Miss Bee's Nasi Goreng**.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "89527b6b",
+      "question": "I'm going back to our previous conversation about the children's book on dinosaurs. Can you remind me what color was the scaly body of the Plesiosaur in the image?",
+      "answer": "The Plesiosaur had a blue scaly body.",
+      "response": "The Plesiosaur had a blue scaly body.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "e9327a54",
+      "question": "I'm planning to revisit Orlando. I was wondering if you could remind me of that unique dessert shop with the giant milkshakes we talked about last time?",
+      "answer": "The Sugar Factory at Icon Park.",
+      "response": "Based on our previous conversation, the dessert shop with giant milkshakes is **The Sugar Factory**, located at Icon Park in Orlando.",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "4c36ccef",
+      "question": "Can you remind me of the name of the romantic Italian restaurant in Rome you recommended for dinner?",
+      "answer": "Roscioli",
+      "response": "The romantic Italian restaurant I recommended in Rome is **Roscioli**.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "6ae235be",
+      "question": "I remember you told me about the refining processes at CITGO's three refineries earlier. Can you remind me what kind of processes are used at the Lake Charles Refinery?",
+      "answer": "Atmospheric distillation, fluid catalytic cracking (FCC), alkylation, and hydrotreating.",
+      "response": "Based on our earlier conversation, the Lake Charles Refinery uses the following main refining processes:\n\n1. **Atmospheric distillation** – the initial step where crude oil is heated and separated into fractions by boiling point.\n2. **Fluid catalytic cracking (FCC)** – breaks down heavier fractions ",
+      "em": 0.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "7e00a6cb",
+      "question": "I'm planning my trip to Amsterdam again and I was wondering, what was the name of that hostel near the Red Light District that you recommended last time?",
+      "answer": "International Budget Hostel",
+      "response": "Based on our previous conversation, the hostel near the Red Light District is the **International Budget Hostel**.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "1903aded",
+      "question": "I think we discussed work from home jobs for seniors earlier. Can you remind me what was the 7th job in the list you provided?",
+      "answer": "Transcriptionist.",
+      "response": "The 7th job was **Transcriptionist**.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "e47becba",
+      "question": "What degree did I graduate with?",
+      "answer": "Business Administration",
+      "response": "You graduated with a degree in Business Administration.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "118b2229",
+      "question": "How long is my daily commute to work?",
+      "answer": "45 minutes each way",
+      "response": "Based on the chat history, your daily commute is 45 minutes each way.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "51a45a95",
+      "question": "Where did I redeem a $5 coupon on coffee creamer?",
+      "answer": "Target",
+      "response": "Based on the history, you redeemed the $5 coupon on coffee creamer at Target.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "58bf7951",
+      "question": "What play did I attend at the local community theater?",
+      "answer": "The Glass Menagerie",
+      "response": "Based on the chat history, you attended a production of *The Glass Menagerie* at the local community theater.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "1e043500",
+      "question": "What is the name of the playlist I created on Spotify?",
+      "answer": "Summer Vibes",
+      "response": "Based on the history, you created a playlist on Spotify called **Summer Vibes**.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "c5e8278d",
+      "question": "What was my last name before I changed it?",
+      "answer": "Johnson",
+      "response": "Your last name before the change was Johnson.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "6ade9755",
+      "question": "Where do I take yoga classes?",
+      "answer": "Serenity Yoga",
+      "response": "Based on your history, you take yoga classes at **Serenity Yoga** and also practice at home using the **Down Dog** app.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    },
+    {
+      "qid": "6f9b354f",
+      "question": "What color did I repaint my bedroom walls?",
+      "answer": "a lighter shade of gray",
+      "response": "Based on the chat history, you repainted your bedroom walls a lighter shade of gray.",
+      "em": 1.0,
+      "mode": "p2",
+      "top_k": 12
+    }
+  ]
+}
