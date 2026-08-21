@@ -1,6 +1,6 @@
 @echo off
 REM ═══════════════════════════════════════════════
-REM  MeshCtx v3.33 Windows 一键构建脚本
+REM  MeshCtx v3.118 Windows 一键构建脚本
 REM  包含: PyInstaller打包 + 版本号注入 + NSIS安装包
 REM  需要: Python 3.10+, PyInstaller, NSIS (可选)
 REM ═══════════════════════════════════════════════
@@ -8,7 +8,7 @@ setlocal enabledelayedexpansion
 
 echo.
 echo ╔══════════════════════════════════╗
-echo ║  MeshCtx v3.33 Build Script    ║
+echo ║  MeshCtx v3.118 Build Script  ║
 echo ╚══════════════════════════════════╝
 echo.
 
@@ -46,7 +46,7 @@ REM [3/5] 注入版本号 (pyi-set_version)
 echo [3/5] Injecting version info...
 if exist "dist\meshctx-desktop.exe" (
     %PYTHON% -m PyInstaller.utils.win32.versioninfo version_info.txt dist\meshctx-desktop.exe
-    echo [OK] Version info injected: FileVersion 3.33.0
+    echo [OK] Version info injected: FileVersion 3.118.0
 ) else (
     echo [ERROR] meshctx-desktop.exe not found!
     exit /b 1
@@ -66,7 +66,7 @@ echo.
 echo ═══════════════════════════════════
 echo   BUILD COMPLETE!
 echo   dist\meshctx-setup.exe (with version info)
-echo   Version: 3.33.0
+echo   Version: 3.118.0
 echo ═══════════════════════════════════
 
 REM 可选: NSIS打包
