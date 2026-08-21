@@ -26,8 +26,12 @@ from __future__ import annotations
 import os
 import sys
 import select
-import termios
-import tty
+try:
+    import termios  # Unix-only
+    import tty      # Unix-only
+except ImportError:
+    termios = None
+    tty = None
 import logging
 from dataclasses import dataclass, field
 from typing import Optional, List
@@ -77,6 +81,27 @@ def _is_tty() -> bool:
 
 def _read_key(timeout: float = 30.0) -> str:
     """读取单个按键。返回 'UP'/'DOWN'/'ENTER'/'ESC'/'x'/'CTRLC' 等。"""
+    if termios is None or tty is None:
+        # Windows fallback: msvcrt 无阻塞读取
+        import msvcrt
+        import time as _t
+        deadline = _t.time() + timeout
+        while _t.time() < deadline:
+            if msvcrt.kbhit():
+                ch = msvcrt.getwch()
+                if ch == "\x00" or ch == "\xe0":  # 方向键/功能键前缀
+                    ch2 = msvcrt.getwch()
+                    _map = {"H": "UP", "P": "DOWN", "M": "RIGHT", "K": "LEFT"}
+                    return _map.get(ch2, ch2) if ch2 in _map else ch2
+                if ch in ("\r", "\n"):
+                    return "ENTER"
+                if ch == "\x03":
+                    return "CTRLC"
+                if ch == "\x1b":
+                    return "ESC"
+                return ch
+            _t.sleep(0.05)
+        return "TIMEOUT"
     fd = sys.stdin.fileno()
     old = termios.tcgetattr(fd)
     try:

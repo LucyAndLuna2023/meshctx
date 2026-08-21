@@ -16,7 +16,10 @@ import os
 import sys
 import time
 import random
-import resource
+try:
+    import resource  # Unix-only (RLIMIT_*); Windows 上不存在 → None
+except ImportError:
+    resource = None
 import signal
 import shlex
 import numpy as np
