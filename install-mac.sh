@@ -1131,6 +1131,14 @@ source venv/bin/activate 2>/dev/null || true
 INSTALLED_VER=$(python -c "from src.core import __version__; print(__version__)" 2>/dev/null || echo "3.115.15")
 echo -e "  ${GREEN}✓${NC} 版本 ${INSTALLED_VER}"
 
+# 闭源核心完整性校验（一体产品：开源+闭源，组件不得丢失）
+if [ -f "${INSTALL_DIR}/src/core/desktop_tool.py" ]; then
+    echo -e "  ${GREEN}✓${NC} 闭源核心组件已就位（完整版）"
+else
+    echo -e "  ${YELLOW}⚠${NC} 未检测到闭源核心组件（当前为开源 stub 模式）"
+    echo "    设置环境变量 MESHCTX_CORE_TOKEN 后重跑本脚本，可补装完整版闭源核心"
+fi
+
 # ── [6/6] 完成 ──────────────────────────────────────
 echo ""
 echo -e "${GREEN}╔══════════════════════════════════════════════════╗${NC}"

@@ -34,6 +34,20 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller pycryptodome pywebview
 
+      - name: Install closed-source core (meshctx-core, optional)
+        env:
+          CORE_TOKEN: ${{ secrets.MESHCTX_CORE_TOKEN }}
+        shell: pwsh
+        run: |
+          if ($env:CORE_TOKEN) {
+            Write-Host "Bundling closed-source core (full product)"
+            git clone --depth 1 "https://$($env:CORE_TOKEN)@github.com/LucyAndLuna2023/meshctx-core.git" "$env:TEMP\meshctx-core" 2>$null
+            Get-ChildItem "$env:TEMP\meshctx-core\src\core\*.py" | Where-Object { $_.Name -ne '__init__.py' } | Copy-Item -Destination "src\core" -Force
+            if (Test-Path "src\core\desktop_tool.py") { Write-Host "OK: closed-source core bundled" } else { throw "core copy failed" }
+          } else {
+            Write-Host "WARN: MESHCTX_CORE_TOKEN not set — STUB build"
+          }
+
       - name: Verify logo files
         run: |
           if (-not (Test-Path logo.ico)) {
