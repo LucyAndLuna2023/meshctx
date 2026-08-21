@@ -41,8 +41,10 @@ jobs:
         run: |
           if ($env:CORE_TOKEN) {
             Write-Host "Bundling closed-source core (full product)"
+            Write-Host "TEMP=[$env:TEMP] RUNNER_TEMP=[$env:RUNNER_TEMP]"
             $coreUrl = "https://$($env:CORE_TOKEN)@github.com/LucyAndLuna2023/meshctx-core.git"
-            $coreDir = "$env:TEMP\meshctx-core"
+            # 用 RUNNER_TEMP(GitHub Actions 保证存在), 不用 $env:TEMP(实测为空导致路径解析不一致)
+            $coreDir = Join-Path $env:RUNNER_TEMP 'meshctx-core'
             git clone --depth 1 $coreUrl $coreDir *>$null
             if ($LASTEXITCODE -ne 0) {
               Write-Host "WARN: core clone failed (exit $LASTEXITCODE), retrying once..."
@@ -51,16 +53,20 @@ jobs:
               if ($LASTEXITCODE -ne 0) { Write-Host "FATAL: core clone failed again (exit $LASTEXITCODE)"; exit 1 }
             }
             # 递归复制(保留子目录结构), 跳过顶层 __init__.py 保留开源 stub 路由
-            $coreRoot = "$coreDir\src\core"
-            $srcCount = @(Get-ChildItem $coreRoot -Recurse -Filter *.py).Count
-            Write-Host "core modules found: $srcCount"
-            if ($srcCount -lt 100) { Write-Host "WARN: only $srcCount core modules (expected ~288)" }
-            Get-ChildItem $coreRoot -Recurse -Filter *.py | Where-Object { $_.FullName -ne (Join-Path $coreRoot '__init__.py') } | ForEach-Object {
-              $rel = $_.FullName.Substring($coreRoot.Length + 1)
+            $coreRoot = Join-Path $coreDir 'src\core'
+            $srcFiles = Get-ChildItem $coreRoot -Recurse -Filter *.py
+            Write-Host "core modules found: $($srcFiles.Count)"
+            $copied = 0
+            $srcFiles | ForEach-Object {
+              # 用 GetRelativePath 避免 FullName/coreRoot 前缀不一致导致 Substring 偏移错误
+              $rel = [System.IO.Path]::GetRelativePath($coreRoot, $_.FullName)
+              if ($rel -eq '__init__.py') { return }
               $dest = Join-Path "src\core" $rel
               New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
               Copy-Item -LiteralPath $_.FullName -Destination $dest -Force
+              $copied++
             }
+            Write-Host "copied core modules: $copied"
             if (Test-Path "src\core\desktop_tool.py") { Write-Host "OK: closed-source core bundled" } else {
               Write-Host "FAIL: desktop_tool.py missing after copy"
               if (Test-Path $coreRoot) { Get-ChildItem $coreRoot | Select-Object -First 10 | ForEach-Object { Write-Host "  src: $($_.Name)" } }
