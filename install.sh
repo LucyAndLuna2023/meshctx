@@ -1,7 +1,7 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════
 # meshctx One-Click Install v8
-# Usage: curl -fsSL https://cdn.jsdelivr.net/gh/LucyAndLuna2023/meshctx@main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash
 # i18n: MESHCTX_LANG=zh|en|ja|ko|fr|de|es|it|ar (default: auto from LANG env)
 # ═══════════════════════════════════════════════════════
 set -e
@@ -500,7 +500,7 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.118.0"
+VERSION="3.119.0"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 PORT=3001

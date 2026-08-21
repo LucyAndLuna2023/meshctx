@@ -5,7 +5,7 @@
 ### 一键安装（推荐）
 
 ```bash
-curl -fsSL https://cdn.jsdelivr.net/gh/LucyAndLuna2023/meshctx@main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash
 ```
 
 安装脚本会自动：
@@ -48,7 +48,7 @@ meshctx start      # 启动服务
 重新运行安装脚本即可覆盖升级：
 
 ```bash
-curl -fsSL https://cdn.jsdelivr.net/gh/LucyAndLuna2023/meshctx@main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash
 ```
 
 安装脚本会自动停止旧服务、覆盖安装。
@@ -89,7 +89,7 @@ brew install python@3.12
 
 ```bash
 export https_proxy=http://127.0.0.1:7890
-curl -fsSL https://cdn.jsdelivr.net/gh/LucyAndLuna2023/meshctx@main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash
 ```
 
 ### 手动验证安装
@@ -97,5 +97,5 @@ curl -fsSL https://cdn.jsdelivr.net/gh/LucyAndLuna2023/meshctx@main/install.sh |
 ```bash
 cd ~/.meshctx && source venv/bin/activate
 python -c "from src.core import __version__; print(__version__)"
-# 应输出: 3.118.0
+# 应输出: 3.119.0
 ```

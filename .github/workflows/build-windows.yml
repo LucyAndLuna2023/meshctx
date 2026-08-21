@@ -112,6 +112,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          update_release: true
+          fail_on_unmatched_files: false
           files: |
             dist/meshctx.exe
             dist/meshctx-setup.exe

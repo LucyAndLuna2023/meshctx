@@ -65,7 +65,7 @@ MeshCtx treats AI agent design as a **neuroscience problem**, not just an engine
 
 ### Linux / WSL / macOS
 ```bash
-curl -fsSL https://cdn.jsdelivr.net/gh/LucyAndLuna2023/meshctx@main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install.sh | bash
 meshctx setup    # Configure API keys
 meshctx start    # Start web service (http://localhost:3001)
 ```

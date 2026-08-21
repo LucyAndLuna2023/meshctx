@@ -1,7 +1,7 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════
 # meshctx macOS 一键安装 v1.0
-# 使用: curl -fsSL https://cdn.jsdelivr.net/gh/LucyAndLuna2023/meshctx@main/install-mac.sh | bash
+# 使用: curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/install-mac.sh | bash
 # 或:   git clone ... && bash install-mac.sh
 # ═══════════════════════════════════════════════════════
 set -e
@@ -580,7 +580,7 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.118.0"
+VERSION="3.119.0"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 PORT=3001
@@ -697,8 +697,8 @@ if [ -z "${PYTHON_BIN}" ]; then
     echo -e "  ${YELLOW}→ 未检测到 Python 3.10+，正在自动安装...${NC}"
 
     if command -v brew >/dev/null 2>&1; then
-        echo -e "  ${YELLOW}→ 使用 Homebrew 安装 python@3.12（约 1-3 分钟，请稍候）...${NC}"
-        if brew install python@3.12 2>&1 | tail -2; then
+        echo -e "  ${YELLOW}→ 使用 Homebrew 安装 python@3.12（约 1-3 分钟，请稍候；若长时间无输出多为 brew 自动更新/网络问题，可 Ctrl+C 后手动执行 HOMEBREW_NO_AUTO_UPDATE=1 brew install python@3.12）...${NC}"
+        if HOMEBREW_NO_AUTO_UPDATE=1 brew install python@3.12; then
             for p in /usr/local/opt/python@3.12/bin/python3.12 /opt/homebrew/opt/python@3.12/bin/python3.12 \
                      /usr/local/bin/python3.12 /opt/homebrew/bin/python3.12; do
                 py_ok "$p" && { PYTHON_BIN="$p"; break; }
@@ -713,11 +713,11 @@ if [ -z "${PYTHON_BIN}" ]; then
     fi
 
     if [ -z "${PYTHON_BIN}" ]; then
-        echo -e "  ${YELLOW}→ 无 Homebrew，下载 python.org 官方安装包...${NC}"
-        # 下载 python.org pkg 并静默安装（需用户输入一次密码）
+        echo -e "  ${YELLOW}→ 未检测到可用 Python，下载 python.org 官方安装包（约 30MB，以下为下载进度）...${NC}"
+        # 下载 python.org pkg 并安装（需用户输入一次密码）；--progress-bar 显示进度
         PKG_URL="https://www.python.org/ftp/python/3.12.8/python-3.12.8-macos11.pkg"
         PKG_TMP="/tmp/python-3.12.8.pkg"
-        if curl -fsSL --connect-timeout 30 --retry 2 -o "${PKG_TMP}" "${PKG_URL}" 2>/dev/null; then
+        if curl -fL --connect-timeout 30 --retry 2 --progress-bar -o "${PKG_TMP}" "${PKG_URL}"; then
             echo -e "  ${YELLOW}→ 安装 python-3.12.8.pkg（可能弹出密码框）...${NC}"
             # 检测非交互环境 (SSH/无 GUI): installer -pkg 需 root, osascript 需 GUI 会话
             if ! [ -t 0 ] && ! command -v osascript >/dev/null 2>&1; then
