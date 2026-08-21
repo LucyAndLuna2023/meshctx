@@ -26,10 +26,13 @@ def load_html(path):
 
 def find_l_object(html):
     """Extract the L object from HTML — blocks may NOT be in alphabetical order."""
+    # 只扫描 pageMeta 之后的语言块，跳过内联 fallback (L = { en: {...}})
+    meta_pos = html.find('var pageMeta')
+    scan_from = meta_pos if meta_pos >= 0 else 0
     blocks = {}
     for lang in LANGS:
         pattern = re.compile(r'\b' + lang + r'\s*:\s*\{')
-        m = pattern.search(html)
+        m = pattern.search(html, scan_from)
         if not m:
             continue
         
