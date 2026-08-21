@@ -44,15 +44,15 @@ T() {
         ;;
     macos_only)
         case "$LANG_CHOICE" in
-            zh) echo '✗ ✗ 此脚本仅支持 macOS。Linux 请使用 install.sh' ;;
-            en) echo '✗ This script is for macOS only. Use install.sh for Linux' ;;
-            ja) echo '✗ このスクリプトはmacOS専用です。Linuxはinstall.shをお使いください' ;;
-            ko) echo '✗ 이 스크립트는 macOS 전용입니다. Linux는 install.sh를 사용하세요' ;;
-            fr) echo '✗ Ce script est réservé à macOS. Utilisez install.sh pour Linux' ;;
-            de) echo '✗ Dieses Skript ist nur für macOS. Verwenden Sie install.sh für Linux' ;;
-            es) echo '✗ Este script es solo para macOS. Use install.sh para Linux' ;;
-            it) echo '✗ Questo script è solo per macOS. Usa install.sh per Linux' ;;
-            ar) echo '✗ هذا السكريبت لنظام macOS فقط. استخدم install.sh لنظام Linux' ;;
+            zh) echo '此脚本仅支持 macOS。Linux 请使用 install.sh' ;;
+            en) echo 'This script is for macOS only. Use install.sh for Linux' ;;
+            ja) echo 'このスクリプトはmacOS専用です。Linuxはinstall.shをお使いください' ;;
+            ko) echo '이 스크립트는 macOS 전용입니다. Linux는 install.sh를 사용하세요' ;;
+            fr) echo 'Ce script est réservé à macOS. Utilisez install.sh pour Linux' ;;
+            de) echo 'Dieses Skript ist nur für macOS. Verwenden Sie install.sh für Linux' ;;
+            es) echo 'Este script es solo para macOS. Use install.sh para Linux' ;;
+            it) echo 'Questo script è solo per macOS. Usa install.sh per Linux' ;;
+            ar) echo 'هذا السكريبت لنظام macOS فقط. استخدم install.sh لنظام Linux' ;;
         esac
         ;;
     step1_stop)
