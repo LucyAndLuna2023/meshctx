@@ -41,8 +41,15 @@ jobs:
         run: |
           if ($env:CORE_TOKEN) {
             Write-Host "Bundling closed-source core (full product)"
-            git clone --depth 1 "https://$($env:CORE_TOKEN)@github.com/LucyAndLuna2023/meshctx-core.git" "$env:TEMP\meshctx-core" 2>$null
-            Get-ChildItem "$env:TEMP\meshctx-core\src\core\*.py" | Where-Object { $_.Name -ne '__init__.py' } | Copy-Item -Destination "src\core" -Force
+            git clone --depth 1 "https://$($env:CORE_TOKEN)@github.com/LucyAndLuna2023/meshctx-core.git" "$env:TEMP\meshctx-core" *>$null
+            # 递归复制(保留子目录结构), 跳过顶层 __init__.py 保留开源 stub 路由
+            $coreRoot = "$env:TEMP\meshctx-core\src\core"
+            Get-ChildItem $coreRoot -Recurse -Filter *.py | Where-Object { $_.FullName -ne (Join-Path $coreRoot '__init__.py') } | ForEach-Object {
+              $rel = $_.FullName.Substring($coreRoot.Length + 1)
+              $dest = Join-Path "src\core" $rel
+              New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
+              Copy-Item -LiteralPath $_.FullName -Destination $dest -Force
+            }
             if (Test-Path "src\core\desktop_tool.py") { Write-Host "OK: closed-source core bundled" } else { throw "core copy failed" }
           } else {
             Write-Host "WARN: MESHCTX_CORE_TOKEN not set — STUB build"
