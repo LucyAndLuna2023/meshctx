@@ -898,20 +898,19 @@ cd ~/.meshctx && source venv/bin/activate && python -m src.cli "$@"
 MESHCTX_SCRIPT
 chmod +x ~/bin/meshctx
 
-# PATH 配置 (macOS 默认用 zsh)
+# PATH 配置 (macOS 默认 zsh，但管道 bash 下 $SHELL 不可靠 → 写入所有 rc 文件)
 SHELL_RC=""
 for rc in "${HOME}/.zshrc" "${HOME}/.bashrc" "${HOME}/.profile" "${HOME}/.bash_profile"; do
-    if [ -f "$rc" ] || [ "${SHELL}" = "/bin/zsh" -a "$rc" = "${HOME}/.zshrc" ]; then
-        SHELL_RC="$rc"
-        break
-    fi
+    [ -f "$rc" ] && SHELL_RC="$rc"
 done
 [ -z "${SHELL_RC}" ] && SHELL_RC="${HOME}/.zshrc"
 
-# 添加 ~/bin 到 PATH
-if ! grep -q '$HOME/bin' "${SHELL_RC}" 2>/dev/null; then
-    echo 'export PATH="$HOME/bin:$PATH"' >> "${SHELL_RC}"
-fi
+# 同时写入所有 rc 文件，保证 zsh/bash/sh 登录 shell 都能找到 meshctx
+for rc in "${HOME}/.zshrc" "${HOME}/.bashrc" "${HOME}/.profile" "${HOME}/.bash_profile"; do
+    if ! grep -q '$HOME/bin' "$rc" 2>/dev/null; then
+        echo 'export PATH="$HOME/bin:$PATH"' >> "$rc"
+    fi
+done
 export PATH="${HOME}/bin:${PATH}"
 
 # symlink 到系统路径（无需 sudo）
