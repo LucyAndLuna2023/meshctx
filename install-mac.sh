@@ -61,7 +61,7 @@ T() {
             en) echo 'Stopping old version...' ;;
             ja) echo '古いバージョンを停止中...' ;;
             ko) echo '이전 버전 중지 중...' ;;
-            fr) echo '[1/6] Arrêt de l'\''ancienne version...' ;;
+            fr) echo "Arrêt de l'ancienne version..." ;;
             de) echo 'Alte Version wird beendet...' ;;
             es) echo 'Deteniendo versión anterior...' ;;
             it) echo 'Arresto della versione precedente...' ;;
@@ -100,10 +100,10 @@ T() {
             en) echo 'Checking environment...' ;;
             ja) echo '環境を確認中...' ;;
             ko) echo '환경 확인 중...' ;;
-            fr) echo '[2/6] Vérification de l'\''environnement...' ;;
+            fr) echo 'Vérification de l'\''environnement...' ;;
             de) echo 'Umgebung wird geprüft...' ;;
             es) echo 'Comprobando entorno...' ;;
-            it) echo '[2/6] Verifica dell'\''ambiente in corso...' ;;
+            it) echo 'Verifica dell'\''ambiente in corso...' ;;
             ar) echo 'التحقق من البيئة...' ;;
         esac
         ;;
@@ -464,10 +464,10 @@ T() {
             en) echo 'Verifying installation...' ;;
             ja) echo 'インストールを検証中...' ;;
             ko) echo '설치 확인 중...' ;;
-            fr) echo '[5/6] Vérification de l'\''installation...' ;;
+            fr) echo 'Vérification de l'\''installation...' ;;
             de) echo 'Installation wird überprüft...' ;;
             es) echo 'Verificando instalación...' ;;
-            it) echo '[5/6] Verifica dell'\''installazione...' ;;
+            it) echo 'Verifica dell'\''installazione...' ;;
             ar) echo 'التحقق من التثبيت...' ;;
         esac
         ;;
@@ -657,7 +657,7 @@ py_ok() {
     [ -z "$ver" ] && return 1
     major=$(echo "$ver" | cut -d. -f1)
     minor=$(echo "$ver" | cut -d. -f2)
-    [ "$major" -ge 3 ] && [ "$minor" -ge 10 ] 2>/dev/null
+    [ "$major" -gt 3 ] || { [ "$major" -eq 3 ] && [ "$minor" -ge 10 ]; } 2>/dev/null
 }
 
 # 1) PATH 内命令
@@ -697,13 +697,15 @@ if [ -z "${PYTHON_BIN}" ]; then
     echo -e "  ${YELLOW}→ 未检测到 Python 3.10+，正在自动安装...${NC}"
 
     if command -v brew >/dev/null 2>&1; then
-        echo -e "  ${YELLOW}→ 使用 Homebrew 安装 python@3.12 ...${NC}"
-        brew install python@3.12 >/dev/null 2>&1 && {
+        echo -e "  ${YELLOW}→ 使用 Homebrew 安装 python@3.12（约 1-3 分钟，请稍候）...${NC}"
+        if brew install python@3.12 2>&1 | tail -2; then
             for p in /usr/local/opt/python@3.12/bin/python3.12 /opt/homebrew/opt/python@3.12/bin/python3.12 \
                      /usr/local/bin/python3.12 /opt/homebrew/bin/python3.12; do
                 py_ok "$p" && { PYTHON_BIN="$p"; break; }
             done
-        }
+        else
+            echo -e "  ${RED}→ brew install 失败，尝试其他方式...${NC}"
+        fi
     fi
 
     if [ -z "${PYTHON_BIN}" ] && command -v python3 >/dev/null 2>&1 && py_ok "$(command -v python3)"; then
@@ -978,12 +980,6 @@ MESHCTX_SCRIPT
 chmod +x ~/bin/meshctx
 
 # PATH 配置 (macOS 默认 zsh，但管道 bash 下 $SHELL 不可靠 → 写入所有 rc 文件)
-SHELL_RC=""
-for rc in "${HOME}/.zshrc" "${HOME}/.bashrc" "${HOME}/.profile" "${HOME}/.bash_profile"; do
-    [ -f "$rc" ] && SHELL_RC="$rc"
-done
-[ -z "${SHELL_RC}" ] && SHELL_RC="${HOME}/.zshrc"
-
 # 同时写入所有 rc 文件，保证 zsh/bash/sh 登录 shell 都能找到 meshctx
 for rc in "${HOME}/.zshrc" "${HOME}/.bashrc" "${HOME}/.profile" "${HOME}/.bash_profile"; do
     if ! grep -q '$HOME/bin' "$rc" 2>/dev/null; then
@@ -1104,5 +1100,5 @@ echo "    launchctl list | grep meshctx    # 查看状态"
 echo "    launchctl stop ${LAUNCHD_LABEL}   # 手动停止"
 echo "    launchctl start ${LAUNCHD_LABEL}  # 手动启动"
 echo ""
-echo -e "  ${YELLOW}💡 新终端窗口需执行:${NC} source ${SHELL_RC}"
+echo -e "  ${YELLOW}💡 若新终端找不到命令，请执行:${NC} source ~/.zshrc 或 source ~/.bashrc"
 echo ""
