@@ -41,16 +41,31 @@ jobs:
         run: |
           if ($env:CORE_TOKEN) {
             Write-Host "Bundling closed-source core (full product)"
-            git clone --depth 1 "https://$($env:CORE_TOKEN)@github.com/LucyAndLuna2023/meshctx-core.git" "$env:TEMP\meshctx-core" *>$null
+            $coreUrl = "https://$($env:CORE_TOKEN)@github.com/LucyAndLuna2023/meshctx-core.git"
+            $coreDir = "$env:TEMP\meshctx-core"
+            git clone --depth 1 $coreUrl $coreDir *>$null
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "WARN: core clone failed (exit $LASTEXITCODE), retrying once..."
+              Remove-Item -Recurse -Force $coreDir -ErrorAction SilentlyContinue
+              git clone --depth 1 $coreUrl $coreDir *>$null
+              if ($LASTEXITCODE -ne 0) { Write-Host "FATAL: core clone failed again (exit $LASTEXITCODE)"; exit 1 }
+            }
             # 递归复制(保留子目录结构), 跳过顶层 __init__.py 保留开源 stub 路由
-            $coreRoot = "$env:TEMP\meshctx-core\src\core"
+            $coreRoot = "$coreDir\src\core"
+            $srcCount = @(Get-ChildItem $coreRoot -Recurse -Filter *.py).Count
+            Write-Host "core modules found: $srcCount"
+            if ($srcCount -lt 100) { Write-Host "WARN: only $srcCount core modules (expected ~288)" }
             Get-ChildItem $coreRoot -Recurse -Filter *.py | Where-Object { $_.FullName -ne (Join-Path $coreRoot '__init__.py') } | ForEach-Object {
               $rel = $_.FullName.Substring($coreRoot.Length + 1)
               $dest = Join-Path "src\core" $rel
               New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
               Copy-Item -LiteralPath $_.FullName -Destination $dest -Force
             }
-            if (Test-Path "src\core\desktop_tool.py") { Write-Host "OK: closed-source core bundled" } else { throw "core copy failed" }
+            if (Test-Path "src\core\desktop_tool.py") { Write-Host "OK: closed-source core bundled" } else {
+              Write-Host "FAIL: desktop_tool.py missing after copy"
+              if (Test-Path $coreRoot) { Get-ChildItem $coreRoot | Select-Object -First 10 | ForEach-Object { Write-Host "  src: $($_.Name)" } }
+              throw "core copy failed"
+            }
           } else {
             Write-Host "WARN: MESHCTX_CORE_TOKEN not set — STUB build"
           }
