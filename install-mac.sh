@@ -750,7 +750,12 @@ if [ -z "${PYTHON_BIN}" ]; then
 
     if command -v brew >/dev/null 2>&1; then
         echo -e "  ${YELLOW}→ 使用 Homebrew 安装 python@3.12（约 1-3 分钟，请稍候；若长时间无输出多为 brew 自动更新/网络问题，可 Ctrl+C 后手动执行 HOMEBREW_NO_AUTO_UPDATE=1 brew install python@3.12）...${NC}"
-        if HOMEBREW_NO_AUTO_UPDATE=1 brew install python@3.12; then
+        # 国内网络加速: 使用清华 Homebrew 镜像(仅本次安装生效)
+        export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
+        export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
+        export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git"
+        export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git"
+        if HOMEBREW_NO_AUTO_UPDATE=1 timeout 900 brew install python@3.12 2>/dev/null || HOMEBREW_NO_AUTO_UPDATE=1 brew install python@3.12; then
             for p in /usr/local/opt/python@3.12/bin/python3.12 /opt/homebrew/opt/python@3.12/bin/python3.12 \
                      /usr/local/bin/python3.12 /opt/homebrew/bin/python3.12; do
                 py_ok "$p" && { PYTHON_BIN="$p"; break; }
