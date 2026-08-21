@@ -719,13 +719,20 @@ if [ -z "${PYTHON_BIN}" ]; then
         PKG_TMP="/tmp/python-3.12.8.pkg"
         if curl -fsSL --connect-timeout 30 --retry 2 -o "${PKG_TMP}" "${PKG_URL}" 2>/dev/null; then
             echo -e "  ${YELLOW}→ 安装 python-3.12.8.pkg（可能弹出密码框）...${NC}"
-            installer -pkg "${PKG_TMP}" -target / 2>/dev/null || \
-                osascript -e "do shell script \"installer -pkg ${PKG_TMP} -target /\" with administrator privileges" >/dev/null 2>&1 || true
-            rm -f "${PKG_TMP}"
-            for p in /Library/Frameworks/Python.framework/Versions/3.12/bin/python3 \
-                     /usr/local/bin/python3.12; do
-                py_ok "$p" && { PYTHON_BIN="$p"; break; }
-            done
+            # 检测非交互环境 (SSH/无 GUI): installer -pkg 需 root, osascript 需 GUI 会话
+            if ! [ -t 0 ] && ! command -v osascript >/dev/null 2>&1; then
+                echo -e "  ${RED}✗ 当前为无头/SSH 会话，无法弹出密码框提权安装${NC}"
+                echo -e "  ${YELLOW}  请手动执行: sudo installer -pkg \"${PKG_TMP}\" -target /${NC}"
+                rm -f "${PKG_TMP}"
+            else
+                installer -pkg "${PKG_TMP}" -target / 2>/dev/null || \
+                    osascript -e "do shell script \"installer -pkg ${PKG_TMP} -target /\" with administrator privileges" >/dev/null 2>&1 || true
+                rm -f "${PKG_TMP}"
+                for p in /Library/Frameworks/Python.framework/Versions/3.12/bin/python3 \
+                         /usr/local/bin/python3.12; do
+                    py_ok "$p" && { PYTHON_BIN="$p"; break; }
+                done
+            fi
         fi
     fi
 
@@ -891,7 +898,7 @@ if [ -n "${CONFIG_BACKUP}" ] && [ -d "${CONFIG_BACKUP}" ]; then
     [ "${RESTORED}" = "0" ] || echo -e "  ${GREEN}✓${NC} 用户配置已恢复（密码已重置）"
 fi
 
-# ── [6/6] 闭源核心组件 (meshctx-core · 一体产品) ─────
+# ── [4/6] 闭源核心组件 (meshctx-core · 一体产品) ─────
 # 开源 + 闭源是一个整体产品：提供 MESHCTX_CORE_TOKEN 则一并安装闭源核心
 # （从私有仓库 LucyAndLuna2023/meshctx-core 拉取真实核心算法模块），
 # 未提供 token 则保留开源 stub 降级，之后可随时重跑补装。
@@ -900,7 +907,7 @@ if [ -z "$CORE_TOKEN" ] && [ -f "${INSTALL_DIR}/.env" ]; then
     CORE_TOKEN=$(sed -n 's/^MESHCTX_CORE_TOKEN=//p' "${INSTALL_DIR}/.env" 2>/dev/null | tr -d '"\r')
 fi
 if [ -n "$CORE_TOKEN" ] && command -v git >/dev/null 2>&1; then
-    echo -e "${CYAN}[6/6]${NC} 安装闭源核心 meshctx-core ..."
+    echo -e "  ${CYAN}→${NC} 安装闭源核心 meshctx-core ..."
     CORE_TMP=$(mktemp -d)
     CORE_CLONE_OK=0
     git clone --depth 1 "https://${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" "${CORE_TMP}/core" >/dev/null 2>&1 && CORE_CLONE_OK=1
@@ -941,19 +948,35 @@ fi
 
 source venv/bin/activate
 
-# 安装依赖
+# 安装依赖（中国用户自动切换 PyPI 清华镜像，避免直连 2KB/s 卡死）
 echo -e "  ${CYAN}→${NC} $(T installing_deps)"
-pip install -q --upgrade pip 2>/dev/null
+PIP_EXTRA=""
+if [ -z "$PIP_INDEX_URL" ]; then
+    # 快速测速: 直连 PyPI 下载 1KB 探测文件, 限时 5s
+    if curl -fsSL --connect-timeout 5 --max-time 8 -o /dev/null \
+        "https://files.pythonhosted.org/packages/source/p/pip/pip-24.0.tar.gz" 2>/dev/null; then
+        SPD=$(curl -fsSL --connect-timeout 5 --max-time 8 -o /dev/null -w "%{speed_download}" \
+            "https://files.pythonhosted.org/packages/source/p/pip/pip-24.0.tar.gz" 2>/dev/null)
+        SPD=${SPD:-0}
+        # speed < 200KB/s → 判定慢, 切清华镜像
+        if python3 -c "exit(0 if float('${SPD:-0}') < 200000 else 1)" 2>/dev/null; then
+            echo -e "  ${YELLOW}→ PyPI 直连较慢 (${SPD%.*} B/s), 自动切换清华镜像${NC}"
+            PIP_EXTRA="-i https://pypi.tuna.tsinghua.edu.cn/simple"
+        fi
+    fi
+fi
+
+pip install -q --upgrade pip $PIP_EXTRA 2>/dev/null
 
 if [ -f "requirements.txt" ]; then
-    pip install -q -r requirements.txt 2>/dev/null || {
-        pip install -q fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging python-multipart 2>/dev/null || {
+    pip install -q -r requirements.txt $PIP_EXTRA 2>/dev/null || {
+        pip install -q $PIP_EXTRA fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging python-multipart 2>/dev/null || {
             echo -e "${RED}✗ 依赖安装失败${NC}"; exit 1
         }
     }
 else
     # 直接安装核心依赖
-    pip install -q fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging python-multipart 2>/dev/null || {
+    pip install -q $PIP_EXTRA fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging python-multipart 2>/dev/null || {
         echo -e "${RED}✗ 依赖安装失败${NC}"; exit 1
     }
 fi
@@ -961,7 +984,7 @@ fi
 echo -e "  ${GREEN}✓${NC} $(T deps_ok)"
 # 安装 meshctx 包（pip install -e .）
 echo -e "  ${CYAN}→${NC} $(T installing_meshctx_pkg)"
-pip install -q -e . 2>/dev/null || { echo -e "${RED}✗ meshctx 包安装失败${NC}"; exit 1; }
+pip install -q -e . $PIP_EXTRA 2>/dev/null || { echo -e "${RED}✗ meshctx 包安装失败${NC}"; exit 1; }
 echo -e "  ${GREEN}✓${NC} $(T meshctx_pkg_ok)"
 
 # ── meshctx 命令 ─────────────────────────────────────
@@ -1076,7 +1099,7 @@ echo -e "  ${GREEN}✓${NC} 版本 ${INSTALLED_VER}"
 echo ""
 echo -e "${GREEN}╔══════════════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}║                                                  ║${NC}"
-echo -e "${GREEN}║          $(T install_complete) 🎉              ║${NC}"
+echo -e "${GREEN}║          $(T install_complete)              ║${NC}"
 echo -e "${GREEN}║                                                  ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════╝${NC}"
 echo ""
