@@ -5,7 +5,6 @@
 # 或:   git clone ... && bash install-mac.sh
 # ═══════════════════════════════════════════════════════
 set -e
-LANG_CHOICE=$(detect_lang)
 
 # ── 颜色 ──
 GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[0;33m'
@@ -26,6 +25,8 @@ detect_lang() {
         *)                      echo "en" ;;
     esac
 }
+# LANG_CHOICE 须在 detect_lang 定义之后求值（此前在定义前调用 → command not found）
+LANG_CHOICE=$(detect_lang)
 T() {
     case "$1" in
     header_macos)
