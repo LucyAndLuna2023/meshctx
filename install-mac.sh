@@ -984,17 +984,21 @@ source venv/bin/activate
 echo -e "  ${CYAN}→${NC} $(T installing_deps)"
 PIP_EXTRA=""
 if [ -z "$PIP_INDEX_URL" ]; then
-    # 快速测速: 直连 PyPI 下载 1KB 探测文件, 限时 5s
-    if curl -fsSL --connect-timeout 5 --max-time 8 -o /dev/null \
-        "https://files.pythonhosted.org/packages/source/p/pip/pip-24.0.tar.gz" 2>/dev/null; then
-        SPD=$(curl -fsSL --connect-timeout 5 --max-time 8 -o /dev/null -w "%{speed_download}" \
-            "https://files.pythonhosted.org/packages/source/p/pip/pip-24.0.tar.gz" 2>/dev/null)
-        SPD=${SPD:-0}
-        # speed < 200KB/s → 判定慢, 切清华镜像
-        if python3 -c "exit(0 if float('${SPD:-0}') < 200000 else 1)" 2>/dev/null; then
+    # 快速测速: 只取 1KB (curl -r 0-1023) 探测直连速度, 限时 8s
+    # 慢网/超时(exit 28)/失败 → 一律判定慢, 切清华镜像 (慢网恰恰最需要镜像)
+    SPD=$(curl -fsSL --connect-timeout 5 --max-time 8 -r 0-1023 -o /dev/null -w "%{speed_download}" \
+        "https://files.pythonhosted.org/packages/source/p/pip/pip-24.0.tar.gz" 2>/dev/null)
+    CURL_RC=$?
+    SPD=${SPD:-0}
+    # 超时(28)/连接失败/速度 < 200KB/s → 切镜像
+    if [ "$CURL_RC" -ne 0 ] || [ "$SPD" = "0" ] || \
+        "${PYTHON_BIN:-python3}" -c "exit(0 if float('${SPD}') < 200000 else 1)" 2>/dev/null; then
+        if [ "$CURL_RC" -ne 0 ]; then
+            echo -e "  ${YELLOW}→ PyPI 直连探测超时/失败, 自动切换清华镜像${NC}"
+        else
             echo -e "  ${YELLOW}→ PyPI 直连较慢 (${SPD%.*} B/s), 自动切换清华镜像${NC}"
-            PIP_EXTRA="-i https://pypi.tuna.tsinghua.edu.cn/simple"
         fi
+        PIP_EXTRA="-i https://pypi.tuna.tsinghua.edu.cn/simple"
     fi
 fi
 
