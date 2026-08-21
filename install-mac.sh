@@ -749,6 +749,10 @@ if [ -z "${PYTHON_BIN}" ]; then
     echo -e "  ${YELLOW}→ 未检测到 Python 3.10+，正在自动安装...${NC}"
 
     if command -v brew >/dev/null 2>&1; then
+        # macOS 无 GNU timeout → 用 perl alarm 提供兼容实现 (coreutils gtimeout 无则用此)
+        if ! command -v timeout >/dev/null 2>&1 && command -v perl >/dev/null 2>&1; then
+            timeout() { perl -e 'alarm shift; exec @ARGV' "$@"; }
+        fi
         echo -e "  ${YELLOW}→ 使用 Homebrew 安装 python@3.12（约 1-3 分钟，请稍候；若长时间无输出多为 brew 自动更新/网络问题，可 Ctrl+C 后手动执行 HOMEBREW_NO_AUTO_UPDATE=1 brew install python@3.12）...${NC}"
         # 国内网络加速: 使用清华 Homebrew 镜像(仅本次安装生效)
         export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
