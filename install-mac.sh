@@ -172,6 +172,19 @@ T() {
             ar) echo 'الطريقة 3: Xcode Command Line Tools' ;;
         esac
         ;;
+    dmg_recommend)
+        case "$LANG_CHOICE" in
+            zh) echo '推荐：直接下载 macOS 原生应用（免 Python/Homebrew，双击即用）' ;;
+            en) echo 'Recommended: download the native macOS app (no Python/Homebrew needed)' ;;
+            ja) echo '推奨：macOS ネイティブアプリを直接ダウンロード（Python/Homebrew 不要）' ;;
+            ko) echo '권장: macOS 네이티브 앱 직접 다운로드 (Python/Homebrew 불필요)' ;;
+            fr) echo 'Recommandé : télécharger l'\''application macOS native (Python/Homebrew non requis)' ;;
+            de) echo 'Empfohlen: native macOS-App herunterladen (Python/Homebrew nicht nötig)' ;;
+            es) echo 'Recomendado: descargar la app nativa de macOS (sin Python/Homebrew)' ;;
+            it) echo 'Consigliato: scarica l'\''app nativa macOS (senza Python/Homebrew)' ;;
+            ar) echo 'موصى به: تنزيل تطبيق macOS الأصلي (لا حاجة لـ Python/Homebrew)' ;;
+        esac
+        ;;
     installing_pip)
         case "$LANG_CHOICE" in
             zh) echo '正在安装 pip...' ;;
@@ -714,29 +727,48 @@ if [ -z "${PYTHON_BIN}" ]; then
 
     if [ -z "${PYTHON_BIN}" ]; then
         echo -e "  ${YELLOW}→ 未检测到可用 Python，下载 python.org 官方安装包（约 30MB，以下为下载进度）...${NC}"
-        # 下载 python.org pkg 并安装（需用户输入一次密码）；--progress-bar 显示进度
+        # 下载 python.org pkg 并安装（需管理员密码）；--progress-bar 显示进度
         PKG_URL="https://www.python.org/ftp/python/3.12.8/python-3.12.8-macos11.pkg"
         PKG_TMP="/tmp/python-3.12.8.pkg"
         if curl -fL --connect-timeout 30 --retry 2 --progress-bar -o "${PKG_TMP}" "${PKG_URL}"; then
-            echo -e "  ${YELLOW}→ 安装 python-3.12.8.pkg（可能弹出密码框）...${NC}"
-            # 检测非交互环境 (SSH/无 GUI): installer -pkg 需 root, osascript 需 GUI 会话
-            if ! [ -t 0 ] && ! command -v osascript >/dev/null 2>&1; then
-                echo -e "  ${RED}✗ 当前为无头/SSH 会话，无法弹出密码框提权安装${NC}"
-                echo -e "  ${YELLOW}  请手动执行: sudo installer -pkg \"${PKG_TMP}\" -target /${NC}"
-                rm -f "${PKG_TMP}"
-            else
-                installer -pkg "${PKG_TMP}" -target / 2>/dev/null || \
-                    osascript -e "do shell script \"installer -pkg ${PKG_TMP} -target /\" with administrator privileges" >/dev/null 2>&1 || true
+            echo -e "  ${YELLOW}→ 安装 python-3.12.8.pkg（需要管理员密码，可能弹出密码框）...${NC}"
+            INSTALLED=0
+            # 1) GUI 会话: osascript 弹密码框提权安装
+            if command -v osascript >/dev/null 2>&1; then
+                if osascript -e "do shell script \"installer -pkg ${PKG_TMP} -target /\" with administrator privileges" >/dev/null 2>&1; then
+                    INSTALLED=1
+                fi
+            fi
+            # 2) root / 密码已缓存场景: 直接 installer
+            if [ "${INSTALLED}" != "1" ]; then
+                if installer -pkg "${PKG_TMP}" -target / >/dev/null 2>&1; then
+                    INSTALLED=1
+                fi
+            fi
+            if [ "${INSTALLED}" = "1" ]; then
                 rm -f "${PKG_TMP}"
                 for p in /Library/Frameworks/Python.framework/Versions/3.12/bin/python3 \
                          /usr/local/bin/python3.12; do
                     py_ok "$p" && { PYTHON_BIN="$p"; break; }
                 done
+            else
+                echo -e "  ${RED}✗ 自动提权安装未成功（需要管理员密码）${NC}"
+                echo -e "  ${YELLOW}  已下载安装包到 ${PKG_TMP}，请手动执行（粘贴到终端，输入密码）：${NC}"
+                echo -e "    sudo installer -pkg \"${PKG_TMP}\" -target /"
+                echo -e "  ${YELLOW}  安装完成后重新运行本脚本即可。${NC}"
             fi
         fi
     fi
 
     if [ -z "${PYTHON_BIN}" ]; then
+        echo ""
+        echo -e "  ${BOLD}🍎 $(T dmg_recommend)${NC}"
+        if [ "$(uname -m)" = "arm64" ]; then
+            echo "    https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-macos.dmg"
+        else
+            echo "    https://github.com/LucyAndLuna2023/meshctx/releases/latest/download/meshctx-macos-intel.dmg"
+        fi
+        echo ""
         echo -e "  ${RED}✗ $(T need_py310)${NC}"
         echo ""
         echo -e "  ${YELLOW}$(T install_py_methods)${NC}"

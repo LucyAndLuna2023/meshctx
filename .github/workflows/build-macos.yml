@@ -47,6 +47,7 @@ jobs:
         run: |
           pyinstaller --onefile --windowed \
             --name meshctx-desktop \
+            --icon logo.icns \
             --add-data "meshctx.yaml:." \
             --add-data "src:src" \
             --add-data "templates:templates" \
@@ -96,9 +97,14 @@ jobs:
       - name: Package as .dmg (主页 meshctx.com 下载链接)
         if: success()
         run: |
-          if [ -f dist/meshctx-desktop ]; then
+          if [ -f dist/meshctx-desktop ] || [ -d dist/meshctx-desktop.app ]; then
             mkdir -p dmgroot
-            cp dist/meshctx-desktop dmgroot/meshctx
+            if [ -d dist/meshctx-desktop.app ]; then
+              cp -R dist/meshctx-desktop.app dmgroot/meshctx.app
+            else
+              cp dist/meshctx-desktop dmgroot/meshctx
+            fi
+            ln -s /Applications dmgroot/Applications
             cp README.md dmgroot/
             hdiutil create -volname "meshctx" -srcfolder dmgroot -ov -format UDZO meshctx-macos${{ matrix.asset_suffix }}.dmg
             ls -lh meshctx-macos${{ matrix.asset_suffix }}.dmg
