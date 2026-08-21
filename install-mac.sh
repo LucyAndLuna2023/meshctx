@@ -588,6 +588,45 @@ T() {
             ar) echo ':LaunchAgent إدارة' ;;
         esac
         ;;
+    pkg_elev_fail)
+        case "$LANG_CHOICE" in
+            zh) echo '自动提权安装未成功（需要管理员密码）' ;;
+            en) echo 'Automatic elevated install failed (admin password required)' ;;
+            ja) echo '自動昇格インストールに失敗しました（管理者パスワードが必要）' ;;
+            ko) echo '자동 권한 상승 설치 실패 (관리자 비밀번호 필요)' ;;
+            fr) echo 'Échec de l'\''installation élevée automatique (mot de passe admin requis)' ;;
+            de) echo 'Automatische erweiterte Installation fehlgeschlagen (Admin-Passwort erforderlich)' ;;
+            es) echo 'Error en la instalación elevada automática (se requiere contraseña de administrador)' ;;
+            it) echo 'Installazione elevata automatica fallita (richiesta password amministratore)' ;;
+            ar) echo 'فشل التثبيت المرتفع التلقائي (كلمة مرور المسؤول مطلوبة)' ;;
+        esac
+        ;;
+    pkg_downloaded_to)
+        case "$LANG_CHOICE" in
+            zh) echo '已下载安装包到 %s，请手动执行（粘贴到终端，输入密码）：' ;;
+            en) echo 'Installer downloaded to %s — please run manually (paste into terminal, enter password):' ;;
+            ja) echo 'インストーラーを %s にダウンロードしました。手動で実行してください（ターミナルに貼り付け、パスワードを入力）：' ;;
+            ko) echo '설치 프로그램을 %s에 다운로드했습니다. 수동으로 실행하세요 (터미널에 붙여넣고 비밀번호 입력):' ;;
+            fr) echo 'Programme d'\''installation téléchargé vers %s — exécutez manuellement (collez dans le terminal, saisissez le mot de passe) :' ;;
+            de) echo 'Installationsprogramm nach %s heruntergeladen — bitte manuell ausführen (in Terminal einfügen, Passwort eingeben):' ;;
+            es) echo 'Instalador descargado en %s — ejecútelo manualmente (péguelo en la terminal, introduzca la contraseña):' ;;
+            it) echo 'Installer scaricato su %s — eseguire manualmente (incollare nel terminale, inserire la password):' ;;
+            ar) echo 'تم تنزيل المثبت إلى %s — يرجى التنفيذ يدويًا (الصق في الطرفية وأدخل كلمة المرور):' ;;
+        esac
+        ;;
+    pkg_rerun_after)
+        case "$LANG_CHOICE" in
+            zh) echo '安装完成后重新运行本脚本即可。' ;;
+            en) echo 'Re-run this script after installation completes.' ;;
+            ja) echo 'インストール完了後、このスクリプトを再実行してください。' ;;
+            ko) echo '설치 완료 후 이 스크립트를 다시 실행하세요.' ;;
+            fr) echo 'Réexécutez ce script une fois l'\''installation terminée.' ;;
+            de) echo 'Führen Sie dieses Skript nach Abschluss der Installation erneut aus.' ;;
+            es) echo 'Vuelva a ejecutar este script una vez completada la instalación.' ;;
+            it) echo 'Eseguire nuovamente questo script al termine dell'\''installazione.' ;;
+            ar) echo 'أعد تشغيل هذا البرنامج النصي بعد اكتمال التثبيت.' ;;
+        esac
+        ;;
     *) echo "$1" ;;
     esac
 }
@@ -752,10 +791,10 @@ if [ -z "${PYTHON_BIN}" ]; then
                     py_ok "$p" && { PYTHON_BIN="$p"; break; }
                 done
             else
-                echo -e "  ${RED}✗ 自动提权安装未成功（需要管理员密码）${NC}"
-                echo -e "  ${YELLOW}  已下载安装包到 ${PKG_TMP}，请手动执行（粘贴到终端，输入密码）：${NC}"
+                echo -e "  ${RED}✗ $(T pkg_elev_fail)${NC}"
+                echo -e "  ${YELLOW}  $(printf "$(T pkg_downloaded_to)" "${PKG_TMP}")${NC}"
                 echo -e "    sudo installer -pkg \"${PKG_TMP}\" -target /"
-                echo -e "  ${YELLOW}  安装完成后重新运行本脚本即可。${NC}"
+                echo -e "  ${YELLOW}  $(T pkg_rerun_after)${NC}"
             fi
         fi
     fi
