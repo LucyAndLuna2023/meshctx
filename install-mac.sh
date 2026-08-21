@@ -642,38 +642,117 @@ fi
 # ── [2/6] 环境检查 ───────────────────────────────────
 echo -e "${CYAN}[2/6]${NC} $(T step2_check)"
 
-# Python 检查
+# Python 检查（自动搜索所有已知路径，找不到则自动安装）
 PYTHON_BIN=""
-for p in python3.12 python3.11 python3.10 python3; do
-    if command -v "$p" >/dev/null 2>&1; then
-        ver=$($p --version 2>&1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
-        major=$(echo "$ver" | cut -d. -f1)
-        minor=$(echo "$ver" | cut -d. -f2)
-        if [ "$major" -ge 3 ] && [ "$minor" -ge 10 ] 2>/dev/null; then
-            PYTHON_BIN="$p"
-            break
-        fi
+
+# 候选命令 + 已知安装路径（Homebrew keg-only、python.org 框架、标准路径）
+PY_CANDIDATES="python3.12 python3.11 python3.10 python3"
+
+# 辅助：检查一个 Python 是否 >= 3.10
+py_ok() {
+    local bin="$1"
+    [ -x "$bin" ] || return 1
+    local ver major minor
+    ver=$("$bin" --version 2>&1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
+    [ -z "$ver" ] && return 1
+    major=$(echo "$ver" | cut -d. -f1)
+    minor=$(echo "$ver" | cut -d. -f2)
+    [ "$major" -ge 3 ] && [ "$minor" -ge 10 ] 2>/dev/null
+}
+
+# 1) PATH 内命令
+for p in $PY_CANDIDATES; do
+    if command -v "$p" >/dev/null 2>&1 && py_ok "$(command -v "$p")"; then
+        PYTHON_BIN="$(command -v "$p")"
+        break
     fi
 done
 
+# 2) Homebrew keg-only 已知路径（macOS Intel: /usr/local，Apple Silicon: /opt/homebrew）
 if [ -z "${PYTHON_BIN}" ]; then
-    echo -e "  ${RED}✗ $(T need_py310)${NC}"
-    echo ""
-    echo -e "  ${YELLOW}$(T install_py_methods)${NC}"
-    echo ""
-    echo -e "  ${BOLD}$(T method1_homebrew)${NC}"
-    echo "    /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
-    echo "    brew install python@3.12"
-    echo ""
-    echo -e "  ${BOLD}$(T method2_official)${NC}"
-    echo "    下载: https://www.python.org/downloads/macos/"
-    echo "    安装 .pkg 后重新打开终端"
-    echo ""
-    echo -e "  ${BOLD}$(T method3_xcode)${NC}"
-    echo "    xcode-select --install"
-    echo ""
-    exit 1
+    for p in /usr/local/opt/python@3.12/bin/python3.12 /opt/homebrew/opt/python@3.12/bin/python3.12 \
+             /usr/local/opt/python@3.11/bin/python3.11 /opt/homebrew/opt/python@3.11/bin/python3.11 \
+             /usr/local/opt/python@3.10/bin/python3.10 /opt/homebrew/opt/python@3.10/bin/python3.10 \
+             /usr/local/bin/python3.12 /opt/homebrew/bin/python3.12; do
+        if py_ok "$p"; then
+            PYTHON_BIN="$p"
+            break
+        fi
+    done
 fi
+
+# 3) python.org 官方框架路径
+if [ -z "${PYTHON_BIN}" ]; then
+    for v in 3.12 3.11 3.10; do
+        p="/Library/Frameworks/Python.framework/Versions/${v}/bin/python3"
+        if py_ok "$p"; then
+            PYTHON_BIN="$p"
+            break
+        fi
+    done
+fi
+
+# 4) 仍未找到 → 自动安装（brew 优先，其次 python.org pkg）
+if [ -z "${PYTHON_BIN}" ]; then
+    echo -e "  ${YELLOW}→ 未检测到 Python 3.10+，正在自动安装...${NC}"
+
+    if command -v brew >/dev/null 2>&1; then
+        echo -e "  ${YELLOW}→ 使用 Homebrew 安装 python@3.12 ...${NC}"
+        brew install python@3.12 >/dev/null 2>&1 && {
+            for p in /usr/local/opt/python@3.12/bin/python3.12 /opt/homebrew/opt/python@3.12/bin/python3.12 \
+                     /usr/local/bin/python3.12 /opt/homebrew/bin/python3.12; do
+                py_ok "$p" && { PYTHON_BIN="$p"; break; }
+            done
+        }
+    fi
+
+    if [ -z "${PYTHON_BIN}" ] && command -v python3 >/dev/null 2>&1 && py_ok "$(command -v python3)"; then
+        PYTHON_BIN="$(command -v python3)"
+    fi
+
+    if [ -z "${PYTHON_BIN}" ]; then
+        echo -e "  ${YELLOW}→ 无 Homebrew，下载 python.org 官方安装包...${NC}"
+        # 下载 python.org pkg 并静默安装（需用户输入一次密码）
+        PKG_URL="https://www.python.org/ftp/python/3.12.8/python-3.12.8-macos11.pkg"
+        PKG_TMP="/tmp/python-3.12.8.pkg"
+        if curl -fsSL --connect-timeout 30 --retry 2 -o "${PKG_TMP}" "${PKG_URL}" 2>/dev/null; then
+            echo -e "  ${YELLOW}→ 安装 python-3.12.8.pkg（可能弹出密码框）...${NC}"
+            installer -pkg "${PKG_TMP}" -target / 2>/dev/null || \
+                osascript -e "do shell script \"installer -pkg ${PKG_TMP} -target /\" with administrator privileges" >/dev/null 2>&1 || true
+            rm -f "${PKG_TMP}"
+            for p in /Library/Frameworks/Python.framework/Versions/3.12/bin/python3 \
+                     /usr/local/bin/python3.12; do
+                py_ok "$p" && { PYTHON_BIN="$p"; break; }
+            done
+        fi
+    fi
+
+    if [ -z "${PYTHON_BIN}" ]; then
+        echo -e "  ${RED}✗ $(T need_py310)${NC}"
+        echo ""
+        echo -e "  ${YELLOW}$(T install_py_methods)${NC}"
+        echo ""
+        echo -e "  ${BOLD}$(T method1_homebrew)${NC}"
+        echo "    /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+        echo "    brew install python@3.12"
+        echo ""
+        echo -e "  ${BOLD}$(T method2_official)${NC}"
+        echo "    下载: https://www.python.org/downloads/macos/"
+        echo "    安装 .pkg 后重新打开终端"
+        echo ""
+        echo -e "  ${BOLD}$(T method3_xcode)${NC}"
+        echo "    xcode-select --install"
+        echo ""
+        exit 1
+    fi
+fi
+
+# 确保 PATH 含 Python 所在目录（keg-only 场景，供后续子进程使用）
+PY_BIN_DIR="$(dirname "${PYTHON_BIN}")"
+case ":${PATH}:" in
+    *":${PY_BIN_DIR}:"*) ;;
+    *) export PATH="${PY_BIN_DIR}:${PATH}" ;;
+esac
 
 PY_VER=$(${PYTHON_BIN} --version 2>&1)
 echo -e "  ${GREEN}✓${NC} ${PY_VER} ($(which ${PYTHON_BIN}))"
