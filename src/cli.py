@@ -1053,7 +1053,13 @@ def _resolve_model_cmd_client(cmd: str, reg):
                     return c
         # unset 后目标已删除 → 回退默认模型；set 未命中 → 尝试默认
         return reg.get()
-    # /model <id> 或 /model
+    # /model <id> 兼容路径：解析目标模型（否则 reg.get() 会取插入序首条目，切换不生效）
+    if len(parts) >= 2:
+        mid = _resolve_target_model(parts[1])
+        if mid:
+            c = reg.get(mid)
+            if c:
+                return c
     return reg.get()
 
 
