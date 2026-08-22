@@ -1030,6 +1030,9 @@ source venv/bin/activate
 
 # 安装依赖（中国用户自动切换 PyPI 清华镜像，避免直连 2KB/s 卡死）
 echo -e "  ${CYAN}→${NC} $(T installing_deps)"
+# F4: pip 26+ 默认 truststore 走系统 keychain, 清华镜像证书链不被信任 → SSLCertVerificationError
+# 强制走 certifi (legacy-certs), 使 pip 尊重 PIP_CERT/SSL_CERT_FILE 及 certifi 内置根证书
+export PIP_USE_DEPRECATED=legacy-certs 2>/dev/null || true
 PIP_EXTRA=""
 if [ -z "$PIP_INDEX_URL" ]; then
     # 快速测速: 只取 1KB (curl -r 0-1023) 探测直连速度, 限时 8s
@@ -1054,14 +1057,24 @@ pip install -q --upgrade pip $PIP_EXTRA 2>/dev/null
 
 if [ -f "requirements.txt" ]; then
     pip install -q -r requirements.txt $PIP_EXTRA 2>/dev/null || {
-        pip install -q $PIP_EXTRA fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging python-multipart 2>/dev/null || {
-            echo -e "${RED}✗ 依赖安装失败${NC}"; exit 1
+        echo -e "  ${YELLOW}→ requirements.txt 安装失败, 重试并显示错误详情:${NC}"
+        pip install -r requirements.txt $PIP_EXTRA || {
+            echo -e "${RED}✗ 依赖安装失败${NC}"
+            echo -e "${YELLOW}  提示: 若为证书错误(SSLCertVerificationError), 可手动执行:${NC}"
+            echo -e "  export PIP_USE_DEPRECATED=legacy-certs; pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple"
+            exit 1
         }
     }
 else
     # 直接安装核心依赖
     pip install -q $PIP_EXTRA fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging python-multipart 2>/dev/null || {
-        echo -e "${RED}✗ 依赖安装失败${NC}"; exit 1
+        echo -e "  ${YELLOW}→ 依赖安装失败, 重试并显示错误详情:${NC}"
+        pip install $PIP_EXTRA fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging python-multipart || {
+            echo -e "${RED}✗ 依赖安装失败${NC}"
+            echo -e "${YELLOW}  提示: 若为证书错误(SSLCertVerificationError), 可手动执行:${NC}"
+            echo -e "  export PIP_USE_DEPRECATED=legacy-certs; pip install fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging python-multipart -i https://pypi.tuna.tsinghua.edu.cn/simple"
+            exit 1
+        }
     }
 fi
 
@@ -1095,8 +1108,8 @@ for rc in "${HOME}/.zshrc" "${HOME}/.bashrc" "${HOME}/.profile" "${HOME}/.bash_p
 done
 export PATH="${HOME}/bin:${PATH}"
 
-# symlink 到系统路径（无需 sudo）
-for _dir in "${HOME}/.local/bin" "${HOME}/bin" "/usr/local/bin"; do
+# symlink 到系统路径（无需 sudo）— 跳过 $HOME/bin(源目录), 避免 ln -sf 自指覆盖真实文件
+for _dir in "${HOME}/.local/bin" "/usr/local/bin"; do
     if [ -d "$_dir" ] && [ -w "$_dir" ]; then
         ln -sf "${HOME}/bin/meshctx" "${_dir}/meshctx" 2>/dev/null && break
     fi
