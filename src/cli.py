@@ -1200,6 +1200,9 @@ def _set_default_model(model_id: str, reg=None):
     config.setdefault("models", {})["default"] = model_id
     with open(config_path, "w") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+    # 同步内存默认，同会话 reg.get(None) 立即生效（P0 一致性）
+    if reg is not None and hasattr(reg, "_default"):
+        reg._default = model_id
 
 
 def _reassign_default_after_unset(removed_mid: str, reg):
