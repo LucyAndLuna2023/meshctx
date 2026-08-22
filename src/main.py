@@ -6449,22 +6449,159 @@ async def list_providers():
         # 检查config.yaml中哪些已配置
         config_path = Path.home() / ".meshctx" / "config.yaml"
         configured_ids = set()
+        key_map = {}
         if config_path.exists():
             import yaml
             with open(config_path) as f:
                 cfg = _yaml_load(f) or {}
-            configured_ids = set(cfg.get("models", {}).get("entries", {}).keys())
+            ent = cfg.get("models", {}).get("entries", {})
+            configured_ids = set(ent.keys())
+            for mid, c in ent.items():
+                c = c or {}
+                k = c.get("key", "")
+                if k and (k.startswith("b64:") or k.startswith("enc:")):
+                    try:
+                        from src.core.crypto import decrypt_key
+                        k = decrypt_key(k)
+                    except Exception:
+                        logger.debug("decrypt provider key failed", exc_info=True)
+                if k:
+                    pid_ = c.get("provider") or BUILTIN_MODELS.get(mid, {}).get("provider", "")
+                    key_map.setdefault(pid_, k)
         providers = []
         for pid, models in sorted(provider_map.items()):
+            configured_models = [m for m in models if m in configured_ids]
+            k = key_map.get(pid, "")
+            masked = (k[:6] + "..." + k[-4:]) if len(k) > 12 else ("***" if k else "")
             providers.append({
+                "id": pid,
                 "name": pid,
                 "display_name": _provider_display_name(pid),
                 "models": sorted(models),
-                "configured": any(m in configured_ids for m in models),
+                "configured": bool(configured_models),
+                "has_key": bool(configured_models),
+                "configured_models": configured_models,
+                "models_configured": len(configured_models),
+                "models_total": len(models),
+                "key_masked": masked,
             })
         return {"providers": providers, "total": len(providers)}
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.post("/api/providers")
+async def save_provider_key(request: Request):
+    """保存供应商 API Key — 写入 config.yaml models.entries（取该 provider 第一个内置模型）"""
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, t('error_invalid_json_body'))
+
+    provider = (body.get("provider") or "").strip().lower()
+    key = (body.get("key") or "").strip()
+    if not provider:
+        raise HTTPException(400, "provider 必填")
+
+    from src.model_registry import BUILTIN_MODELS
+
+    # 先校验 provider 合法（空 key 也要校验）
+    builtin_models = {mid: info for mid, info in BUILTIN_MODELS.items()
+                      if info.get("provider") == provider}
+    if not builtin_models:
+        raise HTTPException(400, f"未知 provider: {provider}")
+
+    # 空 key = 删除该供应商所有 key（前端"留空删除"语义）
+    if not key:
+        return await delete_provider_key(provider)
+
+    first_id = next(iter(builtin_models))
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    config = {}
+    if config_path.exists():
+        with open(config_path) as f:
+            loaded = _yaml_load(f)
+            if isinstance(loaded, dict):
+                config = loaded
+
+    entries = config.setdefault("models", {}).setdefault("entries", {})
+    encrypted_key = key
+    try:
+        from src.core.crypto import encrypt_key
+        encrypted_key = encrypt_key(key)
+    except Exception:
+        logger.debug("save_provider_key encrypt failed", exc_info=True)
+
+    for mid, info in builtin_models.items():
+        entries[mid] = {
+            "key": encrypted_key,
+            "model": info.get("model", mid),
+            "base_url": info.get("base_url", ""),
+            "provider": provider,
+        }
+    if not config.get("models", {}).get("default"):
+        config["models"]["default"] = first_id
+
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+
+    # 立即可用：设 env + 重置 registry 缓存
+    key_env = builtin_models[first_id].get("key_env", "")
+    if key_env:
+        os.environ[key_env] = key
+    import src.model_registry as mr
+    mr._registry = None
+
+    return {"status": "ok", "ids": sorted(builtin_models.keys()), "provider": provider,
+            "message": f"{provider} 的 key 已保存（{len(builtin_models)} 个模型）"}
+
+
+@app.post("/api/providers/{pid}/test")
+async def test_provider_key(pid: str):
+    """测试供应商 key 是否可用（模糊匹配该 provider 的模型）"""
+    try:
+        from src.model_registry import get_registry
+        reg = get_registry()
+        client = reg.get(pid)
+        if not client:
+            return {"success": False, "status": "error",
+                    "error": f"未找到 {pid} 的可用配置，请先保存 key"}
+        resp = client.chat([{"role": "user", "content": "ping，请只回复 pong"}])
+        return {"success": True, "status": "ok",
+                "response": (resp.get("content") or "")[:200]}
+    except Exception as e:
+        return {"success": False, "status": "error", "error": str(e)[:300]}
+
+
+@app.delete("/api/providers/{pid}")
+async def delete_provider_key(pid: str):
+    """删除某供应商下所有模型的 key 配置"""
+    from src.model_registry import BUILTIN_MODELS
+
+    config_path = Path.home() / ".meshctx" / "config.yaml"
+    if not config_path.exists():
+        return {"status": "ok", "deleted": []}
+
+    with open(config_path) as f:
+        config = _yaml_load(f) or {}
+
+    entries = config.get("models", {}).get("entries", {})
+    deleted = []
+    for mid in list(entries.keys()):
+        p = (entries[mid] or {}).get("provider") or BUILTIN_MODELS.get(mid, {}).get("provider", "")
+        if p == pid:
+            del entries[mid]
+            deleted.append(mid)
+
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+
+    import src.model_registry as mr
+    mr._registry = None
+
+    return {"status": "ok", "deleted": deleted}
 
 
 @app.get("/api/mcp-servers")
