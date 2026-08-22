@@ -51,7 +51,30 @@ class ModelAdapter:
 
     def _init_client(self):
         """初始化对应 provider 的客户端"""
-        api_key = self.cfg.get("api_key") or os.environ.get("OPENAI_API_KEY") or os.environ.get("DEEPSEEK_API_KEY") or os.environ.get("BAILIAN_API_KEY", "")
+        api_key = self.cfg.get("api_key") or self.cfg.get("key") or ""
+        if not api_key:
+            # 按 provider 查对应环境变量（覆盖 30+ 供应商）
+            _PROVIDER_ENV = {
+                "openai": "OPENAI_API_KEY", "deepseek": "DEEPSEEK_API_KEY",
+                "bailian": "BAILIAN_API_KEY", "alibaba": "DASHSCOPE_API_KEY",
+                "anthropic": "ANTHROPIC_API_KEY", "google": "GEMINI_API_KEY",
+                "xai": "XAI_API_KEY", "openrouter": "OPENROUTER_API_KEY",
+                "moonshot": "MOONSHOT_API_KEY", "zhipu": "ZHIPU_API_KEY",
+                "minimax": "MINIMAX_API_KEY", "together": "TOGETHER_API_KEY",
+                "mistral": "MISTRAL_API_KEY", "groq": "GROQ_API_KEY",
+                "cohere": "COHERE_API_KEY", "perplexity": "PERPLEXITY_API_KEY",
+                "siliconflow": "SILICONFLOW_API_KEY",
+            }
+            env_name = _PROVIDER_ENV.get(self.provider)
+            if env_name:
+                api_key = os.environ.get(env_name, "")
+        if not api_key:
+            # 兜底：常见 key 依次尝试
+            for k in ("OPENAI_API_KEY", "DEEPSEEK_API_KEY",
+                      "BAILIAN_API_KEY", "DASHSCOPE_API_KEY"):
+                api_key = os.environ.get(k, "")
+                if api_key:
+                    break
         base_url = self.cfg.get("base_url", "")
         model = self.cfg.get("model", "")
 

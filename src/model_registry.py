@@ -273,6 +273,8 @@ class ModelRegistry:
         self._entries: Dict[str, Dict] = {}  # model_id → {key, model, base_url}
         self._clients: Dict[str, Any] = {}   # model_id → OpenAI client
         self._config_path = config_path
+        self._dirty_ids: set = set()         # 本会话被 add/remove 的 model_id，save 时只同步这些
+        self._default: str = ""              # config.yaml models.default（持久化的默认模型）
         
         # 从环境变量自动扫描
         self._scan_env()
@@ -325,6 +327,7 @@ class ModelRegistry:
         
         models_section = config.get("models", {})
         entries = models_section.get("entries", {})
+        self._default = models_section.get("default", "") or ""
         
         for model_id, cfg in entries.items():
             key = cfg.get("key", "")
@@ -388,19 +391,81 @@ class ModelRegistry:
             }
         # 清除缓存
         self._clients.pop(model_id, None)
+        self._dirty_ids.add(model_id)
         return self._entries[model_id]
 
     def remove(self, model_id: str):
         self._entries.pop(model_id, None)
         self._clients.pop(model_id, None)
+        self._dirty_ids.add(model_id)
+
+    def save(self, config_path: str = None) -> str:
+        """持久化当前 entries 到 config.yaml（models.entries，key 加密存储）。
+        返回实际写入的路径。"""
+        import yaml
+        from pathlib import Path
+        from src.core.crypto import encrypt_key
+
+        target = config_path or self._config_path or str(Path.home() / ".meshctx" / "config.yaml")
+        target = str(Path(target))
+        Path(target).parent.mkdir(parents=True, exist_ok=True)
+
+        config = {}
+        if Path(target).exists():
+            try:
+                with open(target) as f:
+                    loaded = yaml.safe_load(f)
+                    if isinstance(loaded, dict):
+                        config = loaded
+            except Exception:
+                logger.debug("save(): load existing config failed", exc_info=True)
+                config = {}
+
+        entries = config.setdefault("models", {}).setdefault("entries", {})
+        # 有脏标记时只同步被 add/remove 的条目；否则全量同步
+        dirty = self._dirty_ids or set(self._entries.keys())
+        for model_id in dirty:
+            cfg = self._entries.get(model_id)
+            if cfg is None:
+                entries.pop(model_id, None)
+                continue
+            key = cfg.get("key", "")
+            enc = key
+            if key and not (key.startswith("b64:") or key.startswith("enc:")):
+                try:
+                    enc = encrypt_key(key)
+                except Exception:
+                    logger.warning("save(): encrypt_key 失败，token 将以明文落盘，请检查 crypto 配置")
+            entries[model_id] = {
+                "key": enc,
+                "model": cfg.get("model", ""),
+                "base_url": cfg.get("base_url", ""),
+                "provider": cfg.get("provider", ""),
+            }
+
+        # 默认模型：保留已有 default，否则选第一个有 key 的 entry
+        if not config.get("models", {}).get("default"):
+            for model_id, cfg in self._entries.items():
+                if cfg.get("key"):
+                    config["models"]["default"] = model_id
+                    break
+        self._default = config.get("models", {}).get("default", "") or ""
+
+        with open(target, "w") as f:
+            yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+        # 落盘成功后清脏标记，避免下次 save 重写本会话已同步的全部 id（002 审计 P2-5）
+        self._dirty_ids.clear()
+        return target
 
     def get(self, model_id: str = None) -> Optional[Any]:
         """获取模型客户端 (OpenAI-compatible)"""
         from openai import OpenAI
         
-        # 如果没指定，用默认
+        # 如果没指定，用默认（优先 config models.default，存在且就绪才用；否则回退首条目）
         if model_id is None:
-            if self._entries:
+            if self._default and self._default in self._entries and self._entries[self._default].get("key"):
+                model_id = self._default
+            elif self._entries:
                 model_id = next(iter(self._entries))
             else:
                 return None

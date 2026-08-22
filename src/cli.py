@@ -158,8 +158,12 @@ def cmd_model(args):
             print(t("i18n_common_a0fd21"))
             return
         cfg = reg.add(model_id, key=args.key or "", model=args.model or "", base_url=args.base_url or "")
+        saved_path = reg.save(args.config)
         status = "✓" if cfg.get("key") else "⚠ 需要 API Key"
         print(f"{t('i18n_model_ca47bb')}{model_id} {status}")
+        print(f"  已保存到: {saved_path}")
+        if not cfg.get("key"):
+            print(t("i18n_scan_61d5ac"))
 
     elif args.model_action == "test":
         client = reg.get(args.model_id)
@@ -182,6 +186,56 @@ def cmd_model(args):
             return
         os.environ["MESHCTX_MODEL"] = model_id
         print(f"{t('i18n_model_24b934')}{model_id}")
+
+
+# ═══════════════════════════════════════════════════
+# key 命令 — 一键配置 API Key (token)
+# ═══════════════════════════════════════════════════
+
+def cmd_key(args):
+    """一键配置 API Key：meshctx key set <模型ID> --key sk-xxx"""
+    _ensure_keys_loaded()
+    from src.model_registry import get_registry
+
+    reg = get_registry(args.config)
+
+    if args.key_action == "list":
+        entries = reg.list_all()
+        if not entries:
+            print(t("i18n_scan_dc8a62"))
+            return
+        print(f"\n{'模型ID':<28} {'Provider':<12} {'实际模型':<28} Key")
+        print("-" * 82)
+        for e in entries:
+            key_state = "✓ 已配置" if e['ready'] else "✗ 未配置"
+            print(f"{e['id']:<28} {e['provider']:<12} {e['model']:<28} {key_state}")
+        return
+
+    if args.key_action == "delete":
+        model_id = args.model_id
+        if not model_id:
+            print("用法: meshctx key delete <模型ID>")
+            return
+        reg.remove(model_id)
+        saved_path = reg.save(args.config)
+        _reassign_default_after_unset(model_id, reg)
+        print(f"✓ 已删除 {model_id} 的 key（配置已保存到 {saved_path}）")
+        return
+
+    # set
+    model_id = args.model_id
+    if not model_id:
+        print("用法: meshctx key set <模型ID> --key sk-xxx")
+        print("  例: meshctx key set deepseek:chat --key sk-xxx")
+        print("  例: meshctx key set bailian:qwen-flash --key sk-xxx")
+        return
+    if not args.key:
+        print("请用 --key 提供 API Key")
+        print("  例: meshctx key set deepseek:chat --key sk-xxx")
+        return
+    reg.add(model_id, key=args.key)
+    saved_path = reg.save(args.config)
+    print(f"✓ 已保存 {model_id} 的 key → {saved_path}")
 
 
 # ═══════════════════════════════════════════════════
@@ -423,6 +477,18 @@ def cmd_chat(args):
                     pass
         atexit.register(_save_history)
 
+        def _scrub_token_history():
+            """从 readline 历史移除含 /model set 的行，防止明文 token 落盘到历史文件"""
+            try:
+                n = readline.get_current_history_length()
+                # 从最新往回扫最近 6 条，移除含 /model set 的条目
+                for idx in range(n - 1, max(n - 7, -1), -1):
+                    item = readline.get_history_item(idx + 1)
+                    if item and ("/model set" in item or "/model add" in item):
+                        readline.remove_history_item(idx)
+            except Exception:
+                pass
+
     # ── REPL ──
     prompt = f"{profile_tag}You> " if profile_tag else "You> "
     while True:
@@ -462,9 +528,12 @@ def cmd_chat(args):
         # 斜杠命令
         if user.startswith("/"):
             if _handle_slash(user, reg, client, SESS, messages, session_id):
-                if user.startswith("/model "):  # refresh client ref
-                    new_client = reg.get(user.split(" ",1)[1].strip())
-                    if new_client: client = new_client
+                if user.startswith("/model"):  # 模型命令：重新解析目标模型刷新 client 引用
+                    if _HAS_READLINE and "/model set" in user:
+                        _scrub_token_history()  # 防止明文 token 进入历史文件
+                    new_client = _resolve_model_cmd_client(user, reg)
+                    if new_client:
+                        client = new_client
                 continue
 
         messages.append({"role": "user", "content": user})
@@ -926,19 +995,256 @@ def _auto_save_memory(messages: List[Dict]) -> None:
         pass
 
 
+# ── /model 斜杠命令辅助 ──
+
+# 厂商名 → 默认模型ID（用户只填 token 时自动选最常用子模型）
+_PROVIDER_DEFAULT_MODEL = {
+    "deepseek": "deepseek:chat",
+    "bailian": "bailian:qwen-flash",
+    "alibaba": "bailian:qwen-flash",
+    "openai": "openai:gpt-4o",
+    "anthropic": "anthropic:claude-sonnet",
+    "google": "google:gemini-flash",
+    "xai": "xai:grok-3",
+    "zhipu": "zhipu:glm-4-flash",
+    "moonshot": "moonshot:kimi",
+    "doubao": "doubao:pro-32k",
+    "hunyuan": "hunyuan:pro",
+    "spark": "spark:max",
+    "minimax": "minimax:abab7",
+    "mistral": "mistral:large",
+    "groq": "groq:llama-3.3-70b",
+    "openrouter": "openrouter:gpt-4o",
+    "together": "together:llama-4-maverick",
+}
+
+
+def _resolve_target_model(target: str) -> Optional[str]:
+    """把用户输入解析为模型ID：支持精确模型ID、厂商名、前缀模糊匹配"""
+    from src.model_registry import BUILTIN_MODELS
+    target = (target or "").strip()
+    if not target:
+        return None
+    if target in BUILTIN_MODELS:
+        return target
+    # 厂商名
+    if target.lower() in _PROVIDER_DEFAULT_MODEL:
+        return _PROVIDER_DEFAULT_MODEL[target.lower()]
+    # 厂商名兜底：该厂商第一个内置模型
+    for mid, info in BUILTIN_MODELS.items():
+        if info.get("provider") == target.lower():
+            return mid
+    # 前缀模糊匹配（如 deepseek:ch）
+    candidates = [mid for mid in BUILTIN_MODELS if mid.startswith(target)]
+    if len(candidates) == 1:
+        return candidates[0]
+    return None
+
+
+def _resolve_model_cmd_client(cmd: str, reg):
+    """根据 /model 命令解析出应刷新的 client"""
+    parts = cmd.split()
+    if len(parts) >= 2 and parts[1] in ("set", "unset", "use"):
+        # /model set <id> <token> [sub]  → parts[2] 是目标
+        if len(parts) >= 3:
+            mid = _resolve_target_model(parts[2])
+            if mid:
+                c = reg.get(mid)
+                if c:
+                    return c
+        # unset 后目标已删除 → 回退默认模型；set 未命中 → 尝试默认
+        return reg.get()
+    # /model <id> 兼容路径：解析目标模型（否则 reg.get() 会取插入序首条目，切换不生效）
+    if len(parts) >= 2:
+        mid = _resolve_target_model(parts[1])
+        if mid:
+            c = reg.get(mid)
+            if c:
+                return c
+    return reg.get()
+
+
+def _cmd_model_slash(rest: str, reg) -> bool:
+    """处理 /model 子命令，返回 True 表示需要刷新 client"""
+    import os
+    from src.model_registry import BUILTIN_MODELS
+
+    rest = (rest or "").strip()
+    args = rest.split()
+
+    # /model 或 /model list —— 列出
+    if not rest or (args and args[0] in ("list", "ls")):
+        entries = reg.list_all()
+        ready_ids = {e["id"] for e in entries if e["ready"]}
+        by_p: Dict[str, list] = {}
+        for mid, info in BUILTIN_MODELS.items():
+            by_p.setdefault(info["provider"], []).append(mid)
+        print("\n  模型目录（✓ = 已配 token 就绪）")
+        for p, models in sorted(by_p.items()):
+            cells = [("✓" if m in ready_ids else "·") + m.split(":")[-1] for m in models]
+            print(f"  [{p:<12}] " + "  ".join(cells))
+        print("""
+  设置 token（只填 token 即可工作）:
+    /model set <模型ID或厂商名> <你的token> [子模型名]
+    例: /model set deepseek sk-xxx
+    例: /model set bailian:qwen-flash sk-xxx
+  切换模型:
+    /model use <模型ID>
+  删除:
+    /model unset <模型ID或厂商名>
+""")
+        return False
+
+    sub = args[0]
+
+    if sub in ("set", "add"):
+        if len(args) < 3:
+            print("  用法: /model set <模型ID或厂商名> <token> [子模型名]")
+            return False
+        target = args[1]
+        token = args[2]
+        if not token:
+            print("  ✗ token 不能为空")
+            return False
+        submodel = args[3] if len(args) > 3 else ""
+        mid = _resolve_target_model(target)
+        if not mid:
+            print(f"  ✗ 未知模型/厂商: {target}  (用 /model 查看目录)")
+            return False
+        info = BUILTIN_MODELS.get(mid, {})
+        cfg = reg.add(mid, key=token, model=submodel or info.get("model", ""),
+                      base_url=info.get("base_url", ""))
+        if cfg.get("key"):
+            # 环境变量立即可用（当前进程）
+            key_env = info.get("key_env", "")
+            if key_env:
+                os.environ[key_env] = token
+            # 默认模型由 reg.save() 处理：仅在无默认时选第一个有 key 的 entry
+            try:
+                saved = reg.save()
+                print(f"  ✓ {mid} token 已保存 → {saved}")
+            except Exception as e:
+                logger.debug("model set save failed", exc_info=True)
+                print(f"  ✓ {mid} token 已设置（内存）— 持久化失败: {e}")
+        else:
+            print(f"  ✗ token 为空")
+        return True
+
+    if sub in ("unset", "delete", "rm"):
+        if len(args) < 2:
+            print("  用法: /model unset <模型ID或厂商名>")
+            return False
+        target = args[1]
+        mid = _resolve_target_model(target)
+        if not mid:
+            print(f"  ✗ 未知模型/厂商: {target}")
+            return False
+        reg.remove(mid)
+        try:
+            reg.save()
+        except Exception:
+            logger.debug("model unset save failed", exc_info=True)
+        _reassign_default_after_unset(mid, reg)
+        info = BUILTIN_MODELS.get(mid, {})
+        key_env = info.get("key_env", "")
+        if key_env:
+            os.environ.pop(key_env, None)
+        print(f"  ✓ 已删除 {mid} 的 token")
+        return True
+
+    if sub in ("use", "switch"):
+        if len(args) < 2:
+            print("  用法: /model use <模型ID>")
+            return False
+        mid = _resolve_target_model(args[1])
+        if not mid:
+            print(f"  ✗ 未知模型: {args[1]}")
+            return False
+        c = reg.get(mid)
+        if not c:
+            print(f"  ✗ {mid} 未配置 token，先 /model set {mid.split(':')[0]} <token>")
+            return False
+        _set_default_model(mid, reg)
+        print(f"  ✓ 切换到 {c.model_id} ({c.model_name})，已设为默认")
+        return True
+
+    # /model <id> 快捷切换（兼容旧用法）
+    mid = _resolve_target_model(rest)
+    if mid:
+        c = reg.get(mid)
+        if c:
+            _set_default_model(mid, reg)
+            print(f"  ✓ 切换到 {c.model_id} ({c.model_name})，已设为默认")
+            return True
+        print(f"  ✗ {mid} 未配置 token，先 /model set {mid.split(':')[0]} <token>")
+        return False
+    print("  未知 /model 子命令（可用: list/set/use/unset）")
+    return False
+
+
+def _set_default_model(model_id: str, reg=None):
+    """把 model_id 持久化为默认模型（合并写 config.yaml，不破坏其他配置）"""
+    import yaml
+    config_path = Path(getattr(reg, "_config_path", "") or "")
+    if not str(config_path):
+        config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = Path(config_path)
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config = {}
+    if config_path.exists():
+        try:
+            with open(config_path) as f:
+                config = yaml.safe_load(f) or {}
+        except Exception:
+            config = {}
+    config.setdefault("models", {})["default"] = model_id
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+    # 同步内存默认，同会话 reg.get(None) 立即生效（P0 一致性）
+    if reg is not None and hasattr(reg, "_default"):
+        reg._default = model_id
+
+
+def _reassign_default_after_unset(removed_mid: str, reg):
+    """删除模型后：若被删的是默认模型，重指派为下一个有 key 的 entry 或清空。"""
+    import yaml
+    config_path = Path(getattr(reg, "_config_path", "") or "")
+    if not str(config_path):
+        config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = Path(config_path)
+    if not config_path.exists():
+        return
+    try:
+        with open(config_path) as f:
+            config = yaml.safe_load(f) or {}
+    except Exception:
+        return
+    if not isinstance(config, dict):
+        return
+    models = config.setdefault("models", {})
+    if models.get("default") != removed_mid:
+        return
+    entries = [mid for mid, cfg in reg._entries.items() if cfg.get("key")]
+    models["default"] = entries[0] if entries else ""
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+
+
 def _handle_slash(cmd, reg, client, SESS, messages, session_id):
     """处理斜杠命令，返回True表示已处理"""
     if cmd == "/help":
         print("""
 命令列表:
-  /models       列出可用模型
-  /model <id>    切换模型
+  /model                模型目录（✓=已配token就绪）
+  /model set <厂商> <token> [子模型]   设置token（只填token即可工作）
+  /model use <模型ID>   切换模型并设为默认
+  /model unset <模型ID> 删除token
+  /models               列出已配置模型
   /save [name]   保存当前会话
   /load <id>     加载历史会话
   /sessions      列出所有会话
   /clear         清空当前会话
-  /verbose       切换详细模式
-  /gateway       模型网关设置
+  /gateway       消息平台接入设置
   /quit          退出
         """)
     elif cmd == "/models":
@@ -946,14 +1252,8 @@ def _handle_slash(cmd, reg, client, SESS, messages, session_id):
         for e in entries:
             status = "✓" if e['ready'] else "✗"
             print(f"  {e['id']:<25} {status}")
-    elif cmd.startswith("/model "):
-        new_id = cmd.split(" ", 1)[1].strip()
-        new_client = reg.get(new_id)
-        if new_client:
-            print(f"  ✓ 切换到 {new_client.model_id} ({new_client.model_name})")
-            return True
-        else:
-            print(f"  ✗ {new_id} 未配置")
+    elif cmd == "/model" or cmd.startswith("/model "):
+        return _cmd_model_slash(cmd.split(" ", 1)[1] if " " in cmd else "", reg)
     elif cmd == "/save" or cmd.startswith("/save "):
         import uuid
         name = cmd.split(" ", 1)[1].strip() if " " in cmd else None
@@ -1319,18 +1619,35 @@ def cmd_setup(args):
             env_file.write_text("\n".join(f"{k}={v}" for k, v in existing.items()) + "\n")
             print(f"{t('i18n_done_ecfc8e')}{env_file}")
     
-    # Step 3: 保存配置
+    # Step 3: 保存配置（合并写入 models.entries，key 加密，不覆盖已有配置）
+    import yaml
     config_dir = Path.home() / ".meshctx"
     config_dir.mkdir(parents=True, exist_ok=True)
-    
-    import yaml
-    config = {
-        "default_model": model_id,
+    config_path = config_dir / "config.yaml"
+    config = {}
+    if config_path.exists():
+        with open(config_path) as f:
+            loaded = yaml.safe_load(f)
+            if isinstance(loaded, dict):
+                config = loaded
+    entries = config.setdefault("models", {}).setdefault("entries", {})
+    key_val = os.environ.get(key_env, "")
+    enc = key_val
+    if key_val and not (key_val.startswith("b64:") or key_val.startswith("enc:")):
+        try:
+            from src.core.crypto import encrypt_key
+            enc = encrypt_key(key_val)
+        except Exception:
+            logger.debug("cmd_setup encrypt_key failed", exc_info=True)
+    entries[model_id] = {
+        "key": enc,
+        "model": model_info["model"],
+        "base_url": model_info.get("base_url", ""),
         "provider": provider,
-        "version": "2.27.0",
     }
-    with open(config_dir / "config.yaml", "w") as f:
-        yaml.dump(config, f)
+    config["models"]["default"] = model_id
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
     
     print(f"""
 ╔══════════════════════════════════════════╗
@@ -2051,6 +2368,14 @@ def main():
     m.add_argument("-p","--prompt", help="测试提示词")
     m.add_argument("-c","--config")
     m.set_defaults(func=cmd_model)
+
+    # key — 一键配置 API Key (token)
+    k = sub.add_parser("key", help="配置 API Key/token (set/list/delete)")
+    k.add_argument("key_action", choices=["set","list","delete"])
+    k.add_argument("model_id", nargs="?", help="模型ID, 如 deepseek:chat / bailian:qwen-flash")
+    k.add_argument("--key", help="API Key (token)")
+    k.add_argument("-c","--config")
+    k.set_defaults(func=cmd_key)
 
     # skill
     s = sub.add_parser("skill", help="Skill 管理")
