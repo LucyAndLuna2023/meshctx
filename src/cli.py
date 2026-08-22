@@ -454,10 +454,10 @@ def cmd_chat(args):
                 user = input(prompt).strip()
         except (EOFError, KeyboardInterrupt):
             break
-        if not user:
-            continue
         if user == "/quit" or quit_requested:
             break
+        if not user:
+            continue
 
         # 斜杠命令
         if user.startswith("/"):
