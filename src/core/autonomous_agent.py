@@ -386,8 +386,9 @@ def _load_autonomous_config() -> dict:
         },
     }
 
-    # Try config.yaml override
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    # Try config.yaml override (统一走 get_config_path, 与 CLI/UI 同一份配置)
+    from src.config import get_config_path
+    config_path = get_config_path()
     if config_path.exists():
         try:
             import yaml  # type: ignore[import-untyped]

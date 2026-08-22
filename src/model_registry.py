@@ -15,6 +15,7 @@ import logging
 import time
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
+from src.config import get_config_path
 
 logger = logging.getLogger(__name__)
 
@@ -406,7 +407,7 @@ class ModelRegistry:
         from pathlib import Path
         from src.core.crypto import encrypt_key
 
-        target = config_path or self._config_path or str(Path.home() / ".meshctx" / "config.yaml")
+        target = config_path or self._config_path or str(get_config_path())
         target = str(Path(target))
         Path(target).parent.mkdir(parents=True, exist_ok=True)
 
@@ -684,8 +685,7 @@ def get_registry(config_path: str = None) -> ModelRegistry:
     if _registry is None:
         # 自动查找config.yaml
         if config_path is None:
-            from pathlib import Path
-            default_path = Path.home() / ".meshctx" / "config.yaml"
+            default_path = get_config_path()
             if default_path.exists():
                 config_path = str(default_path)
         _registry = ModelRegistry(config_path)

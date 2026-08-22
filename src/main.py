@@ -33,6 +33,7 @@ from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse, Red
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from src.config import get_config_path
 
 
 
@@ -1659,7 +1660,7 @@ async def install_plugin(request: Request):
         raise HTTPException(404, f"插件 {name} 不存在")
     
     # Persist to config.yaml
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = get_config_path()
     config = {}
     if config_path.exists():
         with open(config_path) as f:
@@ -1689,7 +1690,7 @@ async def uninstall_plugin(request: Request):
     
     import yaml
     from pathlib import Path
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = get_config_path()
     if config_path.exists():
         with open(config_path) as f:
             config = _yaml_load(f) or {}
@@ -1707,7 +1708,7 @@ async def installed_plugins():
     """获取已安装插件列表"""
     import yaml
     from pathlib import Path
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = get_config_path()
     installed = {}
     if config_path.exists():
         with open(config_path) as f:
@@ -2620,7 +2621,7 @@ async def add_model(request: Request):
     if not model_id or not provider:
         raise HTTPException(400, t('error_id_provider_required'))
     
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = get_config_path()
     config_path.parent.mkdir(parents=True, exist_ok=True)
     
     config = {}
@@ -2675,7 +2676,7 @@ async def update_model(model_id: str, request: Request):
         logger.debug("Suppressed exception", exc_info=True)
         raise HTTPException(400, t('error_invalid_json_body'))
     
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = get_config_path()
     if not config_path.exists():
         raise HTTPException(404, t('error_no_config_add_model'))
     
@@ -2738,7 +2739,7 @@ async def rename_model(model_id: str, request: Request):
         raise HTTPException(400, t('error_invalid_json_body'))
     
     rename_to = body.get("rename_to", "").strip()
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = get_config_path()
     if not config_path.exists():
         raise HTTPException(404, t('error_config_not_found'))
     
@@ -2785,7 +2786,7 @@ async def delete_model(model_id: str):
     from pathlib import Path
     import yaml
     
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = get_config_path()
     if not config_path.exists():
         raise HTTPException(404, t('error_no_config'))
     
@@ -2824,7 +2825,7 @@ async def clean_unconfigured_models():
     from pathlib import Path
     import yaml
     
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = get_config_path()
     if not config_path.exists():
         return {"deleted": 0, "message": "无配置文件"}
     
@@ -2858,7 +2859,7 @@ async def set_default_model(model_id: str):
     from pathlib import Path
     import yaml
     
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = get_config_path()
     if not config_path.exists():
         raise HTTPException(404, t('error_no_config'))
     
@@ -4679,7 +4680,7 @@ async def config_backup():
     import yaml
     from pathlib import Path
     
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = get_config_path()
     if config_path.exists():
         with open(config_path) as f:
             raw = _yaml_load(f) or {}
@@ -4705,7 +4706,7 @@ async def config_restore(req: Request):
     import yaml
     from pathlib import Path
     
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = get_config_path()
     config_path.parent.mkdir(parents=True, exist_ok=True)
     
     with open(config_path, "w") as f:
@@ -5314,7 +5315,7 @@ async def system_status():
     from pathlib import Path
     from src.core import __version__
     
-    cp = Path.home() / ".meshctx" / "config.yaml"
+    cp = get_config_path()
     configured = 0
     configured_ids = set()
     if cp.exists():
@@ -5518,7 +5519,7 @@ async def gateway_status():
     """网关插件状态 (企业微信等)"""
     import yaml
     from pathlib import Path
-    cp = Path.home() / ".meshctx" / "config.yaml"
+    cp = get_config_path()
     gateway = {}
     if cp.exists():
         with open(cp) as f:
@@ -6313,7 +6314,7 @@ async def jepa_evaluate(request: Request):
 async def config_export():
     """导出配置 — 返回config.yaml内容 + 环境变量中的Key列表"""
     try:
-        config_path = Path.home() / ".meshctx" / "config.yaml"
+        config_path = get_config_path()
         config = {}
         if config_path.exists():
             import yaml
@@ -6350,7 +6351,7 @@ async def config_import(request: Request):
             return {"error": "config必须是字典"}
         if not config:
             return {"success": True, "imported": 0, "skipped": 0}
-        config_path = Path.home() / ".meshctx" / "config.yaml"
+        config_path = get_config_path()
         config_path.parent.mkdir(parents=True, exist_ok=True)
         with open(config_path, "w") as f:
             yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
@@ -6447,7 +6448,7 @@ async def list_providers():
             pid = info.get("provider", "unknown")
             provider_map.setdefault(pid, []).append(mid)
         # 检查config.yaml中哪些已配置
-        config_path = Path.home() / ".meshctx" / "config.yaml"
+        config_path = get_config_path()
         configured_ids = set()
         key_map = {}
         if config_path.exists():
@@ -6490,6 +6491,30 @@ async def list_providers():
         return {"error": str(e)}
 
 
+@app.post("/api/setup")
+async def setup_wizard_save(request: Request):
+    """设置向导（setup.html）保存 API Key。
+
+    Fix: setup.html 的表单 POST /api/setup，但此前该端点不存在 → 404，
+    导致「UI 保存模型 API 不工作」。复用 /api/providers 的保存逻辑，
+    返回向导期望的 {success, models} 结构。
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, t('error_invalid_json_body'))
+    provider = (body.get("provider") or "").strip().lower()
+    key = (body.get("key") or "").strip()
+    if not provider:
+        raise HTTPException(400, "provider 必填")
+    if not key:
+        return {"success": False, "error": "API Key 不能为空"}
+    result = await save_provider_key(request)
+    if result.get("status") != "ok":
+        return {"success": False, "error": result.get("message", result.get("detail", "保存失败"))}
+    return {"success": True, "models": len(result.get("ids", [])), "provider": provider}
+
+
 @app.post("/api/providers")
 async def save_provider_key(request: Request):
     """保存供应商 API Key — 写入 config.yaml models.entries（取该 provider 第一个内置模型）"""
@@ -6516,7 +6541,7 @@ async def save_provider_key(request: Request):
         return await delete_provider_key(provider)
 
     first_id = next(iter(builtin_models))
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = get_config_path()
     config_path.parent.mkdir(parents=True, exist_ok=True)
 
     config = {}
@@ -6589,7 +6614,7 @@ async def delete_provider_key(pid: str):
     """删除某供应商下所有模型的 key 配置"""
     from src.model_registry import BUILTIN_MODELS
 
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = get_config_path()
     if not config_path.exists():
         return {"status": "ok", "deleted": []}
 
@@ -6627,7 +6652,7 @@ async def list_mcp_servers():
         servers = []
         # 优先检查独立mcp.yaml
         mcp_path = Path.home() / ".meshctx" / "mcp.yaml"
-        config_path = Path.home() / ".meshctx" / "config.yaml"
+        config_path = get_config_path()
         mcp_data = {}
         if mcp_path.exists():
             with open(mcp_path) as f:

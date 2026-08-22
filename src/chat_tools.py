@@ -295,9 +295,10 @@ def _search_files(pattern: str, path: str = ".", glob: str = "*") -> str:
 def _get_proxy() -> str:
     """读取搜索代理配置: meshctx.yaml > env > None"""
     import yaml
+    from src.config import get_config_path
     config_paths = [
         Path(__file__).parent.parent / "meshctx.yaml",
-        Path.home() / ".meshctx" / "config.yaml",
+        get_config_path(),
     ]
     for cp in config_paths:
         if cp.exists():

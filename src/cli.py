@@ -33,6 +33,9 @@ _SRC_PARENT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _SRC_PARENT not in sys.path:
     sys.path.insert(0, _SRC_PARENT)
 
+# config 路径统一入口必须在 sys.path 修复之后导入, 保证命中本安装目录的完整实现
+from src.config import get_config_path
+
 # ── readline: Linux/Mac 可用，Windows 不支持 ──
 try:
     import readline
@@ -90,7 +93,7 @@ def _get_profile_name(config_path=None, cli_profile=None) -> str | None:
     # 从 config.yaml 读取
     cfg_path = config_path or os.environ.get(
         "MESHCTX_CONFIG",
-        str(Path.home() / ".meshctx" / "config.yaml")
+        str(get_config_path())
     )
     try:
         with open(cfg_path) as f:
@@ -307,7 +310,7 @@ def _cmd_gateway_setup():
     import yaml
     from pathlib import Path
     
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = get_config_path()
     config_path.parent.mkdir(parents=True, exist_ok=True)
     
     config = {}
@@ -723,7 +726,7 @@ def _llm_batch_extract_memories(messages: List[Dict]) -> List[Dict]:
                 if k == "DEEPSEEK_API_KEY" and v:
                     api_key = v
         # 模型名/base_url 从 config.yaml 读（MESHCTX_MODEL 是内部 provider:model 格式，不能直接用于 API）
-        cfg_path = _os.path.expanduser("~/.meshctx/config.yaml")
+        cfg_path = str(get_config_path())
         if _os.path.exists(cfg_path):
             try:
                 import yaml as _yaml
@@ -1187,7 +1190,7 @@ def _set_default_model(model_id: str, reg=None):
     import yaml
     config_path = Path(getattr(reg, "_config_path", "") or "")
     if not str(config_path):
-        config_path = Path.home() / ".meshctx" / "config.yaml"
+        config_path = get_config_path()
     config_path = Path(config_path)
     config_path.parent.mkdir(parents=True, exist_ok=True)
     config = {}
@@ -1210,7 +1213,7 @@ def _reassign_default_after_unset(removed_mid: str, reg):
     import yaml
     config_path = Path(getattr(reg, "_config_path", "") or "")
     if not str(config_path):
-        config_path = Path.home() / ".meshctx" / "config.yaml"
+        config_path = get_config_path()
     config_path = Path(config_path)
     if not config_path.exists():
         return
@@ -1621,9 +1624,8 @@ def cmd_setup(args):
     
     # Step 3: 保存配置（合并写入 models.entries，key 加密，不覆盖已有配置）
     import yaml
-    config_dir = Path.home() / ".meshctx"
-    config_dir.mkdir(parents=True, exist_ok=True)
-    config_path = config_dir / "config.yaml"
+    config_path = get_config_path()
+    config_path.parent.mkdir(parents=True, exist_ok=True)
     config = {}
     if config_path.exists():
         with open(config_path) as f:

@@ -36,15 +36,18 @@ def load_config(path: Optional[str] = None) -> Dict[str, Any]:
     查找顺序:
     1. path 参数
     2. MESHCTX_CONFIG 环境变量
-    3. ./meshctx.yaml
-    4. ~/.meshctx/config.yaml
-    5. 内置默认配置
+    3. 当前 profile 的 config.yaml（~/.meshctx/config.yaml 或 ~/.meshctx/profiles/<profile>/config.yaml）
+    4. ./meshctx.yaml
+    5. ~/.meshctx/config.yaml
+    6. 内置默认配置
     """
     search_paths = []
     if path:
         search_paths.append(Path(path))
     if os.environ.get("MESHCTX_CONFIG"):
         search_paths.append(Path(os.environ["MESHCTX_CONFIG"]))
+    # profile 隔离路径（default profile 与第 5 步相同, 幂等）
+    search_paths.append(get_config_path())
     search_paths.append(Path("meshctx.yaml"))
     search_paths.append(Path.home() / ".meshctx" / "config.yaml")
     # 包内默认配置（PyInstaller 打包后使用 sys._MEIPASS）
@@ -106,3 +109,42 @@ def get_skill_dir(config: Dict) -> Path:
     """获取 Skill 目录"""
     raw = config.get("skills", {}).get("directory", "~/.meshctx/skills/")
     return Path(raw).expanduser().resolve()
+
+
+def _resolve_active_profile() -> str:
+    """解析当前激活的 profile 名（与闭源核心 meshctx-core 保持一致）
+
+    1. MESHCTX_PROFILE 环境变量
+    2. ~/.meshctx/.active_profile 文件
+    3. 默认 "default"
+    """
+    env_profile = os.environ.get("MESHCTX_PROFILE")
+    if env_profile:
+        return env_profile
+    active_file = Path.home() / ".meshctx" / ".active_profile"
+    if active_file.exists():
+        name = active_file.read_text().strip()
+        if name:
+            return name
+    return "default"
+
+
+def get_data_dir(profile: Optional[str] = None) -> Path:
+    """获取 profile 隔离的数据目录。
+
+    default profile → ~/.meshctx/
+    其他 profile   → ~/.meshctx/profiles/<profile>/
+    """
+    profile = profile or _resolve_active_profile()
+    if profile == "default":
+        return Path.home() / ".meshctx"
+    return Path.home() / ".meshctx" / "profiles" / profile
+
+
+def get_config_path(profile: Optional[str] = None) -> Path:
+    """获取当前 profile 的 config.yaml 路径。
+
+    UI（web_ui.py / main.py API）与 CLI 统一通过此入口解析配置路径，
+    保证双方始终读写同一个文件。
+    """
+    return get_data_dir(profile) / "config.yaml"

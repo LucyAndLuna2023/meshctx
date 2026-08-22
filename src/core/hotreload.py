@@ -8,7 +8,8 @@ logger = logging.getLogger("meshctx.hotreload")
 class ConfigWatcher:
     def __init__(self, config_path: str = None, **kw):
         if config_path is None:
-            config_path = os.path.expanduser("~/.meshctx/config.yaml")
+            from src.config import get_config_path
+            config_path = str(get_config_path())
         self.path = Path(config_path)
         self._mtime = 0
         self._callbacks: list = []

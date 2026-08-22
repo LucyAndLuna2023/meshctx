@@ -10,6 +10,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResp
 from pathlib import Path
 from jinja2 import Environment, DictLoader, FileSystemLoader, ChoiceLoader
 import logging
+from src.config import get_config_path
 
 logger = logging.getLogger("meshctx.webui")
 
@@ -4100,7 +4101,7 @@ async def chat_page(request: Request):
     if not profile:
         try:
             cfg_path = _os.environ.get("MESHCTX_CONFIG",
-                str(__import__('pathlib').Path.home() / ".meshctx" / "config.yaml"))
+                str(get_config_path()))
             with open(cfg_path) as f:
                 cfg = _yaml.safe_load(f) or {}
             p = cfg.get("profile", {})
@@ -4135,7 +4136,7 @@ def _build_model_context(request: Request):
         
         # 读取config.yaml获取已配置模型详情
         from pathlib import Path
-        cp = Path.home() / ".meshctx" / "config.yaml"
+        cp = get_config_path()
         config = {}
         if cp.exists():
             import yaml as _yaml2
@@ -4280,7 +4281,7 @@ async def save_api_key(
     """保存 API Key 并自动重载配置 — 无需重启"""
     from pathlib import Path
 
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = get_config_path()
     config_path.parent.mkdir(parents=True, exist_ok=True)
 
     config = {}
@@ -4338,7 +4339,7 @@ async def delete_api_key(
     """删除指定模型的API密钥"""
     from pathlib import Path
     
-    config_path = Path.home() / ".meshctx" / "config.yaml"
+    config_path = get_config_path()
     if not config_path.exists():
         return RedirectResponse(url="/ui/setup?error=1", status_code=303)
     

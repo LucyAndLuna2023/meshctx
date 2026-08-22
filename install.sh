@@ -762,9 +762,10 @@ if [ -n "$CORE_TOKEN" ] && command -v git >/dev/null 2>&1; then
         git -c http.proxy="$MESHCTX_GIT_PROXY" -c https.proxy="$MESHCTX_GIT_PROXY" clone --depth 1 "https://${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" "${CORE_TMP}/core" >/dev/null 2>&1 && CORE_CLONE_OK=1
     fi
     if [ "$CORE_CLONE_OK" = "1" ]; then
-        # 真实核心算法模块落地到 src/core（保留开源 __init__.py 的 stub 路由,
+        # 真实核心算法模块递归落地到 src/core（跳过顶层 __init__.py 保留开源 stub 路由,
         # 闭源业务模块覆盖同名 stub + 补入闭源独有模块, 检测逻辑按 desktop_tool.py 落地判定完整版）
-        find "${CORE_TMP}/core/src/core" -maxdepth 1 -name '*.py' ! -name '__init__.py' -exec cp -f {} "${INSTALL_DIR}/src/core/" \;
+        # 与 install-mac.sh 保持一致：递归复制 + 保留子目录结构，未来核心新增子目录模块也不遗漏
+        (cd "${CORE_TMP}/core/src/core" && find . -name '*.py' ! -path './__init__.py' | tar -cf - -T -) | (cd "${INSTALL_DIR}/src/core" && tar -xf -)
         echo -e "  ${GREEN}✓${NC} 闭源核心已一体安装（完整版）"
     else
         echo -e "  ${YELLOW}⚠${NC} 闭源核心拉取失败（token/网络），本次为开源 stub 模式"
