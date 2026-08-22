@@ -218,6 +218,7 @@ def cmd_key(args):
             return
         reg.remove(model_id)
         saved_path = reg.save(args.config)
+        _reassign_default_after_unset(model_id, reg)
         print(f"✓ 已删除 {model_id} 的 key（配置已保存到 {saved_path}）")
         return
 
@@ -483,7 +484,7 @@ def cmd_chat(args):
                 # 从最新往回扫最近 6 条，移除含 /model set 的条目
                 for idx in range(n - 1, max(n - 7, -1), -1):
                     item = readline.get_history_item(idx + 1)
-                    if item and "/model set" in item:
+                    if item and ("/model set" in item or "/model add" in item):
                         readline.remove_history_item(idx)
             except Exception:
                 pass

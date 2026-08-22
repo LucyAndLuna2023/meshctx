@@ -6535,6 +6535,10 @@ async def save_provider_key(request: Request):
         logger.debug("save_provider_key encrypt failed", exc_info=True)
 
     for mid, info in builtin_models.items():
+        # 跳过已有独立 key 的 entry，避免覆盖用户单独配置的子模型 key（002 审计 P1-2）
+        existing = entries.get(mid) or {}
+        if existing.get("key"):
+            continue
         entries[mid] = {
             "key": encrypted_key,
             "model": info.get("model", mid),
@@ -6564,7 +6568,12 @@ async def test_provider_key(pid: str):
     try:
         from src.model_registry import get_registry
         reg = get_registry()
-        client = reg.get(pid)
+        # 精确取该 provider 下第一个 ready 模型，避免 reg.get(pid) 部分匹配到无 key 模型误报（002 审计 P2-4）
+        ready = [e for e in reg.list_all() if e.get("provider") == pid and e.get("ready")]
+        if not ready:
+            return {"success": False, "status": "error",
+                    "error": f"未找到 {pid} 的可用配置，请先保存 key"}
+        client = reg.get(ready[0]["id"])
         if not client:
             return {"success": False, "status": "error",
                     "error": f"未找到 {pid} 的可用配置，请先保存 key"}
@@ -6594,6 +6603,12 @@ async def delete_provider_key(pid: str):
         if p == pid:
             del entries[mid]
             deleted.append(mid)
+
+    # 删除后：若默认模型被删，重指派为剩余第一个有 key 的 entry 或清空（002 审计 P1-1 对称）
+    default = config.get("models", {}).get("default", "")
+    if default and default not in entries:
+        remaining = [mid for mid, cfg in entries.items() if (cfg or {}).get("key")]
+        config.setdefault("models", {})["default"] = remaining[0] if remaining else ""
 
     with open(config_path, "w") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)

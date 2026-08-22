@@ -274,6 +274,7 @@ class ModelRegistry:
         self._clients: Dict[str, Any] = {}   # model_id → OpenAI client
         self._config_path = config_path
         self._dirty_ids: set = set()         # 本会话被 add/remove 的 model_id，save 时只同步这些
+        self._default: str = ""              # config.yaml models.default（持久化的默认模型）
         
         # 从环境变量自动扫描
         self._scan_env()
@@ -326,6 +327,7 @@ class ModelRegistry:
         
         models_section = config.get("models", {})
         entries = models_section.get("entries", {})
+        self._default = models_section.get("default", "") or ""
         
         for model_id, cfg in entries.items():
             key = cfg.get("key", "")
@@ -447,18 +449,23 @@ class ModelRegistry:
                 if cfg.get("key"):
                     config["models"]["default"] = model_id
                     break
+        self._default = config.get("models", {}).get("default", "") or ""
 
         with open(target, "w") as f:
             yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+        # 落盘成功后清脏标记，避免下次 save 重写本会话已同步的全部 id（002 审计 P2-5）
+        self._dirty_ids.clear()
         return target
 
     def get(self, model_id: str = None) -> Optional[Any]:
         """获取模型客户端 (OpenAI-compatible)"""
         from openai import OpenAI
         
-        # 如果没指定，用默认
+        # 如果没指定，用默认（优先 config models.default，存在且就绪才用；否则回退首条目）
         if model_id is None:
-            if self._entries:
+            if self._default and self._default in self._entries and self._entries[self._default].get("key"):
+                model_id = self._default
+            elif self._entries:
                 model_id = next(iter(self._entries))
             else:
                 return None
