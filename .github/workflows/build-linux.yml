@@ -69,14 +69,22 @@ jobs:
 
     - name: Build Linux binary (PyInstaller)
       run: |
-        echo "==> 护城河: core 仅经 --collect-submodules 编译为字节码, 不落明文 .py"
+        echo "==> 护城河: core 构建期从磁盘递归枚举显式 --hidden-import (杜绝 collect-submodules CI 静默失效)"
+        CORE_IMPORTS=""
+        CORE_COUNT=0
+        while IFS= read -r f; do
+          mod="${f#./}"; mod="${mod%.py}"; mod="${mod//\//.}"
+          CORE_IMPORTS="$CORE_IMPORTS --hidden-import src.core.$mod"
+          CORE_COUNT=$((CORE_COUNT+1))
+        done < <(cd src/core && find . -name '*.py' ! -path './__init__.py' | sort)
+        echo "enumerated core modules: $CORE_COUNT"
+        if [ "$CORE_COUNT" -lt 100 ]; then echo "FAIL: 闭源核心未落地 (src/core 模块过少)"; exit 1; fi
         pyinstaller --onedir \
           --name meshctx \
           --add-data "meshctx.yaml:." \
           --add-data "src/i18n_translations.json:src" \
           --add-data "templates:templates" \
           --add-data "static:static" \
-          --collect-submodules src.core \
           --collect-submodules src \
           --hidden-import src \
           --hidden-import src.core \
@@ -89,8 +97,20 @@ jobs:
           --hidden-import yaml \
           --hidden-import openai \
           --hidden-import httpx \
+          $CORE_IMPORTS \
           src/cli.py
         ls -lh dist/
+
+    - name: Verify PYZ contains full closed core (禁止 stub)
+      run: |
+        TOC=build/meshctx/PYZ-00.toc
+        test -f "$TOC" || { echo "FAIL: $TOC 不存在"; exit 1; }
+        grep -q "src.core.desktop_tool" "$TOC" || { echo "FAIL: PYZ 缺 desktop_tool — 闭源核心未编译进包"; exit 1; }
+        DISK_COUNT=$(cd src/core && find . -name '*.py' ! -path './__init__.py' | wc -l | tr -d ' ')
+        TOC_COUNT=$(grep -oE "src\.core\.[A-Za-z0-9_\.]+" "$TOC" | sort -u | wc -l | tr -d ' ')
+        echo "disk_modules=$DISK_COUNT pyz_modules=$TOC_COUNT"
+        test "$TOC_COUNT" -ge "$DISK_COUNT" || { echo "FAIL: PYZ 模块数不足 ($TOC_COUNT < $DISK_COUNT) — STUB 降级包"; exit 1; }
+        echo "OK: PYZ 含完整闭源核心 ($TOC_COUNT >= $DISK_COUNT)"
 
     - name: Verify no plaintext core leaked
       run: |

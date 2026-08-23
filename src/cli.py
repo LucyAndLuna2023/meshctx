@@ -43,6 +43,16 @@ try:
 except ImportError:
     _HAS_READLINE = False
 
+# ── 运行期自检 (004 审计建议): 闭源核心缺失 → 启动即显式提示降级版 ──
+# 封装/安装若丢失闭源核心, 用户必须可感知, 不能无感知用降级版
+if not os.environ.get('MESHCTX_QUIET', ''):
+    try:
+        from src import core as _core
+        if not getattr(_core, '_HAS_MESHCTX_CORE', False):
+            print("⚠ meshctx STUB mode: 闭源核心缺失, 当前为降级版 — 高级能力不可用。", file=sys.stderr)
+    except Exception:
+        pass
+
 _HISTORY_SAVED = False
 
 # i18n support

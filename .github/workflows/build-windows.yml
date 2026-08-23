@@ -130,8 +130,32 @@ jobs:
           }
           Write-Host "OK: .exe 含闭源核心（PYZ 内 desktop_tool 已就位）"
 
+      - name: Verify PYZ contains full closed core (Desktop, 禁止 stub)
+        run: |
+          $tocFile = 'build\meshctx-desktop\PYZ-00.toc'
+          if (-not (Test-Path $tocFile)) { Write-Host "FAIL: $tocFile 不存在"; exit 1 }
+          $toc = Get-Content $tocFile -Raw
+          if ($toc -notmatch 'src\.core\.desktop_tool') { Write-Host "FAIL: PYZ 缺 desktop_tool — 闭源核心未编译进包"; exit 1 }
+          $diskCount = (Get-ChildItem src\core -Recurse -Filter *.py | Where-Object { $_.Name -ne '__init__.py' }).Count
+          $tocCount = (($toc | Select-String -Pattern 'src\.core\.[A-Za-z0-9_\.]+' -AllMatches).Matches | ForEach-Object { $_.Value } | Sort-Object -Unique).Count
+          Write-Host "disk_modules=$diskCount pyz_modules=$tocCount"
+          if ($tocCount -lt $diskCount) { Write-Host "FAIL: PYZ 模块数不足 ($tocCount < $diskCount) — STUB 降级包"; exit 1 }
+          Write-Host "OK: PYZ 含完整闭源核心 ($tocCount >= $diskCount)"
+
       - name: Build Windows CLI portable (完整版 CLI/服务, core 在字节码内)
         run: pyinstaller meshctx.spec --noconfirm
+
+      - name: Verify PYZ contains full closed core (CLI, 禁止 stub)
+        run: |
+          $tocFile = 'build\meshctx\PYZ-00.toc'
+          if (-not (Test-Path $tocFile)) { Write-Host "FAIL: $tocFile 不存在"; exit 1 }
+          $toc = Get-Content $tocFile -Raw
+          if ($toc -notmatch 'src\.core\.desktop_tool') { Write-Host "FAIL: PYZ 缺 desktop_tool — 闭源核心未编译进包"; exit 1 }
+          $diskCount = (Get-ChildItem src\core -Recurse -Filter *.py | Where-Object { $_.Name -ne '__init__.py' }).Count
+          $tocCount = (($toc | Select-String -Pattern 'src\.core\.[A-Za-z0-9_\.]+' -AllMatches).Matches | ForEach-Object { $_.Value } | Sort-Object -Unique).Count
+          Write-Host "disk_modules=$diskCount pyz_modules=$tocCount"
+          if ($tocCount -lt $diskCount) { Write-Host "FAIL: PYZ 模块数不足 ($tocCount < $diskCount) — STUB 降级包"; exit 1 }
+          Write-Host "OK: PYZ 含完整闭源核心 ($tocCount >= $diskCount)"
 
       - name: Verify closed core in CLI artifact (禁止发布 stub)
         run: |

@@ -20,9 +20,19 @@ try:
     import meshctx_core  # noqa: F401
     _HAS_MESHCTX_CORE = True
 except ImportError:
+    # ① 源码模式: 闭源模块以真实文件落地 (一体安装)
     _HAS_MESHCTX_CORE = os.path.exists(
         os.path.join(os.path.dirname(__file__), 'desktop_tool.py')
     )
+    # ② PyInstaller 封装模式: 闭源模块编译进 PYZ 字节码, 磁盘无 desktop_tool.py →
+    #    改用 importlib find_spec 探测 frozen 模块表 (不执行模块体, 避免循环导入)
+    #    修复(2026-08-23, 004 审计): 否则封装完整版被误判 STUB, 启动即警告降级
+    if not _HAS_MESHCTX_CORE:
+        try:
+            import importlib.util
+            _HAS_MESHCTX_CORE = importlib.util.find_spec('src.core.desktop_tool') is not None
+        except Exception:
+            _HAS_MESHCTX_CORE = False
     if not _HAS_MESHCTX_CORE and not os.environ.get('MESHCTX_QUIET', ''):
         warnings.warn(
             "meshctx running in STUB mode: meshctx-core (private) NOT installed. "
