@@ -101,6 +101,19 @@ def _is_public(path: str) -> bool:
             return True
     return False
 
+
+def _is_loopback_client(request: Request) -> bool:
+    """本机回环请求视为可信本地用户（桌面端/本机浏览器永远可用）。
+
+    修复(2026-08-24, 006): Mac UI 聊天无响应 + 无法保存 token —
+    MESHCTX_PASSWORD 在服务进程 env 时所有 /api/* 一律 401，本地浏览器无
+    session cookie，chat.html 收到非 SSE 的 401 JSON 静默显示"[无响应]"。
+    认证只保护远程/LAN 访问；本机 UI 不应被密码锁死。
+    """
+    client = getattr(request, "client", None)
+    host = getattr(client, "host", "") if client else ""
+    return host in ("127.0.0.1", "::1", "localhost", "::ffff:127.0.0.1")
+
 async def _authenticate(request: Request):
     """
     认证请求，返回 (identity, is_admin)
@@ -131,6 +144,10 @@ async def auth_middleware_v2(request: Request, call_next):
 
     # 公开路径直接放行
     if _is_public(path):
+        return await call_next(request)
+
+    # 本机回环请求直接放行（修复 2026-08-24: 本地 UI 聊天/保存 token 不被 401 拦截）
+    if _is_loopback_client(request):
         return await call_next(request)
 
     if not _AUTH_ENABLED:

@@ -932,10 +932,33 @@ async function send() {
       signal: controller.signal
     });
 
+    // v3.119.3: 非 SSE 错误响应（401/403/429/5xx）必须给出可操作提示，
+    // 而不是静默吞掉显示"[无响应] 请重试"（006 Mac: 认证开启时 /api/chat/stream 401）
+    if (!resp.ok) {
+      let detail = '';
+      try {
+        const j = await resp.json();
+        detail = j.detail || j.error || j.message || '';
+      } catch(e) { /* 非 JSON 错误体 */ }
+      clearTimeout(timeoutId);
+      setAgentStatus('idle');
+      if (resp.status === 401 || resp.status === 403) {
+        addMsg('ai', `[认证失败 HTTP ${resp.status}] ${detail || '需要登录'}\n请访问 /ui/login 登录后重试（本机安装默认无需密码；如设置过 MESHCTX_PASSWORD 请登录）`);
+      } else if (resp.status === 429) {
+        addMsg('ai', '[请求过于频繁 HTTP 429] 请稍等 60 秒后重试');
+      } else {
+        addMsg('ai', `[请求失败 HTTP ${resp.status}] ${detail}`);
+      }
+      document.getElementById('sendBtn').disabled = false;
+      input.focus();
+      return;
+    }
+
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
     let aiContent = '';
     let hasToolStart = false;
+    let rawLog = '';
 
     // Replace typing indicator with real content on first token
     let aiMsgAdded = false;
@@ -946,6 +969,8 @@ async function send() {
       if (done) break;
 
       const chunk = decoder.decode(value, {stream: true});
+      rawLog += chunk;
+      if (rawLog.length > 4000) rawLog = rawLog.slice(-4000);
       const lines = chunk.split(/\r?\n/);
 
       for (const line of lines) {
@@ -1029,7 +1054,13 @@ async function send() {
     // If nothing came through, show error
     if (!aiContent && !hasToolStart) {
       if (!aiMsgAdded) typingDiv.remove();
-      addMsg('ai', '[无响应] 请重试');
+      const snippet = rawLog.trim().slice(0, 200);
+      if (snippet && !/^\s*data: /m.test(rawLog)) {
+        // 服务器返回了非 SSE 内容（HTML/JSON 错误页等）→ 展示真实内容便于排查
+        addMsg('ai', `[服务器未返回流式数据] ${snippet}\n\n请检查服务日志：~/.meshctx/logs 或 ~/Library/Logs/meshctx.error.log`);
+      } else {
+        addMsg('ai', '[无响应] 请重试');
+      }
     }
 
     // Push to messages array

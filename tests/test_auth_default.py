@@ -39,3 +39,58 @@ def test_auth_enabled_with_password(monkeypatch):
 def test_auth_disabled_flag_overrides_password(monkeypatch):
     """MESHCTX_AUTH_DISABLED=1 显式关闭优先于密码"""
     assert _auth_enabled_with(monkeypatch, "secret", "1") is False
+
+
+
+# ── 回环信任（2026-08-24 修复: 本地 UI 聊天/保存 token 不被 401 拦截）──
+
+def _make_middleware_app():
+    """带 auth_middleware_v2 的最小 FastAPI 应用（受保护 /api/protected + 公开 /ui/x）"""
+    from fastapi import FastAPI
+    from starlette.responses import JSONResponse
+    import src.core.auth_v2 as auth
+    app = FastAPI()
+
+    @app.get("/api/protected")
+    async def protected():
+        return JSONResponse({"ok": True})
+
+    @app.get("/ui/chat")
+    async def ui_chat():
+        return JSONResponse({"page": "chat"})
+
+    app.middleware("http")(auth.auth_middleware_v2)
+    return app
+
+
+def _run_with_client(monkeypatch, host):
+    import importlib
+    import anyio
+    import httpx
+    import src.core.auth_v2 as auth
+
+    monkeypatch.setenv("MESHCTX_PASSWORD", "secret")
+    monkeypatch.delenv("MESHCTX_AUTH_DISABLED", raising=False)
+    importlib.reload(auth)
+
+    app = _make_middleware_app()
+    transport = httpx.ASGITransport(app=app, client=(host, 54321))
+
+    async def _go():
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            return await client.get("/api/protected")
+
+    resp = anyio.run(_go)
+    monkeypatch.undo()
+    importlib.reload(importlib.import_module("src.core.auth_v2"))
+    return resp.status_code
+
+
+def test_loopback_trusted_even_with_password(monkeypatch):
+    """设置 MESHCTX_PASSWORD 后，本机回环(127.0.0.1)无 cookie 也必须放行"""
+    assert _run_with_client(monkeypatch, "127.0.0.1") == 200
+
+
+def test_remote_still_requires_auth_with_password(monkeypatch):
+    """设置 MESHCTX_PASSWORD 后，远程(LAN IP)无 cookie 仍应 401（密码保护远程）"""
+    assert _run_with_client(monkeypatch, "192.168.1.50") == 401

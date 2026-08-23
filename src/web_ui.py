@@ -1255,7 +1255,18 @@ async function send() {
           body: JSON.stringify({message: fullMsg, model: document.getElementById('modelSelect').value, system: sysPrompt}),
           signal: innerAbortController.signal
         });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
+        if (!res.ok) {
+          // 认证类错误重试无意义 → 直接提示登录（006 Mac: 认证开启时 /api/chat/stream 401 → 静默"[无响应]"）
+          if (res.status === 401 || res.status === 403) {
+            var _authDetail = '';
+            try { var _aj = await res.json(); _authDetail = _aj.detail || _aj.error || _aj.message || ''; } catch(_e2) {}
+            streamText.innerHTML += window.__t('<span style="color:#fca5a5;">[认证失败 HTTP ' + res.status + '] ') + (_authDetail ? window.__t(':') + _authDetail + ' ' : '') + window.__t('请访问 /ui/login 登录后重试</span>');
+            cursor.remove();
+            retryCount = maxRetries + 1; // 跳出重试循环
+            continue;
+          }
+          throw new Error('HTTP ' + res.status);
+        }
 
         var reader = res.body.getReader();
         var decoder = new TextDecoder();
