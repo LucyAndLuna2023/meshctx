@@ -632,11 +632,14 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.119.0"
+VERSION="3.119.2"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 PORT=3001
 LAUNCHD_LABEL="com.meshctx.server"
+
+# github.com 主站在国内常不可达 → 直连失败后依次尝试公共加速镜像（仅用于开源仓库，不含 token）
+GIT_MIRRORS="https://ghfast.top/ https://gh-proxy.com/ https://ghproxy.net/"
 
 echo ""
 echo -e "${CYAN}  ╔══════════════════════════════════════════╗${NC}"
@@ -670,6 +673,12 @@ if pgrep -f "python.*meshctx" >/dev/null 2>&1; then
     KILLED=1
 fi
 
+# 停止封装版 meshctx 服务（PyInstaller 二进制）
+if pgrep -f "meshctx/meshctx" >/dev/null 2>&1; then
+    pkill -9 -f "meshctx/meshctx" 2>/dev/null || true
+    KILLED=1
+fi
+
 # 停止 launchd 服务
 if launchctl list 2>/dev/null | grep -q "${LAUNCHD_LABEL}"; then
     launchctl unload "${HOME}/Library/LaunchAgents/${LAUNCHD_LABEL}.plist" 2>/dev/null || true
@@ -691,8 +700,57 @@ else
     echo -e "  ${GREEN}✓${NC} $(T no_stop)"
 fi
 
+# 源码/本地模式参数解析（须在 [2/6] 前完成：封装资产优先逻辑依赖 USE_LOCAL）
+SOURCE_DIR=""
+USE_LOCAL=0
+
+# 检查 --offline 或 --from-dir 参数
+for arg in "$@"; do
+    case "$arg" in
+        --offline|--local) USE_LOCAL=1 ;;
+        --from-dir=*) SOURCE_DIR="${arg#*=}"; USE_LOCAL=1 ;;
+    esac
+done
+
+# 如果当前目录就是 meshctx 源码目录
+if [ -f "$(pwd)/install-mac.sh" ] && [ -f "$(pwd)/src/main.py" ]; then
+    SOURCE_DIR="$(pwd)"
+    USE_LOCAL=1
+fi
+
 # ── [2/6] 环境检查 ───────────────────────────────────
 echo -e "${CYAN}[2/6]${NC} $(T step2_check)"
+
+# 0) 完整版封装资产优先（护城河 2026-08-23: 终端用户默认安装含闭源核心的完整产品,
+#    核心在 PyInstaller 字节码内; 无 Python 的 Mac 也无需安装 Python）
+PORTABLE_OK=0
+PORTABLE_INSTALL=0
+if [ "${USE_LOCAL}" != "1" ]; then
+    _ARCH_SUFFIX=""
+    case "$(uname -m)" in
+        x86_64) _ARCH_SUFFIX="-intel" ;;
+    esac
+    PORTABLE_URL="${MESHCTX_PORTABLE_URL:-https://github.com/${REPO}/releases/download/v${VERSION}/meshctx-macos-cli${_ARCH_SUFFIX}.tar.gz}"
+    PORTABLE_TARBALL="/tmp/meshctx-macos-cli-$$.tar.gz"
+    echo -e "  ${YELLOW}→${NC} 下载完整版封装资产（含闭源核心，约 200MB，请耐心等待，无进度条为正常）..."
+    if curl -fsSL --connect-timeout 30 --max-time 900 --retry 2 -o "${PORTABLE_TARBALL}" "${PORTABLE_URL}" 2>/dev/null \
+        && tar tzf "${PORTABLE_TARBALL}" >/dev/null 2>&1; then
+        PORTABLE_OK=1
+        echo -e "  ${GREEN}✓${NC} $(T download_ok) 完整版封装资产（含闭源核心）"
+    else
+        for _m in ${GIT_MIRRORS}; do
+            if curl -fsSL --connect-timeout 30 --max-time 900 --retry 1 -o "${PORTABLE_TARBALL}" "${_m}${PORTABLE_URL}" 2>/dev/null \
+                && tar tzf "${PORTABLE_TARBALL}" >/dev/null 2>&1; then
+                PORTABLE_OK=1
+                echo -e "  ${GREEN}✓${NC} 镜像下载完整版封装资产成功"
+                break
+            fi
+        done
+    fi
+    if [ "${PORTABLE_OK}" = "1" ]; then
+        echo -e "  ${GREEN}✓${NC} 将安装完整版封装（含闭源核心，无需 Python 3.10+）"
+    fi
+fi
 
 # Python 检查（自动搜索所有已知路径，找不到则自动安装）
 PYTHON_BIN=""
@@ -745,8 +803,9 @@ if [ -z "${PYTHON_BIN}" ]; then
 fi
 
 # 4) 仍未找到 → 自动安装（brew 优先，其次 python.org pkg）
-if [ -z "${PYTHON_BIN}" ]; then
-    echo -e "  ${YELLOW}→ 未检测到 Python 3.10+，正在自动安装...${NC}"
+# 封装资产已下载则跳过自动安装（完整版无需 Python）
+if [ -z "${PYTHON_BIN}" ] && [ "${PORTABLE_OK}" != "1" ]; then
+    echo -e "  ${YELLOW}→ 未检测到 Python 3.10+ 且封装资产不可用，正在自动安装...${NC}"
 
     if command -v brew >/dev/null 2>&1; then
         # macOS 无 GNU timeout → 用 perl alarm 提供兼容实现 (coreutils gtimeout 无则用此)
@@ -836,6 +895,8 @@ if [ -z "${PYTHON_BIN}" ]; then
     fi
 fi
 
+# 封装版已就绪 → 跳过 Python PATH/pip/Homebrew 检查
+if [ "${PORTABLE_OK}" != "1" ]; then
 # 确保 PATH 含 Python 所在目录（keg-only 场景，供后续子进程使用）
 PY_BIN_DIR="$(dirname "${PYTHON_BIN}")"
 case ":${PATH}:" in
@@ -860,28 +921,14 @@ if command -v brew >/dev/null 2>&1; then
 else
     echo -e "  ${YELLOW}⚠${NC} $(T homebrew_not_installed)"
 fi
-
-# ── [3/6] 获取源码 ──────────────────────────────────
-echo -e "${CYAN}[3/6]${NC} $(T step3_fetch)"
-
-SOURCE_DIR=""
-USE_LOCAL=0
-
-# 检查 --offline 或 --from-dir 参数
-for arg in "$@"; do
-    case "$arg" in
-        --offline|--local) USE_LOCAL=1 ;;
-        --from-dir=*) SOURCE_DIR="${arg#*=}"; USE_LOCAL=1 ;;
-    esac
-done
-
-# 如果当前目录就是 meshctx 源码目录
-if [ -f "$(pwd)/install-mac.sh" ] && [ -f "$(pwd)/src/main.py" ]; then
-    SOURCE_DIR="$(pwd)"
-    USE_LOCAL=1
 fi
 
-if [ "${USE_LOCAL}" = "1" ] && [ -n "${SOURCE_DIR}" ]; then
+# ── [3/6] 获取安装包 ──────────────────────────────────
+echo -e "${CYAN}[3/6]${NC} $(T step3_fetch)"
+
+if [ "${PORTABLE_OK}" = "1" ]; then
+    echo -e "  ${GREEN}✓${NC} 使用完整版封装资产（含闭源核心，无需 Python 环境）"
+elif [ "${USE_LOCAL}" = "1" ] && [ -n "${SOURCE_DIR}" ]; then
     echo -e "  ${GREEN}✓${NC} $(T using_local)"
 elif [ "${USE_LOCAL}" = "1" ]; then
     echo -e "  ${YELLOW}→${NC} $(T git_cloning)"
@@ -895,6 +942,9 @@ elif [ "${USE_LOCAL}" = "1" ]; then
         exit 1
     fi
 else
+    # 封装资产已在 [2/6] 尝试下载；失败才走源码 tarball
+    if [ "${PORTABLE_OK}" != "1" ]; then
+    rm -f "${PORTABLE_TARBALL:-}"
     # 尝试下载 release tarball
     TMPDIR=$(mktemp -d)
     TARBALL="${TMPDIR}/meshctx-src.tar.gz"
@@ -907,21 +957,49 @@ else
         wget -q --timeout=60 --tries=2 -O "${TARBALL}" "${SRC_URL}" && DOWNLOAD_OK=1
     fi
 
+    # 直连失败 → 依次尝试加速镜像（ghfast.top / gh-proxy.com / ghproxy.net）
     if [ "${DOWNLOAD_OK}" != "1" ]; then
-        # Fallback: git clone
+        for _m in ${GIT_MIRRORS}; do
+            echo -e "  ${YELLOW}→${NC} 直连 GitHub 失败，尝试镜像 ${_m} ..."
+            if curl -fsSL --connect-timeout 30 --max-time 300 --retry 1 -o "${TARBALL}" "${_m}${SRC_URL}" 2>/dev/null; then
+                # 校验 tarball 完整性（部分镜像会截断传输）
+                if tar tzf "${TARBALL}" >/dev/null 2>&1; then
+                    DOWNLOAD_OK=1
+                    echo -e "  ${GREEN}✓${NC} 镜像下载成功"
+                    break
+                else
+                    echo -e "  ${YELLOW}→${NC} 镜像文件不完整，尝试下一个 ..."
+                fi
+            fi
+        done
+    fi
+
+    if [ "${DOWNLOAD_OK}" != "1" ]; then
+        # Fallback: git clone（先直连，再镜像）
         echo -e "  ${YELLOW}→${NC} $(T release_fail_try_git)"
         if git clone --depth 1 "https://github.com/${REPO}.git" "${TMPDIR}/meshctx" 2>/dev/null; then
             SOURCE_DIR="${TMPDIR}/meshctx"
             echo -e "  ${GREEN}✓${NC} $(T git_clone_ok)"
         else
+            for _m in ${GIT_MIRRORS}; do
+                echo -e "  ${YELLOW}→${NC} 直连 clone 失败，尝试镜像 ${_m} ..."
+                if git clone --depth 1 "${_m}https://github.com/${REPO}.git" "${TMPDIR}/meshctx" 2>/dev/null; then
+                    SOURCE_DIR="${TMPDIR}/meshctx"
+                    echo -e "  ${GREEN}✓${NC} $(T git_clone_ok)"
+                    break
+                fi
+            done
+        fi
+        if [ -z "${SOURCE_DIR}" ]; then
             echo -e "${RED}✗ $(T download_fail_short)${NC}"
             echo ""
             echo -e "  ${YELLOW}$(T manual_install)${NC}"
-            echo "    git clone https://github.com/${REPO}.git ~/.meshctx"
+            echo "    git clone https://ghfast.top/https://github.com/${REPO}.git ~/.meshctx"
             echo "    cd ~/.meshctx && bash install-mac.sh"
             echo ""
             exit 1
         fi
+    fi
     fi
 fi
 
@@ -944,7 +1022,33 @@ fi
 rm -rf "${INSTALL_DIR}"
 mkdir -p "${INSTALL_DIR}"
 
-if [ -n "${SOURCE_DIR}" ]; then
+if [ "${PORTABLE_OK}" = "1" ]; then
+    PORTABLE_INSTALL=1
+    tar xzf "${PORTABLE_TARBALL}" -C "${INSTALL_DIR}" 2>/dev/null || {
+        echo -e "${RED}✗ 解压封装资产失败${NC}"; exit 1
+    }
+    rm -f "${PORTABLE_TARBALL}"
+    if [ ! -x "${INSTALL_DIR}/meshctx/meshctx" ]; then
+        echo -e "${RED}✗ 封装资产缺少 meshctx 可执行文件${NC}"
+        echo "  ${PORTABLE_URL}"
+        exit 1
+    fi
+    # 护城河校验: 封装资产必须含闭源核心（缺核心 = stub, 不得安装为"完整版"）
+    VHOME=$(mktemp -d)
+    if ! _PROBE=$(HOME="$VHOME" "${INSTALL_DIR}/meshctx/meshctx" model add deepseek:chat --key sk-gate-verify 2>&1); then
+        echo -e "${RED}✗ 封装资产探针运行失败（二进制无法执行/缺依赖库？）${NC}"
+        echo "$_PROBE" | tail -5
+        rm -rf "$VHOME"
+        exit 1
+    fi
+    rm -rf "$VHOME"
+    if echo "$_PROBE" | grep -q "STUB mode"; then
+        echo -e "${RED}✗ 封装资产缺少闭源核心（stub）— 完整产品必须含闭源核心，请使用带核心的新发布资产${NC}"
+        echo "$_PROBE" | tail -5
+        exit 1
+    fi
+    echo -e "  ${GREEN}✓${NC} 封装资产含闭源核心（完整版）"
+elif [ -n "${SOURCE_DIR}" ]; then
     # Copy from source directory
     cp -R "${SOURCE_DIR}"/* "${INSTALL_DIR}/" 2>/dev/null
     [ -d "${SOURCE_DIR}/.git" ] && cp -R "${SOURCE_DIR}/.git" "${INSTALL_DIR}/" 2>/dev/null || true
@@ -979,9 +1083,11 @@ if [ -n "${CONFIG_BACKUP}" ] && [ -d "${CONFIG_BACKUP}" ]; then
 fi
 
 # ── [4/6] 闭源核心组件 (meshctx-core · 一体产品) ─────
-# 开源 + 闭源是一个整体产品：提供 MESHCTX_CORE_TOKEN 则一并安装闭源核心
-# （从私有仓库 LucyAndLuna2023/meshctx-core 拉取真实核心算法模块），
-# 未提供 token 则保留开源 stub 降级，之后可随时重跑补装。
+# 开源 + 闭源是一个整体产品：封装版核心已内嵌（PyInstaller 字节码）；
+# 源码模式必须提供 MESHCTX_CORE_TOKEN 拉取真实核心，禁止发布/安装 stub。
+if [ "${PORTABLE_INSTALL}" = "1" ]; then
+    echo -e "  ${GREEN}✓${NC} 完整版封装已含闭源核心，无需额外安装"
+else
 CORE_TOKEN="${MESHCTX_CORE_TOKEN:-}"
 if [ -z "$CORE_TOKEN" ] && [ -f "${INSTALL_DIR}/.env" ]; then
     CORE_TOKEN=$(sed -n 's/^MESHCTX_CORE_TOKEN=//p' "${INSTALL_DIR}/.env" 2>/dev/null | tr -d '"\r')
@@ -1000,13 +1106,24 @@ if [ -n "$CORE_TOKEN" ] && command -v git >/dev/null 2>&1; then
         (cd "${CORE_TMP}/core/src/core" && find . -name '*.py' ! -path './__init__.py' | tar -cf - -T -) | (cd "${INSTALL_DIR}/src/core" && tar -xf -)
         echo -e "  ${GREEN}✓${NC} 闭源核心已一体安装（完整版）"
     else
-        echo -e "  ${YELLOW}⚠${NC} 闭源核心拉取失败（token/网络），本次为开源 stub 模式"
+        echo -e "${RED}✗ 闭源核心拉取失败（token/网络）— 完整产品必须含闭源核心，禁止 stub 安装${NC}"
+        exit 1
     fi
     rm -rf "${CORE_TMP}"
+fi
+if { [ -z "$CORE_TOKEN" ] || ! command -v git >/dev/null 2>&1; } && [ "${MESHCTX_ALLOW_STUB:-}" != "1" ]; then
+    echo -e "${RED}✗ 源码安装模式需要 MESHCTX_CORE_TOKEN 以安装闭源核心（完整产品）— 建议改用默认封装资产安装${NC}"
+    echo "    设置 MESHCTX_CORE_TOKEN 后重跑，或下载完整版封装资产: ${PORTABLE_URL}"
+    echo "    （开发调试可设 MESHCTX_ALLOW_STUB=1 显式允许 stub）"
+    exit 1
+fi
 fi
 
 cd "${INSTALL_DIR}"
 
+if [ "${PORTABLE_INSTALL}" = "1" ]; then
+    echo -e "  ${GREEN}✓${NC} 封装版已内置全部依赖，跳过 venv/pip 安装"
+else
 # 创建 venv
 echo -e "  ${CYAN}→${NC} $(T creating_venv)"
 if [ ! -d "venv" ]; then
@@ -1083,12 +1200,23 @@ echo -e "  ${GREEN}✓${NC} $(T deps_ok)"
 echo -e "  ${CYAN}→${NC} $(T installing_meshctx_pkg)"
 pip install -q -e . $PIP_EXTRA 2>/dev/null || { echo -e "${RED}✗ meshctx 包安装失败${NC}"; exit 1; }
 echo -e "  ${GREEN}✓${NC} $(T meshctx_pkg_ok)"
+fi
 
 # ── meshctx 命令 ─────────────────────────────────────
 echo -e "  ${CYAN}→${NC} $(T installing_cmd)"
 
 mkdir -p ~/bin
 
+if [ "${PORTABLE_INSTALL}" = "1" ]; then
+cat > ~/bin/meshctx << 'MESHCTX_SCRIPT'
+#!/bin/bash
+# meshctx CLI wrapper (macOS 封装版)
+if [ -f ~/.meshctx/.env ]; then
+  set -a; source ~/.meshctx/.env; set +a
+fi
+exec ~/.meshctx/meshctx/meshctx "$@"
+MESHCTX_SCRIPT
+else
 cat > ~/bin/meshctx << 'MESHCTX_SCRIPT'
 #!/bin/bash
 # meshctx CLI wrapper (macOS)
@@ -1097,6 +1225,7 @@ if [ -f ~/.meshctx/.env ]; then
 fi
 cd ~/.meshctx && source venv/bin/activate && python -m src.cli "$@"
 MESHCTX_SCRIPT
+fi
 chmod +x ~/bin/meshctx
 
 # PATH 配置 (macOS 默认 zsh，但管道 bash 下 $SHELL 不可靠 → 写入所有 rc 文件)
@@ -1123,6 +1252,40 @@ echo -e "  ${CYAN}→${NC} $(T configuring_autostart)"
 LAUNCHD_DIR="${HOME}/Library/LaunchAgents"
 mkdir -p "${LAUNCHD_DIR}"
 
+if [ "${PORTABLE_INSTALL}" = "1" ]; then
+cat > "${LAUNCHD_DIR}/${LAUNCHD_LABEL}.plist" << LAUNCHDEOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>${LAUNCHD_LABEL}</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>${INSTALL_DIR}/meshctx/meshctx</string>
+        <string>start</string>
+        <string>--port</string>
+        <string>${PORT}</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>${INSTALL_DIR}</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>${HOME}/Library/Logs/meshctx.log</string>
+    <key>StandardErrorPath</key>
+    <string>${HOME}/Library/Logs/meshctx.error.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+</dict>
+</plist>
+LAUNCHDEOF
+else
 cat > "${LAUNCHD_DIR}/${LAUNCHD_LABEL}.plist" << LAUNCHDEOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -1159,6 +1322,7 @@ cat > "${LAUNCHD_DIR}/${LAUNCHD_LABEL}.plist" << LAUNCHDEOF
 </dict>
 </plist>
 LAUNCHDEOF
+fi
 
 # 卸载旧版本后加载
 launchctl unload "${LAUNCHD_DIR}/${LAUNCHD_LABEL}.plist" 2>/dev/null || true
@@ -1177,8 +1341,12 @@ if curl -s -o /dev/null -w "%{http_code}" "http://localhost:${PORT}/api/health" 
     echo -e "  ${GREEN}✓${NC} $(T service_running)"
 else
     # 手动启动
-    cd "${INSTALL_DIR}" && source venv/bin/activate
-    nohup python -m uvicorn src.main:app --host 0.0.0.0 --port ${PORT} > /dev/null 2>&1 &
+    if [ "${PORTABLE_INSTALL}" = "1" ]; then
+        nohup "${INSTALL_DIR}/meshctx/meshctx" start --port ${PORT} > /dev/null 2>&1 &
+    else
+        cd "${INSTALL_DIR}" && source venv/bin/activate
+        nohup python -m uvicorn src.main:app --host 0.0.0.0 --port ${PORT} > /dev/null 2>&1 &
+    fi
     sleep 5
     if curl -s -o /dev/null -w "%{http_code}" "http://localhost:${PORT}/api/health" 2>/dev/null | grep -q "200"; then
         echo -e "  ${GREEN}✓${NC} $(T service_manual_start)"
@@ -1188,16 +1356,23 @@ else
 fi
 
 # 版本校验
-source venv/bin/activate 2>/dev/null || true
-INSTALLED_VER=$(python -c "from src.core import __version__; print(__version__)" 2>/dev/null || echo "3.115.15")
+if [ "${PORTABLE_INSTALL}" = "1" ]; then
+    INSTALLED_VER="v${VERSION}（完整版封装）"
+else
+    source venv/bin/activate 2>/dev/null || true
+    INSTALLED_VER=$(python -c "from src.core import __version__; print(__version__)" 2>/dev/null || echo "3.115.15")
+fi
 echo -e "  ${GREEN}✓${NC} 版本 ${INSTALLED_VER}"
 
 # 闭源核心完整性校验（一体产品：开源+闭源，组件不得丢失）
-if [ -f "${INSTALL_DIR}/src/core/desktop_tool.py" ]; then
+if [ "${PORTABLE_INSTALL}" = "1" ]; then
+    echo -e "  ${GREEN}✓${NC} 闭源核心已内嵌于封装资产（完整版，探针校验通过）"
+elif [ -f "${INSTALL_DIR}/src/core/desktop_tool.py" ]; then
     echo -e "  ${GREEN}✓${NC} 闭源核心组件已就位（完整版）"
 else
-    echo -e "  ${YELLOW}⚠${NC} 未检测到闭源核心组件（当前为开源 stub 模式）"
-    echo "    设置环境变量 MESHCTX_CORE_TOKEN 后重跑本脚本，可补装完整版闭源核心"
+    echo -e "  ${RED}✗ 未检测到闭源核心组件（当前为 stub）— 完整产品必须含闭源核心${NC}"
+    echo "    建议重跑本脚本安装完整版封装资产，或设置 MESHCTX_CORE_TOKEN 后重试"
+    exit 1
 fi
 
 # ── [6/6] 完成 ──────────────────────────────────────
