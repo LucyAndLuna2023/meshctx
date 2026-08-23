@@ -76,6 +76,8 @@ jobs:
             --collect-submodules src \
             --hidden-import src \
             --hidden-import src.core \
+            --hidden-import src.main \
+            --hidden-import src.cli \
             --hidden-import yaml \
             --hidden-import openai \
             --hidden-import httpx \
