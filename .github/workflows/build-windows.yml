@@ -171,6 +171,9 @@ jobs:
           $env:USERPROFILE = $vhome
           try {
             $OUT = & 'dist\meshctx\meshctx.exe' model add deepseek:chat --key sk-gate-verify 2>&1 | Out-String
+            # 探针命令本身非 0 退出 (保存 key 不校验 API); runner 的 pwsh 包装器以
+            # $LASTEXITCODE 判定步骤成败 → 必须重置, 否则即使校验全过也报 exit 1
+            $LASTEXITCODE = 0
           } finally {
             $env:USERPROFILE = $prevUser
           }
