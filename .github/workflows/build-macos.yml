@@ -126,7 +126,9 @@ jobs:
       - name: Verify closed core in .app (禁止发布 stub)
         run: |
           BIN=dist/meshctx-desktop.app/Contents/MacOS/meshctx-desktop
-          if pyi-archive_viewer -l "$BIN" 2>/dev/null | grep -q 'desktop_tool'; then
+          # -r 必须加: -l 只列 CArchive 顶层条目(PYZ.pyz), 不递归 PYZ 内部模块
+          # 修复(2026-08-24, 002): 不加 -r 时完整包也 grep 不到 desktop_tool → 误报 stub
+          if pyi-archive_viewer -r -l "$BIN" 2>/dev/null | grep -q 'desktop_tool'; then
             echo "OK: .app 含闭源核心（PYZ 内 desktop_tool 已就位）"
           else
             echo "FAIL: .app 缺闭源核心模块 desktop_tool — 禁止发布 stub 资产"
