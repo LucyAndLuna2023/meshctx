@@ -500,7 +500,7 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.119.0"
+VERSION="3.119.2"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 PORT=3001
@@ -657,6 +657,21 @@ if [ "$PORTABLE_MODE" = "1" ]; then
     if [ ! -x "${INSTALL_DIR}/meshctx-linux/meshctx" ]; then
         echo -e "${RED}✗ 封装资产缺少 meshctx 可执行文件${NC}"; exit 1
     fi
+    # 护城河校验: 封装资产必须含闭源核心（缺核心 = stub, 不得安装为"完整版"）
+    VHOME=$(mktemp -d)
+    if ! _PROBE=$(HOME="$VHOME" "${INSTALL_DIR}/meshctx-linux/meshctx" model add deepseek:chat --key sk-gate-verify 2>&1); then
+        echo -e "${RED}✗ 封装资产探针运行失败（二进制无法执行/缺依赖库？）${NC}"
+        echo "$_PROBE" | tail -5
+        rm -rf "$VHOME"
+        exit 1
+    fi
+    rm -rf "$VHOME"
+    if echo "$_PROBE" | grep -q "STUB mode"; then
+        echo -e "${RED}✗ 封装资产缺少闭源核心（stub）— 完整产品必须含闭源核心，请使用带核心的新发布资产${NC}"
+        echo "$_PROBE" | tail -5
+        exit 1
+    fi
+    echo -e "  ${GREEN}✓${NC} 封装资产含闭源核心（完整版）"
 else
     tar xzf "${TARBALL}" -C "${INSTALL_DIR}" || {
         echo -e "${RED}✗ $(T extract_fail)${NC}"; exit 1
@@ -853,9 +868,16 @@ if [ -n "$CORE_TOKEN" ] && command -v git >/dev/null 2>&1; then
         (cd "${CORE_TMP}/core/src/core" && find . -name '*.py' ! -path './__init__.py' | tar -cf - -T -) | (cd "${INSTALL_DIR}/src/core" && tar -xf -)
         echo -e "  ${GREEN}✓${NC} 闭源核心已一体安装（完整版）"
     else
-        echo -e "  ${YELLOW}⚠${NC} 闭源核心拉取失败（token/网络），本次为开源 stub 模式"
+        echo -e "${RED}✗ 闭源核心拉取失败（token/网络）— 完整产品必须含闭源核心，禁止 stub 安装${NC}"
+        exit 1
     fi
     rm -rf "${CORE_TMP}"
+fi
+if { [ -z "$CORE_TOKEN" ] || ! command -v git >/dev/null 2>&1; } && [ "${MESHCTX_ALLOW_STUB:-}" != "1" ]; then
+    echo -e "${RED}✗ 源码安装模式需要 MESHCTX_CORE_TOKEN 以安装闭源核心（完整产品）— 建议改用默认封装资产安装${NC}"
+    echo "    设置 MESHCTX_CORE_TOKEN 后重跑，或下载完整版封装资产: ${PORTABLE_URL}"
+    echo "    （开发调试可设 MESHCTX_ALLOW_STUB=1 显式允许 stub）"
+    exit 1
 fi
 fi
 
