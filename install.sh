@@ -575,13 +575,35 @@ trap "rm -rf ${TMPDIR}" EXIT
 
 # 护城河(2026-08-23): 默认下载 PyInstaller 封装资产 meshctx-linux.tar.gz —
 # 闭源核心已编译进包(无明文源码), 一次装好完整产品; 资产不可用(旧版本/网络)时回退源码包+token 安装
+# github.com 主站在国内常不可达 → 直连失败后依次尝试公共加速镜像（仅对 github.com 官方 URL 生效，不含 token）
+GIT_MIRRORS="https://ghfast.top/ https://gh-proxy.com/ https://ghproxy.net/"
+
+_fetch_url() {
+    _url="$1"; _out="$2"
+    _dl() {
+        if command -v curl >/dev/null 2>&1; then
+            curl -fsSL --connect-timeout 30 --max-time 900 --retry 1 -o "${_out}" "${1}" 2>/dev/null
+        elif command -v wget >/dev/null 2>&1; then
+            wget -q --timeout=120 --tries=2 -O "${_out}" "${1}" 2>/dev/null
+        else
+            return 1
+        fi
+    }
+    if _dl "${_url}"; then return 0; fi
+    case "${_url}" in
+        https://github.com/*)
+            for _m in ${GIT_MIRRORS}; do
+                echo -e "  ${YELLOW}→${NC} 直连 GitHub 失败，尝试镜像 ${_m} ..."
+                if _dl "${_m}${_url}"; then return 0; fi
+            done
+            ;;
+    esac
+    return 1
+}
+
 DOWNLOAD_OK=0
 if [ -z "$MESHCTX_SRC_TARBALL" ]; then
-    if command -v wget >/dev/null 2>&1; then
-        wget -q --timeout=120 --tries=3 -O "${PORTABLE_TARBALL}" "${PORTABLE_URL}" && PORTABLE_OK=1
-    else
-        curl -fsSL --connect-timeout 60 --retry 3 -o "${PORTABLE_TARBALL}" "${PORTABLE_URL}" && PORTABLE_OK=1
-    fi
+    _fetch_url "${PORTABLE_URL}" "${PORTABLE_TARBALL}" && PORTABLE_OK=1
 fi
 if [ "$PORTABLE_OK" = "1" ]; then
     # 封装资产校验: 必须含 meshctx-linux/meshctx 可执行 (PyInstaller onedir 结构)
@@ -597,10 +619,8 @@ if [ "$PORTABLE_OK" != "1" ]; then
     # 支持本地预置源码包（离线/受限网络环境：GitHub 不可直连时）
     if [ -n "$MESHCTX_SRC_TARBALL" ] && [ -f "$MESHCTX_SRC_TARBALL" ]; then
         cp "$MESHCTX_SRC_TARBALL" "$TARBALL" && DOWNLOAD_OK=1
-    elif command -v wget >/dev/null 2>&1; then
-        wget -q --timeout=120 --tries=3 -O "${TARBALL}" "${SRC_URL}" && DOWNLOAD_OK=1
     else
-        curl -fsSL --connect-timeout 60 --retry 3 -o "${TARBALL}" "${SRC_URL}" && DOWNLOAD_OK=1
+        _fetch_url "${SRC_URL}" "${TARBALL}" && DOWNLOAD_OK=1
     fi
     if [ "$DOWNLOAD_OK" != "1" ]; then
         echo -e "${RED}✗ $(T download_fail)${NC}"
