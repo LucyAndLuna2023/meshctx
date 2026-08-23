@@ -524,6 +524,11 @@ if pgrep -f "python3? -m src\.cli" >/dev/null 2>&1; then
     pkill -9 -f "python3? -m src\.cli" 2>/dev/null || true
     KILLED=1
 fi
+# 停止 PyInstaller 封装版进程（护城河 2026-08-23 起默认完整版封装）
+if pgrep -f "meshctx-linux/meshctx" >/dev/null 2>&1; then
+    pkill -9 -f "meshctx-linux/meshctx" 2>/dev/null || true
+    KILLED=1
+fi
 sleep 1
 
 # 释放端口
@@ -563,25 +568,50 @@ echo -e "  ${GREEN}✓${NC} Python ${PY_VER}"
 echo -e "${CYAN}[3/5]${NC} $(T step_download) ${VERSION}..."
 TMPDIR=$(mktemp -d)
 TARBALL="${TMPDIR}/meshctx-src.tar.gz"
+PORTABLE_TARBALL="${TMPDIR}/meshctx-linux.tar.gz"
+PORTABLE_URL="${MESHCTX_PORTABLE_URL:-https://github.com/${REPO}/releases/download/v${VERSION}/meshctx-linux.tar.gz}"
+PORTABLE_OK=0
 trap "rm -rf ${TMPDIR}" EXIT
 
+# 护城河(2026-08-23): 默认下载 PyInstaller 封装资产 meshctx-linux.tar.gz —
+# 闭源核心已编译进包(无明文源码), 一次装好完整产品; 资产不可用(旧版本/网络)时回退源码包+token 安装
 DOWNLOAD_OK=0
-# 支持本地预置源码包（离线/受限网络环境：GitHub 不可直连时）
-if [ -n "$MESHCTX_SRC_TARBALL" ] && [ -f "$MESHCTX_SRC_TARBALL" ]; then
-    cp "$MESHCTX_SRC_TARBALL" "$TARBALL" && DOWNLOAD_OK=1
-elif command -v wget >/dev/null 2>&1; then
-    wget -q --timeout=120 --tries=3 -O "${TARBALL}" "${SRC_URL}" && DOWNLOAD_OK=1
-else
-    curl -fsSL --connect-timeout 60 --retry 3 -o "${TARBALL}" "${SRC_URL}" && DOWNLOAD_OK=1
+if [ -z "$MESHCTX_SRC_TARBALL" ]; then
+    if command -v wget >/dev/null 2>&1; then
+        wget -q --timeout=120 --tries=3 -O "${PORTABLE_TARBALL}" "${PORTABLE_URL}" && PORTABLE_OK=1
+    else
+        curl -fsSL --connect-timeout 60 --retry 3 -o "${PORTABLE_TARBALL}" "${PORTABLE_URL}" && PORTABLE_OK=1
+    fi
 fi
-
-if [ "$DOWNLOAD_OK" != "1" ]; then
-    echo -e "${RED}✗ $(T download_fail)${NC}"
-    echo "  $(T download_fail_hint)"
-    echo "  ${SRC_URL}"
-    exit 1
+if [ "$PORTABLE_OK" = "1" ]; then
+    # 封装资产校验: 必须含 meshctx-linux/meshctx 可执行 (PyInstaller onedir 结构)
+    if tar tzf "${PORTABLE_TARBALL}" 2>/dev/null | grep -q "meshctx-linux/meshctx$"; then
+        TARBALL="${PORTABLE_TARBALL}"
+        echo -e "  ${GREEN}✓${NC} $(T download_ok) 完整版封装资产 ($(du -h "${TARBALL}" | cut -f1))"
+    else
+        PORTABLE_OK=0
+        echo -e "  ${YELLOW}⚠${NC} 封装资产结构异常，回退源码包..."
+    fi
 fi
-echo -e "  ${GREEN}✓${NC} $(T download_ok) ($(du -h "${TARBALL}" | cut -f1))"
+if [ "$PORTABLE_OK" != "1" ]; then
+    # 支持本地预置源码包（离线/受限网络环境：GitHub 不可直连时）
+    if [ -n "$MESHCTX_SRC_TARBALL" ] && [ -f "$MESHCTX_SRC_TARBALL" ]; then
+        cp "$MESHCTX_SRC_TARBALL" "$TARBALL" && DOWNLOAD_OK=1
+    elif command -v wget >/dev/null 2>&1; then
+        wget -q --timeout=120 --tries=3 -O "${TARBALL}" "${SRC_URL}" && DOWNLOAD_OK=1
+    else
+        curl -fsSL --connect-timeout 60 --retry 3 -o "${TARBALL}" "${SRC_URL}" && DOWNLOAD_OK=1
+    fi
+    if [ "$DOWNLOAD_OK" != "1" ]; then
+        echo -e "${RED}✗ $(T download_fail)${NC}"
+        echo "  $(T download_fail_hint)"
+        echo "  ${PORTABLE_URL}"
+        echo "  ${SRC_URL}"
+        exit 1
+    fi
+    echo -e "  ${GREEN}✓${NC} $(T download_ok) ($(du -h "${TARBALL}" | cut -f1))"
+fi
+PORTABLE_MODE="$PORTABLE_OK"
 
 # ── Backup user config ────────────────────────────────────
 echo -e "${CYAN}[4/6]${NC} $(T step_install)"
@@ -600,14 +630,23 @@ fi
 
 rm -rf "${INSTALL_DIR}"
 mkdir -p "${INSTALL_DIR}"
-tar xzf "${TARBALL}" -C "${INSTALL_DIR}" || {
-    echo -e "${RED}✗ $(T extract_fail)${NC}"; exit 1
-}
-# 处理 tag 归档顶层目录 (meshctx-<branch>/)，把源码拍平到 INSTALL_DIR
-_SUBDIR=$(find "${INSTALL_DIR}" -maxdepth 1 -mindepth 1 -type d | head -1)
-if [ -n "$_SUBDIR" ] && [ -f "${_SUBDIR}/src/main.py" ]; then
-    mv "${_SUBDIR}"/* "${_SUBDIR}"/.[!.]* "${INSTALL_DIR}"/ 2>/dev/null || true
-    rmdir "${_SUBDIR}" 2>/dev/null || true
+if [ "$PORTABLE_MODE" = "1" ]; then
+    tar xzf "${TARBALL}" -C "${INSTALL_DIR}" || {
+        echo -e "${RED}✗ $(T extract_fail)${NC}"; exit 1
+    }
+    if [ ! -x "${INSTALL_DIR}/meshctx-linux/meshctx" ]; then
+        echo -e "${RED}✗ 封装资产缺少 meshctx 可执行文件${NC}"; exit 1
+    fi
+else
+    tar xzf "${TARBALL}" -C "${INSTALL_DIR}" || {
+        echo -e "${RED}✗ $(T extract_fail)${NC}"; exit 1
+    }
+    # 处理 tag 归档顶层目录 (meshctx-<branch>/)，把源码拍平到 INSTALL_DIR
+    _SUBDIR=$(find "${INSTALL_DIR}" -maxdepth 1 -mindepth 1 -type d | head -1)
+    if [ -n "$_SUBDIR" ] && [ -f "${_SUBDIR}/src/main.py" ]; then
+        mv "${_SUBDIR}"/* "${_SUBDIR}"/.[!.]* "${INSTALL_DIR}"/ 2>/dev/null || true
+        rmdir "${_SUBDIR}" 2>/dev/null || true
+    fi
 fi
 
 # ── Restore user config ────────────────────────────────────
@@ -634,6 +673,9 @@ fi
 
 cd "${INSTALL_DIR}"
 
+if [ "$PORTABLE_MODE" = "1" ]; then
+    echo -e "  ${GREEN}✓${NC} $(T install_done)（PyInstaller 封装版，无需 Python 依赖安装）"
+else
 # venv — robust creation with multiple fallbacks
 PYTHON_BIN=""
 for p in python3 python3.11 python3.12 python3.10 python; do
@@ -693,8 +735,19 @@ pip install -q -r requirements.txt 2>/dev/null || {
 pip install -q playwright 2>/dev/null || true
 $PYTHON_BIN -m playwright install chromium --with-deps 2>/dev/null || $PYTHON_BIN -m playwright install chromium 2>/dev/null || true
 
+fi
+
 # meshctx 命令
 mkdir -p ~/bin
+if [ "$PORTABLE_MODE" = "1" ]; then
+cat > ~/bin/meshctx << 'SCRIPT'
+#!/bin/bash
+if [ -f ~/.meshctx/.env ]; then
+  set -a; source ~/.meshctx/.env; set +a
+fi
+exec ~/.meshctx/meshctx-linux/meshctx "$@"
+SCRIPT
+else
 cat > ~/bin/meshctx << 'SCRIPT'
 #!/bin/bash
 if [ -f ~/.meshctx/.env ]; then
@@ -702,6 +755,7 @@ if [ -f ~/.meshctx/.env ]; then
 fi
 cd ~/.meshctx && source venv/bin/activate && python -m src.cli "$@"
 SCRIPT
+fi
 chmod +x ~/bin/meshctx
 
 # PATH — 支持 bash/zsh/fish
@@ -737,18 +791,29 @@ echo -e "  ${GREEN}✓${NC} $(T install_done)"
 
 # ── Verify ────────────────────────────────────────────
 echo -e "${CYAN}[5/6]${NC} $(T step_verify)"
-source venv/bin/activate
-INSTALLED_VER=$(python -c "from src.core import __version__; print(__version__)" 2>/dev/null || echo "?")
-if [ "$INSTALLED_VER" = "$VERSION" ]; then
-    echo -e "  ${GREEN}✓${NC} $(T version_ok)"
+if [ "$PORTABLE_MODE" = "1" ]; then
+    if [ -x "${INSTALL_DIR}/meshctx-linux/meshctx" ]; then
+        echo -e "  ${GREEN}✓${NC} $(T version_ok)（完整版封装，闭源核心已内置）"
+    else
+        echo -e "  ${YELLOW}⚠${NC} $(T version_warn)"
+    fi
 else
-    echo -e "  ${YELLOW}⚠${NC} $(T version_warn)"
+    source venv/bin/activate
+    INSTALLED_VER=$(python -c "from src.core import __version__; print(__version__)" 2>/dev/null || echo "?")
+    if [ "$INSTALLED_VER" = "$VERSION" ]; then
+        echo -e "  ${GREEN}✓${NC} $(T version_ok)"
+    else
+        echo -e "  ${YELLOW}⚠${NC} $(T version_warn)"
+    fi
 fi
 
 # ── 闭源核心组件 (meshctx-core · 一体产品) ─────────────────
 # 开源 + 闭源是一个整体产品：提供 MESHCTX_CORE_TOKEN 则一并安装闭源核心
 # （从私有仓库 LucyAndLuna2023/meshctx-core 拉取真实核心算法模块），
 # 未提供 token 则保留开源 stub 降级，之后可随时重跑补装。
+if [ "$PORTABLE_MODE" = "1" ]; then
+    echo -e "  ${CYAN}[6/6]${NC} 完整版封装已含闭源核心，无需额外安装"
+else
 CORE_TOKEN="${MESHCTX_CORE_TOKEN:-}"
 if [ -z "$CORE_TOKEN" ] && [ -f "${INSTALL_DIR}/.env" ]; then
     CORE_TOKEN=$(sed -n 's/^MESHCTX_CORE_TOKEN=//p' "${INSTALL_DIR}/.env" 2>/dev/null | tr -d '"'"'"'\r')
@@ -771,6 +836,7 @@ if [ -n "$CORE_TOKEN" ] && command -v git >/dev/null 2>&1; then
         echo -e "  ${YELLOW}⚠${NC} 闭源核心拉取失败（token/网络），本次为开源 stub 模式"
     fi
     rm -rf "${CORE_TMP}"
+fi
 fi
 
 # ── Done ────────────────────────────────────────────
