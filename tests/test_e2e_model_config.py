@@ -127,6 +127,25 @@ class TestSetupPage:
         # 向导页关键元素: provider 选择卡片 + 完成配置按钮
         assert "DeepSeek" in html or "selectProvider" in html or "skip" in html
 
+    def test_setup_wizard_save_ok(self, client, tmp_config):
+        """向导保存 token: POST /api/setup 应返回 success 并写入 config.yaml"""
+        resp = client.post("/api/setup", json={"provider": "deepseek", "key": "sk-test-abc123"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data.get("success") is True
+        assert data.get("models", 0) > 0
+        from src.config import get_config_path
+        cfg = get_config_path()
+        assert cfg.exists()
+        import yaml
+        entries = yaml.safe_load(cfg.read_text(encoding="utf-8"))["models"]["entries"]
+        assert any("deepseek" in mid for mid in entries)
+
+    def test_setup_wizard_save_unknown_provider(self, client, tmp_config):
+        """向导保存未知 provider 应返回 400"""
+        resp = client.post("/api/setup", json={"provider": "not-a-provider", "key": "sk-x"})
+        assert resp.status_code == 400
+
     def test_setup_page_has_presets(self, client):
         """验证模型管理页快捷预设按钮存在"""
         resp = client.get("/ui/models")
@@ -226,3 +245,65 @@ def tmp_config():
     if backup is not None:
         real_config.parent.mkdir(parents=True, exist_ok=True)
         real_config.write_text(backup)
+
+
+# ═══════════════════════════════════════════════════
+# 闭源核心 crypto 不可用时的降级修复 (006 复现: UI 保存 token 后 401)
+# 2026-08-23: 解密失败必须置空，绝不能把 enc: 密文当 key 调 API；
+#             重保存必须能覆盖损坏的 enc:/b64: key。
+# ═══════════════════════════════════════════════════
+class TestCryptoFallback:
+
+    def test_registry_load_broken_enc_key_cleared(self, tmp_path, monkeypatch):
+        """config 中 enc: 前缀无法解密 → registry 中 key 必须为空，不得拿密文调 API"""
+        monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+        from src.model_registry import ModelRegistry
+        cfg = tmp_path / "config.yaml"
+        cfg.write_text(yaml.safe_dump({
+            "models": {"entries": {"deepseek:chat": {
+                "key": "enc:broken-ciphertext",
+                "model": "deepseek-chat",
+                "base_url": "https://api.deepseek.com",
+                "provider": "deepseek"}}}
+        }), encoding="utf-8")
+        reg = ModelRegistry(config_path=str(cfg))
+        entry = reg._entries["deepseek:chat"]
+        assert entry["key"] == "", f"损坏密文不应作为 key 使用，实际: {entry['key']!r}"
+
+    def test_save_provider_key_overwrites_broken_enc(self, client, tmp_config, monkeypatch):
+        """已有 enc: 损坏 key 时，用户重保存必须覆盖（否则 UI 永远拿密文调 API → 401）"""
+        from src.config import get_config_path
+        cfg = get_config_path()
+        cfg.parent.mkdir(parents=True, exist_ok=True)
+        cfg.write_text(yaml.safe_dump({
+            "models": {"entries": {"deepseek:chat": {
+                "key": "enc:broken-ciphertext",
+                "model": "deepseek-chat",
+                "base_url": "https://api.deepseek.com",
+                "provider": "deepseek"}}}
+        }), encoding="utf-8")
+        resp = client.post("/api/providers", json={"provider": "deepseek", "key": "sk-new-999"})
+        assert resp.status_code == 200, resp.text
+        entries = yaml.safe_load(cfg.read_text(encoding="utf-8"))["models"]["entries"]
+        new_key = entries["deepseek:chat"]["key"]
+        assert new_key != "enc:broken-ciphertext", "损坏的 enc: key 未被覆盖"
+        from src.model_registry import ModelRegistry
+        reg = ModelRegistry(config_path=str(cfg))
+        assert reg._entries["deepseek:chat"]["key"] == "sk-new-999"
+
+    def test_save_provider_key_keeps_valid_existing(self, client, tmp_config):
+        """已有可解密的 key 不被覆盖（保留用户单独配置，002 审计 P1-2 语义）"""
+        from src.config import get_config_path
+        cfg = get_config_path()
+        cfg.parent.mkdir(parents=True, exist_ok=True)
+        cfg.write_text(yaml.safe_dump({
+            "models": {"entries": {"deepseek:chat": {
+                "key": "sk-existing-good",
+                "model": "deepseek-chat",
+                "base_url": "https://api.deepseek.com",
+                "provider": "deepseek"}}}
+        }), encoding="utf-8")
+        resp = client.post("/api/providers", json={"provider": "deepseek", "key": "sk-other"})
+        assert resp.status_code == 200, resp.text
+        entries = yaml.safe_load(cfg.read_text(encoding="utf-8"))["models"]["entries"]
+        assert entries["deepseek:chat"]["key"] == "sk-existing-good"
