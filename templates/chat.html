@@ -942,6 +942,7 @@ async function send() {
       } catch(e) { /* 非 JSON 错误体 */ }
       clearTimeout(timeoutId);
       setAgentStatus('idle');
+      typingDiv.remove();
       if (resp.status === 401 || resp.status === 403) {
         addMsg('ai', `[认证失败 HTTP ${resp.status}] ${detail || '需要登录'}\n请访问 /ui/login 登录后重试（本机安装默认无需密码；如设置过 MESHCTX_PASSWORD 请登录）`);
       } else if (resp.status === 429) {
