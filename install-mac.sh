@@ -864,6 +864,9 @@ fi
 # ── [3/6] 获取源码 ──────────────────────────────────
 echo -e "${CYAN}[3/6]${NC} $(T step3_fetch)"
 
+# github.com 主站在国内常不可达 → 直连失败后依次尝试公共加速镜像（仅用于开源仓库，不含 token）
+GIT_MIRRORS="https://ghfast.top/ https://gh-proxy.com/ https://ghproxy.net/"
+
 SOURCE_DIR=""
 USE_LOCAL=0
 
@@ -907,17 +910,39 @@ else
         wget -q --timeout=60 --tries=2 -O "${TARBALL}" "${SRC_URL}" && DOWNLOAD_OK=1
     fi
 
+    # 直连失败 → 依次尝试加速镜像（ghfast.top / gh-proxy.com / ghproxy.net）
     if [ "${DOWNLOAD_OK}" != "1" ]; then
-        # Fallback: git clone
+        for _m in ${GIT_MIRRORS}; do
+            echo -e "  ${YELLOW}→${NC} 直连 GitHub 失败，尝试镜像 ${_m} ..."
+            if curl -fsSL --connect-timeout 30 --max-time 300 --retry 1 -o "${TARBALL}" "${_m}${SRC_URL}" 2>/dev/null; then
+                DOWNLOAD_OK=1
+                echo -e "  ${GREEN}✓${NC} 镜像下载成功"
+                break
+            fi
+        done
+    fi
+
+    if [ "${DOWNLOAD_OK}" != "1" ]; then
+        # Fallback: git clone（先直连，再镜像）
         echo -e "  ${YELLOW}→${NC} $(T release_fail_try_git)"
         if git clone --depth 1 "https://github.com/${REPO}.git" "${TMPDIR}/meshctx" 2>/dev/null; then
             SOURCE_DIR="${TMPDIR}/meshctx"
             echo -e "  ${GREEN}✓${NC} $(T git_clone_ok)"
         else
+            for _m in ${GIT_MIRRORS}; do
+                echo -e "  ${YELLOW}→${NC} 直连 clone 失败，尝试镜像 ${_m} ..."
+                if git clone --depth 1 "${_m}https://github.com/${REPO}.git" "${TMPDIR}/meshctx" 2>/dev/null; then
+                    SOURCE_DIR="${TMPDIR}/meshctx"
+                    echo -e "  ${GREEN}✓${NC} $(T git_clone_ok)"
+                    break
+                fi
+            done
+        fi
+        if [ -z "${SOURCE_DIR}" ]; then
             echo -e "${RED}✗ $(T download_fail_short)${NC}"
             echo ""
             echo -e "  ${YELLOW}$(T manual_install)${NC}"
-            echo "    git clone https://github.com/${REPO}.git ~/.meshctx"
+            echo "    git clone https://ghfast.top/https://github.com/${REPO}.git ~/.meshctx"
             echo "    cd ~/.meshctx && bash install-mac.sh"
             echo ""
             exit 1
