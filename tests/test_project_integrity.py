@@ -160,13 +160,17 @@ class TestHomepageI18N:
 # ═══════════════════════════════════════════════════════════
 
 class TestSpecHiddenImports:
-    def test_spec_uses_collect_submodules(self):
-        """v2.41+: 使用collect_submodules自动发现,不再手动列举60+模块"""
+    def test_spec_uses_disk_enum(self):
+        """v3.119.2: 使用构建期磁盘枚举 src/core/*.py 替代 collect_submodules
+
+        collect_submodules 在 CI 隔离子进程静默返回 0 (Linux/macOS), 导致
+        发布 244/287 不完整包。修复改为磁盘递归枚举, 确定性收集。
+        """
         spec = (PROJECT / "meshctx_desktop.spec").read_text()
-        assert "collect_submodules" in spec, \
-            "spec必须使用collect_submodules('src.core')自动收集,手动列举永远会漏!"
-        assert "collect_submodules('src.core')" in spec, \
-            "spec缺少collect_submodules('src.core')"
+        assert "os.listdir(src_dir)" in spec or "rglob" in spec, \
+            "spec 必须使用构建期磁盘枚举 src/core/*.py (v3.119.2 替代 collect_submodules)"
+        assert "src/core 无模块" in spec or "禁止发布 stub" in spec, \
+            "spec 缺少空列表硬门禁 — 缺闭源核心必须 FAIL 而非静默发布 stub"
 
     def test_collect_submodules_covers_all_modules(self):
         """验证collect_submodules确实能发现所有src.core模块"""
@@ -343,12 +347,12 @@ class TestRegressionPrevention:
             "🔴 MUI_PAGE必须在MUI_LANGUAGE之前! (NSIS编译器要求)"
 
     def test_spec_not_using_manual_hiddenimports_only(self):
-        """collect_submodules必须是主策略,显式列表只是安全兜底"""
+        """磁盘枚举必须是主策略, 显式列表只是安全兜底 (v3.119.2 替代 collect_submodules)"""
         spec = (PROJECT / "meshctx_desktop.spec").read_text()
-        assert "collect_submodules('src.core')" in spec, \
-            "🔴 spec必须包含collect_submodules('src.core')!"
-        assert "collect_submodules('src')" in spec, \
-            "🔴 spec必须包含collect_submodules('src')!"
+        assert "os.listdir(src_dir)" in spec or "rglob" in spec, \
+            "🔴 spec 必须包含构建期磁盘枚举 src/core (v3.119.2)!"
+        assert "src/core 无模块" in spec or "禁止发布 stub" in spec, \
+            "🔴 spec 必须包含空列表硬门禁!"
 
     def test_install_sh_no_git_clone(self):
         """🔴 开源主体不能依赖 git clone；git clone 只允许用于可选闭源核心 meshctx-core"""
