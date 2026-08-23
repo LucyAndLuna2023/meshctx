@@ -51,7 +51,8 @@ jobs:
             (cd /tmp/meshctx-core/src/core && find . -name '*.py' ! -path './__init__.py' | tar -cf - -T -) | (cd src/core && tar -xf -)
             test -f src/core/desktop_tool.py && echo "OK: closed-source core bundled" || { echo "FAIL: core copy missing"; exit 1; }
           else
-            echo "WARN: MESHCTX_CORE_TOKEN secret not set — this build is open-source STUB only"
+            echo "FAIL: MESHCTX_CORE_TOKEN secret 未配置 — 完整产品必须含闭源核心(护城河)，禁止发布 stub 资产"
+            exit 1
           fi
 
       - name: Build macOS binary
@@ -108,6 +109,66 @@ jobs:
           file "$BIN" | tee /tmp/file_arch.txt
           grep -qE "${{ matrix.expected_arch }}" /tmp/file_arch.txt || { echo "FAIL: arch mismatch, expected ${{ matrix.expected_arch }}"; exit 1; }
 
+      - name: Verify closed core in .app (禁止发布 stub)
+        run: |
+          BIN=dist/meshctx-desktop.app/Contents/MacOS/meshctx-desktop
+          if pyi-archive_viewer -l "$BIN" 2>/dev/null | grep -q 'desktop_tool'; then
+            echo "OK: .app 含闭源核心（PYZ 内 desktop_tool 已就位）"
+          else
+            echo "FAIL: .app 缺闭源核心模块 desktop_tool — 禁止发布 stub 资产"
+            exit 1
+          fi
+
+      - name: Build macOS CLI portable (完整版 CLI/服务, core 在字节码内)
+        env:
+          # 与 .app 一致: 最低兼容 macOS 12 (Intel/Apple Silicon 用户均覆盖)
+          MACOSX_DEPLOYMENT_TARGET: '12.0'
+        run: |
+          # 与 Linux build-portable 对齐: 闭源核心经 --collect-submodules 编译进 PYZ, 不落明文 .py
+          pyinstaller --onedir \
+            --name meshctx \
+            --add-data "meshctx.yaml:." \
+            --add-data "src/i18n_translations.json:src" \
+            --add-data "templates:templates" \
+            --add-data "static:static" \
+            --collect-submodules src.core \
+            --collect-submodules src \
+            --hidden-import src \
+            --hidden-import src.core \
+            --hidden-import src.main \
+            --hidden-import src.cli \
+            --hidden-import fastapi \
+            --hidden-import uvicorn \
+            --hidden-import jinja2 \
+            --hidden-import pydantic \
+            --hidden-import yaml \
+            --hidden-import openai \
+            --hidden-import httpx \
+            src/cli.py
+          test -x dist/meshctx/meshctx && echo "OK: dist/meshctx/meshctx" || { echo "FAIL: CLI binary missing"; exit 1; }
+
+      - name: Verify closed core in CLI artifact (禁止发布 stub)
+        run: |
+          VHOME=$(mktemp -d)
+          OUT=$(HOME="$VHOME" dist/meshctx/meshctx model add deepseek:chat --key sk-gate-verify 2>&1 || true)
+          if echo "$OUT" | grep -q "STUB mode"; then
+            echo "FAIL: CLI 封装资产为 stub（缺闭源核心）— 完整产品必须含闭源核心"
+            echo "$OUT" | tail -5
+            exit 1
+          fi
+          if ! grep -q "enc:" "$VHOME/.meshctx/config.yaml" 2>/dev/null; then
+            echo "FAIL: 保存的 key 未加密（encrypt_key 不可用）— 闭源核心 crypto 缺失"
+            exit 1
+          fi
+          echo "OK: CLI 封装资产含闭源核心（crypto 正常）"
+
+      - name: Package CLI portable
+        if: success()
+        run: |
+          cp README.md dist/
+          tar -czf meshctx-macos-cli${{ matrix.asset_suffix }}.tar.gz -C dist meshctx README.md
+          ls -lh meshctx-macos-cli${{ matrix.asset_suffix }}.tar.gz
+
       - name: Package as .tar.gz
         if: success()
         run: |
@@ -146,6 +207,7 @@ jobs:
           path: |
             meshctx-macos${{ matrix.asset_suffix }}.tar.gz
             meshctx-macos${{ matrix.asset_suffix }}.dmg
+            meshctx-macos-cli${{ matrix.asset_suffix }}.tar.gz
           retention-days: 7
 
       - name: Upload to Release (tag only)
@@ -156,5 +218,6 @@ jobs:
           files: |
             meshctx-macos${{ matrix.asset_suffix }}.tar.gz
             meshctx-macos${{ matrix.asset_suffix }}.dmg
+            meshctx-macos-cli${{ matrix.asset_suffix }}.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
