@@ -46,7 +46,7 @@ from .core import (
     TaskEvaluation, TaskStatus, PatternEngine,
 )
 from .gateway import GatewayPlugin
-from .core.auth_v2 import auth_middleware_v2
+from .core.auth_v2 import auth_middleware_v2, _hash_session
 from .core.hotreload import ConfigWatcher, APIKeyFailover, MemoryBackup
 from .core.resource_manager import get_resource_manager
 
@@ -852,7 +852,8 @@ async def auth_login(request: Request):
     if password == _AUTH_PASSWORD:
         # 成功：清除失败记录
         _login_attempts.pop(client_ip, None)
-        expected = hashlib.sha256(f"{_AUTH_PASSWORD}:{_AUTH_SECRET}".encode()).hexdigest()
+        # 复用 auth_v2._hash_session：两处必须用同一 _AUTH_SECRET，否则登录 cookie 永远校验失败（2026-08-23 修复）
+        expected = _hash_session()
         resp = JSONResponse({"status": "ok"})
         is_https = request.url.scheme == "https"
         resp.set_cookie("meshctx_session", expected, httponly=True, secure=is_https, max_age=86400, samesite="lax")
