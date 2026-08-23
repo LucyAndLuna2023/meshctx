@@ -136,7 +136,9 @@ jobs:
 
       - name: Verify PYZ contains full closed core (Desktop, 禁止 stub)
         run: |
-          $tocFile = 'build\meshctx-desktop\PYZ-00.toc'
+          # workpath 默认取 spec 文件名: meshctx_desktop.spec → build\meshctx_desktop\
+          # (macOS .app 是 CLI 参数构建 --name meshctx-desktop → build\meshctx-desktop, 两者不同)
+          $tocFile = 'build\meshctx_desktop\PYZ-00.toc'
           if (-not (Test-Path $tocFile)) { Write-Host "FAIL: $tocFile 不存在"; exit 1 }
           $toc = Get-Content $tocFile -Raw
           if ($toc -notmatch 'src\.core\.desktop_tool') { Write-Host "FAIL: PYZ 缺 desktop_tool — 闭源核心未编译进包"; exit 1 }
