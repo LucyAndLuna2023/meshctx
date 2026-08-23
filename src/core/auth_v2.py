@@ -24,10 +24,13 @@ logger = logging.getLogger(__name__)
 
 _AUTH_PASSWORD=os.environ.get("MESHCTX_PASSWORD", "")
 _AUTH_SECRET=os.environ.get("MESHCTX_SECRET", secrets.token_hex(32))
-# 安全修复: 默认启用认证，除非显式禁用
-_AUTH_ENABLED = os.environ.get("MESHCTX_AUTH_DISABLED", "").lower() not in ("1", "true", "yes")
-if not _AUTH_PASSWORD and _AUTH_ENABLED:
-    logger.warning("MESHCTX_PASSWORD 未设置，认证已启用但无密码！请设置 MESHCTX_PASSWORD 或 MESHCTX_AUTH_DISABLED=1 禁用认证")
+# 认证开关: 仅当配置 MESHCTX_PASSWORD 时启用；MESHCTX_AUTH_DISABLED=1 可显式强制关闭。
+# 修复(2026-08-23): 默认启用 + 无密码 = 本地一键安装(桌面/脚本, 不设 MESHCTX_PASSWORD)下
+# 所有 /api/* 一律 401 且无法登录 → UI 保存 token/聊天等全部不可用。
+_AUTH_DISABLED = os.environ.get("MESHCTX_AUTH_DISABLED", "").lower() in ("1", "true", "yes")
+_AUTH_ENABLED = bool(_AUTH_PASSWORD) and not _AUTH_DISABLED
+if not _AUTH_PASSWORD:
+    logger.warning("⚠️ 未设置 MESHCTX_PASSWORD，认证已禁用（本地安装 UI 正常可用；公网部署请设置 MESHCTX_PASSWORD）")
 
 # API Key 存储路径
 _API_KEYS_PATH = Path.home() / ".meshctx" / "api_keys.yaml"
