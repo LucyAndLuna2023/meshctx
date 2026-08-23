@@ -12,7 +12,10 @@ aiofiles>=23.0
 packaging>=21.0
 jieba>=0.42
 tiktoken>=0.5.0
-cryptography>=3.4.8
+# 上限 <49 必须: cryptography 49+ 不再发布 macOS x86_64/universal2 wheel,
+# Intel Mac runner 会源码编译并动态链接 Homebrew OpenSSL → 打进包后在用户 Mac
+# 运行时 ImportError → key 明文落盘 (2026-08-24 CI 实测 intel 探针失败)
+cryptography>=3.4.8,<49
 
 
 # Browser automation (meshctx browser command) - 001geo audit 2026-08-16
