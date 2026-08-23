@@ -5,7 +5,7 @@ title meshctx Installer
 setlocal enabledelayedexpansion
 
 set "INSTALL_DIR=%USERPROFILE%\.meshctx"
-set "VERSION=3.119.0"
+set "VERSION=3.119.2"
 set "SRC_URL=https://github.com/LucyAndLuna2023/meshctx/archive/refs/tags/v%VERSION%.tar.gz"
 
 REM ── i18n ─────────────────────────────────────────────
@@ -91,10 +91,23 @@ if defined MESHCTX_CORE_TOKEN (
             for /r "!CORE_TMP!\core\src\core" %%f in (*.py) do if /i not "%%~nxf"=="__init__.py" copy /y "%%f" "%INSTALL_DIR%\src\core\" >nul 2>nul
             echo   [OK] 闭源核心已一体安装（完整版）
         ) else (
-            echo   [WARN] 闭源核心拉取失败（token/网络），本次为开源 stub 模式
+            echo   [ERROR] 闭源核心拉取失败（token/网络）— 完整产品必须含闭源核心，禁止 stub 安装
+            if exist "!CORE_TMP!" rmdir /s /q "!CORE_TMP!" 2>nul
+            pause
+            exit /b 1
         )
         if exist "!CORE_TMP!" rmdir /s /q "!CORE_TMP!" 2>nul
+    ) else (
+        echo   [ERROR] 未安装 git — 源码安装模式需要 git + MESHCTX_CORE_TOKEN 安装闭源核心
+        echo   [HINT] 请使用官方安装包/NSIS 安装器（已含闭源核心），或安装 git 后设置 MESHCTX_CORE_TOKEN 重跑
+        pause
+        exit /b 1
     )
+) else (
+    echo   [ERROR] 未提供 MESHCTX_CORE_TOKEN — 完整产品必须含闭源核心，禁止 stub 安装
+    echo   [HINT] 请使用官方安装包/NSIS 安装器（已含闭源核心），或设置 MESHCTX_CORE_TOKEN 后重跑
+    pause
+    exit /b 1
 )
 echo   OK
 

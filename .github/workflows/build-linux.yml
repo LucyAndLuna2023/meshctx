@@ -63,7 +63,8 @@ jobs:
           (cd /tmp/meshctx-core/src/core && find . -name '*.py' ! -path './__init__.py' | tar -cf - -T -) | (cd src/core && tar -xf -)
           test -f src/core/desktop_tool.py && echo "OK: closed-source core bundled" || { echo "FAIL: core copy missing"; exit 1; }
         else
-          echo "WARN: MESHCTX_CORE_TOKEN secret not set — STUB build"
+          echo "FAIL: MESHCTX_CORE_TOKEN secret 未配置 — 完整产品必须含闭源核心(护城河)，禁止发布 stub 资产"
+          exit 1
         fi
 
     - name: Build Linux binary (PyInstaller)
@@ -97,6 +98,21 @@ jobs:
           echo "FAIL: 明文 core .py 泄漏进包!"; find dist -path '*src/core*' -name '*.py' | head; exit 1
         fi
         echo "OK: 包内无明文 core 源码"
+
+    - name: Verify closed core in artifact (禁止发布 stub)
+      run: |
+        VHOME=$(mktemp -d)
+        OUT=$(HOME="$VHOME" dist/meshctx/meshctx model add deepseek:chat --key sk-gate-verify 2>&1 || true)
+        if echo "$OUT" | grep -q "STUB mode"; then
+          echo "FAIL: 封装资产为 stub（缺闭源核心）— 完整产品必须含闭源核心"
+          echo "$OUT" | tail -5
+          exit 1
+        fi
+        if ! grep -q "enc:" "$VHOME/.meshctx/config.yaml" 2>/dev/null; then
+          echo "FAIL: 保存的 key 未加密（encrypt_key 不可用）— 闭源核心 crypto 缺失"
+          exit 1
+        fi
+        echo "OK: 封装资产含闭源核心（crypto 正常）"
 
     - name: Package portable tar.gz
       run: |
