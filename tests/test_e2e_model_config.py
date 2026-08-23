@@ -127,6 +127,25 @@ class TestSetupPage:
         # 向导页关键元素: provider 选择卡片 + 完成配置按钮
         assert "DeepSeek" in html or "selectProvider" in html or "skip" in html
 
+    def test_setup_wizard_save_ok(self, client, tmp_config):
+        """向导保存 token: POST /api/setup 应返回 success 并写入 config.yaml"""
+        resp = client.post("/api/setup", json={"provider": "deepseek", "key": "sk-test-abc123"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data.get("success") is True
+        assert data.get("models", 0) > 0
+        from src.config import get_config_path
+        cfg = get_config_path()
+        assert cfg.exists()
+        import yaml
+        entries = yaml.safe_load(cfg.read_text(encoding="utf-8"))["models"]["entries"]
+        assert any("deepseek" in mid for mid in entries)
+
+    def test_setup_wizard_save_unknown_provider(self, client, tmp_config):
+        """向导保存未知 provider 应返回 400"""
+        resp = client.post("/api/setup", json={"provider": "not-a-provider", "key": "sk-x"})
+        assert resp.status_code == 400
+
     def test_setup_page_has_presets(self, client):
         """验证模型管理页快捷预设按钮存在"""
         resp = client.get("/ui/models")
