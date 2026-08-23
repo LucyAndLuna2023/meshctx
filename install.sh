@@ -589,12 +589,16 @@ _fetch_url() {
             return 1
         fi
     }
-    if _dl "${_url}"; then return 0; fi
+    # 下载 + tarball 完整性校验（ghproxy.net 等镜像可能截断，损坏包换下一镜像）
+    _dl_ok() {
+        _dl "$1" && tar tzf "${_out}" >/dev/null 2>&1
+    }
+    if _dl_ok "${_url}"; then return 0; fi
     case "${_url}" in
         https://github.com/*)
             for _m in ${GIT_MIRRORS}; do
-                echo -e "  ${YELLOW}→${NC} 直连 GitHub 失败，尝试镜像 ${_m} ..."
-                if _dl "${_m}${_url}"; then return 0; fi
+                echo -e "  ${YELLOW}→${NC} 直连下载失败或不完整，尝试镜像 ${_m} ..."
+                if _dl_ok "${_m}${_url}"; then return 0; fi
             done
             ;;
     esac
