@@ -915,9 +915,14 @@ else
         for _m in ${GIT_MIRRORS}; do
             echo -e "  ${YELLOW}→${NC} 直连 GitHub 失败，尝试镜像 ${_m} ..."
             if curl -fsSL --connect-timeout 30 --max-time 300 --retry 1 -o "${TARBALL}" "${_m}${SRC_URL}" 2>/dev/null; then
-                DOWNLOAD_OK=1
-                echo -e "  ${GREEN}✓${NC} 镜像下载成功"
-                break
+                # 校验 tarball 完整性（部分镜像会截断传输）
+                if tar tzf "${TARBALL}" >/dev/null 2>&1; then
+                    DOWNLOAD_OK=1
+                    echo -e "  ${GREEN}✓${NC} 镜像下载成功"
+                    break
+                else
+                    echo -e "  ${YELLOW}→${NC} 镜像文件不完整，尝试下一个 ..."
+                fi
             fi
         done
     fi
