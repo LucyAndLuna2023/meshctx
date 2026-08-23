@@ -38,3 +38,84 @@ jobs:
       with:
         update_release: true
         files: meshctx_*_all.deb
+
+  build-portable:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pyinstaller pycryptodome
+
+    - name: Install closed-source core (meshctx-core, optional)
+      env:
+        CORE_TOKEN: ${{ secrets.MESHCTX_CORE_TOKEN }}
+      run: |
+        if [ -n "${CORE_TOKEN}" ]; then
+          echo "Bundling closed-source core (full product)"
+          git clone --depth 1 "https://${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" /tmp/meshctx-core >/dev/null 2>&1
+          (cd /tmp/meshctx-core/src/core && find . -name '*.py' ! -path './__init__.py' | tar -cf - -T -) | (cd src/core && tar -xf -)
+          test -f src/core/desktop_tool.py && echo "OK: closed-source core bundled" || { echo "FAIL: core copy missing"; exit 1; }
+        else
+          echo "WARN: MESHCTX_CORE_TOKEN secret not set — STUB build"
+        fi
+
+    - name: Build Linux binary (PyInstaller)
+      run: |
+        echo "==> 护城河: core 仅经 --collect-submodules 编译为字节码, 不落明文 .py"
+        pyinstaller --onedir \
+          --name meshctx \
+          --add-data "meshctx.yaml:." \
+          --add-data "src/__init__.py:src" \
+          --add-data "src/core/__init__.py:src/core" \
+          --add-data "src/i18n_translations.json:src" \
+          --add-data "templates:templates" \
+          --add-data "static:static" \
+          --collect-submodules src.core \
+          --collect-submodules src \
+          --hidden-import src.main \
+          --hidden-import src.cli \
+          --hidden-import fastapi \
+          --hidden-import uvicorn \
+          --hidden-import jinja2 \
+          --hidden-import pydantic \
+          --hidden-import yaml \
+          --hidden-import openai \
+          --hidden-import httpx \
+          src/cli.py
+        ls -lh dist/
+
+    - name: Verify no plaintext core leaked
+      run: |
+        if find dist -path '*src/core*' -name '*.py' | grep -q .; then
+          echo "FAIL: 明文 core .py 泄漏进包!"; find dist -path '*src/core*' -name '*.py' | head; exit 1
+        fi
+        echo "OK: 包内无明文 core 源码"
+
+    - name: Package portable tar.gz
+      run: |
+        mkdir -p meshctx-linux
+        cp -r dist/meshctx/* meshctx-linux/ 2>/dev/null || cp -r dist/meshctx meshctx-linux/ 2>/dev/null || { echo "dist/meshctx 不存在"; find dist -maxdepth 2 -type d; exit 1; }
+        cp README.md meshctx-linux/ 2>/dev/null || true
+        tar czf meshctx-linux.tar.gz meshctx-linux
+        ls -lh meshctx-linux.tar.gz
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: meshctx-linux-portable
+        path: meshctx-linux.tar.gz
+        retention-days: 7
+
+    - name: Upload to Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v2
+      with:
+        update_release: true
+        files: meshctx-linux.tar.gz

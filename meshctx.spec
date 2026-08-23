@@ -4,6 +4,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 import sys, os
 from pathlib import Path
+from PyInstaller.utils.hooks import collect_submodules
 
 _here = os.path.dirname(os.path.abspath(SPECPATH)) if 'SPECPATH' in dir() else os.getcwd()
 
@@ -19,11 +20,10 @@ a = Analysis(
         # 🔧 修复: 显式包含__init__.py确保包结构完整
         ('src/__init__.py', 'src'),
         ('src/core/__init__.py', 'src/core'),
-        ('src/core/*.py', 'src/core'),
         ('src/*.py', 'src'),
         ('src/i18n_translations.json', 'src'),
     ],
-    hiddenimports=[
+    hiddenimports=collect_submodules('src.core') + [
         # 🔧 修复: 关键! 显式声明src和src.core为包 (解决Windows "parent package" 错误)
         'src',
         'src.core',

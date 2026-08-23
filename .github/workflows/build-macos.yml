@@ -67,9 +67,13 @@ jobs:
             --name meshctx-desktop \
             --icon logo.icns \
             --add-data "meshctx.yaml:." \
-            --add-data "src:src" \
+            --add-data "src/__init__.py:src" \
+            --add-data "src/core/__init__.py:src/core" \
+            --add-data "src/i18n_translations.json:src" \
             --add-data "templates:templates" \
             --add-data "static:static" \
+            --collect-submodules src.core \
+            --collect-submodules src \
             --hidden-import src \
             --hidden-import src.core \
             --hidden-import yaml \

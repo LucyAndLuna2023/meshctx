@@ -14,7 +14,6 @@ a = Analysis(
         ('version_info.txt', '.'), ('meshctx.yaml', '.'),
         ('src/__init__.py', 'src'),
         ('src/core/__init__.py', 'src/core'),
-        ('src/core/*.py', 'src/core'),
         ('src/*.py', 'src'),
         ('src/i18n_translations.json', 'src'),
         ('plugins/registry.json', 'plugins'),
