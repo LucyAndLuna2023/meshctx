@@ -73,7 +73,8 @@ jobs:
               throw "core copy failed"
             }
           } else {
-            Write-Host "WARN: MESHCTX_CORE_TOKEN not set — STUB build"
+            Write-Host "FAIL: MESHCTX_CORE_TOKEN secret 未配置 — 完整产品必须含闭源核心(护城河)，禁止发布 stub 资产"
+            exit 1
           }
 
       - name: Verify logo files
@@ -119,6 +120,15 @@ jobs:
             exit 1
           }
           Write-Host "OK: exe size = $size bytes ($([math]::Round($size/1MB,1)) MB)"
+
+      - name: Verify closed core in exe (禁止发布 stub)
+        run: |
+          $toc = pyi-archive_viewer -l dist\meshctx-desktop.exe
+          if ($toc -notmatch 'desktop_tool') {
+            Write-Host "FAIL: .exe 缺闭源核心模块 desktop_tool — 禁止发布 stub 资产"
+            exit 1
+          }
+          Write-Host "OK: .exe 含闭源核心（PYZ 内 desktop_tool 已就位）"
 
       - name: Install NSIS
         run: |

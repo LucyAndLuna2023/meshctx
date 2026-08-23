@@ -46,7 +46,7 @@ from .core import (
     TaskEvaluation, TaskStatus, PatternEngine,
 )
 from .gateway import GatewayPlugin
-from .core.auth_v2 import auth_middleware_v2
+from .core.auth_v2 import auth_middleware_v2, _hash_session
 from .core.hotreload import ConfigWatcher, APIKeyFailover, MemoryBackup
 from .core.resource_manager import get_resource_manager
 
@@ -628,7 +628,7 @@ if os.environ.get("MESHCTX_TRACE_MALLOC"):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="3.119.0",
+    version="3.119.2",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -852,7 +852,8 @@ async def auth_login(request: Request):
     if password == _AUTH_PASSWORD:
         # 成功：清除失败记录
         _login_attempts.pop(client_ip, None)
-        expected = hashlib.sha256(f"{_AUTH_PASSWORD}:{_AUTH_SECRET}".encode()).hexdigest()
+        # 复用 auth_v2._hash_session：两处必须用同一 _AUTH_SECRET，否则登录 cookie 永远校验失败（2026-08-23 修复）
+        expected = _hash_session()
         resp = JSONResponse({"status": "ok"})
         is_https = request.url.scheme == "https"
         resp.set_cookie("meshctx_session", expected, httponly=True, secure=is_https, max_age=86400, samesite="lax")
@@ -6465,7 +6466,9 @@ async def list_providers():
                         from src.core.crypto import decrypt_key
                         k = decrypt_key(k)
                     except Exception:
-                        logger.debug("decrypt provider key failed", exc_info=True)
+                        # 修复(2026-08-23, 006): 解密失败视为无有效 key，不得把密文上报为已配置
+                        logger.warning("decrypt provider key failed for %s, treat as missing", mid)
+                        k = ""
                 if k:
                     pid_ = c.get("provider") or BUILTIN_MODELS.get(mid, {}).get("provider", "")
                     key_map.setdefault(pid_, k)
@@ -6562,8 +6565,19 @@ async def save_provider_key(request: Request):
     for mid, info in builtin_models.items():
         # 跳过已有独立 key 的 entry，避免覆盖用户单独配置的子模型 key（002 审计 P1-2）
         existing = entries.get(mid) or {}
-        if existing.get("key"):
-            continue
+        ek = existing.get("key") or ""
+        if ek:
+            # 修复(2026-08-23, 006): 已有 enc:/b64: 密文但解密失败（crypto 不可用/stub）→
+            # 旧 key 已损坏，用户重保存必须能覆盖，否则 UI 永远拿密文调 API → 401
+            if ek.startswith("b64:") or ek.startswith("enc:"):
+                try:
+                    from src.core.crypto import decrypt_key
+                    decrypt_key(ek)
+                    continue  # 密文可解密 = 有效 key，保留不覆盖
+                except Exception:
+                    logger.warning("provider %s 的已有 key 解密失败，覆盖为新 key", mid)
+            else:
+                continue
         entries[mid] = {
             "key": encrypted_key,
             "model": info.get("model", mid),
