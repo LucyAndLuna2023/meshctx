@@ -101,7 +101,7 @@ async function setup() {
           <a href="/ui/" style="color:var(--muted)">{{ t('→ 管理控制台') }}</a>
         </p>`;
     } else {
-      result.innerHTML = window.__t('❌ 配置失败: ') + (data.error || '未知错误');
+      result.innerHTML = window.__t('❌ 配置失败: ') + (data.error || data.detail || '未知错误');
     }
   } catch(e) {
     result.innerHTML = window.__t('❌ 连接失败: ') + e.message;
