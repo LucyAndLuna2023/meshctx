@@ -214,11 +214,19 @@ class TestSpecModuleCoverage:
             f"修复: 在meshctx_desktop.spec hiddenimports中添加这些模块"
         )
 
-    def test_collect_submodules_in_spec(self):
-        """spec必须使用collect_submodules作为第一道防线"""
+    def test_disk_enum_in_spec(self):
+        """v3.119.2: spec 必须使用构建期磁盘枚举 src/core/*.py (替代 collect_submodules)
+
+        collect_submodules 在 CI 隔离子进程静默返回 0 (Linux/macOS), 导致发布
+        244/287 不完整包。修复改为从磁盘递归枚举 src/core/*.py 生成显式
+        hiddenimports (确定性), 并设空列表硬门禁。
+        """
         spec_text = (PROJECT / "meshctx_desktop.spec").read_text()
-        assert "collect_submodules('src.core')" in spec_text, (
-            "spec缺少collect_submodules('src.core') — 这是自动发现模块的防线"
+        assert "os.listdir(src_dir)" in spec_text or "rglob" in spec_text, (
+            "spec 缺少磁盘枚举 src/core/*.py (v3.119.2 起替代 collect_submodules)"
+        )
+        assert "src/core 无模块" in spec_text or "禁止发布 stub" in spec_text, (
+            "spec 缺少空列表硬门禁 — 缺闭源核心必须 FAIL 而非静默发布 stub"
         )
 
     def test_spec_has_no_duplicate_modules(self):
