@@ -932,7 +932,7 @@ async function send() {
       signal: controller.signal
     });
 
-    // v3.119.3: 非 SSE 错误响应（401/403/429/5xx）必须给出可操作提示，
+    // v3.119.4: 非 SSE 错误响应（401/403/429/5xx）必须给出可操作提示，
     // 而不是静默吞掉显示"[无响应] 请重试"（006 Mac: 认证开启时 /api/chat/stream 401）
     if (!resp.ok) {
       let detail = '';

@@ -60,8 +60,8 @@ jobs:
         if [ -n "${CORE_TOKEN}" ]; then
           echo "Bundling closed-source core (full product)"
           git clone --depth 1 "https://${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" /tmp/meshctx-core >/dev/null 2>&1
-          (cd /tmp/meshctx-core/src/core && find . -name '*.py' ! -path './__init__.py' | tar -cf - -T -) | (cd src/core && tar -xf -)
-          test -f src/core/desktop_tool.py && echo "OK: closed-source core bundled" || { echo "FAIL: core copy missing"; exit 1; }
+          # 修复(2026-08-24): 只叠加闭源独有模块 + 替换公开 stub; 公开真实实现(auth_v2 等)不被私有镜像覆盖
+          bash scripts/overlay_core.sh /tmp/meshctx-core/src/core
         else
           echo "FAIL: MESHCTX_CORE_TOKEN secret 未配置 — 完整产品必须含闭源核心(护城河)，禁止发布 stub 资产"
           exit 1

@@ -52,21 +52,42 @@ jobs:
               git clone --depth 1 $coreUrl $coreDir *>$null
               if ($LASTEXITCODE -ne 0) { Write-Host "FATAL: core clone failed again (exit $LASTEXITCODE)"; exit 1 }
             }
-            # 递归复制(保留子目录结构), 跳过顶层 __init__.py 保留开源 stub 路由
+            # 修复(2026-08-24): 只叠加闭源独有模块 + 替换公开 stub; 公开真实实现(auth_v2 等)不被私有镜像覆盖
             $coreRoot = Join-Path $coreDir 'src\core'
             $srcFiles = Get-ChildItem $coreRoot -Recurse -Filter *.py
             Write-Host "core modules found: $($srcFiles.Count)"
-            $copied = 0
+            $added = 0; $replaced = 0; $kept = 0
             $srcFiles | ForEach-Object {
-              # 用 GetRelativePath 避免 FullName/coreRoot 前缀不一致导致 Substring 偏移错误
               $rel = [System.IO.Path]::GetRelativePath($coreRoot, $_.FullName)
               if ($rel -eq '__init__.py') { return }
               $dest = Join-Path "src\core" $rel
-              New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
-              Copy-Item -LiteralPath $_.FullName -Destination $dest -Force
-              $copied++
+              if (-not (Test-Path -LiteralPath $dest)) {
+                New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
+                Copy-Item -LiteralPath $_.FullName -Destination $dest -Force
+                $added++
+              } else {
+                $content = Get-Content -LiteralPath $dest -Raw -ErrorAction SilentlyContinue
+                $isStub = $content.Contains('开源接口 stub') -or $content.Contains('_MeshCtxStubProxy') -or
+                          $content.Contains('_StubProxy') -or $content.Contains('meshctx-core required (private repo)') -or
+                          $content.Contains('meshctx-core (private) NOT installed')
+                if ($isStub) {
+                  Copy-Item -LiteralPath $_.FullName -Destination $dest -Force
+                  $replaced++
+                } else {
+                  Write-Host "keep public(real): $rel"
+                  $kept++
+                }
+              }
             }
-            Write-Host "copied core modules: $copied"
+            Write-Host "core overlay: added=$added replaced_stub=$replaced kept_public=$kept"
+            # 门禁: 公开仓已修复的 auth_v2(回环信任) 必须保留
+            $authV2 = Get-Content -LiteralPath "src\core\auth_v2.py" -Raw
+            if ($authV2.Contains('_is_loopback_client')) {
+              Write-Host "OK: public auth_v2 preserved (loopback trust)"
+            } else {
+              Write-Host "FAIL: auth_v2 被私有镜像覆盖, 回环信任丢失 — 禁止发布"
+              exit 1
+            }
             if (Test-Path "src\core\desktop_tool.py") { Write-Host "OK: closed-source core bundled" } else {
               Write-Host "FAIL: desktop_tool.py missing after copy"
               if (Test-Path $coreRoot) { Get-ChildItem $coreRoot | Select-Object -First 10 | ForEach-Object { Write-Host "  src: $($_.Name)" } }
