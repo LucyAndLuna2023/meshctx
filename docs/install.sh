@@ -589,12 +589,16 @@ _fetch_url() {
             return 1
         fi
     }
-    if _dl "${_url}"; then return 0; fi
+    # 下载 + tarball 完整性校验（ghproxy.net 等镜像可能截断，损坏包换下一镜像）
+    _dl_ok() {
+        _dl "$1" && tar tzf "${_out}" >/dev/null 2>&1
+    }
+    if _dl_ok "${_url}"; then return 0; fi
     case "${_url}" in
         https://github.com/*)
             for _m in ${GIT_MIRRORS}; do
-                echo -e "  ${YELLOW}→${NC} 直连 GitHub 失败，尝试镜像 ${_m} ..."
-                if _dl "${_m}${_url}"; then return 0; fi
+                echo -e "  ${YELLOW}→${NC} 直连下载失败或不完整，尝试镜像 ${_m} ..."
+                if _dl_ok "${_m}${_url}"; then return 0; fi
             done
             ;;
     esac
@@ -644,6 +648,14 @@ if [ -d "${INSTALL_DIR}" ]; then
             cp "${INSTALL_DIR}/${f}" "${CONFIG_BACKUP}/${f}" 2>/dev/null || true
         fi
     done
+    # 备份 CLI 历史输入记录（.history_*）与非 default profile 数据（profiles/）与激活 profile 标记
+    for h in "${INSTALL_DIR}"/.history_*; do
+        [ -e "$h" ] && cp -a "$h" "${CONFIG_BACKUP}/" 2>/dev/null || true
+    done
+    if [ -d "${INSTALL_DIR}/profiles" ]; then
+        cp -a "${INSTALL_DIR}/profiles" "${CONFIG_BACKUP}/" 2>/dev/null || true
+    fi
+    [ -f "${INSTALL_DIR}/.active_profile" ] && cp "${INSTALL_DIR}/.active_profile" "${CONFIG_BACKUP}/" 2>/dev/null || true
     # 也备份项目根目录的 provider_config.json（如果在别处）
     [ -z "$CONFIG_BACKUP" ] || echo -e "  ${GREEN}✓${NC} $(T backup_config)"
 fi
@@ -698,6 +710,14 @@ if [ -n "$CONFIG_BACKUP" ] && [ -d "$CONFIG_BACKUP" ]; then
         cp "${CONFIG_BACKUP}/provider_config.json" "${INSTALL_DIR}/provider_config.json" 2>/dev/null || true
         RESTORED=1
     fi
+    # CLI 历史 / profiles / 激活标记 一并恢复（与备份对应，重装不得丢失组件）
+    for h in "${CONFIG_BACKUP}"/.history_*; do
+        [ -e "$h" ] && cp -a "$h" "${INSTALL_DIR}/" 2>/dev/null || true
+    done
+    if [ -d "${CONFIG_BACKUP}/profiles" ]; then
+        cp -a "${CONFIG_BACKUP}/profiles" "${INSTALL_DIR}/" 2>/dev/null || true
+    fi
+    [ -f "${CONFIG_BACKUP}/.active_profile" ] && cp "${CONFIG_BACKUP}/.active_profile" "${INSTALL_DIR}/" 2>/dev/null || true
     # 🔒 安全: 永远不恢复旧密码，新安装默认无需密码
     if [ -f "${INSTALL_DIR}/.env" ]; then
         sed -i '/^MESHCTX_PASSWORD=/d' "${INSTALL_DIR}/.env" 2>/dev/null || true

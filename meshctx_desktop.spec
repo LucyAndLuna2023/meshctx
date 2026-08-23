@@ -16,6 +16,8 @@ a = Analysis(
         ('src/core/__init__.py', 'src/core'),
         ('src/*.py', 'src'),
         ('src/i18n_translations.json', 'src'),
+        ('templates', 'templates'),
+        ('static', 'static'),
         ('plugins/registry.json', 'plugins'),
     ],
     hiddenimports=collect_submodules('src.core') + collect_submodules('src') + [

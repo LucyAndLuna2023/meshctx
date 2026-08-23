@@ -1015,6 +1015,14 @@ if [ -d "${INSTALL_DIR}" ]; then
             cp "${INSTALL_DIR}/${f}" "${CONFIG_BACKUP}/${f}" 2>/dev/null || true
         fi
     done
+    # CLI 历史输入 / profiles / 激活标记（重装不得丢失组件, 与 install.sh 对齐）
+    for h in "${INSTALL_DIR}"/.history_*; do
+        [ -e "$h" ] && cp -a "$h" "${CONFIG_BACKUP}/" 2>/dev/null || true
+    done
+    if [ -d "${INSTALL_DIR}/profiles" ]; then
+        cp -a "${INSTALL_DIR}/profiles" "${CONFIG_BACKUP}/" 2>/dev/null || true
+    fi
+    [ -f "${INSTALL_DIR}/.active_profile" ] && cp "${INSTALL_DIR}/.active_profile" "${CONFIG_BACKUP}/" 2>/dev/null || true
     [ -z "${CONFIG_BACKUP}" ] || echo -e "  ${GREEN}✓${NC} $(T config_backed_up)"
 fi
 
@@ -1074,6 +1082,14 @@ if [ -n "${CONFIG_BACKUP}" ] && [ -d "${CONFIG_BACKUP}" ]; then
             RESTORED=1
         fi
     done
+    # CLI 历史 / profiles / 激活标记 一并恢复
+    for h in "${CONFIG_BACKUP}"/.history_*; do
+        [ -e "$h" ] && cp -a "$h" "${INSTALL_DIR}/" 2>/dev/null || true
+    done
+    if [ -d "${CONFIG_BACKUP}/profiles" ]; then
+        cp -a "${CONFIG_BACKUP}/profiles" "${INSTALL_DIR}/" 2>/dev/null || true
+    fi
+    [ -f "${CONFIG_BACKUP}/.active_profile" ] && cp "${CONFIG_BACKUP}/.active_profile" "${INSTALL_DIR}/" 2>/dev/null || true
     # 🔒 安全：永远不恢复旧密码
     if [ -f "${INSTALL_DIR}/.env" ]; then
         sed -i '' '/^MESHCTX_PASSWORD=/d' "${INSTALL_DIR}/.env" 2>/dev/null || true

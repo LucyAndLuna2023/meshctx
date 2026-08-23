@@ -130,6 +130,39 @@ jobs:
           }
           Write-Host "OK: .exe 含闭源核心（PYZ 内 desktop_tool 已就位）"
 
+      - name: Build Windows CLI portable (完整版 CLI/服务, core 在字节码内)
+        run: pyinstaller meshctx.spec --noconfirm
+
+      - name: Verify closed core in CLI artifact (禁止发布 stub)
+        run: |
+          $vhome = Join-Path $env:RUNNER_TEMP 'meshctx-cli-vhome'
+          New-Item -ItemType Directory -Force -Path $vhome | Out-Null
+          $prevUser = $env:USERPROFILE
+          $env:USERPROFILE = $vhome
+          try {
+            $OUT = & 'dist\meshctx\meshctx.exe' model add deepseek:chat --key sk-gate-verify 2>&1 | Out-String
+          } finally {
+            $env:USERPROFILE = $prevUser
+          }
+          if ($OUT -match 'STUB mode') {
+            Write-Host "FAIL: CLI 封装资产为 stub（缺闭源核心）— 完整产品必须含闭源核心"
+            Write-Host $OUT
+            exit 1
+          }
+          $cfg = Join-Path $vhome '.meshctx\config.yaml'
+          if (-not (Test-Path $cfg)) { Write-Host "FAIL: config.yaml 未生成"; exit 1 }
+          if (-not (Select-String -Path $cfg -Pattern 'enc:' -Quiet)) {
+            Write-Host "FAIL: 保存的 key 未加密（encrypt_key 不可用）— 闭源核心 crypto 缺失"
+            exit 1
+          }
+          Write-Host "OK: CLI 封装资产含闭源核心（crypto 正常）"
+
+      - name: Package CLI portable
+        run: |
+          copy README.md dist\
+          Compress-Archive -Path dist\meshctx,dist\README.md -DestinationPath meshctx-windows-cli.zip -Force
+          Get-Item meshctx-windows-cli.zip | Select-Object Name, Length
+
       - name: Install NSIS
         run: |
           choco install nsis -y --no-progress
@@ -158,6 +191,7 @@ jobs:
             dist/meshctx.exe
             dist/meshctx-setup.exe
             meshctx-portable.zip
+            meshctx-windows-cli.zip
           retention-days: 7
 
       - name: Upload to Release (tag only)
@@ -170,5 +204,6 @@ jobs:
             dist/meshctx.exe
             dist/meshctx-setup.exe
             meshctx-portable.zip
+            meshctx-windows-cli.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

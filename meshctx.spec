@@ -22,6 +22,8 @@ a = Analysis(
         ('src/core/__init__.py', 'src/core'),
         ('src/*.py', 'src'),
         ('src/i18n_translations.json', 'src'),
+        ('templates', 'templates'),
+        ('static', 'static'),
     ],
     hiddenimports=collect_submodules('src.core') + [
         # 🔧 修复: 关键! 显式声明src和src.core为包 (解决Windows "parent package" 错误)
@@ -97,10 +99,8 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
     [],
+    exclude_binaries=True,
     name='meshctx',
     debug=False,
     bootloader_ignore_signals=False,
@@ -114,4 +114,15 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=None
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='meshctx',
 )
