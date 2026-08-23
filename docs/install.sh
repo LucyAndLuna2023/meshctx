@@ -500,7 +500,7 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.119.0"
+VERSION="3.119.2"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 PORT=3001
@@ -575,13 +575,35 @@ trap "rm -rf ${TMPDIR}" EXIT
 
 # 护城河(2026-08-23): 默认下载 PyInstaller 封装资产 meshctx-linux.tar.gz —
 # 闭源核心已编译进包(无明文源码), 一次装好完整产品; 资产不可用(旧版本/网络)时回退源码包+token 安装
+# github.com 主站在国内常不可达 → 直连失败后依次尝试公共加速镜像（仅对 github.com 官方 URL 生效，不含 token）
+GIT_MIRRORS="https://ghfast.top/ https://gh-proxy.com/ https://ghproxy.net/"
+
+_fetch_url() {
+    _url="$1"; _out="$2"
+    _dl() {
+        if command -v curl >/dev/null 2>&1; then
+            curl -fsSL --connect-timeout 30 --max-time 900 --retry 1 -o "${_out}" "${1}" 2>/dev/null
+        elif command -v wget >/dev/null 2>&1; then
+            wget -q --timeout=120 --tries=2 -O "${_out}" "${1}" 2>/dev/null
+        else
+            return 1
+        fi
+    }
+    if _dl "${_url}"; then return 0; fi
+    case "${_url}" in
+        https://github.com/*)
+            for _m in ${GIT_MIRRORS}; do
+                echo -e "  ${YELLOW}→${NC} 直连 GitHub 失败，尝试镜像 ${_m} ..."
+                if _dl "${_m}${_url}"; then return 0; fi
+            done
+            ;;
+    esac
+    return 1
+}
+
 DOWNLOAD_OK=0
 if [ -z "$MESHCTX_SRC_TARBALL" ]; then
-    if command -v wget >/dev/null 2>&1; then
-        wget -q --timeout=120 --tries=3 -O "${PORTABLE_TARBALL}" "${PORTABLE_URL}" && PORTABLE_OK=1
-    else
-        curl -fsSL --connect-timeout 60 --retry 3 -o "${PORTABLE_TARBALL}" "${PORTABLE_URL}" && PORTABLE_OK=1
-    fi
+    _fetch_url "${PORTABLE_URL}" "${PORTABLE_TARBALL}" && PORTABLE_OK=1
 fi
 if [ "$PORTABLE_OK" = "1" ]; then
     # 封装资产校验: 必须含 meshctx-linux/meshctx 可执行 (PyInstaller onedir 结构)
@@ -597,10 +619,8 @@ if [ "$PORTABLE_OK" != "1" ]; then
     # 支持本地预置源码包（离线/受限网络环境：GitHub 不可直连时）
     if [ -n "$MESHCTX_SRC_TARBALL" ] && [ -f "$MESHCTX_SRC_TARBALL" ]; then
         cp "$MESHCTX_SRC_TARBALL" "$TARBALL" && DOWNLOAD_OK=1
-    elif command -v wget >/dev/null 2>&1; then
-        wget -q --timeout=120 --tries=3 -O "${TARBALL}" "${SRC_URL}" && DOWNLOAD_OK=1
     else
-        curl -fsSL --connect-timeout 60 --retry 3 -o "${TARBALL}" "${SRC_URL}" && DOWNLOAD_OK=1
+        _fetch_url "${SRC_URL}" "${TARBALL}" && DOWNLOAD_OK=1
     fi
     if [ "$DOWNLOAD_OK" != "1" ]; then
         echo -e "${RED}✗ $(T download_fail)${NC}"
@@ -637,6 +657,21 @@ if [ "$PORTABLE_MODE" = "1" ]; then
     if [ ! -x "${INSTALL_DIR}/meshctx-linux/meshctx" ]; then
         echo -e "${RED}✗ 封装资产缺少 meshctx 可执行文件${NC}"; exit 1
     fi
+    # 护城河校验: 封装资产必须含闭源核心（缺核心 = stub, 不得安装为"完整版"）
+    VHOME=$(mktemp -d)
+    if ! _PROBE=$(HOME="$VHOME" "${INSTALL_DIR}/meshctx-linux/meshctx" model add deepseek:chat --key sk-gate-verify 2>&1); then
+        echo -e "${RED}✗ 封装资产探针运行失败（二进制无法执行/缺依赖库？）${NC}"
+        echo "$_PROBE" | tail -5
+        rm -rf "$VHOME"
+        exit 1
+    fi
+    rm -rf "$VHOME"
+    if echo "$_PROBE" | grep -q "STUB mode"; then
+        echo -e "${RED}✗ 封装资产缺少闭源核心（stub）— 完整产品必须含闭源核心，请使用带核心的新发布资产${NC}"
+        echo "$_PROBE" | tail -5
+        exit 1
+    fi
+    echo -e "  ${GREEN}✓${NC} 封装资产含闭源核心（完整版）"
 else
     tar xzf "${TARBALL}" -C "${INSTALL_DIR}" || {
         echo -e "${RED}✗ $(T extract_fail)${NC}"; exit 1
@@ -833,9 +868,16 @@ if [ -n "$CORE_TOKEN" ] && command -v git >/dev/null 2>&1; then
         (cd "${CORE_TMP}/core/src/core" && find . -name '*.py' ! -path './__init__.py' | tar -cf - -T -) | (cd "${INSTALL_DIR}/src/core" && tar -xf -)
         echo -e "  ${GREEN}✓${NC} 闭源核心已一体安装（完整版）"
     else
-        echo -e "  ${YELLOW}⚠${NC} 闭源核心拉取失败（token/网络），本次为开源 stub 模式"
+        echo -e "${RED}✗ 闭源核心拉取失败（token/网络）— 完整产品必须含闭源核心，禁止 stub 安装${NC}"
+        exit 1
     fi
     rm -rf "${CORE_TMP}"
+fi
+if { [ -z "$CORE_TOKEN" ] || ! command -v git >/dev/null 2>&1; } && [ "${MESHCTX_ALLOW_STUB:-}" != "1" ]; then
+    echo -e "${RED}✗ 源码安装模式需要 MESHCTX_CORE_TOKEN 以安装闭源核心（完整产品）— 建议改用默认封装资产安装${NC}"
+    echo "    设置 MESHCTX_CORE_TOKEN 后重跑，或下载完整版封装资产: ${PORTABLE_URL}"
+    echo "    （开发调试可设 MESHCTX_ALLOW_STUB=1 显式允许 stub）"
+    exit 1
 fi
 fi
 
