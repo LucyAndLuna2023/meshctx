@@ -67,6 +67,7 @@ a = Analysis(
         'starlette.middleware', 'starlette.middleware.gzip',
         'starlette.responses',
         'numpy', 'aiofiles', 'packaging',
+        'cryptography', 'cryptography.fernet',
     ],
     hookspath=[],
     excludes=['torch','tensorflow','sklearn','keras','onnxruntime','torchvision','torchaudio','xgboost','lightgbm','numba','cupy'],

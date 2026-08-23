@@ -103,6 +103,8 @@ a = Analysis(
         'Crypto',
         'Crypto.Cipher',
         'Crypto.Cipher.AES',
+        'cryptography',
+        'cryptography.fernet',
     ],
     hookspath=[],
     runtime_hooks=[],

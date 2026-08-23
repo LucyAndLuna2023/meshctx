@@ -97,6 +97,8 @@ jobs:
           --hidden-import yaml \
           --hidden-import openai \
           --hidden-import httpx \
+          --hidden-import cryptography \
+          --hidden-import cryptography.fernet \
           $CORE_IMPORTS \
           src/cli.py
         ls -lh dist/

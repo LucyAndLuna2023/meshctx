@@ -97,6 +97,8 @@ jobs:
             --hidden-import pydantic \
             --hidden-import aiohttp \
             --hidden-import webview \
+            --hidden-import cryptography \
+            --hidden-import cryptography.fernet \
             $CORE_IMPORTS \
             meshctx_desktop.py
 
@@ -175,6 +177,8 @@ jobs:
             --hidden-import yaml \
             --hidden-import openai \
             --hidden-import httpx \
+            --hidden-import cryptography \
+            --hidden-import cryptography.fernet \
             $CORE_IMPORTS \
             src/cli.py
           test -x dist/meshctx/meshctx && echo "OK: dist/meshctx/meshctx" || { echo "FAIL: CLI binary missing"; exit 1; }
