@@ -19,22 +19,11 @@ jobs:
     - name: Install dpkg-dev
       run: sudo apt-get update -qq && sudo apt-get install -y -qq dpkg-dev
 
-    - name: Install closed-source core (meshctx-core, optional)
-      env:
-        CORE_TOKEN: ${{ secrets.MESHCTX_CORE_TOKEN }}
-      run: |
-        if [ -n "${CORE_TOKEN}" ]; then
-          echo "Bundling closed-source core (full product)"
-          git clone --depth 1 "https://${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" /tmp/meshctx-core >/dev/null 2>&1
-          # 递归复制(保留子目录结构), 跳过顶层 __init__.py 保留开源 stub 路由
-          (cd /tmp/meshctx-core/src/core && find . -name '*.py' ! -path './__init__.py' | tar -cf - -T -) | (cd src/core && tar -xf -)
-          test -f src/core/desktop_tool.py && echo "OK: closed-source core bundled" || { echo "FAIL: core copy missing"; exit 1; }
-        else
-          echo "WARN: MESHCTX_CORE_TOKEN not set — STUB build"
-        fi
-
     - name: Build .deb
-      run: bash packaging/deb/build.sh
+      run: |
+        echo "==> 护城河策略: .deb 为源码包, 绝不注入闭源 core (明文 .py 会泄露核心代码)"
+        echo "==> Linux 完整产品走 meshctx-portable.zip (PyInstaller 二进制封装, core 在字节码内)"
+        bash packaging/deb/build.sh
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
