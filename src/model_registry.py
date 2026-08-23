@@ -322,8 +322,9 @@ class ModelRegistry:
                     from src.core.crypto import decrypt_key
                     return decrypt_key(k)
                 except Exception:
-                    logger.debug("_decrypt error", exc_info=True)
-                    pass
+                    # 修复(2026-08-23, 006): 解密失败必须置空, 绝不能把密文 enc:... 当 key 调 API → 401 invalid api key
+                    logger.warning("_decrypt 失败，该 key 已损坏（crypto 不可用？），置空避免用密文调 API")
+                    return ""
             return k
         
         models_section = config.get("models", {})
