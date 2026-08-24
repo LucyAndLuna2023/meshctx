@@ -6,7 +6,7 @@ meshctx 开源 wrapper 层。核心引擎在 meshctx-core (私有仓库)。
 安装完整版: pip install meshctx-core (需授权)
 当前为 stub 模式 — 基础功能可用，高级能力优雅降级。
 """
-__version__ = "3.119.5"
+__version__ = "3.119.6"
 
 import sys, logging, warnings, os
 from functools import lru_cache

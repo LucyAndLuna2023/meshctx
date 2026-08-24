@@ -259,6 +259,34 @@ ENV_KEY_MAP = {
 }
 
 
+# v3.119.6 (004 审计建议): 自定义模型按 model_id 前缀自动识别 provider/base_url/key_env
+# 修复: meshctx model add openrouter:<id> 之前一律回退 provider=openai + 空 base_url,
+# 导致手动添加的 OpenRouter 模型显示为 OpenAI、无法正确路由到 openrouter.ai。
+_PREFIX_PROVIDER = {
+    "openrouter": ("openrouter", "https://openrouter.ai/api/v1", "OPENROUTER_API_KEY"),
+    "deepseek":   ("deepseek", "https://api.deepseek.com", "DEEPSEEK_API_KEY"),
+    "openai":     ("openai", "https://api.openai.com/v1", "OPENAI_API_KEY"),
+    "anthropic":  ("anthropic", "https://api.anthropic.com/v1", "ANTHROPIC_API_KEY"),
+    "google":     ("google", "https://generativelanguage.googleapis.com/v1beta/openai", "GEMINI_API_KEY"),
+    "bailian":    ("bailian", "https://dashscope.aliyuncs.com/compatible-mode/v1", "BAILIAN_API_KEY"),
+    "zhipu":      ("zhipu", "https://open.bigmodel.cn/api/paas/v4", "ZHIPU_API_KEY"),
+    "moonshot":   ("moonshot", "https://api.moonshot.cn/v1", "MOONSHOT_API_KEY"),
+    "doubao":     ("doubao", "https://ark.cn-beijing.volces.com/api/v3", "DOUBAO_API_KEY"),
+    "groq":       ("groq", "https://api.groq.com/openai/v1", "GROQ_API_KEY"),
+    "together":   ("together", "https://api.together.xyz/v1", "TOGETHER_API_KEY"),
+    "xai":        ("xai", "https://api.x.ai/v1", "XAI_API_KEY"),
+    "mistral":    ("mistral", "https://api.mistral.ai/v1", "MISTRAL_API_KEY"),
+    "cohere":     ("cohere", "https://api.cohere.com/v1", "COHERE_API_KEY"),
+    "perplexity": ("perplexity", "https://api.perplexity.ai", "PERPLEXITY_API_KEY"),
+}
+
+
+def _infer_provider(model_id: str):
+    """按 model_id 前缀推断 (provider, base_url, key_env)；未知前缀返回 None"""
+    prefix = (model_id or "").split(":", 1)[0].lower()
+    return _PREFIX_PROVIDER.get(prefix)
+
+
 class ModelRegistry:
     """
     极简单例模型注册中心
@@ -347,11 +375,21 @@ class ModelRegistry:
                     "provider": info["provider"],
                 }
             else:
+                # v3.119.6 (004 审计建议): 自定义条目按前缀自愈 —
+                # 历史错误保存为 provider=openai + 空 base_url 的 openrouter 等条目自动纠正
+                provider = cfg.get("provider", "")
+                base_url = cfg.get("base_url", "")
+                inferred = _infer_provider(model_id)
+                if inferred:
+                    inf_provider, inf_base_url, _ = inferred
+                    if not provider or (provider == "openai" and not base_url):
+                        provider = inf_provider
+                        base_url = base_url or inf_base_url
                 self._entries[model_id] = {
                     "key": key,
                     "model": cfg.get("model", "default"),
-                    "base_url": cfg.get("base_url", ""),
-                    "provider": cfg.get("provider", "openai"),
+                    "base_url": base_url,
+                    "provider": provider or "openai",
                 }
 
     def _ensure_default(self):
@@ -384,12 +422,21 @@ class ModelRegistry:
                 "provider": info["provider"],
             }
         else:
-            # 自定义模型
+            # 自定义模型: v3.119.6 按前缀自动识别 provider/base_url/key_env
+            # （openrouter:xxx / deepseek:xxx 等不再回退 openai + 空 base_url）
+            inferred = _infer_provider(model_id)
+            if inferred:
+                inf_provider, inf_base_url, inf_key_env = inferred
+                provider = inf_provider
+                base_url = base_url or inf_base_url
+                key = key or os.environ.get(inf_key_env, "")
+            else:
+                provider, base_url = "openai", base_url
             self._entries[model_id] = {
                 "key": key,
                 "model": model or "default",
-                "base_url": base_url or "",
-                "provider": "openai",
+                "base_url": base_url,
+                "provider": provider,
             }
         # 清除缓存
         self._clients.pop(model_id, None)

@@ -554,7 +554,10 @@ async def lifespan(app: FastAPI):
 # ═══════════════════════════════════════════════════════════
 # Memory limit: platform-aware soft limit to catch leaks
 # ═══════════════════════════════════════════════════════════
-MEMORY_SOFT_MB = int(os.environ.get("MESHCTX_MEMORY_SOFT_MB", 2048))
+# v3.119.6 (004 审计建议): 默认 2048MB 在低内存 Linux 环境会触发
+# MemoryError 'Unable to allocate output buffer'（RLIMIT_AS 虚存不足）；提至 8192 后实测正常。
+# macOS 内核忽略 RLIMIT_AS 软限不受影响；Windows 走 healer 轮询策略。
+MEMORY_SOFT_MB = int(os.environ.get("MESHCTX_MEMORY_SOFT_MB", 8192))
 
 _IS_LINUX = sys.platform == "linux"
 _IS_MACOS = sys.platform == "darwin"
@@ -628,7 +631,7 @@ if os.environ.get("MESHCTX_TRACE_MALLOC"):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="3.119.5",
+    version="3.119.6",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},

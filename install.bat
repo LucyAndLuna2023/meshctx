@@ -5,7 +5,7 @@ title meshctx Installer
 setlocal enabledelayedexpansion
 
 set "INSTALL_DIR=%USERPROFILE%\.meshctx"
-set "VERSION=3.119.5"
+set "VERSION=3.119.6"
 set "SRC_URL=https://github.com/LucyAndLuna2023/meshctx/archive/refs/tags/v%VERSION%.tar.gz"
 set "PORTABLE_URL=https://github.com/LucyAndLuna2023/meshctx/releases/download/v%VERSION%/meshctx-windows-cli.zip"
 

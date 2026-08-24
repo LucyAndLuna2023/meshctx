@@ -101,3 +101,49 @@ class TestModelDynamicV31195:
         finally:
             reg._entries.clear()
             reg._entries.update(saved)
+
+
+class TestProviderAutoDetectV31196:
+    """v3.119.6 (004 审计建议): 手动 add 的 openrouter:<id> 自动识别 provider/base_url"""
+
+    def test_add_openrouter_prefix_detected(self):
+        from src.model_registry import get_registry
+        reg = get_registry()
+        saved = dict(reg._entries)
+        try:
+            cfg = reg.add("openrouter:anthropic/claude-sonnet-4", key="sk-test")
+            assert cfg["provider"] == "openrouter"
+            assert cfg["base_url"] == "https://openrouter.ai/api/v1"
+            cfg2 = reg.add("deepseek:my-custom-model", key="sk-test")
+            assert cfg2["provider"] == "deepseek"
+            assert cfg2["base_url"] == "https://api.deepseek.com"
+        finally:
+            reg._entries.clear()
+            reg._entries.update(saved)
+
+    def test_load_config_heals_old_openai_fallback(self):
+        """历史错误条目 provider=openai + 空 base_url 在加载时自动纠正为 openrouter"""
+        from src.model_registry import ModelRegistry
+        import tempfile, os, yaml
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False, encoding="utf-8") as f:
+            yaml.dump({"models": {"entries": {
+                "openrouter:anthropic/claude-sonnet-4": {
+                    "key": "sk-old", "model": "anthropic/claude-sonnet-4",
+                    "base_url": "", "provider": "openai",
+                }
+            }}}, f, allow_unicode=True)
+            path = f.name
+        try:
+            reg = ModelRegistry()
+            reg._load_config(path)
+            cfg = reg._entries.get("openrouter:anthropic/claude-sonnet-4")
+            assert cfg is not None
+            assert cfg["provider"] == "openrouter"
+            assert cfg["base_url"] == "https://openrouter.ai/api/v1"
+        finally:
+            os.unlink(path)
+
+    def test_memory_soft_limit_default_8192(self):
+        """004 审计: 默认 2048MB 在低内存 Linux 触发 MemoryError，默认提至 8192"""
+        import src.main
+        assert src.main.MEMORY_SOFT_MB == 8192
