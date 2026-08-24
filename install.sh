@@ -500,7 +500,7 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.119.6"
+VERSION="3.120.0"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 PORT=3001

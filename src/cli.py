@@ -417,6 +417,164 @@ def _cmd_gateway_setup():
             print(f"{t('i18n_config_d30d41')}")
 
 
+_WORK_HIGH_RISK_PATTERNS = ["rm -rf /", "rm -rf ~", "mkfs.", "dd if=", "drop table",
+                        ":(){", "shutdown -h", "reboot", "format c:", "del /f /s /q c:",
+                        "chmod 777 /", "> /dev/sda"]
+
+
+def _work_has_high_risk(text: str) -> bool:
+    low = (text or "").lower()
+    return any(p in low for p in _WORK_HIGH_RISK_PATTERNS)
+
+
+def cmd_work(args):
+    """meshctx work — 自主工作模式 (v3.120.0): 长时任务 5–24h 自动分解/执行/续跑"""
+    from src.work_engine import (
+        WorkJob, save_job, load_job, list_jobs, recoverable_jobs,
+        plan_tasks, run_job, acquire_lock, release_lock, PLAN_CONFIRM_SECONDS,
+    )
+    from src.model_registry import get_registry
+
+    cmd = getattr(args, "work_cmd", None) or "run"
+    reg = get_registry(getattr(args, "config", None))
+
+    if cmd == "list":
+        jobs = list_jobs()
+        print(f"共 {len(jobs)} 个任务:")
+        for j in sorted(jobs, key=lambda x: x.created_at, reverse=True)[:20]:
+            done = sum(1 for t in j.plan if t.status == "done")
+            print(f"  {j.id} [{j.status}] {j.goal[:40]} ({done}/{len(j.plan)})")
+        return
+
+    if cmd == "status":
+        jid = getattr(args, "job_id", "") or ""
+        jobs = [load_job(jid)] if jid else list_jobs()
+        for j in jobs:
+            if not j:
+                print(f"任务不存在: {jid}")
+                continue
+            print(f"=== {j.id} [{j.status}] {j.goal}")
+            print(f"    目标时长 {j.target_hours}h · 截止 {time.strftime('%m-%d %H:%M', time.localtime(j.deadline_ts))}"
+                  f" · 成本 {j.cost_estimate}/{j.max_cost or '∞'} token")
+            for t in j.plan:
+                icon = {"done": "✅", "failed": "❌", "skipped": "⏭", "running": "▶", "pending": "·"}.get(t.status, "·")
+                print(f"    {icon} {t.title} [{t.status}]" + (f" {t.error[:80]}" if t.error else ""))
+        return
+
+    if cmd == "cancel":
+        jid = getattr(args, "job_id", "")
+        j = load_job(jid)
+        if not j:
+            print(f"任务不存在: {jid}")
+            return
+        j.status = "paused"
+        for t in j.plan:
+            if t.status == "pending":
+                t.status = "skipped"
+                t.error = "用户取消"
+        save_job(j)
+        print(f"已取消（标记 paused）: {jid} — 可 --resume 续跑")
+        return
+
+    if cmd == "archive":
+        jid = getattr(args, "job_id", "")
+        import shutil
+        from src.work_engine import WORK_DIR
+        p = WORK_DIR / f"{jid}.json"
+        if not p.exists():
+            print(f"任务不存在: {jid}")
+            return
+        arc = WORK_DIR / "archive"
+        arc.mkdir(exist_ok=True)
+        shutil.move(str(p), str(arc / p.name))
+        print(f"已归档: {jid}")
+        return
+
+    # ── run ──
+    goal = getattr(args, "goal", "") or ""
+    hours = float(getattr(args, "hours", 5) or 5)
+    resume_id = getattr(args, "resume", "") or ""
+    max_cost = int(getattr(args, "max_cost", 0) or 0)
+    retry = int(getattr(args, "retry", 3) or 3)
+
+    if resume_id:
+        job = load_job(resume_id)
+        if not job:
+            print(f"任务不存在: {resume_id}（先 meshctx work list）")
+            return
+        print(f"恢复任务 {job.id}: {job.goal}（剩余 {len([t for t in job.plan if t.status == 'pending'])} 个子任务）")
+    else:
+        if not goal:
+            print('用法: meshctx work run "目标" --hours 5  |  meshctx work --resume <id>')
+            return
+        job = WorkJob(id=uuid.uuid4().hex[:8], goal=goal, target_hours=hours,
+                      deadline_ts=time.time() + hours * 3600, max_cost=max_cost)
+        print(f"创建任务 {job.id}（{hours}h，截止 {time.strftime('%m-%d %H:%M', time.localtime(job.deadline_ts))}）")
+        client = reg.get()
+        if client is None:
+            print("✗ 未配置可用模型（先 meshctx model add <id> --key ...）")
+            return
+        job.plan = plan_tasks(job, client)
+        for t in job.plan:
+            t.max_attempts = max(1, retry)
+        save_job(job)
+
+    # 进程锁（防并发 resume）
+    try:
+        lock = acquire_lock(job.id)
+    except RuntimeError as e:
+        print(f"✗ {e}")
+        return
+
+    # print-plan-then-go: 打印清单 + 5s 倒计时可取消；高危指令需确认
+    print(f"\n📋 子任务清单（{len(job.plan)} 个）:")
+    for i, t in enumerate(job.plan, 1):
+        risk = " ⚠️高危" if _work_has_high_risk(t.detail) else ""
+        print(f"  {i:>2}. {t.title}{risk}")
+    if any(_work_has_high_risk(t.detail) for t in job.plan):
+        try:
+            ans = input("\n⚠️ 计划含高危指令，确认执行？(y/N): ").strip().lower()
+        except KeyboardInterrupt:
+            ans = "n"
+        if ans != "y":
+            job.status = "paused"
+            save_job(job)
+            release_lock(lock)
+            print("已暂停，未执行（可 --resume 恢复）")
+            return
+    else:
+        import threading
+        confirm = {}
+        def _ask():
+            try:
+                input(f"⏳ {PLAN_CONFIRM_SECONDS}s 后自动开始（回车立即开始，Ctrl+C 取消）: ")
+            except Exception:
+                confirm["v"] = "cancel"
+        th = threading.Thread(target=_ask, daemon=True)
+        th.start()
+        th.join(timeout=PLAN_CONFIRM_SECONDS)
+        if th.is_alive():
+            print("⏱ 开始执行")
+        else:
+            if confirm.get("v") == "cancel":
+                job.status = "paused"
+                save_job(job)
+                release_lock(lock)
+                print("已暂停（可 --resume 恢复）")
+                return
+
+    try:
+        run_job(job, report=lambda line: print(line, flush=True))
+        print(f"\n📄 总结（{job.id}）:\n{job.summary}")
+        print(f"文件: ~/.meshctx/work/{job.id}.json")
+    except KeyboardInterrupt:
+        job.status = "paused"
+        save_job(job)
+        print("\n⏸ 已暂停并落盘（meshctx work --resume %s 续跑）" % job.id)
+    finally:
+        release_lock(lock)
+
+
 def cmd_chat(args):
     """meshctx chat — 流式+工具+会话持久化+一发模式"""
     _ensure_keys_loaded()
@@ -2413,6 +2571,29 @@ def main():
     c.add_argument("--wall-clock", type=float, default=0.0, help="整轮处理墙钟上限秒 (默认1200; 0则读环境变量 MESHCTX_WALL_CLOCK)")
     c.add_argument("message", nargs="?", help="一发模式: 直接问一个问题")
     c.set_defaults(func=cmd_chat)
+
+    # work — 自主工作模式 (v3.120.0)
+    wk = sub.add_parser("work", help="自主工作模式 (长时任务 5-24h，自动分解/执行/续跑)")
+    wk_sub = wk.add_subparsers(dest="work_cmd")
+    wk_run = wk_sub.add_parser("run", help="运行工作任务")
+    wk_run.add_argument("goal", nargs="?", help="目标描述")
+    wk_run.add_argument("--hours", type=float, default=5.0, help="工作时长上限小时 (默认5)")
+    wk_run.add_argument("--retry", type=int, default=3, help="子任务重试次数 (默认3)")
+    wk_run.add_argument("--max-cost", type=int, default=0, help="token 成本上限 (0=不限)")
+    wk_run.add_argument("--resume", default="", help="恢复 job id")
+    wk_run.add_argument("-c", "--config")
+    wk_ls = wk_sub.add_parser("list", help="列出任务")
+    wk_ls.add_argument("-c", "--config")
+    wk_st = wk_sub.add_parser("status", help="任务进度")
+    wk_st.add_argument("job_id", nargs="?")
+    wk_st.add_argument("-c", "--config")
+    wk_cancel = wk_sub.add_parser("cancel", help="取消任务")
+    wk_cancel.add_argument("job_id")
+    wk_cancel.add_argument("-c", "--config")
+    wk_arc = wk_sub.add_parser("archive", help="归档任务")
+    wk_arc.add_argument("job_id")
+    wk_arc.add_argument("-c", "--config")
+    wk.set_defaults(func=cmd_work)
 
     # agent — 自主Agent模式
     ag = sub.add_parser("agent", help="自主Agent (OODA循环+工具)")
