@@ -80,16 +80,16 @@ class TestModelRouting:
 
 class TestUsageTracking:
     def test_record_usage_updates_stats(self, router):
-        router.record_usage("deepseek-chat", "chat", 1000, 500, 200.0)
-        stats = router._stats["deepseek-chat"]
+        router.record_usage("deepseek-v4-flash", "chat", 1000, 500, 200.0)
+        stats = router._stats["deepseek-v4-flash"]
         assert stats["calls"] == 1
         assert stats["total_tokens"] == 1500
         assert stats["total_cost"] > 0
 
     def test_multiple_records_aggregate(self, router):
         for _ in range(5):
-            router.record_usage("deepseek-chat", "chat", 200, 100, 50.0)
-        assert router._stats["deepseek-chat"]["calls"] == 5
+            router.record_usage("deepseek-v4-flash", "chat", 200, 100, 50.0)
+        assert router._stats["deepseek-v4-flash"]["calls"] == 5
 
     def test_cost_calculation(self, router):
         router.record_usage("gpt-4o", "code", 10000, 5000, 1000.0)

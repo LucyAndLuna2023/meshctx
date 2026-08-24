@@ -3,7 +3,7 @@ MeshCtx 极简模型系统 — 123模型 · 37供应商 · 零配置
 和 OpenClaw / Hermes 一样简单
 
 用法:
-    meshctx model add deepseek deepseek-chat --key sk-xxx
+    meshctx model add deepseek deepseek-v4-flash --key sk-xxx
     meshctx model use qwen-flash
     meshctx model list
     meshctx model test "你好"
@@ -18,6 +18,14 @@ from dataclasses import dataclass
 from src.config import get_config_path
 
 logger = logging.getLogger(__name__)
+
+# v3.120.3: 厂商已下架的旧 API 模型名 → 现役模型自动迁移（老 config.yaml 无需手动改）
+# DeepSeek 官方现役仅 v4 系列（deepseek-v4-flash / deepseek-v4-pro / deepseek-v4-flash-vision-exp）
+LEGACY_MODEL_ALIASES = {
+    "deepseek-chat": "deepseek-v4-flash",
+    "deepseek-reasoner": "deepseek-v4-pro",
+    "deepseek-coder": "deepseek-v4-flash",
+}
 
 # 流式输出超时(秒): HTTP 每次读块超时 / 整体空闲超时
 STREAM_READ_TIMEOUT = 60
@@ -368,9 +376,11 @@ class ModelRegistry:
             
             if model_id in BUILTIN_MODELS:
                 info = BUILTIN_MODELS[model_id]
+                model_name = cfg.get("model") or info["model"]
+                model_name = LEGACY_MODEL_ALIASES.get(model_name, model_name)
                 self._entries[model_id] = {
                     "key": key or os.environ.get(info["key_env"], ""),
-                    "model": cfg.get("model") or info["model"],
+                    "model": model_name,
                     "base_url": cfg.get("base_url") or info["base_url"],
                     "provider": info["provider"],
                 }
@@ -415,9 +425,11 @@ class ModelRegistry:
         """添加模型 (一行搞定)"""
         if model_id in BUILTIN_MODELS:
             info = BUILTIN_MODELS[model_id]
+            model_name = model or info["model"]
+            model_name = LEGACY_MODEL_ALIASES.get(model_name, model_name)
             self._entries[model_id] = {
                 "key": key or os.environ.get(info["key_env"], ""),
-                "model": model or info["model"],
+                "model": model_name,
                 "base_url": base_url or info["base_url"],
                 "provider": info["provider"],
             }

@@ -25,11 +25,11 @@ class TestManifold:
             assert point.cost_per_1k > 0, f"{mid} 无成本"
 
     def test_fisher_distance_same_model(self, router):
-        d = router.fisher_distance("deepseek-chat", "deepseek-chat")
+        d = router.fisher_distance("deepseek-v4-flash", "deepseek-v4-flash")
         assert d < 0.01  # 同模型距离≈0
 
     def test_fisher_distance_different(self, router):
-        d = router.fisher_distance("deepseek-chat", "claude-opus-4")
+        d = router.fisher_distance("deepseek-v4-flash", "claude-opus-4")
         assert d > 0.5  # 不同能力级别应有显著距离
 
     def test_fisher_distance_symmetric(self, router):
@@ -81,11 +81,11 @@ class TestSelection:
 class TestUpgradePath:
     def test_find_upgrade_path(self, router):
         path = router.find_upgrade_path(
-            "deepseek-chat",
+            "deepseek-v4-flash",
             {"reasoning": 0.95, "code": 0.9}
         )
         assert len(path) >= 1
-        assert path[0] == "deepseek-chat"
+        assert path[0] == "deepseek-v4-flash"
 
 
 class TestManifoldStats:

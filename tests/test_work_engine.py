@@ -320,6 +320,27 @@ class TestModelCatalogReality:
         assert "grok-3-beta" not in xai
         assert "grok-4.6" in xai
 
+    def test_legacy_model_name_auto_migrated(self, tmp_path, monkeypatch):
+        """v3.120.3: 老 config 里的 deepseek-chat/reasoner/coder 加载时自动迁移到 v4 现役模型"""
+        import yaml
+        from src.model_registry import ModelRegistry
+        cfg = tmp_path / "config.yaml"
+        cfg.write_text(yaml.safe_dump({
+            "models": {
+                "default": "deepseek:chat",
+                "entries": {
+                    "deepseek:chat": {"key": "sk-legacy", "model": "deepseek-chat",
+                                      "base_url": "https://api.deepseek.com", "provider": "deepseek"},
+                    "deepseek:reasoner": {"key": "sk-legacy", "model": "deepseek-reasoner",
+                                          "base_url": "https://api.deepseek.com", "provider": "deepseek"},
+                },
+            }
+        }), encoding="utf-8")
+        reg = ModelRegistry(config_path=str(cfg))
+        assert reg._entries["deepseek:chat"]["model"] == "deepseek-v4-flash"
+        assert reg._entries["deepseek:reasoner"]["model"] == "deepseek-v4-pro"
+        assert "deepseek-chat" not in {v["model"] for v in reg._entries.values()}
+
 
 class TestCliWorkNonInteractive:
     """004 审计 P1 (v3.120.2): 非交互 stdin（cron/后台/无人值守）必须默认开始而非卡 paused"""

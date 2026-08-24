@@ -46,7 +46,7 @@ REM [3/5] 注入版本号 (pyi-set_version)
 echo [3/5] Injecting version info...
 if exist "dist\meshctx-desktop.exe" (
     %PYTHON% -m PyInstaller.utils.win32.versioninfo version_info.txt dist\meshctx-desktop.exe
-    echo [OK] Version info injected: FileVersion 3.120.2
+    echo [OK] Version info injected: FileVersion 3.120.3
 ) else (
     echo [ERROR] meshctx-desktop.exe not found!
     exit /b 1
@@ -66,7 +66,7 @@ echo.
 echo ═══════════════════════════════════
 echo   BUILD COMPLETE!
 echo   dist\meshctx-setup.exe (with version info)
-echo   Version: 3.120.2
+echo   Version: 3.120.3
 echo ═══════════════════════════════════
 
 REM 可选: NSIS打包

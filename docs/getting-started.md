@@ -97,5 +97,5 @@ curl -fsSL https://raw.githubusercontent.com/LucyAndLuna2023/meshctx/main/instal
 ```bash
 cd ~/.meshctx && source venv/bin/activate
 python -c "from src.core import __version__; print(__version__)"
-# 应输出: 3.120.2
+# 应输出: 3.120.3
 ```

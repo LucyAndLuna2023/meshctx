@@ -19,7 +19,7 @@ class JEPARouter:
 
     def __init__(self):
         self._model_registry = {
-            "deepseek-chat":     {"cost": 0.5,  "speed": "fast",    "strength": "general"},
+            "deepseek-v4-flash": {"cost": 0.5,  "speed": "fast",    "strength": "general"},
             "deepseek-v4-pro":   {"cost": 0.1,  "speed": "fast",    "strength": "code"},
             "gpt-4o-mini":       {"cost": 1.0,  "speed": "medium",  "strength": "general"},
             "claude-sonnet":     {"cost": 2.0,  "speed": "medium",  "strength": "analysis"},

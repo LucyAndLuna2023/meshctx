@@ -886,7 +886,7 @@ def _llm_batch_extract_memories(messages: List[Dict]) -> List[Dict]:
     import os as _os
     try:
         # 读取模型配置（不落日志、不打印 key）
-        model = "deepseek-chat"
+        model = "deepseek-v4-flash"
         base_url = "https://api.deepseek.com"
         api_key = _os.environ.get("DEEPSEEK_API_KEY", "")
         env_path = _os.path.expanduser("~/.meshctx/.env")

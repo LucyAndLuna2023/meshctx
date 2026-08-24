@@ -4301,7 +4301,7 @@ async def save_api_key(
             config = yaml.safe_load(f) or {}
 
     provider_defaults = {
-        "deepseek": {"model_id": "deepseek:chat", "model": "deepseek-chat", "base_url": "https://api.deepseek.com/v1", "key_env": "DEEPSEEK_API_KEY"},
+        "deepseek": {"model_id": "deepseek:v4-flash", "model": "deepseek-v4-flash", "base_url": "https://api.deepseek.com", "key_env": "DEEPSEEK_API_KEY"},
         "bailian": {"model_id": "bailian:qwen-flash", "model": "qwen-plus", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "key_env": "BAILIAN_API_KEY"},
         "siliconflow": {"model_id": "siliconflow:qwen-flash", "model": "Qwen/Qwen2.5-7B-Instruct", "base_url": "https://api.siliconflow.cn/v1", "key_env": "SILICONFLOW_API_KEY"},
     }

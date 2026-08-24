@@ -352,6 +352,6 @@ class TestModelRegistry:
     def test_list_known_models(self, engine):
         models = engine.list_known_models()
         assert len(models) >= 20
-        assert "deepseek-chat" in models
+        assert "deepseek-v4-flash" in models
         assert "gpt-4o-mini" in models
-        assert "claude-3.5-sonnet" in models
+        assert "claude-sonnet-4-latest" in models

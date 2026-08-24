@@ -42,10 +42,10 @@ class CompareResult:
 # ── 模型注册表 ────────────────────────────────────────────
 
 _KNOWN_MODELS = [
-    "deepseek-chat", "deepseek-reasoner", "deepseek-coder",
-    "gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo",
-    "claude-3.5-sonnet", "claude-3-haiku", "claude-3-opus",
-    "gemini-2.0-flash", "gemini-2.0-pro", "gemini-1.5-pro",
+    "deepseek-v4-flash", "deepseek-v4-pro", "deepseek-v4-flash-vision",
+    "gpt-5", "gpt-5-mini", "gpt-5-pro", "gpt-4o", "gpt-4o-mini",
+    "claude-opus-4-latest", "claude-sonnet-4-latest", "claude-haiku-4-latest",
+    "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite",
     "qwen-max", "qwen-plus", "qwen-turbo",
     "glm-4-plus", "glm-4", "glm-4-flash",
     "moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k",
@@ -276,4 +276,3 @@ def compare_models(prompt, models=None, executor=None, **kwargs):
 def compare_models_stream(prompt, models=None, executor=None, **kwargs):
     """向后兼容: 同步调用 (非流式)"""
     return compare_models(prompt, models=models, executor=executor)
-

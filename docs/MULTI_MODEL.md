@@ -13,12 +13,12 @@
 
 | 家族 | 模型 ID 示例 | key 环境变量 |
 |---|---|---|
-| OpenAI | `openai:gpt-4o` / `openai:o3-mini` / `openai:gpt-4.5-preview` | `OPENAI_API_KEY` |
+| OpenAI | `openai:gpt-4o` / `openai:gpt-5` / `openai:gpt-5-mini` / `openai:gpt-5-pro` | `OPENAI_API_KEY` |
 | Anthropic | `anthropic:claude-sonnet` / `anthropic:claude-opus` | `ANTHROPIC_API_KEY` |
 | Google | `google:gemini-pro` / `google:gemini-flash` | `GEMINI_API_KEY` |
-| xAI | `xai:grok-3` / `xai:grok-3-mini` | `XAI_API_KEY` |
+| xAI | `xai:grok-3`（grok-4.6） | `XAI_API_KEY` |
 | OpenRouter | `openrouter:gpt-4o` / `openrouter:claude-sonnet` / `openrouter:gemini-pro` / `openrouter:llama-4`（200+ 模型统一网关） | `OPENROUTER_API_KEY` |
-| DeepSeek | `deepseek:chat` / `deepseek:reasoner` / `deepseek:v4-flash` | `DEEPSEEK_API_KEY` |
+| DeepSeek | `deepseek:v4-flash` / `deepseek:v4-pro` / `deepseek:v4-flash-vision`（chat/reasoner 兼容映射） | `DEEPSEEK_API_KEY` |
 | 阿里 Qwen | `bailian:qwen3-max` / `bailian:qwen3-plus` / `bailian:qwen-flash` | `BAILIAN_API_KEY` |
 | 智谱 GLM | `zhipu:glm-4-plus` / `zhipu:glm-4-flash` | `ZHIPU_API_KEY` |
 | 月之暗面 Kimi | `moonshot:kimi` / `moonshot:kimi-k3` | `MOONSHOT_API_KEY` |

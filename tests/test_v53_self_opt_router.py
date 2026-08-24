@@ -67,19 +67,19 @@ class TestRouter:
         r._consecutive_fail_threshold = 1
         r.record_call("only-model", "task", False, 100, 0, "error")
         model = r.route("task")
-        assert model == "only-model" or model == "deepseek-chat"
+        assert model == "only-model" or model == "deepseek-v4-flash"
 
     def test_stats(self):
         r = SelfOptimizingRouter()
-        r.record_call("deepseek-chat", "code", True, 300, 0.001)
+        r.record_call("deepseek-v4-flash", "code", True, 300, 0.001)
         stats = r.get_stats()
         assert stats["models_tracked"] == 1
-        assert "deepseek-chat" in stats["performances"]
+        assert "deepseek-v4-flash" in stats["performances"]
 
     def test_empty_route(self):
         r = SelfOptimizingRouter()
         model = r.route("unknown_task")
-        assert model == "deepseek-chat"
+        assert model == "deepseek-v4-flash"
 
     def test_singleton(self):
         r1 = get_self_opt_router()

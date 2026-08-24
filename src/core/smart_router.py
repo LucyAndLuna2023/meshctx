@@ -31,8 +31,8 @@ class RouteDecision:
 class SmartModelRouter:
     def __init__(self, **kw):
         self._DEFAULT_MODELS = {
-            "deepseek-chat": ModelInfo(0.14, 0.28, "deepseek", ModelTier.BUDGET),
-            "deepseek-coder": ModelInfo(0.14, 0.28, "deepseek", ModelTier.BUDGET),
+            "deepseek-v4-flash": ModelInfo(0.14, 0.28, "deepseek", ModelTier.BUDGET),
+            "deepseek-v4-pro": ModelInfo(0.55, 2.19, "deepseek", ModelTier.STANDARD),
             "qwen-turbo": ModelInfo(0.07, 0.07, "qwen", ModelTier.BUDGET),
             "gpt-4o-mini": ModelInfo(0.15, 0.60, "openai", ModelTier.BUDGET),
             "gpt-4o": ModelInfo(2.5, 10.0, "openai", ModelTier.STANDARD),
@@ -41,7 +41,7 @@ class SmartModelRouter:
             "gemini-2.5-pro": ModelInfo(1.25, 5.0, "google", ModelTier.STANDARD),
             "gemini-2.5-flash": ModelInfo(0.15, 0.60, "google", ModelTier.BUDGET),
             "claude-opus-4": ModelInfo(15.0, 75.0, "anthropic", ModelTier.PREMIUM),
-            "gpt-4.5-preview": ModelInfo(12.5, 50.0, "openai", ModelTier.PREMIUM),
+            "gpt-5": ModelInfo(12.5, 50.0, "openai", ModelTier.PREMIUM),
             "mistral-large": ModelInfo(2.0, 6.0, "mistral", ModelTier.STANDARD),
         }
         self._stats = {}
@@ -145,4 +145,3 @@ class SmartModelRouter:
 
 def get_model_router():
     return SmartModelRouter()
-

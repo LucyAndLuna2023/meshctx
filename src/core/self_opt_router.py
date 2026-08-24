@@ -37,7 +37,7 @@ class SelfOptimizingRouter:
         self._excluded_models: set[str] = set()
         self._consecutive_fail_threshold = 3
         self._consecutive_failures: dict[str, int] = defaultdict(int)
-        self._fallback_model = "deepseek-chat"
+        self._fallback_model = "deepseek-v4-flash"
 
     def record_call(self, model: str, task_type: str, success: bool,
                     latency_ms: float, cost: float, error_type=None):
@@ -78,8 +78,8 @@ class SelfOptimizingRouter:
             return best
 
         # If all task-specific models excluded or none exist, try fallback
-        if "deepseek-chat" not in self._excluded_models:
-            return "deepseek-chat"
+        if "deepseek-v4-flash" not in self._excluded_models:
+            return "deepseek-v4-flash"
 
         # Last resort: return first model not excluded or fallback
         for m in self._performances:

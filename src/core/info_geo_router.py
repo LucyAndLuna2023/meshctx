@@ -41,14 +41,14 @@ NUM_FEATURES = 8
 # 特征均为 [0, 1] 区间; 成本为 USD/1K tokens (近似值)
 _BUILTIN_MODELS: List[Tuple[str, List[float], float, str]] = [
     # model_id,                       [rea, cod, spd, con, mul, chn, cre, saf], cost,  provider
-    ("deepseek-chat",                 [0.72, 0.78, 0.60, 0.68, 0.55, 0.92, 0.60, 0.70], 0.27, "deepseek"),
-    ("deepseek-reasoner",             [0.88, 0.82, 0.40, 0.75, 0.60, 0.90, 0.65, 0.75], 0.55, "deepseek"),
+    ("deepseek-v4-flash",             [0.72, 0.78, 0.60, 0.68, 0.55, 0.92, 0.60, 0.70], 0.27, "deepseek"),
+    ("deepseek-v4-pro",               [0.88, 0.82, 0.40, 0.75, 0.60, 0.90, 0.65, 0.75], 0.55, "deepseek"),
     ("gpt-4o",                        [0.78, 0.76, 0.55, 0.80, 0.70, 0.65, 0.72, 0.82], 2.50, "openai"),
     ("gpt-4o-mini",                   [0.60, 0.62, 0.80, 0.65, 0.60, 0.55, 0.60, 0.70], 0.15, "openai"),
-    ("gpt-4.5-preview",               [0.85, 0.80, 0.35, 0.82, 0.72, 0.60, 0.78, 0.85], 3.75, "openai"),
+    ("gpt-5",                         [0.85, 0.80, 0.35, 0.82, 0.72, 0.60, 0.78, 0.85], 3.75, "openai"),
     ("claude-opus-4",                 [0.92, 0.88, 0.25, 0.90, 0.80, 0.50, 0.85, 0.90], 15.0, "anthropic"),
     ("claude-sonnet-4",               [0.82, 0.84, 0.70, 0.85, 0.78, 0.45, 0.78, 0.85], 3.00, "anthropic"),
-    ("claude-haiku-3.5",              [0.58, 0.60, 0.90, 0.65, 0.55, 0.40, 0.58, 0.72], 0.80, "anthropic"),
+    ("claude-haiku-4-latest",         [0.58, 0.60, 0.90, 0.65, 0.55, 0.40, 0.58, 0.72], 0.80, "anthropic"),
     ("gemini-2.0-flash",              [0.65, 0.66, 0.85, 0.62, 0.65, 0.42, 0.60, 0.68], 0.10, "google"),
     ("gemini-2.0-pro",                [0.80, 0.78, 0.50, 0.78, 0.68, 0.45, 0.70, 0.80], 1.50, "google"),
     ("qwen-turbo",                    [0.62, 0.64, 0.78, 0.60, 0.68, 0.88, 0.60, 0.68], 0.23, "alibaba"),
@@ -236,4 +236,3 @@ class InformationGeometricRouter:
             "closest_pairs": closest_pairs,
             "farthest_pairs": farthest_pairs,
         }
-
