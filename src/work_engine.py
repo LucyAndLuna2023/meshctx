@@ -28,6 +28,7 @@ TASK_WALL_MIN = 1200          # 子任务墙钟下限 20min（安全下限，防
 TASK_WALL_MAX = 7200          # 子任务墙钟上限 2h
 DEADLINE_GRACE = 600          # 软截止容忍 10min
 HEARTBEAT_TIMEOUT = 120       # running 但 heartbeat 超时 → 判死重跑
+HEARTBEAT_INTERVAL = 30      # 任务执行期间心跳更新间隔（004 审计 P2）
 COST_PER_TASK_EST = 20000     # 每子任务粗算 token（v0.1 粗算：attempts×子任务数×估算）
 PLAN_CONFIRM_SECONDS = 5      # print-plan-then-go 倒计时
 # action_gate 高危工具（发布包内闭源真身有完整白名单；开源 stub 环境优雅降级）
@@ -153,8 +154,13 @@ def classify_error(text: str) -> str:
     if any(k in t for k in ("429", "rate limit", "rate_limit", "too many requests")):
         return "rate_limit"
     if any(k in t for k in ("timed out", "timeout", "超时", "connection", "refused", "reset",
-                            "连接", "拒绝", " 5", "50", "52", "53", "54", "500", "502", "503", "504",
-                            "service unavailable", "internal server error", "network")):
+                            "连接", "拒绝", "service unavailable", "internal server error",
+                            "network", "connection error", "远程主机强迫关闭")):
+        return "retry"
+    import re as _re
+    # 状态码需出现在错误上下文（error/status/http/server/gateway/unavailable 附近），
+    # 避免 "写了 504 行文档" 之类纯数字误报
+    if _re.search(r"\b(500|502|503|504)\b", t) and             _re.search(r"(error|status|http|server|gateway|unavailable)", t):
         return "retry"
     return "business"
 
@@ -246,12 +252,38 @@ def release_lock(lock: Path):
 
 # ── 单任务执行（复用 run_agent_loop + 分层重试）────────────
 
-def _run_one_task(client, task: WorkTask, wall_clock: int) -> None:
-    """执行单个子任务并写回 task 状态（含重试）。"""
+_API_ERROR_PATTERNS = (
+    ("auth", ("error code: 401", "error code: 403", "authentication fails", "authentication failed",
+              "invalid api key", "401 unauthorized", "403 forbidden", "api key invalid")),
+    ("rate_limit", ("429", "rate limit", "rate_limit", "too many requests",
+                    "quota exceeded", "insufficient_quota", "payment required", "402")),
+    ("retry", ("error code: 500", "error code: 502", "error code: 503", "error code: 504",
+               "http 500", "http 502", "http 503", "http 504", "internal server error",
+               "service unavailable", "server error", "overloaded", "temporarily")),
+)
+
+
+def _detect_api_error(text: str) -> Optional[str]:
+    """检测模型返回文本中的 API 错误特征（run_agent_loop 可能把错误当正常文本返回）。
+
+    返回分类（auth/rate_limit/retry），未命中返回 None。004 审计 P1: 假 key 实测
+    result='Error code: 401 - Authentication Fails...' 被误判 status=done。
+    """
+    t = (text or "").lower()
+    for kind, pats in _API_ERROR_PATTERNS:
+        if any(p in t for p in pats):
+            return kind
+    return None
+
+
+def _run_one_task(client, task: WorkTask, wall_clock: int, heartbeat_cb=None) -> None:
+    """执行单个子任务并写回 task 状态（含重试）。
+
+    heartbeat_cb: 可选回调，任务执行期间每 30s 调用一次（004 审计 P2: 长任务心跳粒度）。
+    """
     from src.agent_loop import run_agent_loop
     from src.chat_tools import TOOLS_OPENAI, execute_tool
 
-    deadline_soft = None
     while task.attempts < task.max_attempts:
         task.attempts += 1
         task.status = "running"
@@ -266,6 +298,7 @@ def _run_one_task(client, task: WorkTask, wall_clock: int) -> None:
             ]
             async def _run():
                 nonlocal final, error_text, timed_out
+                last_hb = time.time()
                 async for ev in run_agent_loop(
                     client, messages,
                     tools=TOOLS_OPENAI,
@@ -273,6 +306,9 @@ def _run_one_task(client, task: WorkTask, wall_clock: int) -> None:
                     max_rounds=4,
                     wall_clock=float(wall_clock),
                 ):
+                    if heartbeat_cb and (time.time() - last_hb) >= HEARTBEAT_INTERVAL:
+                        heartbeat_cb()
+                        last_hb = time.time()
                     if ev["type"] == "token":
                         final += ev["text"]
                     elif ev["type"] == "error":
@@ -287,6 +323,13 @@ def _run_one_task(client, task: WorkTask, wall_clock: int) -> None:
         if timed_out:
             error_text = f"子任务墙钟超时（{wall_clock}s）"
         final = final.strip()
+        # P1 (004): run_agent_loop 把 API 错误当正常文本返回时 error_text 为空 → 假成功。
+        # 对 final 做 API 错误特征检测，命中则转入错误分类（不再判 done）。
+        if not error_text:
+            api_kind = _detect_api_error(final)
+            if api_kind:
+                error_text = f"[API 错误文本:{api_kind}] {final[:400]}"
+                final = ""
         if error_text and not final:
             kind = classify_error(error_text)
             if kind == "auth":
@@ -363,6 +406,14 @@ def run_job(job: WorkJob, report=None) -> WorkJob:
         save_job(job)
         return job
 
+    # P2 (004): resume 判死接线 — running 但 heartbeat 超时（进程死）的任务标 pending 重跑
+    if job.status == "running" and job.last_heartbeat and             (time.time() - job.last_heartbeat) > HEARTBEAT_TIMEOUT:
+        for t in job.plan:
+            if t.status == "running":
+                t.status = "pending"
+        job.status = "pending"
+        save_job(job)
+
     job.status = "running"
     save_job(job)
     tw = task_wall_seconds(job)
@@ -387,7 +438,7 @@ def run_job(job: WorkJob, report=None) -> WorkJob:
             break
         _log(f"[{i+1}/{len(job.plan)}] ▶ {task.title}（墙钟 {tw}s）")
         task.started_at = time.time()
-        _run_one_task(client, task, wall_clock=tw)
+        _run_one_task(client, task, wall_clock=tw, heartbeat_cb=lambda: _heartbeat(job))
         task.finished_at = time.time()
         job.cost_estimate += task.attempts * COST_PER_TASK_EST
         _heartbeat(job)

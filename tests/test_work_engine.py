@@ -170,3 +170,118 @@ class TestRunJob:
         done = [t for t in job.plan if t.status == "done"]
         assert len(done) == 1
         assert job.cost_estimate >= job.max_cost
+
+
+class TestApiErrorTextDetection:
+    """004 审计 P1: run_agent_loop 把 API 错误当正常文本返回 → 假成功"""
+
+    def test_401_text_marks_failed_not_done(self, tmp_path, monkeypatch):
+        import src.work_engine as we
+        import src.agent_loop as al
+        monkeypatch.setattr(we, "WORK_DIR", tmp_path)
+        async def fake_loop(client, messages, **kw):
+            yield {"type": "token",
+                   "text": "Error code: 401 - Authentication Fails. Please check your API key."}
+        monkeypatch.setattr(al, "run_agent_loop", fake_loop)
+        task = we.WorkTask(id="t", title="a", detail="a")
+        we._run_one_task(_make_fake_client(), task, wall_clock=1200)
+        assert task.status == "failed"
+        assert task.attempts == 1          # auth 不重试
+        assert "API 错误文本" in task.error or "401" in task.error
+
+    def test_500_text_retries_until_max(self, tmp_path, monkeypatch):
+        import src.work_engine as we
+        import src.agent_loop as al
+        monkeypatch.setattr(we, "WORK_DIR", tmp_path)
+        monkeypatch.setattr(we, "backoff_seconds", lambda a: 0)  # 免等退避
+        calls = {"n": 0}
+        async def fake_loop(client, messages, **kw):
+            calls["n"] += 1
+            yield {"type": "token", "text": "Error code: 500 - internal server error"}
+        monkeypatch.setattr(al, "run_agent_loop", fake_loop)
+        task = we.WorkTask(id="t", title="a", detail="a", max_attempts=3)
+        we._run_one_task(_make_fake_client(), task, wall_clock=1200)
+        assert task.status == "failed"
+        assert calls["n"] == 3             # 5xx 重试 3 次后失败
+
+
+class TestClassifyNarrow:
+    """004 审计 P2: 数字子串误报收窄"""
+
+    def test_no_false_positive_on_digit_substrings(self):
+        import src.work_engine as we
+        assert we.classify_error("处理了 5 个文件后失败") == "business"
+        assert we.classify_error("修改 50 行代码出错") == "business"
+        assert we.classify_error("任务执行到第 5 步报错") == "business"
+        assert we.classify_error("写了 504 行文档") == "business"
+
+    def test_http_status_and_network_still_retry(self):
+        import src.work_engine as we
+        assert we.classify_error("Error code: 500 - server error") == "retry"
+        assert we.classify_error("502 Bad Gateway") == "retry"
+        assert we.classify_error("timeout connecting to api") == "retry"
+        assert we.classify_error("连接被拒绝") == "retry"
+
+
+class TestTaskTouchDuringRun:
+    """004 审计 P2: 长任务执行期间心跳粒度（每 HEARTBEAT_INTERVAL 更新）"""
+
+    def test_touch_callback_invoked_during_task(self, tmp_path, monkeypatch):
+        import asyncio
+        import src.work_engine as we
+        import src.agent_loop as al
+        monkeypatch.setattr(we, "WORK_DIR", tmp_path)
+        monkeypatch.setattr(we, "HEARTBEAT_INTERVAL", 0.01)
+        hb = {"n": 0}
+        async def fake_loop(client, messages, **kw):
+            yield {"type": "token", "text": "开始"}
+            await asyncio.sleep(0.03)
+            yield {"type": "token", "text": "完成"}
+        monkeypatch.setattr(al, "run_agent_loop", fake_loop)
+        task = we.WorkTask(id="t", title="a", detail="a")
+        we._run_one_task(_make_fake_client(), task, wall_clock=1200,
+                         heartbeat_cb=lambda: hb.__setitem__("n", hb["n"] + 1))
+        assert task.status == "done"
+        assert hb["n"] >= 1
+
+
+class TestDeadJobRecoverOnRun:
+    """004 审计 P2: resume 判死接线 — run_job 对 running+心跳超时 job 判死重跑"""
+
+    def test_running_dead_job_recovered(self, tmp_path, monkeypatch):
+        import src.work_engine as we
+        import src.agent_loop as al
+        import src.model_registry as mr
+        monkeypatch.setattr(we, "WORK_DIR", tmp_path)
+        async def fake_loop(client, messages, **kw):
+            yield {"type": "token", "text": "done"}
+        monkeypatch.setattr(al, "run_agent_loop", fake_loop)
+        monkeypatch.setattr(mr, "get_registry",
+                            lambda: type("R", (), {"get": lambda self: _make_fake_client()})())
+        job = we.WorkJob(id="jd", goal="g", target_hours=1,
+                         deadline_ts=time.time() + 3600, status="running",
+                         last_heartbeat=time.time() - we.HEARTBEAT_TIMEOUT - 5)
+        job.plan = [we.WorkTask(id="t1", title="a", detail="a", status="running")]
+        we.save_job(job)
+        we.run_job(job)
+        assert job.plan[0].status == "done"   # 判死 → pending → 执行完成
+
+
+class TestCliWorkSmoke:
+    """004/002 审计 P0: meshctx work run 入口必崩（uuid 未导入）回归防护"""
+
+    def test_cli_module_imports_uuid(self):
+        import src.cli
+        assert hasattr(src.cli, "uuid")
+
+    def test_cmd_work_run_without_model_no_crash(self, tmp_path, monkeypatch):
+        import src.cli
+        import src.work_engine as we
+        import src.model_registry as mr
+        from types import SimpleNamespace
+        monkeypatch.setattr(we, "WORK_DIR", tmp_path)
+        monkeypatch.setattr(mr, "get_registry",
+                            lambda *a, **k: type("R", (), {"get": lambda self: None})())
+        args = SimpleNamespace(work_cmd="run", config=None, goal="写一个5行说明",
+                               hours=0.1, retry=3, max_cost=0, resume="")
+        src.cli.cmd_work(args)  # 无模型 → 打印提示返回，不抛 NameError/其他异常
