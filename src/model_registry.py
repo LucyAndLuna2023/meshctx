@@ -47,19 +47,19 @@ BUILTIN_MODELS = {
     "openai:o4-mini":          {"provider":"openai","base_url":"https://api.openai.com/v1","model":"o4-mini","key_env":"OPENAI_API_KEY"},
     "openai:o3":               {"provider":"openai","base_url":"https://api.openai.com/v1","model":"o3","key_env":"OPENAI_API_KEY"},
     "openai:o3-mini":          {"provider":"openai","base_url":"https://api.openai.com/v1","model":"o3-mini","key_env":"OPENAI_API_KEY"},
-    "openai:gpt-4.5-preview":  {"provider":"openai","base_url":"https://api.openai.com/v1","model":"gpt-4.5-preview","key_env":"OPENAI_API_KEY"},
+    "openai:gpt-5":           {"provider":"openai","base_url":"https://api.openai.com/v1","model":"gpt-5","key_env":"OPENAI_API_KEY"},
+    "openai:gpt-5-mini":      {"provider":"openai","base_url":"https://api.openai.com/v1","model":"gpt-5-mini","key_env":"OPENAI_API_KEY"},
+    "openai:gpt-5-pro":       {"provider":"openai","base_url":"https://api.openai.com/v1","model":"gpt-5-pro","key_env":"OPENAI_API_KEY"},
     # ── Anthropic ─────────────────────────────────────
-    "anthropic:claude-opus":   {"provider":"anthropic","base_url":"https://api.anthropic.com/v1","model":"claude-opus-4-20250514","key_env":"ANTHROPIC_API_KEY"},
-    "anthropic:claude-sonnet": {"provider":"anthropic","base_url":"https://api.anthropic.com/v1","model":"claude-sonnet-4-20250514","key_env":"ANTHROPIC_API_KEY"},
-    "anthropic:claude-haiku":  {"provider":"anthropic","base_url":"https://api.anthropic.com/v1","model":"claude-3.5-haiku","key_env":"ANTHROPIC_API_KEY"},
-    "anthropic:claude-sonnet-3.5":{"provider":"anthropic","base_url":"https://api.anthropic.com/v1","model":"claude-3.5-sonnet","key_env":"ANTHROPIC_API_KEY"},
+    "anthropic:claude-opus":   {"provider":"anthropic","base_url":"https://api.anthropic.com/v1","model":"claude-opus-4-latest","key_env":"ANTHROPIC_API_KEY"},
+    "anthropic:claude-sonnet": {"provider":"anthropic","base_url":"https://api.anthropic.com/v1","model":"claude-sonnet-4-latest","key_env":"ANTHROPIC_API_KEY"},
+    "anthropic:claude-haiku":  {"provider":"anthropic","base_url":"https://api.anthropic.com/v1","model":"claude-haiku-4-latest","key_env":"ANTHROPIC_API_KEY"},
     # ── Google ────────────────────────────────────────
     "google:gemini-pro":       {"provider":"google","base_url":"https://generativelanguage.googleapis.com/v1beta/openai","model":"gemini-2.5-pro","key_env":"GEMINI_API_KEY"},
     "google:gemini-flash":     {"provider":"google","base_url":"https://generativelanguage.googleapis.com/v1beta/openai","model":"gemini-2.5-flash","key_env":"GEMINI_API_KEY"},
     "google:gemini-flash-lite":{"provider":"google","base_url":"https://generativelanguage.googleapis.com/v1beta/openai","model":"gemini-2.5-flash-lite","key_env":"GEMINI_API_KEY"},
     # ── xAI (Grok) ────────────────────────────────────
-    "xai:grok-3":              {"provider":"xai","base_url":"https://api.x.ai/v1","model":"grok-3-beta","key_env":"XAI_API_KEY"},
-    "xai:grok-3-mini":         {"provider":"xai","base_url":"https://api.x.ai/v1","model":"grok-3-mini-beta","key_env":"XAI_API_KEY"},
+    "xai:grok-3":              {"provider":"xai","base_url":"https://api.x.ai/v1","model":"grok-4.6","key_env":"XAI_API_KEY"},
     # ── Meta Llama (via Together) ─────────────────────
     "together:llama-4-maverick":{"provider":"together","base_url":"https://api.together.xyz/v1","model":"meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8","key_env":"TOGETHER_API_KEY"},
     "together:llama-4-scout":   {"provider":"together","base_url":"https://api.together.xyz/v1","model":"meta-llama/Llama-4-Scout-17B-16E-Instruct","key_env":"TOGETHER_API_KEY"},
@@ -96,9 +96,9 @@ BUILTIN_MODELS = {
     # ── DeepSeek ──────────────────────────────────────
     "deepseek:v4-pro":         {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-pro","key_env":"DEEPSEEK_API_KEY"},
     "deepseek:v4-flash":       {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-flash","key_env":"DEEPSEEK_API_KEY"},
-    "deepseek:chat":           {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-chat","key_env":"DEEPSEEK_API_KEY"},
-    "deepseek:reasoner":       {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-reasoner","key_env":"DEEPSEEK_API_KEY"},
-    "deepseek:coder":          {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-coder","key_env":"DEEPSEEK_API_KEY"},
+    "deepseek:v4-flash-vision":{"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-flash-vision-exp","key_env":"DEEPSEEK_API_KEY"},
+    "deepseek:chat":           {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-flash","key_env":"DEEPSEEK_API_KEY"},
+    "deepseek:reasoner":       {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-pro","key_env":"DEEPSEEK_API_KEY"},
     # ── 阿里百炼 (Qwen家族) ───────────────────────────
     "bailian:qwen3-flash":     {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen3-flash","key_env":"BAILIAN_API_KEY"},
     "bailian:qwen3-plus":      {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen3-plus","key_env":"BAILIAN_API_KEY"},

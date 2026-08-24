@@ -285,3 +285,62 @@ class TestCliWorkSmoke:
         args = SimpleNamespace(work_cmd="run", config=None, goal="写一个5行说明",
                                hours=0.1, retry=3, max_cost=0, resume="")
         src.cli.cmd_work(args)  # 无模型 → 打印提示返回，不抛 NameError/其他异常
+
+
+class TestModelCatalogReality:
+    """v3.120.2: BUILTIN_MODELS 按厂商官方真实模型校准（用户反馈 + OpenRouter/官方文档交叉验证）"""
+
+    def test_deepseek_official_v4_models(self):
+        from src.model_registry import BUILTIN_MODELS
+        ds = {k: v["model"] for k, v in BUILTIN_MODELS.items() if v["provider"] == "deepseek"}
+        assert ds["deepseek:v4-flash"] == "deepseek-v4-flash"
+        assert ds["deepseek:v4-pro"] == "deepseek-v4-pro"
+        assert ds["deepseek:v4-flash-vision"] == "deepseek-v4-flash-vision-exp"
+        # 官方已无 deepseek-chat/reasoner/coder（V3 时代名）；chat/reasoner 兼容映射到现役模型
+        assert "deepseek-v4-flash" in ds.values()
+        assert "deepseek-v4-pro" in ds.values()
+        assert "deepseek-chat" not in ds.values()
+        assert "deepseek-coder" not in ds.values()
+        assert "deepseek-reasoner" not in ds.values()
+
+    def test_openai_gpt5_replaces_retired_preview(self):
+        from src.model_registry import BUILTIN_MODELS
+        oai = {k: v["model"] for k, v in BUILTIN_MODELS.items() if v["provider"] == "openai"}
+        assert "gpt-5" in oai.values()
+        assert "gpt-5-mini" in oai.values()
+        assert "gpt-4.5-preview" not in oai.values()
+
+    def test_anthropic_xai_no_retired_models(self):
+        from src.model_registry import BUILTIN_MODELS
+        ant = [v["model"] for v in BUILTIN_MODELS.values() if v["provider"] == "anthropic"]
+        xai = [v["model"] for v in BUILTIN_MODELS.values() if v["provider"] == "xai"]
+        assert "claude-3.5-haiku" not in ant
+        assert "claude-3.5-sonnet" not in ant
+        assert any("latest" in m for m in ant)
+        assert "grok-3-beta" not in xai
+        assert "grok-4.6" in xai
+
+
+class TestCliWorkNonInteractive:
+    """004 审计 P1 (v3.120.2): 非交互 stdin（cron/后台/无人值守）必须默认开始而非卡 paused"""
+
+    def test_eof_stdin_defaults_to_go(self, tmp_path, monkeypatch, capsys):
+        import builtins
+        import src.cli
+        import src.work_engine as we
+        import src.model_registry as mr
+        from types import SimpleNamespace
+        monkeypatch.setattr(we, "WORK_DIR", tmp_path)
+        monkeypatch.setattr(we, "PLAN_CONFIRM_SECONDS", 0)  # 免等倒计时
+        monkeypatch.setattr(mr, "get_registry",
+                            lambda *a, **k: type("R", (), {"get": lambda self: None})())
+        # 非交互 stdin → input() 立即 EOFError（cron/后台场景）
+        def _eof(*a, **k):
+            raise EOFError
+        monkeypatch.setattr(builtins, "input", _eof)
+        args = SimpleNamespace(work_cmd="run", config=None, goal="写一个5行说明",
+                               hours=0.1, retry=3, max_cost=0, resume="")
+        src.cli.cmd_work(args)  # 不应抛异常；不应卡在 paused 分支
+        out = capsys.readouterr().out
+        assert "未配置可用模型" in out   # EOF 默认 go → 走到执行路径（无模型提示）
+        assert "已暂停" not in out       # 未卡在 print-plan-then-go 的 paused 分支

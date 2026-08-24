@@ -549,6 +549,12 @@ def cmd_work(args):
         def _ask():
             try:
                 input(f"⏳ {PLAN_CONFIRM_SECONDS}s 后自动开始（回车立即开始，Ctrl+C 取消）: ")
+            except EOFError:
+                # 004 审计 P1 (v3.120.2): 非交互 stdin（cron/后台/无人值守）默认开始，
+                # 否则自主工作模式在无人值守场景永远卡 paused 不执行
+                confirm["v"] = "go"
+            except KeyboardInterrupt:
+                confirm["v"] = "cancel"
             except Exception:
                 confirm["v"] = "cancel"
         th = threading.Thread(target=_ask, daemon=True)
