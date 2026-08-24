@@ -628,7 +628,7 @@ if os.environ.get("MESHCTX_TRACE_MALLOC"):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="3.119.4",
+    version="3.119.5",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -2553,6 +2553,8 @@ async def list_models():
     from src.model_registry import get_registry, BUILTIN_MODELS
     reg = get_registry()
     current = os.environ.get("MESHCTX_MODEL", "")
+    if not current and getattr(reg, "_default", ""):
+        current = reg._default
     if not current and reg._entries:
         current = next(iter(reg._entries))
     
@@ -2574,6 +2576,23 @@ async def list_models():
             "configured": configd,
             "usable": usable,
             "has_key": has_key,
+            "current": mid == current,
+        })
+    # v3.119.5: 追加 config.yaml 中已配置但不在内置目录的自定义模型
+    # （如用户自行 `meshctx model add openrouter:<id>` 的 30+ OpenRouter 条目），
+    # 否则这些模型在任何 UI 都不可见、不可选择。
+    for mid, info in (reg._entries or {}).items():
+        if mid in BUILTIN_MODELS:
+            continue
+        pid = info.get("provider", "custom")
+        models.append({
+            "id": mid,
+            "provider": pid,
+            "provider_name": _provider_display_name(pid),
+            "model_name": info.get("model", mid),
+            "configured": True,
+            "usable": bool(info.get("key")),
+            "has_key": bool(info.get("key")),
             "current": mid == current,
         })
     return {

@@ -346,10 +346,7 @@ body {
 <div class="header">
   <h1>🕸 meshctx Chat</h1>
   <select id="modelSelect" onchange="switchModel()">
-    <option value="deepseek:v4-pro">🏆 V4-Pro</option>
-    <option value="deepseek:v4-flash" selected>⚡ V4-Flash</option>
-    <option value="deepseek:chat">V3 Chat</option>
-    <option value="deepseek:reasoner">🧠 R1</option>
+    <option value="deepseek:v4-flash">⚡ V4-Flash</option>
   </select>
   <select id="langSelect" onchange="changeLang(this.value)" style="width:auto">
     <option value="en">English</option>
@@ -691,6 +688,64 @@ let model = 'deepseek:v4-flash';
 let currentHybridInfo = null;
 let profile = "{{ profile }}";
 let confirmActiveIdx = 0;  // v3.115.30: confirm panel selection
+
+// ===== 动态模型列表 (v3.119.5): 从 /api/models 加载，支持 OpenRouter 等全部可用/已配置模型 =====
+const FALLBACK_MODELS = [
+  { id:'deepseek:v4-pro', label:'🏆 V4-Pro', icon:'🏆', providerName:'DeepSeek' },
+  { id:'deepseek:v4-flash', label:'⚡ V4-Flash', icon:'⚡', providerName:'DeepSeek' },
+  { id:'deepseek:chat', label:'V3 Chat', icon:'💬', providerName:'DeepSeek' },
+  { id:'deepseek:reasoner', label:'🧠 R1', icon:'🧠', providerName:'DeepSeek' },
+];
+function providerIcon(p){
+  const icons = { openrouter:'🌐', openai:'🤖', anthropic:'✳️', google:'🟦', deepseek:'🚀', bailian:'☁️', groq:'⚡', together:'🔗', xai:'🅧', mistral:'🌀', cohere:'🌊', perplexity:'🔎' };
+  return icons[p] || '🧩';
+}
+function applyModelOptions(list){
+  const sel = document.getElementById('modelSelect');
+  if (!sel) return;
+  const opts = (list && list.length) ? list : FALLBACK_MODELS;
+  sel.innerHTML = '';
+  let hasSel = false;
+  opts.forEach(function(m){
+    const o = document.createElement('option');
+    o.value = m.id;
+    o.textContent = m.label || m.id;
+    if (m.disabled) o.disabled = true;
+    if (m.selected){ o.selected = true; hasSel = true; }
+    sel.appendChild(o);
+  });
+  if (!hasSel && opts.length) opts[0].selected = true;
+  model = sel.value;
+  switchModel();
+  // 同步 Ctrl+K 快捷切换指令（已配置/可用模型在前，最多 8 个）
+  MODEL_COMMANDS = opts.filter(function(m){ return !m.disabled; }).slice(0, 8).map(function(m){
+    return { id:'model-'+m.id.replace(/[^a-z0-9]/gi,'-'), icon:m.icon||'🧩',
+      label:'切换模型: '+(m.label||m.id), desc:(m.providerName||'')+' · '+(m.desc||''),
+      action:(function(id){ return function(){ document.getElementById('modelSelect').value=id; switchModel(); }; })(m.id) };
+  });
+}
+function loadModels(){
+  fetch('/api/models').then(function(r){ return r.json(); }).then(function(d){
+    const models = d.models || [];
+    const current = d.current || d.default || '';
+    const usable = models.filter(function(m){ return m.usable || m.configured || m.current; });
+    const rest = models.filter(function(m){ return !m.usable && !m.configured && !m.current; });
+    const list = usable.concat(rest).map(function(m){
+      const ready = (m.configured || m.current) ? '✅' : (m.usable ? '' : '🚫');
+      return {
+        id: m.id,
+        label: ready + ' ' + providerIcon(m.provider) + ' ' + (m.provider_name || m.provider) + ' · ' + (m.model_name || m.id),
+        icon: providerIcon(m.provider),
+        providerName: m.provider_name || m.provider,
+        desc: (m.provider_name || m.provider) + ' · ' + (m.model_name || m.id),
+        selected: (m.id === current),
+        disabled: !m.usable && !m.configured && !m.current,
+      };
+    });
+    applyModelOptions(list);
+  }).catch(function(){ applyModelOptions(FALLBACK_MODELS); });
+}
+loadModels();
 
 function getTimestamp() {
   const d = new Date();
@@ -1348,12 +1403,9 @@ document.addEventListener('click', function(e) {
 });
 
 // ══════════════════ Ctrl+K command palette ══════════════════
+let MODEL_COMMANDS = [];  // v3.119.5: 动态模型切换指令（applyModelOptions 填充）
 const COMMANDS = [
   { id:'new', icon:'➕', label:'新对话', desc:'清除历史，开始新对话', shortcut:'Ctrl+N', action: newChat },
-  { id:'model-v4pro', icon:'🏆', label:'切换模型: V4-Pro', desc:'DeepSeek V4-Pro — 最强推理', action: ()=>{ document.getElementById('modelSelect').value='deepseek:v4-pro'; switchModel(); } },
-  { id:'model-v4flash', icon:'⚡', label:'切换模型: V4-Flash', desc:'DeepSeek V4-Flash — 快速响应', action: ()=>{ document.getElementById('modelSelect').value='deepseek:v4-flash'; switchModel(); } },
-  { id:'model-chat', icon:'💬', label:'切换模型: V3 Chat', desc:'DeepSeek V3 Chat', action: ()=>{ document.getElementById('modelSelect').value='deepseek:chat'; switchModel(); } },
-  { id:'model-r1', icon:'🧠', label:'切换模型: R1', desc:'DeepSeek R1 — 深度推理', action: ()=>{ document.getElementById('modelSelect').value='deepseek:reasoner'; switchModel(); } },
   { id:'console', icon:'🏠', label:'返回控制台', desc:'打开 meshctx 仪表盘', action: ()=>{ window.location.href='/ui/'; } },
   { id:'docs', icon:'📚', label:'文档', desc:'打开 meshctx 文档', action: ()=>{ window.location.href='/docs/'; } },
   { id:'focus', icon:'🎯', label:'聚焦输入框', desc:'跳转到聊天输入框', shortcut:'Ctrl+L', action: ()=>{ document.getElementById('input').focus(); } },
@@ -1382,7 +1434,8 @@ function hideCommandPalette() {
 function renderCommandList(query) {
   const list = document.getElementById('cmdPaletteList');
   const q = query.toLowerCase();
-  const filtered = COMMANDS.filter(c =>
+  const all = MODEL_COMMANDS.concat(COMMANDS);
+  const filtered = all.filter(c =>
     !q || c.label.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q) || c.id.includes(q)
   );
   list.innerHTML = filtered.map((c, i) => {
@@ -1399,7 +1452,7 @@ function renderCommandList(query) {
   list.querySelectorAll('.cmd-item').forEach(item => {
     item.addEventListener('mousedown', (e) => {
       e.preventDefault();
-      const cmd = COMMANDS.find(c => c.id === item.dataset.cmd);
+      const cmd = all.find(c => c.id === item.dataset.cmd);
       if (cmd) { hideCommandPalette(); cmd.action(); }
     });
   });
@@ -1422,10 +1475,10 @@ document.getElementById('cmdPaletteInput').addEventListener('keydown', function(
   } else if (e.key === 'Enter') {
     e.preventDefault();
     if (activeIdx >= 0 && activeIdx < items.length) {
-      const cmd = COMMANDS.find(c => c.id === items[activeIdx].dataset.cmd);
+      const cmd = MODEL_COMMANDS.concat(COMMANDS).find(c => c.id === items[activeIdx].dataset.cmd);
       if (cmd) { hideCommandPalette(); cmd.action(); }
     } else if (items.length > 0) {
-      const cmd = COMMANDS.find(c => c.id === items[0].dataset.cmd);
+      const cmd = MODEL_COMMANDS.concat(COMMANDS).find(c => c.id === items[0].dataset.cmd);
       if (cmd) { hideCommandPalette(); cmd.action(); }
     }
   } else if (e.key === 'Escape') {

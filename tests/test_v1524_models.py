@@ -54,3 +54,50 @@ class TestModelAvailabilityV1524:
         from src.web_ui import _TEMPLATES
         base = _TEMPLATES.get("base.html", "")
         assert True  # Chat模型选择在base.html中
+
+
+class TestModelDynamicV31195:
+    """v3.119.5: 模型下拉框动态化 + OpenRouter 配置入口"""
+
+    def test_chat_template_loads_models_dynamically(self):
+        """Chat 模板从 /api/models 动态加载模型列表，不再硬编码 4 个 deepseek"""
+        import pathlib
+        src = (pathlib.Path(__file__).parent.parent / "templates" / "chat.html").read_text()
+        assert "fetch('/api/models')" in src
+        assert "FALLBACK_MODELS" in src
+        # 硬编码默认选中项已移除（默认值由后端 current 决定）
+        assert 'value="deepseek:v4-flash" selected' not in src
+
+    def test_setup_wizard_has_openrouter(self):
+        """Setup 向导提供 OpenRouter 配置入口（mac 无法配置 OpenRouter 根因）"""
+        import pathlib
+        src = (pathlib.Path(__file__).parent.parent / "templates" / "setup.html").read_text()
+        assert "selectProvider('openrouter')" in src
+        assert "https://openrouter.ai/keys" in src
+
+    def test_models_endpoint_includes_custom_configured_entries(self):
+        """v3.119.5: /api/models 返回 config.yaml 自定义条目（如 30+ OpenRouter 模型）"""
+        from src.main import app
+        from src.model_registry import get_registry
+        from fastapi.testclient import TestClient
+        reg = get_registry()
+        saved = dict(reg._entries)
+        reg._entries["openrouter:test-custom-model"] = {
+            "key": "sk-test", "model": "vendor/model-x",
+            "base_url": "https://openrouter.ai/api/v1", "provider": "openrouter",
+        }
+        try:
+            client = TestClient(app)
+            resp = client.get("/api/models")
+            assert resp.status_code == 200
+            data = resp.json()
+            ids = [m["id"] for m in data["models"]]
+            assert "openrouter:test-custom-model" in ids
+            m = next(x for x in data["models"] if x["id"] == "openrouter:test-custom-model")
+            assert m["configured"] is True
+            assert m["usable"] is True
+            assert m["provider"] == "openrouter"
+            assert m["model_name"] == "vendor/model-x"
+        finally:
+            reg._entries.clear()
+            reg._entries.update(saved)

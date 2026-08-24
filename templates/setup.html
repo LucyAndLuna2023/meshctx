@@ -43,6 +43,9 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   <div class="provider-card" onclick="selectProvider('bailian')" id="card-bailian">
     <div class="icon">☁️</div><div class="info"><div class="name">{{ t('阿里百炼') }}</div><div class="desc">{{ t('Qwen系列 · 百万token免费/月') }}</div></div>
   </div>
+  <div class="provider-card" onclick="selectProvider('openrouter')" id="card-openrouter">
+    <div class="icon">🌐</div><div class="info"><div class="name">OpenRouter</div><div class="desc">{{ t('200+ 模型统一网关 · Claude/GPT/Gemini/Llama 等') }}</div></div>
+  </div>
 </div>
 
 <div id="step2" class="step">
@@ -65,7 +68,8 @@ let provider = 'deepseek';
 const urls = {
   deepseek: 'https://platform.deepseek.com/api_keys',
   openai: 'https://platform.openai.com/api-keys',
-  bailian: 'https://dashscope.console.aliyun.com/apiKey'
+  bailian: 'https://dashscope.console.aliyun.com/apiKey',
+  openrouter: 'https://openrouter.ai/keys'
 };
 
 function selectProvider(p) {
