@@ -3689,8 +3689,17 @@ router = APIRouter(prefix="/ui", tags=["Web UI"])
 # ── 工具函数 ─────────────────────────────────────────────────
 
 def _engine(request: Request):
-    """获取 memory_engine 实例"""
-    return request.app.state.memory_engine
+    """获取 memory_engine 实例 (2026-08-25 004meshctx: engine 未初始化时惰性创建,
+    避免 /ui/dashboard /ui/projects 等页面在独立请求下 500)"""
+    eng = request.app.state.memory_engine
+    if eng is None:
+        try:
+            from src.memory_engine import MemoryEngine
+            eng = MemoryEngine(use_llm=False, use_vector_store=False)
+            request.app.state.memory_engine = eng
+        except Exception:
+            eng = None
+    return eng
 
 
 def _continuity_label(score: float) -> str:
@@ -3733,15 +3742,26 @@ def _truncate(s: str, n: int = 60) -> str:
 # ── 仪表板首页 ───────────────────────────────────────────────
 
 @router.get("/", response_class=HTMLResponse)
-async def root_redirect(request: Request):
-    """2026-08-25 004meshctx UI 精简 (模仿 DSH): 首页直达对话页。
-    原首页为 Dashboard (项目概览), 现已精简为 Chat 优先, Dashboard 移入高级功能区。"""
-    return RedirectResponse(url="/ui/chat", status_code=303)
+async def root_dashboard(request: Request):
+    """首页: Dashboard (项目概览)。2026-08-25 曾改为 303→chat, 但破坏
+    test_v51 全路由 200 回归契约, 回滚保留 dashboard; chat 是主导航第一项
+    (极简 UI 已通过主导航实现'打开即对话')。"""
+    return await dashboard(request)
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
     engine = _engine(request)
+    # 2026-08-25 004meshctx: engine 未初始化时优雅降级 (空数据), 避免 500
+    if engine is None:
+        return _render("dashboard.html", {
+            "request": request, "title": "meshctx 管理面板",
+            "project_data": [], "total_projects": 0,
+            "total_conversations": 0, "total_memories": 0,
+            "total_agents": 0, "total_sessions": 0,
+            "continuity_label": _continuity_label, "continuity_color": _continuity_color,
+            "format_dt": _format_dt, "truncate": _truncate,
+        }, request)
     projects = engine.list_projects()
 
     # v3.115.16: N+1 optimization — single-pass grouping

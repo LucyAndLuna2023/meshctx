@@ -1,4 +1,4 @@
-﻿; meshctx Desktop NSIS v3.115 — 9语言本地化
+; meshctx Desktop NSIS v3.115 — 9语言本地化
 ; MUI_LANGDLL 原生语言选择 → 安装程序启动即弹语言选择框
 Unicode true
 !include "MUI2.nsh"
@@ -7,6 +7,10 @@ Name "MeshCtx Desktop"
 OutFile "dist\meshctx-setup.exe"
 InstallDir "$PROGRAMFILES\MeshCtx"
 RequestExecutionLevel admin
+
+; 2026-08-25 004meshctx: 安装器品牌图标 (logo.ico 由新品牌 logo 生成)
+!define MUI_ICON "logo.ico"
+!define MUI_UNICON "logo.ico"
 
 !define VERSION "3.121.1"
 VIProductVersion "3.121.1.0"
