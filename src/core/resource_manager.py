@@ -36,10 +36,15 @@ logger = logging.getLogger("meshctx.resource_manager")
 class _StubSubsystem:
     """核心闭源子系统 (auto_healer/memory_compactor/rate_limiter/usage_meter)
     未安装时的优雅降级 — 所有查询返回"健康/无限制"默认值, 不抛错."""
-    should_throttle = False
     level = "healthy"
     status = "ok"
     _active = True
+
+    # 2026-08-25 002meshctx 复审 P1 修复: 原为属性 `should_throttle = False`,
+    # 但调用点已方法化 `self.healer.should_throttle()` → 降级路径 TypeError。
+    # 改为方法, 兼容真实 AutoHealerV2 的方法契约。
+    def should_throttle(self) -> bool:
+        return False
 
     def __getattr__(self, name):
         # 未定义属性 → 返回 bound stub (可调用, 返回空 dict — 与 get_stats/check 语义兼容)
@@ -283,7 +288,11 @@ class ResourceManager:
         # 1. Check auto_healer throttle flag
         # 2026-08-25 004meshctx 审计修复: 原 `if self.healer.should_throttle:` 漏括号,
         # 绑定方法对象恒 truthy → 所有任务被永久拒绝 (真 bug)。
-        if self.healer.should_throttle():
+        # 2026-08-25 002meshctx 复审加固: getattr 双形态兼容 (属性/方法), 防降级路径 TypeError。
+        _throttle_flag = getattr(self.healer, "should_throttle", False)
+        if callable(_throttle_flag):
+            _throttle_flag = _throttle_flag()
+        if _throttle_flag:
             self.trace("resource_manager", "task_rejected",
                        ResourceLevel.PAUSE,
                        {"reason": "healer_throttle"})
@@ -344,7 +353,11 @@ class ResourceManager:
         if crit_count > 0:
             overall = "degraded"
         # 2026-08-25 004meshctx 审计修复: 同 pre_task — 漏括号导致恒 throttled
-        if self.healer.should_throttle():
+        # 2026-08-25 002meshctx 复审加固: getattr 双形态兼容 (属性/方法)
+        _throttle_flag = getattr(self.healer, "should_throttle", False)
+        if callable(_throttle_flag):
+            _throttle_flag = _throttle_flag()
+        if _throttle_flag:
             overall = "throttled"
 
         return {
