@@ -5032,21 +5032,26 @@ async def list_directory(path: str = ""):
 
 
 @app.get("/api/files")
-async def list_files_alias(path: str = "", limit: int = 200):
+async def list_files_alias(path: str = "", limit: int = 200, search: str = ""):
     """文件列表兼容端点 (2026-08-25 004meshctx 审计修复)。
 
     chat.html @mention 引用 /api/files 但后端只有 /api/file/list (单数),
     → 文件引用功能静默失效 (fetch 404, fallback 空列表)。
     返回 {files: [...]} 兼容 chat.html fetchFileList 的 data.files 格式。
+    2026-08-25 002codex 复审 P2-2: 加 search 过滤 (@mention 大列表性能)。
     """
     try:
         data = await list_directory(path)
     except HTTPException:
         data = {"items": []}
     files = []
+    q = (search or "").strip().lower()
     for item in data.get("items", []):
+        name = item.get("name", "")
+        if q and q not in name.lower():
+            continue
         files.append({
-            "name": item.get("name", ""),
+            "name": name,
             "path": item.get("path", ""),
             "is_dir": item.get("is_dir", False),
             "size": item.get("size", 0),

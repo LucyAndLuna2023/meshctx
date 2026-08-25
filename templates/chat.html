@@ -1341,9 +1341,13 @@ async function deleteConversation(encId) {
   } catch(e) { alert('删除失败: ' + e.message); }
 }
 
-function newChat() {
+async function newChat() {
   // 保存当前对话到后端 (用户可随时从"对话历史"恢复), 然后清空开始新对话
-  saveCurrentConversation();
+  // 2026-08-25 002codex 复审 P2-1 修复: await 保存完成再清空, 防慢网下
+  // 旧对话消息续入新对话/建重复对话; 保存失败不阻塞 (降级为丢弃, 与新对话一致)
+  if (messages && messages.length) {
+    try { await saveCurrentConversation(); } catch(e) { /* 保存失败, 继续新对话 */ }
+  }
   messages = [];
   document.getElementById('messages').innerHTML = '';
   localStorage.removeItem(LS_KEY);
