@@ -41,12 +41,34 @@ def _write_registry(reg: dict) -> None:
 
 
 def _pid_alive(pid: int) -> bool:
-    """Check if a process with the given PID is still running."""
+    """Check if a process with the given PID is still running.
+
+    跨平台修复 (2026-08-25 004meshctx 审计): Windows 上 os.kill(pid, 0)
+    语义为 CTRL_C_EVENT (会误发 Ctrl+C 或抛 OSError(87)), 改用 psutil/ctypes 探测。
+    """
     try:
-        os.kill(pid, 0)
-        return True
-    except (OSError, ProcessLookupError):
-        return False
+        import psutil
+        if psutil.pid_exists(pid):
+            return True
+    except ImportError:
+        pass
+    if os.name != "nt":
+        try:
+            os.kill(pid, 0)
+            return True
+        except (OSError, ProcessLookupError):
+            return False
+    # Windows: ctypes OpenProcess 探测 (PROCESS_QUERY_LIMITED_INFORMATION)
+    try:
+        import ctypes
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        h = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
+        if h:
+            ctypes.windll.kernel32.CloseHandle(h)
+            return True
+    except Exception:
+        pass
+    return False
 
 
 # ── Public API ──────────────────────────────────────────────────────

@@ -421,5 +421,11 @@ def reset_agent_swarm_v2():
 
 
 def __getattr__(name):
+    # ── Legacy alias layer (2026-08-25 004meshctx 审计补齐) ──
+    # 兼容 _known 映射声明的旧符号名 (SwarmNode/SwarmTask → SwarmAgent)
+    if name == "SwarmNode":
+        return SwarmAgent
+    if name == "SwarmTask":
+        return SwarmAgent
     raise AttributeError(f"module 'src.core.agent_swarm_v2' has no attribute {name!r}")
 

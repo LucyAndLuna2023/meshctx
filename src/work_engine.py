@@ -232,8 +232,10 @@ def acquire_lock(job_id: str) -> Path:
         except FileExistsError:
             try:
                 old_pid = int(lock.read_text().strip())
-                os.kill(old_pid, 0)          # 进程存在 → 并发 resume 拒绝
-                raise RuntimeError(f"job {job_id} 已被 PID {old_pid} 占用（防并发 resume）")
+                if _pid_alive_any_platform(old_pid):   # 进程存在 → 并发 resume 拒绝
+                    raise RuntimeError(f"job {job_id} 已被 PID {old_pid} 占用（防并发 resume）")
+                lock.unlink(missing_ok=True)  # 旧进程已死 → 接管
+                continue
             except ProcessLookupError:
                 lock.unlink(missing_ok=True)  # 旧进程已死 → 接管
                 continue
@@ -241,6 +243,32 @@ def acquire_lock(job_id: str) -> Path:
                 lock.unlink(missing_ok=True)
                 continue
     raise RuntimeError(f"job {job_id} 锁获取失败")
+
+
+def _pid_alive_any_platform(pid: int) -> bool:
+    """跨平台进程存活探测 (Windows: os.kill(pid,0) 是 CTRL_C_EVENT, 语义错误)。"""
+    try:
+        import psutil
+        if psutil.pid_exists(pid):
+            return True
+    except ImportError:
+        pass
+    if os.name != "nt":
+        try:
+            os.kill(pid, 0)
+            return True
+        except (OSError, ProcessLookupError):
+            return False
+    try:
+        import ctypes
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        h = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
+        if h:
+            ctypes.windll.kernel32.CloseHandle(h)
+            return True
+    except Exception:
+        pass
+    return False
 
 
 def release_lock(lock: Path):

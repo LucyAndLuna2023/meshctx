@@ -6,7 +6,7 @@ meshctx 开源 wrapper 层。核心引擎在 meshctx-core (私有仓库)。
 安装完整版: pip install meshctx-core (需授权)
 当前为 stub 模式 — 基础功能可用，高级能力优雅降级。
 """
-__version__ = "3.120.6"
+__version__ = "3.121.0"
 
 import sys, logging, warnings, os
 from functools import lru_cache
@@ -173,13 +173,8 @@ _known = {
     'secret_scanner': ['SecretScanner'],
     'super_brain': ['SuperBrain','get_super_brain'],  # legacy alias → brain
     'win_admin': ['WindowsAdmin','WinResult','WinService','get_win_admin'],
-    'agent_monitor': ['AgentMonitor','AgentMetrics'],
     'agent_tasks': ['AgentTask'],
     'agents_list': ['agents_list','agent_status','agent_kill','agent_send','agents_cleanup','agent_register','agent_update'],
-    'workspace_manager': ['WorkspaceManager','Workspace','get_workspace_manager'],
-    'auto_update': ['check_update'],
-    'multi_notify': ['TelegramNotifier','DiscordNotifier','SlackNotifier','MultiNotifier','get_multi_notifier'],
-    'versioned_memory': ['VersionedMemory','get_memory'],
     'autonomous_action': ['AutonomousAction','ActionPlan','get_autonomous_action'],
     'distributed_mesh': ['DistributedAgentMesh','MeshNode','MeshTask','NodeState','get_distributed_mesh'],
     'desktop_agent': ['DesktopAgent','DesktopAction','WindowInfo','get_desktop_agent'],
@@ -211,7 +206,6 @@ _known = {
     'security_scanner': ['SecurityScanner','ScanResult','get_security_scanner'],
     'send_file': ['send_file','send_file_to_channel'],
     'plugin_market': ['PluginMarket','MarketPlugin','get_plugin_market'],
-    'plugin_manifest': ['PluginManifest'],
     'online_learning': ['OnlineLearner','LearningSample'],
     'memory_hierarchy': ['HierarchicalMemoryStore','MemoryItem','MemoryLevel','EbbinghausForgetting','MemoryPlugin'],
     'metacognition': ['MetaCognitionPlugin','TaskEvaluation','TaskStatus','PatternEngine','BehaviorAdjuster'],
@@ -219,7 +213,7 @@ _known = {
     'predictor': ['PredictorPlugin','TemporalPatternLearner','ContextPreloader','PredictionResult','ActivityPattern','TimeSlot'],
     'healer': ['HealerPlugin','HealthStatus','CircuitBreaker'],
     'performance': ['PerformancePlugin','CacheStats','StreamStats'],
-    'websocket': ['WebSocketPlugin', 'create_ws_routes'],
+    'websocket_plugin': ['WebSocketPlugin', 'create_ws_routes'],
     'realtime_push': ['RealtimePush', 'ConnectionManager', 'create_realtime_router', 'get_realtime'],
     'hermes_connector': ['HermesConnectorPlugin','HermesDiscovery','EventBridge','HermesInstance'],
     'token_saver': ['TokenSaverPlugin','TokenSaver','TokenCounter','TokenizerRegistry','CompactionResult'],

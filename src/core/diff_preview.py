@@ -1367,3 +1367,13 @@ def create_proposal(
 from pathlib import Path
 DiffPreviewEngine = DiffEngine  # test compatibility alias
 BACKUP_DIR = Path(tempfile.gettempdir()) / "meshctx_diff_backups"
+
+
+# ── Legacy alias layer (2026-08-25 004meshctx 审计补齐) ──
+# 兼容 _known 映射中声明的旧符号名, 保持 from src.core import X 契约不变
+def __getattr__(name):
+    if name == "render_side_by_side":
+        return DiffRenderer.render_side_by_side
+    if name == "render_compact_summary":
+        return DiffRenderer.render_compact_summary
+    raise AttributeError(name)

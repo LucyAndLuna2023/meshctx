@@ -1781,9 +1781,45 @@ def cmd_start(args):
 
 
 def cmd_stop(args):
+    """停止运行中的 meshctx 服务 (跨平台, 2026-08-25 004meshctx 审计修复)。
+
+    - Windows: 无 pkill, 用 taskkill / 按端口杀进程
+    - macOS/Linux: pkill uvicorn.*src.main + 封装版 meshctx/meshctx 双模式兜底
+    """
     import subprocess
-    r = subprocess.run(["pkill", "-f", "uvicorn.*src.main"], capture_output=True)
-    print("meshctx 已停止" if r.returncode == 0 else "未找到运行中的 meshctx")
+    import sys as _sys
+    stopped = False
+
+    if _sys.platform == "win32" or os.name == "nt":
+        # Windows: 找占用端口的进程并结束 (netstat + taskkill)
+        import re as _re
+        port = os.environ.get("MESHCTX_PORT", "3001")
+        try:
+            netstat = subprocess.run(
+                ["netstat", "-ano"], capture_output=True, text=True, timeout=10).stdout
+            pids = set()
+            for line in netstat.splitlines():
+                if f":{port} " in line and "LISTENING" in line:
+                    m = _re.search(r"(\d+)\s*$", line.strip())
+                    if m:
+                        pids.add(m.group(1))
+            for pid in pids:
+                subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True, timeout=10)
+                stopped = True
+        except Exception:
+            pass
+    else:
+        # POSIX: 先 pkill uvicorn 模式, 再兜底封装版进程 (macOS 默认安装路径 cmdline 是 meshctx/meshctx)
+        for pattern in ("uvicorn.*src.main", "meshctx/meshctx"):
+            try:
+                r = subprocess.run(
+                    ["pkill", "-f", pattern], capture_output=True, timeout=10)
+                if r.returncode == 0:
+                    stopped = True
+            except (FileNotFoundError, OSError):
+                continue
+
+    print("meshctx 已停止" if stopped else "未找到运行中的 meshctx")
 
 
 def cmd_password(args):

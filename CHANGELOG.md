@@ -1,10 +1,18 @@
-## [3.120.6] - 2026-08-25
+## [3.121.0] - 2026-08-25
 ### Changed (002codex 实施 P2 批次，待 002/004meshctx 审计)
 - **默认路由/成本表规范 ID**（002 P2-1 + 004 建议②）: src/core/brain_router.py 路由档位 4 处 + 成本表 1 处 `deepseek:chat` → `deepseek:v4-flash`
 - **CLI 帮助示例规范 ID**（002 P2-2）: cli.py key set 示例 2 处 + argparse help 2 处 `deepseek:chat` → `deepseek:v4-flash`
 - **安装探针规范 ID**（002 P2-3）: install.sh / install-mac.sh 护城河探针 `model add deepseek:chat` → `deepseek:v4-flash`（docs 副本同步）
 - **install.bat chcp 65001**（004 建议①）: @echo off 后加 `chcp 65001 >nul`，修复中文 Windows GBK 控制台下 UTF-8 文案（zh/ja/ko/ar）乱码
 - legacy 别名 `deepseek:chat` / `xai:grok-3` 机制保留（旧配置兼容），注释文档同步说明
+
+### Fixed (004meshctx 全量审计 — 开源 stub 清零, 吸取 DeepSeek Harness 优点)
+- **34 个 src/core stub 模块全部实现为真实功能**（原 579 处 NotImplementedError → 0）: kernel/agent_swarm/multi_agent/autonomous_engine/sandbox/backup_vault/secret_scanner/credential_pool/summon_engine/gateway_connectors/self_modify/sdb_framework/memory_v2/memory_hierarchy/super_brain/brain_validator/cognitive_health/metacognition/session_resume/session_archiver/approval/crypto/action_gate/health_monitor/heartbeat/watchdog/learn_loop/team/healer/auto_healer/unified_loop/agent_governance/agent_loop/info_geometric_router — 保持公开 API 签名不变, 移除 _MeshCtxStubProxy 代理, 开源版不再依赖闭源 meshctx-core 即可全功能运行
+- **开源版核心可用**: `get_kernel()` 启动真实 10 插件注册 + 事件总线 + ResourceGovernor (psutil); 不再有 STUB 降级警告
+- **_known 映射修复**: 55 个缺失符号补齐 (get_progress_engine/get_monitor/get_win_admin/OrchestratorPlugin/create_ws_routes/SuperBrain/optimizer 等), 6 个 NO_MODULE 幽灵条目移除, websocket→websocket_plugin
+- **真实 bug 修复**: ①resource_manager `should_throttle` 漏括号 → 所有任务被永久拒绝/恒 throttled (stub 模式下被 _StubSubsystem 掩盖) ②ApprovalEngine.request_decision 安全命令不自动放行 ③memory_hierarchy 默认 stability 24h→3h (1h 后 retention 0.908 违反 Ebbinghaus 契约, 旧快照加载仍兼容 24h) ④mcp discover_tools 独立加载 dataclass 模块崩溃 ⑤cmd_stop Windows pkill 崩溃 + macOS 匹配不到封装版 ⑥Dockerfile/compose 端口 3000→3001 + 卷挂载路径修复 ⑦deploy.sh 明文 root 密码移除 ⑧install.sh 重装数据丢失(备份恢复全数据目录) + 端口误杀防护 ⑨os.kill(pid,0) Windows 语义错误 → psutil/ctypes 跨平台 ⑩psutil.disk_usage("/") Windows 500 ⑪cookbook/monitoring /proc 假数据 → sysctl/psutil 分支
+- **三平台 CI/安装器**: meshctx_desktop.spec 关键模块显式护栏; docs/install.sh 同步
+- **测试**: 3150 passed (基线) → 3672 passed, 0 failed (stub 模式被 collect_ignore 隐藏的测试全部真实运行并修复)
 
 ## [3.120.5] - 2026-08-25
 ### Changed (002codex 实施，待 002/004meshctx 审计)

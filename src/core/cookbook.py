@@ -153,21 +153,36 @@ class CookbookRecommender:
         except Exception:
             pass
 
-        # RAM
+        # RAM — 2026-08-25 004meshctx 审计修复: macOS 无 /proc/meminfo,
+        # 原实现静默 fallback 8192MB (16/64GB Mac 均报 8GB)。改用跨平台探测。
         ram_total_mb = 0
         ram_available_mb = 0
         try:
-            import shutil
-            mem = shutil.disk_usage("/")
-            # Actually get memory via /proc/meminfo
-            with open("/proc/meminfo") as f:
-                for line in f:
-                    if "MemTotal" in line:
-                        ram_total_mb = int(line.split()[1]) // 1024
-                    elif "MemAvailable" in line:
-                        ram_available_mb = int(line.split()[1]) // 1024
+            import sys as _sys
+            if _sys.platform == "darwin":
+                import subprocess as _sp
+                r = _sp.run(["sysctl", "-n", "hw.memsize"], capture_output=True, text=True, timeout=5)
+                if r.returncode == 0:
+                    ram_total_mb = int(r.stdout.strip()) // (1024 * 1024)
+                vm = _sp.run(["vm_stat"], capture_output=True, text=True, timeout=5)
+                if vm.returncode == 0 and ram_total_mb > 0:
+                    page_size = 4096
+                    free = 0
+                    for line in vm.stdout.splitlines():
+                        if "page size of" in line:
+                            page_size = int(line.split()[-1])
+                        elif "Pages free" in line:
+                            free = int(line.split()[-1].rstrip("."))
+                    ram_available_mb = (free * page_size) // (1024 * 1024)
+            else:
+                with open("/proc/meminfo") as f:
+                    for line in f:
+                        if "MemTotal" in line:
+                            ram_total_mb = int(line.split()[1]) // 1024
+                        elif "MemAvailable" in line:
+                            ram_available_mb = int(line.split()[1]) // 1024
         except Exception:
-            ram_total_mb = 8192  # fallback
+            ram_total_mb = ram_total_mb or 8192  # fallback
 
         # GPU
         gpu = GPUInfo()

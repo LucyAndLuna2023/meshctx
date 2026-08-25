@@ -133,3 +133,15 @@ def get_observer():
     if _observer is None:
         _observer = SubconsciousObserver()
     return _observer
+
+
+# ── Legacy alias layer (2026-08-25 004meshctx 审计补齐) ──
+# 兼容 _known 映射中声明的旧符号名, 保持 from src.core import X 契约不变
+def __getattr__(name):
+    if name == "SubconsciousEngine":
+        return SubconsciousObserver
+    if name == "SubconsciousThought":
+        return Nudge
+    if name == "get_subconscious":
+        return get_observer
+    raise AttributeError(name)

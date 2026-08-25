@@ -501,3 +501,11 @@ def get_pwa_builder() -> PWABuilder:
 def reset_pwa_builder() -> None:
     global _builder
     _builder = None
+
+
+# ── Legacy alias layer (2026-08-25 004meshctx 审计补齐) ──
+# 兼容 _known 映射中声明的旧符号名, 保持 from src.core import X 契约不变
+def __getattr__(name):
+    if name == "PWAManifest":
+        return PWAManifestConfig
+    raise AttributeError(name)

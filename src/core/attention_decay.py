@@ -200,3 +200,62 @@ class AttentionDecay:
                     for k, v in self.groups[group].items()
                 ]
             return result
+
+
+# ── get_monitor 兼容层 (2026-08-25 004meshctx 审计补齐) ─────────────
+# main.py /api/brain/attention-status 导入 get_monitor(), 此前 _known 映射
+# 声明但模块无此符号 → 端点降级 unknown。基于真实 AttentionDecay 实现。
+class AttentionMonitor:
+    """注意力监控器 — ACC/Limbic 双核衰减状态, 兼容 /api/brain/attention-status 契约。"""
+    BOOST_FACTORS = None
+    THRESHOLDS = None
+
+    def __init__(self):
+        self._decay = AttentionDecay()
+        self._state = "stable"
+        # 注意水平 → 提升因子 (与脑区模型对齐)
+        self.BOOST_FACTORS = {
+            DecayFunction.EXPONENTIAL: 1.0,
+            DecayFunction.POWER_LAW: 1.2,
+            DecayFunction.LINEAR: 0.9,
+        }
+        # 状态阈值 (weight 占比)
+        self.THRESHOLDS = {"low": 0.3, "normal": 0.6, "high": 0.9}
+
+    def get_state(self) -> str:
+        avg = self._average_weight()
+        if avg >= self.THRESHOLDS.get("high", 0.9):
+            self._state = "high"
+        elif avg <= self.THRESHOLDS.get("low", 0.3):
+            self._state = "low"
+        else:
+            self._state = "normal"
+        return self._state
+
+    def _average_weight(self) -> float:
+        groups = self._decay.groups
+        total, count = 0.0, 0
+        for g in groups.values():
+            for k in g:
+                total += self._decay._current_weight(g, k)
+                count += 1
+        return total / count if count else 0.5
+
+    def record_attention(self, group: str, key: str, weight: float = 1.0):
+        self._decay.add(group, key, weight)
+        return weight
+
+    def stats(self, group: str = None) -> dict:
+        d = self._decay.stats(group)
+        d["state"] = self.get_state()
+        return d
+
+
+_monitor: Optional[AttentionMonitor] = None
+
+
+def get_monitor() -> AttentionMonitor:
+    global _monitor
+    if _monitor is None:
+        _monitor = AttentionMonitor()
+    return _monitor

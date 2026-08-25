@@ -281,7 +281,9 @@ class ResourceManager:
             (allowed, reason) — False = reject with reason.
         """
         # 1. Check auto_healer throttle flag
-        if self.healer.should_throttle:
+        # 2026-08-25 004meshctx 审计修复: 原 `if self.healer.should_throttle:` 漏括号,
+        # 绑定方法对象恒 truthy → 所有任务被永久拒绝 (真 bug)。
+        if self.healer.should_throttle():
             self.trace("resource_manager", "task_rejected",
                        ResourceLevel.PAUSE,
                        {"reason": "healer_throttle"})
@@ -341,7 +343,8 @@ class ResourceManager:
         overall = "healthy"
         if crit_count > 0:
             overall = "degraded"
-        if self.healer.should_throttle:
+        # 2026-08-25 004meshctx 审计修复: 同 pre_task — 漏括号导致恒 throttled
+        if self.healer.should_throttle():
             overall = "throttled"
 
         return {

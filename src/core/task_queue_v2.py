@@ -1108,3 +1108,11 @@ def reset_task_queue_v2() -> None:
         if _task_queue_v2:
             _task_queue_v2.stop(timeout=2)
         _task_queue_v2 = None
+
+
+# ── Legacy alias layer (2026-08-25 004meshctx 审计补齐) ──
+# 兼容 _known 映射中声明的旧符号名, 保持 from src.core import X 契约不变
+def __getattr__(name):
+    if name == "QueuedTask":
+        return TaskV2
+    raise AttributeError(name)

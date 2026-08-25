@@ -491,7 +491,7 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.120.6"
+VERSION="3.121.0"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 PORT=3001
@@ -531,8 +531,22 @@ else
     PORT_PID=""
 fi
 if [ -n "$PORT_PID" ]; then
-    kill -9 "$PORT_PID" 2>/dev/null || true
-    KILLED=1
+    # 2026-08-25 004meshctx 审计修复: 仅杀 meshctx 相关进程, 禁止 kill -9 任意占用者 (误杀风险)
+    # 通过 /proc/<pid>/cmdline 校验进程归属
+    _CMD=""
+    if [ -r "/proc/${PORT_PID}/cmdline" ]; then
+        _CMD=$(tr '\0' ' ' < "/proc/${PORT_PID}/cmdline" 2>/dev/null)
+    fi
+    case "$_CMD" in
+        *meshctx*|*src.main*|*src.cli*|*uvicorn*)
+            kill -9 "$PORT_PID" 2>/dev/null || true
+            KILLED=1
+            ;;
+        *)
+            echo -e "  ${YELLOW}⚠${NC} 端口 ${PORT} 被非 meshctx 进程占用 (PID=${PORT_PID}): $_CMD"
+            echo -e "  ${YELLOW}⚠${NC} 已跳过 (不误杀)。请手动停止该进程后重试。"
+            ;;
+    esac
 fi
 
 if [ "$KILLED" = "1" ]; then
@@ -647,6 +661,13 @@ if [ -d "${INSTALL_DIR}" ]; then
         cp -a "${INSTALL_DIR}/profiles" "${CONFIG_BACKUP}/" 2>/dev/null || true
     fi
     [ -f "${INSTALL_DIR}/.active_profile" ] && cp "${INSTALL_DIR}/.active_profile" "${CONFIG_BACKUP}/" 2>/dev/null || true
+    # 2026-08-25 004meshctx 审计修复 (P1): 重装不得丢失用户数据 — 备份全部数据目录
+    # data/ 含 projects/agents/conversations 持久化; 其余为记忆/会话/知识库等运行数据
+    for d in data conversations agents knowledge memories goals genomes heartbeats backups diff_backups crew_templates archives; do
+        if [ -d "${INSTALL_DIR}/${d}" ]; then
+            cp -a "${INSTALL_DIR}/${d}" "${CONFIG_BACKUP}/" 2>/dev/null || true
+        fi
+    done
     # 也备份项目根目录的 provider_config.json（如果在别处）
     [ -z "$CONFIG_BACKUP" ] || echo -e "  ${GREEN}✓${NC} $(T backup_config)"
 fi
@@ -709,6 +730,13 @@ if [ -n "$CONFIG_BACKUP" ] && [ -d "$CONFIG_BACKUP" ]; then
         cp -a "${CONFIG_BACKUP}/profiles" "${INSTALL_DIR}/" 2>/dev/null || true
     fi
     [ -f "${CONFIG_BACKUP}/.active_profile" ] && cp "${CONFIG_BACKUP}/.active_profile" "${INSTALL_DIR}/" 2>/dev/null || true
+    # 2026-08-25 004meshctx 审计修复 (P1): 恢复全部用户数据目录 (与备份对应)
+    for d in data conversations agents knowledge memories goals genomes heartbeats backups diff_backups crew_templates archives; do
+        if [ -d "${CONFIG_BACKUP}/${d}" ]; then
+            cp -a "${CONFIG_BACKUP}/${d}" "${INSTALL_DIR}/" 2>/dev/null || true
+            RESTORED=1
+        fi
+    done
     # 🔒 安全: 永远不恢复旧密码，新安装默认无需密码
     if [ -f "${INSTALL_DIR}/.env" ]; then
         sed -i '/^MESHCTX_PASSWORD=/d' "${INSTALL_DIR}/.env" 2>/dev/null || true

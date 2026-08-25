@@ -699,3 +699,13 @@ def reset_knowledge_graph_v2():
     global _kg_v2_instance
     with _kg_v2_lock:
         _kg_v2_instance = None
+
+
+# ── Legacy alias layer (2026-08-25 004meshctx 审计补齐) ──
+# 兼容 _known 映射中声明的旧符号名, 保持 from src.core import X 契约不变
+def __getattr__(name):
+    if name == "KGEntity":
+        return Entity
+    if name == "KGRelation":
+        return Relation
+    raise AttributeError(name)

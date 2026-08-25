@@ -35,6 +35,23 @@ _core_mods = _enumerate_core_modules(_here)
 _src_mods = _enumerate_src_modules(_here)
 if not _core_mods:
     raise SystemExit("FAIL: src/core 无模块 — 闭源核心未落地, 禁止发布 stub 资产")
+
+# 关键模块显式护栏 (2026-08-25 004meshctx 审计): 即使磁盘枚举被意外改动,
+# 下列核心模块也必须被打包 — 对应 test_project_integrity 回归测试。
+_critical_mods = [
+    'src.core.metacognition', 'src.core.memory_hierarchy', 'src.core.orchestrator',
+    'src.core.predictor', 'src.core.agent_loop', 'src.core.healer', 'src.core.kernel',
+    'src.core.free_energy', 'src.core.active_inference', 'src.core.global_workspace',
+    'src.core.homeostasis', 'src.core.super_brain', 'src.core.sandbox',
+    'src.core.diff_preview', 'src.core.task_progress', 'src.core.sdb_framework',
+    'src.core.self_modify', 'src.core.brain_validator', 'src.core.gateway_llm',
+    'src.core.unified_loop', 'src.core.attractor_reasoner', 'src.core.dashboard',
+    'src.core.auto_healer', 'src.core.human_memory', 'src.core.autonomous_engine',
+]
+for _cm in _critical_mods:
+    if _cm not in _core_mods:
+        _core_mods.append(_cm)
+_core_mods = sorted(set(_core_mods))
 block_cipher = None
 
 a = Analysis(
@@ -85,6 +102,6 @@ if sys.platform == 'darwin':
         bundle_identifier='com.meshctx.desktop',
         info_plist={
             'NSHighResolutionCapable': 'True',
-            'CFBundleShortVersionString': '3.120.6',
-            'CFBundleVersion': '3.120.6',
+            'CFBundleShortVersionString': '3.121.0',
+            'CFBundleVersion': '3.121.0',
         }, version='version_info.txt')
