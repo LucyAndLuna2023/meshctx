@@ -20,15 +20,15 @@ T() {
     case "$1" in
     header_installer)
         case "$LANG_CHOICE" in
-            zh) echo 'meshctx v${VERSION} 一键安装' ;;
-            en) echo 'meshctx v${VERSION} One-Click Install' ;;
-            ja) echo 'meshctx v${VERSION} ワンクリックインストール' ;;
-            ko) echo 'meshctx v${VERSION} 원클릭 설치' ;;
-            fr) echo 'meshctx v${VERSION} Installation en un clic' ;;
-            de) echo 'meshctx v${VERSION} Ein-Klick-Installation' ;;
-            es) echo 'meshctx v${VERSION} Instalación en un clic' ;;
-            it) echo 'meshctx v${VERSION} Installazione con un clic' ;;
-            ar) echo 'meshctx v${VERSION} تثبيت بنقرة واحدة' ;;
+            zh) echo "meshctx v${VERSION} 一键安装" ;;
+            en) echo "meshctx v${VERSION} One-Click Install" ;;
+            ja) echo "meshctx v${VERSION} ワンクリックインストール" ;;
+            ko) echo "meshctx v${VERSION} 원클릭 설치" ;;
+            fr) echo "meshctx v${VERSION} Installation en un clic" ;;
+            de) echo "meshctx v${VERSION} Ein-Klick-Installation" ;;
+            es) echo "meshctx v${VERSION} Instalación en un clic" ;;
+            it) echo "meshctx v${VERSION} Installazione con un clic" ;;
+            ar) echo "meshctx v${VERSION} تثبيت بنقرة واحدة" ;;
         esac
         ;;
     step_stop)
@@ -46,15 +46,15 @@ T() {
         ;;
     stopped_ok)
         case "$LANG_CHOICE" in
-            zh) echo '已停止旧服务并释放端口 ${PORT}' ;;
-            en) echo 'Stopped old service, freed port ${PORT}' ;;
-            ja) echo '古いサービスを停止し、ポート ${PORT} を解放しました' ;;
-            ko) echo '이전 서비스 중지 및 포트 ${PORT} 해제됨' ;;
-            fr) echo 'Ancien service arrêté, port ${PORT} libéré' ;;
-            de) echo 'Alter Dienst beendet, Port ${PORT} freigegeben' ;;
-            es) echo 'Servicio anterior detenido, puerto ${PORT} liberado' ;;
-            it) echo 'Vecchio servizio arrestato, porta ${PORT} liberata' ;;
-            ar) echo 'تم إيقاف الخدمة القديمة وتحرير المنفذ ${PORT}' ;;
+            zh) echo "已停止旧服务并释放端口 ${PORT}" ;;
+            en) echo "Stopped old service, freed port ${PORT}" ;;
+            ja) echo "古いサービスを停止し、ポート ${PORT} を解放しました" ;;
+            ko) echo "이전 서비스 중지 및 포트 ${PORT} 해제됨" ;;
+            fr) echo "Ancien service arrêté, port ${PORT} libéré" ;;
+            de) echo "Alter Dienst beendet, Port ${PORT} freigegeben" ;;
+            es) echo "Servicio anterior detenido, puerto ${PORT} liberado" ;;
+            it) echo "Vecchio servizio arrestato, porta ${PORT} liberata" ;;
+            ar) echo "تم إيقاف الخدمة القديمة وتحرير المنفذ ${PORT}" ;;
         esac
         ;;
     no_stop_needed)
@@ -98,28 +98,28 @@ T() {
         ;;
     need_python_ver)
         case "$LANG_CHOICE" in
-            zh) echo '需要 Python 3.10+，当前 ${PY_VER}' ;;
-            en) echo 'Requires Python 3.10+, current ${PY_VER}' ;;
-            ja) echo 'Python 3.10+ が必要です。現在 ${PY_VER}' ;;
-            ko) echo 'Python 3.10+ 필요, 현재 ${PY_VER}' ;;
-            fr) echo 'Python 3.10+ requis, actuel ${PY_VER}' ;;
-            de) echo 'Python 3.10+ erforderlich, aktuell ${PY_VER}' ;;
-            es) echo 'Requiere Python 3.10+, actual ${PY_VER}' ;;
-            it) echo 'Richiede Python 3.10+, attuale ${PY_VER}' ;;
-            ar) echo 'يتطلب Python 3.10+، الإصدار الحالي ${PY_VER}' ;;
+            zh) echo "需要 Python 3.10+，当前 ${PY_VER}" ;;
+            en) echo "Requires Python 3.10+, current ${PY_VER}" ;;
+            ja) echo "Python 3.10+ が必要です。現在 ${PY_VER}" ;;
+            ko) echo "Python 3.10+ 필요, 현재 ${PY_VER}" ;;
+            fr) echo "Python 3.10+ requis, actuel ${PY_VER}" ;;
+            de) echo "Python 3.10+ erforderlich, aktuell ${PY_VER}" ;;
+            es) echo "Requiere Python 3.10+, actual ${PY_VER}" ;;
+            it) echo "Richiede Python 3.10+, attuale ${PY_VER}" ;;
+            ar) echo "يتطلب Python 3.10+، الإصدار الحالي ${PY_VER}" ;;
         esac
         ;;
     step_download)
         case "$LANG_CHOICE" in
-            zh) echo '下载 meshctx v${VERSION}...' ;;
-            en) echo 'Downloading meshctx v${VERSION}...' ;;
-            ja) echo 'meshctx v${VERSION} をダウンロード中...' ;;
-            ko) echo 'meshctx v${VERSION} 다운로드 중...' ;;
-            fr) echo 'Téléchargement de meshctx v${VERSION}...' ;;
-            de) echo 'meshctx v${VERSION} wird heruntergeladen...' ;;
-            es) echo 'Descargando meshctx v${VERSION}...' ;;
-            it) echo 'Scaricamento di meshctx v${VERSION} in corso...' ;;
-            ar) echo 'جاري تنزيل meshctx v${VERSION}...' ;;
+            zh) echo "下载 meshctx v${VERSION}..." ;;
+            en) echo "Downloading meshctx v${VERSION}..." ;;
+            ja) echo "meshctx v${VERSION} をダウンロード中..." ;;
+            ko) echo "meshctx v${VERSION} 다운로드 중..." ;;
+            fr) echo "Téléchargement de meshctx v${VERSION}..." ;;
+            de) echo "meshctx v${VERSION} wird heruntergeladen..." ;;
+            es) echo "Descargando meshctx v${VERSION}..." ;;
+            it) echo "Scaricamento di meshctx v${VERSION} in corso..." ;;
+            ar) echo "جاري تنزيل meshctx v${VERSION}..." ;;
         esac
         ;;
     download_ok)
@@ -293,28 +293,28 @@ T() {
         ;;
     version_ok)
         case "$LANG_CHOICE" in
-            zh) echo '版本 ${INSTALLED_VER} 验证通过' ;;
-            en) echo 'Version ${INSTALLED_VER} verified' ;;
-            ja) echo 'バージョン ${INSTALLED_VER} 検証済み' ;;
-            ko) echo '버전 ${INSTALLED_VER} 확인됨' ;;
-            fr) echo 'Version ${INSTALLED_VER} vérifiée' ;;
-            de) echo 'Version ${INSTALLED_VER} verifiziert' ;;
-            es) echo 'Versión ${INSTALLED_VER} verificada' ;;
-            it) echo 'Versione ${INSTALLED_VER} verificata' ;;
-            ar) echo 'تم التحقق من الإصدار ${INSTALLED_VER}' ;;
+            zh) echo "版本 ${INSTALLED_VER} 验证通过" ;;
+            en) echo "Version ${INSTALLED_VER} verified" ;;
+            ja) echo "バージョン ${INSTALLED_VER} 検証済み" ;;
+            ko) echo "버전 ${INSTALLED_VER} 확인됨" ;;
+            fr) echo "Version ${INSTALLED_VER} vérifiée" ;;
+            de) echo "Version ${INSTALLED_VER} verifiziert" ;;
+            es) echo "Versión ${INSTALLED_VER} verificada" ;;
+            it) echo "Versione ${INSTALLED_VER} verificata" ;;
+            ar) echo "تم التحقق من الإصدار ${INSTALLED_VER}" ;;
         esac
         ;;
     version_warn)
         case "$LANG_CHOICE" in
-            zh) echo '版本 ${INSTALLED_VER}（期望 ${VERSION}）' ;;
-            en) echo 'Version ${INSTALLED_VER} (expected ${VERSION})' ;;
-            ja) echo 'バージョン ${INSTALLED_VER}（期待値 ${VERSION}）' ;;
-            ko) echo '버전 ${INSTALLED_VER} (예상 ${VERSION})' ;;
-            fr) echo 'Version ${INSTALLED_VER} (attendu ${VERSION})' ;;
-            de) echo 'Version ${INSTALLED_VER} (erwartet ${VERSION})' ;;
-            es) echo 'Versión ${INSTALLED_VER} (esperada ${VERSION})' ;;
-            it) echo 'Versione ${INSTALLED_VER} (attesa ${VERSION})' ;;
-            ar) echo 'الإصدار ${INSTALLED_VER} (المتوقع ${VERSION})' ;;
+            zh) echo "版本 ${INSTALLED_VER}（期望 ${VERSION}）" ;;
+            en) echo "Version ${INSTALLED_VER} (expected ${VERSION})" ;;
+            ja) echo "バージョン ${INSTALLED_VER}（期待値 ${VERSION}）" ;;
+            ko) echo "버전 ${INSTALLED_VER} (예상 ${VERSION})" ;;
+            fr) echo "Version ${INSTALLED_VER} (attendu ${VERSION})" ;;
+            de) echo "Version ${INSTALLED_VER} (erwartet ${VERSION})" ;;
+            es) echo "Versión ${INSTALLED_VER} (esperada ${VERSION})" ;;
+            it) echo "Versione ${INSTALLED_VER} (attesa ${VERSION})" ;;
+            ar) echo "الإصدار ${INSTALLED_VER} (المتوقع ${VERSION})" ;;
         esac
         ;;
     install_banner)
@@ -358,15 +358,15 @@ T() {
         ;;
     open_browser)
         case "$LANG_CHOICE" in
-            zh) echo '浏览器打开 http://localhost:${PORT}/ui/setup' ;;
-            en) echo 'Open http://localhost:${PORT}/ui/setup' ;;
-            ja) echo 'ブラウザで http://localhost:${PORT}/ui/setup を開く' ;;
-            ko) echo '브라우저에서 http://localhost:${PORT}/ui/setup 열기' ;;
-            fr) echo 'Ouvrir http://localhost:${PORT}/ui/setup' ;;
-            de) echo 'http://localhost:${PORT}/ui/setup öffnen' ;;
-            es) echo 'Abrir http://localhost:${PORT}/ui/setup' ;;
-            it) echo 'Apri http://localhost:${PORT}/ui/setup' ;;
-            ar) echo 'افتح http://localhost:${PORT}/ui/setup' ;;
+            zh) echo "浏览器打开 http://localhost:${PORT}/ui/setup" ;;
+            en) echo "Open http://localhost:${PORT}/ui/setup" ;;
+            ja) echo "ブラウザで http://localhost:${PORT}/ui/setup を開く" ;;
+            ko) echo "브라우저에서 http://localhost:${PORT}/ui/setup 열기" ;;
+            fr) echo "Ouvrir http://localhost:${PORT}/ui/setup" ;;
+            de) echo "http://localhost:${PORT}/ui/setup öffnen" ;;
+            es) echo "Abrir http://localhost:${PORT}/ui/setup" ;;
+            it) echo "Apri http://localhost:${PORT}/ui/setup" ;;
+            ar) echo "افتح http://localhost:${PORT}/ui/setup" ;;
         esac
         ;;
     setup_api)
