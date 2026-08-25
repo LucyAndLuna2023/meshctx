@@ -1,3 +1,13 @@
+## [3.121.2] - 2026-08-25
+### Added / Changed (004meshctx UI 重构 + 品牌 logo + 性能修复, 三审计通过)
+- **UI 极简重构 (模仿 DeepSeek Harness, 用户方向)**: 主导航 9 tab → 💬对话 + ⚙️设置; 其余 (Dashboard/Projects/Memories/Continuity/Plugins/Files/Models/Providers/Desktop/API) 收纳设置页"高级功能区", URL 全保留不删功能; /ui/ 保留 Dashboard (200 契约)
+- **P0 对话丢失修复 (用户实报)**: chat.html 接入后端 /api/conversations — 新对话先保存再清空, 历史下拉切换/删除, 增量同步消息 (syncedMsgCount), conversation_store 补 updated_at
+- **品牌 logo 三平台 (用户提供 E盘)**: 透明 PNG 768×768 → logo.png/logo.ico(7尺寸)/logo.icns; web 导航/chat header/favicon(icon-192/512) 全显示品牌 logo; NSIS MUI_ICON + spec BUNDLE
+- **UI 性能修复 (17s→1s)**: cross_platform_engine 类级索引缓存 + 目录指纹 + save/delete 显式失效 (原 29 万次 json.load); web_ui _engine 惰性创建防 500
+- **@mention 修复**: /api/files 兼容端点 (原后端只有 /api/file/list) + search 过滤
+- **002codex 复审 P2 两项**: newChat() await 保存防竞态 + /api/files search 参数
+- 测试: 3672 passed / 60 skipped / 0 failed; test_v51_ui_full_routes 23 passed
+
 ## [3.121.1] - 2026-08-25
 ### Added / Changed (002meshctx 接手 004 死机收尾，已交 002codex 审计)
 - **方案 C 落地（用户拍板）**: installer 闭源核心从强制降为可选增强层（Open Core）。install.sh/install-mac.sh 源码模式无 `MESHCTX_CORE_TOKEN` 不再「stub install forbidden」退出 → 提示继续装开源版（完整引擎）；core clone 失败仅警告不中断。install.bat 9 语言 45 处文案 + 3 处控制流同步（ERROR+exit → WARN/INFO 继续）。portable 官方资产缺 core 校验保留。docs/ 三副本逐字节同步
