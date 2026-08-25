@@ -89,9 +89,19 @@ def main() -> int:
     cfg = json.loads(config)
     base = json.loads(BASELINE.read_text(encoding="utf-8")) if BASELINE.exists() else DEFAULT_BASELINE
     src_core = ROOT / "src" / "core"
+    # 当前版本从 src/core/__init__.py 读取 (而非 baseline 的旧版本)
+    cur_ver = "?"
+    try:
+        import re as _re
+        _init = (src_core / "__init__.py").read_text(encoding="utf-8")
+        _m = _re.search(r'__version__\s*=\s*"([^"]+)"', _init)
+        if _m:
+            cur_ver = _m.group(1)
+    except Exception:
+        pass
 
     report = {
-        "version": base.get("version", "?"),
+        "version": cur_ver,
         "run_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "baseline": base,
         "results": {},
