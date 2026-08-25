@@ -510,3 +510,15 @@ async def subconscious_to_action_cycle(
         "actions_executed": actions_executed,
         "status": "completed",
     }
+
+
+# ── Legacy alias layer (2026-08-25 004meshctx 审计补齐) ──
+# 兼容 _known 映射中声明的旧符号名, 保持 from src.core import X 契约不变
+def __getattr__(name):
+    if name == "AutonomousAction":
+        return ActionEngine
+    if name == "ActionPlan":
+        return Action
+    if name == "get_autonomous_action":
+        return get_action_engine
+    raise AttributeError(name)

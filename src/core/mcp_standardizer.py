@@ -177,14 +177,25 @@ class MCPStandardizer:
             return {"error": {"code": -32601, "message": f"Unknown method: {method}"}}
 
     def discover_tools(self, module_path):
+        """发现模块中的公开函数并注册为 MCP 工具。
+
+        2026-08-25 004meshctx 审计修复: exec_module 前先把模块注册到 sys.modules —
+        dataclass 装饰器在 exec 期间通过 sys.modules[cls.__module__] 查找模块命名空间,
+        独立加载 (非包导入) 时否则抛 AttributeError → 返回 0 (真 bug)。
+        """
         try:
             import importlib.util
+            import sys
             mod_name = os.path.splitext(os.path.basename(module_path))[0]
             spec = importlib.util.spec_from_file_location(mod_name, module_path)
             if spec is None or spec.loader is None:
                 return 0
             module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
+            sys.modules[mod_name] = module  # dataclass/enum 装饰器依赖模块命名空间
+            try:
+                spec.loader.exec_module(module)
+            finally:
+                sys.modules.pop(mod_name, None)
             count = 0
             for fname in dir(module):
                 if fname.startswith("_"):
@@ -384,3 +395,13 @@ def get_mcp_standardizer():
 def reset_mcp_standardizer():
     global _mcp
     _mcp = None
+
+
+# ── Legacy alias layer (2026-08-25 004meshctx 审计补齐) ──
+# 兼容 _known 映射中声明的旧符号名, 保持 from src.core import X 契约不变
+def __getattr__(name):
+    if name == "MCPTool":
+        return MCPToolDef
+    if name == "MCPServer":
+        return MCPStandardizer
+    raise AttributeError(name)

@@ -552,12 +552,14 @@ class TestModelSlashUse:
 
     @patch("subprocess.run")
     def test_cmd_stop(self, mock_run, capsys):
-        """cmd_stop calls pkill"""
+        """cmd_stop calls pkill (跨平台双模式: uvicorn + 封装版, 2026-08-25 审计修复)"""
         from src.cli import cmd_stop
         mock_run.return_value.returncode = 0
         args = MagicMock()
         cmd_stop(args)
-        mock_run.assert_called_once()
+        # macOS 默认安装路径为封装版, 需同时匹配 uvicorn 与 meshctx/meshctx 两种模式
+        assert mock_run.call_count >= 1
+        assert "pkill" in mock_run.call_args_list[0][0][0]
 
     @patch("requests.get")
     def test_cmd_status_running(self, mock_get, capsys):

@@ -11,6 +11,8 @@
 #    与二次开发使用。商业/完整版（更大规模、分布式、加密存储等增强能力）
 #    位于私有仓库 meshctx-core；本实现与其 API 完全兼容，可在无授权环境下
 #    正常工作。──
+# 2026-08 批次B 审计: 移除 _MeshCtxStubProxy / __getattr__ 残留代理，
+# 全部导出符号均为真实实现。
 from __future__ import annotations
 from enum import Enum
 from abc import ABC
@@ -18,22 +20,6 @@ import math
 import random
 
 import numpy as np
-
-
-class _MeshCtxStubProxy:
-    """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
-    def __init__(self, name):
-        self._name = name
-    def __getattr__(self, attr):
-        return _MeshCtxStubProxy(f"{self._name}.{attr}")
-    def __call__(self, *args, **kwargs):
-        raise NotImplementedError(f"meshctx-core required (private repo): {self._name}")
-    def __repr__(self):
-        return f"<meshctx stub {self._name}>"
-
-
-def __getattr__(name):
-    return _MeshCtxStubProxy(name)
 
 
 class HippocampalReplay:
@@ -410,3 +396,21 @@ class SuperBrainOrchestrator:
             "avg_phi": self._phi_accum / max(1, self.step_count),
             "memory_traces": len(self.hippocampus.traces),
         }
+
+
+# ── SuperBrain / get_super_brain 兼容别名 (2026-08-25 004meshctx 审计补齐) ──
+# _known 映射声明 super_brain.SuperBrain / super_brain.get_super_brain,
+# 真实实现位于 src/core/brain.py (Region 编排器)。惰性转发避免循环导入。
+def get_super_brain(enable_daemon: bool = False):
+    """惰性转发到 src.core.brain.get_super_brain (真实实现)。"""
+    from src.core.brain import get_super_brain as _real
+    return _real(enable_daemon=enable_daemon)
+
+
+# SuperBrain 别名: 惰性解析 brain.py 的类 (避免 import 时循环依赖)
+def __getattr__(name):
+    if name == "SuperBrain":
+        from src.core.brain import SuperBrain as _sb
+        globals()["SuperBrain"] = _sb
+        return _sb
+    raise AttributeError(name)

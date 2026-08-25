@@ -1,16 +1,24 @@
 #!/bin/bash
 # ============================================================
-# meshctx v1.0 远程部署脚本
-# 目标服务器: 47.120.0.239 (备用阿里云)
-# 端口: 8000
+# meshctx v1.0 远程部署脚本 (⚠️ 已废弃, 2026-08-25 004meshctx 审计)
+# 目标服务器: 47.120.0.239 (备用阿里云, 已清空停用)
+# 端口: 8000 (当前产品为 3001)
+# ⚠️ 安全修复: 明文密码已移除, 必须通过环境变量 MESHCTX_DEPLOY_PASSWORD 提供
+# 使用方法: MESHCTX_DEPLOY_PASSWORD='xxx' ./deploy.sh
 # ============================================================
 set -e
 
-SERVER="47.120.0.239"
+SERVER="${MESHCTX_DEPLOY_SERVER:-47.120.0.239}"
 REMOTE_USER="root"
 REMOTE_DIR="/opt/meshctx"
-PASSWORD="LucyAndLuna@2023"
+PASSWORD="${MESHCTX_DEPLOY_PASSWORD:-}"
 LOCAL_DIR="/home/administrator/meshctx-local"
+
+if [ -z "$PASSWORD" ]; then
+    echo "❌ 未设置 MESHCTX_DEPLOY_PASSWORD 环境变量 (安全要求: 禁止明文密码入库)" >&2
+    echo "用法: MESHCTX_DEPLOY_PASSWORD='xxx' ./deploy.sh" >&2
+    exit 1
+fi
 
 echo "========================================"
 echo " meshctx v1.0 部署脚本"

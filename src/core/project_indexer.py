@@ -374,3 +374,15 @@ def get_indexer(root: str = ".") -> _Indexer:
 get_index = _Indexer.search  # backward compat alias
 
 
+
+
+# ── Legacy alias layer (2026-08-25 004meshctx 审计补齐) ──
+# 兼容 _known 映射中声明的旧符号名, 保持 from src.core import X 契约不变
+def __getattr__(name):
+    if name == "ProjectIndexer":
+        return _Indexer
+    if name == "FileSummary":
+        return ScanResult
+    if name == "IndexStats":
+        return ScanResult
+    raise AttributeError(name)

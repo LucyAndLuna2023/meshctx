@@ -522,3 +522,27 @@ def get_perf_optimizer() -> PerformanceOptimizer:
     if _default_optimizer is None:
         _default_optimizer = PerformanceOptimizer()
     return _default_optimizer
+
+
+# 兼容别名 (2026-08-25 004meshctx 审计补齐): main.py `from src.core.performance_optimizer import optimizer`
+optimizer = None  # 惰性解析, 见 __getattr__
+
+
+def __getattr__(name):
+    if name == "optimizer":
+        global optimizer
+        optimizer = get_perf_optimizer()
+        return optimizer
+    if name == "PerfProfile":
+        global _PerfProfile
+        from dataclasses import dataclass as _dc, field as _fld
+
+        @_dc
+        class _PerfProfile:
+            """性能画像 (契约补齐, _known 映射)"""
+            name: str = ''
+            score: float = 0.0
+            metrics: dict = _fld(default_factory=dict)
+        _PerfProfile = _PerfProfile
+        return _PerfProfile
+    raise AttributeError(name)

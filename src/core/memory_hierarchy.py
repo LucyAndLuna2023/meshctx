@@ -5,8 +5,7 @@
     供开源社区开发、测试与二次开发使用。
   - 商业/完整版（更大规模、分布式、加密存储等增强能力）位于私有仓库
     meshctx-core（pip install meshctx-core，需授权）。
-  - 设置环境变量 MESHCTX_STRICT=1 时，未安装 meshctx-core 的导入将抛 ImportError，
-    以便在需要完整实现的场景下显式失败而非静默降级。
+  - 本文件不再包含 stub 代理：所有导出符号均为真实实现（2026-08 批次B 审计）。
 """
 from __future__ import annotations
 
@@ -19,30 +18,6 @@ from enum import Enum
 from abc import ABC
 from dataclasses import dataclass, field
 from typing import Optional
-
-_STRICT = os.environ.get("MESHCTX_STRICT") == "1"
-
-
-class _MeshCtxStubProxy:
-    """未导出符号的优雅降级代理: 导入成功, 调用/属性访问时提示需 meshctx-core。"""
-
-    def __init__(self, name):
-        self._name = name
-
-    def __getattr__(self, attr):
-        return _MeshCtxStubProxy(f"{self._name}.{attr}")
-
-    def __call__(self, *args, **kwargs):
-        raise NotImplementedError(f"meshctx-core required (private repo): {self._name}")
-
-    def __repr__(self):
-        return f"<meshctx stub {self._name}>"
-
-
-def __getattr__(name):
-    if _STRICT:
-        raise ImportError(f"meshctx-core required (private repo): {name}")
-    return _MeshCtxStubProxy(name)
 
 
 class MemoryLevel(Enum):
@@ -223,7 +198,10 @@ class MemoryItem:
     last_accessed: float = 0.0
     last_reviewed: float = 0.0
     # ── FSRS spaced-repetition state (phase-1) ──
-    stability: float = 24.0            # S (hours, kept in hours for backward compat)
+    # 默认 stability=3.0h: 新记忆 1 小时后保留率 ≈ 10^(-1/3) ≈ 46%
+    # (2026-08-25 004meshctx 审计修复: 原默认 24h 使 1h 后 retention=0.908,
+    #  违反 Ebbinghaus 契约 — 测试期望 1h 后 30-60%)
+    stability: float = 3.0            # S (hours, kept in hours for backward compat)
     difficulty: float = 5.0            # D in [0, 10]
     ease_factor: float = 2.5           # SM-2 ease factor (legacy)
     next_review: float = 0.0           # unix ts of next scheduled review
@@ -261,7 +239,7 @@ class MemoryItem:
         """
         base = self.last_reviewed if self.last_reviewed else self.created_at
         elapsed = max(0.0, time.time() - base)
-        s_seconds = max(1e-6, float(self.stability or 24.0) * 3600.0)  # 小时→秒
+        s_seconds = max(1e-6, float(self.stability or 3.0) * 3600.0)  # 小时→秒
         # 统一 10 底与 FSRS 一致（审计点3）: R(t)=10^(-t/S)
         return max(0.05, min(1.0, 10.0 ** (-elapsed / s_seconds)))
 
@@ -349,6 +327,8 @@ class MemoryItem:
             created_at=data.get("created_at", 0.0),
             last_accessed=data.get("last_accessed", 0.0),
             last_reviewed=data.get("last_reviewed", 0.0),
+            # 旧快照 (无 FSRS 字段) 兼容: stability 缺失用 24.0 (历史默认, 见 test_fsrs_memory
+            # test_old_snapshot_loads_with_defaults); 新建条目默认 3.0 (审计修复)
             stability=data.get("stability", 24.0),
             difficulty=data.get("difficulty", 5.0),
             ease_factor=data.get("ease_factor", 2.5),
@@ -363,7 +343,9 @@ class MemoryItem:
 class EbbinghausForgetting:
     """Ebbinghaus forgetting curve model (open-source fallback)."""
 
-    def __init__(self, strength: float = 1.0, stability: float = 24.0):
+    # 2026-08-25 004meshctx 审计修复: 默认 stability 24h → 3h (与 MemoryItem 一致,
+    # 避免 1h 后 retention 0.908 违反 Ebbinghaus 契约)
+    def __init__(self, strength: float = 1.0, stability: float = 3.0):
         self.strength = strength
         self.stability = stability
 
@@ -802,4 +784,196 @@ __all__ = [
     "HierarchicalMemoryStore", "store", "retrieve", "recall", "compact", "stats",
     "set_auto_save", "save_to_file", "load_from_file",
     "MemoryPlugin", "on_load", "on_event", "generate_report",
+    "MemoryHierarchy",
 ]
+
+
+# ═══════════════════════════════════════════════════════════════════
+# __all__ 兼容层：历史 __all__ 包含各类的实例方法名（如 add/search/store），
+# 原实现依赖模块级 __getattr__ 返回 stub 代理。移除代理后，这里提供真实
+# 的模块级便捷函数（基于模块级默认实例），保证 `from ... import *` 与
+# 直接属性访问仍可用，且行为真实。
+# ═══════════════════════════════════════════════════════════════════
+_default_vector_index = VectorIndex()
+_default_graph = KnowledgeGraph()
+_default_store = HierarchicalMemoryStore()
+_default_plugin = MemoryPlugin()
+
+
+class MemoryHierarchy:
+    """4 层记忆门面（L0-L4）— main.py 初始化契约（v3.115.25）。
+
+    包装 HierarchicalMemoryStore，提供 SENSORY/L0、SHORT_TERM/L1、
+    WORKING/L2、LONG_TERM/L3、ARCHIVAL/L4 语义与持久化。
+    """
+
+    def __init__(self, **kw):
+        self._store = HierarchicalMemoryStore()
+
+    def store(self, item: MemoryItem):
+        return self._store.store(item)
+
+    def retrieve(self, query: str, top_k: int = 5) -> list[MemoryItem]:
+        return self._store.retrieve(query, top_k=top_k)
+
+    def recall(self, query: str) -> list[MemoryItem]:
+        return self._store.recall(query)
+
+    def get_stats(self) -> dict:
+        return self._store.get_stats()
+
+    def save_to_file(self, path: str) -> str:
+        return self._store.save_to_file(path)
+
+    @classmethod
+    def load_from_file(cls, path: str) -> "MemoryHierarchy":
+        mh = cls()
+        mh._store = HierarchicalMemoryStore.load_from_file(path)
+        return mh
+
+
+def dim() -> int:
+    """默认 VectorIndex 的向量维度。"""
+    return _default_vector_index.dim
+
+
+def add(item_id: str, embedding: list[float]):
+    """向默认 VectorIndex 添加向量。"""
+    return _default_vector_index.add(item_id, embedding)
+
+
+def count() -> int:
+    """默认 VectorIndex 的向量数量。"""
+    return _default_vector_index.count()
+
+
+def search(query: list[float], top_k: int = 5) -> list[tuple[str, float]]:
+    """在默认 VectorIndex 中按余弦相似度搜索。"""
+    return _default_vector_index.search(query, top_k=top_k)
+
+
+def to_dict() -> dict:
+    """默认 VectorIndex 的序列化视图。"""
+    return _default_vector_index.to_dict()
+
+
+def from_dict(data: dict) -> VectorIndex:
+    """从 dict 恢复 VectorIndex。"""
+    return VectorIndex.from_dict(data)
+
+
+def add_entity(name: str, etype: str, properties: dict | None = None):
+    """向默认 KnowledgeGraph 添加实体。"""
+    return _default_graph.add_entity(name, etype, properties)
+
+
+def add_relation(source: str, relation: str, target: str, weight: float = 1.0):
+    """向默认 KnowledgeGraph 添加关系。"""
+    return _default_graph.add_relation(source, relation, target, weight)
+
+
+def link_memory(entity: str, memory_id: str):
+    """将记忆关联到默认 KnowledgeGraph 的实体。"""
+    return _default_graph.link_memory(entity, memory_id)
+
+
+def search_entities(query: str) -> set[str]:
+    """在默认 KnowledgeGraph 中搜索实体。"""
+    return _default_graph.search_entities(query)
+
+
+def get_related_memories(entity: str) -> set[str]:
+    """获取默认 KnowledgeGraph 中实体关联的记忆。"""
+    return _default_graph.get_related_memories(entity)
+
+
+def get_stats() -> dict:
+    """默认 KnowledgeGraph 的统计。"""
+    return _default_graph.get_stats()
+
+
+def current_retention(item: MemoryItem) -> float:
+    """计算 MemoryItem 的当前保留度（0~1）。"""
+    return item.current_retention()
+
+
+def to_json_dict(item: MemoryItem) -> dict:
+    """序列化 MemoryItem 为 dict。"""
+    return item.to_json_dict()
+
+
+def from_json_dict(data: dict) -> MemoryItem:
+    """从 dict 恢复 MemoryItem。"""
+    return MemoryItem.from_json_dict(data)
+
+
+def decay(elapsed_hours: float = 0.0) -> float:
+    """Ebbinghaus 遗忘曲线：默认模型经过 elapsed_hours 后的保留度。"""
+    return EbbinghausForgetting().decay(elapsed_hours)
+
+
+def store(item: MemoryItem):
+    """存入默认 HierarchicalMemoryStore。"""
+    return _default_store.store(item)
+
+
+def retrieve(
+    query: str,
+    top_k: int = 5,
+    context: str | dict | None = None,
+    include_archived: bool = False,
+    jepa_boost: bool = False,
+) -> list[MemoryItem]:
+    """从默认 HierarchicalMemoryStore 检索。"""
+    return _default_store.retrieve(
+        query,
+        top_k=top_k,
+        context=context,
+        include_archived=include_archived,
+        jepa_boost=jepa_boost,
+    )
+
+
+def recall(query: str, context: str | dict | None = None) -> list[MemoryItem]:
+    """从默认 HierarchicalMemoryStore 全量召回。"""
+    return _default_store.recall(query, context=context)
+
+
+def compact():
+    """压缩默认 HierarchicalMemoryStore（按 key 去重）。"""
+    return _default_store.compact()
+
+
+def stats() -> dict:
+    """默认 HierarchicalMemoryStore 的统计。"""
+    return _default_store.get_stats()
+
+
+def set_auto_save(path: str, threshold: int = 0):
+    """为默认 HierarchicalMemoryStore 配置自动保存。"""
+    return _default_store.set_auto_save(path, threshold)
+
+
+def save_to_file(path: str) -> str:
+    """将默认 HierarchicalMemoryStore 保存到文件。"""
+    return _default_store.save_to_file(path)
+
+
+def load_from_file(path: str) -> HierarchicalMemoryStore:
+    """从文件加载 HierarchicalMemoryStore。"""
+    return HierarchicalMemoryStore.load_from_file(path)
+
+
+async def on_load(kernel) -> bool:
+    """默认 MemoryPlugin 的加载钩子。"""
+    return await _default_plugin.on_load(kernel)
+
+
+async def on_event(event):
+    """默认 MemoryPlugin 的事件处理。"""
+    return await _default_plugin.on_event(event)
+
+
+def generate_report() -> dict:
+    """默认 MemoryPlugin 的报告。"""
+    return _default_plugin.generate_report()

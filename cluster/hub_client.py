@@ -66,6 +66,39 @@ if MACHINE_REG and not _ENV_MACHINE_ID:
 # ── Machine ID Resolution ────────────────────────────────
 _KNOWN_IDS = {"001", "002", "003", "004"}
 
+def _pid_alive_portable(pid) -> bool:
+    """跨平台进程存活探测 (2026-08-25 004meshctx 审计修复)。
+
+    Windows 上 os.kill(pid, 0) 语义是 CTRL_C_EVENT (会误发 Ctrl+C 或抛 OSError(87)),
+    不能用作存活探测。psutil 优先, 其次 POSIX os.kill, Windows 兜底 ctypes OpenProcess。
+    """
+    try:
+        pid = int(pid)
+    except (TypeError, ValueError):
+        return False
+    try:
+        import psutil
+        if psutil.pid_exists(pid):
+            return True
+    except ImportError:
+        pass
+    if os.name != "nt":
+        try:
+            os.kill(pid, 0)
+            return True
+        except (OSError, ProcessLookupError):
+            return False
+    try:
+        import ctypes
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        h = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        if h:
+            ctypes.windll.kernel32.CloseHandle(h)
+            return True
+    except Exception:
+        pass
+    return False
+
 def resolve_machine_id(raw: str) -> str:
     """Resolve a target identifier (label, hostname, or profile) to a machine ID.
     
@@ -803,27 +836,32 @@ def _cli():
 
     elif args.action == "listen":
         # ── P0-4: pidfile mutex ──
-        import fcntl
+        # 2026-08-25 004meshctx 审计修复: fcntl 仅 Unix 存在, Windows 降级为仅 pidfile 检查
+        try:
+            import fcntl as _fcntl
+        except ImportError:
+            _fcntl = None
         pidfile_path = os.path.expanduser(f"~/.hermes/.hub_listener_{MACHINE_ID}.pid")
         try:
             pid_fd = os.open(pidfile_path, os.O_CREAT | os.O_RDWR, 0o644)
-            fcntl.flock(pid_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            if _fcntl is not None:
+                _fcntl.flock(pid_fd, _fcntl.LOCK_EX | _fcntl.LOCK_NB)
             os.write(pid_fd, str(os.getpid()).encode())
             os.ftruncate(pid_fd, len(str(os.getpid())))
         except (IOError, OSError):
             # Lock held = another listener is running
             with open(pidfile_path) as f:
                 existing_pid = f.read().strip()
-            # Verify existing PID is actually alive
-            try:
-                os.kill(int(existing_pid), 0)
+            # Verify existing PID is actually alive (跨平台: 不用 os.kill(pid,0) — Windows 语义错误)
+            if _pid_alive_portable(existing_pid):
                 print(f"[hub] Listener already running (PID={existing_pid}), exiting")
                 sys.exit(0)
-            except (OSError, ValueError):
+            else:
                 # Stale pidfile, remove and retry
                 os.unlink(pidfile_path)
                 pid_fd = os.open(pidfile_path, os.O_CREAT | os.O_RDWR, 0o644)
-                fcntl.flock(pid_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                if _fcntl is not None:
+                    _fcntl.flock(pid_fd, _fcntl.LOCK_EX | _fcntl.LOCK_NB)
                 os.write(pid_fd, str(os.getpid()).encode())
         
         # Ensure logs directory exists (silent failure otherwise)

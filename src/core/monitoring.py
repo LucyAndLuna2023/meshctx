@@ -18,8 +18,18 @@ _last_cpu_sample: float = 0.0
 
 
 def get_memory_rss_mb() -> float:
-    """Get current process RSS in MB (Linux-only, graceful fallback)."""
+    """Get current process RSS in MB (跨平台, 2026-08-25 004meshctx 审计修复).
+
+    Linux: /proc/<pid>/statm; 其他平台: psutil 优先, 否则 0 降级。
+    """
     try:
+        # 非 Linux 平台: psutil 优先 (macOS/Windows 无 /proc)
+        if not os.path.exists("/proc"):
+            try:
+                import psutil
+                return round(psutil.Process(os.getpid()).memory_info().rss / (1024 * 1024), 2)
+            except Exception:
+                return 0.0
         with open(f"/proc/{os.getpid()}/statm") as f:
             fields = f.read().split()
             # statm[1] = RSS in pages (4KB each)
@@ -30,9 +40,19 @@ def get_memory_rss_mb() -> float:
 
 
 def get_cpu_percent() -> float:
-    """Get CPU usage via /proc/stat delta sampling (accurate at any uptime)."""
+    """Get CPU usage via /proc/stat delta sampling (跨平台, 2026-08-25 审计修复).
+
+    Linux: /proc/<pid>/stat delta; 其他平台: psutil 优先。
+    """
     global _last_utime, _last_stime, _last_cpu_sample
     try:
+        # 非 Linux 平台: psutil 优先 (macOS/Windows 无 /proc, 原实现恒 0 假数据)
+        if not os.path.exists("/proc"):
+            try:
+                import psutil
+                return round(psutil.Process(os.getpid()).cpu_percent(interval=None), 2)
+            except Exception:
+                return 0.0
         with open(f"/proc/{os.getpid()}/stat") as f:
             fields = f.read().split()
             utime = int(fields[13])

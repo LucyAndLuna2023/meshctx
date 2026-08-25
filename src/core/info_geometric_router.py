@@ -487,23 +487,41 @@ def frobenius_alignment(fim_a: FisherInformationMatrix, fim_b: FisherInformation
 def fisher_kl_divergence(
     fim_p: FisherInformationMatrix, fim_q: FisherInformationMatrix
 ) -> float:
-    """KL divergence approximation using Fisher matrices (for diagonal mode).
+    """KL divergence approximation using Fisher matrices.
 
     KL(P||Q) ≈ 0.5 * (tr(F_q^{-1} F_p) - d + log(det(F_q)/det(F_p)))
-    Simplified for diagonal Fisher.
+    对角模式用 O(d) 解析计算; block/lowrank 模式用稠密重建 + slogdet 数值稳定计算。
     """
-    if fim_p.mode != "diagonal" or fim_q.mode != "diagonal":
-        raise NotImplementedError("KL divergence currently only supports diagonal FIM")
+    dim = fim_p.dim
+    if dim != fim_q.dim:
+        raise ValueError(f"FIM dim mismatch: {fim_p.dim} != {fim_q.dim}")
 
-    dp = fim_p._diag
-    dq = fim_q._diag
-    dim = len(dp)
+    if fim_p.mode == "diagonal" and fim_q.mode == "diagonal":
+        dp = fim_p._diag
+        dq = fim_q._diag
+        # tr(F_q^{-1} F_p) = sum(dp_i / dq_i)
+        trace_term = np.sum(dp / (dq + 1e-10))
+        # log(det(F_q)/det(F_p)) = sum(log(dq_i)) - sum(log(dp_i))
+        logdet_term = np.sum(np.log(dq + 1e-10)) - np.sum(np.log(dp + 1e-10))
+        kl = 0.5 * (trace_term - dim + logdet_term)
+        return max(0.0, float(kl))
 
-    # tr(F_q^{-1} F_p) = sum(dp_i / dq_i)
-    trace_term = np.sum(dp / (dq + 1e-10))
-    # log(det(F_q)/det(F_p)) = sum(log(dq_i)) - sum(log(dp_i))
-    logdet_term = np.sum(np.log(dq + 1e-10)) - np.sum(np.log(dp + 1e-10))
-
+    # block / lowrank: 稠密重建 + 数值稳定计算
+    reg = 1e-8 * np.eye(dim)
+    fp = fim_p.to_dense() + reg
+    fq = fim_q.to_dense() + reg
+    try:
+        fq_inv = np.linalg.inv(fq)
+    except np.linalg.LinAlgError:
+        fq_inv = np.linalg.pinv(fq)
+    trace_term = float(np.trace(fq_inv @ fp))
+    sign_p, logdet_p = np.linalg.slogdet(fp)
+    sign_q, logdet_q = np.linalg.slogdet(fq)
+    if sign_p <= 0 or sign_q <= 0:
+        # 非正定退化情况: 退回对数行列式下界
+        logdet_term = 0.0
+    else:
+        logdet_term = float(logdet_q - logdet_p)
     kl = 0.5 * (trace_term - dim + logdet_term)
     return max(0.0, float(kl))
 

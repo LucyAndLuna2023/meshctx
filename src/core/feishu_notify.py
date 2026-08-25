@@ -169,3 +169,11 @@ class FeishuNotifier:
 def get_feishu_notifier(webhook_url: str = "", secret: str = "") -> FeishuNotifier:
     """Factory for FeishuNotifier."""
     return FeishuNotifier(webhook_url, secret)
+
+
+# ── Legacy alias layer (2026-08-25 004meshctx 审计补齐) ──
+# 兼容 _known 映射中声明的旧符号名, 保持 from src.core import X 契约不变
+def __getattr__(name):
+    if name == "FeishuPlugin":
+        return FeishuNotifier
+    raise AttributeError(name)

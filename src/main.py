@@ -631,7 +631,7 @@ if os.environ.get("MESHCTX_TRACE_MALLOC"):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="3.120.6",
+    version="3.121.0",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -2419,12 +2419,21 @@ async def system_resources():
     # Fallback to raw psutil
     try:
         import psutil
+        # 2026-08-25 004meshctx 审计修复: Windows 无 "/" 根目录, disk_usage("/") 抛 FileNotFoundError
+        try:
+            disk_percent = psutil.disk_usage("/").percent
+        except (FileNotFoundError, OSError):
+            try:
+                parts = psutil.disk_partitions()
+                disk_percent = psutil.disk_usage(parts[0].mountpoint).percent if parts else 0.0
+            except Exception:
+                disk_percent = 0.0
         return {
             "cpu_percent": psutil.cpu_percent(interval=0.1),
             "memory_percent": psutil.virtual_memory().percent,
             "memory_used_gb": round(psutil.virtual_memory().used / (1024**3), 1),
             "memory_total_gb": round(psutil.virtual_memory().total / (1024**3), 1),
-            "disk_percent": psutil.disk_usage("/").percent,
+            "disk_percent": disk_percent,
         }
     except ImportError:
         return {"error": "psutil not available"}

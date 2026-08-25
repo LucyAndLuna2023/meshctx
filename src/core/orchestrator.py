@@ -111,6 +111,21 @@ class AgentPool:
             result[a.role.value] = result.get(a.role.value, 0) + 1
         return result
 
+    def get_stats(self) -> Dict[str, Any]:
+        """Agent 池统计 (2026-08-25 004meshctx 审计补齐 — test_v1_integration 契约)。"""
+        return {
+            "total": self.total,
+            "available": self.available_count,
+            "busy": self.total - self.available_count,
+            "by_role": self.by_role(),
+            "agents": [
+                {"agent_id": a.agent_id, "role": a.role.value,
+                 "busy": a.busy, "current_task": a.current_task,
+                 "tasks_completed": a.tasks_completed, "tasks_failed": a.tasks_failed}
+                for a in self.agents.values()
+            ],
+        }
+
 
 class TaskDAG:
     """Directed Acyclic Graph of tasks with dependency resolution."""
@@ -448,3 +463,52 @@ class Orchestrator:
             "memory_hub": self.memory_hub.stats(),
             "dag_history": len(self._dag_history),
         }
+
+
+class OrchestratorPlugin:
+    """Kernel 插件适配器 (2026-08-25 004meshctx 审计补齐)。
+
+    main.py `from src.core import ... OrchestratorPlugin` 直接导入并注册,
+    此前 _known 映射声明但 orchestrator.py 无此类 → 启动时插件注册失败。
+    基于真实 Orchestrator 实现。
+    """
+    name = "orchestrator"
+    version = "1.0"
+    description = "Multi-agent DAG orchestrator plugin"
+
+    def __init__(self):
+        self._orch: Optional[Orchestrator] = None
+        self.state = "inactive"
+
+    def _get_orch(self) -> Orchestrator:
+        if self._orch is None:
+            self._orch = Orchestrator()
+        return self._orch
+
+    # ── 兼容属性: 测试/外部代码直接访问 orch_plugin.agent_pool / _active_dags ──
+    @property
+    def agent_pool(self):
+        return self._get_orch().agent_pool
+
+    @property
+    def _active_dags(self):
+        return self._get_orch()._active_dags
+
+    async def on_load(self, kernel) -> bool:
+        try:
+            self._orch = Orchestrator()
+            self.state = "active"
+            return True
+        except Exception:
+            self.state = "error"
+            return False
+
+    async def on_unload(self, kernel) -> bool:
+        self.state = "inactive"
+        return True
+
+    async def on_event(self, event) -> bool:
+        return True
+
+    def generate_report(self) -> dict:
+        return self._get_orch().get_status() if self._orch else {"state": self.state}
