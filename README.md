@@ -70,6 +70,9 @@ meshctx setup    # Configure API keys
 meshctx start    # Start web service (http://localhost:3001)
 ```
 
+> macOS 专用脚本: `curl -fsSL .../install-mac.sh | bash`。
+> 安装脚本默认英文显示；中文用户可显式切回: `MESHCTX_LANG=zh ./install.sh`（macOS 同理 `MESHCTX_LANG=zh ./install-mac.sh`）。
+
 ### From Source
 ```bash
 git clone https://github.com/LucyAndLuna2023/meshctx.git
