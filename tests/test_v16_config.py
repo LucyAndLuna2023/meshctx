@@ -125,11 +125,23 @@ class TestConfigLoad:
         # Even minimal yaml has models section which implies plugin usage
         assert "models" in config
 
-    def test_config_load_non_existent_path_fallback(self):
-        """Non-existent path falls back to defaults"""
+    def test_config_load_non_existent_path_fallback(self, tmp_path, monkeypatch):
+        """Non-existent path falls back to defaults
+
+        必须隔离环境: 否则会命中开发机真实 ~/.meshctx/config.yaml 或 ./meshctx.yaml,
+        导致断言 kernel 缺失而假失败 (HOME 隔离问题, 2026-08-25 修)。
+        """
         from src.config import load_config
-        config = load_config("/tmp/nonexistent_meshctx_config_xyz.yaml")
-        # Should return default config
+        fake_home = tmp_path / "home"
+        (fake_home / ".meshctx").mkdir(parents=True)
+        monkeypatch.delenv("MESHCTX_CONFIG", raising=False)
+        monkeypatch.delenv("MESHCTX_PROFILE", raising=False)
+        monkeypatch.setenv("HOME", str(fake_home))
+        monkeypatch.setenv("USERPROFILE", str(fake_home))  # Windows
+        monkeypatch.chdir(tmp_path)  # 避免命中仓库根 ./meshctx.yaml 之外的 cwd 配置
+
+        config = load_config(str(tmp_path / "nonexistent_meshctx_config_xyz.yaml"))
+        # Should return default config (包内 meshctx.yaml 或硬编码默认)
         assert config is not None
         assert "kernel" in config
         assert "models" in config
