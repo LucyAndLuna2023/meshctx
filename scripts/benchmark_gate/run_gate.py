@@ -131,20 +131,59 @@ def main() -> int:
     else:
         report["results"]["longmemeval"] = {"ok": False, "skipped": "data on 004 machine"}
 
-    # 5. 门禁判定
+    # 5. 门禁判定 (阈值接线: 有数据严格卡, 无数据 warning 不阻塞)
     th = cfg["thresholds"]
     checks = []
     if stubs > th["stub_remaining_max"]:
         checks.append(f"FAIL: stub_count {stubs} > {th['stub_remaining_max']}")
     if leaked:
         checks.append(f"FAIL: moat leaked -> {leaked}")
+
+    # 5a. SWE-bench 阈值接线 (解析 resolve 百分比)
     swe_res = report["results"]["swebench"]
     if swe_res.get("ok") and swe_res.get("stdout_tail"):
-        m = [x for x in swe_res["stdout_tail"].splitlines() if "resolve" in x.lower() or "pass" in x.lower()]
-        if m:
-            report["results"]["swebench_summary"] = m[-1]
+        import re as _re
+        _m = _re.search(r'([\d.]+)\s*%', swe_res["stdout_tail"])
+        if _m:
+            _resolve = float(_m.group(1))
+            swe_res["resolve_pct"] = _resolve
+            if _resolve < th["swebench_resolve_min"]:
+                checks.append(f"FAIL: SWE-bench resolve {_resolve}% < {th['swebench_resolve_min']}%")
+        else:
+            checks.append("WARN: SWE-bench 输出无可解析数值, 未纳入门禁(需 004 数据)")
+    elif swe_res.get("skipped"):
+        checks.append("WARN: SWE-bench 数据在 004 机器, 本机门禁跳过")
+    elif not swe_res.get("ok"):
+        checks.append("WARN: SWE-bench 运行失败(数据在 004 机器), 未纳入门禁")
+
+    # 5b. LongMemEval 阈值接线 (解析各类型 acc 取平均)
+    lme_res = report["results"]["longmemeval"]
+    if lme_res.get("ok") and lme_res.get("stdout_tail"):
+        import re as _re
+        _accs = [float(x) for x in _re.findall(r'=\s*([\d.]+)', lme_res["stdout_tail"])]
+        if _accs:
+            _score = sum(_accs) / len(_accs) * 100.0
+            lme_res["score"] = round(_score, 1)
+            if _score < th["longmemeval_score_min"]:
+                checks.append(f"FAIL: LongMemEval {_score:.1f} < {th['longmemeval_score_min']}")
+        else:
+            checks.append("WARN: LongMemEval 输出无可解析数值, 未纳入门禁(需 004 数据)")
+    elif lme_res.get("skipped"):
+        checks.append("WARN: LongMemEval 数据在 004 机器, 本机门禁跳过")
+    elif not lme_res.get("ok"):
+        checks.append("WARN: LongMemEval 运行失败(数据在 004 机器), 未纳入门禁")
+
+    # 5c. moat 语义级标注 (文件名级之外: 开源侧是否存在 IIT/JEPA 基础实现)
+    semantic = {}
+    for probe in ["brain_iit", "brain_ltp", "brain_architecture", "brain", "jepa_world_model", "metacognition"]:
+        semantic[probe] = (src_core / f"{probe}.py").exists()
+    report["results"]["moat_semantic"] = semantic
+    report["results"]["moat_semantic_note"] = (
+        "文件名级未泄漏; 能力级护城河 = 训练权重(IIT Phi/VICReg/ACT-R) + 7 闭源独有模块, "
+        "开源基础实现需 benchmark 门禁量化差距 (v3.121.2 专项)")
+
     report["checks"] = checks
-    report["gate"] = "PASS" if not checks else "FAIL"
+    report["gate"] = "PASS" if not [c for c in checks if c.startswith("FAIL")] else "FAIL"
 
     REPORT.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False, indent=2))

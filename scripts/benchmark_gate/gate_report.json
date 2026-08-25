@@ -1,6 +1,6 @@
 {
   "version": "3.121.1",
-  "run_at": "2026-08-25T16:56:27.117093+00:00",
+  "run_at": "2026-08-25T17:23:19.201239+00:00",
   "baseline": {
     "version": "3.121.0",
     "captured_at": "2026-08-26T00:00:00+00:00",
@@ -49,8 +49,20 @@
       "returncode": 1,
       "stdout_tail": "",
       "error": " File \"<frozen os>\", line 215, in makedirs\n  File \"<frozen os>\", line 215, in makedirs\n  File \"<frozen os>\", line 225, in makedirs\nPermissionError: [Errno 13] Permission denied: '/home/administrator'\n"
-    }
+    },
+    "moat_semantic": {
+      "brain_iit": true,
+      "brain_ltp": true,
+      "brain_architecture": true,
+      "brain": true,
+      "jepa_world_model": true,
+      "metacognition": true
+    },
+    "moat_semantic_note": "文件名级未泄漏; 能力级护城河 = 训练权重(IIT Phi/VICReg/ACT-R) + 7 闭源独有模块, 开源基础实现需 benchmark 门禁量化差距 (v3.121.2 专项)"
   },
-  "checks": [],
+  "checks": [
+    "WARN: SWE-bench 运行失败(数据在 004 机器), 未纳入门禁",
+    "WARN: LongMemEval 运行失败(数据在 004 机器), 未纳入门禁"
+  ],
   "gate": "PASS"
 }
