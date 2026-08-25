@@ -61,6 +61,23 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 <div class="skip"><a href="/ui/chat">{{ t('直接使用 Web Chat →') }}</a></div>
 
 <div id="result" class="result"></div>
+
+<!-- 2026-08-25 004meshctx UI 精简: 主导航只留 对话/设置, 其余功能收纳于此 (URL 保留不删) -->
+<div class="advanced" style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border)">
+  <div class="step-label" style="margin-bottom:10px">⚡ 高级功能</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.85rem">
+    <a href="/ui/" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">📊 {{ t('仪表板') }}</a>
+    <a href="/ui/projects" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">📁 {{ t('项目') }}</a>
+    <a href="/ui/memories" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">🧠 {{ t('记忆') }}</a>
+    <a href="/ui/continuity" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">🔗 {{ t('连续性') }}</a>
+    <a href="/ui/plugins" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">🔌 {{ t('插件') }}</a>
+    <a href="/ui/files" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">📂 {{ t('文件') }}</a>
+    <a href="/ui/models" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">🧩 {{ t('模型') }}</a>
+    <a href="/ui/providers" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">🔌 {{ t('服务商') }}</a>
+    <a href="/docs" target="_blank" style="color:#f59e0b;padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">📚 API 文档</a>
+    <a href="/ui/desktop" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">🖥️ {{ t('桌面') }}</a>
+  </div>
+</div>
 </div>
 
 <script>

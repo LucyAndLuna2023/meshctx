@@ -240,17 +240,12 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
 <!-- Skip to main content (CRITICAL-002) -->
 <a href="#main-content" style="position:absolute;top:-40px;left:0;background:var(--accent);color:white;padding:8px 16px;z-index:10000;font-size:14px;border-radius:0 0 6px 0;transition:top 0.2s;" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">{{ t("skip_to_content") if t("skip_to_content") != "skip_to_content" else "Skip to main content" }}</a>
 <div class="header">
-    <h1><img src="/static/logo.svg" alt="" class="logo-img"> meshctx</h1>
+    <h1><img src="/static/logo.png" alt="meshctx" class="logo-img" style="width:28px;height:28px;border-radius:6px;object-fit:cover;vertical-align:middle;"> meshctx</h1>
     <div class="nav">
-        <a href="/ui/" class="{% if request.url.path == '/ui/' %}active{% endif %}">{{ t("dashboard") }}</a>
-        <a href="/ui/projects" class="{% if '/ui/projects' in request.url.path %}active{% endif %}">{{ t("projects") }}</a>
-        <a href="/ui/memories" class="{% if '/ui/memories' in request.url.path %}active{% endif %}">{{ t("memories") }}</a>
-        <a href="/ui/continuity" class="{% if '/ui/continuity' in request.url.path %}active{% endif %}">{{ t("continuity") }}</a>
-        <a href="/ui/chat" class="{% if '/ui/chat' in request.url.path %}active{% endif %}">{{ t("chat") }}</a>
-        <a href="/ui/setup" class="{% if '/ui/setup' in request.url.path %}active{% endif %}">{{ t("setup") }}</a>
-        <a href="/ui/plugins" class="{% if '/ui/plugins' in request.url.path %}active{% endif %}">🔌 {{ t("plugins") }}</a>
-        <a href="/ui/files" class="{% if '/ui/files' in request.url.path %}active{% endif %}">📁 {{ t("files") }}</a>
-        <a href="/docs" target="_blank" class="" style="color:#f59e0b;">📚 {{ t("api_docs") }}</a>
+        <!-- 2026-08-25 004meshctx UI 精简 (模仿 DeepSeek Harness): 主导航只留核心功能,
+             其他页面收纳到设置页的"高级功能"区, URL 保留不删功能 -->
+        <a href="/ui/chat" class="{% if '/ui/chat' in request.url.path %}active{% endif %}">💬 {{ t("chat") }}</a>
+        <a href="/ui/setup" class="{% if '/ui/setup' in request.url.path %}active{% endif %}">⚙️ {{ t("setup") }}</a>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:4px;">
         <select id="langSelect" onchange="switchLang(this.value)" 
@@ -3738,6 +3733,13 @@ def _truncate(s: str, n: int = 60) -> str:
 # ── 仪表板首页 ───────────────────────────────────────────────
 
 @router.get("/", response_class=HTMLResponse)
+async def root_redirect(request: Request):
+    """2026-08-25 004meshctx UI 精简 (模仿 DSH): 首页直达对话页。
+    原首页为 Dashboard (项目概览), 现已精简为 Chat 优先, Dashboard 移入高级功能区。"""
+    return RedirectResponse(url="/ui/chat", status_code=303)
+
+
+@router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
     engine = _engine(request)
     projects = engine.list_projects()
@@ -4374,12 +4376,6 @@ async def delete_api_key(
     
     return RedirectResponse(url="/ui/setup?deleted=1", status_code=303)
 
-
-# ── v2.17 系统仪表盘 ─────────────────────────────────────
-
-@router.get("/dashboard", response_class=HTMLResponse)
-async def dashboard_page(request: Request):
-    return _render("dashboard_inline.html", {}, request)
 
 # ── v2.18 插件市场 (增强卡片+URL安装+社区推荐) ──────────────────
 
@@ -5109,6 +5105,11 @@ _ICON_SVG = r"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {siz
 
 @router.get("/icon-192.png", response_class=Response)
 async def icon_192():
+    # 2026-08-25 004meshctx: 品牌 logo 接入 — 返回真实 logo.png (原为 SVG 占位)
+    _static_root = Path(__file__).resolve().parent.parent / "static"
+    logo_path = _static_root / "logo.png"
+    if logo_path.exists():
+        return Response(content=logo_path.read_bytes(), media_type="image/png")
     return Response(
         content=_ICON_SVG.format(size=192, radius=32, font_size=80),
         media_type="image/svg+xml"
@@ -5117,6 +5118,11 @@ async def icon_192():
 
 @router.get("/icon-512.png", response_class=Response)
 async def icon_512():
+    # 2026-08-25 004meshctx: 品牌 logo 接入
+    _static_root = Path(__file__).resolve().parent.parent / "static"
+    logo_path = _static_root / "logo.png"
+    if logo_path.exists():
+        return Response(content=logo_path.read_bytes(), media_type="image/png")
     return Response(
         content=_ICON_SVG.format(size=512, radius=80, font_size=200),
         media_type="image/svg+xml"

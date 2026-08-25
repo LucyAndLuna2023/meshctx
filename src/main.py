@@ -5031,6 +5031,31 @@ async def list_directory(path: str = ""):
         raise HTTPException(500, f"读取失败: {e}")
 
 
+@app.get("/api/files")
+async def list_files_alias(path: str = "", limit: int = 200):
+    """文件列表兼容端点 (2026-08-25 004meshctx 审计修复)。
+
+    chat.html @mention 引用 /api/files 但后端只有 /api/file/list (单数),
+    → 文件引用功能静默失效 (fetch 404, fallback 空列表)。
+    返回 {files: [...]} 兼容 chat.html fetchFileList 的 data.files 格式。
+    """
+    try:
+        data = await list_directory(path)
+    except HTTPException:
+        data = {"items": []}
+    files = []
+    for item in data.get("items", []):
+        files.append({
+            "name": item.get("name", ""),
+            "path": item.get("path", ""),
+            "is_dir": item.get("is_dir", False),
+            "size": item.get("size", 0),
+            "modified": item.get("modified", 0),
+        })
+    return {"files": files[:limit], "path": data.get("path", ""),
+            "parent": data.get("parent"), "total": len(files)}
+
+
 # ── v2.1 插件市场 API ──────────────────────────────────
 
 @app.get("/api/brain/gate-stats")
