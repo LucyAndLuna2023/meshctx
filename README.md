@@ -71,7 +71,7 @@ meshctx start    # Start web service (http://localhost:3001)
 ```
 
 > macOS 专用脚本: `curl -fsSL .../install-mac.sh | bash`。
-> 安装脚本默认英文显示；中文用户可显式切回: `MESHCTX_LANG=zh ./install.sh`（macOS 同理 `MESHCTX_LANG=zh ./install-mac.sh`）。
+> 安装脚本默认英文显示；支持 9 语言: zh/en/ja/ko/fr/de/es/it/ar。中文用户可显式切回: `MESHCTX_LANG=zh ./install.sh`（macOS 同理 `MESHCTX_LANG=zh ./install-mac.sh`；Windows 同理 `set MESHCTX_LANG=zh && install.bat`）。
 
 ### From Source
 ```bash

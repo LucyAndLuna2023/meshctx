@@ -1,3 +1,11 @@
+## [3.120.5] - 2026-08-25
+### Changed (002codex 实施，待 002/004meshctx 审计)
+- **/model use 原厂优先消歧 (P3-1)**: 多候选时按模型家族取原厂（gpt-*→openai、claude-*→anthropic、deepseek-*→deepseek、qwen*→bailian、grok-*→xai 等），azure/openrouter/deepinfra/together/ollama 等聚合渠道降权；gpt-4o/gpt-4o-mini 直接解析到 openai 原厂，deepseek-r1 解析到 bailian；同源多条目且恰有规范 ID（ID 内嵌完整 model 名，如 xai:grok-4.6）时取规范 ID，legacy 别名保持歧义显式化
+- **xai 目录 ID 校准 (P3-2)**: `xai:grok-3` → `xai:grok-4.6`（model 已是 grok-4.6），`xai:grok-3` 保留为 legacy 别名；MULTI_MODEL.md 同步
+- **i18n 残留清理 (P3-3)**: 帮助示例/compare 默认值 `deepseek:chat` → 规范 ID `deepseek:v4-flash`（i18n_translations.json 30 处、web_ui.py×2、main.py、templates/models.html、meshctx.yaml 示例配置）
+- **Windows 安装器 9 语言 (三平台多语言统一)**: install.bat 由 zh/en 扩展为 zh/en/ja/ko/fr/de/es/it/ar 全量文案（与 install.sh / install-mac.sh 对齐），全部用户可见输出走 _T_ 变量；修复延迟展开下 `!` 被吞的隐患
+- **install.sh T() 单引号修复**: 含 ${VERSION}/${PORT}/${PY_VER}/${INSTALLED_VER} 的 echo 单引号→双引号（004meshctx 上报，v3.120.4 遗留）
+
 ## [3.120.4] - 2026-08-25
 ### Fixed (002codex 修复 + 002/004meshctx 复核放行)
 - **/model use 子模型名解析**: 支持直接输实际 API 模型名（deepseek-v4-flash → deepseek:v4-flash、qwen-flash → bailian:qwen-flash）；连字符归一化只替换首个（P1-1）；endswith 歧义显式化，短词/多候选不再静默切错模型（P1-2）；legacy 别名（deepseek:chat）只借 token/client，持久化规范 ID 不回写旧名（P2）；`meshctx model use` 同步持久化默认模型

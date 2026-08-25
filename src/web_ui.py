@@ -511,7 +511,7 @@ async function compareSend(msg){
   div.innerHTML += '<div style="margin:8px 0;padding:8px;background:#0f172a;border-radius:8px;color:#e2e8f0;"><strong>You:</strong> ' + msg + '</div>';
   document.getElementById('userInput').value = '';
   
-  var models = JSON.parse(localStorage.getItem('meshctx_compare_models') || '["deepseek:chat","openai:gpt-4o-mini","anthropic:claude-haiku"]');
+  var models = JSON.parse(localStorage.getItem('meshctx_compare_models') || '["deepseek:v4-flash","openai:gpt-4o-mini","anthropic:claude-haiku"]');
   
   // Show loading
   var loadId = 'load_' + Date.now();
@@ -1634,7 +1634,7 @@ _TEMPLATES["models.html"] = r"""{% extends "base.html" %}
     <div class="card">
         <h3 id="formTitle">添加模型</h3>
         <input type="hidden" id="editModelId">
-        <div class="form-group"><label>{{ t("model_id") }}</label><input id="fid" placeholder="deepseek:chat"></div>
+        <div class="form-group"><label>{{ t("model_id") }}</label><input id="fid" placeholder="deepseek:v4-flash"></div>
         <div class="form-group"><label>{{ t("provider") }}</label><input id="fprovider" placeholder="deepseek"></div>
         <div class="form-group"><label>API Key</label><input id="fkey" type="password" placeholder="sk-..."></div>
         <div class="form-group"><label>{{ t('模型名(可选)') }}</label><input id="fmodel" placeholder="auto"></div>

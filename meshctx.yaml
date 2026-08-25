@@ -18,9 +18,9 @@ kernel:
 
 # ── 模型 (30+内置, 零配置) ────────────────────────
 models:
-  default: deepseek:chat
+  default: deepseek:v4-flash
   entries:
-    deepseek:chat:
+    deepseek:v4-flash:
       key: "${DEEPSEEK_API_KEY}"
 
 # ── 记忆 ──────────────────────────────────────────

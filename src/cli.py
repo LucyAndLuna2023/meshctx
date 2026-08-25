@@ -1192,7 +1192,7 @@ _PROVIDER_DEFAULT_MODEL = {
     "openai": "openai:gpt-4o",
     "anthropic": "anthropic:claude-sonnet",
     "google": "google:gemini-flash",
-    "xai": "xai:grok-3",
+    "xai": "xai:grok-4.6",
     "zhipu": "zhipu:glm-4-flash",
     "moonshot": "moonshot:kimi",
     "doubao": "doubao:pro-32k",
@@ -1204,6 +1204,71 @@ _PROVIDER_DEFAULT_MODEL = {
     "openrouter": "openrouter:gpt-4o",
     "together": "together:llama-4-maverick",
 }
+
+# ── P3 原厂优先消歧 ─────────────────────────────────────────
+# 模型家族前缀 → 原厂 provider（多候选且恰有 1 个同源时优先取原厂）
+_MODEL_FAMILY_NATIVE_PROVIDER = {
+    "gpt": "openai", "o1": "openai", "o3": "openai", "o4": "openai",
+    "claude": "anthropic",
+    "gemini": "google",
+    "deepseek": "deepseek",
+    "qwen": "bailian", "qwq": "bailian",
+    "glm": "zhipu",
+    "moonshot": "moonshot",
+    "doubao": "doubao",
+    "hunyuan": "hunyuan",
+    "spark": "spark",
+    "abab": "minimax",
+    "mistral": "mistral", "mixtral": "mistral",
+    "grok": "xai",
+}
+
+# 聚合/转售/本地托管渠道：无原厂候选时降权，去掉后唯一才接受
+_RESELLER_PROVIDERS = {
+    "azure", "openrouter", "deepinfra", "together", "ollama",
+    "bedrock", "groq", "perplexity", "replicate", "novita",
+    "nvidia", "fireworks", "cloudflare", "sambanova", "upstage",
+    "huggingface", "cerebras", "custom", "localai", "vllm",
+}
+
+
+def _native_provider_for_model(model_name: str) -> Optional[str]:
+    """按模型家族前缀推断原厂 provider（如 gpt-4o → openai, qwen-flash → bailian）"""
+    m = (model_name or "").lower()
+    for prefix, provider in _MODEL_FAMILY_NATIVE_PROVIDER.items():
+        if m.startswith(prefix):
+            return provider
+    return None
+
+
+def _pick_preferred_candidate(candidates: List[str]) -> Optional[str]:
+    """多候选消歧：① 原厂优先（恰 1 个同源）；② 转售/聚合渠道降权（去掉后唯一）；
+    仍多候选返回 None → 上层打印候选列表，禁止静默取首个"""
+    from src.model_registry import BUILTIN_MODELS
+    if len(candidates) == 1:
+        return candidates[0]
+    if not candidates:
+        return None
+    native = _native_provider_for_model(BUILTIN_MODELS[candidates[0]].get("model", ""))
+    if native:
+        native_hits = [mid for mid in candidates
+                       if BUILTIN_MODELS[mid].get("provider") == native]
+        if len(native_hits) == 1:
+            return native_hits[0]
+        if len(native_hits) > 1:
+            # 同源多条目：恰有 1 个条目的 ID 内嵌完整 model 名（规范 ID，如 xai:grok-4.6）→ 取它；
+            # 否则（如 deepseek:v4-flash vs legacy deepseek:chat）→ 歧义显式化
+            model_name = BUILTIN_MODELS[candidates[0]].get("model", "")
+            canonical = [mid for mid in native_hits
+                         if model_name in mid.split(":", 1)[-1]]
+            if len(canonical) == 1:
+                return canonical[0]
+            return None
+    filtered = [mid for mid in candidates
+                if BUILTIN_MODELS[mid].get("provider") not in _RESELLER_PROVIDERS]
+    if len(filtered) == 1:
+        return filtered[0]
+    return None
 
 
 def _resolve_target_model(target: str) -> Optional[str]:
@@ -1236,21 +1301,24 @@ def _resolve_target_model(target: str) -> Optional[str]:
     normalized = target.replace("-", ":", 1)
     if normalized in BUILTIN_MODELS:
         return normalized
-    # ④ 实际API模型名精确匹配（仅当唯一；如 qwen-flash → bailian:qwen-flash）
+    # ④ 实际API模型名精确匹配（如 qwen-flash → bailian:qwen-flash；多候选走原厂优先消歧）
     model_candidates = [mid for mid, info in BUILTIN_MODELS.items()
                         if info.get("model") == target]
-    if len(model_candidates) == 1:
-        return model_candidates[0]
-    # ⑤ 后缀模糊匹配：仅长输入或含'-'时启用，且唯一命中才接受（挡掉 'o'/'pro'/'flash' 等短词）
+    picked = _pick_preferred_candidate(model_candidates)
+    if picked:
+        return picked
+    # ⑤ 后缀模糊匹配：仅长输入或含'-'时启用（挡掉 'o'/'pro'/'flash' 等短词）
     if len(target) >= 6 or "-" in target:
         suffix_candidates = [mid for mid, info in BUILTIN_MODELS.items()
                              if info.get("model", "").endswith(target)]
-        if len(suffix_candidates) == 1:
-            return suffix_candidates[0]
-    # ⑥ 前缀模糊匹配（如 deepseek:ch），限唯一命中
+        picked = _pick_preferred_candidate(suffix_candidates)
+        if picked:
+            return picked
+    # ⑥ 前缀模糊匹配（如 deepseek:ch），多候选同样原厂优先
     candidates = [mid for mid in BUILTIN_MODELS if mid.startswith(target)]
-    if len(candidates) == 1:
-        return candidates[0]
+    picked = _pick_preferred_candidate(candidates)
+    if picked:
+        return picked
     return None
 
 
@@ -1261,7 +1329,13 @@ def _resolve_model_hint(target: str) -> List[str]:
         return []
     hits = [mid for mid, info in BUILTIN_MODELS.items()
             if info.get("model", "").endswith(target)]
-    return hits if len(hits) > 1 else []
+    if len(hits) <= 1:
+        return []
+    native = _native_provider_for_model(BUILTIN_MODELS[hits[0]].get("model", ""))
+    if native:
+        hits = sorted(hits, key=lambda mid: (BUILTIN_MODELS[mid].get("provider") != native,
+                                             BUILTIN_MODELS[mid].get("provider") in _RESELLER_PROVIDERS))
+    return hits
 
 
 def _resolve_configured_model(reg, model_id: str):
@@ -1835,10 +1909,10 @@ def cmd_setup(args):
     
     if not model_id:
         print(t("i18n_common_80d45f"))
-        model_id = "deepseek:chat"
+        model_id = "deepseek:v4-flash"
         provider = "deepseek"
     
-    model_info = BUILTIN_MODELS.get(model_id, BUILTIN_MODELS["deepseek:chat"])
+    model_info = BUILTIN_MODELS.get(model_id, BUILTIN_MODELS["deepseek:v4-flash"])
     print(f"{t('i18n_model_d1ae96')}{model_id} ({model_info['model']})")
     
     # Step 2: API Key

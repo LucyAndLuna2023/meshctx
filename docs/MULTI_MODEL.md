@@ -16,7 +16,7 @@
 | OpenAI | `openai:gpt-4o` / `openai:gpt-5` / `openai:gpt-5-mini` / `openai:gpt-5-pro` | `OPENAI_API_KEY` |
 | Anthropic | `anthropic:claude-sonnet` / `anthropic:claude-opus` | `ANTHROPIC_API_KEY` |
 | Google | `google:gemini-pro` / `google:gemini-flash` | `GEMINI_API_KEY` |
-| xAI | `xai:grok-3`（grok-4.6） | `XAI_API_KEY` |
+| xAI | `xai:grok-4.6`（grok-4.6） | `XAI_API_KEY` |
 | OpenRouter | `openrouter:gpt-4o` / `openrouter:claude-sonnet` / `openrouter:gemini-pro` / `openrouter:llama-4`（200+ 模型统一网关） | `OPENROUTER_API_KEY` |
 | DeepSeek | `deepseek:v4-flash` / `deepseek:v4-pro` / `deepseek:v4-flash-vision`（chat/reasoner 兼容映射） | `DEEPSEEK_API_KEY` |
 | 阿里 Qwen | `bailian:qwen3-max` / `bailian:qwen3-plus` / `bailian:qwen-flash` | `BAILIAN_API_KEY` |

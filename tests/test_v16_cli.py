@@ -436,20 +436,28 @@ class TestModelNameResolution:
         assert self._resolve("deepseek-v4-flash-vision") == "deepseek:v4-flash-vision"
 
     def test_short_suffix_never_silently_resolves(self):
-        for short in ("o", "1", "pro", "flash", "mini", "chat", "5-pro"):
+        # 短词挡掉；5-pro 经原厂优先（gpt-5-pro vs gemini-2.5-pro）→ openai:gpt-5-pro
+        for short in ("o", "1", "pro", "flash", "mini", "chat"):
             assert self._resolve(short) is None, f"{short} 不应静默解析"
+        assert self._resolve("5-pro") == "openai:gpt-5-pro"
 
-    def test_ambiguous_full_name_returns_none(self):
-        # gpt-4o 存在 openai/azure 两个同 model 条目 → 显式歧义，不静默取首个
-        assert self._resolve("gpt-4o") is None
+    def test_native_first_disambiguates_gpt4o(self):
+        # P3 原厂优先: gpt-4o 存在 openai/azure 两个同 model 条目 → 取原厂 openai
+        assert self._resolve("gpt-4o") == "openai:gpt-4o"
+        assert self._resolve("gpt-4o-mini") == "openai:gpt-4o-mini"
 
     def test_suffix_match_unique_only(self):
         # v4-flash 命中 deepseek:v4-flash + deepseek:chat 两个条目 → 歧义
         assert self._resolve("v4-flash") is None
 
-    def test_legacy_model_name_resolves_to_entry(self):
-        # 附带发现：xai 目录 ID 仍为 xai:grok-3，model 已是 grok-4.6
-        assert self._resolve("grok-4.6") == "xai:grok-3"
+    def test_grok46_canonical_and_legacy_alias(self):
+        # P3: xai 目录 ID 校准为 xai:grok-4.6（model 已是 grok-4.6），legacy xai:grok-3 仍可解析
+        assert self._resolve("grok-4.6") == "xai:grok-4.6"
+        assert self._resolve("xai:grok-3") == "xai:grok-3"
+        assert self._resolve("xai") == "xai:grok-4.6"
+        from src.model_registry import BUILTIN_MODELS
+        assert "xai:grok-4.6" in BUILTIN_MODELS
+        assert "xai:grok-3" in BUILTIN_MODELS  # legacy 别名保留
 
     def test_hint_lists_ambiguous_candidates(self):
         from src.cli import _resolve_model_hint

@@ -67,6 +67,7 @@ BUILTIN_MODELS = {
     "google:gemini-flash":     {"provider":"google","base_url":"https://generativelanguage.googleapis.com/v1beta/openai","model":"gemini-2.5-flash","key_env":"GEMINI_API_KEY"},
     "google:gemini-flash-lite":{"provider":"google","base_url":"https://generativelanguage.googleapis.com/v1beta/openai","model":"gemini-2.5-flash-lite","key_env":"GEMINI_API_KEY"},
     # ── xAI (Grok) ────────────────────────────────────
+    "xai:grok-4.6":            {"provider":"xai","base_url":"https://api.x.ai/v1","model":"grok-4.6","key_env":"XAI_API_KEY"},
     "xai:grok-3":              {"provider":"xai","base_url":"https://api.x.ai/v1","model":"grok-4.6","key_env":"XAI_API_KEY"},
     # ── Meta Llama (via Together) ─────────────────────
     "together:llama-4-maverick":{"provider":"together","base_url":"https://api.together.xyz/v1","model":"meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8","key_env":"TOGETHER_API_KEY"},
