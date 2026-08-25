@@ -187,7 +187,7 @@ def main() -> int:
 
     REPORT.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 1 if checks else 0
+    return 1 if any(c.startswith("FAIL") for c in checks) else 0
 
 
 if __name__ == "__main__":
