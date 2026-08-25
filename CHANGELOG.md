@@ -1,4 +1,11 @@
 ## [3.121.1] - 2026-08-25
+### Added / Changed (002meshctx 接手 004 死机收尾，已交 002codex 审计)
+- **方案 C 落地（用户拍板）**: installer 闭源核心从强制降为可选增强层（Open Core）。install.sh/install-mac.sh 源码模式无 `MESHCTX_CORE_TOKEN` 不再「stub install forbidden」退出 → 提示继续装开源版（完整引擎）；core clone 失败仅警告不中断。install.bat 9 语言 45 处文案 + 3 处控制流同步（ERROR+exit → WARN/INFO 继续）。portable 官方资产缺 core 校验保留。docs/ 三副本逐字节同步
+- **benchmark 门禁（新护城河地基）**: 新增 `scripts/benchmark_gate/`（run_gate.py + gate_config.json + baseline.json）—— stub 计数/护城河完整性/SWE-bench/LongMemEval 四项门禁，发布前 `python3 scripts/benchmark_gate/run_gate.py` 非零退出=不过门禁。基线：SWE-bench 98.7% F1 0.967、LongMemEval 83.3%、tests 3672
+- **P1 降级路径修复**: resource_manager `_StubSubsystem.should_throttle` 属性→方法（return False）+ 调用点 getattr 双形态兼容（004 推 ccfa4e1，002 复核）
+- **版本一致性**: v3.121.0→3.121.1 全仓 18 处统一（含 NSIS/spec/version_info 元组/CFBundle），v3.121.0 缺失的 meshctx-setup.exe 资产在 v3.121.1 补齐（12/12）
+- **CI 修复**: docker test 端口 3000→3001 与 Dockerfile/EXPOSE/MESHCTX_PORT 统一（004 改端口后 CI 未同步导致 CI 红）
+
 ### Changed (002codex 实施 P2 批次，待 002/004meshctx 审计)
 - **默认路由/成本表规范 ID**（002 P2-1 + 004 建议②）: src/core/brain_router.py 路由档位 4 处 + 成本表 1 处 `deepseek:chat` → `deepseek:v4-flash`
 - **CLI 帮助示例规范 ID**（002 P2-2）: cli.py key set 示例 2 处 + argparse help 2 处 `deepseek:chat` → `deepseek:v4-flash`
