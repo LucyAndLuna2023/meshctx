@@ -1,3 +1,8 @@
+## [3.120.4] - 2026-08-25
+### Fixed (002codex 修复 + 002/004meshctx 复核放行)
+- **/model use 子模型名解析**: 支持直接输实际 API 模型名（deepseek-v4-flash → deepseek:v4-flash、qwen-flash → bailian:qwen-flash）；连字符归一化只替换首个（P1-1）；endswith 歧义显式化，短词/多候选不再静默切错模型（P1-2）；legacy 别名（deepseek:chat）只借 token/client，持久化规范 ID 不回写旧名（P2）；`meshctx model use` 同步持久化默认模型
+- **install 脚本统一英文**: install.sh / install-mac.sh / install.bat 默认英文显示（不再按 LANG 自动切中文），MESHCTX_LANG=zh 可显式覆盖；硬编码中文输出全部转英文；docs/ 三副本同步；README 加 MESHCTX_LANG 用法说明
+
 ## [3.115.16] - 2026-07-08
 ### Fixed (QA R6 — 004meshctx)
 - **P0: Projects 500** — `_truncate(None)` TypeError, description 字段改为Optional后未处理null

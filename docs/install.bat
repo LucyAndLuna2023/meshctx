@@ -5,7 +5,7 @@ title meshctx Installer
 setlocal enabledelayedexpansion
 
 set "INSTALL_DIR=%USERPROFILE%\.meshctx"
-set "VERSION=3.120.3"
+set "VERSION=3.120.4"
 set "SRC_URL=https://github.com/LucyAndLuna2023/meshctx/archive/refs/tags/v%VERSION%.tar.gz"
 set "PORTABLE_URL=https://github.com/LucyAndLuna2023/meshctx/releases/download/v%VERSION%/meshctx-windows-cli.zip"
 
@@ -74,7 +74,7 @@ if defined PORTABLE_OK (
     > "%INSTALL_DIR%\meshctx.cmd" echo @echo off
     >> "%INSTALL_DIR%\meshctx.cmd" echo "%%~dp0meshctx\meshctx.exe" %%*
     rmdir /s /q "%TMPDIR%" 2>nul
-    echo   [OK] 闭源核心已内嵌（完整版封装，免 Python）
+    echo   [OK] Closed-source core embedded (full portable build, no Python needed)
     goto :done
 )
 
@@ -112,7 +112,7 @@ pip install -q fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofile
 echo   OK
 
 REM ── [5/5] 闭源核心组件 (meshctx-core · 一体产品) ─────
-echo [5/5] 安装闭源核心 meshctx-core ...
+echo [5/5] Installing closed-source core meshctx-core ...
 set "CORE_CLONE_OK="
 if not defined MESHCTX_CORE_TOKEN (
     if exist "%INSTALL_DIR%\.env" (
@@ -132,23 +132,23 @@ if defined MESHCTX_CORE_TOKEN (
         )
         if defined CORE_CLONE_OK (
             for /r "!CORE_TMP!\core\src\core" %%f in (*.py) do if /i not "%%~nxf"=="__init__.py" copy /y "%%f" "%INSTALL_DIR%\src\core\" >nul 2>nul
-            echo   [OK] 闭源核心已一体安装（完整版）
+            echo   [OK] Closed-source core installed as one product (full build)
         ) else (
-            echo   [ERROR] 闭源核心拉取失败（token/网络）— 完整产品必须含闭源核心，禁止 stub 安装
+            echo   [ERROR] Failed to fetch closed-source core (token/network) — full product must include the core, stub install forbidden
             if exist "!CORE_TMP!" rmdir /s /q "!CORE_TMP!" 2>nul
             pause
             exit /b 1
         )
         if exist "!CORE_TMP!" rmdir /s /q "!CORE_TMP!" 2>nul
     ) else (
-        echo   [ERROR] 未安装 git — 源码安装模式需要 git + MESHCTX_CORE_TOKEN 安装闭源核心
-        echo   [HINT] 请使用官方安装包 meshctx-setup.exe（已含闭源核心），或安装 git 后设置 MESHCTX_CORE_TOKEN 重跑
+        echo   [ERROR] git not installed — source install mode needs git + MESHCTX_CORE_TOKEN for the closed-source core
+        echo   [HINT] Use the official installer meshctx-setup.exe (includes closed-source core), or install git, set MESHCTX_CORE_TOKEN and re-run
         pause
         exit /b 1
     )
 ) else (
-    echo   [ERROR] 未提供 MESHCTX_CORE_TOKEN — 完整产品必须含闭源核心，禁止 stub 安装
-    echo   [HINT] 请使用官方安装包 meshctx-setup.exe（已含闭源核心），或设置 MESHCTX_CORE_TOKEN 后重跑
+    echo   [ERROR] MESHCTX_CORE_TOKEN not provided — full product must include the closed-source core, stub install forbidden
+    echo   [HINT] Use the official installer meshctx-setup.exe (includes closed-source core), or set MESHCTX_CORE_TOKEN and re-run
     pause
     exit /b 1
 )
@@ -157,7 +157,7 @@ echo   OK
 :done
 echo.
 echo   %_T_DONE%
-echo     "%INSTALL_DIR%\meshctx.cmd" start    (完整版封装/或 venv 源码)
+echo     "%INSTALL_DIR%\meshctx.cmd" start    (full portable build / or venv source)
 echo     Web UI: http://localhost:3001/ui/setup
 echo.
 pause

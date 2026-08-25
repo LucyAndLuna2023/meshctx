@@ -12,17 +12,8 @@ BOLD='\033[1m'
 # ── i18n ─────────────────────────────────────────────
 detect_lang() {
     if [ -n "$MESHCTX_LANG" ]; then echo "$MESHCTX_LANG"; return; fi
-    case "${LANG:-}" in
-        zh_*|zh-*|Chinese*)     echo "zh" ;;
-        ja_*|ja-*|Japanese*)    echo "ja" ;;
-        ko_*|ko-*|Korean*)      echo "ko" ;;
-        fr_*|fr-*|French*)      echo "fr" ;;
-        de_*|de-*|German*)      echo "de" ;;
-        es_*|es-*|Spanish*)     echo "es" ;;
-        it_*|it-*|Italian*)     echo "it" ;;
-        ar_*|ar-*|Arabic*)      echo "ar" ;;
-        *)                      echo "en" ;;
-    esac
+    # 默认统一英文显示；如需其他语言显式设置 MESHCTX_LANG=zh|ja|...
+    echo "en"
 }
 LANG_CHOICE=$(detect_lang)
 T() {
@@ -500,7 +491,7 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.120.3"
+VERSION="3.120.4"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 PORT=3001
@@ -597,7 +588,7 @@ _fetch_url() {
     case "${_url}" in
         https://github.com/*)
             for _m in ${GIT_MIRRORS}; do
-                echo -e "  ${YELLOW}→${NC} 直连下载失败或不完整，尝试镜像 ${_m} ..."
+                echo -e "  ${YELLOW}→${NC} Direct download failed or incomplete, trying mirror ${_m} ..."
                 if _dl_ok "${_m}${_url}"; then return 0; fi
             done
             ;;
@@ -613,10 +604,10 @@ if [ "$PORTABLE_OK" = "1" ]; then
     # 封装资产校验: 必须含 meshctx-linux/meshctx 可执行 (PyInstaller onedir 结构)
     if tar tzf "${PORTABLE_TARBALL}" 2>/dev/null | grep -q "meshctx-linux/meshctx$"; then
         TARBALL="${PORTABLE_TARBALL}"
-        echo -e "  ${GREEN}✓${NC} $(T download_ok) 完整版封装资产 ($(du -h "${TARBALL}" | cut -f1))"
+        echo -e "  ${GREEN}✓${NC} $(T download_ok) full portable build ($(du -h "${TARBALL}" | cut -f1))"
     else
         PORTABLE_OK=0
-        echo -e "  ${YELLOW}⚠${NC} 封装资产结构异常，回退源码包..."
+        echo -e "  ${YELLOW}⚠${NC} Portable build structure abnormal, falling back to source package..."
     fi
 fi
 if [ "$PORTABLE_OK" != "1" ]; then
@@ -667,23 +658,23 @@ if [ "$PORTABLE_MODE" = "1" ]; then
         echo -e "${RED}✗ $(T extract_fail)${NC}"; exit 1
     }
     if [ ! -x "${INSTALL_DIR}/meshctx-linux/meshctx" ]; then
-        echo -e "${RED}✗ 封装资产缺少 meshctx 可执行文件${NC}"; exit 1
+        echo -e "${RED}✗ Portable build missing meshctx executable${NC}"; exit 1
     fi
     # 护城河校验: 封装资产必须含闭源核心（缺核心 = stub, 不得安装为"完整版"）
     VHOME=$(mktemp -d)
     if ! _PROBE=$(HOME="$VHOME" "${INSTALL_DIR}/meshctx-linux/meshctx" model add deepseek:chat --key sk-gate-verify 2>&1); then
-        echo -e "${RED}✗ 封装资产探针运行失败（二进制无法执行/缺依赖库？）${NC}"
+        echo -e "${RED}✗ Portable build probe failed (binary cannot run / missing libraries?)${NC}"
         echo "$_PROBE" | tail -5
         rm -rf "$VHOME"
         exit 1
     fi
     rm -rf "$VHOME"
     if echo "$_PROBE" | grep -q "STUB mode"; then
-        echo -e "${RED}✗ 封装资产缺少闭源核心（stub）— 完整产品必须含闭源核心，请使用带核心的新发布资产${NC}"
+        echo -e "${RED}✗ Portable build missing closed-source core (stub) — full product must include the core, use a new release asset with the core${NC}"
         echo "$_PROBE" | tail -5
         exit 1
     fi
-    echo -e "  ${GREEN}✓${NC} 封装资产含闭源核心（完整版）"
+    echo -e "  ${GREEN}✓${NC} Portable build includes closed-source core (full build)"
 else
     tar xzf "${TARBALL}" -C "${INSTALL_DIR}" || {
         echo -e "${RED}✗ $(T extract_fail)${NC}"; exit 1
@@ -729,7 +720,7 @@ fi
 cd "${INSTALL_DIR}"
 
 if [ "$PORTABLE_MODE" = "1" ]; then
-    echo -e "  ${GREEN}✓${NC} $(T install_done)（PyInstaller 封装版，无需 Python 依赖安装）"
+    echo -e "  ${GREEN}✓${NC} $(T install_done) (PyInstaller portable build, no Python dependency install needed)"
 else
 # venv — robust creation with multiple fallbacks
 PYTHON_BIN=""
@@ -848,7 +839,7 @@ echo -e "  ${GREEN}✓${NC} $(T install_done)"
 echo -e "${CYAN}[5/6]${NC} $(T step_verify)"
 if [ "$PORTABLE_MODE" = "1" ]; then
     if [ -x "${INSTALL_DIR}/meshctx-linux/meshctx" ]; then
-        echo -e "  ${GREEN}✓${NC} $(T version_ok)（完整版封装，闭源核心已内置）"
+        echo -e "  ${GREEN}✓${NC} $(T version_ok) (full portable build, closed-source core embedded)"
     else
         echo -e "  ${YELLOW}⚠${NC} $(T version_warn)"
     fi
@@ -867,14 +858,14 @@ fi
 # （从私有仓库 LucyAndLuna2023/meshctx-core 拉取真实核心算法模块），
 # 未提供 token 则保留开源 stub 降级，之后可随时重跑补装。
 if [ "$PORTABLE_MODE" = "1" ]; then
-    echo -e "  ${CYAN}[6/6]${NC} 完整版封装已含闭源核心，无需额外安装"
+    echo -e "  ${CYAN}[6/6]${NC} Full portable build already includes closed-source core, no extra install needed"
 else
 CORE_TOKEN="${MESHCTX_CORE_TOKEN:-}"
 if [ -z "$CORE_TOKEN" ] && [ -f "${INSTALL_DIR}/.env" ]; then
     CORE_TOKEN=$(sed -n 's/^MESHCTX_CORE_TOKEN=//p' "${INSTALL_DIR}/.env" 2>/dev/null | tr -d '"'"'"'\r')
 fi
 if [ -n "$CORE_TOKEN" ] && command -v git >/dev/null 2>&1; then
-    echo -e "${CYAN}[6/6]${NC} 安装闭源核心 meshctx-core ..."
+    echo -e "${CYAN}[6/6]${NC} Installing closed-source core meshctx-core ..."
     CORE_TMP=$(mktemp -d)
     CORE_CLONE_OK=0
     git clone --depth 1 "https://${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" "${CORE_TMP}/core" >/dev/null 2>&1 && CORE_CLONE_OK=1
@@ -886,17 +877,17 @@ if [ -n "$CORE_TOKEN" ] && command -v git >/dev/null 2>&1; then
         # 闭源业务模块覆盖同名 stub + 补入闭源独有模块, 检测逻辑按 desktop_tool.py 落地判定完整版）
         # 与 install-mac.sh 保持一致：递归复制 + 保留子目录结构，未来核心新增子目录模块也不遗漏
         (cd "${CORE_TMP}/core/src/core" && find . -name '*.py' ! -path './__init__.py' | tar -cf - -T -) | (cd "${INSTALL_DIR}/src/core" && tar -xf -)
-        echo -e "  ${GREEN}✓${NC} 闭源核心已一体安装（完整版）"
+        echo -e "  ${GREEN}✓${NC} Closed-source core installed as one product (full build)"
     else
-        echo -e "${RED}✗ 闭源核心拉取失败（token/网络）— 完整产品必须含闭源核心，禁止 stub 安装${NC}"
+        echo -e "${RED}✗ Failed to fetch closed-source core (token/network) — full product must include the core, stub install forbidden${NC}"
         exit 1
     fi
     rm -rf "${CORE_TMP}"
 fi
 if { [ -z "$CORE_TOKEN" ] || ! command -v git >/dev/null 2>&1; } && [ "${MESHCTX_ALLOW_STUB:-}" != "1" ]; then
-    echo -e "${RED}✗ 源码安装模式需要 MESHCTX_CORE_TOKEN 以安装闭源核心（完整产品）— 建议改用默认封装资产安装${NC}"
-    echo "    设置 MESHCTX_CORE_TOKEN 后重跑，或下载完整版封装资产: ${PORTABLE_URL}"
-    echo "    （开发调试可设 MESHCTX_ALLOW_STUB=1 显式允许 stub）"
+    echo -e "${RED}✗ Source install mode requires MESHCTX_CORE_TOKEN to install the closed-source core (full product) — use the default portable asset instead${NC}"
+    echo "    Set MESHCTX_CORE_TOKEN and re-run, or download the full portable asset: ${PORTABLE_URL}"
+    echo "    (For dev/debug you can set MESHCTX_ALLOW_STUB=1 to explicitly allow stub)"
     exit 1
 fi
 fi
