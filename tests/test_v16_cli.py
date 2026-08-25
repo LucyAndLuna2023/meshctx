@@ -336,12 +336,14 @@ class TestCLICommandFunctions:
         cmd_model(args)
         mock_reg.add.assert_called_once_with("deepseek:chat", key="sk-test", model="deepseek-chat", base_url="")
 
+    @patch("src.cli._set_default_model")
     @patch("src.model_registry.get_registry")
-    def test_cmd_model_use_nonexistent(self, mock_get_registry, capsys):
+    def test_cmd_model_use_nonexistent(self, mock_get_registry, mock_set_default, capsys):
         """cmd_model use with unconfigured model prints error"""
         from src.cli import cmd_model
         mock_reg = MagicMock()
         mock_reg._entries = {}
+        mock_reg.get.return_value = None
         mock_get_registry.return_value = mock_reg
         args = MagicMock()
         args.model_action = "use"
@@ -351,12 +353,14 @@ class TestCLICommandFunctions:
         captured = capsys.readouterr()
         assert "未配置" in captured.out or "not configured" in captured.out
 
+    @patch("src.cli._set_default_model")
     @patch("src.model_registry.get_registry")
-    def test_cmd_model_use_existing(self, mock_get_registry, capsys):
+    def test_cmd_model_use_existing(self, mock_get_registry, mock_set_default, capsys):
         """cmd_model use with configured model succeeds"""
         from src.cli import cmd_model
         mock_reg = MagicMock()
         mock_reg._entries = {"deepseek:chat": {}}
+        mock_reg.get.return_value = MagicMock(model_id="deepseek:chat", model_name="deepseek-v4-flash")
         mock_get_registry.return_value = mock_reg
         args = MagicMock()
         args.model_action = "use"
@@ -365,6 +369,87 @@ class TestCLICommandFunctions:
         cmd_model(args)
         captured = capsys.readouterr()
         assert "已切换" in captured.out or "switched" in captured.out or "默认模型" in captured.out
+
+    @patch("src.cli._set_default_model")
+    @patch("src.model_registry.get_registry")
+    def test_cmd_model_use_submodel_name(self, mock_get_registry, mock_set_default, capsys):
+        """cmd_model use accepts actual API sub-model name (deepseek-v4-flash)"""
+        from src.cli import cmd_model
+        mock_reg = MagicMock()
+        mock_reg._entries = {"deepseek:v4-flash": {}}
+        mock_reg.get.return_value = MagicMock(model_id="deepseek:v4-flash", model_name="deepseek-v4-flash")
+        mock_get_registry.return_value = mock_reg
+        args = MagicMock()
+        args.model_action = "use"
+        args.model_id = "deepseek-v4-flash"
+        args.config = None
+        cmd_model(args)
+        captured = capsys.readouterr()
+        assert "deepseek:v4-flash" in captured.out
+        assert os.environ.get("MESHCTX_MODEL") == "deepseek:v4-flash"
+        mock_set_default.assert_called_once_with("deepseek:v4-flash", mock_reg)
+
+
+class TestModelNameResolution:
+    """模型名解析：用户输实际 API 子模型名（deepseek-v4-flash）应解析到目录 ID（deepseek:v4-flash）"""
+
+    def _resolve(self, target):
+        from src.cli import _resolve_target_model
+        return _resolve_target_model(target)
+
+    def test_submodel_name_deepseek_flash(self):
+        assert self._resolve("deepseek-v4-flash") == "deepseek:v4-flash"
+
+    def test_submodel_name_qwen_flash(self):
+        assert self._resolve("qwen-flash") == "bailian:qwen-flash"
+
+    def test_provider_name_defaults_to_canonical(self):
+        assert self._resolve("deepseek") == "deepseek:v4-flash"
+
+    def test_legacy_id_still_resolves(self):
+        assert self._resolve("deepseek:chat") == "deepseek:chat"
+
+    def test_exact_id_resolves(self):
+        assert self._resolve("openai:gpt-4o") == "openai:gpt-4o"
+
+
+class TestModelSlashUse:
+    """/model use <子模型名> 切换（用户报障场景）"""
+
+    def _fake_reg(self, client_map, config_path):
+        class FakeReg:
+            _config_path = str(config_path)
+            def get(self, mid):
+                return client_map.get(mid)
+        return FakeReg()
+
+    def test_slash_use_submodel_name(self, tmp_path, capsys):
+        from src.cli import _cmd_model_slash
+        client_map = {"deepseek:v4-flash": type("C", (), {"model_id": "deepseek:v4-flash", "model_name": "deepseek-v4-flash"})()}
+        reg = self._fake_reg(client_map, tmp_path / "config.yaml")
+        ok = _cmd_model_slash("use deepseek-v4-flash", reg)
+        out = capsys.readouterr().out
+        assert ok is True
+        assert "deepseek:v4-flash" in out
+        assert (tmp_path / "config.yaml").exists()
+
+    def test_slash_use_falls_back_to_legacy_alias_entry(self, tmp_path, capsys):
+        """key 配在 legacy ID（deepseek:chat）时，输规范子模型名也能切"""
+        from src.cli import _cmd_model_slash
+        client_map = {"deepseek:chat": type("C", (), {"model_id": "deepseek:chat", "model_name": "deepseek-v4-flash"})()}
+        reg = self._fake_reg(client_map, tmp_path / "config.yaml")
+        ok = _cmd_model_slash("use deepseek-v4-flash", reg)
+        out = capsys.readouterr().out
+        assert ok is True
+        assert "deepseek:chat" in out
+
+    def test_slash_use_unknown_model(self, tmp_path, capsys):
+        from src.cli import _cmd_model_slash
+        reg = self._fake_reg({}, tmp_path / "config.yaml")
+        ok = _cmd_model_slash("use no-such-model-xyz", reg)
+        out = capsys.readouterr().out
+        assert ok is False
+        assert "未知模型" in out or "Unknown" in out
 
     @patch("src.model_registry.get_registry")
     def test_cmd_chat_no_model(self, mock_get_registry, capsys):
