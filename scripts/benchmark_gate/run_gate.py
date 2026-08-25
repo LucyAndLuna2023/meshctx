@@ -120,14 +120,14 @@ def main() -> int:
     # 3. SWE-bench (数据存在才跑)
     swe = ROOT / "benchmarks" / "SWE-bench"
     if (swe / "run.py").exists():
-        report["results"]["swebench"] = _run_bench([sys.executable, "run.py", "--report-only"], swe)
+        report["results"]["swebench"] = _run_bench([sys.executable, "run.py", "--report-only"], swe, timeout=300)
     else:
         report["results"]["swebench"] = {"ok": False, "skipped": "data on 004 machine"}
 
-    # 4. LongMemEval
+    # 4. LongMemEval (004 机器数据在 /home/administrator/benchmarks-ext, 本机跑需数据就位)
     lme = ROOT / "benchmarks" / "longmemeval"
     if (lme / "run_longmemeval.py").exists():
-        report["results"]["longmemeval"] = _run_bench([sys.executable, "run_longmemeval.py"], lme, timeout=900)
+        report["results"]["longmemeval"] = _run_bench([sys.executable, "run_longmemeval.py"], lme, timeout=300)
     else:
         report["results"]["longmemeval"] = {"ok": False, "skipped": "data on 004 machine"}
 
@@ -157,17 +157,27 @@ def main() -> int:
         checks.append("WARN: SWE-bench 运行失败(数据在 004 机器), 未纳入门禁")
 
     # 5b. LongMemEval 阈值接线 (解析各类型 acc 取平均)
+    # 2026-08-25 004meshctx 审计收紧: 原 findall(r'=\s*([\d.]+)') 会误收
+    # `questions=48` / `total=48` 等非 acc 整数。改为只匹配带小数点的浮点
+    # `= 0.xx` (acc 格式), 并优先解析 runner 的 overall accuracy 行。
     lme_res = report["results"]["longmemeval"]
     if lme_res.get("ok") and lme_res.get("stdout_tail"):
         import re as _re
-        _accs = [float(x) for x in _re.findall(r'=\s*([\d.]+)', lme_res["stdout_tail"])]
-        if _accs:
-            _score = sum(_accs) / len(_accs) * 100.0
+        out = lme_res["stdout_tail"]
+        # 1) 优先整体行: "overall": {"correct": X, "total": Y, "accuracy": 0.zz}
+        _overall = _re.search(r'accuracy["\s:]+([\d.]+)', out)
+        if _overall:
+            _score = float(_overall.group(1)) * 100.0
+        else:
+            # 2) 兜底: 各类型行 "= 0.xx" (小数 acc, 排除 questions=48 整数)
+            _accs = [float(x) for x in _re.findall(r'=\s*(\d+\.\d+)', out) if float(x) <= 1.0]
+            _score = sum(_accs) / len(_accs) * 100.0 if _accs else None
+        if _score is not None:
             lme_res["score"] = round(_score, 1)
             if _score < th["longmemeval_score_min"]:
                 checks.append(f"FAIL: LongMemEval {_score:.1f} < {th['longmemeval_score_min']}")
         else:
-            checks.append("WARN: LongMemEval 输出无可解析数值, 未纳入门禁(需 004 数据)")
+            checks.append("WARN: LongMemEval 输出无可解析 acc 数值, 未纳入门禁(需 004 数据)")
     elif lme_res.get("skipped"):
         checks.append("WARN: LongMemEval 数据在 004 机器, 本机门禁跳过")
     elif not lme_res.get("ok"):

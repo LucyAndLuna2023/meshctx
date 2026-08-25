@@ -138,12 +138,16 @@ class SparseDistributedMemory:
 
         if n_activated > 0:
             # 将数据位分布写入激活的硬位置
+            # 2026-08-25 004meshctx 性能修复: access_count/time.time 移到位置层
+            _now = time.time()
             for bit_idx, bit_val in enumerate(data_bits):
                 for loc_idx in activated:
                     loc = self._locations[loc_idx]
                     loc.write_bit(bit_idx, bit_val)
-                    loc.access_count += 1
-                    loc.last_access = time.time()
+            for loc_idx in activated:
+                loc = self._locations[loc_idx]
+                loc.access_count += 1
+                loc.last_access = _now
 
         self._write_count += 1
         elapsed = time.perf_counter() - t0
@@ -198,13 +202,18 @@ class SparseDistributedMemory:
             return None
 
         # 累加激活硬位置的计数器
+        # 2026-08-25 004meshctx 性能修复: 原 access_count+=1 / time.time() 在
+        # n_bits 内层循环 (每 bit 一次) — 1024 位置 × 1000 bit = 100 万次 time.time()。
+        # 移到位置层 (每位置一次) + 单次时间戳, 提速 ~40%。
         accumulated = [0] * self.n_bits
+        _now = time.time()
         for loc_idx in activated:
             loc = self._locations[loc_idx]
+            counters = loc.counters
             for i in range(self.n_bits):
-                accumulated[i] += loc.counters[i]
-                loc.access_count += 1
-                loc.last_access = time.time()
+                accumulated[i] += counters[i]
+            loc.access_count += 1
+            loc.last_access = _now
 
         # 阈值: 累加值 > 0 → 1, else → 0
         data_bits = [1 if acc > 0 else 0 for acc in accumulated]
@@ -318,26 +327,28 @@ class SparseDistributedMemory:
 
         使用随机采样优化: 不扫描全部 M 个位置，
         而是采样 n_trials 个，取距离 < radius 的。
+
+        2026-08-25 004meshctx 性能修复: 原实现每次位置调用 _int_to_bits (生成
+        N-bit 列表) + _hamming_distance (逐位 zip) — O(N) 每条, 10000 位置 ×
+        1000 bit 导致 50 次读 ≈ 2s (测试阈值边缘)。改为整数 XOR + int.bit_count()
+        O(1) 每条, 提速 ~50x。汉明距离语义不变 (XOR 置位数 = 不同 bit 数)。
         """
         r = radius if radius is not None else self.radius
         # 小数据集全扫描 + 中等数据集全扫描 (保证测试一致性)
         if self.n_locations <= self.n_trials or self.n_locations <= 5000:
-            # 直接全扫描
+            # 直接全扫描 (整数距离, 无位列表)
             activated = []
-            query_bits = self._int_to_bits(query_address)
             for i, loc in enumerate(self._locations):
-                loc_bits = self._int_to_bits(loc.address)
-                if self._hamming_distance(query_bits, loc_bits) <= r:
+                if (query_address ^ loc.address).bit_count() <= r:
                     activated.append(i)
             return activated
         else:
             # 随机采样
             sample_indices = random.sample(range(self.n_locations), self.n_trials)
             activated = []
-            query_bits = self._int_to_bits(query_address)
             for i in sample_indices:
                 loc = self._locations[i]
-                if self._hamming_distance(query_bits, self._int_to_bits(loc.address)) <= r:
+                if (query_address ^ loc.address).bit_count() <= r:
                     activated.append(i)
             return activated
 
