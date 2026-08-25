@@ -46,7 +46,7 @@ jobs:
 
     - name: Test Docker image
       run: |
-        docker run -d -p 3000:3000 --name meshctx-test meshctx
+        docker run -d -p 3001:3001 --name meshctx-test meshctx
         sleep 10
-        curl -fs http://localhost:3000/api/version
+        curl -fs http://localhost:3001/api/version
         docker stop meshctx-test
