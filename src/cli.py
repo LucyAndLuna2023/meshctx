@@ -195,11 +195,15 @@ def cmd_model(args):
     elif args.model_action == "use":
         # 设置默认模型(写到环境或配置)
         model_id = args.model_id
-        if model_id not in reg._entries:
+        mid = _resolve_target_model(model_id) or model_id
+        c = _resolve_configured_model(reg, mid)
+        if not c:
             print(f"{t('i18n_model_f6895a')}{model_id}{t('i18n_config_4fde74')}{model_id}'")
             return
-        os.environ["MESHCTX_MODEL"] = model_id
-        print(f"{t('i18n_model_24b934')}{model_id}")
+        mid = getattr(c, "model_id", mid)
+        os.environ["MESHCTX_MODEL"] = mid
+        _set_default_model(mid, reg)
+        print(f"{t('i18n_model_24b934')}{mid}")
 
 
 # ═══════════════════════════════════════════════════
@@ -1177,7 +1181,7 @@ def _auto_save_memory(messages: List[Dict]) -> None:
 
 # 厂商名 → 默认模型ID（用户只填 token 时自动选最常用子模型）
 _PROVIDER_DEFAULT_MODEL = {
-    "deepseek": "deepseek:chat",
+    "deepseek": "deepseek:v4-flash",
     "bailian": "bailian:qwen-flash",
     "alibaba": "bailian:qwen-flash",
     "openai": "openai:gpt-4o",
@@ -1198,7 +1202,7 @@ _PROVIDER_DEFAULT_MODEL = {
 
 
 def _resolve_target_model(target: str) -> Optional[str]:
-    """把用户输入解析为模型ID：支持精确模型ID、厂商名、前缀模糊匹配"""
+    """把用户输入解析为模型ID：支持精确模型ID、厂商名、实际API模型名、前缀模糊匹配"""
     from src.model_registry import BUILTIN_MODELS
     target = (target or "").strip()
     if not target:
@@ -1212,10 +1216,46 @@ def _resolve_target_model(target: str) -> Optional[str]:
     for mid, info in BUILTIN_MODELS.items():
         if info.get("provider") == target.lower():
             return mid
+    # 实际 API 模型名匹配（用户常直接输子模型名，如 deepseek-v4-flash / qwen-flash）
+    model_candidates = [mid for mid, info in BUILTIN_MODELS.items()
+                        if info.get("model") == target]
+    if not model_candidates:
+        model_candidates = [mid for mid, info in BUILTIN_MODELS.items()
+                            if info.get("model", "").endswith(target)]
+    if model_candidates:
+        # 优先：目标名规范化后与 ID 完全一致（deepseek-v4-flash → deepseek:v4-flash）
+        normalized = target.replace("-", ":")
+        for mid in model_candidates:
+            if mid == normalized:
+                return mid
+        # 其次：厂商前缀一致（qwen-flash → bailian:qwen-flash）
+        for mid in model_candidates:
+            if mid.startswith(target.split("-")[0] + ":"):
+                return mid
+        # 兜底：目录中首个（deepseek:chat 等 legacy 别名同 model 时优先规范 ID，因 dict 序前者）
+        return model_candidates[0]
     # 前缀模糊匹配（如 deepseek:ch）
     candidates = [mid for mid in BUILTIN_MODELS if mid.startswith(target)]
     if len(candidates) == 1:
         return candidates[0]
+    return None
+
+
+def _resolve_configured_model(reg, model_id: str):
+    """取已配置 token 的模型客户端；未命中时回退到同一实际模型名(API model)的其他条目，
+    兼容 key 配在 legacy 别名（如 deepseek:chat）而用户输规范名（deepseek-v4-flash）的场景"""
+    c = reg.get(model_id)
+    if c:
+        return c
+    from src.model_registry import BUILTIN_MODELS
+    info = BUILTIN_MODELS.get(model_id, {})
+    for other, oinfo in BUILTIN_MODELS.items():
+        if other == model_id or not info.get("model") or not oinfo.get("model"):
+            continue
+        if oinfo["model"] == info["model"]:
+            c = reg.get(other)
+            if c:
+                return c
     return None
 
 
@@ -1227,7 +1267,7 @@ def _resolve_model_cmd_client(cmd: str, reg):
         if len(parts) >= 3:
             mid = _resolve_target_model(parts[2])
             if mid:
-                c = reg.get(mid)
+                c = _resolve_configured_model(reg, mid)
                 if c:
                     return c
         # unset 后目标已删除 → 回退默认模型；set 未命中 → 尝试默认
@@ -1236,7 +1276,7 @@ def _resolve_model_cmd_client(cmd: str, reg):
     if len(parts) >= 2:
         mid = _resolve_target_model(parts[1])
         if mid:
-            c = reg.get(mid)
+            c = _resolve_configured_model(reg, mid)
             if c:
                 return c
     return reg.get()
@@ -1338,10 +1378,11 @@ def _cmd_model_slash(rest: str, reg) -> bool:
         if not mid:
             print(f"  ✗ 未知模型: {args[1]}")
             return False
-        c = reg.get(mid)
+        c = _resolve_configured_model(reg, mid)
         if not c:
             print(f"  ✗ {mid} 未配置 token，先 /model set {mid.split(':')[0]} <token>")
             return False
+        mid = getattr(c, "model_id", mid)
         _set_default_model(mid, reg)
         print(f"  ✓ 切换到 {c.model_id} ({c.model_name})，已设为默认")
         return True
@@ -1349,8 +1390,9 @@ def _cmd_model_slash(rest: str, reg) -> bool:
     # /model <id> 快捷切换（兼容旧用法）
     mid = _resolve_target_model(rest)
     if mid:
-        c = reg.get(mid)
+        c = _resolve_configured_model(reg, mid)
         if c:
+            mid = getattr(c, "model_id", mid)
             _set_default_model(mid, reg)
             print(f"  ✓ 切换到 {c.model_id} ({c.model_name})，已设为默认")
             return True
