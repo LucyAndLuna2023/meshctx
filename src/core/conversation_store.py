@@ -18,7 +18,8 @@ class Conversation:
     model: str = ""
     messages: list = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
-    
+    updated_at: float = field(default_factory=time.time)  # 2026-08-25 审计补: 对话排序
+
     @property
     def message_count(self) -> int:
         return len(self.messages)
@@ -26,10 +27,11 @@ class Conversation:
     def to_dict(self):
         return {"id": self.id, "title": self.title, "model": self.model,
                 "messages": self.messages, "message_count": self.message_count,
-                "created_at": self.created_at}
+                "created_at": self.created_at, "updated_at": self.updated_at}
     
     def add_message(self, role: str, content: str, **kw):
         self.messages.append({"role": role, "content": content, "time": time.time()})
+        self.updated_at = time.time()
     
     def add(self, role: str, content: str, **kw):
         """Alias for add_message."""
@@ -52,7 +54,9 @@ class Conversation:
                     try:
                         with open(os.path.join(d, f)) as fh:
                             data = json.load(fh)
-                        convs.append({"id": data.get("id", f[:-5]), "title": data.get("title", ""), "created_at": data.get("created_at", 0)})
+                        convs.append({"id": data.get("id", f[:-5]), "title": data.get("title", ""),
+                                      "created_at": data.get("created_at", 0),
+                                      "updated_at": data.get("updated_at", data.get("created_at", 0))})
                     except Exception:
                         pass
         return convs
@@ -71,7 +75,9 @@ class Conversation:
         if os.path.exists(path):
             with open(path) as f:
                 d = json.load(f)
-            return cls(id=d["id"], title=d["title"], messages=d.get("messages", []))
+            return cls(id=d["id"], title=d["title"], model=d.get("model", ""),
+                       messages=d.get("messages", []),
+                       created_at=d.get("created_at", 0), updated_at=d.get("updated_at", d.get("created_at", 0)))
         return None
 
     @classmethod
@@ -148,6 +154,8 @@ def get_or_create(conv_id: str = None) -> Conversation:
         if os.path.exists(path):
             with open(path) as f:
                 d = json.load(f)
-                return Conversation(id=d["id"], title=d["title"], messages=d.get("messages", []))
+            return Conversation(id=d["id"], title=d["title"], model=d.get("model", ""),
+                                messages=d.get("messages", []),
+                                created_at=d.get("created_at", 0), updated_at=d.get("updated_at", d.get("created_at", 0)))
     return Conversation(id=conv_id or str(time.time()), title="New Chat")
 get_conversation_store = get_or_create

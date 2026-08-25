@@ -340,6 +340,26 @@ body {
   color: var(--muted); font-size: 11px; background: var(--bg);
   padding: 2px 7px; border-radius: 4px; font-family: monospace;
 }
+
+/* ---- 对话历史下拉 (2026-08-25 004meshctx 修复: 新对话后旧对话可恢复) ---- */
+.conv-dropdown {
+  position: absolute; top: 100%; left: 0; margin-top: 4px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; min-width: 260px; max-width: 340px;
+  max-height: 360px; overflow-y: auto; z-index: 400;
+  box-shadow: 0 10px 32px rgba(0,0,0,0.45);
+}
+.conv-dropdown .conv-item {
+  padding: 9px 12px; cursor: pointer; display: flex; align-items: center;
+  gap: 8px; font-size: 13px; border-bottom: 1px solid var(--border);
+}
+.conv-dropdown .conv-item:last-child { border-bottom: none; }
+.conv-dropdown .conv-item:hover { background: #1f6feb22; }
+.conv-dropdown .conv-item.active { background: #1f6feb33; }
+.conv-dropdown .conv-title { flex: 1; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-dropdown .conv-del { color: #f0534d; cursor: pointer; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+.conv-dropdown .conv-del:hover { background: #f0534d22; }
+.conv-dropdown .conv-empty { padding: 14px; color: var(--muted); font-size: 13px; text-align: center; }
 </style>
 </head>
 <body>
@@ -361,6 +381,10 @@ body {
     <option value="ru">Русский</option>
   </select>
   <button onclick="newChat()" data-lang-key="chat_new">➕ 新对话</button>
+  <span style="position:relative" id="convSwitchWrap">
+    <button onclick="toggleConvDropdown()" id="convSwitchBtn" title="对话历史" data-lang-key="chat_history">📚 对话历史</button>
+    <div class="conv-dropdown" id="convDropdown" style="display:none"></div>
+  </span>
   <span style="flex:1"></span>
   <a href="/ui/" style="color:var(--muted);text-decoration:none;font-size:13px" data-lang-key="chat_console">← 控制台</a>
 </div>
@@ -1121,6 +1145,9 @@ async function send() {
     // Push to messages array
     messages.push({role: 'assistant', content: aiContent});
 
+    // 2026-08-25 004meshctx 修复: 对话自动持久化到后端 (新对话后旧对话可恢复)
+    saveCurrentConversation();
+
     document.getElementById('tokenCount').textContent =
       `Tokens: ${aiContent.length}`;
 
@@ -1174,10 +1201,155 @@ function switchModel() {
   document.getElementById('panelModel').textContent = model;
 }
 
+// ═══════ 对话历史管理 (2026-08-25 004meshctx 修复) ═══════
+// 原 newChat() 直接清空 localStorage → 旧对话永久丢失且无法恢复。
+// 现在接入后端 /api/conversations: 保存当前对话 → 新建 → 历史可切换/删除。
+let currentConvId = '';          // 当前后端对话 id ('' = 未持久化)
+let syncedMsgCount = 0;          // 已同步到后端的消息数 (增量同步)
+const CONV_LS_KEY = 'meshctx_active_conv';
+
+function toggleConvDropdown() {
+  const dd = document.getElementById('convDropdown');
+  if (dd.style.display === 'none' || !dd.style.display) {
+    loadConversationList();
+    dd.style.display = 'block';
+  } else {
+    dd.style.display = 'none';
+  }
+}
+
+function convTitleOf(items) {
+  // 用第一条用户消息作为标题
+  for (const m of items) {
+    if (m.role === 'user' && m.content) {
+      const t = m.content.trim().replace(/\s+/g, ' ').slice(0, 30);
+      return t || '新对话';
+    }
+  }
+  return '新对话';
+}
+
+async function saveCurrentConversation() {
+  // 把当前 messages 保存/续存到后端 (增量: 只追加 syncedMsgCount 之后的新消息)
+  const items = (messages || []).filter(m => m.content && (m.role === 'user' || m.role === 'assistant'));
+  if (!items.length) return;
+  try {
+    const title = convTitleOf(items);
+    let convId = currentConvId;
+    if (!convId) {
+      const resp = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({title: title, model: model}),
+      });
+      if (!resp.ok) return;
+      const d = await resp.json();
+      convId = d.id || d.conversation_id || '';
+      currentConvId = convId;
+      syncedMsgCount = 0;
+    } else {
+      // 续存: 重命名标题 (取最新用户消息)
+      await fetch('/api/conversations/' + encodeURIComponent(convId) + '/rename', {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({title: title}),
+      }).catch(function(){});
+    }
+    // 增量追加新消息到后端 (add 为追加语义, 不能全量重写)
+    const fresh = items.slice(syncedMsgCount);
+    for (const m of fresh) {
+      const r = await fetch('/api/conversations/' + encodeURIComponent(convId) + '/messages', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({role: m.role === 'user' ? 'user' : 'assistant', content: m.content}),
+      });
+      if (!r.ok) break;
+      syncedMsgCount += 1;
+    }
+    localStorage.setItem(CONV_LS_KEY, convId);
+    return convId;
+  } catch(e) { return currentConvId; }
+}
+
+async function loadConversationList() {
+  const dd = document.getElementById('convDropdown');
+  try {
+    const resp = await fetch('/api/conversations');
+    if (!resp.ok) throw new Error('http ' + resp.status);
+    const d = await resp.json();
+    const list = d.conversations || [];
+    list.sort(function(a, b) { return (b.updated_at || b.created_at || 0) - (a.updated_at || a.created_at || 0); });
+    if (!list.length) {
+      dd.innerHTML = '<div class="conv-empty">暂无历史对话</div>';
+      return;
+    }
+    dd.innerHTML = list.map(function(c) {
+      const cid = c.id || c.conversation_id || '';
+      const title = c.title || '对话';
+      const active = cid === currentConvId ? ' active' : '';
+      return '<div class="conv-item' + active + '" onclick="loadConversation(\'' +
+        encodeURIComponent(cid) + '\')">' +
+        '<span class="conv-title" title="' + escapeHtml(title) + '">💬 ' + escapeHtml(title) + '</span>' +
+        '<span class="conv-del" onclick="event.stopPropagation();deleteConversation(\'' +
+        encodeURIComponent(cid) + '\')" title="删除">🗑</span></div>';
+    }).join('');
+  } catch(e) {
+    dd.innerHTML = '<div class="conv-empty">加载失败: ' + escapeHtml(String(e)) + '</div>';
+  }
+}
+
+async function loadConversation(encId) {
+  const convId = decodeURIComponent(encId);
+  try {
+    const resp = await fetch('/api/conversations/' + encodeURIComponent(convId));
+    if (!resp.ok) { alert('对话不存在或已删除'); return; }
+    const d = await resp.json();
+    const msgs = d.messages || [];
+    // 渲染历史
+    messages = [];
+    const msgsDiv = document.getElementById('messages');
+    msgsDiv.innerHTML = '';
+    (msgs).forEach(function(m) {
+      const role = (m.role === 'user') ? 'user' : 'ai';
+      messages.push({role: m.role === 'user' ? 'user' : 'assistant', content: m.content || ''});
+      addMsg(role, m.content || '');
+    });
+    if (!messages.length) addMsg('ai', t('chat_new_chat'));
+    currentConvId = convId;
+    syncedMsgCount = messages.length;  // 已全部同步
+    localStorage.setItem(CONV_LS_KEY, convId);
+    document.getElementById('convDropdown').style.display = 'none';
+    msgsDiv.scrollTop = msgsDiv.scrollHeight;
+  } catch(e) {
+    alert('加载对话失败: ' + e.message);
+  }
+}
+
+async function deleteConversation(encId) {
+  const convId = decodeURIComponent(encId);
+  if (!confirm('确定删除该对话？')) return;
+  try {
+    await fetch('/api/conversations/' + encodeURIComponent(convId), {method: 'DELETE'});
+    if (currentConvId === convId) {
+      currentConvId = '';
+      syncedMsgCount = 0;
+      messages = [];
+      document.getElementById('messages').innerHTML = '';
+      addMsg('ai', t('chat_new_chat'));
+    }
+    loadConversationList();
+  } catch(e) { alert('删除失败: ' + e.message); }
+}
+
 function newChat() {
+  // 保存当前对话到后端 (用户可随时从"对话历史"恢复), 然后清空开始新对话
+  saveCurrentConversation();
   messages = [];
   document.getElementById('messages').innerHTML = '';
   localStorage.removeItem(LS_KEY);
+  currentConvId = '';
+  syncedMsgCount = 0;
+  localStorage.removeItem(CONV_LS_KEY);
   addMsg('ai', t('chat_new_chat'));
 }
 
