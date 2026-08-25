@@ -1,0 +1,21 @@
+{
+  "thresholds": {
+    "swebench_resolve_min": 90.0,
+    "longmemeval_score_min": 70.0,
+    "moat_gap_warn": 5.0,
+    "stub_remaining_max": 20
+  },
+  "moat_modules": [
+    "iit_consciousness",
+    "iit_engine",
+    "act_r",
+    "cognitive_architecture",
+    "desktop_tool",
+    "lsp_tool",
+    "mcp_gateway",
+    "obs_integration",
+    "patch_generator",
+    "ppt_generator",
+    "spreadsheet_tool"
+  ]
+}

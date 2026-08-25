@@ -16,9 +16,9 @@ VSVersionInfo(
         [
           StringStruct(u'CompanyName', u'meshctx'),
           StringStruct(u'FileDescription', u'meshctx Desktop'),
-          StringStruct(u'FileVersion', u'3.121.0'),
+          StringStruct(u'FileVersion', u'3.121.1'),
           StringStruct(u'ProductName', u'MeshCtx Desktop'),
-          StringStruct(u'ProductVersion', u'3.121.0'),
+          StringStruct(u'ProductVersion', u'3.121.1'),
           StringStruct(u'LegalCopyright', u'MIT License')
         ]
       )

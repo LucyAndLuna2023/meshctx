@@ -1,4 +1,4 @@
-## [3.121.0] - 2026-08-25
+## [3.121.1] - 2026-08-25
 ### Changed (002codex 实施 P2 批次，待 002/004meshctx 审计)
 - **默认路由/成本表规范 ID**（002 P2-1 + 004 建议②）: src/core/brain_router.py 路由档位 4 处 + 成本表 1 处 `deepseek:chat` → `deepseek:v4-flash`
 - **CLI 帮助示例规范 ID**（002 P2-2）: cli.py key set 示例 2 处 + argparse help 2 处 `deepseek:chat` → `deepseek:v4-flash`

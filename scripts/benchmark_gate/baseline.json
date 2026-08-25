@@ -1,0 +1,9 @@
+{
+  "version": "3.121.0",
+  "captured_at": "2026-08-26T00:00:00+00:00",
+  "swebench": {"resolve": 98.7, "f1": 0.967, "note": "官方口径对标 Lite 49-60% / Verified 72.8-76.8%"},
+  "longmemeval": {"score": 83.3, "questions": 48, "note": "语义判分, 平价模型达 GPT-4o 全上下文约八成"},
+  "tests": {"passed": 3672, "skipped": 60, "failed": 0},
+  "stub_count": 8,
+  "moat_private": true
+}
