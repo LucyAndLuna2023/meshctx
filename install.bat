@@ -1,11 +1,12 @@
 @echo off
+chcp 65001 >nul
 REM meshctx Windows Installer v5 — from GitHub Releases
 REM i18n: set MESHCTX_LANG=zh|en|ja|ko|fr|de|es|it|ar (default: en)
 title meshctx Installer
 setlocal enabledelayedexpansion
 
 set "INSTALL_DIR=%USERPROFILE%\.meshctx"
-set "VERSION=3.120.5"
+set "VERSION=3.120.6"
 set "SRC_URL=https://github.com/LucyAndLuna2023/meshctx/archive/refs/tags/v%VERSION%.tar.gz"
 set "PORTABLE_URL=https://github.com/LucyAndLuna2023/meshctx/releases/download/v%VERSION%/meshctx-windows-cli.zip"
 

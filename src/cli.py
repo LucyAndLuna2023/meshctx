@@ -249,12 +249,12 @@ def cmd_key(args):
     model_id = args.model_id
     if not model_id:
         print("用法: meshctx key set <模型ID> --key sk-xxx")
-        print("  例: meshctx key set deepseek:chat --key sk-xxx")
+        print("  例: meshctx key set deepseek:v4-flash --key sk-xxx")
         print("  例: meshctx key set bailian:qwen-flash --key sk-xxx")
         return
     if not args.key:
         print("请用 --key 提供 API Key")
-        print("  例: meshctx key set deepseek:chat --key sk-xxx")
+        print("  例: meshctx key set deepseek:v4-flash --key sk-xxx")
         return
     reg.add(model_id, key=args.key)
     saved_path = reg.save(args.config)
@@ -2686,7 +2686,7 @@ def main():
     # model
     m = sub.add_parser("model", help="模型管理 (30+内置)")
     m.add_argument("model_action", choices=["scan","list","available","add","test","use"])
-    m.add_argument("model_id", nargs="?", help="模型ID, 如 deepseek:chat")
+    m.add_argument("model_id", nargs="?", help="模型ID, 如 deepseek:v4-flash")
     m.add_argument("--key", help="API Key")
     m.add_argument("--model", help="实际模型名")
     m.add_argument("--base-url", help="API地址")
@@ -2697,7 +2697,7 @@ def main():
     # key — 一键配置 API Key (token)
     k = sub.add_parser("key", help="配置 API Key/token (set/list/delete)")
     k.add_argument("key_action", choices=["set","list","delete"])
-    k.add_argument("model_id", nargs="?", help="模型ID, 如 deepseek:chat / bailian:qwen-flash")
+    k.add_argument("model_id", nargs="?", help="模型ID, 如 deepseek:v4-flash / bailian:qwen-flash")
     k.add_argument("--key", help="API Key (token)")
     k.add_argument("-c","--config")
     k.set_defaults(func=cmd_key)

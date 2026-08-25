@@ -94,7 +94,7 @@ def estimate_complexity(text: str) -> float:
 MODEL_ROUTES = {
     "code": {
         "fast": "deepseek:v4-flash",
-        "balanced": "deepseek:chat",
+        "balanced": "deepseek:v4-flash",
         "powerful": "deepseek:v4-pro",
     },
     "analysis": {
@@ -103,18 +103,18 @@ MODEL_ROUTES = {
         "powerful": "deepseek:v4-pro",
     },
     "creative": {
-        "fast": "deepseek:chat",
+        "fast": "deepseek:v4-flash",
         "balanced": "deepseek:v4-pro",
         "powerful": "deepseek:v4-pro",
     },
     "search": {
         "fast": "deepseek:v4-flash",
         "balanced": "deepseek:v4-flash",
-        "powerful": "deepseek:chat",
+        "powerful": "deepseek:v4-flash",
     },
     "chat": {
         "fast": "deepseek:v4-flash",
-        "balanced": "deepseek:chat",
+        "balanced": "deepseek:v4-flash",
         "powerful": "deepseek:v4-pro",
     },
 }
@@ -122,7 +122,7 @@ MODEL_ROUTES = {
 # Cost estimates (tokens per $)
 MODEL_COST = {
     "deepseek:v4-flash": 0.5,
-    "deepseek:chat": 1.0,
+    "deepseek:v4-flash": 1.0,
     "deepseek:v4-pro": 2.0,
 }
 

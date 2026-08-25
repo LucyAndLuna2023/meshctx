@@ -491,7 +491,7 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.120.5"
+VERSION="3.120.6"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 PORT=3001
@@ -662,7 +662,7 @@ if [ "$PORTABLE_MODE" = "1" ]; then
     fi
     # 护城河校验: 封装资产必须含闭源核心（缺核心 = stub, 不得安装为"完整版"）
     VHOME=$(mktemp -d)
-    if ! _PROBE=$(HOME="$VHOME" "${INSTALL_DIR}/meshctx-linux/meshctx" model add deepseek:chat --key sk-gate-verify 2>&1); then
+    if ! _PROBE=$(HOME="$VHOME" "${INSTALL_DIR}/meshctx-linux/meshctx" model add deepseek:v4-flash --key sk-gate-verify 2>&1); then
         echo -e "${RED}✗ Portable build probe failed (binary cannot run / missing libraries?)${NC}"
         echo "$_PROBE" | tail -5
         rm -rf "$VHOME"

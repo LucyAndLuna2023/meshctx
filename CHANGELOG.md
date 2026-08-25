@@ -1,3 +1,11 @@
+## [3.120.6] - 2026-08-25
+### Changed (002codex 实施 P2 批次，待 002/004meshctx 审计)
+- **默认路由/成本表规范 ID**（002 P2-1 + 004 建议②）: src/core/brain_router.py 路由档位 4 处 + 成本表 1 处 `deepseek:chat` → `deepseek:v4-flash`
+- **CLI 帮助示例规范 ID**（002 P2-2）: cli.py key set 示例 2 处 + argparse help 2 处 `deepseek:chat` → `deepseek:v4-flash`
+- **安装探针规范 ID**（002 P2-3）: install.sh / install-mac.sh 护城河探针 `model add deepseek:chat` → `deepseek:v4-flash`（docs 副本同步）
+- **install.bat chcp 65001**（004 建议①）: @echo off 后加 `chcp 65001 >nul`，修复中文 Windows GBK 控制台下 UTF-8 文案（zh/ja/ko/ar）乱码
+- legacy 别名 `deepseek:chat` / `xai:grok-3` 机制保留（旧配置兼容），注释文档同步说明
+
 ## [3.120.5] - 2026-08-25
 ### Changed (002codex 实施，待 002/004meshctx 审计)
 - **/model use 原厂优先消歧 (P3-1)**: 多候选时按模型家族取原厂（gpt-*→openai、claude-*→anthropic、deepseek-*→deepseek、qwen*→bailian、grok-*→xai 等），azure/openrouter/deepinfra/together/ollama 等聚合渠道降权；gpt-4o/gpt-4o-mini 直接解析到 openai 原厂，deepseek-r1 解析到 bailian；同源多条目且恰有规范 ID（ID 内嵌完整 model 名，如 xai:grok-4.6）时取规范 ID，legacy 别名保持歧义显式化
