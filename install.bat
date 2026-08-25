@@ -29,11 +29,11 @@ set "_T_EXE_MISSING=meshctx.exe missing in portable asset"
 set "_T_CORE_EMBEDDED=Closed-source core embedded, full portable build, no Python needed"
 set "_T_CORE_INSTALL=Installing closed-source core meshctx-core ..."
 set "_T_CORE_OK=Closed-source core installed as one product, full build"
-set "_T_CORE_FAIL=Failed to fetch closed-source core, token or network issue. Full product must include the core, stub install forbidden"
-set "_T_GIT_MISSING=git not installed. Source install mode needs git plus MESHCTX_CORE_TOKEN for the closed-source core"
-set "_T_HINT_SETUP=Use the official installer meshctx-setup.exe which includes the closed-source core, or install git, set MESHCTX_CORE_TOKEN and re-run"
-set "_T_TOKEN_MISSING=MESHCTX_CORE_TOKEN not provided. Full product must include the closed-source core, stub install forbidden"
-set "_T_HINT_TOKEN=Use the official installer meshctx-setup.exe which includes the closed-source core, or set MESHCTX_CORE_TOKEN and re-run"
+set "_T_CORE_FAIL=Closed-source core fetch failed - continuing with open-source build (full engine). Core is optional; re-run with MESHCTX_CORE_TOKEN to add it later"
+set "_T_GIT_MISSING=git not installed - open-source build installs fine. Closed-source core is optional"
+set "_T_HINT_SETUP=Set MESHCTX_CORE_TOKEN and re-run to add the optional core enhancement layer"
+set "_T_TOKEN_MISSING=No MESHCTX_CORE_TOKEN - installing open-source build (full engine, Open Core)"
+set "_T_HINT_TOKEN=Core is optional; set MESHCTX_CORE_TOKEN and re-run to add it later"
 set "_T_WEBUI=Web UI:"
 if /i "%MESHCTX_LANG%"=="zh" (
     set "_T_HEADER=meshctx v%VERSION% 一键安装"
@@ -53,11 +53,11 @@ if /i "%MESHCTX_LANG%"=="zh" (
     set "_T_CORE_EMBEDDED=已内置闭源核心，完整便携版，无需 Python"
     set "_T_CORE_INSTALL=正在安装闭源核心 meshctx-core ..."
     set "_T_CORE_OK=闭源核心已随完整产品安装"
-    set "_T_CORE_FAIL=获取闭源核心失败（token 或网络问题）。完整产品必须包含核心，禁止桩安装"
-    set "_T_GIT_MISSING=未安装 git。源码安装模式需要 git 和 MESHCTX_CORE_TOKEN 获取闭源核心"
-    set "_T_HINT_SETUP=请使用官方安装器 meshctx-setup.exe（含闭源核心），或安装 git、设置 MESHCTX_CORE_TOKEN 后重试"
-    set "_T_TOKEN_MISSING=未提供 MESHCTX_CORE_TOKEN。完整产品必须包含闭源核心，禁止桩安装"
-    set "_T_HINT_TOKEN=请使用官方安装器 meshctx-setup.exe（含闭源核心），或设置 MESHCTX_CORE_TOKEN 后重试"
+    set "_T_CORE_FAIL=闭源核心获取失败 - 继续安装开源版（完整引擎）。核心为可选增强层，设置 MESHCTX_CORE_TOKEN 后可补装"
+    set "_T_GIT_MISSING=未安装 git - 开源版可正常安装。闭源核心为可选增强层"
+    set "_T_HINT_SETUP=设置 MESHCTX_CORE_TOKEN 后重跑可补装可选核心增强层"
+    set "_T_TOKEN_MISSING=未设置 MESHCTX_CORE_TOKEN - 安装开源版（完整引擎，Open Core）"
+    set "_T_HINT_TOKEN=核心为可选；设置 MESHCTX_CORE_TOKEN 后重跑即可补装"
     set "_T_WEBUI=网页界面："
 )
 if /i "%MESHCTX_LANG%"=="ja" (
@@ -78,11 +78,11 @@ if /i "%MESHCTX_LANG%"=="ja" (
     set "_T_CORE_EMBEDDED=クローズドソースコアを内蔵、完全ポータブル版、Python 不要"
     set "_T_CORE_INSTALL=クローズドソースコア meshctx-core をインストール中..."
     set "_T_CORE_OK=クローズドソースコアを一体製品としてインストール完了"
-    set "_T_CORE_FAIL=クローズドソースコアの取得に失敗しました（token またはネットワークの問題）。完全製品にはコアが必須で、スタブインストールは禁止です"
-    set "_T_GIT_MISSING=git がインストールされていません。ソースインストールモードには git と MESHCTX_CORE_TOKEN が必要です"
-    set "_T_HINT_SETUP=公式インストーラー meshctx-setup.exe（クローズドソースコア含む）を使用するか、git をインストールして MESHCTX_CORE_TOKEN を設定し再実行してください"
-    set "_T_TOKEN_MISSING=MESHCTX_CORE_TOKEN が設定されていません。完全製品にはクローズドソースコアが必須で、スタブインストールは禁止です"
-    set "_T_HINT_TOKEN=公式インストーラー meshctx-setup.exe（クローズドソースコア含む）を使用するか、MESHCTX_CORE_TOKEN を設定して再実行してください"
+    set "_T_CORE_FAIL=クローズドソースコアの取得に失敗 - オープンソース版（フルエンジン）で続行。コアは任意の拡張レイヤー。MESHCTX_CORE_TOKEN 設定後に再実行で補完可能"
+    set "_T_GIT_MISSING=git 未インストール - オープンソース版は正常にインストール可能。クローズドソースコアは任意"
+    set "_T_HINT_SETUP=MESHCTX_CORE_TOKEN を設定して再実行すると任意のコア拡張レイヤーを補完できます"
+    set "_T_TOKEN_MISSING=MESHCTX_CORE_TOKEN 未設定 - オープンソース版（フルエンジン、Open Core）をインストール"
+    set "_T_HINT_TOKEN=コアは任意です。MESHCTX_CORE_TOKEN を設定して再実行で補完可能"
     set "_T_WEBUI=Web UI:"
 )
 if /i "%MESHCTX_LANG%"=="ko" (
@@ -103,11 +103,11 @@ if /i "%MESHCTX_LANG%"=="ko" (
     set "_T_CORE_EMBEDDED=클로즈드 소스 코어 내장, 전체 포터블 빌드, Python 불필요"
     set "_T_CORE_INSTALL=클로즈드 소스 코어 meshctx-core 설치 중..."
     set "_T_CORE_OK=클로즈드 소스 코어가 통합 제품으로 설치됨"
-    set "_T_CORE_FAIL=클로즈드 소스 코어 가져오기 실패（token 또는 네트워크 문제）。정식 제품에는 코어가 필수이며 스텁 설치는 금지입니다"
-    set "_T_GIT_MISSING=git이 설치되지 않았습니다. 소스 설치 모드에는 git과 MESHCTX_CORE_TOKEN이 필요합니다"
-    set "_T_HINT_SETUP=공식 설치 프로그램 meshctx-setup.exe（클로즈드 소스 코어 포함）를 사용하거나 git을 설치하고 MESHCTX_CORE_TOKEN을 설정한 후 다시 실행하세요"
-    set "_T_TOKEN_MISSING=MESHCTX_CORE_TOKEN이 제공되지 않았습니다. 정식 제품에는 클로즈드 소스 코어가 필수이며 스텁 설치는 금지입니다"
-    set "_T_HINT_TOKEN=공식 설치 프로그램 meshctx-setup.exe（클로즈드 소스 코어 포함）를 사용하거나 MESHCTX_CORE_TOKEN을 설정한 후 다시 실행하세요"
+    set "_T_CORE_FAIL=클로즈드 소스 코어 가져오기 실패 - 오픈소스 버전(전체 엔진)으로 계속 설치합니다. 코어는 선택적 확장 계층이며 MESHCTX_CORE_TOKEN 설정 후 재실행으로 추가 가능"
+    set "_T_GIT_MISSING=git 미설치 - 오픈소스 버전은 정상 설치 가능. 클로즈드 소스 코어는 선택 사항"
+    set "_T_HINT_SETUP=MESHCTX_CORE_TOKEN 설정 후 재실행하면 선택적 코어 확장 계층을 추가할 수 있습니다"
+    set "_T_TOKEN_MISSING=MESHCTX_CORE_TOKEN 미설정 - 오픈소스 버전(전체 엔진, Open Core) 설치"
+    set "_T_HINT_TOKEN=코어는 선택 사항입니다. MESHCTX_CORE_TOKEN 설정 후 재실행으로 추가 가능"
     set "_T_WEBUI=웹 UI:"
 )
 if /i "%MESHCTX_LANG%"=="fr" (
@@ -128,11 +128,11 @@ if /i "%MESHCTX_LANG%"=="fr" (
     set "_T_CORE_EMBEDDED=Noyau closed-source intégré, build portable complet, pas de Python requis"
     set "_T_CORE_INSTALL=Installation du noyau closed-source meshctx-core..."
     set "_T_CORE_OK=Noyau closed-source installé comme produit unique"
-    set "_T_CORE_FAIL=Échec de récupération du noyau closed-source, problème de token ou de réseau. Le produit complet doit inclure le noyau, l'installation partielle est interdite"
-    set "_T_GIT_MISSING=git non installé. Le mode source nécessite git et MESHCTX_CORE_TOKEN pour le noyau closed-source"
-    set "_T_HINT_SETUP=Utilisez l'installateur officiel meshctx-setup.exe qui inclut le noyau closed-source, ou installez git, définissez MESHCTX_CORE_TOKEN et relancez"
-    set "_T_TOKEN_MISSING=MESHCTX_CORE_TOKEN non fourni. Le produit complet doit inclure le noyau closed-source, installation partielle interdite"
-    set "_T_HINT_TOKEN=Utilisez l'installateur officiel meshctx-setup.exe qui inclut le noyau closed-source, ou définissez MESHCTX_CORE_TOKEN et relancez"
+    set "_T_CORE_FAIL=Echec de recuperation du noyau closed-source - poursuite avec la version open-source (moteur complet). Le noyau est une couche optionnelle ; relancez avec MESHCTX_CORE_TOKEN pour l ajouter"
+    set "_T_GIT_MISSING=git non installe - la version open-source s installe normalement. Le noyau closed-source est optionnel"
+    set "_T_HINT_SETUP=Definissez MESHCTX_CORE_TOKEN et relancez pour ajouter la couche de noyau optionnelle"
+    set "_T_TOKEN_MISSING=MESHCTX_CORE_TOKEN non fourni - installation de la version open-source (moteur complet, Open Core)"
+    set "_T_HINT_TOKEN=Le noyau est optionnel ; definissez MESHCTX_CORE_TOKEN et relancez pour l ajouter"
     set "_T_WEBUI=Interface web :"
 )
 if /i "%MESHCTX_LANG%"=="de" (
@@ -153,11 +153,11 @@ if /i "%MESHCTX_LANG%"=="de" (
     set "_T_CORE_EMBEDDED=Closed-Source-Kern eingebettet, vollständiger portabler Build, kein Python nötig"
     set "_T_CORE_INSTALL=Closed-Source-Kern meshctx-core wird installiert..."
     set "_T_CORE_OK=Closed-Source-Kern als ein Produkt installiert"
-    set "_T_CORE_FAIL=Abruf des Closed-Source-Kerns fehlgeschlagen, Token- oder Netzwerkproblem. Das vollständige Produkt muss den Kern enthalten, Stub-Installation verboten"
-    set "_T_GIT_MISSING=git nicht installiert. Quellmodus benötigt git und MESHCTX_CORE_TOKEN für den Kern"
-    set "_T_HINT_SETUP=Verwenden Sie das offizielle Installationsprogramm meshctx-setup.exe mit dem Closed-Source-Kern, oder installieren Sie git, setzen Sie MESHCTX_CORE_TOKEN und führen Sie es erneut aus"
-    set "_T_TOKEN_MISSING=MESHCTX_CORE_TOKEN fehlt. Das vollständige Produkt muss den Closed-Source-Kern enthalten, Stub-Installation verboten"
-    set "_T_HINT_TOKEN=Verwenden Sie das offizielle Installationsprogramm meshctx-setup.exe mit dem Closed-Source-Kern, oder setzen Sie MESHCTX_CORE_TOKEN und führen Sie es erneut aus"
+    set "_T_CORE_FAIL=Abruf des Closed-Source-Kerns fehlgeschlagen - Fortsetzung mit Open-Source-Build (voller Kernel). Der Kern ist eine optionale Schicht; mit MESHCTX_CORE_TOKEN erneut ausfuehren"
+    set "_T_GIT_MISSING=git nicht installiert - Open-Source-Build installiert normal. Closed-Source-Kern ist optional"
+    set "_T_HINT_SETUP=MESHCTX_CORE_TOKEN setzen und erneut ausfuehren, um die optionale Kernschicht hinzuzufuegen"
+    set "_T_TOKEN_MISSING=MESHCTX_CORE_TOKEN fehlt - Installation des Open-Source-Builds (voller Kernel, Open Core)"
+    set "_T_HINT_TOKEN=Der Kern ist optional; MESHCTX_CORE_TOKEN setzen und erneut ausfuehren"
     set "_T_WEBUI=Web-UI:"
 )
 if /i "%MESHCTX_LANG%"=="es" (
@@ -178,11 +178,11 @@ if /i "%MESHCTX_LANG%"=="es" (
     set "_T_CORE_EMBEDDED=Núcleo de código cerrado integrado, build portátil completo, sin Python"
     set "_T_CORE_INSTALL=Instalando el núcleo de código cerrado meshctx-core..."
     set "_T_CORE_OK=Núcleo de código cerrado instalado como producto único"
-    set "_T_CORE_FAIL=Error al obtener el núcleo de código cerrado, problema de token o red. El producto completo debe incluir el núcleo, instalación parcial prohibida"
-    set "_T_GIT_MISSING=git no instalado. El modo fuente necesita git y MESHCTX_CORE_TOKEN para el núcleo"
-    set "_T_HINT_SETUP=Use el instalador oficial meshctx-setup.exe que incluye el núcleo, o instale git, configure MESHCTX_CORE_TOKEN y vuelva a ejecutar"
-    set "_T_TOKEN_MISSING=MESHCTX_CORE_TOKEN no proporcionado. El producto completo debe incluir el núcleo, instalación parcial prohibida"
-    set "_T_HINT_TOKEN=Use el instalador oficial meshctx-setup.exe que incluye el núcleo, o configure MESHCTX_CORE_TOKEN y vuelva a ejecutar"
+    set "_T_CORE_FAIL=Error al obtener el nucleo de codigo cerrado - se continua con la version open-source (motor completo). El nucleo es una capa opcional; ejecute de nuevo con MESHCTX_CORE_TOKEN"
+    set "_T_GIT_MISSING=git no instalado - la version open-source se instala correctamente. El nucleo de codigo cerrado es opcional"
+    set "_T_HINT_SETUP=Configure MESHCTX_CORE_TOKEN y vuelva a ejecutar para anadir la capa de nucleo opcional"
+    set "_T_TOKEN_MISSING=MESHCTX_CORE_TOKEN no proporcionado - instalando version open-source (motor completo, Open Core)"
+    set "_T_HINT_TOKEN=El nucleo es opcional; configure MESHCTX_CORE_TOKEN y vuelva a ejecutar"
     set "_T_WEBUI=Interfaz web:"
 )
 if /i "%MESHCTX_LANG%"=="it" (
@@ -203,11 +203,11 @@ if /i "%MESHCTX_LANG%"=="it" (
     set "_T_CORE_EMBEDDED=Core closed-source integrato, build portatile completo, Python non richiesto"
     set "_T_CORE_INSTALL=Installazione del core closed-source meshctx-core..."
     set "_T_CORE_OK=Core closed-source installato come prodotto unico"
-    set "_T_CORE_FAIL=Recupero del core closed-source fallito, problema di token o rete. Il prodotto completo deve includere il core, installazione stub vietata"
-    set "_T_GIT_MISSING=git non installato. La modalità sorgente richiede git e MESHCTX_CORE_TOKEN per il core"
-    set "_T_HINT_SETUP=Usare l'installer ufficiale meshctx-setup.exe che include il core, oppure installare git, impostare MESHCTX_CORE_TOKEN e riprovare"
-    set "_T_TOKEN_MISSING=MESHCTX_CORE_TOKEN non fornito. Il prodotto completo deve includere il core, installazione stub vietata"
-    set "_T_HINT_TOKEN=Usare l'installer ufficiale meshctx-setup.exe che include il core, oppure impostare MESHCTX_CORE_TOKEN e riprovare"
+    set "_T_CORE_FAIL=Recupero del core closed-source fallito - si continua con la build open-source (motore completo). Il core e un livello opzionale; rieseguire con MESHCTX_CORE_TOKEN"
+    set "_T_GIT_MISSING=git non installato - la build open-source si installa normalmente. Il core closed-source e opzionale"
+    set "_T_HINT_SETUP=Impostare MESHCTX_CORE_TOKEN e rieseguire per aggiungere il livello core opzionale"
+    set "_T_TOKEN_MISSING=MESHCTX_CORE_TOKEN non fornito - installazione build open-source (motore completo, Open Core)"
+    set "_T_HINT_TOKEN=Il core e opzionale; impostare MESHCTX_CORE_TOKEN e rieseguire per aggiungerlo"
     set "_T_WEBUI=Interfaccia web:"
 )
 if /i "%MESHCTX_LANG%"=="ar" (
@@ -228,11 +228,11 @@ if /i "%MESHCTX_LANG%"=="ar" (
     set "_T_CORE_EMBEDDED=تم تضمين النواة مغلقة المصدر، نسخة محمولة كاملة، لا حاجة لبايثون"
     set "_T_CORE_INSTALL=جاري تثبيت النواة مغلقة المصدر meshctx-core..."
     set "_T_CORE_OK=تم تثبيت النواة مغلقة المصدر كمنتج واحد"
-    set "_T_CORE_FAIL=فشل الحصول على النواة مغلقة المصدر، مشكلة في الرمز أو الشبكة. يجب أن يتضمن المنتج الكامل النواة، التثبيت الجزئي محظور"
-    set "_T_GIT_MISSING=git غير مثبت. وضع التثبيت من المصدر يتطلب git و MESHCTX_CORE_TOKEN"
-    set "_T_HINT_SETUP=استخدم المثبت الرسمي meshctx-setup.exe الذي يتضمن النواة، أو ثبّت git وحدد MESHCTX_CORE_TOKEN ثم أعد التشغيل"
-    set "_T_TOKEN_MISSING=MESHCTX_CORE_TOKEN غير مقدم. يجب أن يتضمن المنتج الكامل النواة مغلقة المصدر، التثبيت الجزئي محظور"
-    set "_T_HINT_TOKEN=استخدم المثبت الرسمي meshctx-setup.exe الذي يتضمن النواة، أو حدد MESHCTX_CORE_TOKEN ثم أعد التشغيل"
+    set "_T_CORE_FAIL=فشل الحصول على النواة مغلقة المصدر - المتابعة مع الإصدار مفتوح المصدر (المحرك الكامل). النواة طبقة اختيارية؛ أعد التشغيل مع MESHCTX_CORE_TOKEN لإضافتها لاحقا"
+    set "_T_GIT_MISSING=git غير مثبت - الإصدار مفتوح المصدر يثبت بشكل طبيعي. النواة مغلقة المصدر اختيارية"
+    set "_T_HINT_SETUP=اضبط MESHCTX_CORE_TOKEN وأعد التشغيل لإضافة طبقة النواة الاختيارية"
+    set "_T_TOKEN_MISSING=لم يتم توفير MESHCTX_CORE_TOKEN - تثبيت الإصدار مفتوح المصدر (المحرك الكامل، Open Core)"
+    set "_T_HINT_TOKEN=النواة اختيارية؛ اضبط MESHCTX_CORE_TOKEN وأعد التشغيل لإضافتها"
     set "_T_WEBUI=واجهة الويب:"
 )
 
@@ -340,23 +340,17 @@ if defined MESHCTX_CORE_TOKEN (
             for /r "!CORE_TMP!\core\src\core" %%f in (*.py) do if /i not "%%~nxf"=="__init__.py" copy /y "%%f" "%INSTALL_DIR%\src\core\" >nul 2>nul
             echo   [OK] %_T_CORE_OK%
         ) else (
-            echo   [ERROR] %_T_CORE_FAIL%
+            echo   [WARN] %_T_CORE_FAIL%
             if exist "!CORE_TMP!" rmdir /s /q "!CORE_TMP!" 2>nul
-            pause
-            exit /b 1
         )
         if exist "!CORE_TMP!" rmdir /s /q "!CORE_TMP!" 2>nul
     ) else (
-        echo   [ERROR] %_T_GIT_MISSING%
+        echo   [WARN] %_T_GIT_MISSING%
         echo   [HINT] %_T_HINT_SETUP%
-        pause
-        exit /b 1
     )
 ) else (
-    echo   [ERROR] %_T_TOKEN_MISSING%
+    echo   [INFO] %_T_TOKEN_MISSING%
     echo   [HINT] %_T_HINT_TOKEN%
-    pause
-    exit /b 1
 )
 echo   OK
 

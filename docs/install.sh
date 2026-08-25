@@ -907,16 +907,13 @@ if [ -n "$CORE_TOKEN" ] && command -v git >/dev/null 2>&1; then
         (cd "${CORE_TMP}/core/src/core" && find . -name '*.py' ! -path './__init__.py' | tar -cf - -T -) | (cd "${INSTALL_DIR}/src/core" && tar -xf -)
         echo -e "  ${GREEN}✓${NC} Closed-source core installed as one product (full build)"
     else
-        echo -e "${RED}✗ Failed to fetch closed-source core (token/network) — full product must include the core, stub install forbidden${NC}"
-        exit 1
+        echo -e "${YELLOW}⚠ Closed-source core fetch failed (token/network) — continuing with open-source build (full engine, Open Core). Re-run with MESHCTX_CORE_TOKEN to add the core later${NC}"
     fi
     rm -rf "${CORE_TMP}"
 fi
-if { [ -z "$CORE_TOKEN" ] || ! command -v git >/dev/null 2>&1; } && [ "${MESHCTX_ALLOW_STUB:-}" != "1" ]; then
-    echo -e "${RED}✗ Source install mode requires MESHCTX_CORE_TOKEN to install the closed-source core (full product) — use the default portable asset instead${NC}"
-    echo "    Set MESHCTX_CORE_TOKEN and re-run, or download the full portable asset: ${PORTABLE_URL}"
-    echo "    (For dev/debug you can set MESHCTX_ALLOW_STUB=1 to explicitly allow stub)"
-    exit 1
+if [ -z "$CORE_TOKEN" ] || ! command -v git >/dev/null 2>&1; then
+    echo -e "${CYAN}[6/6]${NC} No MESHCTX_CORE_TOKEN — installing open-source build (full engine, Open Core)."
+    echo "    Closed-source core (meshctx-core) is an optional enhancement layer; set MESHCTX_CORE_TOKEN and re-run to add it later."
 fi
 fi
 
