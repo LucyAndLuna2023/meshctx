@@ -227,14 +227,20 @@ async def run_agent_loop(
                     _reason = needs_approval(name, args)
                     if _reason:
                         request_id = f"{uuid.uuid4().hex[:12]}"
+                        # 预注册 future (事件 yield 前启动协程), 防前端极快决策时 404 (002codex 建议)
+                        _approval_task = asyncio.ensure_future(approval_waiter(request_id))
                         yield {"type": "approval", "request_id": request_id,
                                "name": name, "args": args, "reason": _reason}
                         try:
                             decision = await asyncio.wait_for(
-                                approval_waiter(request_id), timeout=approval_timeout)
-                        except Exception:
+                                asyncio.shield(_approval_task), timeout=approval_timeout)
+                        except asyncio.TimeoutError:
+                            _approval_task.cancel()
                             decision = {"action": "reject",
                                         "text": "[审批超时] 用户未在时限内决策，操作已拒绝。"}
+                        except Exception:
+                            decision = {"action": "reject",
+                                        "text": "[审批异常] 决策等待失败，操作已拒绝。"}
                         action = decision.get("action", "reject")
                         if action == "reject":
                             _note = decision.get("text") or f"[用户拒绝执行 {name}] 操作未执行。"
