@@ -17,6 +17,8 @@ import time
 
 
 # ── 配置 ──
+import os as _os
+_BENCH_EXT = _os.environ.get("MESHCTX_BENCH_EXT") or _os.path.expanduser("~/benchmarks-ext")
 DATA = _os.path.join(_BENCH_EXT, "lost-in-the-middle-main/qa_data")
 OUT = _os.path.join(_BENCH_EXT, "results")
 MODEL = "deepseek-chat"

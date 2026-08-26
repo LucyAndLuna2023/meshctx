@@ -18,6 +18,8 @@ import time
 
 from run_meshctx_memory import flatten_sessions, build_history, normalize_answer, best_subspan_em, calc_salience
 
+import os as _os
+_BENCH_EXT = _os.environ.get("MESHCTX_BENCH_EXT") or _os.path.expanduser("~/benchmarks-ext")
 DATA = _os.path.join(_BENCH_EXT, "LongMemEval/data/longmemeval_oracle.json")
 OUT = _os.path.join(_BENCH_EXT, "results")
 

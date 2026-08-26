@@ -10,6 +10,8 @@ import os
 import time
 
 
+import os as _os
+_BENCH_EXT = _os.environ.get("MESHCTX_BENCH_EXT") or _os.path.expanduser("~/benchmarks-ext")
 OUT = _os.path.join(_BENCH_EXT, "results")
 
 from model_io import ask as _ask_io, resolve_model_id as _resolve_mid

@@ -19,6 +19,8 @@ from run_meshctx_memory import flatten_sessions, build_history, best_subspan_em
 from run_longcontext import inflate_history
 from run_judge import judge
 
+import os as _os
+_BENCH_EXT = _os.environ.get("MESHCTX_BENCH_EXT") or _os.path.expanduser("~/benchmarks-ext")
 DATA = _os.path.join(_BENCH_EXT, "LongMemEval/data/longmemeval_oracle.json")
 OUT = _os.path.join(_BENCH_EXT, "results")
 
