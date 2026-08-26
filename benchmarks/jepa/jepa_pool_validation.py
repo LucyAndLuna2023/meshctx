@@ -9,19 +9,24 @@
 对比 v1（候选池 avg 1.9 区分度弱）——v2 用 30 条大池，真实考验非生成式预筛。
 """
 import json
+import os as _os
 import random
 import sys
 import time
 
 import numpy as np
 
-sys.path.insert(0, "/home/administrator/meshctx-public")
-sys.path.insert(0, "/home/administrator/meshctx-public/src")
+# 跨平台: MESHCTX_BENCH_EXT 环境变量覆盖, 默认 ~/benchmarks-ext (与 LongMemEval runner 一致)
+_BENCH_EXT = _os.environ.get("MESHCTX_BENCH_EXT") or _os.path.expanduser("~/benchmarks-ext")
+_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))  # benchmarks/jepa/ → 仓库根
+
+sys.path.insert(0, _ROOT)
+sys.path.insert(0, _os.path.join(_ROOT, "src"))
 
 from src.core.jepa_world_model import get_non_generative_router
 
-DATA = "/home/administrator/benchmarks-ext/LongMemEval/data/longmemeval_oracle.json"
-OUT = "/home/administrator/benchmarks-ext/results/jepa_pool_validation_results.json"
+DATA = _os.path.join(_BENCH_EXT, "LongMemEval/data/longmemeval_oracle.json")
+OUT = _os.path.join(_BENCH_EXT, "results/jepa_pool_validation_results.json")
 
 POOL_SIZE = 30
 

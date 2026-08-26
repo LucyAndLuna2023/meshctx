@@ -8,21 +8,26 @@ NonGenerativeRouter.embed_state（char-trigram 真实向量）余弦排序，
 对照 完美 oracle / 随机基线，量化「非生成式预筛」的检索质量。
 
 用法: python3 jepa_memory_validation.py [n_samples]
-结果: 打印 + 归档 /home/administrator/benchmarks-ext/results/jepa_validation_results.json
+结果: 打印 + 归档 ~/benchmarks-ext/results/jepa_validation_results.json
 """
 import json
+import os as _os
 import sys
 import time
 
 import numpy as np
 
-sys.path.insert(0, "/home/administrator/meshctx-public")
-sys.path.insert(0, "/home/administrator/meshctx-public/src")
+# 跨平台: MESHCTX_BENCH_EXT 环境变量覆盖, 默认 ~/benchmarks-ext (与 LongMemEval runner 一致)
+_BENCH_EXT = _os.environ.get("MESHCTX_BENCH_EXT") or _os.path.expanduser("~/benchmarks-ext")
+_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))  # benchmarks/jepa/ → 仓库根
+
+sys.path.insert(0, _ROOT)
+sys.path.insert(0, _os.path.join(_ROOT, "src"))
 
 from src.core.jepa_world_model import get_non_generative_router, get_world_model
 
-DATA = "/home/administrator/benchmarks-ext/LongMemEval/data/longmemeval_oracle.json"
-OUT = "/home/administrator/benchmarks-ext/results/jepa_validation_results.json"
+DATA = _os.path.join(_BENCH_EXT, "LongMemEval/data/longmemeval_oracle.json")
+OUT = _os.path.join(_BENCH_EXT, "results/jepa_validation_results.json")
 
 
 def session_to_text(sess: dict) -> str:

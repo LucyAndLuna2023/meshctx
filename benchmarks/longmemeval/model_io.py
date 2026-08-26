@@ -103,7 +103,8 @@ def get_client(model_id: str = None):
 def _load_env_key(name: str) -> str:
     env_path = os.environ.get("MESHCTX_ENV_FILE", "")
     if not env_path:
-        for p in ("/home/administrator/.meshctx/.env", "~/.meshctx/.env"):
+        # 跨平台: 仅用 expanduser 的 ~/.meshctx/.env (win/linux/mac 各自 home), 无硬编码路径
+        for p in ("~/.meshctx/.env",):
             if os.path.exists(os.path.expanduser(p)):
                 env_path = p
                 break

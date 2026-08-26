@@ -211,7 +211,7 @@ doc.add_page_break()
 doc.add_heading('附录A · 审计方法', level=1)
 doc.add_paragraph('3子代理并行审计 (DeepSeek v4 Pro): 代理1=搜索修复代码审查, 代理2=第二轮修复审查, 代理3=chat.html审查')
 doc.add_paragraph('工具: git diff + 全量grep + 行级安全模式匹配')
-doc.add_paragraph('时间: 2026-08-05 19:30-20:15 CST · 工作目录: /home/administrator/meshctx-public · Git: 2097075')
+doc.add_paragraph(f'时间: 2026-08-05 19:30-20:15 CST · 工作目录: {os.getcwd()} · Git: 2097075')
 
 doc.add_heading('附录B · 测试环境', level=1)
 env = [
