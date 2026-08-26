@@ -1,6 +1,6 @@
 {
-  "version": "3.121.5",
-  "run_at": "2026-08-26T11:21:53.811739+00:00",
+  "version": "3.121.6",
+  "run_at": "2026-08-26T13:02:05.787446+00:00",
   "baseline": {
     "version": "3.121.0",
     "captured_at": "2026-08-26T00:00:00+00:00",
@@ -43,54 +43,14 @@
     "swebench": {
       "ok": false,
       "returncode": 1,
-      "stdout_tail": "Running: /usr/bin/python3 -m swebench.harness.run_evaluation --dataset_name princeton-nlp/SWE-bench_Lite --predictions_path gold --max_workers 2 --run_id meshctx_v3.33 --timeout 900\n",
-      "error": " _execute_child\n    raise child_exception_type(errno_num, err_msg, err_filename)\nFileNotFoundError: [Errno 2] No such file or directory: '/home/administrator/meshctx-public/benchmarks/SWE-bench/repo'\n"
+      "stdout_tail": "Running: /home/jason/.hermes/hermes-agent/venv/bin/python3 -m swebench.harness.run_evaluation --dataset_name princeton-nlp/SWE-bench_Lite --predictions_path gold --max_workers 2 --run_id meshctx_v3.33 --timeout 900\n",
+      "error": "e 1955, in _execute_child\n    raise child_exception_type(errno_num, err_msg, err_filename)\nFileNotFoundError: [Errno 2] No such file or directory: '/home/jason/meshctx-repo/benchmarks/SWE-bench/repo'\n"
     },
     "longmemeval": {
-      "ok": true,
-      "from_file": "/home/administrator/benchmarks-ext/results/longmemeval_results.json",
-      "overall": {
-        "correct": 25.0,
-        "total": 48,
-        "accuracy": 0.5208333333333334
-      },
-      "per_type": {
-        "temporal-reasoning": {
-          "correct": 4.0,
-          "total": 8,
-          "accuracy": 0.5
-        },
-        "multi-session": {
-          "correct": 3.0,
-          "total": 8,
-          "accuracy": 0.375
-        },
-        "knowledge-update": {
-          "correct": 4.0,
-          "total": 8,
-          "accuracy": 0.5
-        },
-        "single-session-preference": {
-          "correct": 0.0,
-          "total": 8,
-          "accuracy": 0.0
-        },
-        "single-session-assistant": {
-          "correct": 6.0,
-          "total": 8,
-          "accuracy": 0.75
-        },
-        "single-session-user": {
-          "correct": 8.0,
-          "total": 8,
-          "accuracy": 1.0
-        }
-      },
-      "model": "deepseek-chat",
-      "judge_score": 79.16666666666666,
-      "judge_model": "deepseek-reasoner",
-      "score": 79.2,
-      "metric": "judge"
+      "ok": false,
+      "returncode": 1,
+      "stdout_tail": "",
+      "error": "ATA, encoding=\"utf-8\"))\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/home/jason/benchmarks-ext/LongMemEval/data/longmemeval_oracle.json'\n"
     },
     "moat_semantic": {
       "brain_iit": true,
@@ -103,12 +63,12 @@
     "moat_semantic_note": "文件名级未泄漏; 能力级护城河 = 训练权重(IIT Phi/VICReg/ACT-R) + 7 闭源独有模块, 开源基础实现需 benchmark 门禁量化差距 (v3.121.2 专项)",
     "bench_iit": {
       "benchmark": "IIT-Phi-Capability",
-      "version": "3.121.5",
+      "version": "3.121.6",
       "open_source": {
         "basic_phi": {
           "phi_max": 2.11848,
           "concepts": 4,
-          "latency_ms": 498.1
+          "latency_ms": 531.1
         },
         "determinism": {
           "run1": 2.14858584,
@@ -118,15 +78,15 @@
         "scaling": {
           "2": {
             "phi_max": 0.960121,
-            "latency_ms": 2.9
+            "latency_ms": 2.0
           },
           "3": {
             "phi_max": 1.543033,
-            "latency_ms": 21.2
+            "latency_ms": 24.3
           },
           "4": {
             "phi_max": 2.143042,
-            "latency_ms": 252.6
+            "latency_ms": 330.1
           }
         },
         "scaling_note": "n>=5 精确 Φ 计算指数爆炸 (实测 n=4→0.28s, n=6→>60s); 商业旗舰用训练权重/近似分区突破此限 — moat 差距量化证据",
@@ -141,11 +101,12 @@
         "open_phi_correct": true,
         "deterministic": true
       },
-      "run_at": "2026-08-26T11:21:56Z"
+      "run_at": "2026-08-26T13:02:08Z"
     }
   },
   "checks": [
-    "WARN: SWE-bench 运行失败(数据在 004 机器), 未纳入门禁"
+    "WARN: SWE-bench 运行失败(数据在 004 机器), 未纳入门禁",
+    "WARN: LongMemEval 运行失败, 未纳入门禁"
   ],
   "gate": "PASS"
 }
