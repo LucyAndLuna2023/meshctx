@@ -315,20 +315,15 @@ function toggleTheme() {
     applyTheme(current === 'dark' ? 'light' : 'dark');
 }
 
-// 初始化主题：localStorage > 系统偏好 > 深色
+// 初始化主题：localStorage > 默认浅色 (2026-08-26 用户要求: 所有页面白底黑字)
 (function initTheme() {
     var saved = localStorage.getItem('meshctx_theme');
     if (saved === 'light' || saved === 'dark') {
         applyTheme(saved);
     } else {
-        applyTheme(getSystemTheme());
+        applyTheme('light');  // 默认白底黑字 (不再跟随系统深色)
     }
-    // 监听系统主题变化
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
-        if (!localStorage.getItem('meshctx_theme')) {
-            applyTheme(e.matches ? 'dark' : 'light');
-        }
-    });
+    // 系统主题变化不再自动切换 (用户已显式要求默认浅色)
 })();
 
 // Language switcher — localStorage + cookie + server sync (QA6: cookie BEFORE fetch)

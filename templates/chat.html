@@ -13,6 +13,17 @@
   --panel-bg: rgba(22,27,34,0.92);
   --panel-border: rgba(48,54,61,0.6);
 }
+/* 2026-08-26 用户要求: 白底黑字浅色主题 (默认) */
+[data-theme="light"] {
+  --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0;
+  --text: #0f172a; --muted: #64748b; --accent: #6c5ce7;
+  --user-bg: #6c5ce722; --ai-bg: #f1f5f9;
+  --green: #16a34a; --orange: #d97706; --red: #dc2626;
+  --panel-bg: rgba(255,255,255,0.95);
+  --panel-border: rgba(226,232,240,0.8);
+}
+[data-theme="light"] .status-panel { box-shadow: 0 8px 32px rgba(15,23,42,0.12); }
+[data-theme="light"] .bubble { color: var(--text); }
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -385,6 +396,7 @@ body {
     <button onclick="toggleConvDropdown()" id="convSwitchBtn" title="对话历史" data-lang-key="chat_history">📚 对话历史</button>
     <div class="conv-dropdown" id="convDropdown" style="display:none"></div>
   </span>
+  <button onclick="toggleChatTheme()" id="chatThemeBtn" title="切换主题" style="font-size:14px;">☀️</button>
   <span style="flex:1"></span>
   <a href="/ui/" style="color:var(--muted);text-decoration:none;font-size:13px" data-lang-key="chat_console">← 控制台</a>
 </div>
@@ -486,6 +498,23 @@ body {
 </div>
 
 <script>
+// ═══ 主题切换 (2026-08-26 用户要求: 默认白底黑字) ═══
+(function initChatTheme() {
+  var saved = localStorage.getItem('meshctx_theme');
+  var theme = (saved === 'dark') ? 'dark' : 'light';  // 默认浅色
+  document.body.setAttribute('data-theme', theme);
+  var btn = document.getElementById('chatThemeBtn');
+  if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
+})();
+function toggleChatTheme() {
+  var cur = document.body.getAttribute('data-theme') || 'light';
+  var next = cur === 'dark' ? 'light' : 'dark';
+  document.body.setAttribute('data-theme', next);
+  localStorage.setItem('meshctx_theme', next);
+  var btn = document.getElementById('chatThemeBtn');
+  if (btn) btn.textContent = next === 'light' ? '☀️' : '🌙';
+}
+
 // ===== i18n =====
 const LANG = {
   en: {
