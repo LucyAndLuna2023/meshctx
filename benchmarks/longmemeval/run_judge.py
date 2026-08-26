@@ -32,8 +32,10 @@ def judge(question, answer, response):
     """统一模型评估（模型无关：MODEL_ID 切换任意主流模型，见 model_io.py）"""
     for attempt in range(3):
         try:
+            # 2026-08-26 004meshctx: max_tokens 8→64 — 原 8 token 截断在复述阶段,
+            # 模型返回 "We need to judge..." 而非 yes/no → judge 恒 0 (方法 bug)
             txt = (_ask_io(JUDGE_PROMPT.format(question=question, answer=answer, response=response[:800]),
-                           max_tokens=8, temperature=0.0) or "").strip().lower()
+                           max_tokens=64, temperature=0.0) or "").strip().lower()
             return 1.0 if txt.startswith("yes") else 0.0
         except Exception as e:
             time.sleep(3)
