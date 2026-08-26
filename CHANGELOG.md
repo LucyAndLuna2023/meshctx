@@ -1,3 +1,11 @@
+## [3.121.3] - 2026-08-26
+### Added / Changed (004meshctx, 用户 UI 要求)
+- **默认浅色主题 (用户要求: 白底黑字)**: web_ui/chat.html/setup.html 主题初始化默认 light (不再跟随系统深色), 保留 ☀️/🌙 手动切换 + localStorage 持久化
+- **setup(token设置)页语言切换按钮 (用户要求)**: 右上角 10 语言下拉, cookie 联动服务端重渲染 (zh/en/ja/ko/de/fr/es/it/ar/ru)
+- **setup.html __t bug 修复**: 原 setup() 错误分支调用 window.__t 但页面未定义 → ReferenceError; 注入 __i18n/__i18n_all/__lang + 定义 __t
+- 版本 bump 3.121.2→3.121.3 (14 处 + docs.html + gate_report, 0 残留)
+- 测试: 3672 passed / 0 failed; localization 238 passed
+
 ## [3.121.2] - 2026-08-25
 ### Added / Changed (004meshctx UI 重构 + 品牌 logo + 性能修复, 三审计通过)
 - **UI 极简重构 (模仿 DeepSeek Harness, 用户方向)**: 主导航 9 tab → 💬对话 + ⚙️设置; 其余 (Dashboard/Projects/Memories/Continuity/Plugins/Files/Models/Providers/Desktop/API) 收纳设置页"高级功能区", URL 全保留不删功能; /ui/ 保留 Dashboard (200 契约)
