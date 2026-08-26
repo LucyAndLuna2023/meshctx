@@ -15,8 +15,8 @@ MeshCtx is the world's first self-evolving AI agent platform with full-brain emu
 - 🧠 Hierarchical Memory (L0-L4) with Ebbinghaus Forgetting Curve
 - 🔄 Meta-Cognition: evaluate → extract → update → adjust
 - 🎭 Multi-Agent Orchestra with DAG decomposition
-- 🔌 Plugin Marketplace: 8 plugins (3 builtin + 5 community)
-- 🌐 7-language i18n (EN/ZH/JA/KO/FR/DE/ES)
+- 🔌 Plugin Marketplace: 9 built-in capability plugins (messaging / memory / security / monitoring)
+- 🌐 10-language i18n (EN/ZH/JA/KO/FR/DE/ES/IT/AR/RU)
 - 💻 Windows/Linux cross-platform (macOS pending)
 
 ## Quick Links
@@ -69,7 +69,7 @@ MeshCtx is the world's first self-evolving AI agent platform with full-brain emu
 - POST /api/models/{id}/test — Test connection
 
 ### Plugins (v2.1+)
-- GET /api/plugins — List all (8 plugins)
+- GET /api/plugins — List all (9 plugins)
 - GET /api/plugins/{name} — Plugin detail
 - POST /api/plugins/install/{name} — Install/activate
 - POST /api/plugins/uninstall/{name} — Uninstall
@@ -81,7 +81,7 @@ MeshCtx is the world's first self-evolving AI agent platform with full-brain emu
 - src/core/ — Core engine (sandbox, project_indexer, feishu_notify, super_brain, brain_router, free_energy, active_inference, global_workspace, homeostasis, metacognition, hybrid_reasoning)
 - src/web_ui.py — Web UI + Desktop Dashboard (Jinja2 templates)
 - src/main.py — FastAPI app (15+ endpoint groups)
-- plugins/ — Plugin registry + manifests (8 plugins)
+- plugins/ — Plugin registry + manifests (9 built-in plugins)
 - tests/ — 673 tests, all passing
 - docs/ — GitHub Pages deployment (meshctx.com)
 

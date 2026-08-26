@@ -1,28 +1,7 @@
 {
   "version": "2.0",
-  "updated": "2026-05-17",
+  "updated": "2026-08-27",
   "plugins": [
-    {
-      "name": "web-search",
-      "version": "1.0.0",
-      "description": "DuckDuckGo/Bing web search with result summarization",
-      "author": "MeshCtx",
-      "icon": "🔍",
-      "category": "search",
-      "permissions": [
-        "network:search"
-      ],
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "entry_point": "web-search/manifest.json",
-      "installs": 1,
-      "builtin": false,
-      "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/web-search",
-      "status": "active"
-    },
     {
       "name": "code-runner",
       "version": "1.0.0",
@@ -67,28 +46,6 @@
       "status": "active"
     },
     {
-      "name": "git-assistant",
-      "version": "1.0.0",
-      "description": "AI-powered git: auto-commit messages, PR descriptions, conflict resolution",
-      "author": "MeshCtx Community",
-      "icon": "🔀",
-      "category": "dev",
-      "permissions": [
-        "fs:read",
-        "terminal:git"
-      ],
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "entry_point": "git-assistant/manifest.json",
-      "installs": 1,
-      "builtin": false,
-      "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/git-assistant",
-      "status": "active"
-    },
-    {
       "name": "translator",
       "version": "1.0.0",
       "description": "Multi-language translation using built-in LLM (supports 50+ languages) [已集成]",
@@ -107,28 +64,6 @@
       "installs": 43,
       "builtin": true,
       "repo": "",
-      "status": "active"
-    },
-    {
-      "name": "data-analyzer",
-      "version": "1.0.0",
-      "description": "Analyze CSV/JSON/Excel data with charts and statistical summaries",
-      "author": "MeshCtx Community",
-      "icon": "📊",
-      "category": "analytics",
-      "permissions": [
-        "fs:read",
-        "sandbox:exec"
-      ],
-      "platforms": [
-        "windows",
-        "macos",
-        "linux"
-      ],
-      "entry_point": "data-analyzer/manifest.json",
-      "installs": 1,
-      "builtin": false,
-      "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/data-analyzer",
       "status": "active"
     },
     {
@@ -238,27 +173,6 @@
       "status": "active"
     },
     {
-      "name": "voice-assistant",
-      "version": "0.9.0",
-      "description": "[Beta] Speech-to-text and text-to-speech for voice interaction (beta)",
-      "author": "MeshCtx Labs",
-      "icon": "🎤",
-      "category": "integration",
-      "permissions": [
-        "audio:mic",
-        "model:call"
-      ],
-      "platforms": [
-        "windows",
-        "macos"
-      ],
-      "entry_point": "voice/manifest.json",
-      "installs": 1,
-      "builtin": false,
-      "repo": "https://github.com/LucyAndLuna2023/meshctx-plugins/voice-assistant",
-      "status": "beta"
-    },
-    {
       "name": "agent_governance",
       "version": "1.0.0",
       "builtin": true,
@@ -270,5 +184,6 @@
       "category": "security",
       "status": "active"
     }
-  ]
+  ],
+  "note": "仅内置能力插件 (对应 src/core 真实实现); 社区插件条目因无实现已移除"
 }
