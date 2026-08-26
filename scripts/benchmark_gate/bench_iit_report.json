@@ -5,7 +5,7 @@
     "basic_phi": {
       "phi_max": 2.11848,
       "concepts": 4,
-      "latency_ms": 531.1
+      "latency_ms": 552.2
     },
     "determinism": {
       "run1": 2.14858584,
@@ -15,15 +15,15 @@
     "scaling": {
       "2": {
         "phi_max": 0.960121,
-        "latency_ms": 2.0
+        "latency_ms": 2.9
       },
       "3": {
         "phi_max": 1.543033,
-        "latency_ms": 24.3
+        "latency_ms": 23.3
       },
       "4": {
         "phi_max": 2.143042,
-        "latency_ms": 330.1
+        "latency_ms": 279.1
       }
     },
     "scaling_note": "n>=5 精确 Φ 计算指数爆炸 (实测 n=4→0.28s, n=6→>60s); 商业旗舰用训练权重/近似分区突破此限 — moat 差距量化证据",
@@ -38,5 +38,5 @@
     "open_phi_correct": true,
     "deterministic": true
   },
-  "run_at": "2026-08-26T13:02:08Z"
+  "run_at": "2026-08-26T13:09:52Z"
 }

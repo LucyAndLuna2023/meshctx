@@ -5,8 +5,9 @@
 本模块把循环抽成唯一实现，两个入口只做 I/O 适配。
 
 事件协议:
-  {"type":"round", "round":int, "total":int}          搜索轮提示
+  {"type":"round", "round":int, "total":Optional[int]}  搜索轮提示 (total=None 表示无固定轮次限制)
   {"type":"deliver"}                                  进入交付阶段
+  {"type":"reasoning", "text":str}                    模型推理流 (reasoning_content, 独立于正文)
   {"type":"token", "text":str}                        模型输出 token
   {"type":"tool_start","name":str,"args":dict}        工具开始
   {"type":"tool_result","name":str,"result":str}      工具结果
@@ -23,7 +24,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from src.chat_tools import trim_messages, strip_dsml_tool_calls
 
-DEFAULT_WALL_CLOCK = 1200.0     # 整轮处理墙钟上限(秒) — 30轮×平均40秒/轮，留余量
+DEFAULT_WALL_CLOCK = 1800.0     # 整轮处理墙钟上限(秒) — 无固定轮次限制, 由墙钟兜底
 DEFAULT_TOOL_TIMEOUT = 120.0    # 单批工具执行超时(秒)
 DEFAULT_MAX_SEARCH_CALLS = 8    # web_search 防循环上限
 DEFAULT_MAX_TOKENS = 16384
@@ -96,7 +97,7 @@ async def run_agent_loop(
     *,
     tools: List[Dict],
     exec_tool: Callable[[str, Dict], str],
-    max_rounds: int = 4,
+    max_rounds: int = 0,
     wall_clock: float = DEFAULT_WALL_CLOCK,
     tool_timeout: float = DEFAULT_TOOL_TIMEOUT,
     max_search_calls: int = DEFAULT_MAX_SEARCH_CALLS,
@@ -105,10 +106,11 @@ async def run_agent_loop(
 ):
     """统一的 搜索→工具→交付 循环（async generator，产出事件 dict）。
 
-    - 每一轮都允许工具调用（含最后一轮，便于“先搜索→最后写文件”）。
-    - 模型直接回复文本 → 立即结束。
-    - 轮次耗尽 / 最后一轮工具执行完 → 无工具兜底生成最终文本。
-    - web_search 总数超 max_search_calls 后强制模型收尾。
+    - 无固定轮次限制（max_rounds=0，默认）：模型直接回复文本 → 立即结束；
+      一直调用工具则继续，直到墙钟超时（wall_clock）或 web_search 防循环上限。
+    - max_rounds>0（CLI --max-rounds 兼容）：保留固定轮次模式，最后一轮注入完成指令。
+    - 每一轮都允许工具调用。
+    - 模型推理流（reasoning_content）以 reasoning 事件独立产出，不混入正文。
     """
     # 确保 system 在首位（UI 传 system_prompt；CLI 自带 system 则不注入）
     if system_prompt is not None and (not messages or messages[0].get("role") != "system"):
@@ -119,21 +121,23 @@ async def run_agent_loop(
     _total_search_calls = 0
     _timed_out = False
 
-    for _round in range(max_rounds):
+    _round = 0
+    while max_rounds == 0 or _round < max_rounds:
         if time.time() - _start_ts > wall_clock:
             yield {"type": "timed_out", "text": f"[已达到最大处理时间 {int(wall_clock)} 秒，已中止]"}
             _timed_out = True
             break
 
-        # ── 最后一轮 = Deliver（仍带工具，注入完成指令）──
-        is_last = (_round == max_rounds - 1)
+        # ── 最后一轮 = Deliver（仅固定轮次模式; 无限模式模型直接回复文本即自然结束）──
+        is_last = (max_rounds > 0 and _round == max_rounds - 1)
         if is_last:
             yield {"type": "deliver"}
             # 用克隆列表注入提示，不污染真实 messages（避免 pop 误删工具结果）
             _stream_msgs = messages + [{"role": "user", "content": FINAL_HINT}]
         else:
             _stream_msgs = messages
-            yield {"type": "round", "round": _round, "total": max_rounds - 1}
+            yield {"type": "round", "round": _round,
+                   "total": (max_rounds - 1 if max_rounds > 0 else None)}
 
         try:
             if _tools_ok:
@@ -159,6 +163,8 @@ async def run_agent_loop(
                 if _tools_ok:
                     tool_calls_raw = item[1]
                 msg_content = item[2]
+            elif isinstance(item, tuple) and item[0] == "__REASONING__":
+                yield {"type": "reasoning", "text": item[1]}
             elif isinstance(item, str):
                 yield {"type": "token", "text": item}
                 msg_content += item
@@ -246,6 +252,8 @@ async def run_agent_loop(
                     for _item in _stream2:
                         if isinstance(_item, tuple) and _item[0] == "__TOOLS__":
                             _tc2, _txt2 = _item[1], _item[2]
+                        elif isinstance(_item, tuple) and _item[0] == "__REASONING__":
+                            yield {"type": "reasoning", "text": _item[1]}
                         elif isinstance(_item, str):
                             _txt2 += _item
                     if not _tc2:
@@ -308,6 +316,7 @@ async def run_agent_loop(
                 yield {"type": "done"}
                 return
 
+            _round += 1
             continue  # 下一轮，让模型基于工具结果回复
 
         # 模型直接回复文本 → 结束
@@ -339,7 +348,7 @@ async def run_agent_loop(
     except Exception:
         final_content = ""
     if not final_content or final_content == "处理超时，请重试":
-        final_content = "已达搜索轮次上限，先交付当前成果。你可以继续输入，我会在保留上下文的基础上追加轮次。"
+        final_content = "已达最大处理时间，先交付当前成果。你可以继续输入，我会在保留上下文的基础上继续。"
     messages.append({"role": "assistant", "content": final_content})
     yield {"type": "final", "text": final_content}
     yield {"type": "done"}

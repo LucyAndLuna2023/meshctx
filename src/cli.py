@@ -597,8 +597,8 @@ def cmd_chat(args):
     from src.model_registry import get_registry
     from src.chat_tools import TOOLS, execute_tool, TOOL_ICONS, trim_messages
 
-    max_turns = getattr(args, 'max_rounds', 0) or int(os.environ.get("MESHCTX_MAX_ROUNDS", "30"))
-    wall_clock = getattr(args, 'wall_clock', 0.0) or float(os.environ.get("MESHCTX_WALL_CLOCK", "1200"))
+    max_turns = getattr(args, 'max_rounds', 0) or int(os.environ.get("MESHCTX_MAX_ROUNDS", "0"))
+    wall_clock = getattr(args, 'wall_clock', 0.0) or float(os.environ.get("MESHCTX_WALL_CLOCK", "1800"))
 
     reg = get_registry(args.config)
     model_id = args.model or os.environ.get("MESHCTX_MODEL")
@@ -767,7 +767,7 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
     _final_answer = ""
     _tool_calls = []
     if wall_clock is None:
-        wall_clock = float(_os.environ.get("MESHCTX_WALL_CLOCK", "1200"))
+        wall_clock = float(_os.environ.get("MESHCTX_WALL_CLOCK", "1800"))
     else:
         wall_clock = float(wall_clock)
 
@@ -778,7 +778,10 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
             if collect_output:
                 _final_answer += ev["text"]
         elif ev["type"] == "round":
-            print(f"\n🔍 第{ev['round'] + 1}/{ev['total']}轮搜索...", flush=True)
+            _total_txt = f"/{ev['total']}" if ev.get("total") else ""
+            print(f"\n🔍 第{ev['round'] + 1}{_total_txt}轮搜索...", flush=True)
+        elif ev["type"] == "reasoning":
+            pass  # 推理流不入 CLI 正文 (UI 单独渲染思考区), 避免刷屏
         elif ev["type"] == "deliver":
             print("\n📝 **Deliver** — 基于已获取的真实数据生成最终报告...\n", flush=True)
         elif ev["type"] == "tool_start":
@@ -2758,8 +2761,8 @@ def main():
     c.add_argument("--project", help="项目上下文目录 (自动加载 AGENTS.md)")
     c.add_argument("--continue", dest="continue_session", help="恢复历史会话ID")
     c.add_argument("--new", dest="new_session", action="store_true", help="强制新会话(跳过自动恢复)")
-    c.add_argument("--max-rounds", type=int, default=0, help="搜索轮次上限 (默认30=29搜+1交付; 0则读环境变量 MESHCTX_MAX_ROUNDS)")
-    c.add_argument("--wall-clock", type=float, default=0.0, help="整轮处理墙钟上限秒 (默认1200; 0则读环境变量 MESHCTX_WALL_CLOCK)")
+    c.add_argument("--max-rounds", type=int, default=0, help="搜索轮次上限 (默认0=无限制, 直到模型直接回复或墙钟超时; >0 为固定轮次模式)")
+    c.add_argument("--wall-clock", type=float, default=0.0, help="整轮处理墙钟上限秒 (默认1800; 0则读环境变量 MESHCTX_WALL_CLOCK)")
     c.add_argument("message", nargs="?", help="一发模式: 直接问一个问题")
     c.set_defaults(func=cmd_chat)
 

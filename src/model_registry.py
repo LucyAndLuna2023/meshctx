@@ -653,6 +653,11 @@ class ModelClient:
                 delta = chunk.choices[0].delta if chunk.choices else None
                 if delta is None:
                     continue
+                # 推理流 (reasoning_content): 独立通道, 不混入正文 (deepseek thinking)
+                # 协议: ("__REASONING__", text) — agent_loop 转成 reasoning 事件, UI 单独渲染
+                _reasoning = getattr(delta, "reasoning_content", None)
+                if _reasoning:
+                    yield ("__REASONING__", _reasoning)
                 if delta.content:
                     full_content += delta.content
                     text = delta.content

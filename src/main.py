@@ -3608,7 +3608,7 @@ async def api_chat(request: Request):
         if not client:
             return JSONResponse({"error": "模型未配置，请在Setup页面设置API Key"}, status_code=503)
 
-        max_rounds = int(body.get("max_rounds") or os.environ.get("MESHCTX_MAX_ROUNDS") or 30)
+        max_rounds = int(body.get("max_rounds") or os.environ.get("MESHCTX_MAX_ROUNDS") or 0)
         wall_clock = float(body.get("wall_clock") or os.environ.get("MESHCTX_WALL_CLOCK") or 1200)
         page_cache = {}
 
@@ -3749,7 +3749,7 @@ async def api_chat_stream(request: Request):
                 yield "data: [DONE]\n\n"
                 return
 
-            max_rounds = int(body.get("max_rounds") or os.environ.get("MESHCTX_MAX_ROUNDS") or 30)
+            max_rounds = int(body.get("max_rounds") or os.environ.get("MESHCTX_MAX_ROUNDS") or 0)
             wall_clock = float(body.get("wall_clock") or os.environ.get("MESHCTX_WALL_CLOCK") or 1200)
 
             # 工具执行（与 CLI 共用同一套 chat_tools；并发由统一循环管理）
@@ -3801,8 +3801,12 @@ async def api_chat_stream(request: Request):
             ):
                 if ev["type"] == "token":
                     yield f"data: {_json.dumps({'token': ev['text']})}\n\n"
+                elif ev["type"] == "reasoning":
+                    # 推理流独立通道 (reasoning_content), 前端单独渲染思考区
+                    yield f"data: {_json.dumps({'reasoning': ev['text']})}\n\n"
                 elif ev["type"] == "round":
-                    _round_txt = f"\n\n🔍 第{ev['round'] + 1}/{ev['total']}轮搜索...\n"
+                    _total_txt = f"/{ev['total']}" if ev.get('total') else ""
+                    _round_txt = f"\n\n🔍 第{ev['round'] + 1}{_total_txt}轮搜索...\n"
                     yield f"data: {_json.dumps({'token': _round_txt})}\n\n"
                 elif ev["type"] == "deliver":
                     _deliver_txt = "\n\n📝 **Deliver** — 基于已获取的真实数据生成最终报告...\n\n"

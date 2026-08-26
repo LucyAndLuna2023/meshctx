@@ -156,6 +156,10 @@ body {
 .tool-bubble { background: var(--bg); border: 1px dashed var(--accent); font-size: 13px; padding: 6px 12px; }
 .tool-msg .avatar, .tool-result .avatar { font-size: 14px; min-width: 24px; text-align: center; }
 .tool-msg .bubble, .tool-result .bubble { max-width: 85%; }
+/* 推理流思考区 (参考 deepseek harness ReasoningRow: 可折叠 Think 行) */
+.reasoning-msg .bubble { background: rgba(127,127,127,0.08); border: 1px dashed var(--border); max-width: 85%; }
+.reasoning-bubble summary { cursor: pointer; color: var(--muted); font-size: 12px; user-select: none; }
+.reasoning-text { white-space: pre-wrap; color: var(--muted); font-size: 12px; line-height: 1.5; max-height: 180px; overflow-y: auto; margin-top: 4px; }
 .stream-progress {
   color: var(--orange); font-size: 12px; margin-top: 4px;
   animation: pulse 1.5s infinite;
@@ -568,6 +572,7 @@ const LANG = {
     chat_free_energy:"Free Energy F", chat_tests_passed:"Tests Passed",
     chat_agent_status:"Agent Status", chat_model_label:"Model",
     chat_idle:"Idle", chat_online:"Online", chat_thinking:"Thinking...",
+    chat_reasoning_running:"Thinking...", chat_reasoning_done:"Thought process",
     chat_explore:"Explore", chat_new_chat:"New chat started. How can I help?",
     chat_error:"Error: ", chat_copied:"📋 Copied",
     chat_expand:"📖 Expand", chat_collapse:"📖 Collapse",
@@ -589,6 +594,7 @@ const LANG = {
     chat_free_energy:"自由能 F", chat_tests_passed:"测试通过",
     chat_agent_status:"Agent 状态", chat_model_label:"模型",
     chat_idle:"空闲", chat_online:"在线", chat_thinking:"思考中...",
+    chat_reasoning_running:"思考中...", chat_reasoning_done:"思考过程",
     chat_explore:"探索", chat_new_chat:"新对话开始。有什么可以帮你的？",
     chat_error:"错误: ", chat_copied:"📋 已复制",
     chat_expand:"📖 展开全部", chat_collapse:"📖 收起",
@@ -610,6 +616,7 @@ const LANG = {
     chat_free_energy:"自由エネルギー F", chat_tests_passed:"テスト合格",
     chat_agent_status:"エージェント状態", chat_model_label:"モデル",
     chat_idle:"アイドル", chat_online:"オンライン", chat_thinking:"考え中...",
+    chat_reasoning_running:"考え中...", chat_reasoning_done:"思考プロセス",
     chat_explore:"探索", chat_new_chat:"新しいチャットを開始しました。何をお手伝いしましょうか？",
     chat_error:"エラー: ", chat_copied:"📋 コピーしました",
     chat_expand:"📖 展開", chat_collapse:"📖 折りたたむ",
@@ -631,6 +638,7 @@ const LANG = {
     chat_free_energy:"자유 에너지 F", chat_tests_passed:"테스트 통과",
     chat_agent_status:"에이전트 상태", chat_model_label:"모델",
     chat_idle:"유휴", chat_online:"온라인", chat_thinking:"생각 중...",
+    chat_reasoning_running:"생각 중...", chat_reasoning_done:"사고 과정",
     chat_explore:"탐색", chat_new_chat:"새 채팅이 시작되었습니다. 무엇을 도와드릴까요?",
     chat_error:"오류: ", chat_copied:"📋 복사됨",
     chat_expand:"📖 펼치기", chat_collapse:"📖 접기",
@@ -652,6 +660,7 @@ const LANG = {
     chat_free_energy:"Freie Energie F", chat_tests_passed:"Tests bestanden",
     chat_agent_status:"Agent-Status", chat_model_label:"Modell",
     chat_idle:"Leerlauf", chat_online:"Online", chat_thinking:"Denkt nach...",
+    chat_reasoning_running:"Denkt nach...", chat_reasoning_done:"Denkprozess",
     chat_explore:"Erkunden", chat_new_chat:"Neuer Chat gestartet. Wie kann ich helfen?",
     chat_error:"Fehler: ", chat_copied:"📋 Kopiert",
     chat_expand:"📖 Erweitern", chat_collapse:"📖 Einklappen",
@@ -673,6 +682,7 @@ const LANG = {
     chat_free_energy:"Énergie libre F", chat_tests_passed:"Tests réussis",
     chat_agent_status:"Statut agent", chat_model_label:"Modèle",
     chat_idle:"Inactif", chat_online:"En ligne", chat_thinking:"Réflexion...",
+    chat_reasoning_running:"Réflexion...", chat_reasoning_done:"Processus de réflexion",
     chat_explore:"Explorer", chat_new_chat:"Nouveau chat commencé. Comment puis-je aider ?",
     chat_error:"Erreur : ", chat_copied:"📋 Copié",
     chat_expand:"📖 Développer", chat_collapse:"📖 Réduire",
@@ -694,6 +704,7 @@ const LANG = {
     chat_free_energy:"Energía libre F", chat_tests_passed:"Tests aprobados",
     chat_agent_status:"Estado del agente", chat_model_label:"Modelo",
     chat_idle:"Inactivo", chat_online:"En línea", chat_thinking:"Pensando...",
+    chat_reasoning_running:"Pensando...", chat_reasoning_done:"Proceso de pensamiento",
     chat_explore:"Explorar", chat_new_chat:"Nuevo chat iniciado. ¿Cómo puedo ayudar?",
     chat_error:"Error: ", chat_copied:"📋 Copiado",
     chat_expand:"📖 Expandir", chat_collapse:"📖 Contraer",
@@ -715,6 +726,7 @@ const LANG = {
     chat_free_energy:"Energia libera F", chat_tests_passed:"Test superati",
     chat_agent_status:"Stato agente", chat_model_label:"Modello",
     chat_idle:"Inattivo", chat_online:"Online", chat_thinking:"Pensando...",
+    chat_reasoning_running:"Pensando...", chat_reasoning_done:"Processo di pensiero",
     chat_explore:"Esplora", chat_new_chat:"Nuova chat avviata. Come posso aiutare?",
     chat_error:"Errore: ", chat_copied:"📋 Copiato",
     chat_expand:"📖 Espandi", chat_collapse:"📖 Comprimi",
@@ -736,6 +748,7 @@ const LANG = {
     chat_free_energy:"الطاقة الحرة F", chat_tests_passed:"الاختبارات ناجحة",
     chat_agent_status:"حالة الوكيل", chat_model_label:"النموذج",
     chat_idle:"خامل", chat_online:"متصل", chat_thinking:"يفكر...",
+    chat_reasoning_running:"يفكر...", chat_reasoning_done:"عملية التفكير",
     chat_explore:"استكشاف", chat_new_chat:"تم بدء محادثة جديدة. كيف يمكنني المساعدة؟",
     chat_error:"خطأ: ", chat_copied:"📋 تم النسخ",
     chat_expand:"📖 توسيع", chat_collapse:"📖 طي",
@@ -1068,6 +1081,10 @@ async function send() {
   typingDiv.innerHTML = `<div class="avatar">🤖</div><div><div class="bubble typing"><span class="typing-dots">${t('chat_thinking')}</span></div><div class="stream-progress">🔄 正在处理你的请求...</div></div>`;
   document.getElementById('messages').appendChild(typingDiv);
   
+  // 推理流思考区状态 (reasoning_content 独立渲染, 正文开始时冻结)
+  let reasoningDiv = null;
+  let reasoningText = '';
+  
   try {
     // SSE streaming with timeout
     const controller = new AbortController();
@@ -1131,12 +1148,32 @@ async function send() {
         try {
           const parsed = JSON.parse(data);
           
-          if (parsed.token || parsed.content) {
+          if (parsed.reasoning) {
+            // 推理流: 独立可折叠思考区 (Think 行, 与正文分离)
+            if (!reasoningDiv) {
+              reasoningDiv = document.createElement('div');
+              reasoningDiv.className = 'msg ai reasoning-msg';
+              reasoningDiv.innerHTML = `<div class="avatar">🧠</div><div class="bubble reasoning-bubble"><details open><summary>🤔 ${t('chat_reasoning_running')}...</summary><div class="reasoning-text"></div></details></div>`;
+              document.getElementById('messages').appendChild(reasoningDiv);
+            }
+            reasoningText += parsed.reasoning;
+            const rt = reasoningDiv.querySelector('.reasoning-text');
+            if (rt) rt.textContent = reasoningText;
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+          }
+          else if (parsed.token || parsed.content) {
             // Remove typing indicator on first real token
             const streamPiece = parsed.token !== undefined ? parsed.token : parsed.content;
             if (!aiMsgAdded) {
               typingDiv.remove();
               aiMsgAdded = true;
+              // 正文开始 → 冻结推理思考区 (折叠, 标记完成)
+              if (reasoningDiv) {
+                const det = reasoningDiv.querySelector('details');
+                if (det) det.open = false;
+                const sm = reasoningDiv.querySelector('summary');
+                if (sm) sm.textContent = `🧠 ${t('chat_reasoning_done')}`;
+              }
             }
             aiContent += streamPiece;
             // Update or create the AI message bubble

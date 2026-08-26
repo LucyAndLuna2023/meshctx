@@ -1,8 +1,8 @@
-"""test_v50_wall_clock.py — wall_clock 可配置性回归测试 (2026-08-16)
+"""test_v50_wall_clock.py — wall_clock 可配置性回归测试 (2026-08-16, 2026-08-26 更新)
 
 背景：002 将搜索轮次默认 6→30，但 DEFAULT_WALL_CLOCK 仍为 300s，
 30 轮跑不完就被墙钟掐断（轮次承诺落空）。本测试锁定修复：
-- DEFAULT_WALL_CLOCK = 1200（30轮×平均40秒/轮，留余量）
+- DEFAULT_WALL_CLOCK = 1800（2026-08-26 起无固定轮次限制, 模型直接回复即结束, 墙钟只兜底）
 - CLI --wall-clock 参数存在且帮助文本正确
 - MESHCTX_WALL_CLOCK 环境变量读取逻辑（与 cmd_chat 一致）
 - run_agent_loop 的 wall_clock 参数真实生效（超时产出 timed_out）
@@ -17,10 +17,10 @@ from pathlib import Path
 PROJECT = Path(__file__).resolve().parent.parent
 
 
-def test_default_wall_clock_1200():
+def test_default_wall_clock_1800():
     from src.agent_loop import DEFAULT_WALL_CLOCK
-    assert DEFAULT_WALL_CLOCK == 1200.0, \
-        f"wall_clock 默认应为 1200（30轮×40秒/轮），实际 {DEFAULT_WALL_CLOCK}"
+    assert DEFAULT_WALL_CLOCK == 1800.0, \
+        f"wall_clock 默认应为 1800（无固定轮次, 墙钟兜底），实际 {DEFAULT_WALL_CLOCK}"
 
 
 def test_cli_wall_clock_arg_exists():
@@ -139,7 +139,7 @@ def test_chat_loop_wall_clock_env_fallback(monkeypatch):
     assert wc == 600.0, f"应读环境变量 600，实际 {wc}"
 
 
-def test_chat_loop_wall_clock_default_1200(monkeypatch):
-    """无参数且无环境变量时默认 1200"""
+def test_chat_loop_wall_clock_default_1800(monkeypatch):
+    """无参数且无环境变量时默认 1800"""
     wc = _run_chat_loop(monkeypatch)
-    assert wc == 1200.0, f"默认应为 1200，实际 {wc}"
+    assert wc == 1800.0, f"默认应为 1800，实际 {wc}"
