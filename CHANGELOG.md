@@ -1,3 +1,11 @@
+## [3.121.5] - 2026-08-26
+### Added / Changed (004meshctx, 用户"不遗留问题一次性解决")
+- **对话侧边栏常驻 (DSH 式)**: chat.html 左侧常驻对话列表 (chat-layout/sidebar), 复用 /api/conversations, 点击切换/删除, 新对话自动更新
+- **Files/Desktop/Providers tab 真实化确认**: 三者实际都是完整实现 (web_ui 内嵌权威模板: 文件管理器+编辑器/11 pane 桌面 UI/providers CRUD); 修 Files 默认路径跨平台 (/opt/meshctx → 空); Desktop 补跨平台 /api/desktop/status|windows|command
+- **删除过时占位**: templates/desktop.html + templates/providers.html (16 行残留, 曾误导"占位"判断)
+- 版本 bump 3.121.4→3.121.5 (17 文件, 0 残留)
+- 测试: 3672 passed / 0 failed
+
 ## [3.121.4] - 2026-08-26
 ### Added / Changed (004meshctx, 用户要求白底黑字全覆盖)
 - **营销落地页浅色化 (002codex P3)**: docs/index.html 深色 → 白底黑字 (nav/super-brain 区块/全局变量)
