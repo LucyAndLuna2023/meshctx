@@ -3798,6 +3798,8 @@ async def api_chat_stream(request: Request):
                 max_rounds=max_rounds,
                 wall_clock=wall_clock,
                 system_prompt=_full_system_prompt,
+                needs_approval=_needs_approval,
+                approval_waiter=_approval_waiter,
             ):
                 if ev["type"] == "token":
                     yield f"data: {_json.dumps({'token': ev['text']})}\n\n"
@@ -3811,6 +3813,17 @@ async def api_chat_stream(request: Request):
                 elif ev["type"] == "deliver":
                     _deliver_txt = "\n\n📝 **Deliver** — 基于已获取的真实数据生成最终报告...\n\n"
                     yield f"data: {_json.dumps({'token': _deliver_txt})}\n\n"
+                elif ev["type"] == "approval":
+                    # 删除/改动类工具审批请求 → 前端弹 允许/拒绝/自定义 面板
+                    _approval_payload = _json.dumps({
+                        "approval": {
+                            "request_id": ev["request_id"],
+                            "name": ev["name"],
+                            "args": ev["args"],
+                            "reason": ev["reason"],
+                        }
+                    })
+                    yield f"data: {_approval_payload}\n\n"
                 elif ev["type"] == "tool_start":
                     yield f"data: {_json.dumps({'tool_start': ev['name'], 'args': ev['args'], 'require_approval': False})}\n\n"
                 elif ev["type"] == "tool_result":
@@ -5207,6 +5220,68 @@ async def profile_list():
     from src.core.profile_manager import ProfileManager
     pm = ProfileManager()
     return {"profiles": pm.list_profiles(), "active": "default"}
+
+
+# ═══ 删除/改动类工具审批 (2026-08-26 用户要求: 像 deepseek harness 征求用户意见) ═══
+# 工具执行前弹审批: 允许(agree) / 拒绝(reject) / 自定义处理(custom, 用户文本作为结果给模型)
+_APPROVAL_FUTURES: Dict[str, "asyncio.Future"] = {}
+
+
+def _needs_approval(name: str, args: dict) -> Optional[str]:
+    """判定工具是否属于「内容删除/改动」类, 返回审批原因 (None=放行)。
+
+    - write_file if_exists=overwrite → 覆盖已有文件内容
+    - terminal 危险命令 (rm -rf / mv / dd / mkfs 等, 复用 ApprovalEngine 危险模式库)
+    - remote_write / remote_exec → 远程改动
+    """
+    if name == "write_file" and args.get("if_exists") == "overwrite":
+        return "修改已有文件内容 (write_file overwrite)"
+    if name in ("remote_write", "remote_exec"):
+        return f"远程操作 ({name}) 需用户授权"
+    if name == "terminal":
+        _cmd = args.get("cmd", "") or ""
+        # 删除类命令 (rm/rmdir/unlink/del/remove, 含普通 rm file) → 审批
+        import re as _re
+        if _re.search(r"\b(rm|rmdir|unlink|del|remove)\b", _cmd):
+            return "删除文件/目录命令 (terminal)"
+        try:
+            from src.core.approval import check as _approval_check
+            r = _approval_check(_cmd, {})
+            if r.requires_approval:
+                return f"危险命令 ({r.reason})"
+        except Exception:
+            pass
+    return None
+
+
+async def _approval_waiter(request_id: str) -> dict:
+    """等待用户对审批请求的决策 (由 /api/approval/decide 设置结果)。"""
+    loop = asyncio.get_running_loop()
+    fut = loop.create_future()
+    _APPROVAL_FUTURES[request_id] = fut
+    try:
+        return await fut
+    finally:
+        _APPROVAL_FUTURES.pop(request_id, None)
+
+
+@app.post("/api/approval/decide")
+async def approval_decide(req: Request):
+    """审批决策: agree=允许执行 / reject=拒绝 / custom=自定义处理(用户文本给模型)"""
+    try:
+        body = await req.json()
+    except Exception:
+        return JSONResponse({"ok": False, "error": "invalid json"}, status_code=400)
+    request_id = body.get("request_id", "")
+    action = body.get("action", "")
+    text = body.get("text", "")
+    if not request_id or action not in ("agree", "reject", "custom"):
+        return JSONResponse({"ok": False, "error": "invalid request"}, status_code=400)
+    fut = _APPROVAL_FUTURES.get(request_id)
+    if fut is None or fut.done():
+        return JSONResponse({"ok": False, "error": "审批请求已过期或不存在"}, status_code=404)
+    fut.set_result({"action": action, "text": text if action == "custom" else ""})
+    return {"ok": True, "action": action}
 
 
 @app.get("/api/approval/status")

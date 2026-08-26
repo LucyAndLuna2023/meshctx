@@ -8,6 +8,8 @@
   {"type":"round", "round":int, "total":Optional[int]}  搜索轮提示 (total=None 表示无固定轮次限制)
   {"type":"deliver"}                                  进入交付阶段
   {"type":"reasoning", "text":str}                    模型推理流 (reasoning_content, 独立于正文)
+  {"type":"approval", "request_id":str, "name":str, "args":dict, "reason":str}
+                                                      删除/改动类工具需用户审批 (允许/拒绝/自定义)
   {"type":"token", "text":str}                        模型输出 token
   {"type":"tool_start","name":str,"args":dict}        工具开始
   {"type":"tool_result","name":str,"result":str}      工具结果
@@ -20,7 +22,8 @@
 import asyncio
 import json
 import time
-from typing import Any, Callable, Dict, List, Optional
+import uuid
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from src.chat_tools import trim_messages, strip_dsml_tool_calls
 
@@ -28,6 +31,7 @@ DEFAULT_WALL_CLOCK = 1800.0     # 整轮处理墙钟上限(秒) — 无固定轮
 DEFAULT_TOOL_TIMEOUT = 120.0    # 单批工具执行超时(秒)
 DEFAULT_MAX_SEARCH_CALLS = 8    # web_search 防循环上限
 DEFAULT_MAX_TOKENS = 16384
+DEFAULT_APPROVAL_TIMEOUT = 120.0  # 审批等待上限(秒), 超时自动拒绝
 
 # 最后一轮注入的完成指令：允许工具，强制收尾
 FINAL_HINT = (
@@ -103,6 +107,9 @@ async def run_agent_loop(
     max_search_calls: int = DEFAULT_MAX_SEARCH_CALLS,
     system_prompt: Optional[str] = None,
     max_tokens: int = DEFAULT_MAX_TOKENS,
+    needs_approval: Optional[Callable[[str, Dict], Optional[str]]] = None,
+    approval_waiter: Optional[Callable[[str], Awaitable[Dict]]] = None,
+    approval_timeout: float = DEFAULT_APPROVAL_TIMEOUT,
 ):
     """统一的 搜索→工具→交付 循环（async generator，产出事件 dict）。
 
@@ -111,6 +118,10 @@ async def run_agent_loop(
     - max_rounds>0（CLI --max-rounds 兼容）：保留固定轮次模式，最后一轮注入完成指令。
     - 每一轮都允许工具调用。
     - 模型推理流（reasoning_content）以 reasoning 事件独立产出，不混入正文。
+    - 删除/改动类工具审批（needs_approval 返回 reason 时）：
+      yield approval 事件 → await approval_waiter(request_id) 决策
+      (agree=继续执行 / reject=不执行并注入拒绝结果 / custom=不执行并注入用户文本)，
+      超时 approval_timeout 自动拒绝。
     """
     # 确保 system 在首位（UI 传 system_prompt；CLI 自带 system 则不注入）
     if system_prompt is not None and (not messages or messages[0].get("role") != "system"):
@@ -211,8 +222,37 @@ async def run_agent_loop(
                     args = json.loads(tc.function.arguments)
                 except Exception:
                     args = {}
+                # ── 删除/改动类工具审批 (2026-08-26 用户要求: 像 deepseek harness 征求用户意见) ──
+                if needs_approval is not None and approval_waiter is not None:
+                    _reason = needs_approval(name, args)
+                    if _reason:
+                        request_id = f"{uuid.uuid4().hex[:12]}"
+                        yield {"type": "approval", "request_id": request_id,
+                               "name": name, "args": args, "reason": _reason}
+                        try:
+                            decision = await asyncio.wait_for(
+                                approval_waiter(request_id), timeout=approval_timeout)
+                        except Exception:
+                            decision = {"action": "reject",
+                                        "text": "[审批超时] 用户未在时限内决策，操作已拒绝。"}
+                        action = decision.get("action", "reject")
+                        if action == "reject":
+                            _note = decision.get("text") or f"[用户拒绝执行 {name}] 操作未执行。"
+                            yield {"type": "tool_result", "name": name, "result": _note}
+                            messages.append({"role": "tool", "tool_call_id": tc.id, "content": _note})
+                            continue
+                        if action == "custom":
+                            _note = f"[用户自定义处理] {decision.get('text', '')}"
+                            yield {"type": "tool_result", "name": name, "result": _note}
+                            messages.append({"role": "tool", "tool_call_id": tc.id, "content": _note})
+                            continue
+                        # action == "agree" → 继续执行
                 futures_map[loop.run_in_executor(None, _safe_exec, name, args)] = (tc, name, args)
                 yield {"type": "tool_start", "name": name, "args": args}
+
+            if not futures_map:
+                # 全部工具被审批拒绝/自定义处理 → 结果已注入 messages, 直接下一轮
+                continue
 
             done_futures, pending_futures = await asyncio.wait(
                 list(futures_map.keys()), timeout=tool_timeout)

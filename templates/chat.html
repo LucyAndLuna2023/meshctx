@@ -288,6 +288,19 @@ body {
   background: var(--bg); border: 1px solid var(--border);
   border-radius: 4px; padding: 1px 6px; font-family: monospace; font-size: 10px;
 }
+/* 审批自定义处理输入区 (2026-08-26 用户要求: 第三种用户自定义选项) */
+.confirm-custom {
+  margin-top: 10px; display: flex; gap: 8px;
+}
+.confirm-custom input {
+  flex: 1; background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); border-radius: 6px; padding: 6px 10px; font-size: 13px;
+}
+.confirm-custom input:focus { outline: none; border-color: var(--accent); }
+.confirm-custom button {
+  background: var(--accent); color: #fff; border: none; border-radius: 6px;
+  padding: 6px 14px; cursor: pointer; font-size: 13px;
+}
 @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } }
 
 /* ---- @mention dropdown ---- */
@@ -482,6 +495,12 @@ body {
       <span class="co-hint" data-lang-key="confirm_other_hint">自行输入回复</span>
     </div>
   </div>
+  <div class="confirm-custom" id="approvalCustomWrap" style="display:none">
+    <input id="approvalCustom" class="approval-custom-input" data-lang-key="confirm_custom_ph"
+           placeholder="自定义处理（如：只保留前10行 / 改存到其他路径 / 换一个文件名）..."
+           onkeydown="if(event.key==='Enter'){event.preventDefault();event.stopPropagation();confirmAction('customSubmit')}" />
+    <button class="approval-custom-ok" onclick="confirmAction('customSubmit')">确定</button>
+  </div>
   <div class="confirm-hint">
     <span><kbd>↑↓</kbd> <span data-lang-key="confirm_nav_hint">选择</span></span>
     <span><kbd>Enter</kbd> <span data-lang-key="confirm_enter_hint">确认</span></span>
@@ -583,7 +602,8 @@ const LANG = {
     confirm_other_hint:"Type custom reply",
     confirm_agree_reply:"Yes, go ahead.",
     confirm_reject_reply:"No, do not proceed.",
-    confirm_nav_hint:"Navigate", confirm_enter_hint:"Confirm", confirm_esc_hint:"Cancel"
+    confirm_nav_hint:"Navigate", confirm_enter_hint:"Confirm", confirm_esc_hint:"Cancel",
+    confirm_custom_ph:"Custom handling (e.g. keep first 10 lines / save elsewhere / new filename)..."
   },
   zh: {
     chat_new:"➕ 新对话", chat_console:"← 控制台",
@@ -605,7 +625,8 @@ const LANG = {
     confirm_other_hint:"自行输入回复",
     confirm_agree_reply:"同意，请继续。",
     confirm_reject_reply:"拒绝，不要执行。",
-    confirm_nav_hint:"选择", confirm_enter_hint:"确认", confirm_esc_hint:"取消"
+    confirm_nav_hint:"选择", confirm_enter_hint:"确认", confirm_esc_hint:"取消",
+    confirm_custom_ph:"自定义处理（如：只保留前10行 / 改存到其他路径 / 换一个文件名）..."
   },
   ja: {
     chat_new:"➕ 新しいチャット", chat_console:"← コンソール",
@@ -627,7 +648,8 @@ const LANG = {
     confirm_other_hint:"自由に入力",
     confirm_agree_reply:"はい、続けてください。",
     confirm_reject_reply:"いいえ、実行しないでください。",
-    confirm_nav_hint:"選択", confirm_enter_hint:"決定", confirm_esc_hint:"キャンセル"
+    confirm_nav_hint:"選択", confirm_enter_hint:"決定", confirm_esc_hint:"キャンセル",
+    confirm_custom_ph:"カスタム処理（例：先頭10行のみ保持 / 別のパスに保存 / ファイル名変更）..."
   },
   ko: {
     chat_new:"➕ 새 채팅", chat_console:"← 콘솔",
@@ -649,7 +671,8 @@ const LANG = {
     confirm_other_hint:"직접 입력",
     confirm_agree_reply:"예, 계속하세요.",
     confirm_reject_reply:"아니요, 실행하지 마세요.",
-    confirm_nav_hint:"선택", confirm_enter_hint:"확인", confirm_esc_hint:"취소"
+    confirm_nav_hint:"선택", confirm_enter_hint:"확인", confirm_esc_hint:"취소",
+    confirm_custom_ph:"사용자 지정 처리 (예: 처음 10줄만 유지 / 다른 경로에 저장 / 파일명 변경)..."
   },
   de: {
     chat_new:"➕ Neuer Chat", chat_console:"← Konsole",
@@ -671,7 +694,8 @@ const LANG = {
     confirm_other_hint:"Eigene Antwort",
     confirm_agree_reply:"Ja, bitte fortfahren.",
     confirm_reject_reply:"Nein, nicht ausführen.",
-    confirm_nav_hint:"Navigieren", confirm_enter_hint:"Bestätigen", confirm_esc_hint:"Abbrechen"
+    confirm_nav_hint:"Navigieren", confirm_enter_hint:"Bestätigen", confirm_esc_hint:"Abbrechen",
+    confirm_custom_ph:"Eigene Bearbeitung (z. B. nur erste 10 Zeilen behalten / woanders speichern / neuen Namen)..."
   },
   fr: {
     chat_new:"➕ Nouveau chat", chat_console:"← Console",
@@ -693,7 +717,8 @@ const LANG = {
     confirm_other_hint:"Saisie libre",
     confirm_agree_reply:"Oui, continuez.",
     confirm_reject_reply:"Non, n'exécutez pas.",
-    confirm_nav_hint:"Naviguer", confirm_enter_hint:"Confirmer", confirm_esc_hint:"Annuler"
+    confirm_nav_hint:"Naviguer", confirm_enter_hint:"Confirmer", confirm_esc_hint:"Annuler",
+    confirm_custom_ph:"Traitement personnalisé (ex. garder 10 premières lignes / sauvegarder ailleurs / nouveau nom)..."
   },
   es: {
     chat_new:"➕ Nuevo chat", chat_console:"← Consola",
@@ -715,7 +740,8 @@ const LANG = {
     confirm_other_hint:"Escribir respuesta",
     confirm_agree_reply:"Sí, adelante.",
     confirm_reject_reply:"No, no ejecutar.",
-    confirm_nav_hint:"Navegar", confirm_enter_hint:"Confirmar", confirm_esc_hint:"Cancelar"
+    confirm_nav_hint:"Navegar", confirm_enter_hint:"Confirmar", confirm_esc_hint:"Cancelar",
+    confirm_custom_ph:"Procesamiento personalizado (p. ej. conservar 10 primeras líneas / guardar en otro lugar / nuevo nombre)..."
   },
   it: {
     chat_new:"➕ Nuova chat", chat_console:"← Console",
@@ -737,7 +763,8 @@ const LANG = {
     confirm_other_hint:"Scrivi risposta",
     confirm_agree_reply:"Sì, procedi.",
     confirm_reject_reply:"No, non eseguire.",
-    confirm_nav_hint:"Naviga", confirm_enter_hint:"Conferma", confirm_esc_hint:"Annulla"
+    confirm_nav_hint:"Naviga", confirm_enter_hint:"Conferma", confirm_esc_hint:"Annulla",
+    confirm_custom_ph:"Elaborazione personalizzata (es. mantenere prime 10 righe / salvare altrove / nuovo nome)..."
   },
   ar: {
     chat_new:"➕ محادثة جديدة", chat_console:"← لوحة التحكم",
@@ -759,7 +786,8 @@ const LANG = {
     confirm_other_hint:"اكتب ردًا مخصصًا",
     confirm_agree_reply:"نعم، تابع.",
     confirm_reject_reply:"لا، لا تنفذ.",
-    confirm_nav_hint:"تنقل", confirm_enter_hint:"تأكيد", confirm_esc_hint:"إلغاء"
+    confirm_nav_hint:"تنقل", confirm_enter_hint:"تأكيد", confirm_esc_hint:"إلغاء",
+    confirm_custom_ph:"معالجة مخصصة (مثل: الاحتفاظ بأول 10 أسطر / الحفظ في مسار آخر / اسم ملف جديد)..."
   }
 };
 
@@ -773,7 +801,7 @@ function changeLang(lang) {
   document.querySelectorAll('[data-lang-key]').forEach(el => {
     const key = el.dataset.langKey;
     if (LANG[lang] && LANG[lang][key]) {
-      if (el.tagName === 'TEXTAREA') {
+      if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
         el.placeholder = LANG[lang][key];
       } else {
         el.textContent = LANG[lang][key];
@@ -1010,6 +1038,9 @@ function loadMessages() {
 }
 
 // ===== v3.115.30: Confirm Panel =====
+// 工具审批模式 (2026-08-26): 删除/改动类工具弹出 → 允许/拒绝/自定义
+let pendingApproval = null;   // 当前待审批的 request_id (null=文本问询模式)
+
 function showConfirmPanel() {
   const panel = document.getElementById('confirmPanel');
   if (!panel) return;
@@ -1035,9 +1066,41 @@ function updateConfirmSelection() {
   });
 }
 
-function confirmAction(action) {
+async function confirmAction(action) {
   const input = document.getElementById('input');
+  const rid = pendingApproval;
+  // 工具审批模式: custom 先显示自定义输入框 (由 customSubmit 提交)
+  if (rid && action === 'custom') {
+    const wrap = document.getElementById('approvalCustomWrap');
+    if (wrap) {
+      wrap.style.display = 'block';
+      const ci = document.getElementById('approvalCustom');
+      if (ci) ci.focus();
+    }
+    return;
+  }
   hideConfirmPanel();
+  if (rid) {
+    let text = '';
+    if (action === 'customSubmit') {
+      const ci = document.getElementById('approvalCustom');
+      text = ci ? ci.value : '';
+      if (!text.trim()) { showConfirmPanel(); return; }  // 空输入 → 重新弹面板
+    }
+    pendingApproval = null;
+    const wrap = document.getElementById('approvalCustomWrap');
+    if (wrap) wrap.style.display = 'none';
+    try {
+      await fetch('/api/approval/decide', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({request_id: rid, action: action === 'customSubmit' ? 'custom' : action, text: text})
+      });
+    } catch(e) { /* 网络错误忽略: 后端超时会自动拒绝 */ }
+    input.focus();
+    return;
+  }
+  // 文本问询模式 (模型问"可以吗" → 填同意/拒绝文本发送)
   if (action === 'agree') {
     input.value = t('confirm_agree_reply');
     send();
@@ -1148,7 +1211,19 @@ async function send() {
         try {
           const parsed = JSON.parse(data);
           
-          if (parsed.reasoning) {
+          if (parsed.approval) {
+            // 删除/改动类工具审批 → 弹面板: 允许 / 拒绝 / 自定义处理
+            pendingApproval = parsed.approval.request_id;
+            const titleEl = document.querySelector('#confirmPanel .confirm-title');
+            if (titleEl) {
+              const reason = parsed.approval.reason || '';
+              titleEl.innerHTML = `🔐 <strong>${parsed.approval.name}</strong> — ${reason}`;
+            }
+            const wrap = document.getElementById('approvalCustomWrap');
+            if (wrap) wrap.style.display = 'none';
+            showConfirmPanel();
+          }
+          else if (parsed.reasoning) {
             // 推理流: 独立可折叠思考区 (Think 行, 与正文分离)
             if (!reasoningDiv) {
               reasoningDiv = document.createElement('div');
@@ -1662,6 +1737,16 @@ document.addEventListener('keydown', function(e) {
   } else if (e.key === 'Escape') {
     e.preventDefault();
     hideConfirmPanel();
+    if (pendingApproval) {
+      // 审批模式 Esc = 拒绝该操作
+      const rid = pendingApproval;
+      pendingApproval = null;
+      fetch('/api/approval/decide', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({request_id: rid, action: 'reject'})
+      }).catch(() => {});
+    }
   }
 });
 
