@@ -409,17 +409,20 @@ class MultiAgentOrchestrator:
         self._collaborations: Dict[str, Dict] = {}
         self._lock = threading.Lock()
         self._started = False
+        self._running = False  # 2026-08-26 004meshctx: /api/multi-agent/status 访问此属性 (原缺失→500)
         self._cleanup_task = None
 
     async def start(self):
         """启动编排器"""
         self._started = True
+        self._running = True
         self._cleanup_task = asyncio.get_event_loop().create_task(self._cleanup_loop())
         return True
 
     async def stop(self):
         """停止编排器"""
         self._started = False
+        self._running = False
         if self._cleanup_task:
             self._cleanup_task.cancel()
             try:
