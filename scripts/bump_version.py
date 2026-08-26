@@ -11,6 +11,12 @@
   3. src/main.py              — FastAPI app.version
   4. docs/index.html          — 主页标题
   5. docs/docs.html           — 文档页
+  6. Windows 打包链 (字面量替换, 防 v3.121.2/v3.121.6 两次遗漏):
+     meshctx_setup.nsi       — VERSION/VIProductVersion/FileVersion/ProductVersion
+     meshctx_desktop.spec    — CFBundleShortVersionString/CFBundleVersion
+     build.bat / install.bat / docs/install.bat — 版本注入
+     version_info.txt        — filevers/prodvers 元组 (3, 121, 5, 0) + StringStruct
+  (gate/bench_iit 报告是历史快照, 不在 bump 范围, 勿自动改)
 """
 
 import re, sys, os
@@ -24,6 +30,16 @@ VERSION_FILES = [
     ("src/main.py",          r'version\s*=\s*"[^"]*"',       'version="{}"'),
     ("docs/index.html",      r'v\d+\.\d+\.\d+',             'v{}'),
     ("docs/docs.html",       r'MeshCtx\s+v\d+\.\d+\.\d+',   'MeshCtx v{}'),
+]
+
+# Windows 打包链: 版本串 current→ver 字面量替换 + version_info 元组
+LITERAL_FILES = [
+    "meshctx_setup.nsi",
+    "meshctx_desktop.spec",
+    "build.bat",
+    "install.bat",
+    "docs/install.bat",
+    "version_info.txt",
 ]
 
 
@@ -78,6 +94,24 @@ def bump(ver: str, dry_run: bool = False):
             else:
                 path.write_text(new_text)
                 print(f"  ✅ {relpath}: 已更新 {old_val} → {new_val}")
+
+    # Windows 打包链: 字面量替换 (版本串 + version_info 元组)
+    old_tuple = "({}, {}, {}, 0)".format(*current.split("."))
+    new_tuple = "({}, {}, {}, 0)".format(*ver.split("."))
+    for relpath in LITERAL_FILES:
+        path = ROOT / relpath
+        text = path.read_text()
+        n_ver = text.count(current)
+        n_tup = text.count(old_tuple)
+        if n_ver == 0 and n_tup == 0:
+            print(f"  ✅ {relpath}: 未含 {current}, 无需更新")
+            continue
+        new_text = text.replace(current, ver).replace(old_tuple, new_tuple)
+        if dry_run:
+            print(f"  🔍 {relpath}: {n_ver} 处版本串 + {n_tup} 处元组 → {ver}")
+        else:
+            path.write_text(new_text)
+            print(f"  ✅ {relpath}: {n_ver} 处版本串 + {n_tup} 处元组已更新 {current} → {ver}")
 
     if dry_run:
         print("\n🔍 --dry-run 模式，未实际修改")
