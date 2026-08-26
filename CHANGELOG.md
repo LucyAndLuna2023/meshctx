@@ -1,3 +1,11 @@
+## [3.121.4] - 2026-08-26
+### Added / Changed (004meshctx, 用户要求白底黑字全覆盖)
+- **营销落地页浅色化 (002codex P3)**: docs/index.html 深色 → 白底黑字 (nav/super-brain 区块/全局变量)
+- **API 文档页浅色化**: docs/docs.html 深色 → 白底黑字
+- 至此**全部页面白底黑字**: web_ui/chat/setup/dashboard/projects/memories/continuity/crews/agents/tuning/files/plugins/login/根页/落地页/文档页
+- 版本 bump 3.121.3→3.121.4 (17 文件, 0 残留)
+- 测试: 3672 passed / 0 failed
+
 ## [3.121.3] - 2026-08-26
 ### Added / Changed (004meshctx, 用户 UI 要求)
 - **默认浅色主题 (用户要求: 白底黑字)**: web_ui/chat.html/setup.html 主题初始化默认 light (不再跟随系统深色), 保留 ☀️/🌙 手动切换 + localStorage 持久化
