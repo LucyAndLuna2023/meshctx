@@ -8,16 +8,17 @@
      7|    <meta name="description" content="MeshCtx is an open-source, self-evolving agent platform that remembers everything, learns from every task, and orchestrates multiple AI agents in parallel.">
      8|    <style>
      9|        :root {
-    10|            --bg: #0a0a14; --bg2: #111122; --fg: #e2e8f0; --muted: #94a3b8;
-    11|            --purple: #8b5cf6; --cyan: #06b6d4; --green: #22c55e; --border: #1e293b;
-    12|        }
+            /* 2026-08-26 004meshctx: 用户要求白底黑字 — API 文档页改浅色 */
+            --bg: #f8fafc; --bg2: #ffffff; --fg: #0f172a; --muted: #64748b;
+            --purple: #6c5ce7; --cyan: #0891b2; --green: #16a34a; --border: #e2e8f0;
+        }
     13|        * { margin:0; padding:0; box-sizing:border-box; }
     14|        body { background:var(--bg); color:var(--fg); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; line-height:1.6; }
     15|        a { color:var(--cyan); text-decoration:none; } a:hover { text-decoration:underline; }
     16|        .lang { display:none; }
     17|        .lang.active { display:block; }
     18|
-    19|        nav { position:fixed; top:0; width:100%; background:rgba(10,10,20,0.92); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); z-index:100; }
+    19|        nav { position:fixed; top:0; width:100%; background:rgba(255,255,255,0.92); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); z-index:100; }
     20|        .nav-inner { max-width:1200px; margin:0 auto; padding:14px 24px; display:flex; justify-content:space-between; align-items:center; }
     21|        .logo { font-size:1.4rem; font-weight:700; } .logo span { color:var(--purple); }
     22|        .nav-links { display:flex; gap:20px; align-items:center; }
