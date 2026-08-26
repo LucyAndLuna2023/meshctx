@@ -54,17 +54,16 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
 <div id="step1" class="step">
   <div class="step-label">{{ t('第1步: 选择AI') }}{{ t('provider_label') }}</div>
-  <div class="provider-card selected" onclick="selectProvider('deepseek')" id="card-deepseek">
-    <div class="icon">🚀</div><div class="info"><div class="name">DeepSeek</div><div class="desc">{{ t('免费额度 · 性价比最高 · 推荐') }}</div></div>
-  </div>
-  <div class="provider-card" onclick="selectProvider('openai')" id="card-openai">
-    <div class="icon">🤖</div><div class="info"><div class="name">OpenAI</div><div class="desc">{{ t('GPT-4o · 全球最强 · 付费') }}</div></div>
-  </div>
-  <div class="provider-card" onclick="selectProvider('bailian')" id="card-bailian">
-    <div class="icon">☁️</div><div class="info"><div class="name">{{ t('阿里百炼') }}</div><div class="desc">{{ t('Qwen系列 · 百万token免费/月') }}</div></div>
-  </div>
-  <div class="provider-card" onclick="selectProvider('openrouter')" id="card-openrouter">
-    <div class="icon">🌐</div><div class="info"><div class="name">OpenRouter</div><div class="desc">{{ t('200+ 模型统一网关 · Claude/GPT/Gemini/Llama 等') }}</div></div>
+  <!-- 2026-08-26 004meshctx: 动态加载全部厂商 (原仅 4 个固定卡片, 用户要求支持所有) -->
+  <div id="providerList"></div>
+  <div class="provider-card" style="cursor:default;" onclick="return false;">
+    <div class="icon">🔽</div>
+    <div class="info">
+      <select id="allProviders" onchange="selectProvider(this.value)" style="width:100%;margin:0;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:13px;">
+        <option value="">— {{ t('更多厂商') }}（35+ 家全支持）—</option>
+      </select>
+      <div class="desc" style="margin-top:4px;">{{ t('全部主流厂商: Claude/Gemini/GPT/Grok/Mistral/Llama/Ollama 本地 等') }}</div>
+    </div>
   </div>
 </div>
 
@@ -133,18 +132,76 @@ function switchSetupLang(lang) {
 }
 
 let provider = 'deepseek';
-const urls = {
-  deepseek: 'https://platform.deepseek.com/api_keys',
-  openai: 'https://platform.openai.com/api-keys',
-  bailian: 'https://dashscope.console.aliyun.com/apiKey',
-  openrouter: 'https://openrouter.ai/keys'
+// 2026-08-26 004meshctx: 全部厂商元数据 (35+ 家, 与 model_registry BUILTIN_MODELS 对齐)
+const PROVIDERS = {
+  deepseek:    { icon:'🚀', name:'DeepSeek',    url:'https://platform.deepseek.com/api_keys', desc:'免费额度 · 性价比最高 · 推荐' },
+  openai:      { icon:'🤖', name:'OpenAI',      url:'https://platform.openai.com/api-keys', desc:'GPT-4o/GPT-5 · 全球最强 · 付费' },
+  bailian:     { icon:'☁️', name:'阿里百炼',    url:'https://dashscope.console.aliyun.com/apiKey', desc:'Qwen系列 · 百万token免费/月' },
+  openrouter:  { icon:'🌐', name:'OpenRouter',  url:'https://openrouter.ai/keys', desc:'200+ 模型统一网关 · Claude/GPT/Gemini/Llama 等' },
+  anthropic:   { icon:'✳️', name:'Anthropic',   url:'https://console.anthropic.com/settings/keys', desc:'Claude 系列' },
+  google:      { icon:'🟦', name:'Google Gemini', url:'https://aistudio.google.com/app/apikey', desc:'Gemini 2.5 系列' },
+  xai:         { icon:'🅧', name:'xAI',         url:'https://console.x.ai/api-keys', desc:'Grok 系列' },
+  mistral:     { icon:'🌀', name:'Mistral',     url:'https://console.mistral.ai/api-keys', desc:'Mistral 系列' },
+  groq:        { icon:'⚡', name:'Groq',        url:'https://console.groq.com/keys', desc:'Llama/Mixtral 高速推理' },
+  together:    { icon:'🔗', name:'Together',    url:'https://api.together.ai/settings/api-keys', desc:'开源模型聚合' },
+  ollama:      { icon:'🐳', name:'Ollama(本地)', url:'http://localhost:11434', desc:'本地模型 · 无需key' },
+  moonshot:    { icon:'🌙', name:'Moonshot',    url:'https://platform.moonshot.cn/console/api-keys', desc:'Kimi 系列' },
+  zhipu:       { icon:'🧪', name:'智谱 GLM',     url:'https://open.bigmodel.cn/usercenter/apikeys', desc:'GLM 系列' },
+  huggingface: { icon:'🤗', name:'HuggingFace', url:'https://huggingface.co/settings/tokens', desc:'HF 推理' },
+  nvidia:      { icon:'🟢', name:'NVIDIA',      url:'https://build.nvidia.com', desc:'NIM 推理' },
+  azure:       { icon:'🔵', name:'Azure OpenAI', url:'https://portal.azure.com', desc:'企业级 OpenAI' },
+  bedrock:     { icon:'🗻', name:'AWS Bedrock', url:'https://aws.amazon.com/bedrock/', desc:'AWS 模型服务' },
+  cohere:      { icon:'🌊', name:'Cohere',      url:'https://dashboard.cohere.com/api-keys', desc:'Command 系列' },
+  perplexity:  { icon:'🔎', name:'Perplexity',  url:'https://www.perplexity.ai/settings/api', desc:'Sonar 系列' },
+  deepinfra:   { icon:'🕳️', name:'DeepInfra',   url:'https://deepinfra.com/dash/api_keys', desc:'开源模型托管' },
+  cerebras:    { icon:'🧠', name:'Cerebras',    url:'https://cloud.cerebras.ai/platform', desc:'超快推理' },
+  fireworks:   { icon:'🎆', name:'Fireworks',   url:'https://app.fireworks.ai/api-keys', desc:'开源模型快速推理' },
+  sambanova:   { icon:'🍞', name:'SambaNova',   url:'https://cloud.sambanova.ai', desc:'开源模型推理' },
+  novita:      { icon:'🆕', name:'Novita',      url:'https://novita.ai', desc:'模型聚合' },
+  replicate:   { icon:'♻️', name:'Replicate',   url:'https://replicate.com/account/api-tokens', desc:'开源模型部署' },
+  ai21:        { icon:'🦖', name:'AI21',        url:'https://studio.ai21.com', desc:'Jurassic 系列' },
+  baichuan:    { icon:'🌾', name:'百川',        url:'https://platform.baichuan-ai.com', desc:'Baichuan 系列' },
+  doubao:      { icon:'🧊', name:'豆包',        url:'https://console.volcengine.com/ark', desc:'字节跳动豆包' },
+  hunyuan:     { icon:'🀄', name:'混元',        url:'https://cloud.tencent.com/product/hunyuan', desc:'腾讯混元' },
+  spark:       { icon:'🔥', name:'讯飞星火',    url:'https://console.xfyun.cn', desc:'科大讯飞' },
+  sensetime:   { icon:'👁️', name:'商汤',       url:'https://console.sensecore.cn', desc:'日日新' },
+  step:        { icon:'🪜', name:'阶跃星辰',    url:'https://platform.stepfun.com', desc:'Step 系列' },
+  minimax:     { icon:'🃏', name:'MiniMax',     url:'https://platform.minimaxi.com', desc:'MiniMax 系列' },
+  yi:          { icon:'🟨', name:'零一万物',    url:'https://platform.lingyiwanwu.com', desc:'Yi 系列' },
+  upstage:     { icon:'🎭', name:'Upstage',     url:'https://console.upstage.ai', desc:'Solar 系列' },
+  cloudflare:  { icon:'☁️', name:'Cloudflare',  url:'https://dash.cloudflare.com', desc:'Workers AI' },
+  custom:      { icon:'🔧', name:'自定义',      url:'', desc:'OpenAI 兼容自定义端点' }
 };
+const COMMON = ['deepseek', 'openai', 'bailian', 'openrouter'];
+
+function renderProviders() {
+  const list = document.getElementById('providerList');
+  // 常用 4 家 (卡片)
+  list.innerHTML = COMMON.map(function(p) {
+    const m = PROVIDERS[p];
+    const selected = p === provider ? ' selected' : '';
+    return '<div class="provider-card' + selected + '" onclick="selectProvider(\'' + p + '\')" id="card-' + p + '">' +
+      '<div class="icon">' + m.icon + '</div><div class="info"><div class="name">' + m.name + '</div>' +
+      '<div class="desc">' + m.desc + '</div></div></div>';
+  }).join('');
+  // 全部厂商下拉 (35+)
+  const sel = document.getElementById('allProviders');
+  const others = Object.keys(PROVIDERS).filter(function(p) { return COMMON.indexOf(p) === -1; });
+  sel.innerHTML = '<option value="">— 更多厂商（' + others.length + ' 家全支持）—</option>' +
+    others.map(function(p) {
+      const m = PROVIDERS[p];
+      return '<option value="' + p + '">' + m.icon + ' ' + m.name + ' · ' + m.desc + '</option>';
+    }).join('');
+}
 
 function selectProvider(p) {
+  if (!p || !PROVIDERS[p]) return;
   provider = p;
-  document.querySelectorAll('.provider-card').forEach(c => c.classList.remove('selected'));
-  document.getElementById('card-'+p).classList.add('selected');
-  document.getElementById('getKeyLink').href = urls[p];
+  document.querySelectorAll('.provider-card').forEach(function(c) { c.classList.remove('selected'); });
+  const card = document.getElementById('card-' + p);
+  if (card) card.classList.add('selected');
+  const m = PROVIDERS[p];
+  document.getElementById('getKeyLink').href = m.url || 'https://www.google.com/search?q=' + m.name + '+api+key';
 }
 
 async function setup() {
@@ -181,6 +238,7 @@ async function setup() {
 }
 
 function skip() { window.location.href = '/ui/chat'; }
+renderProviders();
 selectProvider('deepseek');
 </script>
 </body>
