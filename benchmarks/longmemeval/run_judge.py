@@ -10,7 +10,7 @@ import os
 import time
 
 
-OUT = "/home/administrator/benchmarks-ext/results"
+OUT = _os.path.join(_BENCH_EXT, "results")
 
 from model_io import ask as _ask_io, resolve_model_id as _resolve_mid
 MODEL = _resolve_mid()  # 模型无关：MODEL_ID 切换任意主流模型（见 model_io.py）

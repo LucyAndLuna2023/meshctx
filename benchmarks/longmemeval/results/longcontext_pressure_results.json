@@ -4,19 +4,19 @@
       "correct": 5.0,
       "total": 12,
       "accuracy": 0.4166666666666667,
-      "judge_accuracy": 0.5833333333333334
+      "judge_accuracy": 0.0
     },
     "brainv2": {
-      "correct": 5.0,
+      "correct": 4.0,
       "total": 12,
-      "accuracy": 0.4166666666666667,
-      "judge_accuracy": 0.5
+      "accuracy": 0.3333333333333333,
+      "judge_accuracy": 0.0
     },
     "brain": {
       "correct": 4.0,
       "total": 12,
       "accuracy": 0.3333333333333333,
-      "judge_accuracy": 0.4166666666666667
+      "judge_accuracy": 0.0
     }
   }
 }

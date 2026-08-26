@@ -1,5 +1,5 @@
 {
-  "model": "deepseek-chat",
+  "model": "deepseek:chat",
   "benchmark": "lost-in-the-middle",
   "n_per_file": 15,
   "position_results": {
@@ -14,9 +14,9 @@
       "accuracy": 0.7333333333333333
     },
     "10_end": {
-      "correct": 9.0,
+      "correct": 10.0,
       "total": 15,
-      "accuracy": 0.6
+      "accuracy": 0.6666666666666666
     },
     "20_begin": {
       "correct": 12.0,
@@ -29,24 +29,24 @@
       "accuracy": 0.6
     },
     "20_end": {
-      "correct": 11.0,
+      "correct": 9.0,
       "total": 15,
-      "accuracy": 0.7333333333333333
+      "accuracy": 0.6
     },
     "30_begin": {
-      "correct": 11.0,
+      "correct": 12.0,
       "total": 15,
-      "accuracy": 0.7333333333333333
+      "accuracy": 0.8
     },
     "30_middle": {
-      "correct": 10.0,
+      "correct": 8.0,
       "total": 15,
-      "accuracy": 0.6666666666666666
+      "accuracy": 0.5333333333333333
     },
     "30_end": {
-      "correct": 10.0,
+      "correct": 8.0,
       "total": 15,
-      "accuracy": 0.6666666666666666
+      "accuracy": 0.5333333333333333
     }
   }
 }

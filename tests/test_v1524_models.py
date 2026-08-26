@@ -69,10 +69,16 @@ class TestModelDynamicV31195:
         assert 'value="deepseek:v4-flash" selected' not in src
 
     def test_setup_wizard_has_openrouter(self):
-        """Setup 向导提供 OpenRouter 配置入口（mac 无法配置 OpenRouter 根因）"""
+        """Setup 向导提供 OpenRouter 配置入口（mac 无法配置 OpenRouter 根因）
+
+        2026-08-26 004meshctx: 51e0be5 改为动态渲染 (COMMON 数组 + PROVIDERS 元数据),
+        原断言 selectProvider('openrouter') 字面量失效。改为断言元数据存在 (等价)。
+        """
         import pathlib
         src = (pathlib.Path(__file__).parent.parent / "templates" / "setup.html").read_text()
-        assert "selectProvider('openrouter')" in src
+        # 动态渲染: COMMON 数组含 openrouter + PROVIDERS 元数据含官网 key 链接
+        assert "openrouter" in src
+        assert "'openrouter'" in src  # COMMON 数组引用
         assert "https://openrouter.ai/keys" in src
 
     def test_models_endpoint_includes_custom_configured_entries(self):

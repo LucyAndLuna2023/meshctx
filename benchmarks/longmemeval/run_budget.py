@@ -19,8 +19,8 @@ from run_meshctx_memory import flatten_sessions, build_history, best_subspan_em
 from run_longcontext import inflate_history
 from run_judge import judge
 
-DATA = "/home/administrator/benchmarks-ext/LongMemEval/data/longmemeval_oracle.json"
-OUT = "/home/administrator/benchmarks-ext/results"
+DATA = _os.path.join(_BENCH_EXT, "LongMemEval/data/longmemeval_oracle.json")
+OUT = _os.path.join(_BENCH_EXT, "results")
 
 from model_io import ask as _ask_io, resolve_model_id as _resolve_mid
 MODEL = _resolve_mid()  # 模型无关：MODEL_ID 切换任意主流模型（见 model_io.py）

@@ -19,8 +19,8 @@ import openai
 from src.core.super_brain import SalienceTagger, ThalamicGate, HippocampalReplay
 from src.core.genomic_optimizer import GenomicOptimizer
 
-DATA = "/home/administrator/benchmarks-ext/LongMemEval/data/longmemeval_oracle.json"
-OUT = "/home/administrator/benchmarks-ext/results"
+DATA = _os.path.join(_BENCH_EXT, "LongMemEval/data/longmemeval_oracle.json")
+OUT = _os.path.join(_BENCH_EXT, "results")
 MODEL = os.environ.get("MODEL_ID", "deepseek:chat")  # 兼容旧引用：MODEL_ID 或默认 deepseek:chat
 N_PER_TYPE = 8
 

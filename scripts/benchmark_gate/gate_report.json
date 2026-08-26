@@ -1,6 +1,6 @@
 {
   "version": "3.121.5",
-  "run_at": "2026-08-26T11:05:50.134260+00:00",
+  "run_at": "2026-08-26T11:21:53.811739+00:00",
   "baseline": {
     "version": "3.121.0",
     "captured_at": "2026-08-26T00:00:00+00:00",
@@ -108,7 +108,7 @@
         "basic_phi": {
           "phi_max": 2.11848,
           "concepts": 4,
-          "latency_ms": 513.9
+          "latency_ms": 498.1
         },
         "determinism": {
           "run1": 2.14858584,
@@ -118,15 +118,15 @@
         "scaling": {
           "2": {
             "phi_max": 0.960121,
-            "latency_ms": 3.0
+            "latency_ms": 2.9
           },
           "3": {
             "phi_max": 1.543033,
-            "latency_ms": 22.0
+            "latency_ms": 21.2
           },
           "4": {
             "phi_max": 2.143042,
-            "latency_ms": 272.9
+            "latency_ms": 252.6
           }
         },
         "scaling_note": "n>=5 精确 Φ 计算指数爆炸 (实测 n=4→0.28s, n=6→>60s); 商业旗舰用训练权重/近似分区突破此限 — moat 差距量化证据",
@@ -141,7 +141,7 @@
         "open_phi_correct": true,
         "deterministic": true
       },
-      "run_at": "2026-08-26T11:05:52Z"
+      "run_at": "2026-08-26T11:21:56Z"
     }
   },
   "checks": [

@@ -165,7 +165,7 @@ const PROVIDERS = {
   hunyuan:     { icon:'🀄', name:'混元',        url:'https://cloud.tencent.com/product/hunyuan', desc:'腾讯混元' },
   spark:       { icon:'🔥', name:'讯飞星火',    url:'https://console.xfyun.cn', desc:'科大讯飞' },
   sensetime:   { icon:'👁️', name:'商汤',       url:'https://console.sensecore.cn', desc:'日日新' },
-  step:        { icon:'🪜', name:'阶跃星辰',    url:'https://platform.stepfun.com', desc:'Step 系列' },
+  stepfun:     { icon:'🪜', name:'阶跃星辰',    url:'https://platform.stepfun.com', desc:'Step 系列' },
   minimax:     { icon:'🃏', name:'MiniMax',     url:'https://platform.minimaxi.com', desc:'MiniMax 系列' },
   yi:          { icon:'🟨', name:'零一万物',    url:'https://platform.lingyiwanwu.com', desc:'Yi 系列' },
   upstage:     { icon:'🎭', name:'Upstage',     url:'https://console.upstage.ai', desc:'Solar 系列' },
@@ -187,7 +187,10 @@ function renderProviders() {
   // 全部厂商下拉 (35+)
   const sel = document.getElementById('allProviders');
   const others = Object.keys(PROVIDERS).filter(function(p) { return COMMON.indexOf(p) === -1; });
-  sel.innerHTML = '<option value="">— 更多厂商（' + others.length + ' 家全支持）—</option>' +
+  // 2026-08-26: t() 化 (002codex 建议) — window.__t 已在页面定义
+  const moreLabel = window.__t ? window.__t('更多厂商') : '更多厂商';
+  const allLabel = window.__t ? window.__t('全支持') : '家全支持';
+  sel.innerHTML = '<option value="">— ' + moreLabel + '（' + others.length + ' ' + allLabel + '）—</option>' +
     others.map(function(p) {
       const m = PROVIDERS[p];
       return '<option value="' + p + '">' + m.icon + ' ' + m.name + ' · ' + m.desc + '</option>';

@@ -17,8 +17,8 @@ import time
 
 
 # ── 配置 ──
-DATA = "/home/administrator/benchmarks-ext/lost-in-the-middle-main/qa_data"
-OUT = "/home/administrator/benchmarks-ext/results"
+DATA = _os.path.join(_BENCH_EXT, "lost-in-the-middle-main/qa_data")
+OUT = _os.path.join(_BENCH_EXT, "results")
 MODEL = "deepseek-chat"
 N_PER_FILE = 15  # 每文件取前 N 问（控制成本）
 
