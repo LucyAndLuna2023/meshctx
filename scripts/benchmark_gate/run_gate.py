@@ -124,12 +124,34 @@ def main() -> int:
     else:
         report["results"]["swebench"] = {"ok": False, "skipped": "data on 004 machine"}
 
-    # 4. LongMemEval (004 机器数据在 /home/administrator/benchmarks-ext, 本机跑需数据就位)
+    # 4. LongMemEval — 2026-08-26 004meshctx: 优先读真实结果文件 (benchmarks-ext),
+    #    不重跑 LLM (48 问 × API 调用太重)。文件缺失才运行 runner。
     lme = ROOT / "benchmarks" / "longmemeval"
-    if (lme / "run_longmemeval.py").exists():
-        report["results"]["longmemeval"] = _run_bench([sys.executable, "run_longmemeval.py"], lme, timeout=300)
+    lme_result_file = Path(os.path.expanduser(
+        "~/benchmarks-ext/results/longmemeval_results.json"))
+    lme_judge_file = Path(os.path.expanduser(
+        "~/benchmarks-ext/results/reasoner_48q_judge.json"))
+    lme_data = {"ok": False, "skipped": "no data"}
+    if lme_result_file.exists():
+        try:
+            _d = json.loads(lme_result_file.read_text(encoding="utf-8"))
+            lme_data = {"ok": True, "from_file": str(lme_result_file),
+                        "overall": _d.get("overall", {}),
+                        "per_type": _d.get("per_type", {}),
+                        "model": _d.get("model", "")}
+            # judge 口径 (baseline 用): reasoner_48q_judge.json 的 judge 字段
+            if lme_judge_file.exists():
+                _j = json.loads(lme_judge_file.read_text(encoding="utf-8"))
+                if isinstance(_j, dict) and "judge" in _j:
+                    lme_data["judge_score"] = float(_j["judge"]) * 100.0
+                    lme_data["judge_model"] = _j.get("model", "")
+        except Exception as _e:
+            lme_data = {"ok": False, "error": str(_e)}
+    elif (lme / "run_longmemeval.py").exists():
+        lme_data = _run_bench([sys.executable, "run_longmemeval.py"], lme, timeout=300)
     else:
-        report["results"]["longmemeval"] = {"ok": False, "skipped": "data on 004 machine"}
+        lme_data = {"ok": False, "skipped": "data on 004 machine"}
+    report["results"]["longmemeval"] = lme_data
 
     # 5. 门禁判定 (阈值接线: 有数据严格卡, 无数据 warning 不阻塞)
     th = cfg["thresholds"]
@@ -156,32 +178,44 @@ def main() -> int:
     elif not swe_res.get("ok"):
         checks.append("WARN: SWE-bench 运行失败(数据在 004 机器), 未纳入门禁")
 
-    # 5b. LongMemEval 阈值接线 (解析各类型 acc 取平均)
-    # 2026-08-25 004meshctx 审计收紧: 原 findall(r'=\s*([\d.]+)') 会误收
-    # `questions=48` / `total=48` 等非 acc 整数。改为只匹配带小数点的浮点
-    # `= 0.xx` (acc 格式), 并优先解析 runner 的 overall accuracy 行。
+    # 5b. LongMemEval 阈值接线
+    # 2026-08-25 004meshctx 审计收紧: 排除 questions=48 等非 acc 整数误收。
+    # 2026-08-26 004meshctx: 支持真实结果文件模式 (from_file) — judge 口径优先
+    # (baseline 用 79.2), 其次 overall.accuracy (EM 口径)。
     lme_res = report["results"]["longmemeval"]
-    if lme_res.get("ok") and lme_res.get("stdout_tail"):
-        import re as _re
-        out = lme_res["stdout_tail"]
-        # 1) 优先整体行: "overall": {"correct": X, "total": Y, "accuracy": 0.zz}
-        _overall = _re.search(r'accuracy["\s:]+([\d.]+)', out)
-        if _overall:
-            _score = float(_overall.group(1)) * 100.0
-        else:
-            # 2) 兜底: 各类型行 "= 0.xx" (小数 acc, 排除 questions=48 整数)
-            _accs = [float(x) for x in _re.findall(r'=\s*(\d+\.\d+)', out) if float(x) <= 1.0]
-            _score = sum(_accs) / len(_accs) * 100.0 if _accs else None
+    if lme_res.get("ok"):
+        _score = None
+        _metric = ""
+        if lme_res.get("from_file"):
+            # 真实结果文件: judge 口径优先 (baseline 对齐), EM 兜底
+            if "judge_score" in lme_res and lme_res["judge_score"] is not None:
+                _score = lme_res["judge_score"]
+                _metric = "judge"
+            elif lme_res.get("overall", {}).get("accuracy") is not None:
+                _score = float(lme_res["overall"]["accuracy"]) * 100.0
+                _metric = "em"
+        elif lme_res.get("stdout_tail"):
+            import re as _re
+            out = lme_res["stdout_tail"]
+            _overall = _re.search(r'accuracy["\s:]+([\d.]+)', out)
+            if _overall:
+                _score = float(_overall.group(1)) * 100.0
+                _metric = "em"
+            else:
+                _accs = [float(x) for x in _re.findall(r'=\s*(\d+\.\d+)', out) if float(x) <= 1.0]
+                _score = sum(_accs) / len(_accs) * 100.0 if _accs else None
+                _metric = "em"
         if _score is not None:
             lme_res["score"] = round(_score, 1)
+            lme_res["metric"] = _metric
             if _score < th["longmemeval_score_min"]:
-                checks.append(f"FAIL: LongMemEval {_score:.1f} < {th['longmemeval_score_min']}")
+                checks.append(f"FAIL: LongMemEval {_score:.1f}({_metric}) < {th['longmemeval_score_min']}")
         else:
-            checks.append("WARN: LongMemEval 输出无可解析 acc 数值, 未纳入门禁(需 004 数据)")
+            checks.append("WARN: LongMemEval 无可解析数值, 未纳入门禁")
     elif lme_res.get("skipped"):
-        checks.append("WARN: LongMemEval 数据在 004 机器, 本机门禁跳过")
+        checks.append("WARN: LongMemEval 数据缺失(需 004 benchmarks-ext), 本机门禁跳过")
     elif not lme_res.get("ok"):
-        checks.append("WARN: LongMemEval 运行失败(数据在 004 机器), 未纳入门禁")
+        checks.append("WARN: LongMemEval 运行失败, 未纳入门禁")
 
     # 5c. moat 语义级标注 (文件名级之外: 开源侧是否存在 IIT/JEPA 基础实现)
     semantic = {}
@@ -191,6 +225,22 @@ def main() -> int:
     report["results"]["moat_semantic_note"] = (
         "文件名级未泄漏; 能力级护城河 = 训练权重(IIT Phi/VICReg/ACT-R) + 7 闭源独有模块, "
         "开源基础实现需 benchmark 门禁量化差距 (v3.121.2 专项)")
+
+    # 5d. IIT 能力级基准 (2026-08-26 004meshctx: moat 差距量化落地)
+    try:
+        bench_iit = GATE_DIR / "bench_iit.py"
+        if bench_iit.exists():
+            _bi = _run_bench([sys.executable, str(bench_iit)], GATE_DIR, timeout=120)
+            _bi_report = GATE_DIR / "bench_iit_report.json"
+            if _bi_report.exists():
+                report["results"]["bench_iit"] = json.loads(
+                    _bi_report.read_text(encoding="utf-8"))
+            else:
+                report["results"]["bench_iit"] = {"ok": False, "error": _bi.get("error", "no report")}
+        else:
+            report["results"]["bench_iit"] = {"ok": False, "skipped": "bench_iit.py missing"}
+    except Exception as _e:
+        report["results"]["bench_iit"] = {"ok": False, "error": str(_e)}
 
     report["checks"] = checks
     report["gate"] = "PASS" if not [c for c in checks if c.startswith("FAIL")] else "FAIL"
