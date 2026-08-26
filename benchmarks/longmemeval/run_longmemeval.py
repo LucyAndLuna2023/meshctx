@@ -15,8 +15,12 @@ import string
 import time
 
 
-DATA = "/home/administrator/benchmarks-ext/LongMemEval/data/longmemeval_oracle.json"
-OUT = "/home/administrator/benchmarks-ext/results"
+# 2026-08-26 004meshctx: 路径参数化 (002codex backlog) — 环境变量覆盖, 跨平台
+# MESHCTX_BENCH_EXT 指向 benchmarks-ext 根目录 (默认 ~/benchmarks-ext)
+import os as _os
+_BENCH_EXT = _os.environ.get("MESHCTX_BENCH_EXT") or _os.path.expanduser("~/benchmarks-ext")
+DATA = _os.path.join(_BENCH_EXT, "LongMemEval", "data", "longmemeval_oracle.json")
+OUT = _os.path.join(_BENCH_EXT, "results")
 MODEL = "deepseek-chat"
 N_PER_TYPE = 8  # 每类取前 N 问
 
