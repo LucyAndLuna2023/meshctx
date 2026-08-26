@@ -799,14 +799,14 @@ async def login_page(request: Request, next: str = ""):
 <html lang=""" + '"' + lang + '"' + """><head><meta charset="UTF-8"><title>MeshCtx Login</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,sans-serif;background:linear-gradient(135deg,#0b0e1a,#1a1f35);min-height:100vh;display:flex;align-items:center;justify-content:center}
-.card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:40px;width:360px;text-align:center}
-h1{color:#e0e4f0;margin-bottom:8px}
-p{color:#8090b0;font-size:14px;margin-bottom:24px}
-input{width:100%;padding:12px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;background:rgba(0,0,0,0.3);color:#e0e4f0;font-size:16px;margin-bottom:16px;outline:none}
+body{font-family:-apple-system,sans-serif;background:#f8fafc;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:40px;width:360px;text-align:center;box-shadow:0 4px 24px rgba(15,23,42,0.06)}
+h1{color:#0f172a;margin-bottom:8px}
+p{color:#64748b;font-size:14px;margin-bottom:24px}
+input{width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:8px;background:#ffffff;color:#0f172a;font-size:16px;margin-bottom:16px;outline:none}
 input:focus{border-color:#6c5ce7}
 button{width:100%;padding:12px;background:linear-gradient(135deg,#6c5ce7,#5a4bd1);border:none;border-radius:8px;color:#fff;font-size:16px;cursor:pointer}
-.error{color:#f85149;font-size:13px;margin-top:8px;display:none}
+.error{color:#dc2626;font-size:13px;margin-top:8px;display:none}
 </style></head><body>
 <script>window.__i18n = """ + _i18n_json + """;window.__lang='""" + lang + """';window.__t=function(k){return (window.__i18n&&window.__i18n[k])||k;};</script>
 <div class="card">
@@ -1109,8 +1109,8 @@ async def root():
 <meta http-equiv="refresh" content="0;url=/ui/">
 <title>meshctx</title>
 <style>
-body{font-family:-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
-p{font-size:18px;color:#94a3b8}a{color:#38bdf8}
+body{font-family:-apple-system,sans-serif;background:#f8fafc;color:#0f172a;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+p{font-size:18px;color:#64748b}a{color:#6c5ce7}
 </style>
 </head>
 <body>

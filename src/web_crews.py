@@ -34,6 +34,11 @@ router = APIRouter(prefix="/ui", tags=["Web Crews"])
 
 _CSS = """
 :root{--bg:#0f172a;--text:#e2e8f0;--muted:#64748b;--surface:#1e293b;--border:#334155;--accent:#6c5ce7;--green:#22c55e;--red:#dc2626;--yellow:#fbbf24}
+/* 2026-08-26 004meshctx: 用户要求白底黑字 — crews/agents/tuning 浅色主题 */
+[data-theme="light"]{--bg:#f8fafc;--text:#0f172a;--muted:#64748b;--surface:#ffffff;--border:#e2e8f0;--accent:#6c5ce7;--green:#16a34a;--red:#dc2626;--yellow:#d97706}
+[data-theme="light"] h2{color:#6c5ce7}
+[data-theme="light"] .tag.crew{color:#0369a1}[data-theme="light"] .tag.conductor{color:#b45309}
+[data-theme="light"] .steps li{color:#475569}[data-theme="light"] .feed .item{color:#475569}
 *{box-sizing:border-box}body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;margin:0;padding:0}
 a{color:var(--accent);text-decoration:none}.wrap{max-width:1100px;margin:0 auto;padding:24px}
 header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
@@ -77,6 +82,13 @@ _TEMPLATES["crews.html"] = r"""<!DOCTYPE html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ t('crew_title') }} - meshctx</title>
 <style>__CSS__</style></head>
+<script>
+// 2026-08-26 004meshctx: 浅色主题 (用户要求白底黑字, 默认 light)
+(function(){
+  var s = localStorage.getItem('meshctx_theme');
+  document.body.setAttribute('data-theme', (s === 'dark') ? 'dark' : 'light');
+})();
+</script>
 <body><div class="wrap">
 <header><h1>🧑‍🚀 {{ t('crew_title') }}</h1><div>
 <a class="btn ghost" href="/ui/dashboard">← {{ t('dashboard') }}</a>
@@ -133,6 +145,13 @@ _TEMPLATES["crews_dag.html"] = r"""<!DOCTYPE html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ t('crew_dag_title') }} - meshctx</title>
 <style>__CSS__</style></head>
+<script>
+// 2026-08-26 004meshctx: 浅色主题 (用户要求白底黑字, 默认 light)
+(function(){
+  var s = localStorage.getItem('meshctx_theme');
+  document.body.setAttribute('data-theme', (s === 'dark') ? 'dark' : 'light');
+})();
+</script>
 <body><div class="wrap">
 <header><h1>📊 {{ t('crew_dag_title') }}</h1><div><a class="btn ghost" href="/ui/crews">← {{ t('crew_templates_label') }}</a></div></header>
 <div class="bar"><a href="/ui/crews">{{ t('crew_templates_label') }}</a><a class="on" href="/ui/crews/dag">{{ t('crew_dag_title') }}</a><a href="/ui/agents">{{ t('agent_library_title') }}</a><a href="/ui/tuning">{{ t('tuning_title') }}</a></div>
@@ -167,6 +186,13 @@ _TEMPLATES["agents_library.html"] = r"""<!DOCTYPE html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ t('agent_library_title') }} - meshctx</title>
 <style>__CSS__</style></head>
+<script>
+// 2026-08-26 004meshctx: 浅色主题 (用户要求白底黑字, 默认 light)
+(function(){
+  var s = localStorage.getItem('meshctx_theme');
+  document.body.setAttribute('data-theme', (s === 'dark') ? 'dark' : 'light');
+})();
+</script>
 <body><div class="wrap">
 <header><h1>🤖 {{ t('agent_library_title') }}</h1><div><a class="btn ghost" href="/ui/dashboard">← {{ t('dashboard') }}</a></div></header>
 <div class="bar"><a href="/ui/crews">{{ t('crew_templates_label') }}</a><a class="on" href="/ui/agents">{{ t('agent_library_title') }}</a><a href="/ui/tuning">{{ t('tuning_title') }}</a></div>
@@ -208,6 +234,13 @@ _TEMPLATES["tuning.html"] = r"""<!DOCTYPE html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ t('tuning_title') }} - meshctx</title>
 <style>__CSS__</style></head>
+<script>
+// 2026-08-26 004meshctx: 浅色主题 (用户要求白底黑字, 默认 light)
+(function(){
+  var s = localStorage.getItem('meshctx_theme');
+  document.body.setAttribute('data-theme', (s === 'dark') ? 'dark' : 'light');
+})();
+</script>
 <body><div class="wrap">
 <header><h1>🎛️ {{ t('tuning_title') }}</h1><div><a class="btn ghost" href="/ui/dashboard">← {{ t('dashboard') }}</a></div></header>
 <div class="bar"><a href="/ui/crews">{{ t('crew_templates_label') }}</a><a href="/ui/agents">{{ t('agent_library_title') }}</a><a class="on" href="/ui/tuning">{{ t('tuning_title') }}</a></div>
