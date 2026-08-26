@@ -50,3 +50,44 @@ jobs:
         sleep 10
         curl -fs http://localhost:3001/api/version
         docker stop meshctx-test
+
+  # ═══ 发版流程固化 (2026-08-26 004meshctx, 002meshctx/004meshctx 审计建议) ═══
+  # 防 v3.121.2 教训再犯: UI/功能改动进 main 但未 bump+tag+发版 → 用户装旧版。
+  # - main push: 若 src 版本 ≤ latest release 版本 → WARN 告警 (不阻塞)
+  # - tag push: 必须与 src 版本一致 (否则 FAIL)
+  version-gate:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check version alignment with latest release
+      run: |
+        SRC_VER=$(grep -oP '__version__\s*=\s*"\K[^"]+' src/core/__init__.py | head -1)
+        echo "src version: $SRC_VER"
+        IS_TAG=$([ "${{ github.ref }}" = refs/heads/main ] && echo "main" || echo "tag:${GITHUB_REF#refs/tags/}")
+        echo "push type: $IS_TAG"
+
+        if [ "${{ github.ref }}" = refs/heads/main ]; then
+          # main push: 对比 latest release
+          LATEST=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+' || echo "none")
+          echo "latest release: $LATEST"
+          if [ -z "$LATEST" ]; then
+            echo "✅ 无历史 release (首次发版前), 通过"
+          elif python3 -c "import sys; a=tuple(map(int,'$SRC_VER'.split('.'))); b=tuple(map(int,'${LATEST#v}'.split('.'))); sys.exit(0 if a>b else 1)"; then
+            echo "✅ main 版本 ($SRC_VER) > latest release ($LATEST) — 已 bump, 合规"
+          else
+            echo "⚠️ WARN: main 版本 ($SRC_VER) ≤ latest release ($LATEST) — 代码改动需 bump 版本并打 tag 发版 (v3.121.2 教训)" >&2
+            echo "⚠️ 若本次 push 无代码改动 (仅文档/CI), 可忽略"
+          fi
+        else
+          # tag push: 版本必须一致
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "tag: $TAG, src: $SRC_VER"
+          if [ "$TAG" = "v$SRC_VER" ]; then
+            echo "✅ tag $TAG 与 src 版本一致"
+          else
+            echo "❌ FAIL: tag $TAG ≠ src 版本 v$SRC_VER — tag 必须匹配 src/core/__init__.py" >&2
+            exit 1
+          fi
+        fi
