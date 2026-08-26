@@ -1,15 +1,92 @@
 {% extends "base.html" %}
 {% block title %}{{ title }} - meshctx{% endblock %}
 {% block content %}
-<div class="container" style="max-width:900px;margin:40px auto;padding:20px;">
-    <h2>📂 File Browser</h2>
-    <p style="color:#8090b0;margin-bottom:24px;">Browse and manage files in the meshctx workspace.</p>
-    <div class="card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-            <span style="font-size:20px;">📁</span>
-            <code style="background:#1a1a2e;padding:4px 12px;border-radius:6px;color:#00d48c;">~/.meshctx/</code>
-        </div>
-        <p style="color:#8090b0;font-size:13px;">File management is available via CLI: <code style="background:#1a1a2e;padding:2px 8px;border-radius:4px;color:#00d48c;">mesctx files</code></p>
+<div class="container" style="max-width:1000px;margin:30px auto;padding:20px;">
+    <h2 style="margin-bottom:6px;">📂 File Browser</h2>
+    <p style="color:var(--muted);margin-bottom:20px;">浏览 meshctx 工作区文件（/api/files，2026-08-26 004meshctx 真实化）</p>
+
+    <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">
+        <input id="pathInput" value="" placeholder="路径（默认 ~/.meshctx）" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;">
+        <button onclick="goPath()" style="padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:var(--accent);color:#fff;cursor:pointer;font-size:13px;">打开</button>
+        <button onclick="goUp()" style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);cursor:pointer;font-size:13px;">⬆ 上级</button>
+        <input id="searchInput" placeholder="搜索..." oninput="applySearch()" style="width:140px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;">
+    </div>
+
+    <div class="card" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--border);color:var(--muted);">
+                    <th style="padding:10px 14px;text-align:left;">名称</th>
+                    <th style="padding:10px 14px;text-align:left;">类型</th>
+                    <th style="padding:10px 14px;text-align:right;">大小</th>
+                    <th style="padding:10px 14px;text-align:right;">修改时间</th>
+                </tr>
+            </thead>
+            <tbody id="fileRows"></tbody>
+        </table>
+        <div id="fileEmpty" style="padding:24px;text-align:center;color:var(--muted);display:none;">无文件</div>
     </div>
 </div>
+
+<script>
+let currentPath = '';
+let allItems = [];
+
+function fmtSize(n) {
+  if (!n && n !== 0) return '—';
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
+  return (n/1048576).toFixed(1) + ' MB';
+}
+function fmtTime(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts * 1000);
+  return d.toLocaleString();
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function loadFiles(path) {
+  const url = '/api/files?limit=500' + (path ? '&path=' + encodeURIComponent(path) : '');
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const d = await resp.json();
+    allItems = d.files || [];
+    currentPath = d.path || '';
+    document.getElementById('pathInput').value = currentPath;
+    renderFiles();
+  } catch(e) {
+    document.getElementById('fileRows').innerHTML =
+      '<tr><td colspan="4" style="padding:16px;color:var(--red);">加载失败: ' + esc(e.message) + '</td></tr>';
+  }
+}
+
+function renderFiles() {
+  const q = (document.getElementById('searchInput').value || '').toLowerCase();
+  const items = q ? allItems.filter(function(f){ return f.name.toLowerCase().includes(q); }) : allItems;
+  const tbody = document.getElementById('fileRows');
+  document.getElementById('fileEmpty').style.display = items.length ? 'none' : 'block';
+  tbody.innerHTML = items.map(function(f) {
+    const icon = f.is_dir ? '📁' : '📄';
+    const name = f.is_dir
+      ? '<a href="#" onclick="event.preventDefault();loadFiles(\'' + esc(f.path) + '\')" style="color:var(--accent);">' + esc(f.name) + '</a>'
+      : esc(f.name);
+    return '<tr style="border-bottom:1px solid var(--border);">' +
+      '<td style="padding:8px 14px;">' + icon + ' ' + name + '</td>' +
+      '<td style="padding:8px 14px;color:var(--muted);">' + (f.is_dir ? '目录' : '文件') + '</td>' +
+      '<td style="padding:8px 14px;text-align:right;color:var(--muted);">' + (f.is_dir ? '—' : fmtSize(f.size)) + '</td>' +
+      '<td style="padding:8px 14px;text-align:right;color:var(--muted);">' + fmtTime(f.modified) + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+function applySearch() { renderFiles(); }
+function goPath() { loadFiles(document.getElementById('pathInput').value.trim()); }
+function goUp() {
+  const idx = currentPath.lastIndexOf('/');
+  loadFiles(idx > 0 ? currentPath.slice(0, idx) : '');
+}
+
+loadFiles('');
+</script>
 {% endblock %}

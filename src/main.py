@@ -3394,6 +3394,41 @@ async def win_software():
     return {"software": await wa.installed_software()}
 
 
+# ── Desktop Agent API (2026-08-26 004meshctx: Desktop tab 真实化) ──
+@app.get("/api/desktop/status")
+async def desktop_status():
+    """桌面代理状态 (跨平台: Linux/Windows/macOS)"""
+    from src.core.desktop_agent import get_desktop_agent
+    da = get_desktop_agent()
+    return {"ok": True, **da.get_stats()}
+
+
+@app.get("/api/desktop/windows")
+async def desktop_windows():
+    """当前打开的窗口列表"""
+    from src.core.desktop_agent import get_desktop_agent
+    da = get_desktop_agent()
+    return {"ok": True, "windows": da.list_windows()}
+
+
+@app.post("/api/desktop/command")
+async def desktop_command(req: Request):
+    """执行桌面命令 (限长500, 输出截断4000)"""
+    from src.core.desktop_agent import get_desktop_agent
+    try:
+        body = await req.json()
+    except Exception:
+        return {"ok": False, "error": "invalid JSON"}
+    cmd = (body or {}).get("command", "").strip()
+    if not cmd:
+        return {"ok": False, "error": "command required"}
+    if len(cmd) > 500:
+        return {"ok": False, "error": "command too long"}
+    da = get_desktop_agent()
+    out = da.run_command(cmd)
+    return {"ok": True, "output": out[-4000:]}
+
+
 # ═══════════════════════════════════════════════════
 # 非流式Chat API (v3.115.14 — BUG-048修复)
 # ═══════════════════════════════════════════════════

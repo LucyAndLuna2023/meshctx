@@ -371,9 +371,49 @@ body {
 .conv-dropdown .conv-del { color: #f0534d; cursor: pointer; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
 .conv-dropdown .conv-del:hover { background: #f0534d22; }
 .conv-dropdown .conv-empty { padding: 14px; color: var(--muted); font-size: 13px; text-align: center; }
+
+/* ---- 常驻对话侧边栏 (2026-08-26 004meshctx: DSH 式, 用户'不遗留'要求) ---- */
+.chat-layout { display: flex; flex: 1; min-height: 0; }
+.chat-sidebar {
+  width: 240px; min-width: 200px; background: var(--surface);
+  border-right: 1px solid var(--border); display: flex; flex-direction: column;
+  overflow-y: auto;
+}
+.chat-sidebar .sb-header {
+  padding: 12px; font-size: 13px; font-weight: 600; color: var(--muted);
+  border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;
+}
+.chat-sidebar .sb-new {
+  background: transparent; border: 1px solid var(--border); color: var(--text);
+  border-radius: 6px; padding: 3px 8px; font-size: 12px; cursor: pointer;
+}
+.chat-sidebar .sb-new:hover { border-color: var(--accent); }
+.chat-sidebar .sb-item {
+  padding: 9px 12px; cursor: pointer; font-size: 13px; color: var(--text);
+  border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px;
+}
+.chat-sidebar .sb-item:hover { background: var(--user-bg); }
+.chat-sidebar .sb-item.active { background: var(--user-bg); border-left: 3px solid var(--accent); }
+.chat-sidebar .sb-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-sidebar .sb-del { color: var(--red); opacity: 0.6; cursor: pointer; font-size: 12px; padding: 0 3px; }
+.chat-sidebar .sb-del:hover { opacity: 1; }
+.chat-sidebar .sb-empty { padding: 16px; color: var(--muted); font-size: 12px; text-align: center; }
+.chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 </style>
 </head>
 <body>
+<div class="chat-layout">
+<!-- 2026-08-26 004meshctx: 常驻对话侧边栏 (DSH 式) -->
+<div class="chat-sidebar" id="chatSidebar">
+  <div class="sb-header">
+    <span>💬 对话</span>
+    <button class="sb-new" onclick="newChat()">➕ 新对话</button>
+  </div>
+  <div id="sidebarList">
+    <div class="sb-empty">加载中...</div>
+  </div>
+</div>
+<div class="chat-main">
 <div class="header">
   <h1><img src="/static/logo.png" alt="meshctx" style="width:26px;height:26px;border-radius:6px;object-fit:cover;vertical-align:middle;"> meshctx Chat</h1>
   <select id="modelSelect" onchange="switchModel()">
@@ -416,6 +456,8 @@ body {
     onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}; handleInputKeydown(event)"></textarea>
   <button id="sendBtn" onclick="send()" data-lang-key="chat_send">{{ t('chat_send') }}</button>
 </div>
+</div><!-- /chat-main -->
+</div><!-- /chat-layout -->
 <!-- v3.115.30: Keyboard-confirm panel -->
 <div class="confirm-panel" id="confirmPanel">
   <div class="confirm-title">🔐 <span data-lang-key="confirm_title">需要你的确认</span></div>
@@ -1308,23 +1350,49 @@ async function loadConversationList() {
     const d = await resp.json();
     const list = d.conversations || [];
     list.sort(function(a, b) { return (b.updated_at || b.created_at || 0) - (a.updated_at || a.created_at || 0); });
-    if (!list.length) {
-      dd.innerHTML = '<div class="conv-empty">暂无历史对话</div>';
-      return;
+    // 下拉 (保留)
+    if (dd) {
+      if (!list.length) {
+        dd.innerHTML = '<div class="conv-empty">暂无历史对话</div>';
+      } else {
+        dd.innerHTML = list.map(function(c) {
+          const cid = c.id || c.conversation_id || '';
+          const title = c.title || '对话';
+          const active = cid === currentConvId ? ' active' : '';
+          return '<div class="conv-item' + active + '" onclick="loadConversation(\'' +
+            encodeURIComponent(cid) + '\')">' +
+            '<span class="conv-title" title="' + escapeHtml(title) + '">💬 ' + escapeHtml(title) + '</span>' +
+            '<span class="conv-del" onclick="event.stopPropagation();deleteConversation(\'' +
+            encodeURIComponent(cid) + '\')" title="删除">🗑</span></div>';
+        }).join('');
+      }
     }
-    dd.innerHTML = list.map(function(c) {
-      const cid = c.id || c.conversation_id || '';
-      const title = c.title || '对话';
-      const active = cid === currentConvId ? ' active' : '';
-      return '<div class="conv-item' + active + '" onclick="loadConversation(\'' +
-        encodeURIComponent(cid) + '\')">' +
-        '<span class="conv-title" title="' + escapeHtml(title) + '">💬 ' + escapeHtml(title) + '</span>' +
-        '<span class="conv-del" onclick="event.stopPropagation();deleteConversation(\'' +
-        encodeURIComponent(cid) + '\')" title="删除">🗑</span></div>';
-    }).join('');
+    // 侧边栏 (2026-08-26 常驻, DSH 式)
+    renderSidebar(list);
   } catch(e) {
-    dd.innerHTML = '<div class="conv-empty">加载失败: ' + escapeHtml(String(e)) + '</div>';
+    if (dd) dd.innerHTML = '<div class="conv-empty">加载失败: ' + escapeHtml(String(e)) + '</div>';
+    const sb = document.getElementById('sidebarList');
+    if (sb) sb.innerHTML = '<div class="sb-empty">加载失败</div>';
   }
+}
+
+function renderSidebar(list) {
+  const sb = document.getElementById('sidebarList');
+  if (!sb) return;
+  if (!list || !list.length) {
+    sb.innerHTML = '<div class="sb-empty">暂无历史对话<br><br>点击「新对话」开始</div>';
+    return;
+  }
+  sb.innerHTML = list.map(function(c) {
+    const cid = c.id || c.conversation_id || '';
+    const title = c.title || '对话';
+    const active = cid === currentConvId ? ' active' : '';
+    return '<div class="sb-item' + active + '" onclick="loadConversation(\'' +
+      encodeURIComponent(cid) + '\')">' +
+      '<span class="sb-title" title="' + escapeHtml(title) + '">💬 ' + escapeHtml(title) + '</span>' +
+      '<span class="sb-del" onclick="event.stopPropagation();deleteConversation(\'' +
+      encodeURIComponent(cid) + '\')" title="删除">🗑</span></div>';
+  }).join('');
 }
 
 async function loadConversation(encId) {
@@ -1349,6 +1417,7 @@ async function loadConversation(encId) {
     localStorage.setItem(CONV_LS_KEY, convId);
     document.getElementById('convDropdown').style.display = 'none';
     msgsDiv.scrollTop = msgsDiv.scrollHeight;
+    loadConversationList();  // 刷新侧边栏选中态
   } catch(e) {
     alert('加载对话失败: ' + e.message);
   }
@@ -1719,6 +1788,8 @@ document.addEventListener('DOMContentLoaded', function() {
   initRealtime();
   // v3.115.31: restore previous chat messages from localStorage
   loadMessages();
+  // 2026-08-26 004meshctx: 常驻侧边栏加载对话列表 (DSH 式)
+  loadConversationList();
 });
 
 // ══════════════════ WebSocket realtime ══════════════════
