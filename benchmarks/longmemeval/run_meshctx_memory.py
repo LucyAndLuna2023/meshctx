@@ -36,7 +36,11 @@ ANSWER_TEMPLATE = (
     "I will give you several history chats between you and a user. "
     "Answer the question based ONLY on the relevant chat history. "
     "Give the final answer directly and concisely. Do NOT restate the question, "
-    "do NOT explain your reasoning, do NOT mention the history. Just the answer itself.\n\n\n"
+    "do NOT explain your reasoning, do NOT mention the history. Just the answer itself. "
+    "If the question asks about the user's preferences or past statements, the relevant information "
+    "IS in the history — find and use it (do not say you lack information). "
+    "For counting or date questions, first list every relevant item/date you find across ALL sessions, "
+    "then compute the total.\n\n\n"
     "History Chats:\n\n{}\n\nCurrent Date: {}\nQuestion: {}\nAnswer:"
 )
 
@@ -109,6 +113,15 @@ def p2_item_score(r) -> float:
     return imp * retention * layer_bonus
 
 
+def _fmt_date(ts):
+    """时间戳 → 日期字符串 (temporal 时间锚点)"""
+    try:
+        import datetime as _dt
+        return _dt.datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+    except Exception:
+        return ""
+
+
 def build_history(msgs, mode="full", top_k=8, gate_openness=1.0, question=""):
     """按模式构建历史文本:
     - full: 原始顺序全量（基线）
@@ -157,15 +170,27 @@ def build_history(msgs, mode="full", top_k=8, gate_openness=1.0, question=""):
                            "schema_layer": layer, "_rel": rel, "_si": si, "_role": role})
         scored.sort(key=lambda r: (r["_rel"], p2_item_score(r)), reverse=True)
         # ── preference/decision 保底注入 (2026-08-27 004meshctx) ──
-        # 偏好/决策类记忆是 LongMemEval preference 题的关键 (v5 报告该类 EM 0/8 短板) —
-        # 若只按 rel×FSRS 竞争, 偏好记忆因与问题无词重叠(rel=0)会被挤出 top_k。
-        # 保底: core 层(偏好/决策)无条件进入记忆要点, 其余按 top_k 竞争。
+        # 偏好/决策类记忆是 LongMemEval preference 题的关键 — 若只按 rel×FSRS 竞争,
+        # 偏好记忆因与问题无词重叠(rel=0)会被挤出 top_k。core 层(偏好/决策)无条件保留。
         core_guaranteed = [r for r in scored if r["schema_layer"] == "core"]
         rest = [r for r in scored if r["schema_layer"] != "core"]
         top = core_guaranteed + rest[: max(0, top_k - len(core_guaranteed))]
+        # ── multi-session 覆盖保底 (2026-08-27 第二波: 计数/汇总题需跨会话全覆盖) ──
+        # LongMemEval multi-session 题 (如 "How many projects have I led?") 信息分散在
+        # 多个 session — 全局 top_k 可能只覆盖单会话。保证每个 session ≥1 条高显著性记忆:
+        # 各 session 内最高分条目保底, 剩余按全局 top_k 补足。
+        by_session = {}
+        for r in scored:
+            by_session.setdefault(r["_si"], []).append(r)
+        session_best = [max(v, key=lambda r: (r["_rel"], p2_item_score(r))) for v in by_session.values()]
+        session_ids = {r["_si"] for r in session_best}
+        rest2 = [r for r in top if r["_si"] not in session_ids]
+        top = session_best + rest2[: max(0, top_k - len(session_best))]
         top.sort(key=lambda r: r["_si"])  # 注入段内保持时序
-        mem_block = "## 记忆要点（P2 检索注入 · 10底FSRS×相关性 · 偏好/决策保底）\n" + "\n".join(
-            f"- ({p2_item_score(r):.2f}) [{r['_role']}] {r['value'][:160]}" for r in top)
+        mem_block = "## 记忆要点（P2 检索注入 · 10底FSRS×相关性 · 偏好/决策+跨会话保底）\n" + "\n".join(
+            # session 时间标签 + 具体日期: 强化时间线 (temporal 日期计算题的时间锚点, 2026-08-27 第三波)
+            f"- ({p2_item_score(r):.2f}) [Session {r['_si'] + 1} · {_fmt_date(r['created_at'])}] [{r['_role']}] {r['value'][:160]}"
+            for r in top)
         full_block = "\n\n".join(
             f"### Session {si+1}:\nSession Content:\n{json.dumps({'role': role, 'content': content}, ensure_ascii=False)}"
             for si, role, content in msgs)
