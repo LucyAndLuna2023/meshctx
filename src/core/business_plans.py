@@ -93,10 +93,17 @@ def upgrade_path(plan: str) -> List[str]:
 
 # ── 组织/团队 (用户维度) ──────────────────────────────────
 
+# RBAC 角色 (2026-08-27 AI agent 企业协作痛点: 权限管控 — atlan/腾讯调研)
+# owner: 全部管理权 | admin: 管理成员/预算/记忆治理 | member: 使用团队功能 | viewer: 只读
+VALID_ROLES = ("owner", "admin", "member", "viewer")
+MANAGE_ROLES = ("owner", "admin")   # 管理操作 (成员/预算/升级/治理) 需 owner/admin
+READ_ROLES = ("owner", "admin", "member", "viewer")
+
+
 @dataclass
 class Member:
     user_id: str
-    role: str = "member"          # owner / admin / member
+    role: str = "member"          # owner / admin / member / viewer (RBAC)
     joined_at: float = field(default_factory=time.time)
 
 
@@ -111,6 +118,8 @@ class TeamOrg:
     created_at: float = field(default_factory=time.time)
     seats: int = 5                # 席位 (Team 默认 5, Enterprise 可扩)
     subscription_until: float = 0.0  # 订阅到期时间戳 (0=免费)
+    monthly_budget: float = 0.0   # 月度 token 预算 (0=不限, 成本控制)
+    budget_alert: bool = False    # 是否已触发超预算告警 (去重)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -123,6 +132,8 @@ class TeamOrg:
             "created_at": self.created_at,
             "seats": self.seats,
             "subscription_until": self.subscription_until,
+            "monthly_budget": self.monthly_budget,
+            "budget_alert": self.budget_alert,
             "features": PLAN_FEATURES.get(self.plan, {}),
         }
 
@@ -140,6 +151,22 @@ class AuditEntry:
     def to_dict(self) -> Dict[str, Any]:
         return {"ts": self.ts, "user_id": self.user_id,
                 "action": self.action, "detail": self.detail, "ip": self.ip}
+
+
+# ── Agent 活动日志 (观察性, 2026-08-27 splunk/cloudzero 痛点) ──
+# 与 AuditEntry 区别: audit=合规操作(谁做了什么), activity=Agent 运行活动(哪个 agent 干了什么)
+@dataclass
+class ActivityEntry:
+    ts: float
+    team_id: str
+    agent: str                # agent/工具名
+    action: str               # 动作
+    detail: str = ""
+    user_id: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"ts": self.ts, "team_id": self.team_id, "agent": self.agent,
+                "action": self.action, "detail": self.detail, "user_id": self.user_id}
 
 
 # ── 使用统计 (团队仪表盘) ─────────────────────────────────
@@ -168,6 +195,7 @@ class BusinessStore:
         self._path = Path(storage_path or (Path.home() / ".meshctx" / "business_plans.json"))
         self._teams: Dict[str, TeamOrg] = {}
         self._audit: List[AuditEntry] = []
+        self._activity: List[ActivityEntry] = []
         self._usage: Dict[str, Dict[str, UsageStats]] = {}  # team_id -> day -> stats
         self._load()
 
@@ -184,6 +212,7 @@ class BusinessStore:
                 self._audit = [AuditEntry(**a) for a in data.get("audit", [])]
                 self._usage = {tid: {d: UsageStats(**u) for d, u in days.items()}
                                for tid, days in data.get("usage", {}).items()}
+                self._activity = [ActivityEntry(**a) for a in data.get("activity", [])]
         except Exception as e:
             logger.warning(f"business_plans 加载失败: {e}")
 
@@ -195,6 +224,7 @@ class BusinessStore:
                 "audit": [a.to_dict() for a in self._audit[-5000:]],  # 保留最近 5000 条
                 "usage": {tid: {d: u.to_dict() for d, u in days.items()}
                           for tid, days in self._usage.items()},
+                "activity": [a.to_dict() for a in self._activity[-3000:]],
             }
             self._path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
         except Exception as e:
@@ -230,9 +260,39 @@ class BusinessStore:
             team = self._teams.get(team_id)
             if team is None:
                 return False
+            if role not in VALID_ROLES:
+                return False
             if len(team.members) >= team.seats:
                 return False
             team.members[user_id] = Member(user_id=user_id, role=role)
+            self._save()
+            return True
+
+    def member_role(self, team_id: str, user_id: str) -> Optional[str]:
+        """成员角色 (RBAC 权限判定)。非成员返回 None。"""
+        with self._lock:
+            team = self._teams.get(team_id)
+            if team is None:
+                return None
+            m = team.members.get(user_id)
+            return m.role if m else None
+
+    def can_manage(self, team_id: str, user_id: str) -> bool:
+        """管理操作权限: owner/admin (RBAC)。"""
+        return self.member_role(team_id, user_id) in MANAGE_ROLES
+
+    def can_view(self, team_id: str, user_id: str) -> bool:
+        """查看权限: 所有角色。"""
+        return self.member_role(team_id, user_id) in READ_ROLES
+
+    def set_budget(self, team_id: str, monthly_budget: float) -> bool:
+        """设置月度 token 预算 (成本控制, cloudzero 痛点)。"""
+        with self._lock:
+            team = self._teams.get(team_id)
+            if team is None:
+                return False
+            team.monthly_budget = max(0.0, float(monthly_budget))
+            team.budget_alert = False
             self._save()
             return True
 
@@ -273,6 +333,39 @@ class BusinessStore:
             logs = [a for a in logs if team_id in a.get("detail", "")]
         return logs[-limit:]
 
+    # ── Agent 活动日志 ──
+    def record_activity(self, team_id: str, agent: str, action: str,
+                        detail: str = "", user_id: str = "") -> None:
+        """记录 Agent 运行活动 (观察性, 团队仪表盘活动流)。"""
+        with self._lock:
+            self._activity.append(ActivityEntry(ts=time.time(), team_id=team_id,
+                                                agent=agent, action=action,
+                                                detail=detail, user_id=user_id))
+            self._save()
+
+    def activity_log(self, team_id: str, limit: int = 100) -> List[Dict[str, Any]]:
+        with self._lock:
+            logs = [a.to_dict() for a in self._activity if a.team_id == team_id]
+        return logs[-limit:]
+
+    def budget_status(self, team_id: str) -> Dict[str, Any]:
+        """预算使用状态: 已用/预算/超限 (成本控制)。"""
+        with self._lock:
+            team = self._teams.get(team_id)
+            if team is None:
+                return {"error": "team not found"}
+            budget = team.monthly_budget
+        month_start = time.strftime("%Y-%m-01")
+        used = 0
+        with self._lock:
+            for d, u in self._usage.get(team_id, {}).items():
+                if d >= month_start:
+                    used += u.tokens_in + u.tokens_out
+        pct = (used / budget * 100) if budget > 0 else 0.0
+        return {"team_id": team_id, "budget": budget, "used": used,
+                "percent": round(pct, 1),
+                "over_budget": budget > 0 and used > budget}
+
     # ── 使用统计 ──
     def record_usage(self, team_id: str, model: str = "",
                      tokens_in: int = 0, tokens_out: int = 0) -> None:
@@ -285,6 +378,14 @@ class BusinessStore:
             st.tokens_out += tokens_out
             if model:
                 st.model_calls[model] = st.model_calls.get(model, 0) + 1
+            # 预算告警 (首次超限标记, 去重)
+            team = self._teams.get(team_id)
+            if team is not None and team.monthly_budget > 0 and not team.budget_alert:
+                _used = sum((self._usage.get(team_id, {}).get(dd, UsageStats()).tokens_in
+                             + self._usage.get(team_id, {}).get(dd, UsageStats()).tokens_out)
+                            for dd in self._usage.get(team_id, {}))
+                if _used > team.monthly_budget:
+                    team.budget_alert = True
             self._save()
 
     def usage_stats(self, team_id: str, days: int = 7) -> Dict[str, Any]:

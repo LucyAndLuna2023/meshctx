@@ -7480,6 +7480,8 @@ async def team_add_member(req: Request):
     team = store.get_team(team_id)
     if team is None:
         return JSONResponse({"error": "team not found"}, status_code=404)
+    if not store.can_manage(team_id, _current_user_id(req)):
+        return JSONResponse({"error": "需 owner/admin 权限管理成员"}, status_code=403)
     if not store.add_member(team_id, user_id, body.get("role", "member")):
         return JSONResponse({"error": "添加失败 (席位已满或已存在)"}, status_code=400)
     store.audit(_current_user_id(req), "team.add_member", f"team={team_id} user={user_id}",
@@ -7499,6 +7501,8 @@ async def team_upgrade(req: Request):
     if plan not in ("team", "enterprise"):
         return JSONResponse({"error": "plan must be team/enterprise"}, status_code=400)
     store = _business_store()
+    if not store.can_manage(team_id, _current_user_id(req)):
+        return JSONResponse({"error": "需 owner/admin 权限升级"}, status_code=403)
     if not store.set_plan(team_id, plan, seats=int(body.get("seats", 5)),
                           months=int(body.get("months", 12))):
         return JSONResponse({"error": "team not found"}, status_code=404)
@@ -7520,15 +7524,23 @@ async def team_memories(request: Request, team_id: str = "", q: str = ""):
     if team is None:
         return JSONResponse({"error": "team not found"}, status_code=404)
     facts = []
-    for m in team.members.values():
-        # MVP: 成员记忆中的团队事实 (带 team 标签)
+    try:
+        from pathlib import Path
+        p = Path.home() / ".meshctx" / "team_memories" / f"{team_id}.json"
+        if p.exists():
+            facts = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
         pass
-    return {"plan": plan, "team_id": team_id, "facts": facts}
+    # 记忆治理: 按状态分组返回 (active 正常 / deprecated 已废弃 / error 已纠正)
+    return {"plan": plan, "team_id": team_id, "facts": facts,
+            "governance": {"active": sum(1 for f in facts if f.get("status") == "active"),
+                           "deprecated": sum(1 for f in facts if f.get("status") == "deprecated"),
+                           "corrected": sum(1 for f in facts if f.get("status") == "error")}}
 
 
 @app.post("/api/team/memories")
 async def team_memory_save(req: Request):
-    """保存团队共享记忆。"""
+    """保存团队共享记忆 (含 prompt injection/secret 扫描 — tinyfish 审计痛点)。"""
     try:
         body = await req.json()
     except Exception:
@@ -7538,22 +7550,43 @@ async def team_memory_save(req: Request):
         return JSONResponse({"error": "团队共享记忆需 Team 版"}, status_code=403)
     fact = body.get("fact", "").strip()
     team_id = body.get("team_id", "")
+    uid = _current_user_id(req)
     if not fact or not team_id:
         return JSONResponse({"error": "fact/team_id required"}, status_code=400)
-    # MVP: 持久化到团队记忆文件
+    store = _business_store()
+    if store.get_team(team_id) is None:
+        return JSONResponse({"error": "team not found"}, status_code=404)
+    if store.member_role(team_id, uid) is None:
+        return JSONResponse({"error": "非团队成员, 无权写入共享记忆"}, status_code=403)
+    # ── Prompt injection / secret 扫描 (2026-08-27 痛点: 共享记忆被投毒) ──
+    try:
+        from src.core.secret_scanner import SecretScanner
+        findings = SecretScanner().scan_text(fact, source="team_memory")
+        risk = [f for f in findings if getattr(f, "category", "") != "ignore"]
+        if risk:
+            store.audit(uid, "team.memory_blocked",
+                        f"team={team_id} 命中安全扫描: {risk[0].category}", req.client.host if req.client else "")
+            return JSONResponse({"error": f"共享记忆被安全扫描拦截 ({risk[0].category}), 请勿写入敏感/注入内容"},
+                                status_code=400)
+    except Exception:
+        pass
+    # 持久化 (带治理字段: status 供记忆错误纠正)
     try:
         from pathlib import Path
         p = Path.home() / ".meshctx" / "team_memories" / f"{team_id}.json"
         p.parent.mkdir(parents=True, exist_ok=True)
         data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else []
-        data.append({"ts": time.time(), "fact": fact,
-                     "user": _current_user_id(req)})
+        data.append({"ts": time.time(), "fact": fact, "user": uid,
+                     "status": "active",       # active/deprecated/error (记忆治理)
+                     "corrected_fact": "",      # 纠错后事实
+                     "corrected_by": ""})
         p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     except Exception as e:
         return JSONResponse({"error": f"保存失败: {e}"}, status_code=500)
-    _business_store().audit(_current_user_id(req), "team.memory_save",
-                            f"team={team_id} fact={fact[:40]}",
-                            req.client.host if req.client else "")
+    store.audit(uid, "team.memory_save", f"team={team_id} fact={fact[:40]}",
+                req.client.host if req.client else "")
+    store.record_activity(team_id, agent="team_memory", action="save",
+                          detail=fact[:40], user_id=uid)
     return {"ok": True}
 
 
@@ -7617,3 +7650,123 @@ async def swarm_stats_api():
     """群审可用模型检查。"""
     from src.core.swarm import swarm_stats
     return swarm_stats()
+
+@app.post("/api/team/memories/correct")
+async def team_memory_correct(req: Request):
+    """团队记忆纠错 — 标记错误记忆并写入正确版本 (治理, owner/admin)。
+    痛点: 共享记忆可能有错误 (Tencent Team Memory 无治理机制)。"""
+    try:
+        body = await req.json()
+    except Exception:
+        return JSONResponse({"error": "invalid json"}, status_code=400)
+    plan = _require_feature(req, "shared_memory")
+    if plan is None:
+        return JSONResponse({"error": "团队共享记忆需 Team 版"}, status_code=403)
+    team_id = body.get("team_id", "")
+    idx = int(body.get("index", -1))
+    correct = body.get("corrected_fact", "").strip()
+    uid = _current_user_id(req)
+    store = _business_store()
+    if not store.can_manage(team_id, uid):
+        return JSONResponse({"error": "需 owner/admin 权限进行记忆治理"}, status_code=403)
+    if not correct:
+        return JSONResponse({"error": "corrected_fact required"}, status_code=400)
+    try:
+        from pathlib import Path
+        p = Path.home() / ".meshctx" / "team_memories" / f"{team_id}.json"
+        data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else []
+        if idx < 0 or idx >= len(data):
+            return JSONResponse({"error": "index out of range"}, status_code=400)
+        data[idx]["status"] = "error"
+        data[idx]["corrected_fact"] = correct
+        data[idx]["corrected_by"] = uid
+        data[idx]["corrected_at"] = time.time()
+        p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception as e:
+        return JSONResponse({"error": f"纠错失败: {e}"}, status_code=500)
+    store.audit(uid, "team.memory_correct", f"team={team_id} idx={idx}", req.client.host if req.client else "")
+    store.record_activity(team_id, agent="team_memory", action="correct", detail=f"idx={idx}", user_id=uid)
+    return {"ok": True}
+
+
+@app.post("/api/team/memories/mark")
+async def team_memory_mark(req: Request):
+    """标记记忆过期/废弃 (owner/admin)。"""
+    try:
+        body = await req.json()
+    except Exception:
+        return JSONResponse({"error": "invalid json"}, status_code=400)
+    plan = _require_feature(req, "shared_memory")
+    if plan is None:
+        return JSONResponse({"error": "团队共享记忆需 Team 版"}, status_code=403)
+    team_id = body.get("team_id", "")
+    idx = int(body.get("index", -1))
+    status = body.get("status", "deprecated")
+    if status not in ("active", "deprecated"):
+        return JSONResponse({"error": "status must be active/deprecated"}, status_code=400)
+    uid = _current_user_id(req)
+    store = _business_store()
+    if not store.can_manage(team_id, uid):
+        return JSONResponse({"error": "需 owner/admin 权限"}, status_code=403)
+    try:
+        from pathlib import Path
+        p = Path.home() / ".meshctx" / "team_memories" / f"{team_id}.json"
+        data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else []
+        if idx < 0 or idx >= len(data):
+            return JSONResponse({"error": "index out of range"}, status_code=400)
+        data[idx]["status"] = status
+        data[idx]["marked_by"] = uid
+        data[idx]["marked_at"] = time.time()
+        p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception as e:
+        return JSONResponse({"error": f"标记失败: {e}"}, status_code=500)
+    store.audit(uid, "team.memory_mark", f"team={team_id} idx={idx} status={status}",
+                req.client.host if req.client else "")
+    return {"ok": True}
+
+
+@app.get("/api/team/budget")
+async def team_budget_get(request: Request, team_id: str = ""):
+    """预算使用状态 (成本控制, cloudzero 账单失控痛点)。"""
+    plan = _require_feature(request, "team_dashboard")
+    if plan is None:
+        return JSONResponse({"error": "团队仪表盘需 Team 版"}, status_code=403)
+    store = _business_store()
+    if store.get_team(team_id) is None:
+        return JSONResponse({"error": "team not found"}, status_code=404)
+    return {"plan": plan, "budget": store.budget_status(team_id)}
+
+
+@app.post("/api/team/budget")
+async def team_budget_set(req: Request):
+    """设置月度 token 预算 (owner/admin)。"""
+    try:
+        body = await req.json()
+    except Exception:
+        return JSONResponse({"error": "invalid json"}, status_code=400)
+    plan = _require_feature(req, "team_dashboard")
+    if plan is None:
+        return JSONResponse({"error": "团队仪表盘需 Team 版"}, status_code=403)
+    team_id = body.get("team_id", "")
+    budget = float(body.get("monthly_budget", 0))
+    uid = _current_user_id(req)
+    store = _business_store()
+    if not store.can_manage(team_id, uid):
+        return JSONResponse({"error": "需 owner/admin 权限设置预算"}, status_code=403)
+    if not store.set_budget(team_id, budget):
+        return JSONResponse({"error": "team not found"}, status_code=404)
+    store.audit(uid, "team.budget_set", f"team={team_id} budget={budget}",
+                req.client.host if req.client else "")
+    return {"ok": True, "budget": store.budget_status(team_id)}
+
+
+@app.get("/api/team/activity")
+async def team_activity(request: Request, team_id: str = "", limit: int = 100):
+    """Agent 活动日志 (观察性, splunk 痛点: agent 运行不可见)。"""
+    plan = _require_feature(request, "team_dashboard")
+    if plan is None:
+        return JSONResponse({"error": "团队仪表盘需 Team 版"}, status_code=403)
+    store = _business_store()
+    if store.get_team(team_id) is None:
+        return JSONResponse({"error": "team not found"}, status_code=404)
+    return {"plan": plan, "team_id": team_id, "activity": store.activity_log(team_id, limit)}

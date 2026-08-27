@@ -133,3 +133,108 @@ def test_swarm_module_import_and_gate():
     assert len(DEFAULT_MODELS) == 5
     assert feature_enabled("team", "swarm_review") is True
     assert feature_enabled("free", "swarm_review") is False
+
+
+# ═══ AI agent 企业协作痛点功能测试 (2026-08-27 全网调研落地) ═══
+
+def test_rbac_roles_and_permissions(store):
+    """RBAC: owner/admin 可管理, member 不可, viewer 只读 (atlan/腾讯权限管控痛点)。"""
+    t = store.create_team("RBAC组", "owner1", "team")
+    assert store.can_manage(t.team_id, "owner1") is True
+    assert store.add_member(t.team_id, "admin1", "admin") is True
+    assert store.add_member(t.team_id, "mem1", "member") is True
+    assert store.add_member(t.team_id, "view1", "viewer") is True
+    assert store.can_manage(t.team_id, "admin1") is True
+    assert store.can_manage(t.team_id, "mem1") is False
+    assert store.can_manage(t.team_id, "view1") is False
+    assert store.can_view(t.team_id, "view1") is True
+    assert store.can_view(t.team_id, "stranger") is False
+    # 非法角色拒绝
+    assert store.add_member(t.team_id, "x", "hacker") is False
+
+
+def test_member_role_query(store):
+    t = store.create_team("角色组", "owner", "team")
+    store.add_member(t.team_id, "a", "admin")
+    assert store.member_role(t.team_id, "owner") == "owner"
+    assert store.member_role(t.team_id, "a") == "admin"
+    assert store.member_role(t.team_id, "ghost") is None
+
+
+def test_budget_control_and_alert(store):
+    """成本预算: 设置/使用/超限告警 (cloudzero 账单失控痛点)。"""
+    t = store.create_team("预算组", "owner", "team")
+    assert store.set_budget(t.team_id, 1000.0) is True
+    store.record_usage(t.team_id, model="deepseek:chat", tokens_in=400, tokens_out=200)
+    st = store.budget_status(t.team_id)
+    assert st["budget"] == 1000.0 and st["used"] == 600 and st["over_budget"] is False
+    assert st["percent"] == 60.0
+    # 超限 → 告警标记
+    store.record_usage(t.team_id, model="openai:gpt-4o", tokens_in=500, tokens_out=100)
+    st2 = store.budget_status(t.team_id)
+    assert st2["over_budget"] is True
+    assert st2["used"] == 1200
+    assert store.get_team(t.team_id).budget_alert is True
+    # 重置预算清告警
+    store.set_budget(t.team_id, 5000.0)
+    assert store.get_team(t.team_id).budget_alert is False
+
+
+def test_activity_log(store):
+    """Agent 活动日志: 观察性 (splunk 痛点)。"""
+    t = store.create_team("活动组", "owner")
+    store.record_activity(t.team_id, agent="web_search", action="search", detail="meshctx")
+    store.record_activity(t.team_id, agent="write_file", action="write", detail="/tmp/x", user_id="mem1")
+    store.record_activity("other_team", agent="x", action="y")
+    logs = store.activity_log(t.team_id)
+    assert len(logs) == 2
+    assert logs[0]["agent"] == "web_search"
+    assert logs[1]["user_id"] == "mem1"
+    assert store.activity_log("other_team")[0]["agent"] == "x"
+
+
+def test_budget_persistence(tmp_path):
+    """预算与活动跨重启持久化。"""
+    p = tmp_path / "bp2.json"
+    s1 = BusinessStore(str(p))
+    t = s1.create_team("持久化预算", "owner", "team")
+    s1.set_budget(t.team_id, 500)
+    s1.record_usage(t.team_id, model="m", tokens_in=100, tokens_out=50)
+    s1.record_activity(t.team_id, "agent", "run")
+    s2 = BusinessStore(str(p))
+    assert s2.get_team(t.team_id).monthly_budget == 500
+    assert s2.budget_status(t.team_id)["used"] == 150
+    assert len(s2.activity_log(t.team_id)) == 1
+
+
+def test_memory_governance_files(tmp_path, monkeypatch):
+    """团队记忆治理: 纠错/标记 (Tencent Team Memory 无治理痛点)。
+    用 monkeypatch 改 HOME 隔离 team_memories 文件。"""
+    import pathlib
+    monkeypatch.setattr(pathlib.Path, "home", staticmethod(lambda: tmp_path))
+    store = reset_store(str(tmp_path / "bp3.json"))
+    t = store.create_team("治理组", "owner", "team")
+    # 模拟写入一条记忆 (走文件)
+    from pathlib import Path
+    p = Path.home() / ".meshctx" / "team_memories" / f"{t.team_id}.json"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps([{"ts": 1.0, "fact": "旧版本号是 1.0", "user": "u1",
+                              "status": "active", "corrected_fact": "", "corrected_by": ""}],
+                            ensure_ascii=False), encoding="utf-8")
+    # 读取 (GET 返回治理统计)
+    data = json.loads(p.read_text(encoding="utf-8"))
+    assert data[0]["status"] == "active"
+    # 治理: 标记过期 + 纠错
+    data[0]["status"] = "deprecated"
+    data[0]["marked_by"] = "owner"
+    p.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    data2 = json.loads(p.read_text(encoding="utf-8"))
+    assert data2[0]["status"] == "deprecated"
+    # 纠错
+    data2[0]["status"] = "error"
+    data2[0]["corrected_fact"] = "新版本号是 2.0"
+    data2[0]["corrected_by"] = "owner"
+    p.write_text(json.dumps(data2, ensure_ascii=False), encoding="utf-8")
+    data3 = json.loads(p.read_text(encoding="utf-8"))
+    assert data3[0]["corrected_fact"] == "新版本号是 2.0"
+    assert data3[0]["status"] == "error"
