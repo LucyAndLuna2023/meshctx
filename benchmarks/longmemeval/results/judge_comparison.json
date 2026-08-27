@@ -1,12 +1,15 @@
 {
   "baseline": {
-    "correct": 17.0,
+    "correct": 30.0,
     "total": 48,
-    "accuracy": 0.3541666666666667
+    "accuracy": 0.625,
+    "source": "/home/administrator/benchmarks-ext/results/full_baseline_s3.json",
+    "note": "同模板+256token+同采样响应 (对称口径)"
   },
   "meshctx_brainv2": {
-    "correct": 33.0,
+    "correct": 29.0,
     "total": 48,
-    "accuracy": 0.6875
-  }
+    "accuracy": 0.6041666666666666
+  },
+  "run_at": "2026-08-27T23:37:18"
 }

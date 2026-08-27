@@ -80,15 +80,25 @@ def rescore(name, path):
 
 
 def main():
-    print("=== LLM judge 重评（deepseek judge, 语义判定）===\n")
-    c1, t1 = rescore("基线（全量历史）", os.path.join(OUT, "longmemeval_results.json"))
+    print("=== LLM judge 重评（deepseek judge, 语义判定, 对称口径）===\n")
+    # 002codex P2: 基线侧必须读同模板响应 (full_baseline_s3.json = 新模板+256token)
+    # 旧 longmemeval_results.json 是旧模板+80token 截断响应 → judge 混入模板修复因素, 非同口径
+    import os as _os
+    _samples = _os.environ.get("MESHCTX_JUDGE_SAMPLES", "3")
+    _baseline_path = os.path.join(OUT, f"full_baseline_s{_samples}.json")
+    if not os.path.exists(_baseline_path):
+        print(f"⚠ 基线文件 {_baseline_path} 缺失 — 先跑 python3 run_meshctx_memory.py --mode=full --samples={_samples}")
+        _baseline_path = os.path.join(OUT, "longmemeval_results.json")
+    c1, t1 = rescore("基线（全量历史·同模板）", _baseline_path)
     print()
     c2, t2 = rescore("MeshCtx 脑区增强 v2", os.path.join(OUT, "meshctx_memory_enhanced_results.json"))
     print()
     print(f"汇总: 基线 {c1}/{t1} vs 脑区增强 {c2}/{t2}")
     json.dump({
-        "baseline": {"correct": c1, "total": t1, "accuracy": c1 / t1 if t1 else 0},
+        "baseline": {"correct": c1, "total": t1, "accuracy": c1 / t1 if t1 else 0,
+                     "source": _baseline_path, "note": "同模板+256token+同采样响应 (对称口径)"},
         "meshctx_brainv2": {"correct": c2, "total": t2, "accuracy": c2 / t2 if t2 else 0},
+        "run_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
     }, open(os.path.join(OUT, "judge_comparison.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 
 

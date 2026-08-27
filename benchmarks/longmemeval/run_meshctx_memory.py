@@ -270,6 +270,23 @@ def evaluate(entries, mode, top_k=8, gate_openness=1.0, question_hint=True, samp
     return correct, total, details
 
 
+
+def _load_baseline(samples: int):
+    """读取同采样数基线 (full_baseline_s{samples}.json, 对称口径) — 002codex P1 修复。
+    无基线文件时回退旧口径并警告。"""
+    try:
+        import json as _json
+        p = os.path.join(OUT, f"full_baseline_s{samples}.json")
+        if os.path.exists(p):
+            d = _json.load(open(p, encoding="utf-8"))
+            return d.get("accuracy", 0.0), d.get("correct", 0), d.get("total", 0)
+    except Exception:
+        pass
+    import warnings
+    warnings.warn(f"基线文件 full_baseline_s{samples}.json 缺失, 回退旧口径 0.5208 (建议先跑 --mode=full --samples={samples})")
+    return 0.5208333333333334, 25, 48
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     # --mode 支持 (2026-08-27 002codex P2: main() 从不重测 full 基线, 无法重现)
@@ -341,8 +358,8 @@ def main():
         "benchmark": "LongMemEval-oracle + MeshCtx 17脑区/基因组增强",
         "n_per_type": N_PER_TYPE,
         "n_samples": samples,
-        "baseline_full_history_accuracy": 0.5208333333333334,  # 原生全量(48样本)已测
-        "baseline_full_history_note": "原生 deepseek-chat 全量历史, 25/48",
+        "baseline_full_history_accuracy": None,  # 下方填充 (对称口径)
+        "baseline_full_history_note": "对称基线(同模板+256token+同采样), 见 baseline_full_history",
         "brain_top_k": best_k,
         "genome_evolved": {"retrieval_top_k": evolved.retrieval_top_k, "memory_weight": evolved.memory_weight},
         "k_training_scores": {str(k): v for k, v in k_scores.items()},
@@ -353,22 +370,32 @@ def main():
     json.dump(results, open(out, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 
     # P2 注入结果（独立归档，供 v5 报告对比）
+    baseline_acc, baseline_c, baseline_t = _load_baseline(samples)
+    _run_ts = time.strftime("%Y-%m-%dT%H:%M:%S")
+    # 填充对称基线到结果 dict (002codex P1)
+    for _d in (results, p2_out):
+        _d["baseline_full_history_accuracy"] = baseline_acc
+        _d["baseline_full_history_correct"] = baseline_c
+        _d["baseline_full_history_total"] = baseline_t
+        _d["baseline_full_history_note"] = f"对称基线(同模板+256token+{samples}采样), {baseline_c}/{baseline_t} = {baseline_acc:.3f}, run {_run_ts}"
+
     out_p2 = os.path.join(OUT, "p2_injection_results.json")
-    json.dump({
+    p2_out = {
         "model": MODEL,
         "benchmark": "LongMemEval-oracle + P2 检索注入(10底FSRS×T3相关×M1分类·偏好/决策保底)",
         "n_per_type": N_PER_TYPE,
         "top_k": best_k,
         "n_samples": samples,
-        "baseline_full_history_accuracy": 0.5208333333333334,
+        "baseline_full_history_accuracy": None,  # 下方填充
         "p2_injection": {"correct": c_p2, "total": t_p2, "accuracy": p2_acc},
         "samples": det_p2,
-    }, open(out_p2, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+    }
+    json.dump(p2_out, open(out_p2, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 
     print("\n=== 结果 ===")
-    print(f"基线(全量历史): 52.1% (25/48)")
+    print(f"对称基线 full ({samples}采样): {baseline_c}/{baseline_t} = {baseline_acc:.1%}")
     print(f"MeshCtx 脑区精选: {c_brain}/{t_brain} = {brain_acc:.1%}")
-    print(f"P2 检索注入: {c_p2}/{t_p2} = {p2_acc:.1%}   vs 基线 {p2_acc - 0.5208:+.1%}")
+    print(f"P2 检索注入: {c_p2}/{t_p2} = {p2_acc:.1%}   vs 基线 {p2_acc - baseline_acc:+.1%}")
     print(f"保存:", out, "|", out_p2)
 
 
