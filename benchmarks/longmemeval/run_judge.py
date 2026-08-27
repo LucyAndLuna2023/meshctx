@@ -34,11 +34,22 @@ def judge(question, answer, response):
     """统一模型评估（模型无关：MODEL_ID 切换任意主流模型，见 model_io.py）"""
     for attempt in range(3):
         try:
-            # 2026-08-26 004meshctx: max_tokens 8→64 — 原 8 token 截断在复述阶段,
-            # 模型返回 "We need to judge..." 而非 yes/no → judge 恒 0 (方法 bug)
+            # 2026-08-26: max_tokens 8→64 修 judge 恒 0; 2026-08-27: 64→256 +
+            # 末位 yes/no 解析 — judge 模型先输出分析再给结论, 64 token 截断分析段
+            # 导致同一输入时对时错 (preference 类 judge 0/8 假象)
             txt = (_ask_io(JUDGE_PROMPT.format(question=question, answer=answer, response=response[:800]),
-                           max_tokens=64, temperature=0.0) or "").strip().lower()
-            return 1.0 if txt.startswith("yes") else 0.0
+                           max_tokens=256, temperature=0.0) or "").strip().lower()
+            import re as _re
+            _m_yes = list(_re.finditer(r"\byes\b", txt))
+            _m_no = list(_re.finditer(r"\bno\b", txt))
+            if not _m_yes and not _m_no:
+                return 0.0
+            if not _m_no:
+                return 1.0
+            if not _m_yes:
+                return 0.0
+            # 以文本中最后出现的 yes/no 为准 (模型可能写 "no, actually yes")
+            return 1.0 if _m_yes[-1].end() > _m_no[-1].end() else 0.0
         except Exception as e:
             time.sleep(3)
     return 0.0

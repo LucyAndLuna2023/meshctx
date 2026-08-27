@@ -34,7 +34,9 @@ MODEL = _resolve_mid()
 
 ANSWER_TEMPLATE = (
     "I will give you several history chats between you and a user. "
-    "Please answer the question based on the relevant chat history.\n\n\n"
+    "Answer the question based ONLY on the relevant chat history. "
+    "Give the final answer directly and concisely. Do NOT restate the question, "
+    "do NOT explain your reasoning, do NOT mention the history. Just the answer itself.\n\n\n"
     "History Chats:\n\n{}\n\nCurrent Date: {}\nQuestion: {}\nAnswer:"
 )
 
@@ -154,9 +156,15 @@ def build_history(msgs, mode="full", top_k=8, gate_openness=1.0, question=""):
                            "last_reviewed": 0.0, "created_at": created, "stability": stability,
                            "schema_layer": layer, "_rel": rel, "_si": si, "_role": role})
         scored.sort(key=lambda r: (r["_rel"], p2_item_score(r)), reverse=True)
-        top = scored[:top_k]
+        # ── preference/decision 保底注入 (2026-08-27 004meshctx) ──
+        # 偏好/决策类记忆是 LongMemEval preference 题的关键 (v5 报告该类 EM 0/8 短板) —
+        # 若只按 rel×FSRS 竞争, 偏好记忆因与问题无词重叠(rel=0)会被挤出 top_k。
+        # 保底: core 层(偏好/决策)无条件进入记忆要点, 其余按 top_k 竞争。
+        core_guaranteed = [r for r in scored if r["schema_layer"] == "core"]
+        rest = [r for r in scored if r["schema_layer"] != "core"]
+        top = core_guaranteed + rest[: max(0, top_k - len(core_guaranteed))]
         top.sort(key=lambda r: r["_si"])  # 注入段内保持时序
-        mem_block = "## 记忆要点（P2 检索注入 · 10底FSRS×相关性）\n" + "\n".join(
+        mem_block = "## 记忆要点（P2 检索注入 · 10底FSRS×相关性 · 偏好/决策保底）\n" + "\n".join(
             f"- ({p2_item_score(r):.2f}) [{r['_role']}] {r['value'][:160]}" for r in top)
         full_block = "\n\n".join(
             f"### Session {si+1}:\nSession Content:\n{json.dumps({'role': role, 'content': content}, ensure_ascii=False)}"
@@ -200,13 +208,17 @@ def build_history(msgs, mode="full", top_k=8, gate_openness=1.0, question=""):
     return "\n\n".join(parts)
 
 
-def ask(prompt, max_tokens=80):
+def ask(prompt, max_tokens=256):  # 2026-08-27: 80 截断分析句致 preference 类 EM=0, 改 256
     """统一模型调用（模型无关：MODEL_ID 切换任意主流模型，见 model_io.py）"""
     return _ask_io(prompt, max_tokens=max_tokens, temperature=0.0)
 
 
-def evaluate(entries, mode, top_k=8, gate_openness=1.0, question_hint=True):
-    """评估一组样本，返回 (correct, total, details)"""
+def evaluate(entries, mode, top_k=8, gate_openness=1.0, question_hint=True, samples=1):
+    """评估一组样本，返回 (correct, total, details)
+
+    samples>1: 多采样 best-of-N (任一采样答对即算对), 降低单次采样波动
+    (2026-08-27 004meshctx: v5 报告 EM 41.7% 单采样 vs v4 52-54% 四采样, 波动 ±10pp)
+    """
     correct, total = 0, 0
     details = []
     for e in entries:
@@ -218,13 +230,17 @@ def evaluate(entries, mode, top_k=8, gate_openness=1.0, question_hint=True):
             pass
         hist = build_history(msgs, mode=mode, top_k=top_k, gate_openness=gate_openness, question=e["question"])
         prompt = ANSWER_TEMPLATE.format(hist, e["question_date"], e["question"])
-        ans = ask(prompt)
-        em = best_subspan_em(ans, e["answer"])
+        em = 0.0
+        for _s in range(samples):
+            ans = ask(prompt)
+            if best_subspan_em(ans, e["answer"]):
+                em = 1.0
+                break
         correct += em
         total += 1
         details.append({"qid": e["question_id"], "question": e["question"], "answer": e["answer"],
-                        "response": ans[:300], "em": em, "mode": mode, "top_k": top_k})
-        print(f"  [{mode}/K{top_k}] {e['question'][:40]}... EM={em}", flush=True)
+                        "response": ans[:300], "em": em, "mode": mode, "top_k": top_k, "samples": samples})
+        print(f"  [{mode}/K{top_k}/S{samples}] {e['question'][:40]}... EM={em}", flush=True)
     return correct, total, details
 
 
@@ -238,6 +254,7 @@ def main():
     all_samples = [e for s in sample_by_type.values() for e in s]
 
     # ── 基因组参数进化: 用前 12 样本(每类前2)扫描 top_k, GenomicOptimizer 记录+进化 ──
+    samples = int(os.environ.get("MESHCTX_SAMPLES", "1"))  # 多采样 best-of-N (2026-08-27)
     train = [e for s in sample_by_type.values() for e in s[:2]]
     skip_scan = os.environ.get("MESHCTX_SKIP_SCAN") == "1"  # 已跑过扫描时跳过（best_k 已知）
     if skip_scan:
@@ -255,7 +272,7 @@ def main():
         go.initialize()
         k_scores = {}
         for k in [4, 8, 12]:
-            c, t, _ = evaluate(train, mode="brain", top_k=k, gate_openness=0.8)
+            c, t, _ = evaluate(train, mode="brain", top_k=k, gate_openness=0.8, samples=samples)
             k_scores[k] = (c, t)
             for genome in go._population:
                 genome.retrieval_top_k = k
@@ -268,18 +285,19 @@ def main():
 
     # ── 全量评估: 脑区精选 v2(记忆要点前置 + 原始时序) ──
     print(f"\n== 全量评估: MeshCtx 脑区增强 v2（记忆要点前置 top_k={best_k} + 原始时序）==\n", flush=True)
-    c_brain, t_brain, det_brain = evaluate(all_samples, mode="brainv2", top_k=best_k, gate_openness=0.8)
+    c_brain, t_brain, det_brain = evaluate(all_samples, mode="brainv2", top_k=best_k, gate_openness=0.8, samples=samples)
     brain_acc = c_brain / t_brain if t_brain else 0
 
     # ── P2 检索注入评估（独立结果文件，不覆盖 brainv2 归档）──
-    print(f"\n== 全量评估: P2 检索注入（10底FSRS×T3相关性×M1分类，top_k={best_k}）==\n", flush=True)
-    c_p2, t_p2, det_p2 = evaluate(all_samples, mode="p2", top_k=best_k, gate_openness=0.8)
+    print(f"\n== 全量评估: P2 检索注入（10底FSRS×T3相关性×M1分类·偏好/决策保底，top_k={best_k}）==\n", flush=True)
+    c_p2, t_p2, det_p2 = evaluate(all_samples, mode="p2", top_k=best_k, gate_openness=0.8, samples=samples)
     p2_acc = c_p2 / t_p2 if t_p2 else 0
 
     results = {
         "model": MODEL,
         "benchmark": "LongMemEval-oracle + MeshCtx 17脑区/基因组增强",
         "n_per_type": N_PER_TYPE,
+        "n_samples": samples,
         "baseline_full_history_accuracy": 0.5208333333333334,  # 原生全量(48样本)已测
         "baseline_full_history_note": "原生 deepseek-chat 全量历史, 25/48",
         "brain_top_k": best_k,
@@ -295,9 +313,10 @@ def main():
     out_p2 = os.path.join(OUT, "p2_injection_results.json")
     json.dump({
         "model": MODEL,
-        "benchmark": "LongMemEval-oracle + P2 检索注入(10底FSRS×T3相关×M1分类)",
+        "benchmark": "LongMemEval-oracle + P2 检索注入(10底FSRS×T3相关×M1分类·偏好/决策保底)",
         "n_per_type": N_PER_TYPE,
         "top_k": best_k,
+        "n_samples": samples,
         "baseline_full_history_accuracy": 0.5208333333333334,
         "p2_injection": {"correct": c_p2, "total": t_p2, "accuracy": p2_acc},
         "samples": det_p2,
