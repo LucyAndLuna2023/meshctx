@@ -43,10 +43,10 @@
     </script>
     <style>
         :root {
-            /* 2026-08-26 004meshctx: 用户要求白底黑字 — 营销落地页改浅色 */
-            --bg: #f8fafc; --bg2: #ffffff; --fg: #0f172a; --muted: #64748b;
-            --purple: #6c5ce7; --cyan: #0891b2; --green: #16a34a; --border: #e2e8f0;
-            --surface: #ffffff; --accent: #6c5ce7; --fg-dim: #475569;
+            /* 2026-08-27 004meshctx: 用户反馈 — 主页改回黑色背景 (配深色 logo), 产品 UI 保持白底黑字 */
+            --bg: #0f0f1a; --bg2: #171726; --fg: #f1f5f9; --muted: #94a3b8;
+            --purple: #a78bfa; --cyan: #22d3ee; --green: #4ade80; --border: #2a2a3d;
+            --surface: #171726; --accent: #a78bfa; --fg-dim: #cbd5e1;
         }
         * { margin:0; padding:0; box-sizing:border-box; }
         body { background:var(--bg); color:var(--fg); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; line-height:1.6; }
@@ -54,7 +54,7 @@
         .lang { display:none; }
         .lang.active { display:block; }
 
-        nav { position:fixed; top:0; width:100%; background:rgba(255,255,255,0.92); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); z-index:100; }
+        nav { position:fixed; top:0; width:100%; background:rgba(15,15,26,0.92); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); z-index:100; }
         .nav-inner { max-width:1200px; margin:0 auto; padding:14px 24px; display:flex; justify-content:space-between; align-items:center; }
         .logo { font-size:1.4rem; font-weight:700; } .logo span { color:var(--purple); }
         .nav-links { display:flex; gap:20px; align-items:center; }
@@ -189,7 +189,7 @@
 
 <!-- ═══ HERO ═══ -->
 <header class="hero">
-    <img src="assets/logo.png" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;">
+    <img src="assets/logo.jpg" alt="MeshCtx" style="width:320px;max-width:90%;margin-bottom:32px;display:block;margin-left:auto;margin-right:auto;border-radius:24px;">
     <h1 data-lang-key="hero_title">The Agent That <span>Learns</span></h1>
     <p data-lang-key="hero_desc">MeshCtx is a 17-brain-region emulated self-improving agent platform. It remembers everything, learns from every task, and orchestrates multiple AI agents — <strong>open-core</strong>: AGPLv3 framework + source-available brain.</p>
     <div class="hero-buttons">
