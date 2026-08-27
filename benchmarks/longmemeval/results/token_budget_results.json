@@ -1,26 +1,26 @@
 {
   "full_truncated": {
     "em": 0.25,
-    "judge": 0.0,
-    "correct": 0.0,
+    "judge": 0.16666666666666666,
+    "correct": 2.0,
     "total": 12
   },
   "brain_budget": {
     "em": 0.25,
-    "judge": 0.0,
-    "correct": 0.0,
+    "judge": 0.3333333333333333,
+    "correct": 4.0,
     "total": 12
   },
   "p2_budget": {
     "em": 0.4166666666666667,
-    "judge": 0.0,
-    "correct": 0.0,
+    "judge": 0.3333333333333333,
+    "correct": 4.0,
     "total": 12
   },
   "full": {
-    "em": 0.5,
-    "judge": 0.0,
-    "correct": 0.0,
+    "em": 0.4166666666666667,
+    "judge": 0.16666666666666666,
+    "correct": 2.0,
     "total": 12
   }
 }
