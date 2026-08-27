@@ -328,144 +328,19 @@
 <!-- ═══ PLUGIN MARKET ═══ -->
 <section id="plugins">
     <div class="section-inner">
-<div class="lang active" data-lang-key-area="plugin"><h2 class="section-title" data-lang-key="plugin_title">🔌 Plugin Marketplace</h2><p style="text-align:center;color:var(--muted);margin-bottom:24px;" data-lang-key="plugin_subtitle">Community-driven · MCP native · GitHub hosted · One-click install</p></div>
+<div class="lang active" data-lang-key-area="plugin"><h2 class="section-title" data-lang-key="plugin_title">🔌 Plugin Marketplace</h2><p style="text-align:center;color:var(--muted);margin-bottom:24px;" data-lang-key="plugin_subtitle">Built-in plugin architecture · MCP protocol native · Auto-discovers plugins from your profile directory</p></div>
         <div class="feature-grid">
-            <div class="feature-card"><div class="feature-icon">🔍</div><h3 data-lang-key="pl1_title">Web Search</h3><p data-lang-key="pl1_desc">Google/Bing/DuckDuckGo search integration</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
-            <div class="feature-card"><div class="feature-icon">📝</div><h3 data-lang-key="pl2_title">Code Reviewer</h3><p data-lang-key="pl2_desc">AI code review: bug detection/security/style</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
-            <div class="feature-card"><div class="feature-icon">📁</div><h3 data-lang-key="pl3_title">File Manager</h3><p data-lang-key="pl3_desc">Local file browse/read/write/search</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
-            <div class="feature-card"><div class="feature-icon">📡</div><h3 data-lang-key="pl4_title">Feishu Bot</h3><p data-lang-key="pl4_desc">Feishu bot: messages/notifications/group management</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
-            <div class="feature-card"><div class="feature-icon">📊</div><h3 data-lang-key="pl5_title">Data Visualizer</h3><p data-lang-key="pl5_desc">Data visualization: charts/dashboards/reports</p><span style="font-size:10px;color:#22c55e;">v1.0 · 0 installs</span></div>
+            <div class="feature-card"><div class="feature-icon">💬</div><h3 data-lang-key="pl1_title">Messaging Gateways</h3><p data-lang-key="pl1_desc">Built-in Feishu / Telegram / WeChat integrations for notifications and group management</p></div>
+            <div class="feature-card"><div class="feature-icon">🧠</div><h3 data-lang-key="pl2_title">Memory &amp; Knowledge</h3><p data-lang-key="pl2_desc">Hierarchical memory, semantic storage and knowledge graph — core brain modules</p></div>
+            <div class="feature-card"><div class="feature-icon">🛡️</div><h3 data-lang-key="pl3_title">Security &amp; Monitoring</h3><p data-lang-key="pl3_desc">Secret scanner, approval engine and system monitoring built into the core</p></div>
+            <div class="feature-card"><div class="feature-icon">🛠️</div><h3 data-lang-key="pl4_title">Dev &amp; Automation</h3><p data-lang-key="pl4_desc">Code runner, file browser, scheduler and agent governance — built-in capabilities</p></div>
         </div>
         <p style="text-align:center;margin-top:20px;">
-            <a href="https://github.com/LucyAndLuna2023/meshctx-plugins" class="btn btn-primary" target="_blank"><span data-lang-key="pl_btn_browse">📦 Browse All Plugins</span></a>
-            <a href="https://github.com/LucyAndLuna2023/meshctx/blob/main/src/core/plugin_manager.py" class="btn btn-ghost" target="_blank" style="margin-left:8px;"><span data-lang-key="pl_btn_dev">📋 Develop Plugin</span></a>
+            <a href="https://github.com/LucyAndLuna2023/meshctx/blob/main/src/core/plugin_manager.py" class="btn btn-primary" target="_blank"><span data-lang-key="pl_btn_dev">📋 Plugin System Source</span></a>
+            <a href="https://github.com/LucyAndLuna2023/meshctx" class="btn btn-ghost" target="_blank" style="margin-left:8px;"><span data-lang-key="pl_btn_repo">⭐ GitHub Repository</span></a>
         </p>
     </div>
-
 </section>
-
-<script>
-// ═══ Language Data ═══ (loaded dynamically from i18n/landing.json)
-let L = {};
-let _langPending = null; // pending language while L is loading
-
-(async function _loadI18n() {
-  try {
-    const resp = await fetch('i18n/landing.json');
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    L = await resp.json();
-  } catch(e) {
-    console.warn('MeshCtx: failed to load i18n/landing.json, falling back to embedded en', e);
-    // Minimal en fallback embedded inline
-    L = { en: {
-      hero_title: "The Agent That <span>Learns</span>",
-      nav_features: "Features", nav_about: "About", nav_docs: "Documentation",
-      hero_cta1: "⭐ Star on GitHub", hero_cta2: "Get Started →",
-      cta_btn: "Get Started"
-    }};
-  }
-  // Apply pending language if any
-  if (_langPending) {
-    switchLang(_langPending);
-    _langPending = null;
-  }
-})();
-
-
-function closeDropdown() { document.getElementById('langMenu').classList.remove('show'); }
-var pageMeta = {
-    en: {title: "MeshCtx — 17-Brain-Region Self-Improving Agent Platform", desc: "MeshCtx is an open-core, self-improving agent platform — AGPLv3 framework + source-available brain. Remembers everything, learns from every task, orchestrates multiple AI agents in parallel."},
-    zh: {title: "MeshCtx — 世界首个自进化智能体系统", desc: "MeshCtx 是开源核心的自适应学习智能体平台 — AGPLv3 框架 + 源码可见的大脑。记忆一切，从每次任务中学习，并行编排多个 AI 智能体。"},
-    ja: {title: "MeshCtx — 17脳領域シミュレーション自己改善型エージェントシステム", desc: "MeshCtx はオープンコアの自己改善型エージェントプラットフォーム — AGPLv3 フレームワーク + ソース公開の脳。すべてを記憶し、毎回のタスクから学習し、複数の AI エージェントを並列編成。"},
-    ko: {title: "MeshCtx — 17개 뇌 영역 시뮬레이션 자가 개선형 에이전트 시스템", desc: "MeshCtx는 오픈코어 자가 개선형 에이전트 플랫폼 — AGPLv3 프레임워크 + 소스 공개 두뇌. 모든 것을 기억하고, 매 작업에서 학습하며, 여러 AI 에이전트를 병렬 편성."},
-    es: {title: "MeshCtx — El Primer Sistema de Agentes Auto-Evolutivo del Mundo", desc: "MeshCtx es una plataforma de agentes con aprendizaje adaptativo de núcleo abierto — framework AGPLv3 + cerebro de código visible. Lo recuerda todo, aprende de cada tarea, organiza múltiples agentes de IA en paralelo."},
-    fr: {title: "MeshCtx — Le Premier Système d'Agents Auto-Évolutif au Monde", desc: "MeshCtx est une plateforme d'agents auto-améliorante open-core — framework AGPLv3 + cerveau à code source visible. Se souvient de tout, apprend de chaque tâche, orchestre plusieurs agents IA en parallèle."},
-    de: {title: "MeshCtx — Selbstverbesserndes Agentensystem mit 17 Hirnregionen", desc: "MeshCtx ist eine Open-Core-Plattform für selbstverbessernde Agenten — AGPLv3-Framework + quelloffenes Gehirn. Merkt sich alles, lernt aus jeder Aufgabe, orchestriert mehrere KI-Agenten parallel."},
-    it: {title: "MeshCtx — L'Agente Che Impara — Piattaforma con 17 Regioni Cerebrali", desc: "MeshCtx è una piattaforma agentiva open-core auto-migliorante — framework AGPLv3 + cervello a codice sorgente visibile. Ricorda tutto, impara da ogni compito, orchestra più agenti AI in parallelo."},
-    ar: {title: "MeshCtx — الوكيل الذي يتعلّم — منصة بـ 17 منطقة دماغية", desc: "MeshCtx هي منصة وكلاء ذاتية التحسين مفتوحة النواة — إطار عمل AGPLv3 + دماغ مفتوح المصدر. تتذكر كل شيء، وتتعلّم من كل مهمة، وتنسّق وكلاء ذكاء اصطناعي متعددين بالتوازي."}
-};
-function switchLang(lang) {
-    // If L not loaded yet (empty object or no 'en' key), save pending and return
-    if (!L || Object.keys(L).length === 0 || !L['en']) {
-        _langPending = lang;
-        // Still update UI elements that don't need translations
-        var toggle2 = document.getElementById('langToggle');
-        if (toggle2) {
-            var labels2 = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ar:'🇸🇦 العربية'};
-            toggle2.textContent = (labels2[lang]||'🌐 '+lang.toUpperCase())+' ▾';
-        }
-        return;
-    }
-    var labels = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ar:'🇸🇦 العربية'};
-    // 🔧 BUG-043: null guards for all DOM access
-    var toggle = document.getElementById('langToggle');
-    if (toggle) toggle.textContent = (labels[lang]||'🌐 '+lang.toUpperCase())+' ▾';
-    var menuBtns = document.querySelectorAll('.lang-dropdown-menu button');
-    if (menuBtns.length) menuBtns.forEach(function(b){b.classList.remove('active');});
-    for(var i=0;i<menuBtns.length;i++){
-        var t=(menuBtns[i].textContent||'').trim();
-        if((lang==='en'&&t.indexOf('English')>=0)||(lang==='zh'&&t.indexOf('中文')>=0)||(lang==='ja'&&t.indexOf('日本語')>=0)||(lang==='ko'&&t.indexOf('한국어')>=0)||(lang==='es'&&t.indexOf('Español')>=0)||(lang==='fr'&&t.indexOf('Français')>=0)||(lang==='de'&&t.indexOf('Deutsch')>=0)||(lang==='it'&&t.indexOf('Italiano')>=0)||(lang==='ar'&&t.indexOf('العربية')>=0))
-            menuBtns[i].classList.add('active');
-    }
-    // Show/hide language blocks
-    document.querySelectorAll('.lang[data-lang]').forEach(function(el) {
-        var dl = el.getAttribute('data-lang');
-        el.classList.toggle('active', dl === lang);
-        el.setAttribute('aria-hidden', dl !== lang ? 'true' : 'false');
-    });
-    // Update text keys — QA6: depth-first to protect nested [data-lang-key] children from parent innerHTML overwrite
-    var els = Array.from(document.querySelectorAll('[data-lang-key]'));
-    function _getDepth(el) { var d = 0; while (el.parentElement) { d++; el = el.parentElement; } return d; }
-    els.sort(function(a, b) { return _getDepth(b) - _getDepth(a); }); // deepest first
-    els.forEach(function(el) {
-        var key = el.getAttribute('data-lang-key');
-        if (!key) return;
-        var val = undefined;
-        if (L[lang] && L[lang][key] !== undefined) val = L[lang][key];
-        else if (L['en'] && L['en'][key] !== undefined) val = L['en'][key];
-        if (val === undefined) { console.warn('MeshCtx: missing L key \"' + key + '\" for lang=' + lang); return; }
-        // If this element contains nested [data-lang-key] children, only update the first non-key child
-        if (el.querySelector('[data-lang-key]')) {
-            for (var cn = el.firstChild; cn; cn = cn.nextSibling) {
-                if (cn.nodeType === 3 && cn.textContent.trim()) { cn.textContent = val; return; }
-                if (cn.nodeType === 1 && !cn.hasAttribute('data-lang-key') && !cn.querySelector('[data-lang-key]')) { cn.innerHTML = val; return; }
-            }
-            // QA8 P2-2: no safe child found — warn instead of destroying nested [data-lang-key] children
-            console.warn('MeshCtx: no safe text child for key \"' + key + '\" (has nested [data-lang-key]), skipped');
-            return;
-        }
-        el.innerHTML = val;
-    });
-    // Update placeholder attributes
-    document.querySelectorAll('[data-lang-key-placeholder]').forEach(function(el) {
-        var key = el.getAttribute('data-lang-key-placeholder');
-        if (!key) return;
-        var val = undefined;
-        if (L[lang] && L[lang][key] !== undefined) val = L[lang][key];
-        else if (L['en'] && L['en'][key] !== undefined) val = L['en'][key];
-        if (val !== undefined) el.placeholder = val;
-    });
-    // Update html lang attribute
-    if (document.documentElement) { document.documentElement.lang = lang; document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr'; }
-    // Update title and meta description
-    var pm = pageMeta[lang] || pageMeta['en'];
-    document.title = pm.title;
-    var md = document.querySelector('meta[name=\"description\"]');
-    if (md) md.content = pm.desc;
-    try { localStorage.setItem('meshctx-lang', lang); } catch(e) {}
-}
-
-// 🔧 BUG-044: robust localStorage read with try-catch
-var saved;
-try { saved = localStorage.getItem('meshctx-lang'); } catch(e) { saved = null; }
-// L loads async — if already loaded, switch now; otherwise _loadI18n will switch when ready
-if (L && Object.keys(L).length > 0 && L['en']) {
-  switchLang(saved || 'en');
-} else {
-  _langPending = saved || 'en';
-}
-</script>
-
 <!-- ═══ Auth Modal ═══ -->
 <div class="auth-modal-overlay" id="auth-modal" onclick="if(event.target===this)hideAuthModal()">
     <div class="auth-modal">

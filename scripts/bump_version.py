@@ -10,7 +10,7 @@
   2. src/core/__init__.py     — __version__ (health 端点读取)
   3. src/main.py              — FastAPI app.version
   4. docs/index.html          — 主页标题
-  5. docs/docs.html           — 文档页
+  5. (docs/docs.html 已删除 2026-08-27 — 损坏文件, 不再 bump)
   6. Windows 打包链 (字面量替换, 防 v3.121.2/v3.121.6 两次遗漏):
      meshctx_setup.nsi       — VERSION/VIProductVersion/FileVersion/ProductVersion
      meshctx_desktop.spec    — CFBundleShortVersionString/CFBundleVersion
@@ -29,7 +29,6 @@ VERSION_FILES = [
     ("src/core/__init__.py", r'^__version__\s*=\s*"[^"]*"', '__version__ = "{}"'),
     ("src/main.py",          r'version\s*=\s*"[^"]*"',       'version="{}"'),
     ("docs/index.html",      r'v\d+\.\d+\.\d+',             'v{}'),
-    ("docs/docs.html",       r'MeshCtx\s+v\d+\.\d+\.\d+',   'MeshCtx v{}'),
 ]
 
 # Windows 打包链: 版本串 current→ver 字面量替换 + version_info 元组

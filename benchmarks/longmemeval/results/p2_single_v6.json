@@ -1,45 +1,40 @@
 {
   "model": "deepseek:chat",
-  "benchmark": "LongMemEval-oracle + P2 检索注入(10底FSRS×T3相关×M1分类·偏好/决策保底)",
-  "n_per_type": 8,
-  "top_k": 12,
-  "n_samples": 3,
-  "baseline_full_history_accuracy": 0.5208333333333334,
-  "p2_injection": {
-    "correct": 32.0,
-    "total": 48,
-    "accuracy": 0.6666666666666666
-  },
+  "mode": "p2_single",
+  "n_samples": 1,
+  "correct": 29.0,
+  "total": 48,
+  "accuracy": 0.6041666666666666,
   "samples": [
     {
       "qid": "gpt4_2655b836",
       "question": "What was the first issue I had with my new car after its first service?",
       "answer": "GPS system not functioning correctly",
-      "response": "The first issue was with your car's GPS system on 3/22; the dealership replaced the entire system, and it worked flawlessly afterward.",
+      "response": "The issue with your car's GPS system on 3/22, which required dealership replacement.",
       "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "gpt4_2487a7cb",
       "question": "Which event did I attend first, the 'Effective Time Management' workshop or the 'Data Analysis using Python' webinar?",
       "answer": "'Data Analysis using Python' webinar",
-      "response": "We need to answer: Which event did user attend first, the 'Effective Time Management' workshop or the 'Data Analysis using Python' webinar? From Session 1, user mentioned attending workshop on \"Effective Time Management\" at local community center last Saturday. Session 1 date is 2026-08-26. \"Last Sa",
+      "response": "The user attended the \"Effective Time Management\" workshop last Saturday (relative to the first chat). The \"Data Analysis using Python\" webinar was two months ago. Need to determine which came first based on dates.\n\nCurrent date: 2023/05/28 (Sun) 06:47. But the history says Session 1 and Session 2 b",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "gpt4_76048e76",
       "question": "Which vehicle did I take care of first in February, the bike or the car?",
       "answer": "bike",
-      "response": "The bike.",
+      "response": "The user asks: \"Which vehicle did I take care of first in February, the bike or the car?\"\n\nRelevant history:\n- Session 1: In mid-February, user took bike in for repairs (gears acting up). \"speaking of bikes, I'm glad I got my bike repaired back in mid-February.\"\n- Session 2: User washed current Coro",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "gpt4_2312f94c",
@@ -49,7 +44,7 @@
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "0bb5a684",
@@ -59,97 +54,97 @@
       "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "08f4fc43",
       "question": "How many days had passed between the Sunday mass at St. Mary's Church and the Ash Wednesday service at the cathedral?",
       "answer": "30 days. 31 days (including the last day) is also acceptable.",
-      "response": "30 days.",
+      "response": "我们只需要根据历史记录中的日期来回答。Session 2 提到 Sunday mass at St. Mary's Church on January 2nd。Session 1 提到 Ash Wednesday service at the cathedral on February 1st。注意年份？历史记录中 Session 1 日期是 2026-08-26 和 2026-08-27，但这是会话日期，不是事件日期。事件日期是用户说的：January 2nd 和 February 1st。当前日期是 2023/02/20，但事件日期没有给出年份？通常这些日期是同一年？但历史中用户说“I r",
       "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "2c63a862",
       "question": "How many days did it take for me to find a house I loved after starting to work with Rachel?",
       "answer": "14 days. 15 days (including the last day) is also acceptable.",
-      "response": "We need answer based history. User asks: \"How many days did it take for me to find a house I loved after starting to work with Rachel?\" Need compute from dates. Session 1: user started working with Rachel on 2/15. Session 2: saw house loved on 3/1. Current date 2022/03/02. Need count days between 2/",
+      "response": "We need answer based on history. Need count days. User started working with Rachel on 2/15. Found house on 3/1. Need days between 2/15 and 3/1. Current date 2022/03/02. But \"after starting to work with Rachel\" from session1: \"Since I started working with her on 2/15\". Session2: \"house I really love ",
       "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "gpt4_385a5000",
       "question": "Which seeds were started first, the tomatoes or the marigolds?",
       "answer": "Tomatoes",
-      "response": "Tomatoes were started first (February 20th), while marigold seeds arrived on March 3rd.",
+      "response": "The tomatoes were started first (February 20th), before the marigold seeds arrived (March 3rd).",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "0a995998",
       "question": "How many items of clothing do I need to pick up or return from a store?",
       "answer": 3,
-      "response": "We need answer based on history. User asks \"How many items of clothing do I need to pick up or return from a store?\" Need count items across sessions relevant to pick up/return.\n\nRelevant items:\n- Navy blue blazer dry cleaning pick up (Session 1) — but that's dry cleaning, not from a store? Question",
+      "response": "We need answer based on history. User asks: \"How many items of clothing do I need to pick up or return from a store?\" Need count relevant items. Let's list relevant items across sessions: dry cleaning navy blue blazer to pick up (Session1). Zara boots exchanged on Feb 5, need pick up new pair (Sessi",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "6d550036",
       "question": "How many projects have I led or am currently leading?",
       "answer": 2,
-      "response": "2 projects: the Marketing Research class project (led data analysis team) and the Data Mining class solo project.",
+      "response": "We need answer based ONLY history. User asks \"How many projects have I led or am currently leading?\" Need find in history. Session 3 user says \"I've had some experience with data analysis from my Marketing Research class project, where I led the data analysis team and we did a comprehensive market a",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "gpt4_59c863d7",
       "question": "How many model kits have I worked on or bought?",
       "answer": "I have worked on or bought five model kits. The scales of the models are: Revell F-15 Eagle (scale not mentioned), Tamiya 1/48 scale Spitfire Mk.V, 1/16 scale German Tiger I tank, 1/72 scale B-29 bomber, and 1/24 scale '69 Camaro.",
-      "response": "We need answer based on history. User asks \"How many model kits have I worked on or bought?\" Need count from chats. List relevant items across sessions.\n\nSession1: Revell F-15 Eagle kit (worked on, bought? \"picked up on a whim during trip hobby store late April\", finished simple). B-29 bomber 1/72 k",
+      "response": "We need answer count of model kits user worked on or bought. Need scan history chats. Must count relevant items across sessions.\n\nSession1: user mentions Revell F-15 Eagle kit picked up hobby store late April. Then working on 1/72 B-29 bomber next. So B-29 planned? \"thinking of working on\" next, not",
       "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "b5ef892d",
       "question": "How many days did I spend on camping trips in the United States this year?",
       "answer": "8 days.",
-      "response": "We need answer based on history. Need count days camping trips in US this year? Current date 2023/04/29. History sessions dates? Memory points has Session1 2026-08-25 etc? But current date says 2023/04/29. Hmm inconsistent. Need use history chats. User mentions camping trips: Session1: \"3-day solo c",
-      "em": 1.0,
+      "response": "我们需要根据历史对话计算用户在美国露营旅行的天数。历史中有几次提到露营旅行：Session 1: 3-day solo camping trip to Big Sur in early April. Session 2: 7-day family road trip in Utah in February, but \"not camping for this time.\" 所以不算露营。Session 3: 5-day camping trip to Yellowstone last month (即从当前日期2023/04/29推算，last month是2023年3月? 但对话中说是\"la",
+      "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "e831120c",
       "question": "How many weeks did it take me to watch all the Marvel Cinematic Universe movies and the main Star Wars films?",
       "answer": "3.5 weeks",
-      "response": "3.5 weeks.",
+      "response": "We need answer based on history. User says: \"How many weeks did it take me to watch all the Marvel Cinematic Universe movies and the main Star Wars films?\" Need find in history. Session 1: watched all 22 MCU movies in two weeks. Session 2: Star Wars marathon, watched all the main films in a week and",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "3a704032",
       "question": "How many plants did I acquire in the last month?",
       "answer": 3,
-      "response": "我们需要回答“How many plants did I acquire in the last month?”基于聊天历史。当前日期是2023/05/28。需要从历史中找出用户获得植物的记录。\n\n历史会话中：\n- Session 1 (2026-08-26): 用户说“which I got from the nursery two weeks ago along with a succulent”——和平百合和 succulent，来自苗圃，两周前。因此两棵植物：peace lily 和 succulent。\n- Session 3: 用户提到“my snake plant, which ",
+      "response": "我们需要根据历史记录回答用户“How many plants did I acquire in the last month?”（我在过去一个月里获得了多少植物？）。当前日期是2023/05/28。历史对话中提到了用户获得的植物。我们需要从所有会话中找出相关的内容。\n\nLet's search the history for when user acquired plants.\n\nSession 1 (2026-08-26): user says \"peace lily, which I got from the nursery two weeks ago along with a succu",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "gpt4_d84a3211",
@@ -159,187 +154,187 @@
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "aae3761f",
       "question": "How many hours in total did I spend driving to my three road trip destinations combined?",
       "answer": "15 hours for getting to the three destinations (or 30 hours for the round trip)",
-      "response": "15 hours",
+      "response": "15 hours.",
       "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "6a1eabeb",
       "question": "What was my personal best time in the charity 5K run?",
       "answer": "25 minutes and 50 seconds (or 25:50)",
-      "response": "25:50",
+      "response": "The user asks: \"What was my personal best time in the charity 5K run?\"\n\nWe need to find relevant information in history. In Session 1, user said: \"I recently set a personal best time in a charity 5K run with a time of 27:12.\" In Session 2, user said: \"I'm hoping to beat my personal best time of 25:5",
       "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "6aeb4375",
       "question": "How many Korean restaurants have I tried in my city?",
       "answer": "four",
-      "response": "We need answer based ONLY on history. User asks \"How many Korean restaurants have I tried in my city?\" Need find relevant info. In Session 1 user said \"I've tried three different ones recently\" about Korean restaurants. In Session 2 user said \"I've tried four different ones so far\" about Korean rest",
+      "response": "We need answer based on history. User asks \"How many Korean restaurants have I tried in my city?\" We need count relevant items across sessions. Session1 user said \"I've tried three different ones recently\" in context Korean restaurants. Session2 user said \"I've tried four different ones so far\" in s",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "830ce83f",
       "question": "Where did Rachel move to after her recent relocation?",
       "answer": "the suburbs",
-      "response": "We need answer based ONLY on history. Question: \"Where did Rachel move to after her recent relocation?\" Relevant: Session 1 user says \"my friend Rachel who recently moved to a new apartment in the city\" then later \"She moved to Chicago.\" Session 2 user says \"My friend Rachel actually just moved back",
+      "response": "Rachel moved back to the suburbs.",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "852ce960",
       "question": "What was the amount I was pre-approved for when I got my mortgage from Wells Fargo?",
       "answer": "$400,000",
-      "response": "The user asks: \"What was the amount I was pre-approved for when I got my mortgage from Wells Fargo?\"\n\nFrom the history:\n- Session 1 (2026-08-26): user says \"I got pre-approved for $350,000 from Wells Fargo.\"\n- Session 2: user says \"remember when I got pre-approved for $400,000 from Wells Fargo?\"\n\nTh",
+      "response": "The user asks: \"What was the amount I was pre-approved for when I got my mortgage from Wells Fargo?\"\n\nRelevant history:\n- Session 1: user says \"I got pre-approved for $350,000 from Wells Fargo.\" (0.74 memory, also in original session)\n- Session 2: user says \"remember when I got pre-approved for $400",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "945e3d21",
       "question": "How often do I attend yoga classes to help with my anxiety?",
       "answer": "Three times a week.",
-      "response": "You mentioned yoga twice a week in one session, and later said it's three times a week. Most recently, you attend yoga three times a week.",
+      "response": "Three times a week.",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "d7c942c3",
       "question": "Is my mom using the same grocery list method as me?",
       "answer": "Yes.",
-      "response": "Yes, your mom is now using the same grocery list app as you.",
+      "response": "Yes, your mom is using the same grocery list app as you now.",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "71315a70",
       "question": "How many hours have I spent on my abstract ocean sculpture?",
       "answer": "10-12 hours",
-      "response": "10-12 hours.",
+      "response": "We need answer based on history. User asked \"How many hours have I spent on my abstract ocean sculpture?\" Need relevant info. Session 1: \"I've spent around 5-6 hours on it so far.\" Session 2: \"I've already put in 10-12 hours\" and later \"already spent 10-12 hours\". Need compute? The question asks how",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "89941a93",
       "question": "How many bikes do I currently own?",
       "answer": "4",
-      "response": "4 bikes",
-      "em": 1.0,
+      "response": "You currently own four bikes: road, mountain, commuter, and hybrid.",
+      "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "8a2466db",
       "question": "Can you recommend some resources where I can learn more about video editing?",
       "answer": "The user would prefer responses that suggest resources specifically tailored to Adobe Premiere Pro, especially those that delve into its advanced settings. They might not prefer general video editing resources or resources related to other video editing software.",
-      "response": "I recommend Adobe Premiere Pro’s official documentation and tutorials, YouTube channels like Premiere Bro, Video Copilot, and Adobe Creative Cloud, online courses on Udemy, LinkedIn Learning, and Skillshare, and communities like Reddit’s r/premierepro and Adobe’s Premiere Pro forum.",
+      "response": "Here are some resources to learn more about video editing:\n\n- Adobe Premiere Pro's official documentation and tutorials\n- YouTube channels: Premiere Bro, Video Copilot, Adobe Creative Cloud\n- Online courses on Udemy, LinkedIn Learning, and Skillshare\n- Communities and forums: Reddit's r/premierepro ",
       "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "06878be2",
       "question": "Can you suggest some accessories that would complement my current photography setup?",
       "answer": "The user would prefer suggestions of Sony-compatible accessories or high-quality photography gear that can enhance their photography experience. They may not prefer suggestions of other brands' equipment or low-quality gear.",
-      "response": "Consider an external USB-C PD battery pack (like Anker PowerCore 20000 PD) to charge your A7R IV on the go, a protective case/pouch",
+      "response": "The user asks for accessories to complement their \"current photography setup.\" From the history, the user's setup includes:\n- Sony A7R IV camera\n- Sony 24-70mm f/2.8 lens\n- Godox V1 flash (they decided to go with it)\n- Gitzo GT3543LS tripod (they were considering it, and asked details about G-Lock U",
       "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "75832dbd",
       "question": "Can you recommend some recent publications or conferences that I might find interesting?",
       "answer": "The user would prefer suggestions related to recent research papers, articles, or conferences that focus on artificial intelligence in healthcare, particularly those that involve deep learning for medical image analysis. They would not be interested in general AI topics or those unrelated to healthcare.",
-      "response": "We need answer based ONLY on relevant chat history. User asks \"Can you recommend some recent publications or conferences that I might find interesting?\" The history has user asking about explainable AI in medical image analysis, advanced topics, visualization papers. The assistant recommended many p",
+      "response": "We need answer based ONLY on history. User asks recommend recent publications or conferences. In history, we have assistant recommended many papers on XAI, advanced topics. No conferences mentioned. Need answer concisely. Since question asks \"some recent publications or conferences\" based on history",
       "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "0edc2aef",
       "question": "Can you suggest a hotel for my upcoming trip to Miami?",
       "answer": "The user would prefer suggestions of hotels in Miami that offer great views, possibly of the ocean or the city skyline, and have unique features such as a rooftop pool or a hot tub on the balcony. They may not prefer suggestions of basic or budget hotels without these features.",
-      "response": "We need to answer based only on relevant chat history. The user asks for a hotel suggestion for Miami. The history is about Seattle hotels, specifically The Edgewater Hotel. No Miami info. We must not say lack information? The instruction says if question asks about preferences/past statements, rele",
+      "response": "The user asks for a hotel suggestion for Miami. The history is entirely about Seattle hotels, specifically The Edgewater Hotel. No relevant information about Miami exists in the history. The instructions say answer based only on relevant chat history, and if the question asks about user preferences ",
       "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "35a27287",
       "question": "Can you recommend some interesting cultural events happening around me this weekend?",
       "answer": "The user would prefer responses that suggest cultural events where they can practice their language skills, particularly Spanish and French. They would also appreciate if the event has a focus on language learning resources. They would not prefer events that do not provide opportunities for language practice or cultural exchange.",
-      "response": "The user asks about cultural events happening around them this weekend. Looking at the history, the assistant previously told the user that it doesn't have access to their location, and suggested ways to find events (Eventbrite, Meetup, social media, local news, language schools, cultural centers, e",
+      "response": "The user asks about cultural events happening around them this weekend. The relevant history shows the user previously asked about cultural events/festivals celebrating language diversity and cultural exchange, and the assistant replied that it doesn't have access to location and suggested ways to f",
       "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "32260d93",
       "question": "Can you recommend a show or movie for me to watch tonight?",
       "answer": "The user would prefer recommendations for stand-up comedy specials on Netflix, especially those that are known for their storytelling. They may not prefer recommendations for other genres or platforms.",
-      "response": "Hasan Minhaj: Homecoming King is a great choice tonight — it's a masterclass in storytelling stand-up comedy.",
+      "response": "Check out Hasan Minhaj: *Homecoming King* — it’s a standout storytelling special on Netflix.",
       "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "195a1a1b",
       "question": "Can you suggest some activities that I can do in the evening?",
       "answer": "The user would prefer suggestions that involve relaxing activities that can be done in the evening, preferably before 9:30 pm. They would not prefer suggestions that involve using their phone or watching TV, as these activities have been affecting their sleep quality.",
-      "response": "In the evening, you can wind down by 9:30 pm with activities like reading, meditation or deep breathing, gentle yoga/stretching, listening to soothing music, taking an electronic device detox, preparing your sleep environment, and doing a calming pre-sleep routine (e.g., brushing teeth, journaling).",
+      "response": "In the evening, you could wind down with reading, meditation, deep breathing exercises, gentle yoga or stretching, listening to soothing music, journaling, or preparing your sleep environment—aiming to relax by 9:30 pm.",
       "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "afdc33df",
       "question": "My kitchen's becoming a bit of a mess again. Any tips for keeping it clean?",
       "answer": "The user would prefer responses that acknowledge and build upon their existing efforts to organize their kitchen, such as utilizing their new utensil holder to keep countertops clutter-free. They would also appreciate tips that address their concern for maintaining their granite surface, particularly around the sink area. Preferred responses would provide practical and actionable steps to maintain cleanliness, leveraging the user's current tools and setup. They might not prefer generic or vague suggestions that do not take into account their specific kitchen setup or concerns.",
-      "response": "The user asks for tips for keeping the kitchen clean. In Session 1, the user asked about organizing kitchen utensils, and the assistant provided tips for organizing kitchen utensils and keeping kitchen tidy. But the question asks for general tips for keeping kitchen clean. The history has assistant ",
+      "response": "To keep your kitchen clean, regularly clean your garbage disposal with baking soda and vinegar or ice and rock salt, run cold water while it's running, deodorize with lemon or orange peels, wipe granite countertops with",
       "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "7161e7e2",
       "question": "I'm checking our previous chat about the shift rotation sheet for GM social media agents. Can you remind me what was the rotation for Admon on a Sunday?",
       "answer": "Admon was assigned to the 8 am - 4 pm (Day Shift) on Sundays.",
-      "response": "Admon works the 8 am - 4 pm (Day Shift) on Sunday.",
+      "response": "Admon worked the 8 am - 4 pm shift on Sunday.",
       "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "c4f10528",
@@ -349,17 +344,17 @@
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "89527b6b",
       "question": "I'm going back to our previous conversation about the children's book on dinosaurs. Can you remind me what color was the scaly body of the Plesiosaur in the image?",
       "answer": "The Plesiosaur had a blue scaly body.",
-      "response": "The Plesiosaur had a blue scaly body.",
-      "em": 1.0,
+      "response": "Blue.",
+      "em": 0.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "e9327a54",
@@ -369,7 +364,7 @@
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "4c36ccef",
@@ -379,27 +374,27 @@
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "6ae235be",
       "question": "I remember you told me about the refining processes at CITGO's three refineries earlier. Can you remind me what kind of processes are used at the Lake Charles Refinery?",
       "answer": "Atmospheric distillation, fluid catalytic cracking (FCC), alkylation, and hydrotreating.",
-      "response": "Atmospheric distillation, fluid catalytic cracking (FCC), alkylation, and hydrotreating.",
+      "response": "Lake Charles Refinery: atmospheric distillation, fluid catalytic cracking (FCC), alkylation, and hydrotreating.",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "7e00a6cb",
       "question": "I'm planning my trip to Amsterdam again and I was wondering, what was the name of that hostel near the Red Light District that you recommended last time?",
       "answer": "International Budget Hostel",
-      "response": "International Budget Hostel.",
+      "response": "International Budget Hostel",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "1903aded",
@@ -409,47 +404,47 @@
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "e47becba",
       "question": "What degree did I graduate with?",
       "answer": "Business Administration",
-      "response": "Business Administration.",
+      "response": "Business Administration",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "118b2229",
       "question": "How long is my daily commute to work?",
       "answer": "45 minutes each way",
-      "response": "45 minutes each way (90 minutes round trip).",
+      "response": "45 minutes each way.",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "51a45a95",
       "question": "Where did I redeem a $5 coupon on coffee creamer?",
       "answer": "Target",
-      "response": "We need answer question based on history. User asked \"Where did I redeem a $5 coupon on coffee creamer?\" In history Session 1 user said \"I actually redeemed a $5 coupon on coffee creamer last Sunday...\" Assistant responded \"That's awesome! Redeeming a surprise coupon...\" No explicit store mentioned?",
+      "response": "We need answer based ONLY on history. User asked \"Where did I redeem a $5 coupon on coffee creamer?\" In history, user said \"I actually redeemed a $5 coupon on coffee creamer last Sunday, which was a nice surprise since I didn't know I had it in my email inbox.\" They didn't explicitly say where? Assi",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "58bf7951",
       "question": "What play did I attend at the local community theater?",
       "answer": "The Glass Menagerie",
-      "response": "The Glass Menagerie",
+      "response": "The Glass Menagerie.",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "1e043500",
@@ -459,7 +454,7 @@
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "c5e8278d",
@@ -469,27 +464,27 @@
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "6ade9755",
       "question": "Where do I take yoga classes?",
       "answer": "Serenity Yoga",
-      "response": "You take yoga classes at Serenity Yoga and at home using the Down Dog app.",
+      "response": "You take yoga classes at Serenity Yoga studio and at home using the Down Dog app.",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     },
     {
       "qid": "6f9b354f",
       "question": "What color did I repaint my bedroom walls?",
       "answer": "a lighter shade of gray",
-      "response": "Lighter shade of gray.",
+      "response": "A lighter shade of gray.",
       "em": 1.0,
       "mode": "p2",
       "top_k": 12,
-      "samples": 3
+      "samples": 1
     }
   ]
 }
