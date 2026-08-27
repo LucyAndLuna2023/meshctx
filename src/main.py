@@ -7369,3 +7369,251 @@ async def resource_traces(subsystem: str = None, limit: int = 20):
         return {"traces": rm.get_traces(subsystem=subsystem, limit=limit)}
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+# ═══ Business Plans API — Team/Enterprise 版 (BP v3.117, 2026-08-27) ═══
+
+def _business_store():
+    from src.core.business_plans import get_store
+    return get_store()
+
+
+def _current_user_id(request: Request) -> str:
+    """当前用户标识: session 或 API key 的哈希 (未认证时为 local)。"""
+    try:
+        from src.core.auth_v2 import _hash_session, _hash_api_key
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            return "key:" + _hash_api_key(auth[7:])
+        cookie = request.cookies.get("meshctx_session")
+        if cookie:
+            return "user:" + _hash_session(cookie)
+    except Exception:
+        pass
+    return "local"
+
+
+def _plan_of_user(request: Request) -> str:
+    """用户所在组织的 plan (默认 free)。"""
+    uid = _current_user_id(request)
+    for t in _business_store().list_teams_of_user(uid):
+        if t.plan != "free":
+            return t.plan
+    return "free"
+
+
+def _require_feature(request: Request, feature: str):
+    """功能门控: 未开放返回 None, 开放返回 plan。"""
+    plan = _plan_of_user(request)
+    from src.core.business_plans import feature_enabled
+    if feature_enabled(plan, feature):
+        return plan
+    return None
+
+
+@app.get("/api/billing/plan")
+async def billing_plan(request: Request):
+    """当前用户 plan 与功能矩阵。"""
+    plan = _plan_of_user(request)
+    from src.core.business_plans import PLAN_FEATURES, PLAN_PRICES, upgrade_path
+    return {"plan": plan, "features": PLAN_FEATURES.get(plan, {}),
+            "prices": PLAN_PRICES, "upgrade_path": upgrade_path(plan)}
+
+
+@app.get("/api/billing/features")
+async def billing_features():
+    """全部 plan 功能矩阵 (公开) — BP 定价页数据源。"""
+    from src.core.business_plans import PLAN_FEATURES, PLAN_PRICES
+    return {"plans": PLAN_FEATURES, "prices": PLAN_PRICES}
+
+
+@app.post("/api/team/create")
+async def team_create(req: Request):
+    """创建组织 (默认 free; 支持 plan/seats 直接开通)。"""
+    try:
+        body = await req.json()
+    except Exception:
+        return JSONResponse({"error": "invalid json"}, status_code=400)
+    name = body.get("name", "").strip()
+    if not name:
+        return JSONResponse({"error": "name required"}, status_code=400)
+    uid = _current_user_id(req)
+    store = _business_store()
+    plan = body.get("plan", "free")
+    if plan not in ("free", "team", "enterprise"):
+        plan = "free"
+    team = store.create_team(name=name, owner=uid, plan=plan,
+                             seats=int(body.get("seats", 5)))
+    store.audit(uid, "team.create", f"team={team.team_id} plan={plan}", req.client.host if req.client else "")
+    return {"ok": True, "team": team.to_dict()}
+
+
+@app.get("/api/team/list")
+async def team_list(request: Request):
+    """当前用户所属组织列表。"""
+    uid = _current_user_id(request)
+    teams = _business_store().list_teams_of_user(uid)
+    return {"teams": [t.to_dict() for t in teams]}
+
+
+@app.get("/api/team/get")
+async def team_get(request: Request, team_id: str = ""):
+    """组织详情 (成员 + 功能)。"""
+    team = _business_store().get_team(team_id)
+    if team is None:
+        return JSONResponse({"error": "team not found"}, status_code=404)
+    return {"team": team.to_dict()}
+
+
+@app.post("/api/team/add_member")
+async def team_add_member(req: Request):
+    """邀请成员 (Team 版: 席位限制)。"""
+    try:
+        body = await req.json()
+    except Exception:
+        return JSONResponse({"error": "invalid json"}, status_code=400)
+    team_id = body.get("team_id", "")
+    user_id = body.get("user_id", "")
+    if not team_id or not user_id:
+        return JSONResponse({"error": "team_id/user_id required"}, status_code=400)
+    store = _business_store()
+    team = store.get_team(team_id)
+    if team is None:
+        return JSONResponse({"error": "team not found"}, status_code=404)
+    if not store.add_member(team_id, user_id, body.get("role", "member")):
+        return JSONResponse({"error": "添加失败 (席位已满或已存在)"}, status_code=400)
+    store.audit(_current_user_id(req), "team.add_member", f"team={team_id} user={user_id}",
+                req.client.host if req.client else "")
+    return {"ok": True}
+
+
+@app.post("/api/team/upgrade")
+async def team_upgrade(req: Request):
+    """订阅升级: free → team/enterprise (BP 定价 $9/$29 人/月)。"""
+    try:
+        body = await req.json()
+    except Exception:
+        return JSONResponse({"error": "invalid json"}, status_code=400)
+    team_id = body.get("team_id", "")
+    plan = body.get("plan", "")
+    if plan not in ("team", "enterprise"):
+        return JSONResponse({"error": "plan must be team/enterprise"}, status_code=400)
+    store = _business_store()
+    if not store.set_plan(team_id, plan, seats=int(body.get("seats", 5)),
+                          months=int(body.get("months", 12))):
+        return JSONResponse({"error": "team not found"}, status_code=404)
+    store.audit(_current_user_id(req), "team.upgrade", f"team={team_id} plan={plan}",
+                req.client.host if req.client else "")
+    return {"ok": True, "team": store.get_team(team_id).to_dict()}
+
+
+# ── 团队共享记忆 (Team 版功能门控) ──
+
+@app.get("/api/team/memories")
+async def team_memories(request: Request, team_id: str = "", q: str = ""):
+    """团队共享记忆 — 成员可查团队级事实 (BP Team: 共享 L2/L3 记忆)。"""
+    plan = _require_feature(request, "shared_memory")
+    if plan is None:
+        return JSONResponse({"error": "团队共享记忆需 Team 版"}, status_code=403)
+    store = _business_store()
+    team = store.get_team(team_id)
+    if team is None:
+        return JSONResponse({"error": "team not found"}, status_code=404)
+    facts = []
+    for m in team.members.values():
+        # MVP: 成员记忆中的团队事实 (带 team 标签)
+        pass
+    return {"plan": plan, "team_id": team_id, "facts": facts}
+
+
+@app.post("/api/team/memories")
+async def team_memory_save(req: Request):
+    """保存团队共享记忆。"""
+    try:
+        body = await req.json()
+    except Exception:
+        return JSONResponse({"error": "invalid json"}, status_code=400)
+    plan = _require_feature(req, "shared_memory")
+    if plan is None:
+        return JSONResponse({"error": "团队共享记忆需 Team 版"}, status_code=403)
+    fact = body.get("fact", "").strip()
+    team_id = body.get("team_id", "")
+    if not fact or not team_id:
+        return JSONResponse({"error": "fact/team_id required"}, status_code=400)
+    # MVP: 持久化到团队记忆文件
+    try:
+        from pathlib import Path
+        p = Path.home() / ".meshctx" / "team_memories" / f"{team_id}.json"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else []
+        data.append({"ts": time.time(), "fact": fact,
+                     "user": _current_user_id(req)})
+        p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception as e:
+        return JSONResponse({"error": f"保存失败: {e}"}, status_code=500)
+    _business_store().audit(_current_user_id(req), "team.memory_save",
+                            f"team={team_id} fact={fact[:40]}",
+                            req.client.host if req.client else "")
+    return {"ok": True}
+
+
+# ── 团队仪表盘 (Team 版) ──
+
+@app.post("/api/team/stats")
+async def team_stats(req: Request):
+    """团队使用统计 (请求/token/模型分布, 近 N 天)。"""
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
+    plan = _require_feature(req, "team_dashboard")
+    if plan is None:
+        return JSONResponse({"error": "团队仪表盘需 Team 版"}, status_code=403)
+    team_id = body.get("team_id", "")
+    days = int(body.get("days", 7))
+    return {"plan": plan, "stats": _business_store().usage_stats(team_id, days)}
+
+
+# ── 审计日志 (Enterprise 版) ──
+
+@app.get("/api/audit/log")
+async def audit_log(request: Request, team_id: str = "", limit: int = 100):
+    """审计日志 (Enterprise: SSO/审计/SLA 合规) — 追加式操作记录。"""
+    plan = _require_feature(request, "audit_log")
+    if plan is None:
+        return JSONResponse({"error": "审计日志需 Enterprise 版"}, status_code=403)
+    logs = _business_store().audit_log(team_id, limit)
+    return {"plan": plan, "logs": logs, "count": len(logs)}
+
+
+# ── Swarm 群审 (Team 版) ──
+
+@app.post("/api/swarm/ask")
+async def swarm_ask_api(req: Request):
+    """Swarm 群审 — 5 模型并行 + 共识投票 (BP Team: 含 API 费用)。"""
+    try:
+        body = await req.json()
+    except Exception:
+        return JSONResponse({"error": "invalid json"}, status_code=400)
+    plan = _require_feature(req, "swarm_review")
+    if plan is None:
+        return JSONResponse({"error": "Swarm 群审需 Team 版"}, status_code=403)
+    question = body.get("question", "").strip()
+    if not question:
+        return JSONResponse({"error": "question required"}, status_code=400)
+    from src.core.swarm import swarm_ask as _swarm
+    result = _swarm(question,
+                    models=body.get("models"),
+                    top_k=int(body.get("top_k", 5)),
+                    strategy=body.get("strategy", "majority"),
+                    system=body.get("system", ""))
+    _business_store().record_usage(body.get("team_id", ""), model="swarm",
+                                   tokens_in=0, tokens_out=0)
+    return result
+
+
+@app.get("/api/swarm/stats")
+async def swarm_stats_api():
+    """群审可用模型检查。"""
+    from src.core.swarm import swarm_stats
+    return swarm_stats()
