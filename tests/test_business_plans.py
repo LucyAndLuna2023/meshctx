@@ -172,11 +172,12 @@ def test_budget_control_and_alert(store):
     st = store.budget_status(t.team_id)
     assert st["budget"] == 1000.0 and st["used"] == 600 and st["over_budget"] is False
     assert st["percent"] == 60.0
-    # 超限 → 告警标记
+    # 超限 → 告警标记 + budget_status 返回 budget_alert (002codex 审计修正)
     store.record_usage(t.team_id, model="openai:gpt-4o", tokens_in=500, tokens_out=100)
     st2 = store.budget_status(t.team_id)
     assert st2["over_budget"] is True
     assert st2["used"] == 1200
+    assert st2["budget_alert"] is True
     assert store.get_team(t.team_id).budget_alert is True
     # 重置预算清告警
     store.set_budget(t.team_id, 5000.0)

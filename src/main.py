@@ -7606,15 +7606,15 @@ async def team_memory_save(req: Request):
         return JSONResponse({"error": "team not found"}, status_code=404)
     if store.member_role(team_id, uid) is None:
         return JSONResponse({"error": "非团队成员, 无权写入共享记忆"}, status_code=403)
-    # ── Prompt injection / secret 扫描 (2026-08-27 痛点: 共享记忆被投毒) ──
+    # ── 敏感信息扫描 (2026-08-27 痛点: 共享记忆被投毒 — 002codex 诚实修正: SecretScanner 检测密钥/敏感信息, 非 prompt-injection 特征) ──
     try:
         from src.core.secret_scanner import SecretScanner
         findings = SecretScanner().scan_text(fact, source="team_memory")
         risk = [f for f in findings if getattr(f, "category", "") != "ignore"]
         if risk:
             store.audit(uid, "team.memory_blocked",
-                        f"team={team_id} 命中安全扫描: {risk[0].category}", req.client.host if req.client else "")
-            return JSONResponse({"error": f"共享记忆被安全扫描拦截 ({risk[0].category}), 请勿写入敏感/注入内容"},
+                        f"team={team_id} 命中敏感信息扫描: {risk[0].category}", req.client.host if req.client else "")
+            return JSONResponse({"error": f"共享记忆被敏感信息扫描拦截 ({risk[0].category}), 请勿写入密钥/敏感内容"},
                                 status_code=400)
     except Exception:
         pass
@@ -7701,6 +7701,16 @@ async def swarm_ask_api(req: Request):
     question = body.get("question", "").strip()
     if not question:
         return JSONResponse({"error": "question required"}, status_code=400)
+    team_id = body.get("team_id", "")
+    if team_id:
+        # 002codex P3: team_id 必须存在且调用者是成员 (防伪造归集/触发他团队告警)
+        if not _valid_team_id(team_id):
+            return JSONResponse({"error": "invalid team_id"}, status_code=400)
+        store = _business_store()
+        if store.get_team(team_id) is None:
+            return JSONResponse({"error": "team not found"}, status_code=404)
+        if not _require_member(req, team_id):
+            return JSONResponse({"error": "非团队成员"}, status_code=403)
     from src.core.swarm import swarm_ask as _swarm
     top_k = min(int(body.get("top_k", 5)), 5)  # 上限 5 (002codex P2: 防滥用并发)
     result = _swarm(question,
@@ -7708,7 +7718,7 @@ async def swarm_ask_api(req: Request):
                     top_k=top_k,
                     strategy=body.get("strategy", "majority"),
                     system=body.get("system", ""))
-    _business_store().record_usage(body.get("team_id", ""), model="swarm",
+    _business_store().record_usage(team_id, model="swarm",
                                    tokens_in=0, tokens_out=0)
     return result
 

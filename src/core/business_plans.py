@@ -367,9 +367,12 @@ class BusinessStore:
                 if d >= month_start:
                     used += u.tokens_in + u.tokens_out
         pct = (used / budget * 100) if budget > 0 else 0.0
+        with self._lock:
+            alert = bool(self._teams.get(team_id).budget_alert) if team_id in self._teams else False
         return {"team_id": team_id, "budget": budget, "used": used,
                 "percent": round(pct, 1),
-                "over_budget": budget > 0 and used > budget}
+                "over_budget": budget > 0 and used > budget,
+                "budget_alert": alert}  # 告警状态可读 (002codex 审计修正)
 
     # ── 使用统计 ──
     def record_usage(self, team_id: str, model: str = "",
@@ -387,12 +390,13 @@ class BusinessStore:
             st.tokens_out += tokens_out
             if model:
                 st.model_calls[model] = st.model_calls.get(model, 0) + 1
-            # 预算告警 (首次超限标记, 去重)
+            # 预算告警 (首次超限标记, 去重; 仅当月累计 — 002codex 审计修正)
             team = self._teams.get(team_id)
             if team is not None and team.monthly_budget > 0 and not team.budget_alert:
+                _month = time.strftime("%Y-%m-01")
                 _used = sum((self._usage.get(team_id, {}).get(dd, UsageStats()).tokens_in
                              + self._usage.get(team_id, {}).get(dd, UsageStats()).tokens_out)
-                            for dd in self._usage.get(team_id, {}))
+                            for dd in self._usage.get(team_id, {}) if dd >= _month)
                 if _used > team.monthly_budget:
                     team.budget_alert = True
             self._save()
