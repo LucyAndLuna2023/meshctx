@@ -9,6 +9,7 @@
 对比: 原生全量上下文(基线 52.1%) vs MeshCtx 脑区精选增强
 """
 import json
+import sys
 import os
 import re
 import string
@@ -271,15 +272,32 @@ def evaluate(entries, mode, top_k=8, gate_openness=1.0, question_hint=True, samp
 
 def main():
     os.makedirs(OUT, exist_ok=True)
+    # --mode 支持 (2026-08-27 002codex P2: main() 从不重测 full 基线, 无法重现)
+    # 用法: python3 run_meshctx_memory.py --mode=full [--samples=3] — 只跑基线, 供对称口径复现
+    mode_only = ""
+    for _a in sys.argv[1:]:
+        if _a.startswith("--mode="):
+            mode_only = _a.split("=", 1)[1]
+        elif _a.startswith("--samples="):
+            os.environ["MESHCTX_SAMPLES"] = _a.split("=", 1)[1]
     data = json.load(open(DATA, encoding="utf-8"))
     by_type = {}
     for e in data:
         by_type.setdefault(e["question_type"], []).append(e)
     sample_by_type = {t: s[:N_PER_TYPE] for t, s in by_type.items()}
     all_samples = [e for s in sample_by_type.values() for e in s]
-
-    # ── 基因组参数进化: 用前 12 样本(每类前2)扫描 top_k, GenomicOptimizer 记录+进化 ──
     samples = int(os.environ.get("MESHCTX_SAMPLES", "1"))  # 多采样 best-of-N (2026-08-27)
+
+    # ── --mode=full: 只跑对称基线 (同模板+256token+同采样) ──
+    if mode_only in ("full", "baseline"):
+        c, t, det = evaluate(all_samples, mode="full", top_k=12, gate_openness=0.8, samples=samples)
+        out = os.path.join(OUT, f"full_baseline_s{samples}.json")
+        json.dump({"model": MODEL, "mode": "full", "n_samples": samples,
+                   "accuracy": c / t if t else 0, "correct": c, "total": t, "samples": det},
+                  open(out, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+        print(f"\n== 基线 full ({samples}采样): {c}/{t} = {c/t:.1%} == 保存: {out}")
+        return
+
     train = [e for s in sample_by_type.values() for e in s[:2]]
     skip_scan = os.environ.get("MESHCTX_SKIP_SCAN") == "1"  # 已跑过扫描时跳过（best_k 已知）
     if skip_scan:

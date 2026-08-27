@@ -4,7 +4,7 @@
   "n_per_type": 8,
   "top_k": 12,
   "n_samples": 3,
-  "baseline_full_history_accuracy": 0.5208333333333334,
+  "baseline_full_history_accuracy": 0.6458333333333334,
   "p2_injection": {
     "correct": 32.0,
     "total": 48,
@@ -491,5 +491,6 @@
       "top_k": 12,
       "samples": 3
     }
-  ]
+  ],
+  "baseline_full_history_note": "新基线同口径 (新模板+max_tokens 256+3采样 best-of-3), 31/48 = 64.6%; 旧 52.1% 为旧模板+80token+单采样(被截断低估)"
 }
