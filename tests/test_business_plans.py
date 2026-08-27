@@ -99,10 +99,13 @@ def test_audit_log(store):
 
 
 def test_usage_stats(store):
-    store.record_usage("t1", model="deepseek:chat", tokens_in=100, tokens_out=50)
-    store.record_usage("t1", model="deepseek:chat", tokens_in=200, tokens_out=80)
-    store.record_usage("t1", model="openai:gpt-4o", tokens_in=300, tokens_out=120)
-    stats = store.usage_stats("t1", days=7)
+    t = store.create_team("统计组", "owner")
+    tid = t.team_id  # record_usage 校验 team 存在 (002codex P2)
+    assert store.record_usage(tid, model="deepseek:chat", tokens_in=100, tokens_out=50) is True
+    assert store.record_usage(tid, model="deepseek:chat", tokens_in=200, tokens_out=80) is True
+    assert store.record_usage(tid, model="openai:gpt-4o", tokens_in=300, tokens_out=120) is True
+    assert store.record_usage("nonexistent_team", model="x") is False  # 伪造统计拒绝
+    stats = store.usage_stats(tid, days=7)
     assert stats["total"]["requests"] == 3
     assert stats["total"]["tokens_in"] == 600
     assert stats["total"]["tokens_out"] == 250

@@ -147,10 +147,12 @@ class AuditEntry:
     action: str
     detail: str
     ip: str = ""
+    team_id: str = ""          # 所属团队 (002codex P1-4: 审计按租户隔离)
 
     def to_dict(self) -> Dict[str, Any]:
         return {"ts": self.ts, "user_id": self.user_id,
-                "action": self.action, "detail": self.detail, "ip": self.ip}
+                "action": self.action, "detail": self.detail, "ip": self.ip,
+                "team_id": self.team_id}
 
 
 # ── Agent 活动日志 (观察性, 2026-08-27 splunk/cloudzero 痛点) ──
@@ -314,23 +316,26 @@ class BusinessStore:
             if team is None or plan not in PLAN_FEATURES:
                 return False
             team.plan = plan
-            team.seats = seats
+            team.seats = max(seats, len(team.members))  # 席位不可小于现有成员
             team.subscription_until = time.time() + months * 30 * 24 * 3600
             self._save()
             return True
 
     # ── 审计 ──
-    def audit(self, user_id: str, action: str, detail: str = "", ip: str = "") -> None:
+    def audit(self, user_id: str, action: str, detail: str = "", ip: str = "",
+              team_id: str = "") -> None:
         with self._lock:
             self._audit.append(AuditEntry(ts=time.time(), user_id=user_id,
-                                          action=action, detail=detail, ip=ip))
+                                          action=action, detail=detail, ip=ip,
+                                          team_id=team_id))
             self._save()
 
     def audit_log(self, team_id: str = "", limit: int = 100) -> List[Dict[str, Any]]:
+        """按团队精确过滤 (002codex P1-4: 跨租户隔离, 不再子串匹配)。"""
         with self._lock:
             logs = [a.to_dict() for a in self._audit]
         if team_id:
-            logs = [a for a in logs if team_id in a.get("detail", "")]
+            logs = [a for a in logs if a.get("team_id") == team_id]
         return logs[-limit:]
 
     # ── Agent 活动日志 ──
@@ -368,7 +373,11 @@ class BusinessStore:
 
     # ── 使用统计 ──
     def record_usage(self, team_id: str, model: str = "",
-                     tokens_in: int = 0, tokens_out: int = 0) -> None:
+                     tokens_in: int = 0, tokens_out: int = 0) -> bool:
+        """记录使用。team_id 必须存在 (002codex P2: 防伪造统计)。"""
+        with self._lock:
+            if team_id and team_id not in self._teams:
+                return False
         day = time.strftime("%Y-%m-%d")
         with self._lock:
             days = self._usage.setdefault(team_id, {})
@@ -387,6 +396,7 @@ class BusinessStore:
                 if _used > team.monthly_budget:
                     team.budget_alert = True
             self._save()
+            return True
 
     def usage_stats(self, team_id: str, days: int = 7) -> Dict[str, Any]:
         with self._lock:

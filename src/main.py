@@ -7378,43 +7378,73 @@ def _business_store():
     return get_store()
 
 
-def _current_user_id(request: Request) -> str:
-    """当前用户标识: session 或 API key 的哈希 (未认证时为 local)。"""
+async def _current_user_id(request: Request) -> str:
+    """当前用户身份 (002codex P1-1 修复: 用 auth_v2._authenticate 语义)。
+    - session (管理员): "admin"
+    - API key: "key:{name}"
+    - 未认证回环 (本机桌面): "local"  (桌面 MVP 单用户)
+    - 未认证远程: "" (匿名 → 付费 API 401)
+    """
     try:
-        from src.core.auth_v2 import _hash_session, _hash_api_key
-        auth = request.headers.get("Authorization", "")
-        if auth.startswith("Bearer "):
-            return "key:" + _hash_api_key(auth[7:])
-        cookie = request.cookies.get("meshctx_session")
-        if cookie:
-            return "user:" + _hash_session(cookie)
+        from src.core.auth_v2 import _authenticate, _is_loopback_client
+        identity, is_admin = await _authenticate(request)
+        if identity:
+            return "admin" if is_admin else f"key:{identity}"
+        if _is_loopback_client(request):
+            return "local"
     except Exception:
         pass
-    return "local"
+    return ""
 
 
-def _plan_of_user(request: Request) -> str:
-    """用户所在组织的 plan (默认 free)。"""
-    uid = _current_user_id(request)
+async def _plan_of_user(request: Request) -> str:
+    """用户所在组织的 plan (默认 free)。未认证用户无 plan。"""
+    uid = await _current_user_id(request)
+    if not uid:
+        return ""
     for t in _business_store().list_teams_of_user(uid):
         if t.plan != "free":
             return t.plan
     return "free"
 
 
-def _require_feature(request: Request, feature: str):
-    """功能门控: 未开放返回 None, 开放返回 plan。"""
-    plan = _plan_of_user(request)
+async def _require_feature(request: Request, feature: str):
+    """功能门控: 未开放返回 None, 开放返回 plan。未认证远程 → 401。"""
+    if not await _current_user_id(request):
+        return None
+    plan = await _plan_of_user(request)
     from src.core.business_plans import feature_enabled
     if feature_enabled(plan, feature):
         return plan
     return None
 
 
+async def _require_member(request: Request, team_id: str) -> bool:
+    """团队成员校验 (002codex P1-2 IDOR 修复): 调用者必须是团队成员。"""
+    uid = await _current_user_id(request)
+    if not uid:
+        return False
+    return _business_store().member_role(team_id, uid) is not None
+
+
+async def _require_owner_admin(request: Request, team_id: str) -> bool:
+    """管理操作校验: owner/admin (RBAC)。"""
+    uid = await _current_user_id(request)
+    if not uid:
+        return False
+    return _business_store().can_manage(team_id, uid)
+
+
+def _valid_team_id(team_id: str) -> bool:
+    """team_id 格式校验 (002codex P1-3 路径穿越修复): ^[0-9a-f]{12}$。"""
+    import re as _re
+    return bool(_re.fullmatch(r"[0-9a-f]{12}", team_id or ""))
+
+
 @app.get("/api/billing/plan")
 async def billing_plan(request: Request):
     """当前用户 plan 与功能矩阵。"""
-    plan = _plan_of_user(request)
+    plan = await _plan_of_user(request)
     from src.core.business_plans import PLAN_FEATURES, PLAN_PRICES, upgrade_path
     return {"plan": plan, "features": PLAN_FEATURES.get(plan, {}),
             "prices": PLAN_PRICES, "upgrade_path": upgrade_path(plan)}
@@ -7437,32 +7467,38 @@ async def team_create(req: Request):
     name = body.get("name", "").strip()
     if not name:
         return JSONResponse({"error": "name required"}, status_code=400)
-    uid = _current_user_id(req)
+    uid = await _current_user_id(req)
+    if not uid:
+        return JSONResponse({"error": "请先认证 (登录或 API Key)"}, status_code=401)
     store = _business_store()
-    plan = body.get("plan", "free")
-    if plan not in ("free", "team", "enterprise"):
-        plan = "free"
-    team = store.create_team(name=name, owner=uid, plan=plan,
-                             seats=int(body.get("seats", 5)))
-    store.audit(uid, "team.create", f"team={team.team_id} plan={plan}", req.client.host if req.client else "")
+    # 安全: 客户端不可指定 plan/seats — 服务端固定 free, 升级走 upgrade (002codex P1-2)
+    team = store.create_team(name=name, owner=uid, plan="free", seats=5)
+    store.audit(uid, "team.create", f"team={team.team_id} plan=free",
+                req.client.host if req.client else "", team_id=team.team_id)
     return {"ok": True, "team": team.to_dict()}
 
 
 @app.get("/api/team/list")
 async def team_list(request: Request):
-    """当前用户所属组织列表。"""
-    uid = _current_user_id(request)
+    """当前用户所属组织列表。未认证远程 → 401。"""
+    uid = await _current_user_id(request)
+    if not uid:
+        return JSONResponse({"error": "请先认证 (登录或 API Key)"}, status_code=401)
     teams = _business_store().list_teams_of_user(uid)
     return {"teams": [t.to_dict() for t in teams]}
 
 
 @app.get("/api/team/get")
 async def team_get(request: Request, team_id: str = ""):
-    """组织详情 (成员 + 功能)。"""
-    team = _business_store().get_team(team_id)
-    if team is None:
+    """组织详情 (成员 + 功能)。仅团队成员可读 (002codex P1-2 IDOR 修复)。"""
+    if not _valid_team_id(team_id):
+        return JSONResponse({"error": "invalid team_id"}, status_code=400)
+    store = _business_store()
+    if store.get_team(team_id) is None:
         return JSONResponse({"error": "team not found"}, status_code=404)
-    return {"team": team.to_dict()}
+    if not await _require_member(request, team_id):
+        return JSONResponse({"error": "非团队成员, 无权查看"}, status_code=403)
+    return {"team": store.get_team(team_id).to_dict()}
 
 
 @app.post("/api/team/add_member")
@@ -7480,11 +7516,11 @@ async def team_add_member(req: Request):
     team = store.get_team(team_id)
     if team is None:
         return JSONResponse({"error": "team not found"}, status_code=404)
-    if not store.can_manage(team_id, _current_user_id(req)):
+    if not store.can_manage(team_id, await _current_user_id(req)):
         return JSONResponse({"error": "需 owner/admin 权限管理成员"}, status_code=403)
     if not store.add_member(team_id, user_id, body.get("role", "member")):
         return JSONResponse({"error": "添加失败 (席位已满或已存在)"}, status_code=400)
-    store.audit(_current_user_id(req), "team.add_member", f"team={team_id} user={user_id}",
+    store.audit(await _current_user_id(req), "team.add_member", f"team={team_id} user={user_id}",
                 req.client.host if req.client else "")
     return {"ok": True}
 
@@ -7500,13 +7536,18 @@ async def team_upgrade(req: Request):
     plan = body.get("plan", "")
     if plan not in ("team", "enterprise"):
         return JSONResponse({"error": "plan must be team/enterprise"}, status_code=400)
+    if not _valid_team_id(team_id):
+        return JSONResponse({"error": "invalid team_id"}, status_code=400)
     store = _business_store()
-    if not store.can_manage(team_id, _current_user_id(req)):
+    if store.get_team(team_id) is None:
+        return JSONResponse({"error": "team not found"}, status_code=404)
+    if not await _require_owner_admin(req, team_id):
         return JSONResponse({"error": "需 owner/admin 权限升级"}, status_code=403)
-    if not store.set_plan(team_id, plan, seats=int(body.get("seats", 5)),
+    seats = min(int(body.get("seats", 5)), 50)  # 席位上限 (002codex P2)
+    if not store.set_plan(team_id, plan, seats=seats,
                           months=int(body.get("months", 12))):
         return JSONResponse({"error": "team not found"}, status_code=404)
-    store.audit(_current_user_id(req), "team.upgrade", f"team={team_id} plan={plan}",
+    store.audit(await _current_user_id(req), "team.upgrade", f"team={team_id} plan={plan}",
                 req.client.host if req.client else "")
     return {"ok": True, "team": store.get_team(team_id).to_dict()}
 
@@ -7516,13 +7557,17 @@ async def team_upgrade(req: Request):
 @app.get("/api/team/memories")
 async def team_memories(request: Request, team_id: str = "", q: str = ""):
     """团队共享记忆 — 成员可查团队级事实 (BP Team: 共享 L2/L3 记忆)。"""
-    plan = _require_feature(request, "shared_memory")
+    plan = await _require_feature(request, "shared_memory")
     if plan is None:
-        return JSONResponse({"error": "团队共享记忆需 Team 版"}, status_code=403)
+        return JSONResponse({"error": "团队共享记忆需 Team 版"}, status_code=401 if not await _current_user_id(request) else 403)
+    if not _valid_team_id(team_id):
+        return JSONResponse({"error": "invalid team_id"}, status_code=400)
     store = _business_store()
     team = store.get_team(team_id)
     if team is None:
         return JSONResponse({"error": "team not found"}, status_code=404)
+    if not await _require_member(request, team_id):
+        return JSONResponse({"error": "非团队成员"}, status_code=403)
     facts = []
     try:
         from pathlib import Path
@@ -7545,14 +7590,17 @@ async def team_memory_save(req: Request):
         body = await req.json()
     except Exception:
         return JSONResponse({"error": "invalid json"}, status_code=400)
-    plan = _require_feature(req, "shared_memory")
+    plan = await _require_feature(req, "shared_memory")
     if plan is None:
-        return JSONResponse({"error": "团队共享记忆需 Team 版"}, status_code=403)
+        return JSONResponse({"error": "团队共享记忆需 Team 版"}, status_code=401 if not await _current_user_id(req) else 403)
     fact = body.get("fact", "").strip()
     team_id = body.get("team_id", "")
-    uid = _current_user_id(req)
+    uid = await _current_user_id(req)
     if not fact or not team_id:
         return JSONResponse({"error": "fact/team_id required"}, status_code=400)
+    # 路径穿越防护 (002codex P1-3): team_id 格式 + 解析后必须在目录内
+    if not _valid_team_id(team_id):
+        return JSONResponse({"error": "invalid team_id"}, status_code=400)
     store = _business_store()
     if store.get_team(team_id) is None:
         return JSONResponse({"error": "team not found"}, status_code=404)
@@ -7570,11 +7618,14 @@ async def team_memory_save(req: Request):
                                 status_code=400)
     except Exception:
         pass
-    # 持久化 (带治理字段: status 供记忆错误纠正)
+    # 持久化 (带治理字段: status 供记忆错误纠正) — resolve 后必须在目录内
     try:
         from pathlib import Path
-        p = Path.home() / ".meshctx" / "team_memories" / f"{team_id}.json"
-        p.parent.mkdir(parents=True, exist_ok=True)
+        mem_dir = (Path.home() / ".meshctx" / "team_memories").resolve()
+        mem_dir.mkdir(parents=True, exist_ok=True)
+        p = (mem_dir / f"{team_id}.json").resolve()
+        if p.parent != mem_dir:   # 双保险: 解析后越界拒绝
+            return JSONResponse({"error": "invalid path"}, status_code=400)
         data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else []
         data.append({"ts": time.time(), "fact": fact, "user": uid,
                      "status": "active",       # active/deprecated/error (记忆治理)
@@ -7599,23 +7650,39 @@ async def team_stats(req: Request):
         body = await req.json()
     except Exception:
         body = {}
-    plan = _require_feature(req, "team_dashboard")
+    plan = await _require_feature(req, "team_dashboard")
     if plan is None:
-        return JSONResponse({"error": "团队仪表盘需 Team 版"}, status_code=403)
+        return JSONResponse({"error": "团队仪表盘需 Team 版"}, status_code=401 if not await _current_user_id(req) else 403)
     team_id = body.get("team_id", "")
     days = int(body.get("days", 7))
-    return {"plan": plan, "stats": _business_store().usage_stats(team_id, days)}
+    if not _valid_team_id(team_id):
+        return JSONResponse({"error": "invalid team_id"}, status_code=400)
+    store = _business_store()
+    if store.get_team(team_id) is None:
+        return JSONResponse({"error": "team not found"}, status_code=404)
+    if not await _require_member(req, team_id):
+        return JSONResponse({"error": "非团队成员"}, status_code=403)
+    return {"plan": plan, "stats": store.usage_stats(team_id, days)}
 
 
 # ── 审计日志 (Enterprise 版) ──
 
 @app.get("/api/audit/log")
 async def audit_log(request: Request, team_id: str = "", limit: int = 100):
-    """审计日志 (Enterprise: SSO/审计/SLA 合规) — 追加式操作记录。"""
-    plan = _require_feature(request, "audit_log")
+    """审计日志 (Enterprise: SSO/审计/SLA 合规) — 按调用者所属团队隔离 (002codex P1-4)。"""
+    plan = await _require_feature(request, "audit_log")
     if plan is None:
-        return JSONResponse({"error": "审计日志需 Enterprise 版"}, status_code=403)
-    logs = _business_store().audit_log(team_id, limit)
+        return JSONResponse({"error": "审计日志需 Enterprise 版"}, status_code=401 if not await _current_user_id(request) else 403)
+    store = _business_store()
+    uid = await _current_user_id(request)
+    # 只返回调用者所属团队的审计 (跨租户隔离)
+    my_teams = [t.team_id for t in store.list_teams_of_user(uid)]
+    if team_id and team_id not in my_teams:
+        return JSONResponse({"error": "非团队成员"}, status_code=403)
+    logs = []
+    for tid in my_teams:
+        logs.extend(store.audit_log(tid, limit))
+    logs = sorted(logs, key=lambda x: x.get("ts", 0))[-limit:]
     return {"plan": plan, "logs": logs, "count": len(logs)}
 
 
@@ -7628,16 +7695,17 @@ async def swarm_ask_api(req: Request):
         body = await req.json()
     except Exception:
         return JSONResponse({"error": "invalid json"}, status_code=400)
-    plan = _require_feature(req, "swarm_review")
+    plan = await _require_feature(req, "swarm_review")
     if plan is None:
         return JSONResponse({"error": "Swarm 群审需 Team 版"}, status_code=403)
     question = body.get("question", "").strip()
     if not question:
         return JSONResponse({"error": "question required"}, status_code=400)
     from src.core.swarm import swarm_ask as _swarm
+    top_k = min(int(body.get("top_k", 5)), 5)  # 上限 5 (002codex P2: 防滥用并发)
     result = _swarm(question,
                     models=body.get("models"),
-                    top_k=int(body.get("top_k", 5)),
+                    top_k=top_k,
                     strategy=body.get("strategy", "majority"),
                     system=body.get("system", ""))
     _business_store().record_usage(body.get("team_id", ""), model="swarm",
@@ -7659,15 +7727,19 @@ async def team_memory_correct(req: Request):
         body = await req.json()
     except Exception:
         return JSONResponse({"error": "invalid json"}, status_code=400)
-    plan = _require_feature(req, "shared_memory")
+    plan = await _require_feature(req, "shared_memory")
     if plan is None:
         return JSONResponse({"error": "团队共享记忆需 Team 版"}, status_code=403)
     team_id = body.get("team_id", "")
     idx = int(body.get("index", -1))
     correct = body.get("corrected_fact", "").strip()
-    uid = _current_user_id(req)
+    uid = await _current_user_id(req)
+    if not _valid_team_id(team_id):
+        return JSONResponse({"error": "invalid team_id"}, status_code=400)
     store = _business_store()
-    if not store.can_manage(team_id, uid):
+    if store.get_team(team_id) is None:
+        return JSONResponse({"error": "team not found"}, status_code=404)
+    if not await _require_owner_admin(req, team_id):
         return JSONResponse({"error": "需 owner/admin 权限进行记忆治理"}, status_code=403)
     if not correct:
         return JSONResponse({"error": "corrected_fact required"}, status_code=400)
@@ -7696,7 +7768,7 @@ async def team_memory_mark(req: Request):
         body = await req.json()
     except Exception:
         return JSONResponse({"error": "invalid json"}, status_code=400)
-    plan = _require_feature(req, "shared_memory")
+    plan = await _require_feature(req, "shared_memory")
     if plan is None:
         return JSONResponse({"error": "团队共享记忆需 Team 版"}, status_code=403)
     team_id = body.get("team_id", "")
@@ -7704,9 +7776,13 @@ async def team_memory_mark(req: Request):
     status = body.get("status", "deprecated")
     if status not in ("active", "deprecated"):
         return JSONResponse({"error": "status must be active/deprecated"}, status_code=400)
-    uid = _current_user_id(req)
+    uid = await _current_user_id(req)
+    if not _valid_team_id(team_id):
+        return JSONResponse({"error": "invalid team_id"}, status_code=400)
     store = _business_store()
-    if not store.can_manage(team_id, uid):
+    if store.get_team(team_id) is None:
+        return JSONResponse({"error": "team not found"}, status_code=404)
+    if not await _require_owner_admin(req, team_id):
         return JSONResponse({"error": "需 owner/admin 权限"}, status_code=403)
     try:
         from pathlib import Path
@@ -7728,12 +7804,16 @@ async def team_memory_mark(req: Request):
 @app.get("/api/team/budget")
 async def team_budget_get(request: Request, team_id: str = ""):
     """预算使用状态 (成本控制, cloudzero 账单失控痛点)。"""
-    plan = _require_feature(request, "team_dashboard")
+    plan = await _require_feature(request, "team_dashboard")
     if plan is None:
-        return JSONResponse({"error": "团队仪表盘需 Team 版"}, status_code=403)
+        return JSONResponse({"error": "团队仪表盘需 Team 版"}, status_code=401 if not await _current_user_id(request) else 403)
+    if not _valid_team_id(team_id):
+        return JSONResponse({"error": "invalid team_id"}, status_code=400)
     store = _business_store()
     if store.get_team(team_id) is None:
         return JSONResponse({"error": "team not found"}, status_code=404)
+    if not await _require_member(request, team_id):
+        return JSONResponse({"error": "非团队成员"}, status_code=403)
     return {"plan": plan, "budget": store.budget_status(team_id)}
 
 
@@ -7744,14 +7824,20 @@ async def team_budget_set(req: Request):
         body = await req.json()
     except Exception:
         return JSONResponse({"error": "invalid json"}, status_code=400)
-    plan = _require_feature(req, "team_dashboard")
+    plan = await _require_feature(req, "team_dashboard")
     if plan is None:
         return JSONResponse({"error": "团队仪表盘需 Team 版"}, status_code=403)
     team_id = body.get("team_id", "")
     budget = float(body.get("monthly_budget", 0))
-    uid = _current_user_id(req)
+    if budget > 1000000000:  # 上限保护
+        return JSONResponse({"error": "budget 超上限"}, status_code=400)
+    uid = await _current_user_id(req)
+    if not _valid_team_id(team_id):
+        return JSONResponse({"error": "invalid team_id"}, status_code=400)
     store = _business_store()
-    if not store.can_manage(team_id, uid):
+    if store.get_team(team_id) is None:
+        return JSONResponse({"error": "team not found"}, status_code=404)
+    if not await _require_owner_admin(req, team_id):
         return JSONResponse({"error": "需 owner/admin 权限设置预算"}, status_code=403)
     if not store.set_budget(team_id, budget):
         return JSONResponse({"error": "team not found"}, status_code=404)
@@ -7763,10 +7849,14 @@ async def team_budget_set(req: Request):
 @app.get("/api/team/activity")
 async def team_activity(request: Request, team_id: str = "", limit: int = 100):
     """Agent 活动日志 (观察性, splunk 痛点: agent 运行不可见)。"""
-    plan = _require_feature(request, "team_dashboard")
+    plan = await _require_feature(request, "team_dashboard")
     if plan is None:
-        return JSONResponse({"error": "团队仪表盘需 Team 版"}, status_code=403)
+        return JSONResponse({"error": "团队仪表盘需 Team 版"}, status_code=401 if not await _current_user_id(request) else 403)
+    if not _valid_team_id(team_id):
+        return JSONResponse({"error": "invalid team_id"}, status_code=400)
     store = _business_store()
     if store.get_team(team_id) is None:
         return JSONResponse({"error": "team not found"}, status_code=404)
+    if not await _require_member(request, team_id):
+        return JSONResponse({"error": "非团队成员"}, status_code=403)
     return {"plan": plan, "team_id": team_id, "activity": store.activity_log(team_id, limit)}
