@@ -412,4 +412,4 @@ def test_telemetry_record_and_stats():
     assert st["tokens_in"] == 100 and st["tokens_out"] == 50
     assert st["tool_calls"].get("web_search") == 1
     assert st["errors"] == 1
-    assert st["avg_latency_ms"] == 275
+    assert st["avg_latency_ms"] == 550  # 只算 latency>0: (800+300)/2

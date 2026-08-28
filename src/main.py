@@ -8026,33 +8026,43 @@ async def billing_route(request: Request):
 
 @app.get("/api/telemetry/events")
 async def telemetry_events(request: Request, agent: str = "", limit: int = 100):
-    """Agent 运行事件流 (token/工具/错误/延迟 — 可观测性)。"""
+    """Agent 运行事件流 (token/工具/错误/延迟 — 可观测性)。002codex P2: 需认证。"""
+    if not await _current_user_id(request):
+        return JSONResponse({"error": "请先认证"}, status_code=401)
     from src.core.telemetry import get_telemetry
     return {"events": get_telemetry().events(agent, limit)}
 
 
 @app.get("/api/telemetry/stats")
-async def telemetry_stats(window_hours: int = 24):
-    """Agent 运行统计 (近 N 小时: token/工具/错误/平均延迟)。"""
+async def telemetry_stats(request: Request, window_hours: int = 24):
+    """Agent 运行统计 (近 N 小时: token/工具/错误/平均延迟)。002codex P2: 需认证。"""
+    if not await _current_user_id(request):
+        return JSONResponse({"error": "请先认证"}, status_code=401)
     from src.core.telemetry import get_telemetry
     return get_telemetry().stats(window_hours)
 
 
 @app.post("/api/telemetry/record")
 async def telemetry_record(req: Request):
-    """记录一个遥测事件 (agent 运行时调用)。"""
+    """记录一个遥测事件 (agent 运行时调用)。002codex P2: 需认证 + agent 白名单。"""
+    if not await _current_user_id(req):
+        return JSONResponse({"error": "请先认证"}, status_code=401)
     try:
         body = await req.json()
     except Exception:
         return JSONResponse({"error": "invalid json"}, status_code=400)
     from src.core.telemetry import get_telemetry
+    _agent = body.get("agent", "custom")
+    _ALLOWED = {"chat", "task", "swarm", "team_memory", "custom", "agent_loop"}
+    if _agent not in _ALLOWED:
+        return JSONResponse({"error": f"agent 不在白名单: {_agent}"}, status_code=400)
     get_telemetry().record(
-        agent=body.get("agent", "custom"),
+        agent=_agent,
         event_type=body.get("event_type", "custom"),
         model=body.get("model", ""),
-        latency_ms=int(body.get("latency_ms", 0)),
-        tokens_in=int(body.get("tokens_in", 0)),
-        tokens_out=int(body.get("tokens_out", 0)),
+        latency_ms=body.get("latency_ms", 0),     # telemetry.record 内部安全转换 (002codex P3)
+        tokens_in=body.get("tokens_in", 0),
+        tokens_out=body.get("tokens_out", 0),
         tool=body.get("tool", ""),
         detail=body.get("detail", ""),
         session_id=body.get("session_id", ""))
@@ -8063,7 +8073,10 @@ async def telemetry_record(req: Request):
 
 @app.post("/api/memory/retrieve")
 async def memory_retrieve_api(req: Request):
-    """记忆渐进披露检索 — high→full / mid→summary / low→title。"""
+    """记忆渐进披露检索 — high→full / mid→summary / low→title。
+    002codex P1: 未认证拒绝 (共享记忆库含全部用户记忆, 防隐私泄露)。"""
+    if not await _current_user_id(req):
+        return JSONResponse({"error": "请先认证 (登录或 API Key)"}, status_code=401)
     try:
         body = await req.json()
     except Exception:

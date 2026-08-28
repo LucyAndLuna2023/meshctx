@@ -63,9 +63,18 @@ class TelemetryStore:
     def record(self, agent: str, event_type: str, model: str = "",
                latency_ms: int = 0, tokens_in: int = 0, tokens_out: int = 0,
                tool: str = "", detail: str = "", session_id: str = "") -> None:
+        # 002codex P3: int() 安全转换 (异常输入不 500)
+        try:
+            latency_ms = int(latency_ms)
+        except (TypeError, ValueError):
+            latency_ms = 0
+        try:
+            tokens_in = int(tokens_in); tokens_out = int(tokens_out)
+        except (TypeError, ValueError):
+            tokens_in = tokens_out = 0
         ev = TelemetryEvent(ts=time.time(), agent=agent, event_type=event_type,
-                            model=model, latency_ms=latency_ms,
-                            tokens_in=tokens_in, tokens_out=tokens_out,
+                            model=model, latency_ms=max(0, latency_ms),
+                            tokens_in=max(0, tokens_in), tokens_out=max(0, tokens_out),
                             tool=tool, detail=detail, session_id=session_id)
         with self._lock:
             self._events.append(ev)
@@ -75,6 +84,10 @@ class TelemetryStore:
                 self._path.parent.mkdir(parents=True, exist_ok=True)
                 with open(self._path, "a", encoding="utf-8") as f:
                     f.write(json.dumps(ev.to_dict(), ensure_ascii=False) + "\n")
+                # 002codex P3: 裁剪 — 文件超过 10000 行时保留最近 5000
+                if self._path.stat().st_size > 2 * 1024 * 1024:  # >2MB 裁剪
+                    lines = self._path.read_text(encoding="utf-8").splitlines()[-5000:]
+                    self._path.write_text("\n".join(lines) + "\n", encoding="utf-8")
             except Exception:
                 pass
 
@@ -98,10 +111,11 @@ class TelemetryStore:
                 tools[e.tool] = tools.get(e.tool, 0) + 1
             if e.event_type == "error":
                 errors += 1
+        lat_events = [e.latency_ms for e in recent if e.latency_ms > 0]
         return {"window_hours": window_hours, "events": len(recent),
                 "tokens_in": tokens_in, "tokens_out": tokens_out,
                 "tool_calls": tools, "errors": errors,
-                "avg_latency_ms": int(sum(e.latency_ms for e in recent) / max(1, len(recent)))}
+                "avg_latency_ms": int(sum(lat_events) / max(1, len(lat_events))) if lat_events else 0}
 
 
 _default: Optional[TelemetryStore] = None

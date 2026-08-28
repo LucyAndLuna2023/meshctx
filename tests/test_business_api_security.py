@@ -139,3 +139,24 @@ def test_audit_team_id_persisted(admin_client, team):
     from src.core.business_plans import get_store
     logs = get_store().audit_log(team["team_id"], limit=50)
     assert any(l.get("team_id") == team["team_id"] for l in logs), "audit 日志应带 team_id"
+
+
+def test_memory_retrieve_requires_auth(anon_client, admin_client):
+    """002codex P1: /api/memory/retrieve 未认证 → 401 (防记忆泄露)。"""
+    r = anon_client.post("/api/memory/retrieve", json={"query": "测试"})
+    assert r.status_code == 401, "未认证检索记忆应 401"
+
+
+def test_telemetry_requires_auth(anon_client, admin_client):
+    """002codex P2: /api/telemetry/* 未认证 → 401。"""
+    assert anon_client.get("/api/telemetry/events").status_code == 401
+    assert anon_client.get("/api/telemetry/stats").status_code == 401
+    assert anon_client.post("/api/telemetry/record",
+                            json={"agent": "chat", "event_type": "token"}).status_code == 401
+    # 认证后可写 + agent 白名单
+    r = admin_client.post("/api/telemetry/record",
+                          json={"agent": "chat", "event_type": "token",
+                                "tokens_in": "abc", "latency_ms": "10"})  # 非法 int 不 500
+    assert r.status_code == 200
+    r2 = admin_client.post("/api/telemetry/record", json={"agent": "hacker", "event_type": "x"})
+    assert r2.status_code == 400, "agent 白名单应拒绝"
