@@ -8020,3 +8020,69 @@ async def billing_route(request: Request):
         "note": "Team/Enterprise 优先路由: 快模型优先, 降低响应延迟" if priority
                 else "Free 版均衡路由; 升级 Team 解锁 fast-first",
     }
+
+
+# ═══ Agent 遥测 API (pi telemetry 模式, 2026-08-28) ═══
+
+@app.get("/api/telemetry/events")
+async def telemetry_events(request: Request, agent: str = "", limit: int = 100):
+    """Agent 运行事件流 (token/工具/错误/延迟 — 可观测性)。"""
+    from src.core.telemetry import get_telemetry
+    return {"events": get_telemetry().events(agent, limit)}
+
+
+@app.get("/api/telemetry/stats")
+async def telemetry_stats(window_hours: int = 24):
+    """Agent 运行统计 (近 N 小时: token/工具/错误/平均延迟)。"""
+    from src.core.telemetry import get_telemetry
+    return get_telemetry().stats(window_hours)
+
+
+@app.post("/api/telemetry/record")
+async def telemetry_record(req: Request):
+    """记录一个遥测事件 (agent 运行时调用)。"""
+    try:
+        body = await req.json()
+    except Exception:
+        return JSONResponse({"error": "invalid json"}, status_code=400)
+    from src.core.telemetry import get_telemetry
+    get_telemetry().record(
+        agent=body.get("agent", "custom"),
+        event_type=body.get("event_type", "custom"),
+        model=body.get("model", ""),
+        latency_ms=int(body.get("latency_ms", 0)),
+        tokens_in=int(body.get("tokens_in", 0)),
+        tokens_out=int(body.get("tokens_out", 0)),
+        tool=body.get("tool", ""),
+        detail=body.get("detail", ""),
+        session_id=body.get("session_id", ""))
+    return {"ok": True}
+
+
+# ═══ 记忆渐进检索 API (claude-mem 模式, 2026-08-28) ═══
+
+@app.post("/api/memory/retrieve")
+async def memory_retrieve_api(req: Request):
+    """记忆渐进披露检索 — high→full / mid→summary / low→title。"""
+    try:
+        body = await req.json()
+    except Exception:
+        return JSONResponse({"error": "invalid json"}, status_code=400)
+    query = body.get("query", "").strip()
+    top_k = min(int(body.get("top_k", 8)), 30)
+    if not query:
+        return JSONResponse({"error": "query required"}, status_code=400)
+    try:
+        from src.core.memory_hierarchy import get_default_store
+        store = get_default_store()
+    except Exception:
+        from src.core.memory_hierarchy import HierarchicalMemoryStore
+        store = HierarchicalMemoryStore()
+    progressive = store.progressive_retrieve(query, top_k=top_k)
+    return {"progressive": True,
+            "results": [{"disclosure": r["disclosure"], "snippet": r["snippet"],
+                         "id": r["item"].id,
+                         "level": str(r["item"].level),
+                         "schema_layer": r["item"].schema_layer}
+                        for r in progressive],
+            "note": "渐进披露: full=高相关全量 / summary=摘要 / title=仅标题 (claude-mem 模式)"}

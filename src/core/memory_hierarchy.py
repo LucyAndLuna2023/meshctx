@@ -413,6 +413,41 @@ class HierarchicalMemoryStore:
             return HierarchicalMemoryStore._LEVEL_DISPLAY.get(lv.value, str(lv.value))
         return HierarchicalMemoryStore._LEVEL_DISPLAY.get(int(lv), str(lv))
 
+    def progressive_retrieve(self, query: str, top_k: int = 5,
+                             context: str | dict | None = None) -> list:
+        """渐进披露检索 (2026-08-28, 借鉴 claude-mem Progressive Disclosure):
+        高相关 → 全量; 中相关 → 摘要; 低相关 → 仅标题。避免全量注入稀释重点。
+        返回 [{item, disclosure: 'full'|'summary'|'title', snippet}]
+        """
+        items = self.retrieve(query, top_k=top_k, context=context)
+        if not items:
+            return []
+        # 相关度排序: 命中 query 词数越多越相关
+        q = (query or "").lower()
+        scored = []
+        for it in items:
+            hay = " ".join([it.key, it.value, it.content, it.summary]).lower()
+            hits = sum(1 for w in q.split() if w and len(w) > 1 and w in hay)
+            if q and q in hay:
+                hits += 2
+            scored.append((hits, it))
+        scored.sort(key=lambda x: -x[0])
+        ranked = [it for _, it in scored]
+        n = len(ranked)
+        out = []
+        for i, it in enumerate(ranked):
+            if i < max(1, int(n * 0.3)):          # 高相关 30%
+                level = "full"
+                snippet = it.value or it.content or ""
+            elif i < max(2, int(n * 0.7)):        # 中相关 40%
+                level = "summary"
+                snippet = (it.summary or it.value or "")[:120]
+            else:                                  # 低相关 30%
+                level = "title"
+                snippet = (it.key or it.value or "")[:40]
+            out.append({"item": it, "disclosure": level, "snippet": snippet})
+        return out
+
     def store(self, item: MemoryItem):
         if not item.id:
             item.id = uuid.uuid4().hex

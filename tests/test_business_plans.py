@@ -369,3 +369,47 @@ def test_mark_deprecated_reflected():
         assert facts2[0]["status"] == "deprecated", "mark 后应显示 deprecated"
     finally:
         pathlib.Path.home = old_home
+
+
+# ═══ 学习能力测试 (2026-08-28: 渐进披露 + 遥测) ═══
+
+def test_progressive_retrieve():
+    """记忆渐进披露: full/summary/title 分级 (claude-mem 模式)。"""
+    import tempfile, pathlib
+    tmp = pathlib.Path(tempfile.mkdtemp())
+    import src.core.memory_hierarchy as mh
+    old_path = mh.Path.home if hasattr(mh, "Path") else None
+    store = mh.HierarchicalMemoryStore()
+    for i, txt in enumerate(["用户喜欢网球, 每周三打球",
+                            "项目部署规范: CI 优先, 生产走 docker",
+                            "记忆测试条目 A 描述内容", "记忆测试条目 B 描述内容",
+                            "团队约定: 周会周二下午"]):
+        it = mh.MemoryItem(value=txt, content=txt, importance=0.5 + i * 0.05,
+                           schema_layer="episodic")
+        store.store(it)
+    res = store.progressive_retrieve("部署规范", top_k=5)
+    assert len(res) > 0
+    disclosures = [r["disclosure"] for r in res]
+    assert "full" in disclosures or "summary" in disclosures
+    # 高相关应为 full
+    top = res[0]
+    assert top["disclosure"] == "full" and "CI" in top["snippet"]
+
+
+def test_telemetry_record_and_stats():
+    """Agent 遥测: 记录 → 统计 (pi telemetry 模式)。"""
+    import tempfile
+    from src.core.telemetry import reset_telemetry
+    t = reset_telemetry(tempfile.mktemp() + ".jsonl")
+    t.record("chat", "turn_start", model="deepseek:chat")
+    t.record("chat", "token", model="deepseek:chat", tokens_in=100, tokens_out=50,
+             latency_ms=800)
+    t.record("chat", "tool_call", tool="web_search", latency_ms=300)
+    t.record("chat", "error", detail="API 超时")
+    evs = t.events(agent="chat")
+    assert len(evs) == 4
+    st = t.stats(window_hours=24)
+    assert st["tokens_in"] == 100 and st["tokens_out"] == 50
+    assert st["tool_calls"].get("web_search") == 1
+    assert st["errors"] == 1
+    assert st["avg_latency_ms"] == 275

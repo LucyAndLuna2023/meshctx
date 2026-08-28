@@ -163,7 +163,13 @@ class CognitiveLoop:
         # Brain context injection — this is the KEY differentiator
         brain_context = []
         if recalled:
-            brain_context.append(f"[Memory] Similar past situations: {'; '.join(recalled[:3])}")
+            # 渐进披露 (2026-08-28, 借鉴 claude-mem): 高相关全量 + 其余摘要, 避免全量注入稀释
+            recalled_lines = []
+            if len(recalled) <= 3:
+                recalled_lines = recalled
+            else:
+                recalled_lines = recalled[:2] + [f"{r[:80]}..." for r in recalled[2:5]]
+            brain_context.append(f"[Memory] Similar past situations: {'; '.join(recalled_lines)}")
         if state.mirror_intent and state.mirror_intent != 'unknown':
             brain_context.append(f"[Intent] User likely wants: {state.mirror_intent}")
         if abs(state.amygdala_valence) > 0.3:
