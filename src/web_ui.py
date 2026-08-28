@@ -4143,6 +4143,12 @@ async def chat_page(request: Request):
         profile = ""
     return _render("chat.html", {"request": request, "title": "Chat", "profile": profile}, request)
 
+@router.get("/team", response_class=HTMLResponse)
+async def team_page(request: Request):
+    """团队管理页 (Team/Enterprise: 组织/成员/共享记忆/仪表盘/预算/活动)。"""
+    return _render("team.html", {"request": request, "title": "团队管理"}, request)
+
+
 def _build_model_context(request: Request):
     """构建模型配置页上下文（flash + configured 列表 + 折叠状态）。
     setup_page(向导) 与 models_page(模型管理) 复用同一逻辑。

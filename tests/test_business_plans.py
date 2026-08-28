@@ -242,3 +242,84 @@ def test_memory_governance_files(tmp_path, monkeypatch):
     data3 = json.loads(p.read_text(encoding="utf-8"))
     assert data3[0]["corrected_fact"] == "新版本号是 2.0"
     assert data3[0]["status"] == "error"
+
+
+# ═══ backlog 功能测试 (2026-08-28: 支付/SSO/优先路由/L2-L3 记忆) ═══
+
+def test_payment_simulated_flow():
+    """支付模拟模式: checkout → webhook 开通 → 状态。"""
+    import tempfile
+    store = reset_store(tempfile.mktemp() + ".json")
+    t = store.create_team("支付组", "owner")
+    # 模拟 checkout 事件
+    from src.core.billing_payments import apply_checkout_event
+    event = {"type": "checkout.session.completed",
+             "data": {"object": {"metadata": {"team_id": t.team_id, "plan": "team", "seats": 3}}}}
+    r = apply_checkout_event(event)
+    assert r["ok"] is True and r["plan"] == "team"
+    t2 = store.get_team(t.team_id)
+    assert t2.plan == "team" and t2.subscription_until > time.time()
+    from src.core.billing_payments import payment_status
+    st = payment_status(t.team_id)
+    assert st["subscription_active"] is True and st["plan"] == "team"
+
+
+def test_sso_jwt_parse():
+    """SSO JWT 解析 (HS256 签名验证 + 过期检查)。"""
+    import base64, hashlib, hmac, json as _json
+    from src.core import sso as sso_mod
+    # 构造测试 JWT (HS256, 用 client_secret)
+    import os
+    os.environ["MESHCTX_SSO_CLIENT_SECRET"] = "test-secret"
+    import importlib
+    importlib.reload(sso_mod)
+    header = base64.urlsafe_b64encode(_json.dumps({"alg": "HS256"}).encode()).rstrip(b"=")
+    payload = base64.urlsafe_b64encode(_json.dumps(
+        {"sub": "u1", "email": "a@b.com", "exp": time.time() + 3600}).encode()).rstrip(b"=")
+    signing = f"{header.decode()}.{payload.decode()}".encode()
+    sig = base64.urlsafe_b64encode(
+        hmac.new(b"test-secret", signing, hashlib.sha256).digest()).rstrip(b"=")
+    token = f"{header.decode()}.{payload.decode()}.{sig.decode()}"
+    parsed = sso_mod.parse_jwt(token)
+    assert parsed is not None and parsed["email"] == "a@b.com"
+    # 过期 token
+    exp_payload = base64.urlsafe_b64encode(_json.dumps(
+        {"sub": "u2", "exp": time.time() - 100}).encode()).rstrip(b"=")
+    exp_sig = base64.urlsafe_b64encode(hmac.new(b"test-secret",
+        f"{header.decode()}.{exp_payload.decode()}".encode(), hashlib.sha256).digest()).rstrip(b"=")
+    exp_token = f"{header.decode()}.{exp_payload.decode()}.{exp_sig.decode()}"
+    assert sso_mod.parse_jwt(exp_token) is None  # 过期拒绝
+
+
+def test_sso_config_modes():
+    """SSO 配置状态: 未配置 = dev-simulated。"""
+    import os
+    old = os.environ.pop("MESHCTX_SSO_ISSUER", None)
+    from src.core.sso import sso_config, sso_enabled
+    assert sso_enabled() is False
+    cfg = sso_config()
+    assert cfg["mode"] == "dev-simulated"
+    if old: os.environ["MESHCTX_SSO_ISSUER"] = old
+
+
+def test_team_memory_l2l3(tmp_path, monkeypatch):
+    """团队记忆 L2/L3: save → list (schema_layer) → correct → mark。"""
+    import pathlib
+    monkeypatch.setattr(pathlib.Path, "home", staticmethod(lambda: tmp_path))
+    from src.core.team_memory import save_fact, list_facts, correct_fact, mark_fact
+    r = save_fact("a1b2c3d4e5f6", "团队规范: 生产部署走 CI")
+    assert r["schema_layer"] in ("episodic", "semantic")
+    facts = list_facts("a1b2c3d4e5f6")
+    assert len(facts) == 1 and facts[0]["status"] == "active"
+    mid = facts[0]["id"]
+    assert correct_fact("a1b2c3d4e5f6", mid, "修正版") is True
+    facts2 = list_facts("a1b2c3d4e5f6")
+    assert facts2[0]["status"] == "error"
+    assert mark_fact("a1b2c3d4e5f6", mid, deprecated=True) is True
+
+
+def test_priority_routing_gate():
+    """优先路由门控: team 有 / free 无。"""
+    from src.core.business_plans import feature_enabled
+    assert feature_enabled("team", "priority_routing") is True
+    assert feature_enabled("free", "priority_routing") is False

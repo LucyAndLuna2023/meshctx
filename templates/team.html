@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeshCtx 团队管理</title>
+<style>
+:root { --bg:#f8fafc; --fg:#0f172a; --muted:#64748b; --border:#e2e8f0; --accent:#6c5ce7; --green:#16a34a; --red:#dc2626; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--fg); font-family:-apple-system,'Segoe UI',system-ui,sans-serif; padding:24px; }
+h1 { font-size:1.4rem; margin-bottom:4px; }
+.sub { color:var(--muted); font-size:0.85rem; margin-bottom:20px; }
+.layout { display:flex; gap:20px; }
+.sidebar { width:240px; flex-shrink:0; }
+.panel { background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px; }
+.panel h3 { font-size:0.95rem; margin-bottom:10px; color:var(--accent); }
+.main { flex:1; }
+.btn { display:inline-block; padding:7px 16px; border-radius:6px; border:none; cursor:pointer; font-size:0.85rem; background:var(--accent); color:#fff; }
+.btn.ghost { background:transparent; border:1px solid var(--border); color:var(--fg); }
+.btn.sm { padding:3px 10px; font-size:0.78rem; }
+.btn.danger { background:var(--red); }
+input, select { padding:7px 10px; border:1px solid var(--border); border-radius:6px; font-size:0.85rem; width:100%; margin-bottom:8px; }
+.row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+.row input { flex:1; margin-bottom:0; }
+.tabs { display:flex; gap:4px; margin-bottom:16px; border-bottom:1px solid var(--border); }
+.tab { padding:8px 18px; cursor:pointer; font-size:0.88rem; color:var(--muted); border-bottom:2px solid transparent; }
+.tab.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
+.tab-content { display:none; } .tab-content.active { display:block; }
+table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+th,td { padding:8px 10px; text-align:left; border-bottom:1px solid var(--border); }
+th { color:var(--muted); font-weight:600; }
+.team-item { padding:10px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; cursor:pointer; background:#fff; }
+.team-item.active { border-color:var(--accent); }
+.team-item .name { font-weight:600; font-size:0.9rem; }
+.team-item .plan { font-size:0.75rem; color:var(--accent); }
+.mem-item { display:flex; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); font-size:0.85rem; align-items:center; }
+.mem-item .fact { flex:1; }
+.status { font-size:0.7rem; padding:2px 8px; border-radius:10px; }
+.status.active { background:#dcfce7; color:var(--green); }
+.status.deprecated { background:#fef9c3; color:#a16207; }
+.status.error { background:#fee2e2; color:var(--red); }
+.budget-bar { height:8px; background:#e2e8f0; border-radius:4px; overflow:hidden; margin:8px 0; }
+.budget-bar .fill { height:100%; background:var(--accent); }
+.budget-bar .fill.over { background:var(--red); }
+.alert { padding:10px 14px; border-radius:8px; font-size:0.85rem; margin-bottom:12px; }
+.alert.err { background:#fee2e2; color:var(--red); }
+.alert.ok { background:#dcfce7; color:var(--green); }
+.hidden { display:none; }
+#teamPlan { font-size:0.78rem; color:var(--muted); }
+</style>
+</head>
+<body>
+<h1>👥 MeshCtx 团队管理 <span id="teamPlan"></span></h1>
+<p class="sub">Team/Enterprise 版 — 组织 · 成员 · 共享记忆 · 仪表盘 · 预算 · 活动日志</p>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="panel">
+      <h3>我的组织</h3>
+      <div id="teamList"></div>
+      <div class="row" style="margin-top:10px;">
+        <input id="newTeamName" placeholder="新组织名称">
+        <button class="btn sm" onclick="createTeam()">创建</button>
+      </div>
+    </div>
+    <div class="panel" id="upgradePanel">
+      <h3>升级订阅</h3>
+      <div id="upgradeBox"></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div id="noTeam" class="alert ok">选择左侧组织，或创建一个新组织开始</div>
+    <div id="teamView" class="hidden">
+      <div class="tabs">
+        <div class="tab active" data-tab="members" onclick="switchTab('members')">👥 成员</div>
+        <div class="tab" data-tab="memories" onclick="switchTab('memories')">🧠 共享记忆</div>
+        <div class="tab" data-tab="dashboard" onclick="switchTab('dashboard')">📊 仪表盘</div>
+      </div>
+
+      <div class="tab-content active" id="tab-members">
+        <div class="panel">
+          <h3>成员管理 <span id="seatInfo" style="color:var(--muted);font-weight:400;"></span></h3>
+          <div class="row">
+            <input id="inviteUserId" placeholder="用户 ID / 邮箱">
+            <select id="inviteRole" style="width:130px;margin-bottom:0;">
+              <option value="member">member</option>
+              <option value="admin">admin</option>
+              <option value="viewer">viewer</option>
+            </select>
+            <button class="btn sm" onclick="inviteMember()">邀请</button>
+          </div>
+          <table><thead><tr><th>用户</th><th>角色</th><th>加入时间</th><th></th></tr></thead>
+          <tbody id="memberRows"></tbody></table>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-memories">
+        <div class="panel">
+          <h3>团队共享记忆</h3>
+          <div class="row">
+            <input id="newFact" placeholder="写入团队事实（如：部署规范是 CI 优先）">
+            <button class="btn sm" onclick="saveMemory()">保存</button>
+          </div>
+          <div id="memoryList"></div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-dashboard">
+        <div class="panel">
+          <h3>预算控制</h3>
+          <div class="row">
+            <input id="budgetInput" type="number" placeholder="月度 token 预算 (0=不限)" style="width:200px;margin-bottom:0;">
+            <button class="btn sm" onclick="setBudget()">设置</button>
+          </div>
+          <div id="budgetBar"></div>
+        </div>
+        <div class="panel">
+          <h3>使用统计（近 7 天）</h3>
+          <div id="statsBox"></div>
+        </div>
+        <div class="panel">
+          <h3>Agent 活动日志</h3>
+          <div id="activityBox"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentTeam = null;
+let currentRole = '';
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, {headers: {'Content-Type': 'application/json'}, ...opts});
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || r.status);
+  return d;
+}
+
+async function loadTeams() {
+  try {
+    const d = await api('/api/team/list');
+    const el = document.getElementById('teamList');
+    el.innerHTML = d.teams.map(t => `
+      <div class="team-item ${currentTeam && currentTeam.team_id === t.team_id ? 'active' : ''}"
+           onclick="selectTeam('${t.team_id}')">
+        <div class="name">${t.name}</div>
+        <div class="plan">${t.plan.toUpperCase()} · ${Object.keys(t.members).length} 人</div>
+      </div>`).join('') || '<div style="color:var(--muted);font-size:0.8rem;">暂无组织</div>';
+    const bp = await api('/api/billing/plan');
+    document.getElementById('teamPlan').textContent = '当前 Plan: ' + bp.plan.toUpperCase();
+    renderUpgrade(bp);
+  } catch (e) {
+    if (e.message.includes('401')) showErr('请先登录（需认证才能使用团队功能）');
+  }
+}
+
+function renderUpgrade(bp) {
+  const box = document.getElementById('upgradeBox');
+  const hasTeam = (currentTeam && currentTeam.plan !== 'enterprise');
+  box.innerHTML = hasTeam ? `
+    <p style="font-size:0.8rem;color:var(--muted);margin-bottom:8px;">升级路径: ${bp.upgrade_path.join(' → ').toUpperCase()}</p>
+    <div class="row"><select id="upgradePlan" style="margin-bottom:0;">
+      <option value="team">Team $9/人/月</option>
+      <option value="enterprise">Enterprise $29/人/月</option>
+    </select><button class="btn sm" onclick="upgrade()">升级</button></div>
+    <input id="upgradeSeats" type="number" placeholder="席位 (默认5)" value="5">` :
+    '<p style="font-size:0.8rem;color:var(--muted);">选择组织后可升级订阅</p>';
+}
+
+async function selectTeam(id) {
+  currentTeam = (await api('/api/team/get?team_id=' + id)).team;
+  const me = currentTeam.owner;
+  currentRole = currentTeam.members[me] ? currentTeam.members[me].role : 'member';
+  document.getElementById('noTeam').classList.add('hidden');
+  document.getElementById('teamView').classList.remove('hidden');
+  document.getElementById('teamView').querySelector('.team-item') && loadTeams();
+  loadMembers(); loadMemories(); loadBudget(); loadStats(); loadActivity();
+  loadTeams();
+}
+
+async function createTeam() {
+  const name = document.getElementById('newTeamName').value.trim();
+  if (!name) return alert('请输入组织名称');
+  try {
+    const d = await api('/api/team/create', {method: 'POST', body: JSON.stringify({name})});
+    document.getElementById('newTeamName').value = '';
+    selectTeam(d.team.team_id);
+  } catch (e) { showErr(e.message); }
+}
+
+async function loadMembers() {
+  const t = currentTeam;
+  document.getElementById('seatInfo').textContent = `(${Object.keys(t.members).length}/${t.seats} 席位)`;
+  document.getElementById('memberRows').innerHTML = Object.entries(t.members).map(([uid, m]) => `
+    <tr><td>${uid}</td><td>${m.role}</td>
+    <td>${new Date(m.joined_at * 1000).toLocaleDateString()}</td>
+    <td>${m.role !== 'owner' && canManage() ? `<button class="btn sm danger" onclick="removeMember('${uid}')">移除</button>` : ''}</td>
+    </tr>`).join('');
+}
+
+async function inviteMember() {
+  const uid = document.getElementById('inviteUserId').value.trim();
+  const role = document.getElementById('inviteRole').value;
+  if (!uid) return alert('输入用户 ID');
+  try {
+    await api('/api/team/add_member', {method: 'POST',
+      body: JSON.stringify({team_id: currentTeam.team_id, user_id: uid, role})});
+    document.getElementById('inviteUserId').value = '';
+    loadTeams();
+  } catch (e) { showErr(e.message); }
+}
+
+async function removeMember(uid) {
+  if (!confirm('移除成员 ' + uid + '?')) return;
+  try {
+    await api('/api/team/remove_member', {method: 'POST',
+      body: JSON.stringify({team_id: currentTeam.team_id, user_id: uid})});
+    loadTeams();
+  } catch (e) { showErr(e.message); }
+}
+
+async function upgrade() {
+  const plan = document.getElementById('upgradePlan').value;
+  const seats = document.getElementById('upgradeSeats').value || 5;
+  try {
+    await api('/api/team/upgrade', {method: 'POST',
+      body: JSON.stringify({team_id: currentTeam.team_id, plan, seats: Number(seats)})});
+    alert('已升级到 ' + plan.toUpperCase());
+    loadTeams();
+  } catch (e) { showErr(e.message); }
+}
+
+async function loadMemories() {
+  try {
+    const d = await api('/api/team/memories?team_id=' + currentTeam.team_id);
+    const el = document.getElementById('memoryList');
+    el.innerHTML = d.facts.map((f, i) => `
+      <div class="mem-item">
+        <span class="fact">${f.fact} ${f.corrected_fact ? `<br><span style="color:var(--green);">✓ 已纠正: ${f.corrected_fact}</span>` : ''}</span>
+        <span class="status ${f.status}">${f.status}</span>
+        ${f.status !== 'deprecated' && canManage() ? `<button class="btn sm ghost" onclick="markMemory(${i},'deprecated')">过期</button>` : ''}
+        ${f.status === 'active' && canManage() ? `<button class="btn sm ghost" onclick="correctMemory(${i})">纠错</button>` : ''}
+      </div>`).join('') || '<div style="color:var(--muted);font-size:0.8rem;">暂无共享记忆</div>';
+    if (d.governance) document.getElementById('memoryList').insertAdjacentHTML('beforebegin',
+      `<div style="font-size:0.75rem;color:var(--muted);margin-bottom:6px;">治理: ${d.governance.active} 有效 / ${d.governance.deprecated} 已废弃 / ${d.governance.corrected} 已纠正</div>`);
+  } catch (e) { showErr(e.message); }
+}
+
+async function saveMemory() {
+  const fact = document.getElementById('newFact').value.trim();
+  if (!fact) return alert('输入团队事实');
+  try {
+    await api('/api/team/memories', {method: 'POST',
+      body: JSON.stringify({team_id: currentTeam.team_id, fact})});
+    document.getElementById('newFact').value = '';
+    loadMemories();
+  } catch (e) { showErr(e.message); }
+}
+
+function markMemory(idx, status) {
+  api('/api/team/memories/mark', {method: 'POST',
+    body: JSON.stringify({team_id: currentTeam.team_id, index: idx, status})})
+    .then(loadMemories).catch(e => showErr(e.message));
+}
+
+function correctMemory(idx) {
+  const fix = prompt('输入纠正后的事实:');
+  if (!fix) return;
+  api('/api/team/memories/correct', {method: 'POST',
+    body: JSON.stringify({team_id: currentTeam.team_id, index: idx, corrected_fact: fix})})
+    .then(loadMemories).catch(e => showErr(e.message));
+}
+
+async function setBudget() {
+  const b = Number(document.getElementById('budgetInput').value) || 0;
+  try {
+    await api('/api/team/budget', {method: 'POST',
+      body: JSON.stringify({team_id: currentTeam.team_id, monthly_budget: b})});
+    loadBudget();
+  } catch (e) { showErr(e.message); }
+}
+
+async function loadBudget() {
+  try {
+    const d = await api('/api/team/budget?team_id=' + currentTeam.team_id);
+    const b = d.budget;
+    document.getElementById('budgetInput').value = b.budget || '';
+    const pct = Math.min(b.percent, 100);
+    document.getElementById('budgetBar').innerHTML = `
+      <div style="font-size:0.8rem;">已用 <b>${b.used.toLocaleString()}</b> / ${b.budget.toLocaleString()} tokens (${b.percent}%)
+      ${b.budget_alert ? ' <span style="color:var(--red);">⚠ 已超预算!</span>' : ''}</div>
+      <div class="budget-bar"><div class="fill ${b.over_budget ? 'over' : ''}" style="width:${pct}%"></div></div>`;
+  } catch (e) {}
+}
+
+async function loadStats() {
+  try {
+    const d = await api('/api/team/stats', {method: 'POST',
+      body: JSON.stringify({team_id: currentTeam.team_id, days: 7})});
+    const t = d.stats.total;
+    const models = Object.entries(d.stats.days).slice(-1).map(([day, u]) =>
+      Object.entries(u.model_calls || {}).map(([m, c]) => `${m}: ${c}次`).join(', ')).join('');
+    document.getElementById('statsBox').innerHTML = `
+      <div style="font-size:0.85rem;">请求 <b>${t.requests}</b> · Token <b>${(t.tokens_in + t.tokens_out).toLocaleString()}</b>
+      <br><span style="color:var(--muted);">模型分布: ${models || '暂无'}</span></div>`;
+  } catch (e) {}
+}
+
+async function loadActivity() {
+  try {
+    const d = await api('/api/team/activity?team_id=' + currentTeam.team_id + '&limit=20');
+    document.getElementById('activityBox').innerHTML = d.activity.map(a =>
+      `<div class="mem-item"><span class="fact">${a.agent} · ${a.action}</span>
+       <span style="color:var(--muted);font-size:0.75rem;">${new Date(a.ts * 1000).toLocaleString()}</span></div>`
+    ).join('') || '<div style="color:var(--muted);font-size:0.8rem;">暂无活动</div>';
+  } catch (e) {}
+}
+
+function canManage() { return ['owner', 'admin'].includes(currentRole); }
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === t));
+  document.querySelectorAll('.tab-content').forEach(x => x.classList.toggle('active', x.id === 'tab-' + t));
+}
+function showErr(m) {
+  let el = document.getElementById('errBox');
+  if (!el) { el = document.createElement('div'); el.id = 'errBox';
+    document.body.insertBefore(el, document.body.firstChild); }
+  el.className = 'alert err'; el.textContent = m;
+  setTimeout(() => el.remove(), 5000);
+}
+
+loadTeams();
+</script>
+</body>
+</html>

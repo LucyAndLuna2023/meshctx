@@ -11,6 +11,7 @@ meshctx v1.0 统一主服务
 """
 import asyncio
 import json
+import uuid
 import logging
 import os
 import sys
@@ -7398,14 +7399,17 @@ async def _current_user_id(request: Request) -> str:
 
 
 async def _plan_of_user(request: Request) -> str:
-    """用户所在组织的 plan (默认 free)。未认证用户无 plan。"""
+    """用户所在组织的最高 plan (enterprise > team > free, 2026-08-28 修正)。
+    多个组织取最高档, 避免低档 team 掩盖 enterprise。"""
     uid = await _current_user_id(request)
     if not uid:
         return ""
+    rank = {"free": 0, "team": 1, "enterprise": 2}
+    best = "free"
     for t in _business_store().list_teams_of_user(uid):
-        if t.plan != "free":
-            return t.plan
-    return "free"
+        if rank.get(t.plan, 0) > rank.get(best, 0):
+            best = t.plan
+    return best
 
 
 async def _require_feature(request: Request, feature: str):
@@ -7525,6 +7529,30 @@ async def team_add_member(req: Request):
     return {"ok": True}
 
 
+@app.post("/api/team/remove_member")
+async def team_remove_member(req: Request):
+    """移除成员 (owner/admin 权限; owner 不可移除)。"""
+    try:
+        body = await req.json()
+    except Exception:
+        return JSONResponse({"error": "invalid json"}, status_code=400)
+    team_id = body.get("team_id", "")
+    user_id = body.get("user_id", "")
+    if not _valid_team_id(team_id) or not user_id:
+        return JSONResponse({"error": "invalid team_id/user_id"}, status_code=400)
+    store = _business_store()
+    if store.get_team(team_id) is None:
+        return JSONResponse({"error": "team not found"}, status_code=404)
+    if not await _require_owner_admin(req, team_id):
+        return JSONResponse({"error": "需 owner/admin 权限"}, status_code=403)
+    if not store.remove_member(team_id, user_id):
+        return JSONResponse({"error": "移除失败 (owner 不可移除或成员不存在)"}, status_code=400)
+    store.audit(await _current_user_id(req), "team.remove_member",
+                f"team={team_id} user={user_id}", req.client.host if req.client else "",
+                team_id=team_id)
+    return {"ok": True}
+
+
 @app.post("/api/team/upgrade")
 async def team_upgrade(req: Request):
     """订阅升级: free → team/enterprise (BP 定价 $9/$29 人/月)。"""
@@ -7570,13 +7598,10 @@ async def team_memories(request: Request, team_id: str = "", q: str = ""):
         return JSONResponse({"error": "非团队成员"}, status_code=403)
     facts = []
     try:
-        from pathlib import Path
-        p = Path.home() / ".meshctx" / "team_memories" / f"{team_id}.json"
-        if p.exists():
-            facts = json.loads(p.read_text(encoding="utf-8"))
+        from src.core.team_memory import list_facts
+        facts = list_facts(team_id)
     except Exception:
         pass
-    # 记忆治理: 按状态分组返回 (active 正常 / deprecated 已废弃 / error 已纠正)
     return {"plan": plan, "team_id": team_id, "facts": facts,
             "governance": {"active": sum(1 for f in facts if f.get("status") == "active"),
                            "deprecated": sum(1 for f in facts if f.get("status") == "deprecated"),
@@ -7624,20 +7649,10 @@ async def team_memory_save(req: Request):
         store.audit(uid, "team.memory_scan_error", f"team={team_id} {e}",
                     req.client.host if req.client else "", team_id=team_id)
         return JSONResponse({"error": "敏感信息扫描失败, 已拒绝写入 (安全策略)"}, status_code=500)
-    # 持久化 (带治理字段: status 供记忆错误纠正) — resolve 后必须在目录内
+    # 持久化 → 团队记忆 L2/L3 引擎 (schema_layer 收敛 + 去重, 2026-08-28)
     try:
-        from pathlib import Path
-        mem_dir = (Path.home() / ".meshctx" / "team_memories").resolve()
-        mem_dir.mkdir(parents=True, exist_ok=True)
-        p = (mem_dir / f"{team_id}.json").resolve()
-        if p.parent != mem_dir:   # 双保险: 解析后越界拒绝
-            return JSONResponse({"error": "invalid path"}, status_code=400)
-        data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else []
-        data.append({"ts": time.time(), "fact": fact, "user": uid,
-                     "status": "active",       # active/deprecated/error (记忆治理)
-                     "corrected_fact": "",      # 纠错后事实
-                     "corrected_by": ""})
-        p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        from src.core.team_memory import save_fact
+        saved = save_fact(team_id, fact)
     except Exception as e:
         return JSONResponse({"error": f"保存失败: {e}"}, status_code=500)
     store.audit(uid, "team.memory_save", f"team={team_id} fact={fact[:40]}",
@@ -7747,7 +7762,7 @@ async def team_memory_correct(req: Request):
     if plan is None:
         return JSONResponse({"error": "团队共享记忆需 Team 版"}, status_code=403)
     team_id = body.get("team_id", "")
-    idx = int(body.get("index", -1))
+    memory_id = body.get("memory_id", body.get("id", ""))
     correct = body.get("corrected_fact", "").strip()
     uid = await _current_user_id(req)
     if not _valid_team_id(team_id):
@@ -7757,23 +7772,16 @@ async def team_memory_correct(req: Request):
         return JSONResponse({"error": "team not found"}, status_code=404)
     if not await _require_owner_admin(req, team_id):
         return JSONResponse({"error": "需 owner/admin 权限进行记忆治理"}, status_code=403)
-    if not correct:
-        return JSONResponse({"error": "corrected_fact required"}, status_code=400)
+    if not correct or not memory_id:
+        return JSONResponse({"error": "memory_id/corrected_fact required"}, status_code=400)
     try:
-        from pathlib import Path
-        p = Path.home() / ".meshctx" / "team_memories" / f"{team_id}.json"
-        data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else []
-        if idx < 0 or idx >= len(data):
-            return JSONResponse({"error": "index out of range"}, status_code=400)
-        data[idx]["status"] = "error"
-        data[idx]["corrected_fact"] = correct
-        data[idx]["corrected_by"] = uid
-        data[idx]["corrected_at"] = time.time()
-        p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        from src.core.team_memory import correct_fact
+        if not correct_fact(team_id, memory_id, correct):
+            return JSONResponse({"error": "记忆不存在"}, status_code=404)
     except Exception as e:
         return JSONResponse({"error": f"纠错失败: {e}"}, status_code=500)
-    store.audit(uid, "team.memory_correct", f"team={team_id} idx={idx}", req.client.host if req.client else "", team_id=team_id)
-    store.record_activity(team_id, agent="team_memory", action="correct", detail=f"idx={idx}", user_id=uid)
+    store.audit(uid, "team.memory_correct", f"team={team_id} memory={memory_id}", req.client.host if req.client else "", team_id=team_id)
+    store.record_activity(team_id, agent="team_memory", action="correct", detail=f"memory={memory_id}", user_id=uid)
     return {"ok": True}
 
 
@@ -7788,7 +7796,7 @@ async def team_memory_mark(req: Request):
     if plan is None:
         return JSONResponse({"error": "团队共享记忆需 Team 版"}, status_code=403)
     team_id = body.get("team_id", "")
-    idx = int(body.get("index", -1))
+    memory_id = body.get("memory_id", body.get("id", ""))
     status = body.get("status", "deprecated")
     if status not in ("active", "deprecated"):
         return JSONResponse({"error": "status must be active/deprecated"}, status_code=400)
@@ -7801,18 +7809,12 @@ async def team_memory_mark(req: Request):
     if not await _require_owner_admin(req, team_id):
         return JSONResponse({"error": "需 owner/admin 权限"}, status_code=403)
     try:
-        from pathlib import Path
-        p = Path.home() / ".meshctx" / "team_memories" / f"{team_id}.json"
-        data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else []
-        if idx < 0 or idx >= len(data):
-            return JSONResponse({"error": "index out of range"}, status_code=400)
-        data[idx]["status"] = status
-        data[idx]["marked_by"] = uid
-        data[idx]["marked_at"] = time.time()
-        p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        from src.core.team_memory import mark_fact
+        if not mark_fact(team_id, memory_id, deprecated=(status == "deprecated")):
+            return JSONResponse({"error": "记忆不存在"}, status_code=404)
     except Exception as e:
         return JSONResponse({"error": f"标记失败: {e}"}, status_code=500)
-    store.audit(uid, "team.memory_mark", f"team={team_id} idx={idx} status={status}",
+    store.audit(uid, "team.memory_mark", f"team={team_id} memory={memory_id} status={status}",
                 req.client.host if req.client else "", team_id=team_id)
     return {"ok": True}
 
@@ -7876,3 +7878,133 @@ async def team_activity(request: Request, team_id: str = "", limit: int = 100):
     if not await _require_member(request, team_id):
         return JSONResponse({"error": "非团队成员"}, status_code=403)
     return {"plan": plan, "team_id": team_id, "activity": store.activity_log(team_id, limit)}
+
+
+# ═══ Billing 支付 API — Stripe Checkout (Team/Enterprise, 2026-08-28) ═══
+
+@app.post("/api/billing/checkout")
+async def billing_checkout(req: Request):
+    """创建支付会话 (Stripe Checkout / 模拟模式)。"""
+    try:
+        body = await req.json()
+    except Exception:
+        return JSONResponse({"error": "invalid json"}, status_code=400)
+    team_id = body.get("team_id", "")
+    plan = body.get("plan", "team")
+    seats = min(int(body.get("seats", 5)), 50)
+    if plan not in ("team", "enterprise"):
+        return JSONResponse({"error": "plan must be team/enterprise"}, status_code=400)
+    if not _valid_team_id(team_id):
+        return JSONResponse({"error": "invalid team_id"}, status_code=400)
+    store = _business_store()
+    if store.get_team(team_id) is None:
+        return JSONResponse({"error": "team not found"}, status_code=404)
+    if not await _require_owner_admin(req, team_id):
+        return JSONResponse({"error": "需 owner/admin 权限"}, status_code=403)
+    from src.core.billing_payments import create_checkout
+    result = create_checkout(plan, team_id, seats,
+                             success_url=body.get("success_url", "/ui/team"),
+                             cancel_url=body.get("cancel_url", "/ui/team"))
+    store.audit(await _current_user_id(req), "billing.checkout",
+                f"team={team_id} plan={plan} mode={result.get('mode')}",
+                req.client.host if req.client else "", team_id=team_id)
+    return result
+
+
+@app.post("/api/billing/webhook")
+async def billing_webhook(request: Request):
+    """Stripe webhook — 支付成功开通订阅。"""
+    payload = await request.body()
+    sig = request.headers.get("Stripe-Signature", "")
+    from src.core.billing_payments import verify_webhook, apply_checkout_event
+    event = verify_webhook(payload, sig)
+    if event is None:
+        return JSONResponse({"ok": False, "error": "webhook 验证失败"}, status_code=400)
+    result = apply_checkout_event(event)
+    return {"ok": result.get("ok", False), **result}
+
+
+@app.get("/api/billing/payment")
+async def billing_payment_status(request: Request, team_id: str = ""):
+    """订阅支付状态。"""
+    if not _valid_team_id(team_id):
+        return JSONResponse({"error": "invalid team_id"}, status_code=400)
+    store = _business_store()
+    if store.get_team(team_id) is None:
+        return JSONResponse({"error": "team not found"}, status_code=404)
+    if not await _require_member(request, team_id):
+        return JSONResponse({"error": "非团队成员"}, status_code=403)
+    from src.core.billing_payments import payment_status
+    return payment_status(team_id)
+
+
+# ═══ SSO API — Enterprise 单点登录 (OIDC 骨架, 2026-08-28) ═══
+
+@app.get("/api/sso/config")
+async def sso_config_api():
+    """SSO 配置状态 (Enterprise 门控)。"""
+    from src.core.sso import sso_config, sso_enabled
+    return {"enterprise_feature": "sso", "config": sso_config()}
+
+
+@app.get("/api/sso/authorize")
+async def sso_authorize(request: Request):
+    """发起 SSO 登录 — 重定向 IdP (未配置时 dev 模拟返回测试身份)。"""
+    plan = await _require_feature(request, "sso")
+    if plan is None:
+        return JSONResponse({"error": "SSO 需 Enterprise 版"}, status_code=403)
+    from src.core.sso import sso_enabled, build_authorize_url
+    state = uuid.uuid4().hex[:16]
+    if not sso_enabled():
+        # dev 模拟: 直接返回模拟用户
+        return {"mode": "dev-simulated", "state": state,
+                "user": {"sub": "dev-user-001", "email": "admin@meshctx.com",
+                         "name": "Dev Admin", "verified": True}}
+    return {"mode": "oidc", "authorize_url": build_authorize_url(state), "state": state}
+
+
+@app.get("/api/sso/callback")
+async def sso_callback(request: Request, code: str = "", state: str = ""):
+    """SSO 回调 — code 换 token + 解析用户 (Enterprise 门控)。"""
+    plan = await _require_feature(request, "sso")
+    if plan is None:
+        return JSONResponse({"error": "SSO 需 Enterprise 版"}, status_code=403)
+    from src.core.sso import exchange_code, get_userinfo_from_token, sso_enabled
+    if not code:
+        return JSONResponse({"error": "缺少 code"}, status_code=400)
+    if not sso_enabled():
+        return {"mode": "dev-simulated", "user": {"sub": "dev-user-001",
+                "email": "admin@meshctx.com", "name": "Dev Admin", "verified": True}}
+    token_data = exchange_code(code)
+    if "error" in token_data:
+        return JSONResponse({"error": token_data["error"]}, status_code=400)
+    user = get_userinfo_from_token(token_data)
+    if "error" in user:
+        return JSONResponse({"error": user["error"]}, status_code=400)
+    _business_store().audit("sso", "sso.login",
+                            f"user={user.get('email')} via SSO",
+                            request.client.host if request.client else "")
+    return {"mode": "oidc", "user": user}
+
+
+# ═══ 优先模型路由 API — Team 版 priority_routing (2026-08-28) ═══
+
+@app.get("/api/billing/route")
+async def billing_route(request: Request):
+    """Team/Enterprise 优先路由 — 返回当前 plan 的推荐模型与优先级。
+    Team 起: 更快响应 (deepseek:chat 等快模型优先, reasoner 降级)。
+    """
+    plan = (await _plan_of_user(request)) if await _current_user_id(request) else "free"
+    from src.core.business_plans import feature_enabled
+    priority = feature_enabled(plan, "priority_routing")
+    from src.model_registry import BUILTIN_MODELS
+    fast = [m for m in ("deepseek:chat", "openai:gpt-4o-mini", "deepseek:reasoner")
+            if m in BUILTIN_MODELS]
+    return {
+        "plan": plan,
+        "priority_routing": priority,
+        "recommended": fast[0] if priority and fast else "default",
+        "strategy": "fast-first" if priority else "balanced",
+        "note": "Team/Enterprise 优先路由: 快模型优先, 降低响应延迟" if priority
+                else "Free 版均衡路由; 升级 Team 解锁 fast-first",
+    }
