@@ -413,3 +413,43 @@ def test_telemetry_record_and_stats():
     assert st["tool_calls"].get("web_search") == 1
     assert st["errors"] == 1
     assert st["avg_latency_ms"] == 550  # 只算 latency>0: (800+300)/2
+
+
+# ═══ 痛点攻克测试 (2026-08-28: 信任备份回滚 + 可靠性验证) ═══
+
+def test_write_file_backup_and_rollback(tmp_path, monkeypatch):
+    """信任攻克: overwrite 自动备份 + manifest 定位 + 回滚恢复。"""
+    import pathlib
+    monkeypatch.setattr(pathlib.Path, "home", staticmethod(lambda: tmp_path))
+    from src.chat_tools import _write_file
+    f = tmp_path / "app.py"
+    f.write_text("版本1内容")
+    r = _write_file(str(f), "版本2内容", if_exists="overwrite")
+    assert "备份" in r, "overwrite 应提示备份"
+    assert f.read_text() == "版本2内容"
+    # manifest + 备份文件
+    backup_dir = tmp_path / ".meshctx" / "backups"
+    assert backup_dir.exists()
+    baks = list(backup_dir.glob("*.bak"))
+    assert len(baks) == 1
+    manifest = backup_dir / "manifest.json"
+    assert manifest.exists()
+    import json
+    mdata = json.loads(manifest.read_text())
+    assert mdata[baks[0].name]["orig"].endswith("app.py")
+    # 模拟回滚: 备份内容写回
+    f.write_bytes(baks[0].read_bytes())
+    assert f.read_text() == "版本1内容", "回滚后应恢复原内容"
+
+
+def test_sandbox_verify_endpoint():
+    """可靠性攻克: /api/sandbox/verify 沙箱验证。"""
+    from fastapi.testclient import TestClient
+    from src.main import app
+    from src.core.auth_v2 import _hash_session
+    c = TestClient(app)
+    c.cookies.set("meshctx_session", _hash_session())
+    r = c.post("/api/sandbox/verify", json={"cmd": "echo ok", "timeout": 10})
+    assert r.status_code == 200
+    d = r.json()
+    assert d.get("ok") is True and "ok" in d.get("stdout", "")

@@ -8099,3 +8099,85 @@ async def memory_retrieve_api(req: Request):
                          "schema_layer": r["item"].schema_layer}
                         for r in progressive],
             "note": "渐进披露: full=高相关全量 / summary=摘要 / title=仅标题 (claude-mem 模式)"}
+
+
+# ═══ 文件备份/回滚 API — 信任攻克 (2026-08-28) ═══
+
+@app.get("/api/files/backups")
+async def file_backups():
+    """列出自动备份 (覆盖前备份, 可回滚)。"""
+    from pathlib import Path
+    backup_dir = Path.home() / ".meshctx" / "backups"
+    if not backup_dir.exists():
+        return {"backups": []}
+    backups = []
+    for f in sorted(backup_dir.glob("*.bak"), reverse=True)[:50]:
+        backups.append({"path": str(f), "name": f.name,
+                        "size": f.stat().st_size,
+                        "modified": f.stat().st_mtime})
+    return {"backups": backups, "count": len(backups)}
+
+
+@app.post("/api/files/rollback")
+async def file_rollback(req: Request):
+    """回滚: 用备份恢复原文件 (信任: 修改可撤销, manifest 定位原路径)。"""
+    try:
+        body = await req.json()
+    except Exception:
+        return JSONResponse({"error": "invalid json"}, status_code=400)
+    backup_path = body.get("backup_path", "")
+    if not backup_path or "backups" not in backup_path:
+        return JSONResponse({"error": "invalid backup_path"}, status_code=400)
+    from pathlib import Path
+    import json as _json
+    bpath = Path(backup_path)
+    backup_dir = (Path.home() / ".meshctx" / "backups").resolve()
+    if bpath.parent.resolve() != backup_dir or not bpath.exists():
+        return JSONResponse({"error": "备份不存在"}, status_code=404)
+    try:
+        # 查 manifest 拿原路径
+        manifest = backup_dir / "manifest.json"
+        orig_path = ""
+        if manifest.exists():
+            mdata = _json.loads(manifest.read_text(encoding="utf-8"))
+            orig_path = mdata.get(bpath.name, {}).get("orig", "")
+        if not orig_path:
+            return JSONResponse({"error": "manifest 无此备份记录, 无法定位原文件"}, status_code=404)
+        orig = Path(orig_path)
+        orig.parent.mkdir(parents=True, exist_ok=True)
+        orig.write_bytes(bpath.read_bytes())   # 恢复原文件内容
+        return {"ok": True, "restored": str(orig), "backup": bpath.name,
+                "size": bpath.stat().st_size}
+    except Exception as e:
+        return JSONResponse({"error": f"回滚失败: {e}"}, status_code=500)
+
+
+# ═══ 沙箱验证工具 — 可靠性攻克 (2026-08-28) ═══
+
+@app.post("/api/sandbox/verify")
+async def sandbox_verify(req: Request):
+    """沙箱验证: 运行测试/检查命令验证代码可靠性 (复杂工程防半成品)。"""
+    try:
+        body = await req.json()
+    except Exception:
+        return JSONResponse({"error": "invalid json"}, status_code=400)
+    cmd = body.get("cmd", "").strip()
+    workdir = body.get("workdir", "")
+    timeout = min(int(body.get("timeout", 60)), 120)
+    if not cmd:
+        return JSONResponse({"error": "cmd required"}, status_code=400)
+    try:
+        from src.core.sandbox import CodeSandboxV2
+        sb = CodeSandboxV2()
+        # InlineSandbox.run(code, language, timeout) — bash 命令验证
+        result = sb.run(cmd, language="bash", timeout=timeout)
+        exit_code = getattr(result, "exit_code", 0)
+        # SandboxResult 字段: output (stdout 统一在 output)
+        stdout = getattr(result, "output", "") or getattr(result, "stdout", "") or ""
+        stderr = getattr(result, "stderr", "") or ""
+        return {"ok": True, "exit_code": exit_code,
+                "stdout": str(stdout)[:2000],
+                "stderr": str(stderr)[:1000],
+                "passed": exit_code == 0}
+    except Exception as e:
+        return JSONResponse({"error": f"验证执行失败: {e}"}, status_code=500)

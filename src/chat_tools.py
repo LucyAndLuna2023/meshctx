@@ -161,6 +161,7 @@ def _write_file(path: str, content: str, if_exists: str = "rename") -> str:
         p = Path(_normalize_desktop_path(path)).expanduser()
         p.parent.mkdir(parents=True, exist_ok=True)
         renamed = False
+        backed_up = False
         if if_exists == "rename" and p.exists():
             stem, ext = p.stem, p.suffix
             n = 1
@@ -168,8 +169,30 @@ def _write_file(path: str, content: str, if_exists: str = "rename") -> str:
                 n += 1
             p = p.with_name(f"{stem}({n}){ext}")
             renamed = True
+        elif if_exists == "overwrite" and p.exists():
+            # 覆盖已有文件前自动备份 (2026-08-28, 信任攻克: 可回滚, 防不可逆破坏)
+            try:
+                import time as _t
+                backup_dir = Path.home() / ".meshctx" / "backups"
+                backup_dir.mkdir(parents=True, exist_ok=True)
+                bpath = backup_dir / f"{int(_t.time())}_{p.name}.bak"
+                bpath.write_bytes(p.read_bytes())
+                # manifest: 备份名 → 原绝对路径 (回滚用)
+                manifest = backup_dir / "manifest.json"
+                import json as _json
+                mdata = {}
+                if manifest.exists():
+                    try: mdata = _json.loads(manifest.read_text(encoding="utf-8"))
+                    except Exception: mdata = {}
+                mdata[bpath.name] = {"orig": str(p.resolve()), "ts": _t.time()}
+                manifest.write_text(_json.dumps(mdata, ensure_ascii=False, indent=2), encoding="utf-8")
+                backed_up = True
+            except Exception:
+                pass
         p.write_text(content, encoding="utf-8")
         suffix = " (文件已存在，另存为新文件)" if renamed else ""
+        if backed_up:
+            suffix += " (覆盖前已自动备份到 ~/.meshctx/backups/，可回滚)"
         return f"已写入: {p} ({len(content)}字符){suffix}"
     except Exception as e:
         return f"写入失败: {e}"
