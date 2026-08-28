@@ -14,7 +14,10 @@ from datetime import datetime
 import requests
 
 # ===== 配置 =====
-TOKEN = os.environ.get("MESHCTX_BOT_TOKEN", "REDACTED_TELEGRAM_BOT_TOKEN9YLz7fPQ5thpU")
+# 安全: token 必须通过环境变量注入, 不硬编码在仓库 (公开仓库禁止明文 token)
+TOKEN = os.environ.get("MESHCTX_BOT_TOKEN", "")
+if not TOKEN:
+    raise SystemExit("错误: 请设置环境变量 MESHCTX_BOT_TOKEN (部署: MESHCTX_BOT_TOKEN=<token> python3 meshctx_support_bot.py)")
 SUPPORT_CHAT_ID = int(os.environ.get("MESHCTX_SUPPORT_CHAT", "7554956188"))  # 支持人员通知
 API = f"https://api.telegram.org/bot{TOKEN}"
 TIMEOUT = 50  # 长轮询
