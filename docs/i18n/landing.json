@@ -246,7 +246,8 @@
     "auth_btn_recovery": "Update Password",
     "auth_err_session": "This password reset link is invalid or has expired.",
     "auth_btn_updating": "Updating...",
-    "pl_btn_repo": "⭐ GitHub Repository"
+    "pl_btn_repo": "⭐ GitHub Repository",
+    "contact_telegram": "Telegram Community & Support"
   },
   "zh": {
     "hero_title": "会<span>学习</span>的智能体",
@@ -495,7 +496,8 @@
     "auth_btn_recovery": "更新密码",
     "auth_err_session": "密码重置链接无效或已过期。",
     "auth_btn_updating": "更新中...",
-    "pl_btn_repo": "⭐ GitHub 仓库"
+    "pl_btn_repo": "⭐ GitHub 仓库",
+    "contact_telegram": "Telegram 社群/产品支持"
   },
   "fr": {
     "hero_title": "L'Agent qui <span>Apprend</span>",
@@ -744,7 +746,8 @@
     "auth_btn_recovery": "Mettre à Jour le Mot de Passe",
     "auth_err_session": "Ce lien de réinitialisation est invalide ou a expiré.",
     "auth_btn_updating": "Mise à jour...",
-    "pl_btn_repo": "⭐ Dépôt GitHub"
+    "pl_btn_repo": "⭐ Dépôt GitHub",
+    "contact_telegram": "Communauté & Support Telegram"
   },
   "de": {
     "hero_title": "Der Agent, der <span>lernt</span>",
@@ -993,7 +996,8 @@
     "auth_btn_recovery": "Passwort Aktualisieren",
     "auth_err_session": "Dieser Link zum Zurücksetzen des Passworts ist ungültig oder abgelaufen.",
     "auth_btn_updating": "Aktualisiere...",
-    "pl_btn_repo": "⭐ GitHub-Repository"
+    "pl_btn_repo": "⭐ GitHub-Repository",
+    "contact_telegram": "Telegram Community & Support"
   },
   "ja": {
     "hero_title": "学習する<span>エージェント</span>",
@@ -1242,7 +1246,8 @@
     "auth_btn_recovery": "パスワードを更新",
     "auth_err_session": "このパスワードリセットリンクは無効か期限切れです。",
     "auth_btn_updating": "更新中...",
-    "pl_btn_repo": "⭐ GitHubリポジトリ"
+    "pl_btn_repo": "⭐ GitHubリポジトリ",
+    "contact_telegram": "Telegram コミュニティ/サポート"
   },
   "ko": {
     "hero_title": "학습하는 <span>에이전트</span>",
@@ -1491,7 +1496,8 @@
     "auth_btn_recovery": "비밀번호 업데이트",
     "auth_err_session": "비밀번호 재설정 링크가 유효하지 않거나 만료되었습니다.",
     "auth_btn_updating": "업데이트 중...",
-    "pl_btn_repo": "⭐ GitHub 리포지토리"
+    "pl_btn_repo": "⭐ GitHub 리포지토리",
+    "contact_telegram": "Telegram 커뮤니티/지원"
   },
   "es": {
     "hero_title": "El Agente que <span>Aprende</span>",
@@ -1740,7 +1746,8 @@
     "auth_btn_recovery": "Actualizar Contraseña",
     "auth_err_session": "Este enlace de restablecimiento no es válido o ha expirado.",
     "auth_btn_updating": "Actualizando...",
-    "pl_btn_repo": "⭐ Repositorio GitHub"
+    "pl_btn_repo": "⭐ Repositorio GitHub",
+    "contact_telegram": "Comunidad y soporte de Telegram"
   },
   "it": {
     "hero_title": "L'Agente Che <span>Impara</span>",
@@ -1989,7 +1996,8 @@
     "auth_btn_recovery": "Aggiorna Password",
     "auth_err_session": "Questo link di reimpostazione non è valido o è scaduto.",
     "auth_btn_updating": "Aggiornamento...",
-    "pl_btn_repo": "⭐ Repository GitHub"
+    "pl_btn_repo": "⭐ Repository GitHub",
+    "contact_telegram": "Community e supporto Telegram"
   },
   "ar": {
     "hero_title": "الوكيل الذي <span>يتعلّم</span>",
@@ -2238,7 +2246,8 @@
     "auth_btn_recovery": "تحديث كلمة المرور",
     "auth_err_session": "رابط إعادة تعيين كلمة المرور غير صالح أو منتهي الصلاحية.",
     "auth_btn_updating": "جارٍ التحديث...",
-    "pl_btn_repo": "⭐ مستودع GitHub"
+    "pl_btn_repo": "⭐ مستودع GitHub",
+    "contact_telegram": "مجتمع ودعم تيليجرام"
   },
   "ru": {
     "hero_title": "Агент, который <span>учится</span>",
@@ -2487,6 +2496,7 @@
     "auth_btn_recovery": "Обновить пароль",
     "auth_err_session": "Ссылка для сброса пароля недействительна или истекла.",
     "auth_btn_updating": "Обновление...",
-    "pl_btn_repo": "⭐ Репозиторий GitHub"
+    "pl_btn_repo": "⭐ Репозиторий GitHub",
+    "contact_telegram": "Сообщество и поддержка Telegram"
   }
 }
