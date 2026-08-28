@@ -31,6 +31,7 @@ _AUTH_DISABLED = os.environ.get("MESHCTX_AUTH_DISABLED", "").lower() in ("1", "t
 _AUTH_ENABLED = bool(_AUTH_PASSWORD) and not _AUTH_DISABLED
 if not _AUTH_PASSWORD:
     logger.warning("⚠️ 未设置 MESHCTX_PASSWORD，认证已禁用（本地安装 UI 正常可用；公网部署请设置 MESHCTX_PASSWORD）")
+logger.warning("⚠️⚠️ 认证禁用模式: 所有 /api/* 无认证（仅本地回环可信）。公网部署必须设置 MESHCTX_PASSWORD，否则 API 完全裸奔 (002codex 建议)")
 
 # API Key 存储路径
 _API_KEYS_PATH = Path.home() / ".meshctx" / "api_keys.yaml"
