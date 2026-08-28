@@ -7521,7 +7521,7 @@ async def team_add_member(req: Request):
     if not store.add_member(team_id, user_id, body.get("role", "member")):
         return JSONResponse({"error": "添加失败 (席位已满或已存在)"}, status_code=400)
     store.audit(await _current_user_id(req), "team.add_member", f"team={team_id} user={user_id}",
-                req.client.host if req.client else "")
+                req.client.host if req.client else "", team_id=team_id)
     return {"ok": True}
 
 
@@ -7548,7 +7548,7 @@ async def team_upgrade(req: Request):
                           months=int(body.get("months", 12))):
         return JSONResponse({"error": "team not found"}, status_code=404)
     store.audit(await _current_user_id(req), "team.upgrade", f"team={team_id} plan={plan}",
-                req.client.host if req.client else "")
+                req.client.host if req.client else "", team_id=team_id)
     return {"ok": True, "team": store.get_team(team_id).to_dict()}
 
 
@@ -7613,11 +7613,17 @@ async def team_memory_save(req: Request):
         risk = [f for f in findings if getattr(f, "category", "") != "ignore"]
         if risk:
             store.audit(uid, "team.memory_blocked",
-                        f"team={team_id} 命中敏感信息扫描: {risk[0].category}", req.client.host if req.client else "")
-            return JSONResponse({"error": f"共享记忆被敏感信息扫描拦截 ({risk[0].category}), 请勿写入密钥/敏感内容"},
+                        f"team={team_id} 命中敏感信息扫描: {risk[0].secret_type}", req.client.host if req.client else "",
+                        team_id=team_id)
+            return JSONResponse({"error": f"共享记忆被敏感信息扫描拦截 ({risk[0].secret_type}), 请勿写入密钥/敏感内容"},
                                 status_code=400)
-    except Exception:
-        pass
+    except Exception as e:
+        # fail-closed: 扫描异常不静默放行 (004meshctx 审计)
+        logger = __import__("logging").getLogger("meshctx.team_memory")
+        logger.warning(f"敏感信息扫描异常: {e}")
+        store.audit(uid, "team.memory_scan_error", f"team={team_id} {e}",
+                    req.client.host if req.client else "", team_id=team_id)
+        return JSONResponse({"error": "敏感信息扫描失败, 已拒绝写入 (安全策略)"}, status_code=500)
     # 持久化 (带治理字段: status 供记忆错误纠正) — resolve 后必须在目录内
     try:
         from pathlib import Path
@@ -7635,7 +7641,7 @@ async def team_memory_save(req: Request):
     except Exception as e:
         return JSONResponse({"error": f"保存失败: {e}"}, status_code=500)
     store.audit(uid, "team.memory_save", f"team={team_id} fact={fact[:40]}",
-                req.client.host if req.client else "")
+                req.client.host if req.client else "", team_id=team_id)
     store.record_activity(team_id, agent="team_memory", action="save",
                           detail=fact[:40], user_id=uid)
     return {"ok": True}
@@ -7709,7 +7715,7 @@ async def swarm_ask_api(req: Request):
         store = _business_store()
         if store.get_team(team_id) is None:
             return JSONResponse({"error": "team not found"}, status_code=404)
-        if not _require_member(req, team_id):
+        if not await _require_member(req, team_id):  # 002codex: 漏 await 致协程恒真
             return JSONResponse({"error": "非团队成员"}, status_code=403)
     from src.core.swarm import swarm_ask as _swarm
     top_k = min(int(body.get("top_k", 5)), 5)  # 上限 5 (002codex P2: 防滥用并发)
@@ -7766,7 +7772,7 @@ async def team_memory_correct(req: Request):
         p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     except Exception as e:
         return JSONResponse({"error": f"纠错失败: {e}"}, status_code=500)
-    store.audit(uid, "team.memory_correct", f"team={team_id} idx={idx}", req.client.host if req.client else "")
+    store.audit(uid, "team.memory_correct", f"team={team_id} idx={idx}", req.client.host if req.client else "", team_id=team_id)
     store.record_activity(team_id, agent="team_memory", action="correct", detail=f"idx={idx}", user_id=uid)
     return {"ok": True}
 
@@ -7807,7 +7813,7 @@ async def team_memory_mark(req: Request):
     except Exception as e:
         return JSONResponse({"error": f"标记失败: {e}"}, status_code=500)
     store.audit(uid, "team.memory_mark", f"team={team_id} idx={idx} status={status}",
-                req.client.host if req.client else "")
+                req.client.host if req.client else "", team_id=team_id)
     return {"ok": True}
 
 
@@ -7852,7 +7858,7 @@ async def team_budget_set(req: Request):
     if not store.set_budget(team_id, budget):
         return JSONResponse({"error": "team not found"}, status_code=404)
     store.audit(uid, "team.budget_set", f"team={team_id} budget={budget}",
-                req.client.host if req.client else "")
+                req.client.host if req.client else "", team_id=team_id)
     return {"ok": True, "budget": store.budget_status(team_id)}
 
 

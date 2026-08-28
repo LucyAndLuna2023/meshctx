@@ -35,6 +35,10 @@ def anon_client():
 def team(admin_client):
     r = admin_client.post("/api/team/create", json={"name": "安全测试组"})
     assert r.status_code == 200
+    tid = r.json()["team"]["team_id"]
+    # 显式升级到 team plan (shared_memory/dashboard 开放) — 不依赖 ~/.meshctx 持久状态
+    from src.core.business_plans import get_store
+    assert get_store().set_plan(tid, "team", seats=5, months=1) is True
     return r.json()["team"]
 
 
@@ -116,3 +120,22 @@ def test_budget_cap(admin_client, team):
     r = admin_client.post("/api/team/budget",
                           json={"team_id": team["team_id"], "monthly_budget": 999999999999})
     assert r.status_code == 400
+
+
+def test_memory_secret_scan_blocks(admin_client, team):
+    """敏感信息扫描: 写含密钥的记忆 → 400 拦截 (004meshctx P1-1 fail-open 修复验证)。"""
+    r = admin_client.post("/api/team/memories",
+                          json={"team_id": team["team_id"], "fact": "我的 API key 是 ghp_abcdef1234567890abcdef"})
+    assert r.status_code == 400, f"含密钥记忆应被拦截, 实际 {r.status_code}"
+    assert "敏感信息" in r.json().get("error", "")
+    # 正常记忆可写入
+    r2 = admin_client.post("/api/team/memories",
+                           json={"team_id": team["team_id"], "fact": "项目规范: 部署走 CI"})
+    assert r2.status_code == 200
+
+
+def test_audit_team_id_persisted(admin_client, team):
+    """audit 落库带 team_id (002codex P2: /api/audit/log 数据接上)。"""
+    from src.core.business_plans import get_store
+    logs = get_store().audit_log(team["team_id"], limit=50)
+    assert any(l.get("team_id") == team["team_id"] for l in logs), "audit 日志应带 team_id"
