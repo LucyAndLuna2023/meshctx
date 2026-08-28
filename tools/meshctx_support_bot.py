@@ -16,13 +16,11 @@ import requests
 # ===== 配置 =====
 # 安全: token 必须通过环境变量注入, 不硬编码在仓库 (公开仓库禁止明文 token)
 TOKEN = os.environ.get("MESHCTX_BOT_TOKEN", "")
-if not TOKEN:
-    raise SystemExit("错误: 请设置环境变量 MESHCTX_BOT_TOKEN (部署: MESHCTX_BOT_TOKEN=<token> python3 meshctx_support_bot.py)")
 SUPPORT_CHAT_ID = int(os.environ.get("MESHCTX_SUPPORT_CHAT", "7554956188"))  # 支持人员通知
 API = f"https://api.telegram.org/bot{TOKEN}"
 TIMEOUT = 50  # 长轮询
 
-LOG_DIR = "/opt/meshctx_bot"
+LOG_DIR = os.environ.get("MESHCTX_BOT_LOG", os.path.expanduser("~/.meshctx_bot"))
 os.makedirs(LOG_DIR, exist_ok=True)
 logging.basicConfig(
     filename=f"{LOG_DIR}/bot.log", level=logging.INFO,
@@ -82,7 +80,7 @@ FAQ = {
         ),
     },
     "open_source": {
-        "keywords": ["开源", "open source", "免费", "free", "license", "AGPL", "收费", "价格", "price"],
+        "keywords": ["开源", "open source", "免费", "free", "license", "AGPL", "收费", "价格", "price", "多少钱", "how much", "cost", "贵"],
         "answer": (
             "🔓 开源与定价:\n"
             "• Open Core: AGPLv3 框架永久开源 (GitHub: LucyAndLuna2023/meshctx)\n"
@@ -125,7 +123,11 @@ def api(method, **params):
 
 
 def send(chat_id, text):
-    api("sendMessage", chat_id=chat_id, text=text, disable_web_page_preview=True)
+    r = api("sendMessage", chat_id=chat_id, text=text, disable_web_page_preview=True)
+    if r.get("ok"):
+        log(f"→ 已发送 ({chat_id}): {text[:40]}...")
+    else:
+        log(f"⚠ 发送失败 ({chat_id}): {r.get('description', r)}")
 
 
 def match_faq(text):
@@ -186,6 +188,10 @@ def handle_text(text, chat_id, user):
 
 # ===== 主循环 =====
 def main():
+    global TOKEN
+    if not TOKEN:
+        log("错误: 请设置环境变量 MESHCTX_BOT_TOKEN")
+        return
     log(f"MeshCtx 支持 bot 启动 (token={TOKEN[:10]}...)")
     me = api("getMe")
     if me.get("ok"):
