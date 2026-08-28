@@ -175,7 +175,7 @@ def _write_file(path: str, content: str, if_exists: str = "rename") -> str:
                 import time as _t
                 backup_dir = Path.home() / ".meshctx" / "backups"
                 backup_dir.mkdir(parents=True, exist_ok=True)
-                bpath = backup_dir / f"{int(_t.time())}_{p.name}.bak"
+                bpath = backup_dir / f"{int(_t.time() * 1000)}_{p.name}.bak"  # 毫秒级唯一 (002codex P3)
                 bpath.write_bytes(p.read_bytes())
                 # manifest: 备份名 → 原绝对路径 (回滚用)
                 manifest = backup_dir / "manifest.json"

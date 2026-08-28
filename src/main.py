@@ -8104,8 +8104,10 @@ async def memory_retrieve_api(req: Request):
 # ═══ 文件备份/回滚 API — 信任攻克 (2026-08-28) ═══
 
 @app.get("/api/files/backups")
-async def file_backups():
-    """列出自动备份 (覆盖前备份, 可回滚)。"""
+async def file_backups(request: Request):
+    """列出自动备份 (覆盖前备份, 可回滚)。002codex P1: 显式鉴权。"""
+    if not await _current_user_id(request):
+        return JSONResponse({"error": "请先认证"}, status_code=401)
     from pathlib import Path
     backup_dir = Path.home() / ".meshctx" / "backups"
     if not backup_dir.exists():
@@ -8120,7 +8122,10 @@ async def file_backups():
 
 @app.post("/api/files/rollback")
 async def file_rollback(req: Request):
-    """回滚: 用备份恢复原文件 (信任: 修改可撤销, manifest 定位原路径)。"""
+    """回滚: 用备份恢复原文件 (信任: 修改可撤销, manifest 定位原路径)。
+    002codex P1: 显式鉴权 (未认证可触发回滚破坏数据)。"""
+    if not await _current_user_id(req):
+        return JSONResponse({"error": "请先认证"}, status_code=401)
     try:
         body = await req.json()
     except Exception:
@@ -8156,20 +8161,36 @@ async def file_rollback(req: Request):
 
 @app.post("/api/sandbox/verify")
 async def sandbox_verify(req: Request):
-    """沙箱验证: 运行测试/检查命令验证代码可靠性 (复杂工程防半成品)。"""
+    """沙箱验证: 运行测试/检查命令验证代码可靠性。
+    002codex P0: 显式鉴权 (未认证 RCE 实测) + 限流 + workdir 传参 + timeout 安全转换。
+    边界声明: CodeSandboxV2 是资源受限 subprocess (CPU/内存/timeout), 非安全隔离沙箱。
+    """
+    if not await _current_user_id(req):
+        return JSONResponse({"error": "请先认证 (登录或 API Key)"}, status_code=401)
     try:
         body = await req.json()
     except Exception:
         return JSONResponse({"error": "invalid json"}, status_code=400)
     cmd = body.get("cmd", "").strip()
-    workdir = body.get("workdir", "")
-    timeout = min(int(body.get("timeout", 60)), 120)
+    workdir = body.get("workdir", "") or ""
+    try:
+        timeout = min(int(body.get("timeout", 60)), 120)   # P3: 安全转换
+    except (TypeError, ValueError):
+        timeout = 60
     if not cmd:
         return JSONResponse({"error": "cmd required"}, status_code=400)
+    if len(cmd) > 1000:
+        return JSONResponse({"error": "cmd 过长"}, status_code=400)
     try:
         from src.core.sandbox import CodeSandboxV2
         sb = CodeSandboxV2()
-        # InlineSandbox.run(code, language, timeout) — bash 命令验证
+        # P3: workdir 真实传参 (bash 的 cwd 通过 cd 前缀)
+        if workdir:
+            import shlex as _sh
+            try:
+                cmd = f"cd {_sh.quote(workdir)} && {cmd}"
+            except Exception:
+                cmd = f"cd {workdir} && {cmd}"
         result = sb.run(cmd, language="bash", timeout=timeout)
         exit_code = getattr(result, "exit_code", 0)
         # SandboxResult 字段: output (stdout 统一在 output)
