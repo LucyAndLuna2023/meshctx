@@ -372,13 +372,6 @@ def main():
     # P2 注入结果（独立归档，供 v5 报告对比）
     baseline_acc, baseline_c, baseline_t = _load_baseline(samples)
     _run_ts = time.strftime("%Y-%m-%dT%H:%M:%S")
-    # 填充对称基线到结果 dict (002codex P1)
-    for _d in (results, p2_out):
-        _d["baseline_full_history_accuracy"] = baseline_acc
-        _d["baseline_full_history_correct"] = baseline_c
-        _d["baseline_full_history_total"] = baseline_t
-        _d["baseline_full_history_note"] = f"对称基线(同模板+256token+{samples}采样), {baseline_c}/{baseline_t} = {baseline_acc:.3f}, run {_run_ts}"
-
     out_p2 = os.path.join(OUT, "p2_injection_results.json")
     p2_out = {
         "model": MODEL,
@@ -390,6 +383,12 @@ def main():
         "p2_injection": {"correct": c_p2, "total": t_p2, "accuracy": p2_acc},
         "samples": det_p2,
     }
+    # 填充对称基线到结果 dict (002codex P1; 顺序修复: p2_out 先定义 — 002codex backlog 第5轮 NameError)
+    for _d in (results, p2_out):
+        _d["baseline_full_history_accuracy"] = baseline_acc
+        _d["baseline_full_history_correct"] = baseline_c
+        _d["baseline_full_history_total"] = baseline_t
+        _d["baseline_full_history_note"] = f"对称基线(同模板+256token+{samples}采样), {baseline_c}/{baseline_t} = {baseline_acc:.3f}, run {_run_ts}"
     json.dump(p2_out, open(out_p2, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 
     print("\n=== 结果 ===")

@@ -66,11 +66,18 @@ def list_facts(team_id: str) -> List[Dict[str, Any]]:
     items = _load_items(_mem_path(team_id))
     facts = []
     for it in items:
+        tags = it.get("tags") or []
+        if it.get("is_corrected"):
+            status = "error"
+        elif "deprecated" in tags:
+            status = "deprecated"     # 002codex P2: mark 后 list 必须反映
+        else:
+            status = "active"
         facts.append({
             "ts": it.get("created_at", 0) or 0,
             "fact": it.get("value") or it.get("content") or "",
             "user": it.get("source", "") or "",
-            "status": "error" if it.get("is_corrected") else "active",
+            "status": status,
             "schema_layer": it.get("schema_layer", "episodic"),
             "id": it.get("id", ""),
             "corrected_fact": (it.get("correction_history") or [{}])[-1].get("corrected_fact", "")

@@ -323,3 +323,49 @@ def test_priority_routing_gate():
     from src.core.business_plans import feature_enabled
     assert feature_enabled("team", "priority_routing") is True
     assert feature_enabled("free", "priority_routing") is False
+
+
+def test_webhook_fail_closed():
+    """002codex P1: 未配置 STRIPE_WEBHOOK_SECRET 时 webhook 必须拒绝 (防支付伪造)。"""
+    import os
+    old = os.environ.pop("STRIPE_WEBHOOK_SECRET", None)
+    from src.core.billing_payments import verify_webhook
+    event = {"type": "checkout.session.completed",
+             "data": {"object": {"metadata": {"team_id": "x", "plan": "enterprise"}}}}
+    import json as _json
+    assert verify_webhook(_json.dumps(event).encode(), "") is None, "无 secret 必须 fail-closed"
+    if old: os.environ["STRIPE_WEBHOOK_SECRET"] = old
+
+
+def test_sso_fail_closed_without_secret():
+    """002codex P2: 未配置 CLIENT_SECRET 时 parse_jwt 拒绝 (fail-open 修复)。"""
+    import os, base64, json as _json, time
+    old_sec = os.environ.pop("MESHCTX_SSO_CLIENT_SECRET", None)
+    old_iss = os.environ.pop("MESHCTX_SSO_ISSUER", None)
+    from src.core import sso as sso_mod
+    import importlib
+    importlib.reload(sso_mod)
+    header = base64.urlsafe_b64encode(_json.dumps({"alg": "HS256"}).encode()).rstrip(b"=")
+    payload = base64.urlsafe_b64encode(_json.dumps({"sub": "u", "exp": time.time() + 100}).encode()).rstrip(b"=")
+    token = f"{header.decode()}.{payload.decode()}.sig"
+    assert sso_mod.parse_jwt(token) is None, "无 secret 必须拒绝"
+    if old_sec: os.environ["MESHCTX_SSO_CLIENT_SECRET"] = old_sec
+    if old_iss: os.environ["MESHCTX_SSO_ISSUER"] = old_iss
+
+
+def test_mark_deprecated_reflected():
+    """002codex P2: mark deprecated 后 list_facts 状态反映。"""
+    import tempfile, pathlib
+    tmp = pathlib.Path(tempfile.mkdtemp())
+    import src.core.team_memory as tm
+    old_home = pathlib.Path.home
+    pathlib.Path.home = staticmethod(lambda: tmp)
+    try:
+        r = tm.save_fact("aabbccddeeff", "旧规范内容")
+        facts = tm.list_facts("aabbccddeeff")
+        assert facts[0]["status"] == "active"
+        tm.mark_fact("aabbccddeeff", facts[0]["id"], deprecated=True)
+        facts2 = tm.list_facts("aabbccddeeff")
+        assert facts2[0]["status"] == "deprecated", "mark 后应显示 deprecated"
+    finally:
+        pathlib.Path.home = old_home

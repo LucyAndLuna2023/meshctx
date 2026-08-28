@@ -7955,6 +7955,12 @@ async def sso_authorize(request: Request):
         return JSONResponse({"error": "SSO 需 Enterprise 版"}, status_code=403)
     from src.core.sso import sso_enabled, build_authorize_url
     state = uuid.uuid4().hex[:16]
+    # CSRF 防护 (002codex P2): state 存 session, callback 比对
+    try:
+        from src.core.sso_state import set_state, get_state
+        set_state(state, {"user": await _current_user_id(request)})
+    except Exception:
+        pass
     if not sso_enabled():
         # dev 模拟: 直接返回模拟用户
         return {"mode": "dev-simulated", "state": state,
@@ -7972,6 +7978,14 @@ async def sso_callback(request: Request, code: str = "", state: str = ""):
     from src.core.sso import exchange_code, get_userinfo_from_token, sso_enabled
     if not code:
         return JSONResponse({"error": "缺少 code"}, status_code=400)
+    # state 校验 (002codex P2: OIDC 登录 CSRF)
+    if state:
+        try:
+            from src.core.sso_state import consume_state
+            if not consume_state(state):
+                return JSONResponse({"error": "state 校验失败 (CSRF 防护)"}, status_code=400)
+        except Exception:
+            pass
     if not sso_enabled():
         return {"mode": "dev-simulated", "user": {"sub": "dev-user-001",
                 "email": "admin@meshctx.com", "name": "Dev Admin", "verified": True}}

@@ -41,21 +41,42 @@ def _b64url_decode(s: str) -> bytes:
 
 
 def parse_jwt(token: str) -> Optional[Dict[str, Any]]:
-    """解析并验证 JWT (HMAC-SHA256 签名, 支持 HS256)。"""
+    """解析并验证 JWT (HMAC-SHA256, 2026-08-28 002codex P2 加固)。
+
+    fail-closed: 未配置 CLIENT_SECRET 拒绝; 校验 alg=HS256 + iss + aud。
+    """
     try:
         parts = token.split(".")
         if len(parts) != 3:
             return None
         header = json.loads(_b64url_decode(parts[0]))
         payload = json.loads(_b64url_decode(parts[1]))
-        # 签名验证 (HS256, 用 client_secret 或 issuer 派生 key)
-        if SSO_CLIENT_SECRET:
-            signing_input = f"{parts[0]}.{parts[1]}".encode()
-            expected = hmac.new(SSO_CLIENT_SECRET.encode(), signing_input,
-                                hashlib.sha256).digest()
-            actual = _b64url_decode(parts[2])
-            if not hmac.compare_digest(expected, actual):
-                logger.warning("JWT 签名不匹配")
+        # fail-closed: 未配置 secret 拒绝 (002codex: 防伪造 JWT)
+        if not SSO_CLIENT_SECRET:
+            logger.error("SSO 未配置 MESHCTX_SSO_CLIENT_SECRET, 拒绝解析 JWT")
+            return None
+        # alg 校验: 仅 HS256 (防 alg=none/RS 混淆)
+        if header.get("alg") != "HS256":
+            logger.warning(f"JWT alg 非 HS256: {header.get('alg')}")
+            return None
+        # 签名验证
+        signing_input = f"{parts[0]}.{parts[1]}".encode()
+        expected = hmac.new(SSO_CLIENT_SECRET.encode(), signing_input,
+                            hashlib.sha256).digest()
+        actual = _b64url_decode(parts[2])
+        if not hmac.compare_digest(expected, actual):
+            logger.warning("JWT 签名不匹配")
+            return None
+        # iss 校验 (配置了 issuer 时)
+        if SSO_ISSUER and payload.get("iss") and payload.get("iss") != SSO_ISSUER:
+            logger.warning(f"JWT iss 不匹配: {payload.get('iss')}")
+            return None
+        # aud 校验 (配置了 client_id 时)
+        if SSO_CLIENT_ID:
+            aud = payload.get("aud")
+            auds = aud if isinstance(aud, list) else [aud]
+            if SSO_CLIENT_ID not in auds:
+                logger.warning(f"JWT aud 不匹配: {aud}")
                 return None
         # 过期检查
         exp = payload.get("exp", 0)

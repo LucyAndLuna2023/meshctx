@@ -85,22 +85,25 @@ def verify_webhook(payload: bytes, sig_header: str) -> Optional[Dict[str, Any]]:
         event = json.loads(payload)
     except Exception:
         return None
-    # 签名校验 (配置了 secret 时)
-    if STRIPE_WEBHOOK_SECRET:
-        import hashlib
-        import hmac
-        try:
-            ts, sigs = sig_header.split(",", 1)
-            ts = ts.split("=")[1]
-            signed = f"{ts}.{payload.decode('utf-8', 'replace')}"
-            expected = hmac.new(STRIPE_WEBHOOK_SECRET.encode(),
-                                signed.encode(), hashlib.sha256).hexdigest()
-            if expected not in sigs:
-                logger.warning("Stripe webhook 签名不匹配")
-                return None
-        except Exception as e:
-            logger.warning(f"webhook 签名解析失败: {e}")
+    # 签名校验 (002codex P1: 未配置 secret 必须 fail-closed — 否则任何人可伪造支付开通)
+    # 实测: 无签名 POST checkout.session.completed → 200 免费开通 enterprise, 公网部署可绕过付费
+    if not STRIPE_WEBHOOK_SECRET:
+        logger.error("拒绝处理 webhook: 未配置 STRIPE_WEBHOOK_SECRET (fail-closed, 防支付伪造)")
+        return None
+    import hashlib
+    import hmac
+    try:
+        ts, sigs = sig_header.split(",", 1)
+        ts = ts.split("=")[1]
+        signed = f"{ts}.{payload.decode('utf-8', 'replace')}"
+        expected = hmac.new(STRIPE_WEBHOOK_SECRET.encode(),
+                            signed.encode(), hashlib.sha256).hexdigest()
+        if expected not in sigs:
+            logger.warning("Stripe webhook 签名不匹配")
             return None
+    except Exception as e:
+        logger.warning(f"webhook 签名解析失败: {e}")
+        return None
     return event
 
 
@@ -114,11 +117,18 @@ def apply_checkout_event(event: Dict[str, Any]) -> Dict[str, Any]:
         return {"ok": False, "reason": f"忽略事件 {event_type}"}
     data = event.get("data", {}).get("object", {})
     meta = data.get("metadata", {}) or {}
+    # invoice.paid 无 metadata → 用 customer/line 关联 (P3: 当前无 customer 映射, 拒绝而非误开)
+    if not meta and event_type == "invoice.paid":
+        return {"ok": False, "reason": "invoice.paid 无 metadata, 需 customer 映射"}
     team_id = meta.get("team_id", "")
     plan = meta.get("plan", "team")
     seats = int(meta.get("seats", 5))
     if not team_id or store.get_team(team_id) is None:
         return {"ok": False, "reason": "team not found"}
+    # 幂等: 已开通同 plan 且未过期 → 跳过 (002codex P2: 重复投递)
+    team = store.get_team(team_id)
+    if team.plan == plan and team.subscription_until > time.time() + 30 * 24 * 3600:
+        return {"ok": True, "reason": "已开通, 幂等跳过", "team_id": team_id, "plan": plan}
     months = 1 if event_type == "invoice.paid" else 12
     if not store.set_plan(team_id, plan, seats=seats, months=months):
         return {"ok": False, "reason": "set_plan 失败"}
