@@ -49,7 +49,7 @@ gateway:
     
   telegram:
     enabled: true
-    bot_token: "REDACTED_TELEGRAM_BOT_TOKEN9YLz7fPQ5thpU"
+    bot_token: "enc:gAAAAABqkucpsAyPlVb_QxmSAD7zMgOLmya2n_uKr89r6YWwtUBRlWOMmXBt4JaCWiiEifz8k0B2-RYVmBvMJGR14WM6bKFm6oyforL9D1GZAbSKWVnjaaGxsMWVzKj_Xc-RxVMd743o"
     
   wechat:
     enabled: false
