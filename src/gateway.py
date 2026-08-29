@@ -798,7 +798,7 @@ class GatewayPlugin(Plugin):
         # 初始化所有已配置的连接器
         for platform, cls in self.CONNECTOR_MAP.items():
             platform_cfg = gw_config.get(platform, {})
-            if platform_cfg.get("enabled", True) and self._has_credentials(platform_cfg):
+            if platform_cfg.get("enabled", True) and self._has_credentials(platform_cfg, platform):
                 connector = cls(platform_cfg, bus)
                 self._connectors[platform] = connector
                 await connector.start()
@@ -810,7 +810,7 @@ class GatewayPlugin(Plugin):
             await connector.stop()
         self._connectors.clear()
 
-    def _has_credentials(self, cfg: Dict) -> bool:
+    def _has_credentials(self, cfg: Dict, platform: str = "") -> bool:
         """检查是否有有效凭证"""
         checks = {
             "feishu": ["app_id", "app_secret"],
@@ -820,8 +820,11 @@ class GatewayPlugin(Plugin):
             "discord": ["bot_token"],
             "slack": ["bot_token"],
         }
-        for platform, keys in checks.items():
-            if platform in str(cfg):
+        if platform and platform in checks:
+            return any(cfg.get(k) for k in checks[platform])
+        # 旧兼容逻辑
+        for p, keys in checks.items():
+            if p in str(cfg):
                 return any(cfg.get(k) for k in keys)
         return False
 

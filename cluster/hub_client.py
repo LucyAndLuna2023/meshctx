@@ -35,14 +35,19 @@ REDIS_PORT = int(os.environ.get("HUB_REDIS_PORT", "6379"))
 REDIS_PASSWORD = os.environ.get("HUB_REDIS_PASSWORD", "Hm@2026!1ckwd3zx2i")
 
 # Machine identity
-MACHINE_ID = os.environ.get("HUB_MACHINE_ID", socket.gethostname())
+_raw_machine_id = os.environ.get("HUB_MACHINE_ID", "")
+if not _raw_machine_id:
+    print("[hub] FATAL: HUB_MACHINE_ID env var not set. Machine numbering is mandatory.", file=sys.stderr)
+    print("[hub] Set: export HUB_MACHINE_ID=001 (or 002/003/004)", file=sys.stderr)
+    sys.exit(1)
+MACHINE_ID = _raw_machine_id
 MACHINE_LABEL = os.environ.get("HUB_MACHINE_LABEL", MACHINE_ID)
 
 # ── Machine Registry ─────────────────────────────────────
-REGISTRY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "machines.json")
+REGISTRY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "registry.json")
 
 def _load_registry() -> dict:
-    """Load machines.json and auto-identify this machine."""
+    """Load registry.json and auto-identify this machine."""
     try:
         with open(REGISTRY_FILE) as f:
             reg = json.load(f)
@@ -52,16 +57,25 @@ def _load_registry() -> dict:
     hostname = socket.gethostname()
     for mid, info in reg.get("machines", {}).items():
         if info.get("hostname") == hostname:
-            return {"mid": mid, "label": info["label"], **info}
+            result = {"mid": mid, "label": info["label"], **info}
+            # Build reverse index: profile → machine
+            result["_profile_map"] = {}
+            for m, mi in reg.get("machines", {}).items():
+                for p in mi.get("profiles", []):
+                    result["_profile_map"][p] = m
+            return result
     return {}
 
-MACHINE_REG = _load_registry()
-# Registry lookup: only auto-identify if MACHINE_ID was NOT explicitly set
-# (avoids conflict when multiple machines share the same hostname, e.g. WSL clones)
-_ENV_MACHINE_ID = os.environ.get("HUB_MACHINE_ID")
-if MACHINE_REG and not _ENV_MACHINE_ID:
-    MACHINE_ID = MACHINE_REG.get("mid", MACHINE_ID)
-    MACHINE_LABEL = MACHINE_REG.get("label", MACHINE_LABEL)
+def get_profile_machine(profile: str) -> str:
+    """Return the machine ID that hosts a profile, or None."""
+    reg = _load_registry()
+    pmap = reg.get("_profile_map", {})
+    return pmap.get(profile)
+
+def get_local_profiles() -> list:
+    """Return list of profiles hosted on this machine (from registry)."""
+    reg = _load_registry()
+    return reg.get("profiles", [])
 
 # ── Machine ID Resolution ────────────────────────────────
 _KNOWN_IDS = {"001", "002", "003", "004"}
@@ -98,6 +112,22 @@ def _pid_alive_portable(pid) -> bool:
     except Exception:
         pass
     return False
+
+MACHINE_REG = _load_registry()
+# Registry lookup: authoritative when hostname matches registry entry
+# (numeric IDs are ALWAYS preferred over hostname-based fallback)
+_ENV_MACHINE_ID = os.environ.get("HUB_MACHINE_ID")
+if MACHINE_REG:
+    mid = MACHINE_REG.get("mid", "")
+    if mid and mid in _KNOWN_IDS:
+        if _ENV_MACHINE_ID and _ENV_MACHINE_ID != mid:
+            print(f"[hub] WARNING: HUB_MACHINE_ID={_ENV_MACHINE_ID} but registry says {mid} - using registry", flush=True)
+        MACHINE_ID = mid
+        MACHINE_LABEL = MACHINE_REG.get("label", MACHINE_LABEL)
+    elif _ENV_MACHINE_ID:
+        MACHINE_ID = _ENV_MACHINE_ID
+elif _ENV_MACHINE_ID:
+    MACHINE_ID = _ENV_MACHINE_ID
 
 def resolve_machine_id(raw: str) -> str:
     """Resolve a target identifier (label, hostname, or profile) to a machine ID.
@@ -141,10 +171,15 @@ def drain_orphaned_queues(own_mid: str):
         for key in r.scan_iter("hub:inbox:*"):
             key_str = key.decode() if isinstance(key, bytes) else key
             # Skip our own correct queue
-            if key_str == f"hub:inbox:{own_mid}":
+            if key_str != f"hub:inbox:{own_mid}":
+                continue  # skip non-local inboxes
+            # Skip other machines' inboxes (numeric MIDs like 001, 002, 003...)
+            # Draining these is message theft — each machine owns its own inbox.
+            inbox_suffix = key_str.split("hub:inbox:")[1]
+            if inbox_suffix.isdigit():
                 continue
             # Skip profile-specific queues
-            if ":" in key_str.replace("hub:inbox:", ""):
+            if ":" in inbox_suffix:
                 continue
             # Drain orphaned messages
             while True:
@@ -159,13 +194,12 @@ def drain_orphaned_queues(own_mid: str):
                     drained += 1
                 except:
                     pass
-        # Also drain hub:profile:* queues if target matches us
+        # Only drain OUR OWN hub:profile:* queues — skip other machines (message theft)
         for key in r.scan_iter("hub:profile:*"):
             key_str = key.decode() if isinstance(key, bytes) else key
-            parts = key_str.split(":") 
-            if len(parts) >= 3 and parts[2] == own_mid:
-                continue  # already correct
-            # If the target machine ID part matches a query, drain it
+            parts = key_str.split(":")
+            if len(parts) < 3 or parts[2] != own_mid:
+                continue
             while True:
                 raw = r.rpop(key_str)
                 if not raw:
@@ -465,14 +499,20 @@ def send_dm(target_mid: str, message: str, from_profile: str = "", to_profile: s
         "message": message,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-    # Push to target's inbox
+    # Push to target's inbox (v4 compat)
     r.lpush(f"hub:inbox:{target_mid}", json.dumps(msg))
-    # Also publish for real-time listeners
     r.publish(f"hub:inbox:{target_mid}", json.dumps(msg))
-    # If to_profile set, also push to profile-specific queue + publish
+    # If to_profile set, also push to profile-specific queue + publish (v4 compat)
     if to_profile:
         r.lpush(f"hub:profile:{target_mid}:{to_profile}", json.dumps(msg))
         r.publish(f"hub:profile:{target_mid}:{to_profile}", json.dumps(msg))
+    # ── v5: profile-based routing (broadcast to ALL machines with this profile) ──
+    # DISABLED: global profile channel causes DM race condition.
+    # DM should only go to hub:inbox:{target_mid} — target machine's dedicated channel.
+    # The target machine's listener routes to the correct profile inbox.
+    # if to_profile:
+    #     r.lpush(f"hub:inbox:{to_profile}", json.dumps(msg))
+    #     r.publish(f"hub:notify:{to_profile}", json.dumps({"type": "notify", "profile": to_profile}))
     return msg_id
 
 
@@ -688,7 +728,7 @@ def _cli():
         "heartbeat", "workers", "tasks", "logs", "registry",
         "send-task", "result", "sync", "chat", "send", "inbox", "ping", "broadcast",
         "dm", "group", "task",    # v4: new names, old kept as alias
-        "listen", "loop", "feishu-reply",
+        "listen", "loop", "feishu-reply", "archive",
     ])
     ap.add_argument("--target", "-t", help="Target machine ID")
     ap.add_argument("--action-name", "-a", default="shell", help="Task action name (shell/exec/restart_listener)")
@@ -882,7 +922,7 @@ def _cli():
             """Check and mark a msg_id as seen. Returns True if duplicate."""
             if not msg_id:
                 return False  # no msg_id = can't dedup, allow through
-            key = f"hub:dedup:{msg_id}"
+            key = f"hub:dedup:{MACHINE_ID}:{msg_id}"
             # SET NX EX: returns True if key was set (new), None if already exists (dup)
             return not r.set(key, "1", nx=True, ex=300)
         ps = r.pubsub()
@@ -897,13 +937,35 @@ def _cli():
         # Also subscribe to all profile-specific channels for this machine
         profiles_dir = os.path.expanduser("~/.hermes/profiles")
         local_profiles = []
+        # v5: use registry for profile list, fallback to filesystem
+        registry_profiles = get_local_profiles()
         if os.path.isdir(profiles_dir):
-            for pname in os.listdir(profiles_dir):
-                if os.path.isdir(os.path.join(profiles_dir, pname)):
+            for pname in sorted(os.listdir(profiles_dir)):
+                if not os.path.isdir(os.path.join(profiles_dir, pname)):
+                    continue
+                if pname.isdigit():
+                    continue
+                if pname.startswith("_"):
+                    continue
+                if pname == "test":
+                    continue
+                # Always include profiles that exist locally
+                if pname not in local_profiles:
                     local_profiles.append(pname)
-                    ps.subscribe(f"hub:profile:{MACHINE_ID}:{pname}")
-                    # Also subscribe to bare hub:inbox:{profile} — some senders use this (002/004 added)
-                    ps.subscribe(f"hub:inbox:{pname}")
+        # Also include registry profiles not found locally (for routing awareness)
+            for pname in sorted(os.listdir(profiles_dir)):
+                if not os.path.isdir(os.path.join(profiles_dir, pname)):
+                    continue
+                if pname.isdigit():
+                    print(f"[hub] Skipping machine-ID profile '{pname}' — not a local profile")
+                    continue
+                local_profiles.append(pname)
+        for pname in local_profiles:
+            ps.subscribe(f"hub:profile:{MACHINE_ID}:{pname}")
+        # v5.1: NOTIFY channels disabled — global profile broadcast removed.
+        # hub:notify was used with global hub:inbox:{profile} which caused cross-machine hijacking.
+        # for pname in local_profiles:
+        #     ps.subscribe(f"hub:notify:{pname}")
         
         # ── P0-1: Ghost subscriber detection (001 added) ──
         import time as _time
@@ -931,7 +993,10 @@ def _cli():
                 )
                 for pname in local_profiles:
                     ps.subscribe(f"hub:profile:{MACHINE_ID}:{pname}")
-                    ps.subscribe(f"hub:inbox:{pname}")
+                    ps.subscribe(f"hub:notify:{pname}")
+                # ── v5.1: REMOVED global profile channel hub:inbox:{pname}
+                # Global profile channels cause cross-machine message hijacking.
+                # All routing is now via hub:inbox:{MACHINE_ID} + to_profile field.
                 break  # only run once (fix(hub): P0集合 — pidfile互斥+ghost sub检测+profile通道订阅+命名统一+ack送达确认)
         
         # ── Drain persistent inbox queues ──
@@ -939,9 +1004,10 @@ def _cli():
         drained = 0
         for queue_name, profile_dir in [
             (f"hub:inbox:{MACHINE_ID}", None),
-        ] + [(f"hub:profile:{MACHINE_ID}:{p}", os.path.expanduser(f"~/.hermes/profiles/{p}"))
-             for p in local_profiles] + [(f"hub:inbox:{p}", os.path.expanduser(f"~/.hermes/profiles/{p}"))
-             for p in local_profiles]:
+        ] + [(f"hub:profile:{MACHINE_ID}:{pname}", os.path.expanduser(f"~/.hermes/profiles/{pname}"))
+             for pname in local_profiles]:
+            # v5.1: All channels are now machine-scoped (no global profile channels).
+            # Use RPOP for all — single-owner, no broadcast contention.
             while True:
                 raw = r.rpop(queue_name)
                 if not raw:
@@ -949,35 +1015,66 @@ def _cli():
                 try:
                     data = json.loads(raw)
                     msg_id = data.get("msg_id", data.get("broadcast_id", ""))
-                    # _is_dup BEFORE write — prevents double-write with pubsub
-                    if _is_dup(msg_id):
-                        print(f"[drain] DUP {msg_id} — skipping, pubsub beat us")
-                        continue
-                    # Write to disk
+                    # Write to disk FIRST, then mark as dedup (P0 fix: zombie dedup race)
                     machine_inbox = os.path.expanduser("~/.hermes/.hub_inbox")
                     os.makedirs(os.path.dirname(machine_inbox), exist_ok=True)
                     with open(machine_inbox, "a") as f:
                         f.write(json.dumps({**data, "received_at": datetime.now(timezone.utc).isoformat()}, ensure_ascii=False) + "\n")
                         f.flush()
-                    # Write to profile inbox — fallback to from_profile if to_profile not set or not a valid dir
-                    target_profile = data.get("to_profile", "") or data.get("from_profile", "")
+                    # Write to profile inbox — only if to_profile is explicitly set
+                    # v5.1: NEVER fallback to from_profile (causes cross-profile message leakage)
+                    target_profile = data.get("to_profile", "")
                     if target_profile:
                         profile_inbox = os.path.expanduser(f"~/.hermes/profiles/{target_profile}/.hub_inbox")
-                        # Fallback: if target_profile dir doesn't exist, try the other one
-                        if not os.path.isdir(os.path.dirname(profile_inbox)):
-                            fallback = data.get("from_profile", "") if target_profile == data.get("to_profile", "") else data.get("to_profile", "")
-                            if fallback and fallback != target_profile:
-                                profile_inbox = os.path.expanduser(f"~/.hermes/profiles/{fallback}/.hub_inbox")
                         os.makedirs(os.path.dirname(profile_inbox), exist_ok=True)
                         with open(profile_inbox, "a") as f:
                             f.write(json.dumps({**data, "received_at": datetime.now(timezone.utc).isoformat()}, ensure_ascii=False) + "\n")
                             f.flush()
                     drained += 1
-                    # _is_dup already called before write above
+                    # v5.1: All channels are now machine-scoped — apply dedup to all
+                    _is_dup(msg_id)
+                    # ── Archive ──
+                    try:
+                        archive_profile = data.get("to_profile") or queue_name.split(':')[-1]
+                        archive_key = f"hub:archive:{archive_profile}"
+                        r.lpush(archive_key, json.dumps({**data, "received_at": datetime.now(timezone.utc).isoformat()}, ensure_ascii=False))
+                        r.ltrim(archive_key, 0, 499)
+                    except:
+                        pass
                 except:
                     pass
         if drained:
             print(f"[hub] Drained {drained} queued messages from inbox")
+        
+        # ── Recover hub_pending (bridge blackhole recovery) ──
+        # Fix P0: profile_hub_bridge.py moved messages from .hub_inbox → .hub_pending
+        # when CLI was active. No process reads .hub_pending. On listener restart,
+        # recover all stranded messages back to .hub_inbox for the agent.
+        try:
+            import glob as _glob
+            _recovered = 0
+            for _pp in _glob.glob(os.path.expanduser("~/.hermes/profiles/*/.hub_pending")):
+                _profile = os.path.basename(os.path.dirname(_pp))
+                try:
+                    with open(_pp, 'r') as _f:
+                        _pending_data = json.loads(_f.read() or '{"messages":[]}')
+                    _msgs = _pending_data.get("messages", [])
+                    if _msgs:
+                        _profile_inbox = os.path.expanduser(f"~/.hermes/profiles/{_profile}/.hub_inbox")
+                        os.makedirs(os.path.dirname(_profile_inbox), exist_ok=True)
+                        with open(_profile_inbox, 'a') as _f:
+                            for _msg in _msgs:
+                                _f.write(json.dumps({**_msg, "recovered_from_pending": True,
+                                    "received_at": datetime.now(timezone.utc).isoformat()}, ensure_ascii=False) + "\n")
+                        open(_pp, 'w').close()
+                        _recovered += len(_msgs)
+                        print(f"[hub] Recovered {len(_msgs)} msgs from {_profile}/.hub_pending → .hub_inbox")
+                except Exception as _e:
+                    print(f"[hub] _recover_hub_pending error for {_profile}: {_e}")
+            if _recovered:
+                print(f"[hub] Total recovered from .hub_pending: {_recovered} messages")
+        except Exception as _e:
+            print(f"[hub] _recover_hub_pending global error: {_e}")
         
         # ── Background periodic poll thread (independent of pub/sub silence) ──
         # Fix P0: hub:tasks and hub:cmd polling must NOT depend on pub/sub silence.
@@ -1063,13 +1160,45 @@ def _cli():
                 f.flush()
         
         def _periodic_poll_loop():
-            """Poll hub:tasks + hub:cmd every 60s unconditionally, in background thread."""
+            """Poll hub:tasks + hub:cmd + auto-update every 60s, in background thread."""
             _rr = get_redis()  # own connection for thread safety
+            _update_checks = 0
             print(f"[poll-thread] Started — will poll every 60s", flush=True)
             while True:
                 print(f"[poll-thread] Sleeping 60s...", flush=True)
                 time.sleep(60)
+                _update_checks += 1
                 print(f"[poll-thread] Woke up, polling...", flush=True)
+                # ── Self-healing: auto-update from git every 10 cycles (10 min) ──
+                if _update_checks % 10 == 0:
+                    try:
+                        import subprocess as _sp
+                        hermes_dir = os.path.expanduser("~/.hermes")
+                        _sp.run(["git", "fetch", "origin"], cwd=hermes_dir, capture_output=True, timeout=30)
+                        result = _sp.run(["git", "rev-list", "--count", "HEAD..origin/main"],
+                                         cwd=hermes_dir, capture_output=True, text=True, timeout=10)
+                        behind = int(result.stdout.strip()) if result.stdout.strip().isdigit() else 0
+                        if behind > 0:
+                            print(f"[poll-thread] {behind} new commits on origin — auto-updating...", flush=True)
+                            _sp.run(["git", "pull", "origin", "main"], cwd=hermes_dir, capture_output=True, timeout=60)
+                            print(f"[poll-thread] Git updated, self-restarting...", flush=True)
+                            # Restart self: launch new listener, then exit
+                            mid = os.environ.get("HUB_MACHINE_ID", "001")
+                            venv_python = os.path.expanduser("~/.hermes/hermes-agent/venv/bin/python3")
+                            script = os.path.expanduser("~/.hermes/scripts/hub_client.py")
+                            log = os.path.expanduser("~/.hermes/logs/hub_listener.log")
+                            os.makedirs(os.path.dirname(log), exist_ok=True)
+                            _sp.Popen(["nohup", venv_python, script, "listen"],
+                                             env={**os.environ, "HUB_MACHINE_ID": mid,
+                                                  "PATH": os.environ.get("PATH", "/usr/bin"),
+                                                  "HOME": os.environ.get("HOME", os.path.expanduser("~"))},
+                                             stdout=open(log, "a"), stderr=_sp.STDOUT,
+                                             start_new_session=True)
+                            os._exit(0)
+                        else:
+                            print(f"[poll-thread] Git up-to-date (0 new)", flush=True)
+                    except Exception as e:
+                        print(f"[poll-thread] Auto-update check error: {e}", flush=True)
                 try:
                     # ── Heartbeat (hub:workers) ──
                     heartbeat()
@@ -1078,7 +1207,7 @@ def _cli():
                 try:
                     # ── P1-1: Cleanup old hub:tasks (keep last 50, remove completed/failed) ──
                     all_tasks = _rr.hgetall("hub:tasks")
-                    if len(all_tasks) > 100:
+                    if len(all_tasks) > 20:
                         completed = [(k, json.loads(v)) for k, v in all_tasks.items()
                                      if json.loads(v).get("status") in ("done", "failed", "completed")]
                         if len(completed) > 50:
@@ -1139,10 +1268,10 @@ def _cli():
                     print(f"[poll-thread] Cmd poll error: {e}")
                 try:
                     # ── Trim alerts/logs to prevent saturation (N3+N4 fix) ──
-                    if _rr.llen("hub:alerts") > 100:
-                        _rr.ltrim("hub:alerts", -50, -1)
-                    if _rr.llen("hub:logs") > 500:
-                        _rr.ltrim("hub:logs", -200, -1)
+                    if _rr.llen("hub:alerts") > 20:
+                        _rr.ltrim("hub:alerts", 0, 19)
+                    if _rr.llen("hub:logs") > 100:
+                        _rr.ltrim("hub:logs", 0, 99)
                 except Exception:
                     pass
         
@@ -1158,10 +1287,10 @@ def _cli():
                 # Timeout: drain queues to catch any messages missed by pub/sub
                 for queue_name, profile_dir in [
                     (f"hub:inbox:{MACHINE_ID}", None),
-                ] + [(f"hub:profile:{MACHINE_ID}:{p}", os.path.expanduser(f"~/.hermes/profiles/{p}"))
-                     for p in local_profiles] + [(f"hub:inbox:{p}", os.path.expanduser(f"~/.hermes/profiles/{p}"))
-                     for p in local_profiles]:
+                ] + [(f"hub:profile:{MACHINE_ID}:{pname}", os.path.expanduser(f"~/.hermes/profiles/{pname}"))
+                     for pname in local_profiles]:
                     drained = 0
+                    # v5.1: All channels machine-scoped — always RPOP
                     while True:
                         raw = r.rpop(queue_name)
                         if not raw:
@@ -1169,31 +1298,33 @@ def _cli():
                         try:
                             data = json.loads(raw)
                             msg_id = data.get("msg_id", data.get("broadcast_id", ""))
-                            # _is_dup BEFORE write
                             if _is_dup(msg_id):
                                 continue
-                            # Write to disk
                             machine_inbox = os.path.expanduser("~/.hermes/.hub_inbox")
                             os.makedirs(os.path.dirname(machine_inbox), exist_ok=True)
                             with open(machine_inbox, "a") as f:
                                 f.write(json.dumps({**data, "received_at": datetime.now(timezone.utc).isoformat()}, ensure_ascii=False) + "\n")
                                 f.flush()
-                            # Write to profile inbox if applicable
-                            to_profile = data.get("to_profile", "") or data.get("from_profile", "")
+                            to_profile = data.get("to_profile", "")
                             if to_profile:
-                                profile_inbox = os.path.expanduser(f"~/.hermes/profiles/{to_profile}/.hub_inbox")
-                                # Fallback: if to_profile is not a valid profile dir, try from_profile
-                                if not os.path.isdir(os.path.dirname(profile_inbox)):
-                                    fallback = data.get("from_profile", "") or data.get("to_profile", "")
-                                    if fallback and fallback != to_profile:
-                                        profile_inbox = os.path.expanduser(f"~/.hermes/profiles/{fallback}/.hub_inbox")
-                                os.makedirs(os.path.dirname(profile_inbox), exist_ok=True)
-                                with open(profile_inbox, "a") as f:
-                                    f.write(json.dumps({**data, "received_at": datetime.now(timezone.utc).isoformat()}, ensure_ascii=False) + "\n")
-                                    f.flush()
+                                profile_inbox = os.path.join(profile_dir, ".hub_inbox") if profile_dir else None
+                                if not profile_inbox and to_profile:
+                                    profile_inbox = os.path.expanduser(f"~/.hermes/profiles/{to_profile}/.hub_inbox")
+                                if profile_inbox:
+                                    os.makedirs(os.path.dirname(profile_inbox), exist_ok=True)
+                                    with open(profile_inbox, "a") as f:
+                                        f.write(json.dumps({**data, "received_at": datetime.now(timezone.utc).isoformat()}, ensure_ascii=False) + "\n")
+                                        f.flush()
                             drained += 1
-                            # _is_dup already called before write above
-                        except:
+                            _is_dup(msg_id)
+                            try:
+                                archive_key = f"hub:archive:{queue_name.split(':')[-1]}"
+                                r.lpush(archive_key, json.dumps({**data, "received_at": datetime.now(timezone.utc).isoformat()}, ensure_ascii=False))
+                                r.ltrim(archive_key, 0, 499)
+                            except:
+                                pass
+                        except Exception as _drain_e:
+                            print(f"[DEBUG-DRAIN-ERR] queue={queue_name} error={_drain_e}", flush=True)
                             pass
                     if drained:
                         print(f"[hub] Periodic drain: {drained} messages from {queue_name}")
@@ -1251,6 +1382,8 @@ def _cli():
             except json.JSONDecodeError:
                 continue
             ch = msg["channel"]
+            if 'notify' in str(ch):
+                print(f"[DEBUG-ALL] notify msg received! ch={ch} type={type(ch)}", flush=True)
             # Auto-pong: reply immediately to pings
             if ch == f"hub:ping:{MACHINE_ID}":
                 pong(data)
@@ -1322,10 +1455,41 @@ def _cli():
                 task_id = data.get("task_id", "")
                 print(f"[task] RESULT: {task_id} from {data.get('from')} status={data.get('status')}")
                 continue
+            # ── v5 notify → immediate drain (no dedup — broadcast to all machines) ──
+            if ch.startswith("hub:notify:"):
+                print(f"[notify-debug] ch={repr(ch)} data_keys={list(data.keys())}", flush=True)
+                profile = ch.split("hub:notify:")[-1]
+                queue_name = f"hub:inbox:{profile}"
+                print(f"[notify] Received trigger for {profile}, queue={queue_name}", flush=True)
+                drained = 0
+                # LRANGE for broadcast: all machines see all messages (not RPOP single-consumer)
+                for raw in r.lrange(queue_name, 0, 49):
+                    try:
+                        ndata = json.loads(raw)
+                        msg_id = ndata.get("msg_id", ndata.get("broadcast_id", ""))
+                        if _is_dup(msg_id):
+                            continue
+                        inbox_path = os.path.expanduser(f"~/.hermes/profiles/{profile}/.hub_inbox")
+                        os.makedirs(os.path.dirname(inbox_path), exist_ok=True)
+                        with open(inbox_path, "a") as f:
+                            f.write(json.dumps({**ndata, "received_at": datetime.now(timezone.utc).isoformat()}, ensure_ascii=False) + "\n")
+                            f.flush()
+                        drained += 1
+                        _is_dup(msg_id)
+                        try:
+                            archive_profile = ndata.get("to_profile") or profile
+                            r.lpush(f"hub:archive:{archive_profile}", json.dumps({**ndata, "received_at": datetime.now(timezone.utc).isoformat()}, ensure_ascii=False))
+                            r.ltrim(f"hub:archive:{archive_profile}", 0, 499)
+                        except: pass
+                    except Exception as e:
+                        print(f"[notify-drain-err] {e}", flush=True)
+                if drained:
+                    print(f"[notify] Drained {drained} from hub:inbox:{profile}", flush=True)
+                continue
             # ── Inbox handler ──
             msg_id = data.get("msg_id", data.get("broadcast_id", ""))
-            if msg_id and _is_dup(msg_id):
-                continue  # duplicate, already written by drain or earlier pub/sub
+            # P0 fix: don't skip based on _is_dup() here — let drain and pubsub race;
+            # the winner writes first, loser is prevented by _is_dup() on the SECOND arrival.
             to_profile = data.get("to_profile", "")
             from_profile = data.get("from_profile", "")
             from_label = data.get("from_label", data.get("from"))
@@ -1360,13 +1524,23 @@ def _cli():
             
             # If to_profile set, also write to profile-specific inbox
             # If not set but from_profile is, infer target profile from sender
-            target_profile = data.get("to_profile", "") or data.get("from_profile", "")
+            # If both empty, fall back to bsc (default profile on 002)
+            target_profile = data.get("to_profile", "") or data.get("from_profile", "") or "bsc"
+            print(f"[debug][profile-check] to_profile='{data.get('to_profile','')}' from_profile='{data.get('from_profile','')}' target='{target_profile}'")
             if target_profile:
-                profile_inbox = os.path.expanduser(f"~/.hermes/profiles/{target_profile}/.hub_inbox")
-                os.makedirs(os.path.dirname(profile_inbox), exist_ok=True)
-                with open(profile_inbox, "a") as f:
-                    f.write(json.dumps(notif, ensure_ascii=False) + "\n")
-                    f.flush()
+                try:
+                    profile_inbox = os.path.expanduser(f"~/.hermes/profiles/{target_profile}/.hub_inbox")
+                    os.makedirs(os.path.dirname(profile_inbox), exist_ok=True)
+                    with open(profile_inbox, "a") as f:
+                        f.write(json.dumps(notif, ensure_ascii=False) + "\n")
+                        f.flush()
+                    print(f"[debug][profile-inbox-write] wrote {len(json.dumps(notif))} bytes to {profile_inbox}")
+                except Exception as e:
+                    print(f"[inbox-err] Failed to write to {target_profile}/.hub_inbox: {e}")
+            # Only dedup machine-ID channels (hub:inbox:00X), NOT profile channels (hub:inbox:admin)
+            # Profile channels are broadcast — all machines must receive independently
+            if ch == f"hub:inbox:{MACHINE_ID}":
+                _is_dup(msg_id)
             continue
             # Profile-specific channel messages
             if ch.startswith(f"hub:profile:{MACHINE_ID}:"):
@@ -1374,11 +1548,8 @@ def _cli():
                 from_label = data.get("from_label", data.get("from"))
                 from_profile = data.get("from_profile", "")
                 print(f"[profile:{profile}] {from_profile}@{from_label}: {data.get('message')}")
-                # Dedup check BEFORE writing anything
+                # P0 fix: write FIRST, then mark dedup (prevent zombie race)
                 msg_id = data.get("msg_id", data.get("broadcast_id", f"pub:{datetime.now(timezone.utc).timestamp()}"))
-                if _is_dup(msg_id):
-                    print(f"[profile:{profile}] DUP — skipping write (periodic drain beat us)")
-                    continue
                 # Write to profile inbox so bridge can pick it up
                 notif = {
                     "msg_id": data.get("msg_id", ""),
@@ -1399,6 +1570,7 @@ def _cli():
                     f.write(json.dumps(notif, ensure_ascii=False) + "\n")
                     f.flush()
                 print(f"[debug][profile-inbox] wrote to {profile_inbox}")
+                _is_dup(msg_id)  # mark as seen AFTER write (prevent zombie race)
                 continue
             if ch == "hub:sync":
                 print(f"[sync] triggered by {data.get('triggered_by', '?')}")
@@ -1508,6 +1680,41 @@ def _cli():
                 broadcast_reply(data, reply_text)
                 continue
             print(f"[{ch}] {json.dumps(data, ensure_ascii=False)[:200]}")
+
+    elif args.action == "archive":
+        # Email-style: move read messages from .hub_inbox → .hub_archive
+        # Never delete — just archive. Unread stays in inbox.
+        import glob
+        hermes_dir = os.path.expanduser("~/.hermes")
+        inboxes = [os.path.join(hermes_dir, ".hub_inbox")]  # machine-level
+        # Add all profile inboxes
+        profile_pattern = os.path.join(hermes_dir, "profiles", "*", ".hub_inbox")
+        inboxes.extend(glob.glob(profile_pattern))
+        
+        total_archived = 0
+        total_inboxes = 0
+        for inbox_path in inboxes:
+            if not os.path.isfile(inbox_path):
+                continue
+            size = os.path.getsize(inbox_path)
+            if size == 0:
+                continue
+            total_inboxes += 1
+            archive_path = inbox_path.replace(".hub_inbox", ".hub_archive")
+            os.makedirs(os.path.dirname(archive_path), exist_ok=True)
+            with open(inbox_path, "r") as src:
+                lines = src.readlines()
+            if not lines:
+                continue
+            with open(archive_path, "a") as dst:
+                dst.writelines(lines)
+            # Clear inbox (messages are archived, not deleted)
+            open(inbox_path, "w").close()
+            total_archived += len(lines)
+            profile_name = "machine" if "/profiles/" not in inbox_path else os.path.basename(os.path.dirname(inbox_path))
+            print(f"[archive] {profile_name}: {len(lines)} msgs → .hub_archive")
+        
+        print(f"[archive] Done: {total_archived} msgs from {total_inboxes} inboxes")
 
     elif args.action == "loop":
         print(f"[hub] Heartbeat loop every {args.interval}s, machine={MACHINE_ID}...")

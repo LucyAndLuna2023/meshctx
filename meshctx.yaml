@@ -48,8 +48,8 @@ gateway:
     app_secret: ""
     
   telegram:
-    enabled: false
-    bot_token: ""
+    enabled: true
+    bot_token: "REDACTED_TELEGRAM_BOT_TOKEN9YLz7fPQ5thpU"
     
   wechat:
     enabled: false
