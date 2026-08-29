@@ -479,3 +479,24 @@ def test_brain_histories_bounded():
     from src.core.brain_basal_ganglia import DopamineSystem
     bg = DopamineSystem()
     assert isinstance(bg.rpe_history, deque) and bg.rpe_history.maxlen <= 200
+
+
+# ═══ Token 计费测试 (2026-08-28, 借鉴云知声模式) ═══
+
+def test_token_billing():
+    """Token 按量计费: 用量→配额→超额→成本估算。"""
+    import tempfile
+    store = reset_store(tempfile.mktemp() + ".json")
+    t = store.create_team("计费组", "owner", "team")
+    store.record_usage(t.team_id, model="deepseek:chat", tokens_in=1000000, tokens_out=500000)
+    from src.core.business_plans import billing_usage, estimate_token_cost, plan_token_allowance
+    bill = billing_usage(t.team_id)
+    assert bill["tokens_used"] == 1500000
+    assert bill["allowance"] == 20_000_000
+    assert bill["over_allowance"] == 0
+    assert bill["estimated_cost_usd"] > 0
+    # 成本计算: 1M in × 0.27 + 0.5M out × 1.1 = 0.27 + 0.55 = 0.82
+    assert abs(bill["estimated_cost_usd"] - 0.82) < 0.01
+    # plan 配额
+    assert plan_token_allowance("free") == 1_000_000
+    assert plan_token_allowance("enterprise") == 100_000_000

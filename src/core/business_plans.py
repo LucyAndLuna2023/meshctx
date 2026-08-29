@@ -428,3 +428,50 @@ def reset_store(path: str = "") -> BusinessStore:
     global _default_store
     _default_store = BusinessStore(storage_path=path)
     return _default_store
+
+
+# ═══ Token 按量计费层 (2026-08-28, 借鉴云知声 Token 业务 +760% 模式) ═══
+
+# Token 定价 (USD/百万 token, 参考主流 API 价)
+TOKEN_RATES = {
+    "deepseek:chat": {"in": 0.27, "out": 1.10},     # $/1M token
+    "openai:gpt-4o": {"in": 2.50, "out": 10.00},
+    "default": {"in": 0.50, "out": 1.50},
+}
+
+
+def estimate_token_cost(model: str, tokens_in: int, tokens_out: int) -> float:
+    """Token 用量 → 估算成本 (USD)。"""
+    rate = TOKEN_RATES.get(model, TOKEN_RATES["default"])
+    cost = tokens_in / 1e6 * rate["in"] + tokens_out / 1e6 * rate["out"]
+    return round(cost, 4)
+
+
+def plan_token_allowance(plan: str) -> int:
+    """各 plan 每月免费 token 配额 (超额按量计费 — 云知声模式)。"""
+    return {"free": 1_000_000, "team": 20_000_000, "enterprise": 100_000_000}.get(plan, 1_000_000)
+
+
+def billing_usage(team_id: str, days: int = 30) -> Dict[str, Any]:
+    """团队 token 用量 → 计费账单 (已用/配额/超额/估算金额)。"""
+    store = get_store()
+    team = store.get_team(team_id)
+    if team is None:
+        return {"error": "team not found"}
+    stats = store.usage_stats(team_id, days)
+    used = stats["total"]["tokens_in"] + stats["total"]["tokens_out"]
+    allowance = plan_token_allowance(team.plan)
+    over = max(0, used - allowance)
+    est_cost = estimate_token_cost("deepseek:chat",
+                                   stats["total"]["tokens_in"],
+                                   stats["total"]["tokens_out"])
+    return {
+        "team_id": team_id,
+        "plan": team.plan,
+        "tokens_used": used,
+        "allowance": allowance,
+        "over_allowance": over,
+        "estimated_cost_usd": est_cost,
+        "billing_model": "包月配额 + 超额按量 (云知声 Token 模式)",
+        "days": days,
+    }
