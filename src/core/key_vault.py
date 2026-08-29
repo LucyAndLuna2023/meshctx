@@ -38,7 +38,7 @@ except ImportError:
     logger.warning("cryptography 未安装 — Key Vault 加密不可用, 回退明文存储")
 
 VAULT_PATH = Path.home() / ".meshctx" / "key_vault.json"
-_SALT = b"meshctx-keyvault-v1"
+_DEFAULT_SALT = b"meshctx-keyvault-v1"   # 旧格式兼容 (无随机 salt 时)
 _ITERS = 200_000
 
 
@@ -55,12 +55,17 @@ def _machine_fingerprint() -> bytes:
     return "|".join(parts).encode()
 
 
-def _master_key() -> bytes:
-    """主密钥: 机器指纹 + 用户密钥 → PBKDF2-HMAC-SHA256 → 32 字节 AES-256。"""
+def _master_key(salt: bytes = None) -> bytes:
+    """主密钥: 机器指纹/用户密钥 + 随机 salt → PBKDF2-HMAC-SHA256 → 32 字节。
+    002meshctx 建议1: 随机 salt (vault 落盘), 防固定盐离线暴力。"""
     user_secret = os.environ.get("MESHCTX_MASTER_KEY", "").encode() or _machine_fingerprint()
     kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32,
-                     salt=_SALT, iterations=_ITERS)
+                     salt=salt or _DEFAULT_SALT, iterations=_ITERS)
     return kdf.derive(user_secret)
+
+
+def _random_salt() -> bytes:
+    return os.urandom(16)
 
 
 def _key_available() -> bool:
@@ -73,21 +78,33 @@ class KeyVault:
     def __init__(self, path: str = ""):
         self._lock = threading.Lock()
         self._path = Path(path or VAULT_PATH)
+        self._salt: bytes = b""
         self._data: Dict[str, Dict[str, Any]] = {}
         self._load()
 
     def _load(self):
         try:
             if self._path.exists():
-                self._data = json.loads(self._path.read_text(encoding="utf-8"))
+                data = json.loads(self._path.read_text(encoding="utf-8"))
+                # 002meshctx 建议1: 随机 salt 落盘 (旧 vault 无 salt → 默认兼容)
+                if data.get("salt"):
+                    self._salt = base64.b64decode(data["salt"])
+                self._data = data.get("entries", {})
         except Exception as e:
             logger.warning(f"KeyVault 加载失败: {e}")
 
     def _save(self):
+        """原子写 (tmp + os.replace, 002meshctx 建议4: 防崩溃损坏)。"""
         try:
             self._path.parent.mkdir(parents=True, exist_ok=True)
-            self._path.write_text(
-                json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8")
+            if not self._salt:
+                self._salt = _random_salt()
+            payload = {"salt": base64.b64encode(self._salt).decode(),
+                       "entries": self._data}
+            tmp = self._path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2),
+                           encoding="utf-8")
+            os.replace(tmp, self._path)
             try:  # 权限: 仅 owner 可读写
                 os.chmod(self._path, 0o600)
             except Exception:
@@ -100,7 +117,9 @@ class KeyVault:
         if not _key_available():
             return False  # 无 cryptography → 调用方回退明文
         try:
-            key = _master_key()
+            if not self._salt:
+                self._salt = _random_salt()
+            key = _master_key(self._salt)
             nonce = os.urandom(12)
             ct = AESGCM(key).encrypt(nonce, secret.encode("utf-8"), b"meshctx-keyvault")
             with self._lock:
@@ -124,7 +143,7 @@ class KeyVault:
         if not entry:
             return None
         try:
-            key = _master_key()
+            key = _master_key(self._salt or _DEFAULT_SALT)
             ct = base64.b64decode(entry["ct"])
             nonce = base64.b64decode(entry["nonce"])
             plain = AESGCM(key).decrypt(nonce, ct, b"meshctx-keyvault")

@@ -8209,31 +8209,55 @@ async def sandbox_verify(req: Request):
 @app.get("/api/settings/keyvault")
 async def keyvault_status_api():
     """API Key 加密状态审计: config.yaml 加密 + vault 状态 + 建议。"""
-    from src.core.key_vault import vault_status
+    from src.core.key_vault import vault_status, _key_available
     from src.core import crypto as _crypto
+    vs = vault_status()
+    vs["status"] = "ok" if _key_available() else "degraded"
+    if not _key_available():
+        vs["warning"] = "cryptography 未安装 — 新 key 将回退明文存储 (fail loud: 强烈建议安装 cryptography)"
     return {
         "config_yaml_keys": "encrypted" if _crypto.is_encrypted else "legacy-check",
-        "key_vault": vault_status(),
-        "note": "config.yaml 的 key 已用 Fernet 加密 (crypto.py, MESHCTX_CRYPTO_KEY/机器派生); "
-                "key_vault 提供 AES-256-GCM 增强 + .env 明文迁移",
+        "key_vault": vs,
+        "note": "config.yaml 的 key 已用 Fernet 加密 (crypto.py); "
+                "key_vault 提供 AES-256-GCM 增强 + .env 明文迁移 (002meshctx 建议)",
     }
 
 
 @app.post("/api/settings/keyvault/migrate")
 async def keyvault_migrate_api(req: Request):
-    """迁移 .env 明文 key → key_vault 加密 (保护客户 token)。"""
-    from src.core.key_vault import get_vault, vault_status
+    """迁移 .env 明文 key → key_vault 加密 (保护客户 token)。
+    002meshctx 建议2: ?delete=true 迁移后备份并删除 .env 明文行 (根治泄漏面)。"""
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
+    delete_after = bool(body.get("delete"))
+    from src.core.key_vault import get_vault
     vault = get_vault()
     migrated = 0
     env_path = Path.home() / ".meshctx" / ".env"
-    if env_path.exists():
-        for ln in env_path.read_text(encoding="utf-8").splitlines():
-            ln = ln.strip()
-            if "=" in ln and "API_KEY" in ln:
-                name, _, val = ln.partition("=")
-                val = val.strip().strip('"').strip("'")
-                if val and not vault.has(name):
-                    if vault.encrypt(name, val):
-                        migrated += 1
-    return {"migrated": migrated, "vault_entries": vault.names(),
-            "note": "迁移后 .env 明文可手动删除 (保留则双通道兼容)"}
+    if not env_path.exists():
+        return {"migrated": 0, "note": ".env 不存在"}
+    lines = env_path.read_text(encoding="utf-8").splitlines()
+    remaining = []
+    for ln in lines:
+        ln_s = ln.strip()
+        if "=" in ln_s and "API_KEY" in ln_s:
+            name, _, val = ln_s.partition("=")
+            val = val.strip().strip('"').strip("'")
+            if val and not vault.has(name):
+                if vault.encrypt(name, val):
+                    migrated += 1
+            if delete_after:
+                continue  # 迁移成功的行删除
+        remaining.append(ln)
+    if delete_after and migrated:
+        # 先备份再写回 (002meshctx 建议2)
+        import shutil
+        bak = env_path.with_suffix(".env.bak")
+        shutil.copy2(env_path, bak)
+        env_path.write_text("\n".join(remaining) + "\n", encoding="utf-8")
+        return {"migrated": migrated, "deleted_from_env": True,
+                "backup": str(bak), "note": "明文已从 .env 删除 (备份于 .env.bak)"}
+    return {"migrated": migrated, "deleted_from_env": False,
+            "note": "传 delete=true 可迁移后删除明文 (先备份)"}

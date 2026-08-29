@@ -432,7 +432,7 @@ class TestModelNameResolution:
         assert self._resolve("openai:gpt-4o") == "openai:gpt-4o"
 
     def test_normalized_replaces_first_hyphen_only(self):
-        assert self._resolve("deepseek-v4-pro") == "deepseek:v4-pro"
+        assert self._resolve("deepseek-v4-flash") == "deepseek:v4-flash"
         assert self._resolve("deepseek-v4-flash-vision") == "deepseek:v4-flash-vision"
 
     def test_short_suffix_never_silently_resolves(self):
