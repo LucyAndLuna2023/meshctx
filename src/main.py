@@ -8245,11 +8245,16 @@ async def keyvault_migrate_api(req: Request):
         if "=" in ln_s and "API_KEY" in ln_s:
             name, _, val = ln_s.partition("=")
             val = val.strip().strip('"').strip("'")
+            migrated_this = False
             if val and not vault.has(name):
-                if vault.encrypt(name, val):
+                migrated_this = vault.encrypt(name, val)   # 002codex P1: 迁移成功才计
+                if migrated_this:
                     migrated += 1
-            if delete_after:
-                continue  # 迁移成功的行删除
+            elif val and vault.has(name):
+                migrated_this = True                        # 已在 vault 的也算安全
+            # 002codex P1: 仅迁移成功 (或已在 vault) 的行才允许删除 — 防加密失败丢 key
+            if delete_after and migrated_this:
+                continue
         remaining.append(ln)
     if delete_after and migrated:
         # 先备份再写回 (002meshctx 建议2)

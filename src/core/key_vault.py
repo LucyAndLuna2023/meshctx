@@ -89,7 +89,8 @@ class KeyVault:
                 # 002meshctx 建议1: 随机 salt 落盘 (旧 vault 无 salt → 默认兼容)
                 if data.get("salt"):
                     self._salt = base64.b64decode(data["salt"])
-                self._data = data.get("entries", {})
+                # 002codex P1: 旧格式(26ddcdd) 是平铺 {name:{...}} — 无 'entries' 键时整个 dict 视为 entries
+                self._data = data.get("entries", {}) if "entries" in data else data
         except Exception as e:
             logger.warning(f"KeyVault 加载失败: {e}")
 
@@ -104,11 +105,11 @@ class KeyVault:
             tmp = self._path.with_suffix(".tmp")
             tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2),
                            encoding="utf-8")
-            os.replace(tmp, self._path)
-            try:  # 权限: 仅 owner 可读写
-                os.chmod(self._path, 0o600)
+            try:  # P3: tmp 先 chmod (防 replace 前 0644 窗口)
+                os.chmod(tmp, 0o600)
             except Exception:
                 pass
+            os.replace(tmp, self._path)
         except Exception as e:
             logger.warning(f"KeyVault 保存失败: {e}")
 
