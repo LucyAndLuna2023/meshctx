@@ -8202,27 +8202,3 @@ async def sandbox_verify(req: Request):
                 "passed": exit_code == 0}
     except Exception as e:
         return JSONResponse({"error": f"验证执行失败: {e}"}, status_code=500)
-
-
-# ═══ Token 计费 API (2026-08-28, 借鉴云知声 Token 按量计费) ═══
-
-@app.get("/api/billing/usage")
-async def billing_usage_api(request: Request, team_id: str = "", days: int = 30):
-    """Token 用量账单: 已用/配额/超额/估算金额 (包月配额+超额按量)。"""
-    if not _valid_team_id(team_id):
-        return JSONResponse({"error": "invalid team_id"}, status_code=400)
-    store = _business_store()
-    if store.get_team(team_id) is None:
-        return JSONResponse({"error": "team not found"}, status_code=404)
-    if not await _require_member(request, team_id):
-        return JSONResponse({"error": "非团队成员"}, status_code=403)
-    from src.core.business_plans import billing_usage
-    return billing_usage(team_id, min(max(days, 1), 90))
-
-
-@app.get("/api/billing/rates")
-async def billing_rates():
-    """Token 费率公开 (云知声模式透明定价)。"""
-    from src.core.business_plans import TOKEN_RATES, plan_token_allowance
-    return {"token_rates_usd_per_1m": TOKEN_RATES,
-            "plan_allowance": {p: plan_token_allowance(p) for p in ("free", "team", "enterprise")}}
