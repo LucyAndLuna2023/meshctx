@@ -192,6 +192,9 @@ class ModelCompareEngine:
 
         self._last_result = result
         self._history.append(result)
+        # 2026-08-28 内存审计: 历史有界 (保留最近 200, 防无界增长)
+        if len(self._history) > 200:
+            self._history = self._history[-200:]
         return result
 
     def compare_and_rank(self, prompt, models=None, executor=None, parallel=True, blind=None, **kw):

@@ -209,6 +209,9 @@ class SelfModifyEngine:
         )
         change.generate_diff()
         self._history.append(change)
+        # 2026-08-28 内存审计: 历史有界 (保留最近 500, 防无界增长)
+        if len(self._history) > 500:
+            self._history = self._history[-500:]
         self._change_map[change.change_id] = change
         self._stats["total_proposed"] += 1
         return change

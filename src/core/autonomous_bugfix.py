@@ -58,6 +58,9 @@ class AutonomousBugFixEngine:
             line=raw.get("line", 0),
         )
         self._events.append(event)
+        # 2026-08-28 内存审计: 事件有界 (保留最近 500, 防无界增长)
+        if len(self._events) > 500:
+            self._events = self._events[-500:]
         return event
 
     # ── collect_from_logs ───────────────────────────────────────────

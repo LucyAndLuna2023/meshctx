@@ -453,3 +453,29 @@ def test_sandbox_verify_endpoint():
     assert r.status_code == 200
     d = r.json()
     assert d.get("ok") is True and "ok" in d.get("stdout", "")
+
+
+# ═══ 内存/CPU 审计测试 (2026-08-28: 无界增长修复) ═══
+
+def test_bounded_histories():
+    """内存审计: 自修改/对比/错误修复历史裁剪逻辑存在 (防无界增长)。"""
+    # self_modify 源码含 500 上限裁剪
+    src = open('src/core/self_modify.py', encoding='utf-8').read()
+    assert "if len(self._history) > 500" in src, "self_modify 应有 500 上限"
+    # model_compare 源码含 200 上限
+    src2 = open('src/core/model_compare.py', encoding='utf-8').read()
+    assert "if len(self._history) > 200" in src2, "model_compare 应有 200 上限"
+    # autonomous_bugfix 源码含 500 上限
+    src3 = open('src/core/autonomous_bugfix.py', encoding='utf-8').read()
+    assert "if len(self._events) > 500" in src3, "bugfix 应有 500 上限"
+
+
+def test_brain_histories_bounded():
+    """内存审计: 脑区历史全部 deque 有界。"""
+    from collections import deque
+    from src.core.brain_nacc import RewardPredictor as _RP
+    n = _RP()
+    assert isinstance(n._pe_history, deque) and n._pe_history.maxlen <= 200
+    from src.core.brain_basal_ganglia import DopamineSystem
+    bg = DopamineSystem()
+    assert isinstance(bg.rpe_history, deque) and bg.rpe_history.maxlen <= 200
