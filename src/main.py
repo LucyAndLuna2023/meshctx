@@ -8226,7 +8226,7 @@ async def keyvault_status_api():
 @app.post("/api/settings/keyvault/migrate")
 async def keyvault_migrate_api(req: Request):
     """迁移 .env 明文 key → key_vault 加密 (保护客户 token)。
-    002meshctx 建议2: ?delete=true 迁移后备份并删除 .env 明文行 (根治泄漏面)。"""
+    002meshctx 建议2: body.delete=true 迁移后备份并删除 .env 明文行 (根治泄漏面)。"""
     try:
         body = await req.json()
     except Exception:
@@ -8242,7 +8242,9 @@ async def keyvault_migrate_api(req: Request):
     remaining = []
     for ln in lines:
         ln_s = ln.strip()
-        if "=" in ln_s and "API_KEY" in ln_s:
+        # 002codex P3-3: 精确匹配变量名以 _KEY 结尾 (NOT_API_KEY/注释行不迁)
+        _var_name = ln_s.split("=", 1)[0].strip()
+        if "=" in ln_s and not ln_s.startswith("#") and _var_name.endswith("_KEY"):
             name, _, val = ln_s.partition("=")
             val = val.strip().strip('"').strip("'")
             migrated_this = False

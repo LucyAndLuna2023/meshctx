@@ -511,3 +511,25 @@ def test_keyvault_env_fallback(tmp_path, monkeypatch):
     env.write_text('OLD_API_KEY="sk-old-value"\n', encoding="utf-8")
     kv.reset_vault(str(tmp_path / ".meshctx" / "key_vault.json"))
     assert kv.get_secret("OLD_API_KEY") == "sk-old-value"
+
+
+def test_keyvault_legacy_format_compat(tmp_path, monkeypatch):
+    """002meshctx 建议: 旧格式(26ddcdd 平铺) vault 加载兼容回归。"""
+    import src.core.key_vault as kv
+    p = tmp_path / "legacy_vault.json"
+    p.write_text('{"OLD_KEY": {"ct": "A", "nonce": "B", "created": 1}}', encoding="utf-8")
+    kv.reset_vault(str(p))
+    assert kv.get_vault().names() == ["OLD_KEY"], "旧格式应加载条目"
+
+
+def test_keyvault_tamper_detection(tmp_path, monkeypatch):
+    """002codex P3-2: 不同主密钥解密失败 (防篡改)。"""
+    import src.core.key_vault as kv
+    kv.reset_vault(str(tmp_path / "t.json"))
+    kv.encrypt_secret("K", "secret-x")
+    # 篡改密文 → 解密失败
+    v = kv.get_vault()
+    entry = dict(v._data["K"])
+    entry["ct"] = "AAAA" + entry["ct"][4:]
+    v._data["K"] = entry
+    assert kv.get_secret("K") is None, "篡改后应解密失败"
