@@ -20,10 +20,10 @@ from src.config import get_config_path
 logger = logging.getLogger(__name__)
 
 # v3.120.3: 厂商已下架的旧 API 模型名 → 现役模型自动迁移（老 config.yaml 无需手动改）
-# DeepSeek 官方现役仅 v4 系列（deepseek-v4-flash / deepseek-v4-pro / deepseek-v4-flash-vision-exp）
+# DeepSeek 官方现役仅 v4 系列（deepseek-v4-flash / deepseek-v4-flash / deepseek-v4-flash-vision-exp）
 LEGACY_MODEL_ALIASES = {
     "deepseek-chat": "deepseek-v4-flash",
-    "deepseek-reasoner": "deepseek-v4-pro",
+    "deepseek-reasoner": "deepseek-v4-flash",
     "deepseek-coder": "deepseek-v4-flash",
 }
 
@@ -103,11 +103,11 @@ BUILTIN_MODELS = {
     # 第2梯队 — 中国主力军
     # ═════════════════════════════════════════════════
     # ── DeepSeek ──────────────────────────────────────
-    "deepseek:v4-pro":         {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-pro","key_env":"DEEPSEEK_API_KEY"},
+    "deepseek:v4-flash":         {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-flash","key_env":"DEEPSEEK_API_KEY"},
     "deepseek:v4-flash":       {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-flash","key_env":"DEEPSEEK_API_KEY"},
     "deepseek:v4-flash-vision":{"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-flash-vision-exp","key_env":"DEEPSEEK_API_KEY"},
     "deepseek:chat":           {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-flash","key_env":"DEEPSEEK_API_KEY"},
-    "deepseek:reasoner":       {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-pro","key_env":"DEEPSEEK_API_KEY"},
+    "deepseek:reasoner":       {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-flash","key_env":"DEEPSEEK_API_KEY"},
     # ── 阿里百炼 (Qwen家族) ───────────────────────────
     "bailian:qwen3-flash":     {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen3-flash","key_env":"BAILIAN_API_KEY"},
     "bailian:qwen3-plus":      {"provider":"bailian","base_url":"https://dashscope.aliyuncs.com/compatible-mode/v1","model":"qwen3-plus","key_env":"BAILIAN_API_KEY"},

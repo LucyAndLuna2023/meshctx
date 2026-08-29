@@ -95,17 +95,17 @@ MODEL_ROUTES = {
     "code": {
         "fast": "deepseek:v4-flash",
         "balanced": "deepseek:v4-flash",
-        "powerful": "deepseek:v4-pro",
+        "powerful": "deepseek:v4-flash",
     },
     "analysis": {
         "fast": "deepseek:v4-flash",
-        "balanced": "deepseek:v4-pro",
-        "powerful": "deepseek:v4-pro",
+        "balanced": "deepseek:v4-flash",
+        "powerful": "deepseek:v4-flash",
     },
     "creative": {
         "fast": "deepseek:v4-flash",
-        "balanced": "deepseek:v4-pro",
-        "powerful": "deepseek:v4-pro",
+        "balanced": "deepseek:v4-flash",
+        "powerful": "deepseek:v4-flash",
     },
     "search": {
         "fast": "deepseek:v4-flash",
@@ -115,7 +115,7 @@ MODEL_ROUTES = {
     "chat": {
         "fast": "deepseek:v4-flash",
         "balanced": "deepseek:v4-flash",
-        "powerful": "deepseek:v4-pro",
+        "powerful": "deepseek:v4-flash",
     },
 }
 
@@ -123,7 +123,7 @@ MODEL_ROUTES = {
 MODEL_COST = {
     "deepseek:v4-flash": 0.5,
     "deepseek:v4-flash": 1.0,
-    "deepseek:v4-pro": 2.0,
+    "deepseek:v4-flash": 2.0,
 }
 
 
@@ -173,7 +173,7 @@ class SmartRouter:
         }
 
         # Track cost savings vs always using v4-pro
-        baseline_cost = MODEL_COST.get("deepseek:v4-pro", 2.0)
+        baseline_cost = MODEL_COST.get("deepseek:v4-flash", 2.0)
         self._cost_saved += baseline_cost - cost
         self._route_history.append(result)
         if len(self._route_history) > 100:

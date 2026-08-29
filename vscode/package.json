@@ -80,7 +80,7 @@
         },
         "meshctx.model": {
           "type": "string",
-          "default": "deepseek-v4-pro",
+          "default": "deepseek-v4-flash",
           "description": "Default AI model"
         }
       }

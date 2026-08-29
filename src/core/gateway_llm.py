@@ -7,7 +7,7 @@ import re
 class GatewayLLMAdapter:
     """Adapter for LLM calls with conversation history, template fallback, and stats."""
 
-    def __init__(self, default_model: str = "deepseek-v4-pro",
+    def __init__(self, default_model: str = "deepseek-v4-flash",
                  fallback_to_template: bool = True, max_history: int = 10):
         self.default_model = default_model
         self.fallback_to_template = fallback_to_template

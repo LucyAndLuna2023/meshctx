@@ -46,3 +46,4 @@ provider_config.json
 
 # === meshctx-core stubs (open-source) ===
 # src/core/ now contains open-source stubs — safe to publish
+.fernet_key

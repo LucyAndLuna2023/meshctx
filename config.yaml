@@ -1,7 +1,12 @@
 models:
-  default: deepseek:v4-pro
+  default: deepseek:v4-flash
   entries:
-    deepseek:v4-pro:
+    test:local:
+      base_url: http://localhost:8080/v1
+      key: ''
+      model: local-model
+      provider: local
+    deepseek:v4-flash:
       base_url: https://api.deepseek.com
       key: enc:sk-b6c...613f
       model: ''
@@ -10,3 +15,7 @@ server:
   host: 0.0.0.0
   port: 3002
 version: '3.0'
+gateway:
+  enabled: true
+  telegram:
+    bot_token: REDACTED_TELEGRAM_BOT_TOKEN9YLz7fPQ5thpU

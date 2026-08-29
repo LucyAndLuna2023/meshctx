@@ -20,7 +20,7 @@ class JEPARouter:
     def __init__(self):
         self._model_registry = {
             "deepseek-v4-flash": {"cost": 0.5,  "speed": "fast",    "strength": "general"},
-            "deepseek-v4-pro":   {"cost": 0.1,  "speed": "fast",    "strength": "code"},
+            "deepseek-v4-flash":   {"cost": 0.1,  "speed": "fast",    "strength": "code"},
             "gpt-4o-mini":       {"cost": 1.0,  "speed": "medium",  "strength": "general"},
             "claude-sonnet":     {"cost": 2.0,  "speed": "medium",  "strength": "analysis"},
             "gpt-4o":            {"cost": 5.0,  "speed": "slow",    "strength": "complex"},
@@ -68,7 +68,7 @@ class JEPARouter:
         self._predictions += 1
 
         # Score each model
-        best_model = "deepseek-v4-pro"
+        best_model = "deepseek-v4-flash"
         best_score = -1.0
 
         for name, info in self._model_registry.items():

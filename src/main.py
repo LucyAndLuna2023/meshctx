@@ -3592,9 +3592,9 @@ async def api_chat(request: Request):
     if not model_id:
         try:
             config = load_config()
-            model_id = config.get("models", {}).get("default", "deepseek:v4-pro")
+            model_id = config.get("models", {}).get("default", "deepseek:v4-flash")
         except Exception:
-            model_id = "deepseek:v4-pro"
+            model_id = "deepseek:v4-flash"
 
     # 确保 system prompt 在最前面（与 CLI 同一份完整提示词：记忆+工具规则+桌面路径）
     if not msgs or msgs[0].get("role") != "system":
@@ -3725,10 +3725,10 @@ async def api_chat_stream(request: Request):
     if not model_id:
         try:
             config = load_config()
-            model_id = config.get("models", {}).get("default", "deepseek:v4-pro")
+            model_id = config.get("models", {}).get("default", "deepseek:v4-flash")
         except Exception:
             logger.debug("Suppressed exception", exc_info=True)
-            model_id = "deepseek:v4-pro"
+            model_id = "deepseek:v4-flash"
 
     # ── 工具定义 ──
     SENSITIVE_TOOLS = {"terminal", "write_file", "remote_write", "remote_exec"}
@@ -4131,7 +4131,7 @@ async def chat_compare(req: Request):
         if not message:
             return {"error": "请提供 message", "results": []}
         
-        models = body.get("models", ["deepseek:v4-pro", "deepseek:v4-flash", "deepseek:v4-flash-vision"])
+        models = body.get("models", ["deepseek:v4-flash", "deepseek:v4-flash", "deepseek:v4-flash-vision"])
         models = models[:5]
         
         from src.model_registry import get_registry
@@ -4246,7 +4246,7 @@ async def list_open_models():
         return {
             "models": all_models,
             "count": len(all_models),
-            "default": reg.model_name if hasattr(reg, 'model_name') else "deepseek:v4-pro"
+            "default": reg.model_name if hasattr(reg, 'model_name') else "deepseek:v4-flash"
         }
     except Exception as e:
         return {"models": [], "error": str(e)}
