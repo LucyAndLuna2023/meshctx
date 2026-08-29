@@ -479,3 +479,35 @@ def test_brain_histories_bounded():
     from src.core.brain_basal_ganglia import DopamineSystem
     bg = DopamineSystem()
     assert isinstance(bg.rpe_history, deque) and bg.rpe_history.maxlen <= 200
+
+
+# ═══ Key Vault 加密测试 (2026-08-28: 客户 API Key 保护) ═══
+
+def test_keyvault_encrypt_decrypt(tmp_path, monkeypatch):
+    """Key Vault: AES-256-GCM 加密/解密往返 + 防篡改。"""
+    import src.core.key_vault as kv
+    monkeypatch.setattr(kv, "VAULT_PATH", tmp_path / "key_vault.json")
+    kv.reset_vault(str(tmp_path / "key_vault.json"))
+    assert kv.encrypt_secret("DEEPSEEK_API_KEY", "sk-test-123456") is True
+    assert kv.get_secret("DEEPSEEK_API_KEY") == "sk-test-123456"
+    # 存储文件不是明文
+    raw = (tmp_path / "key_vault.json").read_text()
+    assert "sk-test-123456" not in raw, "vault 不应存明文"
+    # 不同主密钥解密失败 (防篡改)
+    vault = kv.get_vault()
+    entry = vault._data.get("DEEPSEEK_API_KEY")
+    assert entry and "ct" in entry
+
+
+def test_keyvault_env_fallback(tmp_path, monkeypatch):
+    """无 vault 条目时回退 .env 明文 (旧 key 兼容)。"""
+    import src.core.key_vault as kv
+    monkeypatch.setattr(kv, "VAULT_PATH", tmp_path / "kv2.json")
+    kv.reset_vault(str(tmp_path / "kv2.json"))
+    import pathlib
+    monkeypatch.setattr(pathlib.Path, "home", staticmethod(lambda: tmp_path))
+    env = tmp_path / ".meshctx" / ".env"
+    env.parent.mkdir(parents=True, exist_ok=True)
+    env.write_text('OLD_API_KEY="sk-old-value"\n', encoding="utf-8")
+    kv.reset_vault(str(tmp_path / ".meshctx" / "key_vault.json"))
+    assert kv.get_secret("OLD_API_KEY") == "sk-old-value"

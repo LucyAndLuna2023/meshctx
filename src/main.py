@@ -8202,3 +8202,38 @@ async def sandbox_verify(req: Request):
                 "passed": exit_code == 0}
     except Exception as e:
         return JSONResponse({"error": f"验证执行失败: {e}"}, status_code=500)
+
+
+# ═══ Key Vault API — 客户 API Key 加密状态 (2026-08-28) ═══
+
+@app.get("/api/settings/keyvault")
+async def keyvault_status_api():
+    """API Key 加密状态审计: config.yaml 加密 + vault 状态 + 建议。"""
+    from src.core.key_vault import vault_status
+    from src.core import crypto as _crypto
+    return {
+        "config_yaml_keys": "encrypted" if _crypto.is_encrypted else "legacy-check",
+        "key_vault": vault_status(),
+        "note": "config.yaml 的 key 已用 Fernet 加密 (crypto.py, MESHCTX_CRYPTO_KEY/机器派生); "
+                "key_vault 提供 AES-256-GCM 增强 + .env 明文迁移",
+    }
+
+
+@app.post("/api/settings/keyvault/migrate")
+async def keyvault_migrate_api(req: Request):
+    """迁移 .env 明文 key → key_vault 加密 (保护客户 token)。"""
+    from src.core.key_vault import get_vault, vault_status
+    vault = get_vault()
+    migrated = 0
+    env_path = Path.home() / ".meshctx" / ".env"
+    if env_path.exists():
+        for ln in env_path.read_text(encoding="utf-8").splitlines():
+            ln = ln.strip()
+            if "=" in ln and "API_KEY" in ln:
+                name, _, val = ln.partition("=")
+                val = val.strip().strip('"').strip("'")
+                if val and not vault.has(name):
+                    if vault.encrypt(name, val):
+                        migrated += 1
+    return {"migrated": migrated, "vault_entries": vault.names(),
+            "note": "迁移后 .env 明文可手动删除 (保留则双通道兼容)"}

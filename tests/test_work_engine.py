@@ -294,11 +294,9 @@ class TestModelCatalogReality:
         from src.model_registry import BUILTIN_MODELS
         ds = {k: v["model"] for k, v in BUILTIN_MODELS.items() if v["provider"] == "deepseek"}
         assert ds["deepseek:v4-flash"] == "deepseek-v4-flash"
-        assert ds["deepseek:v4-pro"] == "deepseek-v4-pro"
-        assert ds["deepseek:v4-flash-vision"] == "deepseek-v4-flash-vision-exp"
+        assert ds["deepseek:v4-flash-vision"] == "deepseek-v4-flash-vision-exp"  # 适配 2784bc1: v4-pro 移除
         # 官方已无 deepseek-chat/reasoner/coder（V3 时代名）；chat/reasoner 兼容映射到现役模型
         assert "deepseek-v4-flash" in ds.values()
-        assert "deepseek-v4-pro" in ds.values()
         assert "deepseek-chat" not in ds.values()
         assert "deepseek-coder" not in ds.values()
         assert "deepseek-reasoner" not in ds.values()
@@ -338,7 +336,7 @@ class TestModelCatalogReality:
         }), encoding="utf-8")
         reg = ModelRegistry(config_path=str(cfg))
         assert reg._entries["deepseek:chat"]["model"] == "deepseek-v4-flash"
-        assert reg._entries["deepseek:reasoner"]["model"] == "deepseek-v4-pro"
+        assert reg._entries["deepseek:reasoner"]["model"] == "deepseek-v4-flash"  # 适配 2784bc1
         assert "deepseek-chat" not in {v["model"] for v in reg._entries.values()}
 
 
