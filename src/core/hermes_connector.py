@@ -175,7 +175,7 @@ class EventBridge:
                     from src.core.web3_messaging import Web3MessagingLayer
                     if getattr(self, "_journal", None) is not None:
                         self._journal.log_send(
-                            f"meshctx/{event.type}", f"fwd-{time.time():.3f}",
+                            f"meshctx/{event.type}", f"fwd-{time.time():.3f}-{os.getpid()}-{abs(hash(event.type)) % 1000}",
                             {"event_type": event.type, "data": event.data},
                             kind="hermes_forward")
                 except Exception:

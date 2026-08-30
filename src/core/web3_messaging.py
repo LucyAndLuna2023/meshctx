@@ -20,11 +20,14 @@ IPFS 锚定是 Phase 2 (有网关时可选), 本 Phase 不依赖网络。
 """
 import hashlib
 import json
+import logging
 import os
 import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+logger = logging.getLogger("meshctx.web3")
 
 # 默认日志目录 (与 meshctx 数据目录一致)
 DEFAULT_JOURNAL_DIR = Path.home() / ".meshctx" / "web3_journal"
@@ -105,6 +108,17 @@ class HashChainLedger:
                 return False
             self._entries.append(dict(entry))
             return True
+
+    def rollback(self) -> bool:
+        """P4-1 (002codex 审计): 移除最后一条 entry (写盘失败时回滚)。
+
+        替代直接访问 _entries.pop() 私有字段。
+        """
+        with self._lock:
+            if self._entries:
+                self._entries.pop()
+                return True
+            return False
 
     @staticmethod
     def _entry_hash(entry: Dict) -> str:
@@ -238,7 +252,7 @@ class Web3MessagingLayer:
             self.journal.append(entry)
         except Exception:
             # 写盘失败: 从链中移除刚追加的 entry, 保持一致
-            self.ledger._entries.pop()
+            self.ledger.rollback()
             raise
         # P3-1: 链头落独立文件 (外部对比可检出尾部截断)
         self.persist_head()
@@ -275,8 +289,9 @@ class Web3MessagingLayer:
                 os.chmod(_p, 0o600)
             except Exception:
                 pass
-        except Exception:
-            pass
+        except Exception as e:
+            # P4-2 (002codex 审计): 失败不再静默 — 记日志, 防 stats 误报 head_file_mismatch
+            logger.warning(f"[web3] persist_head 失败 ({self.name}): {e}")
         return h
 
     def load_journal(self) -> List[Dict]:
