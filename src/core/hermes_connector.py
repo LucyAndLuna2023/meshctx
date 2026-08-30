@@ -196,6 +196,15 @@ class EventBridge:
         my_profile = os.environ.get("HERMES_PROFILE", "meshctx")
         MACHINE_ID = os.environ.get("HUB_MACHINE_ID", socket.gethostname())
 
+        # Web3 消息记录层 (2026-08-30): 收/发消息写哈希链 journal,
+        # Redis 挂后可从本地日志重建 (用户反馈: Redis 挂信息乱/无记录)
+        try:
+            from src.core.web3_messaging import Web3MessagingLayer
+            if getattr(self, "_journal", None) is None:
+                self._journal = Web3MessagingLayer(f"hermes_{my_profile}")
+        except Exception:
+            self._journal = None
+
         # 扫描 v5 inbox_safe（listener 写入路径）
         # 🔴 铁律：只读 meshctx.json，不碰 machine.json/{MACHINE_ID}.json
         # machine.json 包含所有 profile 的消息，清空会破坏其他 profile 通讯
@@ -221,6 +230,18 @@ class EventBridge:
                         if msg.get("source") == "meshctx":
                             kept.append(line)
                             continue
+
+                        # Web3 记录: 收到消息写哈希链 journal (Redis 挂可恢复)
+                        if self._journal is not None:
+                            try:
+                                _mid = msg.get("msg_id") or msg.get("id") or f"recv-{count}"
+                                self._journal.log_receive(
+                                    f"{MACHINE_ID}/{my_profile}", _mid,
+                                    {"text": msg.get("message") or msg.get("data") or msg,
+                                     "from": msg.get("from") or msg.get("from_profile", "")},
+                                    kind="hermes_hub")
+                            except Exception:
+                                pass
 
                         # 匹配转发规则
                         for rule in self._hermes_to_meshctx:

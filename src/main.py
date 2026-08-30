@@ -7602,7 +7602,52 @@ async def team_create(req: Request):
     team = store.create_team(name=name, owner=uid, plan="free", seats=5)
     store.audit(uid, "team.create", f"team={team.team_id} plan=free",
                 req.client.host if req.client else "", team_id=team.team_id)
+    # Web3 记录: 团队创建写哈希链 journal (可追溯/Redis 挂可恢复)
+    try:
+        from src.core.web3_messaging import Web3MessagingLayer
+        _j = getattr(app.state, "web3_journal", None)
+        if _j is None:
+            _j = Web3MessagingLayer("meshctx_web3")
+            app.state.web3_journal = _j
+        _j.log_send(f"uid:{uid}", f"team-create-{team.team_id}",
+                    {"team_id": team.team_id, "name": name}, kind="team")
+    except Exception:
+        pass
     return {"ok": True, "team": team.to_dict()}
+
+
+@app.get("/api/web3/ledger")
+async def web3_ledger_api(limit: int = 50):
+    """Web3 消息记录层状态 (2026-08-30): journal 条目/完整性校验/链头哈希。
+
+    用于集群通讯去 Redis 化: 校验消息链完整性, Redis 挂后从此重建。
+    鉴权: 与 /api/sandbox/* 同标准 (远程匿名 401)。
+    """
+    from fastapi import HTTPException
+    from src.core.auth_v2 import _authenticate, _is_loopback_client
+    try:
+        _ident, _is_admin = await _authenticate(request)
+        if not _ident and not _is_loopback_client(request):
+            raise HTTPException(status_code=401, detail="认证失败: 请登录或提供 API Key")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=401, detail="认证失败: 请登录或提供 API Key")
+    try:
+        from src.core.web3_messaging import Web3MessagingLayer
+        _j = getattr(app.state, "web3_journal", None)
+        if _j is None:
+            _j = Web3MessagingLayer("meshctx_web3")
+            app.state.web3_journal = _j
+        _stats = _j.stats()
+        _entries = _j.load_journal()
+        return {
+            "stats": _stats,
+            "recent": _entries[-min(limit, len(_entries)):] if _entries else [],
+            "note": "Redis 挂后可从本 journal 重建消息流 (哈希链防篡改)",
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.get("/api/team/list")
