@@ -4554,7 +4554,21 @@ async def api_debate(req: Request):
 
 @app.get("/api/chat/status")
 async def chat_status_api(conversation_id: str = ""):
-    """会话级打断状态 — 前端轮询: 该会话是否有任务在执行 / 可打断 (2026-08-29)。"""
+    """会话级打断状态 — 前端轮询: 该会话是否有任务在执行 / 可打断 (2026-08-29)。
+
+    002codex P2-1 修复: 加显式 _current_user_id 鉴权 (与 sandbox/backups/keyvault
+    同标准) + 移除无参列举 (避免泄露 active_conversations / anon 消息片段)。
+    """
+    from fastapi import HTTPException
+    from src.core.auth_v2 import _authenticate, _is_loopback_client
+    try:
+        _ident, _is_admin = await _authenticate(request)
+        if not _ident and not _is_loopback_client(request):
+            raise HTTPException(status_code=401, detail="认证失败: 请登录或提供 API Key")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=401, detail="认证失败: 请登录或提供 API Key")
     try:
         _mgrs = getattr(app.state, "chat_conv_mgrs", None) or {}
         _active = getattr(app.state, "chat_conv_active", None) or {}
@@ -4565,10 +4579,13 @@ async def chat_status_api(conversation_id: str = ""):
                 "interruptible": True,  # Web 端始终支持打断置顶 (发新消息即打断)
                 "queued": 0,
             }
+        # 无参: 仅返回计数, 不返回会话标识 (防信息泄露, 002codex P2-1)
         return {
-            "active_conversations": list(_active.keys()),
+            "active_count": len(_active),
             "total_conversations": len(_mgrs),
         }
+    except HTTPException:
+        raise
     except Exception as e:
         return {"error": str(e)}
 
