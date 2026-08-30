@@ -729,6 +729,11 @@ def cmd_chat(args):
                     else:
                         print("\n⏹ 已停止当前任务。继续输入新消息。", flush=True)
                     continue
+                except KeyboardInterrupt:
+                    # 002codex P3-1: Ctrl+C 落主线程 (_chat_loop 内) 需兜底,
+                    # 否则 SIGINT 直接 traceback 崩溃 — 视为停止当前任务
+                    print("\n⏹ Ctrl+C 已停止当前任务。继续输入新消息。", flush=True)
+                    continue
 
                 # 自动保存会话
                 if session_id and len(messages) > 3:

@@ -121,7 +121,7 @@ def test_interrupt_semantics_runner():
     def feeder():
         time.sleep(0.2)
         r.enqueue([{"role": "user", "content": "任务1"}])
-        time.sleep(0.4)  # 任务1执行中
+        time.sleep(0.25)  # 任务1执行中 (提前提交, 002codex P3-2: 防 0.25s 节流竞态)
         r.submit([{"role": "user", "content": "打断2"}])
         time.sleep(0.3)
         r.set_eof()
@@ -136,8 +136,8 @@ def test_interrupt_semantics_runner():
                 break
             results.append(msgs[-1]["content"])
             if msgs[-1]["content"] == "任务1":
-                # 模拟任务执行: 轮询打断
-                for _ in range(6):
+                # 模拟任务执行: 轮询打断 (10 次 × 0.1s 覆盖节流窗口, 002codex P3-2)
+                for _ in range(10):
                     time.sleep(0.1)
                     try:
                         r.interrupt_check()
