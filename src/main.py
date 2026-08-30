@@ -4553,11 +4553,13 @@ async def api_debate(req: Request):
 
 
 @app.get("/api/chat/status")
-async def chat_status_api(conversation_id: str = ""):
+async def chat_status_api(request: Request, conversation_id: str = ""):
     """会话级打断状态 — 前端轮询: 该会话是否有任务在执行 / 可打断 (2026-08-29)。
 
     002codex P2-1 修复: 加显式 _current_user_id 鉴权 (与 sandbox/backups/keyvault
     同标准) + 移除无参列举 (避免泄露 active_conversations / anon 消息片段)。
+    002meshctx/002codex 复验 (2026-08-30): 补 request: Request 参数, 修复
+    _authenticate(request) NameError → 恒 401 问题。
     """
     from fastapi import HTTPException
     from src.core.auth_v2 import _authenticate, _is_loopback_client
@@ -7617,7 +7619,7 @@ async def team_create(req: Request):
 
 
 @app.get("/api/web3/ledger")
-async def web3_ledger_api(limit: int = 50):
+async def web3_ledger_api(request: Request, limit: int = 50):
     """Web3 消息记录层状态 (2026-08-30): journal 条目/完整性校验/链头哈希。
 
     用于集群通讯去 Redis 化: 校验消息链完整性, Redis 挂后从此重建。
