@@ -7643,9 +7643,20 @@ async def web3_ledger_api(request: Request, limit: int = 50):
             app.state.web3_journal = _j
         _stats = _j.stats()
         _entries = _j.load_journal()
+        # P3-5 (002codex 审计): recent 只返回摘要 (seq/kind/sender/hash), 不泄露全量 payload
+        _recent = []
+        for _e in _entries[-min(limit, len(_entries)):] if _entries else []:
+            _recent.append({
+                "seq": _e.get("seq"),
+                "kind": _e.get("kind"),
+                "sender": _e.get("sender"),
+                "msg_id": _e.get("msg_id"),
+                "ts": _e.get("ts"),
+                "entry_hash": _e.get("entry_hash", "")[:16],
+            })
         return {
             "stats": _stats,
-            "recent": _entries[-min(limit, len(_entries)):] if _entries else [],
+            "recent": _recent,
             "note": "Redis 挂后可从本 journal 重建消息流 (哈希链防篡改)",
         }
     except Exception as e:

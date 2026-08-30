@@ -170,6 +170,17 @@ class EventBridge:
                 }
                 hub_line = json.dumps(hub_msg, ensure_ascii=False) + "\n"
 
+                # P3-4 (002codex 审计): 发送侧也写 journal — 收发两侧完整记录
+                try:
+                    from src.core.web3_messaging import Web3MessagingLayer
+                    if getattr(self, "_journal", None) is not None:
+                        self._journal.log_send(
+                            f"meshctx/{event.type}", f"fwd-{time.time():.3f}",
+                            {"event_type": event.type, "data": event.data},
+                            kind="hermes_forward")
+                except Exception:
+                    pass
+
                 # 写入全局 inbox
                 try:
                     GLOBAL_INBOX.parent.mkdir(parents=True, exist_ok=True)
