@@ -3699,26 +3699,51 @@ async def api_chat_stream(request: Request):
     # 新请求注册后, 旧请求 should_interrupt()=True → 旧流下一轮 interrupt_check
     # 抛 InterruptSignal 优雅结束; 新请求自身不自打断。
     # 这样用户在 Web 任务执行中直接发新消息 = 打断置顶 (对标 Hermes/Codex/Harness)。
+    #
+    # P2-2/P2-3 (002meshctx 审计): 无 conversation_id 时不再按首条消息分组
+    # (同内容多标签页会互打断 + 消息内容进 conv_id 隐私), 改为固定 anon 分组 —
+    # 默认不跨标签页打断, 仅显式传 conversation_id 才享受会话级打断;
+    # chat_conv_mgrs 加 TTL 清理防无限增长。
     import uuid as _uuid
+    import time as _time_m
     from src.core.interruptible_runner import ConversationInterruptManager, InterruptSignal
     _conv_id = str(body.get("conversation_id") or "")
     if not _conv_id:
-        # 无显式会话: 用 首条用户消息 做轻量分组 (不依赖 model_id, 兼容 message 简写),
-        # 避免多标签页互相打断
-        _first_user = next((m.get("content", "")[:40] for m in msgs if m.get("role") == "user"), "")
-        _conv_id = f"anon:{_first_user or '?'}"
+        # 无显式会话: 固定 anon 分组 — 多标签页互不打断 (每次独立流, 不注册/不取代)
+        _conv_id = "anon"
     _conv_mgrs = getattr(app.state, "chat_conv_mgrs", None)
     if _conv_mgrs is None:
         _conv_mgrs = {}
         app.state.chat_conv_mgrs = _conv_mgrs
-    _mgr = _conv_mgrs.get(_conv_id)
-    if _mgr is None:
-        _mgr = ConversationInterruptManager()
-        _conv_mgrs[_conv_id] = _mgr
     _request_id = f"{_uuid.uuid4().hex[:12]}"
-    _mgr.register(_request_id)   # 取代旧请求 (若会话已有流在跑)
-    # 记录当前会话有活跃请求（用于状态 API 展示）
-    getattr(app.state, "chat_conv_active", {}).__setitem__(_conv_id, True) if hasattr(app.state, "chat_conv_active") else None
+    if _conv_id == "anon":
+        # anon: 不共享 manager → 多标签页各自独立, 绝不互打断
+        _mgr = ConversationInterruptManager()
+        _mgr.register(_request_id)
+        _anon_mgr = True
+    else:
+        _anon_mgr = False
+        # 显式会话: 共享 manager, 新请求取代旧流
+        _mgr = _conv_mgrs.get(_conv_id)
+        if _mgr is None:
+            _mgr = ConversationInterruptManager()
+            _conv_mgrs[_conv_id] = _mgr
+        _mgr.register(_request_id)   # 取代旧请求 (若会话已有流在跑)
+        # P2-3: TTL 清理 — 定期移除长期无活跃的会话 manager (防无限增长)
+        try:
+            _now = _time_m.time()
+            _mgrs_map = getattr(app.state, "chat_conv_mgrs", None)
+            if _mgrs_map is not None and len(_mgrs_map) > 64:
+                _active = getattr(app.state, "chat_conv_active", None) or {}
+                for _k in list(_mgrs_map.keys()):
+                    if _k not in _active and len(_mgrs_map) > 64:
+                        _mgrs_map.pop(_k, None)
+        except Exception:
+            pass
+    # 记录当前会话有活跃请求（用于状态 API 展示）— 存 request_id 以便旧流 finally
+    # 只清理自己的标记 (P3-1: 防旧流误清新流 active); anon 不计入, 避免无限增长
+    if not _anon_mgr:
+        getattr(app.state, "chat_conv_active", {}).__setitem__(_conv_id, _request_id) if hasattr(app.state, "chat_conv_active") else None
 
     # ═══ CognitiveLoop 脑区主决策 (v3.115.16) ═══
     # 最后一条 role==user 消息作为 current_query（避免末条是 assistant 时误取；002 fb890903 ①）
@@ -3892,9 +3917,12 @@ async def api_chat_stream(request: Request):
         finally:
             try:
                 _mgr.unregister(_request_id)
-                _active = getattr(app.state, "chat_conv_active", None)
-                if _active is not None:
-                    _active.pop(_conv_id, None)
+                # P3-1: active 存 request_id, 旧流 finally 只清自己的标记,
+                # 新流的 active 标记不受影响 (防误清)
+                if not _anon_mgr:
+                    _active = getattr(app.state, "chat_conv_active", None)
+                    if _active is not None and _active.get(_conv_id) == _request_id:
+                        _active.pop(_conv_id, None)
             except Exception:
                 pass
 

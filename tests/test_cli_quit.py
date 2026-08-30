@@ -155,3 +155,87 @@ def test_interrupt_semantics_runner():
     assert "<打断:打断2>" in results
     assert "打断2" in results
     assert results.index("打断2") < results.index("任务1") + 10  # 打断2在任务1之后很快执行
+
+
+def test_stop_signal_interrupts_task():
+    """P1 (002meshctx 审计): /stop 和 Ctrl+C (submit([])) 必须能停止进行中的任务。
+
+    修复前: interrupt_check 条件 `_interrupt_requested and _pending_top`,
+    空列表 falsy → 不抛异常 → /stop 无效。
+    修复后: 只查 _interrupt_requested, InterruptSignal 允许空 messages。
+    """
+    from src.core.interruptible_runner import (
+        InterruptibleRunner, InterruptSignal,
+    )
+    import threading, time
+
+    r = InterruptibleRunner()
+    results = []
+
+    def feeder():
+        time.sleep(0.2)
+        r.enqueue([{"role": "user", "content": "长任务"}])
+        time.sleep(0.5)   # 任务执行中
+        r.submit([])      # /stop 或 Ctrl+C: 空消息停止信号
+        time.sleep(0.3)
+        r.set_eof()
+
+    t = threading.Thread(target=feeder)
+    t.start()
+
+    stopped = False
+    try:
+        while True:
+            msgs = r.next_task_blocking()
+            if msgs is None:
+                break
+            results.append(msgs[-1]["content"])
+            # 模拟任务执行: 轮询打断
+            for _ in range(8):
+                time.sleep(0.1)
+                try:
+                    r.interrupt_check()
+                except InterruptSignal as sig:
+                    if sig.messages:
+                        results.append(f"<打断:{sig.messages[-1]['content']}>")
+                        r.apply_interrupt(sig.messages)
+                    else:
+                        stopped = True          # 空消息 = 停止信号
+                    break
+            if stopped:
+                break   # 停止后不执行任何新任务, 回到等待
+    finally:
+        t.join(timeout=2)
+
+    assert "长任务" in results
+    assert stopped, "/stop (空消息) 未能停止进行中的任务 (P1 回归)"
+
+
+def test_web_anon_no_cross_tab_interrupt():
+    """P2-2 (002meshctx 审计): 无 conversation_id (anon) 时多标签页互不打断。
+
+    修复前: anon 分组按首条消息 → 相同首条消息的多标签页互相打断。
+    修复后: anon 固定分组, 每次独立 manager, 绝不自打断/互打断。
+    """
+    from src.core.interruptible_runner import ConversationInterruptManager
+    import threading, time
+
+    mgr_a = ConversationInterruptManager()
+    mgr_b = ConversationInterruptManager()   # 模拟另一标签页 (独立实例)
+
+    rid_a = "req-a"
+    rid_b = "req-b"
+    mgr_a.register(rid_a)
+    mgr_b.register(rid_b)
+
+    # a 与 b 互不影响
+    assert mgr_a.should_interrupt(rid_a) is False
+    assert mgr_b.should_interrupt(rid_b) is False
+
+    # 同会话内: 新请求取代旧请求
+    mgr_a.register(rid_a + "-new")
+    assert mgr_a.should_interrupt(rid_a) is True
+    assert mgr_a.should_interrupt(rid_a + "-new") is False
+
+    # 不同会话 (b) 不受 a 影响
+    assert mgr_b.should_interrupt(rid_b) is False

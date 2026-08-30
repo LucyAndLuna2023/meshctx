@@ -133,6 +133,9 @@ async def run_agent_loop(
     _total_search_calls = 0
     _timed_out = False
 
+    # 延迟导入打断异常 (避免模块级循环依赖; interrupt_check 由调用方传入)
+    from src.core.interruptible_runner import InterruptSignal
+
     _round = 0
     while max_rounds == 0 or _round < max_rounds:
         if time.time() - _start_ts > wall_clock:
@@ -273,18 +276,24 @@ async def run_agent_loop(
                 continue
 
             # 工具执行期间也可打断: 分段轮询 (每段 ≤1s) + interrupt_check
-            # (interrupt_check 抛 InterruptSignal 时取消未完成工具, 由外层置顶新消息)
+            # (interrupt_check 抛 InterruptSignal 时先 cancel 未完成工具再向上传播,
+            #  由外层置顶新消息重跑; 防止 executor 线程继续跑的副作用)
             _deadline = time.time() + tool_timeout
             done_futures, pending_futures = set(), set(futures_map.keys())
-            while pending_futures and time.time() < _deadline:
-                if interrupt_check is not None:
-                    interrupt_check()          # 有置顶新消息 → 抛 InterruptSignal
-                _slice, _pending = await asyncio.wait(
-                    list(pending_futures), timeout=min(1.0, _deadline - time.time()))
-                done_futures |= _slice
-                pending_futures = _pending
+            try:
+                while pending_futures and time.time() < _deadline:
+                    if interrupt_check is not None:
+                        interrupt_check()          # 有置顶新消息 → 抛 InterruptSignal
+                    _slice, _pending = await asyncio.wait(
+                        list(pending_futures), timeout=min(1.0, _deadline - time.time()))
+                    done_futures |= _slice
+                    pending_futures = _pending
+            except InterruptSignal:                # noqa: F821 (延迟导入, 见下)
+                for pf in pending_futures:
+                    pf.cancel()                    # 打断: 未完成工具一律取消
+                raise                              # 向上传播 → 外层置顶新消息
             for pf in pending_futures:
-                pf.cancel()
+                pf.cancel()                        # 超时兜底: 未完成工具取消
                 tc, name, args = futures_map[pf]
                 timeout_msg = f"[工具 {name} 执行超过{tool_timeout}秒，已超时中止]"
                 yield {"type": "tool_result", "name": name, "result": timeout_msg}

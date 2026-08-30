@@ -105,8 +105,11 @@ class InterruptibleRunner:
 
     # ── 任务循环内调用 ──
     def interrupt_check(self) -> None:
-        """在 agent_loop 每轮/每工具前调用。有置顶新消息则抛 InterruptSignal。
+        """在 agent_loop 每轮/每工具前调用。有打断请求则抛 InterruptSignal。
 
+        - 置顶新消息: InterruptSignal(messages) 非空, 外层捕获后 apply_interrupt 重跑;
+        - 停止信号 (/stop / Ctrl+C): submit([]) → InterruptSignal([]) 空消息,
+          外层捕获后 if not _msgs: continue 停止当前任务继续等待输入。
         轮询节流：interrupt_check_interval 秒内重复调用直接返回（避免高频轮询开销）。
         """
         now = time.monotonic()
@@ -114,7 +117,7 @@ class InterruptibleRunner:
             return
         self._last_check = now
         with self._cv:
-            if self._interrupt_requested and self._pending_top:
+            if self._interrupt_requested:
                 msgs = list(self._pending_top)
                 self._pending_top = []
                 self._interrupt_requested = False
