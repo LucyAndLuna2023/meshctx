@@ -1127,11 +1127,25 @@ async function send() {
   const input = document.getElementById('input');
   const text = input.value.trim();
   if (!text) return;
+
+  // 打断置顶 (2026-08-29): 若上一轮任务仍在流式执行, 先中止旧流再发新消息
+  // (对标 Hermes/Codex/Harness: 任务执行中可继续输入, 新消息打断当前任务优先执行)
+  const prevController = window.streamingAbortController;
+  if (prevController) {
+    try { prevController.abort(); } catch(e) {}
+    window.streamingAbortController = null;
+    const prevTyping = document.querySelector('.typing-msg');
+    if (prevTyping) { try { prevTyping.remove(); } catch(e) {} }
+    const prog = document.querySelector('.stream-progress');
+    if (prog && !prog.closest('.typing-msg')) { try { prog.remove(); } catch(e) {} }
+    try { showToast(t('chat_interrupt_toast') || '⏹ 已打断上一任务，正在处理新消息...'); } catch(e) {}
+  }
   
   addMsg('user', text);
   input.value = '';
   input.style.height = 'auto';
-  document.getElementById('sendBtn').disabled = true;
+  // 任务执行中保持发送按钮可用 (可继续输入/打断置顶)
+  // document.getElementById('sendBtn').disabled = true;
   
   // Set agent to thinking
   setAgentStatus('thinking');
@@ -1157,7 +1171,7 @@ async function send() {
     const resp = await fetch('/api/chat/stream', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({messages, model}),
+      body: JSON.stringify({messages, model, conversation_id: window.currentConvId || null}),
       signal: controller.signal
     });
 
@@ -1303,6 +1317,12 @@ async function send() {
               aiDiv.querySelector('.bubble').textContent = aiContent;
             }
           }
+          else if (parsed.interrupted) {
+            // 本流被更新的请求打断 (打断置顶): 静默收尾, 不显示错误
+            const iDiv = document.querySelector('.msg.ai.streaming');
+            if (iDiv) iDiv.classList.remove('streaming');
+            break;
+          }
         } catch(e) {
           // Skip non-JSON lines
         }
@@ -1312,6 +1332,9 @@ async function send() {
     // Cleanup: remove streaming class
     const streamingDiv = document.querySelector('.msg.ai.streaming');
     if (streamingDiv) streamingDiv.classList.remove('streaming');
+    if (window.streamingAbortController === controller) {
+      window.streamingAbortController = null;
+    }
 
     // If nothing came through, show error
     if (!aiContent && !hasToolStart) {
@@ -1325,11 +1348,12 @@ async function send() {
       }
     }
 
-    // Push to messages array
-    messages.push({role: 'assistant', content: aiContent});
-
-    // 2026-08-25 004meshctx 修复: 对话自动持久化到后端 (新对话后旧对话可恢复)
-    saveCurrentConversation();
+    // 被打断的旧流 (interrupted) 不追加半截 assistant 内容, 避免污染对话历史
+    if (aiContent || hasToolStart) {
+      messages.push({role: 'assistant', content: aiContent});
+      // 2026-08-25 004meshctx 修复: 对话自动持久化到后端 (新对话后旧对话可恢复)
+      saveCurrentConversation();
+    }
 
     document.getElementById('tokenCount').textContent =
       `Tokens: ${aiContent.length}`;
@@ -1338,8 +1362,15 @@ async function send() {
     setAgentStatus('idle');
   } catch(e) {
     clearTimeout(timeoutId);
-    typingDiv.remove();
-    addMsg('ai', t('chat_error') + e.message);
+    if (window.streamingAbortController === controller) {
+      window.streamingAbortController = null;
+    }
+    // 打断产生的 abort 异常不当作错误展示 (新消息已在 send() 里处理)
+    const isAbort = e && (e.name === 'AbortError' || /abort/i.test(String(e && e.message || '')));
+    if (!isAbort) {
+      typingDiv.remove();
+      addMsg('ai', t('chat_error') + e.message);
+    }
     setAgentStatus('idle');
   }
   

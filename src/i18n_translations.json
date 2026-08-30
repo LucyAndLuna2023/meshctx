@@ -1437,7 +1437,8 @@
     "🤖 模型列表": "🤖 模型列表",
     "🧠 元认知状态": "🧠 元认知状态",
     "🧠 训练": "🧠 训练",
-    "🩺 自愈链路": "🩺 自愈链路"
+    "🩺 自愈链路": "🩺 自愈链路",
+    "chat_interrupt_toast": "⏹ 已打断上一任务，正在处理新消息..."
   },
   "en": {
     " (等待": " (Waiting",
@@ -2924,7 +2925,8 @@
     "🤖 模型列表": "🤖 Model List",
     "🧠 元认知状态": "🧠 Metacognitive Status",
     "🧠 训练": "🧠 Training",
-    "🩺 自愈链路": "🩺 Self-Healing Pipeline"
+    "🩺 自愈链路": "🩺 Self-Healing Pipeline",
+    "chat_interrupt_toast": "⏹ Interrupted previous task, processing new message..."
   },
   "ja": {
     " (等待": " (待機",
@@ -4364,7 +4366,8 @@
     "🤖 模型列表": "🤖 モデルリスト",
     "🧠 元认知状态": "🧠 メタ認知ステータス",
     "🧠 训练": "🧠 トレーニング",
-    "🩺 自愈链路": "🩺 自己修復パイプライン"
+    "🩺 自愈链路": "🩺 自己修復パイプライン",
+    "chat_interrupt_toast": "⏹ 前のタスクを中断し、新しいメッセージを処理中..."
   },
   "ko": {
     " (等待": " (대기",
@@ -5804,7 +5807,8 @@
     "🤖 模型列表": "🤖 모델 목록",
     "🧠 元认知状态": "🧠 메타인지 상태",
     "🧠 训练": "🧠 훈련",
-    "🩺 自愈链路": "🩺 자가 복구 파이프라인"
+    "🩺 自愈链路": "🩺 자가 복구 파이프라인",
+    "chat_interrupt_toast": "⏹ 이전 작업을 중단하고 새 메시지를 처리 중..."
   },
   "fr": {
     " (等待": " (En attente",
@@ -7244,7 +7248,8 @@
     "🤖 模型列表": "🤖 Liste des modèles",
     "🧠 元认知状态": "🧠 État métacognitif",
     "🧠 训练": "🧠 Entraînement",
-    "🩺 自愈链路": "🩺 Pipeline d'auto-réparation"
+    "🩺 自愈链路": "🩺 Pipeline d'auto-réparation",
+    "chat_interrupt_toast": "⏹ Tâche précédente interrompue, traitement du nouveau message..."
   },
   "de": {
     " (等待": " (Warten",
@@ -8684,7 +8689,8 @@
     "🤖 模型列表": "🤖 Modellliste",
     "🧠 元认知状态": "🧠 Metakognitiver Status",
     "🧠 训练": "🧠 Training",
-    "🩺 自愈链路": "🩺 Selbstheilungs-Pipeline"
+    "🩺 自愈链路": "🩺 Selbstheilungs-Pipeline",
+    "chat_interrupt_toast": "⏹ Vorherige Aufgabe abgebrochen, neue Nachricht wird verarbeitet..."
   },
   "es": {
     " (等待": " (Esperando",
@@ -10124,7 +10130,8 @@
     "🤖 模型列表": "🤖 Lista de modelos",
     "🧠 元认知状态": "🧠 Estado metacognitivo",
     "🧠 训练": "🧠 Entrenamiento",
-    "🩺 自愈链路": "🩺 Pipeline de autorreparación"
+    "🩺 自愈链路": "🩺 Pipeline de autorreparación",
+    "chat_interrupt_toast": "⏹ Tarea anterior interrumpida, procesando nuevo mensaje..."
   },
   "it": {
     " (等待": " (attesa",
@@ -11611,7 +11618,8 @@
     "🤖 模型列表": "🤖 Elenco modelli",
     "🧠 元认知状态": "🧠 Stato di metacognizione",
     "🧠 训练": "🧠 Addestramento",
-    "🩺 自愈链路": "🩺 Catena di auto-riparazione"
+    "🩺 自愈链路": "🩺 Catena di auto-riparazione",
+    "chat_interrupt_toast": "⏹ Attività precedente interrotta, elaborazione del nuovo messaggio..."
   },
   "ar": {
     " (等待": " (في الانتظار",
@@ -13052,7 +13060,8 @@
     "🤖 模型列表": "🤖 قائمة النماذج",
     "🧠 元认知状态": "🧠 حالة ما وراء المعرفة",
     "🧠 训练": "🧠 تدريب",
-    "🩺 自愈链路": "🩺 سلسلة الإصلاح الذاتي"
+    "🩺 自愈链路": "🩺 سلسلة الإصلاح الذاتي",
+    "chat_interrupt_toast": "⏹ تم إيقاف المهمة السابقة، جاري معالجة الرسالة الجديدة..."
   },
   "ru": {
     " (等待": " (ожидание",
@@ -14539,6 +14548,7 @@
     "🤖 模型列表": "🤖 Список моделей",
     "🧠 元认知状态": "🧠 Статус метакогниции",
     "🧠 训练": "🧠 Обучение",
-    "🩺 自愈链路": "🩺 Цепочка самовосстановления"
+    "🩺 自愈链路": "🩺 Цепочка самовосстановления",
+    "chat_interrupt_toast": "⏹ Предыдущая задача прервана, обрабатываю новое сообщение..."
   }
 }

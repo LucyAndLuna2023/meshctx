@@ -110,6 +110,7 @@ async def run_agent_loop(
     needs_approval: Optional[Callable[[str, Dict], Optional[str]]] = None,
     approval_waiter: Optional[Callable[[str], Awaitable[Dict]]] = None,
     approval_timeout: float = DEFAULT_APPROVAL_TIMEOUT,
+    interrupt_check: Optional[Callable[[], None]] = None,
 ):
     """统一的 搜索→工具→交付 循环（async generator，产出事件 dict）。
 
@@ -138,6 +139,10 @@ async def run_agent_loop(
             yield {"type": "timed_out", "text": f"[已达到最大处理时间 {int(wall_clock)} 秒，已中止]"}
             _timed_out = True
             break
+
+        # ── 打断检查：新用户消息置顶时抛 InterruptSignal，外层捕获后重跑 ──
+        if interrupt_check is not None:
+            interrupt_check()
 
         # ── 最后一轮 = Deliver（仅固定轮次模式; 无限模式模型直接回复文本即自然结束）──
         is_last = (max_rounds > 0 and _round == max_rounds - 1)
@@ -170,6 +175,9 @@ async def run_agent_loop(
         tool_calls_raw = None
         msg_content = ""
         for item in stream:
+            # LLM 流式输出阶段也可打断 (2026-08-29): 用户新消息 → 抛 InterruptSignal
+            if interrupt_check is not None:
+                interrupt_check()
             if isinstance(item, tuple) and item[0] == "__TOOLS__":
                 if _tools_ok:
                     tool_calls_raw = item[1]
@@ -264,8 +272,17 @@ async def run_agent_loop(
                 # 全部工具被审批拒绝/自定义处理 → 结果已注入 messages, 直接下一轮
                 continue
 
-            done_futures, pending_futures = await asyncio.wait(
-                list(futures_map.keys()), timeout=tool_timeout)
+            # 工具执行期间也可打断: 分段轮询 (每段 ≤1s) + interrupt_check
+            # (interrupt_check 抛 InterruptSignal 时取消未完成工具, 由外层置顶新消息)
+            _deadline = time.time() + tool_timeout
+            done_futures, pending_futures = set(), set(futures_map.keys())
+            while pending_futures and time.time() < _deadline:
+                if interrupt_check is not None:
+                    interrupt_check()          # 有置顶新消息 → 抛 InterruptSignal
+                _slice, _pending = await asyncio.wait(
+                    list(pending_futures), timeout=min(1.0, _deadline - time.time()))
+                done_futures |= _slice
+                pending_futures = _pending
             for pf in pending_futures:
                 pf.cancel()
                 tc, name, args = futures_map[pf]
@@ -295,6 +312,8 @@ async def run_agent_loop(
                 for _fi in range(3):
                     if time.time() - _start_ts > wall_clock:
                         break
+                    if interrupt_check is not None:
+                        interrupt_check()  # 交付阶段也可被打断
                     _stream2 = client.chat_stream(
                         messages, temperature=0.7, max_tokens=max_tokens,
                         tools=tools if _tools_ok else None)
@@ -324,6 +343,9 @@ async def run_agent_loop(
                         _futures[_loop2.run_in_executor(None, _safe_exec, _nm, _ar)] = (_tc, _nm, _ar)
                         yield {"type": "tool_start", "name": _nm, "args": _ar}
                     _d2, _p2 = await asyncio.wait(list(_futures.keys()), timeout=tool_timeout)
+                    # 交付阶段工具执行中也可打断 (轮询 ≤1s)
+                    if interrupt_check is not None and _p2:
+                        interrupt_check()
                     for _pf in _p2:
                         _pf.cancel()
                         _tc, _nm, _ar = _futures[_pf]

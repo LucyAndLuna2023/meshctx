@@ -678,61 +678,123 @@ def cmd_chat(args):
 
     # ── REPL ──
     prompt = f"{profile_tag}You> " if profile_tag else "You> "
-    while True:
-        quit_requested = False
-        try:
-            if _HAS_READLINE:
-                # 多行输入：空行提交，支持粘贴长文本；EOF 或 /quit 直接退出
-                lines = []
-                first = True
-                eof_hit = False
-                while True:
-                    p = prompt if first else '... '
-                    first = False
-                    try:
-                        line = input(p)
-                    except EOFError:
-                        eof_hit = True
-                        break
-                    if line == '':
-                        break  # 空行提交
-                    if line.strip() == "/quit":
-                        quit_requested = True
-                        break
-                    lines.append(line)
-                user = '\n'.join(lines).strip()
-                if eof_hit and not lines:
-                    break  # EOF：正常退出（修复管道/EOF 下的死循环）
-            else:
-                user = input(prompt).strip()
-        except (EOFError, KeyboardInterrupt):
-            break
-        if user == "/quit" or quit_requested:
-            break
-        if not user:
-            continue
 
-        # 斜杠命令
-        if user.startswith("/"):
-            if _handle_slash(user, reg, client, SESS, messages, session_id):
-                if user.startswith("/model"):  # 模型命令：重新解析目标模型刷新 client 引用
-                    if _HAS_READLINE and "/model set" in user:
-                        _scrub_token_history()  # 防止明文 token 进入历史文件
-                    new_client = _resolve_model_cmd_client(user, reg)
-                    if new_client:
-                        client = new_client
+    # ── 打断模式 (MESHCTX_INTERRUPT=1 默认): 任务执行中可继续输入 + 打断置顶 ──
+    # 对标 Hermes/Codex/Harness: 长任务进行中用户仍可发新消息; 新消息默认打断当前任务置顶执行;
+    # /stop 或 Ctrl+C 打断当前任务; MESHCTX_INTERRUPT=0 回退旧 REPL (任务期间阻塞输入)。
+    _interrupt_enabled = os.environ.get("MESHCTX_INTERRUPT", "1") != "0"
+    if _interrupt_enabled:
+        from src.core.interruptible_runner import InterruptibleRunner, InterruptSignal, StdinReader
+        _runner = InterruptibleRunner()
+        _reader = StdinReader(_runner, mode="interrupt", prompt=prompt)
+        _reader.start()
+        print("   💬 打断模式已启用: 任务执行中可继续输入, 新消息自动打断置顶 (/stop 或 Ctrl+C 停止当前任务)")
+        try:
+            while True:
+                try:
+                    _msgs = _runner.next_task_blocking()
+                except (EOFError, KeyboardInterrupt):
+                    break
+                if _msgs is None:          # stdin EOF
+                    break
+                if not _msgs:              # Ctrl+C / /stop: 无新消息, 继续等待输入
+                    continue
+                user = _msgs[-1].get("content", "")
+                if user == "/quit":
+                    break
+                if not user:
+                    continue
+                # 斜杠命令
+                if user.startswith("/"):
+                    if _handle_slash(user, reg, client, SESS, messages, session_id):
+                        if user.startswith("/model"):
+                            if _HAS_READLINE and "/model set" in user:
+                                _scrub_token_history()
+                            new_client = _resolve_model_cmd_client(user, reg)
+                            if new_client:
+                                client = new_client
+                    continue
+
+                messages.append({"role": "user", "content": user})
+                messages[0] = _build_system_msg(args, current_query=user)[0]
+                try:
+                    session_id = _chat_loop(
+                        client, messages, TOOLS, execute_tool, TOOL_ICONS,
+                        max_turns=max_turns, wall_clock=wall_clock,
+                        interrupt_check=_runner.interrupt_check)
+                except InterruptSignal as sig:
+                    # 任务被打断: 新消息置顶, 下一轮 next_task_blocking 立即取到并执行
+                    if sig.messages:
+                        _runner.apply_interrupt(sig.messages)
+                    else:
+                        print("\n⏹ 已停止当前任务。继续输入新消息。", flush=True)
+                    continue
+
+                # 自动保存会话
+                if session_id and len(messages) > 3:
+                    _save_session(SESS, session_id, messages)
+                    last_marker.write_text(session_id)
+        finally:
+            _reader.stop()
+            _reader.join(timeout=1.0)
+
+    # ── 旧 REPL (MESHCTX_INTERRUPT=0): 任务期间阻塞输入 ──
+    else:
+        while True:
+            quit_requested = False
+            try:
+                if _HAS_READLINE:
+                    # 多行输入：空行提交，支持粘贴长文本；EOF 或 /quit 直接退出
+                    lines = []
+                    first = True
+                    eof_hit = False
+                    while True:
+                        p = prompt if first else '... '
+                        first = False
+                        try:
+                            line = input(p)
+                        except EOFError:
+                            eof_hit = True
+                            break
+                        if line == '':
+                            break  # 空行提交
+                        if line.strip() == "/quit":
+                            quit_requested = True
+                            break
+                        lines.append(line)
+                    user = '\n'.join(lines).strip()
+                    if eof_hit and not lines:
+                        break  # EOF：正常退出（修复管道/EOF 下的死循环）
+                else:
+                    user = input(prompt).strip()
+            except (EOFError, KeyboardInterrupt):
+                break
+            if user == "/quit" or quit_requested:
+                break
+            if not user:
                 continue
 
-        messages.append({"role": "user", "content": user})
-        # T3 接线（P2-3）：每轮以当前用户消息重建 system（相关性检索注入记忆段；
-        # 记忆段在稳定段之后，前缀缓存不受影响）
-        messages[0] = _build_system_msg(args, current_query=user)[0]
-        session_id = _chat_loop(client, messages, TOOLS, execute_tool, TOOL_ICONS, max_turns=max_turns, wall_clock=wall_clock)
+            # 斜杠命令
+            if user.startswith("/"):
+                if _handle_slash(user, reg, client, SESS, messages, session_id):
+                    if user.startswith("/model"):  # 模型命令：重新解析目标模型刷新 client 引用
+                        if _HAS_READLINE and "/model set" in user:
+                            _scrub_token_history()  # 防止明文 token 进入历史文件
+                        new_client = _resolve_model_cmd_client(user, reg)
+                        if new_client:
+                            client = new_client
+                    continue
 
-        # 自动保存会话
-        if session_id and len(messages) > 3:
-            _save_session(SESS, session_id, messages)
-            last_marker.write_text(session_id)
+            messages.append({"role": "user", "content": user})
+            # T3 接线（P2-3）：每轮以当前用户消息重建 system（相关性检索注入记忆段；
+            # 记忆段在稳定段之后，前缀缓存不受影响）
+            messages[0] = _build_system_msg(args, current_query=user)[0]
+            session_id = _chat_loop(client, messages, TOOLS, execute_tool, TOOL_ICONS, max_turns=max_turns, wall_clock=wall_clock)
+
+            # 自动保存会话
+            if session_id and len(messages) > 3:
+                _save_session(SESS, session_id, messages)
+                last_marker.write_text(session_id)
 
     # ── 对话结束：自动写入记忆体系（修复 cc0c9113: CLI 记忆从未落盘）──
     _auto_save_memory(messages)
@@ -750,7 +812,7 @@ def _chat_one_shot(client, msg, args):
     print()
 
 
-def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, collect_output=False, wall_clock=None):
+def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, collect_output=False, wall_clock=None, interrupt_check=None):
     """核心对话循环 — 与 UI /api/chat/stream 共用同一套 agent_loop 逻辑
 
     collect_output=True 时，收集最终答案与工具调用记录并返回
@@ -812,6 +874,7 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
             max_rounds=max_turns,
             wall_clock=wall_clock,
             system_prompt=None,
+            interrupt_check=interrupt_check,
         ):
             _on_event(ev)
 

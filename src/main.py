@@ -262,6 +262,9 @@ async def lifespan(app: FastAPI):
     _memory_engine = MemoryEngine(use_llm=False, use_vector_store=False)
     app.state.kernel = k
     app.state.memory_engine = _memory_engine
+    # 会话级打断 (2026-08-29): conversation_id → ConversationInterruptManager + 活跃标记
+    app.state.chat_conv_mgrs = {}
+    app.state.chat_conv_active = {}
 
     # v1.5.26: 初始化混合推理调度器
     try:
@@ -3658,7 +3661,13 @@ async def api_chat(request: Request):
 
 @app.post("/api/chat/stream")
 async def api_chat_stream(request: Request):
-    """流式Chat API — SSE逐token推送 + web_search 工具"""
+    """流式Chat API — SSE逐token推送 + web_search 工具
+
+    会话级打断 (2026-08-29 用户要求, 对标 Hermes/Codex/Harness):
+    - body 可带 conversation_id: 同一会话的旧流仍在生成时, 新请求自动打断旧流 (置顶执行);
+    - 不带 conversation_id 时按 客户端标识 分组 (model+首条用户消息), 保证多标签页互不干扰;
+    - 前端在任务执行中发送新消息即可"打断置顶", 无需额外按钮。
+    """
     from src.model_registry import get_registry
     from src.config import load_config
     from src.chat_tools import trim_messages
@@ -3684,6 +3693,32 @@ async def api_chat_stream(request: Request):
             iter(["data: [请输入消息]\n\n"]),
             media_type="text/event-stream"
         )
+
+    # ═══ 会话级打断 (2026-08-29): 同一会话旧流仍在生成 → 打断置顶 ═══
+    # 用 ConversationInterruptManager 管理每个会话的"最新请求优先"语义:
+    # 新请求注册后, 旧请求 should_interrupt()=True → 旧流下一轮 interrupt_check
+    # 抛 InterruptSignal 优雅结束; 新请求自身不自打断。
+    # 这样用户在 Web 任务执行中直接发新消息 = 打断置顶 (对标 Hermes/Codex/Harness)。
+    import uuid as _uuid
+    from src.core.interruptible_runner import ConversationInterruptManager, InterruptSignal
+    _conv_id = str(body.get("conversation_id") or "")
+    if not _conv_id:
+        # 无显式会话: 用 首条用户消息 做轻量分组 (不依赖 model_id, 兼容 message 简写),
+        # 避免多标签页互相打断
+        _first_user = next((m.get("content", "")[:40] for m in msgs if m.get("role") == "user"), "")
+        _conv_id = f"anon:{_first_user or '?'}"
+    _conv_mgrs = getattr(app.state, "chat_conv_mgrs", None)
+    if _conv_mgrs is None:
+        _conv_mgrs = {}
+        app.state.chat_conv_mgrs = _conv_mgrs
+    _mgr = _conv_mgrs.get(_conv_id)
+    if _mgr is None:
+        _mgr = ConversationInterruptManager()
+        _conv_mgrs[_conv_id] = _mgr
+    _request_id = f"{_uuid.uuid4().hex[:12]}"
+    _mgr.register(_request_id)   # 取代旧请求 (若会话已有流在跑)
+    # 记录当前会话有活跃请求（用于状态 API 展示）
+    getattr(app.state, "chat_conv_active", {}).__setitem__(_conv_id, True) if hasattr(app.state, "chat_conv_active") else None
 
     # ═══ CognitiveLoop 脑区主决策 (v3.115.16) ═══
     # 最后一条 role==user 消息作为 current_query（避免末条是 assistant 时误取；002 fb890903 ①）
@@ -3792,6 +3827,10 @@ async def api_chat_stream(request: Request):
 
             # ═══ 统一循环（与 CLI _chat_loop 同一套逻辑）═══
             from src.agent_loop import run_agent_loop
+            def _interrupt_check():
+                # 仅当本请求已被更新的同会话请求取代时才打断 (不自打断)
+                if _mgr.should_interrupt(_request_id):
+                    raise InterruptSignal([])
             async for ev in run_agent_loop(
                 client, msgs,
                 tools=TOOLS,
@@ -3801,7 +3840,13 @@ async def api_chat_stream(request: Request):
                 system_prompt=_full_system_prompt,
                 needs_approval=_needs_approval,
                 approval_waiter=_approval_waiter,
+                interrupt_check=_interrupt_check,
             ):
+                if ev["type"] == "interrupted":
+                    # 会话被新请求打断 → 通知前端 (旧流结束, 新流已开始)
+                    yield f"data: {_json.dumps({'interrupted': True, 'note': '该会话有更新的请求, 本流已结束'})}\n\n"
+                    yield "data: [DONE]\n\n"
+                    return
                 if ev["type"] == "token":
                     yield f"data: {_json.dumps({'token': ev['text']})}\n\n"
                 elif ev["type"] == "reasoning":
@@ -3837,9 +3882,21 @@ async def api_chat_stream(request: Request):
                     yield f"data: {_json.dumps({'error': ev['text']})}\n\n"
                 # timed_out_done: 超时消息已发，忽略
             yield "data: [DONE]\n\n"
+        except InterruptSignal:
+            # 会话被新请求打断: 优雅结束旧流 (不报错)
+            yield f"data: {_json.dumps({'interrupted': True, 'note': '该会话有更新的请求, 本流已结束'})}\n\n"
+            yield "data: [DONE]\n\n"
         except Exception as e:
             yield f"data: {_json.dumps({'error': str(e)})}\n\n"
             yield "data: [DONE]\n\n"
+        finally:
+            try:
+                _mgr.unregister(_request_id)
+                _active = getattr(app.state, "chat_conv_active", None)
+                if _active is not None:
+                    _active.pop(_conv_id, None)
+            except Exception:
+                pass
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 
@@ -4462,6 +4519,27 @@ async def api_debate(req: Request):
             "confidence": result.agreement_score,
             "positions": [{"agent": p.agent, "argument": p.argument[:300],
                           "confidence": p.confidence} for p in result.positions],
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/chat/status")
+async def chat_status_api(conversation_id: str = ""):
+    """会话级打断状态 — 前端轮询: 该会话是否有任务在执行 / 可打断 (2026-08-29)。"""
+    try:
+        _mgrs = getattr(app.state, "chat_conv_mgrs", None) or {}
+        _active = getattr(app.state, "chat_conv_active", None) or {}
+        if conversation_id:
+            return {
+                "conversation_id": conversation_id,
+                "busy": bool(_active.get(str(conversation_id), False)),
+                "interruptible": True,  # Web 端始终支持打断置顶 (发新消息即打断)
+                "queued": 0,
+            }
+        return {
+            "active_conversations": list(_active.keys()),
+            "total_conversations": len(_mgrs),
         }
     except Exception as e:
         return {"error": str(e)}
