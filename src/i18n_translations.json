@@ -1438,7 +1438,54 @@
     "🧠 元认知状态": "🧠 元认知状态",
     "🧠 训练": "🧠 训练",
     "🩺 自愈链路": "🩺 自愈链路",
-    "chat_interrupt_toast": "⏹ 已打断上一任务，正在处理新消息..."
+    "chat_interrupt_toast": "⏹ 已打断上一任务，正在处理新消息...",
+    "__available_langs__": [
+      {
+        "code": "zh",
+        "name": "Chinese",
+        "native": "中文"
+      },
+      {
+        "code": "en",
+        "name": "English",
+        "native": "English"
+      },
+      {
+        "code": "ja",
+        "name": "Japanese",
+        "native": "日本語"
+      },
+      {
+        "code": "ko",
+        "name": "Korean",
+        "native": "한국어"
+      },
+      {
+        "code": "fr",
+        "name": "French",
+        "native": "Français"
+      },
+      {
+        "code": "de",
+        "name": "German",
+        "native": "Deutsch"
+      },
+      {
+        "code": "es",
+        "name": "Spanish",
+        "native": "Español"
+      },
+      {
+        "code": "it",
+        "name": "Italian",
+        "native": "Italiano"
+      },
+      {
+        "code": "ar",
+        "name": "Arabic",
+        "native": "العربية"
+      }
+    ]
   },
   "en": {
     " (等待": " (Waiting",
@@ -4367,7 +4414,54 @@
     "🧠 元认知状态": "🧠 メタ認知ステータス",
     "🧠 训练": "🧠 トレーニング",
     "🩺 自愈链路": "🩺 自己修復パイプライン",
-    "chat_interrupt_toast": "⏹ 前のタスクを中断し、新しいメッセージを処理中..."
+    "chat_interrupt_toast": "⏹ 前のタスクを中断し、新しいメッセージを処理中...",
+    "__available_langs__": [
+      {
+        "code": "zh",
+        "name": "Chinese",
+        "native": "中文"
+      },
+      {
+        "code": "en",
+        "name": "English",
+        "native": "English"
+      },
+      {
+        "code": "ja",
+        "name": "Japanese",
+        "native": "日本語"
+      },
+      {
+        "code": "ko",
+        "name": "Korean",
+        "native": "한국어"
+      },
+      {
+        "code": "fr",
+        "name": "French",
+        "native": "Français"
+      },
+      {
+        "code": "de",
+        "name": "German",
+        "native": "Deutsch"
+      },
+      {
+        "code": "es",
+        "name": "Spanish",
+        "native": "Español"
+      },
+      {
+        "code": "it",
+        "name": "Italian",
+        "native": "Italiano"
+      },
+      {
+        "code": "ar",
+        "name": "Arabic",
+        "native": "العربية"
+      }
+    ]
   },
   "ko": {
     " (等待": " (대기",
@@ -5808,7 +5902,54 @@
     "🧠 元认知状态": "🧠 메타인지 상태",
     "🧠 训练": "🧠 훈련",
     "🩺 自愈链路": "🩺 자가 복구 파이프라인",
-    "chat_interrupt_toast": "⏹ 이전 작업을 중단하고 새 메시지를 처리 중..."
+    "chat_interrupt_toast": "⏹ 이전 작업을 중단하고 새 메시지를 처리 중...",
+    "__available_langs__": [
+      {
+        "code": "zh",
+        "name": "Chinese",
+        "native": "中文"
+      },
+      {
+        "code": "en",
+        "name": "English",
+        "native": "English"
+      },
+      {
+        "code": "ja",
+        "name": "Japanese",
+        "native": "日本語"
+      },
+      {
+        "code": "ko",
+        "name": "Korean",
+        "native": "한국어"
+      },
+      {
+        "code": "fr",
+        "name": "French",
+        "native": "Français"
+      },
+      {
+        "code": "de",
+        "name": "German",
+        "native": "Deutsch"
+      },
+      {
+        "code": "es",
+        "name": "Spanish",
+        "native": "Español"
+      },
+      {
+        "code": "it",
+        "name": "Italian",
+        "native": "Italiano"
+      },
+      {
+        "code": "ar",
+        "name": "Arabic",
+        "native": "العربية"
+      }
+    ]
   },
   "fr": {
     " (等待": " (En attente",
@@ -7249,7 +7390,54 @@
     "🧠 元认知状态": "🧠 État métacognitif",
     "🧠 训练": "🧠 Entraînement",
     "🩺 自愈链路": "🩺 Pipeline d'auto-réparation",
-    "chat_interrupt_toast": "⏹ Tâche précédente interrompue, traitement du nouveau message..."
+    "chat_interrupt_toast": "⏹ Tâche précédente interrompue, traitement du nouveau message...",
+    "__available_langs__": [
+      {
+        "code": "zh",
+        "name": "Chinese",
+        "native": "中文"
+      },
+      {
+        "code": "en",
+        "name": "English",
+        "native": "English"
+      },
+      {
+        "code": "ja",
+        "name": "Japanese",
+        "native": "日本語"
+      },
+      {
+        "code": "ko",
+        "name": "Korean",
+        "native": "한국어"
+      },
+      {
+        "code": "fr",
+        "name": "French",
+        "native": "Français"
+      },
+      {
+        "code": "de",
+        "name": "German",
+        "native": "Deutsch"
+      },
+      {
+        "code": "es",
+        "name": "Spanish",
+        "native": "Español"
+      },
+      {
+        "code": "it",
+        "name": "Italian",
+        "native": "Italiano"
+      },
+      {
+        "code": "ar",
+        "name": "Arabic",
+        "native": "العربية"
+      }
+    ]
   },
   "de": {
     " (等待": " (Warten",
@@ -8690,7 +8878,54 @@
     "🧠 元认知状态": "🧠 Metakognitiver Status",
     "🧠 训练": "🧠 Training",
     "🩺 自愈链路": "🩺 Selbstheilungs-Pipeline",
-    "chat_interrupt_toast": "⏹ Vorherige Aufgabe abgebrochen, neue Nachricht wird verarbeitet..."
+    "chat_interrupt_toast": "⏹ Vorherige Aufgabe abgebrochen, neue Nachricht wird verarbeitet...",
+    "__available_langs__": [
+      {
+        "code": "zh",
+        "name": "Chinese",
+        "native": "中文"
+      },
+      {
+        "code": "en",
+        "name": "English",
+        "native": "English"
+      },
+      {
+        "code": "ja",
+        "name": "Japanese",
+        "native": "日本語"
+      },
+      {
+        "code": "ko",
+        "name": "Korean",
+        "native": "한국어"
+      },
+      {
+        "code": "fr",
+        "name": "French",
+        "native": "Français"
+      },
+      {
+        "code": "de",
+        "name": "German",
+        "native": "Deutsch"
+      },
+      {
+        "code": "es",
+        "name": "Spanish",
+        "native": "Español"
+      },
+      {
+        "code": "it",
+        "name": "Italian",
+        "native": "Italiano"
+      },
+      {
+        "code": "ar",
+        "name": "Arabic",
+        "native": "العربية"
+      }
+    ]
   },
   "es": {
     " (等待": " (Esperando",
@@ -10131,7 +10366,54 @@
     "🧠 元认知状态": "🧠 Estado metacognitivo",
     "🧠 训练": "🧠 Entrenamiento",
     "🩺 自愈链路": "🩺 Pipeline de autorreparación",
-    "chat_interrupt_toast": "⏹ Tarea anterior interrumpida, procesando nuevo mensaje..."
+    "chat_interrupt_toast": "⏹ Tarea anterior interrumpida, procesando nuevo mensaje...",
+    "__available_langs__": [
+      {
+        "code": "zh",
+        "name": "Chinese",
+        "native": "中文"
+      },
+      {
+        "code": "en",
+        "name": "English",
+        "native": "English"
+      },
+      {
+        "code": "ja",
+        "name": "Japanese",
+        "native": "日本語"
+      },
+      {
+        "code": "ko",
+        "name": "Korean",
+        "native": "한국어"
+      },
+      {
+        "code": "fr",
+        "name": "French",
+        "native": "Français"
+      },
+      {
+        "code": "de",
+        "name": "German",
+        "native": "Deutsch"
+      },
+      {
+        "code": "es",
+        "name": "Spanish",
+        "native": "Español"
+      },
+      {
+        "code": "it",
+        "name": "Italian",
+        "native": "Italiano"
+      },
+      {
+        "code": "ar",
+        "name": "Arabic",
+        "native": "العربية"
+      }
+    ]
   },
   "it": {
     " (等待": " (attesa",

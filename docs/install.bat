@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 REM meshctx Windows Installer v5 — from GitHub Releases
-REM i18n: set MESHCTX_LANG=zh|en|ja|ko|fr|de|es|it|ar (default: en)
+REM i18n: set MESHCTX_LANG=zh|en|ja|ko|fr|de|es|it|ar|ru (default: en)
 title meshctx Installer
 setlocal enabledelayedexpansion
 
@@ -10,7 +10,7 @@ set "VERSION=3.121.7"
 set "SRC_URL=https://github.com/LucyAndLuna2023/meshctx/archive/refs/tags/v%VERSION%.tar.gz"
 set "PORTABLE_URL=https://github.com/LucyAndLuna2023/meshctx/releases/download/v%VERSION%/meshctx-windows-cli.zip"
 
-REM ── i18n (9 languages: zh/en/ja/ko/fr/de/es/it/ar) ────────
+REM ── i18n (10 languages: zh/en/ja/ko/fr/de/es/it/ar/ru) ────
 if "%MESHCTX_LANG%"=="" set "MESHCTX_LANG=en"
 set "_T_HEADER=meshctx v%VERSION% One-Click Install"
 set "_T_STEP_CHECK=Checking environment..."
@@ -234,6 +234,31 @@ if /i "%MESHCTX_LANG%"=="ar" (
     set "_T_TOKEN_MISSING=لم يتم توفير MESHCTX_CORE_TOKEN - تثبيت الإصدار مفتوح المصدر (المحرك الكامل، Open Core)"
     set "_T_HINT_TOKEN=النواة اختيارية؛ اضبط MESHCTX_CORE_TOKEN وأعد التشغيل لإضافتها"
     set "_T_WEBUI=واجهة الويب:"
+)
+if /i "%MESHCTX_LANG%"=="ru" (
+    set "_T_HEADER=meshctx v%VERSION% установка в один клик"
+    set "_T_STEP_CHECK=Проверка окружения..."
+    set "_T_STEP_DOWNLOAD=Скачивание meshctx v%VERSION%..."
+    set "_T_STEP_EXTRACT=Распаковка..."
+    set "_T_STEP_DEPS=Установка зависимостей..."
+    set "_T_PYTHON_MISSING=Требуется Python 3.10+, установите с python.org"
+    set "_T_DOWNLOAD_FAIL=Ошибка скачивания. Проверьте сеть или используйте WSL"
+    set "_T_EXTRACT_FAIL=Ошибка распаковки. Требуется Win10 1803+"
+    set "_T_DONE=Установка завершена. Запустите:"
+    set "_T_PORTABLE_DL=Скачивание полной портативной версии с закрытым ядром..."
+    set "_T_PORTABLE_OK=Портативный пакет готов, Python не требуется"
+    set "_T_PORTABLE_WARN=Портативный пакет недоступен, установка из исходников..."
+    set "_T_EXTRACT_PORTABLE=Распаковка портативной версии..."
+    set "_T_EXE_MISSING=meshctx.exe отсутствует в портативном пакете"
+    set "_T_CORE_EMBEDDED=Закрытое ядро включено, полная портативная версия, Python не нужен"
+    set "_T_CORE_INSTALL=Установка закрытого ядра meshctx-core..."
+    set "_T_CORE_OK=Закрытое ядро установлено как единый продукт"
+    set "_T_CORE_FAIL=Не удалось получить закрытое ядро - продолжаем с открытой версией (полный движок). Ядро опционально; перезапустите с MESHCTX_CORE_TOKEN"
+    set "_T_GIT_MISSING=git не установлен - открытая версия устанавливается нормально. Закрытое ядро опционально"
+    set "_T_HINT_SETUP=Настройте MESHCTX_CORE_TOKEN и перезапустите для добавления опционального ядра"
+    set "_T_TOKEN_MISSING=MESHCTX_CORE_TOKEN не задан - установка открытой версии (полный движок, Open Core)"
+    set "_T_HINT_TOKEN=Ядро опционально; задайте MESHCTX_CORE_TOKEN и перезапустите"
+    set "_T_WEBUI=Открыть веб-интерфейс:"
 )
 
 echo.

@@ -55,12 +55,30 @@ if not "%EDITION%"=="personal" (
     git -C "%INSTALL_DIR%\src\meshctx-team" remote set-url origin https://github.com/LucyAndLuna2023/meshctx-team.git 2>nul
     git -C "%INSTALL_DIR%\src\meshctx-enterprise" remote set-url origin https://github.com/LucyAndLuna2023/meshctx-enterprise.git 2>nul
   )
-  echo [3/3] Merging private modules...
-  copy /y "%INSTALL_DIR%\src\meshctx-team\src\core\*.py" "%INSTALL_DIR%\src\meshctx\src\core\" >nul 2>nul
-  copy /y "%INSTALL_DIR%\src\meshctx-team\src\web_crews.py" "%INSTALL_DIR%\src\meshctx\src\" >nul 2>nul
+  echo [2b] Merging private modules (P2-3: 非-stub 已存在模块跳过)...
   if "%EDITION%"=="enterprise" (
     REM enterprise 优先合并 (P2-4: 防 team 版先占位同名模块)
     copy /y "%INSTALL_DIR%\src\meshctx-enterprise\src\core\*.py" "%INSTALL_DIR%\src\meshctx\src\core\" >nul 2>nul
+  )
+  copy /y "%INSTALL_DIR%\src\meshctx-team\src\core\*.py" "%INSTALL_DIR%\src\meshctx\src\core\" >nul 2>nul
+  copy /y "%INSTALL_DIR%\src\meshctx-team\src\web_crews.py" "%INSTALL_DIR%\src\meshctx\src\" >nul 2>nul
+)
+
+echo [3/3] Post-check: verifying edition detection...
+cd /d "%INSTALL_DIR%\src\meshctx"
+for /f "delims=" %%i in ('python -c "from src.core._edition import detect_edition; print(detect_edition())" 2^>nul') do set "DETECTED=%%i"
+if "%DETECTED%"=="" set "DETECTED=unknown"
+echo   Expected: %EDITION% ^| Detected: %DETECTED%
+if "%EDITION%"=="enterprise" (
+  if not "%DETECTED%"=="enterprise" (
+    echo   [ERROR] Enterprise features missing - check private repo merge
+    exit /b 1
+  )
+)
+if "%EDITION%"=="team" (
+  if not "%DETECTED%"=="team" if not "%DETECTED%"=="enterprise" (
+    echo   [ERROR] Team features missing - check private repo merge
+    exit /b 1
   )
 )
 
@@ -68,4 +86,5 @@ echo.
 echo  ============================================
 echo   DONE: meshctx %LABEL% v%VERSION%
 echo   Run: cd %INSTALL_DIR%\src\meshctx ^&^& python -m uvicorn src.main:app --port 3001
+echo   Verify: python -c "from src.core._edition import detect_edition; print(detect_edition())"
 echo  ============================================

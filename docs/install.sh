@@ -29,6 +29,7 @@ T() {
             es) echo "meshctx v${VERSION} Instalación en un clic" ;;
             it) echo "meshctx v${VERSION} Installazione con un clic" ;;
             ar) echo "meshctx v${VERSION} تثبيت بنقرة واحدة" ;;
+            ru) echo "meshctx v${VERSION} установка в один клик" ;;
         esac
         ;;
     step_stop)
@@ -42,6 +43,7 @@ T() {
             es) echo 'Deteniendo versión anterior...' ;;
             it) echo 'Arresto della versione precedente...' ;;
             ar) echo 'إيقاف الإصدار القديم...' ;;
+            ru) echo 'Остановка старой версии...' ;;
         esac
         ;;
     stopped_ok)
@@ -55,6 +57,7 @@ T() {
             es) echo "Servicio anterior detenido, puerto ${PORT} liberado" ;;
             it) echo "Vecchio servizio arrestato, porta ${PORT} liberata" ;;
             ar) echo "تم إيقاف الخدمة القديمة وتحرير المنفذ ${PORT}" ;;
+            ru) echo "Старая служба остановлена, порт ${PORT} освобождён" ;;
         esac
         ;;
     no_stop_needed)
@@ -68,6 +71,7 @@ T() {
             es) echo 'No es necesario detener' ;;
             it) echo 'Nessun arresto necessario' ;;
             ar) echo 'لا حاجة للإيقاف' ;;
+            ru) echo 'Останавливать не требуется' ;;
         esac
         ;;
     step_check)
@@ -81,6 +85,7 @@ T() {
             es) echo 'Comprobando entorno...' ;;
             it) echo 'Verifica dell'\''ambiente in corso...' ;;
             ar) echo 'التحقق من البيئة...' ;;
+            ru) echo 'Проверка окружения...' ;;
         esac
         ;;
     need_python)
@@ -94,6 +99,7 @@ T() {
             es) echo 'Requiere Python 3.10+, instale: apt install python3' ;;
             it) echo 'Richiede Python 3.10+, installa: apt install python3' ;;
             ar) echo 'يتطلب Python 3.10+، ثبّت: apt install python3' ;;
+            ru) echo 'Требуется Python 3.10+, установите: apt install python3' ;;
         esac
         ;;
     need_python_ver)
@@ -107,6 +113,7 @@ T() {
             es) echo "Requiere Python 3.10+, actual ${PY_VER}" ;;
             it) echo "Richiede Python 3.10+, attuale ${PY_VER}" ;;
             ar) echo "يتطلب Python 3.10+، الإصدار الحالي ${PY_VER}" ;;
+            ru) echo "Требуется Python 3.10+, текущая версия ${PY_VER}" ;;
         esac
         ;;
     step_download)
@@ -120,6 +127,7 @@ T() {
             es) echo "Descargando meshctx v${VERSION}..." ;;
             it) echo "Scaricamento di meshctx v${VERSION} in corso..." ;;
             ar) echo "جاري تنزيل meshctx v${VERSION}..." ;;
+            ru) echo "Скачивание meshctx v${VERSION}..." ;;
         esac
         ;;
     download_ok)
@@ -133,6 +141,7 @@ T() {
             es) echo 'Descarga completa' ;;
             it) echo 'Download completato' ;;
             ar) echo 'اكتمل التنزيل' ;;
+            ru) echo 'Скачивание завершено' ;;
         esac
         ;;
     download_fail)
@@ -146,6 +155,7 @@ T() {
             es) echo 'Descarga fallida' ;;
             it) echo 'Download fallito' ;;
             ar) echo 'فشل التنزيل' ;;
+            ru) echo 'Ошибка скачивания' ;;
         esac
         ;;
     download_fail_hint)
@@ -159,6 +169,7 @@ T() {
             es) echo 'Verifique la red o descargue manualmente:' ;;
             it) echo 'Controlla la rete o scarica manualmente:' ;;
             ar) echo 'تحقق من الشبكة أو نزّل يدوياً:' ;;
+            ru) echo 'Проверьте сеть или скачайте вручную:' ;;
         esac
         ;;
     step_install)
@@ -172,6 +183,7 @@ T() {
             es) echo 'Instalando...' ;;
             it) echo 'Installazione in corso...' ;;
             ar) echo 'جاري التثبيت...' ;;
+            ru) echo 'Установка...' ;;
         esac
         ;;
     backup_config)
@@ -185,6 +197,7 @@ T() {
             es) echo 'Configuración de usuario respaldada' ;;
             it) echo 'Configurazione utente salvata' ;;
             ar) echo 'تم نسخ إعدادات المستخدم احتياطياً' ;;
+            ru) echo 'Настройки пользователя сохранены' ;;
         esac
         ;;
     extract_fail)
@@ -198,6 +211,7 @@ T() {
             es) echo 'Error de extracción' ;;
             it) echo 'Estrazione fallita' ;;
             ar) echo 'فشل فك الضغط' ;;
+            ru) echo 'Ошибка распаковки' ;;
         esac
         ;;
     config_restored)
@@ -211,6 +225,7 @@ T() {
             es) echo 'Configuración restaurada (claves API conservadas, contraseña restablecida)' ;;
             it) echo 'Configurazione ripristinata (API Key conservate, password reimpostata)' ;;
             ar) echo 'تمت استعادة الإعدادات (مفاتيح API محفوظة، تم إعادة تعيين كلمة المرور)' ;;
+            ru) echo 'Настройки восстановлены (ключи API сохранены, пароль сброшен)' ;;
         esac
         ;;
     no_python_found)
@@ -224,6 +239,7 @@ T() {
             es) echo 'Python >= 3.8 no encontrado, instale Python primero' ;;
             it) echo 'Python >= 3.8 non trovato, installa prima Python' ;;
             ar) echo 'لم يتم العثور على Python >= 3.8، ثبّت Python أولاً' ;;
+            ru) echo 'Python >= 3.8 не найден, установите Python' ;;
         esac
         ;;
     using_python)
@@ -237,6 +253,7 @@ T() {
             es) echo 'Usando Python' ;;
             it) echo 'Utilizzo di Python' ;;
             ar) echo 'استخدام Python' ;;
+            ru) echo 'Использование Python' ;;
         esac
         ;;
     venv_fail)
@@ -250,6 +267,7 @@ T() {
             es) echo 'Error al crear el entorno virtual' ;;
             it) echo 'Creazione dell'\''ambiente virtuale fallita' ;;
             ar) echo 'فشل إنشاء البيئة الافتراضية' ;;
+            ru) echo 'Ошибка создания виртуального окружения' ;;
         esac
         ;;
     dep_fail)
@@ -263,6 +281,7 @@ T() {
             es) echo 'Error al instalar dependencias' ;;
             it) echo 'Installazione delle dipendenze fallita' ;;
             ar) echo 'فشل تثبيت التبعيات' ;;
+            ru) echo 'Ошибка установки зависимостей' ;;
         esac
         ;;
     install_done)
@@ -276,6 +295,7 @@ T() {
             es) echo 'Instalación completa' ;;
             it) echo 'Installazione completata' ;;
             ar) echo 'اكتمل التثبيت' ;;
+            ru) echo 'Установка завершена' ;;
         esac
         ;;
     step_verify)
@@ -289,6 +309,7 @@ T() {
             es) echo 'Verificando instalación...' ;;
             it) echo 'Verifica dell'\''installazione in corso...' ;;
             ar) echo 'التحقق من التثبيت...' ;;
+            ru) echo 'Проверка установки...' ;;
         esac
         ;;
     version_ok)
@@ -302,6 +323,7 @@ T() {
             es) echo "Versión ${INSTALLED_VER} verificada" ;;
             it) echo "Versione ${INSTALLED_VER} verificata" ;;
             ar) echo "تم التحقق من الإصدار ${INSTALLED_VER}" ;;
+            ru) echo "Версия ${INSTALLED_VER} подтверждена" ;;
         esac
         ;;
     version_warn)
@@ -315,6 +337,7 @@ T() {
             es) echo "Versión ${INSTALLED_VER} (esperada ${VERSION})" ;;
             it) echo "Versione ${INSTALLED_VER} (attesa ${VERSION})" ;;
             ar) echo "الإصدار ${INSTALLED_VER} (المتوقع ${VERSION})" ;;
+            ru) echo "Версия ${INSTALLED_VER} (ожидается ${VERSION})" ;;
         esac
         ;;
     install_banner)
@@ -328,6 +351,7 @@ T() {
             es) echo '¡meshctx instalado! 🎉' ;;
             it) echo 'meshctx installato! 🎉' ;;
             ar) echo 'تم تثبيت meshctx! 🎉' ;;
+            ru) echo 'meshctx установлен! 🎉' ;;
         esac
         ;;
     quick_start)
@@ -341,6 +365,7 @@ T() {
             es) echo 'Inicio rápido' ;;
             it) echo 'Avvio rapido' ;;
             ar) echo 'بداية سريعة' ;;
+            ru) echo 'Быстрый старт' ;;
         esac
         ;;
     cmd_start)
@@ -354,6 +379,7 @@ T() {
             es) echo 'Iniciar servicio' ;;
             it) echo 'Avvia servizio' ;;
             ar) echo 'بدء الخدمة' ;;
+            ru) echo 'Запуск службы' ;;
         esac
         ;;
     open_browser)
@@ -367,6 +393,7 @@ T() {
             es) echo "Abrir http://localhost:${PORT}/ui/setup" ;;
             it) echo "Apri http://localhost:${PORT}/ui/setup" ;;
             ar) echo "افتح http://localhost:${PORT}/ui/setup" ;;
+            ru) echo "Откройте http://localhost:${PORT}/ui/setup" ;;
         esac
         ;;
     setup_api)
@@ -380,6 +407,7 @@ T() {
             es) echo 'Configure la clave API en la página Setup' ;;
             it) echo 'Configura la chiave API nella pagina Setup' ;;
             ar) echo 'اضبط مفتاح API في صفحة الإعداد' ;;
+            ru) echo 'Настройте API-ключ на странице настроек' ;;
         esac
         ;;
     open_dashboard)
@@ -393,6 +421,7 @@ T() {
             es) echo 'Abra el panel para ver el estado' ;;
             it) echo 'Apri la Dashboard per vedere lo stato' ;;
             ar) echo 'افتح لوحة التحكم لعرض الحالة' ;;
+            ru) echo 'Откройте панель управления для просмотра статуса' ;;
         esac
         ;;
     tip_refresh)
@@ -406,6 +435,7 @@ T() {
             es) echo 'Primera visita: Ctrl+Shift+R para forzar actualización de caché' ;;
             it) echo 'Prima visita: premi Ctrl+Shift+R per forzare l'\''aggiornamento della cache' ;;
             ar) echo 'أول زيارة: اضغط Ctrl+Shift+R لتحديث ذاكرة التخزين المؤقت' ;;
+            ru) echo 'При первом визите: Ctrl+Shift+R для обновления кэша' ;;
         esac
         ;;
     common_cmds)
@@ -419,6 +449,7 @@ T() {
             es) echo 'Comandos comunes' ;;
             it) echo 'Comandi comuni' ;;
             ar) echo 'أوامر شائعة' ;;
+            ru) echo 'Частые команды' ;;
         esac
         ;;
     tip_abnormal)
@@ -432,6 +463,7 @@ T() {
             es) echo 'Si la página se ve mal, presione Ctrl+Shift+R para forzar actualización' ;;
             it) echo 'Se la pagina appare rotta, premi Ctrl+Shift+R per forzare l'\''aggiornamento della cache' ;;
             ar) echo 'إذا بدت الصفحة معطلة، اضغط Ctrl+Shift+R لتحديث ذاكرة التخزين المؤقت' ;;
+            ru) echo 'Если страница не работает, нажмите Ctrl+Shift+R' ;;
         esac
         ;;
     run_now)
@@ -445,6 +477,7 @@ T() {
             es) echo 'Ejecutar ahora' ;;
             it) echo 'Esegui ora' ;;
             ar) echo 'شغّل الآن' ;;
+            ru) echo 'Запустить сейчас' ;;
         esac
         ;;
     cmd_path_ok)
@@ -458,6 +491,7 @@ T() {
             es) echo 'Comando meshctx añadido al PATH (sin sudo)' ;;
             it) echo 'Comando meshctx aggiunto al PATH (senza sudo)' ;;
             ar) echo 'تمت إضافة أمر meshctx إلى PATH (بدون sudo)' ;;
+            ru) echo 'Команда meshctx добавлена в PATH (без sudo)' ;;
         esac
         ;;
     new_terminal)
@@ -471,6 +505,7 @@ T() {
             es) echo 'Nuevo terminal: source $SHELL_RC    # o reabra el terminal' ;;
             it) echo 'Nuovo terminale: source $SHELL_RC    # o riapri il terminale' ;;
             ar) echo 'طرفية جديدة: source $SHELL_RC    # أو أعد فتح الطرفية' ;;
+            ru) echo 'Новый терминал: source $SHELL_RC    # или переоткройте терминал' ;;
         esac
         ;;
     auto_stopped)
@@ -484,6 +519,7 @@ T() {
             es) echo 'Proceso antiguo detenido automáticamente, sin conflictos' ;;
             it) echo 'Vecchio processo arrestato automaticamente, nessun conflitto' ;;
             ar) echo 'تم إيقاف العملية القديمة تلقائياً، لا يوجد تعارض' ;;
+            ru) echo 'Старый процесс остановлен автоматически, конфликтов нет' ;;
         esac
         ;;
     *) echo "$1" ;;

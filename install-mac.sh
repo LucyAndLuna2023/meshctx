@@ -31,6 +31,7 @@ T() {
             es) echo "meshctx v${VERSION} Instalación macOS en un clic" ;;
             it) echo "meshctx v${VERSION} Installazione macOS con un clic" ;;
             ar) echo "meshctx v${VERSION} تثبيت macOS بنقرة واحدة" ;;
+            ru) echo "meshctx v${VERSION} установка macOS в один клик" ;;
         esac
         ;;
     macos_only)
@@ -44,6 +45,7 @@ T() {
             es) echo 'Este script es solo para macOS. Use install.sh para Linux' ;;
             it) echo 'Questo script è solo per macOS. Usa install.sh per Linux' ;;
             ar) echo 'هذا السكريبت لنظام macOS فقط. استخدم install.sh لنظام Linux' ;;
+            ru) echo 'Этот скрипт только для macOS. Для Linux используйте install.sh' ;;
         esac
         ;;
     step1_stop)
@@ -57,6 +59,8 @@ T() {
             es) echo 'Deteniendo versión anterior...' ;;
             it) echo 'Arresto della versione precedente...' ;;
             ar) echo 'إيقاف الإصدار القديم...' ;;
+            ru) echo 'Остановка старой версии...' ;;
+            ru) echo 'Остановка старой версии...' ;;
         esac
         ;;
     stopped_ok_port)
@@ -70,6 +74,8 @@ T() {
             es) echo "Servicio anterior detenido, puerto ${PORT} liberado" ;;
             it) echo "Vecchio servizio arrestato, porta ${PORT} liberata" ;;
             ar) echo "تم إيقاف الخدمة القديمة وتحرير المنفذ ${PORT}" ;;
+            ru) echo "Старая служба остановлена, порт ${PORT} освобождён" ;;
+            ru) echo "Старая служба остановлена, порт ${PORT} освобождён" ;;
         esac
         ;;
     no_stop)
@@ -83,6 +89,8 @@ T() {
             es) echo 'No es necesario detener' ;;
             it) echo 'Nessun arresto necessario' ;;
             ar) echo 'لا حاجة للإيقاف' ;;
+            ru) echo 'Останавливать не требуется' ;;
+            ru) echo 'Останавливать не требуется' ;;
         esac
         ;;
     step2_check)
@@ -96,6 +104,8 @@ T() {
             es) echo 'Comprobando entorno...' ;;
             it) echo 'Verifica dell'\''ambiente in corso...' ;;
             ar) echo 'التحقق من البيئة...' ;;
+            ru) echo 'Проверка окружения...' ;;
+            ru) echo 'Проверка окружения...' ;;
         esac
         ;;
     need_py310)
@@ -109,6 +119,7 @@ T() {
             es) echo 'Requiere Python 3.10+, no encontrado' ;;
             it) echo 'Richiede Python 3.10+, non trovato' ;;
             ar) echo 'يتطلب Python 3.10+، غير موجود' ;;
+            ru) echo 'Требуется Python 3.10+, не найден' ;;
         esac
         ;;
     install_py_methods)
@@ -122,6 +133,7 @@ T() {
             es) echo 'Cómo instalar Python 3.10+:' ;;
             it) echo 'Come installare Python 3.10+:' ;;
             ar) echo 'كيفية تثبيت Python 3.10+:' ;;
+            ru) echo 'Как установить Python 3.10+:' ;;
         esac
         ;;
     method1_homebrew)
@@ -135,6 +147,7 @@ T() {
             es) echo 'Método 1: Homebrew (recomendado)' ;;
             it) echo 'Metodo 1: Homebrew (consigliato)' ;;
             ar) echo 'الطريقة 1: Homebrew (موصى به)' ;;
+            ru) echo 'Способ 1: Homebrew (рекомендуется)' ;;
         esac
         ;;
     method2_official)
@@ -148,6 +161,7 @@ T() {
             es) echo 'Método 2: Instalador oficial' ;;
             it) echo 'Metodo 2: Installer ufficiale' ;;
             ar) echo 'الطريقة 2: المثبت الرسمي' ;;
+            ru) echo 'Способ 2: официальный установщик' ;;
         esac
         ;;
     method3_xcode)
@@ -161,6 +175,7 @@ T() {
             es) echo 'Método 3: Xcode Command Line Tools' ;;
             it) echo 'Metodo 3: Xcode Command Line Tools' ;;
             ar) echo 'الطريقة 3: Xcode Command Line Tools' ;;
+            ru) echo 'Способ 3: Xcode Command Line Tools' ;;
         esac
         ;;
     dmg_recommend)
@@ -174,6 +189,7 @@ T() {
             es) echo 'Recomendado: descargar la app nativa de macOS (sin Python/Homebrew)' ;;
             it) echo 'Consigliato: scarica l'\''app nativa macOS (senza Python/Homebrew)' ;;
             ar) echo 'موصى به: تنزيل تطبيق macOS الأصلي (لا حاجة لـ Python/Homebrew)' ;;
+            ru) echo 'Рекомендуется: загрузить нативное приложение macOS (Python/Homebrew не нужны)' ;;
         esac
         ;;
     installing_pip)
@@ -187,6 +203,7 @@ T() {
             es) echo 'Instalando pip...' ;;
             it) echo 'Installazione di pip...' ;;
             ar) echo 'جاري تثبيت pip...' ;;
+            ru) echo 'Установка pip...' ;;
         esac
         ;;
     homebrew_not_installed)
@@ -200,6 +217,7 @@ T() {
             es) echo 'Homebrew no instalado (opcional, para dependencias del sistema)' ;;
             it) echo 'Homebrew non installato (opzionale, per dipendenze di sistema)' ;;
             ar) echo 'Homebrew غير مثبت (اختياري، لتبعيات النظام)' ;;
+            ru) echo 'Homebrew не установлен (опционально, для системных зависимостей)' ;;
         esac
         ;;
     step3_fetch)
@@ -213,6 +231,7 @@ T() {
             es) echo "Obteniendo meshctx v${VERSION}..." ;;
             it) echo "Recupero di meshctx v${VERSION} in corso..." ;;
             ar) echo "جاري جلب meshctx v${VERSION}..." ;;
+            ru) echo "Получение meshctx v${VERSION}..." ;;
         esac
         ;;
     using_local)
@@ -226,6 +245,7 @@ T() {
             es) echo "Usando fuente local: ${SOURCE_DIR}" ;;
             it) echo "Utilizzo sorgente locale: ${SOURCE_DIR}" ;;
             ar) echo "استخدام المصدر المحلي: ${SOURCE_DIR}" ;;
+            ru) echo "Использование локального источника: ${SOURCE_DIR}" ;;
         esac
         ;;
     git_cloning)
@@ -239,6 +259,7 @@ T() {
             es) echo 'Obteniendo vía git clone...' ;;
             it) echo 'Recupero tramite git clone...' ;;
             ar) echo 'جاري الجلب عبر git clone...' ;;
+            ru) echo 'Клонирование через git clone...' ;;
         esac
         ;;
     git_clone_ok)
@@ -252,6 +273,7 @@ T() {
             es) echo 'git clone exitoso' ;;
             it) echo 'git clone riuscito' ;;
             ar) echo 'تم git clone بنجاح' ;;
+            ru) echo 'git clone успешен' ;;
         esac
         ;;
     git_clone_fail)
@@ -265,6 +287,7 @@ T() {
             es) echo 'git clone fallido' ;;
             it) echo 'git clone fallito' ;;
             ar) echo 'فشل git clone' ;;
+            ru) echo 'Ошибка git clone' ;;
         esac
         ;;
     check_network_git)
@@ -278,6 +301,7 @@ T() {
             es) echo 'Verifique la red o haga git clone manual' ;;
             it) echo 'Controlla la rete o fai git clone manualmente' ;;
             ar) echo 'تحقق من الشبكة أو قم بعمل git clone يدوياً' ;;
+            ru) echo 'Проверьте сеть или выполните git clone вручную' ;;
         esac
         ;;
     release_fail_try_git)
@@ -291,6 +315,7 @@ T() {
             es) echo 'Descarga de release fallida, intentando git clone...' ;;
             it) echo 'Download della release fallito, provo git clone...' ;;
             ar) echo 'فشل تنزيل الإصدار، جاري محاولة git clone...' ;;
+            ru) echo 'Ошибка загрузки релиза, пробуем git clone...' ;;
         esac
         ;;
     download_fail_short)
@@ -304,6 +329,8 @@ T() {
             es) echo 'Descarga fallida' ;;
             it) echo 'Download fallito' ;;
             ar) echo 'فشل التنزيل' ;;
+            ru) echo 'Ошибка скачивания' ;;
+            ru) echo 'Ошибка скачивания' ;;
         esac
         ;;
     manual_install)
@@ -317,6 +344,7 @@ T() {
             es) echo 'Instalación manual:' ;;
             it) echo 'Installazione manuale:' ;;
             ar) echo 'تثبيت يدوي:' ;;
+            ru) echo 'Ручная установка:' ;;
         esac
         ;;
     step4_install)
@@ -330,6 +358,8 @@ T() {
             es) echo 'Instalando...' ;;
             it) echo 'Installazione...' ;;
             ar) echo 'جاري التثبيت...' ;;
+            ru) echo 'Установка...' ;;
+            ru) echo 'Установка...' ;;
         esac
         ;;
     config_backed_up)
@@ -343,6 +373,8 @@ T() {
             es) echo 'Configuración de usuario respaldada' ;;
             it) echo 'Configurazione utente salvata' ;;
             ar) echo 'تم نسخ إعدادات المستخدم احتياطياً' ;;
+            ru) echo 'Настройки пользователя сохранены' ;;
+            ru) echo 'Настройки пользователя сохранены' ;;
         esac
         ;;
     creating_venv)
@@ -356,6 +388,7 @@ T() {
             es) echo 'Creando entorno virtual...' ;;
             it) echo 'Creazione dell'\''ambiente virtuale...' ;;
             ar) echo 'جاري إنشاء البيئة الافتراضية...' ;;
+            ru) echo 'Создание виртуального окружения...' ;;
         esac
         ;;
     installing_deps)
@@ -369,6 +402,7 @@ T() {
             es) echo 'Instalando dependencias...' ;;
             it) echo 'Installazione delle dipendenze...' ;;
             ar) echo 'جاري تثبيت التبعيات...' ;;
+            ru) echo 'Установка зависимостей...' ;;
         esac
         ;;
     deps_ok)
@@ -382,6 +416,7 @@ T() {
             es) echo 'Dependencias instaladas' ;;
             it) echo 'Dipendenze installate' ;;
             ar) echo 'تم تثبيت التبعيات' ;;
+            ru) echo 'Зависимости установлены' ;;
         esac
         ;;
     installing_meshctx_pkg)
@@ -395,6 +430,7 @@ T() {
             es) echo 'Instalando paquete meshctx...' ;;
             it) echo 'Installazione del pacchetto meshctx...' ;;
             ar) echo 'جاري تثبيت حزمة meshctx...' ;;
+            ru) echo 'Установка пакета meshctx...' ;;
         esac
         ;;
     meshctx_pkg_ok)
@@ -408,6 +444,7 @@ T() {
             es) echo 'Paquete meshctx instalado' ;;
             it) echo 'Pacchetto meshctx installato' ;;
             ar) echo 'تم تثبيت حزمة meshctx' ;;
+            ru) echo 'Пакет meshctx установлен' ;;
         esac
         ;;
     installing_cmd)
@@ -421,6 +458,7 @@ T() {
             es) echo 'Instalando comando meshctx...' ;;
             it) echo 'Installazione del comando meshctx...' ;;
             ar) echo 'جاري تثبيت أمر meshctx...' ;;
+            ru) echo 'Установка команды meshctx...' ;;
         esac
         ;;
     cmd_installed)
@@ -434,6 +472,7 @@ T() {
             es) echo 'Comando meshctx instalado' ;;
             it) echo 'Comando meshctx installato' ;;
             ar) echo 'تم تثبيت أمر meshctx' ;;
+            ru) echo 'Команда meshctx установлена' ;;
         esac
         ;;
     configuring_autostart)
@@ -447,6 +486,7 @@ T() {
             es) echo 'Configurando inicio automático...' ;;
             it) echo 'Configurazione dell'\''avvio automatico...' ;;
             ar) echo 'جاري تكوين التشغيل التلقائي...' ;;
+            ru) echo 'Настройка автозапуска...' ;;
         esac
         ;;
     autostart_ok)
@@ -460,6 +500,7 @@ T() {
             es) echo 'Inicio automático configurado' ;;
             it) echo 'Avvio automatico configurato' ;;
             ar) echo 'تم تكوين التشغيل التلقائي' ;;
+            ru) echo 'Автозапуск настроен' ;;
         esac
         ;;
     step5_verify)
@@ -473,6 +514,8 @@ T() {
             es) echo 'Verificando instalación...' ;;
             it) echo 'Verifica dell'\''installazione...' ;;
             ar) echo 'التحقق من التثبيت...' ;;
+            ru) echo 'Проверка установки...' ;;
+            ru) echo 'Проверка установки...' ;;
         esac
         ;;
     service_running)
@@ -486,6 +529,7 @@ T() {
             es) echo "Servicio funcionando (puerto ${PORT})" ;;
             it) echo "Servizio in esecuzione (porta ${PORT})" ;;
             ar) echo "الخدمة تعمل بشكل طبيعي (المنفذ ${PORT})" ;;
+            ru) echo "Служба работает нормально (порт ${PORT})" ;;
         esac
         ;;
     service_manual_start)
@@ -499,6 +543,7 @@ T() {
             es) echo "Servicio iniciado manualmente (puerto ${PORT})" ;;
             it) echo "Servizio avviato manualmente (porta ${PORT})" ;;
             ar) echo "تم بدء الخدمة يدوياً (المنفذ ${PORT})" ;;
+            ru) echo "Служба запущена вручную (порт ${PORT})" ;;
         esac
         ;;
     service_starting)
@@ -512,6 +557,7 @@ T() {
             es) echo 'Servicio iniciando, verifique más tarde' ;;
             it) echo 'Servizio in avvio, controlla più tardi' ;;
             ar) echo 'جاري بدء الخدمة، يرجى التحقق لاحقاً' ;;
+            ru) echo 'Запуск службы, проверьте позже' ;;
         esac
         ;;
     install_complete)
@@ -525,6 +571,7 @@ T() {
             es) echo '¡Instalación de meshctx macOS completada! 🎉' ;;
             it) echo 'Installazione meshctx macOS completata! 🎉' ;;
             ar) echo 'اكتمل تثبيت meshctx macOS! 🎉' ;;
+            ru) echo 'Установка meshctx macOS завершена! 🎉' ;;
         esac
         ;;
     quick_start_label)
@@ -538,6 +585,7 @@ T() {
             es) echo 'Inicio rápido:' ;;
             it) echo 'Avvio rapido:' ;;
             ar) echo ':بداية سريعة' ;;
+            ru) echo ':Быстрый старт' ;;
         esac
         ;;
     common_cmds_label)
@@ -551,6 +599,7 @@ T() {
             es) echo 'Comandos comunes:' ;;
             it) echo 'Comandi comuni:' ;;
             ar) echo ':أوامر شائعة' ;;
+            ru) echo ':Частые команды' ;;
         esac
         ;;
     autostart_label)
@@ -564,6 +613,7 @@ T() {
             es) echo 'Inicio automático:' ;;
             it) echo 'Avvio automatico:' ;;
             ar) echo ':تشغيل تلقائي' ;;
+            ru) echo ':Автозапуск' ;;
         esac
         ;;
     manage_launchagent)
@@ -577,6 +627,7 @@ T() {
             es) echo 'Administrar LaunchAgent:' ;;
             it) echo 'Gestisci LaunchAgent:' ;;
             ar) echo ':LaunchAgent إدارة' ;;
+            ru) echo ':Управление LaunchAgent' ;;
         esac
         ;;
     pkg_elev_fail)
@@ -590,6 +641,7 @@ T() {
             es) echo 'Error en la instalación elevada automática (se requiere contraseña de administrador)' ;;
             it) echo 'Installazione elevata automatica fallita (richiesta password amministratore)' ;;
             ar) echo 'فشل التثبيت المرتفع التلقائي (كلمة مرور المسؤول مطلوبة)' ;;
+            ru) echo 'Ошибка автоматического повышения прав (требуется пароль администратора)' ;;
         esac
         ;;
     pkg_downloaded_to)
@@ -616,6 +668,7 @@ T() {
             es) echo 'Vuelva a ejecutar este script una vez completada la instalación.' ;;
             it) echo 'Eseguire nuovamente questo script al termine dell'\''installazione.' ;;
             ar) echo 'أعد تشغيل هذا البرنامج النصي بعد اكتمال التثبيت.' ;;
+            ru) echo 'Перезапустите этот скрипт после завершения установки.' ;;
         esac
         ;;
     *) echo "$1" ;;
