@@ -654,6 +654,20 @@ app = FastAPI(
     ],
 )
 
+# ── Enterprise 企业版功能全局拦截 (2026-08-31) ──
+# 团队/企业版代码已迁移至私有库 meshctx-enterprise; 开源库 stub 抛
+# EnterpriseFeatureError → API 返回 501 友好提示 (而非 500)
+from fastapi.responses import JSONResponse as _JSONRes
+from src.core._enterprise_base import EnterpriseFeatureError
+
+@app.exception_handler(EnterpriseFeatureError)
+async def _enterprise_feature_handler(request: Request, exc: EnterpriseFeatureError):
+    return _JSONRes(
+        {"error": "企业版功能", "detail": str(exc) or "Enterprise 功能已迁移至私有库 meshctx-enterprise",
+         "code": "enterprise_feature_moved"},
+        status_code=501,
+    )
+
 # CORS origins whitelist — use MESHCTX_CORS_ORIGINS env var (comma-separated)
 # to add custom origins, or defaults to the standard list below.
 _default_cors_origins = [
