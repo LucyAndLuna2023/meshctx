@@ -24,7 +24,7 @@ case "$EDITION" in
     ;;
   enterprise)
     EDITION_LABEL="Enterprise ($29/人/月)"
-    REPOS="meshctx meshctx-team meshctx-enterprise"
+    REPOS="meshctx meshctx-enterprise meshctx-team"  # enterprise 先合并, 防 team 版先占位同名模块
     ;;
   *)
     echo "Unknown edition: $EDITION (use personal|team|enterprise)"

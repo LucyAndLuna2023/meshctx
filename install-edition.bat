@@ -59,8 +59,8 @@ if not "%EDITION%"=="personal" (
   copy /y "%INSTALL_DIR%\src\meshctx-team\src\core\*.py" "%INSTALL_DIR%\src\meshctx\src\core\" >nul 2>nul
   copy /y "%INSTALL_DIR%\src\meshctx-team\src\web_crews.py" "%INSTALL_DIR%\src\meshctx\src\" >nul 2>nul
   if "%EDITION%"=="enterprise" (
+    REM enterprise 优先合并 (P2-4: 防 team 版先占位同名模块)
     copy /y "%INSTALL_DIR%\src\meshctx-enterprise\src\core\*.py" "%INSTALL_DIR%\src\meshctx\src\core\" >nul 2>nul
-    copy /y "%INSTALL_DIR%\src\meshctx-enterprise\src\web_crews.py" "%INSTALL_DIR%\src\meshctx\src\" >nul 2>nul
   )
 )
 
