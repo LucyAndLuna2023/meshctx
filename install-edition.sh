@@ -50,14 +50,27 @@ if [ "$EDITION" != "personal" ]; then
       echo "下载 $repo (私有)..."
       git clone --depth 1 "https://${MESHCTX_GIT_TOKEN}@github.com/LucyAndLuna2023/${repo}.git" \
         "$INSTALL_DIR/src/${repo}" 2>/dev/null || {
+        echo "clone 失败 $repo"; exit 1; }
+      # P1 (002codex/002meshctx 审计): token 泄漏修复 — clone 后从 remote URL 移除 token
+      git -C "$INSTALL_DIR/src/${repo}" remote set-url origin "https://github.com/LucyAndLuna2023/${repo}.git" 2>/dev/null
+      echo "  $repo: token 已从 remote 移除 (防 .git/config 落盘)"
+      {
         echo -e "${RED}需要 MESHCTX_GIT_TOKEN 访问私有库 $repo${NC}"
         echo "获取: https://github.com/settings/tokens (read:packages)"
         exit 1
       }
     done
-    # 合并私有模块到 src
-    cp -r "$INSTALL_DIR/src"/meshctx-*/src/core/*.py "$INSTALL_DIR/src/meshctx/src/core/" 2>/dev/null || true
-    cp -r "$INSTALL_DIR/src"/meshctx-*/src/web_crews.py "$INSTALL_DIR/src/meshctx/src/" 2>/dev/null || true
+    # 合并私有模块到 src (P2-3: 共享模块已存在则跳过, 防三库版本漂移覆盖)
+    for _f in "$INSTALL_DIR/src"/meshctx-*/src/core/*.py; do
+      _base=$(basename "$_f")
+      _dst="$INSTALL_DIR/src/meshctx/src/core/$_base"
+      if [ ! -f "$_dst" ] || grep -q "_IMPLEMENTATION_MOVED" "$_dst" 2>/dev/null; then
+        cp "$_f" "$_dst" 2>/dev/null || true
+      fi
+    done
+    for _f in "$INSTALL_DIR/src"/meshctx-*/src/web_crews.py; do
+      [ -f "$_f" ] && cp "$_f" "$INSTALL_DIR/src/meshctx/src/" 2>/dev/null || true
+    done
   else
     echo -e "${RED}团队/企业版需要 MESHCTX_GIT_TOKEN (GitHub token 访问私有库)${NC}"
     exit 1

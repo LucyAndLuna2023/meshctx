@@ -6,34 +6,41 @@
 - personal: 无私有库 → enterprise 模块 stub, 企业路由隐藏
 - team:     有 meshctx-team → 团队功能开放, 企业(SSO等)仍 stub
 - enterprise: 有 team+enterprise → 全部开放
-"""
-import os
 
-# 安装时把私有库 src/core/*.py 合并进 meshctx/src/core/,
-# 检测: enterprise 专属模块 (sso) 是否存在且非 stub
+P2-2 (002meshctx 审计): 用 __file__ 定位模块, 不依赖 cwd —
+systemd/非项目根启动也正确检测 (此前 from src.core import sso 依赖 cwd)。
+"""
+import importlib.util
+import os
+import sys
+
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def _module_is_stub(mod_name: str) -> bool:
+    """按路径检查模块文件是否 stub (含 _IMPLEMENTATION_MOVED)。"""
+    path = os.path.join(_THIS_DIR, f"{mod_name}.py")
+    try:
+        with open(path, encoding="utf-8") as f:
+            head = f.read(4096)
+        return "_IMPLEMENTATION_MOVED" in head
+    except Exception:
+        return True  # 文件缺失 → 视为 stub (fail-closed)
+
+
 def detect_edition() -> str:
-    try:
-        from src.core import sso as _sso_mod
-        _sso_stub = bool(getattr(_sso_mod, "_IMPLEMENTATION_MOVED", False))
-        if not _sso_stub:
-            return "enterprise"
-    except Exception:
-        pass
-    try:
-        from src.core import team_memory as _tm_mod
-        _tm_stub = bool(getattr(_tm_mod, "_IMPLEMENTATION_MOVED", False))
-        if not _tm_stub:
-            return "team"
-    except Exception:
-        pass
+    # sso 完整 (非 stub) → enterprise
+    if not _module_is_stub("sso"):
+        return "enterprise"
+    # team_memory 完整 → team
+    if not _module_is_stub("team_memory"):
+        return "team"
     return "personal"
 
 
 def enterprise_available() -> bool:
-    """企业版专属功能 (SSO/审计/SLA/私有化) 是否可用。"""
     return detect_edition() == "enterprise"
 
 
 def team_available() -> bool:
-    """团队版功能 (共享记忆/群审/仪表盘) 是否可用。"""
     return detect_edition() in ("team", "enterprise")

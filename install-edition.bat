@@ -48,9 +48,12 @@ if not "%EDITION%"=="personal" (
   echo [2/3] Downloading private repos...
   if "%EDITION%"=="team" (
     git clone --depth 1 https://%MESHCTX_GIT_TOKEN%@github.com/LucyAndLuna2023/meshctx-team.git "%INSTALL_DIR%\src\meshctx-team" 2>nul
+    git -C "%INSTALL_DIR%\src\meshctx-team" remote set-url origin https://github.com/LucyAndLuna2023/meshctx-team.git 2>nul
   ) else (
     git clone --depth 1 https://%MESHCTX_GIT_TOKEN%@github.com/LucyAndLuna2023/meshctx-team.git "%INSTALL_DIR%\src\meshctx-team" 2>nul
     git clone --depth 1 https://%MESHCTX_GIT_TOKEN%@github.com/LucyAndLuna2023/meshctx-enterprise.git "%INSTALL_DIR%\src\meshctx-enterprise" 2>nul
+    git -C "%INSTALL_DIR%\src\meshctx-team" remote set-url origin https://github.com/LucyAndLuna2023/meshctx-team.git 2>nul
+    git -C "%INSTALL_DIR%\src\meshctx-enterprise" remote set-url origin https://github.com/LucyAndLuna2023/meshctx-enterprise.git 2>nul
   )
   echo [3/3] Merging private modules...
   copy /y "%INSTALL_DIR%\src\meshctx-team\src\core\*.py" "%INSTALL_DIR%\src\meshctx\src\core\" >nul 2>nul
