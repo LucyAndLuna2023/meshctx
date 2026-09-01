@@ -654,11 +654,47 @@ app = FastAPI(
     ],
 )
 
-# ── Enterprise 企业版功能全局拦截 (2026-08-31) ──
-# 团队/企业版代码已迁移至私有库 meshctx-enterprise; 开源库 stub 抛
-# EnterpriseFeatureError → API 返回 501 友好提示 (而非 500)
+# ── Enterprise 企业版功能隐藏 (2026-08-31) ──
+# 三版本 (personal/team/enterprise) 按 BP 功能矩阵隐藏路由:
+#   personal:   隐藏全部团队+企业 (FREE plan 全关)
+#   team:       保留团队路由, 隐藏企业专属 (SSO/审计)
+#   enterprise: 全部保留
 from fastapi.responses import JSONResponse as _JSONRes
 from src.core._enterprise_base import EnterpriseFeatureError
+
+# 按 Edition 隐藏的路由前缀
+_EDITION_ROUTE_MAP = {
+    "personal": (
+        "/api/billing/", "/api/team/", "/api/swarm/", "/swarm/",
+        "/api/multi-agent/", "/api/enterprise", "/api/sso/", "/ui/crews",
+    ),
+    "team": (
+        "/api/sso/", "/api/enterprise",
+    ),
+    "enterprise": (),
+}
+
+def _hide_enterprise_routes(edition: str = "personal") -> int:
+    """按 edition 移除 app.routes 中的隐藏路由。返回移除数量。"""
+    prefixes = _EDITION_ROUTE_MAP.get(edition, ())
+    removed = 0
+    keep = []
+    for route in app.routes:
+        path = getattr(route, "path", "")
+        if any(path.startswith(p) for p in prefixes):
+            removed += 1
+            continue
+        keep.append(route)
+    if removed:
+        app.router.routes = keep
+    return removed
+
+# 检测 enterprise 模块是否为 stub (延迟到文件末尾执行隐藏, 确保所有路由已定义)
+try:
+    from src.core import business_plans as _bp
+    _ENT_STUB = bool(getattr(_bp, "_IMPLEMENTATION_MOVED", False))
+except Exception:
+    _ENT_STUB = False
 
 @app.exception_handler(EnterpriseFeatureError)
 async def _enterprise_feature_handler(request: Request, exc: EnterpriseFeatureError):
@@ -8463,3 +8499,23 @@ async def keyvault_migrate_api(req: Request):
                 "backup": str(bak), "note": "明文已从 .env 删除 (备份于 .env.bak)"}
     return {"migrated": migrated, "deleted_from_env": False,
             "note": "传 delete=true 可迁移后删除明文 (先备份)"}
+
+
+# ── Edition 路由隐藏 (2026-08-31, 用户要求: 免费版不暴露企业功能) ──
+# 所有路由定义完毕后执行。按安装的版本 (personal/team/enterprise) 隐藏对应路由:
+#   personal:   隐藏全部团队+企业 (BP FREE plan 全关)
+#   team:       隐藏企业专属 SSO/审计 (BP TEAM 只开团队功能)
+#   enterprise: 全部保留
+try:
+    from src.core._edition import detect_edition as _detect_edition
+    _edition = _detect_edition()
+except Exception:
+    _edition = "personal"
+try:
+    _hidden = _hide_enterprise_routes(_edition)
+    import logging as _log_ent
+    _log_ent.getLogger("meshctx.edition").info(
+        f"meshctx {_edition} 版: 已隐藏 {_hidden} 个高版本路由")
+except Exception as _e:
+    import logging as _log_ent2
+    _log_ent2.getLogger("meshctx.edition").warning(f"隐藏路由失败: {_e}")
