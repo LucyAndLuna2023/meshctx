@@ -534,6 +534,18 @@ async def lifespan(app: FastAPI):
         logger.warning(f"ResourceManager 启动跳过: {e}")
         app.state.resource_manager = None
 
+    # Agent 派活中心 (Agent Hub / Task Cards, 2026-09-02): 后台任务卡 worker
+    try:
+        from src.core.task_cards import get_card_worker
+        from src.core.task_card_runner import run_card as _hub_run_card
+        _hub_worker = get_card_worker()
+        _hub_worker.start(run_fn=_hub_run_card)
+        app.state.task_cards_worker = _hub_worker
+        logger.info("🗂️ Task Cards Worker 已启动 (Agent 派活中心)")
+    except Exception as e:
+        logger.warning(f"Task Cards Worker 启动跳过: {e}")
+        app.state.task_cards_worker = None
+
     yield  # ── 服务运行中 ──
 
     # ── Shutdown ──
@@ -552,6 +564,13 @@ async def lifespan(app: FastAPI):
     rm = getattr(app.state, "resource_manager", None)
     if rm:
         rm.stop()
+    # Agent 派活中心: 停止 task cards worker
+    tw = getattr(app.state, "task_cards_worker", None)
+    if tw:
+        try:
+            await tw.stop()
+        except Exception as e:
+            logger.warning(f"Task Cards Worker 停止异常: {e}")
     logger.info("meshctx v1.0 已停止")
 
 

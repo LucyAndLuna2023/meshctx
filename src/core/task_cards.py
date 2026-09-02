@@ -316,6 +316,9 @@ class CardWorker:
         self._run_fn: Optional[Callable[[TaskCard], Awaitable[Dict[str, Any]]]] = None
         self._started = False
         self._stopping = False
+        # 审批协调: card_id → asyncio.Future (等待 Web /api/tasks/cards/{id}/approve 决定)
+        self._approval_futures: Dict[str, "asyncio.Future"] = {}
+        self._approval_lock = threading.Lock()
 
     # ── 生命周期 ──
     def start(self, run_fn: Optional[Callable[[TaskCard], Awaitable[Dict[str, Any]]]] = None,
@@ -368,6 +371,41 @@ class CardWorker:
 
     def running_count(self) -> int:
         return len(self._running)
+
+    # ── 审批协调 (卡级 pending → Web decide → future resolve) ──
+    def register_approval(self, card: TaskCard, request_id: str,
+                          name: str, args: Dict, reason: str):
+        """agent 请求审批时: 落盘 pending + 登记 future (循环所在线程)。"""
+        loop = asyncio.get_event_loop()
+        fut: "asyncio.Future" = loop.create_future()
+        with self._approval_lock:
+            self._approval_futures[request_id] = fut
+        card.approval_pending = {
+            "request_id": request_id, "name": name, "args": args,
+            "reason": reason, "ts": time.time(), "card_id": card.id,
+        }
+        card.status = CardStatus.WAITING_APPROVAL
+        card.touch()
+        self._store.save(card)
+        return fut
+
+    def decide_approval(self, request_id: str, action: str, text: str = "") -> bool:
+        """Web 端决定: 写回卡并 resolve future。返回是否找到。"""
+        fut = None
+        with self._approval_lock:
+            fut = self._approval_futures.pop(request_id, None)
+        if fut is None or fut.done():
+            return False
+        # 由调用线程触发 (decide 来自 HTTP 协程 → run_until_complete 不安全,
+        # 用 call_soon_threadsafe 交给事件循环)
+        loop = fut.get_loop()
+        loop.call_soon_threadsafe(
+            fut.set_result, {"action": action, "text": text})
+        return True
+
+    def pending_approval_card(self, card_id: str) -> Optional[Dict[str, Any]]:
+        card = self._store.load(card_id)
+        return card.approval_pending if card else None
 
     # ── 内部 ──
     async def _consume(self):
