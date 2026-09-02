@@ -3,7 +3,9 @@
 > 起草: 004meshctx 2026-09-02 | 实施: 004meshctx | 审计对象: 002meshctx / 002codex / 004meshctx（实施后三方审计）
 > 当前版本: v3.121.7 (HEAD 0398e2aa) → 目标: v3.122.x
 > 实施状态: T0-T10 ✅ 完成 (2026-09-02, 12 commits, 全量 3653 passed) → 版本已 bump v3.122.0
-> 审计: 三方审计进行中
+审计: 三方审计进行中 (HEAD 2a69dec9, 4 轮基线更新)
+> 可选后续项: 「看屏指点」未纳入本版 — 需 vision 模型切换 + 多平台截图获取,
+> 独立排期 (对应 HeyClicky 借鉴 Top-5); 审计等待期维持基线稳定不做功能扩展
 > 回滚保障: tag `pre-agent-hub-v20260902-2224` (已推远端) + backup 分支 +
 >           `/home/administrator/meshctx-backups/` (git bundle 全历史 + tar 快照, 2026-09-02)
 > 勘察来源: 4 份独立只读架构侦察 (edition 门控 / 任务审批额度 / i18n+WebUI / 文档站+安装器)，
