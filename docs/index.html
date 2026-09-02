@@ -60,6 +60,22 @@
         .nav-links { display:flex; gap:20px; align-items:center; }
         .nav-links a { color:var(--muted); font-size:0.9rem; } .nav-links a:hover { color:var(--fg); text-decoration:none; }
 
+        /* 移动端导航 (2026-09-01): hamburger 菜单 — 手机端语言切换器始终可见 */
+        .nav-burger { display:none; background:transparent; border:1px solid var(--border); color:var(--fg); font-size:1.2rem; padding:2px 10px; border-radius:4px; cursor:pointer; margin-left:8px; }
+        .nav-mobile-menu { display:none; position:fixed; top:0; right:0; height:100%; width:260px; background:var(--bg2); z-index:300; padding:70px 20px 20px; box-shadow:-8px 0 24px rgba(0,0,0,0.5); flex-direction:column; gap:16px; overflow-y:auto; }
+        .nav-mobile-menu.show { display:flex; }
+        .nav-mobile-menu a, .nav-mobile-menu button { color:var(--muted); font-size:1rem; text-align:left; background:transparent; border:none; padding:8px 4px; cursor:pointer; width:100%; }
+        .nav-mobile-menu a:hover, .nav-mobile-menu button:hover { color:var(--fg); background:rgba(139,92,246,0.15); border-radius:4px; }
+        .nav-close-btn { position:absolute; top:14px; right:16px; background:transparent; border:none; color:var(--fg); font-size:1.6rem; cursor:pointer; }
+        .nav-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:299; }
+        .nav-overlay.show { display:block; }
+        /* 侧滑菜单内部组件: 覆盖通用规则, 保持关闭钮/登录钮/登出钮正确外观 */
+        .nav-mobile-menu .nav-close-btn { width:auto; padding:0; line-height:1; }
+        .nav-mobile-menu .btn-auth { justify-content:center; color:#fff; background:linear-gradient(135deg,#8b5cf6,#6366f1); border:none; }
+        .nav-mobile-menu .user-menu { flex-direction:column; align-items:stretch; gap:6px; width:100%; }
+        .nav-mobile-menu .user-menu-name { max-width:none; text-align:left; }
+        .nav-mobile-menu .btn-signout { width:auto; text-align:center; align-self:flex-start; border:1px solid var(--border); background:transparent; color:var(--muted); }
+
         .lang-dropdown { position:relative; margin-left:12px; display:inline-block; }
         .lang-dropdown-toggle { background:transparent; color:var(--muted); border:1px solid var(--border); padding:4px 10px; border-radius:4px; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; gap:4px; }
         .lang-dropdown-toggle::after { content:'▾'; font-size:0.6rem; margin-left:2px; }
@@ -125,7 +141,6 @@
 
         @media(max-width:768px) {
             .hero h1 { font-size:2rem; }
-            .nav-links a.nav-hide { display:none; }
             .about-grid { grid-template-columns:1fr; }
             .hero { padding:120px 16px 60px; }
             .hero p { font-size:1rem; }
@@ -139,6 +154,11 @@
             .hero-buttons .btn { width:100%; max-width:300px; text-align:center; }
             table { font-size:0.75rem; }
             th,td { padding:8px 6px; }
+            /* 移动端: 桌面链接收纳进 hamburger, 语言切换器始终可见 */
+            .nav-desktop-items { display:none !important; }
+            .nav-links .lang-dropdown { display:inline-block; margin-left:0; }
+            .nav-burger { display:inline-block; }
+            .nav-inner { padding:12px 16px; }
         }
     </style>
 </head>
@@ -161,16 +181,20 @@
     <div class="nav-inner">
         <div class="logo"><a href="/" style="color:inherit;text-decoration:none;">Mesh<span>Ctx</span></a></div>
         <div class="nav-links">
-            <a href="#features" class="nav-hide" data-lang-key="nav_features">Features</a>
-            <a href="#about" class="nav-hide" data-lang-key="nav_about">About</a>
-            <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a>
-            <a href="/getting-started" class="btn btn-ghost" data-lang-key="nav_docs">Docs</a>
-            <button class="btn-auth" id="auth-btn" onclick="showAuthModal()" data-lang-key="nav_signin">🔑 Sign In</button>
-            <span class="user-menu" id="user-menu">
-                <img class="user-menu-avatar" id="user-avatar" src="" alt="" style="display:none">
-                <a href="/profile.html" class="user-menu-name" id="user-name" style="text-decoration:none;"></a>
-                <button class="btn-signout" onclick="signOut()" data-lang-key="nav_signout">Sign Out</button>
+            <!-- 桌面链接 (移动端隐藏, 收纳进 hamburger) -->
+            <span class="nav-desktop-items" style="display:flex;gap:20px;align-items:center;">
+                <a href="#features" class="nav-hide" data-lang-key="nav_features">Features</a>
+                <a href="#about" class="nav-hide" data-lang-key="nav_about">About</a>
+                <a href="https://github.com/LucyAndLuna2023/meshctx">GitHub</a>
+                <a href="/getting-started" class="btn btn-ghost" data-lang-key="nav_docs">Docs</a>
+                <button class="btn-auth" id="auth-btn" onclick="showAuthModal()" data-lang-key="nav_signin">🔑 Sign In</button>
+                <span class="user-menu" id="user-menu">
+                    <img class="user-menu-avatar" id="user-avatar" src="" alt="" style="display:none">
+                    <a href="/profile.html" class="user-menu-name" id="user-name" style="text-decoration:none;"></a>
+                    <button class="btn-signout" onclick="signOut()" data-lang-key="nav_signout">Sign Out</button>
+                </span>
             </span>
+            <!-- 语言切换器 (桌面+移动都显示) -->
             <span class="lang-dropdown">
                 <button class="lang-dropdown-toggle" onclick="document.querySelector('.lang-dropdown-menu').classList.toggle('show')" id="langToggle">🌐 EN ▾</button>
                 <div class="lang-dropdown-menu" id="langMenu">
@@ -186,7 +210,23 @@
                     <button onclick="switchLang('zh');closeDropdown()">🇨🇳 中文</button>
                 </div>
             </span>
+            <!-- hamburger (仅移动端) -->
+            <button class="nav-burger" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
         </div>
+    </div>
+    <!-- 移动端侧滑菜单 -->
+    <div class="nav-overlay" id="navOverlay" onclick="toggleMobileNav()"></div>
+    <div class="nav-mobile-menu" id="navMobileMenu">
+        <button class="nav-close-btn" onclick="toggleMobileNav()">✕</button>
+        <a href="#features" onclick="toggleMobileNav()" data-lang-key="nav_features">Features</a>
+        <a href="#about" onclick="toggleMobileNav()" data-lang-key="nav_about">About</a>
+        <a href="https://github.com/LucyAndLuna2023/meshctx" onclick="toggleMobileNav()">GitHub</a>
+        <a href="/getting-started" onclick="toggleMobileNav()" data-lang-key="nav_docs">Docs</a>
+        <button class="btn-auth" id="auth-btn-mobile" onclick="toggleMobileNav();showAuthModal()" data-lang-key="nav_signin">🔑 Sign In</button>
+        <span class="user-menu" id="user-menu-mobile" style="display:none;">
+            <a href="/profile.html" class="user-menu-name" id="user-name-mobile" style="text-decoration:none;color:var(--fg);"></a>
+            <button class="btn-signout" onclick="signOut()" data-lang-key="nav_signout">Sign Out</button>
+        </span>
     </div>
 </nav>
 <main id='main-content'>
@@ -375,6 +415,35 @@ let _langPending = null; // pending language while L is loading
 
 
 function closeDropdown() { document.getElementById('langMenu').classList.remove('show'); }
+
+// 移动端 hamburger 侧滑菜单开关 (2026-09-01): 只切换 overlay + menu,
+// 语言切换器固定在导航栏, 不随菜单开合
+function toggleMobileNav() {
+    var menu = document.getElementById('navMobileMenu');
+    var overlay = document.getElementById('navOverlay');
+    if (!menu || !overlay) return;
+    var open = !menu.classList.contains('show');
+    if (open) {
+        menu.classList.add('show');
+        overlay.classList.add('show');
+        closeDropdown();
+        document.body.style.overflow = 'hidden';
+    } else {
+        menu.classList.remove('show');
+        overlay.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+}
+// 窗口拉宽回桌面布局时自动收起侧滑菜单
+window.addEventListener('resize', function() {
+    if (window.innerWidth > 768) {
+        var menu = document.getElementById('navMobileMenu');
+        var overlay = document.getElementById('navOverlay');
+        if (menu && menu.classList.contains('show')) { menu.classList.remove('show'); }
+        if (overlay && overlay.classList.contains('show')) { overlay.classList.remove('show'); }
+        document.body.style.overflow = '';
+    }
+});
 var pageMeta = {
     en: {title: "MeshCtx — 17-Brain-Region Self-Improving Agent Platform", desc: "MeshCtx is an open-core, self-improving agent platform — AGPLv3 framework + source-available brain. Remembers everything, learns from every task, orchestrates multiple AI agents in parallel."},
     zh: {title: "MeshCtx — 世界首个自进化智能体系统", desc: "MeshCtx 是开源核心的自适应学习智能体平台 — AGPLv3 框架 + 源码可见的大脑。记忆一切，从每次任务中学习，并行编排多个 AI 智能体。"},
@@ -393,12 +462,12 @@ function switchLang(lang) {
         // Still update UI elements that don't need translations
         var toggle2 = document.getElementById('langToggle');
         if (toggle2) {
-            var labels2 = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ar:'🇸🇦 العربية'};
+            var labels2 = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ar:'🇸🇦 العربية',ru:'🇷🇺 Русский'};
             toggle2.textContent = (labels2[lang]||'🌐 '+lang.toUpperCase())+' ▾';
         }
         return;
     }
-    var labels = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ar:'🇸🇦 العربية'};
+    var labels = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ar:'🇸🇦 العربية',ru:'🇷🇺 Русский'};
     // 🔧 BUG-043: null guards for all DOM access
     var toggle = document.getElementById('langToggle');
     if (toggle) toggle.textContent = (labels[lang]||'🌐 '+lang.toUpperCase())+' ▾';

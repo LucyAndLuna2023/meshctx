@@ -512,6 +512,12 @@ async function signOut() {
     await sb.auth.signOut();
     _user = null;
     updateAuthUI();
+    // 移动端: 登出后收起侧滑菜单 (无则跳过)
+    var menu = document.getElementById('navMobileMenu');
+    var overlay = document.getElementById('navOverlay');
+    if (menu && menu.classList.contains('show')) { menu.classList.remove('show'); }
+    if (overlay && overlay.classList.contains('show')) { overlay.classList.remove('show'); }
+    document.body.style.overflow = '';
 }
 
 // ═══ Update Nav UI ═══
@@ -520,6 +526,10 @@ function updateAuthUI() {
     var userMenu = document.getElementById('user-menu');
     var userName = document.getElementById('user-name');
     var userAvatar = document.getElementById('user-avatar');
+    // 移动端侧滑菜单元素 (index.html; 其他页面无则跳过)
+    var authBtnM = document.getElementById('auth-btn-mobile');
+    var userMenuM = document.getElementById('user-menu-mobile');
+    var userNameM = document.getElementById('user-name-mobile');
 
     if (_user) {
         if (authBtn) authBtn.style.display = 'none';
@@ -533,11 +543,23 @@ function updateAuthUI() {
             if (avatarUrl) { userAvatar.src = avatarUrl; userAvatar.style.display = 'inline'; }
             else { userAvatar.style.display = 'none'; }
         }
+        // 移动端: 隐藏 Sign In 按钮, 显示用户菜单
+        if (authBtnM) authBtnM.style.display = 'none';
+        if (userMenuM) {
+            userMenuM.style.display = 'flex';
+            if (userNameM) {
+                var metaM = _user.user_metadata || {};
+                userNameM.textContent = metaM.display_name || metaM.full_name || metaM.user_name || _user.email || 'User';
+            }
+        }
         // Unlock gated content
         document.querySelectorAll('.auth-gated-overlay').forEach(function(el) { el.classList.add('unlocked'); });
     } else {
         if (authBtn) authBtn.style.display = 'inline-flex';
         if (userMenu) userMenu.style.display = 'none';
+        // 移动端: 显示 Sign In 按钮, 隐藏用户菜单
+        if (authBtnM) authBtnM.style.display = 'inline-flex';
+        if (userMenuM) userMenuM.style.display = 'none';
         // Lock gated content
         document.querySelectorAll('.auth-gated-overlay').forEach(function(el) { el.classList.remove('unlocked'); });
     }
@@ -625,7 +647,15 @@ async function initAuth() {
 
 // Keyboard shortcut
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') hideAuthModal();
+    if (e.key === 'Escape') {
+        hideAuthModal();
+        // 移动端侧滑菜单同时收起
+        var menu = document.getElementById('navMobileMenu');
+        var overlay = document.getElementById('navOverlay');
+        if (menu && menu.classList.contains('show')) { menu.classList.remove('show'); }
+        if (overlay && overlay.classList.contains('show')) { overlay.classList.remove('show'); }
+        document.body.style.overflow = '';
+    }
 });
 
 document.addEventListener('DOMContentLoaded', initAuth);
