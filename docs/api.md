@@ -324,3 +324,46 @@ GET /metacognition/report
   "learning_summary": "已学习 42 次任务, 提取 3 个成功模式, 2 条防护规则"
 }
 ```
+
+## Task Cards (Agent Hub) — 2026-09-02
+
+一句话派活 → 后台任务卡 → 进度/结果/取消/重试 + 危险操作审批。
+
+### Spawn 任务卡
+
+```http
+POST /api/tasks/cards
+Content-Type: application/json
+
+{"prompt": "读 README 总结项目结构", "wall_clock": 300, "max_rounds": 0}
+```
+
+**Response:**
+```json
+{"card_id": "ab12cd34ef56", "status": "queued", "quota": {"ok": true, "remaining": 49}}
+```
+
+可选参数: `wall_clock`(秒, 默认300, 范围30-7200), `max_rounds`(固定轮次)。
+
+### 我的任务卡
+
+```http
+GET /api/tasks/cards?limit=50
+GET /api/tasks/cards/{id}          # 详情 (含 timeline)
+GET /api/tasks/cards/{id}/stream   # SSE 实时事件订阅
+```
+
+### 操作
+
+```http
+POST /api/tasks/cards/{id}/cancel    # 取消 (排队/运行中)
+POST /api/tasks/cards/{id}/retry     # 重试 (复制为新卡)
+POST /api/tasks/cards/{id}/approve   # 审批: {"action":"agree|reject|custom","text":""}
+DELETE /api/tasks/cards/{id}         # 删除历史卡 (仅终止态)
+GET  /api/tasks/quota                # 配额状态
+```
+
+### 审批语义
+
+terminal(rm/mv/cp/覆盖写/远程) 等危险命令 → 卡进入 `waiting_approval`,
+用户 approve 后任务继续; reject/custom 后任务按决策继续。审批请求跨断连持久化。

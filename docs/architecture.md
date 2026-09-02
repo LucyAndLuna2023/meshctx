@@ -171,3 +171,34 @@ BehaviorAdjuster.update()
 - Resource quotas per plugin
 - Circuit breaker on failure storms
 - Audit logging of all events
+
+## Agent Hub / Task Cards (2026-09-02)
+
+一句话派活 → 后台任务卡 → 可见进度/结果/取消/重试 + 危险操作审批。
+
+```
+Web Chat (chat.html 派活面板)
+   │  REST / SSE
+   ▼
+/api/tasks/cards* (task_cards_api.py)
+   │
+   ▼
+TaskCardStore (~/.meshctx/task_cards/, 原子 JSON 0600)
+CardWorker (独立线程 + 专属事件循环, 每卡 asyncio.run 隔离执行)
+   └─ run_card → run_agent_loop (统一 agent 循环) → 事件写卡 timeline
+   └─ approval: 危险命令 → waiting_approval 持久化 → decide 恢复
+   └─ quota: HubQuota → quota_manager/usage_meter (开源本地表)
+```
+
+关键设计:
+- **worker 线程化**: run_agent_loop 内部同步迭代模型 SDK 流, 放独立线程
+  执行防饿死 Web 事件循环; 每卡一个 asyncio.run 隔离, 互不阻塞
+- **重启恢复**: CardWorker.start(recover=True) 只恢复最近 6h 中断卡
+  (running→queued 重跑 / waiting_approval→failed), 超窗卡终止/清理
+- **额度**: 个人版软提示不设付费墙; 团队/企业硬限走私有库 business_plans
+  (team_hub_shared/quota_admin/audit feature keys)
+- **开源/闭源边界**: 派活/审批/配额开源 (个人版全功能); 组织治理
+  (团队共享队列/配额预算/审批审计/SSO) 在 team_hub.py stub → 私有库
+
+相关模块: src/core/task_cards.py · task_card_runner.py · task_cards_api.py ·
+src/core/team_hub.py (stub)
