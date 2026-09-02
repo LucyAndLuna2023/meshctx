@@ -247,7 +247,19 @@
     "auth_err_session": "This password reset link is invalid or has expired.",
     "auth_btn_updating": "Updating...",
     "pl_btn_repo": "⭐ GitHub Repository",
-    "contact_telegram": "Telegram Community & Support"
+    "contact_telegram": "Telegram Community & Support",
+    "f31_title": "Agent Hub",
+    "f31_desc": "One-line task delegation. Hand any task to a background agent in plain language — its task card shows live progress, result, cancel and retry, whenever you need.",
+    "f32_title": "Approve Anywhere",
+    "f32_desc": "Dangerous operations pause and ask for your decision first. Agree or reject right from the UI or your phone — approve anywhere, even away from the desktop.",
+    "bp_title": "Editions & Pricing",
+    "bp_free_t": "Personal",
+    "bp_free_d": "Free forever, open-source AGPLv3 core. Built for individuals, hobbyists and students — no credit card required.",
+    "bp_team_t": "Team",
+    "bp_team_d": "$9 per user / month. Shared workspaces, team collaboration, usage quotas and priority support for growing teams.",
+    "bp_ent_t": "Enterprise",
+    "bp_ent_d": "$29 per user / month. SSO, admin controls, dedicated deployment, audit logs and SLA-backed support for organizations.",
+    "bp_cta": "Choose your edition — start free, upgrade anytime."
   },
   "zh": {
     "hero_title": "会<span>学习</span>的智能体",
@@ -497,7 +509,19 @@
     "auth_err_session": "密码重置链接无效或已过期。",
     "auth_btn_updating": "更新中...",
     "pl_btn_repo": "⭐ GitHub 仓库",
-    "contact_telegram": "Telegram 社群/产品支持"
+    "contact_telegram": "Telegram 社群/产品支持",
+    "f31_title": "一句话派活",
+    "f31_desc": "一句话派活，后台自动执行。用大白话把任务交给后台 Agent，任务卡片实时展示进度与结果，可随时取消或重试，全程透明可见。",
+    "f32_title": "远程审批",
+    "f32_desc": "危险操作会先暂停并征求你的决定。无论身在何处，都能在网页或手机上直接同意或拒绝 — 随时随地安全审批，移动审批从未如此简单。",
+    "bp_title": "版本与价格",
+    "bp_free_t": "个人版",
+    "bp_free_d": "个人永久免费，开源 AGPLv3 内核。适合个人、爱好者和学生使用，无需信用卡。",
+    "bp_team_t": "团队版",
+    "bp_team_d": "$9/人/月。共享工作区、团队协作、用量配额与优先支持，适合快速成长的团队。",
+    "bp_ent_t": "企业版",
+    "bp_ent_d": "$29/人/月。SSO 单点登录、管理员控制、专属部署、审计日志与 SLA 支持。",
+    "bp_cta": "选择你的版本 — 免费开始，随时升级"
   },
   "fr": {
     "hero_title": "L'Agent qui <span>Apprend</span>",
@@ -747,7 +771,19 @@
     "auth_err_session": "Ce lien de réinitialisation est invalide ou a expiré.",
     "auth_btn_updating": "Mise à jour...",
     "pl_btn_repo": "⭐ Dépôt GitHub",
-    "contact_telegram": "Communauté & Support Telegram"
+    "contact_telegram": "Communauté & Support Telegram",
+    "f31_title": "Centre d'agents",
+    "f31_desc": "Déléguez une tâche en une ligne. Confiez n'importe quelle tâche en langage naturel à un agent d'arrière-plan — sa carte affiche la progression en direct, avec résultat, annulation et relance à tout moment.",
+    "f32_title": "Approuvez partout",
+    "f32_desc": "Les opérations dangereuses s'interrompent et attendent votre décision. Acceptez ou refusez depuis l'interface ou votre téléphone, où que vous soyez.",
+    "bp_title": "Éditions et tarifs",
+    "bp_free_t": "Personnel",
+    "bp_free_d": "Gratuit pour toujours, noyau open source AGPLv3. Conçu pour les particuliers, les projets amateurs et les étudiants — sans carte bancaire.",
+    "bp_team_t": "Équipe",
+    "bp_team_d": "$9 par utilisateur / mois. Espaces de travail partagés, collaboration d'équipe, quotas d'utilisation et support prioritaire.",
+    "bp_ent_t": "Entreprise",
+    "bp_ent_d": "$29 par utilisateur / mois. SSO, contrôles administrateur, déploiement dédié, journaux d'audit et support SLA.",
+    "bp_cta": "Choisissez votre édition — commencez gratuitement, changez d'offre à tout moment."
   },
   "de": {
     "hero_title": "Der Agent, der <span>lernt</span>",
@@ -997,7 +1033,19 @@
     "auth_err_session": "Dieser Link zum Zurücksetzen des Passworts ist ungültig oder abgelaufen.",
     "auth_btn_updating": "Aktualisiere...",
     "pl_btn_repo": "⭐ GitHub-Repository",
-    "contact_telegram": "Telegram Community & Support"
+    "contact_telegram": "Telegram Community & Support",
+    "f31_title": "Agent-Hub",
+    "f31_desc": "Aufgaben mit einem Satz delegieren. Übergeben Sie Aufgaben in natürlicher Sprache an einen Hintergrund-Agenten — die Aufgabenkarte zeigt Fortschritt und Ergebnis live, mit Abbruch und Wiederholung jederzeit.",
+    "f32_title": "Genehmigung von überall",
+    "f32_desc": "Gefährliche Aktionen pausieren und warten zuerst auf Ihre Entscheidung. Stimmen Sie direkt in der Oberfläche oder per Handy zu oder lehnen Sie ab — ganz egal, wo Sie gerade sind.",
+    "bp_title": "Editionen & Preise",
+    "bp_free_t": "Privat",
+    "bp_free_d": "Für Einzelpersonen dauerhaft kostenlos. Open-Source-AGPLv3-Kern — ideal für Privatnutzung, Hobby-Projekte und Studium, ohne Kreditkarte.",
+    "bp_team_t": "Team",
+    "bp_team_d": "$9 pro Benutzer / Monat. Gemeinsame Arbeitsbereiche, Team-Kollaboration, Nutzungskontingente und Prioritäts-Support.",
+    "bp_ent_t": "Enterprise",
+    "bp_ent_d": "$29 pro Benutzer / Monat. SSO, Admin-Controls, dedizierter Betrieb, Audit-Logs und SLA-Support für Organisationen.",
+    "bp_cta": "Edition wählen — kostenlos starten, jederzeit upgraden"
   },
   "ja": {
     "hero_title": "学習する<span>エージェント</span>",
@@ -1247,7 +1295,19 @@
     "auth_err_session": "このパスワードリセットリンクは無効か期限切れです。",
     "auth_btn_updating": "更新中...",
     "pl_btn_repo": "⭐ GitHubリポジトリ",
-    "contact_telegram": "Telegram コミュニティ/サポート"
+    "contact_telegram": "Telegram コミュニティ/サポート",
+    "f31_title": "Agent ハブ",
+    "f31_desc": "ひとことでタスクを委任。自然な言葉でバックグラウンドのエージェントに任せると、進捗が見えるタスクカードで実行されます — 結果の確認、キャンセル、再実行をいつでもどうぞ。",
+    "f32_title": "どこでも承認",
+    "f32_desc": "危険な操作は一度止まり、先にあなたの判断を求めます。Web やスマホからそのまま同意・拒否できるので、離れた場所でも安全に承認できます。",
+    "bp_title": "エディションと価格",
+    "bp_free_t": "個人版",
+    "bp_free_d": "個人は永久無料。オープンソースの AGPLv3 コアで、趣味のプロジェクトや学習にもぴったり。",
+    "bp_team_t": "チーム版",
+    "bp_team_d": "$9/ユーザー/月。共有ワークスペース、チームでの共同作業、利用枠と優先サポートを提供。",
+    "bp_ent_t": "エンタープライズ版",
+    "bp_ent_d": "$29/ユーザー/月。SSO、管理者向け制御、専用デプロイ、監査ログ、SLA サポートを提供。",
+    "bp_cta": "エディションを選ぶ — 無料で始めて、いつでもアップグレード"
   },
   "ko": {
     "hero_title": "학습하는 <span>에이전트</span>",
@@ -1497,7 +1557,19 @@
     "auth_err_session": "비밀번호 재설정 링크가 유효하지 않거나 만료되었습니다.",
     "auth_btn_updating": "업데이트 중...",
     "pl_btn_repo": "⭐ GitHub 리포지토리",
-    "contact_telegram": "Telegram 커뮤니티/지원"
+    "contact_telegram": "Telegram 커뮤니티/지원",
+    "f31_title": "Agent 허브",
+    "f31_desc": "한 줄로 작업을 맡기세요. 자연스러운 말로 백그라운드 에이전트에게 일을 넘기면 진행 상황이 보이는 작업 카드로 실행됩니다 — 결과 확인과 취소, 재시도를 언제든 할 수 있습니다.",
+    "f32_title": "어디서나 승인",
+    "f32_desc": "위험한 작업은 멈추고 먼저 당신의 결정을 기다립니다. 웹 UI나 휴대폰에서 바로 동의하거나 거부하세요 — 자리를 비워도 안전하게 승인할 수 있습니다.",
+    "bp_title": "버전과 가격",
+    "bp_free_t": "개인용",
+    "bp_free_d": "개인은 영구 무료, 오픈소스 AGPLv3 코어. 개인 프로젝트와 취미, 학습에 적합하며 신용카드가 필요 없습니다.",
+    "bp_team_t": "팀용",
+    "bp_team_d": "$9/사용자/월. 공유 워크스페이스, 팀 협업, 사용량 할당량과 우선 지원을 제공합니다.",
+    "bp_ent_t": "엔터프라이즈용",
+    "bp_ent_d": "$29/사용자/월. SSO, 관리자 제어, 전용 배포, 감사 로그와 SLA 지원을 제공합니다.",
+    "bp_cta": "버전을 선택하세요 — 무료로 시작하고 언제든 업그레이드하세요"
   },
   "es": {
     "hero_title": "El Agente que <span>Aprende</span>",
@@ -1747,7 +1819,19 @@
     "auth_err_session": "Este enlace de restablecimiento no es válido o ha expirado.",
     "auth_btn_updating": "Actualizando...",
     "pl_btn_repo": "⭐ Repositorio GitHub",
-    "contact_telegram": "Comunidad y soporte de Telegram"
+    "contact_telegram": "Comunidad y soporte de Telegram",
+    "f31_title": "Centro de agentes",
+    "f31_desc": "Delega tareas con una sola frase. Encarga cualquier tarea en lenguaje natural a un agente en segundo plano — su tarjeta muestra el progreso en directo, con resultado, cancelación y reintento cuando quieras.",
+    "f32_title": "Aprueba desde cualquier lugar",
+    "f32_desc": "Las operaciones peligrosas se detienen y esperan tu decisión. Acepta o rechaza desde la interfaz o tu móvil — aprueba desde cualquier lugar, estés donde estés.",
+    "bp_title": "Ediciones y precios",
+    "bp_free_t": "Personal",
+    "bp_free_d": "Gratis para siempre, núcleo de código abierto AGPLv3. Pensado para uso personal, aficionados y estudiantes — sin tarjeta de crédito.",
+    "bp_team_t": "Equipo",
+    "bp_team_d": "$9 por usuario / mes. Espacios de trabajo compartidos, colaboración en equipo, cuotas de uso y soporte prioritario.",
+    "bp_ent_t": "Empresa",
+    "bp_ent_d": "$29 por usuario / mes. SSO, controles de administración, despliegue dedicado, registros de auditoría y soporte con SLA.",
+    "bp_cta": "Elige tu edición — empieza gratis y mejora de plan cuando quieras"
   },
   "it": {
     "hero_title": "L'Agente Che <span>Impara</span>",
@@ -1997,7 +2081,19 @@
     "auth_err_session": "Questo link di reimpostazione non è valido o è scaduto.",
     "auth_btn_updating": "Aggiornamento...",
     "pl_btn_repo": "⭐ Repository GitHub",
-    "contact_telegram": "Community e supporto Telegram"
+    "contact_telegram": "Community e supporto Telegram",
+    "f31_title": "Centro agenti",
+    "f31_desc": "Delega un compito con una sola frase. Affida qualsiasi attività a un agente in background — la scheda mostra avanzamento e risultato in tempo reale, con annullamento e nuovo tentativo in qualsiasi momento.",
+    "f32_title": "Approva ovunque",
+    "f32_desc": "Le operazioni pericolose si fermano e aspettano prima la tua decisione. Accetta o rifiuta dall'interfaccia o dal telefono — approva ovunque, anche lontano dal computer.",
+    "bp_title": "Edizioni e prezzi",
+    "bp_free_t": "Personale",
+    "bp_free_d": "Gratuito per sempre, nucleo open source AGPLv3. Ideale per uso personale, hobbisti e studenti — senza carta di credito.",
+    "bp_team_t": "Team",
+    "bp_team_d": "$9 per utente / mese. Spazi di lavoro condivisi, collaborazione di squadra, quote di utilizzo e supporto prioritario.",
+    "bp_ent_t": "Enterprise",
+    "bp_ent_d": "$29 per utente / mese. SSO, controlli amministrativi, distribuzione dedicata, log di audit e supporto SLA.",
+    "bp_cta": "Scegli la tua edizione — inizia gratis e passa al piano superiore quando vuoi"
   },
   "ar": {
     "hero_title": "الوكيل الذي <span>يتعلّم</span>",
@@ -2247,7 +2343,19 @@
     "auth_err_session": "رابط إعادة تعيين كلمة المرور غير صالح أو منتهي الصلاحية.",
     "auth_btn_updating": "جارٍ التحديث...",
     "pl_btn_repo": "⭐ مستودع GitHub",
-    "contact_telegram": "مجتمع ودعم تيليجرام"
+    "contact_telegram": "مجتمع ودعم تيليجرام",
+    "f31_title": "مركز الوكلاء",
+    "f31_desc": "فوّض المهام بسطر واحد. سلّم أي مهمة بلغة طبيعية إلى وكيل يعمل في الخلفية — تعرض بطاقته التقدّم مباشرةً، مع النتيجة والإلغاء وإعادة المحاولة في أي وقت.",
+    "f32_title": "وافق من أي مكان",
+    "f32_desc": "العمليات الخطرة تتوقف وتنتظر قرارك أولاً. وافق أو ارفض مباشرة من الواجهة أو هاتفك — حتى عندما تكون بعيداً عن جهازك.",
+    "bp_title": "الإصدارات والأسعار",
+    "bp_free_t": "النسخة الشخصية",
+    "bp_free_d": "مجانية للأبد بنواة مفتوحة المصدر AGPLv3. مصممة للأفراد والهواة والطلاب — بدون بطاقة ائتمان.",
+    "bp_team_t": "نسخة الفريق",
+    "bp_team_d": "$9 لكل مستخدم شهرياً. مساحات عمل مشتركة وتعاون بين الفريق وحصص استخدام ودعم ذو أولوية.",
+    "bp_ent_t": "نسخة المؤسسات",
+    "bp_ent_d": "$29 لكل مستخدم شهرياً. دخول موحّد SSO وضوابط مشرف ونشر مخصّص وسجلات تدقيق ودعم باتفاقية مستوى الخدمة SLA.",
+    "bp_cta": "اختر إصدارك — ابدأ مجاناً ورقِّ إصدارك في أي وقت"
   },
   "ru": {
     "hero_title": "Агент, который <span>учится</span>",
@@ -2497,6 +2605,18 @@
     "auth_err_session": "Ссылка для сброса пароля недействительна или истекла.",
     "auth_btn_updating": "Обновление...",
     "pl_btn_repo": "⭐ Репозиторий GitHub",
-    "contact_telegram": "Сообщество и поддержка Telegram"
+    "contact_telegram": "Сообщество и поддержка Telegram",
+    "f31_title": "Центр агентов",
+    "f31_desc": "Поручайте задачи одной строкой. Передайте любую задачу агенту на обычном языке — карточка показывает прогресс в реальном времени, результат, отмену и повтор в любой момент.",
+    "f32_title": "Одобряйте где угодно",
+    "f32_desc": "Опасные операции останавливаются и ждут вашего решения. Согласитесь или отклоните прямо в интерфейсе или на телефоне — даже вдали от компьютера.",
+    "bp_title": "Версии и цены",
+    "bp_free_t": "Личный",
+    "bp_free_d": "Бесплатно навсегда, ядро с открытым исходным кодом AGPLv3. Для личного использования, хобби-проектов и учёбы — без банковской карты.",
+    "bp_team_t": "Командный",
+    "bp_team_d": "$9 за пользователя в месяц. Общие рабочие пространства, командная работа, квоты использования и приоритетная поддержка.",
+    "bp_ent_t": "Корпоративный",
+    "bp_ent_d": "$29 за пользователя в месяц. SSO, контроль администратора, выделенное развёртывание, журналы аудита и поддержка по SLA.",
+    "bp_cta": "Выберите свою версию — начните бесплатно и измените тариф в любой момент"
   }
 }

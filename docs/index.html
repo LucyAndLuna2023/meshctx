@@ -270,9 +270,12 @@
             <div class="feature-card" style="border-color:#22c55e;"><div class="feature-icon">🔐</div><h3 data-lang-key="f20_title">Smart Permissions</h3><p data-lang-key="f20_desc">Learns your approval patterns over time. Auto-approves routine operations, escalates risky ones. 3-tier: YOLO / Smart / Manual.</p></div>
             <div class="feature-card" style="border-color:#8b5cf6;"><div class="feature-icon">🎯</div><h3 data-lang-key="f21_title">JEPA Router</h3><p data-lang-key="f21_desc">Predictive model selection using Fisher information geometry. Routes queries to the optimal model before you finish typing.</p></div>
             <div class="feature-card" style="border-color:#eab308;"><div class="feature-icon">📊</div><h3 data-lang-key="f22_title">Growth Tracker</h3><p data-lang-key="f22_desc">Tracks 6-dimensional capability growth: reasoning, memory, speed, accuracy, creativity, autonomy. Generates weekly evolution reports.</p></div>
+            <!-- ▼ Agent Hub / Task Cards (2026-09-02 新特性) ▼ -->
+            <div class="feature-card" style="border-color:#22d3ee;" role="article" aria-label="Agent Hub"><div class="feature-icon">📥</div><h3 data-lang-key="f31_title">Agent Hub</h3><p data-lang-key="f31_desc">One-line task delegation. Hand any task to a background agent in plain language — its task card shows live progress, result, cancel and retry, whenever you need.</p></div>
+            <div class="feature-card" style="border-color:#f472b6;" role="article" aria-label="Approve Anywhere"><div class="feature-icon">📲</div><h3 data-lang-key="f32_title">Approve Anywhere</h3><p data-lang-key="f32_desc">Dangerous operations pause and ask for your decision first. Agree or reject right from the UI or your phone — approve anywhere, even away from the desktop.</p></div>
         </div>
     </div>
-<</section>
+</section>
 
 <!-- ═══ SUPER BRAIN — 对你有什么用 ═══ -->
 <section style="background:linear-gradient(135deg,#1a1a2e,#171726);">
@@ -342,6 +345,19 @@
                 </div>
             </div>
         </div>
+    </div>
+</section>
+
+<!-- ═══ EDITIONS & PRICING (Personal / Team / Enterprise) ═══ -->
+<section id="pricing">
+    <div class="section-inner">
+        <h2 class="section-title"><span data-lang-key="bp_title">Editions &amp; Pricing</span></h2>
+        <div class="feature-grid">
+            <div class="feature-card" style="text-align:center;border-color:#4ade80;"><div class="feature-icon">🌱</div><h3 data-lang-key="bp_free_t">Personal</h3><p style="font-size:1.8rem;font-weight:700;color:var(--fg);margin:2px 0 8px;">$0</p><p data-lang-key="bp_free_d">Free forever, open-source AGPLv3 core. Built for individuals, hobbyists and students — no credit card required.</p></div>
+            <div class="feature-card" style="text-align:center;border-color:#38bdf8;"><div class="feature-icon">👥</div><h3 data-lang-key="bp_team_t">Team</h3><p style="font-size:1.8rem;font-weight:700;color:var(--fg);margin:2px 0 8px;">$9<span style="font-size:0.95rem;font-weight:400;color:var(--muted);">/user/month</span></p><p data-lang-key="bp_team_d">$9 per user / month. Shared workspaces, team collaboration, usage quotas and priority support for growing teams.</p></div>
+            <div class="feature-card" style="text-align:center;border-color:#a78bfa;"><div class="feature-icon">🏢</div><h3 data-lang-key="bp_ent_t">Enterprise</h3><p style="font-size:1.8rem;font-weight:700;color:var(--fg);margin:2px 0 8px;">$29<span style="font-size:0.95rem;font-weight:400;color:var(--muted);">/user/month</span></p><p data-lang-key="bp_ent_d">$29 per user / month. SSO, admin controls, dedicated deployment, audit logs and SLA-backed support for organizations.</p></div>
+        </div>
+        <p style="text-align:center;margin-top:24px;color:var(--muted);" data-lang-key="bp_cta">Choose your edition — start free, upgrade anytime.</p>
     </div>
 </section>
 
@@ -453,7 +469,8 @@ var pageMeta = {
     fr: {title: "MeshCtx — Le Premier Système d'Agents Auto-Évolutif au Monde", desc: "MeshCtx est une plateforme d'agents auto-améliorante open-core — framework AGPLv3 + cerveau à code source visible. Se souvient de tout, apprend de chaque tâche, orchestre plusieurs agents IA en parallèle."},
     de: {title: "MeshCtx — Selbstverbesserndes Agentensystem mit 17 Hirnregionen", desc: "MeshCtx ist eine Open-Core-Plattform für selbstverbessernde Agenten — AGPLv3-Framework + quelloffenes Gehirn. Merkt sich alles, lernt aus jeder Aufgabe, orchestriert mehrere KI-Agenten parallel."},
     it: {title: "MeshCtx — L'Agente Che Impara — Piattaforma con 17 Regioni Cerebrali", desc: "MeshCtx è una piattaforma agentiva open-core auto-migliorante — framework AGPLv3 + cervello a codice sorgente visibile. Ricorda tutto, impara da ogni compito, orchestra più agenti AI in parallelo."},
-    ar: {title: "MeshCtx — الوكيل الذي يتعلّم — منصة بـ 17 منطقة دماغية", desc: "MeshCtx هي منصة وكلاء ذاتية التحسين مفتوحة النواة — إطار عمل AGPLv3 + دماغ مفتوح المصدر. تتذكر كل شيء، وتتعلّم من كل مهمة، وتنسّق وكلاء ذكاء اصطناعي متعددين بالتوازي."}
+    ar: {title: "MeshCtx — الوكيل الذي يتعلّم — منصة بـ 17 منطقة دماغية", desc: "MeshCtx هي منصة وكلاء ذاتية التحسين مفتوحة النواة — إطار عمل AGPLv3 + دماغ مفتوح المصدر. تتذكر كل شيء، وتتعلّم من كل مهمة، وتنسّق وكلاء ذكاء اصطناعي متعددين بالتوازي."},
+    ru: {title: "MeshCtx — самообучающаяся агентная платформа с 17 областями мозга", desc: "MeshCtx — это open-core платформа самообучающихся агентов: фреймворк AGPLv3 + открытый исходный код мозга. Помнит всё, учится на каждой задаче и параллельно управляет несколькими ИИ-агентами."}
 };
 function switchLang(lang) {
     // If L not loaded yet (empty object or no 'en' key), save pending and return

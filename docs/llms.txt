@@ -1,12 +1,12 @@
 # MeshCtx — llms.txt
-# AI Agent accessibility for MeshCtx v2.9.4 documentation
-# Last updated: 2026-05-15
+# AI Agent accessibility for MeshCtx v3.121.7 documentation
+# Last updated: 2026-09-02
 
 ## MeshCtx
-MeshCtx is the world's first self-evolving AI agent platform with full-brain emulation (13 brain regions), code sandbox, project indexing, and Feishu notifications. Open-core: AGPLv3 framework + source-available brain algorithms.
+MeshCtx is the world's first self-evolving AI agent platform with full-brain emulation (17 brain regions), code sandbox, project indexing, Agent Hub task delegation and Feishu notifications. Open-core: AGPLv3 framework + source-available brain algorithms. Three editions: Personal (free, open-source AGPLv3), Team ($9/user/month) and Enterprise ($29/user/month).
 
 ## Core Features
-- 🧠 Super Brain: 13 brain regions (Hippocampal Replay, Amygdala Salience, Default Mode Network, Thalamic Gate, Cerebellar Forward Model, Basal Ganglia, ACC, Mirror Neurons, Insula, STDP Learner, Emotional Consolidation, IIT Consciousness)
+- 🧠 Super Brain: 17 brain regions (Hippocampal Replay, Amygdala Salience, Default Mode Network, Thalamic Gate, Cerebellar Forward Model, Basal Ganglia, ACC, Mirror Neurons, Insula, PFC Working Memory, Visual Cortex, NAcc Reward Prediction, Brainstem Autonomic, STDP Plasticity, IIT Integration, LTP Enhancement, Gnostic Field)
 - 🖥️ Code Sandbox: Safe Python/Bash/JS execution with Docker isolation + subprocess fallback + SSE streaming
 - 📂 Project Indexer: 15+ language symbol extraction, file change monitoring, /context command
 - 📨 Feishu Notifier: Card/text/deploy notifications with HMAC signature
@@ -15,6 +15,8 @@ MeshCtx is the world's first self-evolving AI agent platform with full-brain emu
 - 🧠 Hierarchical Memory (L0-L4) with Ebbinghaus Forgetting Curve
 - 🔄 Meta-Cognition: evaluate → extract → update → adjust
 - 🎭 Multi-Agent Orchestra with DAG decomposition
+- 🗂️ Agent Hub / Task Cards: one-line task delegation → background task cards with visible progress; cancel, retry and approve dangerous operations right from the UI or your phone
+- 💳 3 Editions: Personal (free forever, open-core AGPLv3) · Team ($9/user/month) · Enterprise ($29/user/month, SSO + admin controls)
 - 🔌 Plugin Marketplace: 9 built-in capability plugins (messaging / memory / security / monitoring)
 - 🌐 10-language i18n (EN/ZH/JA/KO/FR/DE/ES/IT/AR/RU)
 - 💻 Windows/Linux cross-platform (macOS pending)
@@ -27,11 +29,11 @@ MeshCtx is the world's first self-evolving AI agent platform with full-brain emu
 - Setup: /ui/setup | Chat: /ui/chat | Desktop: /ui/desktop
 
 ## Installation
-- Windows: meshctx-setup-v2.9.0.exe from GitHub Releases
+- Windows: meshctx-setup.exe from GitHub Releases (latest)
 - Linux: git clone + python3 -m venv .venv + pip install -e .
 - Start: mesctx start (Web) | mesctx desktop (Native window)
 
-## API Endpoints (v2.9)
+## API Endpoints (v3.121)
 ### System
 - GET /api/system/summary — System overview
 - GET /health — Health check
@@ -75,7 +77,7 @@ MeshCtx is the world's first self-evolving AI agent platform with full-brain emu
 - POST /api/plugins/uninstall/{name} — Uninstall
 
 ### Brain Monitor
-- GET /api/brain/status — 13-region brain status
+- GET /api/brain/status — 17-region brain status
 
 ## Project Structure
 - src/core/ — Core engine (sandbox, project_indexer, feishu_notify, super_brain, brain_router, free_energy, active_inference, global_workspace, homeostasis, metacognition, hybrid_reasoning)
