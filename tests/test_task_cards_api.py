@@ -132,6 +132,31 @@ class TestCreateList:
         assert body["plan"] == "free"
         assert body["limits"]["max_concurrent"] > 0
 
+    async def test_stream_terminal_ends(self, client):
+        """stream: 已完成卡立即回 final 并结束。"""
+        r = await client.post("/api/tasks/cards", json={"prompt": "job"})
+        cid = r.json()["card_id"]
+        import asyncio
+        # 等卡完成
+        for _ in range(100):
+            await asyncio.sleep(0.05)
+            rr = await client.get(f"/api/tasks/cards/{cid}")
+            if rr.status_code == 200 and rr.json()["status"] == "completed":
+                break
+        async with client.stream("GET", f"/api/tasks/cards/{cid}/stream") as resp:
+            assert resp.status_code == 200
+            chunks = []
+            async for line in resp.aiter_lines():
+                if line.startswith("data:"):
+                    chunks.append(line)
+                if len(chunks) >= 1 and '"event":"final"' in chunks[-1]:
+                    break
+        assert any('"event": "final"' in c or '"event":"final"' in c for c in chunks), "final 事件未到达"
+
+    async def test_stream_404(self, client):
+        async with client.stream("GET", "/api/tasks/cards/nope/stream") as resp:
+            assert resp.status_code == 404
+
 
 class TestApprove:
     async def test_approve_no_pending(self, client):

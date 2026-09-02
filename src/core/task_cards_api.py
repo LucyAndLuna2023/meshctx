@@ -143,6 +143,57 @@ async def get_card(card_id: str, request: Request):
     return card.to_dict()
 
 
+@router.get("/cards/{card_id}/stream")
+async def stream_card(card_id: str, request: Request):
+    """任务卡事件 SSE 流 (可选实时订阅; 前端可用轮询代替)。
+
+    语义: 连接后立即推送当前卡全量, 之后每 1s 推送增量 (status/timeline 变化);
+    卡进入终止态 (completed/failed/cancelled) 后推送 final 并结束。
+    前端简单做法: 用轮询 (/api/tasks/cards/{id}); 本端点供实时 UI 使用。
+    """
+    from fastapi.responses import StreamingResponse
+    from src.core.task_cards import CardStatus
+    owner = await _owner(request)
+    await _reject_anon(owner)
+    store = _store()
+    first = store.load(card_id)
+    if first is None:
+        raise HTTPException(404, f"任务卡 {card_id} 不存在")
+    if first.owner != owner:
+        raise HTTPException(403, "无权查看他人任务卡")
+
+    import asyncio
+    import json as _json
+
+    TERMINAL = (CardStatus.COMPLETED, CardStatus.FAILED, CardStatus.CANCELLED)
+
+    async def _gen():
+        last_sig = ""
+        while True:
+            card = store.load(card_id)
+            if card is None:
+                yield "data: {\"event\":\"gone\"}\n\n"
+                return
+            sig = f"{card.status.value}:{len(card.timeline)}:{card.updated_at}"
+            if sig != last_sig:
+                last_sig = sig
+                payload = card.to_dict()
+                if card.status in TERMINAL:
+                    yield f"data: {_json.dumps({'event':'final', 'card': payload})}\n\n"
+                    return
+                yield f"data: {_json.dumps({'event':'update', 'card': payload})}\n\n"
+            # 心跳
+            yield ": ping\n\n"
+            try:
+                await asyncio.wait_for(asyncio.sleep(1.0), timeout=2.0)
+            except Exception:
+                return
+
+    return StreamingResponse(_gen(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache",
+                                      "X-Accel-Buffering": "no"})
+
+
 @router.post("/cards/{card_id}/cancel")
 async def cancel_card(card_id: str, request: Request):
     """取消任务卡 (排队中直接取消; 运行中置 cancel_requested 优雅中断)。"""
