@@ -1,3 +1,17 @@
+## [3.122.0] - 2026-09-02
+### Added (004meshctx, Agent 派活中心大工程 — HeyClicky 借鉴)
+- **Agent 派活中心 (Task Cards)**: 一句话派活 → 后台任务卡 → 进度/结果/取消/重试
+  - src/core/task_cards.py: TaskCard 状态机 + TaskCardStore (原子 JSON, 0600) + HubQuota (接线 quota_manager/usage_meter) + CardWorker (独立线程池执行, 不阻塞 Web 事件循环)
+  - src/core/task_card_runner.py: 复用 run_agent_loop 统一循环, 事件 → 卡 timeline; 危险操作审批 (terminal rm/覆盖写/远程) 持久化等待
+  - /api/tasks/cards*: 派活/列表/详情/取消/重试/审批 (agree/reject/custom)/配额; owner 鉴权 (admin/key/local)
+  - templates/chat.html: 「🤖 派活」侧滑面板 (任务卡列表/审批按钮/配额), 2.5s 轮询
+  - worker 线程化修复: run_agent_loop 同步模型流不再饿死 HTTP (独立线程 + asyncio.run 每卡)
+  - 真实服务冒烟: 服务器全程健康, 卡后台完成, 错误正确落盘
+- **10 语言产品 i18n 补全**: chat.html LANG 补 ru 完整块 + 7 语言 hub 键; base.html LANG 补 ru 块 (126 键); i18n JSON +13 hub 键 ×10 (1440→1453)
+- **版本门控**: hub 路由三版全开 (个人/团队/企业), detect_edition 三态测试; team_hub.py stub (组织治理闭源边界)
+- **商业计划书**: §3.7 Agent 派活中心
+- 测试: 3653 passed / 59 skipped / 0 failed (含新增 41 hub tests)
+
 ## [3.121.5] - 2026-08-26
 ### Added / Changed (004meshctx, 用户"不遗留问题一次性解决")
 - **对话侧边栏常驻 (DSH 式)**: chat.html 左侧常驻对话列表 (chat-layout/sidebar), 复用 /api/conversations, 点击切换/删除, 新对话自动更新
