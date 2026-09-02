@@ -110,6 +110,8 @@ async def create_card(request: Request):
         card.extra["wall_clock"] = max(30, min(float(wc), 7200))
     card.extra["quota"] = q
     if not worker.enqueue(card):
+        # 入队失败 → 退回已扣额度 (P4 004meshctx)
+        hq.refund_spawn(owner)
         raise HTTPException(503, "任务队列未就绪 (worker 未启动)")
     hq.ensure_rules(owner, plan)
     return {"card_id": card.id, "status": card.status.value, "quota": q}
@@ -248,11 +250,14 @@ async def retry_card(card_id: str, request: Request):
         raise HTTPException(403, "无权操作他人任务卡")
     from src.core.task_cards import TaskCard, get_hub_quota
     worker = _worker()
-    q = get_hub_quota().try_consume_spawn(owner, plan=old.plan,
-                                          concurrent_now=worker.running_count())
+    hq = get_hub_quota()
+    q = hq.try_consume_spawn(owner, plan=old.plan,
+                             concurrent_now=worker.running_count())
     card = TaskCard(owner=owner, plan=old.plan, title=f"[重试] {old.title}",
                     prompt=old.prompt, model=old.model)
     if not worker.enqueue(card):
+        # 入队失败 → 退回已扣额度 (P4 004meshctx)
+        hq.refund_spawn(owner)
         raise HTTPException(503, "任务队列未就绪")
     return {"card_id": card.id, "retry_of": card_id, "status": card.status.value}
 
@@ -287,8 +292,13 @@ async def approve_card(card_id: str, request: Request):
         card2 = store.load(card_id)
         raise HTTPException(409, "审批请求已超时或已处理" if card2 and not card2.approval_pending
                            else "审批请求不存在")
-    # future 已 resolve → 卡线程 worker 会继续执行并最终落盘; 这里仅同步 pending 状态
-    # 便于轮询接口立即看到"已决策" (不重复 save, 避免与 worker 落盘竞争)
+    # 立即落盘 pending=None (store RLock 原子写) → 轮询 UI 即刻看到"已决策",
+    # 防重复点击 409 (P2 002codex); worker 线程后续覆盖为完整终态, 无部分写
+    fresh = store.load(card_id)
+    if fresh is not None and fresh.approval_pending:
+        fresh.approval_pending = None
+        fresh.touch()
+        store.save(fresh)
     return {"card_id": card_id, "action": action, "decided": True}
 
 
@@ -298,22 +308,12 @@ async def quota_status(request: Request):
     owner = await _owner(request)
     await _reject_anon(owner)
     plan = await _plan(request)
-    from src.core.task_cards import get_hub_quota, PLAN_LIMITS
+    from src.core.task_cards import get_hub_quota
     hq = get_hub_quota()
-    lim = PLAN_LIMITS.get(plan, PLAN_LIMITS["free"])
-    # 实际用量从 quota_manager 读 (先确保规则存在)
-    used = 0
-    qm = hq._get_qm()
-    if qm is not None:
-        try:
-            hq.ensure_rules(owner, plan)
-            _, remaining, _ = qm.check(f"{hq.QUOTA_KEY_DAILY}:{owner}", units=0)
-            used = max(0, lim["spawns_per_day"] - remaining)
-        except Exception:
-            pass
+    usage = hq.check_usage(owner, plan)
     worker = _worker()
-    return {"plan": plan, "limits": lim,
-            "used_today": used,
+    return {"plan": usage["plan"], "limits": usage["limits"],
+            "used_today": usage["used_today"],
             "running": worker.running_count()}
 
 

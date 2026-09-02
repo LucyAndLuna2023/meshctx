@@ -64,6 +64,7 @@ class TestRunCard:
             def __init__(self, store):
                 self._store = store
                 self._approval_futures = {}
+                self._approval_by_card = {}
                 self._approval_lock = __import__("threading").Lock()
             def register_approval(self, *a, **k):
                 pass
@@ -79,8 +80,11 @@ class TestRunCard:
             assert out["result"] == "结果完成"
             got = store.load(card.id)
             kinds = [e["kind"] for e in got.timeline]
-            assert "token" in kinds and "final" in kinds
+            assert "final" in kinds
             assert "tool_start" in kinds
+            # token 聚合计数, 不落 timeline 全文 (P2 002codex)
+            assert got.extra.get("token_count", 0) >= 1
+            assert "token" not in kinds
             assert got.result == "结果完成"
 
         asyncio.run(scenario())
@@ -101,6 +105,7 @@ class TestRunCard:
             def __init__(self, store):
                 self._store = store
                 self._approval_futures = {}
+                self._approval_by_card = {}
                 self._approval_lock = __import__("threading").Lock()
             def register_approval(self, *a, **k):
                 pass
@@ -136,6 +141,7 @@ class TestRunCard:
             def __init__(self, store):
                 self._store = store
                 self._approval_futures = {}
+                self._approval_by_card = {}
                 self._approval_lock = __import__("threading").Lock()
             def register_approval(self, *a, **k):
                 pass

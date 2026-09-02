@@ -24,7 +24,7 @@ import pathlib
 import threading
 import time
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
@@ -77,7 +77,7 @@ class TaskCard:
         self.extra: Dict[str, Any] = kw.get("extra") or {}
 
     def to_dict(self) -> Dict[str, Any]:
-        d = asdict(self) if False else {
+        return {
             "id": self.id, "owner": self.owner, "plan": self.plan,
             "title": self.title, "prompt": self.prompt, "model": self.model,
             "status": self.status.value if isinstance(self.status, CardStatus) else self.status,
@@ -87,7 +87,6 @@ class TaskCard:
             "approval_pending": self.approval_pending,
             "cancel_requested": self.cancel_requested, "extra": self.extra,
         }
-        return d
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "TaskCard":
@@ -295,6 +294,36 @@ class HubQuota:
         except Exception as e:
             logger.debug("usage record: %s", e)
 
+    def check_usage(self, owner: str, plan: str = "free") -> Dict[str, Any]:
+        """公共配额查询 (替代外部直调私有 _get_qm, P3 002codex/P4 004meshctx)。"""
+        qm = self._get_qm()
+        lim = self._limits(plan)
+        used = 0
+        if qm is not None:
+            try:
+                self.ensure_rules(owner, plan)
+                _, remaining, _ = qm.check(f"{self.QUOTA_KEY_DAILY}:{owner}", units=0)
+                used = max(0, lim["spawns_per_day"] - remaining)
+            except Exception:
+                pass
+        return {"plan": plan, "limits": lim, "used_today": used,
+                "remaining": max(0, lim["spawns_per_day"] - used)}
+
+    def refund_spawn(self, owner: str):
+        """退回一次派活额度 (入队失败等场景, P4 004meshctx)。"""
+        qm = self._get_qm()
+        if qm is None:
+            return
+        key = f"{self.QUOTA_KEY_DAILY}:{owner}"
+        try:
+            usage = qm.get_usage(key)
+            if usage is not None and usage.used > 0:
+                usage.used = max(0, usage.used - 1)
+                usage.last_updated = time.time()
+                qm._save()
+        except Exception as e:
+            logger.debug("quota refund: %s", e)
+
 
 _hub_quota: Optional[HubQuota] = None
 def get_hub_quota() -> HubQuota:
@@ -326,8 +355,10 @@ class CardWorker:
         self._started = False
         self._stopping = False
         self._state_lock = threading.Lock()
-        # 审批协调: request_id → asyncio.Future (worker loop 内创建)
+        # 审批协调: request_id → asyncio.Future (卡临时 loop 内创建)
         self._approval_futures: Dict[str, "asyncio.Future"] = {}
+        # card_id → set(request_id): 卡终结时清理防泄漏
+        self._approval_by_card: Dict[str, set] = {}
         self._approval_lock = threading.Lock()
 
     # ── 生命周期 ──
@@ -441,7 +472,12 @@ class CardWorker:
         return True
 
     def stop(self):
-        """停止 worker (线程安全; 非阻塞, 由调用方决定是否 join)。"""
+        """停止 worker (线程安全)。
+
+        线程模式: 投递清理到 worker loop 并同步 join;
+        loop 注入模式 (测试): 在当前 loop run_until_complete 清理 (防
+        "Task destroyed but pending" GC 警告, P3-1 004meshctx)。
+        """
         with self._state_lock:
             if not self._started:
                 return
@@ -450,14 +486,34 @@ class CardWorker:
         def _stop_in_loop():
             for t in list(self._running.values()):
                 t.cancel()
-            if self._consume_task is not None:
+            if self._consume_task is not None and not self._consume_task.done():
                 self._consume_task.cancel()
-            if self._loop is not None:
-                self._loop.call_later(0.5, self._loop.stop)
 
-        if self._loop is not None and not self._loop.is_closed():
-            self._submit(_stop_in_loop)
+        loop = self._loop
+        if loop is not None and not loop.is_closed():
+            if self._thread is not None:
+                # 线程模式: 投递后让线程 loop 执行并停止
+                self._submit(_stop_in_loop)
+                try:
+                    loop.call_later(0.3, loop.stop)
+                except RuntimeError:
+                    pass
+            else:
+                # loop 注入模式 (测试): 直接 run_until_complete 清理
+                try:
+                    loop.run_until_complete(
+                        asyncio.gather(*[t for t in self._running.values()],
+                                       return_exceptions=True))
+                    if self._consume_task is not None and not self._consume_task.done():
+                        self._consume_task.cancel()
+                        loop.run_until_complete(
+                            asyncio.gather(self._consume_task, return_exceptions=True))
+                except Exception:
+                    pass
         self._started = False
+        # 线程模式: 等待线程退出 (loop 已 stop)
+        if self._thread is not None:
+            self._thread.join(timeout=3.0)
 
     def join(self, timeout: float = 3.0):
         if self._thread and self._thread.is_alive():
@@ -514,11 +570,18 @@ class CardWorker:
     # ── 审批协调 (卡级 pending → Web decide → future resolve) ──
     def register_approval(self, card: TaskCard, request_id: str,
                           name: str, args: Dict, reason: str):
-        """agent 请求审批时: 落盘 pending + 登记 future (worker loop 内调用)。"""
+        """agent 请求审批时: 落盘 pending + 登记 future。
+
+        注: run_card 在卡的临时 asyncio.run loop 内调用本方法,
+        get_event_loop() 即该卡 loop; decide 经 fut.get_loop() 投递同 loop,
+        跨线程安全自洽。
+        """
         loop = asyncio.get_event_loop()
         fut: "asyncio.Future" = loop.create_future()
         with self._approval_lock:
             self._approval_futures[request_id] = fut
+            # 登记 card→request 映射, 供卡终结时清理 (防 future 泄漏)
+            self._approval_by_card.setdefault(card.id, set()).add(request_id)
         card.approval_pending = {
             "request_id": request_id, "name": name, "args": args,
             "reason": reason, "ts": time.time(), "card_id": card.id,
@@ -533,6 +596,11 @@ class CardWorker:
         fut = None
         with self._approval_lock:
             fut = self._approval_futures.pop(request_id, None)
+            # 同步清理 card→request 映射
+            for card_id, reqs in list(self._approval_by_card.items()):
+                reqs.discard(request_id)
+                if not reqs:
+                    self._approval_by_card.pop(card_id, None)
         if fut is None or fut.done():
             return False
         loop = fut.get_loop()
@@ -542,6 +610,27 @@ class CardWorker:
         except RuntimeError:
             return False
         return True
+
+    def cleanup_approvals_for_card(self, card_id: str):
+        """卡终结时清理其残留审批 future (防慢泄漏: 超时/取消卡永不 decide)。"""
+        with self._approval_lock:
+            reqs = self._approval_by_card.pop(card_id, None)
+            if not reqs:
+                return
+            removed = 0
+            for rid in reqs:
+                fut = self._approval_futures.pop(rid, None)
+                if fut is not None and not fut.done():
+                    try:
+                        loop = fut.get_loop()
+                        loop.call_soon_threadsafe(
+                            fut.set_result,
+                            {"action": "reject", "text": "[任务已终止] 审批请求取消"})
+                    except RuntimeError:
+                        pass
+                removed += 1
+            if removed:
+                logger.info("task_cards: 清理卡 %s 的 %d 个残留审批 future", card_id, removed)
 
     def pending_approval_card(self, card_id: str) -> Optional[Dict[str, Any]]:
         card = self._store.load(card_id)
@@ -555,7 +644,13 @@ class CardWorker:
             except asyncio.CancelledError:
                 break
             except Exception:
-                await asyncio.sleep(0.2)
+                # loop 关闭/停止中 → 直接退出 (防 "no running event loop")
+                if self._stopping or (self._loop is not None and self._loop.is_closed()):
+                    break
+                try:
+                    await asyncio.sleep(0.2)
+                except (asyncio.CancelledError, RuntimeError):
+                    break
                 continue
             card = self._store.load(card_id)
             if card is None or card.status == CardStatus.CANCELLED:
@@ -563,7 +658,10 @@ class CardWorker:
             # 并发上限 (soft)
             lim = PLAN_LIMITS.get(card.plan, PLAN_LIMITS["free"])
             if len(self._running) >= lim["max_concurrent"]:
-                await asyncio.sleep(0.5)
+                try:
+                    await asyncio.sleep(0.5)
+                except (asyncio.CancelledError, RuntimeError):
+                    break
                 self._queue.put_nowait(card_id)
                 continue
             t = asyncio.get_event_loop().create_task(self._run_one(card))
@@ -599,12 +697,14 @@ class CardWorker:
             if card:
                 card.mark(CardStatus.FAILED, error=str(e))
         finally:
-            # 保存内存中已更新的卡 (勿重新 load — 会读回旧状态覆盖新状态)
-            c = self._store.load(card_id)
-            if c is not None and card is not None and c.id == card.id:
-                card.updated_at = c.updated_at  # 保留磁盘时间戳无意义, 直接覆盖
+            # 保存最终卡状态 (card 已含本线程全部状态更新; 无需重新 load)
             if card is not None:
                 self._store.save(card)
+            # 清理该卡残留审批 future (超时/取消的审批 request 永不 decide → 防泄漏)
+            try:
+                self.cleanup_approvals_for_card(card_id)
+            except Exception:
+                pass
             with self._state_lock:
                 self._running.pop(card_id, None)
             try:

@@ -182,10 +182,14 @@ async def run_card(card, worker=None) -> Dict[str, Any]:
         ):
             kind = ev.get("type")
             if kind == "token":
-                card.log("token", text=ev.get("text", ""))
+                # 聚合 token 计数, 不逐条落盘全文 (防卡文件膨胀, P2 002codex)
+                card.extra.setdefault("token_count", 0)
+                card.extra["token_count"] += 1
                 last_text_parts.append(ev.get("text", ""))
             elif kind == "reasoning":
-                card.log("reasoning", text=ev.get("text", ""))
+                # reasoning 同样聚合: 仅记录条数
+                card.extra.setdefault("reasoning_chunks", 0)
+                card.extra["reasoning_chunks"] += 1
             elif kind == "round":
                 card.log("round", n=ev.get("round"), total=ev.get("total"))
             elif kind == "deliver":
@@ -215,8 +219,11 @@ async def run_card(card, worker=None) -> Dict[str, Any]:
                 card.log("interrupted", note=ev.get("note", ""))
                 # 取消由 worker 置 CANCELLED; 这里结束事件循环
                 break
-            # 事件流每 N 条落盘一次防状态丢失 (卡 JSON 为真相源)
+            # 事件流按节流落盘 (非逐 token; 防状态丢失, 卡 JSON 为真相源)
             if kind in ("tool_start", "tool_result", "approval_requested", "final", "error"):
+                # timeline 上限裁剪: 只保留最近 2000 条, 防长任务卡无限膨胀
+                if len(card.timeline) > 2000:
+                    card.timeline = card.timeline[-1500:]
                 worker._store.save(card)
     except Exception as e:
         # 取消是正常路径: InterruptSignal 由 interrupt_check 抛出
