@@ -10,6 +10,8 @@
 - **10 语言产品 i18n 补全**: chat.html LANG 补 ru 完整块 + 7 语言 hub 键; base.html LANG 补 ru 块 (126 键); i18n JSON +13 hub 键 ×10 (1440→1453)
 - **版本门控**: hub 路由三版全开 (个人/团队/企业), detect_edition 三态测试; team_hub.py stub (组织治理闭源边界)
 - **商业计划书**: §3.7 Agent 派活中心
+- **docs 子页 10 语言补全**: download.html 重建 (修复既有 JS 断裂) / getting-started.html /
+  test-report.html (修复双逗号损坏) — 均补 it/ar/ru + lang-select 选项
 - 测试: 3653 passed / 59 skipped / 0 failed (含新增 41 hub tests)
 
 ## [3.121.5] - 2026-08-26
