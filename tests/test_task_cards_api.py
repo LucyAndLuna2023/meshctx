@@ -39,7 +39,8 @@ async def isolated(tmp_dir, monkeypatch):
     try:
         yield w
     finally:
-        await w.stop()
+        w.stop()
+        w.join(timeout=3.0)
         tc._worker = old_worker
         tc.TaskCardStore = old_store_cls
 

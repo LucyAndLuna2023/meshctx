@@ -54,9 +54,11 @@ async def env(tmp_dir, monkeypatch):
     monkeypatch.setattr(runner_mod, "_resolve_exec_tool", lambda: (lambda *a, **k: "ok"))
 
     from src.core.task_card_runner import run_card
-    w = tc.get_card_worker()
+    # 独立 worker 实例 (不经全局单例, 避免跨测试污染)
+    w = tc.CardWorker()
     w._store = tc.TaskCardStore(base_dir=tmp_dir / "cards")
     w.start(run_fn=run_card)
+    tc._test_worker = w  # runner/waiter 经 get_card_worker 拿全局 → 测试内 patch
 
     # API app (owner/plan 固定 local/free)
     from src.core.task_cards_api import router
@@ -72,12 +74,15 @@ async def env(tmp_dir, monkeypatch):
 
     apimod._owner = _owner
     apimod._plan = _plan
+    # runner 内 get_card_worker() → 返回本测试独立 worker
+    monkeypatch.setattr(tc, "_worker", w)
     client = AsyncClient(transport=ASGITransport(app=a), base_url="http://t")
     try:
         yield client, approval_flow
     finally:
         await client.aclose()
-        await w.stop()
+        w.stop()
+        w.join(timeout=3.0)
         tc._worker = old_worker
         tc.TaskCardStore = old_store_cls
 

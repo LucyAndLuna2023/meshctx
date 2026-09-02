@@ -541,7 +541,7 @@ async def lifespan(app: FastAPI):
         _hub_worker = get_card_worker()
         _hub_worker.start(run_fn=_hub_run_card)
         app.state.task_cards_worker = _hub_worker
-        logger.info("🗂️ Task Cards Worker 已启动 (Agent 派活中心)")
+        logger.info("🗂️ Task Cards Worker 已启动 (Agent 派活中心, 独立线程)")
     except Exception as e:
         logger.warning(f"Task Cards Worker 启动跳过: {e}")
         app.state.task_cards_worker = None
@@ -568,7 +568,8 @@ async def lifespan(app: FastAPI):
     tw = getattr(app.state, "task_cards_worker", None)
     if tw:
         try:
-            await tw.stop()
+            tw.stop()
+            tw.join(timeout=3.0)
         except Exception as e:
             logger.warning(f"Task Cards Worker 停止异常: {e}")
     logger.info("meshctx v1.0 已停止")

@@ -125,89 +125,144 @@ class TestHubQuota:
 
 
 class TestCardWorker:
-    def test_enqueue_cancel_queued(self, tmp_dir):
-        import asyncio
-        from src.core.task_cards import CardWorker, TaskCard, TaskCardStore, CardStatus
+    def _make(self, tmp_dir, run_fn):
+        from src.core.task_cards import CardWorker, TaskCardStore
+        w = CardWorker()
+        w._store = TaskCardStore(base_dir=tmp_dir / "w")
+        w.start(run_fn=run_fn)
+        return w
 
-        async def scenario():
-            w = CardWorker()
-            w._store = TaskCardStore(base_dir=tmp_dir / "w")
-            c = TaskCard(owner="local", prompt="x")
-            w._store.save(c)
-            w._started = True
-            w._stopping = False
-            w._queue.put_nowait(c.id)
-            w.cancel(c.id)  # queued -> cancelled
-            card = w._store.load(c.id)
-            assert card.status == CardStatus.CANCELLED
-            await w.stop()
-
-        asyncio.run(scenario())
-
-    def test_run_one_success(self, tmp_dir):
-        import asyncio
-        from src.core.task_cards import CardWorker, TaskCard, TaskCardStore, CardStatus
+    def test_start_consume_end_to_end(self, tmp_dir):
+        import asyncio, time
+        from src.core.task_cards import TaskCard, CardStatus
 
         async def run_fn(card):
             await asyncio.sleep(0.01)
             return {"result": "done: " + card.prompt}
 
-        async def scenario():
-            w = CardWorker()
-            w._store = TaskCardStore(base_dir=tmp_dir / "w2")
-            w._run_fn = run_fn
+        w = self._make(tmp_dir, run_fn)
+        try:
             c = TaskCard(owner="local", prompt="hello")
-            w._store.save(c)
-            await w._run_one(c)
-            got = w._store.load(c.id)
-            assert got.status == CardStatus.COMPLETED
+            assert w.enqueue(c) is True
+            got = None
+            for _ in range(200):
+                time.sleep(0.02)
+                got = w._store.load(c.id)
+                if got and got.status in (CardStatus.COMPLETED, CardStatus.FAILED, CardStatus.CANCELLED):
+                    break
+            assert got is not None and got.status == CardStatus.COMPLETED, got.status if got else None
             assert got.result == "done: hello"
+        finally:
+            w.stop()
+            w.join(timeout=3.0)
 
-        asyncio.run(scenario())
-
-    def test_run_one_failure(self, tmp_dir):
-        import asyncio
-        from src.core.task_cards import CardWorker, TaskCard, TaskCardStore, CardStatus
+    def test_failure_sets_failed(self, tmp_dir):
+        import time
+        from src.core.task_cards import TaskCard, CardStatus
 
         async def run_fn(card):
             raise RuntimeError("boom")
 
-        async def scenario():
-            w = CardWorker()
-            w._store = TaskCardStore(base_dir=tmp_dir / "w3")
-            w._run_fn = run_fn
+        w = self._make(tmp_dir, run_fn)
+        try:
             c = TaskCard(owner="local", prompt="x")
-            w._store.save(c)
-            await w._run_one(c)
-            got = w._store.load(c.id)
-            assert got.status == CardStatus.FAILED
-            assert "boom" in (got.error or "")
-
-        asyncio.run(scenario())
-
-    def test_start_consume_end_to_end(self, tmp_dir):
-        import asyncio
-        from src.core.task_cards import CardWorker, TaskCard, TaskCardStore, CardStatus
-
-        async def run_fn(card):
-            await asyncio.sleep(0.01)
-            return {"result": "ok"}
-
-        async def scenario():
-            w = CardWorker()
-            w._store = TaskCardStore(base_dir=tmp_dir / "w4")
-            w.start(run_fn=run_fn)
-            c = TaskCard(owner="local", prompt="job")
-            w.enqueue(c)
-            # wait until completed
-            for _ in range(100):
-                await asyncio.sleep(0.02)
+            assert w.enqueue(c) is True
+            got = None
+            for _ in range(200):
+                time.sleep(0.02)
                 got = w._store.load(c.id)
                 if got and got.status in (CardStatus.COMPLETED, CardStatus.FAILED, CardStatus.CANCELLED):
-                    assert got.status == CardStatus.COMPLETED
                     break
-            else:
-                pytest.fail("card never finished")
-            await w.stop()
+            assert got is not None and got.status == CardStatus.FAILED
+            assert "boom" in (got.error or "")
+        finally:
+            w.stop()
+            w.join(timeout=3.0)
 
-        asyncio.run(scenario())
+    def test_cancel_queued(self, tmp_dir):
+        import time
+        from src.core.task_cards import TaskCard, CardStatus
+
+        async def run_fn(card):
+            import asyncio
+            await asyncio.sleep(2)
+            return {"result": "slow"}
+
+        w = self._make(tmp_dir, run_fn)
+        try:
+            c = TaskCard(owner="local", prompt="job")
+            assert w.enqueue(c) is True
+            assert w.cancel(c.id) is True
+            # 排队取消是异步投递, 轮询直到状态确认
+            got = None
+            for _ in range(200):
+                time.sleep(0.02)
+                got = w._store.load(c.id)
+                if got and got.status == CardStatus.CANCELLED:
+                    break
+            assert got is not None and got.status == CardStatus.CANCELLED
+        finally:
+            w.stop()
+            w.join(timeout=3.0)
+
+    def test_running_cancel(self, tmp_dir):
+        import time
+        from src.core.task_cards import TaskCard, CardStatus
+
+        async def run_fn(card):
+            import asyncio
+            await asyncio.sleep(3)  # 足够久以便先看到 running 再 cancel
+            return {"result": "done"}
+
+        w = self._make(tmp_dir, run_fn)
+        try:
+            c = TaskCard(owner="local", prompt="slow-job")
+            assert w.enqueue(c) is True
+            got = None
+            for _ in range(200):
+                time.sleep(0.02)
+                got = w._store.load(c.id)
+                if got and got.status == CardStatus.RUNNING:
+                    break
+            assert got is not None and got.status == CardStatus.RUNNING
+            w.cancel(c.id)
+            cancelled = False
+            for _ in range(200):
+                time.sleep(0.02)
+                got2 = w._store.load(c.id)
+                if got2 and got2.status in (CardStatus.CANCELLED, CardStatus.FAILED):
+                    cancelled = True
+                    break
+            assert cancelled, "running 卡取消后应进入终止态"
+        finally:
+            w.stop()
+            w.join(timeout=3.0)
+
+    def test_approval_register_decide(self, tmp_dir):
+        """审批协调: register (worker loop 外也可注册? 实际在 loop 内) — 直接验证 decide 幂等。"""
+        import asyncio
+        from src.core.task_cards import CardWorker, TaskCard, TaskCardStore, CardStatus
+        # 用显式 loop 模式 (测试注入)
+        w = CardWorker()
+        w._store = TaskCardStore(base_dir=tmp_dir / "w5")
+        loop = asyncio.new_event_loop()
+        w.start(run_fn=lambda c: None, loop=loop)
+        try:
+            c = TaskCard(owner="local", prompt="x")
+            # 在 loop 内注册 future
+            asyncio.set_event_loop(loop)
+            fut = loop.create_future()
+            w._approval_futures["req-test"] = fut
+            # 模拟 waiter 已挂起
+            async def waiter():
+                return await fut
+            task = loop.create_task(waiter())
+            assert w.decide_approval("req-test", "agree") is True
+            loop.run_until_complete(asyncio.wait_for(task, timeout=2))
+            assert task.result() == {"action": "agree", "text": ""}
+            # 二次 decide 应 False (已弹出)
+            assert w.decide_approval("req-test", "agree") is False
+        finally:
+            w.stop()
+            w.join(timeout=2.0)
+            loop.close()

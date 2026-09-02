@@ -303,79 +303,147 @@ def get_hub_quota() -> HubQuota:
 
 # ═══ 后台 Worker (编排 run_agent_loop) ═══
 class CardWorker:
-    """全局 asyncio 队列消费者 — 由 FastAPI lifespan 启动。
+    """后台任务卡 worker — 独立线程 + 专属事件循环。
 
-    run_fn: Optional 执行回调 (T2 注入 run_agent_loop 链; 单测注入 fake 便于验证编排)。
+    设计 (2026-09-02, 004meshctx 排查): run_agent_loop 内部同步迭代模型流
+    (openai SDK for-chunk), 若直接跑在 uvicorn 主事件循环的后台任务里,
+    同步网络等待会饿死所有 HTTP 响应 → worker 必须跑在独立线程的专属
+    asyncio loop 上。enqueue/cancel/decide 从任意线程调用, 经
+    call_soon_threadsafe 投递到 worker loop, 线程安全。
     """
 
     def __init__(self):
         self._store = TaskCardStore()
-        self._queue: "asyncio.Queue[str]" = asyncio.Queue()
-        self._task: Optional[asyncio.Task] = None
-        self._running: Dict[str, asyncio.Task] = {}
+        self._queue: "asyncio.Queue[str]" = asyncio.Queue()  # 仅 worker loop 内访问
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._thread: Optional[threading.Thread] = None
+        self._consume_task: Optional[asyncio.Task] = None
+        self._running: Dict[str, asyncio.Task] = {}   # 仅 worker loop 内访问
         self._run_fn: Optional[Callable[[TaskCard], Awaitable[Dict[str, Any]]]] = None
         self._started = False
         self._stopping = False
-        # 审批协调: card_id → asyncio.Future (等待 Web /api/tasks/cards/{id}/approve 决定)
+        self._state_lock = threading.Lock()
+        # 审批协调: request_id → asyncio.Future (worker loop 内创建)
         self._approval_futures: Dict[str, "asyncio.Future"] = {}
         self._approval_lock = threading.Lock()
 
     # ── 生命周期 ──
     def start(self, run_fn: Optional[Callable[[TaskCard], Awaitable[Dict[str, Any]]]] = None,
               loop: Optional[asyncio.AbstractEventLoop] = None):
-        if self._started:
+        with self._state_lock:
+            if self._started:
+                return
+            self._run_fn = run_fn
+            self._started = True
+            self._stopping = False
+            self._queue = asyncio.Queue()  # 绑定 worker loop
+        if loop is not None:
+            # 测试注入: 直接用给定 loop (调用方负责 run_until_complete/close)
+            self._loop = loop
+            self._consume_task = loop.create_task(self._consume())
             return
-        self._run_fn = run_fn
-        self._started = True
-        self._stopping = False
-        loop = loop or asyncio.get_event_loop()
-        self._task = loop.create_task(self._consume())
+        self._thread = threading.Thread(target=self._thread_main,
+                                        name="task-cards-worker", daemon=True)
+        self._thread.start()
 
-    async def stop(self):
-        self._stopping = True
-        for t in list(self._running.values()):
-            t.cancel()
-        if self._task:
-            self._task.cancel()
+    def _thread_main(self):
+        """worker 线程: 专属事件循环常驻。"""
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        self._loop = loop
+        self._consume_task = loop.create_task(self._consume())
+        try:
+            loop.run_forever()
+        finally:
             try:
-                await self._task
-            except (asyncio.CancelledError, Exception):
+                loop.run_until_complete(loop.shutdown_asyncgens())
+            except Exception:
                 pass
+            loop.close()
+            self._loop = None
+
+    def _submit(self, fn, *args):
+        """投递到 worker loop (任意线程可调)。"""
+        if self._loop is None or self._loop.is_closed():
+            return False
+        self._loop.call_soon_threadsafe(fn, *args)
+        return True
+
+    def stop(self):
+        """停止 worker (线程安全; 非阻塞, 由调用方决定是否 join)。"""
+        with self._state_lock:
+            if not self._started:
+                return
+            self._stopping = True
+
+        def _stop_in_loop():
+            for t in list(self._running.values()):
+                t.cancel()
+            if self._consume_task is not None:
+                self._consume_task.cancel()
+            if self._loop is not None:
+                self._loop.call_later(0.5, self._loop.stop)
+
+        if self._loop is not None and not self._loop.is_closed():
+            self._submit(_stop_in_loop)
         self._started = False
+
+    def join(self, timeout: float = 3.0):
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=timeout)
 
     # ── 对外 ──
     def enqueue(self, card: TaskCard) -> bool:
-        """入队并立即落盘。返回是否成功入队。"""
-        if self._stopping or not self._started:
-            return False
+        """入队并立即落盘 (任意线程可调)。返回是否成功入队。"""
+        with self._state_lock:
+            if self._stopping or not self._started:
+                return False
         self._store.save(card)
-        self._queue.put_nowait(card.id)
-        return True
+        return self._submit(self._queue.put_nowait, card.id)
 
     def cancel(self, card_id: str) -> bool:
-        """请求取消: 置 cancel_requested 并尝试取消正在跑的任务。"""
+        """请求取消 (线程安全)。
+
+        语义:
+        - QUEUED (尚未被 worker 领取): 同步置 CANCELLED — consume 领取时
+          重新 load 会看到 CANCELLED 而跳过。
+        - RUNNING/WAITING_APPROVAL: 置 cancel_requested 落盘 + 投递 task.cancel()
+          (agent 循环 interrupt_check 也会读到落盘的 cancel_requested)。
+        """
         card = self._store.load(card_id)
         if card is None:
             return False
         card.cancel_requested = True
-        self._store.save(card)
-        t = self._running.get(card_id)
-        if t is not None:
-            t.cancel()
-            return True
-        # 排队中: 直接标记取消
         if card.status == CardStatus.QUEUED:
+            # 未被领取 → 同步标记取消 (consume 后到会跳过)
             card.mark(CardStatus.CANCELLED, error="cancelled before start")
             self._store.save(card)
+            return True
+        # RUNNING / WAITING_APPROVAL: 落盘标志 + 取消运行中 task
+        self._store.save(card)
+        if self._loop is not None and not self._loop.is_closed():
+            def _cancel_in_loop():
+                t = self._running.get(card_id)
+                if t is not None:
+                    t.cancel()
+                # 若还在队列 (极少见窗口), 移除
+                try:
+                    self._queue._queue.remove(card_id)
+                except (ValueError, AttributeError):
+                    pass
+            self._submit(_cancel_in_loop)
         return True
 
     def running_count(self) -> int:
+        if self._loop is None or self._loop.is_closed():
+            return 0
+        # _running 仅 worker loop 内变更; 读近似值即可 (CPython dict len 原子)
         return len(self._running)
 
     # ── 审批协调 (卡级 pending → Web decide → future resolve) ──
     def register_approval(self, card: TaskCard, request_id: str,
                           name: str, args: Dict, reason: str):
-        """agent 请求审批时: 落盘 pending + 登记 future (循环所在线程)。"""
+        """agent 请求审批时: 落盘 pending + 登记 future (worker loop 内调用)。"""
         loop = asyncio.get_event_loop()
         fut: "asyncio.Future" = loop.create_future()
         with self._approval_lock:
@@ -390,24 +458,25 @@ class CardWorker:
         return fut
 
     def decide_approval(self, request_id: str, action: str, text: str = "") -> bool:
-        """Web 端决定: 写回卡并 resolve future。返回是否找到。"""
+        """Web 端决定: 写回卡并 resolve future (任意线程可调)。"""
         fut = None
         with self._approval_lock:
             fut = self._approval_futures.pop(request_id, None)
         if fut is None or fut.done():
             return False
-        # 由调用线程触发 (decide 来自 HTTP 协程 → run_until_complete 不安全,
-        # 用 call_soon_threadsafe 交给事件循环)
         loop = fut.get_loop()
-        loop.call_soon_threadsafe(
-            fut.set_result, {"action": action, "text": text})
+        try:
+            loop.call_soon_threadsafe(
+                fut.set_result, {"action": action, "text": text})
+        except RuntimeError:
+            return False
         return True
 
     def pending_approval_card(self, card_id: str) -> Optional[Dict[str, Any]]:
         card = self._store.load(card_id)
         return card.approval_pending if card else None
 
-    # ── 内部 ──
+    # ── 内部 (worker loop 内) ──
     async def _consume(self):
         while not self._stopping:
             try:
@@ -422,45 +491,74 @@ class CardWorker:
                 continue
             # 并发上限 (soft)
             lim = PLAN_LIMITS.get(card.plan, PLAN_LIMITS["free"])
-            if self.running_count() >= lim["max_concurrent"]:
-                # 不丢卡: 退回队列等待 (轮询式回队, 简单可靠)
+            if len(self._running) >= lim["max_concurrent"]:
                 await asyncio.sleep(0.5)
                 self._queue.put_nowait(card_id)
                 continue
             t = asyncio.get_event_loop().create_task(self._run_one(card))
             self._running[card_id] = t
-        self._started = False
+        # loop.stop 由 stop() 调度
 
-    async def _run_one(self, card: TaskCard):
-        card.mark(CardStatus.RUNNING)
-        self._store.save(card)
+    def _run_card_in_thread(self, card_id: str):
+        """在独立线程跑一张卡 (run_agent_loop 内部同步迭代 SDK 流, 不能占用
+        worker 调度 loop — 每个卡一个临时线程 + asyncio.run, 互不阻塞)。"""
+        import asyncio as _ai
         try:
+            card = self._store.load(card_id)
+            if card is None or card.status == CardStatus.CANCELLED:
+                return
             if self._run_fn is None:
                 raise RuntimeError("CardWorker.run_fn not set (lifespan 未注入执行器)")
-            out = await self._run_fn(card)
+            out = _ai.run(self._run_fn(card))
+            card = self._store.load(card_id) or card
             if card.cancel_requested:
                 card.mark(CardStatus.CANCELLED, error="cancelled by user")
             else:
                 card.mark(CardStatus.COMPLETED, result=out.get("result") or "")
                 if out.get("error"):
                     card.error = out["error"]
-            # 审批残留清理
             card.approval_pending = None
         except asyncio.CancelledError:
-            card.mark(CardStatus.CANCELLED, error="cancelled by user")
+            card = self._store.load(card_id)
+            if card:
+                card.mark(CardStatus.CANCELLED, error="cancelled by user")
         except Exception as e:
-            logger.exception("task card %s failed", card.id)
-            card.mark(CardStatus.FAILED, error=str(e))
+            logger.exception("task card %s failed (thread)", card_id)
+            card = self._store.load(card_id)
+            if card:
+                card.mark(CardStatus.FAILED, error=str(e))
         finally:
-            self._store.save(card)
-            self._running.pop(card.id, None)
+            # 保存内存中已更新的卡 (勿重新 load — 会读回旧状态覆盖新状态)
+            c = self._store.load(card_id)
+            if c is not None and card is not None and c.id == card.id:
+                card.updated_at = c.updated_at  # 保留磁盘时间戳无意义, 直接覆盖
+            if card is not None:
+                self._store.save(card)
+            with self._state_lock:
+                self._running.pop(card_id, None)
             try:
-                self._store.prune(card.owner)
+                self._store.prune(card.owner if card else "local")
             except Exception:
                 pass
 
+    async def _run_one(self, card: TaskCard):
+        # 竞态防护: 领取后/启动前可能被 cancel 同步置 CANCELLED → 重新 load 最新态
+        fresh = self._store.load(card.id)
+        if fresh is not None:
+            card = fresh
+        if card.status == CardStatus.CANCELLED:
+            self._running.pop(card.id, None)
+            return
+        card.mark(CardStatus.RUNNING)
+        self._store.save(card)
+        # 同步阻塞型 agent 执行 → 线程池 (每卡独立线程, 不占 worker 调度 loop)
+        await asyncio.to_thread(self._run_card_in_thread, card.id)
+        self._running.pop(card.id, None)
 
-_worker: Optional[CardWorker] = None
+
+_worker: Optional["CardWorker"] = None
+
+
 def get_card_worker() -> CardWorker:
     global _worker
     if _worker is None:
@@ -472,12 +570,9 @@ def reset_worker_for_tests():
     """测试用: 重置全局 worker/store (避免跨测试污染)。"""
     global _worker
     w = _worker
-    if w is not None and w._started:
-        import asyncio
-        try:
-            asyncio.get_event_loop().run_until_complete(w.stop())
-        except Exception:
-            pass
+    if w is not None:
+        w.stop()
+        w.join(timeout=2.0)
     _worker = None
     import shutil
     try:

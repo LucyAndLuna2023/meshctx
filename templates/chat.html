@@ -413,6 +413,53 @@ body {
 .chat-sidebar .sb-item.active { background: var(--user-bg); border-left: 3px solid var(--accent); }
 .chat-sidebar .sb-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-sidebar .sb-del { color: var(--red); opacity: 0.6; cursor: pointer; font-size: 12px; padding: 0 3px; }
+
+/* ---- Agent 派活中心 (Task Cards, 2026-09-02 004meshctx) ---- */
+#hubBtn { background: transparent; border: 1px solid var(--border); color: var(--text);
+  border-radius: 6px; padding: 3px 10px; font-size: 13px; cursor: pointer; margin-left: 4px; white-space: nowrap; }
+#hubBtn:hover { border-color: var(--accent); }
+.hub-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 900; }
+.hub-overlay.show { display: block; }
+.hub-panel { position: fixed; top: 0; right: 0; width: 380px; max-width: 92vw; height: 100%;
+  background: var(--surface); border-left: 1px solid var(--border); z-index: 901;
+  display: flex; flex-direction: column; transform: translateX(100%);
+  transition: transform 0.22s ease; box-shadow: -12px 0 40px rgba(0,0,0,0.35); }
+.hub-panel.show { transform: translateX(0); }
+.hub-head { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex;
+  align-items: center; justify-content: space-between; }
+.hub-head h3 { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 6px; }
+.hub-close { background: transparent; border: none; color: var(--muted); font-size: 18px; cursor: pointer; }
+.hub-body { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.hub-spawn { display: flex; gap: 6px; }
+.hub-spawn input { flex: 1; background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px; }
+.hub-spawn button { background: var(--accent); color: #fff; border: none; border-radius: 6px;
+  padding: 8px 14px; font-size: 13px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.hub-spawn button:disabled { opacity: 0.6; cursor: not-allowed; }
+.hub-quota { font-size: 12px; color: var(--muted); padding: 2px 2px 0; }
+.hub-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+  background: var(--bg); display: flex; flex-direction: column; gap: 6px; }
+.hub-card .hc-title { font-size: 13px; color: var(--text); word-break: break-all; display: flex; gap: 8px; align-items: center; }
+.hub-card .hc-status { font-size: 11px; padding: 1px 8px; border-radius: 10px; white-space: nowrap; }
+.hc-status.queued { background: #64748b33; color: var(--muted); }
+.hc-status.running { background: #3b82f622; color: #60a5fa; }
+.hc-status.waiting_approval { background: #f59e0b22; color: #fbbf24; }
+.hc-status.completed { background: #22c55e22; color: #4ade80; }
+.hc-status.failed { background: #ef444422; color: #f87171; }
+.hc-status.cancelled { background: #64748b33; color: var(--muted); }
+.hub-card .hc-meta { font-size: 11px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
+.hub-card .hc-result { font-size: 12px; color: var(--text); background: var(--surface);
+  border-radius: 6px; padding: 6px 8px; max-height: 110px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+.hub-card .hc-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.hub-card .hc-actions button { background: transparent; border: 1px solid var(--border);
+  color: var(--muted); border-radius: 5px; padding: 2px 9px; font-size: 11px; cursor: pointer; }
+.hub-card .hc-actions button:hover { border-color: var(--accent); color: var(--text); }
+.hub-card .hc-pending { font-size: 12px; color: #fbbf24; background: #f59e0b14;
+  border: 1px solid #f59e0b44; border-radius: 6px; padding: 6px 8px; }
+.hub-card .hc-pending code { font-size: 11px; }
+.hub-card .hc-pending .hp-btns { margin-top: 6px; display: flex; gap: 6px; }
+.hub-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 30px 10px; }
+.hub-tip { font-size: 11px; color: var(--muted); text-align: center; padding: 4px; }
 .chat-sidebar .sb-del:hover { opacity: 1; }
 .chat-sidebar .sb-empty { padding: 16px; color: var(--muted); font-size: 12px; text-align: center; }
 .chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
@@ -454,6 +501,7 @@ body {
     <div class="conv-dropdown" id="convDropdown" style="display:none"></div>
   </span>
   <button onclick="toggleChatTheme()" id="chatThemeBtn" title="切换主题" style="font-size:14px;">☀️</button>
+  <button id="hubBtn" onclick="toggleHubPanel()" title="Agent 派活中心" data-lang-key="hub_title">🤖 派活</button>
   <span style="flex:1"></span>
   <a href="/ui/" style="color:var(--muted);text-decoration:none;font-size:13px" data-lang-key="chat_console">← 控制台</a>
 </div>
@@ -475,6 +523,24 @@ body {
 </div>
 </div><!-- /chat-main -->
 </div><!-- /chat-layout -->
+<!-- Agent 派活中心 (Task Cards, 2026-09-02) -->
+<div class="hub-overlay" id="hubOverlay" onclick="toggleHubPanel()"></div>
+<div class="hub-panel" id="hubPanel">
+  <div class="hub-head">
+    <h3>🤖 <span data-lang-key="hub_title">Agent 派活中心</span></h3>
+    <button class="hub-close" onclick="toggleHubPanel()">✕</button>
+  </div>
+  <div class="hub-body">
+    <div class="hub-spawn">
+      <input id="hubPrompt" data-lang-key-placeholder="hub_prompt_ph"
+             placeholder="一句话派活，如：读 README 总结项目结构" onkeydown="if(event.key==='Enter')spawnCard()">
+      <button id="hubSpawnBtn" onclick="spawnCard()" data-lang-key="hub_spawn_btn">派活</button>
+    </div>
+    <div class="hub-quota" id="hubQuota"></div>
+    <div id="hubCards"></div>
+    <div class="hub-tip" id="hubTip" style="display:none"></div>
+  </div>
+</div>
 <!-- v3.115.30: Keyboard-confirm panel -->
 <div class="confirm-panel" id="confirmPanel">
   <div class="confirm-title">🔐 <span data-lang-key="confirm_title">需要你的确认</span></div>
@@ -603,7 +669,12 @@ const LANG = {
     confirm_agree_reply:"Yes, go ahead.",
     confirm_reject_reply:"No, do not proceed.",
     confirm_nav_hint:"Navigate", confirm_enter_hint:"Confirm", confirm_esc_hint:"Cancel",
-    confirm_custom_ph:"Custom handling (e.g. keep first 10 lines / save elsewhere / new filename)..."
+    confirm_custom_ph:"Custom handling (e.g. keep first 10 lines / save elsewhere / new filename)...",
+    hub_title:"Agent Hub", hub_prompt_ph:"One-line task, e.g. read README and summarize the project",
+    hub_spawn_btn:"Deploy", hub_empty:"No task cards yet — type one line and let the Agent work",
+    hub_approval_req:"Needs approval:", hub_quota:"quota", hub_quota_running:"running",
+    hub_status_queued:"Queued", hub_status_running:"Running", hub_status_waiting_approval:"Awaiting approval",
+    hub_status_completed:"Done", hub_status_failed:"Failed", hub_status_cancelled:"Cancelled"
   },
   zh: {
     chat_new:"➕ 新对话", chat_console:"← 控制台",
@@ -626,7 +697,12 @@ const LANG = {
     confirm_agree_reply:"同意，请继续。",
     confirm_reject_reply:"拒绝，不要执行。",
     confirm_nav_hint:"选择", confirm_enter_hint:"确认", confirm_esc_hint:"取消",
-    confirm_custom_ph:"自定义处理（如：只保留前10行 / 改存到其他路径 / 换一个文件名）..."
+    confirm_custom_ph:"自定义处理（如：只保留前10行 / 改存到其他路径 / 换一个文件名）...",
+    hub_title:"Agent 派活中心", hub_prompt_ph:"一句话派活，如：读 README 总结项目结构",
+    hub_spawn_btn:"派活", hub_empty:"还没有任务卡 — 输入一句话让 Agent 干活吧",
+    hub_approval_req:"需确认:", hub_quota:"配额", hub_quota_running:"运行中",
+    hub_status_queued:"排队", hub_status_running:"执行中", hub_status_waiting_approval:"待审批",
+    hub_status_completed:"完成", hub_status_failed:"失败", hub_status_cancelled:"已取消"
   },
   ja: {
     chat_new:"➕ 新しいチャット", chat_console:"← コンソール",
@@ -817,6 +893,105 @@ function changeLang(lang) {
 const savedLang = localStorage.getItem('meshctx-lang') || 'en';
 changeLang(savedLang);
 if (document.getElementById('langSelect')) document.getElementById('langSelect').value = savedLang;
+
+// ===== Agent 派活中心 (Task Cards, 2026-09-02) =====
+let hubTimer = null;
+function toggleHubPanel(){
+  const p = document.getElementById('hubPanel'), o = document.getElementById('hubOverlay');
+  const show = !p.classList.contains('show');
+  p.classList.toggle('show', show);
+  if (o) o.classList.toggle('show', show);
+  if (show) { loadHubCards(); loadHubQuota(); startHubPoll(); if (hubTimer===null){} }
+  else stopHubPoll();
+}
+function stopHubPoll(){ if (hubTimer) { clearInterval(hubTimer); hubTimer = null; } }
+function startHubPoll(){ stopHubPoll(); hubTimer = setInterval(loadHubCards, 2500); }
+async function spawnCard(){
+  const inp = document.getElementById('hubPrompt'), btn = document.getElementById('hubSpawnBtn');
+  const prompt = (inp.value||'').trim();
+  if (!prompt) { inp.focus(); return; }
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/tasks/cards', { method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({prompt: prompt}) });
+    const d = await r.json();
+    if (!r.ok) { alert('派活失败: ' + (d.detail || d.error || r.status)); return; }
+    inp.value = '';
+    loadHubCards();
+  } catch(e){ alert('派活失败: ' + e.message); }
+  finally { btn.disabled = false; }
+}
+function hubLabel(st){
+  const m = { queued:'hub_status_queued', running:'hub_status_running',
+    waiting_approval:'hub_status_waiting_approval', completed:'hub_status_completed',
+    failed:'hub_status_failed', cancelled:'hub_status_cancelled' };
+  return t(m[st] || st);
+}
+function escHtml(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmtTs(ts){ if(!ts) return ''; const d = new Date(ts*1000); const p=n=>String(n).padStart(2,'0');
+  return d.getMonth()+1+'/'+d.getDate()+' '+p(d.getHours())+':'+p(d.getMinutes()); }
+async function loadHubCards(){
+  try {
+    const r = await fetch('/api/tasks/cards?limit=30');
+    const d = await r.json();
+    const box = document.getElementById('hubCards');
+    if (!box) return;
+    if (!r.ok || !d.cards) { box.innerHTML = '<div class="hub-empty">无法加载任务卡</div>'; return; }
+    if (!d.cards.length) { box.innerHTML = '<div class="hub-empty">' + t('hub_empty') + '</div>'; return; }
+    box.innerHTML = d.cards.map(renderHubCard).join('');
+  } catch(e){ /* 面板打开时静默重试 */ }
+}
+function renderHubCard(c){
+  const st = c.status || 'queued';
+  const lbl = hubLabel(st);
+  let pendingHtml = '';
+  if (st === 'waiting_approval' && c.approval_pending) {
+    const ap = c.approval_pending;
+    pendingHtml = `<div class="hc-pending">🔐 <span data-lang-key="hub_approval_req">需确认:</span> <code>${escHtml(ap.name)} ${escHtml(JSON.stringify(ap.args||{}))}</code>
+      <div class="hp-btns">
+        <button onclick="hubApprove('${c.id}','agree')" style="border-color:#22c55e;color:#4ade80;">✅ 同意</button>
+        <button onclick="hubApprove('${c.id}','reject')" style="border-color:#ef4444;color:#f87171;">❌ 拒绝</button>
+      </div></div>`;
+  }
+  let actions = '';
+  if (st === 'running' || st === 'queued') actions += `<button onclick="hubCancel('${c.id}')">⏹ 取消</button>`;
+  if (st === 'failed' || st === 'cancelled') actions += `<button onclick="hubRetry('${c.id}')">🔄 重试</button>`;
+  const resultHtml = (st==='completed' && c.result) ? `<div class="hc-result">${escHtml(c.result)}</div>` : '';
+  const errHtml = (st==='failed' && c.error) ? `<div class="hc-result" style="color:#f87171;">${escHtml(c.error)}</div>` : '';
+  return `<div class="hub-card">
+    <div class="hc-title"><span class="hc-status ${escHtml(st)}">${escHtml(lbl)}</span><span style="flex:1">${escHtml(c.title||c.prompt||c.id)}</span></div>
+    ${pendingHtml}
+    ${resultHtml}${errHtml}
+    <div class="hc-meta"><span>#${escHtml(c.id)}</span><span>${fmtTs(c.created_at)}</span>${actions?`<span style="flex:1"></span>`:''}</div>
+    <div class="hc-actions">${actions}</div>
+  </div>`;
+}
+async function hubCancel(id){
+  try { await fetch('/api/tasks/cards/'+id+'/cancel', {method:'POST'}); loadHubCards(); } catch(e){}
+}
+async function hubRetry(id){
+  try { const r = await fetch('/api/tasks/cards/'+id+'/retry', {method:'POST'});
+    if (r.ok) loadHubCards(); } catch(e){}
+}
+async function hubApprove(id, action){
+  try {
+    const r = await fetch('/api/tasks/cards/'+id+'/approve', { method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({action: action}) });
+    if (!r.ok) { const d = await r.json().catch(()=>({})); alert('审批失败: ' + (d.detail||r.status)); }
+    loadHubCards();
+  } catch(e){ alert('审批失败: ' + e.message); }
+}
+async function loadHubQuota(){
+  try {
+    const r = await fetch('/api/tasks/quota');
+    const d = await r.json();
+    const el = document.getElementById('hubQuota');
+    if (!el) return;
+    if (!r.ok || !d.limits) { el.textContent = ''; return; }
+    el.textContent = '📊 ' + t('hub_quota') + ' ' + (d.used_today||0) + '/' + d.limits.spawns_per_day
+      + ' · ' + (d.running||0) + '/' + d.limits.max_concurrent + ' ' + t('hub_quota_running');
+  } catch(e){}
+}
 
 // ===== Chat Logic =====
 let messages = [];

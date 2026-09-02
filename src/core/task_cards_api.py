@@ -191,7 +191,8 @@ async def approve_card(card_id: str, request: Request):
     text = str(body.get("text") or "")
     owner = await _owner(request)
     await _reject_anon(owner)
-    card = _store().load(card_id)
+    store = _store()
+    card = store.load(card_id)
     if card is None:
         raise HTTPException(404, f"任务卡 {card_id} 不存在")
     if card.owner != owner:
@@ -204,12 +205,11 @@ async def approve_card(card_id: str, request: Request):
     found = worker.decide_approval(req_id, action, text)
     if not found:
         # 可能已超时/已处理 → 回读最新状态
-        card2 = _store().load(card_id)
+        card2 = store.load(card_id)
         raise HTTPException(409, "审批请求已超时或已处理" if card2 and not card2.approval_pending
                            else "审批请求不存在")
-    # 决定已 resolve future → worker 会更新卡; 这里先清 pending 提示
-    card.approval_pending = None
-    _store().save(card)
+    # future 已 resolve → 卡线程 worker 会继续执行并最终落盘; 这里仅同步 pending 状态
+    # 便于轮询接口立即看到"已决策" (不重复 save, 避免与 worker 落盘竞争)
     return {"card_id": card_id, "action": action, "decided": True}
 
 

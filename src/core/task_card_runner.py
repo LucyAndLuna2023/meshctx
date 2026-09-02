@@ -115,12 +115,15 @@ def make_approval_handlers(card, worker):
         import asyncio
         w = get_card_worker()
         # 事件 yield 后 register_approval 才会注册 future → 短暂等待
-        fut = w._approval_futures.get(request_id)
+        def _get_fut():
+            with w._approval_lock:
+                return w._approval_futures.get(request_id)
+        fut = _get_fut()
         for _ in range(100):
             if fut is not None:
                 break
             await asyncio.sleep(0.05)
-            fut = w._approval_futures.get(request_id)
+            fut = _get_fut()
         if fut is None:
             return {"action": "reject", "text": "[审批不可用] 自动拒绝"}
         try:
@@ -150,7 +153,6 @@ async def run_card(card, worker=None) -> Dict[str, Any]:
     if worker is None:
         from src.core.task_cards import get_card_worker
         worker = get_card_worker()
-
     client = _resolve_client(card)
     tools = _resolve_tools()
     exec_tool = _resolve_exec_tool()
