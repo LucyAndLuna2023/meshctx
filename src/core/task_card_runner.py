@@ -188,13 +188,13 @@ async def run_card(card, worker=None) -> Dict[str, Any]:
             elif kind == "deliver":
                 card.log("deliver", text=ev.get("text", ""))
             elif kind == "approval":
-                # 事件到达 → 注册 pending (waiter 已 await future)
+                # 先记 timeline 再落盘 (register 内部会 save, 保证事件已写入)
                 req_id = ev.get("request_id", "")
                 reason = _needs_approval(ev.get("name", ""), ev.get("args") or {})
+                card.log("approval_requested", name=ev.get("name"),
+                         reason=ev.get("reason") or reason or "需确认")
                 worker.register_approval(card, req_id, ev.get("name", ""),
                                          ev.get("args") or {}, ev.get("reason") or reason or "需确认")
-                card.log("approval_requested", name=ev.get("name"),
-                         reason=ev.get("reason"))
             elif kind == "tool_start":
                 card.log("tool_start", name=ev.get("name"), args=ev.get("args"))
             elif kind == "tool_result":
