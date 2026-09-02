@@ -1485,7 +1485,20 @@
         "name": "Arabic",
         "native": "العربية"
       }
-    ]
+    ],
+    "hub_title": "Agent 派活中心",
+    "hub_prompt_ph": "一句话派活，如：读 README 总结项目结构",
+    "hub_spawn_btn": "派活",
+    "hub_empty": "还没有任务卡 — 输入一句话让 Agent 干活吧",
+    "hub_approval_req": "需确认:",
+    "hub_quota": "配额",
+    "hub_quota_running": "运行中",
+    "hub_status_queued": "排队",
+    "hub_status_running": "执行中",
+    "hub_status_waiting_approval": "待审批",
+    "hub_status_completed": "完成",
+    "hub_status_failed": "失败",
+    "hub_status_cancelled": "已取消"
   },
   "en": {
     " (等待": " (Waiting",
@@ -2973,7 +2986,20 @@
     "🧠 元认知状态": "🧠 Metacognitive Status",
     "🧠 训练": "🧠 Training",
     "🩺 自愈链路": "🩺 Self-Healing Pipeline",
-    "chat_interrupt_toast": "⏹ Interrupted previous task, processing new message..."
+    "chat_interrupt_toast": "⏹ Interrupted previous task, processing new message...",
+    "hub_title": "Agent Hub",
+    "hub_prompt_ph": "One-line task, e.g. read README and summarize the project",
+    "hub_spawn_btn": "Deploy",
+    "hub_empty": "No task cards yet — type one line and let the Agent work",
+    "hub_approval_req": "Needs approval:",
+    "hub_quota": "quota",
+    "hub_quota_running": "running",
+    "hub_status_queued": "Queued",
+    "hub_status_running": "Running",
+    "hub_status_waiting_approval": "Awaiting approval",
+    "hub_status_completed": "Done",
+    "hub_status_failed": "Failed",
+    "hub_status_cancelled": "Cancelled"
   },
   "ja": {
     " (等待": " (待機",
@@ -4461,7 +4487,20 @@
         "name": "Arabic",
         "native": "العربية"
       }
-    ]
+    ],
+    "hub_title": "Agent ハブ",
+    "hub_prompt_ph": "一言でタスク指定（例：READMEを読んで構成を要約）",
+    "hub_spawn_btn": "実行",
+    "hub_empty": "タスクカードはまだありません — 一言でエージェントに任せよう",
+    "hub_approval_req": "確認が必要:",
+    "hub_quota": "クォータ",
+    "hub_quota_running": "実行中",
+    "hub_status_queued": "待機中",
+    "hub_status_running": "実行中",
+    "hub_status_waiting_approval": "承認待ち",
+    "hub_status_completed": "完了",
+    "hub_status_failed": "失敗",
+    "hub_status_cancelled": "キャンセル済み"
   },
   "ko": {
     " (等待": " (대기",
@@ -5949,7 +5988,20 @@
         "name": "Arabic",
         "native": "العربية"
       }
-    ]
+    ],
+    "hub_title": "Agent 허브",
+    "hub_prompt_ph": "한 줄로 작업 지정 (예: README 읽고 구조 요약)",
+    "hub_spawn_btn": "실행",
+    "hub_empty": "아직 작업 카드가 없습니다 — 한 줄로 에이전트에게 맡기세요",
+    "hub_approval_req": "확인 필요:",
+    "hub_quota": "할당량",
+    "hub_quota_running": "실행 중",
+    "hub_status_queued": "대기 중",
+    "hub_status_running": "실행 중",
+    "hub_status_waiting_approval": "승인 대기",
+    "hub_status_completed": "완료",
+    "hub_status_failed": "실패",
+    "hub_status_cancelled": "취소됨"
   },
   "fr": {
     " (等待": " (En attente",
@@ -7437,7 +7489,20 @@
         "name": "Arabic",
         "native": "العربية"
       }
-    ]
+    ],
+    "hub_title": "Centre d'agents",
+    "hub_prompt_ph": "Tâche en une phrase, ex. lis le README et résume",
+    "hub_spawn_btn": "Lancer",
+    "hub_empty": "Aucune carte de tâche — donnez une phrase à l'agent",
+    "hub_approval_req": "Action à confirmer:",
+    "hub_quota": "quota",
+    "hub_quota_running": "en cours",
+    "hub_status_queued": "En file",
+    "hub_status_running": "En cours",
+    "hub_status_waiting_approval": "En attente d'approbation",
+    "hub_status_completed": "Terminé",
+    "hub_status_failed": "Échec",
+    "hub_status_cancelled": "Annulé"
   },
   "de": {
     " (等待": " (Warten",
@@ -8925,7 +8990,20 @@
         "name": "Arabic",
         "native": "العربية"
       }
-    ]
+    ],
+    "hub_title": "Agent-Hub",
+    "hub_prompt_ph": "Aufgabe in einem Satz, z. B. README lesen und zusammenfassen",
+    "hub_spawn_btn": "Starten",
+    "hub_empty": "Noch keine Aufgabenkarten — gib dem Agenten einen Satz",
+    "hub_approval_req": "Bestätigung nötig:",
+    "hub_quota": "Kontingent",
+    "hub_quota_running": "läuft",
+    "hub_status_queued": "Wartet",
+    "hub_status_running": "Läuft",
+    "hub_status_waiting_approval": "Freigabe ausstehend",
+    "hub_status_completed": "Fertig",
+    "hub_status_failed": "Fehlgeschlagen",
+    "hub_status_cancelled": "Abgebrochen"
   },
   "es": {
     " (等待": " (Esperando",
@@ -10413,7 +10491,20 @@
         "name": "Arabic",
         "native": "العربية"
       }
-    ]
+    ],
+    "hub_title": "Centro de agentes",
+    "hub_prompt_ph": "Tarea en una frase, p. ej. lee el README y resume",
+    "hub_spawn_btn": "Ejecutar",
+    "hub_empty": "Aún no hay tarjetas — dale una frase al agente",
+    "hub_approval_req": "Requiere confirmación:",
+    "hub_quota": "cuota",
+    "hub_quota_running": "en ejecución",
+    "hub_status_queued": "En cola",
+    "hub_status_running": "Ejecutando",
+    "hub_status_waiting_approval": "Esperando aprobación",
+    "hub_status_completed": "Completado",
+    "hub_status_failed": "Fallido",
+    "hub_status_cancelled": "Cancelado"
   },
   "it": {
     " (等待": " (attesa",
@@ -11901,7 +11992,20 @@
     "🧠 元认知状态": "🧠 Stato di metacognizione",
     "🧠 训练": "🧠 Addestramento",
     "🩺 自愈链路": "🩺 Catena di auto-riparazione",
-    "chat_interrupt_toast": "⏹ Attività precedente interrotta, elaborazione del nuovo messaggio..."
+    "chat_interrupt_toast": "⏹ Attività precedente interrotta, elaborazione del nuovo messaggio...",
+    "hub_title": "Centro agenti",
+    "hub_prompt_ph": "Compito in una frase, es. leggi il README e riassumi",
+    "hub_spawn_btn": "Esegui",
+    "hub_empty": "Nessuna scheda attività — dai una frase all'agente",
+    "hub_approval_req": "Conferma richiesta:",
+    "hub_quota": "quota",
+    "hub_quota_running": "in esecuzione",
+    "hub_status_queued": "In coda",
+    "hub_status_running": "In esecuzione",
+    "hub_status_waiting_approval": "In attesa di approvazione",
+    "hub_status_completed": "Completato",
+    "hub_status_failed": "Fallito",
+    "hub_status_cancelled": "Annullato"
   },
   "ar": {
     " (等待": " (في الانتظار",
@@ -13343,7 +13447,20 @@
     "🧠 元认知状态": "🧠 حالة ما وراء المعرفة",
     "🧠 训练": "🧠 تدريب",
     "🩺 自愈链路": "🩺 سلسلة الإصلاح الذاتي",
-    "chat_interrupt_toast": "⏹ تم إيقاف المهمة السابقة، جاري معالجة الرسالة الجديدة..."
+    "chat_interrupt_toast": "⏹ تم إيقاف المهمة السابقة، جاري معالجة الرسالة الجديدة...",
+    "hub_title": "مركز الوكلاء",
+    "hub_prompt_ph": "مهمة بجملة واحدة، مثل: اقرأ README ولخّص المشروع",
+    "hub_spawn_btn": "تنفيذ",
+    "hub_empty": "لا توجد بطاقات مهام بعد — اكتب جملة واحدة ليعمل الوكيل",
+    "hub_approval_req": "يتطلب تأكيدًا:",
+    "hub_quota": "الحصة",
+    "hub_quota_running": "قيد التشغيل",
+    "hub_status_queued": "في الانتظار",
+    "hub_status_running": "قيد التشغيل",
+    "hub_status_waiting_approval": "بانتظار الموافقة",
+    "hub_status_completed": "مكتمل",
+    "hub_status_failed": "فشل",
+    "hub_status_cancelled": "أُلغي"
   },
   "ru": {
     " (等待": " (ожидание",
@@ -14831,6 +14948,19 @@
     "🧠 元认知状态": "🧠 Статус метакогниции",
     "🧠 训练": "🧠 Обучение",
     "🩺 自愈链路": "🩺 Цепочка самовосстановления",
-    "chat_interrupt_toast": "⏹ Предыдущая задача прервана, обрабатываю новое сообщение..."
+    "chat_interrupt_toast": "⏹ Предыдущая задача прервана, обрабатываю новое сообщение...",
+    "hub_title": "Центр агентов",
+    "hub_prompt_ph": "Задача одной фразой, напр. прочитай README и опиши проект",
+    "hub_spawn_btn": "Запустить",
+    "hub_empty": "Карточек задач пока нет — напишите одну фразу, и агент начнёт",
+    "hub_approval_req": "Требуется подтверждение:",
+    "hub_quota": "квота",
+    "hub_quota_running": "выполняется",
+    "hub_status_queued": "В очереди",
+    "hub_status_running": "Выполняется",
+    "hub_status_waiting_approval": "Ожидает подтверждения",
+    "hub_status_completed": "Готово",
+    "hub_status_failed": "Ошибка",
+    "hub_status_cancelled": "Отменено"
   }
 }
