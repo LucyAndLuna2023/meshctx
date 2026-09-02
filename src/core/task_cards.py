@@ -356,8 +356,11 @@ class CardWorker:
                     break
                 time.sleep(0.02)
 
-    def _recover_interrupted(self):
+    def _recover_interrupted(self, max_age_hours: float = 6.0):
         """进程重启后恢复遗留卡: running/queued (上次中断未完成) 重新入队。
+
+        只恢复 created_at 在 RECOVER_WINDOW (默认最近 6h) 内的卡 — 防止
+        重启时把很久以前的僵尸卡全部重跑 (坏模型 key 会逐个长阻塞队列)。
 
         - queued: 直接重新入队
         - running: 标记回 queued 重新执行 (卡内 timeline 保留, 结果会覆盖)
@@ -369,7 +372,26 @@ class CardWorker:
             cards = self._store.list_cards()
         except Exception:
             return
-        for card in cards:
+        cutoff = time.time() - max_age_hours * 3600
+        for card in sorted(cards, key=lambda c: c.created_at):
+            if card.created_at < cutoff:
+                # 僵尸卡 (超出恢复窗口): running/waiting 转 failed 标记, queued 丢弃
+                try:
+                    if card.status in (CardStatus.RUNNING, CardStatus.WAITING_APPROVAL):
+                        fresh = self._store.load(card.id)
+                        if fresh:
+                            fresh.mark(CardStatus.FAILED,
+                                       error="服务重启且超出恢复窗口, 任务已终止 — 请重新派发")
+                            self._store.save(fresh)
+                            logger.info("task_cards: 超窗卡 %s 终止 (created %.0fs 前)",
+                                        card.id, time.time() - card.created_at)
+                    elif card.status == CardStatus.QUEUED:
+                        # 从未开始且超窗 → 直接清理
+                        self._store.delete(card.id)
+                        logger.info("task_cards: 超窗排队卡 %s 清理", card.id)
+                except Exception as e:
+                    logger.warning("task_cards: 超窗卡 %s 处理失败: %s", card.id, e)
+                continue
             try:
                 if card.status == CardStatus.QUEUED:
                     self._submit(self._queue.put_nowait, card.id)

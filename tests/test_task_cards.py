@@ -315,3 +315,51 @@ class TestCardWorker:
         finally:
             w.stop()
             w.join(timeout=3.0)
+
+    def test_recover_skips_stale_cards(self, tmp_dir):
+        """超窗 (>6h) 的 running/queued 卡不重跑: running→failed, queued 丢弃。"""
+        import time
+        from src.core.task_cards import CardWorker, TaskCard, TaskCardStore, CardStatus
+
+        async def run_fn(card):
+            import asyncio
+            await asyncio.sleep(0.05)
+            return {"result": "ok"}
+
+        store = TaskCardStore(base_dir=tmp_dir / "stale")
+        old = time.time() - 7 * 3600  # 7h 前
+        c_stale_run = TaskCard(owner="local", prompt="old")
+        c_stale_run.created_at = old
+        c_stale_run.mark(CardStatus.RUNNING)
+        store.save(c_stale_run)
+        c_stale_q = TaskCard(owner="local", prompt="oldq")
+        c_stale_q.created_at = old
+        c_stale_q.mark(CardStatus.QUEUED)
+        store.save(c_stale_q)
+        # 近期卡应恢复
+        c_fresh = TaskCard(owner="local", prompt="new")
+        c_fresh.mark(CardStatus.QUEUED)
+        store.save(c_fresh)
+
+        w = CardWorker()
+        w._store = store
+        w.start(run_fn=run_fn, recover=True)
+        try:
+            g1 = store.load(c_stale_run.id)
+            assert g1.status == CardStatus.FAILED, g1.status
+            assert "恢复窗口" in (g1.error or ""), g1.error
+            # stale queued: 直接清理删除
+            g2 = store.load(c_stale_q.id)
+            assert g2 is None, "超窗排队卡应被清理"
+            # fresh 卡应完成
+            done = False
+            for _ in range(100):
+                time.sleep(0.05)
+                gf = store.load(c_fresh.id)
+                if gf and gf.status == CardStatus.COMPLETED:
+                    done = True
+                    break
+            assert done, "近期卡未恢复完成"
+        finally:
+            w.stop()
+            w.join(timeout=3.0)
