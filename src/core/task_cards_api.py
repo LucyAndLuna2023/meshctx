@@ -71,7 +71,8 @@ async def _reject_anon(owner: str):
 
 @router.post("/cards")
 async def create_card(request: Request):
-    """一句话派活 → 入队后台任务卡。body: {prompt|message, model?, title?, plan?}"""
+    """一句话派活 → 入队后台任务卡。body: {prompt|message, model?, title?, plan?,
+    max_rounds?, wall_clock?(秒, 默认300, 范围30-7200)}"""
     import json
     try:
         body = await request.json()
@@ -101,6 +102,12 @@ async def create_card(request: Request):
                     title=str(body.get("title") or prompt[:60]),
                     prompt=prompt,
                     model=str(body.get("model") or ""))
+    # 可选执行参数: max_rounds (固定轮次), wall_clock (秒, 默认 300)
+    if body.get("max_rounds"):
+        card.extra["max_rounds"] = int(body["max_rounds"])
+    wc = body.get("wall_clock")
+    if wc:
+        card.extra["wall_clock"] = max(30, min(float(wc), 7200))
     card.extra["quota"] = q
     if not worker.enqueue(card):
         raise HTTPException(503, "任务队列未就绪 (worker 未启动)")

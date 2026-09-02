@@ -157,6 +157,25 @@ class TestCreateList:
         async with client.stream("GET", "/api/tasks/cards/nope/stream") as resp:
             assert resp.status_code == 404
 
+    async def test_create_with_wall_clock(self, client):
+        """create 接受 wall_clock/max_rounds 并存进卡 extra。"""
+        r = await client.post("/api/tasks/cards", json={
+            "prompt": "任务", "wall_clock": 120, "max_rounds": 3})
+        assert r.status_code == 200
+        cid = r.json()["card_id"]
+        rr = await client.get(f"/api/tasks/cards/{cid}")
+        assert rr.status_code == 200
+        d = rr.json()
+        assert d["extra"]["wall_clock"] == 120.0
+        assert d["extra"]["max_rounds"] == 3
+
+    async def test_wall_clock_clamped(self, client):
+        """wall_clock 超范围被钳制 (30-7200)。"""
+        r = await client.post("/api/tasks/cards", json={"prompt": "x", "wall_clock": 5})
+        cid = r.json()["card_id"]
+        d = (await client.get(f"/api/tasks/cards/{cid}")).json()
+        assert d["extra"]["wall_clock"] == 30.0
+
 
 class TestApprove:
     async def test_approve_no_pending(self, client):

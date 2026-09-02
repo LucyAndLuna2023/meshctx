@@ -163,7 +163,8 @@ async def run_card(card, worker=None) -> Dict[str, Any]:
     last_text_parts: List[str] = []
     error = None
     max_rounds = int(getattr(card, "extra", {}).get("max_rounds") or 0)
-    wall_clock = float(getattr(card, "extra", {}).get("wall_clock") or 1800)
+    # 默认 300s (5分钟) — 一句话派活不宜长挂; 长任务可经 API 传 wall_clock
+    wall_clock = float(getattr(card, "extra", {}).get("wall_clock") or 300)
 
     card.log("run_start", model=getattr(client, "model_id", None) or "",
              prompt_len=len(card.prompt or ""))
