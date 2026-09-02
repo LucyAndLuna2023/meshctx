@@ -329,7 +329,8 @@ class CardWorker:
 
     # ── 生命周期 ──
     def start(self, run_fn: Optional[Callable[[TaskCard], Awaitable[Dict[str, Any]]]] = None,
-              loop: Optional[asyncio.AbstractEventLoop] = None):
+              loop: Optional[asyncio.AbstractEventLoop] = None,
+              recover: bool = True):
         with self._state_lock:
             if self._started:
                 return
@@ -341,10 +342,55 @@ class CardWorker:
             # 测试注入: 直接用给定 loop (调用方负责 run_until_complete/close)
             self._loop = loop
             self._consume_task = loop.create_task(self._consume())
+            if recover:
+                self._recover_interrupted()
             return
         self._thread = threading.Thread(target=self._thread_main,
                                         name="task-cards-worker", daemon=True)
         self._thread.start()
+        if recover:
+            # 等待 worker loop 就绪后恢复遗留卡 (running/queued)
+            for _ in range(100):
+                if self._loop is not None:
+                    self._recover_interrupted()
+                    break
+                time.sleep(0.02)
+
+    def _recover_interrupted(self):
+        """进程重启后恢复遗留卡: running/queued (上次中断未完成) 重新入队。
+
+        - queued: 直接重新入队
+        - running: 标记回 queued 重新执行 (卡内 timeline 保留, 结果会覆盖)
+        - waiting_approval: 审批未来已随进程丢失 → 标记 failed (需用户重新派发)
+        """
+        if self._loop is None or self._loop.is_closed():
+            return
+        try:
+            cards = self._store.list_cards()
+        except Exception:
+            return
+        for card in cards:
+            try:
+                if card.status == CardStatus.QUEUED:
+                    self._submit(self._queue.put_nowait, card.id)
+                    logger.info("task_cards: 恢复排队卡 %s", card.id)
+                elif card.status == CardStatus.RUNNING:
+                    fresh = self._store.load(card.id)
+                    if fresh:
+                        fresh.mark(CardStatus.QUEUED, error=None)
+                        fresh.cancel_requested = False
+                        self._store.save(fresh)
+                    self._submit(self._queue.put_nowait, card.id)
+                    logger.info("task_cards: 恢复中断卡 %s (running→queued)", card.id)
+                elif card.status == CardStatus.WAITING_APPROVAL:
+                    fresh = self._store.load(card.id)
+                    if fresh:
+                        fresh.mark(CardStatus.FAILED,
+                                   error="服务重启, 审批上下文丢失 — 请重新派发任务")
+                        self._store.save(fresh)
+                    logger.info("task_cards: 终止待审批卡 %s (重启丢失审批)", card.id)
+            except Exception as e:
+                logger.warning("task_cards: 恢复卡 %s 失败: %s", card.id, e)
 
     def _thread_main(self):
         """worker 线程: 专属事件循环常驻。"""

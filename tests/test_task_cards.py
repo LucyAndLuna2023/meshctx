@@ -266,3 +266,52 @@ class TestCardWorker:
             w.stop()
             w.join(timeout=2.0)
             loop.close()
+    def test_recover_interrupted_after_restart(self, tmp_dir):
+        """模拟进程重启: 预置 running/queued/waiting_approval 卡, start(recover=True)
+        后 running→queued 重新执行、queued 直接排队、waiting_approval→failed。"""
+        import time
+        from src.core.task_cards import CardWorker, TaskCard, TaskCardStore, CardStatus
+
+        async def run_fn(card):
+            import asyncio
+            await asyncio.sleep(0.05)
+            return {"result": "recovered:" + card.prompt}
+
+        store = TaskCardStore(base_dir=tmp_dir / "rec")
+
+        # 预置三种状态卡 (模拟上次进程遗留)
+        c_running = TaskCard(owner="local", prompt="r")
+        c_running.mark(CardStatus.RUNNING)
+        store.save(c_running)
+        c_queued = TaskCard(owner="local", prompt="q")
+        c_queued.mark(CardStatus.QUEUED)
+        store.save(c_queued)
+        c_wait = TaskCard(owner="local", prompt="w")
+        c_wait.mark(CardStatus.WAITING_APPROVAL)
+        c_wait.approval_pending = {"request_id": "x"}
+        store.save(c_wait)
+
+        w = CardWorker()
+        w._store = store
+        w.start(run_fn=run_fn, recover=True)
+        try:
+            # waiting_approval 应立即转 failed
+            gw = store.load(c_wait.id)
+            assert gw.status == CardStatus.FAILED, gw.status
+            # running/queued 应被恢复并最终完成
+            done = set()
+            for _ in range(200):
+                time.sleep(0.05)
+                for cid in (c_running.id, c_queued.id):
+                    g = store.load(cid)
+                    if g and g.status == CardStatus.COMPLETED:
+                        done.add(cid)
+                if len(done) == 2:
+                    break
+            assert c_running.id in done, "running 卡未恢复完成"
+            assert c_queued.id in done, "queued 卡未恢复完成"
+            gr = store.load(c_running.id)
+            assert gr.result == "recovered:r"
+        finally:
+            w.stop()
+            w.join(timeout=3.0)
