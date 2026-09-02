@@ -1034,6 +1034,14 @@ app.include_router(web_crews_router)
 from .core.realtime_push import create_realtime_router
 app.include_router(create_realtime_router())
 
+# ─── Agent 派活中心 (Task Cards) API 路由 (2026-09-02) ──
+try:
+    from .core.task_cards_api import router as task_cards_router
+    app.include_router(task_cards_router)
+except Exception:
+    import logging as _log_tc
+    _log_tc.getLogger("meshctx.edition").warning("Task Cards API router 挂载失败 (将降级无此功能)", exc_info=True)
+
 # ─── i18n 语言切换 ─────────────────────────────────────
 from .i18n import set_lang, get_lang, t
 
