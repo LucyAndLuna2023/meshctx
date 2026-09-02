@@ -301,12 +301,13 @@ async def quota_status(request: Request):
     from src.core.task_cards import get_hub_quota, PLAN_LIMITS
     hq = get_hub_quota()
     lim = PLAN_LIMITS.get(plan, PLAN_LIMITS["free"])
-    # 实际用量从 quota_manager 读
+    # 实际用量从 quota_manager 读 (先确保规则存在)
     used = 0
     qm = hq._get_qm()
     if qm is not None:
         try:
-            _, remaining, _ = qm.check(f"{hq.QUOTA_KEY_DAILY}:{owner}", units=0, user_id=owner)
+            hq.ensure_rules(owner, plan)
+            _, remaining, _ = qm.check(f"{hq.QUOTA_KEY_DAILY}:{owner}", units=0)
             used = max(0, lim["spawns_per_day"] - remaining)
         except Exception:
             pass

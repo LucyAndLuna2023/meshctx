@@ -266,10 +266,13 @@ class HubQuota:
         if qm is None:
             return res
         try:
+            # 先确保规则存在 (幂等) — 否则 consume 无规则可记账
+            self.ensure_rules(owner, plan)
             used, remaining, allowed = qm.consume(
-                f"{self.QUOTA_KEY_DAILY}:{owner}", units=1, user_id=owner)
-            res["used"] = used
-            res["remaining"] = remaining
+                f"{self.QUOTA_KEY_DAILY}:{owner}", units=1)
+            # consume 返回消费前的 used/remaining; 消费后剩余 = remaining - 1
+            res["used"] = used + 1
+            res["remaining"] = max(0, remaining - 1)
             if not allowed and plan in ("team", "enterprise"):
                 # 付费版硬限: 由私有层决定; 这里软失败交给上层
                 res["ok"] = False
