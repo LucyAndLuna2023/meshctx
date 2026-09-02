@@ -374,8 +374,10 @@ async function signInWithOAuth(provider) {
     var sb = _getSupabase();
     if (!sb) { showAuthError(_t('auth_err_config', 'Auth config error. Please contact support.')); return; }
 
-    var btn = document.getElementById('oauth-btn-' + provider);
-    if (btn) { btn.disabled = true; }
+    // 同一 provider 可能在多个 tab 各有一个按钮 (index.html: signin+signup),
+    // 用 id 前缀统一禁用/恢复, 避免 getElementById 只命中第一个
+    var btns = document.querySelectorAll('[id^="oauth-btn-' + provider + '"]');
+    btns.forEach(function(b) { b.disabled = true; });
 
     var { data, error } = await sb.auth.signInWithOAuth({
         provider: provider,
@@ -383,7 +385,7 @@ async function signInWithOAuth(provider) {
     });
     if (error) {
         showAuthError(_t('auth_err_oauth', error.message || 'OAuth sign-in failed'));
-        if (btn) { btn.disabled = false; }
+        btns.forEach(function(b) { b.disabled = false; });
     }
 }
 
