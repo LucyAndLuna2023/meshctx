@@ -201,6 +201,27 @@ async def stream_card(card_id: str, request: Request):
                                       "X-Accel-Buffering": "no"})
 
 
+@router.delete("/cards/{card_id}")
+async def delete_card(card_id: str, request: Request):
+    """删除一张历史任务卡 (仅终止态卡可删; 运行中需先取消)。"""
+    owner = await _owner(request)
+    await _reject_anon(owner)
+    store = _store()
+    card = store.load(card_id)
+    if card is None:
+        raise HTTPException(404, f"任务卡 {card_id} 不存在")
+    if card.owner != owner:
+        raise HTTPException(403, "无权操作他人任务卡")
+    from src.core.task_cards import CardStatus
+    if card.status not in (CardStatus.COMPLETED, CardStatus.FAILED,
+                           CardStatus.CANCELLED):
+        raise HTTPException(409, "运行中的任务卡不能删除 — 请先取消")
+    ok = store.delete(card_id)
+    if not ok:
+        raise HTTPException(500, "删除失败")
+    return {"card_id": card_id, "deleted": True}
+
+
 @router.post("/cards/{card_id}/cancel")
 async def cancel_card(card_id: str, request: Request):
     """取消任务卡 (排队中直接取消; 运行中置 cancel_requested 优雅中断)。"""

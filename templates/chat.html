@@ -1019,6 +1019,7 @@ function renderHubCard(c){
   let actions = '';
   if (st === 'running' || st === 'queued') actions += `<button onclick="hubCancel('${c.id}')">⏹ 取消</button>`;
   if (st === 'failed' || st === 'cancelled') actions += `<button onclick="hubRetry('${c.id}')">🔄 重试</button>`;
+  if (st === 'completed' || st === 'failed' || st === 'cancelled') actions += `<button onclick="hubDelete('${c.id}')">🗑 删除</button>`;
   const resultHtml = (st==='completed' && c.result) ? `<div class="hc-result">${escHtml(c.result)}</div>` : '';
   const errHtml = (st==='failed' && c.error) ? `<div class="hc-result" style="color:#f87171;">${escHtml(c.error)}</div>` : '';
   return `<div class="hub-card">
@@ -1035,6 +1036,12 @@ async function hubCancel(id){
 async function hubRetry(id){
   try { const r = await fetch('/api/tasks/cards/'+id+'/retry', {method:'POST'});
     if (r.ok) loadHubCards(); } catch(e){}
+}
+async function hubDelete(id){
+  if (!confirm('删除这张任务卡?')) return;
+  try { const r = await fetch('/api/tasks/cards/'+id, {method:'DELETE'});
+    if (!r.ok) { const d = await r.json().catch(()=>({})); alert('删除失败: ' + (d.detail||r.status)); }
+    loadHubCards(); } catch(e){ alert('删除失败: ' + e.message); }
 }
 async function hubApprove(id, action){
   try {

@@ -176,6 +176,30 @@ class TestCreateList:
         d = (await client.get(f"/api/tasks/cards/{cid}")).json()
         assert d["extra"]["wall_clock"] == 30.0
 
+    async def test_delete_terminal_card(self, client):
+        """删除终止态卡。"""
+        import asyncio
+        r = await client.post("/api/tasks/cards", json={"prompt": "job"})
+        cid = r.json()["card_id"]
+        for _ in range(100):
+            await asyncio.sleep(0.05)
+            d = (await client.get(f"/api/tasks/cards/{cid}")).json()
+            if d["status"] == "completed":
+                break
+        rd = await client.request("DELETE", f"/api/tasks/cards/{cid}")
+        assert rd.status_code == 200, rd.text
+        rr = await client.get(f"/api/tasks/cards/{cid}")
+        assert rr.status_code == 404
+
+    async def test_delete_running_rejected(self, client, isolated):
+        """运行中卡不可删 (409)。"""
+        from src.core.task_cards import TaskCard
+        card = TaskCard(owner="local", prompt="x")
+        card.mark("running")
+        isolated._store.save(card)
+        rd = await client.request("DELETE", f"/api/tasks/cards/{card.id}")
+        assert rd.status_code == 409
+
 
 class TestApprove:
     async def test_approve_no_pending(self, client):
