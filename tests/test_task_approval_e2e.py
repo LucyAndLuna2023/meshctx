@@ -24,9 +24,13 @@ async def env(tmp_dir, monkeypatch):
     from src.core import task_card_runner as runner_mod
     from src.core.task_cards import TaskCardStore
 
-    monkeypatch.setattr(tc, "CARDS_DIR", tmp_dir / "cards")
+    # 彻底停掉可能残留的全局 worker (跨测试隔离)
     old_worker = tc._worker
+    if old_worker is not None:
+        old_worker.stop()
+        old_worker.join(timeout=2.0)
     tc._worker = None
+    monkeypatch.setattr(tc, "CARDS_DIR", tmp_dir / "cards")
     old_store_cls = tc.TaskCardStore
     tc.TaskCardStore = lambda base_dir=None: TaskCardStore(base_dir=tmp_dir / "cards")
 
@@ -83,7 +87,7 @@ async def env(tmp_dir, monkeypatch):
         await client.aclose()
         w.stop()
         w.join(timeout=3.0)
-        tc._worker = old_worker
+        tc._worker = None  # 不恢复旧实例, 下个 fixture 自建 (防残留)
         tc.TaskCardStore = old_store_cls
 
 

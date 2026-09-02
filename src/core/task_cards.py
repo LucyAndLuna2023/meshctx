@@ -113,12 +113,23 @@ class TaskCard:
 
 def _atomic_write(path: pathlib.Path, data: dict):
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
+    # tmp 文件名带唯一后缀 (pid+uuid): 多个 store 实例 (worker 线程 vs API
+    # 线程) 并发写同一卡时, 各自 tmp 不冲突 (原固定 .tmp 会互相 os.replace
+    # 导致 FileNotFoundError, 审计 e2e 实测暴露)
+    tmp = path.with_name(f"{path.stem}.tmp.{os.getpid()}.{uuid.uuid4().hex[:8]}")
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    finally:
+        # 失败时清理残留 tmp
+        try:
+            if tmp.exists():
+                tmp.unlink()
+        except Exception:
+            pass
     try:  # 0600: 任务含用户提示词
         os.chmod(path, 0o600)
     except Exception:
