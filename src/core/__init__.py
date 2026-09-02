@@ -217,6 +217,11 @@ _known = {
     'realtime_push': ['RealtimePush', 'ConnectionManager', 'create_realtime_router', 'get_realtime'],
     'hermes_connector': ['HermesConnectorPlugin','HermesDiscovery','EventBridge','HermesInstance'],
     'token_saver': ['TokenSaverPlugin','TokenSaver','TokenCounter','TokenizerRegistry','CompactionResult'],
+    # Agent 派活中心 (2026-09-02): 开源真实实现 — 后台任务卡
+    'task_cards': ['TaskCard','CardStatus','TaskCardStore','HubQuota','CardWorker',
+                   'PLAN_LIMITS','get_hub_quota','get_card_worker','reset_worker_for_tests'],
+    'task_cards_api': ['router'],
+    'task_card_runner': ['run_card','build_card_messages','CARD_SYSTEM_PROMPT'],
 }
 
 def __getattr__(name):
