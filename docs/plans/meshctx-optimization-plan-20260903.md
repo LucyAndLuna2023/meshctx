@@ -286,8 +286,8 @@ T4（第 5–5.5 周）: 全量回归 + 文档/BP/10 语言联动 + 三方审计
 | WP6 P1-3 Routines | ✅ 核心+API+接线 | 98b96aa2 / a87abf96 (routines.py + routines_api.py + lifespan) |
 | WP7 P1-4 沙箱硬化 | ✅ 基线落地 | 32b6b64e (sandbox_policy.py + 16 tests + baseline doc) |
 | WP8 P2-1 治理白皮书 | ✅ 文档 v1.0 | (docs/governance/whitepaper.md, 本批) |
-| WP6 UI 值守 tab | ⏳ 待做 | — (chat.html + i18n ×10) |
-| 里程碑 3.123.0 送审 | ⏳ | T0 收尾 + 全量回归 + 三方审计 round |
+| WP6 UI 值守 tab | ✅ | 176c654a (chat.html ⏰ Routines 折叠区 + 10 语言 10 键) |
+| 里程碑 3.123.0-rc1 送审 | ⏳ 回执中 | 498a4532 (CHANGELOG rc1); 全量 3711 passed |
 
 实测基线: 全量 3695 passed/59 skipped @ a87abf96; T0 套件 83 passed;
 sandbox 16 passed; 每提交均推送 meshctx main, 加法式可回滚。
