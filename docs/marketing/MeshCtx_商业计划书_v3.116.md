@@ -408,3 +408,19 @@ Cookie 同步写入：document.cookie 与 localStorage 双通道，服务端 Acc
 v2 模板硬编码 <html lang="zh-CN"> 全部改为动态语言注入
 
 验证：v3.115.27 Windows 安装包（67.6MB）二进制级 9 项验证全绿 —— VERSIONINFO 版本号、fastapi 全家桶、模板/静态资源入包、俄语 1221 键完整性。
+---
+## 附录 D：自进化声称核验与差异化战略引用（2026-09-03 修订）
+
+### D.1 自进化口径核验
+按用户要求对"自进化"声称做了代码级核验，结论:**部分真实, 需口径修正**（详见 `docs/marketing/self-evolution-verification-20260903.md`）:
+- ✅ 真实实现: GenomicOptimizer 遗传算法引擎（>800 行, fitness/mutation/selection, copy-deep-mutate）+ CMA-ES 自调优 + 6 维成长跟踪 + best_genome.json 持久化 + /api/genomic/stats|best|evolve|feedback + 测试（test_v59_evolution 等）
+- 🟡 半实现: "每次任务后自动评估→自动优化"闭环 — 现为 **API/受控触发**（evolve/feedback），agent 主循环自动喂数与最优参数自动回注运行时的**自动闭环未接线**（路线图项）; 元认知为独立模块+报告, 未入 agent 主循环
+- 口径处理: 主页/landing 关键超卖措辞已修订为可验证表述（引擎已实现+自动闭环路线图）；海外发布文案同步建议见核验报告 §3
+- 未来闭环立项点: run_card 终态→genomic.feedback 自动喂 + best_genome 回注参数解析 + evolution_tracker 自动周报 → 落地后可恢复"全自动自进化"口径
+
+### D.2 差异化战略引用
+2026-09 前沿调研结论（全文 `docs/marketing/meshctx-differentiation-strategy-20260903.md`）:
+- 主定位: **本地优先的 Agent 治理/控制平面**（审批/配额/审计 + SDM 记忆 + MCP 中立治理网关 + 跨机 hub）——落在大厂结构性不做的空白带（本地自托管/强监管合规/SMB 长尾/非英语/跨厂商治理/记忆所有权）
+- 护城河排序: 工作流治理锁定 > 信任与合规许可（EU AI Act Art.26 审计导出/SOC2 型证据）> 多语言本地化 > 社区生态 > 数据（最弱, 无内容飞轮）
+- 快速落地 Top3 垂直: 财税/簿记多语言区域 SMB 申报、医疗行政后台、中小律所非计费后台
+- 90 天楔子: MCP 治理网关 → "可审计确定性"叙事（以生产实证替代自报分数）→ 1-2 个 SMB 垂直验证 PLG→渠道
