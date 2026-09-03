@@ -546,6 +546,20 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Task Cards Worker 启动跳过: {e}")
         app.state.task_cards_worker = None
 
+    # WP6 Routines 例行值守 (2026-09-03, MCTX-PLAN-2026-0903 P1-3):
+    # 定时/周期 → 经 task_cards 派活 (同一配额/审批/审计/遥测链)
+    try:
+        from src.core.routines import RoutineScheduler, RoutineStore
+        from src.core.routines_api import make_spawn_fn
+        _routine_sched = RoutineScheduler(store=RoutineStore(),
+                                          spawn_fn=make_spawn_fn())
+        _routine_sched.start()
+        app.state.routines_scheduler = _routine_sched
+        logger.info("⏰ Routines 值守调度器已启动 (WP6, 定时派活 → Task Cards)")
+    except Exception as e:
+        logger.warning(f"Routines 调度器启动跳过: {e}")
+        app.state.routines_scheduler = None
+
     yield  # ── 服务运行中 ──
 
     # ── Shutdown ──
@@ -572,6 +586,13 @@ async def lifespan(app: FastAPI):
             tw.join(timeout=3.0)
         except Exception as e:
             logger.warning(f"Task Cards Worker 停止异常: {e}")
+    # WP6 Routines: 停止值守调度器
+    rs = getattr(app.state, "routines_scheduler", None)
+    if rs:
+        try:
+            rs.stop()
+        except Exception as e:
+            logger.warning(f"Routines 调度器停止异常: {e}")
     logger.info("meshctx v1.0 已停止")
 
 
@@ -1042,6 +1063,14 @@ try:
 except Exception:
     import logging as _log_tc
     _log_tc.getLogger("meshctx.edition").warning("Task Cards API router 挂载失败 (将降级无此功能)", exc_info=True)
+
+# ─── WP6 Routines 值守 API 路由 (2026-09-03, MCTX-PLAN-2026-0903 P1-3) ──
+try:
+    from .core.routines_api import router as routines_router
+    app.include_router(routines_router)
+except Exception:
+    import logging as _log_rt
+    _log_rt.getLogger("meshctx.edition").warning("Routines API router 挂载失败 (将降级无此功能)", exc_info=True)
 
 # ─── i18n 语言切换 ─────────────────────────────────────
 from .i18n import set_lang, get_lang, t

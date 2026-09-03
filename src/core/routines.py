@@ -132,6 +132,7 @@ class Routine:
     model: str = ""
     max_rounds: int = 0
     wall_clock: float = 300.0
+    plan: str = "free"               # 后台派活沿用创建时 plan (配额语义一致)
     last_run: float = 0.0
     last_status: str = ""            # ok | quota | error
     created_at: float = field(default_factory=time.time)
@@ -183,7 +184,7 @@ class Routine:
         d = {k: getattr(self, k) for k in
              ("id", "owner", "name", "kind", "schedule", "prompt", "title", "model",
               "enabled", "last_run", "last_status", "created_at",
-              "max_rounds", "wall_clock")}
+              "max_rounds", "wall_clock", "plan")}
         return d
 
     @classmethod
