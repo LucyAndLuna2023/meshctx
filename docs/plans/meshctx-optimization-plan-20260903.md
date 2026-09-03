@@ -277,3 +277,17 @@ T4（第 5–5.5 周）: 全量回归 + 文档/BP/10 语言联动 + 三方审计
   - task_card_runner._waiter 增加 is_cancelled 双检查 (await 前 + 拿到 future 后), 防取消后 agent 再请求审批重新阻塞
   - 回归测试: test_cancel_waiting_approval_resolves_pending (断言 future 立即 done + action=reject + 映射清空)
   - hub 套件 53 passed (52 + 1 新)
+
+## 14. 实施进度 (里程碑 3.123.0, T0 进行中)
+
+| WP | 状态 | 提交 |
+|---|---|---|
+| WP1 P0-1 可观测性 | ✅ 阶段1-3 | dd815b2a / 4755c14e / 9fa5f7a7 (span core+卡级 trace+runner 事件遥测, 含 OTLP 开关/JSONL 轮转) |
+| WP6 P1-3 Routines | ✅ 核心+API+接线 | 98b96aa2 / a87abf96 (routines.py + routines_api.py + lifespan) |
+| WP7 P1-4 沙箱硬化 | ✅ 基线落地 | 32b6b64e (sandbox_policy.py + 16 tests + baseline doc) |
+| WP8 P2-1 治理白皮书 | ✅ 文档 v1.0 | (docs/governance/whitepaper.md, 本批) |
+| WP6 UI 值守 tab | ⏳ 待做 | — (chat.html + i18n ×10) |
+| 里程碑 3.123.0 送审 | ⏳ | T0 收尾 + 全量回归 + 三方审计 round |
+
+实测基线: 全量 3695 passed/59 skipped @ a87abf96; T0 套件 83 passed;
+sandbox 16 passed; 每提交均推送 meshctx main, 加法式可回滚。
