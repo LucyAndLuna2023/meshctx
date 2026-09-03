@@ -363,3 +363,55 @@ class TestCardWorker:
         finally:
             w.stop()
             w.join(timeout=3.0)
+
+
+    def test_cancel_running_is_timely(self, tmp_dir):
+        """P2-1 (002meshctx): cancel() API → interrupt_check 及时中断 (worker 级集合)。"""
+        import time
+        from src.core.task_cards import CardWorker, TaskCard, TaskCardStore, CardStatus
+
+        started = {"t": 0.0}
+
+        async def run_fn(card):
+            import asyncio
+            started["t"] = time.time()
+            # 模拟长循环: 每 0.1s 检查一次 interrupt_check
+            from src.core.task_card_runner import make_interrupt_check
+            from src.core.interruptible_runner import InterruptSignal
+            check = make_interrupt_check(card, w)
+            for _ in range(100):
+                try:
+                    check()
+                except InterruptSignal:
+                    return {"result": "interrupted"}
+                await asyncio.sleep(0.1)
+            return {"result": "finished"}
+
+        w = CardWorker()
+        w._store = TaskCardStore(base_dir=tmp_dir / "cancel")
+        w.start(run_fn=run_fn)
+        try:
+            c = TaskCard(owner="local", prompt="job")
+            assert w.enqueue(c) is True
+            # 等 running
+            for _ in range(100):
+                time.sleep(0.05)
+                g = w._store.load(c.id)
+                if g and g.status == CardStatus.RUNNING:
+                    break
+            # cancel → 应在 ~0.2s 内中断 (集合查询)
+            t0 = time.time()
+            w.cancel(c.id)
+            done = False
+            for _ in range(100):
+                time.sleep(0.05)
+                g = w._store.load(c.id)
+                if g and g.status in (CardStatus.CANCELLED, CardStatus.COMPLETED, CardStatus.FAILED):
+                    done = True
+                    break
+            elapsed = time.time() - t0
+            assert done, "cancel 后卡未及时终止"
+            assert elapsed < 2.0, f"取消不及时: {elapsed:.1f}s"
+        finally:
+            w.stop()
+            w.join(timeout=3.0)

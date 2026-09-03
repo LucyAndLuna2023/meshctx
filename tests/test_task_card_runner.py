@@ -65,6 +65,8 @@ class TestRunCard:
                 self._store = store
                 self._approval_futures = {}
                 self._approval_by_card = {}
+                self._approval_decided = set()
+                self._cancel_lock = __import__("threading").Lock()
                 self._approval_lock = __import__("threading").Lock()
             def register_approval(self, *a, **k):
                 pass
@@ -106,6 +108,8 @@ class TestRunCard:
                 self._store = store
                 self._approval_futures = {}
                 self._approval_by_card = {}
+                self._approval_decided = set()
+                self._cancel_lock = __import__("threading").Lock()
                 self._approval_lock = __import__("threading").Lock()
             def register_approval(self, *a, **k):
                 pass
@@ -142,6 +146,8 @@ class TestRunCard:
                 self._store = store
                 self._approval_futures = {}
                 self._approval_by_card = {}
+                self._approval_decided = set()
+                self._cancel_lock = __import__("threading").Lock()
                 self._approval_lock = __import__("threading").Lock()
             def register_approval(self, *a, **k):
                 pass

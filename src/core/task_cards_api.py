@@ -248,7 +248,11 @@ async def retry_card(card_id: str, request: Request):
         raise HTTPException(404, f"任务卡 {card_id} 不存在")
     if old.owner != owner:
         raise HTTPException(403, "无权操作他人任务卡")
-    from src.core.task_cards import TaskCard, get_hub_quota
+    from src.core.task_cards import TaskCard, get_hub_quota, CardStatus
+    # 只允许对终止态卡重试 (P3 002meshctx)
+    if old.status not in (CardStatus.COMPLETED, CardStatus.FAILED,
+                          CardStatus.CANCELLED):
+        raise HTTPException(409, "仅终止态任务卡可重试 — 运行中卡请先取消")
     worker = _worker()
     hq = get_hub_quota()
     q = hq.try_consume_spawn(owner, plan=old.plan,

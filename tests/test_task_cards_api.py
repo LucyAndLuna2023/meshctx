@@ -123,11 +123,22 @@ class TestCreateList:
         assert rc.status_code == 200
 
     async def test_retry(self, client):
+        """仅终止态卡可重试 (P3 002meshctx): 运行中→409; 完成后→200。"""
+        import asyncio
         r = await client.post("/api/tasks/cards", json={"prompt": "job"})
         cid = r.json()["card_id"]
+        # 运行中 retry → 409
         rr = await client.post(f"/api/tasks/cards/{cid}/retry")
-        assert rr.status_code == 200
-        assert rr.json()["retry_of"] == cid
+        assert rr.status_code == 409, rr.text
+        # 等完成
+        for _ in range(100):
+            await asyncio.sleep(0.05)
+            d = (await client.get(f"/api/tasks/cards/{cid}")).json()
+            if d["status"] == "completed":
+                break
+        rr2 = await client.post(f"/api/tasks/cards/{cid}/retry")
+        assert rr2.status_code == 200, rr2.text
+        assert rr2.json()["retry_of"] == cid
 
     async def test_quota_endpoint(self, client):
         r = await client.get("/api/tasks/quota")

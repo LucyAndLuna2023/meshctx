@@ -91,11 +91,21 @@ def _resolve_exec_tool():
 
 
 def make_interrupt_check(card, worker):
-    """取消/超时检查: 卡 cancel_requested → 抛 InterruptSignal。"""
+    """取消/超时检查: worker 级取消集合 (外部 cancel 及时生效, P2-1) → 抛 InterruptSignal。
+
+    cancel() 跨线程登记 _cancelled 集合; 卡线程内存对象 cancel_requested 不随
+    外部 cancel 更新, 故查集合 (fallback 内存标志保底)。
+    """
     from src.core.interruptible_runner import InterruptSignal
 
     def _check():
-        if getattr(card, "cancel_requested", False):
+        cancelled = False
+        try:
+            if worker is not None and hasattr(worker, "is_cancelled"):
+                cancelled = worker.is_cancelled(card.id)
+        except Exception:
+            cancelled = False
+        if cancelled or getattr(card, "cancel_requested", False):
             raise InterruptSignal([])
     return _check
 
@@ -166,6 +176,13 @@ async def run_card(card, worker=None) -> Dict[str, Any]:
     # 默认 300s (5分钟) — 一句话派活不宜长挂; 长任务可经 API 传 wall_clock
     wall_clock = float(getattr(card, "extra", {}).get("wall_clock") or 300)
 
+    def _save_card(w, c):
+        """合并外部状态后落盘 (save_card 存在时), 否则直存 (测试 FakeWorker)。"""
+        if w is not None and hasattr(w, "save_card"):
+            w.save_card(c)
+        else:
+            w._store.save(c)
+
     card.log("run_start", model=getattr(client, "model_id", None) or "",
              prompt_len=len(card.prompt or ""))
     try:
@@ -224,13 +241,13 @@ async def run_card(card, worker=None) -> Dict[str, Any]:
                 # timeline 上限裁剪: 只保留最近 2000 条, 防长任务卡无限膨胀
                 if len(card.timeline) > 2000:
                     card.timeline = card.timeline[-1500:]
-                worker._store.save(card)
+                _save_card(worker, card)
     except Exception as e:
         # 取消是正常路径: InterruptSignal 由 interrupt_check 抛出
         from src.core.interruptible_runner import InterruptSignal
         if isinstance(e, InterruptSignal):
             card.log("interrupted", note="cancelled by user")
-            worker._store.save(card)
+            _save_card(worker, card)
             return {"result": card.result, "error": None}
         logger.exception("run_card %s failed", card.id)
         error = str(e)
@@ -243,7 +260,7 @@ async def run_card(card, worker=None) -> Dict[str, Any]:
     if error:
         card.error = error
     card.log("run_end", error=error)
-    worker._store.save(card)
+    _save_card(worker, card)
     return {"result": card.result, "error": error}
 
 

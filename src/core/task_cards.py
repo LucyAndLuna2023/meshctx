@@ -371,6 +371,12 @@ class CardWorker:
         # card_id → set(request_id): 卡终结时清理防泄漏
         self._approval_by_card: Dict[str, set] = {}
         self._approval_lock = threading.Lock()
+        # 运行中取消集合 (P2-1 002meshctx): cancel() 跨线程登记, interrupt_check
+        # 查此集合 — 卡线程内存对象 cancel_requested 不随外部 cancel 更新
+        self._cancelled: set = set()
+        # 审批已决集合 (P3 004meshctx): decide 成功登记, save_card 强制清 pending
+        self._approval_decided: set = set()
+        self._cancel_lock = threading.Lock()
 
     # ── 生命周期 ──
     def start(self, run_fn: Optional[Callable[[TaskCard], Awaitable[Dict[str, Any]]]] = None,
@@ -543,21 +549,27 @@ class CardWorker:
         """请求取消 (线程安全)。
 
         语义:
+        - 终止态卡 (completed/failed/cancelled): 返回 False, 无操作 (P3 002meshctx)
         - QUEUED (尚未被 worker 领取): 同步置 CANCELLED — consume 领取时
           重新 load 会看到 CANCELLED 而跳过。
-        - RUNNING/WAITING_APPROVAL: 置 cancel_requested 落盘 + 投递 task.cancel()
-          (agent 循环 interrupt_check 也会读到落盘的 cancel_requested)。
+        - RUNNING/WAITING_APPROVAL: 登记 _cancelled 集合 (interrupt_check 查
+          集合, 及时中断, P2-1 002meshctx) + 落盘标志 + 投递 task.cancel()
         """
         card = self._store.load(card_id)
         if card is None:
             return False
+        if card.status in (CardStatus.COMPLETED, CardStatus.FAILED,
+                           CardStatus.CANCELLED):
+            return False  # 终止态卡不可取消
         card.cancel_requested = True
         if card.status == CardStatus.QUEUED:
             # 未被领取 → 同步标记取消 (consume 后到会跳过)
             card.mark(CardStatus.CANCELLED, error="cancelled before start")
             self._store.save(card)
             return True
-        # RUNNING / WAITING_APPROVAL: 落盘标志 + 取消运行中 task
+        # RUNNING / WAITING_APPROVAL: 登记集合 (及时中断) + 落盘 + 取消 task
+        with self._cancel_lock:
+            self._cancelled.add(card_id)
         self._store.save(card)
         if self._loop is not None and not self._loop.is_closed():
             def _cancel_in_loop():
@@ -571,6 +583,38 @@ class CardWorker:
                     pass
             self._submit(_cancel_in_loop)
         return True
+
+    def is_cancelled(self, card_id: str) -> bool:
+        """运行中取消查询 (跨线程, interrupt_check 用, P2-1 002meshctx)。"""
+        with self._cancel_lock:
+            return card_id in self._cancelled
+
+    def save_card(self, card: TaskCard) -> TaskCard:
+        """合并外部状态后落盘 (卡线程节流 save 用, P3 004meshctx)。
+
+        外部 (API approve/cancel) 可能已清盘 approval_pending / 置取消 —
+        卡线程内存对象不感知, 直接 save 会把陈旧 pending/cancel_requested
+        回写覆盖。故以磁盘最新状态合并关键字段再落盘。
+        """
+        try:
+            # 审批已决: worker 级集合为准 (decide 跨线程登记, 比磁盘可靠 —
+            # 防卡线程抢先 save 回写 pending 后 API 再清盘的竞争窗口)
+            with self._cancel_lock:
+                decided = card.id in self._approval_decided
+            if decided:
+                if card.approval_pending is not None:
+                    card.approval_pending = None
+                if card.status == CardStatus.WAITING_APPROVAL:
+                    card.status = CardStatus.RUNNING
+            fresh = self._store.load(card.id)
+            if fresh is not None:
+                # 外部已取消 → 同步内存
+                if fresh.cancel_requested and not card.cancel_requested:
+                    card.cancel_requested = True
+        except Exception:
+            pass
+        self._store.save(card)
+        return card
 
     def running_count(self) -> int:
         if self._loop is None or self._loop.is_closed():
@@ -605,15 +649,22 @@ class CardWorker:
     def decide_approval(self, request_id: str, action: str, text: str = "") -> bool:
         """Web 端决定: 写回卡并 resolve future (任意线程可调)。"""
         fut = None
+        decided_card = None
         with self._approval_lock:
             fut = self._approval_futures.pop(request_id, None)
-            # 同步清理 card→request 映射
+            # 同步清理 card→request 映射并记录已决 card
             for card_id, reqs in list(self._approval_by_card.items()):
                 reqs.discard(request_id)
                 if not reqs:
                     self._approval_by_card.pop(card_id, None)
+                if request_id not in reqs:
+                    decided_card = card_id
         if fut is None or fut.done():
             return False
+        if decided_card is not None:
+            # 登记"该卡审批已决" — save_card 合并时强制清 pending 防回写 (P3 004meshctx)
+            with self._cancel_lock:
+                self._approval_decided.add(decided_card)
         loop = fut.get_loop()
         try:
             loop.call_soon_threadsafe(
@@ -708,9 +759,14 @@ class CardWorker:
             if card:
                 card.mark(CardStatus.FAILED, error=str(e))
         finally:
-            # 保存最终卡状态 (card 已含本线程全部状态更新; 无需重新 load)
+            # 卡终结: 清审批残留 (P4 004meshctx) + 清取消登记 (P2-1) + 落盘终态
             if card is not None:
+                card.approval_pending = None
+                card.cancel_requested = False
                 self._store.save(card)
+            with self._cancel_lock:
+                self._cancelled.discard(card_id)
+                self._approval_decided.discard(card_id)
             # 清理该卡残留审批 future (超时/取消的审批 request 永不 decide → 防泄漏)
             try:
                 self.cleanup_approvals_for_card(card_id)

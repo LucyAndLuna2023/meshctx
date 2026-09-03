@@ -157,5 +157,37 @@ class TestApprovalEndToEnd:
             if rr.status_code == 200 and rr.json()["status"] == "completed":
                 final = rr.json()
                 break
+
         assert final is not None
         assert "agree" in (final["result"] or "")
+
+    async def test_approve_pending_not_reverted(self, env):
+        """P3 (004meshctx): approve 清盘后, 卡线程后续落盘不得回写陈旧 pending。"""
+        import asyncio
+        client, flow = env
+        r = await client.post("/api/tasks/cards", json={"prompt": "rm 临时文件"})
+        cid = r.json()["card_id"]
+        paused = None
+        for _ in range(80):
+            await asyncio.sleep(0.05)
+            rr = await client.get(f"/api/tasks/cards/{cid}")
+            if rr.status_code == 200 and rr.json()["status"] == "waiting_approval":
+                paused = rr.json()
+                break
+        assert paused is not None
+        # approve → pending 清盘
+        ra = await client.post(f"/api/tasks/cards/{cid}/approve", json={"action": "agree"})
+        assert ra.status_code == 200
+        # 立即读: pending 应为 None (清盘立即生效)
+        d0 = (await client.get(f"/api/tasks/cards/{cid}")).json()
+        assert d0["approval_pending"] is None, "approve 后 pending 未清"
+        # 等卡完成 (期间卡线程会多次落盘) → pending 不应回写
+        final = None
+        for _ in range(100):
+            await asyncio.sleep(0.05)
+            rr = await client.get(f"/api/tasks/cards/{cid}")
+            if rr.status_code == 200 and rr.json()["status"] == "completed":
+                final = rr.json()
+                break
+        assert final is not None
+        assert final["approval_pending"] is None, "完成态 pending 残留/回写"
