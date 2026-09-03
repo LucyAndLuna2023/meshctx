@@ -18,6 +18,13 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("meshctx.task_card_runner")
 
+# WP1 (MCTX-PLAN-2026-0903): runner 事件遥测 — 在 run_card Span 上下文中 record
+# 自动带 trace_id/span_id 归因 (contextvar 继承); 失败静默不影响业务
+try:
+    from src.core import telemetry as _tel_mod
+except Exception:                       # pragma: no cover — stub 环境兜底
+    _tel_mod = None
+
 # 派活任务系统提示词 (后台自主执行, 与 chat 同一套工具语义)
 CARD_SYSTEM_PROMPT = """你是 meshctx 的自主任务执行 Agent。用户给你一句话任务, 请自主完成:
 
@@ -204,6 +211,15 @@ async def _run_card_inner(card, worker=None) -> Dict[str, Any]:
         else:
             w._store.save(c)
 
+    def _emit(event_type: str, **kw):
+        """WP1: 遥测事件 (Span 上下文内 → 自动 trace/span 归因); 失败静默。"""
+        if _tel_mod is None:
+            return
+        try:
+            _tel_mod.get_telemetry().record("task", event_type, **kw)
+        except Exception:
+            pass
+
     card.log("run_start", model=getattr(client, "model_id", None) or "",
              prompt_len=len(card.prompt or ""))
     try:
@@ -240,21 +256,30 @@ async def _run_card_inner(card, worker=None) -> Dict[str, Any]:
                          reason=ev.get("reason") or reason or "需确认")
                 worker.register_approval(card, req_id, ev.get("name", ""),
                                          ev.get("args") or {}, ev.get("reason") or reason or "需确认")
+                _emit("approval_requested", tool=ev.get("name", ""),
+                      detail=(ev.get("reason") or reason or "需确认")[:200])
             elif kind == "tool_start":
                 card.log("tool_start", name=ev.get("name"), args=ev.get("args"))
+                _emit("tool_call", tool=ev.get("name", ""),
+                      detail=str(ev.get("args"))[:200])
             elif kind == "tool_result":
                 card.log("tool_result", name=ev.get("name"),
                          result=(ev.get("result") or "")[:500])
+                _emit("tool_result", tool=ev.get("name", ""),
+                      detail=(ev.get("result") or "")[:200])
             elif kind == "final":
                 card.log("final", text=ev.get("text", ""))
                 last_text_parts.append(ev.get("text", ""))
             elif kind == "timed_out":
                 card.log("timed_out", text=ev.get("text", ""))
+                _emit("timed_out", detail=(ev.get("text") or "")[:200])
             elif kind == "error":
                 card.log("error", text=ev.get("text", ""))
                 error = ev.get("text", "")
+                _emit("error", detail=(ev.get("text") or "")[:300])
             elif kind == "interrupted":
                 card.log("interrupted", note=ev.get("note", ""))
+                _emit("interrupted", detail=(ev.get("note") or "")[:200])
                 # 取消由 worker 置 CANCELLED; 这里结束事件循环
                 break
             # 事件流按节流落盘 (非逐 token; 防状态丢失, 卡 JSON 为真相源)
@@ -282,6 +307,9 @@ async def _run_card_inner(card, worker=None) -> Dict[str, Any]:
         card.error = error
     card.log("run_end", error=error)
     _save_card(worker, card)
+    # WP1: 整卡汇总事件 (token/工具数聚合, 全链路 trace 关联)
+    _emit("run_end", tokens_in=0, tokens_out=0,
+          detail=("error" if error else "ok"))
     return {"result": card.result, "error": error}
 
 

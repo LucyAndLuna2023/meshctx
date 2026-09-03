@@ -91,6 +91,59 @@ class TestRunCard:
 
         asyncio.run(scenario())
 
+    def test_run_card_telemetry_spans(self, tmp_dir, monkeypatch):
+        """WP1: run_card 包 span + 工具/错误事件带同一 trace 归因。"""
+        import asyncio, json
+        from src.core.task_cards import TaskCard, TaskCardStore
+        from src.core import task_card_runner as runner
+        from src.core import telemetry as tel
+
+        store_tel = tel.reset_telemetry(str(tmp_dir / "tel.jsonl"))
+
+        async def fake_loop(client, messages, **kw):
+            yield {"type": "tool_start", "name": "read_file", "args": {"path": "/x"}}
+            yield {"type": "tool_result", "name": "read_file", "result": "file内容"}
+            yield {"type": "final", "text": "完成"}
+            yield {"type": "done"}
+
+        monkeypatch.setattr("src.agent_loop.run_agent_loop", fake_loop)
+        monkeypatch.setattr(runner, "_resolve_client", lambda c: FakeClient())
+
+        class FakeWorker:
+            def __init__(self, store):
+                self._store = store
+                self._approval_futures = {}
+                self._approval_by_card = {}
+                self._approval_decided = set()
+                self._cancel_lock = __import__("threading").Lock()
+                self._approval_lock = __import__("threading").Lock()
+            def register_approval(self, *a, **k):
+                pass
+            def save(self, c):
+                self._store.save(c)
+
+        async def scenario():
+            store = TaskCardStore(base_dir=tmp_dir / "s2")
+            w = FakeWorker(store)
+            card = TaskCard(owner="local", prompt="查文件")
+            card.extra["trace_id"] = "aabbccddeeff0011"   # 卡级预置 trace (worker._run_one 语义)
+            store.save(card)
+            await runner.run_card(card, worker=w)
+            evs = store_tel.events()
+            spans = [e for e in evs if e["event_type"] == "span"]
+            assert spans, "run_card 应产出 card.run span"
+            assert all(e["trace_id"] == "aabbccddeeff0011" for e in spans)
+            detail = json.loads(spans[-1]["detail"])
+            assert detail.get("span") == "card.run"
+            assert detail.get("status") == "ok"
+            # 工具事件与 run_end 均归因同一卡 trace (Span 上下文自动继承)
+            tools = [e for e in evs if e["event_type"] == "tool_call"]
+            assert tools and all(e["trace_id"] == "aabbccddeeff0011" for e in tools)
+            assert any(e["event_type"] == "run_end" and e["trace_id"] == "aabbccddeeff0011"
+                       for e in evs)
+
+        asyncio.run(scenario())
+
     def test_error_event(self, tmp_dir, monkeypatch):
         import asyncio
         from src.core.task_cards import TaskCard, TaskCardStore
