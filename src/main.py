@@ -1072,6 +1072,14 @@ except Exception:
     import logging as _log_rt
     _log_rt.getLogger("meshctx.edition").warning("Routines API router 挂载失败 (将降级无此功能)", exc_info=True)
 
+# ─── WP3 对外 Memory API 路由 (2026-09-03, MCTX-PLAN-2026-0903 P0-3) ──
+try:
+    from .core.memory_api import router as memory_api_router
+    app.include_router(memory_api_router)
+except Exception:
+    import logging as _log_ma
+    _log_ma.getLogger("meshctx.edition").warning("Memory API router 挂载失败 (将降级无此功能)", exc_info=True)
+
 # ─── i18n 语言切换 ─────────────────────────────────────
 from .i18n import set_lang, get_lang, t
 
