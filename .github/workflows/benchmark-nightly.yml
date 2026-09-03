@@ -1,0 +1,50 @@
+name: Benchmark Nightly (WP2)
+
+on:
+  workflow_dispatch:
+    inputs:
+      sample_size:
+        description: "dry-run 样本条数 (0=全部)"
+        type: number
+        default: 3
+  schedule:
+    # 每周一 02:00 UTC — 受控 runner, 凭据 gated (不进日常 CI)
+    - cron: "0 2 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark-dry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Benchmarks core tests
+        run: python -m pytest tests/test_benchmarks_core.py -q
+      - name: SWE-bench dry-run report (instances sample)
+        env:
+          SAMPLE: ${{ inputs.sample_size || '3' }}
+        run: |
+          # 实例样本: 需在仓库 data/ 或外部门控位置 (此处以 /dev/null 出空 dry 报告,
+          # 真集 + 官方镜像在凭据 runner 上由 004 手动/定时触发, 结果写 benchmarks/reports/)
+          python benchmarks/swebench_runner.py --jsonl /dev/null --dry-run \
+            --out benchmarks/reports/swebench_dry_$(date +%Y%m%d).json
+      - name: Upload dry reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-reports
+          path: benchmarks/reports/
+          if-no-files-found: ignore
+
+  # 真实官方评测 (凭据 gated): 由受控 runner + MESHCTX_SWE_* secrets 手动触发
+  swebench-real:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.sample_size == '0'
+    environment: benchmark
+    steps:
+      - uses: actions/checkout@v4
+      - name: Notify real-run gate
+        run: echo "real SWE/GAIA/LongMem runs require docker + official images + credentials; executed under 004 control; results to benchmarks/reports/ with validate_report-compliant JSON."

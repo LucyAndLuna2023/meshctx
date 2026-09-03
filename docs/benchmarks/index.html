@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>meshctx Benchmarks — 官方口径成绩</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header><h1>meshctx Benchmarks</h1>
+<p class="sub">官方口径 (SWE-bench Verified / GAIA / LongMemEval_S) — 分表呈现, 不与厂商自报直接排名 (i18n 10 语言后续批)</p></header>
+<main>
+<section id="swebench">
+<h2>SWE-bench Verified</h2>
+<div id="swe-res" class="placeholder">待官方 harness 在受控 runner 运行后出分 (benchmarks/reports/, validate_report 合规 JSON)</div>
+</section>
+<section id="gaia">
+<h2>GAIA</h2>
+<div class="placeholder">提交协议随官方发布对齐; 分数归属运营资产 (不进仓库)</div>
+</section>
+<section id="longmem">
+<h2>LongMemEval_S (自测口径 self_run)</h2>
+<div class="placeholder">本地 runner: benchmarks/gaia_longmem_runner.py longmem — 待公开跑分批次</div>
+</section>
+<section id="method">
+<h2>方法与口径</h2>
+<ul>
+<li>results.mode 三选一: self_run / official_submission / reference (core.validate_report 强制)</li>
+<li>自测与官方提交分表; 与 Mem0/Zep/OMEGA 等厂商自报并列时标注口径, 不直接排名</li>
+<li>仓库: benchmarks/ (meshctx_benchmarks/core.py + swebench_runner + gaia_longmem_runner)</li>
+</ul>
+</section>
+</main>
+</body>
+</html>
