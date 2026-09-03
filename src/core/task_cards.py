@@ -30,6 +30,30 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 logger = logging.getLogger("meshctx.task_cards")
 
+# WP1 (MCTX-PLAN-2026-0903): 卡级遥测事件 (trace 归因, 失败静默)
+try:
+    from src.core import telemetry as _telemetry_mod
+except Exception:                       # pragma: no cover — stub 环境兜底
+    _telemetry_mod = None
+
+
+def _tel_record(card_id: str, store, event_type: str, detail: str = ""):
+    """带卡 trace 的遥测事件 (approval/cancel 等 API 线程路径)。"""
+    if _telemetry_mod is None:
+        return
+    trace_id = ""
+    try:
+        c = store.load(card_id)
+        if c is not None and (c.extra or {}).get("trace_id"):
+            trace_id = c.extra["trace_id"]
+    except Exception:
+        pass
+    try:
+        _telemetry_mod.get_telemetry().record(
+            "task", event_type, detail=detail[:500], trace_id=trace_id)
+    except Exception:
+        pass
+
 CARDS_DIR = pathlib.Path.home() / ".meshctx" / "task_cards"
 
 # 卡状态 (与 agent_tasks.TaskStatus 语义一致, 便于既有代码互认)
@@ -570,6 +594,8 @@ class CardWorker:
         # RUNNING / WAITING_APPROVAL: 登记集合 (及时中断) + 落盘 + 取消 task
         with self._cancel_lock:
             self._cancelled.add(card_id)
+        # WP1: 取消遥测 (带卡 trace)
+        _tel_record(card_id, self._store, "cancel", "user cancel")
         # WAITING_APPROVAL: 对挂起审批 future 投 reject, 即时解除 waiter 阻塞
         # (P3 002codex — 否则卡线程等满 120s 审批超时才收尾)
         if card.status == CardStatus.WAITING_APPROVAL:
@@ -673,6 +699,9 @@ class CardWorker:
             # 登记"该卡审批已决" — save_card 合并时强制清 pending 防回写 (P3 004meshctx)
             with self._cancel_lock:
                 self._approval_decided.add(decided_card)
+            # WP1: 审批决策遥测 (带卡 trace)
+            _tel_record(decided_card, self._store, "approval",
+                        f"action={action} request={request_id}")
         loop = fut.get_loop()
         try:
             loop.call_soon_threadsafe(
@@ -822,6 +851,10 @@ class CardWorker:
         if card.status == CardStatus.CANCELLED:
             self._running.pop(card.id, None)
             return
+        # WP1: 稳定卡级 trace_id (整卡生命周期审批/取消事件均可归因);
+        # 重启恢复重跑会生成新 trace (旧 trace 归档于历史 JSONL)
+        if _telemetry_mod is not None:
+            card.extra.setdefault("trace_id", _telemetry_mod.new_span_id())
         card.mark(CardStatus.RUNNING)
         self._store.save(card)
         # 同步阻塞型 agent 执行 → 线程池 (每卡独立线程, 不占 worker 调度 loop)

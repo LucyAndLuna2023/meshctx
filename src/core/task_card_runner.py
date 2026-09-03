@@ -168,7 +168,10 @@ async def run_card(card, worker=None) -> Dict[str, Any]:
     卡的状态/事件由调用方 (worker._run_one) 负责最终落盘; 本函数只做事件 → 卡 timeline。
     """
     from src.core import telemetry as _tel
-    with _tel.Span("card.run", agent="task",
+    # WP1: 卡级 trace 由 worker._run_one 预置 (extra.trace_id) — span 归入同一 trace,
+    # 使审批/取消等 API 线程事件与执行 span 全链路关联; 直调 run_card (测试) 自动生成
+    _trace = (getattr(card, "extra", None) or {}).get("trace_id", "") or ""
+    with _tel.Span("card.run", agent="task", trace_id=_trace,
                    tags={"card_id": getattr(card, "id", "") or "",
                          "prompt_len": len(getattr(card, "prompt", "") or "")}):
         return await _run_card_inner(card, worker)

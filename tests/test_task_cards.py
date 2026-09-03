@@ -330,6 +330,36 @@ class TestCardWorker:
             w.join(timeout=2.0)
             loop.close()
 
+    def test_run_sets_card_trace_id(self, tmp_dir):
+        """WP1: worker 执行时给卡预置稳定 trace_id (审批/取消事件归因)。"""
+        import re, time
+        from src.core.task_cards import TaskCard, CardStatus
+        seen = {}
+
+        async def run_fn(card):
+            seen["trace"] = (card.extra or {}).get("trace_id", "")
+            return {"result": "ok"}
+
+        w = self._make(tmp_dir, run_fn)
+        try:
+            c = TaskCard(owner="local", prompt="t")
+            assert w.enqueue(c) is True
+            done = False
+            for _ in range(200):
+                time.sleep(0.02)
+                got = w._store.load(c.id)
+                if got and got.status == CardStatus.COMPLETED:
+                    done = True
+                    break
+            assert done
+            assert seen["trace"], "执行时应预置 trace_id"
+            assert re.fullmatch(r"[0-9a-f]{16}", seen["trace"])
+            got = w._store.load(c.id)
+            assert (got.extra or {}).get("trace_id") == seen["trace"]
+        finally:
+            w.stop()
+            w.join(timeout=3.0)
+
     def test_recover_interrupted_after_restart(self, tmp_dir):
         """模拟进程重启: 预置 running/queued/waiting_approval 卡, start(recover=True)
         后 running→queued 重新执行、queued 直接排队、waiting_approval→failed。"""
