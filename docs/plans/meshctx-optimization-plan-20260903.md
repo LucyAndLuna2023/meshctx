@@ -287,7 +287,11 @@ T4（第 5–5.5 周）: 全量回归 + 文档/BP/10 语言联动 + 三方审计
 | WP7 P1-4 沙箱硬化 | ✅ 基线落地 | 32b6b64e (sandbox_policy.py + 16 tests + baseline doc) |
 | WP8 P2-1 治理白皮书 | ✅ 文档 v1.0 | (docs/governance/whitepaper.md, 本批) |
 | SOP QA/发布流程 | ✅ v1.1 | docs/release/qa_release_sop_v1.md (三方审计 P2/P3 并入, v3.124.0 起强制) |
-| WP2 P0-2 评测 harness | 🔄 阶段1 | benchmarks/ (core 纯函数 + swebench/gaia/longmem runner + README), 成绩页/CI nightly 下批 |
+| WP2 P0-2 评测 harness | 🔄 阶段1+ | benchmarks/ (core+swebench/gaia/longmem runner+README+tests 10)
+  + benchmark-nightly.yml + docs/benchmarks 页; 真实榜提交待凭据 runner |
+| WP3 P0-3 Memory API | ✅ HTTP 阶段1 | memory_api.py (/api/v1/memory store/search/list/delete/ns-GDPR,
+  owner 隔离, CJK bigram 检索零依赖) + tests 7 |
+| WP5 P1-2 MCP 扩展 | ✅ 23→43 defs | mcp_server +17 工具 (memory×5/tasks×5/routines×4/quota/telemetry×2) + tests 9 |
 | WP6 UI 值守 tab | ✅ | 176c654a (chat.html ⏰ Routines 折叠区 + 10 语言 10 键) |
 | 里程碑 3.123.0/3.123.1 | ✅ 已发版 | v3.123.0 (5323eccc) + v3.123.1 补发 (ee3c158e, 资产元数据修正); SOP v1.1 生效 |
 
