@@ -33,7 +33,7 @@ def validate_gaia_submission(sub: dict) -> list:
 
 
 def grade_longmem(questions: Path, predictions: Path, loose: bool = False,
-                  head: str = "local") -> dict:
+                  head: str = "local", out: str = "longmem_report.json") -> dict:
     """LongMem 风格问答打分: questions.jsonl {id, question, answer} ×
     predictions.jsonl {id, answer} → EM 报告。"""
     qs = {}
@@ -59,9 +59,7 @@ def grade_longmem(questions: Path, predictions: Path, loose: bool = False,
               "results": {"mode": "self_run", "metric": "em",
                           "em": scored["em"], "correct": scored["correct"],
                           "total": scored["total"]}}
-    problems = validate_report(report)
-    if problems:
-        raise SystemExit("; ".join(problems))
+    write_report(report, out_path)     # write 自动补 schema/date + validate
     return report
 
 
@@ -89,8 +87,7 @@ def main() -> int:
         print("gaia submission written:", a.out)
     else:
         rep = grade_longmem(Path(a.questions), Path(a.predictions),
-                            loose=a.loose)
-        write_report(rep, a.out)
+                            loose=a.loose, out=a.out)
         print(json.dumps(rep["results"], ensure_ascii=False))
     return 0
 

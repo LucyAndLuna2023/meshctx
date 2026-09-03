@@ -21,7 +21,7 @@ REPORT_KEYS = {"schema", "benchmark", "date", "head", "config", "results"}
 
 
 def validate_report(report: Dict[str, Any]) -> List[str]:
-    """返回问题清单 (空 = 合规)。口径: 自测/官方分表呈现, 不混排。"""
+    """返回问题清单 (空 = 合规)。口径: 自测/官方分表呈现, 不混排; metric 须实算。"""
     problems = []
     for k in REPORT_KEYS:
         if k not in report:
@@ -32,6 +32,16 @@ def validate_report(report: Dict[str, Any]) -> List[str]:
         problems.append(f"results.mode 必须 self_run|official_submission|reference, 实为 {mode!r}")
     if "metric" not in res:
         problems.append("缺 results.metric (如 resolved|pass_rate|em)")
+    dry = bool(report.get("mode_hint"))          # dry-run 计划报告豁免实算断言 (P3-B)
+    metric = res.get("metric")
+    if not dry:
+        if metric == "resolved" and not isinstance(res.get("resolved"), (int, float)) \
+                and "resolved_count" not in res:
+            problems.append("metric=resolved 需实算: results.resolved/resolved_count 数值 (禁占位)")
+        if metric == "em" and not isinstance(res.get("em"), (int, float)):
+            problems.append("metric=em 需实算: results.em 数值")
+        if metric == "pass_rate" and not isinstance(res.get("pass_rate"), (int, float)):
+            problems.append("metric=pass_rate 需实算数值")
     return problems
 
 

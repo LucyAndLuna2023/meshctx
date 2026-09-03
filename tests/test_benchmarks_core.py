@@ -46,7 +46,7 @@ class TestReport:
     def test_validate_ok(self):
         rep = {"schema": "1.0", "benchmark": "longmem_s", "date": "t",
                "head": "h", "config": {}, "results": {"mode": "self_run",
-               "metric": "em"}}
+               "metric": "em", "em": 0.5, "total": 10}}
         assert validate_report(rep) == []
 
     def test_validate_bad_mode(self):
@@ -57,7 +57,8 @@ class TestReport:
 
     def test_write_report_roundtrip(self, tmp_path):
         rep = {"benchmark": "swebench_verified", "head": "abc",
-               "config": {}, "results": {"mode": "self_run", "metric": "resolved"}}
+               "config": {}, "results": {"mode": "self_run", "metric": "resolved",
+                                         "resolved": 0.0}}
         p = write_report(rep, tmp_path / "r.json")
         assert json.loads(p.read_text(encoding="utf-8"))["benchmark"] == "swebench_verified"
 
@@ -99,3 +100,15 @@ class TestSweInstances:
         assert s["f2p_tests"] == 3          # 1 + "t2,t3"
         assert s["p2p_tests"] == 3
         assert s["patched"] == 2
+
+
+    def test_metric_must_be_real(self):
+        """P3-B (004meshctx): metric=resolved 无实算值 + 非 dry → 不合规 (禁占位假跑分)。"""
+        rep = {"schema": "1.0", "benchmark": "swebench_verified", "date": "t",
+               "head": "h", "config": {},
+               "results": {"mode": "self_run", "metric": "resolved",
+                           "instances": [{"status": "ran"}]}}
+        assert validate_report(rep)          # 占位 status=ran 无 resolved → 拦
+        # dry-run 计划 (mode_hint) 豁免
+        rep["mode_hint"] = "dry-run"
+        assert validate_report(rep) == []

@@ -29,9 +29,23 @@ MEMORIES_DIR = pathlib.Path.home() / ".meshctx" / "memories_api"
 MAX_ENTRY_TEXT = 20000
 
 
-def _ns_dir(key: str) -> pathlib.Path:
-    safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in key)
-    return MEMORIES_DIR / safe
+_NS_RE = __import__("re").compile(r"^[A-Za-z0-9._-]{1,80}$")
+
+
+def _valid_ns(ns: str) -> bool:
+    """ns 字符白名单 (P2-W3-1/002meshctx): 禁 ':'/空白 → key 无歧义可解析。"""
+    return bool(_NS_RE.match(ns or ""))
+
+
+def _split_key(key: str) -> tuple:
+    """owner:ns 拆分 — ns 已禁 ':', 以最后一个 ':' 拆分唯一确定 owner/ns。"""
+    owner, _, ns = key.rpartition(":")
+    return owner, ns
+
+
+def _esc(part: str) -> str:
+    """路径段转义 (P3-A/004meshctx: 分层路径 + 转义, 防 sanitize 碰撞)。"""
+    return "".join(c if c.isalnum() or c in "-_." else "_" for c in part) or "_"
 
 
 class MemoryService:
@@ -41,12 +55,11 @@ class MemoryService:
         self._base = pathlib.Path(base_dir) if base_dir else MEMORIES_DIR
         self._lock = threading.RLock()
         self._entries: Dict[str, Dict[str, Dict[str, Any]]] = {}   # key -> {id: entry}
-        self._index: Dict[str, Any] = {}                            # key -> vector index
-        self._dirty: Dict[str, bool] = {}
 
-    # ── 持久化 ──────────────────────────────────────────────
+    # ── 持久化 (分层 <owner>/<ns>.json — P3-A 防路径碰撞) ──
     def _path(self, key: str) -> pathlib.Path:
-        return self._base / f"{_ns_dir(key).name}.json"
+        owner, ns = _split_key(key)
+        return self._base / _esc(owner) / f"{_esc(ns)}.json"
 
     def _load(self, key: str) -> Dict[str, Dict[str, Any]]:
         if key in self._entries:
@@ -76,6 +89,19 @@ class MemoryService:
         except Exception:
             logger.exception("memory save failed %s", key)
 
+    # ── 审计 (P3-1/002codex: 记忆写属敏感数据, 逐操作落盘) ──
+    def _audit(self, action: str, key: str, entry_id: str = "") -> None:
+        try:
+            owner, ns = _split_key(key)
+            ap = self._base / ".audit" / "memory.jsonl"
+            ap.parent.mkdir(parents=True, exist_ok=True)
+            with open(ap, "a", encoding="utf-8") as f:
+                f.write(json.dumps({"ts": time.time(), "action": action,
+                                    "owner": owner, "namespace": ns,
+                                    "entry_id": entry_id}, ensure_ascii=False) + "\n")
+        except Exception:
+            logger.debug("memory audit write failed", exc_info=True)
+
     # ── 业务 ────────────────────────────────────────────────
     def store(self, key: str, text: str, meta: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         with self._lock:
@@ -84,8 +110,8 @@ class MemoryService:
             entry = {"id": eid, "text": text, "ts": time.time(),
                      "meta": dict(meta or {})}
             d[eid] = entry
-            self._dirty[key] = True
             self._save(key)
+            self._audit("store", key, eid)
             return entry
 
     @staticmethod
@@ -143,6 +169,7 @@ class MemoryService:
                 return False
             del d[entry_id]
             self._save(key)
+            self._audit("delete_entry", key, entry_id)
             return True
 
     def delete_namespace(self, key: str) -> bool:
@@ -156,7 +183,8 @@ class MemoryService:
             except Exception:
                 logger.debug("ns delete file", exc_info=True)
             self._entries.pop(key, None)
-            return removed or key in self._entries
+            self._audit("delete_namespace", key)
+            return removed
 
 
 _default_service: Optional[MemoryService] = None
@@ -201,11 +229,16 @@ def _ns_key(owner: str, ns: str) -> str:
     return f"{owner}:{ns}"
 
 
+def _checked_ns(ns: str) -> str:
+    """白名单校验 (P2-W3-1): [A-Za-z0-9._-] 1-80; 禁 ':'/空白。"""
+    ns = (ns or "default").strip()
+    if not _valid_ns(ns):
+        raise HTTPException(400, "namespace 仅允许字母数字._- (≤80)")
+    return ns
+
+
 def _parse_body_ns(body: dict, owner: str) -> str:
-    ns = str(body.get("namespace") or "default").strip()
-    if not ns or len(ns) > 80:
-        raise HTTPException(400, "namespace 无效")
-    return _ns_key(owner, ns)
+    return _ns_key(owner, _checked_ns(str(body.get("namespace") or "default")))
 
 
 # ── 路由 ─────────────────────────────────────────────────────
@@ -234,8 +267,9 @@ async def memory_search(request: Request, q: str = "", top_k: int = 5,
     await _reject_anon(owner)
     if not q.strip():
         raise HTTPException(400, "q 不能为空")
-    key = _ns_key(owner, namespace[:80] or "default")
-    return {"namespace": namespace[:80] or "default", "results":
+    ns = _checked_ns(namespace)
+    key = _ns_key(owner, ns)
+    return {"namespace": ns, "results":
             get_memory_service().search(key, q.strip(), top_k)}
 
 
@@ -243,9 +277,9 @@ async def memory_search(request: Request, q: str = "", top_k: int = 5,
 async def memory_list(request: Request, namespace: str = "default"):
     owner = await _owner(request)
     await _reject_anon(owner)
-    key = _ns_key(owner, namespace[:80] or "default")
-    return {"namespace": namespace[:80] or "default",
-            "entries": get_memory_service().list_entries(key)}
+    ns = _checked_ns(namespace)
+    key = _ns_key(owner, ns)
+    return {"namespace": ns, "entries": get_memory_service().list_entries(key)}
 
 
 @router.delete("/{entry_id}")
@@ -253,7 +287,8 @@ async def memory_delete_entry(entry_id: str, request: Request,
                               namespace: str = "default"):
     owner = await _owner(request)
     await _reject_anon(owner)
-    key = _ns_key(owner, namespace[:80] or "default")
+    ns = _checked_ns(namespace)
+    key = _ns_key(owner, ns)
     if not get_memory_service().delete_entry(key, entry_id):
         raise HTTPException(404, "entry 不存在")
     return {"ok": True, "id": entry_id}
@@ -263,10 +298,10 @@ async def memory_delete_entry(entry_id: str, request: Request,
 async def memory_delete_namespace(request: Request, namespace: str = "default"):
     owner = await _owner(request)
     await _reject_anon(owner)
-    key = _ns_key(owner, namespace[:80] or "default")
+    ns = _checked_ns(namespace)
+    key = _ns_key(owner, ns)
     removed = get_memory_service().delete_namespace(key)
-    return {"ok": True, "namespace": namespace[:80] or "default",
-            "removed": removed}
+    return {"ok": True, "namespace": ns, "removed": removed}
 
 
 __all__ = ["MemoryService", "get_memory_service",

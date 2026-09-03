@@ -38,27 +38,14 @@ def run_dry(jsonl: str, head: str) -> dict:
 
 def run_real(jsonl: str, head: str, out: str, image: str,
              timeout_min: int = 60) -> dict:
-    """逐实例进容器验证 (swebench harness)。需 docker 与镜像预置。"""
-    if not image:
-        sys.exit("缺少 SWE 评测镜像 (MESHCTX_SWE_IMAGE); 先构建 swebench 容器")
-    instances = load_swe_instances(jsonl)
-    results = []
-    for inst in instances:
-        cmd = ["docker", "run", "--rm", "-v",
-               f"{os.getcwd()}:/work", image,
-               "python", "-m", "swebench.harness.run_evaluation",
-               "--instance_id", inst["instance_id"], "--patch_file", "/work/patch.txt"]
-        subprocess.run(cmd, check=False, timeout=timeout_min * 60)
-        results.append({"instance_id": inst["instance_id"],
-                        "status": "ran"})   # 真实判定读 harness 输出 (下批)
-    report = {"benchmark": "swebench_verified", "head": head,
-              "config": {"image": image}, "results": {"mode": "self_run",
-              "metric": "resolved", "instances": results}}
-    problems = validate_report(report)
-    if problems:
-        raise SystemExit("; ".join(problems))
-    write_report(report, out)
-    return report
+    """真实容器评测 (P2-W2-1/002meshctx): 判定落地前显式不可用。
+
+    官方 SWE-bench Verified harness 接入 (读 harness stdout/日志 → FAIL_TO_PASS/
+    PASS_TO_PASS 判定统计) 为 3.124.0-final 工作项 — 禁止"占位假跑分"产出合规报告。
+    """
+    raise NotImplementedError(
+        "swebench run_real 判定落地中 (3.124.0-final): 官方 harness 结果解析 + "
+        "resolved 统计实算后才开放; 当前请用 --dry-run 出实例汇总")
 
 
 def main() -> int:

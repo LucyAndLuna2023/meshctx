@@ -52,9 +52,9 @@ class MCPTool:
 
 class MCPServer:
     """
-    MCP 服务器
-    
-    注册的工具自动暴露给 MCP 客户端 (Claude Desktop, Cursor, etc.)
+    MCP 服务器 (本地 stdio 通道; WP5 rc2: 远程 HTTP/SSE 未实现, 接入前必须加
+    token/owner 鉴权层 — P2-W5-1/002meshctx)。工具 owner 语义 = 本机回环 "local";
+    跨 owner 操作一律拒绝 (与 HTTP 同款隔离)。
     """
     
     def __init__(self, name: str = "meshctx", version: str = "1.0.0"):
@@ -434,6 +434,28 @@ def _rpc_err(tag: str, e: Exception) -> str:
                       ensure_ascii=False)
 
 
+def _worker_ready() -> bool:
+    """任务卡 daemon worker 是否在本进程启动 (P2-W5-4 独立进程语义门)。
+
+    mcp CLI 独立进程不内嵌 CardWorker → task 工具拒绝执行并给出正确指引,
+    不再产生"看似取消/审批实际不达 daemon"的虚假语义。
+    """
+    try:
+        from .core.task_cards import get_card_worker
+        w = get_card_worker()
+        return w._loop is not None and not w._loop.is_closed()
+    except Exception:
+        return False
+
+
+def _worker_gate() -> str:
+    if not _worker_ready():
+        return json.dumps({"error": "任务卡 worker 未在本进程启动 — mcp CLI 为独立进程"
+                                   " (不内嵌 daemon); 请在 meshctx 主进程内嵌 MCP 或经进程桥接后调用"},
+                          ensure_ascii=False)
+    return ""
+
+
 def _register_wp5_tools(server: "MCPServer") -> None:
     """注册 WP5 扩展工具 (个人版全开; 配额/edition 语义与 HTTP API 一致)。"""
     # ── Memory API (WP3 服务, owner=local) ──
@@ -570,6 +592,9 @@ async def _handle_mem_delete_ns(args: Dict) -> str:
 
 
 async def _handle_task_spawn(args: Dict) -> str:
+    gate = _worker_gate()
+    if gate:
+        return gate
     try:
         from .core.task_cards import TaskCard, get_card_worker, get_hub_quota
         prompt = str(args.get("prompt") or "").strip()
@@ -595,12 +620,18 @@ async def _handle_task_spawn(args: Dict) -> str:
 
 
 async def _handle_task_status(args: Dict) -> str:
+    gate = _worker_gate()
+    if gate:
+        return gate
     try:
         from .core.task_cards import get_card_worker
         w = get_card_worker()
         c = w._store.load(str(args["card_id"]))
         if c is None:
             return json.dumps({"error": "card 不存在"}, ensure_ascii=False)
+        if getattr(c, "owner", "") != "local":
+            return json.dumps({"error": "跨 owner 拒绝 (MCP 本地通道仅限 local 卡)"},
+                              ensure_ascii=False)
         return json.dumps({"id": c.id, "status": c.status.value,
                            "result": (c.result or "")[:2000],
                            "error": (c.error or "")[:1000],
@@ -611,6 +642,9 @@ async def _handle_task_status(args: Dict) -> str:
 
 
 async def _handle_task_list(args: Dict) -> str:
+    gate = _worker_gate()
+    if gate:
+        return gate
     try:
         from .core.task_cards import get_card_worker
         cards = get_card_worker()._store.list_cards(owner="local")
@@ -624,23 +658,40 @@ async def _handle_task_list(args: Dict) -> str:
 
 
 async def _handle_task_cancel(args: Dict) -> str:
+    gate = _worker_gate()
+    if gate:
+        return gate
     try:
         from .core.task_cards import get_card_worker
-        ok = get_card_worker().cancel(str(args["card_id"]))
+        w = get_card_worker()
+        c = w._store.load(str(args["card_id"]))
+        if c is not None and getattr(c, "owner", "") != "local":
+            return json.dumps({"error": "跨 owner 拒绝"}, ensure_ascii=False)
+        ok = w.cancel(str(args["card_id"]))
         return json.dumps({"ok": ok}, ensure_ascii=False)
     except Exception as e:
         return _rpc_err("task_cancel", e)
 
 
 async def _handle_task_approve(args: Dict) -> str:
+    gate = _worker_gate()
+    if gate:
+        return gate
     try:
         from .core.task_cards import get_card_worker
         w = get_card_worker()
         c = w._store.load(str(args["card_id"]))
         if c is None or not getattr(c, "approval_pending", None):
             return json.dumps({"error": "无挂起审批"}, ensure_ascii=False)
+        if getattr(c, "owner", "") != "local":
+            return json.dumps({"error": "跨 owner 拒绝"}, ensure_ascii=False)
         rid = c.approval_pending.get("request_id", "")
-        action = str(args.get("action") or "agree")
+        # P2-W5-3: action 显式必填 (不再缺省 agree 自放行) — 决策面为本地用户;
+        # agent 自批场景需经 UI/Web decide (审批=人肉门, 主进程内嵌亦保持显式)
+        action = str(args.get("action") or "").strip()
+        if action not in ("agree", "reject", "custom"):
+            return json.dumps({"error": "action 必填: agree|reject|custom (审批=人肉门, 拒绝缺省放行)"},
+                              ensure_ascii=False)
         text = str(args.get("text") or "")
         ok = w.decide_approval(rid, action, text)
         return json.dumps({"ok": ok}, ensure_ascii=False)
@@ -683,6 +734,8 @@ async def _handle_routine_toggle(args: Dict) -> str:
         r = st.get(str(args["routine_id"]))
         if r is None:
             return json.dumps({"error": "routine 不存在"}, ensure_ascii=False)
+        if r.owner != "local":
+            return json.dumps({"error": "跨 owner 拒绝"}, ensure_ascii=False)
         r.enabled = bool(args.get("enabled", not r.enabled))
         st.save(r)
         return json.dumps({"ok": True, "enabled": r.enabled}, ensure_ascii=False)
@@ -698,6 +751,8 @@ async def _handle_routine_run(args: Dict) -> str:
         r = st.get(str(args["routine_id"]))
         if r is None:
             return json.dumps({"error": "routine 不存在"}, ensure_ascii=False)
+        if r.owner != "local":
+            return json.dumps({"error": "跨 owner 拒绝"}, ensure_ascii=False)
         now = time.time()
         ok = make_spawn_fn()(r, now)
         if ok:

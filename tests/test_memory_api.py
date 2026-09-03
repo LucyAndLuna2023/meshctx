@@ -107,3 +107,71 @@ class TestAPI:
         assert (await client.post("/api/v1/memory", json={})).status_code == 400
         assert (await client.get("/api/v1/memory/search",
                                  params={"q": "  "})).status_code == 400
+
+class TestRc2Hardening:
+    def test_ns_whitelist_rejects_colon(self, client):
+        # P2-W3-1: ns 含 ':' → 400 (键碰撞面消除)
+        r = await_patch(client) if False else None
+        import asyncio
+        async def _run():
+            return await client.post("/api/v1/memory", json={"text": "x",
+                                                             "namespace": "a:b"})
+        assert (asyncio.run(_run())).status_code == 400
+
+    def test_path_collision_free(self, tmp_dir):
+        # P3-A: 分层 <owner>/<ns>.json — alice:b_c 与 alice_b:c 不同文件
+        svc = MemoryService(base_dir=tmp_dir)
+        svc.store("alice:b_c", "x1")
+        svc.store("alice_b:c", "x2")
+        p1 = tmp_dir / "alice" / "b_c.json"
+        p2 = tmp_dir / "alice_b" / "c.json"
+        assert p1.exists() and p2.exists()
+        assert svc.search("alice:b_c", "x1") and not svc.search("alice_b:c", "x1")
+
+    def test_store_writes_audit(self, tmp_dir):
+        svc = MemoryService(base_dir=tmp_dir)
+        svc.store("alice:docs", "敏感写入")
+        ap = tmp_dir / ".audit" / "memory.jsonl"
+        assert ap.exists()
+        assert "store" in ap.read_text(encoding="utf-8")
+
+    def test_cross_owner_http_isolation(self, tmp_dir, monkeypatch):
+        """P2-W3-2: 跨 owner 端到端 — 顺序 client (alice 写 → bob 写/查互不可见)。"""
+        import asyncio
+        from fastapi import FastAPI
+        from httpx import ASGITransport, AsyncClient
+        from src.core import memory_api as ma
+        monkeypatch.setattr(ma, "MEMORIES_DIR", tmp_dir)
+        reset_memory_service_for_tests()
+        from src.core.memory_api import router
+        import src.core.memory_api as mod
+
+        def make_app(who):
+            a = FastAPI(); a.include_router(router)
+            async def _owner(req):
+                return who
+            mod._owner = _owner
+            return a
+
+        async def scenario():
+            # alice 写入 (独立 app, owner=alice)
+            async with AsyncClient(transport=ASGITransport(app=make_app("alice")),
+                                   base_url="http://t") as ca:
+                ra = await ca.post("/api/v1/memory", json={
+                    "text": "alice 私密笔记", "namespace": "docs"})
+                assert ra.status_code == 200
+            # bob 写入 + 检索 (独立 app, owner=bob)
+            async with AsyncClient(transport=ASGITransport(app=make_app("bob")),
+                                   base_url="http://t") as cb:
+                await cb.post("/api/v1/memory", json={
+                    "text": "bob 公开内容", "namespace": "docs"})
+                rb = await cb.get("/api/v1/memory/search",
+                                  params={"q": "私密", "namespace": "docs"})
+                assert rb.json()["results"] == [], "bob 不应看到 alice 内容"
+            # alice 侧仍可检索到自己内容
+            async with AsyncClient(transport=ASGITransport(app=make_app("alice")),
+                                   base_url="http://t") as ca2:
+                rc = await ca2.get("/api/v1/memory/search",
+                                   params={"q": "私密", "namespace": "docs"})
+                assert rc.json()["results"], "alice 应可检索到自己内容"
+
