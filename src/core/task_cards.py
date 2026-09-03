@@ -652,13 +652,17 @@ class CardWorker:
         decided_card = None
         with self._approval_lock:
             fut = self._approval_futures.pop(request_id, None)
-            # 同步清理 card→request 映射并记录已决 card
+            # 同步清理 card→request 映射并记录已决 card。
+            # 只登记真正包含该 request_id 的卡: 对无关卡 discard 后
+            # not-in-reqs 恒真, 会把 decided_card 覆盖为迭代末尾的无关卡
+            # (P2-2 002meshctx 多卡并发审批跨卡污染)。
             for card_id, reqs in list(self._approval_by_card.items()):
-                reqs.discard(request_id)
-                if not reqs:
-                    self._approval_by_card.pop(card_id, None)
-                if request_id not in reqs:
+                if request_id in reqs:
+                    reqs.discard(request_id)
                     decided_card = card_id
+                    if not reqs:
+                        self._approval_by_card.pop(card_id, None)
+                    break
         if fut is None or fut.done():
             return False
         if decided_card is not None:

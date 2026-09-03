@@ -266,6 +266,43 @@ class TestCardWorker:
             w.stop()
             w.join(timeout=2.0)
             loop.close()
+
+    def test_approve_multi_card_no_cross_contamination(self, tmp_dir):
+        """P2-2 (002meshctx): 双卡并发 WAITING_APPROVAL 时, decide 卡A 不得把
+        无辜卡B 误登记进 _approval_decided (原实现: 对无关卡 discard 后
+        not-in-reqs 恒真 → decided_card 被覆盖为迭代末尾的无关卡)。"""
+        import asyncio
+        from src.core.task_cards import CardWorker, TaskCard, TaskCardStore
+        w = CardWorker()
+        w._store = TaskCardStore(base_dir=tmp_dir / "w6")
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            ca = TaskCard(owner="local", prompt="A")
+            cb = TaskCard(owner="local", prompt="B")
+            # 模拟 register_approval 后状态: 两卡各挂 1 个 pending request
+            fa = loop.create_future()
+            fb = loop.create_future()
+            w._approval_futures["req-A"] = fa
+            w._approval_futures["req-B"] = fb
+            w._approval_by_card.setdefault(ca.id, set()).add("req-A")
+            w._approval_by_card.setdefault(cb.id, set()).add("req-B")
+            # decide 卡A 的审批
+            assert w.decide_approval("req-A", "agree") is True
+            # 目标卡 A 已登记, 无辜卡 B 未被误登记
+            assert ca.id in w._approval_decided
+            assert cb.id not in w._approval_decided, "无辜卡 B 被跨卡污染!"
+            # 映射清理正确: B 的 pending request 仍保留可独立 decide
+            assert "req-B" in w._approval_futures
+            assert w.decide_approval("req-B", "agree") is True
+            assert cb.id in w._approval_decided
+            assert ca.id in w._approval_decided
+            assert not w._approval_by_card, "全部 decide 后 card→request 映射应清空"
+        finally:
+            w.stop()
+            w.join(timeout=2.0)
+            loop.close()
+
     def test_recover_interrupted_after_restart(self, tmp_dir):
         """模拟进程重启: 预置 running/queued/waiting_approval 卡, start(recover=True)
         后 running→queued 重新执行、queued 直接排队、waiting_approval→failed。"""

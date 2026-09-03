@@ -1,7 +1,7 @@
 # MeshCtx 全面优化方案（2026-09 差距收窄计划）
 
 - 方案编号：MCTX-PLAN-2026-0903
-- 版本：v1.0（待三方审计）　日期：2026-09-03
+- 版本：v1.1（三方回执后修订）　日期：2026-09-03
 - 编制：004meshctx（产品/架构）　依据：调研报告 MCTX-RES-2026-0903（004meshctx，2026-09-03）+ 本地代码实证（HEAD 41eb7d90）
 - 目标版本窗口：v3.123.0 – v3.124.0（一个季度内收窄 P0/P1 差距至"可竞争水位"）
 
@@ -58,7 +58,7 @@
 
 - **目标**：全链路结构化追踪，消灭 print 级链路；个人版本地 JSONL 可视，团队/企业版 OTLP 导出。
 - **设计**：
-  - 新增 `src/core/telemetry.py`：`Span`/`Tracer`/`trace_ctx`（contextvar）+ JSONL 落盘（沿用 `_atomic_write` 模式防并发）+ 可选 OTLP exporter（HTTP，feature flag `MESHCTX_OTLP_ENDPOINT`）。
+  - **扩展现有** `src/core/telemetry.py`（v3.122.0 已有 134 行 TelemetryStore：平铺事件 + JSON 落盘 + `get_telemetry()` 单例；前置勘察确认，非从零新增）：保留 `record/events/stats` 既有 API 兼容，新增 `Span`/`Tracer`/`trace_ctx`（contextvar）span 语义 + JSONL **轮转落盘**（大小上限，防长跑磁盘膨胀，002meshctx P3①）+ 可选 OTLP exporter（HTTP，feature flag `MESHCTX_OTLP_ENDPOINT`，默认关）。
   - 埋点接入点（均为既有代码 + 装饰器/上下文管理器，侵入最小）：`run_agent_loop`（span: card_id/agent 轮次/工具调用/耗时）、CardWorker 线程（queue→run→terminal 状态机）、hub 收发（msg 级）、配额 consume/approval decide、62 工具调用。
   - 审计日志（现 audit.log）与 trace 的关联字段：card_id/request_id 贯通。
 - **edition 边界**：telemetry core + JSONL 本地查看 = 开源个人版；OTLP 导出与"治理面板"（trace 检索/配额看板 UI）= 团队/企业（走 `_EDITION_ROUTE_MAP` 隐藏）。
@@ -73,6 +73,7 @@
   - 独立 CI workflow（`benchmark-nightly.yml`，凭据 gated、仅手动/定时触发，不进日常 pytest）。
   - 结果页：`docs/benchmarks/index.html`（10 语言 i18n 复用现有管线）展示**分口径**成绩（自测 vs 官方提交状态），避免报告第八章"口径警示"的坑。
   - 内部启发式 v8 保留为开发快循环，但对外只讲官方口径。
+  - **longmem_runner 前置**（002meshctx P3）：随 SWE harness 第一批交付（T1 前半），供 WP3 T3 跑分直接复用，避免 T3 阻塞。
 - **edition 边界**：harness 开源（AGPL，含运行脚本与文档）；**官方榜提交账号/凭据与分数归属**为运营资产不进仓库（同 provider_config 处理）。
 - **验收**：SWE-bench Verified 官方容器在本仓库可复现跑通 ≥1 个样本集；结果 JSON 字段齐全；成绩页 i18n 10 语言渲染无缺键（复跑 docs i18n 套件）。
 - **工作量**：2–3 周（SWE harness 1 + GAIA/提交 0.5 + 页面/管线 0.5 + 试跑调参 0.5–1）。
@@ -104,6 +105,7 @@
 
 - **目标**：MCP 工具/定义从 23 扩到 ≥40，覆盖：记忆（WP3 三工具）、任务卡控制（spawn/list/approve/cancel，复用 `/api/tasks/cards` 语义）、治理（配额查询/审批查询）、浏览器（Web2API 桥接）、观测（trace 查询）。
 - **落地**：`mcp_server.py` 增量 + 每工具 schema 测试 + `docs/mcp.md` 更新（i18n 后补）。
+- **交付边界**（002meshctx P3，防范围蔓延）：桥接 = 经 MCP 工具调用 Web2API 发起受控网页操作，**≠** 常驻浏览器/Computer Use 产品形态；本 WP 不含浏览器会话管理、视觉定位等；范围蔓延项一律记入 3.125+ 立项评估清单。
 - **验收**：≥40 定义；每个新工具 ≥1 测试（schema 校验 + 授权路径）；mcp 测试套件绿。
 - **工作量**：1.5–2 周。
 
@@ -148,14 +150,17 @@
 - WP4（swarm）依赖 hub 与 task_cards（已就绪）→ 中段插入。
 
 ```
-T0（第 1 周）: WP1 观测 core（0.5）+ WP6 Routines + WP7 沙箱硬化     ← 三线并行
-T1（第 2 周）: WP1 埋点收尾（0.5）+ WP2 SWE harness v1 + WP8 白皮书
+T0（第 1–1.5 周）: WP1 观测 core（0.5）+ WP6 Routines 起步 + WP7 沙箱硬化
+    ← 002meshctx P3: 原 T0 单周 WP1+WP6+WP7 ≈3 人周, 超出单人+agent 单周产出,
+       T0 放宽至 1.5 周; WP6/WP7 收尾计入 T1
+T1（第 2–2.5 周）: WP1 埋点收尾（0.5）+ WP6/WP7 收尾 + WP2 SWE harness v1
+    （含 longmem_runner 前置）+ WP8 白皮书
 T2（第 3 周）: WP2 GAIA/成绩页 + WP3 Memory API（HTTP/MCP）+ WP5 MCP 扩展启动
 T3（第 4 周）: WP3 LongMem 跑分/成绩 + WP4 swarm 2-worker + WP5 收尾(≥40)
-T4（第 5 周）: 全量回归 + 文档/BP/10 语言联动 + 三方审计 round 2 + 发版 3.124.0
+T4（第 5–5.5 周）: 全量回归 + 文档/BP/10 语言联动 + 三方审计 round 2 + 发版 3.124.0
 ```
 
-里程碑版本：**3.123.0**（T0–T1 产物：telemetry/routines/沙箱/白皮书）→ **3.124.0**（T2–T3 产物：harness/memory API/MCP/swarm）。每里程碑打 tag + `~/meshctx-backups/` 快照（沿既有回滚机制）。
+里程碑版本：**3.123.0**（T0–T1 产物：telemetry/routines/沙箱/白皮书）→ **3.124.0**（T2–T3 产物：harness/memory API/MCP/swarm）。总日历 **5.5 周**（T0 放宽后）。每里程碑打 tag + `~/meshctx-backups/` 快照（沿既有回滚机制）。
 
 ## 7. 版本 / edition / 商业化映射
 
@@ -182,7 +187,7 @@ T4（第 5 周）: 全量回归 + 文档/BP/10 语言联动 + 三方审计 round
 
 1. 新增测试 ≥ 覆盖面断言（不降既有：hub 51 / 全量 3663 基线为准）；
 2. docs i18n 套件 24 passed 不回归；
-3. `test_project_integrity` 34 passed（安装器 md5 对一致——新增模块不破坏 edition 物理覆盖清单，`src/core/*.py` 白名单需同步 install-edition.sh）；
+3. `test_project_integrity` 34 passed（安装器 md5 对一致）；**新增即加清单**（002meshctx P3 补强）：凡新增 `src/core/*.py`，须同步【加入】install-edition.sh 覆盖白名单 + project_integrity 覆盖清单 + personal 路由隐藏清单，措辞为硬性门禁而非建议；
 4. edition 门控测试（personal 隐藏 36 路由清单不漂移）；
 5. lint：print 清零 / GC 严格模式无 unraisable 警告（沿用 43 passed 标准）。
 
@@ -196,6 +201,9 @@ T4（第 5 周）: 全量回归 + 文档/BP/10 语言联动 + 三方审计 round
 | swarm/值守改变既有调度行为 | 旧 scheduler 兼容双跑一个版本再删；任务卡审批兜底 |
 | 10 语言新增键量过大 | 分两批：先 en/zh 全量 + 其余 8 语言键值对齐脚本（既有工具） |
 | 任一 WP 翻车 | 每里程碑 tag + backups 快照 + 加法式提交（可单 WP revert）——沿用 agent-hub 回滚机制 |
+| telemetry JSONL 长跑磁盘膨胀（002meshctx P3①） | JSONL 轮转 + 大小上限 + 采样率可配（WP1 已并入设计） |
+| WP7 沙箱基线变更破坏既有用户 compose（002meshctx P3②） | 兼容模式 + 迁移说明文档 + 版本升级提示（breaking change 显式标注） |
+| 记忆对外 API 隐私合规（GDPR 删除请求，002meshctx P3③ 低优） | 删除端点 + 数据留存策略文档（进 WP3 收尾清单） |
 
 ## 11. 三方审计范围与节奏
 
@@ -234,3 +242,20 @@ T4（第 5 周）: 全量回归 + 文档/BP/10 语言联动 + 三方审计 round
 - OTLP：OpenTelemetry 协议导出
 - LongMemEval_S：500 题长程记忆基准（每题≈115k tokens）
 - SWE-bench Verified：GitHub 真实 issue 编码基准（官方 FAIL_TO_PASS/PASS_TO_PASS）
+
+## 13. 审计修订记录（v1.0 → v1.1）
+
+### 13.1 三方回执并入（002meshctx 1c6be790，2026-09-03）
+- ✅ 目标/取舍/兼容性/风险总评: 同意方案架构与 open-core 取舍, 可进入实施; 主要阻塞项 = P2-2（随首个代码 WP 落地前闭环——已修复, 见 13.2）
+- P3 意见并入: ① WP5 桥接交付边界写明（§5 WP5 已加"桥接≠常驻浏览器"）; ② 排期放宽 T0→1.5 周、WP6/WP7 收尾进 T1（§6 已改）; ③ WP2 longmem_runner 前置（§5 WP2 已加）; ④ "新增即加清单"硬性门禁（§9.3 已改）; ⑤ 风险表补 telemetry JSONL 轮转 / 沙箱 compose 兼容 / GDPR 删除（§10 已加 3 行）
+- 002codex / 004meshctx 回执: 尚未到达本收件箱（截至 v1.1 提交时; 到达后并入 v1.2 或作为代码 WP 落地意见）
+
+### 13.2 前置勘察并入（存 /tmp/opt_prep_notes_v11.md）
+- WP1 从"新增 telemetry"改为"扩展现有 src/core/telemetry.py（134 行 TelemetryStore）+ span 语义/OTLP"（§5 WP1 已改）
+- WP6 scheduler.py 接口映射表（schedule_periodic/delayed/cancel_all/list_tasks）; WP4 swarm stub 确认
+
+### 13.3 代码修复（随 v1.1 提交）
+- **P2-2 decide_approval 跨卡污染**（002meshctx 实测复现, src/core/task_cards.py L649）: 原实现对无关卡 `discard` 后 `not in reqs` 恒真 → decided_card 被覆盖为迭代末尾无关卡; 双卡并发审批时目标卡漏登记（P3 防抖失效）+ 无辜卡被强制清 pending 且 WAITING_APPROVAL→RUNNING 失真
+  - 修复: 只登记真正包含 request_id 的卡（`if request_id in reqs: discard; decided_card=card_id; if not reqs: pop; break`）
+  - 回归测试: `test_approve_multi_card_no_cross_contamination`（双卡并发 decide, 断言无辜卡不被污染 + 映射清空）
+  - hub 套件 52 passed（51 + 1 新）
