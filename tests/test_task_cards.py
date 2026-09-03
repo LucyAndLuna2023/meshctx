@@ -353,7 +353,7 @@ class TestCardWorker:
                     break
             assert done
             assert seen["trace"], "执行时应预置 trace_id"
-            assert re.fullmatch(r"[0-9a-f]{16}", seen["trace"])
+            assert re.fullmatch(r"[0-9a-f]{32}", seen["trace"])   # OTLP traceId 32-hex (rc1 P3)
             got = w._store.load(c.id)
             assert (got.extra or {}).get("trace_id") == seen["trace"]
         finally:

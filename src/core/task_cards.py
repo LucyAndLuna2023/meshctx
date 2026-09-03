@@ -852,9 +852,9 @@ class CardWorker:
             self._running.pop(card.id, None)
             return
         # WP1: 稳定卡级 trace_id (整卡生命周期审批/取消事件均可归因);
-        # 重启恢复重跑会生成新 trace (旧 trace 归档于历史 JSONL)
+        # 重启恢复重跑会生成新 trace (旧 trace 归档于历史 JSONL); 32-hex OTLP 合规
         if _telemetry_mod is not None:
-            card.extra.setdefault("trace_id", _telemetry_mod.new_span_id())
+            card.extra.setdefault("trace_id", _telemetry_mod.new_trace_id())
         card.mark(CardStatus.RUNNING)
         self._store.save(card)
         # 同步阻塞型 agent 执行 → 线程池 (每卡独立线程, 不占 worker 调度 loop)

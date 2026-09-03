@@ -307,9 +307,12 @@ async def _run_card_inner(card, worker=None) -> Dict[str, Any]:
         card.error = error
     card.log("run_end", error=error)
     _save_card(worker, card)
-    # WP1: 整卡汇总事件 (token/工具数聚合, 全链路 trace 关联)
-    _emit("run_end", tokens_in=0, tokens_out=0,
-          detail=("error" if error else "ok"))
+    # WP1: 整卡汇总事件 (token/工具数聚合, 全链路 trace 关联; P3-2 codex:
+    # 携带卡内 token_count/reasoning_chunks, 供观测页用量)
+    _tok = int(getattr(card, "extra", {}).get("token_count", 0) or 0)
+    _rsn = int(getattr(card, "extra", {}).get("reasoning_chunks", 0) or 0)
+    _emit("run_end", tokens_in=_tok, tokens_out=0,
+          detail=("error" if error else "ok") + f" tokens={_tok} reasoning={_rsn}")
     return {"result": card.result, "error": error}
 
 

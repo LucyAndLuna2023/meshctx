@@ -119,6 +119,19 @@ def _validate(body: dict) -> None:
                 raise ValueError("interval 最短 10s")
         except (TypeError, ValueError) as e:
             raise HTTPException(400, f"interval schedule 无效: {e}")
+    # P3-5 (002codex): 创建端 wall_clock/max_rounds 即校验 clamp (spawn 端同 clamp)
+    try:
+        wc = float(body.get("wall_clock") or 300.0)
+        if not (30 <= wc <= 7200):
+            raise ValueError("wall_clock 需在 30-7200s")
+    except (TypeError, ValueError) as e:
+        raise HTTPException(400, f"wall_clock 无效: {e}")
+    try:
+        mr = int(body.get("max_rounds") or 0)
+        if mr < 0:
+            raise ValueError("max_rounds 需 >=0")
+    except (TypeError, ValueError) as e:
+        raise HTTPException(400, f"max_rounds 无效: {e}")
 
 
 @router.post("")
@@ -142,7 +155,7 @@ async def create_routine(request: Request):
         title=str(body.get("title") or "")[:120],
         model=str(body.get("model") or ""),
         max_rounds=int(body.get("max_rounds") or 0),
-        wall_clock=float(body.get("wall_clock") or 300.0),
+        wall_clock=max(30.0, min(float(body.get("wall_clock") or 300.0), 7200.0)),
         plan=plan,
     )
     _store().save(r)
@@ -234,4 +247,4 @@ async def run_routine_now(rid: str, request: Request):
     if ok:
         store.mark_fired(rid, True, ts=now)
         return {"ok": True, "id": rid}
-    return {"ok": False, "id": rid, "reason": "配额不足或派活失败 (稍后自动重试)"}
+    return {"ok": False, "id": rid, "reason": "配额不足或派活失败 (interval 冷却后自动重试 / cron 下个周期再触发)"}

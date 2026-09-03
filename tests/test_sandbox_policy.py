@@ -16,6 +16,7 @@ class TestBuildHardenedCmd:
         s = " ".join(cmd)
         assert "--network none" in s or "--network" in s and "none" in s
         assert "--read-only" in s
+        assert "--tmpfs" in s and "/tmp:rw,noexec,nosuid,size=64m" in s
         assert "--cap-drop ALL" in s
         assert "--security-opt no-new-privileges" in s
         assert "--user 65534:65534" in s
@@ -60,6 +61,9 @@ class TestClassifyRisk:
         "cap_add=SYS_ADMIN",
         "unshare -m",
         "ptrace 1234",
+        "--pid=host",
+        "--network=host",
+        "docker exec -it web /bin/sh",
     ])
     def test_high_escape_paths(self, script):
         assert classify_escape_risk(script) == "high"

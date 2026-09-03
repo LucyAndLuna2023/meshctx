@@ -46,6 +46,23 @@ class TestCronMatcher:
         assert (lt.tm_hour, lt.tm_min) == (9, 0)
         assert nxt > ts
 
+    def test_range_step_offset_standard(self):
+        # P3 (三方同报): a-b/n 与 单值/n 步进从 range 起点起算 (标准 cron)
+        m = CronMatcher("4/10 * * * *")
+        assert m.match(4, 0, 1, 1, 0)
+        assert m.match(14, 0, 1, 1, 0)
+        assert m.match(24, 0, 1, 1, 0)
+        assert not m.match(10, 0, 1, 1, 0)      # 旧实现错误命中 {10,20..}
+        m2 = CronMatcher("1-10/3 * * * *")
+        assert m2.match(1, 0, 1, 1, 0)
+        assert m2.match(4, 0, 1, 1, 0)
+        assert m2.match(7, 0, 1, 1, 0)
+        assert m2.match(10, 0, 1, 1, 0)
+        assert not m2.match(3, 0, 1, 1, 0)      # 旧实现错误命中 {3,6,9}
+        m3 = CronMatcher("5-59/10 * * * *")
+        assert m3.match(5, 0, 1, 1, 0) and m3.match(55, 0, 1, 1, 0)
+        assert not m3.match(10, 0, 1, 1, 0)
+
     def test_invalid_field_count(self):
         with pytest.raises(ValueError):
             CronMatcher("* * * *")

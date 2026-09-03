@@ -33,6 +33,8 @@ logger = logging.getLogger("meshctx.sandbox_policy")
 _HIGH_RISK_PATTERNS = (
     "/var/run/docker.sock", "/run/docker.sock", "docker.sock",
     "--privileged", "cap_add", "cap-add",
+    "--pid=host", "--pid host", "--ipc=host", "--ipc host",
+    "--network=host", "--network host", "docker exec",
     "nsenter", "unshare", "--mount", "mount -t", "mount /proc",
     "mount /sys", "chroot", "ptrace", "kexec", "modprobe", "insmod",
     "/proc/sys", "/sys/kernel", "cgroup",
@@ -78,7 +80,7 @@ def build_hardened_docker_cmd(
     workspace_dir: str = "/workspace",        # 宿主可写挂载点 (唯一可写区)
     host_workspace: str = "",
     env: Optional[Dict[str, str]] = None,     # 显式白名单 env (默认空 → 无宿主密钥)
-    allow_network: bool = False,              # 白名单端口场景才 True
+    allow_network: bool = False,              # False=禁网; True=显式开网(bridge); 端口级白名单为后续项 (002codex P3-7)
     extra_args: Optional[Iterable[str]] = None,
 ) -> List[str]:
     """产出硬化 docker run argv。
@@ -92,11 +94,14 @@ def build_hardened_docker_cmd(
         allow_network: False(默认)=禁网; True=开网 (仅白名单场景)
     """
     cmd = ["docker", "run", "--rm"]
-    if allow_network:
+    if allow_network:                    # 显式开网 (端口级白名单下批, P3-7)
         cmd += ["--network", "bridge"]
     else:
         cmd += ["--network", "none"]
     cmd += ["--read-only"]
+    # P3-6 (002codex/002meshctx): read-only 需可写 /tmp 保 git/python 工具可用
+    # (rw + noexec + nosuid, 64m 上限; 仍隔离/禁执行? noexec 禁执行二进制)
+    cmd += ["--tmpfs", "/tmp:rw,noexec,nosuid,size=64m"]
     cmd += ["--cap-drop", "ALL"]
     cmd += ["--security-opt", "no-new-privileges"]
     cmd += ["--pids-limit", str(HARDENING_DEFAULTS["pids_limit"])]
@@ -105,6 +110,8 @@ def build_hardened_docker_cmd(
     cmd += ["--user", HARDENING_DEFAULTS["user"]]
     cmd += ["--workdir", workspace_dir]
     if host_workspace:
+        # 004meshctx P3: 容器内 --user 65534 (nobody) 需宿主目录可写 —
+        # 宿主侧先 chown 65534:65534 或文档注明 (调用方负责)
         cmd += ["-v", f"{host_workspace}:{workspace_dir}:rw"]   # 唯一可写挂载
     for k, v in (env or {}).items():
         cmd += ["-e", f"{k}={v}"]

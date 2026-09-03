@@ -60,13 +60,14 @@ def _parse_field(expr: str, lo: int, hi: int) -> Optional[set]:
             base, step = part.split("/", 1)
             step = int(step)
             if base == "*":
-                rng = range(lo, hi)
+                start, end = lo, hi
             elif "-" in base:
                 a, b = (int(x) for x in base.split("-", 1))
-                rng = range(a, b + 1)
-            else:
-                rng = range(int(base), hi)
-            out.update(x for x in rng if (x - (lo if base == "*" else 0)) % step == 0)
+                start, end = a, b + 1
+            else:                       # 单值起点 (标准 cron: 5/15 → 5,20,35,50)
+                start, end = int(base), hi
+            # 标准语义: 步进从 range 起点起算 (P3 三方同报: 原从 0 起算偏移)
+            out.update(x for x in range(start, end) if (x - start) % step == 0)
         elif "-" in part:
             a, b = (int(x) for x in part.split("-", 1))
             out.update(range(a, b + 1))
@@ -259,7 +260,8 @@ class RoutineStore:
 
     def mark_fired(self, rid: str, ok: bool, note: str = "",
                    ts: Optional[float] = None) -> None:
-        """成功推进 last_run; 失败仅记状态 (冷却由调度器处理)。ts 可注入 (测试假时钟)。"""
+        """成功推进 last_run; 失败仅记状态 (冷却由调度器处理)。ts 可注入 (测试假时钟)。
+        P4-1 (002meshctx): last_run 只进不退 (max 防 PATCH/触发读改写竞态回退)。"""
         fired_at = ts if ts is not None else time.time()
         with self._lock:
             all_r = self._load_all()
@@ -267,7 +269,7 @@ class RoutineStore:
             if r is None:
                 return
             if ok:
-                r.last_run = fired_at
+                r.last_run = max(fired_at, r.last_run)
             r.last_status = note or ("ok" if ok else "error")
             self._atomic_write(all_r)
 

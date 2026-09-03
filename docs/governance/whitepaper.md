@@ -17,7 +17,7 @@ Cisco 将 Zero Trust 扩展到 AI Agent。结论: **能办事的 Agent 必须有
 |---|---|---|
 | 主动能身份 (Non-Human Identity) | agent 注册 (AgentIdentity) + API key 鉴权 (auth_v2) + 任务卡 owner 归因 | agent_governance.py / auth_v2.py / task_cards.py |
 | 最小权限 | 危险动作审批流 (action_gate → needs_approval → WAITING_APPROVAL → decide) + 额度配额 (HubQuota) + 沙箱 cap-drop ALL (WP7) | approval.py / task_cards.py / sandbox_policy.py |
-| 可审计 | 审批/执行审计日志 (AuditEntry + audit.log) + 全链路遥测 trace (WP1, span/工具/审批/取消事件) | agent_governance.py / telemetry.py |
+| 可审计 | 进程内审计 (AgentGovernance._audit AuditEntry) + 卡 timeline 全事件 + 全链路遥测 trace (WP1 span/工具/审批/取消事件) | agent_governance.py / task_cards.py / telemetry.py |
 | 不信任任何会话 (Zero Trust 语境) | 每次请求鉴权; 跨 owner 403/404; 写操作拒匿名; 后台卡重启恢复仍过配额与审批 | task_cards_api.py / routines.py |
 | 分段/隔离 | 沙箱禁网 + 只读 rootfs + 唯一 workspace (WP7); 多机 hub 以 profile 隔离 | sandbox_policy.py / hub |
 

@@ -32,8 +32,13 @@ _span_stack_ctx: "ContextVar[tuple]" = ContextVar("meshctx_span_stack", default=
 
 
 def new_span_id() -> str:
-    """短 id (16 hex) — 足够集群内跨进程唯一。"""
+    """短 id (16 hex) — 足够集群内跨进程唯一 (OTLP spanId 8 字节合规)。"""
     return uuid.uuid4().hex[:16]
+
+
+def new_trace_id() -> str:
+    """trace id (32 hex / 16 字节) — OTLP traceId 合规 (002meshctx rc1 P3-1)。"""
+    return uuid.uuid4().hex
 
 
 @dataclass
@@ -85,8 +90,8 @@ class Span:
         self._closed = False
 
     def __enter__(self) -> "Span":
-        if not self.trace_id:                      # 顶层 span: 生成新 trace
-            self.trace_id = new_span_id()
+        if not self.trace_id:                      # 顶层 span: 生成新 trace (32-hex)
+            self.trace_id = new_trace_id()
         parent = span_ctx.get()
         stack = _span_stack_ctx.get()
         self._tok_trace = trace_ctx.set(self.trace_id)
@@ -102,14 +107,10 @@ class Span:
         ok = et is None
         status = "ok" if ok else f"error:{ev.__class__.__name__}"
         dur_ms = int((time.time() - self.start_ts) * 1000)
-        detail = json.dumps({"span": self.name, "status": status,
-                             "parent": self.parent_span},
-                            ensure_ascii=False)
-        if self.tags:
+        try:
             detail = json.dumps({"span": self.name, "status": status,
                                  "parent": self.parent_span, **self.tags},
-                                ensure_ascii=False)
-        try:
+                                ensure_ascii=False, default=str)   # P3: 非序列化 tag 兜底
             get_telemetry().record(self.agent, "span", latency_ms=dur_ms,
                                    detail=detail[:1000],
                                    trace_id=self.trace_id, span_id=self.span_id)
