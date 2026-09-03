@@ -1,4 +1,4 @@
-## [3.123.0-rc1] - 2026-09-03 (全面优化方案 MCTX-PLAN-2026-0903, T0 里程碑 — 待三方审计)
+## [3.123.0] - 2026-09-03 (全面优化方案 MCTX-PLAN-2026-0903 — T0 里程碑, 三方审计闭环)
 ### Added (004meshctx, 基于调研报告 MCTX-RES-2026-0903 的 P0/P1 差距收窄)
 - **WP1 可观测性 (P0-1)**: telemetry span 语义 + trace 关联 + OTLP 开关
   - src/core/telemetry.py: Span 上下文管理器 (trace_ctx/span_ctx contextvar 嵌套父子,
