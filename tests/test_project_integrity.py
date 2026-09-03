@@ -405,3 +405,34 @@ class TestRegressionPrevention:
         assert f"filevers=({major}, {minor}, {patch}" in vi, \
             f"🔴 version_info.txt filevers 与 __init__.py 不一致! 期望 ({major}, {minor}, {patch}, ...)"
 
+
+    def test_version_parity_all_assets(self):
+        """G10 自动门 (SOP v1.1, 三方 SOP 审计 P2-2): 全部构建资产版本文件与
+        src/core/__init__.py 一致 — 防 v3.123.0 类漏同步复发 (nsi/spec/元组/install)。"""
+        import re
+        init = (PROJECT / "src" / "core" / "__init__.py").read_text()
+        m = re.search(r'__version__\s*=\s*"([^"]+)"', init)
+        assert m, "无法提取版本"
+        ver = m.group(1)
+        ma, mi, pa = ver.split(".")[:3]
+        checks = {
+            "src/__init__.py": [f'"{ver}"'],
+            "meshctx_desktop.py": [f"v{ver}"],
+            "version_info.txt": [
+                f"u'FileVersion', u'{ver}'", f"u'ProductVersion', u'{ver}'",
+                f"filevers=({ma}, {mi}, {pa}", f"prodvers=({ma}, {mi}, {pa}"],
+            "meshctx_setup.nsi": [
+                f'VERSION "{ver}"', f'VIProductVersion "{ver}.0"',
+                f'VIAddVersionKey "FileVersion" "{ver}"',
+                f'VIAddVersionKey "ProductVersion" "{ver}"'],
+            "meshctx_desktop.spec": [
+                f"'CFBundleShortVersionString': '{ver}'",
+                f"'CFBundleVersion': '{ver}'"],
+            "install.sh": [f'VERSION="{ver}"'],
+            "docs/install.sh": [f'VERSION="{ver}"'],
+        }
+        for fname, needles in checks.items():
+            text = (PROJECT / fname).read_text(encoding="utf-8")
+            for needle in needles:
+                assert needle in text, \
+                    f"🔴 版本资产 {fname} 缺少 {needle!r} (应 {ver}) — G10 门拦: 先同步再发版"

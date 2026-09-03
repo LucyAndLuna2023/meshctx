@@ -1,3 +1,8 @@
+## [3.123.1] - 2026-09-03 (SOP v1.0 审计 P2-1: 资产版本元数据补发)
+### Fixed (004meshctx, 三方 SOP 审计检出)
+- version_info.txt FixedFileInfo filevers/prodvers 元组 + meshctx_setup.nsi (VERSION/VIProductVersion/FileVersion/ProductVersion) + meshctx_desktop.spec (CFBundle×2) 同步 3.123.1
+- 根因: SOP §4 版本清单漏构建文件 (nsi/spec/元组) → v1.1 已补全 + G10 自动断言 (见 docs/release/qa_release_sop_v1.md)
+
 ## [3.123.0] - 2026-09-03 (全面优化方案 MCTX-PLAN-2026-0903 — T0 里程碑, 三方审计闭环)
 ### Added (004meshctx, 基于调研报告 MCTX-RES-2026-0903 的 P0/P1 差距收窄)
 - **WP1 可观测性 (P0-1)**: telemetry span 语义 + trace 关联 + OTLP 开关
