@@ -160,9 +160,22 @@ def _needs_approval_for_request(request_id: str) -> Optional[str]:
 async def run_card(card, worker=None) -> Dict[str, Any]:
     """执行一张任务卡 (CardWorker._run_fn 的默认实现)。
 
+    WP1 (MCTX-PLAN-2026-0903): 整卡执行包在 telemetry Span 内 — 每张卡一条
+    span (trace_id=自动生成), 内含审批/取消/异常状态, 供 JSONL/OTLP 全链路追踪。
+    遥测失败绝不干扰业务 (Span.__exit__ 内吞异常)。
+
     Returns: {"result": str|None, "error": str|None}
     卡的状态/事件由调用方 (worker._run_one) 负责最终落盘; 本函数只做事件 → 卡 timeline。
     """
+    from src.core import telemetry as _tel
+    with _tel.Span("card.run", agent="task",
+                   tags={"card_id": getattr(card, "id", "") or "",
+                         "prompt_len": len(getattr(card, "prompt", "") or "")}):
+        return await _run_card_inner(card, worker)
+
+
+async def _run_card_inner(card, worker=None) -> Dict[str, Any]:
+    """run_card 实现体 (被 Span 包裹, 见上)。"""
     from src.core.task_cards import CardStatus
     from src.agent_loop import run_agent_loop
     if worker is None:
