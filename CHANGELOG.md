@@ -1,3 +1,27 @@
+## [3.123.0-rc1] - 2026-09-03 (全面优化方案 MCTX-PLAN-2026-0903, T0 里程碑 — 待三方审计)
+### Added (004meshctx, 基于调研报告 MCTX-RES-2026-0903 的 P0/P1 差距收窄)
+- **WP1 可观测性 (P0-1)**: telemetry span 语义 + trace 关联 + OTLP 开关
+  - src/core/telemetry.py: Span 上下文管理器 (trace_ctx/span_ctx contextvar 嵌套父子,
+    异常状态记 detail 不吞); TelemetryEvent + trace_id/span_id; record() 上下文自动归因;
+    events_by_trace() 全链路查询; stats() spans_ok/error; JSONL 轮转 (2MB→5000 行)
+  - src/core/telemetry_otlp.py: 零依赖 OTLP/HTTP JSON 导出 (MESHCTX_OTLP_ENDPOINT 默认关)
+  - 埋点: run_card 整卡 span + 卡级稳定 trace_id (worker 预置) + 工具/审批/错误/终结事件
+    (task_card_runner + task_cards), 审批/取消事件带 trace 归因
+- **WP6 Routines 例行值守 (P1-3, 对位 Claude Code Routines)**:
+  - src/core/routines.py: Routine (interval|cron) + CronMatcher (5 字段子集) +
+    RoutineStore (原子 JSON) + RoutineScheduler (守护线程 tick + spawn_fn 注入 + 失败冷却)
+  - src/core/routines_api.py: /api/routines CRUD + /{id}/run; owner 鉴权; make_spawn_fn
+    (配额→enqueue→refund, 与任务卡同语义)
+  - main.py lifespan 启动/停止调度器; auth_v2 白名单; chat.html 「⏰ 值守」tab (10 语言)
+- **WP7 沙箱硬化 (P1-4)**: src/core/sandbox_policy.py — 硬化 docker run 参数构造器
+  (network none/read-only/cap-drop ALL/no-new-privileges/资源限额/nobody/唯一 workspace/
+  env 白名单不传宿主密钥) + classify_escape_risk 静态分级 (Artifactory 型路径 high 拒);
+  docs/security/sandbox-baseline.md
+- **WP8 治理白皮书 (P2-1)**: docs/governance/whitepaper.md (NIST 主动能身份/Zero Trust
+  映射 + AISI/Artifactory/审批疲劳 案例压力测试)
+- 测试: 3711 passed / 59 skipped (含 telemetry 6 + sandbox 16 + routines 22 + 回归)
+- 方案文档: docs/plans/meshctx-optimization-plan-20260903.md (v1.2 + §14 进度)
+
 ## [3.122.0] - 2026-09-02
 ### Added (004meshctx, Agent 派活中心大工程 — HeyClicky 借鉴)
 - **Agent 派活中心 (Task Cards)**: 一句话派活 → 后台任务卡 → 进度/结果/取消/重试
