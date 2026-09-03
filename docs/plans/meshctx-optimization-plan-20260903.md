@@ -286,8 +286,10 @@ T4（第 5–5.5 周）: 全量回归 + 文档/BP/10 语言联动 + 三方审计
 | WP6 P1-3 Routines | ✅ 核心+API+接线 | 98b96aa2 / a87abf96 (routines.py + routines_api.py + lifespan) |
 | WP7 P1-4 沙箱硬化 | ✅ 基线落地 | 32b6b64e (sandbox_policy.py + 16 tests + baseline doc) |
 | WP8 P2-1 治理白皮书 | ✅ 文档 v1.0 | (docs/governance/whitepaper.md, 本批) |
+| SOP QA/发布流程 | ✅ v1.1 | docs/release/qa_release_sop_v1.md (三方审计 P2/P3 并入, v3.124.0 起强制) |
+| WP2 P0-2 评测 harness | 🔄 阶段1 | benchmarks/ (core 纯函数 + swebench/gaia/longmem runner + README), 成绩页/CI nightly 下批 |
 | WP6 UI 值守 tab | ✅ | 176c654a (chat.html ⏰ Routines 折叠区 + 10 语言 10 键) |
-| 里程碑 3.123.0-rc1 送审 | ⏳ 回执中 | 498a4532 (CHANGELOG rc1); 全量 3711 passed |
+| 里程碑 3.123.0/3.123.1 | ✅ 已发版 | v3.123.0 (5323eccc) + v3.123.1 补发 (ee3c158e, 资产元数据修正); SOP v1.1 生效 |
 
 实测基线: 全量 3695 passed/59 skipped @ a87abf96; T0 套件 83 passed;
 sandbox 16 passed; 每提交均推送 meshctx main, 加法式可回滚。
