@@ -303,6 +303,33 @@ class TestCardWorker:
             w.join(timeout=2.0)
             loop.close()
 
+    def test_cancel_waiting_approval_resolves_pending(self, tmp_dir):
+        """P3 002codex: cancel WAITING_APPROVAL 卡应即时对挂起审批 future 投
+        reject (原实现仅登记 _cancelled, 卡线程仍阻塞到 120s 审批超时才收尾)。"""
+        import asyncio
+        from src.core.task_cards import CardWorker, TaskCard, TaskCardStore, CardStatus
+        w = CardWorker()
+        w._store = TaskCardStore(base_dir=tmp_dir / "w7")
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            c = TaskCard(owner="local", prompt="need approval")
+            c.status = CardStatus.WAITING_APPROVAL
+            w._store.save(c)
+            fut = loop.create_future()
+            w._approval_futures["req-A"] = fut
+            w._approval_by_card.setdefault(c.id, set()).add("req-A")
+            assert w.cancel(c.id) is True
+            loop.run_until_complete(asyncio.sleep(0))  # 泵起 call_soon_threadsafe
+            assert fut.done(), "cancel 后挂起审批 future 应立即 resolve (不等 120s)"
+            assert fut.result()["action"] == "reject"
+            assert "req-A" not in w._approval_futures
+            assert c.id not in w._approval_by_card
+        finally:
+            w.stop()
+            w.join(timeout=2.0)
+            loop.close()
+
     def test_recover_interrupted_after_restart(self, tmp_dir):
         """模拟进程重启: 预置 running/queued/waiting_approval 卡, start(recover=True)
         后 running→queued 重新执行、queued 直接排队、waiting_approval→failed。"""

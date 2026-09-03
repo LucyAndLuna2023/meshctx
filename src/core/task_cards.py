@@ -570,6 +570,10 @@ class CardWorker:
         # RUNNING / WAITING_APPROVAL: 登记集合 (及时中断) + 落盘 + 取消 task
         with self._cancel_lock:
             self._cancelled.add(card_id)
+        # WAITING_APPROVAL: 对挂起审批 future 投 reject, 即时解除 waiter 阻塞
+        # (P3 002codex — 否则卡线程等满 120s 审批超时才收尾)
+        if card.status == CardStatus.WAITING_APPROVAL:
+            self._reject_card_approvals(card_id)
         self._store.save(card)
         if self._loop is not None and not self._loop.is_closed():
             def _cancel_in_loop():
@@ -676,6 +680,33 @@ class CardWorker:
         except RuntimeError:
             return False
         return True
+
+    def _reject_card_approvals(self, card_id: str):
+        """取消时对卡内全部挂起审批 future 投 reject, 即时解除 waiter 阻塞
+        (P3 002codex: 原仅登记 _cancelled, WAITING_APPROVAL 卡线程仍阻塞在
+        wait_for(fut, 120s) 直到审批超时才收尾)。decide 竞争幂等: 谁先 pop 谁生效。
+        """
+        with self._approval_lock:
+            reqs = self._approval_by_card.get(card_id)
+            if not reqs:
+                return
+            resolved = []
+            for rid in list(reqs):
+                fut = self._approval_futures.pop(rid, None)
+                if fut is not None and not fut.done():
+                    resolved.append(fut)
+                reqs.discard(rid)
+            if not reqs:
+                self._approval_by_card.pop(card_id, None)
+        for fut in resolved:
+            loop = fut.get_loop()
+            try:
+                loop.call_soon_threadsafe(
+                    fut.set_result,
+                    {"action": "reject",
+                     "text": "[取消] 用户取消任务，挂起审批已拒绝。"})
+            except RuntimeError:
+                pass
 
     def cleanup_approvals_for_card(self, card_id: str):
         """卡终结时清理其残留审批 future (防慢泄漏: 超时/取消卡永不 decide)。"""

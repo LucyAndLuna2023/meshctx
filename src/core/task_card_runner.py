@@ -124,6 +124,9 @@ def make_approval_handlers(card, worker):
         from src.core.task_cards import get_card_worker
         import asyncio
         w = get_card_worker()
+        # 卡已被取消 (P3 002codex): 挂起审批即时返回 reject, 不再等 future/超时
+        if w.is_cancelled(card.id):
+            return {"action": "reject", "text": "[取消] 用户取消任务，审批已拒绝。"}
         # 事件 yield 后 register_approval 才会注册 future → 短暂等待
         def _get_fut():
             with w._approval_lock:
@@ -136,6 +139,8 @@ def make_approval_handlers(card, worker):
             fut = _get_fut()
         if fut is None:
             return {"action": "reject", "text": "[审批不可用] 自动拒绝"}
+        if w.is_cancelled(card.id):
+            return {"action": "reject", "text": "[取消] 用户取消任务，审批已拒绝。"}
         try:
             # 超时自动拒绝 (对齐 run_agent_loop approval_timeout 语义)
             return await asyncio.wait_for(asyncio.shield(fut), timeout=120.0)

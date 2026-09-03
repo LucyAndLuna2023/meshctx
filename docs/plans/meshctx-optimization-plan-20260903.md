@@ -1,7 +1,7 @@
 # MeshCtx 全面优化方案（2026-09 差距收窄计划）
 
 - 方案编号：MCTX-PLAN-2026-0903
-- 版本：v1.1（三方回执后修订）　日期：2026-09-03
+- 版本：v1.2（002meshctx 1c6be790 + 002codex ef9e75e3 回执并入）　日期：2026-09-03
 - 编制：004meshctx（产品/架构）　依据：调研报告 MCTX-RES-2026-0903（004meshctx，2026-09-03）+ 本地代码实证（HEAD 41eb7d90）
 - 目标版本窗口：v3.123.0 – v3.124.0（一个季度内收窄 P0/P1 差距至"可竞争水位"）
 
@@ -58,7 +58,7 @@
 
 - **目标**：全链路结构化追踪，消灭 print 级链路；个人版本地 JSONL 可视，团队/企业版 OTLP 导出。
 - **设计**：
-  - **扩展现有** `src/core/telemetry.py`（v3.122.0 已有 134 行 TelemetryStore：平铺事件 + JSON 落盘 + `get_telemetry()` 单例；前置勘察确认，非从零新增）：保留 `record/events/stats` 既有 API 兼容，新增 `Span`/`Tracer`/`trace_ctx`（contextvar）span 语义 + JSONL **轮转落盘**（大小上限，防长跑磁盘膨胀，002meshctx P3①）+ 可选 OTLP exporter（HTTP，feature flag `MESHCTX_OTLP_ENDPOINT`，默认关）。
+  - **扩展现有** `src/core/telemetry.py`（v3.122.0 已有 134 行 TelemetryStore：平铺事件 + JSON 落盘 + `get_telemetry()` 单例 + `/api/telemetry/events|stats|record` 路由，main.py ~L8286+；002codex P2-2 澄清命名冲突，非从零新增）：保留 `record/events/stats` 既有 API **与既有路由** 兼容，新增 `Span`/`Tracer`/`trace_ctx`（contextvar）span 语义 + JSONL **轮转落盘**（大小上限，防长跑磁盘膨胀，002meshctx P3①）+ 可选 OTLP exporter（HTTP，feature flag `MESHCTX_OTLP_ENDPOINT`，默认关）。
   - 埋点接入点（均为既有代码 + 装饰器/上下文管理器，侵入最小）：`run_agent_loop`（span: card_id/agent 轮次/工具调用/耗时）、CardWorker 线程（queue→run→terminal 状态机）、hub 收发（msg 级）、配额 consume/approval decide、62 工具调用。
   - 审计日志（现 audit.log）与 trace 的关联字段：card_id/request_id 贯通。
 - **edition 边界**：telemetry core + JSONL 本地查看 = 开源个人版；OTLP 导出与"治理面板"（trace 检索/配额看板 UI）= 团队/企业（走 `_EDITION_ROUTE_MAP` 隐藏）。
@@ -98,6 +98,7 @@
   - 同机 2 worker e2e + 跨机（hub 通道）冒烟各一。
   - 与 task_cards 打通（D2）：swarm 任务以任务卡形式可见/可配额/可审批。
 - **edition 边界**：编排核心（2 worker 内）开源个人版；多 worker 编排、团队共享 swarm、配额池化 = 团队/企业（swarm 路由已在 personal 隐藏的 36 路由清单内，保持）。
+- **个人版落地路径**（002codex P3 澄清）：personal 隐藏 `/api/swarm/*`（main.py ~L688），个人版 swarm **不经 swarm HTTP 路由**，而是经 task_cards 接口以**派生 swarm 任务卡**形态落地（D2：leader 创建 swarm 卡 → worker 经 hub 队列拉子任务 → 卡级可见/配额/审批/审计），验收以"个人版可创建 swarm 任务卡并完成 2-worker 编排"为准，避免无个人版入口的验收盲区。
 - **验收**：e2e 测试 ≥2 场景（同机聚合 + 失败重试）；hub 冒烟跨机 1 场景；测试进套件。
 - **工作量**：1–1.5 周。
 
@@ -114,7 +115,7 @@
 - **目标**：定时 + 事件触发值守统一进 task_cards（对位 Claude Code Routines）。
 - **设计**：
   - 新增 `src/core/routines.py`：Routine 定义（cron 表达式/间隔/事件钩子 [新消息、hub 事件、文件变化] → 模板化派活参数）→ 到点/触发即 spawn 任务卡（复用 HubQuota/审批）。
-  - 存量 `scheduler.py`/`channel_scheduler.py` 迁移为 Routine 实例（保留旧入口兼容，版本内双跑，下一版本删旧）。
+  - 存量 `scheduler.py`/`channel_scheduler.py` 迁移为 Routine 实例（保留旧入口兼容，版本内双跑；**删除点定于 3.124.0 里程碑**，002codex P3① 明确版本）。
   - UI：chat.html 派活面板加 "⏰ 值守" tab（10 语言键复用管线新增 ~30 键）。
 - **edition 边界**：单机定时值守开源个人版；事件值守（多 hub 事件）与跨机调度 = 团队/企业。
 - **验收**：定时触发 e2e（1 分钟粒度 mock 时钟）；事件触发 e2e；旧调度迁移兼容测试。
@@ -130,7 +131,7 @@
 ### WP8 — P2-1 Agent Governance 模块 + 白皮书　预估 1–1.5 周（可并行）
 
 - **目标**：把先发优势变成话语权：治理能力打包为对外模块 + NIST/Cisco Zero Trust 对标白皮书。
-- **落地清单**：`src/core/governance_api.py`（只读治理 API：审批流查询/配额/审计导出——零新逻辑，仅聚合现有数据）；`docs/governance/whitepaper.md`（NIST 主动能身份/最小权限/可审计映射表 + AISI 案例对照 + MeshCtx 实现映射）；meshctx.com 治理页（10 语言 i18n）。
+- **落地清单**：`src/core/governance_api.py`（只读治理 API：审批流查询/配额/审计导出）——**复用既有 `agent_governance.py`**（进程内 identity/quota/policy/audit，002codex P3 澄清：只做对外聚合层，零新逻辑）；`docs/governance/whitepaper.md`（NIST 主动能身份/最小权限/可审计映射表 + AISI 案例对照 + MeshCtx 实现映射）；meshctx.com 治理页（10 语言 i18n）。
 - **验收**：治理 API 测试；白皮书章节完整性 checklist；页面 i18n 套件绿。
 - **工作量**：1–1.5 周（可与其他 WP 并行）。
 
@@ -155,12 +156,13 @@ T0（第 1–1.5 周）: WP1 观测 core（0.5）+ WP6 Routines 起步 + WP7 沙
        T0 放宽至 1.5 周; WP6/WP7 收尾计入 T1
 T1（第 2–2.5 周）: WP1 埋点收尾（0.5）+ WP6/WP7 收尾 + WP2 SWE harness v1
     （含 longmem_runner 前置）+ WP8 白皮书
-T2（第 3 周）: WP2 GAIA/成绩页 + WP3 Memory API（HTTP/MCP）+ WP5 MCP 扩展启动
+T2（第 3–3.5 周）: WP2 GAIA/成绩页 → WP3 Memory API（HTTP/MCP）→ WP5 MCP 扩展
+    （半周错峰启动, 002codex P3: T2 单周三 WP 偏挤）
 T3（第 4 周）: WP3 LongMem 跑分/成绩 + WP4 swarm 2-worker + WP5 收尾(≥40)
 T4（第 5–5.5 周）: 全量回归 + 文档/BP/10 语言联动 + 三方审计 round 2 + 发版 3.124.0
 ```
 
-里程碑版本：**3.123.0**（T0–T1 产物：telemetry/routines/沙箱/白皮书）→ **3.124.0**（T2–T3 产物：harness/memory API/MCP/swarm）。总日历 **5.5 周**（T0 放宽后）。每里程碑打 tag + `~/meshctx-backups/` 快照（沿既有回滚机制）。
+里程碑版本：**3.123.0**（T0–T1 产物：telemetry/routines/沙箱/白皮书）→ **3.124.0**（T2–T3 产物：harness/memory API/MCP/swarm）。总日历 **5.5 周**（T0 放宽后）。里程碑内保留 **WP 级缓冲**（002codex P3: 9 WP/5.5 周单人+agent 排期紧，防单 WP 超期拖垮整里程碑）。每里程碑打 tag + `~/meshctx-backups/` 快照（沿既有回滚机制）。
 
 ## 7. 版本 / edition / 商业化映射
 
@@ -187,7 +189,7 @@ T4（第 5–5.5 周）: 全量回归 + 文档/BP/10 语言联动 + 三方审计
 
 1. 新增测试 ≥ 覆盖面断言（不降既有：hub 51 / 全量 3663 基线为准）；
 2. docs i18n 套件 24 passed 不回归；
-3. `test_project_integrity` 34 passed（安装器 md5 对一致）；**新增即加清单**（002meshctx P3 补强）：凡新增 `src/core/*.py`，须同步【加入】install-edition.sh 覆盖白名单 + project_integrity 覆盖清单 + personal 路由隐藏清单，措辞为硬性门禁而非建议；
+3. `test_project_integrity` 34 passed（安装器 md5 对一致）；**新增即登记**（002meshctx P3 补强 + 002codex 澄清）：install-edition.sh 按 `src/core/*.py` glob 物理拷贝（新模块自动随版，无需改拷贝白名单，002codex 已核验），故新增核心模块的硬性登记点 = personal 路由隐藏清单（含 /api 路由时）+ project_integrity 覆盖清单 + CHANGELOG；36 路由隐藏清单不漂移；
 4. edition 门控测试（personal 隐藏 36 路由清单不漂移）；
 5. lint：print 清零 / GC 严格模式无 unraisable 警告（沿用 43 passed 标准）。
 
@@ -204,6 +206,7 @@ T4（第 5–5.5 周）: 全量回归 + 文档/BP/10 语言联动 + 三方审计
 | telemetry JSONL 长跑磁盘膨胀（002meshctx P3①） | JSONL 轮转 + 大小上限 + 采样率可配（WP1 已并入设计） |
 | WP7 沙箱基线变更破坏既有用户 compose（002meshctx P3②） | 兼容模式 + 迁移说明文档 + 版本升级提示（breaking change 显式标注） |
 | 记忆对外 API 隐私合规（GDPR 删除请求，002meshctx P3③ 低优） | 删除端点 + 数据留存策略文档（进 WP3 收尾清单） |
+| 个人版 Memory API 开源被 fork 白嫖托管形态（002codex P3②） | open-core 固有风险; 商业化条款显式声明（托管/多租户/企业治理为增值层，与开源本地版区分; 品牌/文档/基准分数沉淀于官方渠道） |
 
 ## 11. 三方审计范围与节奏
 
@@ -259,3 +262,18 @@ T4（第 5–5.5 周）: 全量回归 + 文档/BP/10 语言联动 + 三方审计
   - 修复: 只登记真正包含 request_id 的卡（`if request_id in reqs: discard; decided_card=card_id; if not reqs: pop; break`）
   - 回归测试: `test_approve_multi_card_no_cross_contamination`（双卡并发 decide, 断言无辜卡不被污染 + 映射清空）
   - hub 套件 52 passed（51 + 1 新）
+
+### 13.4 002codex 回执并入（ef9e75e3，2026-09-03；方案 v1.1 → v1.2）
+- ✅ 目标/取舍/依赖/风险: 条件通过; 结论 = 修订 P2-1(decide owner)+P2-2(telemetry 命名) 后可按 T0 开工
+- 🔴 P2-1 [41eb7d90 代码]: decide_approval owner 判定跨卡污染 — 与 002meshctx P2-2 同根因, 已在 ffb56186 修复; 002codex 建议的修复形态 (discard 前判 in reqs) 与实现一致
+- 🔴 P2-2 [方案]: WP1 telemetry.py 命名冲突 — v1.1 已改"扩展现有"+ 既有 /api/telemetry 路由兼容注记 (本版 §5 WP1 补全, main.py ~L8286+)
+- P3 代码项: cancel WAITING_APPROVAL 卡仍受 120s 审批超时 — 已修复 (见下) + 回归测试
+- P3 方案项并入: T2 半周错峰 (§6) / 里程碑 WP 级缓冲 (§6) / scheduler 删除点定 3.124.0 (§5 WP6) / Memory API fork 商业化条款 (§10) / WP4 个人版派生 swarm 卡落地路径 (§5 WP4) / WP8 复用 agent_governance.py (§5 WP8) / §9.3 登记点澄清 (install-edition glob 自动拷贝)
+
+### 13.5 代码修复（随 v1.2 提交）
+- **P3 cancel WAITING_APPROVAL 即时收尾**（002codex ef9e75e3 P3[41eb7d90]）:
+  - cancel() 对 WAITING_APPROVAL 卡调用新 helper `_reject_card_approvals(card_id)`: 对卡内全部挂起审批 future 投
+    {"action":"reject"} (经 fut.get_loop().call_soon_threadsafe), 即时解除卡线程 wait_for(fut,120s) 阻塞
+  - task_card_runner._waiter 增加 is_cancelled 双检查 (await 前 + 拿到 future 后), 防取消后 agent 再请求审批重新阻塞
+  - 回归测试: test_cancel_waiting_approval_resolves_pending (断言 future 立即 done + action=reject + 映射清空)
+  - hub 套件 53 passed (52 + 1 新)
