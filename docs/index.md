@@ -1,4 +1,4 @@
-# meshctx — World's First Self-Evolving Agent System
+# meshctx — Auditable Self-Adaptive Agent System
 
 ## Overview
 
