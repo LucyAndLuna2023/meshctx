@@ -1,3 +1,13 @@
+## [3.124.0] - 2026-09-04 (全面优化方案 T1 里程碑 — WP2 评测 harness/WP3 Memory API/WP5 MCP 扩展/R7 网站简介 + WP4 swarm/LongMem 管线, 三方终验闭环)
+### Added / Changed (004meshctx)
+- WP2: benchmarks/ harness (report schema 口径纪律) + nightly CI + 成绩页 + LongMem 样例跑分管线 (demo-scale self_run)
+- WP3: 对外 Memory API /api/v1/memory (owner 隔离/GDPR 删除/CJK bigram 零依赖检索)
+- WP5: MCP 23→43 defs (+17 工具: memory×5/tasks×5/routines×4/quota/telemetry×2)
+- WP4: swarm 派生任务卡编排 (父→N子→聚合/失败重试1次), e2e 4 项
+- R7: 官网首页 4 功能卡 (值守/治理/可观测/评测) ×10 语言 + 文案口径收敛 (自进化核验 5 轮补丁)
+- 口径纪律: 全站超卖词 0 残留 (copy-scan v4); 自进化=引擎已实现+API 受控, 自动闭环=路线图
+- 测试: 3754 passed / 59 skipped
+
 ## [3.123.1] - 2026-09-03 (SOP v1.0 审计 P2-1: 资产版本元数据补发)
 ### Fixed (004meshctx, 三方 SOP 审计检出)
 - version_info.txt FixedFileInfo filevers/prodvers 元组 + meshctx_setup.nsi (VERSION/VIProductVersion/FileVersion/ProductVersion) + meshctx_desktop.spec (CFBundle×2) 同步 3.123.1
