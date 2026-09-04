@@ -314,4 +314,5 @@ sandbox 16 passed; 每提交均推送 meshctx main, 加法式可回滚。
 | **里程碑 v3.123.0 / v3.123.1 / v3.124.0** | ✅ 发版 | tag 已推, 三方审计全程闭环, Release 12+12 (sha256 sidecars) |
 | **Org 组织治理 (2026-09 用户新需求)** | ✅ 阶段1-3 | 阶段1 org_governance+org_api (beb11ca8) + 阶段2 审计轨迹/部门共享记忆 (6d18019e) + 阶段3 值守部门视图+🏢 组织面板 UI (9737b55c); org 套件 16 |
 | QA/Release SOP | ✅ v1.1 | docs/release/qa_release_sop_v1.md (G1-G10 + R0-R7, 自 v3.124.0 强制) |
-| 进行中/backlog | 🔄 | Org 阶段2 (记忆/值守 dept 共享+UI+审计导出) · docs 治理/遥测详情页 ×10 · swarm 审批态孤儿补测 · workflow checksum 内嵌 · WP2 真实榜提交(运营) · WP4 跨机冒烟(运维) |
+| Org 审计补丁轮 (响应 002meshctx f1eef868) | ✅ 2026-09-05 | P2-1 邀请门控 (自举仅空组织/非成员 403/移除防自愈) + P2-2 RBAC 授权闭包 (仅 owner 管 owner·admin/不得自提升) + P3×8 全修 (actor 审计/子树写门槛/审计部门过滤/auditor 导出/防环/导入 parent_id+同名显式 failed/根保护+记忆整删/超时 cancel 全 pending) + P3-B org_* 键登记服务端词表; org 套件 26 passed, 全量 3783 passed/59 skipped |
+| 进行中/backlog | 🔄 | docs 治理/遥测详情页 ×10 · workflow checksum 内嵌 (4a7d02a9 已含) · WP2 真实榜提交(运营) · WP4 跨机冒烟(运维) · P4 观察 8 项 (CSV 转义已修; manager 权限冗余/审计签名/记忆 key 前缀/scope 单一 enforce 层/读操作写副作用/org-plan 联动/成员最小暴露=已内建, 余项排期) |

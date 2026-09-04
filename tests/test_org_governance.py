@@ -75,6 +75,35 @@ class TestOrgService:
         assert svc2.member("alice") is None
         assert len(svc2.list_depts()) == 1
 
+    def test_import_audit_and_dup_name_failed(self, tmp_dir):
+        svc = OrgService(path=tmp_dir / "org.json")
+        svc.set_member("alice", "", "owner")          # 先有成员 → actor 走 alice
+        res = svc.import_depts([{"name": "总部"},
+                                {"name": "研发部", "parent_id": ""}],
+                               actor="alice")
+        # 同批同名二义: 第 2 个 总部 显式 failed (P3-6), 不再静默错挂
+        res2 = svc.import_depts([{"name": "总部"}, {"name": "总部", "parent": "研发部"}],
+                                actor="alice")
+        assert res2["created"] == 0 and res2["failed"] == 1
+        # 同名未重复创建
+        assert sum(1 for d in svc.list_depts() if d["name"] == "总部") == 1
+        # 导入入审计 (P3-1): actor 归责
+        assert any(t["user"] == "alice" and t["action"] == "dept_import"
+                   for t in svc.audit_trail())
+
+    def test_root_dept_delete_protected(self, tmp_dir):
+        svc = OrgService(path=tmp_dir / "org.json")
+        svc.import_depts([{"name": "总部"}, {"name": "研发部", "parent": "总部"}])
+        root = next(d for d in svc.list_depts() if d["name"] == "总部")
+        import pytest as _pytest
+        with _pytest.raises(ValueError):
+            svc.remove_dept(root["id"])               # P3-7 根保护
+        assert len(svc.list_depts()) == 2
+        # 删完子部门后, 根为唯一部门 → 可删 (组织可整体清理)
+        rnd = next(d for d in svc.list_depts() if d["name"] == "研发部")
+        assert svc.remove_dept(rnd["id"]) is True
+        assert svc.remove_dept(root["id"]) is True
+
 
 @pytest.fixture()
 def client(tmp_dir, monkeypatch):
@@ -188,6 +217,13 @@ class TestCardDeptScope:
         tc._worker = None
         reset_org_service_for_tests()
 
+    async def test_unregistered_403_on_dept_view(self, app_env):
+        client, svc = app_env
+        async with client as c:
+            # P2-1: 组织非空, eve 未入册 → 部门聚合视图 403 (不再自举)
+            r = await c.get("/api/tasks/cards", params={"org_dept": 1, "as": "eve"})
+            assert r.status_code == 403, r.text
+
     async def test_manager_sees_dept_cards_only(self, app_env):
         client, svc = app_env
         async with client as c:
@@ -223,6 +259,7 @@ class TestOrgPhase2:
         from src.core.memory_api import reset_memory_service_for_tests as rms
         reset_org_service_for_tests(); rms()
         svc = og.get_org_service()
+        svc.ensure_self_bootstrap("root")          # 真实 owner (P3-4 导出/审计门控需 owner)
         svc.import_depts([{"name": "总部"}, {"name": "研发部", "parent": "总部"},
                           {"name": "市场部", "parent": "总部"}])
         rnd = svc.get_dept(next(d["id"] for d in svc.list_depts() if d["name"] == "研发部"))
@@ -303,6 +340,11 @@ class TestRoutinesDeptScope:
         yield AsyncClient(transport=ASGITransport(app=a), base_url="http://t")
         reset_org_service_for_tests()
 
+    async def test_unregistered_403_on_routines_dept(self, renv):
+        async with renv as c:
+            r = await c.get("/api/routines", params={"as": "eve", "org_dept": 1})
+            assert r.status_code == 403, r.text
+
     async def test_manager_dept_view(self, renv):
         async with renv as c:
             # alice manager 研发部: dept 视图含 alice+bob, 不含市场 carol
@@ -325,13 +367,156 @@ class TestOrgExport(TestOrgPhase2):   # 继承 env2 fixture
         async with client as c:
             await c.post("/api/org/members", params={"as": "alice"},
                          json={"user_id": "dave", "dept_id": rnd["id"], "role": "member"})
-            r = await c.get("/api/org/export", params={"as": "alice"})
+            # P3-4: 导出限 owner/admin/auditor (合规角色) — 以 owner root 导出
+            r = await c.get("/api/org/export", params={"as": "root"})
             assert r.status_code == 200
             body = r.text.strip().splitlines()
             snap = __import__("json").loads(body[0])
             assert snap["type"] == "org_snapshot" and len(snap["depts"]) == 3
             assert any("org_audit" in ln and "member_set" in ln for ln in body[1:])
             assert any("dave" in ln for ln in body[1:])
-            # 无 export_audit 的普通成员被拒 (同 client, as=carol)
+            # manager (非 owner/admin/auditor) 无权导出 (回归 P3-4)
+            r3 = await c.get("/api/org/export", params={"as": "alice"})
+            assert r3.status_code == 403, r3.text
+            # 无 export_audit 的普通成员被拒 (carol)
             r2 = await c.get("/api/org/export", params={"as": "carol"})
             assert r2.status_code == 403
+
+
+class TestOrgRBACNegatives:
+    """P2-1/P2-2 (002meshctx f1eef868) 回归: 未入册/被移除成员不得自举,
+    RBAC 授权闭包 — 仅 owner 可设/移 owner·admin, 不得提升自己等级。"""
+
+    @pytest.fixture()
+    def env3(self, tmp_dir, monkeypatch):
+        from fastapi import FastAPI
+        from src.core.org_api import router
+        import src.core.org_api as mod
+        from src.core import org_governance as og
+        monkeypatch.setattr(og, "ORG_PATH", tmp_dir / "org.json")
+        reset_org_service_for_tests()
+        svc = og.get_org_service()
+        svc.ensure_self_bootstrap("alice")       # 空组织首访 → alice owner@总部
+        svc.import_depts([{"name": "研发部", "parent": "总部"}])
+        rnd = svc.get_dept(next(d["id"] for d in svc.list_depts() if d["name"] == "研发部"))
+        svc.set_member("bob", rnd["id"], "member")
+        svc.set_member("carol", rnd["id"], "member")
+        a = FastAPI(); a.include_router(router)
+        async def _owner(req):
+            return req.query_params.get("as", "alice")
+        mod._owner = _owner
+        yield AsyncClient(transport=ASGITransport(app=a), base_url="http://t"), svc, rnd
+        reset_org_service_for_tests()
+
+    async def test_unregistered_user_never_bootstraps(self, env3):
+        client, svc, rnd = env3
+        async with client as c:
+            # eve 未入册: /me 如实返回 member=None (不自动变成 owner)
+            r = await c.get("/api/org/me", params={"as": "eve"})
+            assert r.status_code == 200, r.text
+            d = r.json()
+            assert d["member"] is None and d["permissions"] == []
+            # 一切管理/视图入口 403
+            for path in ("/api/org/depts", "/api/org/members",
+                         "/api/org/roles", "/api/org/visible-owners",
+                         "/api/org/audit"):
+                rr = await c.get(path, params={"as": "eve"})
+                assert rr.status_code == 403, (path, rr.text)
+            rr = await c.post("/api/org/depts", params={"as": "eve"},
+                              json={"name": "篡改部"})
+            assert rr.status_code == 403, rr.text
+            rr = await c.post("/api/org/members", params={"as": "eve"},
+                              json={"user_id": "eve", "dept_id": rnd["id"], "role": "owner"})
+            assert rr.status_code == 403, rr.text
+            assert svc.member("eve") is None          # 服务层也未写入
+
+    async def test_removed_member_no_self_heal(self, env3):
+        client, svc, rnd = env3
+        async with client as c:
+            r = await c.delete("/api/org/members/bob", params={"as": "alice"})
+            assert r.status_code == 200, r.text
+            assert svc.member("bob") is None
+            # 被移除后不得自愈回 owner / 重获访问
+            r = await c.get("/api/org/me", params={"as": "bob"})
+            assert r.json()["member"] is None
+            assert (await c.get("/api/org/depts", params={"as": "bob"})).status_code == 403
+            assert (await c.get("/api/org/visible-owners",
+                                params={"as": "bob"})).status_code == 403
+
+    async def test_manager_cannot_escalate_self_or_remove_owner(self, env3):
+        client, svc, rnd = env3
+        async with client as c:
+            # alice(owner) 把 bob 升为 研发部 manager
+            r = await c.post("/api/org/members", params={"as": "alice"},
+                             json={"user_id": "bob", "dept_id": rnd["id"], "role": "manager"})
+            assert r.status_code == 200, r.text
+            assert svc.member("bob")["role"] == "manager"
+            # bob 不得把自己设成 owner/admin (授予等级 ≤ actor)
+            for bad_role in ("owner", "admin"):
+                rr = await c.post("/api/org/members", params={"as": "bob"},
+                                  json={"user_id": "bob", "dept_id": rnd["id"],
+                                        "role": bad_role})
+                assert rr.status_code == 403, (bad_role, rr.text)
+            # bob 不得给他人 owner
+            rr = await c.post("/api/org/members", params={"as": "bob"},
+                              json={"user_id": "dave", "dept_id": rnd["id"], "role": "owner"})
+            assert rr.status_code == 403, rr.text
+            # bob(manager) 不得移除 owner alice
+            rr = await c.delete("/api/org/members/alice", params={"as": "bob"})
+            assert rr.status_code == 403, rr.text
+            assert svc.member("alice")["role"] == "owner"
+            # manager 仍可按矩阵招收普通成员 (member/auditor)
+            rr = await c.post("/api/org/members", params={"as": "bob"},
+                              json={"user_id": "dave", "dept_id": rnd["id"], "role": "member"})
+            assert rr.status_code == 200, rr.text
+            # dave(普通成员) 试图把自己升 manager → 403
+            rr = await c.post("/api/org/members", params={"as": "dave"},
+                              json={"user_id": "dave", "dept_id": rnd["id"], "role": "manager"})
+            assert rr.status_code == 403, rr.text
+
+    async def test_only_owner_manages_owner_admin(self, env3):
+        client, svc, rnd = env3
+        async with client as c:
+            # owner 可设 admin
+            r = await c.post("/api/org/members", params={"as": "alice"},
+                             json={"user_id": "dave", "dept_id": rnd["id"], "role": "admin"})
+            assert r.status_code == 200, r.text
+            # admin 不得再设 owner/admin (仅 owner), 可设 manager/member
+            rr = await c.post("/api/org/members", params={"as": "dave"},
+                              json={"user_id": "eve", "dept_id": rnd["id"], "role": "admin"})
+            assert rr.status_code == 403, rr.text
+            rr = await c.post("/api/org/members", params={"as": "dave"},
+                              json={"user_id": "eve", "dept_id": rnd["id"], "role": "owner"})
+            assert rr.status_code == 403, rr.text
+            rr = await c.post("/api/org/members", params={"as": "dave"},
+                              json={"user_id": "frank", "dept_id": rnd["id"], "role": "manager"})
+            assert rr.status_code == 200, rr.text
+            # admin 不得移除 owner
+            rr = await c.delete("/api/org/members/alice", params={"as": "dave"})
+            assert rr.status_code == 403, rr.text
+            # admin 可移除普通成员 (等级低于自己)
+            rr = await c.delete("/api/org/members/carol", params={"as": "dave"})
+            assert rr.status_code == 200, rr.text
+            assert svc.member("carol") is None
+
+    async def test_root_dept_delete_400_and_memory_purge(self, env3):
+        client, svc, rnd = env3
+        async with client as c:
+            root = next(d for d in svc.list_depts() if d["name"] == "总部")
+            # P3-7 根保护: 存在子部门时删根 → 400
+            r = await c.delete(f"/api/org/depts/{root['id']}", params={"as": "alice"})
+            assert r.status_code == 400, r.text
+            assert any(d["name"] == "总部" for d in svc.list_depts())
+            # owner 写入部门记忆 → 整删 (DELETE /memory/{dept_id})
+            w = await c.post("/api/org/memory", params={"as": "alice"},
+                             json={"dept_id": rnd["id"], "text": "机密 Q3"})
+            assert w.status_code == 200, w.text
+            dl = await c.delete(f"/api/org/memory/{rnd['id']}", params={"as": "alice"})
+            assert dl.status_code == 200 and dl.json()["purged_depts"] == 1, dl.text
+            # bob(普通成员) 无写/删权
+            d2 = await c.delete(f"/api/org/memory/{rnd['id']}", params={"as": "bob"})
+            assert d2.status_code == 403, d2.text
+            # 正常删子部门 (非根) → 200 + 记忆清理
+            r3 = await c.delete(f"/api/org/depts/{rnd['id']}", params={"as": "alice"})
+            assert r3.status_code == 200 and r3.json()["purged_depts"] == 1, r3.text
+            assert svc.get_dept(rnd["id"]) is None

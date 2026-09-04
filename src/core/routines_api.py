@@ -173,9 +173,15 @@ async def list_routines(request: Request, org_dept: int = 0) -> List[dict]:
             from src.core.org_governance import get_org_service
             svc = get_org_service()
             svc.ensure_self_bootstrap(owner)
+            # P2-1 (002meshctx): 组织已存在时, 未入册用户不得聚合部门视图 → 403
+            if not (svc.is_member(owner) or owner == "local"
+                    or owner.startswith("admin")):
+                raise HTTPException(403, "非组织成员 (部门视图需先加入组织)")
             owners = svc.visible_owner_ids(owner) if owner == "local" else (
                 svc.visible_owner_ids(owner)
                 if svc.data_scope(owner) in ("dept", "org") else [owner])
+        except HTTPException:
+            raise
         except Exception:
             owners = [owner]
     return [r.to_dict() for r in _store().list() if r.owner in owners]

@@ -391,22 +391,22 @@ async def _run_swarm_card(card, worker=None) -> Dict[str, Any]:
 
     wall = float((getattr(card, "extra", None) or {}).get("wall_clock") or 300)
     pto = plan.get("timeout")
-    if pto:
-        deadline = _time.time() + max(0.2, float(pto))
-    else:
-        deadline = _time.time() + max(10.0, min(wall, 7200.0))
+    try:
+        _to = float(pto) if pto else 0.0
+    except (TypeError, ValueError):            # P3-8: 非法值钳制回默认
+        _to = 0.0
+    deadline = _time.time() + (_to if _to > 0 else max(10.0, min(wall, 7200.0)))
     while spawned:
         pending = [r for r in spawned
                    if r["status"] in ("queued", "running", "waiting_approval")]
         if not pending or _time.time() > deadline:
             for r in pending:
-                # P3-1 (002codex): WAITING_APPROVAL 子卡在其余终态时不得成孤儿 —
-                # 超时即 cancel (即时 reject 挂起审批) 并记 timeout
-                if r["status"] == "waiting_approval":
-                    try:
-                        worker.cancel(r["id"])
-                    except Exception:
-                        pass
+                # P3-1/P3-8 (002codex): 超时收束任一未终态子卡 (WAITING_APPROVAL/
+                # RUNNING/QUEUED 一律 cancel → reject 审批/中断/出队), 防孤儿
+                try:
+                    worker.cancel(r["id"])
+                except Exception:
+                    pass
                 r["status"] = "timeout"
             break
         await asyncio.sleep(0.25)

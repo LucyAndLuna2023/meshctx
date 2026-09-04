@@ -148,12 +148,18 @@ async def list_cards(request: Request, status: Optional[str] = None,
             from src.core.org_governance import get_org_service
             svc = get_org_service()
             svc.ensure_self_bootstrap(owner)
+            # P2-1 (002meshctx): 组织已存在时, 未入册用户不得聚合部门视图 → 403
+            if not (svc.is_member(owner) or owner == "local"
+                    or owner.startswith("admin")):
+                raise HTTPException(403, "非组织成员 (部门视图需先加入组织)")
             scope = svc.data_scope(owner)
             if scope == "self" and owner != "local":
                 # 个人版单用户: dept 视图等价自己 (不跨用户); local/admin 全量
                 owners = svc.visible_owner_ids(owner) if owner == "local" else [owner]
             else:
                 owners = svc.visible_owner_ids(owner)
+        except HTTPException:
+            raise
         except Exception:
             owners = [owner]
     all_cards = []
