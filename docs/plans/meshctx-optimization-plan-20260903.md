@@ -293,7 +293,7 @@ T4（第 5–5.5 周）: 全量回归 + 文档/BP/10 语言联动 + 三方审计
   owner 隔离, CJK bigram 检索零依赖) + tests 7 |
 | WP5 P1-2 MCP 扩展 | ✅ 23→43 defs | mcp_server +17 工具 (memory×5/tasks×5/routines×4/quota/telemetry×2) + tests 9 |
 | WP6 UI 值守 tab | ✅ | 176c654a (chat.html ⏰ Routines 折叠区 + 10 语言 10 键) |
-| 里程碑 3.123.0/3.123.1 | ✅ 已发版 | v3.123.0 (5323eccc) + v3.123.1 补发 (ee3c158e, 资产元数据修正); SOP v1.1 生效 |
+| 里程碑 3.123.0/3.123.1 / 3.124.0 | ✅ 已发版 | v3.123.0/3.123.1 + v3.124.0 (2977caf6, tag v3.124.0 资产构建全绿); checksum .sha256 回填+workflow 内嵌=3.124.1 |
 
 实测基线: 全量 3695 passed/59 skipped @ a87abf96; T0 套件 83 passed;
 sandbox 16 passed; 每提交均推送 meshctx main, 加法式可回滚。

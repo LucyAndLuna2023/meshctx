@@ -16,13 +16,17 @@ BASE = Path(__file__).resolve().parent
 OUT = BASE / "reports" / "longmem_sample_report.json"
 
 def main() -> int:
+    # P3-2 (002codex): OUT 可覆盖 (测试传临时目录, 防脏树); 默认 tracked reports/
+    import sys as _sys
+    out_p = _sys.argv[1] if len(_sys.argv) > 1 else str(OUT)
+    out_path = Path(out_p)
     corpus = BASE / "sample" / "longmem_sample_corpus.jsonl"
     qs = BASE / "sample" / "longmem_sample_questions.jsonl"
     svc = MemoryService(base_dir=str(Path(tempfile.mkdtemp(prefix="longmem_demo_"))))
     for line in corpus.read_text(encoding="utf-8").splitlines():
         if line.strip():
             svc.store("demo:longmem", json.loads(line)["text"])
-    preds = BASE / "reports" / "longmem_sample_predictions.jsonl"
+    preds = out_path.parent / "longmem_sample_predictions.jsonl"
     preds.parent.mkdir(parents=True, exist_ok=True)
     rows = []
     for line in qs.read_text(encoding="utf-8").splitlines():
@@ -33,10 +37,10 @@ def main() -> int:
     preds.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows),
                      encoding="utf-8")
     rep = grade_longmem(qs, preds, loose=True,
-                        head="demo-pipeline (retrieval baseline)", out=str(OUT))
+                        head="demo-pipeline (retrieval baseline)", out=str(out_path))
     rep["config"]["demo"] = True
     rep["config"]["note"] = "retrieval-baseline pipeline validation; not an official submission"
-    OUT.write_text(json.dumps(rep, ensure_ascii=False, indent=2), encoding="utf-8")
+    out_path.write_text(json.dumps(rep, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(rep["results"], ensure_ascii=False))
     return 0
 
