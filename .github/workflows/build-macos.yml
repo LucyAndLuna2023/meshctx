@@ -258,6 +258,12 @@ jobs:
             meshctx-macos-cli${{ matrix.asset_suffix }}.tar.gz
           retention-days: 7
 
+      - name: Generate checksums (SOP R5)
+        run: |
+          for f in $(ls meshctx* 2>/dev/null); do
+            case "$f" in *.sha256) ;; *) [ -f "$f.sha256" ] || sha256sum "$f" > "$f.sha256" ;; esac
+          done
+
       - name: Upload to Release (tag only)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2

@@ -32,16 +32,25 @@ jobs:
         path: meshctx_*_all.deb
         retention-days: 7
 
+    - name: Generate checksums (SOP R5)
+      run: |
+        for f in $(ls meshctx* 2>/dev/null); do
+          case "$f" in *.sha256) ;; *) [ -f "$f.sha256" ] || sha256sum "$f" > "$f.sha256" ;; esac
+        done
+
     - name: Upload to Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:
         update_release: true
-        files: meshctx_*_all.deb
+        files: |
+          meshctx_*_all.deb
+          *.sha256
 
   build-portable:
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v4
     - uses: actions/checkout@v4
 
     - uses: actions/setup-python@v5
@@ -151,9 +160,17 @@ jobs:
         path: meshctx-linux.tar.gz
         retention-days: 7
 
+    - name: Generate checksums (SOP R5)
+      run: |
+        for f in $(ls meshctx* 2>/dev/null); do
+          case "$f" in *.sha256) ;; *) [ -f "$f.sha256" ] || sha256sum "$f" > "$f.sha256" ;; esac
+        done
+
     - name: Upload to Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:
         update_release: true
-        files: meshctx-linux.tar.gz
+        files: |
+          meshctx-linux.tar.gz
+          *.sha256
