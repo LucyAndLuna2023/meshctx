@@ -40,7 +40,10 @@ Cisco 将 Zero Trust 扩展到 AI Agent。结论: **能办事的 Agent 必须有
 - `GET /api/governance/agents` — 已注册 agent 身份 (主动能身份清单)
 - `GET /api/governance/audit?window=` — 审计条目 (审批/执行/遥测事件)
 - `GET /api/governance/quota` — 额度用量
-企业版在此基础上提供 SOC2 类导出 (审计日志归档格式契约)。
+企业版在此基础上提供 SOC2 类导出 (审计日志归档格式契约)。2026-09 落地: 组织治理
+(Org Governance, /api/org) 提供 部门组织架构批量导入/JSON+CSV、RBAC 角色-权限矩阵、
+数据 scope(self|dept|org)、操作审计轨迹与治理导出 (/api/org/export, JSONL 快照+审计)
+— "导入→授权→数据权限→可追溯→合规导出" 证据链闭环, 对位 Art.26 部署者记录义务。
 
 ## 5. 商业与话语权
 
