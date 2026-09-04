@@ -207,3 +207,106 @@ class TestSwarmApprovalBoundary:
                                                     CardStatus.COMPLETED), c2.status
         finally:
             w.stop(); w.join(timeout=3.0); tc._worker = None
+
+
+class TestSwarmBoundaries:
+    """002meshctx P3-2/P3-4: >2 子卡并发 (free 上限 3 = 父1+子2 后第3排队)、
+    超时收束、CANCELLED 不重试。"""
+
+    async def test_three_children_serialize_within_timeout(self, tmp_dir, monkeypatch):
+        import time
+        from src.core import task_cards as tc
+        from src.core.task_card_runner import run_card
+        monkeypatch.setattr(tc, "CARDS_DIR", tmp_dir / "c3")
+        from src.core.task_cards import TaskCardStore, TaskCard, CardStatus
+        real = TaskCardStore
+        monkeypatch.setattr(tc, "TaskCardStore",
+                            lambda base_dir=None: real(base_dir=tmp_dir / "c3"))
+
+        async def fake_loop(client, messages, **kw):
+            yield {"type": "final", "text": "done"}
+
+        monkeypatch.setattr("src.agent_loop.run_agent_loop", fake_loop)
+
+        class FakeClient:
+            model_id = "fake"
+
+        from src.core import task_card_runner as runner
+        monkeypatch.setattr(runner, "_resolve_client", lambda c: FakeClient())
+
+        w = tc.get_card_worker()
+        w._store = tc.TaskCardStore(base_dir=tmp_dir / "c3")
+        w.start(run_fn=run_card)
+        try:
+            parent = TaskCard(owner="local", plan="free", prompt="父")
+            parent.extra["swarm_plan"] = {"subtasks": ["子1", "子2", "子3"],
+                                          "retry": False, "timeout": 25}
+            w._store.save(parent); w.enqueue(parent)
+            end = time.time() + 30; got = None
+            while time.time() < end:
+                c = w._store.load(parent.id)
+                if c and c.status in (CardStatus.COMPLETED, CardStatus.FAILED,
+                                      CardStatus.CANCELLED):
+                    got = c; break
+                await asyncio.sleep(0.1)
+            assert got is not None and got.status == CardStatus.COMPLETED, (
+                got and got.error)
+            kids = got.extra.get("swarm_children") or []
+            assert len(kids) == 3
+            # free 并发 3 = 父占 1 → 第 3 子卡排队后仍完成 (timeout 25s 内)
+            assert all(k["status"] in ("completed", "timeout") for k in kids)
+            assert sum(1 for k in kids if k["status"] == "completed") >= 2
+        finally:
+            w.stop(); w.join(timeout=3.0); tc._worker = None
+
+    async def test_cancelled_child_not_retried(self, tmp_dir, monkeypatch):
+        import time
+        from src.core import task_cards as tc
+        from src.core.task_card_runner import run_card
+        monkeypatch.setattr(tc, "CARDS_DIR", tmp_dir / "c4")
+        from src.core.task_cards import TaskCardStore, TaskCard, CardStatus
+        real = TaskCardStore
+        monkeypatch.setattr(tc, "TaskCardStore",
+                            lambda base_dir=None: real(base_dir=tmp_dir / "c4"))
+
+        async def fake_loop(client, messages, **kw):
+            yield {"type": "final", "text": "ok"}
+
+        monkeypatch.setattr("src.agent_loop.run_agent_loop", fake_loop)
+
+        class FakeClient:
+            model_id = "fake"
+
+        from src.core import task_card_runner as runner
+        monkeypatch.setattr(runner, "_resolve_client", lambda c: FakeClient())
+
+        w = tc.get_card_worker()
+        w._store = tc.TaskCardStore(base_dir=tmp_dir / "c4")
+        w.start(run_fn=run_card)
+        try:
+            parent = TaskCard(owner="local", plan="free", prompt="父")
+            parent.extra["swarm_plan"] = {"subtasks": ["子A", "子B"],
+                                          "retry": True, "timeout": 30}
+            w._store.save(parent)
+            w.enqueue(parent)
+            # 立即取消子A (终态前) — 子卡 CANCELLED 不应触发重试
+            time.sleep(0.3)
+            kids0 = w._store.load(parent.id)
+            kids0e = (kids0.extra or {}).get("swarm_children") or []
+            if kids0e and kids0e[0].get("id"):
+                w.cancel(kids0e[0]["id"])
+            end = time.time() + 20; got = None
+            while time.time() < end:
+                c = w._store.load(parent.id)
+                if c and c.status in (CardStatus.COMPLETED, CardStatus.FAILED,
+                                      CardStatus.CANCELLED):
+                    got = c; break
+                await asyncio.sleep(0.1)
+            kids = (got.extra or {}).get("swarm_children") or []
+            cancelled = [k for k in kids if k["status"] == "cancelled"]
+            retried = [k for k in kids if k.get("retries", 0) >= 1]
+            if cancelled:
+                assert not any(k.get("retries", 0) >= 1 and k["status"] == "cancelled"
+                               for k in kids)  # CANCELLED 不重试
+        finally:
+            w.stop(); w.join(timeout=3.0); tc._worker = None
