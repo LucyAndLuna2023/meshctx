@@ -153,16 +153,22 @@ class TestCardDeptScope:
         from src.core import task_cards as tc
         monkeypatch.setattr(og, "ORG_PATH", tmp_dir / "org.json")
         reset_org_service_for_tests()
+        # 全用 monkeypatch 自动恢复 (防污染: 历史教训 = 直接赋值 tc.TaskCardStore 泄漏)
+        old_worker = tc._worker
+        if old_worker is not None:
+            old_worker.stop(); old_worker.join(timeout=2.0)
+        tc._worker = None
         monkeypatch.setattr(tc, "CARDS_DIR", tmp_dir / "cards")
         from src.core.task_cards import TaskCardStore
-        tc.TaskCardStore = lambda base_dir=None: TaskCardStore(base_dir=tmp_dir / "cards")
+        real_cls = TaskCardStore
+        monkeypatch.setattr(tc, "TaskCardStore",
+                            lambda base_dir=None: real_cls(base_dir=tmp_dir / "cards"))
         svc = og.get_org_service()
         svc.import_depts([{"name": "总部"}, {"name": "研发部", "parent": "总部"}])
         rnd = svc.get_dept(next(d["id"] for d in svc.list_depts() if d["name"] == "研发部"))
         svc.set_member("alice", rnd["id"], "manager")     # 部门 manager
         svc.set_member("bob", rnd["id"], "member")        # 普通成员
-        # 预置卡片: alice/bob/外来者 each 一张
-        from src.core.task_cards import TaskCard, get_card_worker, TaskCardStore as TCS
+        from src.core.task_cards import TaskCard
         w = tc.get_card_worker()
         w._store = tc.TaskCardStore(base_dir=tmp_dir / "cards")
         for ow, txt in (("alice", "卡A"), ("bob", "卡B"), ("carol", "卡C")):
@@ -179,6 +185,7 @@ class TestCardDeptScope:
         oam._owner = _owner
         yield AsyncClient(transport=ASGITransport(app=a), base_url="http://t"), svc
         w.stop(); w.join(timeout=2.0)
+        tc._worker = None
         reset_org_service_for_tests()
 
     async def test_manager_sees_dept_cards_only(self, app_env):
