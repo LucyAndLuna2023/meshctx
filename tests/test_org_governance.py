@@ -317,3 +317,21 @@ class TestRoutinesDeptScope:
         async with renv as c:
             r = await c.get("/api/routines", params={"as": "bob", "org_dept": 1})
             assert {x["owner"] for x in r.json()} == {"bob"}
+
+
+class TestOrgExport(TestOrgPhase2):   # 继承 env2 fixture
+    async def test_export_jsonl_snapshot_and_audit(self, env2):
+        client, svc, rnd, mkt = env2
+        async with client as c:
+            await c.post("/api/org/members", params={"as": "alice"},
+                         json={"user_id": "dave", "dept_id": rnd["id"], "role": "member"})
+            r = await c.get("/api/org/export", params={"as": "alice"})
+            assert r.status_code == 200
+            body = r.text.strip().splitlines()
+            snap = __import__("json").loads(body[0])
+            assert snap["type"] == "org_snapshot" and len(snap["depts"]) == 3
+            assert any("org_audit" in ln and "member_set" in ln for ln in body[1:])
+            assert any("dave" in ln for ln in body[1:])
+            # 无 export_audit 的普通成员被拒 (同 client, as=carol)
+            r2 = await c.get("/api/org/export", params={"as": "carol"})
+            assert r2.status_code == 403

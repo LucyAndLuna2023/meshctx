@@ -284,3 +284,30 @@ async def org_memory_list(request: Request, dept_id: str = ""):
         raise HTTPException(403, "非本部门成员")
     from src.core.memory_api import get_memory_service
     return {"entries": get_memory_service().list_entries(_dept_mem_key(dept_id))}
+
+
+@router.get("/export")
+async def org_export(request: Request):
+    """治理审计导出 (SOC2 型证据包, JSONL): 组织快照 + 操作审计轨迹。
+    门控: export_audit 或 audit_view+manage_members (企业版面向合规归档)。"""
+    owner = await _owner(request)
+    await _reject_anon(owner)
+    svc = _svc()
+    svc.ensure_self_bootstrap(owner)
+    ok = svc.has(owner, "export_audit") or (
+        svc.has(owner, "audit_view") and svc.has(owner, "manage_members"))
+    if not ok:
+        raise HTTPException(403, "缺少权限 export_audit (审计导出)")
+    import json as _json
+    from fastapi.responses import PlainTextResponse
+    lines = []
+    lines.append(_json.dumps({
+        "type": "org_snapshot", "ts": __import__("time").time(),
+        "depts": svc.list_depts(), "members": svc.list_members(),
+        "roles": {r: svc.role_permissions(r) for r in
+                  ("owner", "admin", "manager", "member", "auditor")}},
+        ensure_ascii=False))
+    for t in svc.audit_trail(limit=200):
+        lines.append(_json.dumps({"type": "org_audit", **t}, ensure_ascii=False))
+    return PlainTextResponse("\n".join(lines) + "\n",
+                             media_type="application/x-ndjson")
