@@ -287,9 +287,9 @@ T4（第 5–5.5 周）: 全量回归 + 文档/BP/10 语言联动 + 三方审计
 | WP7 P1-4 沙箱硬化 | ✅ 基线落地 | 32b6b64e (sandbox_policy.py + 16 tests + baseline doc) |
 | WP8 P2-1 治理白皮书 | ✅ 文档 v1.0 | (docs/governance/whitepaper.md, 本批) |
 | SOP QA/发布流程 | ✅ v1.1 | docs/release/qa_release_sop_v1.md (三方审计 P2/P3 并入, v3.124.0 起强制) |
-| WP2 P0-2 评测 harness | 🔄 阶段1+ | benchmarks/ (core+swebench/gaia/longmem runner+README+tests 10)
+| WP2 P0-2 评测 harness | ✅ 阶段1+2 | benchmarks/ 全套 + nightly CI + 成绩页; LongMem 样例跑分 (demo-scale self_run em=0.8, 检索基线管线验证); 真实官方榜提交=运营凭据项 |
   + benchmark-nightly.yml + docs/benchmarks 页; 真实榜提交待凭据 runner |
-| WP3 P0-3 Memory API | ✅ HTTP 阶段1 | memory_api.py (/api/v1/memory store/search/list/delete/ns-GDPR,
+| WP3 P0-3 Memory API | ✅ + LongMem 管线 | memory_api.py + LongMem 样例跑分 (10QA 检索基线, demo 标注, 守护测试) — 官方提交待凭据 |
   owner 隔离, CJK bigram 检索零依赖) + tests 7 |
 | WP5 P1-2 MCP 扩展 | ✅ 23→43 defs | mcp_server +17 工具 (memory×5/tasks×5/routines×4/quota/telemetry×2) + tests 9 |
 | WP6 UI 值守 tab | ✅ | 176c654a (chat.html ⏰ Routines 折叠区 + 10 语言 10 键) |
