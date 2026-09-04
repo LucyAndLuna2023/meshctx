@@ -115,7 +115,7 @@
 ## What's real vs metaphor
 [诚实区分工程化 vs 概念框架 — 建立可信度]
 
-## The self-evolution loop (5 stages)
+## The evolution engine (API-controlled stages; auto loop on roadmap)
 evaluate → extract patterns → update KG → adjust behavior → replay
 
 ## Safety

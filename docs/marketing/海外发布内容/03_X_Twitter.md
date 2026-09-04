@@ -9,7 +9,7 @@
 ## 账号 Bio（三选一）
 
 - `Building the first full-brain-emulation AI agent 🧠 | 17 brain regions | self-adaptive with API-controlled genetic-algorithm tuning | Free for individuals | Open core AGPLv3`
-- `MeshCtx — an AI agent that evolves its own parameters 🧬 | 17 simulated brain regions | SDM memory | meshctx.com`
+- `MeshCtx — an AI agent with API-controlled parameter evolution 🧬 | 17 simulated brain regions | SDM memory | meshctx.com`
 - `Solo dev, 6 years, 250k lines: an AI agent with a hippocampus, a prefrontal cortex & a genetic optimizer. Free for personal use.`
 
 ---
@@ -40,7 +40,7 @@ temperature, top_p, prompt style, memory weights.
 Mutation → crossover → elitism → niche preservation.
 It tunes itself better than I do.
 
-5/8 Self-evolution loop:
+5/8 Evolution engine (API-controlled evolve/feedback; auto loop on roadmap):
 after every task → evaluate → extract patterns → update knowledge graph → adjust behavior.
 It's not a slogan. It's a running pipeline in the codebase.
 
@@ -64,7 +64,7 @@ Feedback welcome. Brutal honesty preferred. 🔧
 ```
 🧬 Evolution doesn't need a lab. It needs a fitness function.
 
-I gave my AI agent a genetic algorithm that evolves its own config:
+I gave my AI agent a genetic algorithm that tunes its own config via API (evolve/feedback endpoints):
 • temperature
 • top_p  
 • max_tokens

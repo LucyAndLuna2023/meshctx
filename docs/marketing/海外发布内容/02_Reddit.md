@@ -25,7 +25,7 @@ METAPHOR SO FAR:
 - "Default mode network" — I map it to background idea generation, but it's early
 - "Consciousness/Φ" — more of a philosophical framing than engineering
 
-Also shipping a genetic-algorithm engine that evolves its own hyperparameters (temperature, top_p, prompt style) — mutation, crossover, elitism, niche preservation. It tunes itself better than I do after ~10 generations.
+Also shipping a genetic-algorithm tuning engine for runtime parameters (temperature, top_p, prompt style) — mutation, crossover, elitism, niche preservation, triggered via API endpoints (evolve/feedback). It converged noticeably better settings within ~10 generations.
 
 Repo: [GitHub link] (open core, AGPLv3, 250k lines)
 Free for individuals. 
@@ -47,7 +47,7 @@ Highlights for this community:
 - Local models first-class: Ollama fully supported, no account needed
 - Intelligent router picks local vs cloud per task (privacy-sensitive → local, heavy reasoning → cloud)
 - 5-model swarm consensus: parallel generation + voting, error rate drops dramatically
-- Genetic optimizer evolves its own config (temperature/top_p/max_tokens/prompt style) — you can see it improve generation quality over generations
+- Genetic optimizer tunes runtime config (temperature/top_p/max_tokens/prompt style) via API — generation quality improvements are visible across generations
 
 Desktop apps for Win/macOS/Linux, 10 languages, AGPLv3 open core. Personal use free forever.
 
@@ -89,7 +89,7 @@ AMA about the architecture or the self-hosting setup.
 ```
 MeshCtx is an open-core AI agent platform. The framework is AGPLv3 on GitHub [link], 250k+ lines of Python.
 
-Architecture highlights: 17 brain-region modules, sparse distributed memory, self-evolution loop, genetic-parameter-optimizer, 5-model swarm review, MCP protocol native.
+Architecture highlights: 17 brain-region modules, sparse distributed memory, API-controlled evolution engine, genetic-parameter-optimizer, 5-model swarm review, MCP protocol native.
 
 Looking for contributors in: plugin ecosystem, VSCode extension, benchmarking (we claim to beat Cursor on code tasks — want public numbers), and localization.
 
