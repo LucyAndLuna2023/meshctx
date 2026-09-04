@@ -204,3 +204,83 @@ async def org_visible_owners(request: Request):
 
 
 __all__ = ["router"]
+
+
+def _member_or_admin(user_id: str, dept_id: str) -> bool:
+    """部门访问门槛: 本部门(含子)成员 或 组织级角色 (owner/admin/auditor)。"""
+    svc = _svc()
+    m = svc.member(user_id)
+    if m is None:
+        return False
+    if m.get("role") in ("owner", "admin", "auditor"):
+        return True
+    depts = svc.dept_subtree_ids(m.get("dept_id") or "")
+    return dept_id in depts
+
+
+def _dept_writer(user_id: str, dept_id: str) -> bool:
+    svc = _svc()
+    m = svc.member(user_id)
+    return m is not None and m.get("role") in ("owner", "admin", "manager")
+
+
+@router.get("/audit")
+async def org_audit(request: Request, limit: int = 100):
+    """组织操作审计轨迹 (授权可追溯)。"""
+    owner = await _owner(request)
+    await _reject_anon(owner)
+    svc = _svc()
+    svc.ensure_self_bootstrap(owner)
+    if not (svc.has(owner, "audit_view") or svc.has(owner, "manage_members")):
+        raise HTTPException(403, "缺少权限 audit_view/manage_members")
+    return {"audit": svc.audit_trail(limit=limit)}
+
+
+# ── 部门共享记忆 (数据权限落地: 部门成员可见/可协作) ──────────
+def _dept_mem_key(dept_id: str) -> str:
+    return f"dept:{dept_id}"
+
+
+@router.post("/memory")
+async def org_memory_store(request: Request):
+    owner = await _owner(request)
+    await _reject_anon(owner)
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "无效 JSON")
+    dept_id = str(body.get("dept_id") or "")
+    text = str(body.get("text") or "").strip()
+    if not dept_id or not text:
+        raise HTTPException(400, "dept_id/text 必填")
+    if not _dept_writer(owner, dept_id):
+        raise HTTPException(403, "仅部门经理/管理员/owner 可写入部门记忆")
+    from src.core.memory_api import get_memory_service
+    e = get_memory_service().store(_dept_mem_key(dept_id), text, body.get("meta"))
+    return {"ok": True, "id": e["id"]}
+
+
+@router.get("/memory/search")
+async def org_memory_search(request: Request, q: str = "", dept_id: str = "",
+                            top_k: int = 5):
+    owner = await _owner(request)
+    await _reject_anon(owner)
+    if not q.strip() or not dept_id:
+        raise HTTPException(400, "q/dept_id 必填")
+    if not _member_or_admin(owner, dept_id):
+        raise HTTPException(403, "非本部门成员")
+    from src.core.memory_api import get_memory_service
+    res = get_memory_service().search(_dept_mem_key(dept_id), q.strip(), top_k)
+    return {"results": res}
+
+
+@router.get("/memory")
+async def org_memory_list(request: Request, dept_id: str = ""):
+    owner = await _owner(request)
+    await _reject_anon(owner)
+    if not dept_id:
+        raise HTTPException(400, "dept_id 必填")
+    if not _member_or_admin(owner, dept_id):
+        raise HTTPException(403, "非本部门成员")
+    from src.core.memory_api import get_memory_service
+    return {"entries": get_memory_service().list_entries(_dept_mem_key(dept_id))}

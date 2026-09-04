@@ -63,7 +63,21 @@ class OrgService:
         self._depts: Dict[str, Dict[str, Any]] = {}      # id -> {id,name,parent_id}
         self._members: Dict[str, Dict[str, Any]] = {}    # user_id -> {user_id,dept_id,role}
         self._role_perms: Dict[str, set] = {r: set(p) for r, p in DEFAULT_ROLE_PERMS.items()}
+        self._audit_trail: List[Dict[str, Any]] = []
         self._load()
+
+    # ── 审计轨迹 (授权可追溯, 满足"授权"需求; cap 200) ────
+    def _audit(self, user_id: str, action: str, detail: str = ""):
+        with self._lock:
+            trail = self._audit_trail
+            trail.append({"ts": time.time(), "user": user_id, "action": action,
+                          "detail": detail[:300]})
+            if len(trail) > 200:
+                del trail[:len(trail) - 200]
+
+    def audit_trail(self, limit: int = 100) -> List[Dict[str, Any]]:
+        with self._lock:
+            return list(reversed(self._audit_trail))[:max(1, min(limit, 200))]
 
     # ── 持久化 ──────────────────────────────────────────────
     def _load(self):
@@ -75,6 +89,7 @@ class OrgService:
                 rp = data.get("roles") or {}
                 for r in ROLES:
                     self._role_perms[r] = set(rp.get(r, list(DEFAULT_ROLE_PERMS[r])))
+                self._audit_trail = data.get("audit") or []
         except Exception:
             logger.debug("org load failed", exc_info=True)
 
@@ -84,7 +99,8 @@ class OrgService:
             tmp = self._path.with_name(f".{self._path.name}.{os.getpid()}.{uuid.uuid4().hex[:8]}.tmp")
             tmp.write_text(json.dumps({
                 "depts": self._depts, "members": self._members,
-                "roles": {r: sorted(self._role_perms[r]) for r in ROLES}},
+                "roles": {r: sorted(self._role_perms[r]) for r in ROLES},
+                "audit": self._audit_trail},
                 ensure_ascii=False, indent=1), encoding="utf-8")
             os.replace(tmp, self._path)
         except Exception:
@@ -116,6 +132,7 @@ class OrgService:
             if d.get("parent_id") and d["parent_id"] not in self._depts:
                 raise ValueError("父部门不存在")
             self._save()
+            self._audit("system", "dept_upsert", f"{d['name']} ({d['id']})")
             return d
 
     def remove_dept(self, dept_id: str) -> bool:
@@ -136,6 +153,7 @@ class OrgService:
                 if m.get("dept_id") in removed:
                     self._members.pop(uid, None)
             self._save()
+            self._audit("system", "dept_remove", f"{dept_id} +{len(removed) - 1} 子")
             return True
 
     def import_depts(self, items: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -192,6 +210,7 @@ class OrgService:
             m = {"user_id": user_id, "dept_id": dept_id, "role": role}
             self._members[user_id] = m
             self._save()
+            self._audit("system", "member_set", f"{user_id} role={role} dept={dept_id}")
             return m
 
     def remove_member(self, user_id: str) -> bool:
@@ -200,6 +219,7 @@ class OrgService:
                 return False
             self._members.pop(user_id, None)
             self._save()
+            self._audit("system", "member_remove", user_id)
             return True
 
     def list_members(self) -> List[Dict[str, Any]]:

@@ -206,3 +206,67 @@ class TestCardDeptScope:
         async with client as c:
             r = await c.get("/api/tasks/cards", params={"org_dept": 1, "as": "bob"})
             assert {cd["owner"] for cd in r.json()["cards"]} == {"bob"}
+
+
+class TestOrgPhase2:
+    """Org 阶段2: 审计轨迹 + 部门共享记忆 (数据权限) 隔离。"""
+
+    @pytest.fixture()
+    def env2(self, tmp_dir, monkeypatch):
+        from fastapi import FastAPI
+        from src.core.org_api import router
+        import src.core.org_api as mod
+        from src.core import org_governance as og
+        import src.core.memory_api as ma
+        monkeypatch.setattr(og, "ORG_PATH", tmp_dir / "org.json")
+        monkeypatch.setattr(ma, "MEMORIES_DIR", tmp_dir / "mem")
+        from src.core.memory_api import reset_memory_service_for_tests as rms
+        reset_org_service_for_tests(); rms()
+        svc = og.get_org_service()
+        svc.import_depts([{"name": "总部"}, {"name": "研发部", "parent": "总部"},
+                          {"name": "市场部", "parent": "总部"}])
+        rnd = svc.get_dept(next(d["id"] for d in svc.list_depts() if d["name"] == "研发部"))
+        mkt = svc.get_dept(next(d["id"] for d in svc.list_depts() if d["name"] == "市场部"))
+        svc.set_member("alice", rnd["id"], "manager")
+        svc.set_member("bob", rnd["id"], "member")
+        svc.set_member("carol", mkt["id"], "member")
+        a = FastAPI(); a.include_router(router)
+        async def _owner(req):
+            return req.query_params.get("as", "alice")
+        mod._owner = _owner
+        yield AsyncClient(transport=ASGITransport(app=a), base_url="http://t"), svc, rnd, mkt
+        reset_org_service_for_tests(); rms()
+
+    async def test_audit_trail_captures_ops(self, env2):
+        client, svc, rnd, mkt = env2
+        async with client as c:
+            await c.post("/api/org/members", params={"as": "alice"},
+                         json={"user_id": "dave", "dept_id": rnd["id"], "role": "member"})
+            r = await c.get("/api/org/audit", params={"as": "alice"})
+            assert r.status_code == 200
+            trail = r.json()["audit"]
+            assert any(t["action"] == "member_set" and "dave" in t["detail"] for t in trail)
+
+    async def test_dept_memory_share_isolated(self, env2):
+        client, svc, rnd, mkt = env2
+        async with client as c:
+            # alice(研发 manager) 写入部门记忆
+            w = await c.post("/api/org/memory", params={"as": "alice"},
+                             json={"dept_id": rnd["id"], "text": "研发机密: Q3 计划"})
+            assert w.status_code == 200, w.text
+            # bob(研发 member) 可读可搜
+            s = await c.get("/api/org/memory/search", params={"as": "bob", "q": "Q3",
+                                                              "dept_id": rnd["id"]})
+            assert s.status_code == 200 and s.json()["results"]
+            # carol(市场部 member) 不可读研发部记忆 (跨部门隔离)
+            s2 = await c.get("/api/org/memory/search", params={"as": "carol", "q": "Q3",
+                                                               "dept_id": rnd["id"]})
+            assert s2.status_code == 403
+            # bob(普通成员) 不可写
+            w2 = await c.post("/api/org/memory", params={"as": "bob"},
+                              json={"dept_id": rnd["id"], "text": "x"})
+            assert w2.status_code == 403
+            # bob 可写市场部? 否; carol(市场 member) 也不可写 (非 manager) → 403
+            w3 = await c.post("/api/org/memory", params={"as": "carol"},
+                              json={"dept_id": mkt["id"], "text": "y"})
+            assert w3.status_code == 403
