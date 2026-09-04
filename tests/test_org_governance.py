@@ -270,3 +270,50 @@ class TestOrgPhase2:
             w3 = await c.post("/api/org/memory", params={"as": "carol"},
                               json={"dept_id": mkt["id"], "text": "y"})
             assert w3.status_code == 403
+
+
+class TestRoutinesDeptScope:
+    """数据权限落地: routines org_dept 部门视图。"""
+
+    @pytest.fixture()
+    def renv(self, tmp_dir, monkeypatch):
+        from fastapi import FastAPI
+        from src.core import org_governance as og
+        from src.core import routines as rt
+        from src.core.routines_api import router
+        import src.core.routines_api as mod
+        monkeypatch.setattr(og, "ORG_PATH", tmp_dir / "org.json")
+        monkeypatch.setattr(rt, "ROUTINES_PATH", tmp_dir / "routines.json")
+        reset_org_service_for_tests()
+        from src.core.routines import RoutineStore, Routine
+        svc = og.get_org_service()
+        svc.import_depts([{"name": "总部"}, {"name": "研发部", "parent": "总部"},
+                          {"name": "市场部", "parent": "总部"}])
+        rnd = svc.get_dept(next(d["id"] for d in svc.list_depts() if d["name"] == "研发部"))
+        svc.set_member("alice", rnd["id"], "manager")
+        svc.set_member("bob", rnd["id"], "member")
+        st = RoutineStore(path=tmp_dir / "routines.json")
+        st.save(Routine(owner="alice", prompt="研发定时任务", kind="interval", schedule="3600"))
+        st.save(Routine(owner="bob", prompt="bob 个人任务", kind="interval", schedule="7200"))
+        st.save(Routine(owner="carol", prompt="市场任务", kind="interval", schedule="3600"))
+        a = FastAPI(); a.include_router(router)
+        async def _owner(req):
+            return req.query_params.get("as", "alice")
+        mod._owner = _owner
+        yield AsyncClient(transport=ASGITransport(app=a), base_url="http://t")
+        reset_org_service_for_tests()
+
+    async def test_manager_dept_view(self, renv):
+        async with renv as c:
+            # alice manager 研发部: dept 视图含 alice+bob, 不含市场 carol
+            r = await c.get("/api/routines", params={"as": "alice", "org_dept": 1})
+            owners = {x["owner"] for x in r.json()}
+            assert owners == {"alice", "bob"}
+            # 默认仅自己
+            r2 = await c.get("/api/routines", params={"as": "alice"})
+            assert {x["owner"] for x in r2.json()} == {"alice"}
+
+    async def test_member_self_only(self, renv):
+        async with renv as c:
+            r = await c.get("/api/routines", params={"as": "bob", "org_dept": 1})
+            assert {x["owner"] for x in r.json()} == {"bob"}

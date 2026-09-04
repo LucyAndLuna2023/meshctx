@@ -163,10 +163,22 @@ async def create_routine(request: Request):
 
 
 @router.get("")
-async def list_routines(request: Request) -> List[dict]:
+async def list_routines(request: Request, org_dept: int = 0) -> List[dict]:
+    """值守列表 (默认自己; org_dept=1 时按组织数据权限聚合可见 owner — 部门协作视图)。"""
     owner = await _owner(request)
     await _reject_anon(owner)
-    return [r.to_dict() for r in _store().list() if r.owner == owner]
+    owners = [owner]
+    if org_dept:
+        try:
+            from src.core.org_governance import get_org_service
+            svc = get_org_service()
+            svc.ensure_self_bootstrap(owner)
+            owners = svc.visible_owner_ids(owner) if owner == "local" else (
+                svc.visible_owner_ids(owner)
+                if svc.data_scope(owner) in ("dept", "org") else [owner])
+        except Exception:
+            owners = [owner]
+    return [r.to_dict() for r in _store().list() if r.owner in owners]
 
 
 @router.get("/{rid}")
