@@ -390,15 +390,28 @@ async def _run_swarm_card(card, worker=None) -> Dict[str, Any]:
     spawned = [r for r in records if r.get("id")]
 
     wall = float((getattr(card, "extra", None) or {}).get("wall_clock") or 300)
-    deadline = _time.time() + max(10.0, min(wall, 7200.0))
+    pto = plan.get("timeout")
+    if pto:
+        deadline = _time.time() + max(0.2, float(pto))
+    else:
+        deadline = _time.time() + max(10.0, min(wall, 7200.0))
     while spawned:
-        pending = [r for r in spawned if r["status"] in ("queued", "running")]
+        pending = [r for r in spawned
+                   if r["status"] in ("queued", "running", "waiting_approval")]
         if not pending or _time.time() > deadline:
-            for r in pending: r["status"] = "timeout"
+            for r in pending:
+                # P3-1 (002codex): WAITING_APPROVAL 子卡在其余终态时不得成孤儿 —
+                # 超时即 cancel (即时 reject 挂起审批) 并记 timeout
+                if r["status"] == "waiting_approval":
+                    try:
+                        worker.cancel(r["id"])
+                    except Exception:
+                        pass
+                r["status"] = "timeout"
             break
         await asyncio.sleep(0.25)
         for r in spawned:
-            if r["status"] not in ("queued", "running"): continue
+            if r["status"] not in ("queued", "running", "waiting_approval"): continue
             c = worker._store.load(r["id"]) if worker is not None else None
             if c is None: continue
             r["status"] = c.status.value

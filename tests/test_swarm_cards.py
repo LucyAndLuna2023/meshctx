@@ -143,3 +143,67 @@ class TestSwarmCards:
         w.enqueue(parent)
         got = await _wait_terminal(w._store, parent.id)
         assert (got.error or "") and "2-5" in got.error
+
+
+class TestSwarmApprovalBoundary:
+    """P3-1 (002codex): WAITING_APPROVAL 子卡在其余终态时不得孤儿 — 超时 cancel 收束。"""
+
+    async def test_waiting_approval_child_not_orphaned(self, tmp_dir, monkeypatch):
+        import time
+        from src.core import task_cards as tc
+        from src.core.task_card_runner import run_card
+        monkeypatch.setattr(tc, "CARDS_DIR", tmp_dir / "cards2")
+        from src.core.task_cards import TaskCardStore, TaskCard, CardStatus
+        real = TaskCardStore
+        monkeypatch.setattr(tc, "TaskCardStore",
+                            lambda base_dir=None: real(base_dir=tmp_dir / "cards2"))
+
+        async def fake_loop(client, messages, **kw):
+            text = " ".join(str(m.get("content", "")) for m in messages
+                            if isinstance(m, dict))
+            if "卡死" in text:
+                yield {"type": "approval", "request_id": "req-x",
+                       "name": "shell", "args": {"cmd": "x"}, "reason": "test"}
+                res = await kw["approval_waiter"]("req-x")   # 阻塞至 decide/cancel
+                yield {"type": "final", "text": "done-after:" + str(res.get("action"))}
+                return
+            yield {"type": "final", "text": "快完成"}
+
+        monkeypatch.setattr("src.agent_loop.run_agent_loop", fake_loop)
+
+        class FakeClient:
+            model_id = "fake"
+
+        from src.core import task_card_runner as runner
+        monkeypatch.setattr(runner, "_resolve_client", lambda c: FakeClient())
+
+        w = tc.get_card_worker()
+        w._store = tc.TaskCardStore(base_dir=tmp_dir / "cards2")
+        w.start(run_fn=run_card)
+        try:
+            parent = TaskCard(owner="local", plan="free", prompt="父任务")
+            parent.extra["swarm_plan"] = {"subtasks": ["快任务", "卡死任务"],
+                                          "retry": False, "timeout": 0.6}
+            w._store.save(parent)
+            w.enqueue(parent)
+            end = time.time() + 12
+            got = None
+            while time.time() < end:
+                c = w._store.load(parent.id)
+                if c and c.status in (CardStatus.COMPLETED, CardStatus.FAILED,
+                                      CardStatus.CANCELLED):
+                    got = c; break
+                await asyncio.sleep(0.1)
+            assert got is not None, "父卡应在 deadline 后收束 (子卡不孤儿)"
+            kids = got.extra.get("swarm_children") or []
+            by_idx = {k["idx"]: k for k in kids}
+            assert by_idx[0]["status"] == "completed"
+            # idx1 卡死: 超时 cancel → 记 timeout (非孤儿静默)
+            assert by_idx[1]["status"] in ("timeout", "cancelled", "failed"), kids
+            # 子卡必达终态 (cancel 即时 reject 挂起审批, <~3s)
+            c2 = w._store.load(by_idx[1].get("id", "zzz"))
+            assert c2 is not None and c2.status in (CardStatus.CANCELLED,
+                                                    CardStatus.FAILED,
+                                                    CardStatus.COMPLETED), c2.status
+        finally:
+            w.stop(); w.join(timeout=3.0); tc._worker = None
