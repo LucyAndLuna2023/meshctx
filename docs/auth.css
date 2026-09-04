@@ -4,6 +4,11 @@
     --surface: #1a1a2e;
     --accent: #8b5cf6;
     --fg-dim: #64748b;
+    /* 兜底变量: auth.css 在 privacy/terms/profile 等无 :root 页面加载,
+       缺 --border/--fg/--muted 导致 var() 全部失效 (第六轮审计 BUG#42) */
+    --border: #2a2a3d;
+    --fg: #f1f5f9;
+    --muted: #94a3b8;
 }
 
 /* Nav auth button */
