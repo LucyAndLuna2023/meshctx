@@ -104,6 +104,37 @@ class TestOrgService:
         assert svc.remove_dept(rnd["id"]) is True
         assert svc.remove_dept(root["id"]) is True
 
+    def test_upsert_rejected_mutation_atomic(self, tmp_dir):
+        """002codex 44d7131d P3-5: 失败 upsert (环/父不存在) 不得变异内存树,
+        重载文件须完整无环 (旧实现 400 后残留被拒变更, 下次 _save 落盘成环)。"""
+        import pytest as _pytest
+        svc = OrgService(path=tmp_dir / "org.json")
+        svc.import_depts([{"name": "总部"}, {"name": "研发部", "parent": "总部"},
+                          {"name": "算法组", "parent": "研发部"}])
+        rnd = next(d for d in svc.list_depts() if d["name"] == "研发部")
+        alg = next(d for d in svc.list_depts() if d["name"] == "算法组")
+        hq = next(d for d in svc.list_depts() if d["name"] == "总部")
+        before = svc.list_depts()
+        # ① 环: 研发部 挂到其子孙 算法组 下 → 拒, 树不变
+        with _pytest.raises(ValueError):
+            svc.upsert_dept("研发部", parent_id=alg["id"], dept_id=rnd["id"])
+        assert svc.list_depts() == before
+        # ② 父不存在: 更新/新建均拒, 无悬挂节点
+        with _pytest.raises(ValueError):
+            svc.upsert_dept("研发部", parent_id="no-such-id", dept_id=rnd["id"])
+        with _pytest.raises(ValueError):
+            svc.upsert_dept("幽灵部", parent_id="no-such-id")
+        assert svc.list_depts() == before
+        # ③ 重载: 文件完整无环, 研发部 仍挂 总部
+        svc2 = OrgService(path=tmp_dir / "org.json")
+        by_id = {d["id"]: d for d in svc2.list_depts()}
+        assert by_id[rnd["id"]]["parent_id"] == hq["id"]
+        assert by_id[alg["id"]]["parent_id"] == rnd["id"]
+        assert len(svc2.list_depts()) == 3
+        # ④ 合法移动仍工作 (算法组 → 总部 平级挂靠)
+        svc2.upsert_dept("算法组", parent_id=hq["id"], dept_id=alg["id"])
+        assert {d["name"] for d in svc2.list_depts()} == {"总部", "研发部", "算法组"}
+
 
 @pytest.fixture()
 def client(tmp_dir, monkeypatch):

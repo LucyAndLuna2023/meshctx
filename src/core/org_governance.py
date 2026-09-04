@@ -149,16 +149,22 @@ class OrgService:
         if not name or len(name) > 80:
             raise ValueError("部门名无效")
         with self._lock:
+            # P3-5 (002codex 44d7131d): 校验先于变异 — 400 后内存树不得残留
+            # 被拒变更 (旧实现先改 d["parent_id"]/先插新节点, 下次 _save 会把
+            # 环/悬挂父节点持久化落盘)
+            parent_id = parent_id or ""
+            if parent_id and parent_id not in self._depts:
+                raise ValueError("父部门不存在")
             if dept_id and dept_id in self._depts:
+                # 防环按"改后链路"模拟上溯 (不先行写回): X→parent 链若回指 X 即环
+                self._raise_if_cycle(dept_id, parent_id)
                 d = self._depts[dept_id]
                 d["name"] = name
-                d["parent_id"] = parent_id or d.get("parent_id", "")
+                if parent_id:
+                    d["parent_id"] = parent_id
             else:
-                d = {"id": _new_id(), "name": name, "parent_id": parent_id or ""}
+                d = {"id": _new_id(), "name": name, "parent_id": parent_id}
                 self._depts[d["id"]] = d
-            if d.get("parent_id") and d["parent_id"] not in self._depts:
-                raise ValueError("父部门不存在")
-            self._raise_if_cycle(d["id"], d.get("parent_id", ""))   # P3-5 防环
             self._save()
             self._audit(actor, "dept_upsert", f"{d['name']} ({d['id']})")
             return d
