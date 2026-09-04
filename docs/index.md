@@ -2,7 +2,7 @@
 
 ## Overview
 
-meshctx is an open-source, self-evolving agent platform designed to be the most intelligent, autonomous, and capable AI agent system in the world.
+meshctx is an open-source, self-adaptive agent platform designed to be a capable, auditable AI agent system.
 
 ### What Makes meshctx Different?
 

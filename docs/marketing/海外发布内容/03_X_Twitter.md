@@ -8,7 +8,7 @@
 
 ## 账号 Bio（三选一）
 
-- `Building the first full-brain-emulation AI agent 🧠 | 17 brain regions | self-evolving via genetic algorithms | Free for individuals | Open core AGPLv3`
+- `Building the first full-brain-emulation AI agent 🧠 | 17 brain regions | self-adaptive with API-controlled genetic-algorithm tuning | Free for individuals | Open core AGPLv3`
 - `MeshCtx — an AI agent that evolves its own parameters 🧬 | 17 simulated brain regions | SDM memory | meshctx.com`
 - `Solo dev, 6 years, 250k lines: an AI agent with a hippocampus, a prefrontal cortex & a genetic optimizer. Free for personal use.`
 

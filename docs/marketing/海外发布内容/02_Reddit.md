@@ -37,7 +37,7 @@ Curious what this community thinks is genuinely interesting vs. gimmicky. Brutal
 
 ## Sub 2: r/LocalLLaMA — 本地模型/自托管向（P0）
 
-**标题**: `MeshCtx: open-core AI agent with local model support (Ollama), 123+ providers, self-evolving hyperparameters`
+**标题**: `MeshCtx: open-core AI agent with local model support (Ollama), 123+ providers, API-tuned hyperparameters (adaptive)`
 
 **正文**:
 ```

@@ -162,9 +162,9 @@ retrieval_top_k（1–20）：记忆检索条数
 
 进化工作流：
 
-插件挂载 meshctx 内核，监听 agent.task.completed 事件自动记录任务反馈
-
-每积累 10 条反馈自动触发一代进化：锦标赛选择 → 变异/重组 → 适应度评估 → 精英保留
+反馈记录与进化触发（2026-09 核验口径: 自动闭环为路线图, 当前 API 受控触发）:
+- 当前: 反馈经 REST API 受控记录 (POST /api/genomic/feedback)；进化由 API 触发 (POST /api/genomic/evolve)
+- 路线图: 内核事件自动监听喂数 + 积累阈值自动触发 + 最优参数回注运行时 (核验报告 §3.4 落地点)
 
 最优基因组自动持久化到磁盘，重启后从最优解重建种群，进化成果不丢失
 
@@ -417,6 +417,8 @@ v2 模板硬编码 <html lang="zh-CN"> 全部改为动态语言注入
 - 🟡 半实现: "每次任务后自动评估→自动优化"闭环 — 现为 **API/受控触发**（evolve/feedback），agent 主循环自动喂数与最优参数自动回注运行时的**自动闭环未接线**（路线图项）; 元认知为独立模块+报告, 未入 agent 主循环
 - 口径处理: 主页/landing 关键超卖措辞已修订为可验证表述（引擎已实现+自动闭环路线图）；海外发布文案同步建议见核验报告 §3
 - 未来闭环立项点: run_card 终态→genomic.feedback 自动喂 + best_genome 回注参数解析 + evolution_tracker 自动周报 → 落地后可恢复"全自动自进化"口径
+- 已改范围边界 (2026-09-03 同批补修): docs/index.html SEO/pageMeta/title/og/f2-fallback、landing.json hero_desc/f17/f22/f28 (10 语言)、docs/download.html subtitle、docs/llms.txt、docs/index.md、BP §3.6 —— 收敛为 "self-adaptive + auditable / API 受控进化 + 自动闭环路线图"
+- 发布前必检清单 (防超卖流出): 海外发布草稿 (docs/marketing/海外发布内容/00-08) 中 "self-evolving / self-improving / 自我进化 / world's first" 等词, 发布前必须按上条口径修订; 已发布平台 (LinkedIn/ProductHunt 等) 无法撤回, 后续增补帖附口径说明
 
 ### D.2 差异化战略引用
 2026-09 前沿调研结论（全文 `docs/marketing/meshctx-differentiation-strategy-20260903.md`）:

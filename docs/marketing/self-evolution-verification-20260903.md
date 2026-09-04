@@ -19,8 +19,8 @@
 | 3 | 引擎有测试 | tests/test_v59_evolution.py, test_cmaes_optimizer.py, test_v40_evolution_tracker.py | ✅ | ✅ |
 | 4 | "每次任务后自动评估→提取模式→更新图谱→优化行为"（BP §2.4 闭环） | 无自动喂入点：agent_loop/run_card 未调用 optimize/feedback；evolve 仅在 API 触发 | ❌ 自动闭环缺失 | 🟡 **半实现**: 反馈 API 可喂（manual），自动闭环未接线 |
 | 5 | "CMA-ES + PID 双环实时调温…continuously self-evolves"（主页 f17） | CMA-ES 在 cmaes_optimizer.py（genomic 内部调用）；PID/自适应在 brain_* 模块 | 调优引擎存在；**实时逐请求应用链未证实** | 🟡 **部分**: 引擎真、持续自动应用措辞超卖 |
-| 6 | 元认知自进化循环（BP 2.4/海外文案） | src/core/metacognition.py + /metacognition/report 等报告端点（main 1710+） | 独立模块+报告 | 🟡 **独立实现**, 未入 agent 主循环闭环 |
-| 7 | 6 维成长跟踪 + weekly evolution reports（主页 f22） | src/core/evolution_tracker.py + tests | 报告 API 存在；"weekly" 为口径非定时器 | 🟡 **部分**: 手动/API 生成，非自动周报 |
+| 6 | 元认知自进化循环（BP 2.4/海外文案） | src/core/metacognition.py (782 行) 注册 kernel 并订阅 task.completed (metacognition.py:611) | 订阅无发布方 → "死订阅" (002meshctx 精确化) | 🟡 **独立实现+死订阅**, 未入主循环闭环 |
+| 7 | 6 维成长跟踪 + weekly evolution reports（主页 f22） | src/core/evolution_tracker.py (402 行, 实为 git 代码库演化/churn 分析器) + tests | 生产零引用、无 HTTP/CLI 入口 (002meshctx 精确化) | 🟡 **错配**: tracker 与 f22 "agent 6 维成长" 本质不符 → f22 口径已降级为"成长报告" |
 | 8 | "世界首个…自进化智能体系统 / 越用越聪明"（hero/一句） | — | 超卖形容词 | ❌ **文案**: 建议降级为可验证表述 |
 
 ## 3. 建议口径修订（落地清单）
