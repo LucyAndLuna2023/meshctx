@@ -66,7 +66,7 @@ I'd love brutal feedback on the architecture, the SDM implementation, or the gen
 
 ## 避坑清单
 
-- ❌ 不要用"revolutionary / world's first"等营销词 —— HN 反感
+- ❌ 不要用最高级营销词（revolutionary 类）—— HN 反感
 - ❌ 不要放太多链接（1-2 个足够）
 - ✅ 承认是 solo project + 6 年迭代，真实故事最打动人
 - ✅ 主动求批评，比炫耀更容易上首页

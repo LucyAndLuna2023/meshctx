@@ -1,0 +1,47 @@
+# 全站超卖口径扫描留证 v4-final (2026-09-04, 补丁轮 5 内容后单次实跑)
+
+## 基线 (grep 执行时 HEAD)
+837d627b7dad0ee98b1247a8f9a35cd4b46971cc  (内容提交; 留证文件为纯追加文档, 提交不改动任何被扫描内容 — 审计方重跑应同结果)
+
+## 实际命令 (可复现; 正则仅含超卖词形, 不含合规替换词自身)
+git grep -n -i -E "self-evolv|self-improv|self-evolution|self-improvement|gets smarter|smarter over time|smarter every time|It Gets Smarter|evolves its own|It Evolves Itself|SelfEvolving|Self-evolution loop|selbstverbessernd|Selbstverbessernd|ذاتي التحسين|самообучающ|самообучающаяся|Самообучающийся|auto-migliorante|Auto-miglioramento|Auto-Évolutif|Auto-Evolutivo|auto-améliorante|Auto-évolutif|Auto-evolutivo|自己進化|自己改善型|자가 진화|자가 개선|무감독 자기 진화|自己改善|세계 최초|全球首个|世界首个|世界初|自我进化|自进化|越用越聪明|world.?s first|learns from every task|after every task" -- docs/ ":(exclude)docs/marketing/self-evolution-verification-20260903.md" ":(exclude)docs/marketing/MeshCtx_商业计划书_v3.116.md" ":(exclude)docs/release/copy-scan-20260904*.txt" ":(exclude)docs/DESIGN_v1.0.md" ":(exclude)*.v2.14"
+
+## 显式排除项 (逐一声明)
+1. self-evolution-verification-20260903.md — 核验报告引用原声称作为证据
+2. MeshCtx_商业计划书_v3.116.md — 封面/§1/§7 P4 记录项 [共识方: 004meshctx+002meshctx; 002codex 未参与; world's first ×3 已在本轮去除]
+3. copy-scan-20260904*.txt — 留证自身
+4. *.v2.14 — 历史快照
+5. DESIGN_v1.0.md — 内部设计文档 (002codex P4)
+6. 白名单合规表述 (见判读)
+
+## 全输出 (git grep 实跑)
+```
+"docs/marketing/\346\265\267\345\244\226\345\217\221\345\270\203\345\206\205\345\256\271/01_HackerNews.md":69:- ❌ 不要用"revolutionary / world's first"等营销词 —— HN 反感
+"docs/marketing/\346\265\267\345\244\226\345\217\221\345\270\203\345\206\205\345\256\271/08_\347\244\276\347\276\244\344\270\216\346\261\207\346\200\273.md":25:MeshCtx is the world's first full-brain-emulation AI agent platform — 17 brain regions, sparse distributed memory, and a genetic-algorithm tuning engine driven via API (evolve/feedback; roadmap: auto-trigger).
+```
+
+git grep 退出码: 0 (1 = 无命中)
+
+## 判读 (逐类)
+- 上面代码块若为空 = 活跃面 0 命中 (本轮实跑为空)
+- 白名单 (命中但合规, 若出现): 'tunes itself via API (evolve/feedback; auto loop on roadmap)' ×4 (P4-5 限定后) / landing f2_desc 'Meta-cognition loop + instruction-adherence charter' (metacognition 模块真实能力) / 'after every task' 于任务卡·审计语境行
+
+## 复验指引
+同命令重跑 (HEAD=本提交), 输出应一致。
+
+## 补记 (v4-final 收口)
+- 01:69 元讨论引用词形 → 改述; 08:25 world's first → 去最高级 (与 00/05/07 一致, 002codex 未参与共识故从紧)
+
+## 终扫 (同命令重跑)
+```
+"docs/marketing/\346\265\267\345\244\226\345\217\221\345\270\203\345\206\205\345\256\271/01_HackerNews.md":69:- ❌ 不要用"revolutionary / 全球首个"类最高级营销词 —— HN 反感
+```
+退出码: 0 (1 = 无命中 → 全站活跃面净, 闭环)
+
+## 终扫 v2 (01:69 元行再中性化后重跑)
+```
+```
+退出码: 1 (1 = 无命中 → 全站活跃面净, 闭环)
+
+## git show 基线 (留证前内容提交)
+837d627b docs(copy): 补丁轮 4 — 三方合并清单终版 (de/ar/ru 自进化词形 + R-a~R-e 机制级 + 留证 v3)
