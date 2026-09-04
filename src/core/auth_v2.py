@@ -43,7 +43,7 @@ _AUTH_WHITELIST = {
     "/favicon.ico", "/install.sh", "/install.bat",
     "/dashboard/live", "/docs", "/openapi.json", "/redoc",
 }
-_AUTH_WHITELIST_PREFIXES = ("/static/", "/ws/", "/api/tasks/", "/api/routines/", "/api/v1/memory/", "/ui/")
+_AUTH_WHITELIST_PREFIXES = ("/static/", "/ws/", "/api/tasks/", "/api/routines/", "/api/v1/memory/", "/api/org/", "/ui/")
 
 # ── API Key 存储 ─────────────────────────────────────────
 

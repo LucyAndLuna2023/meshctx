@@ -1080,6 +1080,14 @@ except Exception:
     import logging as _log_ma
     _log_ma.getLogger("meshctx.edition").warning("Memory API router 挂载失败 (将降级无此功能)", exc_info=True)
 
+# ─── Org Governance 组织/授权路由 (2026-09-04, 团队/企业) ──
+try:
+    from .core.org_api import router as org_router
+    app.include_router(org_router)
+except Exception:
+    import logging as _log_og
+    _log_og.getLogger("meshctx.edition").warning("Org API router 挂载失败 (将降级无此功能)", exc_info=True)
+
 # ─── i18n 语言切换 ─────────────────────────────────────
 from .i18n import set_lang, get_lang, t
 

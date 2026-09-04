@@ -131,8 +131,8 @@ async def create_card(request: Request):
 
 @router.get("/cards")
 async def list_cards(request: Request, status: Optional[str] = None,
-                     limit: int = 50):
-    """我的任务卡列表 (owner 过滤, 新→旧)。"""
+                     limit: int = 50, org_dept: int = 0):
+    """任务卡列表 (默认 owner=自己; org_dept=1 时按组织数据权限聚合可见 owner)。"""
     from src.core.task_cards import CardStatus
     owner = await _owner(request)
     await _reject_anon(owner)
@@ -142,13 +142,31 @@ async def list_cards(request: Request, status: Optional[str] = None,
             want = CardStatus(status)
         except ValueError:
             raise HTTPException(400, f"未知 status: {status}")
-    cards = _store().list_cards(owner=owner, status=want)
+    owners = [owner]
+    if org_dept:
+        try:
+            from src.core.org_governance import get_org_service
+            svc = get_org_service()
+            svc.ensure_self_bootstrap(owner)
+            scope = svc.data_scope(owner)
+            if scope == "self" and owner != "local":
+                # 个人版单用户: dept 视图等价自己 (不跨用户); local/admin 全量
+                owners = svc.visible_owner_ids(owner) if owner == "local" else [owner]
+            else:
+                owners = svc.visible_owner_ids(owner)
+        except Exception:
+            owners = [owner]
+    all_cards = []
+    for ow in owners:
+        all_cards.extend(_store().list_cards(owner=ow, status=want))
+    all_cards.sort(key=lambda c: getattr(c, "created_at", 0) or 0, reverse=True)
     out = []
-    for c in cards[:max(1, min(limit, 200))]:
+    for c in all_cards[:max(1, min(limit, 200))]:
         d = c.to_dict()
         d.pop("timeline", None)  # 列表不携带长事件
         out.append(d)
-    return {"cards": out, "total": len(cards), "owner": owner}
+    return {"cards": out, "total": len(all_cards), "owner": owner,
+            "scope": "org_dept" if org_dept else "self"}
 
 
 @router.get("/cards/{card_id}")
