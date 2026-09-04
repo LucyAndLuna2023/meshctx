@@ -1,4 +1,4 @@
-{"question": "meshctx 当前版本是多少？", "answer": "3.123.1", "context": "meshctx 当前版本是 3.123.1，发布于 2026-09-04，包含资产版本元数据补发。", "id": "q1"}
+{"question": "meshctx 当前版本是多少？", "answer": "3.124.0", "context": "meshctx 当前版本是 3.124.0，发布于 2026-09-04，包含资产版本元数据补发。", "id": "q1"}
 {"question": "一句话派活叫什么？", "answer": "派活中心", "context": "meshctx 的 Agent 派活中心支持一句话派活、审批、配额、取消与重试。", "id": "q2"}
 {"question": "治理基座包含哪些手段之一？", "answer": "审批流", "context": "meshctx 审计与治理基座包含审批流、配额、审计日志与动作闸门（action gate）。", "id": "q3"}
 {"question": "Routines 支持哪两类触发？", "answer": "interval 与 cron", "context": "meshctx 的例行程值守 Routines 支持 interval 与 cron 两类触发。", "id": "q4"}
