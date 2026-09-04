@@ -38,11 +38,11 @@ O(2^1000) address space — that's 10^296x larger than any vector DB agent memor
 A 784-line genetic algorithm engine that evolves the agent's own parameters:
 temperature, top_p, prompt style, memory weights.
 Mutation → crossover → elitism → niche preservation.
-It tunes itself better than I do.
+It converges on better settings than my manual ones (tuning via API: evolve/feedback).
 
 5/8 Evolution engine (API-controlled evolve/feedback; auto loop on roadmap):
-after every task → evaluate → extract patterns → update knowledge graph → adjust behavior.
-It's not a slogan. It's a running pipeline in the codebase.
+evaluate → extract patterns → update knowledge graph → adjust behavior — available via API (evolve/feedback); auto-feeding from every task outcome is on the roadmap.
+It's not a slogan — the engine ships in the codebase.
 
 6/8 Code quality:
 5-model swarm consensus voting for code review.
@@ -74,7 +74,7 @@ I gave my AI agent a genetic algorithm that tunes its own config via API (evolve
 
 Each "generation" = 10 completed tasks. Mutation + crossover + elitism + niche preservation. After ~10 generations it beats my manual tuning.
 
-Solo dev, 784 lines, pure Python stdlib. The future of AI isn't a smarter model — it's software that tunes itself.
+Solo dev, 784 lines, pure Python stdlib. The future of AI isn't a smarter model — it's software that tunes itself via API (evolve/feedback; auto loop on roadmap).
 
 [attach evolution benchmark chart if available]
 ```

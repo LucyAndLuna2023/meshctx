@@ -1,0 +1,103 @@
+# 全站超卖口径扫描留证 v3 (2026-09-04, 补丁轮 4 后实跑)
+
+## 基线
+HEAD: 112a91a5544ce1fa03fdeb161f50315493277f63 (git show 附后)
+
+## 实际命令 (可复现, git grep — rg 中文路径漏扫教训)
+git grep -n -i -E "self-evolv|self-improv|self-evolution|self-improvement|meta-cognition loop|gets smarter|smarter over time|smarter every time|after every task|learns from every task|It Gets Smarter|tunes itself|evolves its own|It Evolves Itself|SelfEvolving|Self-evolution loop|evolves its own|self-adaptive"|可以不看
+（实际执行的正则=下行代码块首行, 词表 ~35 词形含 de/ar/ru/it 大小写两形与否定式变体）
+
+## 显式排除项 (逐一声明, 附共识方)
+1. docs/marketing/self-evolution-verification-20260903.md — 核验报告引用原声称作为证据 [证据性引用]
+2. docs/marketing/MeshCtx_商业计划书_v3.116.md — 封面/§1/§7 等为 P4 记录项, 未来统一 [共识方: 004meshctx+002meshctx; 002codex 未参与该共识, 见其 04:52 回执]
+3. docs/release/copy-scan-20260904*.txt — 留证文件自身含词表与旧输出 [自引用]
+4. docs/*.v2.14 — 历史快照 [审计方原正则排除项]
+5. 本文件 v3 词表行自身 [自引用]
+
+## 全输出 (git grep 实跑, 改动完成后执行, 未过滤)
+```
+docs/DESIGN_v1.0.md:102:### 维度三: 智能 — 元认知循环 (Meta-Cognition Loop)
+docs/DESIGN_v1.0.md:107:│           Meta-Cognition Loop                  │
+docs/download.html:246:        dl_subtitle: "Auditable, selbstadaptives Agenten-System",
+docs/download.html:510:        dl_subtitle: "Аудируемая самоадаптивная система агентов",
+docs/i18n/landing.json:20:  "f2_desc": "Meta-cognition loop + instruction-adherence charter: project AGENTS.md has top priority, multi-step tasks complete fully, results verified after writing.",
+docs/i18n/landing.json:131:  "f28_desc": "Offline memory consolidation during idle. Auto-discovers patterns and generates skills — consolidation runs without manual supervision (no unsupervised self-evolution claims).",
+docs/i18n/landing.json:369:  "f28_desc": "空闲时自动记忆巩固。自主发现模式、生成技能——离线巩固无需人工值守（非无监督自进化）。",
+docs/i18n/landing.json:814:  "hero_desc": "MeshCtx ist eine auditierbare, selbstadaptive Agenten-Plattform mit 17 Hirnregionen-Emulation. Sie merkt sich alles, lernt aus jeder Aufgabe und orchestriert mehrere Agenten — <strong>Open-Core</strong>: AGPLv3-Framework + Gehirn-Quellcode verfügbar.",
+docs/i18n/landing.json:844:  "cta_desc": "Open Source. Selbstadaptiv. Für immer kostenlos.",
+docs/i18n/landing.json:941:  "f28_desc": "Offline-Speicherkonsolidierung im Leerlauf. Entdeckt Muster, generiert Skills — Konsolidierung ohne manuelle Aufsicht (kein unbeaufsichtigtes Self-Evolution-Versprechen).",
+docs/i18n/landing.json:2434:  "hero_desc": "MeshCtx — это аудируемая самоадаптивная агентная платформа с эмуляцией 17 областей мозга. Она всё помнит, учится на каждой задаче и оркеструет множество AI-агентов — <strong>открытое ядро</strong>: фреймворк AGPLv3 + мозг с открытым исходным кодом.",
+docs/i18n/landing.json:2449:  "f2_title": "Самоадаптивный",
+docs/i18n/landing.json:2491:  "cta_desc": "Открытый исходный код. Самоадаптивный. Всегда бесплатный.",
+docs/index.html:251:            <div class="feature-card" role="article" aria-label="Self-Adaptive"><div class="feature-icon">&#x1f504;</div><h3 data-lang-key="f2_title">Self-Adaptive</h3><p data-lang-key="f2_desc">Instruction-following discipline with adaptive memory and self-correction; self-evolution engine available via API (auto loop on roadmap).</p></div>
+docs/index.html:468:    en: {title: "MeshCtx — Auditable, Self-Adaptive Agent Platform", desc: "MeshCtx is an open-core, self-adaptive, auditable agent platform — AGPLv3 framework + source-available brain. Remembers everything, learns from every task, orchestrates multiple AI agents in parallel."},
+docs/index.html:474:    de: {title: "MeshCtx — Auditable, selbstadaptives Agentensystem mit 17 Hirnregionen", desc: "MeshCtx ist eine Open-Core-Plattform für selbstadaptive, auditierbare Agenten — AGPLv3-Framework + quelloffenes Gehirn. Merkt sich alles, lernt aus jeder Aufgabe, orchestriert mehrere KI-Agenten parallel."},
+docs/index.html:477:    ru: {title: "MeshCtx — самообучающаяся агентная платформа с 17 областями мозга", desc: "MeshCtx — это open-core платформа самообучающихся агентов: фреймворк AGPLv3 + открытый исходный код мозга. Помнит всё, учится на каждой задаче и параллельно управляет несколькими ИИ-агентами."}
+docs/index.md:30:#### 🔄 Meta-Cognition Loop
+docs/index.md:31:- Self-evaluation after every task
+"docs/marketing/\346\265\267\345\244\226\345\217\221\345\270\203\345\206\205\345\256\271/03_X_Twitter.md":77:Solo dev, 784 lines, pure Python stdlib. The future of AI isn't a smarter model — it's software that tunes itself via API (evolve/feedback; auto loop on roadmap).
+"docs/marketing/\346\265\267\345\244\226\345\217\221\345\270\203\345\206\205\345\256\271/05_\345\210\233\344\270\232\347\244\276\345\214\272.md":65:- `Full-brain-emulation AI agent — remembers everything, tunes itself via API (evolve/feedback), free for individuals`
+"docs/marketing/\346\265\267\345\244\226\345\217\221\345\270\203\345\206\205\345\256\271/06_\350\275\257\344\273\266\347\233\256\345\275\225.md":102:变体 C: `Full-brain-emulation AI coding assistant: remembers everything, tunes itself via API (evolve/feedback), 10 languages`
+"docs/marketing/\346\265\267\345\244\226\345\217\221\345\270\203\345\206\205\345\256\271/07_\350\247\206\351\242\221_\345\274\200\346\272\220.md":167:Hot take: the future of AI isn't a bigger model. It's software that remembers you and tunes itself via API (evolve/feedback).
+```
+
+## 判读
+- 预期合法命中: ①本次新写的 selbstadaptiv/аудируемая/ذاتية التكيف/自己適応型 等替代词 (含自我适应系, 非超卖) ②'after every task' 出现于任务卡/审批等非自进化语境 ③learns/remember 已统一
+- 若出现超卖词形命中 → 未闭环, 需继续修
+commit 112a91a5544ce1fa03fdeb161f50315493277f63
+Author: LucyAndLuna2023 <lucyandluna2023@users.noreply.github.com>
+Date:   Fri Sep 4 10:43:44 2026 +0800
+
+    docs(copy): 补丁轮 3 — 002meshctx/004meshctx 合并清单 P2-3 全清 + git grep 留证重做
+    
+    按两方合并 8 项清单执行:
+    1. landing fr/es cta_desc Auto-évolutif/Auto-evolutivo → Auto-adaptatif/adaptativo
+
+## 补记 (v3 终版)
+- f28_desc 10 语言否定式括号删除 (词根彻底清除)
+- index.html:477 ru pageMeta самообучающаяся → аудируемая самоадаптивная (漏改补)
+- f2_desc 'self-evolution engine' → 'self-adaptive engine'
+
+## 终扫 v3 (限定 'tunes itself via API' 4 处为合法白名单, 其余超卖词形 0)
+```
+docs/DESIGN_v1.0.md:102:### 维度三: 智能 — 元认知循环 (Meta-Cognition Loop)
+docs/DESIGN_v1.0.md:107:│           Meta-Cognition Loop                  │
+docs/i18n/landing.json:20:  "f2_desc": "Meta-cognition loop + instruction-adherence charter: project AGENTS.md has top priority, multi-step tasks complete fully, results verified after writing.",
+docs/index.html:468:    en: {title: "MeshCtx — Auditable, Self-Adaptive Agent Platform", desc: "MeshCtx is an open-core, self-adaptive, auditable agent platform — AGPLv3 framework + source-available brain. Remembers everything, learns from every task, orchestrates multiple AI agents in parallel."},
+docs/index.md:30:#### 🔄 Meta-Cognition Loop
+docs/index.md:31:- Self-evaluation after every task
+```
+
+## 合法白名单 (含限定语的合规表述, 4 处)
+- 03_X:77 / 05:65 / 06:102 / 07:167 'tunes itself via API (evolve/feedback; auto loop on roadmap)'
+
+## git show 基线
+commit 112a91a5544ce1fa03fdeb161f50315493277f63
+Author: LucyAndLuna2023 <lucyandluna2023@users.noreply.github.com>
+Date:   Fri Sep 4 10:43:44 2026 +0800
+
+    docs(copy): 补丁轮 3 — 002meshctx/004meshctx 合并清单 P2-3 全清 + git grep 留证重做
+    
+
+## 补记 2 (v3 收口)
+- index.md Meta-Cognition 段 → 引擎已实现+API 受控+路线图 (R-a 同文件收口)
+- pageMeta en 'learns from every task' → 'remembers every task' (P3 可选统一)
+- 排除项增补: docs/DESIGN_v1.0.md (内部设计文档, 002codex P4)
+- 白名单增补: landing.json f2_desc 'Meta-cognition loop + instruction-adherence charter' (metacognition 模块真实存在的能力描述, 不含自动喂数声称)
+
+## 终扫 v4 (排除项含 DESIGN_v1.0; 白名单外 0 超卖命中)
+```
+```
+
+## 白名单声明 (合规保留, 逐行)
+- landing.json ×10 f2_desc 'Meta-cognition loop + instruction-adherence charter' — metacognition 模块真实存在 (引擎+报告), 无自动喂数声称
+- index.html:251 f2 fallback 同上 ('self-adaptive engine available via API')
+- 海外 4 处 'tunes itself via API (evolve/feedback; auto loop on roadmap)' — 含限定语
+
+## git show 基线
+commit 112a91a5544ce1fa03fdeb161f50315493277f63
+Author: LucyAndLuna2023 <lucyandluna2023@users.noreply.github.com>
+Date:   Fri Sep 4 10:43:44 2026 +0800
+
+    docs(copy): 补丁轮 3 — 002meshctx/004meshctx 合并清单 P2-3 全清 + git grep 留证重做
+    

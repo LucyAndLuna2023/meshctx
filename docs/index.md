@@ -10,9 +10,9 @@ meshctx is an open-source, self-adaptive agent platform designed to be a capable
 
 Unlike other agents that forget everything after each session, meshctx uses a 4-tier hierarchical memory system modeled after human cognition. It applies the Ebbinghaus Forgetting Curve — important information persists, trivial information naturally decays.
 
-**2. It Gets Smarter Every Time**
+**2. Adaptive Memory That Compounds**
 
-After every task, meshctx runs a meta-cognition loop: self-evaluate → extract patterns → update knowledge graph → adjust behavior. It learns which tools work best, which strategies succeed, and automatically creates reusable Skills from successful patterns.
+meshctx ships an evolution engine (genetic-algorithm parameter tuning + meta-cognition reports) with API-controlled endpoints (evolve/feedback). Memory consolidation runs automatically between sessions; auto-feeding task outcomes into the optimizer and applying tuned parameters back to the runtime are on the roadmap. Successful patterns can be promoted into reusable Skills with user confirmation.
 
 **3. It Orchestrates Multiple Agents**
 
@@ -27,11 +27,11 @@ One command. meshctx decomposes your intent into a task DAG, assigns specialized
 - **L3 Long-term**: All history, vector + graph retrieval
 - **L4 Archival**: Cross-project knowledge, auto-dedup
 
-#### 🔄 Meta-Cognition Loop
-- Self-evaluation after every task
-- Automatic pattern extraction
-- Knowledge graph building
-- Behavior strategy adjustment
+#### 🔄 Meta-Cognition & Evolution Engine
+- Metacognition module with self-evaluation reports (API: /metacognition/report)
+- Evolution engine: genetic-algorithm parameter tuning via API (evolve/feedback)
+- Memory consolidation runs automatically between sessions
+- Auto-feeding task outcomes and parameter write-back: on the roadmap
 
 #### 🎭 Multi-Agent Orchestra
 - Intent decomposition into task DAGs

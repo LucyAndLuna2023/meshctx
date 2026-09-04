@@ -18,7 +18,7 @@ After shipping it I want to be honest about what's real engineering vs. what's m
 WORKS:
 - Sparse Distributed Memory (Kanerva) — genuinely different from vector DBs, O(2^1000) address space, handles long-term memory without RAG pipelines
 - **Memory Engine v2 (2026-08)**: FSRS spaced repetition + schema consolidation (episodic→semantic→core, auto-triggered) + context markers + sleep-phase offline consolidation & ARCHIVAL pruning (recoverable). LongMemEval: EM 52-54% (48Q oracle subset) / semantic judge 83.3% (~81-85% of GPT-4o no-memory full-context 60–64%); 16KB curated 33.3% vs truncation 25.0% (+8.3pp, 4.5× fewer tokens); tool output 5008B→223B (−95.5%).
-- Hippocampal replay — compressing + replaying past sessions 10-20x during idle, real "gets smarter over time" effect
+- Hippocampal replay — compressing + replaying past sessions 10-20x during idle, real "steadier answers over time" effect (memory consolidation)
 - Salience detection — prioritizing messages/context by urgency, actually useful for task management
 
 METAPHOR SO FAR:
@@ -108,7 +108,7 @@ I wrote a zero-dependency genetic optimizer for LLM agent parameters. Each "geno
 
 Engine: mutation (Gaussian perturbation) + large-jump mutation (simulated transposons) + crossover + top-K elitism + tournament selection + niche preservation to avoid premature convergence.
 
-It's embedded in my agent platform (MeshCtx, open core) — after ~10 generations it finds configs that beat my manual tuning. The optimizer is 784 lines of pure Python stdlib, thread-safe.
+It's embedded in my agent platform (MeshCtx, open core) — after ~10 API-triggered generations it finds configs that beat my manual tuning. The optimizer is 784 lines of pure Python stdlib, thread-safe.
 
 Source: [GitHub link to the module]
 

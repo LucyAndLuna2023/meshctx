@@ -87,7 +87,7 @@ FinalScore = 0.4*VectorSim + 0.3*Importance + 0.2*Recency + 0.1*AccessFreq
 
 ### 3. Meta-Cognition (`src/core/metacognition.py`)
 
-Self-learning loop that runs after every task:
+Evolution engine with API-controlled endpoints (evolve/feedback). Auto-feeding from every task outcome is on the roadmap. Current stages:
 
 1. **Self-Evaluate**: Quality score (0-1), error categorization
 2. **Pattern Extract**: Cluster similar tasks → create Skills
