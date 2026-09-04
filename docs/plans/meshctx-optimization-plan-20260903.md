@@ -297,3 +297,21 @@ T4（第 5–5.5 周）: 全量回归 + 文档/BP/10 语言联动 + 三方审计
 
 实测基线: 全量 3695 passed/59 skipped @ a87abf96; T0 套件 83 passed;
 sandbox 16 passed; 每提交均推送 meshctx main, 加法式可回滚。
+
+## 14b. 实施进度权威小结（2026-09-04 修订, 取代被覆盖的旧 §14 表格）
+
+| WP / 里程碑 | 状态 | 说明 |
+|---|---|---|
+| WP1 可观测性 (P0-1) | ✅ | telemetry span/trace/OTLP + 卡级 trace + runner 事件埋点 (dd815b2a/4755c14e/9fa5f7a7) |
+| WP6 Routines (P1-3) | ✅ | routines 核心+API+UI+e2e (98b96aa2/a87abf96/176c654a/21e22359) |
+| WP7 沙箱硬化 (P1-4) | ✅ | sandbox_policy + 逃逸分级 + 基线文档 (32b6b64e) |
+| WP8 治理白皮书 (P2-1) | ✅ | docs/governance/whitepaper.md + 全站口径收敛 (5 轮补丁, 留证 v4) |
+| WP2 评测 harness (P0-2) | ✅ 阶段1+2 | benchmarks 全套 + nightly CI + 成绩页 + LongMem 样例跑分 (demo-scale) |
+| WP3 Memory API (P0-3) | ✅ | /api/v1/memory (owner 隔离/GDPR/CJK bigram) + LongMem 管线 |
+| WP4 swarm (P1-1) | ✅ | 派生任务卡编排 + e2e 4 (90d987d6) |
+| WP5 MCP 扩展 (P1-2) | ✅ | 23→43 defs +17 工具 |
+| R7 网站/口径 | ✅ | 首页 4 卡 ×10 语言 + 自进化核验与文案收敛 |
+| **里程碑 v3.123.0 / v3.123.1 / v3.124.0** | ✅ 发版 | tag 已推, 三方审计全程闭环, Release 12+12 (sha256 sidecars) |
+| **Org 组织治理 (2026-09 用户新需求)** | ✅ 阶段1 | org_governance+org_api: 部门/批量导入 JSON+CSV/RBAC 角色权限/data scope(self|dept|org)/卡 org_dept 部门视图 (beb11ca8) |
+| QA/Release SOP | ✅ v1.1 | docs/release/qa_release_sop_v1.md (G1-G10 + R0-R7, 自 v3.124.0 强制) |
+| 进行中/backlog | 🔄 | Org 阶段2 (记忆/值守 dept 共享+UI+审计导出) · docs 治理/遥测详情页 ×10 · swarm 审批态孤儿补测 · workflow checksum 内嵌 · WP2 真实榜提交(运营) · WP4 跨机冒烟(运维) |
