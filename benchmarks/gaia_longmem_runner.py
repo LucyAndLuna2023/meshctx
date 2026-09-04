@@ -59,7 +59,7 @@ def grade_longmem(questions: Path, predictions: Path, loose: bool = False,
               "results": {"mode": "self_run", "metric": "em",
                           "em": scored["em"], "correct": scored["correct"],
                           "total": scored["total"]}}
-    write_report(report, out_path)     # write 自动补 schema/date + validate
+    write_report(report, out)          # write 自动补 schema/date + validate
     return report
 
 

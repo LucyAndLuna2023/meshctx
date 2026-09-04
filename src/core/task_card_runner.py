@@ -181,6 +181,10 @@ async def run_card(card, worker=None) -> Dict[str, Any]:
     with _tel.Span("card.run", agent="task", trace_id=_trace,
                    tags={"card_id": getattr(card, "id", "") or "",
                          "prompt_len": len(getattr(card, "prompt", "") or "")}):
+        # WP4 (MCTX-PLAN-2026-0903 P1-1): swarm 派生任务卡编排 — 父卡派生 N 子卡
+        # 并行执行 → 聚合 (个人版落地路径: 不经 /api/swarm/*, 全部任务卡化, D2)
+        if (getattr(card, "extra", None) or {}).get("swarm_plan"):
+            return await _run_swarm_card(card, worker)
         return await _run_card_inner(card, worker)
 
 
@@ -317,3 +321,148 @@ async def _run_card_inner(card, worker=None) -> Dict[str, Any]:
 
 
 __all__ = ["run_card", "build_card_messages", "CARD_SYSTEM_PROMPT"]
+
+
+async def _run_swarm_card(card, worker=None) -> Dict[str, Any]:
+    """WP4 swarm 派生任务卡编排 (P1-1): 父卡派生 N 子卡 → 等待终态 → 聚合。
+
+    plan = card.extra['swarm_plan'] = {"subtasks": [prompt,...](2-5 条), "retry": bool=True}
+    子卡 = 普通 agent 卡 (extra.parent_card_id=父 id; 不继承 swarm_plan, 防递归);
+    每子卡独立消耗配额 (try_consume_spawn → enqueue 失败 refund);
+    失败子卡默认重试 1 次 (retry=True); 截止=wall_clock (默认 300s, 最低 10s);
+    全部子卡失败 → 父卡 error; 部分/全部跳过 → 记录在 extra.swarm_children。
+    """
+    import asyncio
+    import time as _time
+    from src.core.task_cards import CardStatus, TaskCard, get_card_worker, get_hub_quota
+    if worker is None:
+        worker = get_card_worker()
+
+    def _emit(event_type: str, **kw):
+        try:
+            _tel_mod.get_telemetry().record("task", event_type, **kw)
+        except Exception:
+            pass
+
+    def _save_card(w, c):
+        if w is not None and hasattr(w, "save_card"):
+            w.save_card(c)
+        else:
+            w._store.save(c)
+
+    plan = (getattr(card, "extra", None) or {}).get("swarm_plan") or {}
+    subtasks = plan.get("subtasks") or []
+    retry_on = bool(plan.get("retry", True))
+    if not isinstance(subtasks, list) or not (2 <= len(subtasks) <= 5):
+        return {"result": None, "error": "swarm_plan.subtasks 需 2-5 条"}
+
+    hq = get_hub_quota()
+    owner = getattr(card, "owner", "local")
+    records = []
+    card.log("swarm_spawn_start", workers=len(subtasks))
+    for i, st in enumerate(subtasks):
+        st = str(st or "").strip()
+        if not st:
+            records.append({"idx": i, "status": "skipped_empty"}); continue
+        try:
+            q = hq.try_consume_spawn(owner, plan=card.plan,
+                                     concurrent_now=worker.running_count())
+        except Exception as e:
+            q = {"ok": False, "reason": str(e)}
+        if not q.get("ok"):
+            records.append({"idx": i, "status": "skipped_quota",
+                            "reason": str(q.get("reason", ""))[:120]})
+            _emit("swarm_child", tool="quota", detail=f"child#{i} skipped")
+            continue
+        child = TaskCard(owner=owner, plan=card.plan,
+                         title=f"[swarm#{i + 1}] {(card.title or card.prompt)[:40]}",
+                         prompt=st)
+        child.extra["parent_card_id"] = card.id
+        child.extra["quota"] = q
+        if not worker.enqueue(child):
+            try: hq.refund_spawn(owner)
+            except Exception: pass
+            records.append({"idx": i, "status": "skipped_enqueue"})
+            continue
+        records.append({"idx": i, "id": child.id, "status": "queued", "retries": 0})
+        card.log("swarm_child_spawned", idx=i, card_id=child.id)
+    _save_card(worker, card)
+    spawned = [r for r in records if r.get("id")]
+
+    wall = float((getattr(card, "extra", None) or {}).get("wall_clock") or 300)
+    deadline = _time.time() + max(10.0, min(wall, 7200.0))
+    while spawned:
+        pending = [r for r in spawned if r["status"] in ("queued", "running")]
+        if not pending or _time.time() > deadline:
+            for r in pending: r["status"] = "timeout"
+            break
+        await asyncio.sleep(0.25)
+        for r in spawned:
+            if r["status"] not in ("queued", "running"): continue
+            c = worker._store.load(r["id"]) if worker is not None else None
+            if c is None: continue
+            r["status"] = c.status.value
+            if c.status in (CardStatus.COMPLETED, CardStatus.FAILED,
+                            CardStatus.CANCELLED):
+                # 语义: worker 对 out["error"] 记 card.error 但状态 COMPLETED —
+                # swarm 聚合把「带 error 的完成」视作失败 (可重试)
+                failed_like = (c.status == CardStatus.FAILED
+                               or bool((c.error or "").strip()))
+                r["status"] = ("cancelled" if c.status == CardStatus.CANCELLED
+                               else ("failed" if failed_like else "completed"))
+                r["result"] = (c.result or "")[:400]
+                r["error"] = (c.error or "")[:200]
+                card.log("swarm_child", idx=r["idx"], card_id=r["id"],
+                         status=r["status"])
+                _emit("swarm_child", tool="orchestrator",
+                      detail=f"idx={r['idx']} status={r['status']}")
+                # 失败重试一次 (P4-8 验收: 失败重试场景)
+                if (failed_like and c.status != CardStatus.CANCELLED
+                        and retry_on and r.get("retries", 0) < 1):
+                    try:
+                        q = hq.try_consume_spawn(owner, plan=card.plan,
+                                                 concurrent_now=worker.running_count())
+                    except Exception as e:
+                        q = {"ok": False, "reason": str(e)}
+                    if q.get("ok"):
+                        rc = TaskCard(owner=owner, plan=card.plan,
+                                      title=f"[swarm#{r['idx'] + 1}-retry] {(card.title or card.prompt)[:36]}",
+                                      prompt=c.prompt)
+                        rc.extra["parent_card_id"] = card.id
+                        rc.extra["retry_of"] = r["id"]
+                        rc.extra["quota"] = q
+                        if worker.enqueue(rc):
+                            r["retries"] = 1
+                            r["id"] = rc.id
+                            r["status"] = "queued"
+                            del r["result"]; del r["error"]
+                            card.log("swarm_child_retry", idx=r["idx"], card_id=rc.id)
+                            continue
+                    try: hq.refund_spawn(owner)
+                    except Exception: pass
+        _save_card(worker, card)
+
+    ok = sum(1 for r in spawned if r["status"] == "completed")
+    fail = sum(1 for r in spawned if r["status"] == "failed")
+    skip = len(records) - len(spawned)
+    lines = []
+    for r in records:
+        if not r.get("id"):
+            lines.append(f"#{r['idx'] + 1} [跳过·{r['status']}]")
+            continue
+        body = (r.get("result") or r.get("error") or "")[:300]
+        tag = "完成" if r["status"] == "completed" else f"{r['status']}"
+        if r.get("retries"): tag += f"·重试{r['retries']}"
+        lines.append(f"#{r['idx'] + 1} [{tag}] {body}")
+    header = f"Swarm 聚合: 成功 {ok} / 失败 {fail} / 跳过 {skip} (workers={len(subtasks)})"
+    card.extra["swarm_children"] = records
+    card.log("swarm_done", ok=ok, failed=fail, skipped=skip)
+    _emit("run_end", tokens_in=0, tokens_out=0,
+          detail=f"swarm ok={ok} fail={fail} skip={skip}")
+    _save_card(worker, card)
+    error = None
+    if spawned and ok == 0 and fail + sum(1 for r in spawned if r["status"] == "timeout") > 0:
+        error = "全部子任务失败/超时"
+    elif not spawned:
+        error = "无子任务派生 (配额/队列不可用)"
+    return {"result": (header + "\n" + "\n".join(lines))[:8000], "error": error}

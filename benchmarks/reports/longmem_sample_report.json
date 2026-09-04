@@ -1,0 +1,20 @@
+{
+  "benchmark": "longmem_s",
+  "head": "demo-pipeline (retrieval baseline)",
+  "config": {
+    "loose": true,
+    "questions": 10,
+    "graded": 10,
+    "demo": true,
+    "note": "retrieval-baseline pipeline validation; not an official submission"
+  },
+  "results": {
+    "mode": "self_run",
+    "metric": "em",
+    "em": 0.8,
+    "correct": 8,
+    "total": 10
+  },
+  "schema": "1.0",
+  "date": "2026-09-04T10:16:54Z"
+}

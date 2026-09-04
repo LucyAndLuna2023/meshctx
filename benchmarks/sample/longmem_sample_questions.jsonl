@@ -1,0 +1,10 @@
+{"question": "meshctx 当前版本是多少？", "answer": "3.123.1", "context": "meshctx 当前版本是 3.123.1，发布于 2026-09-04，包含资产版本元数据补发。", "id": "q1"}
+{"question": "一句话派活叫什么？", "answer": "派活中心", "context": "meshctx 的 Agent 派活中心支持一句话派活、审批、配额、取消与重试。", "id": "q2"}
+{"question": "治理基座包含哪些手段之一？", "answer": "审批流", "context": "meshctx 审计与治理基座包含审批流、配额、审计日志与动作闸门（action gate）。", "id": "q3"}
+{"question": "Routines 支持哪两类触发？", "answer": "interval 与 cron", "context": "meshctx 的例行程值守 Routines 支持 interval 与 cron 两类触发。", "id": "q4"}
+{"question": "记忆体系的核心组件之一？", "answer": "SDM", "context": "meshctx 的记忆体系包含 4 层分级记忆、SDM 稀疏分布式记忆与海马体回放。", "id": "q5"}
+{"question": "Memory API 支持什么删除能力？", "answer": "GDPR", "context": "meshctx 的对外 Memory API 支持命名空间隔离与 GDPR 整命名空间删除。", "id": "q6"}
+{"question": "支持多少种语言？", "answer": "10", "context": "meshctx 支持 10 种语言：en/zh/ja/ko/de/fr/es/it/ar/ru。", "id": "q7"}
+{"question": "MCP 工具有多少个？", "answer": "23", "context": "meshctx 的 MCP 工具生态包含 23 个工具，覆盖记忆/任务卡/值守/配额/遥测。", "id": "q8"}
+{"question": "可观测性导出用什么协议？", "answer": "OTLP", "context": "meshctx 的可观测性提供全链路 trace、本地 JSONL 轮转与可选 OTLP 导出。", "id": "q9"}
+{"question": "沙箱基线的网络策略是什么？", "answer": "网络隔离", "context": "meshctx 的沙箱硬化基线包括网络隔离、只读根文件系统与能力全部移除。", "id": "q10"}

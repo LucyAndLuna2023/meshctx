@@ -109,6 +109,18 @@ async def create_card(request: Request):
     if wc:
         card.extra["wall_clock"] = max(30, min(float(wc), 7200))
     card.extra["quota"] = q
+    # WP4 (P1-1): swarm 派生任务卡 — body.swarm_plan {"subtasks":[...2-5], "retry":bool}
+    sw = body.get("swarm_plan")
+    if sw is not None:
+        if not isinstance(sw, dict):
+            raise HTTPException(400, "swarm_plan 需为对象 {subtasks:[...], retry?:bool}")
+        subs = sw.get("subtasks")
+        if (not isinstance(subs, list) or not (2 <= len(subs) <= 5)
+                or any(not isinstance(x, str) or not x.strip() or len(x) > 2000 for x in subs)):
+            raise HTTPException(400, "swarm_plan.subtasks 需 2-5 条非空字符串 (各≤2000)")
+        card.extra["swarm_plan"] = {"subtasks": [x.strip() for x in subs],
+                                    "retry": bool(sw.get("retry", True))}
+        card.title = f"Swarm ×{len(subs)} · {(card.title or '')[:40]}"
     if not worker.enqueue(card):
         # 入队失败 → 退回已扣额度 (P4 004meshctx)
         hq.refund_spawn(owner)
