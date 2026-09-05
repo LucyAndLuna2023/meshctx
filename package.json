@@ -1,6 +1,6 @@
 {
   "name": "meshctx",
-  "version": "3.124.0",
+  "version": "3.124.1",
   "description": "World's First Self-Evolving Agent Platform — 161 core modules, 1713 tests, 46+ models",
   "main": "src/cli.js",
   "bin": {

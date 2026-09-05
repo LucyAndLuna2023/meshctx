@@ -1,3 +1,19 @@
+## [3.124.1] - 2026-09-05 (治理章节定稿里程碑 — Org Governance 三方审计闭环 + 详情页 ×10 语言 + 营销词 Scope 定稿)
+### Added / Fixed (004meshctx, 三方审计闭环)
+- Org Governance 组织治理并入治理章节: 组织架构导入 (JSON/CSV/显式 parent_id/防环/同批同名显式失败)
+  + RBAC 五角色授权闭包 (仅 owner 管 owner·admin/授级不高于自身) + 数据权限 self|dept|org 三资源
+  落地 (任务卡部门视图/值守部门视图/部门共享记忆) + 邀请门控 403 + 审计轨迹 (actor 归责) +
+  SOC2 JSONL 导出 (owner/admin/auditor) + 根部门删除保护 + DELETE /api/org/memory/{dept_id}
+  (补丁链: P2×2+P3×8+P3-B+P3-5 原子性, 002meshctx 3a5e7cac/4208f9fe/2fc375eb + 002codex
+  f28777d8/f9506e68 + 004meshctx round19/22 全链闭环)
+- R7.1: docs/governance.html (44 keys ×10) + docs/telemetry.html (38 keys ×10) 详情页,
+  RTL ar 六页同补 (dir 切换), 声称↔代码对位逐条坐实
+- 营销词 Claims Scope 定稿: docs/marketing/claims-scope-20260905.md + claims_scope_check.sh
+  (A1 活跃面须 0/A2 ⊆ 排除附录 + HEAD 基线证据链, 5 轮补丁), BP v3.116 口径收敛 9 处
+- workflow checksum .sha256 内嵌 (SOP R5 正式门, 4a7d02a9) + swarm WAITING_APPROVAL 孤儿
+  边界补测 (e8273370)
+- 测试: 3784 passed / 59 skipped (基线), org 27 + swarm 7 + i18n/integrity 全绿
+
 ## [3.124.0] - 2026-09-04 (全面优化方案 T1 里程碑 — WP2 评测 harness/WP3 Memory API/WP5 MCP 扩展/R7 网站简介 + WP4 swarm/LongMem 管线, 三方终验闭环)
 ### Added / Changed (004meshctx)
 - WP2: benchmarks/ harness (report schema 口径纪律) + nightly CI + 成绩页 + LongMem 样例跑分管线 (demo-scale self_run)
