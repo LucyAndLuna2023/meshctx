@@ -315,4 +315,6 @@ sandbox 16 passed; 每提交均推送 meshctx main, 加法式可回滚。
 | **Org 组织治理 (2026-09 用户新需求)** | ✅ 阶段1-3 | 阶段1 org_governance+org_api (beb11ca8) + 阶段2 审计轨迹/部门共享记忆 (6d18019e) + 阶段3 值守部门视图+🏢 组织面板 UI (9737b55c); org 套件 16 |
 | QA/Release SOP | ✅ v1.1 | docs/release/qa_release_sop_v1.md (G1-G10 + R0-R7, 自 v3.124.0 强制) |
 | Org 审计补丁链 三方闭环 (f1eef868 → 7e2be84b → 7ff303f0) | ✅ 2026-09-05 | P2-1 邀请门控 + P2-2 RBAC 闭包 + P3×8 全修 + P3-B 服务端词表 (7e2be84b) + P3-5 upsert 校验先于变异原子性 (7ff303f0); org 套件 27 passed, 全量 3784 passed/59 skipped; 复验: 002meshctx 3a5e7cac ✅ + 002codex f28777d8 ✅ final + 004meshctx 3610f357 round19 闭环 — **Org Governance 可并入 3.124.1 治理章节** |
-| 进行中/backlog | 🔄 | docs 治理/遥测详情页 ×10 · workflow checksum 内嵌 (4a7d02a9 已含) · WP2 真实榜提交(运营) · WP4 跨机冒烟(运维) · P4 观察 8 项 (CSV 转义已修; manager 权限冗余/审计签名/记忆 key 前缀/scope 单一 enforce 层/读操作写副作用/org-plan 联动/成员最小暴露=已内建, 余项排期) |
+| R7.1 治理/遥测详情页 ×10 语言 | ✅ 2026-09-05 | docs/governance.html (Org Governance: 导入/部门树/RBAC/数据权限/审计导出/版本范围, 44 keys ×10) + docs/telemetry.html (结构化追踪/JSONL 轮转/API/卡级 trace/OTLP, 38 keys ×10); 键位/运行时自检 node 通过, 无超卖词 |
+| 营销词 Scope 声明 (002codex 6c70eaf8) | ✅ 2026-09-05 | docs/marketing/claims-scope-20260905.md — 根级允许/禁用词表 (机器复验命令) + 声称规则 (代码对位/版本对位/benchmark 对位/单键互斥) + 复验方法 A-D; 3.124.1 送审附验 |
+| 进行中/backlog | 🔄 | workflow checksum 内嵌 (4a7d02a9 已含) · WP2 真实榜提交(运营) · WP4 跨机冒烟(运维) · P4 观察余项 (manager 权限冗余/审计签名/记忆 key 前缀/scope 单一 enforce 层/读操作写副作用/org-plan 联动 — CSV 转义与成员最小暴露已修/内建) |
