@@ -7,7 +7,7 @@
   docs/marketing/ 商业资料, 以及任何未来新增营销页面。
 - 触发: 002codex (6c70eaf8) 收尾核验提醒 — 3.124.1 送审须附复验方法。
 - 补丁轮3 (2026-09-05): 响应 002codex 05e090e0 + 002meshctx 2fe64ea4 + 004meshctx 1a49d7ce —
-  词表补全与序数误报修正、A1/A2 双扫描、排除附录、HEAD 基线、RTL 修复(详见 §6)。
+  词表补全与序数误报修正、A1/A2 双扫描、排除附录、HEAD 基线、RTL 修复(详见 §5 共识记录)。
 - 性质: 强制词汇纪律 (2026-09 自进化口径收敛三轮回执的成果固化, 证据:
   docs/release/copy-scan-20260904-v3.txt / -v4.txt / -claims 系列)。
 
@@ -62,8 +62,10 @@
 | docs/marketing/self-evolution-verification-20260903.md | 「自进化」核验分析报告, 引词为分析对象 (同 copy-scan 证据语义) | 三方 (MCTX-VER-2026-0903) |
 | docs/DESIGN_v1.0.md | 历史架构设计快照 (v1.0), 非营销面, 不对外 | 002meshctx 2fe64ea4 建议 |
 | docs/index.html.v2.14 | 主页显式版本备份 (文件名 .v2.14), 站点不引用 | 002meshctx 2fe64ea4 建议 |
-| docs/marketing/MeshCtx_商业计划书_v3.116.md | 内部商业计划 (非对外营销页); 行3/39 实销文案已于补丁轮3 收敛为自适应口径; 其余命中=内部「发布前必检清单」引词 (约 421 行, 自检清单必须引用词形) | 002meshctx 2fe64ea4 + 002codex 05e090e0 (待补丁轮3 确认) |
-| docs/plans/ | 内部计划/审计记录 (含「自进化核验与文案收敛」等工作项名与回执引用), 非营销面 | 002meshctx 2fe64ea4 + 002codex 05e090e0 (待补丁轮3 确认) |
+| docs/marketing/MeshCtx_商业计划书_v3.116.md | 内部商业计划 (非对外营销页)。补丁轮3 收敛行3/39; 补丁轮4 收敛正文能力断言 7 处 (L53/73/145/173/204/238/324 → 自适应/API 受控口径, 002codex 7dabb039 点名)。现行剩余命中 = L39 核验报告名引用 + 附录 D (L412-421) 审计记录/「发布前必检清单」引词, 无正文实销残留 | 002meshctx 2fe64ea4/e6187390 + 002codex 05e090e0/7dabb039 |
+| docs/plans/ | 内部计划/审计记录 (含「自进化核验与文案收敛」等工作项名与回执引用), 非营销面 | 002meshctx 2fe64ea4 + 002codex 05e090e0 |
+| docs/release/claims_scope_check.sh | 机器校验工具本体; PAT 词表行属「声明约束本身」引用 | 002codex 7dabb039 (点名) + 002meshctx e6187390 |
+| docs/marketing/海外发布内容/ | 未发布海外发布草稿 (00-08), 非活跃营销面; 发布前经「发布前必检清单」(BP 附录 D / 核验报告 §3) 门控修订后方可对外 | 三方历轮 (P3 发布前必检范围) |
 
 > 判定口径: **A1 (活跃营销面) 必须 0 命中; A2 (仓库级) 命中 ⊆ 排除附录即通过**。
 > 新增内部引用类文件须先补入本表再合入, 避免「A2 越界」回归。
@@ -78,6 +80,9 @@ bash docs/release/claims_scope_check.sh        # 在仓库根执行
 
 - 词表 = §1.1 表 + 历轮 (copy-scan v3/v4) 检出词形全集, 已随脚本固化
   (`claims_scope_check.sh` PAT); 新检出语言词形须同步补入脚本与 §1.1。
+- A1 活跃营销面枚举 = 脚本 SURFACES (含 index/landing/download/getting-started/
+  governance/telemetry/LEGAL/test-report/profile/llms.txt/chat.html/base.html);
+  未发布草稿 (海外发布内容/) 与内部页面不入 A1, 由 A2 + 发布门控覆盖。
 - 历史证据: copy-scan-20260904{-v3,-v4}.txt 为三轮收敛基线; 补丁轮3 起以
   copy-scan-*-claims.txt 为现行证据链。
 
@@ -137,6 +142,13 @@ python3 -m pytest tests/test_org_governance.py tests/test_swarm_cards.py -q
 - 004meshctx 1a49d7ce (round20): NEW-P2-1 RTL 缺失 → governance/telemetry/getting-started
   及同谱系 download/test-report/LEGAL 六页 switchLang 全补
   `document.documentElement.dir=(lang==='ar')?'rtl':'ltr'` (index/profile 已有)。
-- 本表状态: 补丁轮3 送审中 (待三方复核确认)。
+- 002codex 7dabb039 (补丁轮3 复验): RTL ✅ / 词表 ✅ / BP L3·39 ✅; ⚠️ A 证据闭环
+  (copy-scan 证据 HEAD 过期 + 脚本自命中未排除) → 已修: EXCLUDE 含脚本自身、证据在最终
+  HEAD 重生成; C. BP 正文能力断言 7 处 → 已收敛 (补丁轮4); 非阻断: §6 悬空引用已修、
+  SURFACES 分类已注 (LEGAL/test-report/profile 入枚举, 海外草稿由发布门控覆盖)。
+- 002meshctx e6187390 (补丁轮3 复验): ✅ 有条件通过 — P3×3 建议与 002codex 同向
+  (证据 HEAD 重生成/脚本自排除/BP 行53 等收敛) → 全部落实 (补丁轮4)。
+- 004meshctx 1a49d7ce (round20) RTL 修复已在补丁轮3 落地并经 002 双方复验通过。
+- 本表状态: 补丁轮4 送审中 (待三方复核确认)。
 
 — meshctx 治理 (MCTX-CLAIMS-SCOPE-2026-0905), 2026-09-05
