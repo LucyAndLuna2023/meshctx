@@ -312,9 +312,9 @@ sandbox 16 passed; 每提交均推送 meshctx main, 加法式可回滚。
 | WP5 MCP 扩展 (P1-2) | ✅ | 23→43 defs +17 工具 |
 | R7 网站/口径 | ✅ | 首页 4 卡 ×10 语言 + 自进化核验与文案收敛 |
 | **里程碑 v3.123.0 / v3.123.1 / v3.124.0** | ✅ 发版 | tag 已推, 三方审计全程闭环, Release 12+12 (sha256 sidecars) |
-| **Org 组织治理 (2026-09 用户新需求)** | ✅ **并入 3.124.1 治理章节定稿** | 阶段1-4 (beb11ca8→959edad4) + 审计补丁链三方闭环 (f1eef868→7ff303f0) + R7.1 详情页 ×10 语言 (9fb30f89) + claims-scope 定稿 (ebb8ee97); 002meshctx 4208f9fe 判定 ✅; 002codex 补丁轮4 回执待达 |
+| **Org 组织治理 (2026-09 用户新需求)** | ✅ **并入 3.124.1 治理章节定稿 (三方闭环)** | 阶段1-4 (beb11ca8→959edad4) + 审计补丁链三方闭环 (f1eef868→7ff303f0) + R7.1 详情页 ×10 语言 (9fb30f89) + claims-scope 定稿 (9431a42e); 002meshctx 4208f9fe/2fc375eb ✅ + 002codex f9506e68 ✅ final + 004meshctx round22 ✅ — 可进入 3.124.1 发版序列 (SOP R0-R7) |
 | QA/Release SOP | ✅ v1.1 | docs/release/qa_release_sop_v1.md (G1-G10 + R0-R7, 自 v3.124.0 强制) |
 | Org 审计补丁链 三方闭环 (f1eef868 → 7e2be84b → 7ff303f0) | ✅ 2026-09-05 | P2-1 邀请门控 + P2-2 RBAC 闭包 + P3×8 全修 + P3-B 服务端词表 (7e2be84b) + P3-5 upsert 校验先于变异原子性 (7ff303f0); org 套件 27 passed, 全量 3784 passed/59 skipped; 复验: 002meshctx 3a5e7cac ✅ + 002codex f28777d8 ✅ final + 004meshctx 3610f357 round19 闭环 — **Org Governance 可并入 3.124.1 治理章节** |
 | R7.1 治理/遥测详情页 ×10 语言 | ✅ 2026-09-05 | docs/governance.html (Org Governance: 导入/部门树/RBAC/数据权限/审计导出/版本范围, 44 keys ×10) + docs/telemetry.html (结构化追踪/JSONL 轮转/API/卡级 trace/OTLP, 38 keys ×10); 键位/运行时自检 node 通过, 无超卖词 |
-| 营销词 Scope 声明 (002codex 6c70eaf8) | ✅ 定稿 2026-09-05 | docs/marketing/claims-scope-20260905.md + claims_scope_check.sh (A1 活跃面须 0 / A2 ⊆ §3-A0 排除附录 + HEAD 基线) — 5 轮补丁 (RTL 六页/词表全词形/BP 9 处收敛/证据闭环); 002meshctx 4208f9fe ✅ 通过四项全满足 → **claims-scope 定稿**; 004meshctx round21 ✅; 002codex 补丁轮4 回执待达; 证据 copy-scan-20260905-claims.txt HEAD=ebb8ee97 |
+| 营销词 Scope 声明 (002codex 6c70eaf8) | ✅ 定稿 2026-09-05 (三方闭环) | docs/marketing/claims-scope-20260905.md + claims_scope_check.sh (A1 活跃面须 0 / A2 ⊆ §3-A0 排除附录 + HEAD 基线) — 5 轮补丁 (RTL 六页/词表全词形/BP 9 处收敛/证据闭环); 002meshctx 4208f9fe+2fc375eb ✅ / 002codex f9506e68 ✅ final / 004meshctx round21+22 ✅ — **三方全链收口**; 证据 copy-scan-20260905-claims.txt HEAD=9431a42e |
 | 进行中/backlog | 🔄 | workflow checksum 内嵌 (4a7d02a9 已含) · WP2 真实榜提交(运营) · WP4 跨机冒烟(运维) · P4 观察余项 (manager 权限冗余/审计签名/记忆 key 前缀/scope 单一 enforce 层/读操作写副作用/org-plan 联动 — CSV 转义与成员最小暴露已修/内建) |
