@@ -559,6 +559,7 @@ function switchLang(lang) {
     });
     document.title = L[lang] && L[lang].meta_title ? L[lang].meta_title : 'Download MeshCtx';
     document.documentElement.lang = lang;
+    document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
     localStorage.setItem('meshctx-lang', lang);
     document.querySelector('.lang-select').value = lang;
 }

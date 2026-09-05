@@ -1174,6 +1174,7 @@ function switchLang(lang) {
     });
     document.title = L[lang].meta_title || 'MeshCtx Legal';
     document.documentElement.lang = lang;
+    document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
     localStorage.setItem('meshctx-lang', lang);
     renderLists(lang);
 }

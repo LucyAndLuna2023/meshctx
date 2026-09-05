@@ -512,6 +512,7 @@ function switchLang(lang) {
     });
     if (L[lang] && L[lang].meta_title) document.title = L[lang].meta_title;
     document.documentElement.lang = lang;
+    document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
     localStorage.setItem('meshctx-lang', lang);
 }
 document.addEventListener('DOMContentLoaded', function() {

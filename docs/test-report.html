@@ -273,6 +273,7 @@ function switchLang(lang) {
     document.title = L[lang] ? (L[lang].meta_title || document.title) : document.title;
     var root = document.getElementById("html-root");
     if (root) root.setAttribute("lang", lang);
+    if (root) root.setAttribute("dir", lang === 'ar' ? 'rtl' : 'ltr');
     localStorage.setItem("meshctx-lang", lang);
     var sel2 = document.querySelector(".lang-select");
     if (sel2) sel2.value = lang;
