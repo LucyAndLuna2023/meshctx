@@ -1,4 +1,4 @@
-{"id": "q1", "answer": "meshctx 当前版本是 3.124.0，发布于 2026-09-04，包含资产版本元数据补发。"}
+{"id": "q1", "answer": "meshctx 当前版本是 3.124.1，发布于 2026-09-05，包含治理章节定稿里程碑（Org Governance/详情页 ×10 语言/Claims Scope）。"}
 {"id": "q2", "answer": "meshctx 的 Agent 派活中心支持一句话派活、审批、配额、取消与重试。"}
 {"id": "q3", "answer": "meshctx 审计与治理基座包含审批流、配额、审计日志与动作闸门（action gate）。"}
 {"id": "q4", "answer": "meshctx 的例行程值守 Routines 支持 interval 与 cron 两类触发。"}
