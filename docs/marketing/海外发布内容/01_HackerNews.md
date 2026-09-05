@@ -6,6 +6,9 @@
 
 ---
 
+> **🆕 2026-09-05 更新**: MeshCtx v3.124.1 治理里程碑发布 — **Org Governance 组织治理**（团队/企业版: 组织架构导入、RBAC 授权、部门数据权限、SOC2 审计导出）+ **可观测性**（JSONL 遥测 + 可选 OTLP 导出）。10 语言详情页: meshctx.com/governance.html · meshctx.com/telemetry.html。口径保持可审计与 API 受控（全站 Claims Scope 纪律）。Open-core AGPLv3: 个人免费 · 团队 $9 · 企业 $29/人/月。
+
+
 ## 标题（三选一，A 为推荐）
 
 - **A**: `Show HN: MeshCtx – An AI agent with 17 simulated brain regions, with API-controlled parameter evolution`
