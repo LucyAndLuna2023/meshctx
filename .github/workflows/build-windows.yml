@@ -249,9 +249,18 @@ jobs:
           retention-days: 7
 
       - name: Generate checksums (SOP R5)
+        shell: bash
         run: |
-          for f in $(ls meshctx* 2>/dev/null); do
-            case "$f" in *.sha256) ;; *) [ -f "$f.sha256" ] || sha256sum "$f" > "$f.sha256" ;; esac
+          # windows runner 默认 pwsh → 本步显式 bash; sidecar 一律扁平放根目录
+          # (softprops 上传 glob *.sha256 只匹配顶层, dist/ 下 sidecar 不会被收集)
+          for f in meshctx-portable.zip meshctx-windows-cli.zip; do
+            [ -f "$f" ] || continue
+            [ -f "$f.sha256" ] || sha256sum "$f" > "$f.sha256"
+          done
+          for f in dist/meshctx.exe dist/meshctx-setup.exe; do
+            [ -f "$f" ] || continue
+            n="$(basename "$f")"
+            [ -f "$n.sha256" ] || { h="$(sha256sum "$f" | cut -d' ' -f1)"; printf '%s  %s\n' "$h" "$n" > "$n.sha256"; }
           done
 
       - name: Upload to Release (tag only)
@@ -265,5 +274,6 @@ jobs:
             dist/meshctx-setup.exe
             meshctx-portable.zip
             meshctx-windows-cli.zip
+            *.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
