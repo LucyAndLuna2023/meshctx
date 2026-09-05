@@ -34,8 +34,9 @@ jobs:
 
     - name: Generate checksums (SOP R5)
       run: |
-        # 仅普通文件 (upload-artifact 后工作区含 meshctx-deb 目录, ls meshctx* 会匹配到 → sha256sum 报错)
-        for f in $(find . -maxdepth 1 -type f -name 'meshctx*' ! -name '*.sha256' -printf '%f\n' | sort); do
+        # 仅本 job 发布资产 .deb (勿哈希工作区 meshctx_desktop.py/nsi/spec/yaml 源码 → 杂散 sidecar)
+        for f in meshctx_*_all.deb; do
+          [ -f "$f" ] || continue
           [ -f "$f.sha256" ] || sha256sum "$f" > "$f.sha256"
         done
 
@@ -163,8 +164,9 @@ jobs:
 
     - name: Generate checksums (SOP R5)
       run: |
-        # 仅普通文件 (upload-artifact 后工作区含 meshctx-deb 目录, ls meshctx* 会匹配到 → sha256sum 报错)
-        for f in $(find . -maxdepth 1 -type f -name 'meshctx*' ! -name '*.sha256' -printf '%f\n' | sort); do
+        # 仅本 job 发布资产 meshctx-linux.tar.gz (勿哈希工作区源码文件 → 杂散 sidecar)
+        for f in meshctx-linux.tar.gz; do
+          [ -f "$f" ] || continue
           [ -f "$f.sha256" ] || sha256sum "$f" > "$f.sha256"
         done
 
