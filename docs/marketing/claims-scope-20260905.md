@@ -66,6 +66,7 @@
 | docs/plans/ | 内部计划/审计记录 (含「自进化核验与文案收敛」等工作项名与回执引用), 非营销面 | 002meshctx 2fe64ea4 + 002codex 05e090e0 |
 | docs/release/claims_scope_check.sh | 机器校验工具本体; PAT 词表行属「声明约束本身」引用 | 002codex 7dabb039 (点名) + 002meshctx e6187390 |
 | docs/marketing/海外发布内容/ | 未发布海外发布草稿 (00-08), 非活跃营销面; 发布前经「发布前必检清单」(BP 附录 D / 核验报告 §3) 门控修订后方可对外 | 三方历轮 (P3 发布前必检范围) |
+| RELEASE_NOTES.md | 历史 v1.0.0 发布说明 (2026-05-10, 已过时); 现行版本口径以 CHANGELOG.md + 本声明为准; 其中"世界第一/自进化/世界首创"为历史营销措辞残留, 不作现行声称 | 002codex cd24264d (点名坐标, 建议收敛/归类) + 002meshctx (历史文件豁免先例 DESIGN_v1.0/.v2.14) |
 
 > 判定口径: **A1 (活跃营销面) 必须 0 命中; A2 (仓库级) 命中 ⊆ 排除附录即通过**。
 > 新增内部引用类文件须先补入本表再合入, 避免「A2 越界」回归。
@@ -80,6 +81,8 @@ bash docs/release/claims_scope_check.sh        # 在仓库根执行
 
 - 词表 = §1.1 表 + 历轮 (copy-scan v3/v4) 检出词形全集, 已随脚本固化
   (`claims_scope_check.sh` PAT); 新检出语言词形须同步补入脚本与 §1.1。
+- A2 扫描根含产品面 (src/cli.js CLI 横幅 / package.json / vscode/* / RELEASE_NOTES.md) —
+  002codex cd24264d 盲区提醒: 原仅 docs+templates 漏运行时/元数据残留 (v3.33.0 + 禁词横幅)。
 - A1 活跃营销面枚举 = 脚本 SURFACES (含 index/landing/download/getting-started/
   governance/telemetry/LEGAL/test-report/profile/llms.txt/chat.html/base.html);
   未发布草稿 (海外发布内容/) 与内部页面不入 A1, 由 A2 + 发布门控覆盖。

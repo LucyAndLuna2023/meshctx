@@ -2,7 +2,7 @@
   "name": "meshctx-vscode",
   "displayName": "MeshCtx AI Agent",
   "version": "3.33.0",
-  "description": "World's First Self-Evolving Agent — right inside VS Code",
+  "description": "Auditable Self-Adaptive Agent — right inside VS Code",
   "publisher": "meshctx",
   "icon": "icon.png",
   "repository": "https://github.com/LucyAndLuna2023/meshctx",
@@ -18,7 +18,6 @@
     "ai",
     "agent",
     "meshctx",
-    "self-evolving",
     "multi-agent",
     "coding-assistant"
   ],

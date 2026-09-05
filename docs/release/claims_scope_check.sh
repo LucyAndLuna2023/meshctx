@@ -17,15 +17,17 @@ PAT="World's First|world's first|Worlds First|first self-evolv|self-evolv[a-z]*|
 SURFACES="docs/index.html docs/i18n/landing.json docs/download.html docs/getting-started.html docs/governance.html docs/telemetry.html docs/LEGAL.html docs/test-report.html docs/profile.html docs/llms.txt templates/chat.html templates/base.html"
 
 # ── A0 排除类 (内部/审计/历史, 逐类理由见 claims-scope §3-A0) ──
-EXCLUDE='docs/marketing/claims-scope-20260905\.md|docs/release/copy-scan-[0-9].*\.txt|docs/marketing/self-evolution-verification-20260903\.md|docs/DESIGN_v1\.0\.md|docs/index\.html\.v2\.14|docs/marketing/MeshCtx_商业计划书_v3\.116\.md|docs/plans/|docs/release/claims_scope_check\.sh|docs/marketing/海外发布内容/'
+EXCLUDE='docs/marketing/claims-scope-20260905\.md|docs/release/copy-scan-[0-9].*\.txt|docs/marketing/self-evolution-verification-20260903\.md|docs/DESIGN_v1\.0\.md|docs/index\.html\.v2\.14|docs/marketing/MeshCtx_商业计划书_v3\.116\.md|docs/plans/|docs/release/claims_scope_check\.sh|docs/marketing/海外发布内容/|RELEASE_NOTES\.md'
 
 {
   echo "# claims-scope 扫描证据  $(date -Is)  HEAD=${HEAD}"
   echo "# 词表: ${PAT}"
   echo "## A1 活跃营销面扫描 (期望 0 命中)"
   git -c core.quotepath=false grep -nIE "${PAT}" -- ${SURFACES} 2>/dev/null || echo "A1: 0 hits"
-  echo "## A2 仓库级扫描 (docs+templates; 命中须 ∈ 排除类)"
-  git -c core.quotepath=false grep -nIE "${PAT}" -- 'docs/*' 'docs/**' 'templates/*' 2>/dev/null \
+  echo "## A2 仓库级扫描 (docs+templates+产品面; 命中须 ∈ 排除类)"
+  # 产品面: CLI 横幅/包元数据/历史发布说明 (002codex cd24264d 盲区提醒)
+  git -c core.quotepath=false grep -nIE "${PAT}" -- 'docs/*' 'docs/**' 'templates/*' \
+    'src/cli.js' 'package.json' 'vscode/*' 'RELEASE_NOTES.md' 2>/dev/null \
     | grep -vE "^(${EXCLUDE})" || echo "A2: 0 hits (beyond exclusion classes)"
 } > "$OUT"
 

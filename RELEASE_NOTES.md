@@ -1,7 +1,7 @@
 # meshctx v1.0.0 发布说明
 
 > 发布日期: 2026-05-10  
-> 代号: "World's First Self-Evolving Agent"
+> 代号(历史口径, 现收敛为): Auditable Self-Adaptive Agent
 
 ---
 

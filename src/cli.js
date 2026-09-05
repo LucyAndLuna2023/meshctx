@@ -66,7 +66,7 @@ function main() {
       console.log('  or: pip install meshctx');
       break;
     default:
-      console.log(`meshctx v3.33.0 — World's First Self-Evolving Agent`);
+      console.log('meshctx — Auditable Self-Adaptive Agent System');
       console.log('');
       console.log('Commands:');
       console.log('  meshctx start     Start the agent server');

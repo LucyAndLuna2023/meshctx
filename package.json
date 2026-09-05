@@ -1,7 +1,7 @@
 {
   "name": "meshctx",
   "version": "3.124.1",
-  "description": "World's First Self-Evolving Agent Platform — 161 core modules, 1713 tests, 46+ models",
+  "description": "Auditable Self-Adaptive Agent Platform — 200+ core modules, 3784 tests, 46+ models",
   "main": "src/cli.js",
   "bin": {
     "meshctx": "./src/cli.js"
@@ -17,7 +17,6 @@
   },
   "keywords": [
     "ai-agent",
-    "self-evolving",
     "agent",
     "meshctx",
     "multi-agent",

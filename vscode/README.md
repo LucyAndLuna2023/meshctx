@@ -1,6 +1,6 @@
 # MeshCtx VS Code Extension v3.33.0
 
-World's First Self-Evolving Agent — right inside VS Code.
+Auditable Self-Adaptive Agent — right inside VS Code.
 
 ## Features
 
