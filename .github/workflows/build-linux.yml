@@ -34,8 +34,9 @@ jobs:
 
     - name: Generate checksums (SOP R5)
       run: |
-        for f in $(ls meshctx* 2>/dev/null); do
-          case "$f" in *.sha256) ;; *) [ -f "$f.sha256" ] || sha256sum "$f" > "$f.sha256" ;; esac
+        # 仅普通文件 (upload-artifact 后工作区含 meshctx-deb 目录, ls meshctx* 会匹配到 → sha256sum 报错)
+        for f in $(find . -maxdepth 1 -type f -name 'meshctx*' ! -name '*.sha256' -printf '%f\n' | sort); do
+          [ -f "$f.sha256" ] || sha256sum "$f" > "$f.sha256"
         done
 
     - name: Upload to Release
@@ -162,8 +163,9 @@ jobs:
 
     - name: Generate checksums (SOP R5)
       run: |
-        for f in $(ls meshctx* 2>/dev/null); do
-          case "$f" in *.sha256) ;; *) [ -f "$f.sha256" ] || sha256sum "$f" > "$f.sha256" ;; esac
+        # 仅普通文件 (upload-artifact 后工作区含 meshctx-deb 目录, ls meshctx* 会匹配到 → sha256sum 报错)
+        for f in $(find . -maxdepth 1 -type f -name 'meshctx*' ! -name '*.sha256' -printf '%f\n' | sort); do
+          [ -f "$f.sha256" ] || sha256sum "$f" > "$f.sha256"
         done
 
     - name: Upload to Release
