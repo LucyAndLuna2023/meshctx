@@ -98,6 +98,9 @@ class OrgService:
             trail.append(entry)
             if len(trail) > 200:
                 del trail[:len(trail) - 200]
+            # 3.125-P1 补丁 (002codex faa77549): seal 内存同步 — 长驻实例 load 后再
+            # 审计须立即更新内存 seal, 否则 audit_chain_ok() 与旧值失配恒 False
+            self._audit_seal = _chain_hash(trail[-1]) if trail else ""
 
     def is_member(self, user_id: str) -> bool:
         with self._lock:
@@ -149,7 +152,7 @@ class OrgService:
                 "roles": {r: sorted(self._role_perms[r]) for r in ROLES},
                 "audit": self._audit_trail,
                 # 3.125-P1: 末条审计封签 (防末条篡改; 与文件同存的线性链保护为尽力而为)
-                "audit_seal": _chain_hash(self._audit_trail[-1]) if self._audit_trail else ""},
+                "audit_seal": self._audit_seal},
                 ensure_ascii=False, indent=1), encoding="utf-8")
             os.replace(tmp, self._path)
         except Exception:

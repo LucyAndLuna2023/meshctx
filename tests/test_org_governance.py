@@ -613,6 +613,17 @@ class TestAuditChain:
         yield AsyncClient(transport=ASGITransport(app=a), base_url="http://t")
         reset_org_service_for_tests()
 
+    def test_seal_mem_sync_after_reload_then_op(self, tmp_dir):
+        """002codex faa77549: load(seal 入内存) 后再审计 — audit_chain_ok() 须仍 True。"""
+        svc1 = OrgService(path=tmp_dir / "org.json")
+        svc1.ensure_self_bootstrap("alice")
+        svc2 = OrgService(path=tmp_dir / "org.json")   # 重载, seal 入内存
+        assert svc2.audit_chain_ok() is True
+        svc2.import_depts([{"name": "研发部", "parent": "总部"}], actor="alice")
+        assert svc2.audit_chain_ok() is True           # 内存 seal 已同步 → 不误报
+        svc3 = OrgService(path=tmp_dir / "org.json")   # 落盘值也一致
+        assert svc3.audit_chain_ok() is True
+
     async def test_chain_api_gate(self, aenv):
         async with aenv as c:
             r = await c.get("/api/org/audit/chain", params={"as": "alice"})
