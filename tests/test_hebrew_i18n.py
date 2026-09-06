@@ -78,3 +78,21 @@ class TestInstallerLangCount:
             m = re.search(r"dir\s*=.*?['\"]?(ltr|rtl)['\"]?", s)
             # 找到含 lang==='he' 的 dir 条件
             assert re.search(r"(lang\s*===\s*['\"]he['\"]|'he'\s*\|\||\|\|\s*'he')", s), f
+
+
+def test_chat_de_direct_german_and_download_counts():
+    """002codex a7e8523e + 002meshctx b50eb620 复核补充:
+    de.chat_direct 须为德文; download.html installer_desc 全 11 语言无 '7' 词形。"""
+    L = node_extract("templates/chat.html", r"LANG = (\{[\s\S]*?\n\});")
+    assert L["de"]["chat_direct"] == "Direktausgabe", L["de"]["chat_direct"]
+    D = node_extract("docs/download.html", r"const L = (\{[\s\S]*?\n\});")
+    pat = re.compile(r"7\s*(种)?语言|7 languages|7\s*שפות|7\s*ling|7\s*Sprachen|7\s*idiomas|7\s*lingue|7\s*لغات|на 7 языках|7 языков|7言語|7개 언어")
+    bad = [(lg, str(vals.get("installer_desc", ""))[:40])
+           for lg, vals in D.items() if pat.search(str(vals.get("installer_desc", "")))]
+    assert not bad, bad
+    assert "10" in D["ru"]["installer_desc"] and "10" in D["zh"]["installer_desc"]
+
+
+def test_index_no_7_lang_comment():
+    s = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+    assert "7语言" not in s and "7 语言" not in s and "7 languages" not in s
