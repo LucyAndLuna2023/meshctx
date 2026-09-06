@@ -106,6 +106,14 @@ class OrgService:
         with self._lock:
             return user_id in self._members
 
+    # 3.125-P3: 单一 enforce 助手 — 部门视图门控统一判定 (staff=local/admin 免成员)
+    def is_org_staff(self, user_id: str) -> bool:
+        return user_id == "local" or str(user_id or "").startswith("admin")
+
+    def org_dept_gate_ok(self, user_id: str) -> bool:
+        """部门聚合视图门控: 组织成员或 staff (local/admin) 放行; 其余 403。"""
+        return self.is_member(user_id) or self.is_org_staff(user_id)
+
     def audit_record(self, actor: str, action: str, detail: str = ""):
         self._audit(actor, action, detail)
 

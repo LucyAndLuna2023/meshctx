@@ -149,8 +149,8 @@ async def list_cards(request: Request, status: Optional[str] = None,
             svc = get_org_service()
             svc.ensure_self_bootstrap(owner)
             # P2-1 (002meshctx): 组织已存在时, 未入册用户不得聚合部门视图 → 403
-            if not (svc.is_member(owner) or owner == "local"
-                    or owner.startswith("admin")):
+            # 3.125-P3: 统一判定入口 org_dept_gate_ok (单一 enforce 层)
+            if not svc.org_dept_gate_ok(owner):
                 raise HTTPException(403, "非组织成员 (部门视图需先加入组织)")
             scope = svc.data_scope(owner)
             if scope == "self" and owner != "local":

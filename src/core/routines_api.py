@@ -174,8 +174,8 @@ async def list_routines(request: Request, org_dept: int = 0) -> List[dict]:
             svc = get_org_service()
             svc.ensure_self_bootstrap(owner)
             # P2-1 (002meshctx): 组织已存在时, 未入册用户不得聚合部门视图 → 403
-            if not (svc.is_member(owner) or owner == "local"
-                    or owner.startswith("admin")):
+            # 3.125-P3: 统一判定入口 org_dept_gate_ok (单一 enforce 层)
+            if not svc.org_dept_gate_ok(owner):
                 raise HTTPException(403, "非组织成员 (部门视图需先加入组织)")
             owners = svc.visible_owner_ids(owner) if owner == "local" else (
                 svc.visible_owner_ids(owner)
