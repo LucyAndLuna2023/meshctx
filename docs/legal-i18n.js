@@ -2,7 +2,7 @@
 (function(){
 var LANG_NAMES = {
     en:'English', zh:'中文', fr:'Français', de:'Deutsch',
-    ja:'日本語', ko:'한국어', es:'Español', it:'Italiano', ar:'العربية'
+    ja:'日本語', ko:'한국어', es:'Español', it:'Italiano', ar:'العربية', he:'עברית'
 };
 
 function detectLang() {
@@ -16,6 +16,7 @@ function render(data) {
     var lang = detectLang();
     var t = data[lang] || data['en'];
     document.documentElement.lang = lang;
+    document.documentElement.dir = (lang==='ar'||lang==='he') ? 'rtl' : 'ltr';
 
     var els = document.querySelectorAll('[data-key]');
     for (var i = 0; i < els.length; i++) {
