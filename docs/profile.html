@@ -164,7 +164,7 @@ function switchLang(lang){
         if(val !== undefined) el.placeholder = val;
     });
     document.documentElement.lang = lang;
-    document.documentElement.dir = (lang==='ar') ? 'rtl' : 'ltr';
+    document.documentElement.dir = (lang==='ar'||lang==='he') ? 'rtl' : 'ltr';
     try { localStorage.setItem('meshctx-lang', lang); } catch(e) {}
 }
 

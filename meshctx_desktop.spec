@@ -104,4 +104,6 @@ if sys.platform == 'darwin':
             'NSHighResolutionCapable': 'True',
             'CFBundleShortVersionString': '3.125.0',
             'CFBundleVersion': '3.125.0',
+            'CFBundleLocalizations': ['en', 'zh', 'ja', 'ko', 'fr', 'de',
+                                      'es', 'it', 'ar', 'ru', 'he'],
         }, version='version_info.txt')
