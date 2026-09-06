@@ -551,3 +551,71 @@ class TestOrgRBACNegatives:
             r3 = await c.delete(f"/api/org/depts/{rnd['id']}", params={"as": "alice"})
             assert r3.status_code == 200 and r3.json()["purged_depts"] == 1, r3.text
             assert svc.get_dept(rnd["id"]) is None
+
+
+class TestAuditChain:
+    """3.125-P1: 审计链式防篡改 (prev_hash + audit_chain_ok + /audit/chain)。"""
+
+    def test_chain_ok_after_ops_and_persist(self, tmp_dir):
+        svc = OrgService(path=tmp_dir / "org.json")
+        svc.ensure_self_bootstrap("alice")
+        svc.import_depts([{"name": "研发部", "parent": "总部"}], actor="alice")
+        svc.set_member("bob", "", "member", actor="alice")
+        assert svc.audit_chain_ok() is True
+        # 持久化回读: 链完整
+        svc2 = OrgService(path=tmp_dir / "org.json")
+        assert svc2.audit_chain_ok() is True
+        # 链长>1 且 prev_hash 存在
+        rows = svc2.audit_trail(limit=200)
+        assert len(rows) >= 3
+        assert all("prev_hash" in r for r in rows)
+
+    def test_tamper_detected(self, tmp_dir):
+        svc = OrgService(path=tmp_dir / "org.json")
+        svc.ensure_self_bootstrap("alice")
+        svc.import_depts([{"name": "研发部", "parent": "总部"}], actor="alice")
+        assert svc.audit_chain_ok() is True
+        # 直接篡改中间条目 detail (绕过 _audit) → 链式检出
+        import json as _json
+        data = _json.loads((tmp_dir / "org.json").read_text(encoding="utf-8"))
+        assert len(data["audit"]) >= 2
+        data["audit"][0]["detail"] = "被篡改"   # 篡改首条 → 后继 prev_hash 失配
+        (tmp_dir / "org.json").write_text(
+            _json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        svc2 = OrgService(path=tmp_dir / "org.json")
+        assert svc2.audit_chain_ok() is False
+        # 篡改末条 → seal 检出 (audit_seal 与链末 hash 不符)
+        data2 = _json.loads((tmp_dir / "org.json").read_text(encoding="utf-8"))
+        data2["audit"][-1]["detail"] = "末条被篡改"
+        (tmp_dir / "org.json").write_text(
+            _json.dumps(data2, ensure_ascii=False), encoding="utf-8")
+        svc3 = OrgService(path=tmp_dir / "org.json")
+        assert svc3.audit_chain_ok() is False
+
+    @pytest.fixture()
+    def aenv(self, tmp_dir, monkeypatch):
+        from fastapi import FastAPI
+        from src.core.org_api import router
+        import src.core.org_api as mod
+        from src.core import org_governance as og
+        monkeypatch.setattr(og, "ORG_PATH", tmp_dir / "org.json")
+        reset_org_service_for_tests()
+        svc = og.get_org_service()
+        svc.ensure_self_bootstrap("alice")          # owner + 总部
+        svc.import_depts([{"name": "研发部", "parent": "总部"}], actor="alice")
+        svc.set_member("bob", svc.get_dept(
+            next(d["id"] for d in svc.list_depts() if d["name"] == "研发部"))["id"],
+            "member", actor="alice")
+        a = FastAPI(); a.include_router(router)
+        async def _owner(req):
+            return req.query_params.get("as", "alice")
+        mod._owner = _owner
+        yield AsyncClient(transport=ASGITransport(app=a), base_url="http://t")
+        reset_org_service_for_tests()
+
+    async def test_chain_api_gate(self, aenv):
+        async with aenv as c:
+            r = await c.get("/api/org/audit/chain", params={"as": "alice"})
+            assert r.status_code == 200 and r.json()["ok"] is True, r.text
+            r2 = await c.get("/api/org/audit/chain", params={"as": "eve"})
+            assert r2.status_code == 403, r2.text

@@ -61,6 +61,19 @@ def _esc(part: str) -> str:
     return part or ""
 
 
+def _chain_hash(entry: "Optional[Dict[str, Any]]") -> str:
+    """3.125-P1: 审计链式防篡改 — 规范化前一条关键字段的 sha256 (SOC2 证据完整性)。
+    仅覆盖 ts/user/action/detail; prev_hash 字段自身不入 hash (防自引用歧义)。
+    兼容旧条目 (无 prev_hash): 以现存字段规范化。"""
+    if not entry:
+        return ""
+    canon = json.dumps({k: entry.get(k) for k in ("ts", "user", "action", "detail")
+                        if k in entry},
+                       sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    import hashlib as _hl
+    return _hl.sha256(canon.encode("utf-8")).hexdigest()
+
+
 class OrgService:
     """组织/成员/角色存储与服务 (线程安全, JSON 原子落盘)。"""
 
@@ -71,14 +84,18 @@ class OrgService:
         self._members: Dict[str, Dict[str, Any]] = {}    # user_id -> {user_id,dept_id,role}
         self._role_perms: Dict[str, set] = {r: set(p) for r, p in DEFAULT_ROLE_PERMS.items()}
         self._audit_trail: List[Dict[str, Any]] = []
+        self._audit_seal: str = ""
         self._load()
 
     # ── 审计轨迹 (授权可追溯, 满足"授权"需求; cap 200) ────
     def _audit(self, user_id: str, action: str, detail: str = ""):
         with self._lock:
             trail = self._audit_trail
-            trail.append({"ts": time.time(), "user": user_id, "action": action,
-                          "detail": detail[:300]})
+            prev = trail[-1] if trail else None
+            entry = {"ts": time.time(), "user": user_id, "action": action,
+                     "detail": detail[:300]}
+            entry["prev_hash"] = _chain_hash(prev) if prev is not None else ""
+            trail.append(entry)
             if len(trail) > 200:
                 del trail[:len(trail) - 200]
 
@@ -93,6 +110,21 @@ class OrgService:
         with self._lock:
             return list(reversed(self._audit_trail))[:max(1, min(limit, 200))]
 
+    def audit_chain_ok(self) -> bool:
+        """3.125-P1: 校验审计链完整性 — 任一条被篡改即 False。
+        cap200 裁头后: 首条保留为链根 (其 prev_hash 指向已裁祖先, 不校验);
+        旧版条目 (无 prev_hash) 作根或按现存字段被后续条目覆盖校验。"""
+        with self._lock:
+            trail = self._audit_trail
+            for i in range(1, len(trail)):
+                expect = _chain_hash(trail[i - 1])
+                if trail[i].get("prev_hash", "") != expect:
+                    return False
+            if trail and self._audit_seal:
+                if _chain_hash(trail[-1]) != self._audit_seal:
+                    return False
+            return True
+
     # ── 持久化 ──────────────────────────────────────────────
     def _load(self):
         try:
@@ -104,6 +136,7 @@ class OrgService:
                 for r in ROLES:
                     self._role_perms[r] = set(rp.get(r, list(DEFAULT_ROLE_PERMS[r])))
                 self._audit_trail = data.get("audit") or []
+                self._audit_seal = data.get("audit_seal") or ""
         except Exception:
             logger.debug("org load failed", exc_info=True)
 
@@ -114,7 +147,9 @@ class OrgService:
             tmp.write_text(json.dumps({
                 "depts": self._depts, "members": self._members,
                 "roles": {r: sorted(self._role_perms[r]) for r in ROLES},
-                "audit": self._audit_trail},
+                "audit": self._audit_trail,
+                # 3.125-P1: 末条审计封签 (防末条篡改; 与文件同存的线性链保护为尽力而为)
+                "audit_seal": _chain_hash(self._audit_trail[-1]) if self._audit_trail else ""},
                 ensure_ascii=False, indent=1), encoding="utf-8")
             os.replace(tmp, self._path)
         except Exception:
@@ -165,8 +200,8 @@ class OrgService:
             else:
                 d = {"id": _new_id(), "name": name, "parent_id": parent_id}
                 self._depts[d["id"]] = d
-            self._save()
             self._audit(actor, "dept_upsert", f"{d['name']} ({d['id']})")
+            self._save()
             return d
 
     def remove_dept(self, dept_id: str, actor: str = "system") -> bool:
@@ -190,8 +225,8 @@ class OrgService:
             for uid, m in list(self._members.items()):
                 if m.get("dept_id") in removed:
                     self._members.pop(uid, None)
-            self._save()
             self._audit(actor, "dept_remove", f"{dept_id} +{len(removed) - 1} 子")
+            self._save()
             return True
 
     def import_depts(self, items: List[Dict[str, Any]],
@@ -251,10 +286,11 @@ class OrgService:
                         continue
                     cur["parent_id"] = parent_did
                     updated += 1
-            self._save()
             # P3-1 (002meshctx): 导入入审计 (actor 归责, SOC2 可追溯)
+            # 顺序: 先审计后落盘 (3.125-P1: 末次操作审计须即时持久化)
             self._audit(actor, "dept_import",
                         f"created={created} updated={updated} failed={failed}")
+            self._save()
         return {"created": created, "updated": updated, "failed": failed}
 
     # ── 成员 / 角色 ─────────────────────────────────────────
@@ -271,8 +307,8 @@ class OrgService:
                 raise ValueError("部门不存在")
             m = {"user_id": user_id, "dept_id": dept_id, "role": role}
             self._members[user_id] = m
-            self._save()
             self._audit(actor, "member_set", f"{user_id} role={role} dept={dept_id}")
+            self._save()
             return m
 
     def remove_member(self, user_id: str, actor: str = "system") -> bool:
@@ -280,8 +316,8 @@ class OrgService:
             if user_id not in self._members:
                 return False
             self._members.pop(user_id, None)
-            self._save()
             self._audit(actor, "member_remove", user_id)
+            self._save()
             return True
 
     def list_members(self) -> List[Dict[str, Any]]:
@@ -306,6 +342,7 @@ class OrgService:
             self._depts[root["id"]] = root
             self._members[user_id] = {"user_id": user_id, "dept_id": root["id"],
                                       "role": "owner"}
+            self._audit(user_id, "org_bootstrap", "owner 自举 @ 总部")   # SOC2 可追溯
             self._save()
 
     # ── RBAC / 数据权限 ─────────────────────────────────────

@@ -307,6 +307,17 @@ def _dept_writer(user_id: str, dept_id: str) -> bool:
     return dept_id in svc.dept_subtree_ids(m.get("dept_id") or "")
 
 
+@router.get("/audit/chain")
+async def org_audit_chain(request: Request):
+    """3.125-P1: 审计链完整性校验 (owner/admin/auditor 及 audit_view/manage_members)。"""
+    owner = await _owner(request)
+    await _reject_anon(owner)
+    me, svc = _must_member(owner)
+    if not (svc.has(owner, "audit_view") or svc.has(owner, "manage_members")):
+        raise HTTPException(403, "缺少权限 audit_view/manage_members")
+    return {"ok": svc.audit_chain_ok(), "entries": len(svc.audit_trail(limit=200))}
+
+
 @router.get("/audit")
 async def org_audit(request: Request, limit: int = 100):
     """组织操作审计轨迹 (授权可追溯)。"""
