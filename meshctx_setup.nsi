@@ -25,7 +25,7 @@ VIAddVersionKey "FileDescription" "MeshCtx Desktop Installer"
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
-; ═══ 9语言支持（必须在PAGE之后、onInit之前） ═══
+; ═══ 10语言支持（必须在PAGE之后、onInit之前） ═══
 !insertmacro MUI_LANGUAGE "SimpChinese"
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "Japanese"
