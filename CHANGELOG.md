@@ -1,3 +1,13 @@
+## [3.124.2] - 2026-09-06 (v3.124.1 后续收编 — db9fea8e job 限定 checksum 首 tag 验证 + 内容/主页联动)
+### Added / Fixed (004meshctx)
+- CI: linux checksum 步按 job 限定发布资产 (db9fea8e) — 本 tag 首次生效验证, 预期 Release 严格 12+12 无杂散源码 sidecar
+- 主页 (meshctx.com): 新增 f37 Org Governance 组织治理卡 ×10 语言 (a5f7f041), Pages 自动部署
+- BP v3.120: 治理/遥测章节 + Claims Scope 纪律 (78a1175c, E 盘 md+docx)
+- 海外发布包 09-05 更新: 9 草稿版本/口径刷新, 已派 001geo (meshctx_publish_v31241)
+- claims 证据重生成 @11bf9847 (c55231d1); plan §14b R7.2/发版行 (11bf9847/ec1048bd)
+- 版本: 3.124.1→3.124.2 整批 A-J; src 无逻辑改动 (纯版本常量/文档/CI)
+- 测试: 基线 3784 passed/59 skipped; integrity 35 (G10); claims A1=0/A2=0
+
 ## [3.124.1] - 2026-09-05 (治理章节定稿里程碑 — Org Governance 三方审计闭环 + 详情页 ×10 语言 + 营销词 Scope 定稿)
 ### Added / Fixed (004meshctx, 三方审计闭环)
 - Org Governance 组织治理并入治理章节: 组织架构导入 (JSON/CSV/显式 parent_id/防环/同批同名显式失败)
