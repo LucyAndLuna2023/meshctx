@@ -199,6 +199,7 @@
                 <button class="lang-dropdown-toggle" onclick="document.querySelector('.lang-dropdown-menu').classList.toggle('show')" id="langToggle">🌐 EN ▾</button>
                 <div class="lang-dropdown-menu" id="langMenu">
                     <button onclick="switchLang('ar');closeDropdown()">🇸🇦 العربية</button>
+                    <button onclick="switchLang('he');closeDropdown()">🇮🇱 עברית</button>
                     <button onclick="switchLang('de');closeDropdown()">🇩🇪 Deutsch</button>
                     <button class="active" onclick="switchLang('en');closeDropdown()">🇺🇸 English</button>
                     <button onclick="switchLang('es');closeDropdown()">🇪🇸 Español</button>
@@ -484,12 +485,12 @@ function switchLang(lang) {
         // Still update UI elements that don't need translations
         var toggle2 = document.getElementById('langToggle');
         if (toggle2) {
-            var labels2 = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ar:'🇸🇦 العربية',ru:'🇷🇺 Русский'};
+            var labels2 = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ar:'🇸🇦 العربية',he:'🇮🇱 עברית',ru:'🇷🇺 Русский'};
             toggle2.textContent = (labels2[lang]||'🌐 '+lang.toUpperCase())+' ▾';
         }
         return;
     }
-    var labels = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ar:'🇸🇦 العربية',ru:'🇷🇺 Русский'};
+    var labels = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ar:'🇸🇦 العربية',he:'🇮🇱 עברית',ru:'🇷🇺 Русский'};
     // 🔧 BUG-043: null guards for all DOM access
     var toggle = document.getElementById('langToggle');
     if (toggle) toggle.textContent = (labels[lang]||'🌐 '+lang.toUpperCase())+' ▾';
@@ -497,7 +498,7 @@ function switchLang(lang) {
     if (menuBtns.length) menuBtns.forEach(function(b){b.classList.remove('active');});
     for(var i=0;i<menuBtns.length;i++){
         var t=(menuBtns[i].textContent||'').trim();
-        if((lang==='en'&&t.indexOf('English')>=0)||(lang==='zh'&&t.indexOf('中文')>=0)||(lang==='ja'&&t.indexOf('日本語')>=0)||(lang==='ko'&&t.indexOf('한국어')>=0)||(lang==='es'&&t.indexOf('Español')>=0)||(lang==='fr'&&t.indexOf('Français')>=0)||(lang==='de'&&t.indexOf('Deutsch')>=0)||(lang==='it'&&t.indexOf('Italiano')>=0)||(lang==='ar'&&t.indexOf('العربية')>=0)||(lang==='ru'&&t.indexOf('Русский')>=0))
+        if((lang==='en'&&t.indexOf('English')>=0)||(lang==='zh'&&t.indexOf('中文')>=0)||(lang==='ja'&&t.indexOf('日本語')>=0)||(lang==='ko'&&t.indexOf('한국어')>=0)||(lang==='es'&&t.indexOf('Español')>=0)||(lang==='fr'&&t.indexOf('Français')>=0)||(lang==='de'&&t.indexOf('Deutsch')>=0)||(lang==='it'&&t.indexOf('Italiano')>=0)||(lang==='ar'&&t.indexOf('العربية')>=0)||(lang==='he'&&t.indexOf('עברית')>=0)||(lang==='ru'&&t.indexOf('Русский')>=0))
             menuBtns[i].classList.add('active');
     }
     // Show/hide language blocks
@@ -539,7 +540,7 @@ function switchLang(lang) {
         if (val !== undefined) el.placeholder = val;
     });
     // Update html lang attribute
-    if (document.documentElement) { document.documentElement.lang = lang; document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr'; }
+    if (document.documentElement) { document.documentElement.lang = lang; document.documentElement.dir = (lang === 'ar' || lang === 'he') ? 'rtl' : 'ltr'; }
     // Update title and meta description
     var pm = pageMeta[lang] || pageMeta['en'];
     document.title = pm.title;
