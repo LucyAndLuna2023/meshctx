@@ -51,6 +51,7 @@ LANGUAGES = [
     {"code": "it", "name": "Italian", "native": "Italiano", "rtl": False},
     {"code": "ru", "name": "Russian", "native": "Русский", "rtl": False},
     {"code": "ar", "name": "Arabic", "native": "العربية", "rtl": True},
+    {"code": "he", "name": "Hebrew", "native": "עברית", "rtl": True},
 ]
 
 LANGUAGE_CODES = [lang["code"] for lang in LANGUAGES]
