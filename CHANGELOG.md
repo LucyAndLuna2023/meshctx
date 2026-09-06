@@ -1,3 +1,13 @@
+## [3.125.0] - 2026-09-06 (治理加固里程碑 — P1 审计链式防篡改 / P2 记忆保留段 / P3 scope 单一 enforce / P4 GET 走查)
+### Added / Fixed (004meshctx, 三方 rc1 审计通过 54868930/9faa2cab/round29)
+- P1 审计链式防篡改: 审计条目 prev_hash sha256 链 + audit_seal 末条封签 (内存同步,
+  修 002codex faa77549 必修) + audit_chain_ok() + GET /api/org/audit/chain;
+  5 处审计先审计后落盘 (修末次操作审计延迟持久化); bootstrap 入 org_bootstrap 审计
+- P2 记忆 key 前缀加固: dept/system 保留内部 owner 段, 公共 API 5 路由 guard 400
+- P3 scope 单一 enforce: org_dept_gate_ok/is_org_staff 收敛 卡/值守 部门视图门控 (行为零变化)
+- P4 GET 写副作用走查: org/routines/task_cards/memory_api GET 段零写调用
+- 测试: 全量 3790 passed / 59 skipped; org 31 + memory_api 13 + dept 75
+
 ## [3.124.2] - 2026-09-06 (v3.124.1 后续收编 — db9fea8e job 限定 checksum 首 tag 验证 + 内容/主页联动)
 ### Added / Fixed (004meshctx)
 - CI: linux checksum 步按 job 限定发布资产 (db9fea8e) — 本 tag 首次生效验证, 预期 Release 严格 12+12 无杂散源码 sidecar
