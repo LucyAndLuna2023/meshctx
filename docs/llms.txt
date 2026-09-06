@@ -18,7 +18,7 @@ MeshCtx is an open-core, self-adaptive AI agent platform with full-brain emulati
 - 🗂️ Agent Hub / Task Cards: one-line task delegation → background task cards with visible progress; cancel, retry and approve dangerous operations right from the UI or your phone
 - 💳 3 Editions: Personal (free forever, open-core AGPLv3) · Team ($9/user/month) · Enterprise ($29/user/month, SSO + admin controls)
 - 🔌 Plugin Marketplace: 9 built-in capability plugins (messaging / memory / security / monitoring)
-- 🌐 10-language i18n (EN/ZH/JA/KO/FR/DE/ES/IT/AR/RU)
+- 🌐 11-language i18n (EN/ZH/JA/KO/FR/DE/ES/IT/AR/RU/HE)
 - 💻 Windows/Linux cross-platform (macOS pending)
 
 ## Quick Links

@@ -48,7 +48,7 @@ SDM 突破性记忆：稀疏分布式记忆，O(2^1000) 地址空间，比任何
 
 多模型群审：5 模型并行投票，错误率指数级下降（Swarm 模式）
 
-全平台：Windows/macOS/Linux 三平台原生安装包，10 语言 i18n（含俄语、阿拉伯语 RTL）
+全平台：Windows/macOS/Linux 三平台原生安装包，11 语言 i18n（含希伯来语 עברית RTL）
 
 GenomicOptimizer 基因进化引擎：基因组学启发的 Agent 参数进化引擎（遗传算法驱动；进化经 API 受控触发，自动闭环为路线图项）
 
@@ -196,7 +196,7 @@ REST API 全开放：GET /api/genomic/stats、GET /api/genomic/best、POST /api/
   部门视图、部门共享记忆（经理写/成员读/跨部门隔离）
 - 审计与合规导出：敏感操作审计轨迹（actor 归责, cap 200 持久化）+ owner/admin/auditor
   可导出 SOC2 风格 JSONL 证据包（EU AI Act Art.26 对位）
-- 详情页: meshctx.com/governance.html（×10 语言）
+- 详情页: meshctx.com/governance.html（×11 语言）
 
 ### 3.8.2 可观测性（v3.123.0 随 WP1 发布）
 
@@ -204,7 +204,7 @@ REST API 全开放：GET /api/genomic/stats、GET /api/genomic/best、POST /api/
 - 本地 JSONL ~/.meshctx/telemetry.jsonl + >2MB 自动轮转（保留最近 5000 行, 环形上限）
 - HTTP API /api/telemetry/{events,stats,record}（认证 + agent 白名单）; 任务卡整卡 span 埋点
 - OTLP 远程导出：MESHCTX_OTLP_ENDPOINT（默认关零开销, 面向团队/企业自建 collector）
-- 详情页: meshctx.com/telemetry.html（×10 语言）
+- 详情页: meshctx.com/telemetry.html（×11 语言）
 
 ### 3.8.3 声称纪律（Claims Scope, 2026-09-05 定稿）
 
@@ -271,7 +271,7 @@ Free — 个人开发者 · 永久免费
 
 代码沙箱 + 项目索引
 
-10 语言 i18n
+11 语言 i18n
 
 Plugin 市场全部免费插件
 
@@ -375,7 +375,7 @@ MeshCtx 由刘正禹独立创建并持续开发。项目从 v0.1 迭代至 v3.11
 
 📊 因果推理：Pearl do-calculus、反事实推理
 
-🌍 国际化：10 语言 i18n 体系
+🌍 国际化：11 语言 i18n 体系
 
 🧬 进化计算：遗传算法、适应度评估、种群多样性保护
 
