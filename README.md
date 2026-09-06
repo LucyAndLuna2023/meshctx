@@ -71,7 +71,12 @@ meshctx start    # Start web service (http://localhost:3001)
 ```
 
 > macOS 专用脚本: `curl -fsSL .../install-mac.sh | bash`。
-> 安装脚本默认英文显示；支持 9 语言: zh/en/ja/ko/fr/de/es/it/ar。中文用户可显式切回: `MESHCTX_LANG=zh ./install.sh`（macOS 同理 `MESHCTX_LANG=zh ./install-mac.sh`；Windows 同理 `set MESHCTX_LANG=zh && install.bat`）。
+> 安装脚本默认英文显示；Windows 安装器 (NSIS) 支持 10 语言: zh/en/ja/ko/fr/de/es/it/ar/he。中文用户可显式切回: `MESHCTX_LANG=zh ./install.sh`（macOS 同理 `MESHCTX_LANG=zh ./install-mac.sh`；Windows 同理 `set MESHCTX_LANG=zh && install.bat`）。
+
+> 组织治理环境变量 (v3.126.0, org×plan 配置化上限, 默认不设限):
+> - `MESHCTX_ORG_MAX_DEPTS` — 组织部门数上限 (整型>0; 空/0=不设限)。超限: 单建返回 400, 批量导入条目软失败。
+> - `MESHCTX_ORG_MAX_MEMBERS` — 组织成员数上限 (整型>0; 空/0=不设限)。超限: 新成员分配返回 400。
+> 可观测性: `MESHCTX_OTLP_ENDPOINT` 开启 OTLP 导出 (默认关)。
 
 ### From Source
 ```bash
