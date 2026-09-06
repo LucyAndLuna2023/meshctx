@@ -1,4 +1,4 @@
-﻿; meshctx Desktop NSIS v3.115 — 9语言本地化
+﻿; meshctx Desktop NSIS v3.115 — 10语言本地化
 ; MUI_LANGDLL 原生语言选择 → 安装程序启动即弹语言选择框
 Unicode true
 !include "MUI2.nsh"
