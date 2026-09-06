@@ -260,8 +260,10 @@ jobs:
 
       - name: Generate checksums (SOP R5)
         run: |
-          for f in $(ls meshctx* 2>/dev/null); do
-            case "$f" in *.sha256) ;; *) [ -f "$f.sha256" ] || sha256sum "$f" > "$f.sha256" ;; esac
+          # 仅本 job 发布资产 (勿哈希工作区源码文件 meshctx_desktop.py/nsi/spec/yaml → 杂散 sidecar)
+          for f in meshctx-macos${{ matrix.asset_suffix }}.tar.gz meshctx-macos${{ matrix.asset_suffix }}.dmg meshctx-macos-cli${{ matrix.asset_suffix }}.tar.gz; do
+            [ -f "$f" ] || continue
+            [ -f "$f.sha256" ] || sha256sum "$f" > "$f.sha256"
           done
 
       - name: Upload to Release (tag only)
