@@ -175,3 +175,38 @@ class TestRc2Hardening:
                                    params={"q": "私密", "namespace": "docs"})
                 assert rc.json()["results"], "alice 应可检索到自己内容"
 
+
+
+class TestReservedOwnerGuard:
+    """3.125-P2: dept/system 为内部 owner 段, 公共 API 拒绝 (防部门共享记忆 key 碰撞)。"""
+
+    @pytest.fixture()
+    def app_dept(self, isolated):
+        from src.core.memory_api import router
+        import src.core.memory_api as mod
+        a = FastAPI()
+        a.include_router(router)
+
+        async def _owner(request):
+            return request.query_params.get("as", "dept")   # 模拟身份恰好为保留段
+        mod._owner = _owner
+        return a
+
+    async def test_reserved_owner_rejected_all_routes(self, app_dept):
+        async with AsyncClient(transport=ASGITransport(app=app_dept),
+                               base_url="http://t") as c:
+            r = await c.post("/api/v1/memory", json={"text": "x"})
+            assert r.status_code == 400, r.text
+            r = await c.get("/api/v1/memory/search", params={"q": "x"})
+            assert r.status_code == 400, r.text
+            r = await c.get("/api/v1/memory")
+            assert r.status_code == 400, r.text
+            r = await c.delete("/api/v1/memory/abc")
+            assert r.status_code == 400, r.text
+            r = await c.delete("/api/v1/memory")
+            assert r.status_code == 400, r.text
+
+    async def test_normal_owner_unaffected(self, client):
+        async with client as c:
+            r = await c.post("/api/v1/memory", json={"text": "正常记忆"})
+            assert r.status_code == 200, r.text

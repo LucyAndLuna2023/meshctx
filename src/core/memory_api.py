@@ -224,6 +224,16 @@ async def _reject_anon(owner: str):
         raise HTTPException(401, "需要登录 (本机回环可免登录使用)")
 
 
+# 3.125-P2: dept/system 为内部 owner 段 (部门共享记忆/系统预留), 公共 API 一律拒绝
+RESERVED_MEM_OWNERS = ("dept", "system")
+
+
+def _guard_reserved_owner(owner: str):
+    base = str(owner or "").split(":", 1)[0].lower()
+    if base in RESERVED_MEM_OWNERS:
+        raise HTTPException(400, f"保留命名空间 ({base}) 仅内部使用, 公共 API 不可用")
+
+
 def _ns_key(owner: str, ns: str) -> str:
     """内部键 = owner:ns → 跨 owner 天然隔离。"""
     return f"{owner}:{ns}"
@@ -250,6 +260,7 @@ async def memory_store(request: Request):
         raise HTTPException(400, "无效 JSON")
     owner = await _owner(request)
     await _reject_anon(owner)
+    _guard_reserved_owner(owner)
     text = str(body.get("text") or "").strip()
     if not text:
         raise HTTPException(400, "text 不能为空")
@@ -265,6 +276,7 @@ async def memory_search(request: Request, q: str = "", top_k: int = 5,
                         namespace: str = "default"):
     owner = await _owner(request)
     await _reject_anon(owner)
+    _guard_reserved_owner(owner)
     if not q.strip():
         raise HTTPException(400, "q 不能为空")
     ns = _checked_ns(namespace)
@@ -277,6 +289,7 @@ async def memory_search(request: Request, q: str = "", top_k: int = 5,
 async def memory_list(request: Request, namespace: str = "default"):
     owner = await _owner(request)
     await _reject_anon(owner)
+    _guard_reserved_owner(owner)
     ns = _checked_ns(namespace)
     key = _ns_key(owner, ns)
     return {"namespace": ns, "entries": get_memory_service().list_entries(key)}
@@ -287,6 +300,7 @@ async def memory_delete_entry(entry_id: str, request: Request,
                               namespace: str = "default"):
     owner = await _owner(request)
     await _reject_anon(owner)
+    _guard_reserved_owner(owner)
     ns = _checked_ns(namespace)
     key = _ns_key(owner, ns)
     if not get_memory_service().delete_entry(key, entry_id):
@@ -298,6 +312,7 @@ async def memory_delete_entry(entry_id: str, request: Request,
 async def memory_delete_namespace(request: Request, namespace: str = "default"):
     owner = await _owner(request)
     await _reject_anon(owner)
+    _guard_reserved_owner(owner)
     ns = _checked_ns(namespace)
     key = _ns_key(owner, ns)
     removed = get_memory_service().delete_namespace(key)
