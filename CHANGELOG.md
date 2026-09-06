@@ -1,3 +1,14 @@
+## [3.126.0] - 2026-09-06 (希伯来语全量上线 + org×plan 配置化上限)
+### Added / Fixed (004meshctx, he 三方收口放行 b5a1d915/2538089f/round30-33)
+- i18n: 新增第 11 语言希伯来语 (he, RTL) — 服务端 registry 1458 键 / landing 270 / chat 66 /
+  base 126 / 法务 65+71 / 子页×5 / profile; SKU: NSIS MUI Hebrew (10 语言) + macOS
+  CFBundleLocalizations 11; 安装器语言数口径 11 语一致=10; 10 页 RTL dir 含 he; 服务端首屏
+  dir ar|he; llms/BP 10→11; test_hebrew_i18n 回归 8
+- org×plan 联动 (3.126): 配置化上限 env MESHCTX_ORG_MAX_DEPTS/MAX_MEMBERS — 默认不设限
+  零行为变化; 配限后 upsert 单建 400 / import 批内软失败; org caps 测试 3
+- 测试: org 34 + i18n 相关 278 + 全量回归 (基线 3790/59)
+- 版本: 3.125.0→3.126.0 整批 A-J
+
 ## [3.125.0] - 2026-09-06 (治理加固里程碑 — P1 审计链式防篡改 / P2 记忆保留段 / P3 scope 单一 enforce / P4 GET 走查)
 ### Added / Fixed (004meshctx, 三方 rc1 审计通过 54868930/9faa2cab/round29)
 - P1 审计链式防篡改: 审计条目 prev_hash sha256 链 + audit_seal 末条封签 (内存同步,

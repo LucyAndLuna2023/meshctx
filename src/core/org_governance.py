@@ -53,6 +53,21 @@ def _new_id() -> str:
 ROLE_RANK = {"auditor": 1, "member": 2, "manager": 3, "admin": 4, "owner": 5}
 
 
+def _env_cap(name: str):
+    """配置化组织上限 (3.126: org×plan 联动, env 驱动, 0/空=不设限 → 默认零行为变化)。"""
+    v = __import__("os").environ.get(name, "").strip()
+    try:
+        n = int(v)
+    except (TypeError, ValueError):
+        return None
+    return n if n > 0 else None
+
+
+def org_caps() -> Dict[str, Any]:
+    return {"max_depts": _env_cap("MESHCTX_ORG_MAX_DEPTS"),
+            "max_members": _env_cap("MESHCTX_ORG_MAX_MEMBERS")}
+
+
 def role_rank(role: str) -> int:
     return ROLE_RANK.get(role or "member", 2)
 
@@ -209,6 +224,9 @@ class OrgService:
                 if parent_id:
                     d["parent_id"] = parent_id
             else:
+                cap = org_caps()["max_depts"]
+                if cap is not None and len(self._depts) >= cap:
+                    raise ValueError(f"部门数达上限 ({cap}) — 请升级套餐")
                 d = {"id": _new_id(), "name": name, "parent_id": parent_id}
                 self._depts[d["id"]] = d
             self._audit(actor, "dept_upsert", f"{d['name']} ({d['id']})")
@@ -271,8 +289,12 @@ class OrgService:
                     seen_dup.add(name)
                 keep.append((name, pid, pid_id))
             # 两遍: 先注册名称, 再连父
+            cap = org_caps()["max_depts"]
             for name, _, _ in keep:
                 if name in by_name:
+                    continue
+                if cap is not None and len(self._depts) >= cap:
+                    failed += 1            # 3.126 org×plan: 超限条目软失败 (不部分建树)
                     continue
                 did = _new_id()
                 self._depts[did] = {"id": did, "name": name, "parent_id": ""}
@@ -316,6 +338,9 @@ class OrgService:
         with self._lock:
             if dept_id and dept_id not in self._depts:
                 raise ValueError("部门不存在")
+            cap = org_caps()["max_members"]
+            if cap is not None and user_id not in self._members and len(self._members) >= cap:
+                raise ValueError(f"成员数达上限 ({cap}) — 请升级套餐")
             m = {"user_id": user_id, "dept_id": dept_id, "role": role}
             self._members[user_id] = m
             self._audit(actor, "member_set", f"{user_id} role={role} dept={dept_id}")

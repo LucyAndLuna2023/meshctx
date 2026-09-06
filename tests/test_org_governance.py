@@ -630,3 +630,37 @@ class TestAuditChain:
             assert r.status_code == 200 and r.json()["ok"] is True, r.text
             r2 = await c.get("/api/org/audit/chain", params={"as": "eve"})
             assert r2.status_code == 403, r2.text
+
+
+class TestOrgPlanCaps:
+    """3.126 org×plan 联动: env 配置上限 (默认不设限零行为变化, 配限后 400)。"""
+
+    def test_default_unlimited(self, tmp_dir):
+        svc = OrgService(path=tmp_dir / "org.json")
+        svc.ensure_self_bootstrap("alice")
+        for i in range(5):
+            svc.import_depts([{"name": f"部门{i}", "parent": "总部"}], actor="alice")
+        assert len(svc.list_depts()) >= 6   # free 默认无上限
+
+    def test_dept_cap_env(self, tmp_dir, monkeypatch):
+        monkeypatch.setenv("MESHCTX_ORG_MAX_DEPTS", "2")
+        svc = OrgService(path=tmp_dir / "org.json")
+        svc.ensure_self_bootstrap("alice")   # 总部 root=1
+        svc.import_depts([{"name": "研发部", "parent": "总部"}], actor="alice")  # 2
+        res = svc.import_depts([{"name": "市场部", "parent": "总部"}], actor="alice")  # >cap → 软失败
+        assert res["failed"] == 1 and res["created"] == 0
+        assert len(svc.list_depts()) == 2
+        # upsert 单建超限 → ValueError (API 400)
+        import pytest as _p
+        with _p.raises(ValueError):
+            svc.upsert_dept("市场部")
+
+    def test_member_cap_env(self, tmp_dir, monkeypatch):
+        monkeypatch.setenv("MESHCTX_ORG_MAX_MEMBERS", "2")
+        svc = OrgService(path=tmp_dir / "org.json")
+        svc.ensure_self_bootstrap("alice")   # owner=1
+        svc.set_member("bob", "", "member")   # 2
+        import pytest as _p
+        with _p.raises(ValueError):
+            svc.set_member("carol", "", "member")   # 3 > cap
+        assert svc.member("carol") is None
