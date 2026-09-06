@@ -267,7 +267,9 @@
   "f35_title": "Observable Traces",
   "f35_desc": "Every card run, tool call and approval carries a trace; local JSONL or OTLP export.",
   "f36_title": "Official Benchmarks",
-  "f36_desc": "SWE-bench Verified / GAIA / LongMemEval harness with disciplined self-run vs official reporting."
+  "f36_desc": "SWE-bench Verified / GAIA / LongMemEval harness with disciplined self-run vs official reporting.",
+  "f37_title": "Org Governance",
+  "f37_desc": "For teams & enterprises: import your org structure (JSON/CSV), grant roles from owner to auditor, and keep task cards, routines and shared memory scoped per department — every step auditable and exportable."
  },
  "zh": {
   "hero_title": "会<span>学习</span>的智能体",
@@ -537,7 +539,9 @@
   "f35_title": "全链路可观测",
   "f35_desc": "每张卡执行、工具调用与审批都带 trace；本地 JSONL 或 OTLP 导出。",
   "f36_title": "官方评测公信力",
-  "f36_desc": "SWE-bench Verified / GAIA / LongMemEval harness——自测与官方提交分口径呈现。"
+  "f36_desc": "SWE-bench Verified / GAIA / LongMemEval harness——自测与官方提交分口径呈现。",
+  "f37_title": "组织治理",
+  "f37_desc": "团队与企业版：组织架构导入(JSON/CSV)、RBAC 授权(owner→auditor)、任务卡/值守/部门记忆按部门数据权限隔离 —— 全程可审计、可导出。"
  },
  "fr": {
   "hero_title": "L'Agent qui <span>Apprend</span>",
@@ -807,7 +811,9 @@
   "f35_title": "Traces observables",
   "f35_desc": "Chaque exécution, appel d’outil et approbation porte une trace; JSONL local ou OTLP.",
   "f36_title": "Benchmarks officiels",
-  "f36_desc": "Harness SWE-bench Verified / GAIA / LongMemEval — auto-run vs soumission officielle séparés."
+  "f36_desc": "Harness SWE-bench Verified / GAIA / LongMemEval — auto-run vs soumission officielle séparés.",
+  "f37_title": "Gouvernance d'organisation",
+  "f37_desc": "Pour équipes & entreprises : importez la structure (JSON/CSV), attribuez des rôles de owner à auditor, et gardez cartes, routines et mémoire partagée scopées par service — chaque étape est traçable et exportable."
  },
  "de": {
   "hero_title": "Der Agent, der <span>lernt</span>",
@@ -1077,7 +1083,9 @@
   "f35_title": "Observable Traces",
   "f35_desc": "Jeder Kartenlauf, Tool-Aufruf und jede Freigabe trägt eine Trace; lokal JSONL oder OTLP.",
   "f36_title": "Offizielle Benchmarks",
-  "f36_desc": "SWE-bench Verified / GAIA / LongMemEval Harness — Selbstlauf vs offizielle Einreichung getrennt."
+  "f36_desc": "SWE-bench Verified / GAIA / LongMemEval Harness — Selbstlauf vs offizielle Einreichung getrennt.",
+  "f37_title": "Organisations-Governance",
+  "f37_desc": "Für Teams & Unternehmen: Struktur importieren (JSON/CSV), Rollen von Owner bis Auditor vergeben und Task-Karten, Routinen und gemeinsamen Speicher je Abteilung berechtigen — jeder Schritt prüf- und exportierbar."
  },
  "ja": {
   "hero_title": "学習する<span>エージェント</span>",
@@ -1347,7 +1355,9 @@
   "f35_title": "トレース可観測",
   "f35_desc": "カード実行・ツール呼び出し・承認にすべて trace — ローカル JSONL か OTLP 出力。",
   "f36_title": "公式ベンチマーク",
-  "f36_desc": "SWE-bench Verified / GAIA / LongMemEval ハーネス — 自走と公式提出を区分して報告。"
+  "f36_desc": "SWE-bench Verified / GAIA / LongMemEval ハーネス — 自走と公式提出を区分して報告。",
+  "f37_title": "組織ガバナンス",
+  "f37_desc": "チーム・企業向け: 組織構造のインポート(JSON/CSV)、ロール付与(owner→auditor)、タスクカード・ルーティン・共有メモリを部門データ権限ごとに分離 — すべて監査・出力可能。"
  },
  "ko": {
   "hero_title": "학습하는 <span>에이전트</span>",
@@ -1617,7 +1627,9 @@
   "f35_title": "추적 가능한 관측성",
   "f35_desc": "모든 카드 실행·도구 호출·승인에 trace — 로컬 JSONL 또는 OTLP.",
   "f36_title": "공식 벤치마크",
-  "f36_desc": "SWE-bench Verified / GAIA / LongMemEval 하네스 — 자체 실행과 공식 제출 구분 보고."
+  "f36_desc": "SWE-bench Verified / GAIA / LongMemEval 하네스 — 자체 실행과 공식 제출 구분 보고.",
+  "f37_title": "조직 거버넌스",
+  "f37_desc": "팀/엔터프라이즈용: 조직 구조 가져오기(JSON/CSV), 역할 부여(owner→auditor), 작업 카드·루틴·공유 메모리를 부서 데이터 권한으로 격리 — 전 과정 감사·내보내기 가능."
  },
  "es": {
   "hero_title": "El Agente que <span>Aprende</span>",
@@ -1887,7 +1899,9 @@
   "f35_title": "Trazas observables",
   "f35_desc": "Cada ejecución, llamada y aprobación lleva traza; JSONL local o export OTLP.",
   "f36_title": "Benchmarks oficiales",
-  "f36_desc": "Harness SWE-bench Verified / GAIA / LongMemEval — auto-ejecución vs envío oficial por separado."
+  "f36_desc": "Harness SWE-bench Verified / GAIA / LongMemEval — auto-ejecución vs envío oficial por separado.",
+  "f37_title": "Gobernanza de organización",
+  "f37_desc": "Para equipos y empresas: importe la estructura (JSON/CSV), conceda roles de owner a auditor y mantenga tarjetas, rutinas y memoria compartida con alcance por departamento — todo trazable y exportable."
  },
  "it": {
   "hero_title": "L'Agente Che <span>Impara</span>",
@@ -2157,7 +2171,9 @@
   "f35_title": "Trace osservabili",
   "f35_desc": "Ogni esecuzione, chiamata e approvazione porta una trace; JSONL locale o export OTLP.",
   "f36_title": "Benchmark ufficiali",
-  "f36_desc": "Harness SWE-bench Verified / GAIA / LongMemEval — auto-run vs submission ufficiale separati."
+  "f36_desc": "Harness SWE-bench Verified / GAIA / LongMemEval — auto-run vs submission ufficiale separati.",
+  "f37_title": "Governance organizzativa",
+  "f37_desc": "Per team e aziende: importa la struttura (JSON/CSV), assegna ruoli da owner ad auditor e tieni task card, routine e memoria condivisa con ambito per reparto — ogni passo tracciabile ed esportabile."
  },
  "ar": {
   "hero_title": "الوكيل الذي <span>يتعلّم</span>",
@@ -2427,7 +2443,9 @@
   "f35_title": "تتبع قابل للملاحظة",
   "f35_desc": "كل تنفيذ واستدعاء وموافقة يحمل trace — JSONL محلي أو تصدير OTLP.",
   "f36_title": "معايير رسمية",
-  "f36_desc": "أدوات SWE-bench Verified / GAIA / LongMemEval — فصل التشغيل الذاتي عن التقديم الرسمي."
+  "f36_desc": "أدوات SWE-bench Verified / GAIA / LongMemEval — فصل التشغيل الذاتي عن التقديم الرسمي.",
+  "f37_title": "حوكمة المنظمة",
+  "f37_desc": "للفرق والمؤسسات: استورد هيكل المنظمة (JSON/CSV)، ومنح الأدوار من owner إلى auditor، وأبقِ بطاقات المهام والروتينات والذاكرة المشتركة بنطاق القسم — كل خطوة قابلة للتدقيق والتصدير."
  },
  "ru": {
   "hero_title": "Агент, который <span>учится</span>",
@@ -2697,6 +2715,8 @@
   "f35_title": "Наблюдаемые трейсы",
   "f35_desc": "Каждый запуск, вызов и одобрение несёт trace; локальный JSONL или OTLP.",
   "f36_title": "Официальные бенчмарки",
-  "f36_desc": "Harness SWE-bench Verified / GAIA / LongMemEval — самозапуск и официальная подача раздельно."
+  "f36_desc": "Harness SWE-bench Verified / GAIA / LongMemEval — самозапуск и официальная подача раздельно.",
+  "f37_title": "Управление организацией",
+  "f37_desc": "Для команд и компаний: импорт структуры (JSON/CSV), роли от owner до auditor; карточки задач, рутины и общая память — по правам доступа отделов; каждый шаг подлежит аудиту и экспорту."
  }
 }
