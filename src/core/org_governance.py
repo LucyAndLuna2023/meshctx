@@ -166,7 +166,19 @@ class OrgService:
                 # 3.127-P1: 外部 seal 文件锚定 (优先于文件内 seal)
                 ext_seal_path = self._path.parent / (self._path.name + ".seal")
                 if ext_seal_path.exists():
-                    self._audit_seal = ext_seal_path.read_text(encoding="utf-8").strip()
+                    ext_seal = ext_seal_path.read_text(encoding="utf-8").strip()
+                    # 3.128-P3 (002codex 72372a1a): mixed-version 自愈 — 若 org.json
+                    # 比 .seal 新 (旧进程写了 org.json 未更新 .seal) → 采用文件内新 seal,
+                    # 避免重载假阳性 chain_ok False; 否则 (攻击者改 .seal / 正常单版本)
+                    # 采用外部 seal (篡改仍可检出)
+                    try:
+                        json_newer = self._path.stat().st_mtime > ext_seal_path.stat().st_mtime
+                    except OSError:
+                        json_newer = False
+                    if json_newer and data.get("audit_seal"):
+                        logger.debug("org seal: org.json 新于 .seal (mixed-version) → 采用文件内 seal")
+                    else:
+                        self._audit_seal = ext_seal
         except Exception:
             logger.debug("org load failed", exc_info=True)
 
