@@ -337,7 +337,9 @@ async def org_audit(request: Request, limit: int = 100):
 
 # ── 部门共享记忆 (数据权限落地: 部门成员可见/可协作) ──────────
 def _dept_mem_key(dept_id: str) -> str:
-    return f"dept:{dept_id}"
+    """3.127-P2: DEPT_MEM_OWNER 从 memory_api 集中定义 (防多处硬编码漏配)。"""
+    from src.core.memory_api import DEPT_MEM_OWNER
+    return f"{DEPT_MEM_OWNER}:{dept_id}"
 
 
 @router.post("/memory")

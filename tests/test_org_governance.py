@@ -664,3 +664,41 @@ class TestOrgPlanCaps:
         with _p.raises(ValueError):
             svc.set_member("carol", "", "member")   # 3 > cap
         assert svc.member("carol") is None
+
+
+class TestExternalSealAnchor:
+    """3.127-P1: seal 外部锚定 — 独立文件防同文件篡改。"""
+
+    def test_external_seal_written(self, tmp_dir):
+        svc = OrgService(path=tmp_dir / "org.json")
+        svc.ensure_self_bootstrap("alice")
+        seal_path = tmp_dir / "org.json.seal"
+        assert seal_path.exists(), "外部 seal 文件应在 _save 后生成"
+        # 内容 = 末条 chain_hash
+        trail = svc.audit_trail(limit=1)
+        from src.core.org_governance import _chain_hash
+        expected = _chain_hash({"ts": trail[0]["ts"], "user": trail[0]["user"],
+                                "action": trail[0]["action"],
+                                "detail": trail[0]["detail"]})
+        assert seal_path.read_text().strip() == expected
+
+    def test_external_seal_tamper_detected(self, tmp_dir):
+        svc = OrgService(path=tmp_dir / "org.json")
+        svc.ensure_self_bootstrap("alice")
+        svc.import_depts([{"name": "研发部", "parent": "总部"}], actor="alice")
+        # 篡改外部 seal → chain_ok False
+        seal_path = tmp_dir / "org.json.seal"
+        seal_path.write_text("0" * 64, encoding="utf-8")
+        svc2 = OrgService(path=tmp_dir / "org.json")
+        assert svc2.audit_chain_ok() is False
+
+    def test_external_seal_regen_after_save(self, tmp_dir):
+        svc = OrgService(path=tmp_dir / "org.json")
+        svc.ensure_self_bootstrap("alice")
+        svc.import_depts([{"name": "研发部", "parent": "总部"}], actor="alice")
+        seal_path = tmp_dir / "org.json.seal"
+        old_seal = seal_path.read_text().strip()
+        svc.set_member("bob", "", "member", actor="alice")   # 再审计 → seal 更新
+        new_seal = seal_path.read_text().strip()
+        assert new_seal != old_seal
+        assert svc.audit_chain_ok() is True

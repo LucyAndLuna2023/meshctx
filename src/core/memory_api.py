@@ -224,8 +224,10 @@ async def _reject_anon(owner: str):
         raise HTTPException(401, "需要登录 (本机回环可免登录使用)")
 
 
-# 3.125-P2: dept/system 为内部 owner 段 (部门共享记忆/系统预留), 公共 API 一律拒绝
+# 3.125-P2 + 3.127-P2 (002codex P-项): 保留 owner 段集中定义
+# dept = 部门共享记忆 (org_api _dept_mem_key 引用此常量); system = 系统预留
 RESERVED_MEM_OWNERS = ("dept", "system")
+DEPT_MEM_OWNER = "dept"
 
 
 def _guard_reserved_owner(owner: str):

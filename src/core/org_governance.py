@@ -163,6 +163,10 @@ class OrgService:
                     self._role_perms[r] = set(rp.get(r, list(DEFAULT_ROLE_PERMS[r])))
                 self._audit_trail = data.get("audit") or []
                 self._audit_seal = data.get("audit_seal") or ""
+                # 3.127-P1: 外部 seal 文件锚定 (优先于文件内 seal)
+                ext_seal_path = self._path.parent / (self._path.name + ".seal")
+                if ext_seal_path.exists():
+                    self._audit_seal = ext_seal_path.read_text(encoding="utf-8").strip()
         except Exception:
             logger.debug("org load failed", exc_info=True)
 
@@ -178,6 +182,12 @@ class OrgService:
                 "audit_seal": self._audit_seal},
                 ensure_ascii=False, indent=1), encoding="utf-8")
             os.replace(tmp, self._path)
+            # 3.127-P1: 外部锚定 — seal 写独立文件 (防同文件篡改, 002codex P-项)
+            seal_path = self._path.parent / (self._path.name + ".seal")
+            if self._audit_trail:
+                seal_path.write_text(_chain_hash(self._audit_trail[-1]), encoding="utf-8")
+            elif seal_path.exists():
+                seal_path.unlink(missing_ok=True)
         except Exception:
             logger.exception("org save failed")
             try: tmp.unlink(missing_ok=True)
