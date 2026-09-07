@@ -1444,6 +1444,48 @@ function changeLang(lang) {
   if (sel) sel.value = lang;
 }
 
+// ── 自动吸底到最新回复 (macOS/Windows/Linux 共用修复, 2026-09) ──
+// 流式期间已逐 token 滚动; 此处兜底: markdown/代码块/图片晚渲染增高后仍吸底,
+// 用户上滑(>40px 未到底)时暂停, 新消息/新回复恢复吸底。
+(function () {
+  var stick = true;
+  function box() { return document.getElementById('messages'); }
+  function pin() { var e = box(); if (e && stick) e.scrollTop = e.scrollHeight; }
+  function nearBottom() {
+    var e = box(); if (!e) return true;
+    return e.scrollTop + e.clientHeight >= e.scrollHeight - 40;
+  }
+  ['wheel', 'touchmove'].forEach(function (ev) {
+    document.addEventListener(ev, function () { stick = nearBottom(); }, { passive: true });
+  });
+  var timer = null;
+  function debouncedPin() {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(pin, 120);           // 晚渲染(图片/代码高亮)后再吸底
+  }
+  function arm() {
+    var e = box(); if (!e) return;
+    pin();
+    if (window.MutationObserver) {
+      new MutationObserver(function (muts) {
+        for (var i = 0; i < muts.length; i++) {
+          for (var j = 0; j < muts[i].addedNodes.length; j++) {
+            var nd = muts[i].addedNodes[j];
+            if (nd.nodeType === 1 && (nd.classList && (nd.classList.contains('msg') || nd.classList.contains('typing')))) {
+              stick = true;                 // 新用户消息/打字指示/新回复 → 恢复吸底
+              break;
+            }
+          }
+        }
+        debouncedPin();
+      }).observe(e, { childList: true, subtree: true, characterData: true });
+    }
+    window.addEventListener('resize', debouncedPin);
+  }
+  if (document.readyState !== 'loading') arm();
+  else document.addEventListener('DOMContentLoaded', arm);
+})();
+
 // Restore saved language on load
 const savedLang = localStorage.getItem('meshctx-lang') || 'en';
 changeLang(savedLang);
