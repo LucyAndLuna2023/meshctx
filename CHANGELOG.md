@@ -1,3 +1,14 @@
+## [3.127.0] - 2026-09-06 (审计 P-项 + chat 自动吸底)
+### Fixed / Added (004meshctx)
+- 3.127-P1 seal 外部锚定: org 审计 seal 写独立文件 {org.json}.seal (防同文件篡改);
+  _load 优先读外部 seal; TestExternalSealAnchor×3
+- 3.127-P2 保留段集中定义: DEPT_MEM_OWNER 定义于 memory_api, org_api _dept_mem_key 引用
+  (防硬编码漏配)
+- chat 自动吸底: MutationObserver 兜底 (晚渲染增高后 120ms 再吸底), 用户上滑暂停跟随,
+  新消息/新回复恢复吸底 (三平台共用 chat.html)
+- README: 安装器语言数 10 含 he + org×plan env 上限说明
+- 测试: org 37 + 全量回归 (3803 基线 + 本批)
+
 ## [3.126.0] - 2026-09-06 (希伯来语全量上线 + org×plan 配置化上限)
 ### Added / Fixed (004meshctx, he 三方收口放行 b5a1d915/2538089f/round30-33)
 - i18n: 新增第 11 语言希伯来语 (he, RTL) — 服务端 registry 1458 键 / landing 270 / chat 66 /
