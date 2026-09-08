@@ -2791,6 +2791,16 @@ async def add_model(request: Request):
     config.setdefault("models", {})
     config["models"].setdefault("entries", {})
     
+    # 3.127+ 手动添加: key 留空时回退 provider_config.json 同供应商已配 key
+    # (用户在 UI 配过 Zhipu/DeepSeek key 后, 手动输入该供应商任意新模型即开箱可用)
+    if not api_key:
+        try:
+            _pc_key = (_load_provider_config().get(provider) or {}).get("key", "")
+            if _pc_key:
+                api_key = _pc_key
+        except Exception:
+            logger.debug("provider key 回退失败", exc_info=True)
+    
     if model_id in config["models"]["entries"] and not body.get("overwrite"):
         raise HTTPException(409, f"模型 {model_id} 已存在，使用 overwrite=true 覆盖")
     

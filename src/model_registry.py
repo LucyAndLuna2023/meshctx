@@ -136,6 +136,8 @@ BUILTIN_MODELS = {
     "zhipu:glm-4-long":        {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4-long","key_env":"ZHIPU_API_KEY"},
     "zhipu:glm-4-plus-0111":   {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4-plus-0111","key_env":"ZHIPU_API_KEY"},
     "zhipu:glm-zero-preview":  {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-zero-preview","key_env":"ZHIPU_API_KEY"},
+    "zhipu:glm-4.7":           {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4.7","key_env":"ZHIPU_API_KEY"},
+    "zhipu:glm-4.7-flash":     {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4.7-flash","key_env":"ZHIPU_API_KEY"},
     # ── 月之暗面 (Kimi) ────────────────────────────────
     "moonshot:kimi":           {"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"moonshot-v1-8k","key_env":"MOONSHOT_API_KEY"},
     "moonshot:kimi-32k":       {"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"moonshot-v1-32k","key_env":"MOONSHOT_API_KEY"},

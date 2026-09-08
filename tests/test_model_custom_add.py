@@ -79,3 +79,32 @@ def test_no_test_pollution_in_real_config():
     entries = (d.get('models') or {}).get('entries') or {}
     bad = [k for k in entries if k in ('custom:my-model', 'custom:no-url')]
     assert not bad, f'真实配置被测试污染: {bad}'
+
+
+class TestProviderKeyFallback:
+    """3.127 手动输入任意模型 (如 zhipu:glm-4.7) — key 留空回退 provider_config 已配 key。"""
+
+    def test_add_zhipu_47_falls_back_to_provider_key(self, monkeypatch):
+        tmp = tempfile.mkdtemp(prefix="meshcfg_")
+        cfg = __import__("pathlib").Path(tmp) / "config.yaml"
+        _patch = lambda profile=None: cfg
+        monkeypatch.setattr("src.main.get_config_path", _patch)
+        monkeypatch.setattr("src.model_registry.get_config_path", _patch)
+        monkeypatch.setattr("src.config.get_config_path", _patch)
+        monkeypatch.setattr("src.main._load_provider_config",
+                            lambda: {"zhipu": {"key": "zhipu-configured-key"}})
+        monkeypatch.delenv("ZHIPU_API_KEY", raising=False)
+        from src.main import app
+        from fastapi.testclient import TestClient
+        client = TestClient(app)
+        r = client.post("/api/models", json={
+            "id": "zhipu:glm-4.7", "provider": "zhipu",
+            "model": "glm-4.7", "key": ""})   # key 留空
+        assert r.status_code == 200, r.text
+        data = client.get("/api/models").json()
+        mine = [m for m in data["models"] if m["id"] == "zhipu:glm-4.7"]
+        assert mine and mine[0]["configured"], r.text
+        # 落盘 key 应为回退后的 provider key (加密后)
+        import yaml as _y
+        saved = _y.safe_load(open(cfg, encoding='utf-8'))
+        assert saved["models"]["entries"]["zhipu:glm-4.7"]["key"]
