@@ -126,6 +126,16 @@ BUILTIN_MODELS = {
     "zhipu:glm-4-flash":       {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4-flash","key_env":"ZHIPU_API_KEY"},
     "zhipu:glm-4-air":         {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4-air","key_env":"ZHIPU_API_KEY"},
     "zhipu:glm-4-flashx":      {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4-flashx","key_env":"ZHIPU_API_KEY"},
+    # 3.126+ 新增智谱新模型 (用户反馈: 配 key 后默认模型不全)
+    "zhipu:glm-4.5":           {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4.5","key_env":"ZHIPU_API_KEY"},
+    "zhipu:glm-4.5-air":       {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4.5-air","key_env":"ZHIPU_API_KEY"},
+    "zhipu:glm-4.5-flash":     {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4.5-flash","key_env":"ZHIPU_API_KEY"},
+    "zhipu:glm-4.5v":          {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4.5v","key_env":"ZHIPU_API_KEY"},
+    "zhipu:glm-4.6":           {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4.6","key_env":"ZHIPU_API_KEY"},
+    "zhipu:glm-4-flash-250414":{"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4-flash-250414","key_env":"ZHIPU_API_KEY"},
+    "zhipu:glm-4-long":        {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4-long","key_env":"ZHIPU_API_KEY"},
+    "zhipu:glm-4-plus-0111":   {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4-plus-0111","key_env":"ZHIPU_API_KEY"},
+    "zhipu:glm-zero-preview":  {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-zero-preview","key_env":"ZHIPU_API_KEY"},
     # ── 月之暗面 (Kimi) ────────────────────────────────
     "moonshot:kimi":           {"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"moonshot-v1-8k","key_env":"MOONSHOT_API_KEY"},
     "moonshot:kimi-32k":       {"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"moonshot-v1-32k","key_env":"MOONSHOT_API_KEY"},
