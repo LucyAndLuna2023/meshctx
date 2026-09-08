@@ -1,3 +1,17 @@
+## [3.128.0] - 2026-09-07 (org seal mixed-version 自愈 + 手动添加任意模型)
+### Added / Fixed (004meshctx)
+- 3.128-P3 org seal mixed-version 自愈 (002codex 72372a1a P3②): 旧进程写 org.json
+  未更新 .seal → 重载假阳性修复 (_load 按 mtime 选择文件内/外部 seal);
+  TestSealMixedVersion×2; .seal 整删/锚定史 = 已知限制 (spec v0.4)
+- 手动添加任意模型 (像 DeepSeek Harness): chat ➕ 模态 (provider datalist/id/name/
+  key/base_url) → POST /api/models → 自动切换; key 留空回退 provider_config.json
+  同供应商已配 key (开箱可用); 测试 TestCustomModelAdd/TestProviderKeyFallback
+- zhipu builtin 补全: glm-4.5/4.5-air/4.5-flash/4.5v/4.6/4-flash-250414/4-long/
+  4-plus-0111/glm-zero-preview/glm-4.7/glm-4.7-flash (共 16 款)
+- chat ➕ 入口文案 ×11 语言; providerIcon +zhipu/custom
+- 测试: model_custom_add 6 + org 39 + 全量回归基线 3812/59
+- 版本: 3.127.0→3.128.0 整批 A-J
+
 ## [3.127.0] - 2026-09-06 (审计 P-项 + chat 自动吸底)
 ### Fixed / Added (004meshctx)
 - 3.127-P1 seal 外部锚定: org 审计 seal 写独立文件 {org.json}.seal (防同文件篡改);

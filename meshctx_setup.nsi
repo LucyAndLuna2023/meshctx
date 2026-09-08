@@ -12,10 +12,10 @@ RequestExecutionLevel admin
 !define MUI_ICON "logo.ico"
 !define MUI_UNICON "logo.ico"
 
-!define VERSION "3.127.0"
-VIProductVersion "3.127.0.0"
-VIAddVersionKey "FileVersion" "3.127.0"
-VIAddVersionKey "ProductVersion" "3.127.0"
+!define VERSION "3.128.0"
+VIProductVersion "3.128.0.0"
+VIAddVersionKey "FileVersion" "3.128.0"
+VIAddVersionKey "ProductVersion" "3.128.0"
 VIAddVersionKey "ProductName" "MeshCtx Desktop"
 VIAddVersionKey "FileDescription" "MeshCtx Desktop Installer"
 
