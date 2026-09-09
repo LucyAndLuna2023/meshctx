@@ -27,7 +27,7 @@
 改 docs/ 主页 hero/about/features 排序 ×11 语言 + llms.txt + BP v3.121。
 技术架构不变（脑区=实现层），变的是**对外故事**。
 
-## 2. Unified AgentTask Schema（v3.130 代码）
+## 2. Unified UnifiedTask Schema（v3.130 代码）
 
 ### 2.1 现有 TaskCard vs 目标 AgentTask
 
@@ -40,23 +40,23 @@
 | extra.swarm_plan | plan[] | 结构化子任务 |
 | (无) | tools[] | **新增**：工具白名单 |
 | (无) | risk | **新增**：风险等级 |
-| plan(免费配额) | budget | **新增**：token/cost 预算 |
+| plan (订阅层级) | plan (保留原义) | 不迁移, PLAN_LIMITS 独立 |
 | status | status | 保持 |
 | result | result | 保持 |
-| (无, 走 telemetry) | trace_id | **新增**：链路关联 |
+| extra.trace_id (v3.128 OTLP) | trace_id | 迁移映射, 复用勿新造 |
 | (无) | learning | **新增**：执行后学习记录 |
 
 ### 2.2 实现方案
 
-- `src/core/agent_task.py` — AgentTask dataclass（向后兼容 TaskCard，双写迁移）
-- `AgentTask.to_taskcard()` — 与现有 CardWorker 兼容
-- `AgentTaskSchema.validate()` — JSON Schema 校验
+- `src/core/unified_task.py` — UnifiedTask dataclass（向后兼容 TaskCard，双写迁移）
+- `UnifiedTask.to_taskcard()` — 与现有 CardWorker 兼容
+- `UnifiedTaskSchema.validate()` — JSON Schema 校验
 - Lifecycle 常量：`UNDERSTAND → RETRIEVE → PLAN → DECOMPOSE → EXECUTE → VERIFY → APPROVE → COMMIT → LEARN → STORE`
 - 每阶段 hook 接口（现有 approval/quota/telemetry 已覆盖 5/10）
 
 ### 2.3 交付物
 
-- `src/core/agent_task.py` (新增, ~150 行)
+- `src/core/unified_task.py` (新增, ~150 行)
 - `tests/test_agent_task.py` (schema/lifecycle/TaskCard 兼容)
 - 现有 TaskCard 路径不破坏 (加法式)
 
@@ -64,16 +64,16 @@
 
 ### 3.1 从综合分 → 领域分
 
-| 维度 | 当前值 | 展示方式 |
+| 维度 | 实测值 | 溯源 |
 |---|---|---|
-| Memory Recall | 94% | 独立展示 (SDM 优势) |
-| Task Completion | 86% | 独立展示 |
-| Error Recovery | 91% | 独立展示 |
-| Safety | 98% | 独立展示 (SDB/治理优势) |
-| Latency | 42ms | 性能指标 |
-| Token Reduction | 60% | 成本优势 |
+| LongMemEval Memory | EM 54.2% (oracle 上限) / 语义 83.3% | docs/reports/…v4.md 2026-08-19 |
+| GAIA Task Completion | 75% (6/8, L1 100% L2 67% L3 50%) | benchmarks/results/gaia_report_2026-08-18 |
+| Error Recovery | 6 项根因修复 → GAIA 37.5%→75% | 同上 (dc4a371 评分器修复链) |
+| SDB Safety | 85.43/100 (A-grade) | src/core/sdb* + brain_benchmark |
+| Token Reduction | T2 压缩 -95.5% (单样本) | 同 v4 报告 |
 
-→ 主页 benchmark 区块改表格式（×11 语言）；综合分不再作为首屏指标。
+→ 主页 benchmark 区块改表格式（×11 语言），标注口径+日期；综合分不作为首屏指标。
+⚠️ 原"94%/86%/91%/98%/42ms/60%" 六项无溯源 (002meshctx b16ac51b/002codex 3d6ffcec 确认) → 全部替换为上表真实数。
 
 ### 3.2 交付物
 
@@ -112,15 +112,28 @@
 
 | Sprint | 内容 | 发版 |
 |---|---|---|
-| v3.130.0 | AgentTask Schema + 主页叙事重写 + Benchmark 重构 + 11 语言 | rc → tag |
+| v3.130.0 | UnifiedTask Schema + 主页叙事重写 + Benchmark 重构 + 11 语言 | rc → tag |
 | v3.131.0 | MeshCtx SDK (`pip install meshctx`) + Task API v1 | rc → tag |
 | v3.132.0 | Agent Marketplace MVP + Compute 抽象层预留 | rc → tag |
 
 ## 7. 审计送审项
 
-①AgentTask Schema 完整性与 TaskCard 兼容性 ②主页叙事 ×11 语言质量 ③Benchmark 数据真实性
+①UnifiedTask Schema 完整性与 TaskCard 兼容性 ②主页叙事 ×11 语言质量 ③Benchmark 数据真实性
 ④版本 single-source-of-truth 确认 ⑤不破坏现有 3823 测试基线
 
 ---
 
-— 004deepseek/004meshctx 2026-09-09 · 待三方审计
+## 8. 三方审计修正 (2026-09-09 首轮)
+
+- 002codex 3d6ffcec: AgentTask 不得与 src/core/agent_tasks.py 冲突 → 改名 UnifiedTask;
+  trace_id 迁移映射非新造; tools[] 服务端白名单强校验; budget 接 quota 硬停止;
+  Benchmark 须 evidence artifact 否则标 roadmap/internal estimate
+- 002meshctx b16ac51b: Memory 94% 疑似竞品 Mem0 自报数字; LongMemEval EM≈50-54% 才是实测;
+  10 阶段须映射 CardStatus 6 态; budget 结构化 {max_tokens, max_seconds};
+  plan 字段保留原义 (PLAN_LIMITS/worker 使用)
+- 004meshctx 10259b9f: src/core/agent_tasks.py (复数) 已存在 = 必须声明 UnifiedTask
+  为适配层 (非第三套状态机); budget/plan 解耦; Benchmark 6 数字查无出处 → 阻塞
+
+以上全部纳入本修正版。Benchmark 用真实可溯源数据 (上表)。
+
+— 004deepseek/004meshctx 2026-09-09 · v0.2 修正版 · 待三方复审
