@@ -110,10 +110,20 @@ def _is_loopback_client(request: Request) -> bool:
     MESHCTX_PASSWORD 在服务进程 env 时所有 /api/* 一律 401，本地浏览器无
     session cookie，chat.html 收到非 SSE 的 401 JSON 静默显示"[无响应]"。
     认证只保护远程/LAN 访问；本机 UI 不应被密码锁死。
+
+    v3.131 加固 (2026-09-09, Linux 本地 UI 需登录 bug):
+    - request.client 为 None (UDS/内部调用) → 视为本地
+    - IPv6 回环展开形式 0:0:0:0:0:0:0:1 (部分 Linux 协议栈上报展开式) → 视为本地
+    - zone 后缀 (::1%1) 剥离后再比对
     """
     client = getattr(request, "client", None)
-    host = getattr(client, "host", "") if client else ""
-    return host in ("127.0.0.1", "::1", "localhost", "::ffff:127.0.0.1")
+    if client is None:
+        return True  # 无对端信息 (UDS/进程内调用) — 服务器自行绑定, 视为可信本地
+    host = (getattr(client, "host", "") or "").lower()
+    if "%" in host:  # 剥离 IPv6 zone (如 ::1%eth0)
+        host = host.split("%", 1)[0]
+    return host in ("127.0.0.1", "::1", "localhost", "::ffff:127.0.0.1",
+                    "0:0:0:0:0:0:0:1")
 
 async def _authenticate(request: Request):
     """
