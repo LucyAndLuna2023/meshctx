@@ -10,17 +10,31 @@ BASE = "http://127.0.0.1:3001"
 
 
 def _service_up(host: str = "127.0.0.1", port: int = 3001, timeout: float = 0.5) -> bool:
-    """检测 meshctx 服务是否已启动（e2e 集成测试前置条件）。"""
+    """检测 meshctx 服务是否已启动（e2e 集成测试前置条件）。
+
+    两级判定（P3-A, 002codex 复核建议）:
+    ① TCP 端口存活 — 快速失败路径;
+    ② HTTP /api/version 身份校验 — 必须返回 meshctx 版本 JSON ({"version": "3.x", ...}),
+       防止 3001 被无关服务占用时 14 个 e2e 用例批量 404 假失败 (跨机全量场景)。
+    """
     try:
         with socket.create_connection((host, port), timeout=timeout):
-            return True
+            pass  # 端口存活, 继续身份校验
     except OSError:
+        return False
+    try:
+        r = requests.get(f"http://{host}:{port}/api/version", timeout=2.0)
+        if r.status_code != 200:
+            return False
+        version = (r.json() or {}).get("version", "")
+        return version.startswith("3.")  # meshctx 版本号形如 3.129.0
+    except (requests.RequestException, ValueError):
         return False
 
 
 pytestmark = pytest.mark.skipif(
     not _service_up(),
-    reason="meshctx 服务未启动 (127.0.0.1:3001) — e2e 集成测试需先启动服务",
+    reason="meshctx 服务未启动或 /api/version 身份校验失败 (127.0.0.1:3001) — e2e 集成测试需先启动 meshctx 服务",
 )
 
 

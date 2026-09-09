@@ -326,7 +326,7 @@ def _run_one_task(client, task: WorkTask, wall_clock: int, heartbeat_cb=None) ->
             ]
             async def _run():
                 nonlocal final, error_text, timed_out
-                last_hb = time.time()
+                last_hb = time.perf_counter()
                 async for ev in run_agent_loop(
                     client, messages,
                     tools=TOOLS_OPENAI,
@@ -334,9 +334,9 @@ def _run_one_task(client, task: WorkTask, wall_clock: int, heartbeat_cb=None) ->
                     max_rounds=4,
                     wall_clock=float(wall_clock),
                 ):
-                    if heartbeat_cb and (time.time() - last_hb) >= HEARTBEAT_INTERVAL:
+                    if heartbeat_cb and (time.perf_counter() - last_hb) >= HEARTBEAT_INTERVAL:
                         heartbeat_cb()
-                        last_hb = time.time()
+                        last_hb = time.perf_counter()
                     if ev["type"] == "token":
                         final += ev["text"]
                     elif ev["type"] == "error":

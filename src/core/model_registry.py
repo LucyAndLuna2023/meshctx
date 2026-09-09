@@ -579,7 +579,7 @@ class ModelRegistry:
                     },
                     "saved_at": time.time(),
                 }
-            with open(self._storage_path, "w") as f:
+            with open(self._storage_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         except Exception as e:
             logger.error(f"Failed to save model registry: {e}")
@@ -588,7 +588,7 @@ class ModelRegistry:
         if not os.path.exists(self._storage_path):
             return
         try:
-            with open(self._storage_path) as f:
+            with open(self._storage_path, encoding="utf-8") as f:
                 data = json.load(f)
             for name, md in data.get("models", {}).items():
                 entry = ModelEntry(

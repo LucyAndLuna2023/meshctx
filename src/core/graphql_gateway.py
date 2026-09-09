@@ -442,7 +442,7 @@ class ExecutionEngine:
         Returns:
             ExecutionResult: 执行结果
         """
-        start = time.time()
+        start = time.perf_counter()
 
         # 1. 查询分析
         analysis = QueryAnalyzer.analyze(query)
@@ -450,7 +450,7 @@ class ExecutionEngine:
         if analysis.errors:
             return ExecutionResult(
                 errors=[{"message": e} for e in analysis.errors],
-                execution_time_ms=(time.time() - start) * 1000,
+                execution_time_ms=(time.perf_counter() - start) * 1000,
             )
 
         # 2. 路由: 找到处理该查询的 Schema
@@ -485,13 +485,13 @@ class ExecutionEngine:
                 return ExecutionResult(
                     data=None,
                     errors=[{"message": f"No schema found for fields: {analysis.fields}"}],
-                    execution_time_ms=(time.time() - start) * 1000,
+                    execution_time_ms=(time.perf_counter() - start) * 1000,
                 )
 
         except Exception as e:
             errors.append({"message": f"Execution error: {str(e)}"})
 
-        elapsed = (time.time() - start) * 1000
+        elapsed = (time.perf_counter() - start) * 1000
         return ExecutionResult(
             data=data if data else None,
             errors=errors,

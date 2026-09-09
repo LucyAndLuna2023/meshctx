@@ -395,7 +395,7 @@ class BackupVault:
             try:
                 backup_id = _new_id()
                 archive = Path(bp) / f"backup-{backup_id}.tar.gz"
-                with tarfile.open(str(archive), "w:gz") as tf:
+                with tarfile.open(str(archive), "w:gz", encoding="utf-8") as tf:
                     for rel, abs_path in files.items():
                         tf.add(abs_path, arcname=rel)
                 meta = {
@@ -471,7 +471,7 @@ class BackupVault:
             return {"success": False, "reason": f"归档文件缺失: {archive}", "restore_path": str(target)}
         target.mkdir(parents=True, exist_ok=True)
         try:
-            with tarfile.open(str(archive), "r:gz") as tf:
+            with tarfile.open(str(archive), "r:gz", encoding="utf-8") as tf:
                 files_restored, bytes_restored = _safe_extract(tf, target)
         except (OSError, tarfile.TarError, ValueError) as e:
             return {"success": False, "reason": f"解压失败: {e}", "restore_path": str(target)}
@@ -541,7 +541,7 @@ class BackupVault:
 
     def create_backup(self, source_path, backup_type='full', target='local', **kw) -> BackupResult:
         """创建备份 (v3.106)。支持 full / incremental, target 仅 local。"""
-        started = time.time()
+        started = time.perf_counter()
         if backup_type not in VALID_BACKUP_TYPES:
             return BackupResult(
                 success=False,
@@ -603,7 +603,7 @@ class BackupVault:
         archive_path = backup_dir / "archive.tar.gz"
         if archive_files:
             try:
-                with tarfile.open(str(archive_path), "w:gz") as tf:
+                with tarfile.open(str(archive_path), "w:gz", encoding="utf-8") as tf:
                     for rel in archive_files:
                         abs_path = files.get(rel) or (
                             str(src / rel) if not os.path.isabs(rel) else rel
@@ -650,7 +650,7 @@ class BackupVault:
             # 合并后的完整清单数见 manifest.total_files
             total_files=len(archive_files),
             total_bytes=total_bytes,
-            duration_seconds=round(time.time() - started, 4),
+            duration_seconds=round(time.perf_counter() - started, 4),
         )
 
     def _find_latest_full_backup(self, source_path: str) -> Optional[dict]:
@@ -751,7 +751,7 @@ class BackupVault:
                     ) as tmp:
                         tmp.write(data)
                         tmp_path = tmp.name
-                    with tarfile.open(tmp_path, "r:gz") as tf:
+                    with tarfile.open(tmp_path, "r:gz", encoding="utf-8") as tf:
                         files_restored, bytes_restored = _safe_extract(tf, target)
                 finally:
                     if tmp_path:
@@ -760,7 +760,7 @@ class BackupVault:
                         except OSError:
                             pass
             else:
-                with tarfile.open(str(archive), "r:gz") as tf:
+                with tarfile.open(str(archive), "r:gz", encoding="utf-8") as tf:
                     files_restored, bytes_restored = _safe_extract(tf, target)
         except (OSError, tarfile.TarError, ValueError) as e:
             return RestoreResult(

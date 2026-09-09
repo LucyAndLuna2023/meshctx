@@ -715,17 +715,17 @@ class ConfigHotReload:
         """导出配置到文件"""
         data = self.to_dict()
         if format == ConfigFormat.JSON:
-            with open(file_path, "w") as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         elif format == ConfigFormat.YAML:
             try:
                 import yaml
-                with open(file_path, "w") as f:
+                with open(file_path, "w", encoding="utf-8") as f:
                     yaml.dump(data, f, default_flow_style=False)
             except ImportError:
                 raise ImportError("PyYAML required for YAML export")
         elif format == ConfigFormat.ENV:
-            with open(file_path, "w") as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 for key, value in sorted(data.items()):
                     f.write(f"MESHCTX_{key.upper().replace('.', '_')}={value}\n")
         logger.info(f"Exported config to {file_path}")
@@ -754,13 +754,13 @@ def _load_file(file_path: str, format: ConfigFormat = ConfigFormat.AUTO) -> Dict
         format = format_map.get(ext, ConfigFormat.JSON)
 
     if format == ConfigFormat.JSON:
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     elif format == ConfigFormat.YAML:
         try:
             import yaml
-            with open(file_path, "r") as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 return yaml.safe_load(f) or {}
         except ImportError:
             raise ImportError("PyYAML required for YAML configs. Install with: pip install pyyaml")
@@ -780,7 +780,7 @@ def _load_file(file_path: str, format: ConfigFormat = ConfigFormat.AUTO) -> Dict
 
     elif format == ConfigFormat.ENV:
         data = {}
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line or line.startswith("#"):

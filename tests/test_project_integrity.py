@@ -56,10 +56,16 @@ class TestInstallScript:
         assert "pip" in content, "install.sh缺少pip安装依赖步骤"
 
     def test_syntax_valid(self):
-        """bash -n 语法检查"""
+        """bash -n 语法检查
+
+        v3.129.0 修复: 原实现把 Windows 反斜杠绝对路径直接传给 bash,
+        被转义成 E:meshctx...install.sh → 误报"语法错误"(实为文件未找到)。
+        改为 cwd=PROJECT + 相对路径, 双平台均正确。
+        """
         result = subprocess.run(
-            ["bash", "-n", str(PROJECT / "install.sh")],
-            capture_output=True, text=True, timeout=10
+            ["bash", "-n", "install.sh"],
+            capture_output=True, text=True, timeout=10,
+            cwd=str(PROJECT),
         )
         assert result.returncode == 0, f"install.sh语法错误: {result.stderr}"
 

@@ -169,7 +169,7 @@ class RealBenchEngine:
 
         results = []
         for task in tasks:
-            t0 = time.time()
+            t0 = time.perf_counter()
             result = BenchResult(task_id=task.id)
 
             try:
@@ -198,7 +198,7 @@ class RealBenchEngine:
             except Exception as e:
                 result.error = str(e)
 
-            result.latency_ms = (time.time() - t0) * 1000
+            result.latency_ms = (time.perf_counter() - t0) * 1000
             results.append(result)
 
         self._results[benchmark] = results
@@ -232,7 +232,7 @@ except Exception as e:
 
     def run_all(self) -> Dict[str, Any]:
         """Run all benchmarks and return summary."""
-        t0 = time.time()
+        t0 = time.perf_counter()
         all_results = {}
         scores = {}
 
@@ -256,7 +256,7 @@ except Exception as e:
             "benchmarks": scores,
             "total_tasks": sum(s["total"] for s in scores.values()),
             "total_passed": sum(s["passed"] for s in scores.values()),
-            "elapsed_ms": round((time.time() - t0) * 1000),
+            "elapsed_ms": round((time.perf_counter() - t0) * 1000),
             "results": {
                 bench: [{"id": r.task_id, "passed": r.passed, "score": r.score,
                         "latency_ms": r.latency_ms, "error": r.error}

@@ -504,7 +504,7 @@ class PromptRegistry:
         # Write audit file
         audit_file = self.prompts_dir / "_audit" / f"{audit.audit_id}.json"
         try:
-            with open(audit_file, "w") as f:
+            with open(audit_file, "w", encoding="utf-8") as f:
                 json.dump({
                     "audit_id": audit.audit_id,
                     "template_name": audit.template_name,

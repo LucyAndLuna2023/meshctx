@@ -311,14 +311,15 @@ class SelfDebugEngine:
 
     def debug(self, exc_type, exc_val, exc_tb) -> DebugResult:
         """Run debug cycle on an exception."""
-        t0 = time.time()
+        # v3.129.0: perf_counter — Windows time.time() 粒度 15.6ms, 快周期 duration 恒 0
+        t0 = time.perf_counter()
         capture = self.capture(exc_type, exc_val, exc_tb)
         analysis = self._analyzer.analyze(capture)
         fixes = self._generator.generate(capture, analysis)
 
         result = DebugResult(
             phase=DebugPhase.GENERATE if fixes else DebugPhase.ANALYZE,
-            duration_ms=(time.time() - t0) * 1000,
+            duration_ms=(time.perf_counter() - t0) * 1000,
             success=len(fixes) > 0,
             fix=str(fixes[0]) if fixes else "",
             error_message="" if fixes else "No fix generated",
@@ -531,7 +532,7 @@ class SelfDebugger:
         filepath = self.workspace / proposal.filepath
         if filepath.exists() and filepath.suffix == ".py":
             try:
-                with open(filepath, "r") as f:
+                with open(filepath, "r", encoding="utf-8") as f:
                     compile(f.read(), str(filepath), "exec")
             except SyntaxError as se:
                 return False, f"Syntax error: {se}"

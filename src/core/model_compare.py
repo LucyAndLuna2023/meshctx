@@ -115,7 +115,7 @@ class ModelCompareEngine:
         """并行/串行对比多个模型 — 真实LLM调用"""
         if models is None:
             models = self.list_known_models()[:3]
-        t0 = time.time()
+        t0 = time.perf_counter()
 
         if blind is None:
             blind = self._blind
@@ -150,7 +150,7 @@ class ModelCompareEngine:
                 pass  # fall through to simulated
 
         for model in models:
-            t1 = time.time()
+            t1 = time.perf_counter()
             r = ResponseInfo(model=model)
             try:
                 if not prompt or not prompt.strip():
@@ -165,10 +165,10 @@ class ModelCompareEngine:
                 else:
                     resp_text = f"[simulated] {model} response to: {prompt[:50]}"
                 r.response = resp_text
-                r.latency_ms = (time.time() - t1) * 1000
+                r.latency_ms = (time.perf_counter() - t1) * 1000
             except Exception as e:
                 r.error = str(e)
-                r.latency_ms = (time.time() - t1) * 1000
+                r.latency_ms = (time.perf_counter() - t1) * 1000
                 errors += 1
 
             if blind:
@@ -185,7 +185,7 @@ class ModelCompareEngine:
         result = CompareResult(
             model_count=len(models),
             responses=responses,
-            total_time_ms=(time.time() - t0) * 1000,
+            total_time_ms=(time.perf_counter() - t0) * 1000,
             leaderboard=leaderboard,
             error_count=errors,
         )

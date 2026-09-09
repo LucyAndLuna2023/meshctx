@@ -320,7 +320,7 @@ class _Indexer:
                     # Try content search
                     if regex or query:
                         try:
-                            with open(entry.abspath, "r", errors="ignore") as f:
+                            with open(entry.abspath, "r", errors="ignore", encoding="utf-8") as f:
                                 content = ""
                                 for i, line in enumerate(f, 1):
                                     if regex and regex.search(line):

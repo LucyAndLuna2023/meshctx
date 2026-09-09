@@ -1,10 +1,36 @@
 """v3.101 Web Crawler tests"""
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
 import pytest
 from src.core.web_crawler import (
     WebCrawler, CrawlResult, CrawlConfig, SitemapEntry,
     html_to_markdown, extract_links, extract_title,
     RobotsChecker, get_web_crawler, reset_web_crawler,
 )
+
+
+@pytest.fixture()
+def local_site():
+    """本地单页 HTTP 服务 — 取代真实外网 (example.com) 消除网络抖动偶发。"""
+    class _H(BaseHTTPRequestHandler):
+        def do_GET(self):
+            body = b"<html><title>local</title><body><p>hello</p></body></html>"
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *a, **k):
+            pass
+
+    srv = HTTPServer(("127.0.0.1", 0), _H)
+    t = threading.Thread(target=srv.serve_forever, daemon=True)
+    t.start()
+    yield f"http://127.0.0.1:{srv.server_address[1]}"
+    srv.shutdown()
+    srv.server_close()
 
 
 # ──────────────────────────────────────────────
@@ -250,11 +276,15 @@ class TestCrawlDepthControl:
         # We test the config propagation; actual crawl would require network
         assert cfg.max_depth == 0
 
-    def test_crawl_empty_queue_finishes(self):
-        """Crawl finishes gracefully when no valid links."""
+    def test_crawl_empty_queue_finishes(self, local_site):
+        """Crawl finishes gracefully when no valid links.
+
+        v3.129.0: 原实现爬真实 example.com — 全量跑时网络抖动 → 偶发失败。
+        改用本地 HTTP 服务, 确定性断言爬取行为本身。
+        """
         c = WebCrawler()
         results = c.crawl(
-            "https://example.com",
+            local_site,
             max_depth=0,
             max_pages=1,
             respect_robots=False,

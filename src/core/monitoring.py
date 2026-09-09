@@ -30,7 +30,7 @@ def get_memory_rss_mb() -> float:
                 return round(psutil.Process(os.getpid()).memory_info().rss / (1024 * 1024), 2)
             except Exception:
                 return 0.0
-        with open(f"/proc/{os.getpid()}/statm") as f:
+        with open(f"/proc/{os.getpid()}/statm", encoding="utf-8") as f:
             fields = f.read().split()
             # statm[1] = RSS in pages (4KB each)
             rss_pages = int(fields[1])
@@ -53,7 +53,7 @@ def get_cpu_percent() -> float:
                 return round(psutil.Process(os.getpid()).cpu_percent(interval=None), 2)
             except Exception:
                 return 0.0
-        with open(f"/proc/{os.getpid()}/stat") as f:
+        with open(f"/proc/{os.getpid()}/stat", encoding="utf-8") as f:
             fields = f.read().split()
             utime = int(fields[13])
             stime = int(fields[14])
@@ -116,7 +116,7 @@ class MetricsMiddleware:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
         
-        start = time.time()
+        start = time.perf_counter()
         status_code = 500
         
         async def _send(message):
@@ -128,7 +128,7 @@ class MetricsMiddleware:
         try:
             await self.app(scope, receive, _send)
         finally:
-            duration_ms = (time.time() - start) * 1000
+            duration_ms = (time.perf_counter() - start) * 1000
             path = scope.get("path", "/")
             method = scope.get("method", "GET")
             record_request(method, path, status_code, duration_ms)

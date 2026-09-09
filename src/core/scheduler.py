@@ -18,13 +18,13 @@ async def _run_periodic(name: str, interval_seconds: float, coro_func: Callable[
     """Internal: run a coroutine periodically."""
     logger.debug(f"Scheduler: {name} started (every {interval_seconds}s)")
     while _running:
-        start = time.time()
+        start = time.perf_counter()
         try:
             await coro_func(*args, **kwargs)
         except Exception as e:
             logger.error(f"Scheduler task '{name}' failed: {e}")
         
-        elapsed = time.time() - start
+        elapsed = time.perf_counter() - start
         sleep_time = max(0, interval_seconds - elapsed)
         if sleep_time > 0:
             await asyncio.sleep(sleep_time)

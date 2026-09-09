@@ -252,7 +252,7 @@ class SecurityScanner:
             target_files = list(self.project_root.rglob("*.py"))
         for fpath in target_files:
             try:
-                with open(fpath, "r", errors="replace") as f:
+                with open(fpath, "r", errors="replace", encoding="utf-8") as f:
                     content = f.read()
             except Exception:
                 continue
@@ -289,7 +289,7 @@ class SecurityScanner:
         if not req_file.exists():
             return ScanResult(module=ScanModule.DEPENDENCIES)
         try:
-            with open(req_file, "r") as f:
+            with open(req_file, "r", encoding="utf-8") as f:
                 content = f.read()
         except Exception:
             return ScanResult(module=ScanModule.DEPENDENCIES)
@@ -325,7 +325,7 @@ class SecurityScanner:
         config_files = list(self.project_root.rglob("*.py")) + list(self.project_root.rglob(".env"))
         for fpath in config_files:
             try:
-                with open(fpath, "r", errors="replace") as f:
+                with open(fpath, "r", errors="replace", encoding="utf-8") as f:
                     content = f.read()
             except Exception:
                 continue

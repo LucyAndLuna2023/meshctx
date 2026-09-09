@@ -107,7 +107,7 @@ def _get_profile_name(config_path=None, cli_profile=None) -> str | None:
         str(get_config_path())
     )
     try:
-        with open(cfg_path) as f:
+        with open(cfg_path, encoding="utf-8") as f:
             cfg = yaml.safe_load(f) or {}
     except Exception:
         return None
@@ -335,7 +335,7 @@ def _cmd_gateway_setup():
     
     config = {}
     if config_path.exists():
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             config = yaml.safe_load(f) or {}
     
     print("""
@@ -380,7 +380,7 @@ def _cmd_gateway_setup():
                 "agent_id": agent_id or "0",
             }
             
-            with open(config_path, "w") as f:
+            with open(config_path, "w", encoding="utf-8") as f:
                 yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
             
             print(f"""
@@ -408,7 +408,7 @@ def _cmd_gateway_setup():
                 "app_id": app_id,
                 "app_secret": app_secret,
             }
-            with open(config_path, "w") as f:
+            with open(config_path, "w", encoding="utf-8") as f:
                 yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
             print(f"{t('i18n_config_695458')}")
     
@@ -422,7 +422,7 @@ def _cmd_gateway_setup():
         if bot_token:
             config.setdefault("gateway", {})["enabled"] = True
             config["gateway"]["telegram"] = {"bot_token": bot_token}
-            with open(config_path, "w") as f:
+            with open(config_path, "w", encoding="utf-8") as f:
                 yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
             print(f"{t('i18n_config_d30d41')}")
 
@@ -1590,12 +1590,12 @@ def _set_default_model(model_id: str, reg=None):
     config = {}
     if config_path.exists():
         try:
-            with open(config_path) as f:
+            with open(config_path, encoding="utf-8") as f:
                 config = yaml.safe_load(f) or {}
         except Exception:
             config = {}
     config.setdefault("models", {})["default"] = model_id
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
     # 同步内存默认，同会话 reg.get(None) 立即生效（P0 一致性）
     if reg is not None and hasattr(reg, "_default"):
@@ -1612,7 +1612,7 @@ def _reassign_default_after_unset(removed_mid: str, reg):
     if not config_path.exists():
         return
     try:
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             config = yaml.safe_load(f) or {}
     except Exception:
         return
@@ -1623,7 +1623,7 @@ def _reassign_default_after_unset(removed_mid: str, reg):
         return
     entries = [mid for mid, cfg in reg._entries.items() if cfg.get("key")]
     models["default"] = entries[0] if entries else ""
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
 
 
@@ -1902,7 +1902,7 @@ def cmd_password(args):
     # 读取当前 .env
     env_lines = []
     if os.path.exists(env_path):
-        with open(env_path) as f:
+        with open(env_path, encoding="utf-8") as f:
             env_lines = f.readlines()
 
     if action == "status":
@@ -1938,14 +1938,14 @@ def cmd_password(args):
         if not found:
             env_lines.append(f"MESHCTX_PASSWORD={pw.strip()}\n")
         os.makedirs(os.path.dirname(env_path), exist_ok=True)
-        with open(env_path, "w") as f:
+        with open(env_path, "w", encoding="utf-8") as f:
             f.writelines(env_lines)
         print(f"{t('i18n_done_d0b72e')}")
         return
 
     elif action == "clear":
         env_lines = [l for l in env_lines if not l.startswith("MESHCTX_PASSWORD=")]
-        with open(env_path, "w") as f:
+        with open(env_path, "w", encoding="utf-8") as f:
             f.writelines(env_lines)
         print(t("i18n_common_abc0d3"))
         return
@@ -2058,7 +2058,7 @@ def cmd_setup(args):
     config_path.parent.mkdir(parents=True, exist_ok=True)
     config = {}
     if config_path.exists():
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             loaded = yaml.safe_load(f)
             if isinstance(loaded, dict):
                 config = loaded
@@ -2078,7 +2078,7 @@ def cmd_setup(args):
         "provider": provider,
     }
     config["models"]["default"] = model_id
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
     
     print(f"""
@@ -2290,7 +2290,7 @@ def cmd_completion(args):
     )
     shell_file = os.path.join(script_dir, f"meshctx.{args.shell}")
     if os.path.isfile(shell_file):
-        with open(shell_file) as f:
+        with open(shell_file, encoding="utf-8") as f:
             print(f.read())
     else:
         print(f"{t('i18n_common_d82da2')}{shell_file}")

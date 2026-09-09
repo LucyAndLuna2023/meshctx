@@ -99,8 +99,13 @@ class TestActionEngine:
         assert result.exit_code != 0
 
     def test_execute_timeout(self):
+        """v3.129.0: sleep 是 Unix 命令 — Windows 上命令不存在(退出1)而非超时,
+        测不到超时机制。改用解释器自身 sleep, 跨平台触发真实 TimeoutExpired。"""
+        import sys as _sys
         engine = ActionEngine()
-        a = Action(name="slow", command="sleep 10", risk_level=RiskLevel.SAFE, timeout=1)
+        a = Action(name="slow",
+                   command=f'"{_sys.executable}" -c "import time; time.sleep(10)"',
+                   risk_level=RiskLevel.SAFE, timeout=1)
         result = asyncio.run(engine.execute(a))
         assert result.status == ActionStatus.FAILED
         assert "TIMEOUT" in result.error

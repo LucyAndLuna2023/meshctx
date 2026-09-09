@@ -30,11 +30,11 @@ async def brain_enhance_prompt(user_msg: str, system_prompt: str = "",
     loop = CognitiveLoop()
     
     # 异步执行脑区分析
-    start = time.time()
+    start = time.perf_counter()
     result = await asyncio.get_event_loop().run_in_executor(
         None, lambda: loop.think(user_msg, conversation_history, system_prompt)
     )
-    elapsed_ms = (time.time() - start) * 1000
+    elapsed_ms = (time.perf_counter() - start) * 1000
     
     state = result.get('cognitive_state')
     metrics = {
@@ -105,9 +105,9 @@ def benchmark_brain_on_vs_off(n_trials: int = 30) -> dict:
         if len([x for x in [results['brain_on']['cache_hits']]]) >= n_trials:
             break
         
-        start = time.time()
+        start = time.perf_counter()
         result = loop.think(q)
-        elapsed = (time.time() - start) * 1000
+        elapsed = (time.perf_counter() - start) * 1000
         
         results['brain_on']['total_latency_ms'] += elapsed
         
@@ -133,9 +133,9 @@ def benchmark_brain_on_vs_off(n_trials: int = 30) -> dict:
         if results['brain_off']['cache_hits'] >= results['brain_on']['cache_hits']:
             break
         
-        start = time.time()
+        start = time.perf_counter()
         # Brain OFF: no processing, just measure raw latency
-        elapsed = (time.time() - start) * 1000
+        elapsed = (time.perf_counter() - start) * 1000
         results['brain_off']['total_latency_ms'] += elapsed
     
     # ── Calculate deltas ──

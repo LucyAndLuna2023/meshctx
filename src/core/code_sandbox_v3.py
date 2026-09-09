@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import time
 from dataclasses import dataclass, field
@@ -172,8 +173,9 @@ class CodeSandboxV3:
     def _run_python_impl(self, code: str, timeout: int, exec_id: str,
                          risk_level: SandboxRiskLevel = SandboxRiskLevel.LOW) -> CodeSandboxResult:
         try:
+            # v3.129.0 修复: Windows 无 python3 命令 (exit 9009), sys.executable 跨平台
             result = subprocess.run(
-                ["python3", "-c", code],
+                [sys.executable, "-c", code],
                 capture_output=True, text=True, timeout=timeout,
             )
             output, truncated = self._truncate(result.stdout)
@@ -303,7 +305,7 @@ class CodeSandboxV3:
         return list(self._audit_entries)
 
     def export_audit_log(self, path: str) -> str:
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump([{
                 "language": e.language.value,
                 "code_hash": e.code_hash,

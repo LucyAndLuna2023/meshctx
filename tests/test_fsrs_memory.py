@@ -138,12 +138,19 @@ class TestRecordRecallClosedLoop:
         assert item.next_review > item.last_reviewed, "必须安排下次复习"
 
     def test_recall_strengthens_stability(self):
+        """重复成功回忆后 stability 应上升（LTP 两阶段巩固）
+
+        v3.129.0 修复: Windows time.time() 15.6ms 粒度下两次连续回忆的
+        elapsed≈0 → R=1.0 → FSRS 增益恒为 1.0 → 断言间歇性退化 (Linux 上
+        以 1+eps 勉强通过)。回拨 last_reviewed 2h 给确定的时间差。
+        """
         from src.core.memory_hierarchy import HierarchicalMemoryStore, MemoryItem
         store = HierarchicalMemoryStore()
         item = MemoryItem(key="k1", value="v1")
         store.store(item)
         s0 = item.stability
         store.record_recall(item.id, grade=5)   # 首次: FSRS-4 不涨
+        item.last_reviewed = time.time() - 7200  # 回拨 2h → R<1 → 增益>1
         store.record_recall(item.id, grade=5)   # 第二次: 开始强化
         assert item.stability > s0, "重复成功回忆后 stability 应上升（LTP 两阶段巩固）"
 

@@ -552,14 +552,20 @@ class TestModelSlashUse:
 
     @patch("subprocess.run")
     def test_cmd_stop(self, mock_run, capsys):
-        """cmd_stop calls pkill (跨平台双模式: uvicorn + 封装版, 2026-08-25 审计修复)"""
+        """cmd_stop 跨平台: POSIX=pkill (uvicorn+封装版双模式), Windows=netstat+taskkill
+        (v3.129.0: 原断言只认 pkill, Windows 分支首调 netstat -ano 被误判失败)"""
         from src.cli import cmd_stop
         mock_run.return_value.returncode = 0
         args = MagicMock()
         cmd_stop(args)
-        # macOS 默认安装路径为封装版, 需同时匹配 uvicorn 与 meshctx/meshctx 两种模式
         assert mock_run.call_count >= 1
-        assert "pkill" in mock_run.call_args_list[0][0][0]
+        first_cmd = mock_run.call_args_list[0][0][0]
+        if sys.platform == "win32" or os.name == "nt":
+            assert first_cmd == ["netstat", "-ano"], \
+                f"Windows 应先 netstat 找端口进程, 实际: {first_cmd}"
+        else:
+            # macOS 默认安装路径为封装版, 需同时匹配 uvicorn 与 meshctx/meshctx 两种模式
+            assert "pkill" in first_cmd
 
     @patch("requests.get")
     def test_cmd_status_running(self, mock_get, capsys):

@@ -278,7 +278,7 @@ class ActionEngine:
 
         # 执行
         action.status = ActionStatus.EXECUTING
-        start_time = time.time()
+        start_time = time.perf_counter()
 
         try:
             # 使用 asyncio subprocess 执行
@@ -301,7 +301,7 @@ class ActionEngine:
                 action.error = "TIMEOUT: execution exceeded time limit"
                 return action
 
-            duration = (time.time() - start_time) * 1000
+            duration = (time.perf_counter() - start_time) * 1000
             output = stdout.decode("utf-8", errors="replace")
             err_output = stderr.decode("utf-8", errors="replace")
 

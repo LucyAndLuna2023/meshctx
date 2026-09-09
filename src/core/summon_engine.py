@@ -191,14 +191,14 @@ class TaskExecutor:
             role=_infer_role(description),
             created_at=time.time(),
         )
-        started = time.time()
+        started = time.perf_counter()
         try:
             # 检查取消标志
             with self._lock:
                 cancelled = self._cancel_flags.get(agent_id, False)
             if cancelled:
                 result.status = SummonStatus.DISMISSED
-                result.duration = time.time() - started
+                result.duration = time.perf_counter() - started
                 return result
 
             if self._llm_callback is not None:
@@ -221,7 +221,7 @@ class TaskExecutor:
                     cancelled = self._cancel_flags.get(agent_id, False)
                 if cancelled:
                     result.status = SummonStatus.DISMISSED
-                    result.duration = time.time() - started
+                    result.duration = time.perf_counter() - started
                     return result
                 title = task or description or "未命名任务"
                 result.result = (
@@ -237,12 +237,12 @@ class TaskExecutor:
             with self._lock:
                 if result.status not in (SummonStatus.TIMEOUT, SummonStatus.DISMISSED):
                     result.status = SummonStatus.DONE
-            result.duration = time.time() - started
+            result.duration = time.perf_counter() - started
             result.tokens_used = _estimate_tokens(task) + _estimate_tokens(result.result)
         except Exception as e:
             result.status = SummonStatus.FAILED
             result.error = str(e)
-            result.duration = time.time() - started
+            result.duration = time.perf_counter() - started
         return result
 
     def _on_future_done(self, agent_id: str, result: SummonResult, future: Future):

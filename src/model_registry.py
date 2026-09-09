@@ -358,7 +358,7 @@ class ModelRegistry:
         """从 meshctx.yaml 加载已配置的模型"""
         import yaml, re
         try:
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 config = yaml.safe_load(f) or {}
         except Exception:
             logger.debug("_scan_env error", exc_info=True)
@@ -487,7 +487,7 @@ class ModelRegistry:
         config = {}
         if Path(target).exists():
             try:
-                with open(target) as f:
+                with open(target, encoding="utf-8") as f:
                     loaded = yaml.safe_load(f)
                     if isinstance(loaded, dict):
                         config = loaded
@@ -525,7 +525,7 @@ class ModelRegistry:
                     break
         self._default = config.get("models", {}).get("default", "") or ""
 
-        with open(target, "w") as f:
+        with open(target, "w", encoding="utf-8") as f:
             yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
         # 落盘成功后清脏标记，避免下次 save 重写本会话已同步的全部 id（002 审计 P2-5）
         self._dirty_ids.clear()

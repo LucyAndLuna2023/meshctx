@@ -50,14 +50,14 @@ _AUTH_WHITELIST_PREFIXES = ("/static/", "/ws/", "/api/tasks/", "/api/routines/",
 def _load_api_keys() -> Dict:
     """加载 API Keys，返回 {key_hash: {name, permissions, created_at}}"""
     if _API_KEYS_PATH.exists():
-        with open(_API_KEYS_PATH, "r") as f:
+        with open(_API_KEYS_PATH, "r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
     return {}
 
 def _save_api_keys(keys: Dict):
     """持久化 API Keys"""
     _API_KEYS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(_API_KEYS_PATH, "w") as f:
+    with open(_API_KEYS_PATH, "w", encoding="utf-8") as f:
         yaml.dump(keys, f, allow_unicode=True, default_flow_style=False)
 
 # 启动时加载

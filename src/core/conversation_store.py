@@ -41,7 +41,7 @@ class Conversation:
         """Persist conversation to disk."""
         os.makedirs(DATA_DIR, exist_ok=True)
         path = os.path.join(DATA_DIR, f"{self.id}.json")
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, ensure_ascii=False, indent=2)
     @classmethod
     def list_all(cls, **kw):
@@ -52,7 +52,7 @@ class Conversation:
             for f in sorted(os.listdir(d)):
                 if f.endswith('.json'):
                     try:
-                        with open(os.path.join(d, f)) as fh:
+                        with open(os.path.join(d, f), encoding="utf-8") as fh:
                             data = json.load(fh)
                         convs.append({"id": data.get("id", f[:-5]), "title": data.get("title", ""),
                                       "created_at": data.get("created_at", 0),
@@ -73,7 +73,7 @@ class Conversation:
         import os, json
         path = os.path.join(DATA_DIR, f"{conv_id}.json")
         if os.path.exists(path):
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 d = json.load(f)
             return cls(id=d["id"], title=d["title"], model=d.get("model", ""),
                        messages=d.get("messages", []),
@@ -140,10 +140,10 @@ class Conversation:
         import os, json
         path = os.path.join(DATA_DIR, f"{conv_id}.json")
         if os.path.exists(path):
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 d = json.load(f)
             d["title"] = new_title
-            with open(path, "w") as f:
+            with open(path, "w", encoding="utf-8") as f:
                 json.dump(d, f, ensure_ascii=False)
             return True
         return False
@@ -152,7 +152,7 @@ def get_or_create(conv_id: str = None) -> Conversation:
     if conv_id:
         path = os.path.join(DATA_DIR, f"{conv_id}.json")
         if os.path.exists(path):
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 d = json.load(f)
             return Conversation(id=d["id"], title=d["title"], model=d.get("model", ""),
                                 messages=d.get("messages", []),

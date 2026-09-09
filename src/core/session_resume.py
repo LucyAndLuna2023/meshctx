@@ -170,7 +170,7 @@ class _SessionResume:
                 "items_restored": {"decisions": 0, "rules": 0, "memories": 0},
                 "resume_time_ms": 0.0,
             }
-        t0 = time.time()
+        t0 = time.perf_counter()
         messages = data.get("messages") or []
         decisions = data.get("decisions") or []
         rules = data.get("rules") or []
@@ -192,7 +192,7 @@ class _SessionResume:
                 "rules": len(rules),
                 "memories": len(memories),
             },
-            "resume_time_ms": round((time.time() - t0) * 1000.0, 2),
+            "resume_time_ms": round((time.perf_counter() - t0) * 1000.0, 2),
             "data": data,
         }
         with self._lock:

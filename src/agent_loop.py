@@ -129,7 +129,7 @@ async def run_agent_loop(
         messages.insert(0, {"role": "system", "content": system_prompt})
 
     _tools_ok = True
-    _start_ts = time.time()
+    _start_ts = time.perf_counter()
     _total_search_calls = 0
     _timed_out = False
 
@@ -138,7 +138,7 @@ async def run_agent_loop(
 
     _round = 0
     while max_rounds == 0 or _round < max_rounds:
-        if time.time() - _start_ts > wall_clock:
+        if time.perf_counter() - _start_ts > wall_clock:
             yield {"type": "timed_out", "text": f"[已达到最大处理时间 {int(wall_clock)} 秒，已中止]"}
             _timed_out = True
             break
@@ -319,7 +319,7 @@ async def run_agent_loop(
                 from src.chat_tools import strip_dsml_tool_calls
                 final_text = ""
                 for _fi in range(3):
-                    if time.time() - _start_ts > wall_clock:
+                    if time.perf_counter() - _start_ts > wall_clock:
                         break
                     if interrupt_check is not None:
                         interrupt_check()  # 交付阶段也可被打断

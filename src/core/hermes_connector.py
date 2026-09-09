@@ -184,7 +184,7 @@ class EventBridge:
                 # 写入全局 inbox
                 try:
                     GLOBAL_INBOX.parent.mkdir(parents=True, exist_ok=True)
-                    with open(GLOBAL_INBOX, "a") as f:
+                    with open(GLOBAL_INBOX, "a", encoding="utf-8") as f:
                         f.write(hub_line)
                 except Exception as e:
                     logger.warning(f"Failed to write to global inbox: {e}")
@@ -194,7 +194,7 @@ class EventBridge:
                     profile_inbox = HERMES_HOME / "profiles" / profile / ".hub_inbox"
                     try:
                         profile_inbox.parent.mkdir(parents=True, exist_ok=True)
-                        with open(profile_inbox, "a") as f:
+                        with open(profile_inbox, "a", encoding="utf-8") as f:
                             f.write(hub_line)
                     except Exception as e:
                         logger.warning(f"Failed to write to {profile} inbox: {e}")
@@ -387,7 +387,7 @@ class HermesConnectorPlugin(Plugin):
         profile_inbox = HERMES_HOME / "profiles" / profile / ".hub_inbox"
         try:
             profile_inbox.parent.mkdir(parents=True, exist_ok=True)
-            with open(profile_inbox, "a") as f:
+            with open(profile_inbox, "a", encoding="utf-8") as f:
                 f.write(json.dumps(hub_msg, ensure_ascii=False) + "\n")
             return True
         except Exception as e:

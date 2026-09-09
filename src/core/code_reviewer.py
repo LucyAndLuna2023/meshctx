@@ -433,7 +433,7 @@ class CodeReviewer:
                     continue
                 fpath = os.path.join(root, fname)
                 try:
-                    with open(fpath, "r", errors="replace") as f:
+                    with open(fpath, "r", errors="replace", encoding="utf-8") as f:
                         content = f.read()
                 except Exception:
                     continue

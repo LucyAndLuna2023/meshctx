@@ -437,7 +437,7 @@ class IITConsciousness:
     def compute_phi(self, max_mech_size: int = 3,
                     min_phi: float = 0.01) -> PhiResult:
         """Compute the full IIT Φ analysis for the current system state."""
-        t0 = time.time()
+        t0 = time.perf_counter()
 
         concepts = self.phi_computer.compute_conceptual_structure(
             max_mechanism_size=max_mech_size,
@@ -460,7 +460,7 @@ class IITConsciousness:
                 min_ei = ei
                 best_mip = p
 
-        dt_ms = (time.time() - t0) * 1000
+        dt_ms = (time.perf_counter() - t0) * 1000
 
         result = PhiResult(
             phi_max=phi_max,

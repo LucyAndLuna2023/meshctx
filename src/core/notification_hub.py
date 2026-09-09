@@ -183,7 +183,7 @@ class ChannelSender:
                 f"[{timestamp}] [{notification.priority.value.upper()}] "
                 f"{notification.title} | {notification.body}\n"
             )
-            with open(file_path, "a") as f:
+            with open(file_path, "a", encoding="utf-8") as f:
                 f.write(line)
             return True
         except Exception as e:
@@ -682,7 +682,7 @@ class NotificationHub:
                     },
                     "saved_at": time.time(),
                 }
-            with open(self._storage_path, "w") as f:
+            with open(self._storage_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         except Exception as e:
             logger.error(f"Failed to save notifications: {e}")
@@ -691,7 +691,7 @@ class NotificationHub:
         if not os.path.exists(self._storage_path):
             return
         try:
-            with open(self._storage_path) as f:
+            with open(self._storage_path, encoding="utf-8") as f:
                 data = json.load(f)
             for name, cd in data.get("channels", {}).items():
                 channel = ChannelConfig(
@@ -1075,9 +1075,9 @@ def _send_feishu(config, notification):
         url = config.endpoint if hasattr(config, 'endpoint') else (config.url if hasattr(config, 'url') else str(config))
         data = _j.dumps(payload).encode()
         req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-        start = _t.time()
+        start = _t.perf_counter()
         with urllib.request.urlopen(req, timeout=5) as r:
-            elapsed = _t.time() - start
+            elapsed = _t.perf_counter() - start
         return NotificationResult(success=True, channel=NotificationChannel.FEISHU, latency_sec=elapsed)
     except Exception as e:
         return NotificationResult(success=False, channel=NotificationChannel.FEISHU, error=str(e))
@@ -1090,9 +1090,9 @@ def _send_webhook(config, notification):
         body = notification.body if hasattr(notification, 'body') else ""
         data = _j.dumps({"title": title, "body": body}).encode()
         req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-        start = _t.time()
+        start = _t.perf_counter()
         with urllib.request.urlopen(req, timeout=5) as r:
-            elapsed = _t.time() - start
+            elapsed = _t.perf_counter() - start
             raw = r.read()
             try:
                 mid = _j.loads(raw).get("id", "") if raw else ""
@@ -1119,9 +1119,9 @@ def _send_ntfy(config, notification):
         body = notification.body if hasattr(notification, 'body') else ""
         req = urllib.request.Request(url, data=body.encode(),
                                       headers={"Title": title, "Content-Type": "text/plain"})
-        start = _t.time()
+        start = _t.perf_counter()
         with urllib.request.urlopen(req, timeout=5) as r:
-            elapsed = _t.time() - start
+            elapsed = _t.perf_counter() - start
             raw = r.read()
             msg_id = ""
             try:

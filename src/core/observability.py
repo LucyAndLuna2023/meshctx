@@ -28,7 +28,9 @@ class Span:
     span_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     trace_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     parent_id: Optional[str] = None
-    start_time: float = field(default_factory=time.time)
+    # v3.129.0: perf_counter 单调高精度 — Windows time.time() 粒度 ~15ms,
+    # 快操作 duration_ms 恒为 0 (指标失真)
+    start_time: float = field(default_factory=time.perf_counter)
     end_time: Optional[float] = None
     outputs: Optional[Dict[str, Any]] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -109,7 +111,7 @@ class TraceLogger:
         """记录 span 结束。"""
         if not self.enabled:
             return span
-        span.end_time = time.time()
+        span.end_time = time.perf_counter()
         span.outputs = outputs
         span.error = error
         self._persist(span)

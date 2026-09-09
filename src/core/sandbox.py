@@ -481,7 +481,7 @@ class Sandbox:
         code_truncated: str,
     ) -> ExecutionResult:
         """在子进程中执行 Python 代码"""
-        started = time.time()
+        started = time.perf_counter()
 
         # 1. 危险模式检测
         dangerous = CodeScanner.scan_python(code)
@@ -495,7 +495,7 @@ class Sandbox:
                         stderr=f"执行被拒绝: 检测到危险模式 {', '.join(dangerous)}, 用户拒绝确认",
                         return_code=1,
                         exit_code=1,
-                        duration_ms=(time.time() - started) * 1000,
+                        duration_ms=(time.perf_counter() - started) * 1000,
                         blocked_reason="user_rejected",
                         mode='python',
                         code_truncated=code_truncated,
@@ -508,7 +508,7 @@ class Sandbox:
                     stderr=f"执行被沙箱拦截: 检测到危险模式 {', '.join(dangerous)}",
                     return_code=-1,
                     exit_code=-1,
-                    duration_ms=(time.time() - started) * 1000,
+                    duration_ms=(time.perf_counter() - started) * 1000,
                     blocked_reason="; ".join(dangerous),
                     mode='python',
                     code_truncated=code_truncated,
@@ -567,7 +567,7 @@ class Sandbox:
                     stderr=f"执行超时 ({timeout}s), 进程已被终止",
                     return_code=-9,
                     exit_code=-9,
-                    duration_ms=(time.time() - started) * 1000,
+                    duration_ms=(time.perf_counter() - started) * 1000,
                     mode='python',
                     code_truncated=code_truncated,
                     timeout_seconds=timeout,
@@ -581,7 +581,7 @@ class Sandbox:
                 "exit_code": proc.returncode if proc.returncode is not None else -1,
                 "stdout": stdout_text,
                 "stderr": stderr_text,
-                "duration_ms": (time.time() - started) * 1000,
+                "duration_ms": (time.perf_counter() - started) * 1000,
                 "peak_memory_mb": 0.0,
             }
             for line in reversed(stdout_text.splitlines()):
@@ -611,7 +611,7 @@ class Sandbox:
                 stderr=self._truncate_output(inner.get("stderr", "")),
                 return_code=int(inner.get("exit_code", 0) or 0),
                 exit_code=int(inner.get("exit_code", 0) or 0),
-                duration_ms=float(inner.get("duration_ms", (time.time() - started) * 1000)),
+                duration_ms=float(inner.get("duration_ms", (time.perf_counter() - started) * 1000)),
                 peak_memory_mb=float(inner.get("peak_memory_mb", 0.0) or 0.0),
                 mode='python',
                 code_truncated=code_truncated,
@@ -624,7 +624,7 @@ class Sandbox:
                 stderr=f"沙箱子进程启动失败: {e}",
                 return_code=-1,
                 exit_code=-1,
-                duration_ms=(time.time() - started) * 1000,
+                duration_ms=(time.perf_counter() - started) * 1000,
                 mode='python',
                 code_truncated=code_truncated,
                 timeout_seconds=timeout,
@@ -646,7 +646,7 @@ class Sandbox:
         working_dir: str = None,
     ) -> ExecutionResult:
         """在受限的子进程中执行 Bash 命令"""
-        started = time.time()
+        started = time.perf_counter()
 
         # 危险命令检测 + 确认回调
         safe, reason = CodeScanner.scan_bash(code)
@@ -660,7 +660,7 @@ class Sandbox:
                         stderr=f"执行被拒绝: 检测到危险命令 ({reason}), 用户拒绝确认",
                         return_code=1,
                         exit_code=1,
-                        duration_ms=(time.time() - started) * 1000,
+                        duration_ms=(time.perf_counter() - started) * 1000,
                         blocked_reason=reason,
                         mode='bash',
                         code_truncated=code_truncated,
@@ -673,7 +673,7 @@ class Sandbox:
                     stderr=f"执行被沙箱拦截: 检测到危险命令 ({reason})",
                     return_code=-1,
                     exit_code=-1,
-                    duration_ms=(time.time() - started) * 1000,
+                    duration_ms=(time.perf_counter() - started) * 1000,
                     blocked_reason=reason,
                     mode='bash',
                     code_truncated=code_truncated,
@@ -711,7 +711,7 @@ class Sandbox:
                     stderr=f"执行超时 ({timeout}s), 进程已被终止",
                     return_code=-9,
                     exit_code=-9,
-                    duration_ms=(time.time() - started) * 1000,
+                    duration_ms=(time.perf_counter() - started) * 1000,
                     mode='bash',
                     code_truncated=code_truncated,
                     timeout_seconds=timeout,
@@ -726,7 +726,7 @@ class Sandbox:
                 stderr=self._truncate_output(stderr_b.decode("utf-8", errors="replace")),
                 return_code=rc,
                 exit_code=rc,
-                duration_ms=(time.time() - started) * 1000,
+                duration_ms=(time.perf_counter() - started) * 1000,
                 mode='bash',
                 code_truncated=code_truncated,
                 timeout_seconds=timeout,
@@ -738,7 +738,7 @@ class Sandbox:
                 stderr=f"沙箱子进程启动失败: {e}",
                 return_code=-1,
                 exit_code=-1,
-                duration_ms=(time.time() - started) * 1000,
+                duration_ms=(time.perf_counter() - started) * 1000,
                 mode='bash',
                 code_truncated=code_truncated,
                 timeout_seconds=timeout,
@@ -963,7 +963,7 @@ class CodeSandboxV2:
 
     def _run(self, cmd: List[str], timeout: float) -> SandboxResult:
         exec_id = self._exec_id()
-        started = time.time()
+        started = time.perf_counter()
         try:
             proc = subprocess.run(
                 cmd,
@@ -980,7 +980,7 @@ class CodeSandboxV2:
                 exit_code=rc,
                 status=status,
                 execution_id=exec_id,
-                duration_ms=(time.time() - started) * 1000,
+                duration_ms=(time.perf_counter() - started) * 1000,
             )
         except subprocess.TimeoutExpired as e:
             return SandboxResult(
@@ -989,7 +989,7 @@ class CodeSandboxV2:
                 exit_code=-9,
                 status="timeout",
                 execution_id=exec_id,
-                duration_ms=(time.time() - started) * 1000,
+                duration_ms=(time.perf_counter() - started) * 1000,
             )
         except OSError as e:
             return SandboxResult(
@@ -997,7 +997,7 @@ class CodeSandboxV2:
                 exit_code=-1,
                 status="error",
                 execution_id=exec_id,
-                duration_ms=(time.time() - started) * 1000,
+                duration_ms=(time.perf_counter() - started) * 1000,
             )
 
     def run_python(self, code: str, timeout: float = None) -> SandboxResult:

@@ -254,7 +254,7 @@ class CircuitBreaker:
             half_open_acquired = True
 
         effective_timeout = timeout if timeout is not None else self.config.call_timeout
-        start_time = time.time()
+        start_time = time.perf_counter()
 
         try:
             # 3. 执行调用
@@ -263,12 +263,12 @@ class CircuitBreaker:
                 timeout=effective_timeout,
             )
 
-            duration = time.time() - start_time
+            duration = time.perf_counter() - start_time
             self._record_success(duration)
             return result
 
         except asyncio.TimeoutError as e:
-            duration = time.time() - start_time
+            duration = time.perf_counter() - start_time
             self._record_failure(duration, f"Timeout after {effective_timeout}s")
             raise
 
@@ -276,7 +276,7 @@ class CircuitBreaker:
             raise
 
         except Exception as e:
-            duration = time.time() - start_time
+            duration = time.perf_counter() - start_time
             self._record_failure(duration, str(e))
             raise
 

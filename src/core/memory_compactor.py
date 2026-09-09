@@ -293,7 +293,7 @@ class MemoryCompactor:
         return hits / max(len(query_terms), 1)
 
     def retrieve(self, query, limit=10, top_k=None, tier=None, min_importance=0.0, **kw):
-        start = time.time()
+        start = time.perf_counter()
         k = top_k if top_k is not None else limit
         candidates = list(self._entries.values())
         tiers_searched = []
@@ -310,7 +310,7 @@ class MemoryCompactor:
         scored.sort(key=lambda x: (-x[0], -x[1].importance_score))
         selected = [entry for s, entry in scored[:k]]
         scores_dict = {entry.memory_id: s for s, entry in scored[:k]}
-        rt = (time.time() - start) * 1000
+        rt = (time.perf_counter() - start) * 1000
         return RetrievalResult(
             entries=selected,
             scores=scores_dict,

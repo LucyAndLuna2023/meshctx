@@ -220,6 +220,23 @@ def _decode_base64(s: Union[str, bytes]) -> bytes:
     return base64.b64decode(s)
 
 
+def _image_format_sniff(data: bytes) -> str:
+    """v3.129.0: 魔数识别图片格式 (零依赖, 无 PIL 的本地回退路径用)。未知返回 ''。"""
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "PNG"
+    if data[:3] == b"\xff\xd8\xff":
+        return "JPEG"
+    if data[:4] in (b"GIF8",) or data[:4] == b"GIF ":
+        return "GIF"
+    if data[:2] == b"BM":
+        return "BMP"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "WEBP"
+    if data[:4] == b"\x00\x00\x01\x00":
+        return "ICO"
+    return ""
+
+
 def _detect_modality(
     mime_type: str = "",
     source: str = "",
@@ -493,7 +510,7 @@ class MultiModalEngine:
         **kwargs,
     ) -> ImageAnalysisResult:
         """分析图像"""
-        start = time.time()
+        start = time.perf_counter()
         self.stats["images_analyzed"] += 1
 
         actual_provider = provider or self.preferred_vision
@@ -513,7 +530,7 @@ class MultiModalEngine:
             else:
                 img_bytes = data
         except Exception as e:
-            elapsed = (time.time() - start) * 1000
+            elapsed = (time.perf_counter() - start) * 1000
             self.stats["errors"] += 1
             return ImageAnalysisResult(
                 description=f"Failed to decode input: {e}",
@@ -525,6 +542,7 @@ class MultiModalEngine:
         # Try local analysis (PIL)
         try:
             import PIL.Image
+            # v3.129.0 修复: PIL.Image.open 无 encoding 参数, 传入必 TypeError
             img = PIL.Image.open(io.BytesIO(img_bytes))
             width, height = img.size
             fmt = img.format or "unknown"
@@ -535,7 +553,7 @@ class MultiModalEngine:
                 f"File size: {len(img_bytes)} bytes."
             )
 
-            elapsed = (time.time() - start) * 1000
+            elapsed = (time.perf_counter() - start) * 1000
             return ImageAnalysisResult(
                 description=description,
                 objects=[],
@@ -549,7 +567,7 @@ class MultiModalEngine:
         except ImportError:
             pass
         except Exception as e:
-            elapsed = (time.time() - start) * 1000
+            elapsed = (time.perf_counter() - start) * 1000
             self.stats["errors"] += 1
             return ImageAnalysisResult(
                 description=f"Image analysis failed: {e}",
@@ -558,10 +576,13 @@ class MultiModalEngine:
                 latency_ms=elapsed,
             )
 
-        # Fallback
-        elapsed = (time.time() - start) * 1000
+        # Fallback — v3.129.0: 零依赖魔数格式识别 (无 PIL 也能报出 PNG/JPEG 等)
+        fmt_guess = _image_format_sniff(img_bytes)
+        elapsed = (time.perf_counter() - start) * 1000
+        desc = (f"{fmt_guess} image of {len(img_bytes)} bytes"
+                if fmt_guess else f"Image of {len(img_bytes)} bytes")
         return ImageAnalysisResult(
-            description=f"Image of {len(img_bytes)} bytes",
+            description=desc,
             success=True,
             provider="local",
             model="gpt-4o",
@@ -579,7 +600,7 @@ class MultiModalEngine:
         **kwargs,
     ) -> OCRResult:
         """OCR识别"""
-        start = time.time()
+        start = time.perf_counter()
         self.stats["ocr_processed"] += 1
 
         actual_provider = provider or self.preferred_ocr
@@ -599,7 +620,7 @@ class MultiModalEngine:
             else:
                 img_bytes = data
         except Exception as e:
-            elapsed = (time.time() - start) * 1000
+            elapsed = (time.perf_counter() - start) * 1000
             self.stats["errors"] += 1
             return OCRResult(
                 text="",
@@ -617,7 +638,7 @@ class MultiModalEngine:
                 import PIL.Image
                 img = PIL.Image.open(io.BytesIO(img_bytes))
                 text = pytesseract.image_to_string(img, lang=language)
-                elapsed = (time.time() - start) * 1000
+                elapsed = (time.perf_counter() - start) * 1000
                 return OCRResult(
                     text=text.strip(),
                     pages=1,
@@ -626,7 +647,7 @@ class MultiModalEngine:
                     latency_ms=elapsed,
                 )
             except Exception as e:
-                elapsed = (time.time() - start) * 1000
+                elapsed = (time.perf_counter() - start) * 1000
                 self.stats["errors"] += 1
                 return OCRResult(
                     text="",
@@ -641,7 +662,7 @@ class MultiModalEngine:
         try:
             import PIL.Image
             img = PIL.Image.open(io.BytesIO(img_bytes))
-            elapsed = (time.time() - start) * 1000
+            elapsed = (time.perf_counter() - start) * 1000
             return OCRResult(
                 text=f"[OCR via vision fallback] Image: {img.size}, mode: {img.mode}",
                 pages=1,
@@ -650,7 +671,7 @@ class MultiModalEngine:
                 latency_ms=elapsed,
             )
         except ImportError:
-            elapsed = (time.time() - start) * 1000
+            elapsed = (time.perf_counter() - start) * 1000
             return OCRResult(
                 text="",
                 pages=0,
@@ -660,7 +681,7 @@ class MultiModalEngine:
                 latency_ms=elapsed,
             )
         except Exception as e:
-            elapsed = (time.time() - start) * 1000
+            elapsed = (time.perf_counter() - start) * 1000
             self.stats["errors"] += 1
             return OCRResult(
                 text="",
@@ -681,7 +702,7 @@ class MultiModalEngine:
         **kwargs,
     ) -> TranscriptionResult:
         """音频转录"""
-        start = time.time()
+        start = time.perf_counter()
         self.stats["audio_transcribed"] += 1
 
         actual_provider = provider or self.preferred_transcription
@@ -701,7 +722,7 @@ class MultiModalEngine:
             else:
                 audio_bytes = data
         except Exception as e:
-            elapsed = (time.time() - start) * 1000
+            elapsed = (time.perf_counter() - start) * 1000
             self.stats["errors"] += 1
             return TranscriptionResult(
                 text="",
@@ -721,7 +742,7 @@ class MultiModalEngine:
         except Exception:
             pass
 
-        elapsed = (time.time() - start) * 1000
+        elapsed = (time.perf_counter() - start) * 1000
 
         # Check whisper
         if _has_dep("whisper"):
@@ -735,7 +756,7 @@ class MultiModalEngine:
                     model = whisper.load_model(self.whisper_model_size)
                     result = model.transcribe(path, language=language or None)
                     os.unlink(path)
-                    elapsed = (time.time() - start) * 1000
+                    elapsed = (time.perf_counter() - start) * 1000
                     return TranscriptionResult(
                         text=result["text"].strip(),
                         confidence=0.8,
@@ -771,7 +792,7 @@ class MultiModalEngine:
         **kwargs,
     ) -> MultiModalResult:
         """统一多模态处理入口"""
-        start = time.time()
+        start = time.perf_counter()
 
         # Resolve modality
         if modality:
@@ -834,7 +855,7 @@ class MultiModalEngine:
             result.success = False
             result.error = str(e)
 
-        elapsed = (time.time() - start) * 1000
+        elapsed = (time.perf_counter() - start) * 1000
         result.processing_time_ms = elapsed
 
         if self.cache_enabled:

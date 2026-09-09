@@ -215,7 +215,7 @@ class DependencyExtractor:
             return []
 
         deps = []
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line or line.startswith("#") or line.startswith("-"):
@@ -274,7 +274,7 @@ class DependencyExtractor:
 
         deps = []
         try:
-            with open(path, "r") as f:
+            with open(path, "r", encoding="utf-8") as f:
                 source = f.read()
             tree = ast.parse(source)
 
@@ -304,7 +304,7 @@ class DependencyExtractor:
 
         imports = []
         try:
-            with open(python_file, "r") as f:
+            with open(python_file, "r", encoding="utf-8") as f:
                 source = f.read()
             tree = ast.parse(source)
 
@@ -365,7 +365,7 @@ class DependencyScanner:
         Returns:
             ScanResult: 扫描结果
         """
-        start = time.time()
+        start = time.perf_counter()
         project_path = os.path.abspath(project_path)
 
         if not os.path.isdir(project_path):
@@ -378,7 +378,7 @@ class DependencyScanner:
             dep_files = DependencyExtractor.discover_dependency_files(project_path)
             if not dep_files:
                 result.warnings.append(f"No dependency files found in {project_path}")
-                result.duration_ms = (time.time() - start) * 1000
+                result.duration_ms = (time.perf_counter() - start) * 1000
                 return result
 
             # 提取依赖
@@ -421,7 +421,7 @@ class DependencyScanner:
             result.errors.append(f"Scan error: {str(e)}")
             logger.error(f"Scan failed for {project_path}: {e}")
 
-        result.duration_ms = (time.time() - start) * 1000
+        result.duration_ms = (time.perf_counter() - start) * 1000
         logger.info(
             f"Scanned {project_path}: {result.total_dependencies} deps, "
             f"{result.vulnerable_packages} vulnerable in {result.duration_ms:.0f}ms"
