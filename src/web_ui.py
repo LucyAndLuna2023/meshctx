@@ -4130,7 +4130,7 @@ async def chat_page(request: Request):
         try:
             cfg_path = _os.environ.get("MESHCTX_CONFIG",
                 str(get_config_path()))
-            with open(cfg_path) as f:
+            with open(cfg_path, encoding="utf-8") as f:
                 cfg = _yaml.safe_load(f) or {}
             p = cfg.get("profile", {})
             if isinstance(p, dict):
@@ -4174,7 +4174,7 @@ def _build_model_context(request: Request):
         config = {}
         if cp.exists():
             import yaml as _yaml2
-            with open(cp) as f:
+            with open(cp, encoding="utf-8") as f:
                 config = _yaml2.safe_load(f) or {}
         entries = config.get("models", {}).get("entries", {})
         
@@ -4320,7 +4320,7 @@ async def save_api_key(
 
     config = {}
     if config_path.exists():
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             config = yaml.safe_load(f) or {}
 
     provider_defaults = {
@@ -4349,7 +4349,7 @@ async def save_api_key(
         "base_url": actual_url,
     }
 
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
 
     # 设置环境变量立即可用
@@ -4377,7 +4377,7 @@ async def delete_api_key(
     if not config_path.exists():
         return RedirectResponse(url="/ui/setup?error=1", status_code=303)
     
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         config = yaml.safe_load(f) or {}
     
     entries = config.get("models", {}).get("entries", {})
@@ -4387,7 +4387,7 @@ async def delete_api_key(
         if config.get("models", {}).get("default") == model_id:
             config["models"]["default"] = next(iter(entries), "") if entries else ""
     
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
     
     # 清除环境变量

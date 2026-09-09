@@ -284,8 +284,12 @@ class TestConfigHelpers:
         assert model_cfg == {}
 
     def test_config_get_skill_dir_default(self):
-        """get_skill_dir returns expanded path"""
+        """get_skill_dir returns expanded path
+
+        v3.129.0 修复: 原断言 str(path).endswith('.meshctx/skills') 隐含 POSIX
+        分隔符 — Windows Path 序列化为反斜杠必假。改为 parts 契约 (跨平台)。
+        """
         from src.config import get_skill_dir, _default_config
         config = _default_config()
         path = get_skill_dir(config)
-        assert str(path).endswith(".meshctx/skills")
+        assert path.parts[-2:] == (".meshctx", "skills")

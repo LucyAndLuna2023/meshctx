@@ -89,7 +89,7 @@ class MemoryBackup:
         name = label or ts
         path = os.path.join(self.backup_dir, f"{name}.json")
         try:
-            with open(path, "w") as f:
+            with open(path, "w", encoding="utf-8") as f:
                 json.dump(data or {}, f, ensure_ascii=False, indent=2)
             return path
         except Exception:
@@ -100,12 +100,12 @@ class MemoryBackup:
         if name:
             path = os.path.join(self.backup_dir, name if name.endswith('.json') else f"{name}.json")
             if os.path.exists(path):
-                with open(path) as f:
+                with open(path, encoding="utf-8") as f:
                     return json.load(f)
         # 找最新备份
         files = sorted(glob.glob(os.path.join(self.backup_dir, "*.json")))
         if files:
-            with open(files[-1]) as f:
+            with open(files[-1], encoding="utf-8") as f:
                 return json.load(f)
         return None
     def list_backups(self):

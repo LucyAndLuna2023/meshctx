@@ -16,6 +16,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.core.web3_messaging import HashChainLedger, LocalJournal, Web3MessagingLayer
@@ -144,6 +146,8 @@ def test_recovery_detects_missing_middle():
         shutil.rmtree(tmp)
 
 
+@pytest.mark.skipif(sys.platform == "win32",
+                    reason="POSIX 0600 权限语义 Windows 不适用 (os.chmod 仅切换只读位)")
 def test_journal_permissions_0600():
     """P3 (002meshctx 审计): journal 文件权限必须 0600 (含敏感 payload)。"""
     import tempfile, shutil, os, stat

@@ -364,7 +364,7 @@ class HooksEngine:
                 "priority": r.priority,
             })
         os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
-        with open(self.config_path, 'w') as f:
+        with open(self.config_path, 'w', encoding="utf-8") as f:
             json.dump(data, f)
 
     def _load(self):
@@ -374,7 +374,7 @@ class HooksEngine:
         if not self.config_path or not os.path.exists(self.config_path):
             return
         try:
-            with open(self.config_path) as f:
+            with open(self.config_path, encoding="utf-8") as f:
                 data = json.load(f)
             for item in data:
                 self.rules.append(HookRule(

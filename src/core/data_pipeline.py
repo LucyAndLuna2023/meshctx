@@ -138,7 +138,7 @@ class FileConnector(DataSourceConnector):
 
     def _read_delimited(self, delimiter: str, fname: str, timestamp: str, **kw) -> list[DataRecord]:
         records = []
-        with open(self._filepath, "r", newline="") as f:
+        with open(self._filepath, "r", newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f, delimiter=delimiter)
             for row in reader:
                 records.append(DataRecord(
@@ -149,7 +149,7 @@ class FileConnector(DataSourceConnector):
         return records
 
     def _read_json(self, fname: str, timestamp: str, **kw) -> list[DataRecord]:
-        with open(self._filepath, "r") as f:
+        with open(self._filepath, "r", encoding="utf-8") as f:
             data = json.load(f)
         if isinstance(data, list):
             return [DataRecord(data=dict(item), source=fname,
@@ -161,7 +161,7 @@ class FileConnector(DataSourceConnector):
 
     def _read_jsonl(self, fname: str, timestamp: str, **kw) -> list[DataRecord]:
         records = []
-        with open(self._filepath, "r") as f:
+        with open(self._filepath, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line:
@@ -173,7 +173,7 @@ class FileConnector(DataSourceConnector):
 
     def _read_txt(self, fname: str, timestamp: str, **kw) -> list[DataRecord]:
         records = []
-        with open(self._filepath, "r") as f:
+        with open(self._filepath, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.rstrip("\n")
                 records.append(DataRecord(
@@ -344,32 +344,32 @@ class DataPipeline:
         self._records = []
         self._stats = PipelineStats()
         self._stop_flag = False
-        t0 = time.time()
-        t_extract_start = time.time()
+        t0 = time.perf_counter()
+        t_extract_start = time.perf_counter()
         records = self._extract()
         self._stats.total_extracted = len(records)
-        self._stats.stages["extract_ms"] = (time.time() - t_extract_start) * 1000
-        t_transform_start = time.time()
+        self._stats.stages["extract_ms"] = (time.perf_counter() - t_extract_start) * 1000
+        t_transform_start = time.perf_counter()
         records = self._transform(records)
         self._stats.total_transformed = len(records)
-        self._stats.stages["transform_ms"] = (time.time() - t_transform_start) * 1000
-        t_validate_start = time.time()
+        self._stats.stages["transform_ms"] = (time.perf_counter() - t_transform_start) * 1000
+        t_validate_start = time.perf_counter()
         records = self._validate(records)
-        self._stats.stages["validate_ms"] = (time.time() - t_validate_start) * 1000
-        t_load_start = time.time()
+        self._stats.stages["validate_ms"] = (time.perf_counter() - t_validate_start) * 1000
+        t_load_start = time.perf_counter()
         for rec in records:
             if self._stop_flag:
                 break
             self._load_one(rec)
             self._records.append(rec)
             yield rec
-        self._stats.stages["load_ms"] = (time.time() - t_load_start) * 1000
+        self._stats.stages["load_ms"] = (time.perf_counter() - t_load_start) * 1000
         self._stats.total_records = len(records)
         self._stats.valid_records = sum(1 for r in records if r.is_valid)
         self._stats.invalid_records = self._stats.total_records - self._stats.valid_records
         self._stats.success_rate = self._stats.valid_records / max(self._stats.total_records, 1) if self._stats.total_records > 0 else 1.0
         self._stats.total_loaded = len(records)
-        self._stats.elapsed_seconds = time.time() - t0
+        self._stats.elapsed_seconds = time.perf_counter() - t0
         self.state = PipelineState.COMPLETED
 
     def _run_impl(self, stream: bool = False, **kw) -> PipelineStats:
@@ -377,31 +377,31 @@ class DataPipeline:
         self._records = []
         self._stats = PipelineStats()
         self._stop_flag = False
-        t0 = time.time()
-        t_extract_start = time.time()
+        t0 = time.perf_counter()
+        t_extract_start = time.perf_counter()
         records = self._extract()
         self._stats.total_extracted = len(records)
-        self._stats.stages["extract_ms"] = (time.time() - t_extract_start) * 1000
-        t_transform_start = time.time()
+        self._stats.stages["extract_ms"] = (time.perf_counter() - t_extract_start) * 1000
+        t_transform_start = time.perf_counter()
         records = self._transform(records)
         self._stats.total_transformed = len(records)
-        self._stats.stages["transform_ms"] = (time.time() - t_transform_start) * 1000
-        t_validate_start = time.time()
+        self._stats.stages["transform_ms"] = (time.perf_counter() - t_transform_start) * 1000
+        t_validate_start = time.perf_counter()
         records = self._validate(records)
-        self._stats.stages["validate_ms"] = (time.time() - t_validate_start) * 1000
-        t_load_start = time.time()
+        self._stats.stages["validate_ms"] = (time.perf_counter() - t_validate_start) * 1000
+        t_load_start = time.perf_counter()
         for rec in records:
             if self._stop_flag:
                 break
             self._load_one(rec)
         self._records = records
-        self._stats.stages["load_ms"] = (time.time() - t_load_start) * 1000
+        self._stats.stages["load_ms"] = (time.perf_counter() - t_load_start) * 1000
         self._stats.total_records = len(records)
         self._stats.valid_records = sum(1 for r in records if r.is_valid)
         self._stats.invalid_records = self._stats.total_records - self._stats.valid_records
         self._stats.success_rate = self._stats.valid_records / max(self._stats.total_records, 1) if self._stats.total_records > 0 else 1.0
         self._stats.total_loaded = len(records)
-        self._stats.elapsed_seconds = time.time() - t0
+        self._stats.elapsed_seconds = time.perf_counter() - t0
         self.state = PipelineState.COMPLETED
         return self._stats
 

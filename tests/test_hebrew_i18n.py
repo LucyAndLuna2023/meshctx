@@ -1,15 +1,23 @@
 # -*- coding: utf-8 -*-
 """希伯来语 (he) 全量上线回归测试 — 002codex 45192a27 P2×2 + 004meshctx round30 P2-1 修复守门。
 覆盖: registry/LANGUAGES parity · 安装器语言数 11 语言一致=10 · chat LANG keyset ×11 相等 ·
-LEGAL opt_ru 全语言在位 · RTL dir 条件含 he。"""
+LEGAL opt_ru 全语言在位 · RTL dir 条件含 he。
+
+v3.129.0: node_extract 依赖 Node.js — 无 node 的环境按标准做法整类跳过
+(此前直接 FileNotFoundError)。
+"""
 import json
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
+_NODE = shutil.which("node")
+_requires_node = pytest.mark.skipif(
+    _NODE is None, reason="需要 Node.js (node 不在 PATH)")
 
 
 def node_extract(rel, var_pattern):
@@ -53,6 +61,7 @@ class TestInstallerLangCount:
                     bad.append((lg, k, v[:40]))
         assert not bad, bad
 
+    @_requires_node
     def test_chat_keyset_parity_and_he(self):
         L = node_extract("templates/chat.html", r"LANG = (\{[\s\S]*?\n\});")
         assert "he" in L
@@ -61,6 +70,7 @@ class TestInstallerLangCount:
             assert set(vals) == keys, f"{lg} keyset diff"
         assert "chat_direct" in keys and "chat_text" not in keys
 
+    @_requires_node
     def test_legal_opt_ru_present(self):
         L = node_extract("docs/LEGAL.html", r"var L = (\{[\s\S]*?\n\});")
         keys = set(L["en"])
@@ -80,6 +90,7 @@ class TestInstallerLangCount:
             assert re.search(r"(lang\s*===\s*['\"]he['\"]|'he'\s*\|\||\|\|\s*'he')", s), f
 
 
+@_requires_node
 def test_chat_de_direct_german_and_download_counts():
     """002codex a7e8523e + 002meshctx b50eb620 复核补充:
     de.chat_direct 须为德文; download.html installer_desc 全 11 语言无 '7' 词形。"""

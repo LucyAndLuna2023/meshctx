@@ -197,9 +197,34 @@ class TestSwarmApprovalBoundary:
             assert got is not None, "父卡应在 deadline 后收束 (子卡不孤儿)"
             kids = got.extra.get("swarm_children") or []
             by_idx = {k["idx"]: k for k in kids}
-            assert by_idx[0]["status"] == "completed"
-            # idx1 卡死: 超时 cancel → 记 timeout (非孤儿静默)
-            assert by_idx[1]["status"] in ("timeout", "cancelled", "failed"), kids
+
+            def _norm(st):
+                return getattr(st, "value", st) if st is not None else None
+
+            async def _child_terminal(idx, allowed, deadline=6.0):
+                # P3-B 竞态加固 (002codex): 父卡收束快照与子卡异步落盘存在时间窗 —
+                # 快照宽松判定 + 按子卡 id 轮询本体至终态, 消除跨机/跨负载 10% 偶发。
+                snap = _norm(by_idx[idx].get("status"))
+                if snap in allowed:
+                    return snap
+                cid = by_idx[idx].get("id")
+                end = time.time() + deadline
+                last = snap
+                while cid and time.time() < end:
+                    c = w._store.load(cid)
+                    if c is not None:
+                        last = _norm(c.status)
+                        if last in allowed:
+                            return last
+                    await asyncio.sleep(0.1)
+                return last
+
+            # idx0 快任务: 终态 completed (快照竞态下可能尚 running, 以子卡本体轮询为准)
+            s0 = await _child_terminal(0, {"completed"})
+            assert s0 == "completed", (kids, s0)
+            # idx1 卡死: 超时 cancel → 记 timeout (非孤儿静默); 快照竞态以子卡本体兜底
+            s1 = await _child_terminal(1, {"timeout", "cancelled", "failed"})
+            assert s1 in ("timeout", "cancelled", "failed"), (by_idx[1], s1)
             # 子卡必达终态 (cancel 即时 reject 挂起审批, <~3s)
             c2 = w._store.load(by_idx[1].get("id", "zzz"))
             assert c2 is not None and c2.status in (CardStatus.CANCELLED,

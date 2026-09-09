@@ -1068,9 +1068,9 @@ async def _cli_main():
 
     # 6. 执行
     print(f"\n[5] 执行计划...")
-    start = time.time()
+    start = time.perf_counter()
     result = await planner.execute(plan.id)
-    elapsed = time.time() - start
+    elapsed = time.perf_counter() - start
 
     print(f"\n[6] 结果:")
     print(f"    状态: {result.status.value}")

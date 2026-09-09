@@ -308,13 +308,13 @@ class RAGOrchestrator:
                 reranker_fn: Optional[Callable] = None,
                 max_chunks: Optional[int] = None,
                 max_tokens: Optional[int] = None) -> AugmentedContext:
-        t0 = time.time()
+        t0 = time.perf_counter()
         retrieved = retriever_fn(query, k)
         if self.enable_reranking:
             retrieved = reranker_fn(query, retrieved) if reranker_fn else self._rerank(retrieved)
         budget = max_tokens or self.retrieval_budget
         selected = self._allocate(retrieved, budget, max_chunks)
-        latency = (time.time() - t0) * 1000
+        latency = (time.perf_counter() - t0) * 1000
         with self._lock:
             self._stats["queries_processed"] += 1
         return AugmentedContext(
@@ -357,7 +357,7 @@ class RAGOrchestrator:
             n_queries: Number of query variants to generate (2-4).
             rrf_k: RRF damping constant (60 = standard).
         """
-        t0 = time.time()
+        t0 = time.perf_counter()
 
         # Step 1: Expand query into variants
         variants = QueryExpander.expand(query, n=n_queries)
@@ -384,7 +384,7 @@ class RAGOrchestrator:
         # Step 4: Allocate
         budget = max_tokens or self.retrieval_budget
         selected = self._allocate(fused, budget, max_chunks)
-        latency = (time.time() - t0) * 1000
+        latency = (time.perf_counter() - t0) * 1000
 
         with self._lock:
             self._stats["queries_processed"] += 1

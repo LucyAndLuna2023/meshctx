@@ -392,7 +392,7 @@ def _load_autonomous_config() -> dict:
     if config_path.exists():
         try:
             import yaml  # type: ignore[import-untyped]
-            with open(config_path) as f:
+            with open(config_path, encoding="utf-8") as f:
                 yaml_cfg = yaml.safe_load(f) or {}
             ac = yaml_cfg.get("autonomous_agent", {})
             if ac:

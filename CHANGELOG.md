@@ -1,3 +1,34 @@
+## [3.129.0] - 2026-09-09 (Windows 健壮性 + 测试失败清零 + async 事件循环解堵)
+### Fixed / Changed (优化批, 详见 OPTIMIZATION_REPORT_v3.129.0.md)
+- Windows 健壮性: 166 处裸 open() 补 encoding="utf-8" (38 文件, AST 驱动,
+  test_no_bare_text_mode_open_in_src 全量守门; 属性型 open 白名单审计
+  opt_audit_attr_open.py — os/sftp/webbrowser/PIL 7 处过度命中已剥离);
+  PYTHONUTF8=1 下原生命令 GBK 输出致子进程读线程崩溃 →
+  desktop_agent//api/terminal errors="replace"+空值防护
+- web3_messaging 双修复: time.strftime("%f") Windows 必抛 ValueError → datetime
+  (跨平台); LocalJournal 终身句柄 → 按次 open+fsync (Windows 删除/轮转不再
+  PermissionError, append-only+fsync 语义不变)
+- code_sandbox_v3: python3 → sys.executable (Windows 无 python3, 9009);
+  multi_modal: PIL.Image.open 幽灵 encoding 参数修复 + 无 PIL 回退加魔数格式识别
+  (PNG/JPEG/GIF/BMP/WEBP/ICO)
+- _known 符号映射修复: autonomous_engine/realtime_push 重复键致
+  AutonomousEngine/TaskQueue/AutoHealer/RealtimePush 等真实类误降级 stub;
+  agent_swarm_v2 假符号替换 (opt_validate_known_map.py 校验 0/0 + 回归测试)
+- 性能: async 路由阻塞 subprocess 移入工作线程 ×5 (code_run/terminal_exec/
+  git_info/mcp skill_execute, 最长 30s 不再卡事件循环); 耗时测量
+  time.time() → perf_counter 系统性改造 ×177/34 文件 (AST 作用域安全,
+  Windows 15.6ms 粒度致 duration/elapsed/latency 恒 0; 墙钟时间戳场景自动保留);
+  main.py numpy 懒加载 (仅 JEPA 冷路径使用, import src.main 1.24s→1.13s)
+- 跨平台: /api/terminal Windows 命令归一化 (pwd→cd/ls→dir/which→where/clear→cls,
+  危险命令检测后置不绕过); desktop_agent list_windows 三平台加固
+- utcnow 弃用 API 修复 (timezone-aware, 输出格式不变); version_info.txt/package.json
+  BOM 剥离 (PyInstaller exec 兼容)
+- 测试: 基线 37 failed → 0 (36 修复 + 1 平台/环境守卫 skip, 台账见报告 §2.3);
+  新增 test_v3129_optimizations.py 11 用例; 修复 9 个测试文件的平台/环境缺陷
+  (0600 权限 skipif win32, node 依赖 skipif, pkill/netstat 按平台断言等)
+- G10 版本资产同步 3.129.0 (nsi/spec/desktop/install.sh/docs 全套, 35/35 过)
+- 版本: 3.128.0→3.129.0 整批 A-J
+
 ## [3.128.0] - 2026-09-07 (org seal mixed-version 自愈 + 手动添加任意模型)
 ### Added / Fixed (004meshctx)
 - 3.128-P3 org seal mixed-version 自愈 (002codex 72372a1a P3②): 旧进程写 org.json

@@ -23,7 +23,6 @@ except ImportError:
     resource = None
 import signal
 import shlex
-import numpy as np
 import subprocess
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -489,6 +488,8 @@ async def lifespan(app: FastAPI):
     
     # v3.36: JEPA世界模型初始化 (杨立昆World Model)
     try:
+        # v3.129.0: numpy 懒加载 — 仅 JEPA 冷路径使用, 顶部导入占启动 ~14%
+        import numpy as np
         from .core.jepa_world_model import get_world_model, get_non_generative_router
         wm = get_world_model()
         router = get_non_generative_router()
@@ -977,9 +978,9 @@ async def auth_logout():
 @app.middleware("http")
 async def metrics_middleware(request: Request, call_next):
     """v1.5.2: 记录每个请求的延迟"""
-    t0 = time.time()
+    t0 = time.perf_counter()
     response = await call_next(request)
-    elapsed = (time.time() - t0) * 1000
+    elapsed = (time.perf_counter() - t0) * 1000
     _metrics.record(elapsed)
     return response
 
@@ -1749,7 +1750,7 @@ async def plugin_market(search: str = "", category: str = ""):
     reg_path = Path(__file__).parent.parent / "plugins" / "registry.json"
     if not reg_path.exists():
         return {"plugins": [], "total": 0}
-    with open(reg_path) as f:
+    with open(reg_path, encoding="utf-8") as f:
         data = json.load(f)
     plugins = data.get("plugins", [])
     if search:
@@ -1777,13 +1778,13 @@ async def install_plugin(request: Request):
     reg_path = Path(__file__).parent.parent / "plugins" / "registry.json"
     plugin_info = None
     if reg_path.exists():
-        with open(reg_path) as f:
+        with open(reg_path, encoding="utf-8") as f:
             data = json.load(f)
         for p in data.get("plugins", []):
             if p["name"] == name:
                 plugin_info = p
                 p["installs"] = p.get("installs", 0) + 1
-                with open(reg_path, "w") as f:
+                with open(reg_path, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
                 break
     
@@ -1794,7 +1795,7 @@ async def install_plugin(request: Request):
     config_path = get_config_path()
     config = {}
     if config_path.exists():
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             config = _yaml_load(f) or {}
     
     config.setdefault("plugins", {}).setdefault("installed", {})
@@ -1804,7 +1805,7 @@ async def install_plugin(request: Request):
         "category": plugin_info.get("category", ""),
     }
     
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
     
     return {"status": "ok", "plugin": name, "message": f"插件 {name} 已安装"}
@@ -1823,12 +1824,12 @@ async def uninstall_plugin(request: Request):
     from pathlib import Path
     config_path = get_config_path()
     if config_path.exists():
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             config = _yaml_load(f) or {}
         installed = config.get("plugins", {}).get("installed", {})
         if name in installed:
             del installed[name]
-            with open(config_path, "w") as f:
+            with open(config_path, "w", encoding="utf-8") as f:
                 yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
             return {"status": "ok", "plugin": name, "message": f"插件 {name} 已卸载"}
     raise HTTPException(404, f"插件 {name} 未安装")
@@ -1842,7 +1843,7 @@ async def installed_plugins():
     config_path = get_config_path()
     installed = {}
     if config_path.exists():
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             config = _yaml_load(f) or {}
         installed = config.get("plugins", {}).get("installed", {})
     return {"installed": installed}
@@ -1856,7 +1857,7 @@ async def plugin_stats():
     reg_path = Path(__file__).parent.parent / "plugins" / "registry.json"
     if not reg_path.exists():
         return {"total": 0, "categories": []}
-    with open(reg_path) as f:
+    with open(reg_path, encoding="utf-8") as f:
         data = json.load(f)
     plugins = data.get("plugins", [])
     return {
@@ -2785,7 +2786,7 @@ async def add_model(request: Request):
     
     config = {}
     if config_path.exists():
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             config = _yaml_load(f) or {}
     
     config.setdefault("models", {})
@@ -2821,7 +2822,7 @@ async def add_model(request: Request):
     if not config["models"].get("default"):
         config["models"]["default"] = model_id
     
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
     
     # 设置环境变量
@@ -2849,7 +2850,7 @@ async def update_model(model_id: str, request: Request):
     if not config_path.exists():
         raise HTTPException(404, t('error_no_config_add_model'))
     
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         config = _yaml_load(f) or {}
     
     entries = config.setdefault("models", {}).setdefault("entries", {})
@@ -2880,7 +2881,7 @@ async def update_model(model_id: str, request: Request):
         except Exception:
             logger.warning(f"更新 API key 加密失败: {model_id}")
 
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
     
     # 更新环境变量
@@ -2912,7 +2913,7 @@ async def rename_model(model_id: str, request: Request):
     if not config_path.exists():
         raise HTTPException(404, t('error_config_not_found'))
     
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         config = _yaml_load(f) or {}
     
     entries = config.setdefault("models", {}).setdefault("entries", {})
@@ -2940,7 +2941,7 @@ async def rename_model(model_id: str, request: Request):
         if config.get("models", {}).get("default") == model_id:
             config["models"]["default"] = new_id
     
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
     
     import src.model_registry as mr
@@ -2959,7 +2960,7 @@ async def delete_model(model_id: str):
     if not config_path.exists():
         raise HTTPException(404, t('error_no_config'))
     
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         config = _yaml_load(f) or {}
     
     entries = config.setdefault("models", {}).setdefault("entries", {})
@@ -2969,7 +2970,7 @@ async def delete_model(model_id: str):
             # Builtin model - just clear default if set
             if config.get("models", {}).get("default") == model_id:
                 config["models"]["default"] = ""
-                with open(config_path, "w") as f:
+                with open(config_path, "w", encoding="utf-8") as f:
                     yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
             return {"status": "ok", "id": model_id, "message": f"已移除内置模型 {model_id}"}
         raise HTTPException(404, f"模型 {model_id} 不存在")
@@ -2979,7 +2980,7 @@ async def delete_model(model_id: str):
     if config.get("models", {}).get("default") == model_id:
         config["models"]["default"] = next(iter(entries), "") if entries else ""
     
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
     
     import src.model_registry as mr
@@ -2998,7 +2999,7 @@ async def clean_unconfigured_models():
     if not config_path.exists():
         return {"deleted": 0, "message": "无配置文件"}
     
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         config = _yaml_load(f) or {}
     
     entries = config.setdefault("models", {}).setdefault("entries", {})
@@ -3013,7 +3014,7 @@ async def clean_unconfigured_models():
                 deleted.append(mid)
     
     config["models"]["entries"] = entries
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
     
     import src.model_registry as mr
@@ -3032,7 +3033,7 @@ async def set_default_model(model_id: str):
     if not config_path.exists():
         raise HTTPException(404, t('error_no_config'))
     
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         config = _yaml_load(f) or {}
     
     entries = config.setdefault("models", {}).setdefault("entries", {})
@@ -3044,7 +3045,7 @@ async def set_default_model(model_id: str):
     config["models"]["default"] = model_id
     os.environ["MESHCTX_MODEL"] = model_id
     
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
     
     return {"status": "ok", "default": model_id, "message": f"已将 {model_id} 设为默认模型"}
@@ -4177,6 +4178,7 @@ def _ssh_read_file(client, path: str, host: str = "", user: str = "", password: 
     if client is not None:
         sftp = client.open_sftp()
         try:
+            # v3.129.0: paramiko SFTPClient.open 无 encoding 形参 (读 bytes 后自行 decode)
             with sftp.open(path, 'r') as f:
                 return f.read().decode(errors='replace')
         finally:
@@ -4533,23 +4535,23 @@ async def run_benchmark():
     try:
         from src.core.vector_store import VectorStore
         vs = VectorStore(dim=128)
-        t1 = time.time()
+        t1 = time.perf_counter()
         for i in range(100): vs.add(f"item_{i}", [float(i%128)/128]*128)
         vs.search([0.5]*128, top_k=5)
-        results["vector_100ops_ms"] = round((time.time()-t1)*1000)
+        results["vector_100ops_ms"] = round((time.perf_counter()-t1)*1000)
     except Exception as e: results["vector"] = str(e)
     try:
         from src.core.super_brain import SuperBrainOrchestrator
         brain = SuperBrainOrchestrator()
-        t1 = time.time()
+        t1 = time.perf_counter()
         for _ in range(10): brain.step("benchmark")
-        results["brain_10steps_ms"] = round((time.time()-t1)*1000)
+        results["brain_10steps_ms"] = round((time.perf_counter()-t1)*1000)
     except Exception as e: results["brain"] = str(e)
     try:
         from src.core.agent_debate import get_debate_engine
-        t1 = time.time()
+        t1 = time.perf_counter()
         get_debate_engine().quick_debate("Speed vs quality?")
-        results["debate_ms"] = round((time.time()-t1)*1000)
+        results["debate_ms"] = round((time.perf_counter()-t1)*1000)
     except Exception as e: results["debate"] = str(e)
     results["total_ms"] = round((time.time()-t0)*1000)
     return results
@@ -4812,7 +4814,7 @@ async def search_conversations(q: str = ""):
     from pathlib import Path as _Path
     for path in sorted(_Path(DATA_DIR).glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:50]:
         try:
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
             for msg in data.get("messages", []):
                 if q.lower() in msg.get("content", "").lower():
@@ -5025,7 +5027,7 @@ async def config_backup():
     
     config_path = get_config_path()
     if config_path.exists():
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             raw = _yaml_load(f) or {}
         # Mask keys
         if "models" in raw and "entries" in raw["models"]:
@@ -5052,7 +5054,7 @@ async def config_restore(req: Request):
     config_path = get_config_path()
     config_path.parent.mkdir(parents=True, exist_ok=True)
     
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(body.get("config", {}), f, allow_unicode=True)
     
     # Reload model registry
@@ -5604,7 +5606,7 @@ async def list_plugins():
     if not registry_path.exists():
         return {"plugins": [], "total": 0, "categories": []}
     
-    with open(registry_path) as f:
+    with open(registry_path, encoding="utf-8") as f:
         registry = json.load(f)
     
     return registry
@@ -5620,7 +5622,7 @@ async def list_categories():
     if not registry_path.exists():
         return {"categories": []}
     
-    with open(registry_path) as f:
+    with open(registry_path, encoding="utf-8") as f:
         registry = json.load(f)
     
     return {"categories": registry.get("categories", [])}
@@ -5636,7 +5638,7 @@ async def get_plugin(plugin_name: str):
     if not registry_path.exists():
         raise HTTPException(404, t('error_plugin_registry_not_found'))
     
-    with open(registry_path) as f:
+    with open(registry_path, encoding="utf-8") as f:
         registry = json.load(f)
     
     for p in registry.get("plugins", []):
@@ -5656,7 +5658,7 @@ async def install_plugin(plugin_name: str):
     if not registry_path.exists():
         raise HTTPException(404, t('error_plugin_registry_not_found'))
     
-    with open(registry_path) as f:
+    with open(registry_path, encoding="utf-8") as f:
         registry = json.load(f)
     
     plugin = None
@@ -5673,7 +5675,7 @@ async def install_plugin(plugin_name: str):
     # 内置插件直接激活
     if plugin.get("builtin"):
         registry["plugins"][plugin_idx]["installs"] += 1
-        with open(registry_path, "w") as f:
+        with open(registry_path, "w", encoding="utf-8") as f:
             json.dump(registry, f, indent=2, ensure_ascii=False)
         return {"status": "ok", "plugin": plugin_name, "builtin": True,
                 "message": f"内置插件 {plugin_name} 已激活"}
@@ -5688,11 +5690,11 @@ async def install_plugin(plugin_name: str):
                 manifest_data = json.loads(resp.read())
                 plugin_dir = Path(__file__).resolve().parent.parent / "plugins" / plugin_name
                 plugin_dir.mkdir(parents=True, exist_ok=True)
-                with open(plugin_dir / "manifest.json", "w") as f:
+                with open(plugin_dir / "manifest.json", "w", encoding="utf-8") as f:
                     json.dump(manifest_data, f, indent=2)
         
         registry["plugins"][plugin_idx]["installs"] += 1
-        with open(registry_path, "w") as f:
+        with open(registry_path, "w", encoding="utf-8") as f:
             json.dump(registry, f, indent=2, ensure_ascii=False)
         
         return {"status": "ok", "plugin": plugin_name, "installs": registry["plugins"][plugin_idx]["installs"]}
@@ -5735,7 +5737,7 @@ async def install_plugin_url(req: Request):
         name = data.get("name","unknown")
         d = Path(__file__).resolve().parent.parent / "plugins" / name
         d.mkdir(parents=True,exist_ok=True)
-        with open(d/"manifest.json","w") as f: json.dump(data,f,indent=2)
+        with open(d/"manifest.json","w", encoding="utf-8") as f: json.dump(data,f,indent=2)
         return {"status":"ok","plugin":name}
     except HTTPException:
         raise
@@ -5754,7 +5756,7 @@ async def system_status():
     configured = 0
     configured_ids = set()
     if cp.exists():
-        with open(cp) as f:
+        with open(cp, encoding="utf-8") as f:
             cfg = _yaml_load(f) or {}
         entries = cfg.get("models", {}).get("entries", {})
         for eid, info in entries.items():
@@ -5775,7 +5777,7 @@ async def system_status():
     reg_path = Path(__file__).parent.parent / "plugins" / "registry.json"
     plugin_count = 0
     if reg_path.exists():
-        with open(reg_path) as f:
+        with open(reg_path, encoding="utf-8") as f:
             plugin_count = len(json.load(f).get("plugins", []))
     
     conv_path = Path(os.environ.get("MESHCTX_HOME", str(Path.home() / ".meshctx"))) / "conversations"
@@ -5957,7 +5959,7 @@ async def gateway_status():
     cp = get_config_path()
     gateway = {}
     if cp.exists():
-        with open(cp) as f:
+        with open(cp, encoding="utf-8") as f:
             cfg = _yaml_load(f) or {}
         gateway = cfg.get("gateway", {})
     return {
@@ -6098,7 +6100,7 @@ async def memory_stats(request: Request):
 
         for fp in files:
             try:
-                with open(fp) as f:
+                with open(fp, encoding="utf-8") as f:
                     data = _json.load(f)
                 ts = data.get("created_at", "")
                 if ts:
@@ -6137,7 +6139,7 @@ async def memory_search(request: Request):
 
         for fp in mem_dir.glob("*.json"):
             try:
-                with open(fp) as f:
+                with open(fp, encoding="utf-8") as f:
                     data = _json.load(f)
                 content = (data.get("content", "") or data.get("value", "")).lower()
                 if query in content:
@@ -6190,7 +6192,7 @@ async def memory_add(request: Request):
             "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
         }
 
-        with open(mem_dir / f"{mem_id}.json", "w") as f:
+        with open(mem_dir / f"{mem_id}.json", "w", encoding="utf-8") as f:
             _json.dump(record, f, ensure_ascii=False, indent=2)
 
         return {"status": "ok", "id": mem_id}
@@ -6218,7 +6220,7 @@ async def memory_graph():
 
         for fp in mem_dir.glob("*.json"):
             try:
-                with open(fp) as f:
+                with open(fp, encoding="utf-8") as f:
                     data = _json.load(f)
                 mtype = data.get("type", data.get("key", "default"))
                 node = {
@@ -6264,7 +6266,7 @@ async def context_projects():
         active_name = ""
         if active_file.exists():
             try:
-                with open(active_file) as f:
+                with open(active_file, encoding="utf-8") as f:
                     active_name = _json.load(f).get("project_name", "")
             except Exception:
                 logger.debug("Suppressed except Exception:: {}", exc_info=True)
@@ -6273,7 +6275,7 @@ async def context_projects():
         if proj_dir.exists():
             for fp in proj_dir.glob("*.json"):
                 try:
-                    with open(fp) as f:
+                    with open(fp, encoding="utf-8") as f:
                         data = _json.load(f)
                     name = data.get("project_name", fp.stem)
                     projects.append({
@@ -6288,7 +6290,7 @@ async def context_projects():
         if data_dir.exists():
             for fp in data_dir.glob("*.json"):
                 try:
-                    with open(fp) as f:
+                    with open(fp, encoding="utf-8") as f:
                         data = _json.load(f)
                     name = data.get("project_name", fp.stem)
                     path_val = data.get("project_path", "")
@@ -6361,7 +6363,7 @@ async def context_project_activate(request: Request):
         active_file = Path.home() / ".meshctx" / "active_project.json"
         active_file.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(active_file, "w") as f:
+        with open(active_file, "w", encoding="utf-8") as f:
             _json.dump({"project_name": project_name, "project_path": str(target.resolve())}, f, ensure_ascii=False)
 
         return {"status": "ok", "active": project_name}
@@ -6521,9 +6523,14 @@ async def git_info():
     """Git信息 — 当前仓库状态"""
     import subprocess, os
     try:
-        branch = subprocess.check_output(["git", "branch", "--show-current"], text=True, timeout=5).strip()
-        log = subprocess.check_output(["git", "log", "--oneline", "-5"], text=True, timeout=5).strip()
-        return {"status": "ok", "branch": branch, "recent": log.split("\n")}
+        # v3.129.0 优化: subprocess 阻塞事件循环最长 5s×2 — 移入工作线程
+        branch = await asyncio.to_thread(
+            subprocess.check_output, ["git", "branch", "--show-current"],
+            text=True, timeout=5)
+        log = await asyncio.to_thread(
+            subprocess.check_output, ["git", "log", "--oneline", "-5"],
+            text=True, timeout=5)
+        return {"status": "ok", "branch": branch.strip(), "recent": log.strip().split("\n")}
     except Exception:
         logger.debug("Suppressed exception", exc_info=True)
         return {"status": "ok", "message": "Git not available in this environment"}
@@ -6549,7 +6556,7 @@ async def watchdog_heartbeat():
     """最新心跳信号"""
     try:
         if HEARTBEAT_FILE.exists():
-            with open(HEARTBEAT_FILE) as f:
+            with open(HEARTBEAT_FILE, encoding="utf-8") as f:
                 raw = f.read().strip()
                 try:
                     return {"last_heartbeat": float(raw), "status": "alive"}
@@ -6677,6 +6684,7 @@ async def jepa_perceive(request: Request):
     if wm is None:
         return {"status": "unavailable"}
     try:
+        import numpy as np  # v3.129.0: 懒加载
         body = await request.json()
         text = body.get("state", body.get("text", ""))
         # 真实观测：char-trigram 向量化（替代原 hash 随机数假观测，修复 v3.36）
@@ -6699,6 +6707,7 @@ async def jepa_predict(request: Request):
     if wm is None:
         return {"status": "unavailable"}
     try:
+        import numpy as np  # v3.129.0: 懒加载
         body = await request.json()
         state_text = body.get("state", "")
         action_text = body.get("action", "")
@@ -6753,7 +6762,7 @@ async def config_export():
         config = {}
         if config_path.exists():
             import yaml
-            with open(config_path) as f:
+            with open(config_path, encoding="utf-8") as f:
                 config = _yaml_load(f) or {}
         # 收集敏感环境变量名（不导出值）
         env_keys = [k for k in os.environ if k.endswith("_API_KEY") or k.startswith("MESHCTX_")]
@@ -6761,7 +6770,7 @@ async def config_export():
         from src.core import __version__
         return {
             "version": __version__,
-            "exported_at": datetime.datetime.utcnow().isoformat() + "Z",
+            "exported_at": datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
             "providers": config.get("providers", {}),
             "mcp_servers": config.get("mcp_servers", config.get("mcp", [])),
             "note": "Key已脱敏 — 敏感字段不导出",
@@ -6788,7 +6797,7 @@ async def config_import(request: Request):
             return {"success": True, "imported": 0, "skipped": 0}
         config_path = get_config_path()
         config_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(config_path, "w") as f:
+        with open(config_path, "w", encoding="utf-8") as f:
             yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
         # 重置model_registry缓存
         try:
@@ -6888,7 +6897,7 @@ async def list_providers():
         key_map = {}
         if config_path.exists():
             import yaml
-            with open(config_path) as f:
+            with open(config_path, encoding="utf-8") as f:
                 cfg = _yaml_load(f) or {}
             ent = cfg.get("models", {}).get("entries", {})
             configured_ids = set(ent.keys())
@@ -6983,7 +6992,7 @@ async def save_provider_key(request: Request):
 
     config = {}
     if config_path.exists():
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             loaded = _yaml_load(f)
             if isinstance(loaded, dict):
                 config = loaded
@@ -7021,7 +7030,7 @@ async def save_provider_key(request: Request):
     if not config.get("models", {}).get("default"):
         config["models"]["default"] = first_id
 
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
 
     # 立即可用：设 env + 重置 registry 缓存
@@ -7066,7 +7075,7 @@ async def delete_provider_key(pid: str):
     if not config_path.exists():
         return {"status": "ok", "deleted": []}
 
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         config = _yaml_load(f) or {}
 
     entries = config.get("models", {}).get("entries", {})
@@ -7083,7 +7092,7 @@ async def delete_provider_key(pid: str):
         remaining = [mid for mid, cfg in entries.items() if (cfg or {}).get("key")]
         config.setdefault("models", {})["default"] = remaining[0] if remaining else ""
 
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
 
     import src.model_registry as mr
@@ -7103,10 +7112,10 @@ async def list_mcp_servers():
         config_path = get_config_path()
         mcp_data = {}
         if mcp_path.exists():
-            with open(mcp_path) as f:
+            with open(mcp_path, encoding="utf-8") as f:
                 mcp_data = _yaml_load(f) or {}
         elif config_path.exists():
-            with open(config_path) as f:
+            with open(config_path, encoding="utf-8") as f:
                 cfg = _yaml_load(f) or {}
             mcp_data = cfg.get("mcp", {})
         # 解析servers
@@ -7200,19 +7209,23 @@ async def code_run(request: Request):
         _prelimit = _sandbox_limits if sys.platform == "linux" else None
 
         if language in ("python", "py"):
-            result = subprocess.run(
+            # v3.129.0 优化: 沙箱执行最长阻塞 10s — 移入工作线程, 不卡事件循环
+            result = await asyncio.to_thread(
+                subprocess.run,
                 [sys.executable, "-c", code],
                 capture_output=True, text=True, timeout=10,
                 preexec_fn=_prelimit,
             )
         elif language in ("bash", "shell", "sh"):
-            result = subprocess.run(
+            result = await asyncio.to_thread(
+                subprocess.run,
                 ["bash", "-c", code],
                 capture_output=True, text=True, timeout=10,
                 preexec_fn=_prelimit,
             )
         elif language in ("js", "javascript", "node"):
-            result = subprocess.run(
+            result = await asyncio.to_thread(
+                subprocess.run,
                 ["node", "-e", code],
                 capture_output=True, text=True, timeout=10,
                 preexec_fn=_prelimit,
@@ -7248,12 +7261,23 @@ async def terminal_exec(request: Request):
             return {"error": "cmd不能为空"}
         # 危险命令检测 — 用 sandbox 统一验证
         from src.core.sandbox import CodeScanner
+        # v3.129.0: Windows 下常用 Unix 命令归一化 (跨平台终端体验一致)
+        if sys.platform == "win32":
+            _n = cmd.strip()
+            _np = shlex.split(_n) if not _n.startswith('"') else []
+            _head = _np[0] if _np else _n.split(" ", 1)[0]
+            _win_map = {"pwd": "cd", "ls": "dir", "which": "where", "clear": "cls"}
+            if _head in _win_map:
+                cmd = _win_map[_head] + _n[len(_head):]
         ok, err = CodeScanner.scan_bash(cmd)
         if not ok:
             return {"error": f"危险命令已被拦截: {err}", "blocked": True}
-        result = subprocess.run(
-            cmd, shell=True,
-            capture_output=True, text=True, timeout=30,
+        # v3.129.0 优化: 终端命令最长阻塞 30s — 移入工作线程, 不卡事件循环;
+        # errors="replace" — 原生命令输出非 UTF-8 字节 (如中文 Windows GBK) 时
+        # 解码降级为 U+FFFD, 读线程不再崩溃 (stdout 曾因此变 None)
+        result = await asyncio.to_thread(
+            subprocess.run, cmd, shell=True,
+            capture_output=True, text=True, errors="replace", timeout=30,
         )
         return {
             "output": result.stdout,
@@ -7520,7 +7544,7 @@ async def skills_list():
             for d in os.listdir(skills_dir):
                 fp = os.path.join(skills_dir, d, "SKILL.md")
                 if os.path.isfile(fp):
-                    with open(fp) as f:
+                    with open(fp, encoding="utf-8") as f:
                         first = f.readline().strip("# \n")
                     items.append({"name": d, "description": first[:80]})
             return {"skills": items, "count": len(items)}

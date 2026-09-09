@@ -223,7 +223,7 @@ class RedlockManager:
             logger.warning("Redlock not available: insufficient online instances")
             return False
 
-        start = time.time()
+        start = time.perf_counter()
         acquired_count = 0
 
         for client in self._clients:
@@ -234,7 +234,7 @@ class RedlockManager:
             except Exception as e:
                 logger.debug(f"Redlock acquire error on {client}: {e}")
 
-        elapsed = time.time() - start
+        elapsed = time.perf_counter() - start
 
         # 检查: 多数 + 时间有效
         if acquired_count >= self._quorum and elapsed < ttl:

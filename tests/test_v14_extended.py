@@ -9,13 +9,20 @@ class TestConfigPersistence:
     """配置持久化测试"""
 
     def test_config_save_and_load(self):
-        """保存配置后能正确读取"""
+        """保存配置后能正确读取
+
+        v3.129.0 修复: NamedTemporaryFile 句柄未关闭即 unlink — Linux 容忍
+        删除打开中的文件, Windows 抛 WinError 32。改为先 close + with 块。
+        """
         from pathlib import Path
         import yaml
         tmp = tempfile.NamedTemporaryFile(suffix='.yaml', delete=False)
+        tmp.close()
         config = {"models": {"default": "deepseek:chat", "entries": {"deepseek:chat": {"key": "sk-test", "model": "deepseek-chat", "base_url": "https://api.deepseek.com/v1"}}}}
-        yaml.dump(config, open(tmp.name, 'w'))
-        loaded = yaml.safe_load(open(tmp.name))
+        with open(tmp.name, 'w', encoding='utf-8') as f:
+            yaml.dump(config, f)
+        with open(tmp.name, encoding='utf-8') as f:
+            loaded = yaml.safe_load(f)
         assert loaded["models"]["default"] == "deepseek:chat"
         assert loaded["models"]["entries"]["deepseek:chat"]["key"] == "sk-test"
         os.unlink(tmp.name)

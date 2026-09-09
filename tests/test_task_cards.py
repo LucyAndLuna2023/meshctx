@@ -3,6 +3,7 @@
 import json
 import pathlib
 import shutil
+import sys
 import tempfile
 import time
 
@@ -66,6 +67,8 @@ class TestTaskCardStore:
         assert store.delete(c.id) is True
         assert store.load(c.id) is None
 
+    @pytest.mark.skipif(sys.platform == "win32",
+                        reason="POSIX 0600 权限语义 Windows 不适用 (os.chmod 仅切换只读位)")
     def test_file_perms_0600(self, store):
         from src.core.task_cards import TaskCard
         c = TaskCard(owner="local", prompt="secret")

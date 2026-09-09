@@ -233,8 +233,10 @@ class MCPServer:
                 if isinstance(step, str) and step.startswith("!"):
                     import subprocess
                     try:
-                        r = subprocess.run(step[1:], shell=True, capture_output=True,
-                                           text=True, timeout=30)
+                        # v3.129.0 优化: 命令最长阻塞 30s — 移入工作线程 (顺序语义不变)
+                        r = await asyncio.to_thread(
+                            subprocess.run, step[1:], shell=True, capture_output=True,
+                            text=True, timeout=30)
                         outputs.append({"step": step, "stdout": r.stdout[:2000],
                                         "returncode": r.returncode})
                     except Exception as e:

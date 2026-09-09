@@ -418,7 +418,7 @@ class PerformanceOptimizer:
     def analyze_file(self, file_path: str) -> OptimizationReport:
         """Analyze a file on disk."""
         try:
-            with open(file_path) as f:
+            with open(file_path, encoding="utf-8") as f:
                 code = f.read()
         except (FileNotFoundError, PermissionError, OSError) as e:
             report = OptimizationReport(file_path=file_path)

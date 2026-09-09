@@ -11,7 +11,7 @@ def notebook_read(path: str) -> dict:
     if not p.exists():
         return {"ok": False, "error": f"Notebook not found: {path}"}
     try:
-        with open(p) as f:
+        with open(p, encoding="utf-8") as f:
             nb = json.load(f)
         cells = []
         for i, c in enumerate(nb.get("cells", [])):
@@ -39,7 +39,7 @@ def notebook_edit(path: str, cell_index: int, new_source: str = None,
     if not p.exists():
         return {"ok": False, "error": f"Notebook not found: {path}"}
     try:
-        with open(p) as f:
+        with open(p, encoding="utf-8") as f:
             nb = json.load(f)
         cells = nb.get("cells", [])
         
@@ -91,7 +91,7 @@ def notebook_edit(path: str, cell_index: int, new_source: str = None,
                 os.unlink(tmpf)
         
         nb["cells"] = cells
-        with open(p, 'w') as f:
+        with open(p, 'w', encoding="utf-8") as f:
             json.dump(nb, f, indent=1)
         return {"ok": True, "path": str(p), "total_cells": len(cells)}
     except Exception as e:
@@ -106,6 +106,6 @@ def notebook_create(path: str, kernel: str = "python3") -> dict:
     }
     p = Path(path).expanduser()
     p.parent.mkdir(parents=True, exist_ok=True)
-    with open(p, 'w') as f:
+    with open(p, 'w', encoding="utf-8") as f:
         json.dump(nb, f, indent=1)
     return {"ok": True, "path": str(p)}

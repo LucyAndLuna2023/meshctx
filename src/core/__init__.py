@@ -6,7 +6,7 @@ meshctx 开源 wrapper 层。核心引擎在 meshctx-core (私有仓库)。
 安装完整版: pip install meshctx-core (需授权)
 当前为 stub 模式 — 基础功能可用，高级能力优雅降级。
 """
-__version__ = "3.128.0"
+__version__ = "3.129.0"
 
 import sys, logging, warnings, os
 from functools import lru_cache
@@ -117,7 +117,6 @@ _known = {
     'sandbox': ['SandboxEngine','SandboxResult','CodeSandboxV2','get_sandbox'],
     'platform_fs': ['windows_to_wsl','wsl_to_windows'],
     'plugin_autoload': ['discover_plugins','auto_activate_builtins'],
-    'realtime_push': ['RealtimeHub','get_hub'],
     'agent_swarm': ['get_swarm_manager','get_swarm_worker','init_swarm_manager'],
     'multi_agent': ['AgentFactory','get_manager','get_executor'],
     'summon_engine': ['get_summon_engine'],
@@ -138,7 +137,7 @@ _known = {
     'brain_brainstem': ['AutonomicRegulator','ReticularActivation','HomeostaticDrive'],
     'sdm_memory': ['SparseDistributedMemory','LightSDM','HardLocation','get_sdm','get_light_sdm'],
     'context_portal': ['ContextPortal','ContextItem','MemoryPrefetchTable','PatternLearner','get_context_portal'],
-    'autonomous_engine': ['AutonomousEngine','EngineState','TaskQueue','HeartbeatMonitor','AutoHealer','TaskPriority','ScheduledTask','get_autonomous_engine'],
+    'autonomous_engine': ['AutonomousEngine','EngineState','TaskQueue','HeartbeatMonitor','AutoHealer','TaskPriority','Severity','ScheduledTask','IncidentStatus','Incident','get_autonomous_engine'],
     'breakthrough_memory': ['BreakthroughMemory','AttractorReasoner','MeshCtxBreakthrough','Insight','ExperienceFragment','SolutionNode','get_breakthrough'],
     'hybrid_reasoning': ['HybridReasoningScheduler'],
     'image_gen': ['ImageGenerator'],
@@ -165,7 +164,6 @@ _known = {
     'action_gate': ['TOOL_PRINCIPLE_MAP','get_gate'],
     'alert_engine': ['AlertEngine','AlertLevel','Alert','get_alert_engine'],
     'agent_loop': ['AgentLoopPlugin','Observation','Decision','ActionResult','AgentTask','TaskPriority','LoopPhase','ResponseGenerator','ActionExecutor'],
-    'autonomous_engine': ['Severity','get_autonomous_engine'],
     'attention_decay': ['get_monitor'],
     'cognitive_health': ['CognitiveHealthMonitor'],
     'dashboard': ['UnifiedDashboard','get_dashboard'],
@@ -194,7 +192,9 @@ _known = {
     'knowledge_base': ['kb_add','kb_search','kb_list','kb_remove','kb_clear','kb_stats'],
     'knowledge_graph_v2': ['KnowledgeGraphV2','KGEntity','KGRelation','get_knowledge_graph_v2'],
     'knowledge_sync': ['KnowledgeItem','KnowledgeBus','CrossAgentSyncEngine','KnowledgeDomain','SyncPriority','ProfileInfo','get_knowledge_bus','get_sync_engine'],
-    'agent_swarm_v2': ['AgentSwarmV2','SwarmNode','SwarmTask','get_agent_swarm_v2'],
+    'agent_swarm_v2': ['AgentSwarmV2','AgentRole','SwarmAgent','DynamicRoleManager',
+                       'ConsensusEngine','TaskMarket','MarketTask','SelfOrganizingTopology',
+                       'get_agent_swarm_v2','reset_agent_swarm_v2'],
     'data_pipeline': ['DataPipeline','PipelineStage','DataRecord','get_data_pipeline'],
     'api_gateway': ['APIGateway','APIRoute','get_api_gateway'],
     'memory_compactor': ['MemoryCompactor','CompactionResult','get_memory_compactor'],

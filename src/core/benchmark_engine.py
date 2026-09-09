@@ -26,7 +26,7 @@ class BenchmarkEngine:
     def bench(self, name: str, fn: Callable, iterations: int = 10) -> BenchResult:
         durations = []
         error = ""
-        t0_total = time.time()
+        t0_total = time.perf_counter()
         for _ in range(iterations):
             try:
                 t0 = time.perf_counter()
@@ -36,7 +36,7 @@ class BenchmarkEngine:
             except Exception as e:
                 error = str(e)
                 break
-        total_ms = (time.time() - t0_total) * 1000
+        total_ms = (time.perf_counter() - t0_total) * 1000
         passed = len(durations) == iterations
         if durations:
             avg = sum(durations) / len(durations)
@@ -80,15 +80,15 @@ class BenchmarkEngine:
         }
 
     def stability_test(self, fn: Callable, duration_sec: float = 2) -> dict:
-        t0 = time.time()
+        t0 = time.perf_counter()
         count = 0
-        while (time.time() - t0) < duration_sec:
+        while (time.perf_counter() - t0) < duration_sec:
             try:
                 fn()
             except Exception:
                 pass
             count += 1
-        return {"iterations": count, "duration_sec": round(time.time() - t0, 2)}
+        return {"iterations": count, "duration_sec": round(time.perf_counter() - t0, 2)}
 
     def get_report(self) -> dict:
         return {"benchmarks": self._bench_count}

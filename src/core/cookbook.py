@@ -145,7 +145,7 @@ class CookbookRecommender:
         cpu_arch = platform.machine()
         cpu_vendor = ""
         try:
-            with open("/proc/cpuinfo") as f:
+            with open("/proc/cpuinfo", encoding="utf-8") as f:
                 for line in f:
                     if "vendor_id" in line:
                         cpu_vendor = line.split(":")[-1].strip()
@@ -175,7 +175,7 @@ class CookbookRecommender:
                             free = int(line.split()[-1].rstrip("."))
                     ram_available_mb = (free * page_size) // (1024 * 1024)
             else:
-                with open("/proc/meminfo") as f:
+                with open("/proc/meminfo", encoding="utf-8") as f:
                     for line in f:
                         if "MemTotal" in line:
                             ram_total_mb = int(line.split()[1]) // 1024

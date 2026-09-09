@@ -155,7 +155,7 @@ class WorkflowEngine:
         """Execute the standard pipeline on a request."""
         rid = str(uuid.uuid4())[:8]
         result = ExecutionResult(request_id=rid)
-        start = time.time()
+        start = time.perf_counter()
 
         completed: Dict[str, StepResult] = {}
 
@@ -176,27 +176,27 @@ class WorkflowEngine:
                 result.steps.append(sr)
                 continue
 
-            step_start = time.time()
+            step_start = time.perf_counter()
             try:
                 output = self._run_step(step_name, request)
                 sr = StepResult(
                     name=step_name,
                     status=StepStatus.PASSED,
-                    duration_ms=(time.time() - step_start) * 1000,
+                    duration_ms=(time.perf_counter() - step_start) * 1000,
                     output=output,
                 )
             except Exception as e:
                 sr = StepResult(
                     name=step_name,
                     status=StepStatus.FAILED,
-                    duration_ms=(time.time() - step_start) * 1000,
+                    duration_ms=(time.perf_counter() - step_start) * 1000,
                     error=str(e),
                 )
 
             completed[step_name] = sr
             result.steps.append(sr)
 
-        result.total_duration_ms = (time.time() - start) * 1000
+        result.total_duration_ms = (time.perf_counter() - start) * 1000
         self._total_executions += 1
         return result
 

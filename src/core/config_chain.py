@@ -257,7 +257,7 @@ class ConfigChain:
         filepath = Path(path).expanduser()
         
         if format == "json":
-            with open(filepath, "w") as f:
+            with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(self._config, f, indent=2, default=str)
         elif format == "yaml":
             self._write_yaml(filepath)

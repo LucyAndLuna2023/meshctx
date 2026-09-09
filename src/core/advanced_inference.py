@@ -296,7 +296,7 @@ class AdvancedInference:
             all_thoughts = []
 
             for i, step_prompt in enumerate(thought_steps):
-                step_start = time.time()
+                step_start = time.perf_counter()
 
                 if llm_fn:
                     prompt = f"Step {i + 1}/ {len(thought_steps)}: {step_prompt}\n\nContext: {context}"
@@ -308,7 +308,7 @@ class AdvancedInference:
                     # 无 LLM → 用 step prompt 作为占位
                     thought = f"[Step {i + 1}]: {step_prompt}"
 
-                step_dur = (time.time() - step_start) * 1000
+                step_dur = (time.perf_counter() - step_start) * 1000
                 tokens = self._estimate_tokens(prompt + thought) if llm_fn else 0
                 if llm_fn:
                     self._track_tokens(self._estimate_tokens(prompt), self._estimate_tokens(thought))
@@ -527,7 +527,7 @@ class AdvancedInference:
 
         try:
             for iteration in range(max_iterations):
-                iter_start = time.time()
+                iter_start = time.perf_counter()
 
                 # Thought
                 if llm_fn:
@@ -549,7 +549,7 @@ class AdvancedInference:
                     step_index=iteration * 2 + 1,
                     step_type="thought",
                     content=thought,
-                    duration_ms=(time.time() - iter_start) * 1000,
+                    duration_ms=(time.perf_counter() - iter_start) * 1000,
                 ))
 
                 # Action (使用工具)
@@ -641,7 +641,7 @@ class AdvancedInference:
 
         try:
             for s in range(samples):
-                sample_start = time.time()
+                sample_start = time.perf_counter()
 
                 if llm_fn:
                     prompt = (
@@ -666,7 +666,7 @@ class AdvancedInference:
                         step_index=s + 1,
                         step_type="sample",
                         content=answer[:300],
-                        duration_ms=(time.time() - sample_start) * 1000,
+                        duration_ms=(time.perf_counter() - sample_start) * 1000,
                     ))
 
             # 投票

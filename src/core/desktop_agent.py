@@ -43,12 +43,14 @@ class DesktopAgent:
         """
         windows = []
         try:
+            # v3.129.0: errors="replace" + 空值防护 — PYTHONUTF8=1 下原生命令输出
+            # 非 UTF-8 字节会使读线程崩溃 (stdout=None), 此前 .strip() 直接 AttributeError
             if self._platform == "Linux":
                 result = subprocess.run(
                     ["wmctrl", "-l"],
-                    capture_output=True, text=True, timeout=5
+                    capture_output=True, text=True, errors="replace", timeout=5
                 )
-                for line in result.stdout.strip().split("\n"):
+                for line in (result.stdout or "").strip().split("\n"):
                     if line.strip():
                         parts = line.split(None, 3)
                         if len(parts) >= 4:
@@ -57,21 +59,21 @@ class DesktopAgent:
                 result = subprocess.run(
                     ["powershell", "-Command",
                      "(Get-Process | Where-Object {$_.MainWindowTitle -ne ''}).MainWindowTitle"],
-                    capture_output=True, text=True, timeout=5
+                    capture_output=True, text=True, errors="replace", timeout=5
                 )
-                for line in result.stdout.strip().split("\n"):
+                for line in (result.stdout or "").strip().split("\n"):
                     if line.strip():
                         windows.append(line.strip())
             elif self._platform == "Darwin":
                 result = subprocess.run(
                     ["osascript", "-e",
                      'tell application "System Events" to get name of every process whose visible is true'],
-                    capture_output=True, text=True, timeout=5
+                    capture_output=True, text=True, errors="replace", timeout=5
                 )
-                for item in result.stdout.strip().split(", "):
+                for item in (result.stdout or "").strip().split(", "):
                     if item.strip():
                         windows.append(item.strip())
-        except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        except (FileNotFoundError, subprocess.TimeoutExpired, OSError, AttributeError):
             pass
         return windows
 

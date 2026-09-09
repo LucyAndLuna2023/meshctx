@@ -273,7 +273,7 @@ class DualSessionEngine:
         Returns:
             ExecutionPlan with structured steps
         """
-        start = time.time()
+        start = time.perf_counter()
         self._new_planner_session()
         
         user_msg = f"Task: {goal}\n\nAnalyze the codebase and produce a structured execution plan (JSON)."
@@ -294,7 +294,7 @@ class DualSessionEngine:
         plan.planner_tokens = len(json.dumps(self._planner_messages)) // 4
         
         self.total_plans += 1
-        elapsed = (time.time() - start) * 1000
+        elapsed = (time.perf_counter() - start) * 1000
         logger.info(f"Plan [{plan.plan_id}]: {len(plan.steps)} steps, "
                      f"{plan.estimated_complexity}, {elapsed:.0f}ms")
         
@@ -313,7 +313,7 @@ class DualSessionEngine:
         Returns:
             ExecutionResult with completion status
         """
-        start = time.time()
+        start = time.perf_counter()
         plan.status = PlanStatus.RUNNING
         self._new_executor_session(plan)
         
@@ -338,7 +338,7 @@ class DualSessionEngine:
         
         result.executor_tokens = len(json.dumps(self._executor_messages)) // 4
         result.total_tokens = plan.planner_tokens + result.executor_tokens
-        result.elapsed_ms = (time.time() - start) * 1000
+        result.elapsed_ms = (time.perf_counter() - start) * 1000
         
         if result.verification == "pass":
             plan.status = PlanStatus.DONE

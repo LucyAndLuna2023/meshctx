@@ -323,7 +323,7 @@ class KnowledgeGraphV2:
         try:
             data = self.to_dict()
             os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-            with open(path, 'w') as f:
+            with open(path, 'w', encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
             return True
         except Exception as e:
@@ -335,7 +335,7 @@ class KnowledgeGraphV2:
         try:
             if not os.path.exists(path):
                 return False
-            with open(path, 'r') as f:
+            with open(path, 'r', encoding="utf-8") as f:
                 data = json.load(f)
             self._merge_from_dict(data)
             logger.info(f"Loaded KG from {path}: {len(self._entities)} entities, {len(self._relations)} relations")

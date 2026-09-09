@@ -15,6 +15,8 @@ test_v51_ui_full_routes.py — UI 全量路由 + sw.js + 导航栏测试
 命名规范: test_vXX_ 前缀 (测试铁律)
 """
 import re
+from pathlib import Path
+
 import pytest
 
 try:
@@ -111,12 +113,28 @@ class TestServiceWorker:
         assert "response.ok" in sw or "r.ok" in sw, "sw.js 缓存写入缺少 r.ok 检查, 500 页面会被缓存"
 
     def test_static_sw_js_is_orphan(self):
-        """static/sw.js 是孤儿文件 — 项目无任何引用 (002 改的这份不生效)"""
-        import subprocess
-        r = subprocess.run(
-            ["grep", "-rn", "static/sw.js", "src/", "main.py", "meshctx_desktop.py"],
-            capture_output=True, text=True)
-        assert "static/sw.js" not in r.stdout, "static/sw.js 被引用了? 若被引用需同步两版 sw.js"
+        """static/sw.js 是孤儿文件 — 项目无任何引用 (002 改的这份不生效)
+
+        v3.129.0 修复: 原实现外调 Unix grep — Windows 无 grep 或读线程按
+        UTF-8 解码 GBK 输出崩溃 (stdout=None → .strip() AttributeError)。
+        改为纯 Python 扫描, 语义不变 (检查文本引用)。
+        """
+        root = Path(__file__).resolve().parent.parent
+        hits = []
+        for rel in ("src", "main.py", "meshctx_desktop.py"):
+            p = root / rel
+            if p.is_file():
+                if "static/sw.js" in p.read_text(encoding="utf-8", errors="replace"):
+                    hits.append(rel)
+            elif p.is_dir():
+                for f in p.rglob("*"):
+                    if f.is_file() and f.suffix in (".py", ".js", ".html", ".css", ".json"):
+                        try:
+                            if "static/sw.js" in f.read_text(encoding="utf-8", errors="replace"):
+                                hits.append(str(f.relative_to(root)))
+                        except Exception:
+                            continue
+        assert not hits, f"static/sw.js 被引用了? 若被引用需同步两版 sw.js: {hits}"
 
 
 class TestRenderRequestInjection:

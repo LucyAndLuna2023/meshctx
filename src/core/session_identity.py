@@ -19,7 +19,7 @@ class SessionIdentity:
             path = os.path.join(storage_dir, "session_identity.json")
             if os.path.exists(path):
                 try:
-                    with open(path) as f:
+                    with open(path, encoding="utf-8") as f:
                         data = json.load(f)
                     self.session_id = data.get("session_id", self.session_id)
                     self.created_at = data.get("created_at", self.created_at)
@@ -86,14 +86,14 @@ class SessionIdentity:
         if self.storage_dir:
             os.makedirs(self.storage_dir, exist_ok=True)
             path = os.path.join(self.storage_dir, "session_identity.json")
-            with open(path, 'w') as f:
+            with open(path, 'w', encoding="utf-8") as f:
                 json.dump(self.to_dict(), f)
     
     @classmethod
     def load(cls, storage_dir: str) -> Optional['SessionIdentity']:
         path = os.path.join(storage_dir, "session_identity.json")
         if os.path.exists(path):
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 return cls.from_dict(json.load(f))
         return None
     

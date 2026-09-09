@@ -118,7 +118,7 @@ class BackupManager:
             "size": snapshot.size,
             "path": snapshot.path,
         }
-        with open(self._metadata_path(snapshot.id), "w") as fh:
+        with open(self._metadata_path(snapshot.id), "w", encoding="utf-8") as fh:
             json.dump(data, fh, indent=2)
 
     def _load_metadata(self, snapshot_id: str) -> Optional[BackupSnapshot]:
@@ -126,7 +126,7 @@ class BackupManager:
         path = self._metadata_path(snapshot_id)
         if not path.exists():
             return None
-        with open(path) as fh:
+        with open(path, encoding="utf-8") as fh:
             data = json.load(fh)
         return BackupSnapshot(**data)
 
@@ -203,7 +203,7 @@ class BackupManager:
             raise ValueError(f"Snapshot not found: {snapshot_id}")
         archive_path = self._resolve_archive(snapshot)
         files: list[str] = []
-        with tarfile.open(archive_path, "r:gz") as tar:
+        with tarfile.open(archive_path, "r:gz", encoding="utf-8") as tar:
             for member in tar.getmembers():
                 if member.isfile():
                     files.append(member.name)

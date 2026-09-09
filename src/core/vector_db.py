@@ -354,7 +354,7 @@ class VectorDB:
 
     def keyword_search(self, query: str, top_k: int = 10, **kw) -> SearchResult:
         """Keyword-only search."""
-        t0 = time.time()
+        t0 = time.perf_counter()
         kw_results = self._backend.keyword_search(query, top_k=top_k)
         hits = []
         for doc_id, score in kw_results:
@@ -366,7 +366,7 @@ class VectorDB:
                     metadata=doc.metadata,
                     keyword_score=score,
                 ))
-        elapsed = (time.time() - t0) * 1000
+        elapsed = (time.perf_counter() - t0) * 1000
         return SearchResult(hits, search_type=SearchType.KEYWORD, total_indexed=self.count(), elapsed_ms=elapsed)
 
     def hybrid_search(
@@ -380,7 +380,7 @@ class VectorDB:
         vw = vector_weight if vector_weight is not None else self.config.vector_weight
         kw = keyword_weight if keyword_weight is not None else self.config.keyword_weight
 
-        t0 = time.time()
+        t0 = time.perf_counter()
 
         # Vector search
         query_vecs = self._backend.encoder.encode([query])
@@ -414,11 +414,11 @@ class VectorDB:
                     keyword_score=ks,
                 ))
 
-        elapsed = (time.time() - t0) * 1000
+        elapsed = (time.perf_counter() - t0) * 1000
         return SearchResult(hits, search_type=SearchType.HYBRID, total_indexed=self.count(), elapsed_ms=elapsed)
 
     def _search(self, query: str, top_k: int, search_type: SearchType, **kw) -> SearchResult:
-        t0 = time.time()
+        t0 = time.perf_counter()
         query_vecs = self._backend.encoder.encode([query])
         query_vec = query_vecs[0]
         vec_results = self._backend.vector_search(query_vec, top_k=top_k)
@@ -432,7 +432,7 @@ class VectorDB:
                     metadata=doc.metadata,
                     vector_score=score,
                 ))
-        elapsed = (time.time() - t0) * 1000
+        elapsed = (time.perf_counter() - t0) * 1000
         return SearchResult(hits, search_type=search_type, total_indexed=self.count(), elapsed_ms=elapsed)
 
 

@@ -62,7 +62,7 @@ class MCPIntegrator:
         if not path.exists():
             return 0
         try:
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 config = json.load(f)
         except (json.JSONDecodeError, OSError):
             return 0

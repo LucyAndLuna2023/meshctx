@@ -181,7 +181,7 @@ def parse_requirements_txt(path: str) -> list[tuple[str, str]]:
     """Parse requirements.txt → [(name, version_spec), ...]."""
     deps: list[tuple[str, str]] = []
     try:
-        with open(path, "r", errors="replace") as f:
+        with open(path, "r", errors="replace", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line or line.startswith("#") or line.startswith("-"):
@@ -204,7 +204,7 @@ def parse_package_json(path: str) -> list[tuple[str, str]]:
     """Parse package.json dependencies → [(name, version_spec), ...]."""
     deps: list[tuple[str, str]] = []
     try:
-        with open(path, "r", errors="replace") as f:
+        with open(path, "r", errors="replace", encoding="utf-8") as f:
             data = json.load(f)
     except Exception as e:
         logger.warning("Failed to parse %s: %s", path, e)
@@ -220,7 +220,7 @@ def parse_cargo_toml(path: str) -> list[tuple[str, str]]:
     """Parse Cargo.toml [dependencies] → [(name, version), ...]."""
     deps: list[tuple[str, str]] = []
     try:
-        with open(path, "r", errors="replace") as f:
+        with open(path, "r", errors="replace", encoding="utf-8") as f:
             content = f.read()
     except Exception:
         return deps
@@ -381,7 +381,7 @@ class SecurityAuditor:
                     continue
                 fpath = os.path.join(root_dir, fname)
                 try:
-                    with open(fpath, "r", errors="replace") as f:
+                    with open(fpath, "r", errors="replace", encoding="utf-8") as f:
                         content = f.read()
                 except Exception:
                     continue
@@ -501,7 +501,7 @@ class SecurityAuditor:
         """Quick security scan of a single file."""
         findings: list[AuditFinding] = []
         try:
-            with open(filepath, "r", errors="replace") as f:
+            with open(filepath, "r", errors="replace", encoding="utf-8") as f:
                 content = f.read()
         except Exception:
             return findings

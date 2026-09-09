@@ -64,9 +64,9 @@ class DeepResearchV2:
 
     def research(self, query: str, depth: int = 3, **kw) -> ResearchV2Result:
         result_id = str(uuid.uuid4())
-        t0 = time.time()
+        t0 = time.perf_counter()
         result = ResearchV2Result(success=True, depth=depth,
-                                  query=query, time_taken=time.time() - t0,
+                                  query=query, time_taken=time.perf_counter() - t0,
                                   report=f"Research report for: {query}")
         self._results[result_id] = result
         self._search_count += 1

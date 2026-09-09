@@ -97,9 +97,22 @@ class TestStats:
         report = adapter.get_adaptability_report()
         assert "通用插件适配器" in report
 
-    def test_hermes_skills_loaded(self):
-        """验证Hermes技能被实际加载"""
-        from src.core.plugin_adapter import get_plugin_adapter
-        a = get_plugin_adapter()
+    def test_hermes_skills_loaded(self, tmp_path):
+        """验证 Hermes 技能被实际加载
+
+        v3.129.0 修复: 原断言依赖开发机 ~/.hermes/skills 已装技能 —
+        机器间结果不稳定 (干净环境 total_plugins=0 必假)。
+        改为自包含: 临时构造 SKILL.md, 验证加载功能本身。
+        """
+        from src.core.plugin_adapter import UniversalPluginAdapter
+        skill_dir = tmp_path / "skills" / "demo"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: demo-skill\ndescription: v3.129.0 self-contained test\n---\n"
+            "# demo\nbody\n",
+            encoding="utf-8",
+        )
+        a = UniversalPluginAdapter()
+        a._default_skill_dirs = [tmp_path / "skills"]
         stats = a.get_stats()
-        assert stats["total_plugins"] > 0, f"应该加载到Hermes技能, 实际: {stats}"
+        assert stats["total_plugins"] >= 1, f"应该加载到自建 Hermes 技能, 实际: {stats}"

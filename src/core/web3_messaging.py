@@ -24,6 +24,7 @@ import logging
 import os
 import threading
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -80,7 +81,9 @@ class HashChainLedger:
             prev_hash = self._entries[-1]["entry_hash"] if self._entries else ("0" * 64)
             entry = {
                 "seq": len(self._entries),
-                "ts": ts or time.strftime("%Y-%m-%dT%H:%M:%S.%fZ", time.gmtime()),
+                # v3.129.0 修复: time.strftime 的 %f 在 Windows 抛 ValueError
+                # (C strftime 无 %f), 改用 datetime (其 %f 为 Python 自实现, 跨平台)
+                "ts": ts or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 "sender": sender,
                 "msg_id": msg_id,
                 "kind": kind,
@@ -179,17 +182,19 @@ class LocalJournal:
                 os.chmod(self.path, 0o600)
         except Exception:
             pass
-        self._fh = open(self.path, "a", encoding="utf-8")
-        try:
-            os.chmod(self.path, 0o600)
-        except Exception:
-            pass
 
     def append(self, entry: Dict) -> None:
         with self._lock:
-            self._fh.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
-            self._fh.flush()
-            os.fsync(self._fh.fileno())
+            # v3.129.0 修复: 不再终身持有句柄 (此前 Windows 上删除/轮转 journal
+            # 撞 PermissionError); 按次打开 append + flush + fsync, 持久化语义不变
+            with open(self.path, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
+                fh.flush()
+                os.fsync(fh.fileno())
+            try:
+                os.chmod(self.path, 0o600)
+            except Exception:
+                pass
 
     def load(self) -> List[Dict]:
         if not self.path.exists():
@@ -207,17 +212,11 @@ class LocalJournal:
             return out
 
     def close(self) -> None:
-        with self._lock:
-            try:
-                self._fh.close()
-            except Exception:
-                pass
+        """兼容保留: v3.129.0 起按次开关句柄, 无需显式关闭 (no-op)。"""
+        return None
 
     def __del__(self):
-        try:
-            self.close()
-        except Exception:
-            pass
+        pass
 
 
 class Web3MessagingLayer:

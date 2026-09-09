@@ -356,7 +356,7 @@ class Orchestrator:
         """Execute a task DAG with parallel execution of ready tasks."""
         order = dag.topological_order()
         self._total_tasks += len(dag.nodes)
-        start = time.time()
+        start = time.perf_counter()
         
         sem = asyncio.Semaphore(self.max_concurrency)
         
@@ -422,7 +422,7 @@ class Orchestrator:
         tasks = [run_task(dag.nodes[nid]) for nid in order]
         await asyncio.gather(*tasks, return_exceptions=True)
         
-        elapsed = (time.time() - start) * 1000
+        elapsed = (time.perf_counter() - start) * 1000
         self._total_latency_ms += elapsed
         
         # Archive

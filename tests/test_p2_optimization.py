@@ -15,11 +15,16 @@ import pytest
 # ── 1. _memory_item_score：per-item FSRS stability 参与排序 ─────────────
 class TestMemoryItemScoreStability:
     def test_higher_stability_ranks_first_same_recency(self):
-        """同 recency（同 last_reviewed）、stability 1h vs 240h → 高 stability 靠前。"""
+        """同 recency（同 last_reviewed）、stability 1h vs 240h → 高 stability 靠前。
+
+        v3.129.0 修复: last_reviewed=now 在 Windows time.time() 15.6ms 粒度下
+        elapsed 恒为 0 → 双方 retention 都钳在 1.0 → 断言必假。
+        统一回拨 60s 保证 elapsed > 0 且双平台确定性。
+        """
         from src.chat_tools import _memory_item_score
         from src.core.memory_hierarchy import MemoryItem, MemoryLevel
 
-        now = time.time()
+        now = time.time() - 60
         low = MemoryItem(key="a", value="低稳定性", importance=0.5, level=MemoryLevel.LONG_TERM)
         low.last_reviewed = now
         low.stability = 1.0  # 1 小时

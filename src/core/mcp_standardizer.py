@@ -91,16 +91,16 @@ class MCPStandardizer:
         return tools
 
     def call_tool(self, name, arguments, **kw):
-        start = time.time()
+        start = time.perf_counter()
         self._stats["calls_made"] += 1
         tool = self._tools.get(name)
         if tool is None:
-            duration = (time.time() - start) * 1000
+            duration = (time.perf_counter() - start) * 1000
             result = MCPToolResult(is_error=True, error_message=f"Tool '{name}' not found", tool_name=name, duration_ms=duration)
             self._call_history.append({"tool": name, "arguments": arguments, "success": False})
             return result
         if tool.func is None:
-            duration = (time.time() - start) * 1000
+            duration = (time.perf_counter() - start) * 1000
             result = MCPToolResult(is_error=True, error_message="no callable for dict-based tool", tool_name=name, duration_ms=duration)
             self._call_history.append({"tool": name, "arguments": arguments, "success": False})
             return result
@@ -108,7 +108,7 @@ class MCPStandardizer:
         required = schema.get("required", [])
         for req in required:
             if req not in arguments:
-                duration = (time.time() - start) * 1000
+                duration = (time.perf_counter() - start) * 1000
                 result = MCPToolResult(is_error=True, error_message=f"Missing required parameter: {req}", tool_name=name, duration_ms=duration)
                 self._call_history.append({"tool": name, "arguments": arguments, "success": False})
                 return result
@@ -126,18 +126,18 @@ class MCPStandardizer:
                 elif expected_type == "boolean" and not isinstance(pval, bool):
                     type_ok = False
                 if not type_ok:
-                    duration = (time.time() - start) * 1000
+                    duration = (time.perf_counter() - start) * 1000
                     result = MCPToolResult(is_error=True, error_message=f"validation error for parameter: {pname}", tool_name=name, duration_ms=duration)
                     self._call_history.append({"tool": name, "arguments": arguments, "success": False})
                     return result
         try:
             output = tool.func(**arguments)
-            duration = (time.time() - start) * 1000
+            duration = (time.perf_counter() - start) * 1000
             result = MCPToolResult(is_error=False, content=output, tool_name=name, duration_ms=duration)
             self._call_history.append({"tool": name, "arguments": arguments, "success": True, "result": str(output)[:200]})
             return result
         except Exception as e:
-            duration = (time.time() - start) * 1000
+            duration = (time.perf_counter() - start) * 1000
             result = MCPToolResult(is_error=True, error_message=str(e), tool_name=name, duration_ms=duration)
             self._call_history.append({"tool": name, "arguments": arguments, "success": False, "error": str(e)})
             return result
@@ -265,7 +265,7 @@ class MCPStandardizer:
             }
         }
         if output_path:
-            with open(output_path, "w") as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(config, f)
         return config
 
