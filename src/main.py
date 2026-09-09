@@ -2821,6 +2821,18 @@ async def add_model(request: Request):
     # 如果这是第一个模型，设为默认
     if not config["models"].get("default"):
         config["models"]["default"] = model_id
+
+    # 3.127+ 同步写 provider_config.json — 确保模型下拉 has_key 立即生效
+    if api_key:
+        try:
+            _pcfg = _load_provider_config()
+            _pcfg.setdefault(provider, {})
+            _pcfg[provider]["key"] = api_key
+            _pcfg[provider]["base_url"] = base_url
+            _save_provider_config(_pcfg)
+            logger.info(f"provider_config.json 同步: {provider} key 已保存")
+        except Exception:
+            logger.warning(f"provider_config.json 同步失败: {provider}", exc_info=True)
     
     with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
