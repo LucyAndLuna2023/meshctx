@@ -59,6 +59,10 @@ E. version_info.txt FixedFileInfo filevers/prodvers 元组   (v1.0 漏项 → 3.
 F. install.sh VERSION                     G. docs/install.sh VERSION (≡F)
 H. meshctx_setup.nsi: VERSION / VIProductVersion / FileVersion / ProductVersion (v1.0 漏项)
 I. meshctx_desktop.spec: CFBundleShortVersionString / CFBundleVersion (v1.0 漏项)
+K. install-mac.sh VERSION ≡ docs/install-mac.sh VERSION (v1.1 漏项 → 3.121.7 残留根因)
+L. install-edition.sh VERSION (v1.1 漏项)
+M. src/main.py FastAPI version= 参数 (v1.1 漏项)
+N. tools/meshctx_support_bot.py VERSION (v1.1 漏项)
 J. CHANGELOG 新条目
 ```
 
