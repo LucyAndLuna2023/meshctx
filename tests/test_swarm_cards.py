@@ -222,10 +222,14 @@ class TestSwarmApprovalBoundary:
             # idx0 快任务: 终态 completed (快照竞态下可能尚 running, 以子卡本体轮询为准)
             s0 = await _child_terminal(0, {"completed"})
             assert s0 == "completed", (kids, s0)
-            # idx1 卡死: 超时 cancel → 记 timeout (非孤儿静默); 快照竞态以子卡本体兜底
-            s1 = await _child_terminal(1, {"timeout", "cancelled", "failed"})
-            assert s1 in ("timeout", "cancelled", "failed"), (by_idx[1], s1)
-            # 子卡必达终态 (cancel 即时 reject 挂起审批, <~3s)
+            # idx1 卡死: 父卡快照记 timeout, 但子卡本体需独立轮询至真终态 —
+            # 002codex d5ced160: 快照 timeout 不作数 (立即返回会撞
+            # RUNNING→WAITING_APPROVAL/审批注册竞态 12.5%); 必须轮询本体到
+            # cancelled/failed/completed (产品路径在窗内收束, 上限 8s)
+            s1 = await _child_terminal(1, {"cancelled", "failed", "completed"},
+                                       deadline=8.0)
+            assert s1 in ("cancelled", "failed", "completed"), (by_idx[1], s1)
+            # 子卡必达终态 (cancel 即时 reject 挂起审批; 本体轮询已保证)
             c2 = w._store.load(by_idx[1].get("id", "zzz"))
             assert c2 is not None and c2.status in (CardStatus.CANCELLED,
                                                     CardStatus.FAILED,
