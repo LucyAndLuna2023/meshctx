@@ -2805,13 +2805,62 @@ def _refresh_remote_models(force: bool = False) -> dict:
     _save_remote_cache(cache)
     return out
 
+_REMOTE_FAILED_AT: dict = {}
+_REMOTE_REFRESH_GUARD = {"at": 0.0}
+
+def _schedule_remote_refresh(force: bool = False) -> bool:
+    """后台刷新厂商模型 — run_in_executor + 60s 防重入 (B1/B1b: 事件循环零阻塞)"""
+    import asyncio as _a, time as _t
+    now = _t.time()
+    if now - _REMOTE_REFRESH_GUARD.get("at", 0.0) < 60:
+        return False
+    _REMOTE_REFRESH_GUARD["at"] = now
+    try:
+        _a.get_running_loop().run_in_executor(None, _refresh_remote_models)
+        return True
+    except RuntimeError:
+        return False
+
+def _configured_providers(pcfg: dict) -> dict:
+    """已配 key (pcfg 或 env) 的 provider → (base_url, key); openrouter 免 key 可列"""
+    from src.model_registry import BUILTIN_MODELS as _BM
+    out: dict = {}
+    for _mid, info in _BM.items():
+        pid = info["provider"]
+        if pid in out:
+            continue
+        key = _provider_api_key(pid, pcfg)
+        if not key and pid != "openrouter":
+            continue
+        out[pid] = ((pcfg.get(pid) or {}).get("base_url") or info["base_url"], key)
+    return out
+
+def _refresh_one_provider(provider: str) -> list:
+    """按需拉取单个厂商 — P3a: 未知/未配 provider 零网络; 失败负缓存 60s 防本地放大"""
+    import time as _t
+    tgt = _configured_providers(_load_provider_config()).get(provider)
+    if not tgt:
+        return []
+    if _t.time() - _REMOTE_FAILED_AT.get(provider, 0.0) < 60:
+        return []                                  # 负缓存: 失败后 60s 内不再打厂商
+    base, key = tgt
+    ids = _fetch_remote_model_ids(provider, base, key)
+    if ids:
+        cache = _load_remote_cache()
+        cache[provider] = {"fetched_at": _t.time(), "models": ids}
+        _save_remote_cache(cache)
+        _REMOTE_FAILED_AT.pop(provider, None)
+    else:
+        _REMOTE_FAILED_AT[provider] = _t.time()
+    return ids
+
 @app.get("/api/models/remote/{provider}")
 async def remote_models(provider: str):
-    """厂商实时模型列表 (缓存优先, 无缓存即拉) — chat ➕ 模态实时下拉数据源"""
+    """厂商实时模型列表 (缓存优先; 未知 provider 不触发网络) — chat ➕ 模态实时数据源"""
     ent = _load_remote_cache().get(provider)
     if not ent or not ent.get("models"):
         import asyncio as _aio
-        await _aio.to_thread(_refresh_remote_models)   # B1: 线程执行, 事件循环不阻塞
+        await _aio.to_thread(_refresh_one_provider, provider)   # P3a: 单商 + 负缓存
         ent = _load_remote_cache().get(provider) or {}
     return {"provider": provider, "models": ent.get("models") or [],
             "fetched_at": ent.get("fetched_at")}
@@ -2879,15 +2928,11 @@ async def list_models():
         cache = _load_remote_cache()
         stale = (not cache) or any(
             not ent.get("models") or _t.time() - ent.get("fetched_at", 0) >= _REMOTE_MODELS_TTL
-            for ent in cache.values())
+            for ent in cache.values()) or any(
+            pid not in cache                       # P3b: 缺席厂商也需补拉 (原只看已有条目)
+            for pid in _configured_providers(provider_cfg))
         if stale:
-            # B1: 后台线程刷新, 立即返回现有缓存 — 事件循环零阻塞
-            # B1b: 防重入 — 60s 内只调度一次, 避免 stale 期间每请求各起一个线程
-            import asyncio as _aio, time as _t2
-            _g = globals().setdefault("_REMOTE_REFRESH_GUARD", {"at": 0.0})
-            if _t2.time() - _g.get("at", 0.0) >= 60:
-                _g["at"] = _t2.time()
-                _aio.get_running_loop().run_in_executor(None, _refresh_remote_models)
+            _schedule_remote_refresh()   # B1/B1b: 后台线程 + 60s 防重入, 事件循环零阻塞
         seen = {m["id"] for m in models}
         for pid, ent in cache.items():
             has_key = bool(provider_cfg.get(pid, {}).get("key", ""))

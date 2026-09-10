@@ -83,3 +83,56 @@ def test_fetch_failure_keeps_old_cache(monkeypatch):
     monkeypatch.setattr(M, "_fetch_remote_model_ids", lambda p, b, k="": [])
     out = M._refresh_remote_models(force=True)
     assert out["zhipu"] == 1 and saved["zhipu"]["models"] == ["old-m"]  # 失败沿用旧缓存
+
+
+# ── v3.131.2 P3 (004meshctx rcpt_55e7d609): 本地放大与缺席补拉 ──
+
+def test_remote_unknown_provider_no_network(monkeypatch):
+    """P3a: 未知/未配 provider 不得触发任何厂商请求"""
+    calls = []
+    monkeypatch.setattr(M, "_fetch_remote_model_ids", lambda p, b, k="": calls.append(p) or ["x"])
+    monkeypatch.setattr(M, "_load_provider_config", lambda: {})
+    monkeypatch.setattr(M, "_load_remote_cache", lambda: {})
+    monkeypatch.setattr(M, "_save_remote_cache", lambda c: None)
+    M._REMOTE_FAILED_AT.clear()
+    d = TestClient(M.app).get("/api/models/remote/not-a-real-provider").json()
+    assert d["models"] == [] and calls == []
+
+
+def test_remote_failure_negative_cache(monkeypatch):
+    """P3a: 失败后 60s 内重复请求不重复打厂商 (负缓存)"""
+    calls = []
+    monkeypatch.setattr(M, "_fetch_remote_model_ids", lambda p, b, k="": calls.append(p) or [])
+    monkeypatch.setattr(M, "_load_provider_config", lambda: {"zhipu": {"key": "k"}})
+    monkeypatch.setattr(M, "_load_remote_cache", lambda: {})
+    monkeypatch.setattr(M, "_save_remote_cache", lambda c: None)
+    M._REMOTE_FAILED_AT.clear()
+    c = TestClient(M.app)
+    c.get("/api/models/remote/zhipu")
+    c.get("/api/models/remote/zhipu")
+    assert calls == ["zhipu"]          # 第二次命中负缓存
+
+
+def test_stale_includes_missing_provider(monkeypatch):
+    """P3b: 已配 key 但缓存缺席的厂商也要触发后台补拉"""
+    sched = []
+    monkeypatch.setattr(M, "_schedule_remote_refresh", lambda force=False: sched.append(force))
+    monkeypatch.setattr(M, "_load_provider_config", lambda: {"deepseek": {"key": "k-deep"}})
+    monkeypatch.setattr(M, "_load_remote_cache", lambda: {
+        "zhipu": {"fetched_at": time.time(), "models": ["m1"]}})   # deepseek 缺席
+    monkeypatch.setenv("MESHCTX_PASSWORD", "")
+    TestClient(M.app).get("/api/models")
+    assert sched, "缺席厂商未触发补拉 (P3b 回归)"
+
+
+def test_no_stale_when_all_cached(monkeypatch):
+    """反向: 全部已配厂商均有新鲜缓存 → 不触发后台刷新"""
+    sched = []
+    monkeypatch.setattr(M, "_schedule_remote_refresh", lambda force=False: sched.append(force))
+    monkeypatch.setattr(M, "_load_provider_config", lambda: {"zhipu": {"key": "k-z"}})
+    monkeypatch.setattr(M, "_load_remote_cache", lambda: {
+        "zhipu": {"fetched_at": time.time(), "models": ["m1"]},
+        "openrouter": {"fetched_at": time.time(), "models": ["or-m"]}})  # openrouter 恒为 target
+    monkeypatch.setenv("MESHCTX_PASSWORD", "")
+    TestClient(M.app).get("/api/models")
+    assert sched == []
