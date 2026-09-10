@@ -1680,10 +1680,11 @@ function providerIcon(p){
   const icons = { openrouter:'🌐', openai:'🤖', anthropic:'✳️', google:'🟦', deepseek:'🚀', bailian:'☁️', groq:'⚡', together:'🔗', xai:'🅧', mistral:'🌀', cohere:'🌊', perplexity:'🔎', zhipu:'🟣', zai:'🌍', custom:'🧩' };
   return icons[p] || '🧩';
 }
-function applyModelOptions(list){
+function applyModelOptions(list, isErr){
   const sel = document.getElementById('modelSelect');
   if (!sel) return;
-  const opts = (list && list.length) ? list : FALLBACK_MODELS;
+  // v3.131.2: 空/失败不再静默降级 FALLBACK_MODELS(DeepSeek×3) — 显示重试项暴露真实错误
+  const opts = (list && list.length) ? list : [{ id:'__reload__', icon:'⚠️', providerName:'', desc:'', label:'⚠️ 模型列表为空 — 点击重试' }];
   sel.innerHTML = '';
   let hasSel = false;
   opts.forEach(function(m){
@@ -1710,9 +1711,15 @@ function applyModelOptions(list){
       action:(function(id){ return function(){ document.getElementById('modelSelect').value=id; switchModel(); }; })(m.id) };
   });
 }
-function loadModels(){
-  fetch('/api/models').then(function(r){ return r.json(); }).then(function(d){
-    const models = d.models || [];
+let _lmRetries = 0, _lmTimer = null;
+function loadModels(isRetry){
+  fetch('/api/models').then(function(r){
+    if (!r.ok) throw new Error('HTTP '+r.status+(r.status===401?' (请先登录或检查 MESHCTX_PASSWORD)':''));
+    return r.json();
+  }).then(function(d){
+    const models = (d && d.models) || [];
+    if (!models.length) throw new Error('服务端返回模型列表为空');
+    _lmRetries = 0;
     const current = d.current || d.default || '';
     const usable = models.filter(function(m){ return m.usable || m.configured || m.current; });
     const rest = models.filter(function(m){ return !m.usable && !m.configured && !m.current; });
@@ -1729,8 +1736,19 @@ function loadModels(){
       };
     });
     applyModelOptions(list);
-  }).catch(function(){ applyModelOptions(FALLBACK_MODELS); });
+  }).catch(function(err){
+    // v3.131.2: 指数退避重试×3, 仍败显示错误项(可点击重试) — 不再吞错降级
+    if (!isRetry && _lmRetries < 3){
+      _lmRetries++;
+      clearTimeout(_lmTimer);
+      _lmTimer = setTimeout(function(){ loadModels(true); }, 1200*_lmRetries);
+      return;
+    }
+    applyModelOptions([{ id:'__reload__', icon:'⚠️', providerName:'', desc:'',
+      label:'⚠️ 模型列表加载失败 ('+((err&&err.message)||'network')+') — 点击重试' }], true);
+  });
 }
+window.addEventListener('focus', function(){ if (_lmRetries) { _lmRetries = 0; loadModels(true); } });
 loadModels();
 
 function getTimestamp() {
@@ -2306,6 +2324,7 @@ function submitAddModel(){
 
 function switchModel() {
   const v = document.getElementById('modelSelect').value;
+  if (v === '__reload__') { _lmRetries = 0; loadModels(true); return; }  // ⚠ 重试加载
   if (v === '__add__') { openAddModel(); return; }   // ➕ 打开添加模态
   model = v;
   document.getElementById('modelInfo').innerHTML = `<span data-lang-key="chat_model">${t('chat_model')}</span>: ${model}`;
