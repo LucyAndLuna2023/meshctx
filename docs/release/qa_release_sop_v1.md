@@ -63,6 +63,7 @@ K. install-mac.sh VERSION ≡ docs/install-mac.sh VERSION (v1.1 漏项 → 3.121
 L. install-edition.sh VERSION (v1.1 漏项)
 M. src/main.py FastAPI version= 参数 (v1.1 漏项)
 N. tools/meshctx_support_bot.py VERSION (v1.1 漏项)
+O. Windows .bat ×5: build.bat(FileVersion echo×2) / install.bat / install-edition.bat / docs/install.bat / docs/install-edition.bat (v3.131.1 发现, 002meshctx 002c1a3x 系)
 J. CHANGELOG 新条目
 ```
 

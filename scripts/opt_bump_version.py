@@ -2,6 +2,11 @@
 """通用版本资产同步: old_ver → new_ver (G10 全资产, 字节安全, 幂等)。
 
 覆盖: src/__init__.py · src/core/__init__.py · package.json · version_info.txt
+        ("build.bat",),         # O: .bat 版本残留 (002meshctx)
+        ("install.bat",),
+        ("install-edition.bat",),
+        ("docs/install.bat",),
+        ("docs/install-edition.bat",),
 (含 filevers 元组) · meshctx_desktop.py · meshctx_setup.nsi · meshctx_desktop.spec
 · install.sh (+ docs/install.sh 字节级同步)。
 

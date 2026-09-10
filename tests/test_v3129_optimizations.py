@@ -132,7 +132,13 @@ def test_package_getattr_resolves_real_class(attr):
 # ── ③ 版本一致性 ─────────────────────────────────────────────
 
 def test_version_consistency_3129():
+    """版本一致性: src ≡ src.core ≡ pyproject (对账式, 不钉死具体版本号)。"""
+    import re
+    from pathlib import Path
     import src
     import src.core as core
-    assert src.__version__ == "3.129.0"
-    assert core.__version__ == "3.129.0"
+    assert src.__version__ == core.__version__
+    py = (Path(__file__).resolve().parent.parent / "pyproject.toml").read_text(encoding="utf-8")
+    m = re.search(r'^version\s*=\s*"([^"]+)"', py, re.M)
+    assert m, "pyproject.toml 缺 version 字段"
+    assert src.__version__ == m.group(1), f"src.__version__({src.__version__}) != pyproject({m.group(1)})"

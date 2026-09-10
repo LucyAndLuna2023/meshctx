@@ -29,10 +29,24 @@ import sys
 from datetime import datetime, timezone
 from typing import Optional
 
-# ── Config ──────────────────────────────────────────────
-REDIS_HOST = os.environ.get("HUB_REDIS_HOST", "66.154.101.18")
-REDIS_PORT = int(os.environ.get("HUB_REDIS_PORT", "6379"))
-REDIS_PASSWORD = os.environ.get("HUB_REDIS_PASSWORD", "Hm@2026!1ckwd3zx2i")
+# ── Config (P0 零凭据: 无源码默认值 — env 或 ~/.meshctx/hub_env.json 注入) ──
+def _load_hub_env() -> dict:
+    """从 ~/.meshctx/hub_env.json (0600, 仓库之外) 读取 hub 连接配置。"""
+    p = os.path.join(os.path.expanduser("~"), ".meshctx", "hub_env.json")
+    try:
+        import json as _json
+        with open(p, encoding="utf-8") as f:
+            return _json.load(f)
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        print(f"[hub] hub_env.json 读取失败 (忽略): {e}", file=sys.stderr)
+        return {}
+
+_HUB_ENV = _load_hub_env()
+REDIS_HOST = os.environ.get("HUB_REDIS_HOST") or _HUB_ENV.get("host", "")
+REDIS_PORT = int(os.environ.get("HUB_REDIS_PORT") or _HUB_ENV.get("port") or 6379)
+REDIS_PASSWORD = os.environ.get("HUB_REDIS_PASSWORD") or _HUB_ENV.get("password", "")
 
 # Machine identity
 _raw_machine_id = os.environ.get("HUB_MACHINE_ID", "")

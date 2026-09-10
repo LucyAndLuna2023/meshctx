@@ -350,10 +350,12 @@ def test_send_reply_direct_to_dedicated_channel(v6):
 
 
 def test_hub_credentials_not_in_source():
-    """P0 回归: 源码零凭据 — cluster_comm_v6.py 不得内嵌 hub 密码/IP 默认值。"""
-    src = (Path(__file__).resolve().parent.parent / "cluster" / "cluster_comm_v6.py").read_text(encoding="utf-8")
-    assert "Hm@2026" not in src, "hub 密码不得出现在源码"
-    assert "66.154.101.18" not in src, "hub 地址默认值不得出现在源码 (env/hub_env 注入)"
+    """P0 回归: 源码零凭据 — cluster/ 全部模块不得内嵌 hub 密码/IP 默认值。"""
+    base = Path(__file__).resolve().parent.parent / "cluster"
+    for name in ("cluster_comm_v6.py", "hub_client.py"):
+        src = (base / name).read_text(encoding="utf-8")
+        assert "Hm@2026" not in src, f"hub 密码不得出现在源码 ({name})"
+        assert "66.154.101.18" not in src, f"hub 地址默认值不得出现在源码 ({name}) (env/hub_env 注入)"
 
 
 def test_get_redis_requires_config(v6, monkeypatch):

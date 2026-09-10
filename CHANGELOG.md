@@ -1,3 +1,16 @@
+## [3.131.2] - 2026-09-10 (P0 收尾 + 版本残留清零 — 待 002codex 复审后 tag)
+### Fixed (002codex 82a425b7 HOLD 项 + 002meshctx .bat 补充, 004zcode 07c6e5d1 PASS 后收尾)
+- **cluster/hub_client.py 零凭据完成**: 移除 REDIS_HOST/PASSWORD 源码默认值 —
+  改 env (HUB_REDIS_HOST/HUB_REDIS_PASSWORD) 或 ~/.meshctx/hub_env.json (0600,
+  仓库之外) 注入; 回归测试 test_hub_credentials_not_in_source 扩展扫描
+  cluster/hub_client.py (002codex 实测指出 P0 未覆盖此文件)
+- **.bat ×6 版本残留 3.121.7→3.131.1** (build.bat echo×2 / install.bat /
+  install-edition.bat / docs 两份); SOP 版本清单补 O 项; opt_bump_version.py
+  补 .bat 扫描 (002meshctx 指派合并方项)
+- 升级提示 (zcode 建议采纳): 升级后首次启动如遇浏览器缓存, Ctrl+F5 强刷
+- 注: cluster/ 与 .bat 均不在发版资产打包清单 (spec/nsi/deb/tar 无), v3.131.1
+  资产不受影响; 本批为源码级收尾, 复审通过后 tag v3.131.2
+
 ## [3.131.1] - 2026-09-10 (集群通讯v6 + Model Hub + Linux登录修复 + 希伯来语全量 + 安全线加固)
 ### Added (004zcode 三批次合流 + 004meshctx, 三方审计闭环: 002codex acfd551d 复核 / 004meshctx 57056c8e / 004deepseek)
 - **集群通讯 v6 模块**: cluster/cluster_comm_v6.py + CLUSTER_V6_MESHCTX.md
