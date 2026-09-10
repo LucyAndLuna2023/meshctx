@@ -2675,6 +2675,7 @@ _PROVIDER_DISPLAY = {
     "mistral": "Mistral",
     "qwen": "通义千问",
     "zhipu": "智谱",
+    "zai": "智谱国际 Z.AI",
     "moonshot": "月之暗面",
     "baidu": "百度",
     "minimax": "MiniMax",
@@ -3107,6 +3108,8 @@ async def test_model_connection(model_id: str):
         return {"status": "error", "message": "连接超时(20s)，请检查Base URL是否正确"}
     except Exception as e:
         msg = str(e)[:300]
+        if "401" in msg or "Unauthorized" in msg or "令牌" in msg or "token" in msg.lower():
+            msg += " — 请确认 API Key 与端点匹配: 国内 key→zhipu(open.bigmodel.cn) / 国际 key→zai(api.z.ai), 两者不通用"
         return {"status": "error", "message": f"连接失败: {msg}"}
 
 

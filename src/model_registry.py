@@ -138,6 +138,15 @@ BUILTIN_MODELS = {
     "zhipu:glm-zero-preview":  {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-zero-preview","key_env":"ZHIPU_API_KEY"},
     "zhipu:glm-4.7":           {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4.7","key_env":"ZHIPU_API_KEY"},
     "zhipu:glm-4.7-flash":     {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-4.7-flash","key_env":"ZHIPU_API_KEY"},
+    "zhipu:glm-5.3":           {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-5.3","key_env":"ZHIPU_API_KEY"},
+    "zhipu:glm-5.3-flash":     {"provider":"zhipu","base_url":"https://open.bigmodel.cn/api/paas/v4","model":"glm-5.3-flash","key_env":"ZHIPU_API_KEY"},
+    # ── 智谱国际 Z.AI (api.z.ai — 国际版 key 与 bigmodel 不通用) ──
+    "zai:glm-5.3-flash":       {"provider":"zai","base_url":"https://api.z.ai/api/paas/v4","model":"glm-5.3-flash","key_env":"ZAI_API_KEY"},
+    "zai:glm-5.3":             {"provider":"zai","base_url":"https://api.z.ai/api/paas/v4","model":"glm-5.3","key_env":"ZAI_API_KEY"},
+    "zai:glm-4.7":             {"provider":"zai","base_url":"https://api.z.ai/api/paas/v4","model":"glm-4.7","key_env":"ZAI_API_KEY"},
+    "zai:glm-4.6":             {"provider":"zai","base_url":"https://api.z.ai/api/paas/v4","model":"glm-4.6","key_env":"ZAI_API_KEY"},
+    "zai:glm-4.5-flash":       {"provider":"zai","base_url":"https://api.z.ai/api/paas/v4","model":"glm-4.5-flash","key_env":"ZAI_API_KEY"},
+    "zai:glm-4.5-air":         {"provider":"zai","base_url":"https://api.z.ai/api/paas/v4","model":"glm-4.5-air","key_env":"ZAI_API_KEY"},
     # ── 月之暗面 (Kimi) ────────────────────────────────
     "moonshot:kimi":           {"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"moonshot-v1-8k","key_env":"MOONSHOT_API_KEY"},
     "moonshot:kimi-32k":       {"provider":"moonshot","base_url":"https://api.moonshot.cn/v1","model":"moonshot-v1-32k","key_env":"MOONSHOT_API_KEY"},

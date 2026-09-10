@@ -1677,7 +1677,7 @@ const FALLBACK_MODELS = [
   { id:'deepseek:v4-flash-vision', label:'👁 V4-Flash Vision', icon:'👁', providerName:'DeepSeek' },
 ];
 function providerIcon(p){
-  const icons = { openrouter:'🌐', openai:'🤖', anthropic:'✳️', google:'🟦', deepseek:'🚀', bailian:'☁️', groq:'⚡', together:'🔗', xai:'🅧', mistral:'🌀', cohere:'🌊', perplexity:'🔎', zhipu:'🟣', custom:'🧩' };
+  const icons = { openrouter:'🌐', openai:'🤖', anthropic:'✳️', google:'🟦', deepseek:'🚀', bailian:'☁️', groq:'⚡', together:'🔗', xai:'🅧', mistral:'🌀', cohere:'🌊', perplexity:'🔎', zhipu:'🟣', zai:'🌍', custom:'🧩' };
   return icons[p] || '🧩';
 }
 function applyModelOptions(list){
@@ -3095,6 +3095,7 @@ var AM_PROVIDERS = {
   openai:     {base:'https://api.openai.com/v1',                         key:'https://platform.openai.com/api-keys',                         models:['openai:gpt-4o','openai:gpt-4o-mini']},
   anthropic:  {base:'https://api.anthropic.com/v1',                      key:'https://console.anthropic.com/settings/keys',                  models:['anthropic:claude-sonnet-4']},
   zhipu:      {base:'https://open.bigmodel.cn/api/paas/v4',              key:'https://open.bigmodel.cn/usercenter/apikeys',                  models:['zhipu:glm-4.6','zhipu:glm-4.5-air','zhipu:glm-4.5-flash']},
+    zai:        {base:'https://api.z.ai/api/paas/v4',                    key:'https://z.ai/manage-apikey/apikey-list',                       models:['zai:glm-5.3-flash','zai:glm-5.3','zai:glm-4.6']},
   moonshot:   {base:'https://api.moonshot.cn/v1',                        key:'https://platform.moonshot.cn/console/api-keys',                models:['moonshot:kimi-k2']},
   bailian:    {base:'https://dashscope.aliyuncs.com/compatible-mode/v1', key:'https://dashscope.console.aliyun.com/apiKey',                  models:['bailian:qwen-max','bailian:qwen-plus']},
   openrouter: {base:'https://openrouter.ai/api/v1',                      key:'https://openrouter.ai/keys',                                   models:['openrouter:anthropic/claude-sonnet-4']},
@@ -3102,12 +3103,12 @@ var AM_PROVIDERS = {
   ollama:     {base:'http://localhost:11434/v1',                         key:'',                                                             models:['ollama:llama3.1','ollama:qwen2.5']},
   custom:     {base:'',                                                  key:'',                                                             models:[]}
 };
-var AM_ORDER = ['deepseek','openai','anthropic','zhipu','moonshot','bailian','openrouter','google','ollama','custom'];
+var AM_ORDER = ['deepseek','openai','anthropic','zhipu','zai','moonshot','bailian','openrouter','google','ollama','custom'];
 (function amInit(){
   var sel = document.getElementById('am_provider');
   if (!sel) return;
   sel.innerHTML = AM_ORDER.map(function(p){
-    var names = {deepseek:'DeepSeek 🚀',openai:'OpenAI 🤖',anthropic:'Anthropic ✳️',zhipu:'智谱 GLM 🧪',moonshot:'Moonshot 🌙',bailian:'阿里百炼 ☁️',openrouter:'OpenRouter 🌐',google:'Gemini 🟦',ollama:'Ollama(本地) 🐳',custom:'自定义 🔧'};
+    var names = {deepseek:'DeepSeek 🚀',openai:'OpenAI 🤖',anthropic:'Anthropic ✳️',zhipu:'智谱 GLM 🧪',zai:'智谱 Z.AI 🌍',moonshot:'Moonshot 🌙',bailian:'阿里百炼 ☁️',openrouter:'OpenRouter 🌐',google:'Gemini 🟦',ollama:'Ollama(本地) 🐳',custom:'自定义 🔧'};
     return '<option value="' + p + '">' + (names[p]||p) + '</option>';
   }).join('');
 })();
