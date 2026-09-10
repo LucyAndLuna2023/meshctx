@@ -2767,7 +2767,7 @@ def _fetch_remote_model_ids(provider: str, base_url: str, api_key: str = "") -> 
     req = _ur.Request(url, headers={"Authorization": f"Bearer {api_key}",
                                     "User-Agent": "MeshCtx/3.131"})
     try:
-        with _ur.urlopen(req, timeout=8) as resp:
+        with _ur.urlopen(req, timeout=3) as resp:
             return _parse_models_payload(_json.loads(resp.read().decode("utf-8", "replace")))
     except Exception as e:
         logger.info(f"remote models {provider} 拉取失败: {e}")
@@ -2881,9 +2881,13 @@ async def list_models():
             not ent.get("models") or _t.time() - ent.get("fetched_at", 0) >= _REMOTE_MODELS_TTL
             for ent in cache.values())
         if stale:
-            # B1: 后台线程刷新, 立即返回现有缓存 — 事件循环零阻塞 (判据 a)
-            import asyncio as _aio
-            _aio.get_running_loop().run_in_executor(None, _refresh_remote_models)
+            # B1: 后台线程刷新, 立即返回现有缓存 — 事件循环零阻塞
+            # B1b: 防重入 — 60s 内只调度一次, 避免 stale 期间每请求各起一个线程
+            import asyncio as _aio, time as _t2
+            _g = globals().setdefault("_REMOTE_REFRESH_GUARD", {"at": 0.0})
+            if _t2.time() - _g.get("at", 0.0) >= 60:
+                _g["at"] = _t2.time()
+                _aio.get_running_loop().run_in_executor(None, _refresh_remote_models)
         seen = {m["id"] for m in models}
         for pid, ent in cache.items():
             has_key = bool(provider_cfg.get(pid, {}).get("key", ""))
