@@ -3141,6 +3141,19 @@ function amOnProvider(){
   document.getElementById('am_id_list').innerHTML = (m.models||[]).map(function(id){
     return '<option value="' + id + '">'; }).join('');
   document.getElementById('am_id').placeholder = (m.models&&m.models[0]) ? m.models[0] : (p + ':my-model');
+  // v3.131.2: 实时拉取厂商 /models — 列表跟随厂商更新, 免硬编码
+  fetch('/api/models/remote/' + encodeURIComponent(p)).then(function(r){
+    return r.ok ? r.json() : null; }).then(function(d){
+    if (!d || !d.models || !d.models.length) return;
+    var dl = document.getElementById('am_id_list');
+    var have = {};
+    dl.querySelectorAll('option').forEach(function(o){ have[o.value] = 1; });
+    d.models.slice(0, 60).forEach(function(id){
+      var full = (id.indexOf(':') === -1) ? (p + ':' + id) : id;
+      if (have[full]) return;
+      var o = document.createElement('option'); o.value = full; dl.appendChild(o);
+    });
+  }).catch(function(){});
 }
 </script>
 

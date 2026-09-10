@@ -2693,6 +2693,118 @@ def _provider_display_name(pid: str) -> str:
     """供应商ID→显示名"""
     return _PROVIDER_DISPLAY.get(pid, pid)
 
+# ── v3.131.2: 厂商实时模型列表 — 免硬编码, /models 端点拉取 + 本地缓存 ──
+_REMOTE_MODELS_TTL = 12 * 3600
+_REMOTE_BLOCKLIST = ("embed", "rerank", "whisper", "tts", "dall-e", "moderation",
+                     "guard", "speech", "bge-", "e5-", "clip")
+
+def _remote_cache_path() -> Path:
+    return Path(__file__).resolve().parent.parent / ".models_remote_cache.json"
+
+def _load_remote_cache() -> dict:
+    try:
+        import json as _json
+        return _json.loads(_remote_cache_path().read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+def _save_remote_cache(cache: dict):
+    """原子写缓存 (utf-8, tmp→os.replace, 0600 — 与 provider_config 同规)"""
+    import json as _json, os as _os, tempfile as _tf
+    p = _remote_cache_path()
+    try:
+        fd, tmp = _tf.mkstemp(dir=str(p.parent), prefix=".mrc_")
+        with _os.fdopen(fd, "w", encoding="utf-8") as f:
+            _json.dump(cache, f, ensure_ascii=False)
+        _os.chmod(tmp, 0o600)
+        _os.replace(tmp, p)
+    except Exception:
+        logger.warning("remote models cache 写入失败", exc_info=True)
+
+def _parse_models_payload(payload) -> list:
+    """防御式解析厂商 /models 返回: OpenAI {data:[{id}]} / 裸 list / {models:[...]}"""
+    try:
+        items = payload.get("data") if isinstance(payload, dict) else payload
+        if items is None and isinstance(payload, dict):
+            items = payload.get("models")
+        if not isinstance(items, list):
+            return []
+        ids: list = []
+        for it in items:
+            if isinstance(it, str):
+                mid = it
+            elif isinstance(it, dict):
+                mid = it.get("id") or it.get("name") or it.get("model") or ""
+            else:
+                continue
+            mid = str(mid).strip()
+            low = mid.lower()
+            if mid and not any(b in low for b in _REMOTE_BLOCKLIST) and mid not in ids:
+                ids.append(mid)
+        return ids
+    except Exception:
+        return []
+
+def _fetch_remote_model_ids(provider: str, base_url: str, api_key: str = "") -> list:
+    """GET {base_url}/models — 厂商实时模型 (OpenAI 兼容; openrouter 免 key 可列)"""
+    import urllib.request as _ur, json as _json
+    url = base_url.rstrip("/") + "/models"
+    req = _ur.Request(url, headers={"Authorization": f"Bearer {api_key}",
+                                    "User-Agent": "MeshCtx/3.131"})
+    try:
+        with _ur.urlopen(req, timeout=8) as resp:
+            return _parse_models_payload(_json.loads(resp.read().decode("utf-8", "replace")))
+    except Exception as e:
+        logger.info(f"remote models {provider} 拉取失败: {e}")
+        return []
+
+def _refresh_remote_models(force: bool = False) -> dict:
+    """对已配 key 的 provider (openrouter 免 key) 拉取 /models 并原子写缓存"""
+    import time as _t
+    from src.model_registry import BUILTIN_MODELS as _BM
+    pcfg = _load_provider_config()
+    cache = _load_remote_cache()
+    now = _t.time()
+    out: dict = {}
+    targets: dict = {}
+    for _mid, info in _BM.items():
+        pid = info["provider"]
+        if pid in targets:
+            continue
+        key = (pcfg.get(pid) or {}).get("key", "")
+        if not key and pid != "openrouter":
+            continue
+        targets[pid] = (info["base_url"], key)
+    for pid, (base, key) in targets.items():
+        ent = cache.get(pid) or {}
+        if not force and ent.get("models") and now - ent.get("fetched_at", 0) < _REMOTE_MODELS_TTL:
+            out[pid] = len(ent["models"])
+            continue
+        ids = _fetch_remote_model_ids(pid, base, key)
+        if ids:
+            cache[pid] = {"fetched_at": now, "models": ids}
+            out[pid] = len(ids)
+        elif ent.get("models"):
+            out[pid] = len(ent["models"])  # 拉取失败沿用旧缓存
+    _save_remote_cache(cache)
+    return out
+
+@app.get("/api/models/remote/{provider}")
+async def remote_models(provider: str):
+    """厂商实时模型列表 (缓存优先, 无缓存即拉) — chat ➕ 模态实时下拉数据源"""
+    ent = _load_remote_cache().get(provider)
+    if not ent or not ent.get("models"):
+        _refresh_remote_models()
+        ent = _load_remote_cache().get(provider) or {}
+    return {"provider": provider, "models": ent.get("models") or [],
+            "fetched_at": ent.get("fetched_at")}
+
+@app.post("/api/models/refresh")
+async def refresh_models_endpoint():
+    """强制刷新全部已配 key 厂商的实时模型列表"""
+    counts = _refresh_remote_models(force=True)
+    return {"status": "ok", "refreshed": counts}
+
 # ── v1.5.5 模型切换 API ─────────────────────────────────
 
 @app.get("/api/models")
@@ -2743,6 +2855,33 @@ async def list_models():
             "has_key": bool(info.get("key")),
             "current": mid == current,
         })
+    # v3.131.2: 合并厂商实时模型 (/models 拉取缓存) — 厂商新模型免发版自动出现
+    try:
+        import time as _t
+        cache = _load_remote_cache()
+        stale = (not cache) or any(
+            not ent.get("models") or _t.time() - ent.get("fetched_at", 0) >= _REMOTE_MODELS_TTL
+            for ent in cache.values())
+        if stale:
+            _refresh_remote_models()
+            cache = _load_remote_cache()
+        seen = {m["id"] for m in models}
+        for pid, ent in cache.items():
+            has_key = bool(provider_cfg.get(pid, {}).get("key", ""))
+            for raw in (ent.get("models") or [])[:60]:
+                mid = raw if ":" in raw else f"{pid}:{raw}"
+                if mid in seen or any(b in mid.lower() for b in _REMOTE_BLOCKLIST):
+                    continue
+                seen.add(mid)
+                models.append({
+                    "id": mid, "provider": pid,
+                    "provider_name": _provider_display_name(pid),
+                    "model_name": raw, "configured": False,
+                    "usable": has_key, "has_key": has_key,
+                    "current": mid == current, "remote": True,
+                })
+    except Exception:
+        logger.warning("remote models merge 失败", exc_info=True)
     return {
         "models": models, 
         "current": current, 

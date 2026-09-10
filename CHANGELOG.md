@@ -10,6 +10,14 @@
 - 升级提示 (zcode 建议采纳): 升级后首次启动如遇浏览器缓存, Ctrl+F5 强刷
 - 注: cluster/ 与 .bat 均不在发版资产打包清单 (spec/nsi/deb/tar 无), v3.131.1
   资产不受影响; 本批为源码级收尾, 复审通过后 tag v3.131.2
+- **厂商实时模型列表 (免硬编码)**: /models 端点拉取 + 本地缓存 (TTL 12h, 原子写
+  0600) + /api/models 自动 merge + GET /api/models/remote/{provider} +
+  POST /api/models/refresh 强刷 — 厂商新模型免发版自动出现 (用户需求:
+  provider/model 不得硬编码, 实时跟随厂商); OpenRouter 免 key 可列;
+  blocklist 双层过滤 (parse+merge); 防御式解析三种返回形状;
+  chat ➕ 模态 datalist 接实时数据源; 端点活跃性实测:
+  deepseek/bigmodel/z.ai/groq 401 (需 key, 活), openrouter 200 (公开),
+  moonshot 401 — tests/test_models_remote.py 8 用例全离线 mock
 
 ## [3.131.1] - 2026-09-10 (集群通讯v6 + Model Hub + Linux登录修复 + 希伯来语全量 + 安全线加固)
 ### Added (004zcode 三批次合流 + 004meshctx, 三方审计闭环: 002codex acfd551d 复核 / 004meshctx 57056c8e / 004deepseek)

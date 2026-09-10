@@ -48,3 +48,4 @@ provider_config.json
 # src/core/ now contains open-source stubs — safe to publish
 .fernet_key
 dump.rdb
+.models_remote_cache.json
