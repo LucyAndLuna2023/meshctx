@@ -1,3 +1,37 @@
+## [3.131.1] - 2026-09-10 (集群通讯v6 + Model Hub + Linux登录修复 + 希伯来语全量 + 安全线加固)
+### Added (004zcode 三批次合流 + 004meshctx, 三方审计闭环: 002codex acfd551d 复核 / 004meshctx 57056c8e / 004deepseek)
+- **集群通讯 v6 模块**: cluster/cluster_comm_v6.py + CLUSTER_V6_MESHCTX.md
+  (zcode@004, 兼容 hermes v6.1: 项目路由优先级/profile 白名单/单通道禁双写/
+  回执路由/自杀防护/Web3 journal/归档 TTL; FakeRedis 全覆盖测试
+  test_cluster_comm_v6.py。P0 审计修复: 源码零凭据 — host/port/password 改
+  env → ~/.meshctx/hub_env.json (0600, 仓库之外) 注入, 缺失降级 journal-only,
+  回归测试断言源码无密码/IP)
+- **Model Hub UI**: /ui/setup 单页三区 (当前使用/模型列表/快速添加) + chat 模型
+  真实切换持久化(修假切换) + 添加自动测活 (templates/setup.html + chat.html 按
+  SHA256 清单对账合流; test_v3131_model_hub_and_auth.py 全绿 0 skip)
+- **第 11 语言希伯来语 (he, RTL) 全表面**: 服务端 registry 1458 键 / landing 270 /
+  chat 66 / base 126 / 法务 65+71 / 子页×5 / profile / SKU NSIS Hebrew + macOS
+  CFBundleLocalizations 11 / RTL 10 页+服务端首屏 / 安装器口径 11 语一致=10
+  (002codex b5a1d915 / 002meshctx 2538089f / 004meshctx round30-33 收口放行)
+- **手动添加任意自定义模型**: chat ➕ 模态 ×11 语言 + provider datalist; key 留空
+  回退 provider_config 同供应商; add_model 同步写 provider_config.json;
+  zhipu builtin 5→16 款 (glm-4.5 系/4.6/4.7 系等)
+- **org×plan 联动**: env MESHCTX_ORG_MAX_DEPTS/MAX_MEMBERS (默认不设限零行为变化)
+### Fixed
+- **Linux 本地 UI 登录 bug** (v3.131.0): _is_loopback_client 加固 —
+  request.client 为 None (UDS/进程内) 视为可信本地 + IPv6 展开形式
+  0:0:0:0:0:0:0:1 + zone 后缀 (::1%eth0) 剥离 (zcode WSL 真机实测)
+- **provider_config.json 写入加固** (v3.131.1): 显式 utf-8 + 原子写
+  (tmp→os.replace) + 0600 权限; P1 交付侧模板对账已入 main
+- **产品面清扫**: 全仓版本残留统一 3.131.1 (install-mac/edition/support_bot
+  3.129.0→3.131.1; SOP A-N 扩展) + src/cli.js 横幅去超卖 + FastAPI description
+  去超卖
+- **org seal 增强**: mixed-version 自愈 + 外部锚定 {org.json}.seal (002codex faa77549)
+### Tests
+- 全量 3878 passed / 59 skipped / 0 failed (基线 3790→3878, +88);
+  zcode 侧终验 3874/0/66 (_audit/final_pytest_v3131_1.txt) 合流后复跑一致
+
+
 ## [3.129.0] - 2026-09-09 (Windows 健壮性 + 测试失败清零 + async 事件循环解堵)
 ### Fixed / Changed (优化批, 详见 OPTIMIZATION_REPORT_v3.129.0.md)
 - Windows 健壮性: 166 处裸 open() 补 encoding="utf-8" (38 文件, AST 驱动,
