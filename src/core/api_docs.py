@@ -62,11 +62,15 @@ class APIDiscoveryEngine:
                 "responses": {"200": {"description": "OK"}},
             }
 
+        try:
+            from src import __version__ as _meshctx_ver
+        except Exception:
+            _meshctx_ver = "unknown"
         spec: Dict[str, Any] = {
             "openapi": "3.0.0",
             "info": {
                 "title": "meshctx API",
-                "version": "3.33.0",
+                "version": _meshctx_ver,
                 "description": "Auto-discovered API specification",
             },
             "paths": paths,

@@ -442,3 +442,21 @@ class TestRegressionPrevention:
             for needle in needles:
                 assert needle in text, \
                     f"🔴 版本资产 {fname} 缺少 {needle!r} (应 {ver}) — G10 门拦: 先同步再发版"
+
+
+class TestVersionResidue:
+    """v3.131.2 B7 (004meshctx): 全链版本残留扫描 — openapi 声明/llms.txt 曾漏。"""
+
+    def test_api_docs_version_dynamic(self):
+        """api_docs.py openapi version 必须引用 src.__version__ (禁硬编码)。"""
+        import re
+        src = (PROJECT / "src" / "core" / "api_docs.py").read_text(encoding="utf-8")
+        assert not re.search(r'"version"\s*:\s*"3\.\d+\.\d+"', src), \
+            "api_docs.py 硬编码版本 — 应引用 src.__version__"
+        assert "__version__" in src
+
+    def test_llms_txt_version_matches(self):
+        """llms.txt 版本串与 src.__version__ 一致。"""
+        import src
+        llms = (PROJECT / "docs" / "llms.txt").read_text(encoding="utf-8")
+        assert src.__version__ in llms, f"llms.txt 缺当前版本 {src.__version__}"

@@ -2694,7 +2694,7 @@ def _provider_display_name(pid: str) -> str:
     return _PROVIDER_DISPLAY.get(pid, pid)
 
 # ── v3.131.2: 厂商实时模型列表 — 免硬编码, /models 端点拉取 + 本地缓存 ──
-_REMOTE_MODELS_TTL = 12 * 3600
+_REMOTE_MODELS_TTL = int(os.environ.get("MESHCTX_MODELS_CACHE_TTL", "900"))  # 默认 15min (004meshctx 裁决 e)
 _REMOTE_BLOCKLIST = ("embed", "rerank", "whisper", "tts", "dall-e", "moderation",
                      "guard", "speech", "bge-", "e5-", "clip")
 
@@ -2745,6 +2745,21 @@ def _parse_models_payload(payload) -> list:
     except Exception:
         return []
 
+def _provider_api_key(pid: str, pcfg: dict) -> str:
+    """provider key 解析: provider_config.json → ENV_KEY_MAP 环境变量 (.env 兼容)"""
+    key = (pcfg.get(pid) or {}).get("key", "")
+    if key:
+        return key
+    try:
+        from src.model_registry import ENV_KEY_MAP
+        for env_var, pattern in ENV_KEY_MAP.items():
+            if pattern == f"{pid}:*":
+                return os.environ.get(env_var, "")
+    except Exception:
+        pass
+    return ""
+
+
 def _fetch_remote_model_ids(provider: str, base_url: str, api_key: str = "") -> list:
     """GET {base_url}/models — 厂商实时模型 (OpenAI 兼容; openrouter 免 key 可列)"""
     import urllib.request as _ur, json as _json
@@ -2771,10 +2786,11 @@ def _refresh_remote_models(force: bool = False) -> dict:
         pid = info["provider"]
         if pid in targets:
             continue
-        key = (pcfg.get(pid) or {}).get("key", "")
+        key = _provider_api_key(pid, pcfg)   # B2: pcfg → ENV_KEY_MAP env 回退
         if not key and pid != "openrouter":
             continue
-        targets[pid] = (info["base_url"], key)
+        base = (pcfg.get(pid) or {}).get("base_url") or info["base_url"]  # B3: pcfg 覆盖优先
+        targets[pid] = (base, key)
     for pid, (base, key) in targets.items():
         ent = cache.get(pid) or {}
         if not force and ent.get("models") and now - ent.get("fetched_at", 0) < _REMOTE_MODELS_TTL:
@@ -2794,7 +2810,8 @@ async def remote_models(provider: str):
     """厂商实时模型列表 (缓存优先, 无缓存即拉) — chat ➕ 模态实时下拉数据源"""
     ent = _load_remote_cache().get(provider)
     if not ent or not ent.get("models"):
-        _refresh_remote_models()
+        import asyncio as _aio
+        await _aio.to_thread(_refresh_remote_models)   # B1: 线程执行, 事件循环不阻塞
         ent = _load_remote_cache().get(provider) or {}
     return {"provider": provider, "models": ent.get("models") or [],
             "fetched_at": ent.get("fetched_at")}
@@ -2802,7 +2819,8 @@ async def remote_models(provider: str):
 @app.post("/api/models/refresh")
 async def refresh_models_endpoint():
     """强制刷新全部已配 key 厂商的实时模型列表"""
-    counts = _refresh_remote_models(force=True)
+    import asyncio as _aio
+    counts = await _aio.to_thread(_refresh_remote_models, True)  # B1: 不阻塞事件循环
     return {"status": "ok", "refreshed": counts}
 
 # ── v1.5.5 模型切换 API ─────────────────────────────────
@@ -2863,12 +2881,14 @@ async def list_models():
             not ent.get("models") or _t.time() - ent.get("fetched_at", 0) >= _REMOTE_MODELS_TTL
             for ent in cache.values())
         if stale:
-            _refresh_remote_models()
-            cache = _load_remote_cache()
+            # B1: 后台线程刷新, 立即返回现有缓存 — 事件循环零阻塞 (判据 a)
+            import asyncio as _aio
+            _aio.get_running_loop().run_in_executor(None, _refresh_remote_models)
         seen = {m["id"] for m in models}
         for pid, ent in cache.items():
             has_key = bool(provider_cfg.get(pid, {}).get("key", ""))
-            for raw in (ent.get("models") or [])[:60]:
+            ent_stale = _t.time() - ent.get("fetched_at", 0) >= _REMOTE_MODELS_TTL
+            for raw in (ent.get("models") or []):   # B4: 取消 [:60] 静默截断
                 mid = raw if ":" in raw else f"{pid}:{raw}"
                 if mid in seen or any(b in mid.lower() for b in _REMOTE_BLOCKLIST):
                     continue
@@ -2879,6 +2899,9 @@ async def list_models():
                     "model_name": raw, "configured": False,
                     "usable": has_key, "has_key": has_key,
                     "current": mid == current, "remote": True,
+                    "source": "remote",                       # B5: 来源标记
+                    "fetched_at": ent.get("fetched_at"),      # B5: 抓取时间
+                    "stale": ent_stale,                       # B5: 过期标记
                 })
     except Exception:
         logger.warning("remote models merge 失败", exc_info=True)
