@@ -255,6 +255,7 @@ ENV_KEY_MAP = {
     "GROQ_API_KEY":             "groq:*",
     "PERPLEXITY_API_KEY":       "perplexity:*",
     "OPENROUTER_API_KEY":       "openrouter:*",
+    "ZAI_API_KEY":              "zai:*",
     # 中国主力
     "DEEPSEEK_API_KEY":         "deepseek:*",
     "BAILIAN_API_KEY":          "bailian:*",
