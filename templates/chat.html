@@ -2264,10 +2264,11 @@ function updateStatusPanel(hybridInfo) {
 }
 
 
-// ── 手动添加自定义模型 (像 DeepSeek Harness, 2026-09) ──
+// ── 手动添加自定义模型 (像 DeepSeek Harness, 2026-09; v3.131 智能预填+自动测活) ──
 function openAddModel(){
   document.getElementById('addModelModal').style.display='flex';
   document.getElementById('am_status').textContent='';
+  amOnProvider();   // v3.131: 打开即按当前厂商预填 base_url/模型列表
   setTimeout(function(){ document.getElementById('am_id').focus(); },50);
 }
 function closeAddModel(){
@@ -2278,21 +2279,28 @@ function submitAddModel(){
   var st=document.getElementById('am_status');
   var id=(document.getElementById('am_id').value||'').trim();
   var provider=(document.getElementById('am_provider').value||'').trim();
-  var name=(document.getElementById('am_name').value||'').trim();
   var key=(document.getElementById('am_key').value||'').trim();
   var base=(document.getElementById('am_baseurl').value||'').trim();
   if(!id||!provider){ st.textContent='⚠ id/provider 必填'; return; }
+  if(id.indexOf(':')===-1) id=provider+':'+id;   // v3.131: 只输 "glm-4.6" 自动补全 "zhipu:glm-4.6"
   if(provider==='custom' && !base){ st.textContent='⚠ custom 需填 Base URL'; return; }
+  st.textContent='…';
   fetch('/api/models',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({id:id,provider:provider,model:name||id,key:key,base_url:base})})
+    body:JSON.stringify({id:id,provider:provider,model:id.split(':').slice(1).join(':')||id,key:key,base_url:base,overwrite:true})})
   .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); })
   .then(function(res){
     if(!res.ok){ st.textContent='⚠ '+(res.d.error||res.d.detail||'添加失败'); return; }
-    st.textContent='✅';
-    return fetch('/api/model/switch',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model_id:id})});
+    st.textContent='✓ 已添加，测活中…';
+    // v3.131: 自动测活 + 持久默认 (原仅 switch env, 重启丢失)
+    return fetch('/api/models/'+encodeURIComponent(id)+'/test',{method:'POST'})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        st.textContent = (d.status==='ok') ? '✓ 测活通过: '+(d.response||'').slice(0,30)
+                                          : '⚠ 已添加, 测活失败: '+(d.message||'').slice(0,50);
+        return fetch('/api/models/'+encodeURIComponent(id)+'/default',{method:'PATCH'});
+      })
+      .then(function(){ setTimeout(function(){ closeAddModel(); loadModels(); }, 700); });
   })
-  .then(function(r2){ if(r2 && r2.ok){ closeAddModel(); loadModels(); } })
   .catch(function(e){ st.textContent='⚠ '+e; });
 }
 
@@ -2302,6 +2310,14 @@ function switchModel() {
   model = v;
   document.getElementById('modelInfo').innerHTML = `<span data-lang-key="chat_model">${t('chat_model')}</span>: ${model}`;
   document.getElementById('panelModel').textContent = model;
+  // v3.131 真切换: 选中即持久为默认 (PATCH default 同时设置运行时 env),
+  // 失败回退会话级 /api/model/switch — 消除"重启后切回旧模型"的假切换
+  fetch('/api/models/' + encodeURIComponent(v) + '/default', {method:'PATCH'})
+    .then(function(r){ if (!r.ok) throw 0; return r.json(); })
+    .catch(function(){
+      return fetch('/api/model/switch',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({model_id:v})});
+    }).catch(function(){ /* 本地展示已更新, 后端切换失败静默保底 */ });
 }
 
 // ═══════ 对话历史管理 (2026-08-25 004meshctx 修复) ═══════
@@ -3054,21 +3070,16 @@ function orgDeptToggle(){
 <div id="addModelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:#161b2c;color:#e6e9f2;border:1px solid #2a3350;border-radius:14px;padding:20px;width:min(440px,92vw);font-family:inherit;">
     <h3 style="margin:0 0 12px;font-size:1.05rem;">➕ <span data-lang-key="add_model_title">添加自定义模型</span></h3>
+    <!-- v3.131: 选厂商 → base_url/获Key链接/常见模型 全自动预填 (像 ZCode/DeepSeek Harness) -->
     <label style="display:block;font-size:.8rem;margin-bottom:4px;" data-lang-key="add_model_provider">Provider</label>
-    <input id="am_provider" list="am_providers" placeholder="zhipu / custom / openai …" style="width:100%;margin-bottom:8px;">
-    <datalist id="am_providers">
-      <option value="custom"></option><option value="zhipu"></option><option value="openai"></option>
-      <option value="openrouter"></option><option value="deepseek"></option><option value="moonshot"></option>
-      <option value="bailian"></option><option value="doubao"></option><option value="groq"></option>
-      <option value="together"></option><option value="ollama"></option>
-    </datalist>
+    <select id="am_provider" onchange="amOnProvider()" style="width:100%;margin-bottom:8px;padding:8px;border-radius:8px;border:1px solid #2a3350;background:#0d1120;color:#e6e9f2;"></select>
     <label style="display:block;font-size:.8rem;margin-bottom:4px;" data-lang-key="add_model_id">模型 ID</label>
-    <input id="am_id" placeholder="zhipu:glm-4.6 / custom:my-model" style="width:100%;margin-bottom:8px;">
-    <label style="display:block;font-size:.8rem;margin-bottom:4px;" data-lang-key="add_model_name">模型名</label>
-    <input id="am_name" placeholder="glm-4.6" style="width:100%;margin-bottom:8px;">
-    <label style="display:block;font-size:.8rem;margin-bottom:4px;">API Key</label>
-    <input id="am_key" type="password" placeholder="(可选, 已配置 Provider 可留空)" style="width:100%;margin-bottom:8px;">
-    <label style="display:block;font-size:.8rem;margin-bottom:4px;" data-lang-key="add_model_baseurl">Base URL (OpenAI 兼容)</label>
+    <input id="am_id" list="am_id_list" placeholder="zhipu:glm-4.6 / custom:my-model" style="width:100%;margin-bottom:8px;">
+    <datalist id="am_id_list"></datalist>
+    <div id="am_getkey" style="font-size:.74rem;margin:-4px 0 8px;color:#8b9bbf;"></div>
+    <label style="display:block;font-size:.8rem;margin-bottom:4px;">API Key <span style="color:#8b9bbf">(可选 · 已配置该厂商可留空)</span></label>
+    <input id="am_key" type="password" placeholder="sk-..." style="width:100%;margin-bottom:8px;">
+    <label style="display:block;font-size:.8rem;margin-bottom:4px;" data-lang-key="add_model_baseurl">Base URL <span style="color:#8b9bbf">(自动填好，可改)</span></label>
     <input id="am_baseurl" placeholder="https://open.bigmodel.cn/api/paas/v4" style="width:100%;margin-bottom:12px;">
     <div id="am_status" style="font-size:.8rem;color:#f87171;margin-bottom:8px;"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
@@ -3077,6 +3088,41 @@ function orgDeptToggle(){
     </div>
   </div>
 </div>
+<script>
+// ═══ v3.131 添加模型智能化: 厂商元数据驱动预填 ═══
+var AM_PROVIDERS = {
+  deepseek:   {base:'https://api.deepseek.com/v1',                       key:'https://platform.deepseek.com/api_keys',                       models:['deepseek:chat','deepseek:reasoner']},
+  openai:     {base:'https://api.openai.com/v1',                         key:'https://platform.openai.com/api-keys',                         models:['openai:gpt-4o','openai:gpt-4o-mini']},
+  anthropic:  {base:'https://api.anthropic.com/v1',                      key:'https://console.anthropic.com/settings/keys',                  models:['anthropic:claude-sonnet-4']},
+  zhipu:      {base:'https://open.bigmodel.cn/api/paas/v4',              key:'https://open.bigmodel.cn/usercenter/apikeys',                  models:['zhipu:glm-4.6','zhipu:glm-4.5-air','zhipu:glm-4.5-flash']},
+  moonshot:   {base:'https://api.moonshot.cn/v1',                        key:'https://platform.moonshot.cn/console/api-keys',                models:['moonshot:kimi-k2']},
+  bailian:    {base:'https://dashscope.aliyuncs.com/compatible-mode/v1', key:'https://dashscope.console.aliyun.com/apiKey',                  models:['bailian:qwen-max','bailian:qwen-plus']},
+  openrouter: {base:'https://openrouter.ai/api/v1',                      key:'https://openrouter.ai/keys',                                   models:['openrouter:anthropic/claude-sonnet-4']},
+  google:     {base:'https://generativelanguage.googleapis.com/v1beta',  key:'https://aistudio.google.com/app/apikey',                       models:['google:gemini-2.5-pro','google:gemini-2.5-flash']},
+  ollama:     {base:'http://localhost:11434/v1',                         key:'',                                                             models:['ollama:llama3.1','ollama:qwen2.5']},
+  custom:     {base:'',                                                  key:'',                                                             models:[]}
+};
+var AM_ORDER = ['deepseek','openai','anthropic','zhipu','moonshot','bailian','openrouter','google','ollama','custom'];
+(function amInit(){
+  var sel = document.getElementById('am_provider');
+  if (!sel) return;
+  sel.innerHTML = AM_ORDER.map(function(p){
+    var names = {deepseek:'DeepSeek 🚀',openai:'OpenAI 🤖',anthropic:'Anthropic ✳️',zhipu:'智谱 GLM 🧪',moonshot:'Moonshot 🌙',bailian:'阿里百炼 ☁️',openrouter:'OpenRouter 🌐',google:'Gemini 🟦',ollama:'Ollama(本地) 🐳',custom:'自定义 🔧'};
+    return '<option value="' + p + '">' + (names[p]||p) + '</option>';
+  }).join('');
+})();
+function amOnProvider(){
+  var p = document.getElementById('am_provider').value || 'deepseek';
+  var m = AM_PROVIDERS[p] || AM_PROVIDERS.custom;
+  document.getElementById('am_baseurl').value = m.base || '';
+  document.getElementById('am_getkey').innerHTML = m.key
+    ? '没有 Key? <a href="' + m.key + '" target="_blank" style="color:#7aa2ff">点击获取 →</a>'
+    : '';
+  document.getElementById('am_id_list').innerHTML = (m.models||[]).map(function(id){
+    return '<option value="' + id + '">'; }).join('');
+  document.getElementById('am_id').placeholder = (m.models&&m.models[0]) ? m.models[0] : (p + ':my-model');
+}
+</script>
 
 </body>
 </html>

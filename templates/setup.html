@@ -2,37 +2,67 @@
 <html lang="{{ __lang }}" dir="{{ 'rtl' if __lang == 'ar' else 'ltr' }}">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ t('meshctx 设置向导') }}</title>
+<title>{{ t('meshctx 设置向导') }} · Model Hub</title>
 <style>
-:root {--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#58a6ff;--green:#238636;}
+:root {--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#58a6ff;--green:#238636;--red:#f85149;--amber:#d29922}
 /* 2026-08-26 用户要求: 白底黑字浅色主题 (默认) */
-[data-theme="light"] {--bg:#f8fafc;--surface:#ffffff;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--accent:#6c5ce7;--green:#16a34a;}
+[data-theme="light"] {--bg:#f8fafc;--surface:#ffffff;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--accent:#6c5ce7;--green:#16a34a;--red:#dc2626;--amber:#d97706}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:24px 12px}
 .lang-switch{position:fixed;top:14px;right:16px;z-index:100;display:flex;gap:6px;align-items:center}
 .lang-switch select,.lang-switch button{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px;max-width:500px;width:90%}
-h1{font-size:1.5rem;margin-bottom:8px}h1 span{color:var(--accent)}
-.sub{color:var(--muted);margin-bottom:24px;font-size:0.9rem}
-.step{margin-bottom:24px}
-.step-label{font-size:0.85rem;color:var(--muted);margin-bottom:6px}
-input,select{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;margin-bottom:8px}
+.wrap{max-width:780px;margin:0 auto}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:14px}
+h1{font-size:1.35rem;margin-bottom:4px}h1 span{color:var(--accent)}
+.sub{color:var(--muted);margin-bottom:16px;font-size:0.88rem}
+.sec-title{font-size:0.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+/* 当前模型大卡 */
+.current{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.current .icon{font-size:2rem;width:52px;height:52px;display:flex;align-items:center;justify-content:center;background:var(--bg);border:1px solid var(--border);border-radius:12px}
+.current .meta{flex:1;min-width:200px}
+.current .name{font-weight:700;font-size:1.05rem}
+.current .prov{color:var(--muted);font-size:0.82rem;margin-top:2px}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:0.72rem;font-weight:600}
+.badge.ok{background:rgba(35,134,54,.15);color:var(--green)}
+.badge.bad{background:rgba(248,81,73,.15);color:var(--red)}
+.badge.unknown{background:rgba(210,153,34,.15);color:var(--amber)}
+/* 模型行 */
+.row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;transition:border-color .15s}
+.row:hover{border-color:var(--accent)}
+.row .dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--muted)}
+.row .dot.ok{background:var(--green)}.row .dot.bad{background:var(--red)}
+.row .main{flex:1;min-width:0}
+.row .mid{font-weight:600;font-size:0.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .sub2{color:var(--muted);font-size:0.76rem;margin-top:1px}
+.row .star{color:var(--amber);font-size:0.9rem;margin-left:6px;display:none}
+.row.is-current .star{display:inline}
+.btn{padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.78rem;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.danger:hover{border-color:var(--red);color:var(--red)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.empty{color:var(--muted);font-size:0.85rem;padding:14px;text-align:center;border:1px dashed var(--border);border-radius:10px}
+/* 添加表单 */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid .full{grid-column:1/-1}
+label{display:block;font-size:0.76rem;color:var(--muted);margin-bottom:4px}
+input,select{width:100%;padding:9px 11px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13.5px}
 input:focus,select:focus{outline:none;border-color:var(--accent)}
-.btn{display:block;width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px}
-.btn:hover{opacity:0.9}
-.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);margin-top:4px}
-.result{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;margin-top:16px;display:none}
-.result.success{border-color:var(--green);display:block}
-.result .ok{color:var(--green)}
-.skip{text-align:center;margin-top:16px}.skip a{color:var(--muted);font-size:0.85rem}
-.provider-card{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:border-color .2s}
-.provider-card:hover,.provider-card.selected{border-color:var(--accent)}
-.provider-card .icon{font-size:1.5rem;width:40px;text-align:center}
-.provider-card .info{flex:1}.provider-card .name{font-weight:600}.provider-card .desc{font-size:0.8rem;color:var(--muted)}
+.hint{font-size:0.74rem;color:var(--muted);margin-top:4px}
+.hint a{color:var(--accent);text-decoration:none}
+.status{font-size:0.8rem;margin-top:8px;min-height:1.2em}
+.status.ok{color:var(--green)}.status.bad{color:var(--red)}
+/* 高级导航 */
+.advanced{margin-top:6px;padding-top:16px;border-top:1px solid var(--border)}
+.nav-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;font-size:0.8rem}
+.nav-grid a{color:var(--muted);padding:6px 4px;border:1px solid var(--border);border-radius:6px;text-align:center;text-decoration:none}
+.nav-grid a:hover{color:var(--accent);border-color:var(--accent)}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--muted);border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (max-width:640px){.grid{grid-template-columns:1fr}.nav-grid{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
 <body>
-<!-- 2026-08-26 用户要求: 设置页加语言切换按钮 -->
 <div class="lang-switch">
   <select id="setupLangSelect" onchange="switchSetupLang(this.value)" title="Language">
     <option value="zh" {% if __lang == 'zh' %}selected{% endif %}>🇨🇳 中文</option>
@@ -45,62 +75,87 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <option value="it" {% if __lang == 'it' %}selected{% endif %}>🇮🇹 Italiano</option>
     <option value="ar" {% if __lang == 'ar' %}selected{% endif %}>🇸🇦 العربية</option>
     <option value="ru" {% if __lang == 'ru' %}selected{% endif %}>🇷🇺 Русский</option>
+    <option value="he" {% if __lang == 'he' %}selected{% endif %}>🇮🇱 עברית</option>
   </select>
   <button onclick="toggleSetupTheme()" id="setupThemeBtn" title="Theme">☀️</button>
 </div>
-<div class="card">
-<h1>{{ t('🕸 欢迎使用') }} <span>meshctx</span></h1>
-<p class="sub">{{ t('30秒完成配置，开始使用世界最智能的AI助手') }}</p>
 
-<div id="step1" class="step">
-  <div class="step-label">{{ t('第1步: 选择AI') }}{{ t('provider_label') }}</div>
-  <!-- 2026-08-26 004meshctx: 动态加载全部厂商 (原仅 4 个固定卡片, 用户要求支持所有) -->
-  <div id="providerList"></div>
-  <div class="provider-card" style="cursor:default;" onclick="return false;">
-    <div class="icon">🔽</div>
-    <div class="info">
-      <select id="allProviders" onchange="selectProvider(this.value)" style="width:100%;margin:0;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:13px;">
-        <option value="">— {{ t('更多厂商') }}（35+ 家全支持）—</option>
-      </select>
-      <div class="desc" style="margin-top:4px;">{{ t('全部主流厂商: Claude/Gemini/GPT/Grok/Mistral/Llama/Ollama 本地 等') }}</div>
+<div class="wrap">
+<div class="card">
+  <h1>{{ t('🕸 欢迎使用') }} <span>meshctx</span> · Model Hub</h1>
+  <p class="sub">{{ t('30秒完成配置，开始使用世界最智能的AI助手') }}</p>
+
+  <!-- ① 当前使用 -->
+  <div class="sec-title" data-i18n="hub_current">① 当前使用</div>
+  <div class="current" id="currentCard">
+    <div class="icon" id="curIcon">🧩</div>
+    <div class="meta">
+      <div class="name" id="curName">—</div>
+      <div class="prov" id="curProv">—</div>
     </div>
+    <span class="badge unknown" id="curBadge" data-i18n="hub_untested">未测活</span>
+    <button class="btn" onclick="testModel(currentId,this)" data-i18n="hub_test">测活</button>
   </div>
 </div>
 
-<div id="step2" class="step">
-  <div class="step-label">{{ t('第2步: 输入') }}{{ t('api_key_label') }}</div>
-  <input type="password" id="apiKey" placeholder="sk-xxxxxxxxxxxxxxxx">
-  <p style="font-size:0.8rem;color:var(--muted);margin-top:4px">
-    {{ t('没有Key?') }} <a href="#" id="getKeyLink" target="_blank" style="color:var(--accent)">{{ t('点击获取 →') }}</a>
-  </p>
+<div class="card">
+  <!-- ② 模型列表 -->
+  <div class="sec-title" data-i18n="hub_models">② 模型列表 · 点击「用」立即切换（重启保持）</div>
+  <div id="modelList"><div class="empty"><span class="spin"></span></div></div>
 </div>
 
-<button class="btn" onclick="setup()">{{ t('🚀 完成配置') }}</button>
-<button class="btn btn-ghost" onclick="skip()">{{ t('跳过，稍后配置') }}</button>
-<div class="skip"><a href="/ui/chat">{{ t('直接使用 Web Chat →') }}</a></div>
+<div class="card">
+  <!-- ③ 快速添加 -->
+  <div class="sec-title" data-i18n="hub_add">③ 添加模型 · 选厂商后自动填好，只需贴 Key</div>
+  <div class="grid">
+    <div>
+      <label data-i18n="add_model_provider">Provider</label>
+      <select id="ad_provider" onchange="onProviderChange()"></select>
+    </div>
+    <div>
+      <label data-i18n="add_model_id">模型 ID</label>
+      <input id="ad_id" list="ad_id_list" placeholder="deepseek:chat">
+      <datalist id="ad_id_list"></datalist>
+      <div class="hint" id="ad_getkey"></div>
+    </div>
+    <div class="full">
+      <label>API Key <span data-i18n="hub_key_optional">(可选 · 已配置该厂商可留空)</span></label>
+      <input id="ad_key" type="password" placeholder="sk-... (Ollama 本地模型无需 Key)">
+    </div>
+    <div class="full">
+      <label>Base URL <span data-i18n="hub_autofilled">(自动填好，可改)</span></label>
+      <input id="ad_base" placeholder="https://api.deepseek.com/v1">
+    </div>
+    <div class="full" style="display:flex;gap:8px">
+      <button class="btn primary" style="flex:1" onclick="addAndTest()" data-i18n="hub_add_and_test">🚀 添加并测试</button>
+      <button class="btn" onclick="resetForm()" data-i18n="hub_reset">重置</button>
+    </div>
+    <div class="full status" id="ad_status"></div>
+  </div>
+</div>
 
-<div id="result" class="result"></div>
-
-<!-- 2026-08-25 004meshctx UI 精简: 主导航只留 对话/设置, 其余功能收纳于此 (URL 保留不删) -->
-<div class="advanced" style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border)">
-  <div class="step-label" style="margin-bottom:10px">⚡ Advanced</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.85rem">
-    <a href="/ui/dashboard" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">📊 {{ t('dashboard') }}</a>
-    <a href="/ui/projects" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">📁 {{ t('projects') }}</a>
-    <a href="/ui/memories" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">🧠 {{ t('memories') }}</a>
-    <a href="/ui/continuity" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">🔗 {{ t('continuity') }}</a>
-    <a href="/ui/plugins" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">🔌 {{ t('plugins') }}</a>
-    <a href="/ui/files" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">📂 {{ t('files') }}</a>
-    <a href="/ui/models" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">🧩 Models</a>
-    <a href="/ui/providers" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">🔌 Providers</a>
-    <a href="/docs" target="_blank" style="color:#f59e0b;padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">📚 API Docs</a>
-    <a href="/ui/desktop" style="color:var(--muted);padding:6px 8px;border:1px solid var(--border);border-radius:6px;text-align:center">🖥️ Desktop</a>
+<div class="card">
+  <!-- 2026-08-25 004meshctx UI 精简: 主导航收纳 (URL 保留不删) -->
+  <div class="advanced">
+    <div class="sec-title">⚡ Advanced</div>
+    <div class="nav-grid">
+      <a href="/ui/chat">💬 Chat</a>
+      <a href="/ui/dashboard" data-i18n="dashboard">📊 dashboard</a>
+      <a href="/ui/projects" data-i18n="projects">📁 projects</a>
+      <a href="/ui/memories" data-i18n="memories">🧠 memories</a>
+      <a href="/ui/continuity" data-i18n="continuity">🔗 continuity</a>
+      <a href="/ui/plugins" data-i18n="plugins">🔌 plugins</a>
+      <a href="/ui/files" data-i18n="files">📂 files</a>
+      <a href="/ui/providers">🔌 Providers</a>
+      <a href="/ui/desktop">🖥️ Desktop</a>
+      <a href="/docs" target="_blank" style="color:#f59e0b">📚 API Docs</a>
+    </div>
   </div>
 </div>
 </div>
 
 <script>
-// ═══ 语言/主题支持 (2026-08-26 004meshctx: 修复 window.__t 未定义 bug + 用户要求) ═══
+// ═══ i18n / 主题 (与原 setup 页保持一致) ═══
 window.__i18n = {{ __i18n_json | safe }};
 window.__i18n_all = {{ __i18n_all_json | safe }};
 window.__lang = '{{ __lang }}';
@@ -109,7 +164,13 @@ window.__t = function(k, lang) {
   return (window.__i18n_all && window.__i18n_all[l] && window.__i18n_all[l][k]) ||
          (window.__i18n && window.__i18n[k]) || k;
 };
-// 主题: 默认浅色 (白底黑字)
+// 带兜底的翻译: T('key', '中文兜底')
+function T(k, fb) { var v = window.__t(k); return (v && v !== k) ? v : (fb || k); }
+// data-i18n 批量回填 (有翻译才覆盖)
+document.querySelectorAll('[data-i18n]').forEach(function(el){
+  var v = window.__t(el.getAttribute('data-i18n'));
+  if (v && v !== el.getAttribute('data-i18n')) el.textContent = v;
+});
 (function initSetupTheme() {
   var saved = localStorage.getItem('meshctx_theme');
   var theme = (saved === 'dark') ? 'dark' : 'light';
@@ -128,121 +189,212 @@ function toggleSetupTheme() {
 function switchSetupLang(lang) {
   document.cookie = 'meshctx_lang=' + lang + ';path=/;max-age=31536000';
   localStorage.setItem('meshctx_lang', lang);
-  window.location.reload();  // 服务端按 cookie 重新渲染
+  window.location.reload();
 }
 
-let provider = 'deepseek';
-// 2026-08-26 004meshctx: 全部厂商元数据 (35+ 家, 与 model_registry BUILTIN_MODELS 对齐)
-const PROVIDERS = {
-  deepseek:    { icon:'🚀', name:'DeepSeek',    url:'https://platform.deepseek.com/api_keys', desc:'免费额度 · 性价比最高 · 推荐' },
-  openai:      { icon:'🤖', name:'OpenAI',      url:'https://platform.openai.com/api-keys', desc:'GPT-4o/GPT-5 · 全球最强 · 付费' },
-  bailian:     { icon:'☁️', name:'阿里百炼',    url:'https://dashscope.console.aliyun.com/apiKey', desc:'Qwen系列 · 百万token免费/月' },
-  openrouter:  { icon:'🌐', name:'OpenRouter',  url:'https://openrouter.ai/keys', desc:'200+ 模型统一网关 · Claude/GPT/Gemini/Llama 等' },
-  anthropic:   { icon:'✳️', name:'Anthropic',   url:'https://console.anthropic.com/settings/keys', desc:'Claude 系列' },
-  google:      { icon:'🟦', name:'Google Gemini', url:'https://aistudio.google.com/app/apikey', desc:'Gemini 2.5 系列' },
-  xai:         { icon:'🅧', name:'xAI',         url:'https://console.x.ai/api-keys', desc:'Grok 系列' },
-  mistral:     { icon:'🌀', name:'Mistral',     url:'https://console.mistral.ai/api-keys', desc:'Mistral 系列' },
-  groq:        { icon:'⚡', name:'Groq',        url:'https://console.groq.com/keys', desc:'Llama/Mixtral 高速推理' },
-  together:    { icon:'🔗', name:'Together',    url:'https://api.together.ai/settings/api-keys', desc:'开源模型聚合' },
-  ollama:      { icon:'🐳', name:'Ollama(本地)', url:'http://localhost:11434', desc:'本地模型 · 无需key' },
-  moonshot:    { icon:'🌙', name:'Moonshot',    url:'https://platform.moonshot.cn/console/api-keys', desc:'Kimi 系列' },
-  zhipu:       { icon:'🧪', name:'智谱 GLM',     url:'https://open.bigmodel.cn/usercenter/apikeys', desc:'GLM 系列' },
-  huggingface: { icon:'🤗', name:'HuggingFace', url:'https://huggingface.co/settings/tokens', desc:'HF 推理' },
-  nvidia:      { icon:'🟢', name:'NVIDIA',      url:'https://build.nvidia.com', desc:'NIM 推理' },
-  azure:       { icon:'🔵', name:'Azure OpenAI', url:'https://portal.azure.com', desc:'企业级 OpenAI' },
-  bedrock:     { icon:'🗻', name:'AWS Bedrock', url:'https://aws.amazon.com/bedrock/', desc:'AWS 模型服务' },
-  cohere:      { icon:'🌊', name:'Cohere',      url:'https://dashboard.cohere.com/api-keys', desc:'Command 系列' },
-  perplexity:  { icon:'🔎', name:'Perplexity',  url:'https://www.perplexity.ai/settings/api', desc:'Sonar 系列' },
-  deepinfra:   { icon:'🕳️', name:'DeepInfra',   url:'https://deepinfra.com/dash/api_keys', desc:'开源模型托管' },
-  cerebras:    { icon:'🧠', name:'Cerebras',    url:'https://cloud.cerebras.ai/platform', desc:'超快推理' },
-  fireworks:   { icon:'🎆', name:'Fireworks',   url:'https://app.fireworks.ai/api-keys', desc:'开源模型快速推理' },
-  sambanova:   { icon:'🍞', name:'SambaNova',   url:'https://cloud.sambanova.ai', desc:'开源模型推理' },
-  novita:      { icon:'🆕', name:'Novita',      url:'https://novita.ai', desc:'模型聚合' },
-  replicate:   { icon:'♻️', name:'Replicate',   url:'https://replicate.com/account/api-tokens', desc:'开源模型部署' },
-  ai21:        { icon:'🦖', name:'AI21',        url:'https://studio.ai21.com', desc:'Jurassic 系列' },
-  baichuan:    { icon:'🌾', name:'百川',        url:'https://platform.baichuan-ai.com', desc:'Baichuan 系列' },
-  doubao:      { icon:'🧊', name:'豆包',        url:'https://console.volcengine.com/ark', desc:'字节跳动豆包' },
-  hunyuan:     { icon:'🀄', name:'混元',        url:'https://cloud.tencent.com/product/hunyuan', desc:'腾讯混元' },
-  spark:       { icon:'🔥', name:'讯飞星火',    url:'https://console.xfyun.cn', desc:'科大讯飞' },
-  sensetime:   { icon:'👁️', name:'商汤',       url:'https://console.sensecore.cn', desc:'日日新' },
-  stepfun:     { icon:'🪜', name:'阶跃星辰',    url:'https://platform.stepfun.com', desc:'Step 系列' },
-  minimax:     { icon:'🃏', name:'MiniMax',     url:'https://platform.minimaxi.com', desc:'MiniMax 系列' },
-  yi:          { icon:'🟨', name:'零一万物',    url:'https://platform.lingyiwanwu.com', desc:'Yi 系列' },
-  upstage:     { icon:'🎭', name:'Upstage',     url:'https://console.upstage.ai', desc:'Solar 系列' },
-  cloudflare:  { icon:'☁️', name:'Cloudflare',  url:'https://dash.cloudflare.com', desc:'Workers AI' },
-  custom:      { icon:'🔧', name:'自定义',      url:'', desc:'OpenAI 兼容自定义端点' }
+// ═══ 厂商元数据: base_url 自动预填 + 获 Key 链接 + 常见模型 (v3.131 Model Hub) ═══
+var PROVIDERS = {
+  deepseek:   {icon:'🚀', name:'DeepSeek',       base:'https://api.deepseek.com/v1',                          key:'https://platform.deepseek.com/api_keys',                       models:['deepseek:chat','deepseek:reasoner']},
+  openai:     {icon:'🤖', name:'OpenAI',         base:'https://api.openai.com/v1',                            key:'https://platform.openai.com/api-keys',                         models:['openai:gpt-4o','openai:gpt-4o-mini','openai:o3']},
+  anthropic:  {icon:'✳️', name:'Anthropic',      base:'https://api.anthropic.com/v1',                         key:'https://console.anthropic.com/settings/keys',                  models:['anthropic:claude-sonnet-4','anthropic:claude-opus-4']},
+  zhipu:      {icon:'🧪', name:'智谱 GLM',        base:'https://open.bigmodel.cn/api/paas/v4',                 key:'https://open.bigmodel.cn/usercenter/apikeys',                  models:['zhipu:glm-4.6','zhipu:glm-4.5-air','zhipu:glm-4.5-flash']},
+  moonshot:   {icon:'🌙', name:'Moonshot',       base:'https://api.moonshot.cn/v1',                           key:'https://platform.moonshot.cn/console/api-keys',                models:['moonshot:kimi-k2','moonshot:moonshot-v1-128k']},
+  bailian:    {icon:'☁️', name:'阿里百炼',        base:'https://dashscope.aliyuncs.com/compatible-mode/v1',    key:'https://dashscope.console.aliyun.com/apiKey',                  models:['bailian:qwen-max','bailian:qwen-plus','bailian:qwen-turbo']},
+  openrouter: {icon:'🌐', name:'OpenRouter',     base:'https://openrouter.ai/api/v1',                         key:'https://openrouter.ai/keys',                                   models:['openrouter:anthropic/claude-sonnet-4','openrouter:openai/gpt-4o']},
+  google:     {icon:'🟦', name:'Google Gemini',  base:'https://generativelanguage.googleapis.com/v1beta',     key:'https://aistudio.google.com/app/apikey',                       models:['google:gemini-2.5-pro','google:gemini-2.5-flash']},
+  doubao:     {icon:'🧊', name:'豆包',           base:'https://ark.cn-beijing.volces.com/api/v3',             key:'https://console.volcengine.com/ark',                           models:['doubao:doubao-pro-32k']},
+  hunyuan:    {icon:'🀄', name:'混元',            base:'https://api.hunyuan.cloud.tencent.com/v1',             key:'https://cloud.tencent.com/product/hunyuan',                    models:['hunyuan:hunyuan-lite','hunyuan:hunyuan-pro']},
+  ollama:     {icon:'🐳', name:'Ollama(本地)',    base:'http://localhost:11434/v1',                            key:'',                                                             models:['ollama:llama3.1','ollama:qwen2.5'], nokey:true},
+  groq:       {icon:'⚡', name:'Groq',           base:'https://api.groq.com/openai/v1',                       key:'https://console.groq.com/keys',                                models:['groq:llama-3.3-70b-versatile']},
+  xai:        {icon:'🅧', name:'xAI',            base:'https://api.x.ai/v1',                                  key:'https://console.x.ai/api-keys',                                models:['xai:grok-3','xai:grok-3-mini']},
+  mistral:    {icon:'🌀', name:'Mistral',        base:'https://api.mistral.ai/v1',                            key:'https://console.mistral.ai/api-keys',                          models:['mistral:mistral-large-latest']},
+  custom:     {icon:'🔧', name:'自定义 OpenAI 兼容', base:'',                                                 key:'',                                                             models:[]}
 };
-const COMMON = ['deepseek', 'openai', 'bailian', 'openrouter'];
+var PROVIDER_ORDER = ['deepseek','openai','anthropic','zhipu','moonshot','bailian','openrouter','google','doubao','hunyuan','ollama','groq','xai','mistral','custom'];
 
-function renderProviders() {
-  const list = document.getElementById('providerList');
-  // 常用 4 家 (卡片)
-  list.innerHTML = COMMON.map(function(p) {
-    const m = PROVIDERS[p];
-    const selected = p === provider ? ' selected' : '';
-    return '<div class="provider-card' + selected + '" onclick="selectProvider(\'' + p + '\')" id="card-' + p + '">' +
-      '<div class="icon">' + m.icon + '</div><div class="info"><div class="name">' + m.name + '</div>' +
-      '<div class="desc">' + m.desc + '</div></div></div>';
-  }).join('');
-  // 全部厂商下拉 (35+)
-  const sel = document.getElementById('allProviders');
-  const others = Object.keys(PROVIDERS).filter(function(p) { return COMMON.indexOf(p) === -1; });
-  // 2026-08-26: t() 化 (002codex 建议) — window.__t 已在页面定义
-  const moreLabel = window.__t ? window.__t('更多厂商') : '更多厂商';
-  const allLabel = window.__t ? window.__t('全支持') : '家全支持';
-  sel.innerHTML = '<option value="">— ' + moreLabel + '（' + others.length + ' ' + allLabel + '）—</option>' +
-    others.map(function(p) {
-      const m = PROVIDERS[p];
-      return '<option value="' + p + '">' + m.icon + ' ' + m.name + ' · ' + m.desc + '</option>';
-    }).join('');
+// ═══ 工具 ═══
+function $(id){ return document.getElementById(id); }
+function iconOf(p){ return (PROVIDERS[p]||{}).icon || '🧩'; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+
+var MODELS = [], CURRENT = '', currentId = '';
+
+// ═══ 加载模型列表 ═══
+function loadModels(){
+  fetch('/api/models').then(function(r){ return r.json(); }).then(function(d){
+    MODELS = d.models || [];
+    CURRENT = d.current || d.default || '';
+    renderCurrent();
+    renderList();
+  }).catch(function(e){
+    $('modelList').innerHTML = '<div class="empty">⚠ ' + e + '</div>';
+  });
 }
 
-function selectProvider(p) {
-  if (!p || !PROVIDERS[p]) return;
-  provider = p;
-  document.querySelectorAll('.provider-card').forEach(function(c) { c.classList.remove('selected'); });
-  const card = document.getElementById('card-' + p);
-  if (card) card.classList.add('selected');
-  const m = PROVIDERS[p];
-  document.getElementById('getKeyLink').href = m.url || 'https://www.google.com/search?q=' + m.name + '+api+key';
-}
-
-async function setup() {
-  const key = document.getElementById('apiKey').value.trim();
-  if (!key) { alert(window.__t('请输入') + window.__t('api_key_label')); return; }
-  
-  const result = document.getElementById('result');
-  result.style.display = 'block';
-  result.innerHTML = window.__t('⏳ 正在配置...');
-  
-  try {
-    const resp = await fetch('/api/setup', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({provider, key})
-    });
-    const data = await resp.json();
-    
-    if (data.success) {
-      result.className = 'result success';
-      result.innerHTML = `
-        <p class="ok">{{ t('✅ 配置完成!') }}</p>
-        <p>{{ t('可用模型: ${data.models}个') }}</p>
-        <p style="margin-top:12px">
-          <a href="/ui/chat" style="color:var(--accent)">{{ t('→ 开始聊天') }}</a> |
-          <a href="/ui/" style="color:var(--muted)">{{ t('→ 管理控制台') }}</a>
-        </p>`;
-    } else {
-      result.innerHTML = window.__t('❌ 配置失败: ') + (data.error || data.detail || '未知错误');
-    }
-  } catch(e) {
-    result.innerHTML = window.__t('❌ 连接失败: ') + e.message;
+function renderCurrent(){
+  var cur = null;
+  MODELS.forEach(function(m){ if (m.id === CURRENT) cur = m; });
+  currentId = CURRENT;
+  if (!cur) {
+    $('curName').textContent = CURRENT || T('hub_none','(尚未配置任何模型)');
+    $('curProv').textContent = CURRENT ? CURRENT.split(':')[0] : T('hub_none_hint','在下方 ③ 添加第一个模型，30 秒即可开始');
+    $('curIcon').textContent = cur ? iconOf(cur.provider) : '🧩';
+    return;
   }
+  $('curIcon').textContent = iconOf(cur.provider);
+  $('curName').textContent = cur.model_name || cur.id;
+  $('curProv').textContent = (cur.provider_name || cur.provider) + ' · ' + cur.id;
 }
 
-function skip() { window.location.href = '/ui/chat'; }
-renderProviders();
-selectProvider('deepseek');
+function renderList(){
+  var usable = MODELS.filter(function(m){ return m.usable || m.configured || m.current; });
+  var rest   = MODELS.filter(function(m){ return !(m.usable || m.configured || m.current); });
+  var el = $('modelList');
+  if (!MODELS.length) {
+    el.innerHTML = '<div class="empty">' + T('hub_empty','还没有模型 — 在下方 ③ 30 秒添加第一个') + '</div>';
+    return;
+  }
+  var html = usable.map(function(m){ return rowHtml(m, true); }).join('');
+  if (rest.length) {
+    html += '<div class="sec-title" style="margin:12px 0 8px">' + T('hub_needs_key','未配置 Key') + ' · ' + rest.length + '</div>';
+    html += rest.slice(0, 8).map(function(m){ return rowHtml(m, false); }).join('');
+  }
+  el.innerHTML = html;
+}
+
+function rowHtml(m, ready){
+  var isCur = m.id === CURRENT;
+  var dot = m.has_key||m.configured ? 'ok' : '';
+  return '<div class="row' + (isCur?' is-current':'') + '" id="row-' + esc(m.id) + '">' +
+    '<span class="dot ' + dot + '"></span>' +
+    '<span>' + iconOf(m.provider) + '</span>' +
+    '<div class="main"><div class="mid">' + esc(m.model_name || m.id) + '<span class="star">★</span></div>' +
+    '<div class="sub2">' + esc(m.provider_name || m.provider) + ' · ' + esc(m.id) + '</div></div>' +
+    '<span class="msg" id="msg-' + esc(m.id).replace(/[^a-zA-Z0-9_-]/g,'_') + '" style="font-size:.72rem;color:var(--muted)"></span>' +
+    (ready
+      ? '<button class="btn" onclick="testModel(\'' + esc(m.id) + '\',this)">' + T('hub_test','测活') + '</button>' +
+        (isCur ? '<button class="btn primary" disabled>✓ ' + T('hub_in_use','使用中') + '</button>'
+               : '<button class="btn primary" onclick="useModel(\'' + esc(m.id) + '\',this)">用</button>') +
+        '<button class="btn danger" onclick="delModel(\'' + esc(m.id) + '\')">✕</button>'
+      : '<button class="btn" onclick="fillKey(\'' + esc(m.id) + '\')">' + T('hub_fill_key','填 Key') + '</button>') +
+    '</div>';
+}
+
+// ═══ 操作: 用(切换=持久默认) / 测活 / 删除 / 补 Key ═══
+function useModel(id, btn){
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  fetch('/api/models/' + encodeURIComponent(id) + '/default', {method:'PATCH'})
+  .then(function(r){ if (!r.ok) throw 0; return r.json(); })
+  .then(function(){ CURRENT = id; renderCurrent(); renderList(); toast(T('hub_switched','已切换'), id, true); })
+  .catch(function(){
+    // 回退: 仅会话级切换
+    fetch('/api/model/switch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model_id:id})})
+    .then(function(r){ return r.json(); })
+    .then(function(){ CURRENT = id; renderCurrent(); renderList(); toast(T('hub_switched','已切换'), id, true); })
+    .catch(function(){ if (btn) { btn.disabled = false; btn.textContent = T('hub_use','用'); } });
+  });
+}
+
+function testModel(id, btn){
+  var key = 'msg-' + String(id).replace(/[^a-zA-Z0-9_-]/g,'_');
+  var el = $(key);
+  if (id === currentId) { var b = $('curBadge'); b.className='badge unknown'; b.textContent='…'; }
+  if (el) el.innerHTML = '<span class="spin"></span>';
+  if (btn) { btn.disabled = true; }
+  fetch('/api/models/' + encodeURIComponent(id) + '/test', {method:'POST'})
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    var ok = d.status === 'ok';
+    if (el) { el.className = ok ? 'ok' : 'bad'; el.style.color = ok ? 'var(--green)' : 'var(--red)';
+              el.textContent = ok ? '✓ ' + (d.response||'').slice(0,26) : '✕ ' + (d.message||'fail').slice(0,40); }
+    if (id === currentId) { var b2 = $('curBadge'); b2.className = 'badge ' + (ok?'ok':'bad');
+                            b2.textContent = ok ? T('hub_ready','就绪') : T('hub_fail','失败'); }
+    if (btn) btn.disabled = false;
+  }).catch(function(e){ if (el) el.textContent = '⚠ ' + e; if (btn) btn.disabled = false; });
+}
+
+function delModel(id){
+  if (!confirm(T('hub_del_confirm','删除模型') + ' ' + id + '?')) return;
+  fetch('/api/models/' + encodeURIComponent(id), {method:'DELETE'})
+  .then(function(){ loadModels(); });
+}
+
+function fillKey(id){
+  var k = prompt(T('hub_paste_key','粘贴') + ' API Key (' + id + '):');
+  if (!k) return;
+  fetch('/api/models/' + encodeURIComponent(id), {method:'PUT',
+    headers:{'Content-Type':'application/json'}, body:JSON.stringify({key:k})})
+  .then(function(r){ if(!r.ok) throw 0; return loadModels(); })
+  .catch(function(){ alert(T('hub_save_fail','保存失败')); });
+}
+
+function toast(txt, id, ok){
+  var key = 'msg-' + String(id).replace(/[^a-zA-Z0-9_-]/g,'_');
+  var el = $(key);
+  if (el) { el.style.color = ok ? 'var(--green)' : 'var(--red)'; el.textContent = '✓ ' + txt;
+            setTimeout(function(){ el.textContent=''; }, 2500); }
+}
+
+// ═══ 快速添加: 选厂商 → 全自动预填 ═══
+function renderProviderSelect(){
+  $('ad_provider').innerHTML = PROVIDER_ORDER.map(function(p){
+    var m = PROVIDERS[p];
+    return '<option value="' + p + '">' + m.icon + ' ' + m.name + '</option>';
+  }).join('');
+  onProviderChange();
+}
+function onProviderChange(){
+  var p = $('ad_provider').value || 'deepseek';
+  var m = PROVIDERS[p] || PROVIDERS.custom;
+  $('ad_base').value = m.base || '';
+  $('ad_getkey').innerHTML = m.key
+    ? T('hub_no_key','没有 Key?') + ' <a href="' + m.key + '" target="_blank">' + T('hub_get_key','点击获取 →') + '</a>'
+    : (m.nokey ? T('hub_local_nokey','本地服务 · 无需 Key') : '');
+  $('ad_id_list').innerHTML = (m.models||[]).map(function(id){ return '<option value="' + id + '">'; }).join('');
+  $('ad_id').placeholder = (m.models&&m.models[0]) ? m.models[0] : (p + ':my-model');
+}
+function addAndTest(){
+  var st = $('ad_status');
+  st.className = 'status';
+  var p = $('ad_provider').value;
+  var id = ($('ad_id').value||'').trim();
+  var key = ($('ad_key').value||'').trim();
+  var base = ($('ad_base').value||'').trim();
+  // 贴心: 只输 "chat" 自动补全为 "deepseek:chat"
+  if (id && id.indexOf(':') === -1) id = p + ':' + id;
+  if (!id) { st.className='status bad'; st.textContent = '⚠ ' + T('hub_need_id','请填写模型 ID'); return; }
+  if (p === 'custom' && !base) { st.className='status bad'; st.textContent = '⚠ custom 需填 Base URL'; return; }
+  st.innerHTML = '<span class="spin"></span> ' + T('hub_adding','添加中...');
+  fetch('/api/models',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:id, provider:p, key:key, model:id.split(':').slice(1).join(':')||id, base_url:base, overwrite:true})})
+  .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); })
+  .then(function(res){
+    if (!res.ok) { st.className='status bad'; st.textContent='⚠ '+(res.d.error||res.d.detail||'add failed'); return; }
+    st.className='status ok'; st.textContent = '✓ ' + T('hub_added','已添加，正在测活...');
+    // 自动测活 → 刷新列表; 第一个模型后端已自动设默认
+    return fetch('/api/models/' + encodeURIComponent(id) + '/test', {method:'POST'})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.status === 'ok') {
+          st.className='status ok';
+          st.textContent = '✓ ' + T('hub_live','测活通过') + ' — ' + (d.response||'').slice(0,40);
+        } else {
+          st.className='status bad';
+          st.textContent = '⚠ ' + T('hub_added_but','已添加，但测活失败') + ': ' + (d.message||'').slice(0,80);
+        }
+        loadModels();
+        $('ad_key').value = '';
+      });
+  })
+  .catch(function(e){ st.className='status bad'; st.textContent='⚠ ' + e; });
+}
+function resetForm(){
+  $('ad_id').value=''; $('ad_key').value=''; $('ad_status').textContent='';
+  onProviderChange();
+}
+
+renderProviderSelect();
+loadModels();
 </script>
 </body>
 </html>
