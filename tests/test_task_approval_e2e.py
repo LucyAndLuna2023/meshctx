@@ -91,6 +91,23 @@ async def env(tmp_dir, monkeypatch):
         tc.TaskCardStore = old_store_cls
 
 
+async def _wait_card_status(client, cid: str, status: str, timeout: float = 15.0, interval: float = 0.05):
+    """deadline 驱动轮询 (002codex P2 修复): 固定次数×固定间隔的轮询在全量高负载下
+    会被单次 HTTP 耗时放大, 4s 预算不够导致时序 flake (test_approve_continue 复现)。
+    改为墙钟 deadline 预算 (默认 15s), 超时返回 None 交由断言报错 — 不掩盖真失败。"""
+    import asyncio
+    import time
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        rr = await client.get(f"/api/tasks/cards/{cid}")
+        if rr.status_code == 200:
+            d = rr.json()
+            if d.get("status") == status:
+                return d
+        await asyncio.sleep(interval)
+    return None
+
+
 class TestApprovalEndToEnd:
     async def test_dangerous_tool_pauses_and_resumes(self, env):
         import asyncio
@@ -100,15 +117,7 @@ class TestApprovalEndToEnd:
         cid = r.json()["card_id"]
 
         # 等待卡进入 waiting_approval
-        paused = None
-        for _ in range(80):
-            await asyncio.sleep(0.05)
-            rr = await client.get(f"/api/tasks/cards/{cid}")
-            if rr.status_code == 200:
-                d = rr.json()
-                if d["status"] == "waiting_approval":
-                    paused = d
-                    break
+        paused = await _wait_card_status(client, cid, "waiting_approval")
         assert paused is not None, "卡未进入 waiting_approval"
         assert flow["triggered"] is True
         pending = paused["approval_pending"]
@@ -123,13 +132,7 @@ class TestApprovalEndToEnd:
         assert ra.status_code == 200, ra.text
 
         # 等待完成, 结果应体现 reject
-        final = None
-        for _ in range(80):
-            await asyncio.sleep(0.05)
-            rr = await client.get(f"/api/tasks/cards/{cid}")
-            if rr.status_code == 200 and rr.json()["status"] == "completed":
-                final = rr.json()
-                break
+        final = await _wait_card_status(client, cid, "completed")
         assert final is not None, "decide 后卡未完成"
         assert "reject" in (final["result"] or "")
         assert final["approval_pending"] is None
@@ -139,24 +142,12 @@ class TestApprovalEndToEnd:
         client, flow = env
         r = await client.post("/api/tasks/cards", json={"prompt": "rm 临时文件"})
         cid = r.json()["card_id"]
-        paused = None
-        for _ in range(80):
-            await asyncio.sleep(0.05)
-            rr = await client.get(f"/api/tasks/cards/{cid}")
-            if rr.status_code == 200 and rr.json()["status"] == "waiting_approval":
-                paused = rr.json()
-                break
+        paused = await _wait_card_status(client, cid, "waiting_approval")
         assert paused is not None
         ra = await client.post(f"/api/tasks/cards/{cid}/approve",
                                json={"action": "agree"})
         assert ra.status_code == 200
-        final = None
-        for _ in range(80):
-            await asyncio.sleep(0.05)
-            rr = await client.get(f"/api/tasks/cards/{cid}")
-            if rr.status_code == 200 and rr.json()["status"] == "completed":
-                final = rr.json()
-                break
+        final = await _wait_card_status(client, cid, "completed")
 
         assert final is not None
         assert "agree" in (final["result"] or "")
@@ -167,13 +158,7 @@ class TestApprovalEndToEnd:
         client, flow = env
         r = await client.post("/api/tasks/cards", json={"prompt": "rm 临时文件"})
         cid = r.json()["card_id"]
-        paused = None
-        for _ in range(80):
-            await asyncio.sleep(0.05)
-            rr = await client.get(f"/api/tasks/cards/{cid}")
-            if rr.status_code == 200 and rr.json()["status"] == "waiting_approval":
-                paused = rr.json()
-                break
+        paused = await _wait_card_status(client, cid, "waiting_approval")
         assert paused is not None
         # approve → pending 清盘
         ra = await client.post(f"/api/tasks/cards/{cid}/approve", json={"action": "agree"})
@@ -182,12 +167,6 @@ class TestApprovalEndToEnd:
         d0 = (await client.get(f"/api/tasks/cards/{cid}")).json()
         assert d0["approval_pending"] is None, "approve 后 pending 未清"
         # 等卡完成 (期间卡线程会多次落盘) → pending 不应回写
-        final = None
-        for _ in range(100):
-            await asyncio.sleep(0.05)
-            rr = await client.get(f"/api/tasks/cards/{cid}")
-            if rr.status_code == 200 and rr.json()["status"] == "completed":
-                final = rr.json()
-                break
+        final = await _wait_card_status(client, cid, "completed")
         assert final is not None
         assert final["approval_pending"] is None, "完成态 pending 残留/回写"
