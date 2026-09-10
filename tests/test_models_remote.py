@@ -7,6 +7,14 @@ from fastapi.testclient import TestClient
 import src.main as M
 
 
+@pytest.fixture(autouse=True)
+def _isolate_env_keys(monkeypatch):
+    """隔离本机 env key — B2 env 回退 (_provider_api_key) 会引入环境相关行为,
+    测试须只认 provider_config, 保证确定性 (本机 env 含 deepseek/bailian 等)。"""
+    monkeypatch.setattr(M, "_provider_api_key",
+                        lambda pid, pcfg: (pcfg.get(pid) or {}).get("key", ""), raising=False)
+
+
 @pytest.fixture()
 def client(monkeypatch):
     monkeypatch.setattr(M, "_load_provider_config", lambda: {"zhipu": {"key": "k-zhipu"}})
