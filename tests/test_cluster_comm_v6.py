@@ -326,11 +326,43 @@ def test_journal_records_send_and_verifies(v6, monkeypatch):
 def test_archive_ttl_applied(v6):
     mod, fr = v6
     mod._archive(fr, {"msg_id": "m1", "to_profile": "meshctx:meshctx"})
-    key = "hub:archive:meshctx:meshctx"
-    assert fr.ttls.get(key) == 60  # MESHCTX_CLUSTER_ARCHIVE_TTL=60
-    # 无 to_profile → 回退 agent:project (项目隔离)
+    # v3.131.1: 归档键取路由后基础 profile (to_profile 去项目后缀), 与 v6 §1.4 口径一致
+    assert fr.ttls.get("hub:archive:meshctx") == 60  # MESHCTX_CLUSTER_ARCHIVE_TTL=60
+    # 无 to_profile → 回退 agent
     mod._archive(fr, {"msg_id": "m2"})
-    assert fr.ttls.get("hub:archive:zcode:meshctx") == 60
+    assert fr.ttls.get("hub:archive:zcode") == 60
+
+
+def test_send_reply_direct_to_dedicated_channel(v6):
+    """v3.131.1: reply_channel 为冒号专属通道时直投该通道 (原只认纯数字尾)。"""
+    mod, fr = v6
+    original = {
+        "msg_id": "x1", "from": "002", "from_profile": "deepseek",
+        "project_id": "meshctx",
+        "reply_channel": "hub:inbox:004:zcode:meshctx",
+    }
+    mod.send_reply(original, "收到", r=fr)
+    chan = "hub:inbox:004:zcode:meshctx"
+    assert chan in fr.lists, "专属通道应直接收到回执"
+    msg = json.loads(fr.lists[chan][0])
+    assert msg["from_profile"] == "zcode"
+    assert msg["project_id"] == "meshctx"
+
+
+def test_hub_credentials_not_in_source():
+    """P0 回归: 源码零凭据 — cluster_comm_v6.py 不得内嵌 hub 密码/IP 默认值。"""
+    src = (Path(__file__).resolve().parent.parent / "cluster" / "cluster_comm_v6.py").read_text(encoding="utf-8")
+    assert "Hm@2026" not in src, "hub 密码不得出现在源码"
+    assert "66.154.101.18" not in src, "hub 地址默认值不得出现在源码 (env/hub_env 注入)"
+
+
+def test_get_redis_requires_config(v6, monkeypatch):
+    """未配置 host/密码时 get_redis 明确报错并给配置指引 (优雅降级前置)。"""
+    mod, _ = v6
+    monkeypatch.setattr(mod, "REDIS_HOST", "")
+    monkeypatch.setattr(mod, "REDIS_PASSWORD", "")
+    with pytest.raises(RuntimeError, match="hub 未配置"):
+        mod.get_redis()
 
 
 # ── 收取: 队列 drain + 跨轮询去重 ──────────────────────────

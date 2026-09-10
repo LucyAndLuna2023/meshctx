@@ -677,7 +677,7 @@ if os.environ.get("MESHCTX_TRACE_MALLOC"):
 app = FastAPI(
     title="MeshCtx API",
     description="自适应可审计 Agent 系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="3.129.0",
+    version="3.131.1",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -2641,9 +2641,16 @@ def _load_provider_config():
         return {}
 
 def _save_provider_config(cfg: dict):
-    """保存 provider_config.json"""
+    """保存 provider_config.json (v3.131.1 加固: utf-8 显式 + 原子写 + 0600)"""
     pcfg_path = Path(__file__).resolve().parent.parent / "provider_config.json"
-    pcfg_path.write_text(json.dumps(cfg, indent=2, ensure_ascii=False))
+    pcfg_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = pcfg_path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(cfg, indent=2, ensure_ascii=False), encoding="utf-8")
+    try:
+        os.chmod(tmp, 0o600)  # POSIX 生效; Windows no-op, 无害
+    except Exception:
+        pass
+    os.replace(tmp, pcfg_path)
 
 def _load_meshctx_md(path: str = None):
     """加载 .meshctx.md 或 AGENTS.md 内容"""

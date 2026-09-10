@@ -58,15 +58,37 @@ PROJECT = os.environ.get("MESHCTX_CLUSTER_PROJECT", "meshctx")
 MACHINE_LABEL = os.environ.get("MESHCTX_CLUSTER_LABEL",
                                f"{MACHINE_ID}-{AGENT}-{PROJECT}")
 
-REDIS_HOST = os.environ.get("HUB_REDIS_HOST",
-                            os.environ.get("MESHCTX_CLUSTER_REDIS_HOST", "66.154.101.18"))
-REDIS_PORT = int(os.environ.get("HUB_REDIS_PORT",
-                                os.environ.get("MESHCTX_CLUSTER_REDIS_PORT", "6379")))
-# 密钥与 hermes hub_client.py 同源 (env 覆盖优先)
-REDIS_PASSWORD = os.environ.get("HUB_REDIS_PASSWORD",
-                                os.environ.get("HUB_REDIS_PW",
-                                               os.environ.get("MESHCTX_CLUSTER_REDIS_PASSWORD",
-                                                              "Hm@2026!1ckwd3zx2i")))
+# ── hub 连接配置 (v3.131.1 P0 修复: 源码零凭据) ─────────────
+# 优先级: 环境变量 HUB_REDIS_* / MESHCTX_CLUSTER_REDIS_*
+#        → 本机密钥文件 ~/.meshctx/hub_env.json (0600, 在仓库之外)
+# 均未配置 → redis_available() 仍为 True 但 get_redis() 报配置缺失,
+# 模块优雅降级为 journal-only。审计裁定 (002codex @ef273cf2): 源码不得
+# 携带可提交默认凭据; hub credential 轮换属 hub 管理员 (001/003) 运维动作。
+_HUB_ENV_FILE = Path(os.environ.get("MESHCTX_HOME", Path.home() / ".meshctx")) / "hub_env.json"
+
+
+def _load_hub_env() -> Dict[str, str]:
+    """读取本机 hub 密钥文件 (0600, 仓库之外)。文件不存在返回 {}。"""
+    try:
+        if _HUB_ENV_FILE.exists():
+            d = json.loads(_HUB_ENV_FILE.read_text(encoding="utf-8"))
+            return {k: str(v) for k, v in d.items() if v}
+    except Exception:
+        pass
+    return {}
+
+
+_HUB = _load_hub_env()
+
+
+def _hub_cfg(key_env1: str, key_env2: str, key_file: str, default: str = "") -> str:
+    return (os.environ.get(key_env1) or os.environ.get(key_env2)
+            or _HUB.get(key_file) or default)
+
+
+REDIS_HOST = _hub_cfg("HUB_REDIS_HOST", "MESHCTX_CLUSTER_REDIS_HOST", "host", "")
+REDIS_PORT = int(_hub_cfg("HUB_REDIS_PORT", "MESHCTX_CLUSTER_REDIS_PORT", "port", "6379") or 6379)
+REDIS_PASSWORD = _hub_cfg("HUB_REDIS_PASSWORD", "MESHCTX_CLUSTER_REDIS_PASSWORD", "password", "")
 
 ARCHIVE_TTL_SEC = int(os.environ.get("MESHCTX_CLUSTER_ARCHIVE_TTL", str(30 * 86400)))
 
@@ -179,9 +201,17 @@ def redis_available() -> bool:
 
 
 def get_redis():
-    """获取 hub Redis 连接 (每次 ping 校验)。redis-py 缺失时抛 RuntimeError。"""
+    """获取 hub Redis 连接 (每次 ping 校验)。
+
+    未配置 host/密码时抛 RuntimeError (含配置指引) — 源码零凭据 (v3.131.1 P0)。
+    """
     if _redis_mod is None:
         raise RuntimeError("redis-py 未安装 — 集群通讯降级为 journal-only (pip install redis)")
+    if not REDIS_HOST or not REDIS_PASSWORD:
+        raise RuntimeError(
+            "hub 未配置 — 请设置环境变量 HUB_REDIS_HOST/HUB_REDIS_PASSWORD, "
+            f"或创建密钥文件 {_HUB_ENV_FILE} "
+            '(内容 {"host":"...","port":6379,"password":"..."}, 权限0600, 勿入仓库)')
     r = _redis_mod.Redis(
         host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD,
         decode_responses=True, socket_connect_timeout=5,
@@ -245,6 +275,14 @@ def _inbox_file() -> Path:
 
 def _write_inbox(data: Dict[str, Any]) -> None:
     fp = _inbox_file()
+    # v3.131.1 (002codex P2): 收件箱含消息 payload, 首建即收紧权限 0600
+    try:
+        fp.parent.mkdir(parents=True, exist_ok=True)
+        if not fp.exists():
+            fp.touch(mode=0o600)
+        os.chmod(fp, 0o600)  # POSIX 生效; Windows no-op (只切换只读位), 无害
+    except Exception:
+        pass
     with open(fp, "a", encoding="utf-8") as f:
         f.write(json.dumps({**data, "received_at":
                             datetime.now(timezone.utc).isoformat()}, ensure_ascii=False) + "\n")
@@ -321,7 +359,13 @@ def send_dm(target_mid: str, message: str, from_profile: str = "",
 
 def send_reply(original_msg: Dict[str, Any], reply_text: str,
                from_profile: str = "", project_id: str = "", r=None):
-    """v6.1 §8 回执路由: 回执回给发布者 (from_profile), 禁止固定 admin。"""
+    """v6.1 §8 回执路由: 回执回给发布者 (from_profile), 禁止固定 admin。
+
+    v3.131.1 (002codex P2): reply_channel 为任意 hub:inbox:* 通道 (含冒号
+    后缀的专属通道如 hub:inbox:004:zcode:meshctx) 时直接 LPUSH+PUBLISH 该
+    通道 — 原实现只认纯数字机器尾, 专属通道回执被降级为按 project 路由,
+    发布者 (如 zcode 实例) 收不到。
+    """
     publisher_profile = original_msg.get("from_profile", "")
     publisher_mid = original_msg.get("from", "") or original_msg.get("from_label", "")
     if not publisher_profile:
@@ -330,10 +374,40 @@ def send_reply(original_msg: Dict[str, Any], reply_text: str,
         project_id = original_msg.get("project_id", "")
     reply_channel = original_msg.get("reply_channel", "")
     target_mid = publisher_mid
+    direct_channel = ""
     if reply_channel and str(reply_channel).startswith("hub:inbox:"):
         tail = str(reply_channel).split(":")[-1]
         if tail.isdigit():
             target_mid = tail
+        else:
+            # 专属通道 (含冒号后缀): 直投该通道, 不经机器队列路由
+            direct_channel = str(reply_channel)
+    if direct_channel:
+        if r is None:
+            try:
+                r = get_redis()
+            except Exception as e:
+                return {"ok": False, "error": f"redis 不可用: {e}"}
+        msg_id = str(uuid.uuid4())[:8]
+        msg = {
+            "msg_id": msg_id,
+            "from": MACHINE_ID,
+            "from_label": MACHINE_LABEL,
+            "from_agent": AGENT,
+            "from_profile": from_profile or AGENT,
+            "to": direct_channel.split("hub:inbox:")[1],
+            "to_profile": publisher_profile,
+            "reply_channel": reply_channel,
+            "message": reply_text,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        if project_id:
+            msg["project_id"] = project_id
+        raw = json.dumps(msg, ensure_ascii=False)
+        r.lpush(direct_channel, raw)
+        r.publish(direct_channel, raw)
+        journal_record("send", msg)
+        return msg_id
     target = publisher_profile
     if project_id:
         target = f"{publisher_profile}:{project_id}"
@@ -483,9 +557,17 @@ def poll_once(r=None, timeout: float = 1.0) -> List[Dict[str, Any]]:
 
 
 def _archive(r, data: Dict[str, Any]) -> None:
-    """归档 (v6 §1.4: 30 天 TTL, key 用路由后 profile)。"""
+    """归档 (v6 §1.4: 30 天 TTL, key 用路由后基础 profile)。
+
+    v3.131.1 (002codex P2): to_profile 可能是 "profile:project" — 归档键取
+    冒号前的基础 profile, 与 v6 "路由后 profile" 口径一致, 防按项目碎键。
+    """
     try:
-        prof = data.get("to_profile") or f"{AGENT}:{PROJECT}"
+        prof = data.get("to_profile") or f"{AGENT}"
+        if prof and ":" in prof:
+            prof = prof.split(":", 1)[0]
+        if not prof:
+            prof = AGENT
         key = f"hub:archive:{prof}"
         r.lpush(key, json.dumps({**data, "received_at":
                                  datetime.now(timezone.utc).isoformat()}, ensure_ascii=False))
