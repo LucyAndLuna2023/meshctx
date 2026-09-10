@@ -2,11 +2,6 @@
 """通用版本资产同步: old_ver → new_ver (G10 全资产, 字节安全, 幂等)。
 
 覆盖: src/__init__.py · src/core/__init__.py · package.json · version_info.txt
-        ("build.bat",),         # O: .bat 版本残留 (002meshctx)
-        ("install.bat",),
-        ("install-edition.bat",),
-        ("docs/install.bat",),
-        ("docs/install-edition.bat",),
 (含 filevers 元组) · meshctx_desktop.py · meshctx_setup.nsi · meshctx_desktop.spec
 · install.sh (+ docs/install.sh 字节级同步)。
 
@@ -28,6 +23,15 @@ OLD_TUP = f"{OM}, {OMm}, {Op}, 0".encode()
 NEW_TUP = f"{MAJOR}, {MINOR}, {PATCH}, 0".encode()
 
 TEXT_ASSETS = [
+    "build.bat",
+    "install.bat",
+    "install-edition.bat",
+    "docs/install.bat",
+    "docs/install-edition.bat",
+    "install-mac.sh",
+    "docs/install-mac.sh",
+    "install-edition.sh",
+    "docs/install-edition.sh",
     "src/__init__.py",
     "src/core/__init__.py",
     "package.json",
@@ -37,6 +41,22 @@ TEXT_ASSETS = [
     "meshctx_desktop.spec",
     "install.sh",
 ]
+
+# 定向模式资产: 只替换精确模式 (含历史注释的文件不可盲替换)
+PATTERN_ASSETS = [
+    ("src/main.py",                  'version="{old}"',        'version="{new}"'),   # M: FastAPI version= (002codex P2)
+    ("tools/meshctx_support_bot.py", 'VERSION = "v{old}"',     'VERSION = "v{new}"'), # N: support bot
+]
+for rel, pat_old, pat_new in PATTERN_ASSETS:
+    p2 = ROOT / rel
+    raw = p2.read_bytes()
+    po = pat_old.format(old=OLD, new=NEW).encode()
+    pn = pat_new.format(old=OLD, new=NEW).encode()
+    if po not in raw:
+        print(f"[skip   ] {rel} (无定向模式 {po.decode()})")
+        continue
+    p2.write_bytes(raw.replace(po, pn))
+    changed.append(rel)
 
 changed = []
 for rel in TEXT_ASSETS:

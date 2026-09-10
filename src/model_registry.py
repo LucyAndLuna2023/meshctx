@@ -104,7 +104,6 @@ BUILTIN_MODELS = {
     # ═════════════════════════════════════════════════
     # ── DeepSeek ──────────────────────────────────────
     "deepseek:v4-flash":         {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-flash","key_env":"DEEPSEEK_API_KEY"},
-    "deepseek:v4-flash":       {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-flash","key_env":"DEEPSEEK_API_KEY"},
     "deepseek:v4-flash-vision":{"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-flash-vision-exp","key_env":"DEEPSEEK_API_KEY"},
     "deepseek:chat":           {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-flash","key_env":"DEEPSEEK_API_KEY"},
     "deepseek:reasoner":       {"provider":"deepseek","base_url":"https://api.deepseek.com","model":"deepseek-v4-flash","key_env":"DEEPSEEK_API_KEY"},

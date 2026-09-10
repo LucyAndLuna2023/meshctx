@@ -4,9 +4,12 @@
   改 env (HUB_REDIS_HOST/HUB_REDIS_PASSWORD) 或 ~/.meshctx/hub_env.json (0600,
   仓库之外) 注入; 回归测试 test_hub_credentials_not_in_source 扩展扫描
   cluster/hub_client.py (002codex 实测指出 P0 未覆盖此文件)
-- **.bat ×6 版本残留 3.121.7→3.131.1** (build.bat echo×2 / install.bat /
-  install-edition.bat / docs 两份); SOP 版本清单补 O 项; opt_bump_version.py
+- **.bat ×5 文件 (6 处) 版本残留 3.121.7→3.131.1** (build.bat 含 FileVersion
+echo 2 处 / install.bat / install-edition.bat / docs 两份) — 002codex P3 口径统一; SOP 版本清单补 O 项; opt_bump_version.py
   补 .bat 扫描 (002meshctx 指派合并方项)
+- 计数口径 (002meshctx P4-2): /api/models 的 total = BUILTIN 141 (去重后)
+  + config.yaml 自配条目 + 厂商实时 merge 项 (机器/厂商相关, 非常量);
+  此前声称 143 系本机 (含 2 条 config.yaml 自配) 快照, 已改为口径化描述
 - 升级提示 (zcode 建议采纳): 升级后首次启动如遇浏览器缓存, Ctrl+F5 强刷
 - 注: cluster/ 与 .bat 均不在发版资产打包清单 (spec/nsi/deb/tar 无), v3.131.1
   资产不受影响; 本批为源码级收尾, 复审通过后 tag v3.131.2
