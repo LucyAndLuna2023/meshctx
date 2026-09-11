@@ -485,6 +485,20 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 logger.debug(f"存档: {e}")
     asyncio.create_task(auto_archive())
+
+    # v3.131.1: 自进化周期反思 (30min) — 闭环自转保障
+    async def _self_evolution_tick():
+        while True:
+            await asyncio.sleep(1800)
+            try:
+                from src.core.self_evolution import get_self_evolution
+                out = get_self_evolution().reflect()
+                if out.get("created"):
+                    logger.info(f"🧠 自进化: 新蒸馏洞见 +{out['created']} (总 {out['insights_total']})")
+            except Exception as e:
+                logger.debug(f"self_evolution reflect tick: {e}")
+
+    asyncio.create_task(_self_evolution_tick())
     
     # v3.36: JEPA世界模型初始化 (杨立昆World Model)
     try:
@@ -4745,14 +4759,27 @@ async def plugins_reload():
 
 @app.get("/api/cache/metrics")
 async def cache_metrics():
-    """缓存性能指标"""
-    import time, psutil
+    """缓存性能指标 (psutil 可选依赖 — 缺失时降级返回, 修复裸 import 500)"""
+    import time
     metrics = {
         "timestamp": time.time(),
-        "memory_mb": round(psutil.Process().memory_info().rss / 1024 / 1024, 1),
-        "cpu_percent": psutil.cpu_percent(interval=0.1),
-        "disk_percent": psutil.disk_usage("/").percent,
+        "memory_mb": 0,
+        "cpu_percent": 0,
+        "disk_percent": 0,
+        "psutil": False,
     }
+    try:
+        import psutil
+        metrics.update({
+            "memory_mb": round(psutil.Process().memory_info().rss / 1024 / 1024, 1),
+            "cpu_percent": psutil.cpu_percent(interval=0.1),
+            "disk_percent": psutil.disk_usage("/").percent,
+            "psutil": True,
+        })
+    except ImportError:
+        pass
+    except Exception as e:
+        logger.warning(f"psutil 采集失败: {e}")
     g = getattr(app.state, 'genomic', None)
     if g: metrics["genomic"] = g.stats()
     r = getattr(app.state, 'router', None)
@@ -7402,6 +7429,7 @@ async def chat_upload(file: UploadFile = File(...)):
 @app.post("/api/code/run")
 async def code_run(request: Request):
     """运行代码 — subprocess沙箱执行，超时10秒"""
+    _t0 = time.perf_counter()
     try:
         body = await request.json()
         code = body.get("code", "")
@@ -7477,6 +7505,15 @@ async def code_run(request: Request):
             sig = -result.returncode
             response["error"] = f"代码被信号终止 (SIG={sig})"
             response["output"] = ""  # 不返回可能巨大的 dump
+        # v3.131.1: 自进化闭环 — 代码执行结果记入经验层 (统计蒸馏→洞见→注入)
+        try:
+            from src.core.self_evolution import get_self_evolution
+            get_self_evolution().record("code_run", language,
+                                        outcome=(result.returncode == 0),
+                                        detail=f"exit={result.returncode}",
+                                        duration_ms=(time.perf_counter() - _t0) * 1000)
+        except Exception:
+            pass
         return response
     except subprocess.TimeoutExpired:
         return {"error": "代码执行超时 (10秒)"}
@@ -7528,6 +7565,53 @@ async def version_info():
     """版本信息"""
     from src.core import __version__
     return {"version": __version__, "models": 123, "providers": 37}
+
+
+# ── 自进化闭环 API (Self-Evolution Loop Phase-0: docs/SELF_EVOLUTION_DESIGN.md) ──
+
+@app.get("/api/evolution/stats")
+async def evolution_stats():
+    """自进化闭环健康度 (经验数/洞见数/哈希链校验)"""
+    from src.core.self_evolution import get_self_evolution
+    return get_self_evolution().stats()
+
+
+@app.post("/api/evolution/record")
+async def evolution_record(request: Request):
+    """记录一次任务执行经验 {task_type, strategy, outcome, detail?, duration_ms?}"""
+    from src.core.self_evolution import get_self_evolution
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, t('error_invalid_json_body'))
+    task_type = str(body.get("task_type") or "general")
+    strategy = str(body.get("strategy") or "default")
+    outcome = bool(body.get("outcome"))
+    get_self_evolution().record(task_type, strategy, outcome,
+                                detail=str(body.get("detail", "")),
+                                duration_ms=float(body.get("duration_ms", 0) or 0))
+    return {"status": "ok", "task_type": task_type, "strategy": strategy}
+
+
+@app.post("/api/evolution/reflect")
+async def evolution_reflect(request: Request):
+    """触发反思蒸馏 (统计规则生成洞见)"""
+    from src.core.self_evolution import get_self_evolution
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    out = get_self_evolution().reflect(
+        min_samples=body.get("min_samples"), win_delta_min=body.get("win_delta_min"))
+    return {"status": "ok", **out}
+
+
+@app.get("/api/evolution/insights")
+async def evolution_insights(request: Request, task_type: str = "", k: int = 3):
+    """检索 top-k 洞见规则 (供前端/agent 注入上下文; 空类型=全类型)"""
+    from src.core.self_evolution import get_self_evolution
+    return {"task_type": task_type,
+            "insights": get_self_evolution().inject(task_type or None, k=int(k))}
 
 
 # ═══════════════════════════════════════════════════════════

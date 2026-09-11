@@ -742,6 +742,15 @@ def _collect_memory_entries(current_query: str = None, base_dirs: list = None, m
             return
         rows.append({"key": key or "", "value": value, **meta})
 
+    # 来源0: 自进化洞见 (Self-Evolution Loop v1 — 本地执行经验统计蒸馏,
+    # 哈希链防篡改; 全类型 top-3; 无洞见时零注入零行为变化)
+    try:
+        from src.core.self_evolution import get_self_evolution
+        for rule in get_self_evolution().inject(None, k=3):
+            _add("self_evolution_insight", rule)
+    except Exception:
+        pass
+
     # 来源1: persistent_memory.json（纯文本 entries）
     mem_file = _Path.home() / ".meshctx" / "persistent_memory.json"
     if mem_file.exists():

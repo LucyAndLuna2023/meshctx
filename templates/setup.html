@@ -81,6 +81,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 </div>
 
 <div class="wrap">
+<div id="testBanner" style="display:none;padding:12px 16px;border-radius:10px;margin-bottom:14px;font-size:0.9rem"></div>
 <div class="card">
   <h1>{{ t('🕸 欢迎使用') }} <span>meshctx</span> · Model Hub</h1>
   <p class="sub">{{ t('30秒完成配置，开始使用世界最智能的AI助手') }}</p>
@@ -395,6 +396,29 @@ function resetForm(){
 
 renderProviderSelect();
 loadModels();
+
+// v3.131.1 P1-2: 保存后自动测活结果横幅 (save_api_key 跳转参数 test=ok|fail)
+(function showTestBanner(){
+  var params = new URLSearchParams(window.location.search);
+  var t = params.get('test');
+  if (!t) return;
+  var b = document.getElementById('testBanner');
+  var model = params.get('model') || '';
+  if (t === 'ok') {
+    b.style.background = 'rgba(35,134,54,.12)';
+    b.style.border = '1px solid var(--green)';
+    b.style.color = 'var(--green)';
+    b.textContent = '✓ ' + T('hub_key_verified', 'API Key 保存并测活通过 — 可以直接开始对话') + (model ? ' (' + model + ')' : '');
+  } else if (t === 'fail') {
+    b.style.background = 'rgba(248,81,73,.12)';
+    b.style.border = '1px solid var(--red)';
+    b.style.color = 'var(--red)';
+    b.textContent = '⚠ ' + T('hub_key_bad', 'Key 已保存，但测活未通过 — 请检查 Key 是否正确 / 端点是否匹配 (国内站 vs 国际站)');
+  }
+  b.style.display = 'block';
+  // 清理 URL 参数避免刷新重复弹
+  window.history.replaceState({}, '', window.location.pathname);
+})();
 </script>
 </body>
 </html>

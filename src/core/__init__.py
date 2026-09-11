@@ -222,6 +222,8 @@ _known = {
                    'PLAN_LIMITS','get_hub_quota','get_card_worker','reset_worker_for_tests'],
     'task_cards_api': ['router'],
     'task_card_runner': ['run_card','build_card_messages','CARD_SYSTEM_PROMPT'],
+    # 自进化闭环 v1 (2026-09-11): 统计蒸馏 + FSRS 保持度 + 哈希链经验层
+    'self_evolution': ['SelfEvolutionLoop','get_self_evolution'],
 }
 
 def __getattr__(name):
