@@ -4362,7 +4362,9 @@ async def save_api_key(
     except:
         logger.debug("Suppressed except:: {}", exc_info=True)
 
-    return RedirectResponse(url="/ui/setup?saved=1", status_code=303)
+    if test == "ok":
+        return RedirectResponse(url="/ui/setup?saved=1&test=ok", status_code=303)
+    return RedirectResponse(url=f"/ui/setup?saved=1&test=fail&model={model_id}", status_code=303)
 
 
 @router.post("/setup/delete")
