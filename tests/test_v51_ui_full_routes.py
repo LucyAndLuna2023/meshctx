@@ -62,8 +62,12 @@ class TestAllUIRoutes:
 
     @pytest.mark.parametrize("route", ALL_UI_ROUTES)
     def test_ui_route_200(self, client, route):
+        # v3.131.1: /ui/models 302 收口到 Model Hub (/ui/setup) — 302 即正确
+        expected = {200}
+        if route == "/ui/models":
+            expected.add(302)
         resp = client.get(route, follow_redirects=False)
-        assert resp.status_code == 200, f"{route} 返回 {resp.status_code}"
+        assert resp.status_code in expected, f"{route} 返回 {resp.status_code}"
 
 
 class TestNavbarUnique:

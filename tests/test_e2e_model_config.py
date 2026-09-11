@@ -147,13 +147,14 @@ class TestSetupPage:
         assert resp.status_code == 400
 
     def test_setup_page_has_presets(self, client):
-        """验证模型管理页快捷预设按钮存在"""
-        resp = client.get("/ui/models")
+        """验证模型中心页本地/自定义服务预设存在
+        (v3.131.1: /ui/models 收口到 Model Hub /ui/setup; vLLM 入预设表)"""
+        resp = client.get("/ui/setup")
         assert resp.status_code == 200
         html = resp.text
-        assert "Ollama" in html
+        assert "Ollama(本地)" in html
         assert "vLLM" in html
-        assert "完全自定义" in html
+        assert "自定义 OpenAI 兼容" in html
 
     def test_setup_page_has_model_list(self, client):
         """验证模型管理页模型列表存在"""
@@ -169,13 +170,11 @@ class TestSetupPage:
         assert resp.status_code == 200
         html = resp.text
         required_fns = [
-            "function showAddForm",
-            "function presetModel",
-            "function editModel",
-            "function configureModel",
-            "function saveModel",
-            "function deleteModel",
-            "function cleanUnconfigured",
+            "function addAndTest",       # Model Hub: 添加并自动测活
+            "function onProviderChange",  # 厂商选择自动预填
+            "function renderProviderSelect",
+            "function loadModels",
+            "function useModel",          # 一键切换=持久默认
             "function testModel",
         ]
         for fn in required_fns:

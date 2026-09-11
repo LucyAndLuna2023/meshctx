@@ -4362,6 +4362,22 @@ async def save_api_key(
     except:
         logger.debug("Suppressed except:: {}", exc_info=True)
 
+    # v3.131.1 P1-2: 保存后自动测活 (10s 兜底) — 用户立即知道 Key 是否有效
+    test = "fail"
+    try:
+        import asyncio as _aio
+        from src.model_registry import get_registry
+        client = get_registry().get(model_id)
+        if client is not None:
+            resp = await _aio.wait_for(
+                _aio.to_thread(client.chat, [{"role": "user", "content": "Hi"}], max_tokens=8),
+                timeout=10)
+            content = str((resp or {}).get("content", ""))
+            test = "ok" if content and not content.startswith("[错误") else "fail"
+    except Exception:
+        logger.warning("保存后自动测活失败: %s", model_id, exc_info=True)
+        test = "fail"
+
     if test == "ok":
         return RedirectResponse(url="/ui/setup?saved=1&test=ok", status_code=303)
     return RedirectResponse(url=f"/ui/setup?saved=1&test=fail&model={model_id}", status_code=303)
