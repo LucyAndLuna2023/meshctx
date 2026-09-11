@@ -4525,13 +4525,9 @@ loadModels();
 
 @router.get("/models", response_class=HTMLResponse)
 async def models_page(request: Request):
-    flash, configured, has_more, unconfigured_count = _build_model_context(request)
-    return _render("models.html", {
-        "request": request, "title": "Models",
-        "flash": flash, "configured": configured,
-        "has_more_unconfigured": has_more,
-        "total_unconfigured": unconfigured_count,
-    }, request)
+    """模型管理 — v3.131.1 起统一收口到 Model Hub (/ui/setup),
+    消除"两个模型管理页"的混乱 (用户痛点: 后台模型/provider 管理乱)。"""
+    return RedirectResponse(url="/ui/setup", status_code=302)
 
 
 # ── 供应商列表页面 ───────────────────────────────────────────
