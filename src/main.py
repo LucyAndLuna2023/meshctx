@@ -4183,6 +4183,8 @@ async def api_chat_stream(request: Request):
 
 
     async def generate():
+        _se_had_error = False   # v3.131.1: 自进化经验层结果标记
+        _se_t0 = time.perf_counter()
         try:
             reg = get_registry()
             client = reg.get(model_id) or reg.get(None)
@@ -4285,6 +4287,7 @@ async def api_chat_stream(request: Request):
                 elif ev["type"] == "timed_out":
                     yield f"data: {_json.dumps({'token': ev['text']})}\n\n"
                 elif ev["type"] == "error":
+                    _se_had_error = True
                     yield f"data: {_json.dumps({'error': ev['text']})}\n\n"
                 # timed_out_done: 超时消息已发，忽略
             yield "data: [DONE]\n\n"
@@ -4293,9 +4296,18 @@ async def api_chat_stream(request: Request):
             yield f"data: {_json.dumps({'interrupted': True, 'note': '该会话有更新的请求, 本流已结束'})}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as e:
+            _se_had_error = True
             yield f"data: {_json.dumps({'error': str(e)})}\n\n"
             yield "data: [DONE]\n\n"
         finally:
+            # v3.131.1: 自进化经验层 — 聊天结果入闭环
+            try:
+                from src.core.self_evolution import get_self_evolution
+                get_self_evolution().record("chat", model_id or "default",
+                                            outcome=(not _se_had_error),
+                                            duration_ms=(time.perf_counter() - _se_t0) * 1000)
+            except Exception:
+                pass
             try:
                 _mgr.unregister(_request_id)
                 # P3-1: active 存 request_id, 旧流 finally 只清自己的标记,
