@@ -2044,6 +2044,25 @@ async function send() {
       signal: controller.signal
     });
 
+    // v3.131.1 P1-5: 厂商错误 → 中文可操作提示 (保留原错误于括号)
+    function friendlyVendorError(err) {
+      var s = String(err || '');
+      var low = s.toLowerCase();
+      if (low.indexOf('401') >= 0 || low.indexOf('unauthorized') >= 0 || low.indexOf('invalid api key') >= 0 || low.indexOf('authentication') >= 0)
+        return '🔑 API Key 无效或与端点不匹配（注意: 智谱有国内 bigmodel / 国际 z.ai 两个端点，Key 不通用）。请在模型中心检查 Key 与 Base URL [' + s.slice(0, 120) + ']';
+      if (low.indexOf('429') >= 0 || low.indexOf('rate limit') >= 0 || low.indexOf('too many') >= 0)
+        return '⏳ 请求过于频繁或触发厂商限流 — 请等 30-60 秒重试，或在模型中心切换其他模型 [' + s.slice(0, 120) + ']';
+      if (low.indexOf('insufficient') >= 0 || low.indexOf('balance') >= 0 || low.indexOf('quota') >= 0 || low.indexOf('欠费') >= 0)
+        return '💰 账户余额或额度不足 — 请到厂商控制台充值，或在模型中心切换其他模型 [' + s.slice(0, 120) + ']';
+      if (low.indexOf('timeout') >= 0 || low.indexOf('timed out') >= 0)
+        return '⏱ 请求超时 — 厂商响应过慢，请重试或切换其他模型 [' + s.slice(0, 120) + ']';
+      if (low.indexOf('connect') >= 0 || low.indexOf('network') >= 0 || low.indexOf('econn') >= 0 || low.indexOf('getaddrinfo') >= 0)
+        return '🌐 无法连接厂商端点 — 请检查网络、Base URL 是否正确（自建网关确认已启动）[' + s.slice(0, 120) + ']';
+      if (low.indexOf('model') >= 0 && (low.indexOf('not found') >= 0 || low.indexOf('does not exist') >= 0 || low.indexOf('不存在') >= 0))
+        return '🧭 模型不存在 — 厂商可能已下线该模型，请在模型中心选择其他模型 [' + s.slice(0, 120) + ']';
+      return '❌ ' + s;
+    }
+
     // v3.119.4: 非 SSE 错误响应（401/403/429/5xx）必须给出可操作提示，
     // 而不是静默吞掉显示"[无响应] 请重试"（006 Mac: 认证开启时 /api/chat/stream 401）
     if (!resp.ok) {
@@ -2176,11 +2195,12 @@ async function send() {
               typingDiv.remove();
               aiMsgAdded = true;
             }
-            // Ensure error is displayed
+            // v3.131.1 P1-5: 常见厂商错误 → 中文可操作提示
+            var friendly = friendlyVendorError(parsed.error);
             if (aiContent) {
-              aiContent += '\n\n[错误: ' + parsed.error + ']';
+              aiContent += '\n\n' + friendly;
             } else {
-              aiContent = '[错误: ' + parsed.error + ']';
+              aiContent = friendly;
             }
             let aiDiv = document.querySelector('.msg.ai.streaming');
             if (aiDiv) {
