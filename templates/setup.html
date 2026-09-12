@@ -87,49 +87,49 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   <p class="sub">{{ t('30秒完成配置，开始使用世界最智能的AI助手') }}</p>
 
   <!-- ① 当前使用 -->
-  <div class="sec-title" data-i18n="hub_current">① 当前使用</div>
+  <div class="sec-title" data-i18n="hub_current">{{ t('hub2_step1') }}/div>
   <div class="current" id="currentCard">
     <div class="icon" id="curIcon">🧩</div>
     <div class="meta">
       <div class="name" id="curName">—</div>
       <div class="prov" id="curProv">—</div>
     </div>
-    <span class="badge unknown" id="curBadge" data-i18n="hub_untested">未测活</span>
-    <button class="btn" onclick="testModel(currentId,this)" data-i18n="hub_test">测活</button>
+    <span class="badge unknown" id="curBadge" data-i18n="hub_untested">{{ t('hub_untested') }}</span>
+    <button class="btn" onclick="testModel(currentId,this)" data-i18n="hub_test">{{ t('hub_test') }}/button>
   </div>
 </div>
 
 <div class="card">
   <!-- ② 模型列表 -->
-  <div class="sec-title" data-i18n="hub_models">② 模型列表 · 点击「用」立即切换（重启保持）</div>
+  <div class="sec-title" data-i18n="hub_models">{{ t('hub2_step2') }}/div>
   <div id="modelList"><div class="empty"><span class="spin"></span></div></div>
 </div>
 
 <div class="card">
   <!-- ③ 快速添加 -->
-  <div class="sec-title" data-i18n="hub_add">③ 添加模型 · 选厂商后自动填好，只需贴 Key</div>
+  <div class="sec-title" data-i18n="hub_add">{{ t('hub2_step3') }}/div>
   <div class="grid">
     <div>
-      <label data-i18n="add_model_provider">Provider</label>
+      <label data-i18n="add_model_provider">{ t('add_model_provider') }Providerlabel>
       <select id="ad_provider" onchange="onProviderChange()"></select>
     </div>
     <div>
-      <label data-i18n="add_model_id">模型 ID</label>
+      <label data-i18n="add_model_id">{{ t('hub2_model_id') }}/label>
       <input id="ad_id" list="ad_id_list" placeholder="deepseek:chat">
       <datalist id="ad_id_list"></datalist>
       <div class="hint" id="ad_getkey"></div>
     </div>
     <div class="full">
-      <label>API Key <span data-i18n="hub_key_optional">(可选 · 已配置该厂商可留空)</span></label>
-      <input id="ad_key" type="password" placeholder="sk-... (Ollama 本地模型无需 Key)">
+      <label>API Key <span data-i18n="hub_key_optional">{{ t('hub2_opt_prefill') }}/span></label>
+      <input id="ad_key" type="password" placeholder="sk-... ({{ t('hub_local_nokey') }})">
     </div>
     <div class="full">
-      <label>Base URL <span data-i18n="hub_autofilled">(自动填好，可改)</span></label>
+      <label>Base URL <span data-i18n="hub_autofilled">{{ t('hub2_autofill') }}/span></label>
       <input id="ad_base" placeholder="https://api.deepseek.com/v1">
     </div>
     <div class="full" style="display:flex;gap:8px">
-      <button class="btn primary" style="flex:1" onclick="addAndTest()" data-i18n="hub_add_and_test">🚀 添加并测试</button>
-      <button class="btn" onclick="resetForm()" data-i18n="hub_reset">重置</button>
+      <button class="btn primary" style="flex:1" onclick="addAndTest()" data-i18n="hub_add_and_test">{{ t('hub2_add_test') }}/button>
+      <button class="btn" onclick="resetForm()" data-i18n="hub_reset">{{ t('hub2_reset') }}/button>
     </div>
     <div class="full status" id="ad_status"></div>
   </div>
@@ -141,12 +141,12 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <div class="sec-title">⚡ Advanced</div>
     <div class="nav-grid">
       <a href="/ui/chat">💬 Chat</a>
-      <a href="/ui/dashboard" data-i18n="dashboard">📊 dashboard</a>
-      <a href="/ui/projects" data-i18n="projects">📁 projects</a>
-      <a href="/ui/memories" data-i18n="memories">🧠 memories</a>
-      <a href="/ui/continuity" data-i18n="continuity">🔗 continuity</a>
-      <a href="/ui/plugins" data-i18n="plugins">🔌 plugins</a>
-      <a href="/ui/files" data-i18n="files">📂 files</a>
+      <a href="/ui/dashboard" data-i18n="dashboard">{ t('dashboard') }📊 dashboarda>
+      <a href="/ui/projects" data-i18n="projects">{ t('projects') }📁 projectsa>
+      <a href="/ui/memories" data-i18n="memories">{ t('memories') }🧠 memoriesa>
+      <a href="/ui/continuity" data-i18n="continuity">{ t('continuity') }🔗 continuitya>
+      <a href="/ui/plugins" data-i18n="plugins">{ t('plugins') }🔌 pluginsa>
+      <a href="/ui/files" data-i18n="files">{ t('files') }📂 filesa>
       <a href="/ui/providers">🔌 Providers</a>
       <a href="/ui/desktop">🖥️ Desktop</a>
       <a href="/docs" target="_blank" style="color:#f59e0b">📚 API Docs</a>
@@ -198,19 +198,19 @@ var PROVIDERS = {
   deepseek:   {icon:'🚀', name:'DeepSeek',       base:'https://api.deepseek.com/v1',                          key:'https://platform.deepseek.com/api_keys',                       models:['deepseek:chat','deepseek:reasoner']},
   openai:     {icon:'🤖', name:'OpenAI',         base:'https://api.openai.com/v1',                            key:'https://platform.openai.com/api-keys',                         models:['openai:gpt-4o','openai:gpt-4o-mini','openai:o3']},
   anthropic:  {icon:'✳️', name:'Anthropic',      base:'https://api.anthropic.com/v1',                         key:'https://console.anthropic.com/settings/keys',                  models:['anthropic:claude-sonnet-4','anthropic:claude-opus-4']},
-  zhipu:      {icon:'🧪', name:'智谱 GLM',        base:'https://open.bigmodel.cn/api/paas/v4',                 key:'https://open.bigmodel.cn/usercenter/apikeys',                  models:['zhipu:glm-4.6','zhipu:glm-4.5-air','zhipu:glm-4.5-flash']},
+  zhipu:      {icon:'🧪', name{{ t('hub2_zhipu') }},        base:'https://open.bigmodel.cn/api/paas/v4',                 key:'https://open.bigmodel.cn/usercenter/apikeys',                  models:['zhipu:glm-4.6','zhipu:glm-4.5-air','zhipu:glm-4.5-flash']},
   moonshot:   {icon:'🌙', name:'Moonshot',       base:'https://api.moonshot.cn/v1',                           key:'https://platform.moonshot.cn/console/api-keys',                models:['moonshot:kimi-k2','moonshot:moonshot-v1-128k']},
-  bailian:    {icon:'☁️', name:'阿里百炼',        base:'https://dashscope.aliyuncs.com/compatible-mode/v1',    key:'https://dashscope.console.aliyun.com/apiKey',                  models:['bailian:qwen-max','bailian:qwen-plus','bailian:qwen-turbo']},
+  bailian:    {icon:'☁️', name{{ t('mdl_brand_bailian') }},        base:'https://dashscope.aliyuncs.com/compatible-mode/v1',    key:'https://dashscope.console.aliyun.com/apiKey',                  models:['bailian:qwen-max','bailian:qwen-plus','bailian:qwen-turbo']},
   openrouter: {icon:'🌐', name:'OpenRouter',     base:'https://openrouter.ai/api/v1',                         key:'https://openrouter.ai/keys',                                   models:['openrouter:anthropic/claude-sonnet-4','openrouter:openai/gpt-4o']},
   google:     {icon:'🟦', name:'Google Gemini',  base:'https://generativelanguage.googleapis.com/v1beta',     key:'https://aistudio.google.com/app/apikey',                       models:['google:gemini-2.5-pro','google:gemini-2.5-flash']},
-  doubao:     {icon:'🧊', name:'豆包',           base:'https://ark.cn-beijing.volces.com/api/v3',             key:'https://console.volcengine.com/ark',                           models:['doubao:doubao-pro-32k']},
-  hunyuan:    {icon:'🀄', name:'混元',            base:'https://api.hunyuan.cloud.tencent.com/v1',             key:'https://cloud.tencent.com/product/hunyuan',                    models:['hunyuan:hunyuan-lite','hunyuan:hunyuan-pro']},
-  ollama:     {icon:'🐳', name:'Ollama(本地)',    base:'http://localhost:11434/v1',                            key:'',                                                             models:['ollama:llama3.1','ollama:qwen2.5'], nokey:true},
-  vllm:       {icon:'⚡', name:'vLLM(本地)',      base:'http://localhost:8000/v1',                             key:'',                                                             models:[], nokey:true},
+  doubao:     {icon:'🧊', name{{ t('hub2_doubao') }},           base:'https://ark.cn-beijing.volces.com/api/v3',             key:'https://console.volcengine.com/ark',                           models:['doubao:doubao-pro-32k']},
+  hunyuan:    {icon:'🀄', name{{ t('hub2_hunyuan') }},            base:'https://api.hunyuan.cloud.tencent.com/v1',             key:'https://cloud.tencent.com/product/hunyuan',                    models:['hunyuan:hunyuan-lite','hunyuan:hunyuan-pro']},
+  ollama:     {icon:'🐳', name{{ t('hub2_ollama') }},    base:'http://localhost:11434/v1',                            key:'',                                                             models:['ollama:llama3.1','ollama:qwen2.5'], nokey:true},
+  vllm:       {icon:'⚡', name{{ t('hub2_vllm') }},      base:'http://localhost:8000/v1',                             key:'',                                                             models:[], nokey:true},
   groq:       {icon:'⚡', name:'Groq',           base:'https://api.groq.com/openai/v1',                       key:'https://console.groq.com/keys',                                models:['groq:llama-3.3-70b-versatile']},
   xai:        {icon:'🅧', name:'xAI',            base:'https://api.x.ai/v1',                                  key:'https://console.x.ai/api-keys',                                models:['xai:grok-3','xai:grok-3-mini']},
   mistral:    {icon:'🌀', name:'Mistral',        base:'https://api.mistral.ai/v1',                            key:'https://console.mistral.ai/api-keys',                          models:['mistral:mistral-large-latest']},
-  custom:     {icon:'🔧', name:'自定义 OpenAI 兼容', base:'',                                                 key:'',                                                             models:[]}
+  custom:     {icon:'🔧', name{{ t('hub2_custom_compat') }}, base:'',                                                 key:'',                                                             models:[]}
 };
 var PROVIDER_ORDER = ['deepseek','openai','anthropic','zhipu','moonshot','bailian','openrouter','google','doubao','hunyuan','ollama','groq','xai','mistral','custom'];
 
@@ -276,7 +276,7 @@ function rowHtml(m, ready){
     (ready
       ? '<button class="btn" onclick="testModel(\'' + esc(m.id) + '\',this)">' + T('hub_test','测活') + '</button>' +
         (isCur ? '<button class="btn primary" disabled>✓ ' + T('hub_in_use','使用中') + '</button>'
-               : '<button class="btn primary" onclick="useModel(\'' + esc(m.id) + '\',this)">用</button>') +
+               : '<button class="btn primary" onclick="useModel(\'' + esc(m.id) + '\',this)">{{ t('hub_use') }}/button>') +
         '<button class="btn danger" onclick="delModel(\'' + esc(m.id) + '\')">✕</button>'
       : '<button class="btn" onclick="fillKey(\'' + esc(m.id) + '\')">' + T('hub_fill_key','填 Key') + '</button>') +
     '</div>';
