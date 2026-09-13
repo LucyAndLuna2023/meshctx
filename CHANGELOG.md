@@ -1,4 +1,19 @@
-## [3.131.2] - 2026-09-10 (P0 收尾 + 版本残留清零 — 待 002codex 复审后 tag)
+## [3.131.3] - 2026-09-12 (i18n 残留清零 · 模型配置页多语言补全)
+
+### Fixed (i18n 中文残留深查)
+- **setup.html Model Hub (/ui/models) 三层残留清零**: 51 新键 × 11 语言
+  - 24 个 `hub_*` T() 键缺翻译（测活/使用中/填 Key/已切换/就绪/删除模型/…）
+  - 17 个 `hub2_*` 裸中文串（①当前使用/②模型列表/③添加模型/智谱GLM/混元/
+    豆包/Ollama(本地)/vLLM(本地)/⚠custom需填Base URL/重置/🚀添加并测试/…）
+  - 10 个 `data-i18n` 键缺翻译（hub_current/hub_untested/hub_add/…）
+- **models.html 内嵌模板权威版同步**: web_ui.py `_TEMPLATES` 为 DictLoader 优先，
+  此前与磁盘版分叉 10 行；现已同步并引入 42 个 `mdl_*` 真键（替换中文-as-key 空转），
+  顺手修复删除按钮 onclick 多右括号导致 JS 语法错误
+- **版本资产全量同步**: version_info.txt / meshctx_desktop.py / meshctx_setup.nsi /
+  meshctx_desktop.spec / package.json / src/__init__.py / tools/meshctx_support_bot.py
+- i18n 表: 11 语言各 1550 键，数量严格一致
+
+## [3.131.2] - 2026-09-10 (P0 收尾 + 版本残留清零)
 ### Fixed (002codex 82a425b7 HOLD 项 + 002meshctx .bat 补充, 004zcode 07c6e5d1 PASS 后收尾)
 - **cluster/hub_client.py 零凭据完成**: 移除 REDIS_HOST/PASSWORD 源码默认值 —
   改 env (HUB_REDIS_HOST/HUB_REDIS_PASSWORD) 或 ~/.meshctx/hub_env.json (0600,
