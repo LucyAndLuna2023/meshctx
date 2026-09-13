@@ -170,7 +170,7 @@ class TestSetupPage:
         assert resp.status_code == 200
         html = resp.text
         required_fns = [
-            "function addAndTest",       # Model Hub: 添加并自动测活
+            "function addAndTest",        # Model Hub: 添加并自动测活
             "function onProviderChange",  # 厂商选择自动预填
             "function renderProviderSelect",
             "function loadModels",

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""meshctx Self-Evolution Loop v1 (Phase-0, 零 LLM 依赖)
+"""meshctx Self-Evolution Loop v1 (Phase-0 统计蒸馏 + Phase-1 可选 LLM 精炼)
 
 闭环: 执行 record() → 反思 reflect() → 注入 inject() → 归因 reinforce()
 设计: docs/SELF_EVOLUTION_DESIGN.md (ExpeL 蒸馏 × FSRS 保持度 × 哈希链完整性)
@@ -7,6 +7,7 @@
 - 经验层: 复用 web3_messaging.Web3MessagingLayer (JSONL + 哈希链防篡改)
 - 洞见层: 统计蒸馏 (task_type×strategy 成功率差 > 阈值 → 自然语言规则),
   保持度复用 FSRS 公式 R=10^(-t/S) — 无用洞见自然衰减淘汰
+- Phase-1 LLM 精炼: 统计规则→chat_tools 既有模型调用→精炼洞见 (可选, 失败回退统计)
 - 安全: 只从本地执行轨迹生成 (零外部注入面); 洞见仅作上下文参考文本
 """
 from __future__ import annotations
@@ -191,6 +192,54 @@ class SelfEvolutionLoop:
             self._save_insights()
         return {"created": created, "updated": updated,
                 "insights_total": len(self.insights)}
+
+    # ── ②b Phase-1: LLM 反思精炼 (可选, 失败回退统计规则) ──
+    def llm_refine(self, model_id: str = "") -> Dict[str, Any]:
+        """用 LLM 精炼统计规则为更精确的行动洞见 (Phase-1)。
+
+        流程: 取 top 统计规则 → 组装 prompt → 模型精炼 → 回写洞见 rule 字段。
+        失败静默回退 (统计规则已够用, LLM 精炼是增强非依赖)。
+        """
+        if not self.insights:
+            return {"refined": 0, "skipped": "no insights"}
+        try:
+            from src.model_registry import get_registry
+            reg = get_registry()
+            mid = model_id or getattr(reg, "_default", "") or next(iter(reg._entries), "")
+            client = reg.get(mid)
+            if not client:
+                return {"refined": 0, "skipped": "no model configured"}
+            rules_text = "\n".join(
+                f"- [{v['task_type']}] {v['rule']} (delta={v.get('delta',0)}, hits={v.get('hits',0)})"
+                for v in self.insights.values() if v.get("rule"))
+            prompt = (
+                "你是 Agent 策略优化器。以下是从执行统计中自动蒸馏的粗规则。"
+                "请逐条改写为更精确、更可操作的单一指令（保留关键数字），"
+                "每条一行，格式：规则文本。不要添加额外解释。\n\n" + rules_text)
+            resp = client.chat([{"role": "user", "content": prompt}], max_tokens=500)
+            content = str((resp or {}).get("content", "")).strip()
+            if not content or content.startswith("[错误"):
+                return {"refined": 0, "skipped": "LLM returned error"}
+            # 逐行解析 LLM 精炼结果, 回写对应洞见
+            refined = 0
+            for line in content.splitlines():
+                line = line.strip().lstrip("-•· ").strip()
+                if not line or len(line) < 10:
+                    continue
+                # 匹配回原洞见 (按 task_type 关联)
+                for v in self.insights.values():
+                    vt = v.get("task_type", "")
+                    if vt and vt in line:
+                        v["rule"] = line[:300]
+                        v["llm_refined"] = True
+                        v["llm_refined_at"] = time.time()
+                        refined += 1
+                        break
+            if refined:
+                self._save_insights()
+            return {"refined": refined}
+        except Exception as e:
+            return {"refined": 0, "error": str(e)}
 
     # ── ③ 注入 (检索 top-k, FSRS 保持度 × 效果差) ─────────
     def inject(self, task_type: Optional[str] = None, k: int = 3) -> List[str]:

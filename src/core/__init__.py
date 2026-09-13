@@ -6,7 +6,7 @@ meshctx 开源 wrapper 层。核心引擎在 meshctx-core (私有仓库)。
 安装完整版: pip install meshctx-core (需授权)
 当前为 stub 模式 — 基础功能可用，高级能力优雅降级。
 """
-__version__ = "3.131.3"
+__version__ = "3.131.1"
 
 import sys, logging, warnings, os
 from functools import lru_cache
@@ -222,7 +222,7 @@ _known = {
                    'PLAN_LIMITS','get_hub_quota','get_card_worker','reset_worker_for_tests'],
     'task_cards_api': ['router'],
     'task_card_runner': ['run_card','build_card_messages','CARD_SYSTEM_PROMPT'],
-    # 自进化闭环 v1 (2026-09-11): 统计蒸馏 + FSRS 保持度 + 哈希链经验层
+    # 自进化闭环 v1 (2026-09-10): 统计蒸馏 + FSRS 保持度 + 哈希链经验层
     'self_evolution': ['SelfEvolutionLoop','get_self_evolution'],
 }
 
