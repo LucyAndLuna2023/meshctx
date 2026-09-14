@@ -486,7 +486,7 @@ async def lifespan(app: FastAPI):
                 logger.debug(f"存档: {e}")
     asyncio.create_task(auto_archive())
 
-    # v3.131.1: 自进化周期反思 (30min) — 闭环自转保障
+    # v3.131.1: 自进化周期反思 (30min) — 闭环自转保障 (即使 record 未达阈值也定期蒸馏)
     async def _self_evolution_tick():
         while True:
             await asyncio.sleep(1800)
@@ -499,7 +499,7 @@ async def lifespan(app: FastAPI):
                 logger.debug(f"self_evolution reflect tick: {e}")
 
     asyncio.create_task(_self_evolution_tick())
-    
+
     # v3.36: JEPA世界模型初始化 (杨立昆World Model)
     try:
         # v3.129.0: numpy 懒加载 — 仅 JEPA 冷路径使用, 顶部导入占启动 ~14%
@@ -690,8 +690,8 @@ if os.environ.get("MESHCTX_TRACE_MALLOC"):
 
 app = FastAPI(
     title="MeshCtx API",
-    description="自适应可审计 Agent 系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="3.131.3",
+    description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
+    version="3.131.1",
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},
@@ -2655,11 +2655,16 @@ def _load_provider_config():
         return {}
 
 def _save_provider_config(cfg: dict):
-    """保存 provider_config.json (v3.131.1 加固: utf-8 显式 + 原子写 + 0600)"""
+    """保存 provider_config.json
+
+    v3.131.1 加固 (002codex P1): ①显式 encoding="utf-8" (中文 Windows locale 写坏);
+    ②原子写 (tmp→replace, 防 crash 半截文件); ③权限收紧 0600 — 该文件含
+    provider API Key 明文 (历史事实, 读取路径多处依赖明文, 加密迁移另行批次)。
+    """
+    import json as _json
     pcfg_path = Path(__file__).resolve().parent.parent / "provider_config.json"
-    pcfg_path.parent.mkdir(parents=True, exist_ok=True)
     tmp = pcfg_path.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(cfg, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp.write_text(_json.dumps(cfg, indent=2, ensure_ascii=False), encoding="utf-8")
     try:
         os.chmod(tmp, 0o600)  # POSIX 生效; Windows no-op, 无害
     except Exception:
@@ -2689,7 +2694,6 @@ _PROVIDER_DISPLAY = {
     "mistral": "Mistral",
     "qwen": "通义千问",
     "zhipu": "智谱",
-    "zai": "智谱国际 Z.AI",
     "moonshot": "月之暗面",
     "baidu": "百度",
     "minimax": "MiniMax",
@@ -2706,185 +2710,6 @@ _PROVIDER_DISPLAY = {
 def _provider_display_name(pid: str) -> str:
     """供应商ID→显示名"""
     return _PROVIDER_DISPLAY.get(pid, pid)
-
-# ── v3.131.2: 厂商实时模型列表 — 免硬编码, /models 端点拉取 + 本地缓存 ──
-_REMOTE_MODELS_TTL = int(os.environ.get("MESHCTX_MODELS_CACHE_TTL", "900"))  # 默认 15min (004meshctx 裁决 e)
-_REMOTE_BLOCKLIST = ("embed", "rerank", "whisper", "tts", "dall-e", "moderation",
-                     "guard", "speech", "bge-", "e5-", "clip")
-
-def _remote_cache_path() -> Path:
-    return Path(__file__).resolve().parent.parent / ".models_remote_cache.json"
-
-def _load_remote_cache() -> dict:
-    try:
-        import json as _json
-        return _json.loads(_remote_cache_path().read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-
-def _save_remote_cache(cache: dict):
-    """原子写缓存 (utf-8, tmp→os.replace, 0600 — 与 provider_config 同规)"""
-    import json as _json, os as _os, tempfile as _tf
-    p = _remote_cache_path()
-    try:
-        fd, tmp = _tf.mkstemp(dir=str(p.parent), prefix=".mrc_")
-        with _os.fdopen(fd, "w", encoding="utf-8") as f:
-            _json.dump(cache, f, ensure_ascii=False)
-        _os.chmod(tmp, 0o600)
-        _os.replace(tmp, p)
-    except Exception:
-        logger.warning("remote models cache 写入失败", exc_info=True)
-
-def _parse_models_payload(payload) -> list:
-    """防御式解析厂商 /models 返回: OpenAI {data:[{id}]} / 裸 list / {models:[...]}"""
-    try:
-        items = payload.get("data") if isinstance(payload, dict) else payload
-        if items is None and isinstance(payload, dict):
-            items = payload.get("models")
-        if not isinstance(items, list):
-            return []
-        ids: list = []
-        for it in items:
-            if isinstance(it, str):
-                mid = it
-            elif isinstance(it, dict):
-                mid = it.get("id") or it.get("name") or it.get("model") or ""
-            else:
-                continue
-            mid = str(mid).strip()
-            low = mid.lower()
-            if mid and not any(b in low for b in _REMOTE_BLOCKLIST) and mid not in ids:
-                ids.append(mid)
-        return ids
-    except Exception:
-        return []
-
-def _provider_api_key(pid: str, pcfg: dict) -> str:
-    """provider key 解析: provider_config.json → ENV_KEY_MAP 环境变量 (.env 兼容)"""
-    key = (pcfg.get(pid) or {}).get("key", "")
-    if key:
-        return key
-    try:
-        from src.model_registry import ENV_KEY_MAP
-        for env_var, pattern in ENV_KEY_MAP.items():
-            if pattern == f"{pid}:*":
-                return os.environ.get(env_var, "")
-    except Exception:
-        pass
-    return ""
-
-
-def _fetch_remote_model_ids(provider: str, base_url: str, api_key: str = "") -> list:
-    """GET {base_url}/models — 厂商实时模型 (OpenAI 兼容; openrouter 免 key 可列)"""
-    import urllib.request as _ur, json as _json
-    url = base_url.rstrip("/") + "/models"
-    req = _ur.Request(url, headers={"Authorization": f"Bearer {api_key}",
-                                    "User-Agent": "MeshCtx/3.131"})
-    try:
-        with _ur.urlopen(req, timeout=3) as resp:
-            return _parse_models_payload(_json.loads(resp.read().decode("utf-8", "replace")))
-    except Exception as e:
-        logger.info(f"remote models {provider} 拉取失败: {e}")
-        return []
-
-def _refresh_remote_models(force: bool = False) -> dict:
-    """对已配 key 的 provider (openrouter 免 key) 拉取 /models 并原子写缓存"""
-    import time as _t
-    from src.model_registry import BUILTIN_MODELS as _BM
-    pcfg = _load_provider_config()
-    cache = _load_remote_cache()
-    now = _t.time()
-    out: dict = {}
-    targets: dict = {}
-    for _mid, info in _BM.items():
-        pid = info["provider"]
-        if pid in targets:
-            continue
-        key = _provider_api_key(pid, pcfg)   # B2: pcfg → ENV_KEY_MAP env 回退
-        if not key and pid != "openrouter":
-            continue
-        base = (pcfg.get(pid) or {}).get("base_url") or info["base_url"]  # B3: pcfg 覆盖优先
-        targets[pid] = (base, key)
-    for pid, (base, key) in targets.items():
-        ent = cache.get(pid) or {}
-        if not force and ent.get("models") and now - ent.get("fetched_at", 0) < _REMOTE_MODELS_TTL:
-            out[pid] = len(ent["models"])
-            continue
-        ids = _fetch_remote_model_ids(pid, base, key)
-        if ids:
-            cache[pid] = {"fetched_at": now, "models": ids}
-            out[pid] = len(ids)
-        elif ent.get("models"):
-            out[pid] = len(ent["models"])  # 拉取失败沿用旧缓存
-    _save_remote_cache(cache)
-    return out
-
-_REMOTE_FAILED_AT: dict = {}
-_REMOTE_REFRESH_GUARD = {"at": 0.0}
-
-def _schedule_remote_refresh(force: bool = False) -> bool:
-    """后台刷新厂商模型 — run_in_executor + 60s 防重入 (B1/B1b: 事件循环零阻塞)"""
-    import asyncio as _a, time as _t
-    now = _t.time()
-    if now - _REMOTE_REFRESH_GUARD.get("at", 0.0) < 60:
-        return False
-    _REMOTE_REFRESH_GUARD["at"] = now
-    try:
-        _a.get_running_loop().run_in_executor(None, _refresh_remote_models)
-        return True
-    except RuntimeError:
-        return False
-
-def _configured_providers(pcfg: dict) -> dict:
-    """已配 key (pcfg 或 env) 的 provider → (base_url, key); openrouter 免 key 可列"""
-    from src.model_registry import BUILTIN_MODELS as _BM
-    out: dict = {}
-    for _mid, info in _BM.items():
-        pid = info["provider"]
-        if pid in out:
-            continue
-        key = _provider_api_key(pid, pcfg)
-        if not key and pid != "openrouter":
-            continue
-        out[pid] = ((pcfg.get(pid) or {}).get("base_url") or info["base_url"], key)
-    return out
-
-def _refresh_one_provider(provider: str) -> list:
-    """按需拉取单个厂商 — P3a: 未知/未配 provider 零网络; 失败负缓存 60s 防本地放大"""
-    import time as _t
-    tgt = _configured_providers(_load_provider_config()).get(provider)
-    if not tgt:
-        return []
-    if _t.time() - _REMOTE_FAILED_AT.get(provider, 0.0) < 60:
-        return []                                  # 负缓存: 失败后 60s 内不再打厂商
-    base, key = tgt
-    ids = _fetch_remote_model_ids(provider, base, key)
-    if ids:
-        cache = _load_remote_cache()
-        cache[provider] = {"fetched_at": _t.time(), "models": ids}
-        _save_remote_cache(cache)
-        _REMOTE_FAILED_AT.pop(provider, None)
-    else:
-        _REMOTE_FAILED_AT[provider] = _t.time()
-    return ids
-
-@app.get("/api/models/remote/{provider}")
-async def remote_models(provider: str):
-    """厂商实时模型列表 (缓存优先; 未知 provider 不触发网络) — chat ➕ 模态实时数据源"""
-    ent = _load_remote_cache().get(provider)
-    if not ent or not ent.get("models"):
-        import asyncio as _aio
-        await _aio.to_thread(_refresh_one_provider, provider)   # P3a: 单商 + 负缓存
-        ent = _load_remote_cache().get(provider) or {}
-    return {"provider": provider, "models": ent.get("models") or [],
-            "fetched_at": ent.get("fetched_at")}
-
-@app.post("/api/models/refresh")
-async def refresh_models_endpoint():
-    """强制刷新全部已配 key 厂商的实时模型列表"""
-    import asyncio as _aio
-    counts = await _aio.to_thread(_refresh_remote_models, True)  # B1: 不阻塞事件循环
-    return {"status": "ok", "refreshed": counts}
 
 # ── v1.5.5 模型切换 API ─────────────────────────────────
 
@@ -2936,38 +2761,6 @@ async def list_models():
             "has_key": bool(info.get("key")),
             "current": mid == current,
         })
-    # v3.131.2: 合并厂商实时模型 (/models 拉取缓存) — 厂商新模型免发版自动出现
-    try:
-        import time as _t
-        cache = _load_remote_cache()
-        stale = (not cache) or any(
-            not ent.get("models") or _t.time() - ent.get("fetched_at", 0) >= _REMOTE_MODELS_TTL
-            for ent in cache.values()) or any(
-            pid not in cache                       # P3b: 缺席厂商也需补拉 (原只看已有条目)
-            for pid in _configured_providers(provider_cfg))
-        if stale:
-            _schedule_remote_refresh()   # B1/B1b: 后台线程 + 60s 防重入, 事件循环零阻塞
-        seen = {m["id"] for m in models}
-        for pid, ent in cache.items():
-            has_key = bool(provider_cfg.get(pid, {}).get("key", ""))
-            ent_stale = _t.time() - ent.get("fetched_at", 0) >= _REMOTE_MODELS_TTL
-            for raw in (ent.get("models") or []):   # B4: 取消 [:60] 静默截断
-                mid = raw if ":" in raw else f"{pid}:{raw}"
-                if mid in seen or any(b in mid.lower() for b in _REMOTE_BLOCKLIST):
-                    continue
-                seen.add(mid)
-                models.append({
-                    "id": mid, "provider": pid,
-                    "provider_name": _provider_display_name(pid),
-                    "model_name": raw, "configured": False,
-                    "usable": has_key, "has_key": has_key,
-                    "current": mid == current, "remote": True,
-                    "source": "remote",                       # B5: 来源标记
-                    "fetched_at": ent.get("fetched_at"),      # B5: 抓取时间
-                    "stale": ent_stale,                       # B5: 过期标记
-                })
-    except Exception:
-        logger.warning("remote models merge 失败", exc_info=True)
     return {
         "models": models, 
         "current": current, 
@@ -3054,18 +2847,6 @@ async def add_model(request: Request):
     # 如果这是第一个模型，设为默认
     if not config["models"].get("default"):
         config["models"]["default"] = model_id
-
-    # 3.127+ 同步写 provider_config.json — 确保模型下拉 has_key 立即生效
-    if api_key:
-        try:
-            _pcfg = _load_provider_config()
-            _pcfg.setdefault(provider, {})
-            _pcfg[provider]["key"] = api_key
-            _pcfg[provider]["base_url"] = base_url
-            _save_provider_config(_pcfg)
-            logger.info(f"provider_config.json 同步: {provider} key 已保存")
-        except Exception:
-            logger.warning(f"provider_config.json 同步失败: {provider}", exc_info=True)
     
     with open(config_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
@@ -3300,6 +3081,7 @@ async def set_default_model(model_id: str):
 async def test_model_connection(model_id: str):
     """测试模型连接 — 真实发送API请求验证"""
     from src.model_registry import get_registry
+
     _t0 = time.perf_counter()
     test_ok = False
     test_detail = ""
@@ -3307,13 +3089,13 @@ async def test_model_connection(model_id: str):
     client = reg.get(model_id)
     if not client:
         return {"status": "error", "message": f"模型 {model_id} 未配置或缺少API Key"}
-    
+
     # 检查 base_url 有效性
     cfg = reg._entries.get(model_id, {})
     base_url = cfg.get("base_url", "")
     if not base_url:
         return {"status": "error", "message": "未配置 Base URL"}
-    
+
     try:
         import asyncio
         response = await asyncio.wait_for(
@@ -3323,7 +3105,10 @@ async def test_model_connection(model_id: str):
         content = str(response.get("content", ""))
         # 检测假成功 (错误消息伪装)
         if content.startswith("[错误") or "Error" in content or "error" in content.lower():
-            return {"status": "error", "message": f"API返回错误: {content[:200]}"}
+            test_detail = f"API返回错误: {content[:200]}"
+            return {"status": "error", "message": test_detail}
+        test_ok = True
+        test_detail = content[:100]
         return {
             "status": "ok",
             "model": model_id,
@@ -3332,12 +3117,11 @@ async def test_model_connection(model_id: str):
             "message": "连接成功"
         }
     except asyncio.TimeoutError:
-        return {"status": "error", "message": "连接超时(20s)，请检查Base URL是否正确"}
+        test_detail = "连接超时(20s)，请检查Base URL是否正确"
+        return {"status": "error", "message": test_detail}
     except Exception as e:
-        msg = str(e)[:300]
-        if "401" in msg or "Unauthorized" in msg or "令牌" in msg or "token" in msg.lower():
-            msg += " — 请确认 API Key 与端点匹配: 国内 key→zhipu(open.bigmodel.cn) / 国际 key→zai(api.z.ai), 两者不通用"
-        return {"status": "error", "message": f"连接失败: {msg}"}
+        test_detail = f"连接失败: {str(e)[:300]}"
+        return {"status": "error", "message": test_detail}
     finally:
         # v3.131.1: 自进化经验层 — provider 可靠性数据积累
         try:
@@ -3801,12 +3585,25 @@ async def desktop_status():
     return {"ok": True, **da.get_stats()}
 
 
+# v3.131.1: desktop/windows 缓存 — PowerShell 启动 ~2s, 30s TTL 内复用
+_desktop_windows_cache = {"ts": 0.0, "data": None}
+
 @app.get("/api/desktop/windows")
 async def desktop_windows():
-    """当前打开的窗口列表"""
+    """当前打开的窗口列表 (30s 缓存, 避免每次调 PowerShell)"""
+    import time as _time
     from src.core.desktop_agent import get_desktop_agent
+    now = _time.perf_counter()
+    if now - _desktop_windows_cache["ts"] < 30 and _desktop_windows_cache["data"] is not None:
+        return {"ok": True, **_desktop_windows_cache["data"], "cached": True}
     da = get_desktop_agent()
-    return {"ok": True, "windows": da.list_windows()}
+    try:
+        result = await asyncio.to_thread(da.list_windows)
+    except Exception:
+        result = da.list_windows()
+    _desktop_windows_cache["ts"] = now
+    _desktop_windows_cache["data"] = {"windows": result}
+    return {"ok": True, **_desktop_windows_cache["data"]}
 
 
 @app.post("/api/desktop/command")
@@ -4300,7 +4097,7 @@ async def api_chat_stream(request: Request):
                 elif ev["type"] == "timed_out":
                     yield f"data: {_json.dumps({'token': ev['text']})}\n\n"
                 elif ev["type"] == "error":
-                    _se_had_error = True
+                    _se_had_error = True   # v3.131.1: 自进化经验标记
                     yield f"data: {_json.dumps({'error': ev['text']})}\n\n"
                 # timed_out_done: 超时消息已发，忽略
             yield "data: [DONE]\n\n"
@@ -4313,7 +4110,7 @@ async def api_chat_stream(request: Request):
             yield f"data: {_json.dumps({'error': str(e)})}\n\n"
             yield "data: [DONE]\n\n"
         finally:
-            # v3.131.1: 自进化经验层 — 聊天结果入闭环
+            # v3.131.1: 自进化经验层 — 聊天结果入闭环 (错误标记→失败经验)
             try:
                 from src.core.self_evolution import get_self_evolution
                 get_self_evolution().record("chat", model_id or "default",
@@ -4784,7 +4581,7 @@ async def plugins_reload():
 
 @app.get("/api/cache/metrics")
 async def cache_metrics():
-    """缓存性能指标 (psutil 可选依赖 — 缺失时降级返回, 修复裸 import 500)"""
+    """缓存性能指标 (psutil 可选依赖 — 缺失时降级返回, v3.131.1 修复裸 import 500)"""
     import time
     metrics = {
         "timestamp": time.time(),
@@ -4802,7 +4599,7 @@ async def cache_metrics():
             "psutil": True,
         })
     except ImportError:
-        pass
+        pass  # psutil 未安装 (可选依赖) — 优雅降级
     except Exception as e:
         logger.warning(f"psutil 采集失败: {e}")
     g = getattr(app.state, 'genomic', None)
@@ -7592,7 +7389,7 @@ async def version_info():
     return {"version": __version__, "models": 123, "providers": 37}
 
 
-# ── 自进化闭环 API (Self-Evolution Loop Phase-0: docs/SELF_EVOLUTION_DESIGN.md) ──
+# ── 自进化闭环 API (v3.131.1+ Phase-0: docs/SELF_EVOLUTION_DESIGN.md) ──
 
 @app.get("/api/evolution/stats")
 async def evolution_stats():
@@ -7612,9 +7409,9 @@ async def evolution_record(request: Request):
     task_type = str(body.get("task_type") or "general")
     strategy = str(body.get("strategy") or "default")
     outcome = bool(body.get("outcome"))
-    get_self_evolution().record(task_type, strategy, outcome,
-                                detail=str(body.get("detail", "")),
-                                duration_ms=float(body.get("duration_ms", 0) or 0))
+    exp = get_self_evolution().record(task_type, strategy, outcome,
+                                      detail=str(body.get("detail", "")),
+                                      duration_ms=float(body.get("duration_ms", 0) or 0))
     return {"status": "ok", "task_type": task_type, "strategy": strategy}
 
 
@@ -7632,11 +7429,10 @@ async def evolution_reflect(request: Request):
 
 
 @app.get("/api/evolution/insights")
-async def evolution_insights(request: Request, task_type: str = "", k: int = 3):
-    """检索 top-k 洞见规则 (供前端/agent 注入上下文; 空类型=全类型)"""
+async def evolution_insights(request: Request, task_type: str = "general", k: int = 3):
+    """检索 top-k 洞见规则 (供前端/agent 注入上下文)"""
     from src.core.self_evolution import get_self_evolution
-    return {"task_type": task_type,
-            "insights": get_self_evolution().inject(task_type or None, k=int(k))}
+    return {"task_type": task_type, "insights": get_self_evolution().inject(task_type, k=int(k))}
 
 
 @app.get("/api/evolution/summary")
@@ -7665,6 +7461,14 @@ async def evolution_summary():
         "top_insights": insights[:10],
         "task_types": sorted(set(v.get("task_type", "") for v in loop.insights.values())),
     }
+
+
+@app.post("/api/evolution/reflect")
+async def evolution_reflect_manual():
+    """手动触发反思蒸馏"""
+    from src.core.self_evolution import get_self_evolution
+    out = get_self_evolution().reflect()
+    return {"status": "ok", **out}
 
 
 # ═══════════════════════════════════════════════════════════
