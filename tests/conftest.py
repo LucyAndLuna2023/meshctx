@@ -116,4 +116,15 @@ def _reset_global_state():
             AUTO_HEALER._instance = None
         except Exception:
             pass
+    # 重置 self_evolution singleton (v3.131.1: 防测试间经验/洞见状态泄漏)
+    if "src.core.self_evolution" in sys.modules:
+        try:
+            from src.core.self_evolution import get_self_evolution
+            loop = get_self_evolution()
+            loop.insights = {}
+            loop._exp_index.clear()
+            loop._since_reflect = 0
+            loop._exp_loaded = False
+        except Exception:
+            pass
     _clear_rate_limits()
