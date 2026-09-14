@@ -7626,6 +7626,34 @@ async def evolution_insights(request: Request, task_type: str = "", k: int = 3):
             "insights": get_self_evolution().inject(task_type or None, k=int(k))}
 
 
+@app.get("/api/evolution/summary")
+async def evolution_summary():
+    """自进化学习进度汇总 — 人类可读版 (供 UI 面板/巡检)"""
+    from src.core.self_evolution import get_self_evolution
+    loop = get_self_evolution()
+    st = loop.stats()
+    insights = []
+    for v in loop.insights.values():
+        insights.append({
+            "task_type": v.get("task_type", ""),
+            "strategy": v.get("strategy", ""),
+            "rule": v.get("rule", ""),
+            "delta": v.get("delta", 0),
+            "stability_h": v.get("stability", 24),
+            "hits": v.get("hits", 0),
+            "wins": v.get("wins", 0),
+            "llm_refined": v.get("llm_refined", False),
+        })
+    insights.sort(key=lambda x: (-x["delta"], -x["hits"]))
+    return {
+        "total_experiences": st.get("experiences", 0),
+        "total_insights": st.get("insights", 0),
+        "chain_verified": st.get("chain_verified"),
+        "top_insights": insights[:10],
+        "task_types": sorted(set(v.get("task_type", "") for v in loop.insights.values())),
+    }
+
+
 # ═══════════════════════════════════════════════════════════
 # 新增API端点: monitor / update/check / notify/broadcast / prompts CRUD
 # ═══════════════════════════════════════════════════════════
