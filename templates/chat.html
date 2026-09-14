@@ -1677,13 +1677,14 @@ const FALLBACK_MODELS = [
   { id:'deepseek:v4-flash-vision', label:'👁 V4-Flash Vision', icon:'👁', providerName:'DeepSeek' },
 ];
 function providerIcon(p){
-  const icons = { openrouter:'🌐', openai:'🤖', anthropic:'✳️', google:'🟦', deepseek:'🚀', bailian:'☁️', groq:'⚡', together:'🔗', xai:'🅧', mistral:'🌀', cohere:'🌊', perplexity:'🔎', zhipu:'🟣', custom:'🧩' };
+  const icons = { openrouter:'🌐', openai:'🤖', anthropic:'✳️', google:'🟦', deepseek:'🚀', bailian:'☁️', groq:'⚡', together:'🔗', xai:'🅧', mistral:'🌀', cohere:'🌊', perplexity:'🔎', zhipu:'🟣', zai:'🌍', custom:'🧩' };
   return icons[p] || '🧩';
 }
-function applyModelOptions(list){
+function applyModelOptions(list, isErr){
   const sel = document.getElementById('modelSelect');
   if (!sel) return;
-  const opts = (list && list.length) ? list : FALLBACK_MODELS;
+  // v3.131.3: 空/失败不再静默降级 FALLBACK_MODELS(DeepSeek×3) — 显示重试项暴露真实错误
+  const opts = (list && list.length) ? list : [{ id:'__reload__', icon:'⚠️', providerName:'', desc:'', label:'⚠️ 模型列表为空 — 点击重试' }];
   sel.innerHTML = '';
   let hasSel = false;
   opts.forEach(function(m){
@@ -1710,9 +1711,15 @@ function applyModelOptions(list){
       action:(function(id){ return function(){ document.getElementById('modelSelect').value=id; switchModel(); }; })(m.id) };
   });
 }
-function loadModels(){
-  fetch('/api/models').then(function(r){ return r.json(); }).then(function(d){
-    const models = d.models || [];
+let _lmRetries = 0, _lmTimer = null;
+function loadModels(isRetry){
+  fetch('/api/models').then(function(r){
+    if (!r.ok) throw new Error('HTTP '+r.status+(r.status===401?' (请先登录或检查 MESHCTX_PASSWORD)':''));
+    return r.json();
+  }).then(function(d){
+    const models = (d && d.models) || [];
+    if (!models.length) throw new Error('服务端返回模型列表为空');
+    _lmRetries = 0;
     const current = d.current || d.default || '';
     const usable = models.filter(function(m){ return m.usable || m.configured || m.current; });
     const rest = models.filter(function(m){ return !m.usable && !m.configured && !m.current; });
@@ -1729,8 +1736,19 @@ function loadModels(){
       };
     });
     applyModelOptions(list);
-  }).catch(function(){ applyModelOptions(FALLBACK_MODELS); });
+  }).catch(function(err){
+    // v3.131.3: 指数退避重试×3, 仍败显示错误项(可点击重试) — 不再吞错降级
+    if (!isRetry && _lmRetries < 3){
+      _lmRetries++;
+      clearTimeout(_lmTimer);
+      _lmTimer = setTimeout(function(){ loadModels(true); }, 1200*_lmRetries);
+      return;
+    }
+    applyModelOptions([{ id:'__reload__', icon:'⚠️', providerName:'', desc:'',
+      label:'⚠️ 模型列表加载失败 ('+((err&&err.message)||'network')+') — 点击重试' }], true);
+  });
 }
+window.addEventListener('focus', function(){ if (_lmRetries) { _lmRetries = 0; loadModels(true); } });
 loadModels();
 
 function getTimestamp() {
@@ -2026,7 +2044,7 @@ async function send() {
       signal: controller.signal
     });
 
-    // v3.131.1 P1-5: 厂商错误 → 中文可操作提示 (保留原错误于括号)
+    // v3.131.3 P1-5: 厂商错误 → 中文可操作提示 (保留原错误于括号)
     function friendlyVendorError(err) {
       var s = String(err || '');
       var low = s.toLowerCase();
@@ -2177,9 +2195,8 @@ async function send() {
               typingDiv.remove();
               aiMsgAdded = true;
             }
-            // v3.131.1 P1-5: 常见厂商错误 → 中文可操作提示 (原样错误保留在括号内)
+            // v3.131.3 P1-5: 常见厂商错误 → 中文可操作提示
             var friendly = friendlyVendorError(parsed.error);
-            // Ensure error is displayed
             if (aiContent) {
               aiContent += '\n\n' + friendly;
             } else {
@@ -2327,25 +2344,15 @@ function submitAddModel(){
 
 function switchModel() {
   const v = document.getElementById('modelSelect').value;
+  if (v === '__reload__') { _lmRetries = 0; loadModels(true); return; }  // ⚠ 重试加载
   if (v === '__add__') { openAddModel(); return; }   // ➕ 打开添加模态
   model = v;
-  const prov = v.split(':')[0] || v;
-  const icon = providerIcon(prov);
-  document.getElementById('modelInfo').innerHTML = `<span data-lang-key="chat_model">${t('chat_model')}</span>: ${icon} ${model}`;
+  document.getElementById('modelInfo').innerHTML = `<span data-lang-key="chat_model">${t('chat_model')}</span>: ${model}`;
   document.getElementById('panelModel').textContent = model;
-  // v3.131.1 真切换: 选中即持久为默认 (PATCH default 同时设置运行时 env),
+  // v3.131 真切换: 选中即持久为默认 (PATCH default 同时设置运行时 env),
   // 失败回退会话级 /api/model/switch — 消除"重启后切回旧模型"的假切换
   fetch('/api/models/' + encodeURIComponent(v) + '/default', {method:'PATCH'})
     .then(function(r){ if (!r.ok) throw 0; return r.json(); })
-    .then(function(d){
-      // 切换成功 toast
-      var info = document.getElementById('modelInfo');
-      if (info) {
-        var old = info.innerHTML;
-        info.innerHTML = '✓ ' + icon + ' ' + model + ' (已切换)';
-        setTimeout(function(){ info.innerHTML = old; }, 2000);
-      }
-    })
     .catch(function(){
       return fetch('/api/model/switch',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({model_id:v})});
@@ -3127,6 +3134,7 @@ var AM_PROVIDERS = {
   openai:     {base:'https://api.openai.com/v1',                         key:'https://platform.openai.com/api-keys',                         models:['openai:gpt-4o','openai:gpt-4o-mini']},
   anthropic:  {base:'https://api.anthropic.com/v1',                      key:'https://console.anthropic.com/settings/keys',                  models:['anthropic:claude-sonnet-4']},
   zhipu:      {base:'https://open.bigmodel.cn/api/paas/v4',              key:'https://open.bigmodel.cn/usercenter/apikeys',                  models:['zhipu:glm-4.6','zhipu:glm-4.5-air','zhipu:glm-4.5-flash']},
+    zai:        {base:'https://api.z.ai/api/paas/v4',                    key:'https://z.ai/manage-apikey/apikey-list',                       models:['zai:glm-5.3-flash','zai:glm-5.3','zai:glm-4.6']},
   moonshot:   {base:'https://api.moonshot.cn/v1',                        key:'https://platform.moonshot.cn/console/api-keys',                models:['moonshot:kimi-k2']},
   bailian:    {base:'https://dashscope.aliyuncs.com/compatible-mode/v1', key:'https://dashscope.console.aliyun.com/apiKey',                  models:['bailian:qwen-max','bailian:qwen-plus']},
   openrouter: {base:'https://openrouter.ai/api/v1',                      key:'https://openrouter.ai/keys',                                   models:['openrouter:anthropic/claude-sonnet-4']},
@@ -3134,12 +3142,12 @@ var AM_PROVIDERS = {
   ollama:     {base:'http://localhost:11434/v1',                         key:'',                                                             models:['ollama:llama3.1','ollama:qwen2.5']},
   custom:     {base:'',                                                  key:'',                                                             models:[]}
 };
-var AM_ORDER = ['deepseek','openai','anthropic','zhipu','moonshot','bailian','openrouter','google','ollama','custom'];
+var AM_ORDER = ['deepseek','openai','anthropic','zhipu','zai','moonshot','bailian','openrouter','google','ollama','custom'];
 (function amInit(){
   var sel = document.getElementById('am_provider');
   if (!sel) return;
   sel.innerHTML = AM_ORDER.map(function(p){
-    var names = {deepseek:'DeepSeek 🚀',openai:'OpenAI 🤖',anthropic:'Anthropic ✳️',zhipu:'智谱 GLM 🧪',moonshot:'Moonshot 🌙',bailian:'阿里百炼 ☁️',openrouter:'OpenRouter 🌐',google:'Gemini 🟦',ollama:'Ollama(本地) 🐳',custom:'自定义 🔧'};
+    var names = {deepseek:'DeepSeek 🚀',openai:'OpenAI 🤖',anthropic:'Anthropic ✳️',zhipu:'智谱 GLM 🧪',zai:'智谱 Z.AI 🌍',moonshot:'Moonshot 🌙',bailian:'阿里百炼 ☁️',openrouter:'OpenRouter 🌐',google:'Gemini 🟦',ollama:'Ollama(本地) 🐳',custom:'自定义 🔧'};
     return '<option value="' + p + '">' + (names[p]||p) + '</option>';
   }).join('');
 })();
@@ -3153,6 +3161,19 @@ function amOnProvider(){
   document.getElementById('am_id_list').innerHTML = (m.models||[]).map(function(id){
     return '<option value="' + id + '">'; }).join('');
   document.getElementById('am_id').placeholder = (m.models&&m.models[0]) ? m.models[0] : (p + ':my-model');
+  // v3.131.3: 实时拉取厂商 /models — 列表跟随厂商更新, 免硬编码
+  fetch('/api/models/remote/' + encodeURIComponent(p)).then(function(r){
+    return r.ok ? r.json() : null; }).then(function(d){
+    if (!d || !d.models || !d.models.length) return;
+    var dl = document.getElementById('am_id_list');
+    var have = {};
+    dl.querySelectorAll('option').forEach(function(o){ have[o.value] = 1; });
+    d.models.slice(0, 60).forEach(function(id){
+      var full = (id.indexOf(':') === -1) ? (p + ':' + id) : id;
+      if (have[full]) return;
+      var o = document.createElement('option'); o.value = full; dl.appendChild(o);
+    });
+  }).catch(function(){});
 }
 </script>
 

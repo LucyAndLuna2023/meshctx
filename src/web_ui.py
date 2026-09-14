@@ -4365,7 +4365,7 @@ async def save_api_key(
     except:
         logger.debug("Suppressed except:: {}", exc_info=True)
 
-    # v3.131.1 P1-2: 保存后自动测活 (10s 兜底) — 用户立即知道 Key 是否有效
+    # v3.131.3 P1-2: 保存后自动测活 (10s 兜底) — 用户立即知道 Key 是否有效
     test = "fail"
     try:
         import asyncio as _aio
@@ -4546,7 +4546,7 @@ loadModels();
 
 @router.get("/models", response_class=HTMLResponse)
 async def models_page(request: Request):
-    """模型管理 — v3.131.1 起统一收口到 Model Hub (/ui/setup),
+    """模型管理 — v3.131.3 起统一收口到 Model Hub (/ui/setup),
     消除"两个模型管理页"的混乱 (用户痛点: 后台模型/provider 管理乱)。"""
     return RedirectResponse(url="/ui/setup", status_code=302)
 
