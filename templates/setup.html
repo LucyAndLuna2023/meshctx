@@ -135,6 +135,20 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   </div>
 </div>
 
+<!-- Self-Evolution status (v3.131.1) -->
+<div class="card">
+  <div class="sec-title">🧠 Self-Evolution · 学习进度</div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+    <span style="font-size:1.4rem;font-weight:700" id="evoExpCount">—</span>
+    <span style="color:var(--muted);font-size:0.8rem">experiences</span>
+    <span style="font-size:1.4rem;font-weight:700" id="evoInsightCount">—</span>
+    <span style="color:var(--muted);font-size:0.8rem">insights</span>
+    <span id="evoChain" style="font-size:0.8rem;color:var(--green)">✓</span>
+    <button class="btn" onclick="triggerReflect()" style="margin-left:auto">🧠 Reflect</button>
+  </div>
+  <div id="evoStatus" style="font-size:0.78rem;color:var(--muted)"></div>
+</div>
+
 <div class="card">
   <!-- 2026-08-25 004meshctx UI 精简: 主导航收纳 (URL 保留不删) -->
   <div class="advanced">
@@ -397,6 +411,34 @@ function resetForm(){
 
 renderProviderSelect();
 loadModels();
+
+// ── Self-Evolution 学习进度面板 (v3.131.1) ──
+function loadEvoStatus(){
+  fetch('/api/evolution/summary').then(function(r){return r.json();}).then(function(d){
+    document.getElementById('evoExpCount').textContent = d.total_experiences;
+    document.getElementById('evoInsightCount').textContent = d.total_insights;
+    document.getElementById('evoChain').textContent = d.chain_verified ? '🔗 ✓' : '🔗 ⚠';
+    var s = document.getElementById('evoStatus');
+    if (d.top_insights && d.top_insights.length) {
+      s.innerHTML = d.top_insights.slice(0,3).map(function(i){
+        return '· ' + i.rule;
+      }).join('<br>');
+    } else {
+      s.textContent = '暂无洞见 — 使用产品后自动学习';
+    }
+  }).catch(function(e){
+    document.getElementById('evoStatus').textContent = '⚠ ' + e;
+  });
+}
+function triggerReflect(){
+  var s = document.getElementById('evoStatus');
+  s.innerHTML = '<span class="spin"></span> reflecting...';
+  fetch('/api/evolution/reflect_manual', {method:'POST'}).then(function(r){return r.json();}).then(function(d){
+    s.textContent = '✓ reflect: +' + (d.created||0) + ' created, ~' + (d.updated||0) + ' updated (total ' + (d.insights_total||0) + ')';
+    loadEvoStatus();
+  }).catch(function(e){ s.textContent = '⚠ ' + e; });
+}
+loadEvoStatus();
 
 // v3.131.1 P1-2: 保存后自动测活结果横幅 (save_api_key 跳转参数 test=ok|fail)
 (function showTestBanner(){
