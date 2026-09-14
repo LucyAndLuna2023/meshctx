@@ -398,7 +398,7 @@ function resetForm(){
 renderProviderSelect();
 loadModels();
 
-// v3.131.3 P1-2: 保存后自动测活结果横幅 (save_api_key 跳转参数 test=ok|fail)
+// v3.131.1 P1-2: 保存后自动测活结果横幅 (save_api_key 跳转参数 test=ok|fail)
 (function showTestBanner(){
   var params = new URLSearchParams(window.location.search);
   var t = params.get('test');

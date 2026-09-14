@@ -3300,7 +3300,9 @@ async def set_default_model(model_id: str):
 async def test_model_connection(model_id: str):
     """测试模型连接 — 真实发送API请求验证"""
     from src.model_registry import get_registry
-    
+    _t0 = time.perf_counter()
+    test_ok = False
+    test_detail = ""
     reg = get_registry()
     client = reg.get(model_id)
     if not client:
@@ -3336,6 +3338,17 @@ async def test_model_connection(model_id: str):
         if "401" in msg or "Unauthorized" in msg or "令牌" in msg or "token" in msg.lower():
             msg += " — 请确认 API Key 与端点匹配: 国内 key→zhipu(open.bigmodel.cn) / 国际 key→zai(api.z.ai), 两者不通用"
         return {"status": "error", "message": f"连接失败: {msg}"}
+    finally:
+        # v3.131.1: 自进化经验层 — provider 可靠性数据积累
+        try:
+            from src.core.self_evolution import get_self_evolution
+            pid = model_id.split(":")[0] if ":" in model_id else model_id
+            get_self_evolution().record("provider_test", pid,
+                                        outcome=test_ok,
+                                        detail=f"{model_id}: {test_detail[:100]}",
+                                        duration_ms=(time.perf_counter() - _t0) * 1000)
+        except Exception:
+            pass
 
 
 # ── v2.2 本地文件访问 API ──────────────────────────────────
