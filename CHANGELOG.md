@@ -1,9 +1,14 @@
-## [Unreleased] - 2026-09-16 (002zcode 通宵优化批 · night-1~9)
+## [Unreleased] - 2026-09-16 (002zcode 通宵优化批 · night-1~19)
 
 ### Fixed
 - **chat.html 四件套恢复**（night-1, 5a483b7e）: `__reload__` 空列表重试项 / 指数退避重试×3
   + HTTP 错误暴露 / focus 重拉 / models:remote 实时拉取 / zai 厂商条目（58d82cfe 基线，
   round37 P1-a 真回退修复）；保留 evo 面板 / collapsible tool_result / 切换 toast / 错误映射
+- **顺序依赖失败×2 修复**（night-13, 8305e584）: pytest-randomly (seed=20260916) 发现 —
+  test_cmd_chat_no_model 断言改语义级（文案随环境 i18n 有 ≥3 种）；
+  test_get_deep_research_returns_engine 单例复位后自建（不再继承前序 max_depth=3）
+- **build.bat 版本显示串残留**（night-11, 14eda60a）: echo 串 3.131.2→3.131.3
+  （实际注入文件早已对齐），并挂进 G10 test_version_parity_all_assets 防 bump 漏改
 
 ### Added
 - **models:remote 子系统**（night-2, a425c6ec）: 此前仅有测试无实现（干净检出必 9F/3E）。
@@ -14,22 +19,39 @@
 - **自进化闭环收口**（night-4, 26ce3685）: 聊天链路注入 top 洞见进系统提示，finally 按
   真实成败 `reinforce` 归因回灌（闭合第四环，round33 P3-1）；record 自动反思后节流
   （≥30min）后台触发 `llm_refine`；`POST /api/evolution/reinforce`
+- **模型健康度徽章**（night-14, 7f6f6d4e）: `GET /api/evolution/model_health`（各厂商
+  最近 24h 测活成功率，聚合自进化经验层）+ Model Hub 行内 🟢🟡🔴 徽章
 - **Model Hub 三步引导**（night-7, 7d9b85b4）: 未配置厂商时显示引导卡，配置后自动隐藏，可跳过
+- **推荐起步 chips**（night-17, edee30f5）: DeepSeek/智谱GLM/OpenRouter 一键选中厂商并聚焦 Key
+- **切换 toast 明示范围**（night-17）: "已设为全局默认 · 新对话生效"（P1-3）
 - **chat tool_result 一键复制全文**（night-8, a679eabd）
+- **剪贴板一键导入 Key**（night-18, d0465107）: token 智能提取 + 前缀自动识别厂商 + 降级提示
+- **多模型对比试聊卡**（night-19, 07c5ebec）: 同题双模型并排 + 延迟/评分 + 🏆胜者高亮
+  （后端 `/api/chat/compare` 为既有能力，补 UI 入口）
 
 ### Changed (i18n)
 - **65 个活页缺键 × 11 语言补翻**（night-3, dc26c802）: continuity/project_detail/conversation/
-  projects/memories/chat —— 此前这些键在所有语言下裸显键名；Wizard 6 新键 ×11 语言（键集 1531）
+  projects/memories/chat —— 此前这些键在所有语言下裸显键名；Wizard/健康度/对比卡等
+  新功能键同步 ×11 语言（键集 1538）
+- **静态资源版本指纹**（night-15, 47ff7884）: `_render` 注入 version 上下文（base.html
+  `?v={{ version }}` 此前恒为空 → 升级后旧缓存），lib 三件挂真实版本；磁盘 base.html
+  与内嵌权威版同步（消除 61.9K→73.5K 漂移）
 
 ### Tests
-- +20 用例: models:remote 12p / 自进化闭环 3p / provider 测活 outcome 落盘 3p
-  （round37 缺失的 test_model_connection 口径）/ i18n 交叉 parity 3p（landing↔src）/ 
-  渲染层扫描 3p（11 语言 × 6 页面裸键名扫描 + wizard 断言）
+- **+26 用例**: models:remote 12p / 自进化闭环 4p（含 reinforce 闭环·llm_refine 回退·
+  model_health 聚合）/ provider 测活 outcome 落盘 3p（round37 缺失的 test_model_connection
+  口径）/ i18n 交叉 parity 3p（landing↔src）/ 渲染层扫描 4p（11 语言 × 6 页面裸键名扫描
+  + wizard + 指纹 + he RTL 行为断言）
 - e2e `/ui/models`→302→`/ui/setup` 契约显式化（round33 nit-2）
+- 随机顺序探针（pytest-randomly）: seed=20260916/777 双种子全绿
 
 ### Performance
 - `scripts/opt_api_benchmark.py` 落地（stdlib 零依赖 500ms 猎捕器）；基线: 8 端点
   并发 4/8/16 实测 **0 慢点**，最慢 /api/models p95=59ms
+
+### Docs
+- `docs/SELF_EVOLUTION_DESIGN.md` §5 补实施状态（Phase-1 三项+reinforce API 已落地）
+- 真浏览器 E2E 冒烟 9/9（向导/chips/对比卡/剪贴板/he-RTL/跳过持久化，002 侧留档）
 
 ## [3.131.3] - 2026-09-12 (i18n 残留清零 · 模型配置页多语言补全)
 
