@@ -243,6 +243,7 @@ function iconOf(p){ return (PROVIDERS[p]||{}).icon || '🧩'; }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 
 var MODELS = [], CURRENT = '', currentId = '';
+var HEALTH = {};   // night-14: {pid: {calls_24h, success_rate}} 自进化经验层
 
 // ═══ 加载模型列表 ═══
 function loadModels(){
@@ -251,6 +252,11 @@ function loadModels(){
     CURRENT = d.current || d.default || '';
     renderCurrent();
     renderList();
+    // night-14: 健康度徽章 (最近24h测活成功率, 失败静默不影响列表)
+    fetch('/api/evolution/model_health').then(function(r){ return r.json(); }).then(function(h){
+      HEALTH = (h && h.providers) || {};
+      renderList();
+    }).catch(function(){});
   }).catch(function(e){
     $('modelList').innerHTML = '<div class="empty">⚠ ' + e + '</div>';
   });
@@ -287,6 +293,13 @@ function renderList(){
   el.innerHTML = html;
 }
 
+function healthBadge(pid){
+  var h = HEALTH[pid];
+  if (!h || !h.calls_24h) return '';
+  var pct = Math.round(h.success_rate * 100);
+  var dot = h.success_rate >= 0.8 ? '🟢' : (h.success_rate >= 0.5 ? '🟡' : '🔴');
+  return '<span title="最近24h测活 ' + h.calls_24h + ' 次 · 成功率 ' + pct + '%" style="font-size:.68rem">' + dot + ' ' + pct + '%</span>';
+}
 function rowHtml(m, ready){
   var isCur = m.id === CURRENT;
   var dot = m.has_key||m.configured ? 'ok' : '';
@@ -295,6 +308,7 @@ function rowHtml(m, ready){
     '<span>' + iconOf(m.provider) + '</span>' +
     '<div class="main"><div class="mid">' + esc(m.model_name || m.id) + '<span class="star">★</span></div>' +
     '<div class="sub2">' + esc(m.provider_name || m.provider) + ' · ' + esc(m.id) + '</div></div>' +
+    healthBadge(m.provider) +
     '<span class="msg" id="msg-' + esc(m.id).replace(/[^a-zA-Z0-9_-]/g,'_') + '" style="font-size:.72rem;color:var(--muted)"></span>' +
     (ready
       ? '<button class="btn" onclick="testModel(\'' + esc(m.id) + '\',this)">' + T('hub_test','测活') + '</button>' +

@@ -207,3 +207,24 @@ def test_auto_llm_refine_kick_throttled(loop, monkeypatch):
         loop.record("t1", "sA", outcome=True)
     time.sleep(0.3)
     assert len(calls) == 1, "节流窗口内不得二次触发"
+
+
+def test_model_health_endpoint(loop, monkeypatch):
+    """night-14 (P2-2): /api/evolution/model_health — 24h 测活成功率聚合"""
+    import src.core.self_evolution as se
+    monkeypatch.setattr(se, "_loop", loop)
+    from fastapi.testclient import TestClient
+    import src.main as M
+    monkeypatch.setenv("MESHCTX_PASSWORD", "")
+    monkeypatch.setenv("MESHCTX_AUTH_DISABLED", "1")
+    loop.record("provider_test", "deepseek", True)
+    loop.record("provider_test", "deepseek", True)
+    loop.record("provider_test", "deepseek", False)
+    loop.record("provider_test", "zhipu", True)
+    client = TestClient(M.app)
+    d = client.get("/api/evolution/model_health").json()
+    p = d["providers"]
+    assert p["deepseek"]["calls_24h"] == 3
+    assert abs(p["deepseek"]["success_rate"] - 0.667) < 0.01
+    assert p["zhipu"]["success_rate"] == 1.0
+    assert "never_tested" not in p  # 无记录厂商不出现

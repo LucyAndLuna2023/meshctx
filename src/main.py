@@ -7649,6 +7649,32 @@ async def evolution_stats():
     return get_self_evolution().stats()
 
 
+@app.get("/api/evolution/model_health")
+async def evolution_model_health():
+    """night-14 (P2-2): 模型健康度 — 各厂商最近 24h 测活成功率 (自进化经验层)。
+
+    返回 {"providers": {pid: {"calls_24h": n, "success_rate": 0.0-1.0}}}，
+    仅含有 24h 内测活记录的厂商; 经验层不可用时返回空表 (不阻塞 UI)。
+    """
+    from src.core.self_evolution import get_self_evolution
+    try:
+        loop = get_self_evolution()
+        loop._ensure_history()
+        now = time.time()
+        out = {}
+        with loop._lock:
+            for strategy, exps in (loop._exp_index.get("provider_test") or {}).items():
+                recent = [e for e in exps if now - float(e.get("ts", 0)) < 86400]
+                if not recent:
+                    continue
+                ok = sum(1 for e in recent if e.get("outcome"))
+                out[strategy] = {"calls_24h": len(recent),
+                                 "success_rate": round(ok / len(recent), 3)}
+        return {"providers": out}
+    except Exception:
+        return {"providers": {}}
+
+
 @app.post("/api/evolution/record")
 async def evolution_record(request: Request):
     """记录一次任务执行经验 {task_type, strategy, outcome, detail?, duration_ms?}"""
