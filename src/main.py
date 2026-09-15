@@ -4227,6 +4227,17 @@ async def api_chat_stream(request: Request):
     # T3 接线（P2-3）：以当前用户消息作为 current_query 做相关性检索注入
     _full_system_prompt = build_system_prompt(current_query=user_msg)
 
+    # night-4 (Phase-1 闭环): 注入 top 洞见进系统提示 + 记录供 finally 归因回灌
+    _se_rules = []
+    try:
+        from src.core.self_evolution import get_self_evolution
+        _se_rules = get_self_evolution().inject("chat", k=2)
+        if _se_rules:
+            _full_system_prompt += ("\n\n[经验参考 — 来自自进化闭环, 仅供参考]\n"
+                                    + "\n".join(f"- {r}" for r in _se_rules))
+    except Exception:
+        _se_rules = []
+
 
     async def generate():
         _se_had_error = False   # v3.131.1: 自进化经验层结果标记
@@ -4352,6 +4363,10 @@ async def api_chat_stream(request: Request):
                 get_self_evolution().record("chat", model_id or "default",
                                             outcome=(not _se_had_error),
                                             duration_ms=(time.perf_counter() - _se_t0) * 1000)
+                # night-4: ④ 归因回灌 — 本次注入的洞见按真实成败强化/衰减 (闭合第四环)
+                if _se_rules:
+                    get_self_evolution().reinforce("chat", _se_rules,
+                                                   outcome=(not _se_had_error))
             except Exception:
                 pass
             try:
@@ -7669,6 +7684,21 @@ async def evolution_insights(request: Request, task_type: str = "general", k: in
     """检索 top-k 洞见规则 (供前端/agent 注入上下文)"""
     from src.core.self_evolution import get_self_evolution
     return {"task_type": task_type, "insights": get_self_evolution().inject(task_type, k=int(k))}
+
+
+@app.post("/api/evolution/reinforce")
+async def evolution_reinforce(request: Request):
+    """④ 归因回灌 API — 任务结果回灌洞见保持度 (night-4 闭合第四环)"""
+    from src.core.self_evolution import get_self_evolution
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    task_type = str(body.get("task_type", "chat"))[:64]
+    rules = [str(r)[:300] for r in (body.get("rules") or [])][:10]
+    outcome = bool(body.get("outcome", True))
+    n = get_self_evolution().reinforce(task_type, rules, outcome)
+    return {"status": "ok", "task_type": task_type, "reinforced": n, "outcome": outcome}
 
 
 @app.get("/api/evolution/summary")

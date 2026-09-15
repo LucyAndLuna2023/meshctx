@@ -130,3 +130,80 @@ def test_known_map_registered():
     import src.core as core
     assert "self_evolution" in core._known
     from src.core import get_self_evolution  # noqa: F401  可解析为真实函数
+
+
+def test_reinforce_closes_fourth_link(loop):
+    """night-4: ④ 归因回灌 — 成功→保持度升+wins, 失败→衰减; 不命中零改动。"""
+    for i in range(5):
+        loop.record("codefix", "strategyA", outcome=True)
+        loop.record("codefix", "other", outcome=False)
+    loop.reflect()
+    rules = loop.inject("codefix", k=3)
+    assert rules, "注入应有洞见"
+    st0 = {k: v["stability"] for k, v in loop.insights.items()}
+    n = loop.reinforce("codefix", rules, outcome=True)
+    assert n >= 1
+    assert any(loop.insights[k]["stability"] > s0 for k, s0 in st0.items()
+               if loop.insights[k]["rule"] in rules)
+    assert any(v["wins"] >= 1 for v in loop.insights.values())
+    loop.reinforce("codefix", rules, outcome=False)  # 失败路径不崩
+
+
+def test_llm_refine_rewrites_and_falls_back(loop, monkeypatch):
+    """night-4: Phase-1 — LLM 精炼回写 rule+标记; 失败静默回退统计规则。"""
+    import src.model_registry as mr
+    for i in range(5):
+        loop.record("codefix", "strategyA", outcome=True)
+        loop.record("codefix", "other", outcome=False)
+    loop.reflect()
+    assert loop.insights
+
+    class FakeClient:
+        def chat(self, messages, max_tokens=500):
+            return {"content": "codefix 任务优先采用 strategyA (5/5 成功, 先跑单测再改)"}
+
+    class FakeReg:
+        _default = "fake"
+        _entries = {"fake": object()}
+        def get(self, mid):
+            return FakeClient()
+    monkeypatch.setattr(mr, "get_registry", lambda: FakeReg())
+    out = loop.llm_refine()
+    assert out["refined"] >= 1
+    refined = [v for v in loop.insights.values() if v.get("llm_refined")]
+    assert refined and all("strategyA" in v["rule"] or "codefix" in v["rule"]
+                           for v in refined)
+
+    class BadClient:
+        def chat(self, messages, max_tokens=500):
+            return {"content": ""}
+
+    class BadReg:
+        _default = "fake"
+        _entries = {"fake": object()}
+        def get(self, mid):
+            return BadClient()
+    monkeypatch.setattr(mr, "get_registry", lambda: BadReg())
+    assert loop.llm_refine()["refined"] == 0  # 失败回退, 不抛异常
+
+
+def test_auto_llm_refine_kick_throttled(loop, monkeypatch):
+    """night-4: 自动反思后节流触发 Phase-1 精炼 (30 分钟内只触发一次)。"""
+    calls = []
+    monkeypatch.setattr(loop, "llm_refine",
+                        lambda *a, **k: (calls.append(1), {"refined": 0})[1])
+    # 构造: strategyA 5/5 成功 vs 总体 → 第 20 条 record 自动反思生成洞见 → 触发精炼
+    for i in range(5):
+        loop.record("t1", "sA", outcome=True)
+        loop.record("t1", "sB", outcome=False)
+    for i in range(10):
+        loop.record("t1", "sA", outcome=True)
+    for _ in range(60):
+        if calls:
+            break
+        time.sleep(0.05)
+    assert len(calls) == 1, "满阈值应自动触发一次 Phase-1 精炼"
+    for i in range(20):
+        loop.record("t1", "sA", outcome=True)
+    time.sleep(0.3)
+    assert len(calls) == 1, "节流窗口内不得二次触发"
