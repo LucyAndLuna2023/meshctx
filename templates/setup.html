@@ -369,6 +369,43 @@ function onProviderChange(){
   $('ad_id_list').innerHTML = (m.models||[]).map(function(id){ return '<option value="' + id + '">'; }).join('');
   $('ad_id').placeholder = (m.models&&m.models[0]) ? m.models[0] : (p + ':my-model');
 }
+// ═══ 快速添加: 选厂商 → 全自动预填 ═══
+// v3.131.1: Key 前缀自动识别 — 用户贴 Key 即自动切厂商 (ZCode 同款)
+var KEY_PREFIX_MAP = [
+  {prefix:'sk-ant-',           provider:'anthropic'},
+  {prefix:'sk-or-',            provider:'openrouter'},
+  {prefix:'sk-proj-',          provider:'openai'},
+  {prefix:'sk-',               provider:'openai'},
+  {prefix:'gsk_',              provider:'groq'},
+  {prefix:'xai-',              provider:'xai'},
+];
+
+function detectProviderFromKey(key) {
+  if (!key || key.length < 10) return null;
+  for (var i = 0; i < KEY_PREFIX_MAP.length; i++) {
+    if (key.indexOf(KEY_PREFIX_MAP[i].prefix) === 0) return KEY_PREFIX_MAP[i].provider;
+  }
+  return null;
+}
+
+// Key 输入框 paste/input 事件 → 自动识别并切厂商
+(function wireKeyAutoDetect(){
+  var keyEl = $('ad_key');
+  if (!keyEl) return;
+  keyEl.addEventListener('input', function(){
+    var k = (keyEl.value||'').trim();
+    if (k.length < 8) return;
+    var detected = detectProviderFromKey(k);
+    if (detected && detected !== $('ad_provider').value) {
+      $('ad_provider').value = detected;
+      onProviderChange();
+      var st = $('ad_status');
+      st.className = 'status ok';
+      st.textContent = '✓ ' + T('hub_key_detected','已识别厂商') + ': ' + (PROVIDERS[detected]||{}).name;
+    }
+  });
+})();
+
 function addAndTest(){
   var st = $('ad_status');
   st.className = 'status';
