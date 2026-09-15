@@ -16,7 +16,9 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 LANGS = ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'es', 'it', 'ar', 'ru', 'he']
-PAGES = ['/ui/setup', '/ui/chat', '/ui/projects', '/ui/memories', '/ui/', '/ui/continuity']
+# night-33: 扩容渲染矩阵 — 覆盖全部 /ui 页面路由 (dashboard/files/plugins/download)
+PAGES = ['/ui/setup', '/ui/chat', '/ui/projects', '/ui/memories', '/ui/', '/ui/continuity',
+         '/ui/dashboard', '/ui/files', '/ui/plugins', '/ui/download']
 LEAK_PAT = re.compile(
     r'>\s*((?:hub_|mdl_|continuity_|projects_|project_detail_|conv_|memories_|'
     r'nav_|dashboard_|common_|error_|chat_)[a-z0-9_]{3,})\s*<')
