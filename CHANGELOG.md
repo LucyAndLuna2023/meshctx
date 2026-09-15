@@ -1,3 +1,36 @@
+## [Unreleased] - 2026-09-16 (002zcode 通宵优化批 · night-1~9)
+
+### Fixed
+- **chat.html 四件套恢复**（night-1, 5a483b7e）: `__reload__` 空列表重试项 / 指数退避重试×3
+  + HTTP 错误暴露 / focus 重拉 / models:remote 实时拉取 / zai 厂商条目（58d82cfe 基线，
+  round37 P1-a 真回退修复）；保留 evo 面板 / collapsible tool_result / 切换 toast / 错误映射
+
+### Added
+- **models:remote 子系统**（night-2, a425c6ec）: 此前仅有测试无实现（干净检出必 9F/3E）。
+  补齐 `_parse_models_payload` / `_provider_api_key`(pcfg→env) / 远程模型缓存
+  （TTL 900s 可配 `MESHCTX_HUB_PROVIDERS_TTL`、负缓存 60s、失败沿用旧缓存）/ 后台补拉；
+  `GET /api/models/remote/{pid}`、`POST /api/models/refresh`、`/api/models` 实时模型合并
+  （remote 标记 + blocklist + 缺席补拉）
+- **自进化闭环收口**（night-4, 26ce3685）: 聊天链路注入 top 洞见进系统提示，finally 按
+  真实成败 `reinforce` 归因回灌（闭合第四环，round33 P3-1）；record 自动反思后节流
+  （≥30min）后台触发 `llm_refine`；`POST /api/evolution/reinforce`
+- **Model Hub 三步引导**（night-7, 7d9b85b4）: 未配置厂商时显示引导卡，配置后自动隐藏，可跳过
+- **chat tool_result 一键复制全文**（night-8, a679eabd）
+
+### Changed (i18n)
+- **65 个活页缺键 × 11 语言补翻**（night-3, dc26c802）: continuity/project_detail/conversation/
+  projects/memories/chat —— 此前这些键在所有语言下裸显键名；Wizard 6 新键 ×11 语言（键集 1531）
+
+### Tests
+- +20 用例: models:remote 12p / 自进化闭环 3p / provider 测活 outcome 落盘 3p
+  （round37 缺失的 test_model_connection 口径）/ i18n 交叉 parity 3p（landing↔src）/ 
+  渲染层扫描 3p（11 语言 × 6 页面裸键名扫描 + wizard 断言）
+- e2e `/ui/models`→302→`/ui/setup` 契约显式化（round33 nit-2）
+
+### Performance
+- `scripts/opt_api_benchmark.py` 落地（stdlib 零依赖 500ms 猎捕器）；基线: 8 端点
+  并发 4/8/16 实测 **0 慢点**，最慢 /api/models p95=59ms
+
 ## [3.131.3] - 2026-09-12 (i18n 残留清零 · 模型配置页多语言补全)
 
 ### Fixed (i18n 中文残留深查)
