@@ -81,3 +81,12 @@ def test_static_lib_assets_version_fingerprinted(client):
     assert f"/static/lib/marked.min.js?v={src.__version__}" in raw
     assert f"/static/lib/highlight.min.js?v={src.__version__}" in raw
     assert "?v=\" >/static" not in raw  # 空指纹(上下文缺 version)不得出现
+
+
+def test_hebrew_pages_render_rtl(client):
+    """night-16: he cookie 下真实渲染必须 dir="rtl" (base.html 服务端 RTL 条件)"""
+    for page in ("/ui/projects", "/ui/memories"):
+        r = client.get(page, headers={"Cookie": "meshctx_lang=he"})
+        assert 'dir="rtl"' in r.text, f"{page} he 未渲染 RTL"
+    r = client.get("/ui/projects", headers={"Cookie": "meshctx_lang=zh"})
+    assert 'dir="ltr"' in r.text
