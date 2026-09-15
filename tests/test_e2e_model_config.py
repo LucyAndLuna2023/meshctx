@@ -157,8 +157,13 @@ class TestSetupPage:
         assert "自定义 OpenAI 兼容" in html
 
     def test_setup_page_has_model_list(self, client):
-        """验证模型管理页模型列表存在"""
-        resp = client.get("/ui/models")
+        """验证模型管理页模型列表存在
+        (night-6 nit-2: /ui/models →302→ /ui/setup 收口契约显式化,
+        不再依赖 TestClient 默认跟随行为)"""
+        resp = client.get("/ui/models", follow_redirects=False)
+        assert resp.status_code == 302
+        assert resp.headers.get("location", "").rstrip("/") == "/ui/setup"
+        resp = client.get("/ui/setup")
         assert resp.status_code == 200
         html = resp.text
         # 模型行或空状态或添加按钮
@@ -166,7 +171,10 @@ class TestSetupPage:
 
     def test_setup_js_functions_present(self, client):
         """验证模型管理页关键JS函数存在且语法正确"""
-        resp = client.get("/ui/models")
+        resp = client.get("/ui/models", follow_redirects=False)
+        assert resp.status_code == 302
+        assert resp.headers.get("location", "").rstrip("/") == "/ui/setup"
+        resp = client.get("/ui/setup")
         assert resp.status_code == 200
         html = resp.text
         required_fns = [
