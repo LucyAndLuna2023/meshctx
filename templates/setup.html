@@ -82,6 +82,15 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
 <div class="wrap">
 <div id="testBanner" style="display:none;padding:12px 16px;border-radius:10px;margin-bottom:14px;font-size:0.9rem"></div>
+<!-- night-7: Model Hub 三步引导 (首次未配置时显示, 配置完成后自动隐藏) -->
+<div class="card" id="wizardCard" style="display:none;border:1px dashed #5b8cff">
+  <div class="sec-title" id="wizTitle">🧭 30 秒上手引导</div>
+  <ol id="wizSteps" style="margin:8px 0 10px;padding-left:20px;line-height:1.9;font-size:.92rem"></ol>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn primary" href="/ui/chat" id="wizChatBtn" style="text-decoration:none">去聊天 →</a>
+    <button class="btn" onclick="dismissWizard()" id="wizSkipBtn">跳过引导</button>
+  </div>
+</div>
 <div class="card">
   <h1>{{ t('🕸 欢迎使用') }} <span>meshctx</span> · Model Hub</h1>
   <p class="sub">{{ t('30秒完成配置，开始使用世界最智能的AI助手') }}</p>
@@ -448,6 +457,41 @@ function resetForm(){
 
 renderProviderSelect();
 loadModels();
+
+// ═══ night-7: 首次配置三步引导 ═══
+function wizStepsHtml(){
+  var steps = [
+    T('hub_wiz_1', '① 在下方 ③ 选择厂商，粘贴 API Key（Key 前缀自动识别厂商）'),
+    T('hub_wiz_2', '② 点击「🚀 添加并测试」，自动完成测活与保存'),
+    T('hub_wiz_3', '③ 状态变绿后，点「去聊天」即可开始对话')
+  ];
+  return steps.map(function(s){ return '<li>' + s + '</li>'; }).join('');
+}
+function maybeShowWizard(){
+  try { if (localStorage.getItem('mh_wizard_dismissed') === '1') return; } catch(e) {}
+  var card = $('wizardCard');
+  if (!card) return;
+  var ready = MODELS.filter(function(m){ return m.usable || m.configured || m.current; }).length;
+  if (ready > 0 || CURRENT) { card.style.display = 'none'; return; }
+  $('wizTitle').textContent = '🧭 ' + T('hub_wiz_title', '30 秒上手引导');
+  $('wizSteps').innerHTML = wizStepsHtml();
+  $('wizChatBtn').textContent = T('hub_wiz_chat', '去聊天 →');
+  $('wizSkipBtn').textContent = T('hub_wiz_skip', '跳过引导');
+  card.style.display = 'block';
+}
+function dismissWizard(){
+  var card = $('wizardCard');
+  if (card) card.style.display = 'none';
+  try { localStorage.setItem('mh_wizard_dismissed', '1'); } catch(e) {}
+}
+// loadModels 首个响应到达后判定 (响应为异步, 轮询至 MODELS 填充)
+(function wizardWatch(){
+  var n = 0;
+  var timer = setInterval(function(){
+    n++;
+    if (MODELS.length || n > 20) { clearInterval(timer); maybeShowWizard(); }
+  }, 150);
+})();
 
 // ── Self-Evolution 学习进度面板 (v3.131.1) ──
 function loadEvoStatus(){

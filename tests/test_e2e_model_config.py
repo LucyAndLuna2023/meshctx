@@ -127,6 +127,17 @@ class TestSetupPage:
         # 向导页关键元素: provider 选择卡片 + 完成配置按钮
         assert "DeepSeek" in html or "selectProvider" in html or "skip" in html
 
+    def test_setup_wizard_guide_present(self, client):
+        """night-7: Model Hub 三步引导 — 卡片标记/显示逻辑/跳过/i18n 键齐全"""
+        resp = client.get("/ui/setup")
+        assert resp.status_code == 200
+        html = resp.text
+        assert 'id="wizardCard"' in html
+        assert "function maybeShowWizard" in html
+        assert "function dismissWizard" in html
+        assert 'id="wizSteps"' in html
+        assert "hub_wiz_title" in html and "hub_wiz_skip" in html
+
     def test_setup_wizard_save_ok(self, client, tmp_config):
         """向导保存 token: POST /api/setup 应返回 success 并写入 config.yaml"""
         resp = client.post("/api/setup", json={"provider": "deepseek", "key": "sk-test-abc123"})

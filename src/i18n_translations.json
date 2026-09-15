@@ -1575,7 +1575,13 @@
   "projects_subtitle": "创建和管理上下文记忆项目",
   "projects_table_continuity": "连续性",
   "projects_table_updated": "更新时间",
-  "projects_tags_placeholder": "AI, 助手, 对话"
+  "projects_tags_placeholder": "AI, 助手, 对话",
+  "hub_wiz_title": "30 秒上手引导",
+  "hub_wiz_1": "① 在下方 ③ 选择厂商，粘贴 API Key（Key 前缀自动识别厂商）",
+  "hub_wiz_2": "② 点击「🚀 添加并测试」，自动完成测活与保存",
+  "hub_wiz_3": "③ 状态变绿后，点「去聊天」即可开始对话",
+  "hub_wiz_chat": "去聊天 →",
+  "hub_wiz_skip": "跳过引导"
  },
  "en": {
   " (等待": " (Waiting",
@@ -3153,7 +3159,13 @@
   "projects_subtitle": "Create and manage context-memory projects",
   "projects_table_continuity": "Continuity",
   "projects_table_updated": "Updated",
-  "projects_tags_placeholder": "AI, assistant, chat"
+  "projects_tags_placeholder": "AI, assistant, chat",
+  "hub_wiz_title": "30-second setup guide",
+  "hub_wiz_1": "① Pick a provider in section ③ and paste your API Key (prefix auto-detects the provider)",
+  "hub_wiz_2": "② Click \"🚀 Add & Test\" — liveness check and saving are automatic",
+  "hub_wiz_3": "③ Once the status turns green, hit \"Chat\" and start talking",
+  "hub_wiz_chat": "Go to chat →",
+  "hub_wiz_skip": "Skip guide"
  },
  "ja": {
   " (等待": " (待機",
@@ -4731,7 +4743,13 @@
   "projects_subtitle": "コンテキスト記憶プロジェクトの作成と管理",
   "projects_table_continuity": "連続性",
   "projects_table_updated": "更新日時",
-  "projects_tags_placeholder": "AI, アシスタント, 対話"
+  "projects_tags_placeholder": "AI, アシスタント, 対話",
+  "hub_wiz_title": "30秒セットアップガイド",
+  "hub_wiz_1": "① 下の ③ でプロバイダーを選び、APIキーを貼り付け（接頭辞で自動判定）",
+  "hub_wiz_2": "② 「🚀 追加してテスト」をクリック——生存確認と保存は自動",
+  "hub_wiz_3": "③ ステータスが緑になったら「チャットへ」で会話開始",
+  "hub_wiz_chat": "チャットへ →",
+  "hub_wiz_skip": "ガイドをスキップ"
  },
  "ko": {
   " (等待": " (대기",
@@ -6309,7 +6327,13 @@
   "projects_subtitle": "컨텍스트 기억 프로젝트 생성 및 관리",
   "projects_table_continuity": "연속성",
   "projects_table_updated": "업데이트 시간",
-  "projects_tags_placeholder": "AI, 어시스턴트, 대화"
+  "projects_tags_placeholder": "AI, 어시스턴트, 대화",
+  "hub_wiz_title": "30초 설정 가이드",
+  "hub_wiz_1": "① 아래 ③에서 공급자를 선택하고 API 키를 붙여넣으세요(접두사 자동 인식)",
+  "hub_wiz_2": "② \"🚀 추가 및 테스트\"를 클릭 — 활성 확인과 저장이 자동",
+  "hub_wiz_3": "③ 상태가 초록이 되면 \"채팅하러 가기\"로 대화 시작",
+  "hub_wiz_chat": "채팅하러 가기 →",
+  "hub_wiz_skip": "가이드 건너뛰기"
  },
  "fr": {
   " (等待": " (En attente",
@@ -7887,7 +7911,13 @@
   "projects_subtitle": "Créer et gérer des projets à mémoire contextuelle",
   "projects_table_continuity": "Continuité",
   "projects_table_updated": "Mis à jour",
-  "projects_tags_placeholder": "IA, assistant, chat"
+  "projects_tags_placeholder": "IA, assistant, chat",
+  "hub_wiz_title": "Guide de configuration en 30 s",
+  "hub_wiz_1": "① Choisissez un fournisseur en ③ et collez votre clé API (préfixe auto-détecté)",
+  "hub_wiz_2": "② Cliquez sur « 🚀 Ajouter et tester » — test et sauvegarde automatiques",
+  "hub_wiz_3": "③ Une fois le statut au vert, cliquez « Aller au chat » pour discuter",
+  "hub_wiz_chat": "Aller au chat →",
+  "hub_wiz_skip": "Passer le guide"
  },
  "de": {
   " (等待": " (Warten",
@@ -9465,7 +9495,13 @@
   "projects_subtitle": "Kontextgedächtnis-Projekte erstellen und verwalten",
   "projects_table_continuity": "Kontinuität",
   "projects_table_updated": "Aktualisiert",
-  "projects_tags_placeholder": "KI, Assistent, Chat"
+  "projects_tags_placeholder": "KI, Assistent, Chat",
+  "hub_wiz_title": "30-Sekunden-Einrichtung",
+  "hub_wiz_1": "① Wähle unten in ③ einen Anbieter und füge den API-Key ein (Präfix wird erkannt)",
+  "hub_wiz_2": "② Klicke auf „🚀 Hinzufügen & Testen“ — Test und Speichern laufen automatisch",
+  "hub_wiz_3": "③ Wenn die Anzeige grün wird, starte mit „Zum Chat“",
+  "hub_wiz_chat": "Zum Chat →",
+  "hub_wiz_skip": "Guide überspringen"
  },
  "es": {
   " (等待": " (Esperando",
@@ -11043,7 +11079,13 @@
   "projects_subtitle": "Crea y gestiona proyectos de memoria contextual",
   "projects_table_continuity": "Continuidad",
   "projects_table_updated": "Actualizado",
-  "projects_tags_placeholder": "IA, asistente, chat"
+  "projects_tags_placeholder": "IA, asistente, chat",
+  "hub_wiz_title": "Guía de configuración en 30 s",
+  "hub_wiz_1": "① Elige un proveedor en ③ y pega tu API Key (el prefijo lo detecta solo)",
+  "hub_wiz_2": "② Haz clic en «🚀 Añadir y probar»: la comprobación y el guardado son automáticos",
+  "hub_wiz_3": "③ Cuando el estado esté en verde, pulsa «Ir al chat» y empieza",
+  "hub_wiz_chat": "Ir al chat →",
+  "hub_wiz_skip": "Omitir guía"
  },
  "it": {
   " (等待": " (attesa",
@@ -12621,7 +12663,13 @@
   "projects_subtitle": "Crea e gestisci progetti con memoria contestuale",
   "projects_table_continuity": "Continuità",
   "projects_table_updated": "Aggiornato",
-  "projects_tags_placeholder": "AI, assistente, chat"
+  "projects_tags_placeholder": "AI, assistente, chat",
+  "hub_wiz_title": "Guida di configurazione in 30 s",
+  "hub_wiz_1": "① Scegli un provider in ③ e incolla la API Key (prefisso auto-rilevato)",
+  "hub_wiz_2": "② Fai clic su \"🚀 Aggiungi e testa\": verifica e salvataggio automatici",
+  "hub_wiz_3": "③ Quando lo stato diventa verde, premi \"Vai alla chat\" e inizia",
+  "hub_wiz_chat": "Vai alla chat →",
+  "hub_wiz_skip": "Salta guida"
  },
  "ar": {
   " (等待": " (في الانتظار",
@@ -14199,7 +14247,13 @@
   "projects_subtitle": "أنشئ وأدر مشاريع ذاكرة السياق",
   "projects_table_continuity": "الاستمرارية",
   "projects_table_updated": "آخر تحديث",
-  "projects_tags_placeholder": "ذكاء اصطناعي, مساعد, محادثة"
+  "projects_tags_placeholder": "ذكاء اصطناعي, مساعد, محادثة",
+  "hub_wiz_title": "دليل الإعداد في 30 ثانية",
+  "hub_wiz_1": "① اختر مزوّدًا في القسم ③ والصق مفتاح API (يُتعرَّف على المزوّد من البادئة)",
+  "hub_wiz_2": "② انقر \"🚀 إضافة واختبار\" — يتم الفحص والحفظ تلقائيًا",
+  "hub_wiz_3": "③ عندما تصبح الحالة خضراء، انقر \"الذهاب إلى المحادثة\" وابدأ",
+  "hub_wiz_chat": "الذهاب إلى المحادثة ←",
+  "hub_wiz_skip": "تخطي الدليل"
  },
  "ru": {
   " (等待": " (ожидание",
@@ -15777,7 +15831,13 @@
   "projects_subtitle": "Создавайте проекты контекстной памяти и управляйте ими",
   "projects_table_continuity": "Непрерывность",
   "projects_table_updated": "Обновлено",
-  "projects_tags_placeholder": "ИИ, ассистент, чат"
+  "projects_tags_placeholder": "ИИ, ассистент, чат",
+  "hub_wiz_title": "Настройка за 30 секунд",
+  "hub_wiz_1": "① Выберите провайдера в ③ и вставьте API-ключ (префикс определяется автоматически)",
+  "hub_wiz_2": "② Нажмите «🚀 Добавить и проверить» — проверка и сохранение автоматически",
+  "hub_wiz_3": "③ Когда статус станет зелёным, нажмите «К чату» и начните диалог",
+  "hub_wiz_chat": "К чату →",
+  "hub_wiz_skip": "Пропустить гид"
  },
  "he": {
   " (等待": " (ממתין",
@@ -17355,6 +17415,12 @@
   "projects_subtitle": "צור ונהל פרויקטים של זיכרון הקשר",
   "projects_table_continuity": "רציפות",
   "projects_table_updated": "עודכן",
-  "projects_tags_placeholder": "AI, עוזר, צ'אט"
+  "projects_tags_placeholder": "AI, עוזר, צ'אט",
+  "hub_wiz_title": "מדריך הגדרה של 30 שניות",
+  "hub_wiz_1": "① בחר ספק בסעיף ③ והדבק את מפתח ה-API (הספק מזוהה אוטומטית לפי הקידומת)",
+  "hub_wiz_2": "② לחץ על \"🚀 הוסף ובדוק\" — בדיקת חיות ושמירה אוטומטיות",
+  "hub_wiz_3": "③ כשהמצב ירוק, לחץ \"לצ'אט\" והתחל לדבר",
+  "hub_wiz_chat": "לצ'אט ←",
+  "hub_wiz_skip": "דלג על המדריך"
  }
 }
