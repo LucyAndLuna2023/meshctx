@@ -68,3 +68,16 @@ def test_known_pages_render_all_languages(client):
         for page in PAGES:
             r = client.get(page, headers={"Cookie": f"meshctx_lang={lang}"})
             assert r.status_code == 200, f"{page} [{lang}] -> {r.status_code}"
+
+
+def test_static_lib_assets_version_fingerprinted(client):
+    """night-15 (P1-4): base.html 外链 lib 必须带真实版本指纹 (防升级后旧缓存)"""
+    import src
+    html = _rendered_body(client, "/ui/projects", "zh")
+    # _rendered_body 剥掉了 script 标签, 用原始 HTML 再查
+    r = client.get("/ui/projects", headers={"Cookie": "meshctx_lang=zh"})
+    raw = r.text
+    assert f"/static/lib/github-dark.min.css?v={src.__version__}" in raw
+    assert f"/static/lib/marked.min.js?v={src.__version__}" in raw
+    assert f"/static/lib/highlight.min.js?v={src.__version__}" in raw
+    assert "?v=\" >/static" not in raw  # 空指纹(上下文缺 version)不得出现
