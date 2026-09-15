@@ -136,7 +136,9 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <div class="hint" id="ad_getkey"></div>
     </div>
     <div class="full">
-      <label>API Key <span data-i18n="hub_key_optional">(可选 · 已配置该厂商可留空)</span></label>
+      <label>API Key <span data-i18n="hub_key_optional">(可选 · 已配置该厂商可留空)</span>
+        <button type="button" class="btn" style="padding:2px 10px;font-size:.72rem;margin-left:6px" onclick="pasteKeyFromClipboard(this)" data-i18n="hub_clipboard_import">📋 从剪贴板导入</button>
+      </label>
       <input id="ad_key" type="password" placeholder="sk-... (Ollama 本地模型无需 Key)">
     </div>
     <div class="full">
@@ -407,6 +409,43 @@ function quickPick(p){
   onProviderChange();
   var k = $('ad_key');
   if (k) k.focus();
+}
+// ═══ night-21 (P2-1): 从剪贴板一键导入 Key ═══
+function pasteKeyFromClipboard(btn){
+  function applyKey(raw){
+    var key = String(raw || '').trim();
+    // 从粘贴文本中提取疑似 Key 的最长 token (容忍 "key: sk-xxx" / 引号 / 空白)
+    var tokens = key.split(/[\s"'<>,;]+/).filter(function(t){
+      return /^[A-Za-z0-9_\-]{20,}$/.test(t);
+    });
+    if (tokens.length) {
+      key = tokens.sort(function(a, b){ return b.length - a.length; })[0];
+    }
+    if (!key || key.length < 20) {
+      if (btn) { var o = btn.textContent; btn.textContent = '⚠ ' + T('hub_clip_empty', '剪贴板没有可用的 Key'); setTimeout(function(){ btn.textContent = o; }, 2200); }
+      return;
+    }
+    var k = $('ad_key');
+    if (k) k.value = key;
+    var detected = detectProviderFromKey(key);
+    if (detected && PROVIDERS[detected]) {
+      $('ad_provider').value = detected;
+      onProviderChange();
+    }
+    var st = $('ad_status');
+    st.className = 'status ok';
+    st.textContent = '✓ ' + T('hub_clip_imported', '已导入 Key') + (detected ? ': ' + (PROVIDERS[detected] || {}).name : '');
+    if (btn) { var o2 = btn.textContent; btn.textContent = '✓'; setTimeout(function(){ btn.textContent = o2; }, 1500); }
+  }
+  if (navigator.clipboard && navigator.clipboard.readText) {
+    navigator.clipboard.readText().then(applyKey).catch(function(){
+      var k = $('ad_key'); if (k) k.focus();
+      if (btn) { var o = btn.textContent; btn.textContent = T('hub_clip_manual', '请手动粘贴 (Ctrl+V)'); setTimeout(function(){ btn.textContent = o; }, 2200); }
+    });
+  } else {
+    var k2 = $('ad_key'); if (k2) k2.focus();
+    if (btn) { var o3 = btn.textContent; btn.textContent = T('hub_clip_manual', '请手动粘贴 (Ctrl+V)'); setTimeout(function(){ btn.textContent = o3; }, 2200); }
+  }
 }
 // ═══ 快速添加: 选厂商 → 全自动预填 ═══
 // v3.131.1: Key 前缀自动识别 — 用户贴 Key 即自动切厂商 (ZCode 同款)

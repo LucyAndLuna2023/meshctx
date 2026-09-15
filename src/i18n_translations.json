@@ -1582,7 +1582,11 @@
   "hub_wiz_3": "③ 状态变绿后，点「去聊天」即可开始对话",
   "hub_wiz_chat": "去聊天 →",
   "hub_wiz_skip": "跳过引导",
-  "hub_quick_title": "推荐起步:"
+  "hub_quick_title": "推荐起步:",
+  "hub_clipboard_import": "📋 从剪贴板导入",
+  "hub_clip_imported": "已导入 Key",
+  "hub_clip_empty": "剪贴板没有可用的 Key",
+  "hub_clip_manual": "请手动粘贴 (Ctrl+V)"
  },
  "en": {
   " (等待": " (Waiting",
@@ -3167,7 +3171,11 @@
   "hub_wiz_3": "③ Once the status turns green, hit \"Chat\" and start talking",
   "hub_wiz_chat": "Go to chat →",
   "hub_wiz_skip": "Skip guide",
-  "hub_quick_title": "Quick start:"
+  "hub_quick_title": "Quick start:",
+  "hub_clipboard_import": "📋 Import from clipboard",
+  "hub_clip_imported": "Key imported",
+  "hub_clip_empty": "No usable key in clipboard",
+  "hub_clip_manual": "Please paste manually (Ctrl+V)"
  },
  "ja": {
   " (等待": " (待機",
@@ -4752,7 +4760,11 @@
   "hub_wiz_3": "③ ステータスが緑になったら「チャットへ」で会話開始",
   "hub_wiz_chat": "チャットへ →",
   "hub_wiz_skip": "ガイドをスキップ",
-  "hub_quick_title": "クイックスタート:"
+  "hub_quick_title": "クイックスタート:",
+  "hub_clipboard_import": "📋 クリップボードから取り込み",
+  "hub_clip_imported": "キーを取り込みました",
+  "hub_clip_empty": "クリップボードに使用可能なキーがありません",
+  "hub_clip_manual": "手動で貼り付けてください (Ctrl+V)"
  },
  "ko": {
   " (等待": " (대기",
@@ -6337,7 +6349,11 @@
   "hub_wiz_3": "③ 상태가 초록이 되면 \"채팅하러 가기\"로 대화 시작",
   "hub_wiz_chat": "채팅하러 가기 →",
   "hub_wiz_skip": "가이드 건너뛰기",
-  "hub_quick_title": "빠른 시작:"
+  "hub_quick_title": "빠른 시작:",
+  "hub_clipboard_import": "📋 클립보드에서 가져오기",
+  "hub_clip_imported": "키 가져오기 완료",
+  "hub_clip_empty": "클립보드에 사용 가능한 키가 없습니다",
+  "hub_clip_manual": "직접 붙여넣어 주세요(Ctrl+V)"
  },
  "fr": {
   " (等待": " (En attente",
@@ -7922,7 +7938,11 @@
   "hub_wiz_3": "③ Une fois le statut au vert, cliquez « Aller au chat » pour discuter",
   "hub_wiz_chat": "Aller au chat →",
   "hub_wiz_skip": "Passer le guide",
-  "hub_quick_title": "Démarrage rapide :"
+  "hub_quick_title": "Démarrage rapide :",
+  "hub_clipboard_import": "📋 Importer du presse-papiers",
+  "hub_clip_imported": "Clé importée",
+  "hub_clip_empty": "Aucune clé utilisable dans le presse-papiers",
+  "hub_clip_manual": "Collez manuellement (Ctrl+V)"
  },
  "de": {
   " (等待": " (Warten",
@@ -9507,7 +9527,11 @@
   "hub_wiz_3": "③ Wenn die Anzeige grün wird, starte mit „Zum Chat“",
   "hub_wiz_chat": "Zum Chat →",
   "hub_wiz_skip": "Guide überspringen",
-  "hub_quick_title": "Schnellstart:"
+  "hub_quick_title": "Schnellstart:",
+  "hub_clipboard_import": "📋 Aus Zwischenablage einfügen",
+  "hub_clip_imported": "Key importiert",
+  "hub_clip_empty": "Kein verwendbarer Schlüssel in der Zwischenablage",
+  "hub_clip_manual": "Bitte manuell einfügen (Strg+V)"
  },
  "es": {
   " (等待": " (Esperando",
@@ -11092,7 +11116,11 @@
   "hub_wiz_3": "③ Cuando el estado esté en verde, pulsa «Ir al chat» y empieza",
   "hub_wiz_chat": "Ir al chat →",
   "hub_wiz_skip": "Omitir guía",
-  "hub_quick_title": "Inicio rápido:"
+  "hub_quick_title": "Inicio rápido:",
+  "hub_clipboard_import": "📋 Importar del portapapeles",
+  "hub_clip_imported": "Clave importada",
+  "hub_clip_empty": "No hay clave utilizable en el portapapeles",
+  "hub_clip_manual": "Pegue manualmente (Ctrl+V)"
  },
  "it": {
   " (等待": " (attesa",
@@ -12677,7 +12705,11 @@
   "hub_wiz_3": "③ Quando lo stato diventa verde, premi \"Vai alla chat\" e inizia",
   "hub_wiz_chat": "Vai alla chat →",
   "hub_wiz_skip": "Salta guida",
-  "hub_quick_title": "Avvio rapido:"
+  "hub_quick_title": "Avvio rapido:",
+  "hub_clipboard_import": "📋 Importa dagli appunti",
+  "hub_clip_imported": "Chiave importata",
+  "hub_clip_empty": "Nessuna chiave utilizzabile negli appunti",
+  "hub_clip_manual": "Incolla manualmente (Ctrl+V)"
  },
  "ar": {
   " (等待": " (في الانتظار",
@@ -14262,7 +14294,11 @@
   "hub_wiz_3": "③ عندما تصبح الحالة خضراء، انقر \"الذهاب إلى المحادثة\" وابدأ",
   "hub_wiz_chat": "الذهاب إلى المحادثة ←",
   "hub_wiz_skip": "تخطي الدليل",
-  "hub_quick_title": "بداية سريعة:"
+  "hub_quick_title": "بداية سريعة:",
+  "hub_clipboard_import": "📋 استيراد من الحافظة",
+  "hub_clip_imported": "تم استيراد المفتاح",
+  "hub_clip_empty": "لا يوجد مفتاح صالح في الحافظة",
+  "hub_clip_manual": "الرجاء اللصق يدويًا (Ctrl+V)"
  },
  "ru": {
   " (等待": " (ожидание",
@@ -15847,7 +15883,11 @@
   "hub_wiz_3": "③ Когда статус станет зелёным, нажмите «К чату» и начните диалог",
   "hub_wiz_chat": "К чату →",
   "hub_wiz_skip": "Пропустить гид",
-  "hub_quick_title": "Быстрый старт:"
+  "hub_quick_title": "Быстрый старт:",
+  "hub_clipboard_import": "📋 Импорт из буфера",
+  "hub_clip_imported": "Ключ импортирован",
+  "hub_clip_empty": "В буфере нет подходящего ключа",
+  "hub_clip_manual": "Вставьте вручную (Ctrl+V)"
  },
  "he": {
   " (等待": " (ממתין",
@@ -17432,6 +17472,10 @@
   "hub_wiz_3": "③ כשהמצב ירוק, לחץ \"לצ'אט\" והתחל לדבר",
   "hub_wiz_chat": "לצ'אט ←",
   "hub_wiz_skip": "דלג על המדריך",
-  "hub_quick_title": "התחלה מהירה:"
+  "hub_quick_title": "התחלה מהירה:",
+  "hub_clipboard_import": "📋 ייבוא מהלוח",
+  "hub_clip_imported": "מפתח יובא",
+  "hub_clip_empty": "אין מפתח שמיש בלוח",
+  "hub_clip_manual": "הדבק ידנית (Ctrl+V)"
  }
 }

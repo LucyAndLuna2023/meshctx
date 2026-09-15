@@ -100,3 +100,11 @@ def test_quick_pick_and_global_switch_ui(client):
     assert "quickPick('deepseek')" in setup_html
     chat_html = client.get("/ui/chat", headers={"Cookie": "meshctx_lang=zh"}).text
     assert "已设为全局默认" in chat_html
+
+
+def test_clipboard_import_ui(client):
+    """night-21 (P2-1): 剪贴板导入按钮 + 提取/回退逻辑在页"""
+    html = client.get("/ui/setup", headers={"Cookie": "meshctx_lang=zh"}).text
+    assert "pasteKeyFromClipboard" in html
+    assert "hub_clipboard_import" in html
+    assert "detectProviderFromKey" in html
