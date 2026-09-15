@@ -2195,8 +2195,11 @@ async function send() {
               const preview = fullText.substring(0, 200);
               const hasMore = fullText.length > 200;
               const resId = 'tr_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+              TOOL_RESULTS[resId] = fullText;                       // night-8: 复制用全文 (FIFO 上限 50)
+              var _tk = Object.keys(TOOL_RESULTS);
+              if (_tk.length > 50) delete TOOL_RESULTS[_tk[0]];
               resDiv.innerHTML = `<div class="avatar">✅</div><div class="bubble tool-bubble" style="max-width:80%">` +
-                `<details${hasMore ? '' : ' open'}><summary style="cursor:pointer;font-size:.72rem;color:#8b9bbf">📄 工具结果 (${fullText.length} 字符${hasMore ? ' — 点击展开' : ''})</summary>` +
+                `<details${hasMore ? '' : ' open'}><summary style="cursor:pointer;font-size:.72rem;color:#8b9bbf">📄 工具结果 (${fullText.length} 字符${hasMore ? ' — 点击展开' : ''})<span title="复制全文" onclick="event.stopPropagation();copyToolResult(this,'${resId}')" style="cursor:pointer;margin-left:8px">📋</span></summary>` +
                 `<pre style="margin:4px 0 0;padding:6px;background:#0d1120;border-radius:6px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;font-size:.72rem">${preview.replace(/</g,'&lt;')}</pre></details></div>`;
               msgContainer.appendChild(resDiv);
               msgContainer.scrollTop = msgContainer.scrollHeight;
@@ -2415,6 +2418,23 @@ function loadEvoPanel(){
     var el = document.getElementById('evoInsights');
     if (el) el.textContent = '⚠ ' + e;
   });
+}
+
+// ═══ night-8: tool_result 复制全文 ═══
+var TOOL_RESULTS = {};
+function copyToolResult(el, id){
+  var txt = TOOL_RESULTS[id] || '';
+  function done(){ var old = el.textContent; el.textContent = '✓'; setTimeout(function(){ el.textContent = old; }, 1200); }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(done).catch(function(){ _fallbackCopy(txt); done(); });
+  } else { _fallbackCopy(txt); done(); }
+}
+function _fallbackCopy(txt){
+  var ta = document.createElement('textarea');
+  ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
 }
 
 // ═══════ 对话历史管理 (2026-08-25 004meshctx 修复) ═══════
