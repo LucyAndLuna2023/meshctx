@@ -108,3 +108,12 @@ def test_clipboard_import_ui(client):
     assert "pasteKeyFromClipboard" in html
     assert "hub_clipboard_import" in html
     assert "detectProviderFromKey" in html
+
+
+def test_compare_tryout_ui(client):
+    """night-22 (P2-3): 对比试聊卡片 — 卡片/双模型下拉/运行函数在页"""
+    html = client.get("/ui/setup", headers={"Cookie": "meshctx_lang=zh"}).text
+    assert "hub_cmp_title" in html
+    assert "function runCompare" in html
+    assert "fillCompareSelects" in html
+    assert 'id="cmp_out"' in html

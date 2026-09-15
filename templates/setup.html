@@ -153,6 +153,20 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   </div>
 </div>
 
+<!-- night-22 (P2-3): 多模型对比试聊 — 后端 /api/chat/compare 已有, 补 UI 入口 -->
+<div class="card">
+  <div class="sec-title" data-i18n="hub_cmp_title">⚖ 多模型对比试聊 · 同题并排，自动评分</div>
+  <textarea id="cmp_q" rows="2" placeholder="输入同一个问题，发给两个模型对比回答"
+    style="width:100%;box-sizing:border-box;margin-bottom:8px"></textarea>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+    <select id="cmp_a" style="max-width:45%"></select>
+    <span style="color:var(--muted)">vs</span>
+    <select id="cmp_b" style="max-width:45%"></select>
+    <button class="btn primary" onclick="runCompare(this)" data-i18n="hub_cmp_run">⚖ 运行对比</button>
+  </div>
+  <div id="cmp_out" style="display:none;grid-template-columns:1fr 1fr;gap:10px"></div>
+</div>
+
 <!-- Self-Evolution status (v3.131.1) -->
 <div class="card">
   <div class="sec-title">🧠 Self-Evolution · 学习进度</div>
@@ -261,6 +275,7 @@ function loadModels(){
     CURRENT = d.current || d.default || '';
     renderCurrent();
     renderList();
+    fillCompareSelects();   // night-22: 对比试聊下拉可用模型
     // night-14: 健康度徽章 (最近24h测活成功率, 失败静默不影响列表)
     fetch('/api/evolution/model_health').then(function(r){ return r.json(); }).then(function(h){
       HEALTH = (h && h.providers) || {};
@@ -447,6 +462,46 @@ function pasteKeyFromClipboard(btn){
     if (btn) { var o3 = btn.textContent; btn.textContent = T('hub_clip_manual', '请手动粘贴 (Ctrl+V)'); setTimeout(function(){ btn.textContent = o3; }, 2200); }
   }
 }
+// ═══ night-22 (P2-3): 多模型对比试聊 ═══
+function fillCompareSelects(){
+  var usable = MODELS.filter(function(m){ return m.usable || m.configured || m.current; });
+  var a = $('cmp_a'), b = $('cmp_b');
+  if (!a || !b) return;
+  var opts = usable.map(function(m){ return '<option value="' + esc(m.id) + '">' + esc(m.model_name || m.id) + '</option>'; }).join('');
+  a.innerHTML = opts; b.innerHTML = opts;
+  if (usable.length > 1) b.selectedIndex = 1;
+}
+function runCompare(btn){
+  var q = ($('cmp_q').value || '').trim();
+  var ma = $('cmp_a').value, mb = $('cmp_b').value;
+  if (!q) { $('cmp_q').focus(); return; }
+  if (!ma || !mb || ma === mb) return;
+  var out = $('cmp_out');
+  btn.disabled = true;
+  out.style.display = 'grid';
+  out.innerHTML = '<div class="empty" style="grid-column:1/3"><span class="spin"></span> 对比运行中…</div>';
+  fetch('/api/chat/compare', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({message: q, models: [ma, mb]})})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      btn.disabled = false;
+      var rs = (d && d.results) || [];
+      if (d && d.error && !rs.length) { out.innerHTML = '<div class="empty" style="grid-column:1/3">⚠ ' + esc(d.error) + '</div>'; return; }
+      out.innerHTML = rs.map(function(r){
+        var win = d.winner === r.model;
+        var body = r.error ? ('⚠ ' + esc(r.error)) : esc(String(r.response || '').substring(0, 600));
+        return '<div style="border:1px solid ' + (win ? 'var(--green,#22c55e)' : 'var(--border,#334155)') + ';border-radius:10px;padding:10px">' +
+          '<div style="font-size:.78rem;margin-bottom:6px">' + (win ? '🏆 ' : '') + esc(r.model) +
+          ' · ' + Math.round(r.latency_ms) + 'ms' + (r.error ? '' : ' · 评分 ' + r.score) + '</div>' +
+          '<div style="font-size:.8rem;white-space:pre-wrap;word-break:break-word">' + body + '</div></div>';
+      }).join('');
+    })
+    .catch(function(e){
+      btn.disabled = false;
+      out.innerHTML = '<div class="empty" style="grid-column:1/3">⚠ ' + esc(e) + '</div>';
+    });
+}
+
 // ═══ 快速添加: 选厂商 → 全自动预填 ═══
 // v3.131.1: Key 前缀自动识别 — 用户贴 Key 即自动切厂商 (ZCode 同款)
 var KEY_PREFIX_MAP = [

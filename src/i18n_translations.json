@@ -1586,7 +1586,9 @@
   "hub_clipboard_import": "📋 从剪贴板导入",
   "hub_clip_imported": "已导入 Key",
   "hub_clip_empty": "剪贴板没有可用的 Key",
-  "hub_clip_manual": "请手动粘贴 (Ctrl+V)"
+  "hub_clip_manual": "请手动粘贴 (Ctrl+V)",
+  "hub_cmp_title": "⚖ 多模型对比试聊 · 同题并排，自动评分",
+  "hub_cmp_run": "⚖ 运行对比"
  },
  "en": {
   " (等待": " (Waiting",
@@ -3175,7 +3177,9 @@
   "hub_clipboard_import": "📋 Import from clipboard",
   "hub_clip_imported": "Key imported",
   "hub_clip_empty": "No usable key in clipboard",
-  "hub_clip_manual": "Please paste manually (Ctrl+V)"
+  "hub_clip_manual": "Please paste manually (Ctrl+V)",
+  "hub_cmp_title": "⚖ Compare models · same question side-by-side, auto-scored",
+  "hub_cmp_run": "⚖ Run comparison"
  },
  "ja": {
   " (等待": " (待機",
@@ -4764,7 +4768,9 @@
   "hub_clipboard_import": "📋 クリップボードから取り込み",
   "hub_clip_imported": "キーを取り込みました",
   "hub_clip_empty": "クリップボードに使用可能なキーがありません",
-  "hub_clip_manual": "手動で貼り付けてください (Ctrl+V)"
+  "hub_clip_manual": "手動で貼り付けてください (Ctrl+V)",
+  "hub_cmp_title": "⚖ マルチモデル比較 · 同じ質問を並べて自動採点",
+  "hub_cmp_run": "⚖ 比較を実行"
  },
  "ko": {
   " (等待": " (대기",
@@ -6353,7 +6359,9 @@
   "hub_clipboard_import": "📋 클립보드에서 가져오기",
   "hub_clip_imported": "키 가져오기 완료",
   "hub_clip_empty": "클립보드에 사용 가능한 키가 없습니다",
-  "hub_clip_manual": "직접 붙여넣어 주세요(Ctrl+V)"
+  "hub_clip_manual": "직접 붙여넣어 주세요(Ctrl+V)",
+  "hub_cmp_title": "⚖ 멀티 모델 비교 · 같은 질문 나란히 자동 채점",
+  "hub_cmp_run": "⚖ 비교 실행"
  },
  "fr": {
   " (等待": " (En attente",
@@ -7942,7 +7950,9 @@
   "hub_clipboard_import": "📋 Importer du presse-papiers",
   "hub_clip_imported": "Clé importée",
   "hub_clip_empty": "Aucune clé utilisable dans le presse-papiers",
-  "hub_clip_manual": "Collez manuellement (Ctrl+V)"
+  "hub_clip_manual": "Collez manuellement (Ctrl+V)",
+  "hub_cmp_title": "⚖ Comparer les modèles · même question, score auto",
+  "hub_cmp_run": "⚖ Lancer la comparaison"
  },
  "de": {
   " (等待": " (Warten",
@@ -9531,7 +9541,9 @@
   "hub_clipboard_import": "📋 Aus Zwischenablage einfügen",
   "hub_clip_imported": "Key importiert",
   "hub_clip_empty": "Kein verwendbarer Schlüssel in der Zwischenablage",
-  "hub_clip_manual": "Bitte manuell einfügen (Strg+V)"
+  "hub_clip_manual": "Bitte manuell einfügen (Strg+V)",
+  "hub_cmp_title": "⚖ Modelle vergleichen · gleiche Frage, Auto-Bewertung",
+  "hub_cmp_run": "⚖ Vergleich starten"
  },
  "es": {
   " (等待": " (Esperando",
@@ -11120,7 +11132,9 @@
   "hub_clipboard_import": "📋 Importar del portapapeles",
   "hub_clip_imported": "Clave importada",
   "hub_clip_empty": "No hay clave utilizable en el portapapeles",
-  "hub_clip_manual": "Pegue manualmente (Ctrl+V)"
+  "hub_clip_manual": "Pegue manualmente (Ctrl+V)",
+  "hub_cmp_title": "⚖ Comparar modelos · misma pregunta, puntuación automática",
+  "hub_cmp_run": "⚖ Ejecutar comparación"
  },
  "it": {
   " (等待": " (attesa",
@@ -12709,7 +12723,9 @@
   "hub_clipboard_import": "📋 Importa dagli appunti",
   "hub_clip_imported": "Chiave importata",
   "hub_clip_empty": "Nessuna chiave utilizzabile negli appunti",
-  "hub_clip_manual": "Incolla manualmente (Ctrl+V)"
+  "hub_clip_manual": "Incolla manualmente (Ctrl+V)",
+  "hub_cmp_title": "⚖ Confronta modelli · stessa domanda, punteggio auto",
+  "hub_cmp_run": "⚖ Esegui confronto"
  },
  "ar": {
   " (等待": " (في الانتظار",
@@ -14298,7 +14314,9 @@
   "hub_clipboard_import": "📋 استيراد من الحافظة",
   "hub_clip_imported": "تم استيراد المفتاح",
   "hub_clip_empty": "لا يوجد مفتاح صالح في الحافظة",
-  "hub_clip_manual": "الرجاء اللصق يدويًا (Ctrl+V)"
+  "hub_clip_manual": "الرجاء اللصق يدويًا (Ctrl+V)",
+  "hub_cmp_title": "⚖ مقارنة النماذج · سؤال واحد وتقييم تلقائي",
+  "hub_cmp_run": "⚖ تشغيل المقارنة"
  },
  "ru": {
   " (等待": " (ожидание",
@@ -15887,7 +15905,9 @@
   "hub_clipboard_import": "📋 Импорт из буфера",
   "hub_clip_imported": "Ключ импортирован",
   "hub_clip_empty": "В буфере нет подходящего ключа",
-  "hub_clip_manual": "Вставьте вручную (Ctrl+V)"
+  "hub_clip_manual": "Вставьте вручную (Ctrl+V)",
+  "hub_cmp_title": "⚖ Сравнение моделей · один вопрос, авто-оценка",
+  "hub_cmp_run": "⚖ Запустить сравнение"
  },
  "he": {
   " (等待": " (ממתין",
@@ -17476,6 +17496,8 @@
   "hub_clipboard_import": "📋 ייבוא מהלוח",
   "hub_clip_imported": "מפתח יובא",
   "hub_clip_empty": "אין מפתח שמיש בלוח",
-  "hub_clip_manual": "הדבק ידנית (Ctrl+V)"
+  "hub_clip_manual": "הדבק ידנית (Ctrl+V)",
+  "hub_cmp_title": "⚖ השוואת מודלים · אותה שאלה, ציון אוטומטי",
+  "hub_cmp_run": "⚖ הפעל השוואה"
  }
 }
