@@ -2372,12 +2372,12 @@ function switchModel() {
   fetch('/api/models/' + encodeURIComponent(v) + '/default', {method:'PATCH'})
     .then(function(r){ if (!r.ok) throw 0; return r.json(); })
     .then(function(d){
-      // 切换成功 toast
+      // 切换成功 toast (night-20 P1-3: 明示生效范围=全局默认, 非仅当前对话)
       var info = document.getElementById('modelInfo');
       if (info) {
         var old = info.innerHTML;
-        info.innerHTML = '✓ ' + icon + ' ' + model + ' (已切换)';
-        setTimeout(function(){ info.innerHTML = old; }, 2000);
+        info.innerHTML = '✓ ' + icon + ' ' + model + ' (已设为全局默认 · 新对话生效)';
+        setTimeout(function(){ info.innerHTML = old; }, 2600);
       }
     })
     .catch(function(){

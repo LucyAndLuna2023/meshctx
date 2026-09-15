@@ -117,6 +117,13 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 <div class="card">
   <!-- ③ 快速添加 -->
   <div class="sec-title" data-i18n="hub_add">③ 添加模型 · 选厂商后自动填好，只需贴 Key</div>
+  <!-- night-20 (P1-1): 推荐起步快捷 chips — 一键选中厂商并聚焦 Key 输入 -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
+    <span data-i18n="hub_quick_title" style="font-size:.75rem;color:var(--muted)">推荐起步:</span>
+    <button type="button" class="btn" onclick="quickPick('deepseek')">🚀 DeepSeek</button>
+    <button type="button" class="btn" onclick="quickPick('zhipu')">🧪 智谱 GLM</button>
+    <button type="button" class="btn" onclick="quickPick('openrouter')">🌐 OpenRouter</button>
+  </div>
   <div class="grid">
     <div>
       <label data-i18n="add_model_provider">Provider</label>
@@ -391,6 +398,15 @@ function onProviderChange(){
     : (m.nokey ? T('hub_local_nokey','本地服务 · 无需 Key') : '');
   $('ad_id_list').innerHTML = (m.models||[]).map(function(id){ return '<option value="' + id + '">'; }).join('');
   $('ad_id').placeholder = (m.models&&m.models[0]) ? m.models[0] : (p + ':my-model');
+}
+// night-20 (P1-1): 推荐起步 chips — 一键选中厂商并聚焦 Key 输入
+function quickPick(p){
+  var sel = $('ad_provider');
+  if (!sel || !PROVIDERS[p]) return;
+  sel.value = p;
+  onProviderChange();
+  var k = $('ad_key');
+  if (k) k.focus();
 }
 // ═══ 快速添加: 选厂商 → 全自动预填 ═══
 // v3.131.1: Key 前缀自动识别 — 用户贴 Key 即自动切厂商 (ZCode 同款)

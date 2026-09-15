@@ -90,3 +90,13 @@ def test_hebrew_pages_render_rtl(client):
         assert 'dir="rtl"' in r.text, f"{page} he 未渲染 RTL"
     r = client.get("/ui/projects", headers={"Cookie": "meshctx_lang=zh"})
     assert 'dir="ltr"' in r.text
+
+
+def test_quick_pick_and_global_switch_ui(client):
+    """night-20: P1-1 推荐起步 chips (setup) + P1-3 切换明示全局默认 (chat)"""
+    setup_html = client.get("/ui/setup", headers={"Cookie": "meshctx_lang=zh"}).text
+    assert "function quickPick" in setup_html
+    assert "hub_quick_title" in setup_html
+    assert "quickPick('deepseek')" in setup_html
+    chat_html = client.get("/ui/chat", headers={"Cookie": "meshctx_lang=zh"}).text
+    assert "已设为全局默认" in chat_html

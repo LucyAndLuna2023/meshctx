@@ -1581,7 +1581,8 @@
   "hub_wiz_2": "② 点击「🚀 添加并测试」，自动完成测活与保存",
   "hub_wiz_3": "③ 状态变绿后，点「去聊天」即可开始对话",
   "hub_wiz_chat": "去聊天 →",
-  "hub_wiz_skip": "跳过引导"
+  "hub_wiz_skip": "跳过引导",
+  "hub_quick_title": "推荐起步:"
  },
  "en": {
   " (等待": " (Waiting",
@@ -3165,7 +3166,8 @@
   "hub_wiz_2": "② Click \"🚀 Add & Test\" — liveness check and saving are automatic",
   "hub_wiz_3": "③ Once the status turns green, hit \"Chat\" and start talking",
   "hub_wiz_chat": "Go to chat →",
-  "hub_wiz_skip": "Skip guide"
+  "hub_wiz_skip": "Skip guide",
+  "hub_quick_title": "Quick start:"
  },
  "ja": {
   " (等待": " (待機",
@@ -4749,7 +4751,8 @@
   "hub_wiz_2": "② 「🚀 追加してテスト」をクリック——生存確認と保存は自動",
   "hub_wiz_3": "③ ステータスが緑になったら「チャットへ」で会話開始",
   "hub_wiz_chat": "チャットへ →",
-  "hub_wiz_skip": "ガイドをスキップ"
+  "hub_wiz_skip": "ガイドをスキップ",
+  "hub_quick_title": "クイックスタート:"
  },
  "ko": {
   " (等待": " (대기",
@@ -6333,7 +6336,8 @@
   "hub_wiz_2": "② \"🚀 추가 및 테스트\"를 클릭 — 활성 확인과 저장이 자동",
   "hub_wiz_3": "③ 상태가 초록이 되면 \"채팅하러 가기\"로 대화 시작",
   "hub_wiz_chat": "채팅하러 가기 →",
-  "hub_wiz_skip": "가이드 건너뛰기"
+  "hub_wiz_skip": "가이드 건너뛰기",
+  "hub_quick_title": "빠른 시작:"
  },
  "fr": {
   " (等待": " (En attente",
@@ -7917,7 +7921,8 @@
   "hub_wiz_2": "② Cliquez sur « 🚀 Ajouter et tester » — test et sauvegarde automatiques",
   "hub_wiz_3": "③ Une fois le statut au vert, cliquez « Aller au chat » pour discuter",
   "hub_wiz_chat": "Aller au chat →",
-  "hub_wiz_skip": "Passer le guide"
+  "hub_wiz_skip": "Passer le guide",
+  "hub_quick_title": "Démarrage rapide :"
  },
  "de": {
   " (等待": " (Warten",
@@ -9501,7 +9506,8 @@
   "hub_wiz_2": "② Klicke auf „🚀 Hinzufügen & Testen“ — Test und Speichern laufen automatisch",
   "hub_wiz_3": "③ Wenn die Anzeige grün wird, starte mit „Zum Chat“",
   "hub_wiz_chat": "Zum Chat →",
-  "hub_wiz_skip": "Guide überspringen"
+  "hub_wiz_skip": "Guide überspringen",
+  "hub_quick_title": "Schnellstart:"
  },
  "es": {
   " (等待": " (Esperando",
@@ -11085,7 +11091,8 @@
   "hub_wiz_2": "② Haz clic en «🚀 Añadir y probar»: la comprobación y el guardado son automáticos",
   "hub_wiz_3": "③ Cuando el estado esté en verde, pulsa «Ir al chat» y empieza",
   "hub_wiz_chat": "Ir al chat →",
-  "hub_wiz_skip": "Omitir guía"
+  "hub_wiz_skip": "Omitir guía",
+  "hub_quick_title": "Inicio rápido:"
  },
  "it": {
   " (等待": " (attesa",
@@ -12669,7 +12676,8 @@
   "hub_wiz_2": "② Fai clic su \"🚀 Aggiungi e testa\": verifica e salvataggio automatici",
   "hub_wiz_3": "③ Quando lo stato diventa verde, premi \"Vai alla chat\" e inizia",
   "hub_wiz_chat": "Vai alla chat →",
-  "hub_wiz_skip": "Salta guida"
+  "hub_wiz_skip": "Salta guida",
+  "hub_quick_title": "Avvio rapido:"
  },
  "ar": {
   " (等待": " (في الانتظار",
@@ -14253,7 +14261,8 @@
   "hub_wiz_2": "② انقر \"🚀 إضافة واختبار\" — يتم الفحص والحفظ تلقائيًا",
   "hub_wiz_3": "③ عندما تصبح الحالة خضراء، انقر \"الذهاب إلى المحادثة\" وابدأ",
   "hub_wiz_chat": "الذهاب إلى المحادثة ←",
-  "hub_wiz_skip": "تخطي الدليل"
+  "hub_wiz_skip": "تخطي الدليل",
+  "hub_quick_title": "بداية سريعة:"
  },
  "ru": {
   " (等待": " (ожидание",
@@ -15837,7 +15846,8 @@
   "hub_wiz_2": "② Нажмите «🚀 Добавить и проверить» — проверка и сохранение автоматически",
   "hub_wiz_3": "③ Когда статус станет зелёным, нажмите «К чату» и начните диалог",
   "hub_wiz_chat": "К чату →",
-  "hub_wiz_skip": "Пропустить гид"
+  "hub_wiz_skip": "Пропустить гид",
+  "hub_quick_title": "Быстрый старт:"
  },
  "he": {
   " (等待": " (ממתין",
@@ -17421,6 +17431,7 @@
   "hub_wiz_2": "② לחץ על \"🚀 הוסף ובדוק\" — בדיקת חיות ושמירה אוטומטיות",
   "hub_wiz_3": "③ כשהמצב ירוק, לחץ \"לצ'אט\" והתחל לדבר",
   "hub_wiz_chat": "לצ'אט ←",
-  "hub_wiz_skip": "דלג על המדריך"
+  "hub_wiz_skip": "דלג על המדריך",
+  "hub_quick_title": "התחלה מהירה:"
  }
 }
