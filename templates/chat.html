@@ -2173,8 +2173,13 @@ async function send() {
             if (parsed.tool_result && !parsed.error) {
               const resDiv = document.createElement('div');
               resDiv.className = 'msg ai tool-result';
-              const preview = String(parsed.tool_result).substring(0, 100);
-              resDiv.innerHTML = `<div class="avatar">✅</div><div class="bubble tool-bubble">${preview}${String(parsed.tool_result).length > 100 ? '...' : ''}</div>`;
+              const fullText = String(parsed.tool_result);
+              const preview = fullText.substring(0, 200);
+              const hasMore = fullText.length > 200;
+              const resId = 'tr_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+              resDiv.innerHTML = `<div class="avatar">✅</div><div class="bubble tool-bubble" style="max-width:80%">` +
+                `<details${hasMore ? '' : ' open'}><summary style="cursor:pointer;font-size:.72rem;color:#8b9bbf">📄 工具结果 (${fullText.length} 字符${hasMore ? ' — 点击展开' : ''})</summary>` +
+                `<pre style="margin:4px 0 0;padding:6px;background:#0d1120;border-radius:6px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;font-size:.72rem">${preview.replace(/</g,'&lt;')}</pre></details></div>`;
               msgContainer.appendChild(resDiv);
               msgContainer.scrollTop = msgContainer.scrollHeight;
             }
