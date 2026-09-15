@@ -532,7 +532,9 @@ class TestModelSlashUse:
         with patch("builtins.input", side_effect=EOFError):
             cmd_chat(args)
         captured = capsys.readouterr()
-        assert "无可用模型" in captured.out or "No model available" in captured.out
+        # night-13: 文案随环境 i18n 语言变化 (zh/en 至少三种), 断言语义而非具体措辞
+        assert any(s in captured.out for s in
+                   ("无可用模型", "No model available", "No available models"))
 
     @patch("src.model_registry.get_registry")
     def test_cmd_model_test_no_client(self, mock_get_registry, capsys):
