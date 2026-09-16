@@ -12,6 +12,18 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 
+@pytest.fixture(autouse=True)
+def _pin_cli_lang_zh(monkeypatch):
+    """night-34: 钉住 CLI 语言为 zh — 本文件文案断言按 zh 编写, 而 i18n 语言是
+    全局态 (其他测试会切到 en/es 等), 随机顺序下输出语言不定导致 6 处断言失败。"""
+    monkeypatch.setenv("MESHCTX_LANG", "zh")
+    try:
+        import src.i18n as _i18n
+        monkeypatch.setattr(_i18n, "_current_lang", "zh")
+    except Exception:
+        pass
+
+
 # ═══════════════════════════════════════════════════════════════
 # Fixtures
 # ═══════════════════════════════════════════════════════════════
