@@ -27,7 +27,9 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger("meshctx.archiver")
 
 # 存档目录 (任务要求: ~/.meshctx/sessions/)
-ARCHIVE_DIR = Path.home() / ".meshctx" / "sessions"
+# night-36: 尊重 MESHCTX_HOME — 原硬编码 Path.home() 使测试/bench 实例与真实用户目录互串
+_ARCHIVE_HOME = Path(os.environ.get("MESHCTX_HOME", Path.home() / ".meshctx"))
+ARCHIVE_DIR = _ARCHIVE_HOME / "sessions"
 
 # 允许通过 _context 注入的键 (main.py 写入 version/decisions/rules/progress)
 _CONTEXT_KEYS = ("version", "decisions", "rules", "progress")
@@ -186,26 +188,45 @@ class SessionArchiver:
         return None
 
     def list_archives(self, **kw) -> List[Dict]:
-        """列出所有存档 (按时间倒序)。"""
+        """列出所有存档 (按时间倒序)。
+
+        night-36 (P1 性能): mtime 缓存 — 131 文件全量 JSON 解析曾致 /api/archive/list
+        1.47s (且 get_summary 内部二次调用 → 双倍)。缓存后仅重解析变更文件。
+        """
         if not self._archive_dir.exists():
             return []
         archives = []
-        for path in sorted(self._archive_dir.glob("session_*.json"),
-                           key=lambda p: p.stat().st_mtime, reverse=True):
+        seen = set()
+        cache = getattr(self, "_list_cache", None)
+        if cache is None:
+            cache = self._list_cache = {}
+        entries = []
+        for path in self._archive_dir.glob("session_*.json"):
             try:
-                stat = path.stat()
+                st = path.stat()
             except OSError:
                 continue
+            entries.append((st.st_mtime, path, st))
+        for mtime, path, st in sorted(entries, key=lambda e: e[0], reverse=True):
+            seen.add(str(path))
+            hit = cache.get(str(path))
+            if hit is not None and hit[0] == mtime and hit[1] == st.st_size:
+                archives.append(hit[2])
+                continue
             data = self._read_json(path) or {}
-            archives.append({
+            entry = {
                 "id": path.stem,
                 "path": str(path),
-                "timestamp": stat.st_mtime,
-                "size": stat.st_size,
+                "timestamp": mtime,
+                "size": st.st_size,
                 "session_id": data.get("session_id"),
                 "events": len(data.get("events", [])),
                 "memory": len(data.get("memory", [])),
-            })
+            }
+            cache[str(path)] = (mtime, st.st_size, entry)
+            archives.append(entry)
+        for gone in [k for k in cache if k not in seen]:
+            cache.pop(gone, None)
         return archives
 
     def get_summary(self, **kw) -> Dict:

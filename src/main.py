@@ -6947,9 +6947,16 @@ async def archive_load():
 
 @app.get("/api/archive/list")
 async def archive_list():
-    """列出所有存档"""
+    """列出所有存档
+
+    night-36 (P1 性能): 文件扫描/解析移出事件循环 (get_summary 内部二次调用
+    list_archives 曾致 262 次文件解析阻塞 async 路由 1.47s)。
+    """
+    import asyncio
     archiver = get_archiver()
-    return {"archives": archiver.list_archives(), "summary": archiver.get_summary()}
+    archives = await asyncio.to_thread(archiver.list_archives)
+    summary = await asyncio.to_thread(archiver.get_summary)
+    return {"archives": archives, "summary": summary}
 
 
 @app.get("/api/archive/summary")
