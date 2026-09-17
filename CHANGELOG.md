@@ -1,74 +1,76 @@
-## [3.131.3] - 2026-09-12 (i18n 残留清零 · 模型配置页多语言补全)
+## [Unreleased · 夜间批二] - 2026-09-11 (自进化闭环自转 + 管理页收口 + 测活横幅)
+### Added / Fixed (zcode@004 夜间批, 待四方门后随下版发布)
+- 自进化闭环 Phase-0 完成自转: record 每 20 条自动 reflect (阈值可调);
+  lifespan 30min 周期反思守护; build_system_prompt 全类型 top-3 洞见注入
+  (无洞见时零行为变化); 洞见保持度随效果自动升降 (GEPA 式淘汰压力)
+- 数据源接线: /api/code/run 结果 + /api/chat/stream 会话结果自动入经验层
+  (哈希链校验); E2E 闭环实测: API 记录 20 条→自动蒸馏→洞见进 SYSTEM_PROMPT
+- 新增 4 API: /api/evolution/stats|record|reflect|insights
+- /ui/models 302 收口到 Model Hub (/ui/setup) — 单一模型管理入口
+- cache_metrics psutil 可选守卫 (缺依赖优雅降级, 修 500 猎捕器发现的裸 import)
+- P1-2: save_api_key 保存后自动测活 (10s 兜底), 跳转参数 test=ok|fail
+- P1-4: _render 注入 version 指纹 + UI 页 no-cache 头 (升级免 Ctrl+F5)
+- 测试: test_self_evolution 9 用例 (含自动反思阈值/保持度自适应);
+  e2e 断言对齐 Model Hub; v51 /ui/models 302 对齐
 
-### Fixed (i18n 中文残留深查)
-- **setup.html Model Hub (/ui/models) 三层残留清零**: 51 新键 × 11 语言
-  - 24 个 `hub_*` T() 键缺翻译（测活/使用中/填 Key/已切换/就绪/删除模型/…）
-  - 17 个 `hub2_*` 裸中文串（①当前使用/②模型列表/③添加模型/智谱GLM/混元/
-    豆包/Ollama(本地)/vLLM(本地)/⚠custom需填Base URL/重置/🚀添加并测试/…）
-  - 10 个 `data-i18n` 键缺翻译（hub_current/hub_untested/hub_add/…）
-- **models.html 内嵌模板权威版同步**: web_ui.py `_TEMPLATES` 为 DictLoader 优先，
-  此前与磁盘版分叉 10 行；现已同步并引入 42 个 `mdl_*` 真键（替换中文-as-key 空转），
-  顺手修复删除按钮 onclick 多右括号导致 JS 语法错误
-- **版本资产全量同步**: version_info.txt / meshctx_desktop.py / meshctx_setup.nsi /
-  meshctx_desktop.spec / package.json / src/__init__.py / tools/meshctx_support_bot.py
-- i18n 表: 11 语言各 1550 键，数量严格一致
+## [3.131.1] - 2026-09-10 (四方审计响应批 — P0凭据剥离 + P1/P2 全清单处置)
+### Fixed / Changed (审计方: 004meshctx PASS + 002codex HOLD 清单, 处置台账见报告 §12)
+- P0 安全: cluster_comm_v6.py 源码零凭据 — hub host/port/password 改为环境变量
+  → ~/.meshctx/hub_env.json (0600, 仓库之外) 注入, 缺失时报错+降级 journal-only;
+  回归测试断言源码无密码/IP; hub credential 轮换建议已转 hub 管理员 (001/003)
+- P2: send_reply 支持 hub:inbox:* 冒号专属通道直投 (原只认纯数字机器尾,
+  zcode 专属通道回执被降级路由); 归档键取路由后基础 profile; 本地收件箱
+  首建 0600
+- P1 既有: _save_provider_config 加固 (显式 utf-8 + 原子写 tmp→os.replace +
+  0600; 明文历史由加密迁移批次处理)
+- P2 版本: pyproject.toml 3.33.0→3.131.1; FastAPI version 3.121.7→3.131.1;
+  opt_bump_version.py 清单补 pyproject + 属性式 FastAPI version 扫描
+- 证据: _audit/evidence_v3.131.1/ (28 关键文件 SHA256+大小 MANIFEST) —
+  供合并方把 templates/setup.html+chat.html 补进共享 main (合流缺失 P1)
+- 测试: cluster 回归 41→44 用例 (含源码零凭据断言/未配置报错/直投通道/归档口径)
+- 版本: 3.131.0→3.131.1 整批 A-J (G10 门 46/46 含版本一致性)
 
-## [3.131.2] - 2026-09-10 (P0 收尾 + 版本残留清零)
-### Fixed (002codex 82a425b7 HOLD 项 + 002meshctx .bat 补充, 004zcode 07c6e5d1 PASS 后收尾)
-- **cluster/hub_client.py 零凭据完成**: 移除 REDIS_HOST/PASSWORD 源码默认值 —
-  改 env (HUB_REDIS_HOST/HUB_REDIS_PASSWORD) 或 ~/.meshctx/hub_env.json (0600,
-  仓库之外) 注入; 回归测试 test_hub_credentials_not_in_source 扩展扫描
-  cluster/hub_client.py (002codex 实测指出 P0 未覆盖此文件)
-- **.bat ×5 文件 (6 处) 版本残留 3.121.7→3.131.1** (build.bat 含 FileVersion
-echo 2 处 / install.bat / install-edition.bat / docs 两份) — 002codex P3 口径统一; SOP 版本清单补 O 项; opt_bump_version.py
-  补 .bat 扫描 (002meshctx 指派合并方项)
-- 计数口径 (002meshctx P4-2): /api/models 的 total = BUILTIN 141 (去重后)
-  + config.yaml 自配条目 + 厂商实时 merge 项 (机器/厂商相关, 非常量);
-  此前声称 143 系本机 (含 2 条 config.yaml 自配) 快照, 已改为口径化描述
-- 升级提示 (zcode 建议采纳): 升级后首次启动如遇浏览器缓存, Ctrl+F5 强刷
-- 注: cluster/ 与 .bat 均不在发版资产打包清单 (spec/nsi/deb/tar 无), v3.131.1
-  资产不受影响; 本批为源码级收尾, 复审通过后 tag v3.131.2
-- **厂商实时模型列表 (免硬编码)**: /models 端点拉取 + 本地缓存 (TTL 12h, 原子写
-  0600) + /api/models 自动 merge + GET /api/models/remote/{provider} +
-  POST /api/models/refresh 强刷 — 厂商新模型免发版自动出现 (用户需求:
-  provider/model 不得硬编码, 实时跟随厂商); OpenRouter 免 key 可列;
-  blocklist 双层过滤 (parse+merge); 防御式解析三种返回形状;
-  chat ➕ 模态 datalist 接实时数据源; 端点活跃性实测:
-  deepseek/bigmodel/z.ai/groq 401 (需 key, 活), openrouter 200 (公开),
-  moonshot 401 — tests/test_models_remote.py 8 用例全离线 mock
+## [3.131.0] - 2026-09-09 (模型中心 Model Hub + 切换持久化 + Linux 本地登录修复)
+### Added / Fixed (对标 ZCode/DeepSeek Harness 的模型设置与切换体验, 三 SKU 共用同一 Web UI)
+- /ui/setup 重构为「模型中心」单页: ①当前使用大卡 (状态徽章+测活) ②模型列表
+  (就绪/未配 Key 分组, 行内 [用★][测][删]/[填Key], 点击「用」= PATCH default
+  持久切换+运行时 env, 重启保持) ③快速添加 (选厂商→base_url/获Key链接/常见模型
+  datalist 全自动预填, key 可空自动回退同厂商已存 key, 添加后自动测活;
+  只输 "chat" 自动补全 "deepseek:chat") — 消除 配置/切换/管理 三处割裂
+- chat 页修复假切换: switchModel() 原只改前端变量 (重启/新会话失效) →
+  现选中即 PATCH /api/models/{id}/default 持久化, 失败回退 /api/model/switch;
+  addModelModal 智能化: provider 下拉自动带出 base_url/获Key链接/模型 datalist,
+  添加后自动测活并持久设默认
+- 修复 Linux 本地 UI 需登录: _is_loopback_client 加固 — request.client=None
+  (UDS/进程内) 视为本地; IPv6 回环展开式 0:0:0:0:0:0:0:1 与 zone 后缀 (::1%1)
+  剥离比对; 无 MESHCTX_PASSWORD 时认证整体关闭 (新装永不弹登录, 终端用户直进
+  功能区配置模型 token); LAN/公网访问仍受密码保护 (安全边界不变)
+- 测试: test_v3131_model_hub_and_auth.py 14 用例 (回环判定参数化×11 + 三页渲染
+  + 智能模态断言); WSL Linux 真机实测: 无密码全 200 / Model Hub 渲染 / 智能模态
+  注入 / /api/models 200
+- 版本: 3.130.0→3.131.0 整批 A-J (G10 门 35/35)
 
-## [3.131.1] - 2026-09-10 (集群通讯v6 + Model Hub + Linux登录修复 + 希伯来语全量 + 安全线加固)
-### Added (004zcode 三批次合流 + 004meshctx, 三方审计闭环: 002codex acfd551d 复核 / 004meshctx 57056c8e / 004deepseek)
-- **集群通讯 v6 模块**: cluster/cluster_comm_v6.py + CLUSTER_V6_MESHCTX.md
-  (zcode@004, 兼容 hermes v6.1: 项目路由优先级/profile 白名单/单通道禁双写/
-  回执路由/自杀防护/Web3 journal/归档 TTL; FakeRedis 全覆盖测试
-  test_cluster_comm_v6.py。P0 审计修复: 源码零凭据 — host/port/password 改
-  env → ~/.meshctx/hub_env.json (0600, 仓库之外) 注入, 缺失降级 journal-only,
-  回归测试断言源码无密码/IP)
-- **Model Hub UI**: /ui/setup 单页三区 (当前使用/模型列表/快速添加) + chat 模型
-  真实切换持久化(修假切换) + 添加自动测活 (templates/setup.html + chat.html 按
-  SHA256 清单对账合流; test_v3131_model_hub_and_auth.py 全绿 0 skip)
-- **第 11 语言希伯来语 (he, RTL) 全表面**: 服务端 registry 1458 键 / landing 270 /
-  chat 66 / base 126 / 法务 65+71 / 子页×5 / profile / SKU NSIS Hebrew + macOS
-  CFBundleLocalizations 11 / RTL 10 页+服务端首屏 / 安装器口径 11 语一致=10
-  (002codex b5a1d915 / 002meshctx 2538089f / 004meshctx round30-33 收口放行)
-- **手动添加任意自定义模型**: chat ➕ 模态 ×11 语言 + provider datalist; key 留空
-  回退 provider_config 同供应商; add_model 同步写 provider_config.json;
-  zhipu builtin 5→16 款 (glm-4.5 系/4.6/4.7 系等)
-- **org×plan 联动**: env MESHCTX_ORG_MAX_DEPTS/MAX_MEMBERS (默认不设限零行为变化)
-### Fixed
-- **Linux 本地 UI 登录 bug** (v3.131.0): _is_loopback_client 加固 —
-  request.client 为 None (UDS/进程内) 视为可信本地 + IPv6 展开形式
-  0:0:0:0:0:0:0:1 + zone 后缀 (::1%eth0) 剥离 (zcode WSL 真机实测)
-- **provider_config.json 写入加固** (v3.131.1): 显式 utf-8 + 原子写
-  (tmp→os.replace) + 0600 权限; P1 交付侧模板对账已入 main
-- **产品面清扫**: 全仓版本残留统一 3.131.1 (install-mac/edition/support_bot
-  3.129.0→3.131.1; SOP A-N 扩展) + src/cli.js 横幅去超卖 + FastAPI description
-  去超卖
-- **org seal 增强**: mixed-version 自愈 + 外部锚定 {org.json}.seal (002codex faa77549)
-### Tests
-- 全量 3878 passed / 59 skipped / 0 failed (基线 3790→3878, +88);
-  zcode 侧终验 3874/0/66 (_audit/final_pytest_v3131_1.txt) 合流后复跑一致
+
+## [3.130.0] - 2026-09-09 (集群通讯 v6 — zcode@004/meshctx 接入 hermes hub)
+### Added (CLUSTER-COMM-V6.md 线缆兼容, 详见 cluster/CLUSTER_V6_MESHCTX.md)
+- 新增 cluster/cluster_comm_v6.py: 依 WSL hermes v6.1 权威规范实现 — 单通道
+  LPUSH+PUBLISH 投递 (v5.1 禁双写) · B1 profile 白名单 (拒纯数字/test/非法字符) ·
+  项目路由 (project_id > "profile:project" 后缀 > to_profile > deepseek 汇聚,
+  PROJECT_PROFILES 与 hub_client.py 同表) · v6.1 §8 回执路由 (回给发布者
+  from_profile, reply_channel 优先, 禁固定 admin) · v6.1 §9 自杀防护
+  (拒 pkill/hub_client.py listen) · Web3 哈希链 journal (§5, 复用
+  web3_messaging, ~/.meshctx/web3_journal/) · 归档 30 天 TTL (§1.4)
+- 身份三要素: machine=004 / agent=zcode / project=meshctx (MESHCTX_CLUSTER_* 可覆盖);
+  密钥/hub 地址与 hermes hub_client.py 同源 (env 覆盖优先)
+- hermes 共存设计 (防消息盗窃): zcode 专属通道 hub:inbox:004:zcode:meshctx (hermes
+  drain 跳过冒号后缀); 本模块绝不 RPOP hermes 拥有的队列; 心跳键/去重键/journal/
+  收件箱文件全带项目维度 (zcode 三对话实例按项目隔离, meshctx 实例互不干扰)
+- admin 文件队列互通 (选配): send_admin_msg 按 WSL admin_msg.py 格式写
+  MESHCTX_ADMIN_MSG_DIR (默认关闭)
+- 注册: WSL registry.json v6 machines.004.profiles += zcode (有备份)
+- 测试: test_cluster_comm_v6.py 39 用例 (FakeRedis 离线全覆盖); 真实 hub 冒烟:
+  心跳/入网通告 (msg 09c48a26)/journal verify 全绿; 版本一致性测试改相对断言
+- 版本: 3.129.0→3.130.0 整批 A-J (G10 门 35/35 过)
 
 
 ## [3.129.0] - 2026-09-09 (Windows 健壮性 + 测试失败清零 + async 事件循环解堵)
