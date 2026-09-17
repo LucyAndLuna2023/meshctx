@@ -61,7 +61,7 @@ def main():
                 continue
             get_paths.append(path)
 
-        SKIP = ("stream", "benchmark", "ws/", "export", "context/export")
+        SKIP = ("stream", "loop", "benchmark", "ws/", "export", "context/export")  # +loop: SSE 状态流永不结束 (night-37)
         get_paths = [p for p in get_paths if not any(s in p.lower() for s in SKIP)]
         get_paths.sort()
 
