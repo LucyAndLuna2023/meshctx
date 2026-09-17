@@ -6583,61 +6583,87 @@ async def memory_graph():
 # 上下文 API (v2.30)
 # ═══════════════════════════════════════════════════════════
 
+def _context_projects_sync() -> dict:
+    """扫描项目目录 (同步实现 — 由 to_thread 调用, night-37 P1 性能)。
+
+    night-37: mtime 缓存 — 原实现对每个项目文件全量 JSON 解析且同步阻塞
+    async 路由 (实测 0.852s)。缓存后仅重解析变更文件。目录尊重 MESHCTX_HOME。
+    """
+    from pathlib import Path
+    import json as _json
+
+    home = Path(os.environ.get("MESHCTX_HOME", Path.home() / ".meshctx"))
+    proj_dir = home / "projects"
+    data_dir = home / "data" / "projects"
+    projects = []
+    cache = getattr(context_projects, "_cache", None)
+    if cache is None:
+        cache = context_projects._cache = {}
+
+    def _load_cached(fp: Path):
+        try:
+            st = fp.stat()
+        except OSError:
+            return None
+        key = str(fp)
+        hit = cache.get(key)
+        if hit is not None and hit[0] == st.st_mtime and hit[1] == st.st_size:
+            return hit[2]
+        try:
+            with open(fp, encoding="utf-8") as f:
+                data = _json.load(f)
+        except Exception:
+            return None
+        cache[key] = (st.st_mtime, st.st_size, data)
+        return data
+
+    # 加载活跃项目标记
+    active_name = ""
+    active_file = home / "active_project.json"
+    if active_file.exists():
+        try:
+            with open(active_file, encoding="utf-8") as f:
+                active_name = _json.load(f).get("project_name", "")
+        except Exception:
+            logger.debug("Suppressed except Exception:: {}", exc_info=True)
+
+    # 扫描 projects 目录
+    if proj_dir.exists():
+        for fp in proj_dir.glob("*.json"):
+            data = _load_cached(fp)
+            if data is None:
+                continue
+            name = data.get("project_name", fp.stem)
+            projects.append({
+                "name": name,
+                "path": data.get("project_path", ""),
+                "active": name == active_name,
+            })
+
+    # 扫描 data/projects 目录
+    if data_dir.exists():
+        for fp in data_dir.glob("*.json"):
+            data = _load_cached(fp)
+            if data is None:
+                continue
+            name = data.get("project_name", fp.stem)
+            path_val = data.get("project_path", "")
+            if not any(p["name"] == name for p in projects):
+                projects.append({
+                    "name": name,
+                    "path": path_val,
+                    "active": name == active_name,
+                })
+
+    return {"projects": projects, "total": len(projects)}
+
+
 @app.get("/api/context/projects")
 async def context_projects():
-    """上下文项目列表 — 扫描 ~/.meshctx/projects/"""
+    """上下文项目列表 — 扫描 ~/.meshctx/projects/ (to_thread, 不阻塞事件循环)"""
     try:
-        from pathlib import Path
-        import json as _json
-
-        proj_dir = Path.home() / ".meshctx" / "projects"
-        data_dir = Path.home() / ".meshctx" / "data" / "projects"
-        projects = []
-
-        # 加载活跃项目标记
-        active_file = Path.home() / ".meshctx" / "active_project.json"
-        active_name = ""
-        if active_file.exists():
-            try:
-                with open(active_file, encoding="utf-8") as f:
-                    active_name = _json.load(f).get("project_name", "")
-            except Exception:
-                logger.debug("Suppressed except Exception:: {}", exc_info=True)
-
-        # 扫描 projects 目录
-        if proj_dir.exists():
-            for fp in proj_dir.glob("*.json"):
-                try:
-                    with open(fp, encoding="utf-8") as f:
-                        data = _json.load(f)
-                    name = data.get("project_name", fp.stem)
-                    projects.append({
-                        "name": name,
-                        "path": data.get("project_path", ""),
-                        "active": name == active_name,
-                    })
-                except Exception:
-                    continue
-
-        # 扫描 data/projects 目录
-        if data_dir.exists():
-            for fp in data_dir.glob("*.json"):
-                try:
-                    with open(fp, encoding="utf-8") as f:
-                        data = _json.load(f)
-                    name = data.get("project_name", fp.stem)
-                    path_val = data.get("project_path", "")
-                    # 避免重复
-                    if not any(p["name"] == name for p in projects):
-                        projects.append({
-                            "name": name,
-                            "path": path_val,
-                            "active": name == active_name,
-                        })
-                except Exception:
-                    continue
-
-        return {"projects": projects, "total": len(projects)}
+        import asyncio
+        return await asyncio.to_thread(_context_projects_sync)
     except Exception as e:
         return {"error": str(e)}
 
