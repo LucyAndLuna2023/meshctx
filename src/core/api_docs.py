@@ -62,11 +62,16 @@ class APIDiscoveryEngine:
                 "responses": {"200": {"description": "OK"}},
             }
 
+        # night-35: 恢复动态版本 — 004 batch3 误回退为硬编码 "3.33.0" (round33 审计禁项)
+        try:
+            from src import __version__ as _meshctx_ver
+        except Exception:
+            _meshctx_ver = "unknown"
         spec: Dict[str, Any] = {
             "openapi": "3.0.0",
             "info": {
                 "title": "meshctx API",
-                "version": "3.33.0",
+                "version": _meshctx_ver,
                 "description": "Auto-discovered API specification",
             },
             "paths": paths,
