@@ -222,7 +222,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         .cmd-item-hint { font-size: 11px; color: #64748b; }
         .cmd-empty { text-align: center; color: #64748b; padding: 24px; font-size: 14px; }
     </style>
-    <link rel="stylesheet" href="/static/lib/github-dark.min.css">
+    <link rel="stylesheet" href="/static/lib/github-dark.min.css?v={{ version }}">
     <!-- PWA -->
     <link rel="manifest" href="/ui/manifest.json">
     <meta name="theme-color" content="#0a0a1a">
@@ -277,8 +277,8 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         <div class="cmd-list" id="cmdList"></div>
     </div>
 </div>
-<script src="/static/lib/marked.min.js"></script>
-<script src="/static/lib/highlight.min.js"></script>
+<script src="/static/lib/marked.min.js?v={{ version }}"></script>
+<script src="/static/lib/highlight.min.js?v={{ version }}"></script>
 <script>
 marked.setOptions({breaks:true, gfm:true});
 hljs.configure({languages:['python','javascript','bash','json','yaml','sql','css','html','xml','java','go','rust','cpp','typescript','shell']});
@@ -3658,6 +3658,9 @@ def _render(template_name: str, context: dict, request = None) -> HTMLResponse:
     def _scoped_t(key: str) -> str:
         return i18n_translations.get(lang, i18n_translations.get('en', {})).get(key, i18n_translations.get('en', {}).get(key, key))
     context['t'] = _scoped_t
+    # night-15 (P1-4): 静态资源版本指纹 — base.html 的 ?v={{ version }} 此前上下文缺
+    # version, 指纹恒为空 → 升级后浏览器用旧 CSS/JS。现在全页面注入真实版本号。
+    context.setdefault('version', __import__("src").__version__)
     # 注入 request（base.html 导航栏 active 判断依赖 request.url.path）
     if request is not None:
         context.setdefault('request', request)

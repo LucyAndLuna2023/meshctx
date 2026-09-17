@@ -139,12 +139,21 @@ def make_approval_handlers(card, worker):
             with w._approval_lock:
                 return w._approval_futures.get(request_id)
         fut = _get_fut()
+        # night-29 (P3 竞态修复): approve 的 decide 可能发生在 register_approval 落盘
+        # waiting_approval 之后、卡线程恢复 waiter 之前 — future 已被 pop, 决策记录在
+        # _approval_decisions, 轮询时须回查, 否则用户决策被孤儿化成 [审批不可用] 拒绝
         for _ in range(100):
             if fut is not None:
                 break
+            dec = w._approval_decisions.get(request_id)
+            if dec is not None:
+                return dict(dec)
             await asyncio.sleep(0.05)
             fut = _get_fut()
         if fut is None:
+            dec = w._approval_decisions.get(request_id)
+            if dec is not None:
+                return dict(dec)
             return {"action": "reject", "text": "[审批不可用] 自动拒绝"}
         if w.is_cancelled(card.id):
             return {"action": "reject", "text": "[取消] 用户取消任务，审批已拒绝。"}

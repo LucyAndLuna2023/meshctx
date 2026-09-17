@@ -400,6 +400,7 @@ class CardWorker:
         self._cancelled: set = set()
         # 审批已决集合 (P3 004meshctx): decide 成功登记, save_card 强制清 pending
         self._approval_decided: set = set()
+        self._approval_decisions: Dict[str, Dict[str, str]] = {}  # night-29: 决策登记 (request_id → 决策)
         self._cancel_lock = threading.Lock()
 
     # ── 生命周期 ──
@@ -695,6 +696,13 @@ class CardWorker:
                     break
         if fut is None or fut.done():
             return False
+        # night-29 (P3 竞态修复): 决策登记 — 卡线程 waiter 晚于 approve 启动时,
+        # future 已被 pop, waiter 需从本记录取回决策 (防决策孤儿化)
+        with self._cancel_lock:
+            self._approval_decisions[request_id] = {"action": action, "text": text}
+            if len(self._approval_decisions) > 512:
+                for k in list(self._approval_decisions.keys())[:-256]:
+                    self._approval_decisions.pop(k, None)
         if decided_card is not None:
             # 登记"该卡审批已决" — save_card 合并时强制清 pending 防回写 (P3 004meshctx)
             with self._cancel_lock:

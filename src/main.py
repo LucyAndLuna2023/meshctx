@@ -151,7 +151,7 @@ class MetricsCollector:
     def snapshot(self):
         """返回当前快照"""
         import time as _time
-        now = _time.time()
+        now = time.time()
         avg_lat = round(self._latency_acc / max(1, self._count_in_window), 1)
         self.timestamps.append(now)
         self.request_counts.append(self._count_in_window)
@@ -2711,6 +2711,208 @@ def _provider_display_name(pid: str) -> str:
     """供应商ID→显示名"""
     return _PROVIDER_DISPLAY.get(pid, pid)
 
+# ── v3.131.2 厂商实时模型列表 (models:remote) ────────────────────────────
+# night-2 (002zcode): origin/main 此前只有测试没有实现 (004 工作区未推代码,
+# 干净检出 9F+3E)。契约=tests/test_models_remote.py + round33 终裁C:
+# live优先 + TTL 可配(默认900s) + 失败显式负缓存60s + 沿用旧缓存 + 无截断。
+
+_REMOTE_CACHE_PATH = Path(__file__).resolve().parent.parent / "data" / "remote_models_cache.json"
+_REMOTE_TTL = int(os.environ.get("MESHCTX_HUB_PROVIDERS_TTL", "900") or 900)
+_REMOTE_NEGATIVE_TTL = 60
+_REMOTE_FAILED_AT = {}
+_REMOTE_REFRESHING = False
+
+_REMOTE_BASE_URLS = {
+    "openai": "https://api.openai.com/v1",
+    "anthropic": "https://api.anthropic.com/v1",
+    "deepseek": "https://api.deepseek.com",
+    "zhipu": "https://open.bigmodel.cn/api/paas/v4",
+    "zai": "https://api.z.ai/api/paas/v4",
+    "moonshot": "https://api.moonshot.cn/v1",
+    "bailian": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "openrouter": "https://openrouter.ai/api/v1",
+    "groq": "https://api.groq.com/openai/v1",
+    "mistral": "https://api.mistral.ai/v1",
+    "together": "https://api.together.xyz/v1",
+    "xai": "https://api.x.ai/v1",
+}
+_REMOTE_ALWAYS_TARGETS = {"openrouter"}  # 聚合站恒为 target (测试口径)
+# 聊天下拉不需要的型号类别 → 解析与合并两处都过滤
+_REMOTE_MODEL_BLOCKLIST = ("embedding", "guard", "whisper", "moderation", "rerank",
+                           "tts", "dall-e", "babbage", "davinci")
+
+
+def _parse_models_payload(payload):
+    """厂商 /models 响应 → 去重模型ID列表 (容忍 OpenAI data 形/裸列表/垃圾输入)"""
+    if isinstance(payload, dict):
+        payload = payload.get("data")
+    if not isinstance(payload, list):
+        return []
+    ids = []
+    for item in payload:
+        mid = ""
+        if isinstance(item, str):
+            mid = item.strip()
+        elif isinstance(item, dict):
+            mid = str(item.get("id") or item.get("name") or "").strip()
+        if not mid:
+            continue
+        low = mid.lower()
+        if any(b in low for b in _REMOTE_MODEL_BLOCKLIST):
+            continue
+        if mid not in ids:
+            ids.append(mid)
+    return ids
+
+
+def _provider_api_key(pid: str, pcfg: dict = None) -> str:
+    """B2 key 链: provider_config 优先, 缺失回退环境变量 (显式名→常用别名)"""
+    pcfg = pcfg if pcfg is not None else _load_provider_config()
+    key = (pcfg.get(pid) or {}).get("key", "")
+    if key:
+        return key
+    env_name = f"{pid.upper().replace('-', '_')}_API_KEY"
+    key = os.environ.get(env_name, "")
+    if not key:
+        alias = {"zhipu": "ZHIPUAI_API_KEY", "bailian": "DASHSCOPE_API_KEY",
+                 "moonshot": "MOONSHOT_API_KEY", "xai": "XAI_API_KEY"}.get(pid)
+        if alias:
+            key = os.environ.get(alias, "")
+    return key or ""
+
+
+def _load_remote_cache() -> dict:
+    try:
+        if _REMOTE_CACHE_PATH.exists():
+            return json.loads(_REMOTE_CACHE_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        logger.debug("Suppressed exception", exc_info=True)
+    return {}
+
+
+def _save_remote_cache(cache: dict):
+    """原子写 + 0600 (与 provider_config.json 同规)"""
+    try:
+        _REMOTE_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        tmp = _REMOTE_CACHE_PATH.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(cache, ensure_ascii=False, indent=1), encoding="utf-8")
+        try:
+            os.chmod(tmp, 0o600)
+        except Exception:
+            pass
+        os.replace(tmp, _REMOTE_CACHE_PATH)
+    except Exception:
+        logger.debug("Suppressed exception", exc_info=True)
+
+
+def _fetch_remote_model_ids(provider: str, base_url: str, key: str = "") -> list:
+    """拉取厂商实时模型; 任何失败返回 [] (调用方负责负缓存/沿用旧缓存)"""
+    if not base_url:
+        return []
+    try:
+        import urllib.request
+        req = urllib.request.Request(
+            base_url.rstrip("/") + "/models",
+            headers={"Authorization": f"Bearer {key}"} if key else {},
+            method="GET")
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace"))
+        return _parse_models_payload(payload)
+    except Exception:
+        return []
+
+
+def _remote_targets(pcfg: dict) -> set:
+    return set((pcfg or {}).keys()) | _REMOTE_ALWAYS_TARGETS
+
+
+def _refresh_remote_models(force: bool = False) -> dict:
+    """按 target 拉厂商实时模型; TTL 内跳过; force 全拉; 失败沿用旧缓存"""
+    pcfg = _load_provider_config()
+    cache = dict(_load_remote_cache() or {})
+    now = time.time()
+    out = {}
+    for pid in sorted(_remote_targets(pcfg)):
+        entry = cache.get(pid) or {}
+        fresh = (now - float(entry.get("fetched_at") or 0)) < _REMOTE_TTL
+        if fresh and not force:
+            out[pid] = len(entry.get("models") or [])
+            continue
+        models = _fetch_remote_model_ids(pid, _REMOTE_BASE_URLS.get(pid, ""),
+                                         _provider_api_key(pid, pcfg))
+        if models:
+            cache[pid] = {"fetched_at": now, "models": models, "source": "live"}
+            _REMOTE_FAILED_AT.pop(pid, None)
+            out[pid] = len(models)
+        else:
+            _REMOTE_FAILED_AT[pid] = now  # 负缓存: 60s 内不再打厂商
+            if entry.get("models"):
+                cache[pid] = entry        # 失败沿用旧缓存
+                out[pid] = len(entry["models"])
+            else:
+                out[pid] = 0
+    _save_remote_cache(cache)
+    return out
+
+
+def _schedule_remote_refresh(force: bool = False):
+    """P3b: 缺席/过期厂商后台补拉 (daemon 线程, 单飞防重入)"""
+    global _REMOTE_REFRESHING
+    if _REMOTE_REFRESHING:
+        return
+    _REMOTE_REFRESHING = True
+
+    def _job():
+        global _REMOTE_REFRESHING
+        try:
+            _refresh_remote_models(force=force)
+        except Exception:
+            logger.debug("Suppressed exception", exc_info=True)
+        finally:
+            _REMOTE_REFRESHING = False
+
+    try:
+        import threading
+        threading.Thread(target=_job, daemon=True, name="remote-models-refresh").start()
+    except Exception:
+        _REMOTE_REFRESHING = False
+
+
+@app.get("/api/models/remote/{provider_id}")
+async def remote_models(provider_id: str):
+    """厂商实时模型列表 (添加模型页 datalist); 未配/未知厂商零网络请求"""
+    pcfg = _load_provider_config()
+    if provider_id not in _remote_targets(pcfg):
+        return {"provider": provider_id, "models": [], "source": "not-configured"}
+    now = time.time()
+    entry = (_load_remote_cache().get(provider_id) or {})
+    if now - float(_REMOTE_FAILED_AT.get(provider_id) or 0) < _REMOTE_NEGATIVE_TTL:
+        return {"provider": provider_id, "models": entry.get("models") or [],
+                "source": "negative-cache"}
+    if entry.get("models") and (now - float(entry.get("fetched_at") or 0)) < _REMOTE_TTL:
+        return {"provider": provider_id, "models": entry["models"], "source": "cache"}
+    models = _fetch_remote_model_ids(provider_id, _REMOTE_BASE_URLS.get(provider_id, ""),
+                                     _provider_api_key(provider_id, pcfg))
+    if models:
+        cache = _load_remote_cache()
+        cache[provider_id] = {"fetched_at": now, "models": models, "source": "live"}
+        _save_remote_cache(cache)
+        _REMOTE_FAILED_AT.pop(provider_id, None)
+        return {"provider": provider_id, "models": models, "source": "live"}
+    _REMOTE_FAILED_AT[provider_id] = now
+    return {"provider": provider_id, "models": entry.get("models") or [],
+            "source": "unavailable"}
+
+
+@app.post("/api/models/refresh")
+async def refresh_remote_models():
+    """手动全量刷新厂商实时模型 (force)"""
+    try:
+        return {"status": "ok", "refreshed": _refresh_remote_models(force=True)}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "refreshed": {}}
+
+
 # ── v1.5.5 模型切换 API ─────────────────────────────────
 
 @app.get("/api/models")
@@ -2761,11 +2963,45 @@ async def list_models():
             "has_key": bool(info.get("key")),
             "current": mid == current,
         })
+    # v3.131.2 models:remote — 厂商实时模型并入列表 (blocklist 过滤, 标记 remote)
+    try:
+        rc = _load_remote_cache() or {}
+        now_ts = time.time()
+        existing_ids = {m["id"] for m in models}
+        for pid, entry in rc.items():
+            if not isinstance(entry, dict):
+                continue
+            pid_has_key = bool(_provider_api_key(pid, provider_cfg))
+            for mid in entry.get("models") or []:
+                if any(b in str(mid).lower() for b in _REMOTE_MODEL_BLOCKLIST):
+                    continue
+                full = f"{pid}:{mid}"
+                if full in existing_ids:
+                    continue
+                existing_ids.add(full)
+                models.append({
+                    "id": full,
+                    "provider": pid,
+                    "provider_name": _provider_display_name(pid),
+                    "model_name": str(mid),
+                    "configured": False,
+                    "usable": pid_has_key,
+                    "has_key": pid_has_key,
+                    "current": full == current,
+                    "remote": True,
+                })
+        # P3b: 已配 key 但缓存缺席/过期的厂商 → 触发后台补拉
+        stale = [p for p in sorted(_remote_targets(provider_cfg))
+                 if (now_ts - float((rc.get(p) or {}).get("fetched_at") or 0)) >= _REMOTE_TTL]
+        if stale:
+            _schedule_remote_refresh()
+    except Exception:
+        logger.debug("Suppressed exception", exc_info=True)
     return {
-        "models": models, 
-        "current": current, 
-        "default": current, 
-        "total": len(models), 
+        "models": models,
+        "current": current,
+        "default": current,
+        "total": len(models),
         "configured": sum(1 for m in models if m["configured"]),
         "usable": sum(1 for m in models if m["usable"]),
     }
@@ -3991,6 +4227,17 @@ async def api_chat_stream(request: Request):
     # T3 接线（P2-3）：以当前用户消息作为 current_query 做相关性检索注入
     _full_system_prompt = build_system_prompt(current_query=user_msg)
 
+    # night-4 (Phase-1 闭环): 注入 top 洞见进系统提示 + 记录供 finally 归因回灌
+    _se_rules = []
+    try:
+        from src.core.self_evolution import get_self_evolution
+        _se_rules = get_self_evolution().inject("chat", k=2)
+        if _se_rules:
+            _full_system_prompt += ("\n\n[经验参考 — 来自自进化闭环, 仅供参考]\n"
+                                    + "\n".join(f"- {r}" for r in _se_rules))
+    except Exception:
+        _se_rules = []
+
 
     async def generate():
         _se_had_error = False   # v3.131.1: 自进化经验层结果标记
@@ -4116,6 +4363,10 @@ async def api_chat_stream(request: Request):
                 get_self_evolution().record("chat", model_id or "default",
                                             outcome=(not _se_had_error),
                                             duration_ms=(time.perf_counter() - _se_t0) * 1000)
+                # night-4: ④ 归因回灌 — 本次注入的洞见按真实成败强化/衰减 (闭合第四环)
+                if _se_rules:
+                    get_self_evolution().reinforce("chat", _se_rules,
+                                                   outcome=(not _se_had_error))
             except Exception:
                 pass
             try:
@@ -7398,6 +7649,32 @@ async def evolution_stats():
     return get_self_evolution().stats()
 
 
+@app.get("/api/evolution/model_health")
+async def evolution_model_health():
+    """night-14 (P2-2): 模型健康度 — 各厂商最近 24h 测活成功率 (自进化经验层)。
+
+    返回 {"providers": {pid: {"calls_24h": n, "success_rate": 0.0-1.0}}}，
+    仅含有 24h 内测活记录的厂商; 经验层不可用时返回空表 (不阻塞 UI)。
+    """
+    from src.core.self_evolution import get_self_evolution
+    try:
+        loop = get_self_evolution()
+        loop._ensure_history()
+        now = time.time()
+        out = {}
+        with loop._lock:
+            for strategy, exps in (loop._exp_index.get("provider_test") or {}).items():
+                recent = [e for e in exps if now - float(e.get("ts", 0)) < 86400]
+                if not recent:
+                    continue
+                ok = sum(1 for e in recent if e.get("outcome"))
+                out[strategy] = {"calls_24h": len(recent),
+                                 "success_rate": round(ok / len(recent), 3)}
+        return {"providers": out}
+    except Exception:
+        return {"providers": {}}
+
+
 @app.post("/api/evolution/record")
 async def evolution_record(request: Request):
     """记录一次任务执行经验 {task_type, strategy, outcome, detail?, duration_ms?}"""
@@ -7433,6 +7710,21 @@ async def evolution_insights(request: Request, task_type: str = "general", k: in
     """检索 top-k 洞见规则 (供前端/agent 注入上下文)"""
     from src.core.self_evolution import get_self_evolution
     return {"task_type": task_type, "insights": get_self_evolution().inject(task_type, k=int(k))}
+
+
+@app.post("/api/evolution/reinforce")
+async def evolution_reinforce(request: Request):
+    """④ 归因回灌 API — 任务结果回灌洞见保持度 (night-4 闭合第四环)"""
+    from src.core.self_evolution import get_self_evolution
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    task_type = str(body.get("task_type", "chat"))[:64]
+    rules = [str(r)[:300] for r in (body.get("rules") or [])][:10]
+    outcome = bool(body.get("outcome", True))
+    n = get_self_evolution().reinforce(task_type, rules, outcome)
+    return {"status": "ok", "task_type": task_type, "reinforced": n, "outcome": outcome}
 
 
 @app.get("/api/evolution/summary")

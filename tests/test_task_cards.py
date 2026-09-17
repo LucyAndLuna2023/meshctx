@@ -148,7 +148,7 @@ class TestCardWorker:
             c = TaskCard(owner="local", prompt="hello")
             assert w.enqueue(c) is True
             got = None
-            for _ in range(200):
+            for _ in range(600):  # night-28: 轮询预算 4s→12s (满载容忍)
                 time.sleep(0.02)
                 got = w._store.load(c.id)
                 if got and got.status in (CardStatus.COMPLETED, CardStatus.FAILED, CardStatus.CANCELLED):
@@ -171,7 +171,7 @@ class TestCardWorker:
             c = TaskCard(owner="local", prompt="x")
             assert w.enqueue(c) is True
             got = None
-            for _ in range(200):
+            for _ in range(600):  # night-28: 轮询预算 4s→12s (满载容忍)
                 time.sleep(0.02)
                 got = w._store.load(c.id)
                 if got and got.status in (CardStatus.COMPLETED, CardStatus.FAILED, CardStatus.CANCELLED):
@@ -198,7 +198,7 @@ class TestCardWorker:
             assert w.cancel(c.id) is True
             # 排队取消是异步投递, 轮询直到状态确认
             got = None
-            for _ in range(200):
+            for _ in range(600):  # night-28: 轮询预算 4s→12s (满载容忍)
                 time.sleep(0.02)
                 got = w._store.load(c.id)
                 if got and got.status == CardStatus.CANCELLED:
@@ -222,7 +222,7 @@ class TestCardWorker:
             c = TaskCard(owner="local", prompt="slow-job")
             assert w.enqueue(c) is True
             got = None
-            for _ in range(200):
+            for _ in range(600):  # night-28: 轮询预算 4s→12s (满载容忍)
                 time.sleep(0.02)
                 got = w._store.load(c.id)
                 if got and got.status == CardStatus.RUNNING:
@@ -230,7 +230,7 @@ class TestCardWorker:
             assert got is not None and got.status == CardStatus.RUNNING
             w.cancel(c.id)
             cancelled = False
-            for _ in range(200):
+            for _ in range(600):  # night-28: 轮询预算 4s→12s (满载容忍)
                 time.sleep(0.02)
                 got2 = w._store.load(c.id)
                 if got2 and got2.status in (CardStatus.CANCELLED, CardStatus.FAILED):
@@ -348,7 +348,7 @@ class TestCardWorker:
             c = TaskCard(owner="local", prompt="t")
             assert w.enqueue(c) is True
             done = False
-            for _ in range(200):
+            for _ in range(600):  # night-28: 轮询预算 4s→12s (满载容忍)
                 time.sleep(0.02)
                 got = w._store.load(c.id)
                 if got and got.status == CardStatus.COMPLETED:
@@ -397,7 +397,7 @@ class TestCardWorker:
             assert gw.status == CardStatus.FAILED, gw.status
             # running/queued 应被恢复并最终完成
             done = set()
-            for _ in range(200):
+            for _ in range(600):  # night-28: 轮询预算 4s→12s (满载容忍)
                 time.sleep(0.05)
                 for cid in (c_running.id, c_queued.id):
                     g = store.load(cid)

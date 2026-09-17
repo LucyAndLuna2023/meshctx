@@ -48,7 +48,8 @@ async def env(tmp_dir, monkeypatch):
         yield {"type": "approval", "request_id": req_id,
                "name": "terminal", "args": {"cmd": "rm -rf /tmp/x"}, "reason": reason}
         dec = await waiter(req_id)
-        yield {"type": "final", "text": f"decided={dec['action']}"}
+        # night-28: 结果带上决策 text — 四条 reject 路径(取消/不可用/超时/异常)可分辨
+        yield {"type": "final", "text": f"decided={dec['action']} detail={dec.get('text', '')}"}
 
     # patch runner 的依赖: run_agent_loop + client
     monkeypatch.setattr("src.agent_loop.run_agent_loop", fake_loop)

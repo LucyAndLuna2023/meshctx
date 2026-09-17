@@ -436,6 +436,8 @@ class TestRegressionPrevention:
                 f"'CFBundleVersion': '{ver}'"],
             "install.sh": [f'VERSION="{ver}"'],
             "docs/install.sh": [f'VERSION="{ver}"'],
+            # night-11: build.bat 显示串曾残留旧版 3.131.2 — 挂进 G10 防 bump 漏改
+            "build.bat": [f"FileVersion {ver}", f"echo   Version: {ver}"],
         }
         for fname, needles in checks.items():
             text = (PROJECT / fname).read_text(encoding="utf-8")

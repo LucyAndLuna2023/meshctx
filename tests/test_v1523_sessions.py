@@ -48,10 +48,19 @@ class TestSessionArchiveV1523:
         from src.main import app
         from fastapi.testclient import TestClient
         client = TestClient(app)
-        resp = client.get("/api/sessions/archive/test-session-1")
+        # night-27: 顺序依赖修复 — 自建数据(唯一ID), 不再依赖
+        # test_archive_endpoint_accepts_messages 恰好先跑 (随机顺序下 count 会得 0)
+        client.post("/api/sessions/archive", json={
+            "id": "test-session-1-detail",
+            "messages": [
+                {"role": "user", "content": "detail-a", "timestamp": 1700000000},
+                {"role": "assistant", "content": "detail-b", "timestamp": 1700000001}
+            ]
+        })
+        resp = client.get("/api/sessions/archive/test-session-1-detail")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["id"] == "test-session-1"
+        assert data["id"] == "test-session-1-detail"
         assert data["count"] == 2
 
     def test_provider_health_endpoint(self):

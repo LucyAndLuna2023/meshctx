@@ -87,6 +87,13 @@ class TestInstallerLangCount:
             s = (ROOT / f).read_text(encoding="utf-8")
             m = re.search(r"dir\s*=.*?['\"]?(ltr|rtl)['\"]?", s)
             # 找到含 lang==='he' 的 dir 条件
+            # night-16: templates/base.html 已与内嵌权威版同步 — 服务端 Jinja 条件实现
+            # (dir="{{ 'rtl' if __lang in ('ar','he') else 'ltr' }}"), 无客户端 lang==='he' 脚本,
+            # 单独认可该模式 (行为断言见 test_i18n_render_scan.py::test_hebrew_pages_render_rtl)
+            if f == "templates/base.html":
+                assert ("'ar','he'" in s) or ('"ar","he"' in s), \
+                    f"{f} 缺 he/ar 的服务端 RTL 条件"
+                continue
             assert re.search(r"(lang\s*===\s*['\"]he['\"]|'he'\s*\|\||\|\|\s*'he')", s), f
 
 

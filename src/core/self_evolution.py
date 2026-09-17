@@ -36,6 +36,7 @@ class SelfEvolutionLoop:
     WIN_DELTA_MIN = 0.15   # 成功率差阈值: 偏离总体 15pp 才值得成为洞见
     MIN_SAMPLES = 5        # 每策略最少样本
     AUTO_REFLECT_EVERY = 20  # 自优化: 每 N 条新经验自动反思 (无需人工触发)
+    LLM_REFINE_MIN_INTERVAL = 1800.0  # Phase-1 自转节流: LLM 精炼至少间隔 30 分钟
 
     def __init__(self, data_dir: Optional[Path] = None):
         self.dir = Path(data_dir) if data_dir else (
@@ -48,6 +49,8 @@ class SelfEvolutionLoop:
         self._exp_index: Dict[str, Dict[str, List[Dict]]] = defaultdict(lambda: defaultdict(list))
         self._exp_loaded = False
         self._since_reflect = 0
+        self._llm_busy = False
+        self._last_llm_refine = 0.0
 
     # ── 存储 ──────────────────────────────────────────────
     def _load_insights(self) -> Dict[str, Dict]:
@@ -104,6 +107,7 @@ class SelfEvolutionLoop:
                         self.reflect()   # 自优化: 满 N 条自动反思, 闭环自转
                     except Exception:
                         pass
+                    self._kick_llm_refine_async()   # Phase-1: 统计规则→LLM 精炼
                 return out_exp
             except Exception:
                 pass
@@ -114,6 +118,7 @@ class SelfEvolutionLoop:
                 self.reflect()
             except Exception:
                 pass
+            self._kick_llm_refine_async()   # Phase-1: 统计规则→LLM 精炼
         return exp_return
 
     def _register_exp(self, exp: Dict) -> bool:
@@ -140,6 +145,38 @@ class SelfEvolutionLoop:
         except Exception:
             pass
         self._exp_loaded = True
+
+    def _kick_llm_refine_async(self) -> None:
+        """Phase-1 自转: 统计反思后节流触发 LLM 精炼 (后台线程, 失败静默)。
+
+        条件: 无在跑任务 ∧ 距上次 ≥ LLM_REFINE_MIN_INTERVAL ∧ 存在未精炼洞见。
+        离线/未配模型时 llm_refine 内部自返回 {"refined":0}, 无副作用。
+        """
+        now = time.time()
+        if self._llm_busy:
+            return
+        if now - self._last_llm_refine < self.LLM_REFINE_MIN_INTERVAL:
+            return
+        with self._lock:
+            has_pending = any(not v.get("llm_refined") for v in self.insights.values())
+        if not has_pending:
+            return
+        self._llm_busy = True
+        self._last_llm_refine = now
+
+        def _job():
+            try:
+                self.llm_refine()
+            except Exception:
+                pass
+            finally:
+                self._llm_busy = False
+
+        try:
+            threading.Thread(target=_job, daemon=True,
+                             name="self-evo-llm-refine").start()
+        except Exception:
+            self._llm_busy = False
 
     # ── ② 反思蒸馏 (ExpeL 统计路线) ───────────────────────
     def reflect(self, min_samples: Optional[int] = None,

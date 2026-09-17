@@ -12,6 +12,18 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 
+@pytest.fixture(autouse=True)
+def _pin_cli_lang_zh(monkeypatch):
+    """night-34: 钉住 CLI 语言为 zh — 本文件文案断言按 zh 编写, 而 i18n 语言是
+    全局态 (其他测试会切到 en/es 等), 随机顺序下输出语言不定导致 6 处断言失败。"""
+    monkeypatch.setenv("MESHCTX_LANG", "zh")
+    try:
+        import src.i18n as _i18n
+        monkeypatch.setattr(_i18n, "_current_lang", "zh")
+    except Exception:
+        pass
+
+
 # ═══════════════════════════════════════════════════════════════
 # Fixtures
 # ═══════════════════════════════════════════════════════════════
@@ -532,7 +544,9 @@ class TestModelSlashUse:
         with patch("builtins.input", side_effect=EOFError):
             cmd_chat(args)
         captured = capsys.readouterr()
-        assert "无可用模型" in captured.out or "No model available" in captured.out
+        # night-13: 文案随环境 i18n 语言变化 (zh/en 至少三种), 断言语义而非具体措辞
+        assert any(s in captured.out for s in
+                   ("无可用模型", "No model available", "No available models"))
 
     @patch("src.model_registry.get_registry")
     def test_cmd_model_test_no_client(self, mock_get_registry, capsys):

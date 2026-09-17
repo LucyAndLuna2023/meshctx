@@ -264,7 +264,10 @@ class TestSingleton:
     """Singleton accessor tests"""
 
     def test_get_deep_research_returns_engine(self):
-        # Note: singleton is module-level; tests may share state
+        # night-13: 单例是模块级的, 随机顺序下可能已被前序测试以默认 max_depth=3 创建,
+        # 导致 max_depth=2 参数被忽略 — 本测试先复位单例, 自建引擎再断言
+        import src.core.deep_research as _dr
+        _dr._deep_research = None
         engine = get_deep_research(max_depth=2)
         assert isinstance(engine, DeepResearchEngine)
         assert engine.max_depth == 2

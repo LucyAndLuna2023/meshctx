@@ -82,8 +82,14 @@ loop.stats()                                 # 闭环健康度 (经验数/洞见
 
 ## 5. 后续路线 (Phase-1/2, 另行排期)
 
-- **Phase-1**: LLM 反思改写 (粗规则→精炼洞见, 接 chat_tools); SYSTEM_PROMPT 自动
-  注入 (web_ui 聊天链路挂 inject); GEPA 式提示变体 Pareto 池 (prompt_registry 对接)。
+> **✅ Phase-1 已部分落地** (night-4, 26ce3685, 2026-09-16 · 002zcode):
+> - SYSTEM_PROMPT 自动注入: 聊天链路 generate() 前 `inject("chat", k=2)` 追加为"经验参考"段 ✅
+> - 任务完成 reinforce 归因回灌: 同一 finally 块按真实成败调用 ✅ (第四环闭合, round33 P3-1)
+> - llm_refine 自转: record() 自动反思(每20条)后节流 (≥30min, 单飞) 后台线程触发; 离线/未配模型静默回退 ✅
+> - `POST /api/evolution/reinforce` 端点 ✅ (测试: tests/test_self_evolution.py 12p)
+> - **Phase-1 剩余**: GEPA 式提示变体 Pareto 池 (prompt_registry 对接)。
+
+- **Phase-1 (未排期项)**: GEPA 式提示变体 Pareto 池 (prompt_registry 对接)。
 - **Phase-2**: Voyager 式可执行技能库 (skill_manager 对接, 技能=代码+验证用例);
   跨机共享洞见 (集群 v6 通道 sync, 带哈希链防篡改 — 各实例经验互相增益)。
 - **安全边界不变式**: 洞见只从本地执行轨迹生成; 哈希链校验失败即拒绝加载;
