@@ -483,9 +483,6 @@ class TestCardWorker:
             w.join(timeout=3.0)
 
 
-    @pytest.mark.skip(reason="night-41 挂起: running-cancel 在特定时序下 interrupt 不触发且终态不落盘 "
-                            "(is_cancelled=True 后卡循环停摆, 15s 终态轮询耗尽; 插桩数据与根因分析见 "
-                            "night-ops/NIGHT_LOG; 修复中, 恢复前显式跳过避免套件间歇红)")
     def test_cancel_running_is_timely(self, tmp_dir):
         """P2-1 (002meshctx): cancel() API → interrupt_check 及时中断 (worker 级集合)。
 
