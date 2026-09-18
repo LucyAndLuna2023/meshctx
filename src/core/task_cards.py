@@ -606,7 +606,14 @@ class CardWorker:
         # (P3 002codex — 否则卡线程等满 120s 审批超时才收尾)
         if card.status == CardStatus.WAITING_APPROVAL:
             self._reject_card_approvals(card_id)
-        self._store.save(card)
+        # night-41b (P1 根修): fresh 重读合并后再落盘 — 不回写 stale 内存副本
+        # (status=running 旧对象), 防止覆盖卡线程/其他写者已落的终态 (run2 实锤)
+        fresh2 = self._store.load(card_id)
+        if fresh2 is not None:
+            fresh2.cancel_requested = True
+            self._store.save(fresh2)
+        else:
+            self._store.save(card)
         if self._loop is not None and not self._loop.is_closed():
             def _cancel_in_loop():
                 t = self._running.get(card_id)
@@ -839,6 +846,18 @@ class CardWorker:
             # 卡终结: 清审批残留 (P4 004meshctx) + 清取消登记 (P2-1) + 落盘终态
             if card is not None:
                 card.approval_pending = None
+                # night-41b (P1 根修): 先合并盘上最新态 — cancel() RUNNING 分支的
+                # stale 落盘可能在本线程 CANCELLED 落盘之后到达 (dbg-fin 实锤覆盖),
+                # 盘上已终态则保持, 不回写 COMPLETED
+                try:
+                    fresh = self._store.load(card.id)
+                    if fresh is not None and fresh.status in (
+                            CardStatus.CANCELLED, CardStatus.COMPLETED, CardStatus.FAILED):
+                        card.status = fresh.status
+                        card.error = fresh.error
+                        card.result = fresh.result
+                except Exception:
+                    pass
                 card.cancel_requested = False
                 self._store.save(card)
             with self._cancel_lock:
@@ -871,8 +890,12 @@ class CardWorker:
         card.mark(CardStatus.RUNNING)
         self._store.save(card)
         # 同步阻塞型 agent 执行 → 线程池 (每卡独立线程, 不占 worker 调度 loop)
+        import sys as _s, time as _t0
+        _t_start = _t0.monotonic()
+        print(f"[dbg] t={_t_start:.2f} _run_one: to_thread 启动 card={card.id[:8]}", file=_s.stderr)
         try:
             await asyncio.to_thread(self._run_card_in_thread, card.id)
+            print(f"[dbg] t={_t0.monotonic():.2f} _run_one: to_thread 返回 card={card.id[:8]}", file=_s.stderr)
         except asyncio.CancelledError:
             # night-41 (竞态修复): cancel() 的 t.cancel() 走到本路径时, 原实现
             # 不落终态 (状态卡死 RUNNING, UI 永远"运行中") 且 _running 槽位泄漏
