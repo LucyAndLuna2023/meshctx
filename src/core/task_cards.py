@@ -587,6 +587,11 @@ class CardWorker:
                            CardStatus.CANCELLED):
             return False  # 终止态卡不可取消
         card.cancel_requested = True
+        # night-41 (竞态修复): 磁盘态 QUEUED 不代表未执行 — worker 可能已领取并
+        # 在内存中运行 (RUNNING 落盘滞后)。双保险: 同步置 CANCELLED (consume 跳过)
+        # 且登记 _cancelled (正在执行的 interrupt_check 才能看到取消, 防决策/取消丢失)
+        with self._cancel_lock:
+            self._cancelled.add(card_id)
         if card.status == CardStatus.QUEUED:
             # 未被领取 → 同步标记取消 (consume 后到会跳过)
             card.mark(CardStatus.CANCELLED, error="cancelled before start")
@@ -866,7 +871,24 @@ class CardWorker:
         card.mark(CardStatus.RUNNING)
         self._store.save(card)
         # 同步阻塞型 agent 执行 → 线程池 (每卡独立线程, 不占 worker 调度 loop)
-        await asyncio.to_thread(self._run_card_in_thread, card.id)
+        try:
+            await asyncio.to_thread(self._run_card_in_thread, card.id)
+        except asyncio.CancelledError:
+            # night-41 (竞态修复): cancel() 的 t.cancel() 走到本路径时, 原实现
+            # 不落终态 (状态卡死 RUNNING, UI 永远"运行中") 且 _running 槽位泄漏
+            # (free 档 3 次取消后 worker 永久饱和)。现补终态落盘 + 槽位清理。
+            # 注: to_thread 的线程无法被取消, run_card_in_thread 的 interrupt_check
+            # (0.05s 周期) 会因 _cancelled 自行收尾。
+            self._running.pop(card.id, None)
+            try:
+                fresh = self._store.load(card.id)
+                if fresh is not None and fresh.status not in (
+                        CardStatus.CANCELLED, CardStatus.COMPLETED, CardStatus.FAILED):
+                    fresh.mark(CardStatus.CANCELLED, error="cancelled")
+                    self._store.save(fresh)
+            except Exception:
+                pass
+            raise
         self._running.pop(card.id, None)
 
 
