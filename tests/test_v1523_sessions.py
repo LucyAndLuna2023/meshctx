@@ -87,18 +87,30 @@ class TestSessionArchiveV1523:
         from src.main import app
         assert "1.5.23" == app.version or True
 
-    def test_archive_list_endpoint_nonempty_200(self):
-        """night-39 守门: /api/archive/list 非空目录必须 200
-        (审计 002codex P1-1: @staticmethod 错位曾致必然 500 且无测试覆盖)"""
+    def test_archive_list_endpoint_nonempty_200(self, tmp_path, monkeypatch):
+        """night-40 重写 (002codex: 原守门只写内存表无效) — SessionArchiver.save
+        真实落盘 session_*.json, 断言 /api/archive/list archives 非空 + summary 200
+        + legacy 回写 _index.json; 回退 @staticmethod 错位时本测试必红。"""
+        import json as _json
+        from src.core.session_archiver import get_archiver
+        arch = get_archiver()
+        monkeypatch.setattr(arch, "_archive_dir", tmp_path / "sessions")
+        monkeypatch.setattr(arch, "_index", {})
+        monkeypatch.setattr(arch, "_index_loaded", False)
+        monkeypatch.setattr(arch, "_list_cache", {}, raising=False)
+        arch.save(force=True)  # 真实落盘 session_*.json
+        files = list(arch._archive_dir.glob("session_*.json"))
+        assert files, "save 未产生 session_*.json"
         from src.main import app
         from fastapi.testclient import TestClient
         client = TestClient(app)
-        # 先确保至少一个存档存在
-        client.post("/api/sessions/archive", json={
-            "id": "test-session-list-guard",
-            "messages": [{"role": "user", "content": "guard", "timestamp": 1700000000}]
-        })
         resp = client.get("/api/archive/list")
         assert resp.status_code == 200, f"archive/list 非 200: {resp.status_code}"
         data = resp.json()
-        assert isinstance(data.get("archives"), list)
+        assert len(data["archives"]) >= 1, "archives 非空断言 (旧 bug 下此处红)"
+        assert any(a["id"] == files[0].stem for a in data["archives"])
+        rs = client.get("/api/archive/summary")
+        assert rs.status_code == 200
+        # legacy 回写: 侧车索引应已登记该文件
+        idx = arch._archive_dir / "_index.json"
+        assert idx.exists(), "侧车索引未回写"

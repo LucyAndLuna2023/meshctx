@@ -183,28 +183,49 @@ class TestCardWorker:
             w.join(timeout=3.0)
 
     def test_cancel_queued(self, tmp_dir):
-        import time
+        """night-40 (002codex): 确定性排队取消 — 用 3 张阻塞卡占满 free 档并发
+        (max_concurrent=3), 目标卡确定处于 queued 态再取消, 不依赖调度快慢。"""
+        import threading
         from src.core.task_cards import TaskCard, CardStatus
 
+        release = threading.Event()
+
         async def run_fn(card):
-            import asyncio
-            await asyncio.sleep(2)
-            return {"result": "slow"}
+            if card.prompt.startswith("BLOCKER"):
+                release.wait(timeout=20)
+                return {"result": "blocker-done"}
+            return {"result": "quick"}
 
         w = self._make(tmp_dir, run_fn)
         try:
+            # 占满 free 档并发 (3): 全部卡在 release 门上
+            blockers = []
+            for i in range(3):
+                b = TaskCard(owner="local", prompt=f"BLOCKER{i}")
+                assert w.enqueue(b) is True
+                blockers.append(b)
+            for _ in range(300):
+                running = sum(
+                    1 for b in blockers
+                    if (s := w._store.load(b.id)) and s.status == CardStatus.RUNNING)
+                if running >= 3:
+                    break
+                time.sleep(0.05)
+            assert running >= 3, "阻塞卡未全部进入 RUNNING"
+            # 目标卡: 3 并发已满 → 确定处于 queued
             c = TaskCard(owner="local", prompt="job")
             assert w.enqueue(c) is True
+            time.sleep(0.2)  # 给 worker 一轮循环确认 c 未被消费 (并发已满)
             assert w.cancel(c.id) is True
-            # 排队取消是异步投递, 轮询直到状态确认
             got = None
-            for _ in range(600):  # night-28: 轮询预算 4s→12s (满载容忍)
+            for _ in range(600):
                 time.sleep(0.02)
                 got = w._store.load(c.id)
                 if got and got.status == CardStatus.CANCELLED:
                     break
             assert got is not None and got.status == CardStatus.CANCELLED
         finally:
+            release.set()
             w.stop()
             w.join(timeout=3.0)
 

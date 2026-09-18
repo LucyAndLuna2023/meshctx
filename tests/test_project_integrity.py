@@ -449,6 +449,14 @@ class TestRegressionPrevention:
 class TestVersionResidue:
     """v3.131.2 B7 (004meshctx): 全链版本残留扫描 — openapi 声明/llms.txt 曾漏。"""
 
+    def test_fastapi_app_version_dynamic(self):
+        """night-40 (002codex): FastAPI app.version 必须等于 src.__version__
+        (sync 第4次打回 main.py 硬编码 3.131.1 — 防线闭环)"""
+        import src
+        import src.main as M
+        assert M.app.version == src.__version__, \
+            f"FastAPI app.version {M.app.version!r} != src.__version__ {src.__version__!r}"
+
     def test_api_docs_version_dynamic(self):
         """api_docs.py openapi version 必须引用 src.__version__ (禁硬编码)。"""
         import re

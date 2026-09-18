@@ -2891,8 +2891,10 @@ async def remote_models(provider_id: str):
                 "source": "negative-cache"}
     if entry.get("models") and (now - float(entry.get("fetched_at") or 0)) < _REMOTE_TTL:
         return {"provider": provider_id, "models": entry["models"], "source": "cache"}
-    models = _fetch_remote_model_ids(provider_id, _REMOTE_BASE_URLS.get(provider_id, ""),
-                                     _provider_api_key(provider_id, pcfg))
+    import asyncio
+    models = await asyncio.to_thread(
+        _fetch_remote_model_ids, provider_id,
+        _REMOTE_BASE_URLS.get(provider_id, ""), _provider_api_key(provider_id, pcfg))
     if models:
         cache = _load_remote_cache()
         cache[provider_id] = {"fetched_at": now, "models": models, "source": "live"}
@@ -2908,7 +2910,9 @@ async def remote_models(provider_id: str):
 async def refresh_remote_models():
     """手动全量刷新厂商实时模型 (force)"""
     try:
-        return {"status": "ok", "refreshed": _refresh_remote_models(force=True)}
+        import asyncio
+        refreshed = await asyncio.to_thread(_refresh_remote_models, force=True)
+        return {"status": "ok", "refreshed": refreshed}
     except Exception as e:
         return {"status": "error", "error": str(e), "refreshed": {}}
 
