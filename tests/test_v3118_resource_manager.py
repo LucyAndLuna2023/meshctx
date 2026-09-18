@@ -7,6 +7,23 @@ from src.core.resource_manager import (
 
 
 class TestResourceManager:
+    @pytest.fixture(autouse=True)
+    def _pin_no_pressure(self, monkeypatch):
+        """night-42b: 隔离机器内存/CPU 压力 — 本类测 ResourceManager 逻辑,
+        不测 healer 压力熔断 (机器满载时 pre_task 正确拒绝, 与逻辑无关)。"""
+        import types
+        rm_mod = __import__("src.core.resource_manager", fromlist=["ResourceManager"])
+        rm = rm_mod.get_resource_manager()
+        healer = getattr(rm, "healer", None)
+        if healer is not None:
+            monkeypatch.setattr(healer, "should_throttle", lambda: False, raising=False)
+            import time as _time
+            ok_check = types.SimpleNamespace(
+                status="ok", component="pinned", name="pinned", detail="night-42b",
+                level=None, message="pinned", timestamp=_time.time())
+            monkeypatch.setattr(healer, "check_all", lambda: [ok_check], raising=False)
+        monkeypatch.setattr(rm, "_throttle_checked", True, raising=False)
+
     def test_init(self):
         rm = ResourceManager()
         assert rm._budget.total_mb == 1024
