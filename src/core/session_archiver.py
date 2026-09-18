@@ -152,7 +152,6 @@ class SessionArchiver:
 
     # ── 加载 ──────────────────────────────────────────────
 
-    @staticmethod
     def _index_load(self):
         """加载持久化侧车索引 (一次/实例)。"""
         if self._index_loaded:
@@ -189,6 +188,7 @@ class SessionArchiver:
         }
         self._index_save()
 
+    @staticmethod
     def _read_json(path: Path) -> Optional[Dict]:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))

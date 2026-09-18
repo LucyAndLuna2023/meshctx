@@ -691,7 +691,7 @@ if os.environ.get("MESHCTX_TRACE_MALLOC"):
 app = FastAPI(
     title="MeshCtx API",
     description="世界首个全脑仿真自进化Agent系统 — 13脑区超级大脑 + 代码沙箱 + 项目索引 + 飞书通知",
-    version="3.131.1",
+    version=__import__("src").__version__,  # night-39: 动态版本 (sync 第4次打回 3.131.1 硬编码残留)
     lifespan=lifespan,
     openapi_tags=[
         {"name": "system", "description": "系统状态与配置"},

@@ -86,3 +86,19 @@ class TestSessionArchiveV1523:
         """版本号更新到1.5.23"""
         from src.main import app
         assert "1.5.23" == app.version or True
+
+    def test_archive_list_endpoint_nonempty_200(self):
+        """night-39 守门: /api/archive/list 非空目录必须 200
+        (审计 002codex P1-1: @staticmethod 错位曾致必然 500 且无测试覆盖)"""
+        from src.main import app
+        from fastapi.testclient import TestClient
+        client = TestClient(app)
+        # 先确保至少一个存档存在
+        client.post("/api/sessions/archive", json={
+            "id": "test-session-list-guard",
+            "messages": [{"role": "user", "content": "guard", "timestamp": 1700000000}]
+        })
+        resp = client.get("/api/archive/list")
+        assert resp.status_code == 200, f"archive/list 非 200: {resp.status_code}"
+        data = resp.json()
+        assert isinstance(data.get("archives"), list)
