@@ -49,6 +49,9 @@ class SessionArchiver:
         self._last_full_save: float = 0.0          # 实例属性 (v35 测试要求)
         self._save_counter: int = 0
         self._lock = threading.RLock()
+        # night-38: 持久化侧车索引 — {filename: {size, mtime, session_id, events, memory}}
+        self._index: Dict[str, Dict] = {}
+        self._index_loaded = False
 
     # ── 会话生命周期 ──────────────────────────────────────
 
@@ -136,6 +139,11 @@ class SessionArchiver:
             latest = self._archive_dir / "latest.json"
             latest.write_text(json.dumps(payload, ensure_ascii=False, indent=2),
                               encoding="utf-8")
+            # night-38 (P1): 同步维护侧车索引 — list 端点免全量解析
+            try:
+                self._index_update(path, path.stat(), payload)
+            except Exception:
+                pass
             logger.info("会话存档: %s", path)
             return str(path)
         except Exception as e:  # noqa: BLE001
@@ -145,6 +153,42 @@ class SessionArchiver:
     # ── 加载 ──────────────────────────────────────────────
 
     @staticmethod
+    def _index_load(self):
+        """加载持久化侧车索引 (一次/实例)。"""
+        if self._index_loaded:
+            return
+        self._index_loaded = True
+        try:
+            p = self._archive_dir / "_index.json"
+            if p.exists():
+                data = json.loads(p.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    self._index.update(data)
+        except Exception:
+            pass
+
+    def _index_save(self):
+        try:
+            self._archive_dir.mkdir(parents=True, exist_ok=True)
+            p = self._archive_dir / "_index.json"
+            tmp = self._archive_dir / "._index.json.tmp"
+            tmp.write_text(json.dumps(self._index, ensure_ascii=False),
+                           encoding="utf-8")
+            os.replace(tmp, p)
+        except Exception:
+            pass
+
+    def _index_update(self, path, st, payload: Dict):
+        """save() 后同步登记 (免解析)。"""
+        self._index_load()
+        self._index[path.name] = {
+            "size": st.st_size, "mtime": st.st_mtime,
+            "session_id": payload.get("session_id") or self._session_id,
+            "events": len(payload.get("events", []) or []),
+            "memory": len(payload.get("memory", []) or []),
+        }
+        self._index_save()
+
     def _read_json(path: Path) -> Optional[Dict]:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
@@ -195,6 +239,7 @@ class SessionArchiver:
         """
         if not self._archive_dir.exists():
             return []
+        self._index_load()
         archives = []
         seen = set()
         cache = getattr(self, "_list_cache", None)
@@ -202,16 +247,34 @@ class SessionArchiver:
             cache = self._list_cache = {}
         entries = []
         for path in self._archive_dir.glob("session_*.json"):
+            if path.name.startswith("_"):
+                continue
             try:
                 st = path.stat()
             except OSError:
                 continue
             entries.append((st.st_mtime, path, st))
+        index_dirty = False
         for mtime, path, st in sorted(entries, key=lambda e: e[0], reverse=True):
             seen.add(str(path))
             hit = cache.get(str(path))
             if hit is not None and hit[0] == mtime and hit[1] == st.st_size:
                 archives.append(hit[2])
+                continue
+            # night-38: 先查持久化侧车索引 (size+mtime 命中即免解析)
+            idx = self._index.get(path.name)
+            if idx and idx.get("size") == st.st_size and idx.get("mtime") == mtime:
+                entry = {
+                    "id": path.stem,
+                    "path": str(path),
+                    "timestamp": mtime,
+                    "size": st.st_size,
+                    "session_id": idx.get("session_id"),
+                    "events": idx.get("events", 0),
+                    "memory": idx.get("memory", 0),
+                }
+                cache[str(path)] = (mtime, st.st_size, entry)
+                archives.append(entry)
                 continue
             data = self._read_json(path) or {}
             entry = {
@@ -224,9 +287,18 @@ class SessionArchiver:
                 "memory": len(data.get("memory", [])),
             }
             cache[str(path)] = (mtime, st.st_size, entry)
+            # 解析结果回写侧车索引 (legacy 文件首访后不再二次解析)
+            self._index[path.name] = {
+                "size": st.st_size, "mtime": mtime,
+                "session_id": entry["session_id"],
+                "events": entry["events"], "memory": entry["memory"],
+            }
+            index_dirty = True
             archives.append(entry)
         for gone in [k for k in cache if k not in seen]:
             cache.pop(gone, None)
+        if index_dirty:
+            self._index_save()
         return archives
 
     def get_summary(self, **kw) -> Dict:
