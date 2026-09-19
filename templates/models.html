@@ -21,8 +21,8 @@
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('ollama','qwen2.5:7b','Ollama','http://{{ ollama_host }}:11434/v1','')">🦙 Ollama</button>
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('vllm','qwen','vLLM','http://{{ vllm_host }}:8000/v1','')">🚀 vLLM</button>
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('localai','gpt-3.5-turbo','LocalAI','http://{{ localai_host }}:8080/v1','')">🏠 LocalAI</button>
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('openai-compat','gpt-3.5-turbo','{{ t("mdl_generic_openai") }}','https://your-api.com/v1','sk-...')">🔌 {{ t('mdl_generic_openai') }}</button>
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('custom','custom-model','{{ t("mdl_full_custom") }}','https://your-server.com','your-key')">⚙️ {{ t('mdl_full_custom') }}</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('openai-compat','gpt-3.5-turbo','{{ t('mdl_generic_openai') }}','https://your-api.com/v1','sk-...')">🔌 {{ t('mdl_generic_openai') }}</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('custom','custom-model','{{ t('mdl_full_custom') }}','https://your-server.com','your-key')">⚙️ {{ t('mdl_full_custom') }}</button>
 </div>
 
 <!-- 添加/编辑表单(默认隐藏) -->
@@ -36,7 +36,7 @@
         <div class="form-group"><label>{{ t('mdl_model_name_opt') }}</label><input id="fmodel" placeholder="auto"></div>
         <div class="form-group"><label>{{ t('mdl_base_url_opt') }}</label><input id="furl" placeholder="auto"></div>
         <div style="display:flex;gap:8px;">
-            <button class="btn btn-primary" onclick="saveModel()">💾 {{ t("save") }}</button>
+            <button class="btn btn-primary" onclick="saveModel()">💾 {{ t('save') }}</button>
             <button class="btn btn-ghost" onclick="hideForm()">{{ t('mdl_cancel') }}</button>
             <button class="btn btn-ghost" onclick="testFromForm()" style="margin-left:auto;">🔍 {{ t('mdl_test_conn') }}</button>
         </div>
