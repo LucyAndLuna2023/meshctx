@@ -261,7 +261,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
             <option value="ar">🇸🇦 العربية</option>
             <option value="ru">Русский</option>
         </select>
-        <button onclick="toggleTheme()" id="themeToggle" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:4px;font-size:14px;cursor:pointer;margin-left:4px;transition:border-color 0.3s ease,color 0.3s ease;" title="{{ t("toggle_theme") }}">🌙</button>
+        <button onclick="toggleTheme()" id="themeToggle" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:4px;font-size:14px;cursor:pointer;margin-left:4px;transition:border-color 0.3s ease,color 0.3s ease;" title="{{ t('toggle_theme') }}">🌙</button>
     </div>
 </div>
 <main class="main" id="main-content">
@@ -1615,8 +1615,8 @@ _TEMPLATES["models.html"] = r"""{% extends "base.html" %}
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('ollama','qwen2.5:7b','Ollama','http://{{ ollama_host }}:11434/v1','')">🦙 Ollama</button>
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('vllm','qwen','vLLM','http://{{ vllm_host }}:8000/v1','')">🚀 vLLM</button>
     <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('localai','gpt-3.5-turbo','LocalAI','http://{{ localai_host }}:8080/v1','')">🏠 LocalAI</button>
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('openai-compat','gpt-3.5-turbo','{{ t("mdl_generic_openai") }}','https://your-api.com/v1','sk-...')">🔌 {{ t('mdl_generic_openai') }}</button>
-    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('custom','custom-model','{{ t("mdl_full_custom") }}','https://your-server.com','your-key')">⚙️ {{ t('mdl_full_custom') }}</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('openai-compat','gpt-3.5-turbo','{{ t('mdl_generic_openai') }}','https://your-api.com/v1','sk-...')">🔌 {{ t('mdl_generic_openai') }}</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="presetModel('custom','custom-model','{{ t('mdl_full_custom') }}','https://your-server.com','your-key')">⚙️ {{ t('mdl_full_custom') }}</button>
 </div>
 
 <!-- 添加/编辑表单(默认隐藏) -->
