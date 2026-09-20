@@ -891,11 +891,8 @@ class CardWorker:
         self._store.save(card)
         # 同步阻塞型 agent 执行 → 线程池 (每卡独立线程, 不占 worker 调度 loop)
         import sys as _s, time as _t0
-        _t_start = _t0.monotonic()
-        print(f"[dbg] t={_t_start:.2f} _run_one: to_thread 启动 card={card.id[:8]}", file=_s.stderr)
         try:
             await asyncio.to_thread(self._run_card_in_thread, card.id)
-            print(f"[dbg] t={_t0.monotonic():.2f} _run_one: to_thread 返回 card={card.id[:8]}", file=_s.stderr)
         except asyncio.CancelledError:
             # night-41 (竞态修复): cancel() 的 t.cancel() 走到本路径时, 原实现
             # 不落终态 (状态卡死 RUNNING, UI 永远"运行中") 且 _running 槽位泄漏

@@ -497,7 +497,6 @@ class TestCardWorker:
         async def run_fn(card):
             import asyncio
             import sys as _s
-            print(f"[dbg] run_fn START card={card.id[:8]}", file=_s.stderr)
             # 模拟长循环: 每 0.05s 检查一次 interrupt_check
             from src.core.task_card_runner import make_interrupt_check
             from src.core.interruptible_runner import InterruptSignal

@@ -272,7 +272,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
     <div class="cmd-panel">
         <div class="cmd-search-wrap">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input class="cmd-search" id="cmdSearch" type="text" placeholder="{{ t("cmd_search_placeholder") }}" aria-label="{{ t("cmd_search_placeholder") }}" autocomplete="off" oninput="filterCommands()" onkeydown="handleCmdKey(event)">
+            <input class="cmd-search" id="cmdSearch" type="text" placeholder="{{ t('cmd_search_placeholder') }}" aria-label="{{ t('cmd_search_placeholder') }}" autocomplete="off" oninput="filterCommands()" onkeydown="handleCmdKey(event)">
         </div>
         <div class="cmd-list" id="cmdList"></div>
     </div>
@@ -4500,7 +4500,7 @@ _TEMPLATES["models_list.html"] = r"""{% extends "base.html" %}
 </div>
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <input id="modelSearch" placeholder="{{ t("search_models") }}..." aria-label="{{ t("search_models") }}" style="max-width:300px;" oninput="filterModels()">
+        <input id="modelSearch" placeholder="{{ t('search_models') }}..." aria-label="{{ t('search_models') }}" style="max-width:300px;" oninput="filterModels()">
         <a href="/ui/setup" class="btn btn-primary">+ {{ t("configure_model") }}</a>
     </div>
     <table>
@@ -4565,7 +4565,7 @@ _TEMPLATES["providers.html"] = r"""{% extends "base.html" %}
 </div>
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <input id="providerSearch" placeholder="{{ t("search_providers") }}..." aria-label="{{ t("search_providers") }}" style="max-width:300px;" oninput="filterProviders()">
+        <input id="providerSearch" placeholder="{{ t('search_providers') }}..." aria-label="{{ t('search_providers') }}" style="max-width:300px;" oninput="filterProviders()">
         <a href="/ui/setup" class="btn btn-primary">+ {{ t("configure_provider") }}</a>
     </div>
     <table>
