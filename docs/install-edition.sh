@@ -130,5 +130,9 @@ echo ""
 echo -e "${GREEN}══════════════════════════════════════${NC}"
 echo -e "${GREEN}✅ meshctx ${EDITION_LABEL} v${VERSION} 安装完成${NC}"
 echo -e "${GREEN}══════════════════════════════════════${NC}"
+# v3.131.4 免登录保证: 无条件清除 .env 密码残留(设计上仅公网部署手动设 MESHCTX_PASSWORD)
+sed -i '/^MESHCTX_PASSWORD=/d' "${INSTALL_DIR}/.env" 2>/dev/null || true
+sed -i '/^MESHCTX_PASSWORD=/d' "${HOME}/.meshctx/.env" 2>/dev/null || true
+echo -e "${GREEN}✓${NC} 认证: 免登录 (本机/局域网直接可用; 公网部署可手动设置 MESHCTX_PASSWORD)"
 echo "运行: cd $INSTALL_DIR/src/meshctx && python3 -m uvicorn src.main:app --port 3001"
 echo "验证: cd $INSTALL_DIR/src/meshctx && python3 -c 'from src.core._edition import detect_edition; print(detect_edition())'"

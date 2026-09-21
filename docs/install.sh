@@ -961,6 +961,14 @@ echo -e "${GREEN}║          $(T install_banner)                     ║${NC}"
 echo -e "${GREEN}║                                                  ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════╝${NC}"
 echo ""
+# v3.131.4 免登录保证: 无条件清除两处 .env 的密码残留(不只备份恢复分支)。
+# 密码残留会使 UI 弹登录页(设计上仅公网部署需要手动设置 MESHCTX_PASSWORD)。
+sed -i '/^MESHCTX_PASSWORD=/d' "${INSTALL_DIR}/.env" 2>/dev/null || true
+sed -i '/^MESHCTX_PASSWORD=/d' "${HOME}/.meshctx/.env" 2>/dev/null || true
+case "$LANG_CHOICE" in
+    zh) echo -e "  ${GREEN}✓${NC} 认证: 免登录 (本机/局域网直接可用; 公网部署可手动设置 MESHCTX_PASSWORD)" ;;
+    *)  echo -e "  ${GREEN}✓${NC} Auth: password-free (local/LAN direct access; set MESHCTX_PASSWORD manually for public deploys)" ;;
+esac
 if [ "$KILLED" = "1" ]; then
     echo -e "  ${GREEN}✓${NC} $(T auto_stopped)"
 fi
