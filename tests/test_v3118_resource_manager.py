@@ -22,7 +22,6 @@ class TestResourceManager:
                 status="ok", component="pinned", name="pinned", detail="night-42b",
                 level=None, message="pinned", timestamp=_time.time())
             monkeypatch.setattr(healer, "check_all", lambda: [ok_check], raising=False)
-        monkeypatch.setattr(rm, "_throttle_checked", True, raising=False)
 
     def test_init(self):
         rm = ResourceManager()

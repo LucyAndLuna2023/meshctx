@@ -39,6 +39,18 @@ def test_registry_sanitize_non_ascii_raises_locatable_error():
     assert "重新复制" in msg       # 含修复指引
 
 
+def test_registry_sanitize_sample_cap_and_none_safe():
+    """round44 P4-1: 错误样本上限 5 处 (7 个非 ASCII 只报前 5) + None 安全。"""
+    from src.model_registry import _sanitize_api_key
+    with pytest.raises(ValueError) as ei:
+        _sanitize_api_key("中" * 7, "m")
+    msg = str(ei.value)
+    for i in range(5):
+        assert f"位置{i}(U+4E2D)" in msg
+    assert "位置5" not in msg          # bad[:5] 截断
+    assert _sanitize_api_key(None, "m") == ""
+
+
 def test_registry_sanitize_base_url_non_ascii_raises():
     from src.model_registry import _sanitize_base_url
     assert _sanitize_base_url("https://open.bigmodel.cn/api/paas/v4/", "m") == \
