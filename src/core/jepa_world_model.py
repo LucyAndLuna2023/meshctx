@@ -71,7 +71,10 @@ class JEPAEncoder:
         self.momentum = config.momentum
 
         # Real orthogonal projection matrices (QR decomposition, v3.115.36)
-        rng = np.random.RandomState(int(time.time() * 1000) % 10000)
+        # v3.131.5 (004meshctx round43 P3): 种子不再取 wall-clock — 同毫秒初始化
+        # 会产生相同投影矩阵致 test_embed_different_states 概率性 flaky;
+        # 改用 np.random 全局态派生种子 (进程内天然递进, 测试可 np.random.seed 固定)。
+        rng = np.random.RandomState(np.random.randint(0, 2**31 - 1))
         raw = rng.randn(self.dim, self.dim) * 0.02
         self.W_context, _ = np.linalg.qr(raw)  # orthogonal → preserves information
         self.b_context = np.zeros(self.dim)     # no bias → pure projection
@@ -123,8 +126,9 @@ class JEPAPredictor:
         self.lr = config.learning_rate
 
         # Orthogonal predictor layers (v3.115.38: no fixed seed)
+        # v3.131.5: 同上 — 弃 wall-clock 种子 (flaky 根因, 004meshctx round43)
         self.layers: List[Tuple[np.ndarray, np.ndarray]] = []
-        rng = np.random.RandomState(int(time.time() * 1000) % 10000 + self.depth * 7)
+        rng = np.random.RandomState(np.random.randint(0, 2**31 - 1))
         for i in range(self.depth):
             in_dim = self.dim if i == 0 else self.dim
             raw = rng.randn(self.dim, in_dim) * 0.02
