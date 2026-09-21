@@ -25,7 +25,7 @@ cp requirements.txt "${DEB_ROOT}/opt/meshctx/" 2>/dev/null || true
 cat > "${DEB_ROOT}/usr/local/bin/meshctx" << 'EOF'
 #!/bin/bash
 cd /opt/meshctx
-exec python3 -m uvicorn src.main:app --host 0.0.0.0 --port 3000 "$@"
+exec python3 -m uvicorn src.main:app --host 0.0.0.0 --port 3001 "$@"
 EOF
 chmod 755 "${DEB_ROOT}/usr/local/bin/meshctx"
 
