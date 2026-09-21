@@ -13,7 +13,7 @@ title meshctx Edition Installer
 
 set "EDITION=%~1"
 if "%EDITION%"=="" set "EDITION=personal"
-set "VERSION=3.131.4"
+set "VERSION=3.131.5"
 set "INSTALL_DIR=%USERPROFILE%\.meshctx"
 
 if "%EDITION%"=="personal" (
@@ -106,3 +106,8 @@ echo   DONE: meshctx %LABEL% v%VERSION%
 echo   Run: cd %INSTALL_DIR%\src\meshctx ^&^& python -m uvicorn src.main:app --port 3001
 echo   Verify: python -c "from src.core._edition import detect_edition; print(detect_edition())"
 echo  ============================================
+
+REM v3.131.5: free-login guarantee - strip MESHCTX_PASSWORD residue from .env
+powershell -Command "$f='%INSTALL_DIR%\.env'; if (Test-Path $f) { (Get-Content $f) | Where-Object {$_ -notmatch '^MESHCTX_PASSWORD='} | Set-Content $f }" 2>nul
+REM v3.131.5: UTF-8 mode default (prevent cp936/ascii codec errors on zh-CN Windows)
+setx PYTHONUTF8 1 >nul 2>nul
