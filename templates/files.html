@@ -3,28 +3,28 @@
 {% block content %}
 <div class="container" style="max-width:1000px;margin:30px auto;padding:20px;">
     <h2 style="margin-bottom:6px;">📂 File Browser</h2>
-    <p style="color:var(--muted);margin-bottom:20px;">浏览 meshctx 工作区文件（/api/files，2026-08-26 004meshctx 真实化）</p>
+    <p style="color:var(--muted);margin-bottom:20px;">{{ t("files_subtitle") }}</p>
 
     <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">
-        <input id="pathInput" value="" placeholder="路径（默认 ~/.meshctx）" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;">
-        <button onclick="goPath()" style="padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:var(--accent);color:#fff;cursor:pointer;font-size:13px;">打开</button>
-        <button onclick="goUp()" style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);cursor:pointer;font-size:13px;">⬆ 上级</button>
-        <input id="searchInput" placeholder="搜索..." oninput="applySearch()" style="width:140px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;">
+        <input id="pathInput" value="" placeholder="{{ t("files_path_ph") }}" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;">
+        <button onclick="goPath()" style="padding:8px 16px;border:1px solid var(--border);border-radius:8px;background:var(--accent);color:#fff;cursor:pointer;font-size:13px;">{{ t("files_open") }}</button>
+        <button onclick="goUp()" style="padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);cursor:pointer;font-size:13px;">{{ t("files_up") }}</button>
+        <input id="searchInput" placeholder="{{ t("common_search_ph") }}" oninput="applySearch()" style="width:140px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;">
     </div>
 
     <div class="card" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
             <thead>
                 <tr style="border-bottom:1px solid var(--border);color:var(--muted);">
-                    <th style="padding:10px 14px;text-align:left;">名称</th>
-                    <th style="padding:10px 14px;text-align:left;">类型</th>
-                    <th style="padding:10px 14px;text-align:right;">大小</th>
-                    <th style="padding:10px 14px;text-align:right;">修改时间</th>
+                    <th style="padding:10px 14px;text-align:left;">{{ t("files_name") }}</th>
+                    <th style="padding:10px 14px;text-align:left;">{{ t("files_type") }}</th>
+                    <th style="padding:10px 14px;text-align:right;">{{ t("files_size") }}</th>
+                    <th style="padding:10px 14px;text-align:right;">{{ t("files_mtime") }}</th>
                 </tr>
             </thead>
             <tbody id="fileRows"></tbody>
         </table>
-        <div id="fileEmpty" style="padding:24px;text-align:center;color:var(--muted);display:none;">无文件</div>
+        <div id="fileEmpty" style="padding:24px;text-align:center;color:var(--muted);display:none;">{{ t("files_empty") }}</div>
     </div>
 </div>
 

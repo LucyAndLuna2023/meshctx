@@ -485,11 +485,11 @@ body {
 <!-- 2026-08-26 004meshctx: 常驻对话侧边栏 (DSH 式) -->
 <div class="chat-sidebar" id="chatSidebar">
   <div class="sb-header">
-    <span>💬 对话</span>
-    <button class="sb-new" onclick="newChat()">➕ 新对话</button>
+    <span data-lang-key="chat_sb_title">💬 Conversations</span>
+    <button class="sb-new" onclick="newChat()" data-lang-key="chat_new">➕ New chat</button>
   </div>
   <div id="sidebarList">
-    <div class="sb-empty">加载中...</div>
+    <div class="sb-empty" data-lang-key="chat_sb_loading">Loading...</div>
   </div>
 </div>
 <div class="chat-main">
@@ -518,15 +518,15 @@ body {
     <option value="he">עברית</option>
     <option value="ru">Русский</option>
   </select>
-  <button onclick="newChat()" data-lang-key="chat_new">➕ 新对话</button>
+  <button onclick="newChat()" data-lang-key="chat_new">➕ New Chat</button>
   <span style="position:relative" id="convSwitchWrap">
-    <button onclick="toggleConvDropdown()" id="convSwitchBtn" title="对话历史" data-lang-key="chat_history">📚 对话历史</button>
+    <button onclick="toggleConvDropdown()" id="convSwitchBtn" title="Chat history" data-lang-key="chat_history">📚 Chat history</button>
     <div class="conv-dropdown" id="convDropdown" style="display:none"></div>
   </span>
   <button onclick="toggleChatTheme()" id="chatThemeBtn" title="切换主题" style="font-size:14px;">☀️</button>
-  <button id="hubBtn" onclick="toggleHubPanel()" title="Agent 派活中心" data-lang-key="hub_title">🤖 派活</button>
+  <button id="hubBtn" onclick="toggleHubPanel()" title="Agent task center" data-lang-key="hub_title">Agent Hub</button>
   <span style="flex:1"></span>
-  <a href="/ui/" style="color:var(--muted);text-decoration:none;font-size:13px" data-lang-key="chat_console">← 控制台</a>
+  <a href="/ui/" style="color:var(--muted);text-decoration:none;font-size:13px" data-lang-key="chat_console">← Console</a>
 </div>
 <div class="messages" id="messages">
   <div class="msg ai">
@@ -535,7 +535,7 @@ body {
       <div class="bubble-header">
         <span class="timestamp"></span>
       </div>
-      <span data-lang-key="chat_welcome">你好！我是 meshctx。我可以读文件、搜代码、执行命令。<br>试试问我：读一下 README.md</span>
+      <span data-lang-key="chat_welcome">Hello! I'm meshctx. I can read files, search code, and run commands.<br>Try asking: read README.md</span>
     </div>
   </div>
 </div>
@@ -550,14 +550,14 @@ body {
 <div class="hub-overlay" id="hubOverlay" onclick="toggleHubPanel()"></div>
 <div class="hub-panel" id="hubPanel">
   <div class="hub-head">
-    <h3>🤖 <span data-lang-key="hub_title">Agent 派活中心</span></h3>
+    <h3>🤖 <span data-lang-key="hub_title">Agent Hub</span></h3>
     <button class="hub-close" onclick="toggleHubPanel()">✕</button>
   </div>
   <div class="hub-body">
     <div class="hub-spawn">
-      <input id="hubPrompt" data-lang-key-placeholder="hub_prompt_ph"
-             placeholder="一句话派活，如：读 README 总结项目结构" onkeydown="if(event.key==='Enter')spawnCard()">
-      <button id="hubSpawnBtn" onclick="spawnCard()" data-lang-key="hub_spawn_btn">派活</button>
+      <input id="hubPrompt"
+             data-lang-key-placeholder="hub_prompt_ph" placeholder="One-line task, e.g. summarize README.md" onkeydown="if(event.key==='Enter')spawnCard()">
+      <button id="hubSpawnBtn" onclick="spawnCard()" data-lang-key="hub_spawn_btn">Deploy</button>
     </div>
     <div class="hub-quota" id="hubQuota"></div>
     <div id="hubCards"></div>
@@ -582,45 +582,45 @@ body {
         <div id="orgMe" style="font-size:12px;opacity:.85"></div>
         <div id="orgDepts" style="font-size:12px;margin:4px 0"></div>
         <label style="font-size:12px;display:flex;gap:4px;align-items:center;cursor:pointer">
-          <input type="checkbox" id="orgDeptView" onchange="orgDeptToggle()"> <span data-lang-key="org_dept_view">部门视图</span>
+          <input type="checkbox" id="orgDeptView" onchange="orgDeptToggle()"> <span data-lang-key="org_dept_view">Dept view</span>
         </label>
       </div>
     </div>
 <!-- v3.115.30: Keyboard-confirm panel -->
 <div class="confirm-panel" id="confirmPanel">
-  <div class="confirm-title">🔐 <span data-lang-key="confirm_title">需要你的确认</span></div>
+  <div class="confirm-title">🔐 <span data-lang-key="confirm_title">Permission Required</span></div>
   <div class="confirm-options" id="confirmOptions">
     <div class="confirm-option active" data-action="agree" onclick="confirmAction('agree')">
       <span class="co-icon">✅</span>
-      <span class="co-label" data-lang-key="confirm_agree">同意</span>
-      <span class="co-hint" data-lang-key="confirm_agree_hint">允许执行</span>
+      <span class="co-label" data-lang-key="confirm_agree">Agree</span>
+      <span class="co-hint" data-lang-key="confirm_agree_hint">Allow execution</span>
     </div>
     <div class="confirm-option" data-action="reject" onclick="confirmAction('reject')">
       <span class="co-icon">❌</span>
-      <span class="co-label" data-lang-key="confirm_reject">拒绝</span>
-      <span class="co-hint" data-lang-key="confirm_reject_hint">不允许</span>
+      <span class="co-label" data-lang-key="confirm_reject">Reject</span>
+      <span class="co-hint" data-lang-key="confirm_reject_hint">Deny</span>
     </div>
     <div class="confirm-option" data-action="custom" onclick="confirmAction('custom')">
       <span class="co-icon">💬</span>
-      <span class="co-label" data-lang-key="confirm_other">其他</span>
-      <span class="co-hint" data-lang-key="confirm_other_hint">自行输入回复</span>
+      <span class="co-label" data-lang-key="confirm_other">Other</span>
+      <span class="co-hint" data-lang-key="confirm_other_hint">Type custom reply</span>
     </div>
   </div>
   <div class="confirm-custom" id="approvalCustomWrap" style="display:none">
     <input id="approvalCustom" class="approval-custom-input" data-lang-key="confirm_custom_ph"
-           placeholder="自定义处理（如：只保留前10行 / 改存到其他路径 / 换一个文件名）..."
+           data-lang-key-placeholder="approval_custom_ph" placeholder="Custom handling (e.g. keep first 10 lines / save as another name)..."
            onkeydown="if(event.key==='Enter'){event.preventDefault();event.stopPropagation();confirmAction('customSubmit')}" />
-    <button class="approval-custom-ok" onclick="confirmAction('customSubmit')">确定</button>
+    <button class="approval-custom-ok" onclick="confirmAction('customSubmit')" data-lang-key="am_confirm_ok">OK</button>
   </div>
   <div class="confirm-hint">
-    <span><kbd>↑↓</kbd> <span data-lang-key="confirm_nav_hint">选择</span></span>
-    <span><kbd>Enter</kbd> <span data-lang-key="confirm_enter_hint">确认</span></span>
-    <span><kbd>Esc</kbd> <span data-lang-key="confirm_esc_hint">取消</span></span>
+    <span><kbd>↑↓</kbd> <span data-lang-key="confirm_nav_hint">Navigate</span></span>
+    <span><kbd>Enter</kbd> <span data-lang-key="confirm_enter_hint">Confirm</span></span>
+    <span><kbd>Esc</kbd> <span data-lang-key="confirm_esc_hint">Cancel</span></span>
   </div>
 </div>
 <div class="info-bar">
-  <span id="modelInfo"><span data-lang-key="chat_model">模型</span>: deepseek:v4-flash</span>
-  <span id="hybridMode" style="color:var(--accent)">⚡ <span data-lang-key="chat_direct">直出</span></span>
+  <span id="modelInfo"><span data-lang-key="chat_model">Model</span>: deepseek:v4-flash</span>
+  <span id="hybridMode" style="color:var(--accent)">⚡ <span data-lang-key="chat_direct">Direct</span></span>
   <span id="evoIndicator" style="color:var(--muted);cursor:pointer;font-size:11px" title="Self-Evolution: system learning status" onclick="toggleEvoDetails()">🧠</span>
   <span id="freeEnergy" style="color:var(--muted)"></span>
   <span id="tokenCount"></span>
@@ -635,29 +635,29 @@ body {
 <!-- Status Panel -->
 <div class="status-panel" id="statusPanel">
   <div class="status-panel-title">
-    📊 <span data-lang-key="chat_status_panel">状态面板</span>
+    📊 <span data-lang-key="chat_status_panel">Status Panel</span>
     <button onclick="toggleStatusPanel()" title="收起">−</button>
   </div>
   <div class="status-row">
-    <span class="label" data-lang-key="chat_mode">当前模式</span>
-    <span class="value mode-direct" id="panelMode">⚡ <span data-lang-key="chat_direct">直出</span></span>
+    <span class="label" data-lang-key="chat_mode">Mode</span>
+    <span class="value mode-direct" id="panelMode">⚡ <span data-lang-key="chat_direct">Direct</span></span>
   </div>
   <div class="status-row">
-    <span class="label" data-lang-key="chat_free_energy">自由能 F</span>
+    <span class="label" data-lang-key="chat_free_energy">Free Energy F</span>
     <span class="value free-energy" id="panelFreeEnergy">—</span>
   </div>
   <div class="status-row">
-    <span class="label" data-lang-key="chat_tests_passed">测试通过</span>
+    <span class="label" data-lang-key="chat_tests_passed">Tests Passed</span>
     <span class="value tests-passed" id="panelTestsPassed">555</span>
   </div>
   <div class="status-row">
-    <span class="label" data-lang-key="chat_agent_status">Agent 状态</span>
+    <span class="label" data-lang-key="chat_agent_status">Agent Status</span>
     <span class="value agent-idle" id="panelAgentStatus">
-      <span class="status-dot gray"></span><span data-lang-key="chat_idle">空闲</span>
+      <span class="status-dot gray"></span><span data-lang-key="chat_idle">Idle</span>
     </span>
   </div>
   <div class="status-row">
-    <span class="label" data-lang-key="chat_model_label">模型</span>
+    <span class="label" data-lang-key="chat_model_label">Model</span>
     <span class="value" id="panelModel" style="font-size:11px;color:var(--accent)">deepseek:v4-flash</span>
   </div>
 </div>
@@ -772,7 +772,70 @@ const LANG = {
   "add_model_id": "Model ID",
   "add_model_name": "Model Name",
   "add_model_baseurl": "Base URL (OpenAI-compatible)",
-  "add_model_btn": "Add"
+  "add_model_btn": "Add",
+  "chat_sb_title": "💬 Conversations",
+  "chat_sb_loading": "Loading...",
+  "am_confirm_ok": "OK",
+  "hub_card_load_fail": "Failed to load task cards",
+  "hub_approve": "✅ Approve",
+  "hub_reject": "❌ Reject",
+  "hub_cancel": "⏹ Cancel",
+  "hub_retry": "🔄 Retry",
+  "hub_delete": "🗑 Delete",
+  "chat_processing": "🔄 Processing your request...",
+  "chat_tool_call": "🔄 Calling tool:",
+  "chat_need_confirm": " ⚠️ needs approval",
+  "chat_tool_result": "📄 Tool result",
+  "chat_tool_chars": "chars",
+  "chat_tool_expand": " — click to expand",
+  "chat_copy_full": "Copy full text",
+  "evo_empty": "No insights yet — the system learns as you use it",
+  "hist_empty": "No conversations yet",
+  "hist_load_fail": "Load failed",
+  "hist_start_hint": "Click “New chat” to start",
+  "am_key_optional": "(optional · leave empty if this provider is already configured)",
+  "am_no_key": "No key?",
+  "am_get_key": "Get one →",
+  "approval_custom_ph": "Custom handling (e.g. keep first 10 lines / save as another name)...",
+  "chat_set_default": "(set as global default · applies to new chats)",
+  "hub_del_confirm": "Delete this task card?",
+  "hub_spawn_fail": "Spawn failed:",
+  "hub_approve_fail": "Approval failed:",
+  "hub_delete_fail": "Delete failed:",
+  "ms_empty_retry": "⚠️ Model list empty — click to retry",
+  "ms_load_fail": "⚠️ Model list failed to load — click to retry",
+  "ms_switch_label": "Switch model:",
+  "ms_empty_server": "Server returned an empty model list",
+  "ms_err_auth": "(please log in or check MESHCTX_PASSWORD)",
+  "chat_interrupted_prev": "⏹ Previous task interrupted, processing the new message...",
+  "chat_err_rate": "⏳ Rate limited by the provider — wait 30-60s and retry, or switch models in Model Hub [",
+  "chat_err_billing": "💰 Insufficient balance or quota — top up at the provider console, or switch models in Model Hub [",
+  "chat_err_timeout": "⏱ Request timed out — the provider responded too slowly; retry or switch models [",
+  "chat_err_network": "🌐 Cannot reach the provider endpoint — check the network and Base URL (make sure a self-hosted gateway is running) [",
+  "chat_err_nomodel": "🧭 Model not found — the provider may have removed it; pick another model in Model Hub [",
+  "chat_err_noresp": "[No response] Please retry",
+  "chat_err_429": "[HTTP 429] Please wait 60 seconds and retry",
+  "am_need_fields": "⚠ id/provider required",
+  "am_custom_need_base": "⚠ custom requires a Base URL",
+  "am_adding": "✓ Added — testing...",
+  "am_test_ok": "✓ Test passed:",
+  "am_test_fail": "⚠ Added, but test failed:",
+  "hist_del_confirm": "Delete this conversation?",
+  "kb_new_desc": "Clear history and start a new chat",
+  "kb_focus_label": "Focus input",
+  "kb_focus_desc": "Jump to the chat input",
+  "kb_copy_label": "Copy last reply",
+  "kb_copy_desc": "Copy the AI’s last reply",
+  "conv_not_found": "Conversation not found or deleted",
+  "conv_load_fail": "Failed to load conversation:",
+  "chat_need_login": "login required",
+  "chat_login_hint": "Visit /ui/login to sign in and retry (local installs need no password by default; sign in only if you set MESHCTX_PASSWORD).",
+  "chat_err_auth_http": "Auth failed",
+  "chat_http_fail": "Request failed",
+  "am_add_fail": "Add failed",
+  "kb_console_desc": "Open the meshctx dashboard",
+  "chat_history": "📚 Chat history",
+  "am_base_autofill": "(autofilled, editable)"
  },
  "zh": {
   "chat_agent_status": "Agent 状态",
@@ -846,7 +909,70 @@ const LANG = {
   "add_model_id": "模型 ID",
   "add_model_name": "模型名",
   "add_model_baseurl": "Base URL (OpenAI 兼容)",
-  "add_model_btn": "添加"
+  "add_model_btn": "添加",
+  "chat_sb_title": "💬 对话",
+  "chat_sb_loading": "加载中...",
+  "am_confirm_ok": "确定",
+  "hub_card_load_fail": "无法加载任务卡",
+  "hub_approve": "✅ 同意",
+  "hub_reject": "❌ 拒绝",
+  "hub_cancel": "⏹ 取消",
+  "hub_retry": "🔄 重试",
+  "hub_delete": "🗑 删除",
+  "chat_processing": "🔄 正在处理你的请求...",
+  "chat_tool_call": "🔄 调用工具:",
+  "chat_need_confirm": " ⚠️需确认",
+  "chat_tool_result": "📄 工具结果",
+  "chat_tool_chars": "字符",
+  "chat_tool_expand": " — 点击展开",
+  "chat_copy_full": "复制全文",
+  "evo_empty": "暂无洞见 — 系统将随使用自动学习",
+  "hist_empty": "暂无历史对话",
+  "hist_load_fail": "加载失败",
+  "hist_start_hint": "点击「新对话」开始",
+  "am_key_optional": "(可选 · 已配置该厂商可留空)",
+  "am_no_key": "没有 Key?",
+  "am_get_key": "点击获取 →",
+  "approval_custom_ph": "自定义处理（如：只保留前10行 / 改存到其他路径 / 换一个文件名）...",
+  "chat_set_default": "(已设为全局默认 · 新对话生效)",
+  "hub_del_confirm": "删除这张任务卡?",
+  "hub_spawn_fail": "派活失败:",
+  "hub_approve_fail": "审批失败:",
+  "hub_delete_fail": "删除失败:",
+  "ms_empty_retry": "⚠️ 模型列表为空 — 点击重试",
+  "ms_load_fail": "⚠️ 模型列表加载失败 — 点击重试",
+  "ms_switch_label": "切换模型:",
+  "ms_empty_server": "服务端返回模型列表为空",
+  "ms_err_auth": "(请先登录或检查 MESHCTX_PASSWORD)",
+  "chat_interrupted_prev": "⏹ 已打断上一任务，正在处理新消息...",
+  "chat_err_rate": "⏳ 请求过于频繁或触发厂商限流 — 请等 30-60 秒重试，或在模型中心切换其他模型 [",
+  "chat_err_billing": "💰 账户余额或额度不足 — 请到厂商控制台充值，或在模型中心切换其他模型 [",
+  "chat_err_timeout": "⏱ 请求超时 — 厂商响应过慢，请重试或切换其他模型 [",
+  "chat_err_network": "🌐 无法连接厂商端点 — 请检查网络、Base URL 是否正确（自建网关确认已启动）[",
+  "chat_err_nomodel": "🧭 模型不存在 — 厂商可能已下线该模型，请在模型中心选择其他模型 [",
+  "chat_err_noresp": "[无响应] 请重试",
+  "chat_err_429": "[请求过于频繁 HTTP 429] 请稍等 60 秒后重试",
+  "am_need_fields": "⚠ id/provider 必填",
+  "am_custom_need_base": "⚠ custom 需填 Base URL",
+  "am_adding": "✓ 已添加，测活中…",
+  "am_test_ok": "✓ 测活通过:",
+  "am_test_fail": "⚠ 已添加, 测活失败:",
+  "hist_del_confirm": "确定删除该对话？",
+  "kb_new_desc": "清除历史，开始新对话",
+  "kb_focus_label": "聚焦输入框",
+  "kb_focus_desc": "跳转到聊天输入框",
+  "kb_copy_label": "复制最后回复",
+  "kb_copy_desc": "复制 AI 最后一条回复",
+  "conv_not_found": "对话不存在或已删除",
+  "conv_load_fail": "加载对话失败:",
+  "chat_need_login": "需要登录",
+  "chat_login_hint": "请访问 /ui/login 登录后重试（本机安装默认无需密码；如设置过 MESHCTX_PASSWORD 请登录）。",
+  "chat_err_auth_http": "认证失败",
+  "chat_http_fail": "请求失败",
+  "am_add_fail": "添加失败",
+  "kb_console_desc": "打开 meshctx 仪表盘",
+  "chat_history": "📚 对话历史",
+  "am_base_autofill": "(自动填好，可改)"
  },
  "ja": {
   "chat_agent_status": "エージェント状態",
@@ -920,7 +1046,70 @@ const LANG = {
   "add_model_id": "モデル ID",
   "add_model_name": "モデル名",
   "add_model_baseurl": "Base URL (OpenAI 互換)",
-  "add_model_btn": "追加"
+  "add_model_btn": "追加",
+  "chat_sb_title": "💬 会話",
+  "chat_sb_loading": "読み込み中...",
+  "am_confirm_ok": "OK",
+  "hub_card_load_fail": "タスクカードの読み込みに失敗",
+  "hub_approve": "✅ 承認",
+  "hub_reject": "❌ 却下",
+  "hub_cancel": "⏹ 取消",
+  "hub_retry": "🔄 再試行",
+  "hub_delete": "🗑 削除",
+  "chat_processing": "🔄 リクエストを処理中...",
+  "chat_tool_call": "🔄 ツール呼び出し:",
+  "chat_need_confirm": " ⚠️承認が必要",
+  "chat_tool_result": "📄 ツール結果",
+  "chat_tool_chars": "文字",
+  "chat_tool_expand": " — クリックで展開",
+  "chat_copy_full": "全文をコピー",
+  "evo_empty": "インサイトはまだありません — 使用するにつれ学習します",
+  "hist_empty": "会話履歴はまだありません",
+  "hist_load_fail": "読み込み失敗",
+  "hist_start_hint": "「新規チャット」で開始",
+  "am_key_optional": "(任意 · 設定済みプロバイダーは空欄可)",
+  "am_no_key": "キーがない?",
+  "am_get_key": "取得 →",
+  "approval_custom_ph": "カスタム処理（例: 先頭10行のみ / 別名で保存）...",
+  "chat_set_default": "(グローバルデフォルトに設定 · 新規チャットから有効)",
+  "hub_del_confirm": "このタスクカードを削除?",
+  "hub_spawn_fail": "タスク生成失敗:",
+  "hub_approve_fail": "承認失敗:",
+  "hub_delete_fail": "削除失敗:",
+  "ms_empty_retry": "⚠️ モデルリストが空 — クリックで再試行",
+  "ms_load_fail": "⚠️ モデルリストの読み込みに失敗 — クリックで再試行",
+  "ms_switch_label": "モデル切替:",
+  "ms_empty_server": "サーバーが空のモデルリストを返しました",
+  "ms_err_auth": "(ログインするか MESHCTX_PASSWORD を確認してください)",
+  "chat_interrupted_prev": "⏹ 前のタスクを中断し、新しいメッセージを処理中...",
+  "chat_err_rate": "⏳ レート制限 — 30〜60秒待って再試行するか、モデルを切り替えてください [",
+  "chat_err_billing": "💰 残高またはクォータ不足 — プロバイダーコンソールでチャージするか、モデルを切り替えてください [",
+  "chat_err_timeout": "⏱ タイムアウト — プロバイダーの応答が遅すぎます。再試行するかモデルを切り替えてください [",
+  "chat_err_network": "🌐 プロバイダーエンドポイントに接続できません — ネットワークと Base URL を確認してください [",
+  "chat_err_nomodel": "🧭 モデルが見つかりません — プロバイダーが提供終了した可能性があります。他のモデルを選んでください [",
+  "chat_err_noresp": "[応答なし] 再試行してください",
+  "chat_err_429": "[HTTP 429] 60秒待ってから再試行してください",
+  "am_need_fields": "⚠ id/provider は必須",
+  "am_custom_need_base": "⚠ custom には Base URL が必要",
+  "am_adding": "✓ 追加済み — テスト中...",
+  "am_test_ok": "✓ テスト成功:",
+  "am_test_fail": "⚠ 追加済みだがテスト失敗:",
+  "hist_del_confirm": "この会話を削除しますか？",
+  "kb_new_desc": "履歴をクリアして新規チャット開始",
+  "kb_focus_label": "入力欄にフォーカス",
+  "kb_focus_desc": "チャット入力欄へ移動",
+  "kb_copy_label": "最後の返信をコピー",
+  "kb_copy_desc": "AIの最後の返信をコピー",
+  "conv_not_found": "会話が見つからないか削除されました",
+  "conv_load_fail": "会話の読み込みに失敗:",
+  "chat_need_login": "ログインが必要",
+  "chat_login_hint": "/ui/login からログインして再試行してください（ローカル導入は既定でパスワード不要。MESHCTX_PASSWORD を設定した場合のみログイン）。",
+  "chat_err_auth_http": "認証失敗",
+  "chat_http_fail": "リクエスト失敗",
+  "am_add_fail": "追加失敗",
+  "kb_console_desc": "meshctx ダッシュボードを開く",
+  "chat_history": "📚 会話履歴",
+  "am_base_autofill": "(自動入力済み、編集可)"
  },
  "ko": {
   "chat_agent_status": "에이전트 상태",
@@ -994,7 +1183,70 @@ const LANG = {
   "add_model_id": "모델 ID",
   "add_model_name": "모델 이름",
   "add_model_baseurl": "Base URL (OpenAI 호환)",
-  "add_model_btn": "추가"
+  "add_model_btn": "추가",
+  "chat_sb_title": "💬 대화",
+  "chat_sb_loading": "불러오는 중...",
+  "am_confirm_ok": "확인",
+  "hub_card_load_fail": "작업 카드 로드 실패",
+  "hub_approve": "✅ 승인",
+  "hub_reject": "❌ 거부",
+  "hub_cancel": "⏹ 취소",
+  "hub_retry": "🔄 재시도",
+  "hub_delete": "🗑 삭제",
+  "chat_processing": "🔄 요청 처리 중...",
+  "chat_tool_call": "🔄 도구 호출:",
+  "chat_need_confirm": " ⚠️승인 필요",
+  "chat_tool_result": "📄 도구 결과",
+  "chat_tool_chars": "자",
+  "chat_tool_expand": " — 클릭하여 펼치기",
+  "chat_copy_full": "전문 복사",
+  "evo_empty": "인사이트가 없습니다 — 사용할수록 학습합니다",
+  "hist_empty": "대화 기록이 없습니다",
+  "hist_load_fail": "로드 실패",
+  "hist_start_hint": "‘새 채팅’으로 시작",
+  "am_key_optional": "(선택 · 이미 설정된 공급자는 비워 두세요)",
+  "am_no_key": "키가 없나요?",
+  "am_get_key": "발급받기 →",
+  "approval_custom_ph": "사용자 지정 처리(예: 앞 10줄만 유지 / 다른 이름으로 저장)...",
+  "chat_set_default": "(전역 기본으로 설정됨 · 새 채팅부터 적용)",
+  "hub_del_confirm": "이 작업 카드를 삭제할까요?",
+  "hub_spawn_fail": "작업 생성 실패:",
+  "hub_approve_fail": "승인 실패:",
+  "hub_delete_fail": "삭제 실패:",
+  "ms_empty_retry": "⚠️ 모델 목록이 비어 있음 — 클릭하여 재시도",
+  "ms_load_fail": "⚠️ 모델 목록 로드 실패 — 클릭하여 재시도",
+  "ms_switch_label": "모델 전환:",
+  "ms_empty_server": "서버가 빈 모델 목록을 반환했습니다",
+  "ms_err_auth": "(로그인하거나 MESHCTX_PASSWORD을 확인하세요)",
+  "chat_interrupted_prev": "⏹ 이전 작업을 중단하고 새 메시지를 처리 중...",
+  "chat_err_rate": "⏳ 요청 한도 초과 — 30-60초 후 재시도하거나 모델을 전환하세요 [",
+  "chat_err_billing": "💰 잔액 또는 한도 부족 — 공급자 콘솔에서 충전하거나 모델을 전환하세요 [",
+  "chat_err_timeout": "⏱ 시간 초과 — 공급자 응답이 너무 느립니다. 재시도하거나 모델을 전환하세요 [",
+  "chat_err_network": "🌐 공급자 엔드포인트에 연결할 수 없습니다 — 네트워크와 Base URL을 확인하세요 [",
+  "chat_err_nomodel": "🧭 모델을 찾을 수 없습니다 — 공급자가 제거했을 수 있습니다. 모델 허브에서 다른 모델을 선택하세요 [",
+  "chat_err_noresp": "[응답 없음] 재시도하세요",
+  "chat_err_429": "[HTTP 429] 60초 후 재시도하세요",
+  "am_need_fields": "⚠ id/provider 필수",
+  "am_custom_need_base": "⚠ custom에는 Base URL 필요",
+  "am_adding": "✓ 추가됨 — 테스트 중...",
+  "am_test_ok": "✓ 테스트 통과:",
+  "am_test_fail": "⚠ 추가됐지만 테스트 실패:",
+  "hist_del_confirm": "이 대화를 삭제할까요?",
+  "kb_new_desc": "기록을 지우고 새 채팅 시작",
+  "kb_focus_label": "입력창 포커스",
+  "kb_focus_desc": "채팅 입력창으로 이동",
+  "kb_copy_label": "마지막 답변 복사",
+  "kb_copy_desc": "AI의 마지막 답변 복사",
+  "conv_not_found": "대화를 찾을 수 없거나 삭제되었습니다",
+  "conv_load_fail": "대화 로드 실패:",
+  "chat_need_login": "로그인 필요",
+  "chat_login_hint": "/ui/login 에서 로그인 후 재시도하세요(로컬 설치는 기본적으로 암호 불필요. MESHCTX_PASSWORD 설정 시에만 로그인).",
+  "chat_err_auth_http": "인증 실패",
+  "chat_http_fail": "요청 실패",
+  "am_add_fail": "추가 실패",
+  "kb_console_desc": "meshctx 대시보드 열기",
+  "chat_history": "📚 대화 기록",
+  "am_base_autofill": "(자동 입력, 수정 가능)"
  },
  "de": {
   "chat_agent_status": "Agent-Status",
@@ -1068,7 +1320,70 @@ const LANG = {
   "add_model_id": "Modell-ID",
   "add_model_name": "Modellname",
   "add_model_baseurl": "Base URL (OpenAI-kompatibel)",
-  "add_model_btn": "Hinzufügen"
+  "add_model_btn": "Hinzufügen",
+  "chat_sb_title": "💬 Unterhaltungen",
+  "chat_sb_loading": "Wird geladen...",
+  "am_confirm_ok": "OK",
+  "hub_card_load_fail": "Aufgabenkarten konnten nicht geladen werden",
+  "hub_approve": "✅ Genehmigen",
+  "hub_reject": "❌ Ablehnen",
+  "hub_cancel": "⏹ Abbrechen",
+  "hub_retry": "🔄 Wiederholen",
+  "hub_delete": "🗑 Löschen",
+  "chat_processing": "🔄 Anfrage wird verarbeitet...",
+  "chat_tool_call": "🔄 Tool-Aufruf:",
+  "chat_need_confirm": " ⚠️Freigabe nötig",
+  "chat_tool_result": "📄 Tool-Ergebnis",
+  "chat_tool_chars": "Zeichen",
+  "chat_tool_expand": " — zum Aufklappen klicken",
+  "chat_copy_full": "Volltext kopieren",
+  "evo_empty": "Noch keine Erkenntnisse — das System lernt mit der Nutzung",
+  "hist_empty": "Noch keine Unterhaltungen",
+  "hist_load_fail": "Laden fehlgeschlagen",
+  "hist_start_hint": "Klicke auf „Neuer Chat“ zum Start",
+  "am_key_optional": "(optional · leer lassen, wenn Anbieter bereits konfiguriert)",
+  "am_no_key": "Kein Key?",
+  "am_get_key": "Hol einen →",
+  "approval_custom_ph": "Eigene Verarbeitung (z. B. nur erste 10 Zeilen behalten)...",
+  "chat_set_default": "(als globaler Standard gesetzt · gilt für neue Chats)",
+  "hub_del_confirm": "Diese Aufgabenkarte löschen?",
+  "hub_spawn_fail": "Start fehlgeschlagen:",
+  "hub_approve_fail": "Genehmigung fehlgeschlagen:",
+  "hub_delete_fail": "Löschen fehlgeschlagen:",
+  "ms_empty_retry": "⚠️ Modellliste leer — zum Wiederholen klicken",
+  "ms_load_fail": "⚠️ Modellliste konnte nicht geladen werden — klicken zum Wiederholen",
+  "ms_switch_label": "Modell wechseln:",
+  "ms_empty_server": "Server lieferte eine leere Modellliste",
+  "ms_err_auth": "(bitte anmelden oder MESHCTX_PASSWORD prüfen)",
+  "chat_interrupted_prev": "⏹ Vorherige Aufgabe unterbrochen, neue Nachricht wird verarbeitet...",
+  "chat_err_rate": "⏳ Vom Anbieter gedrosselt — 30-60 s warten und wiederholen, oder Modell wechseln [",
+  "chat_err_billing": "💰 Guthaben oder Kontingent aufgebraucht — im Anbieter-Console aufladen oder Modell wechseln [",
+  "chat_err_timeout": "⏱ Timeout — der Anbieter antwortet zu langsam; wiederholen oder Modell wechseln [",
+  "chat_err_network": "🌐 Anbieter-Endpunkt nicht erreichbar — Netzwerk und Base URL prüfen [",
+  "chat_err_nomodel": "🧭 Modell nicht gefunden — der Anbieter hat es evtl. entfernt; wähle ein anderes Modell [",
+  "chat_err_noresp": "[Keine Antwort] Bitte wiederholen",
+  "chat_err_429": "[HTTP 429] Bitte 60 Sekunden warten und wiederholen",
+  "am_need_fields": "⚠ id/provider erforderlich",
+  "am_custom_need_base": "⚠ custom benötigt eine Base URL",
+  "am_adding": "✓ Hinzugefügt — Teste...",
+  "am_test_ok": "✓ Test bestanden:",
+  "am_test_fail": "⚠ Hinzugefügt, aber Test fehlgeschlagen:",
+  "hist_del_confirm": "Diese Unterhaltung löschen?",
+  "kb_new_desc": "Verlauf löschen und neuen Chat starten",
+  "kb_focus_label": "Eingabe fokussieren",
+  "kb_focus_desc": "Zum Chat-Eingabefeld springen",
+  "kb_copy_label": "Letzte Antwort kopieren",
+  "kb_copy_desc": "Die letzte KI-Antwort kopieren",
+  "conv_not_found": "Unterhaltung nicht gefunden oder gelöscht",
+  "conv_load_fail": "Unterhaltung konnte nicht geladen werden:",
+  "chat_need_login": "Anmeldung erforderlich",
+  "chat_login_hint": "Melde dich unter /ui/login an und wiederhole (lokale Installation braucht standardmäßig kein Passwort; nur anmelden, wenn MESHCTX_PASSWORD gesetzt wurde).",
+  "chat_err_auth_http": "Authentifizierung fehlgeschlagen",
+  "chat_http_fail": "Anfrage fehlgeschlagen",
+  "am_add_fail": "Hinzufügen fehlgeschlagen",
+  "kb_console_desc": "meshctx-Dashboard öffnen",
+  "chat_history": "📚 Verlauf",
+  "am_base_autofill": "(automatisch ausgefüllt, editierbar)"
  },
  "fr": {
   "chat_agent_status": "Statut agent",
@@ -1142,7 +1457,70 @@ const LANG = {
   "add_model_id": "ID du modèle",
   "add_model_name": "Nom du modèle",
   "add_model_baseurl": "URL de base (compatible OpenAI)",
-  "add_model_btn": "Ajouter"
+  "add_model_btn": "Ajouter",
+  "chat_sb_title": "💬 Conversations",
+  "chat_sb_loading": "Chargement...",
+  "am_confirm_ok": "OK",
+  "hub_card_load_fail": "Échec du chargement des cartes",
+  "hub_approve": "✅ Approuver",
+  "hub_reject": "❌ Rejeter",
+  "hub_cancel": "⏹ Annuler",
+  "hub_retry": "🔄 Réessayer",
+  "hub_delete": "🗑 Supprimer",
+  "chat_processing": "🔄 Traitement de votre demande...",
+  "chat_tool_call": "🔄 Appel d’outil :",
+  "chat_need_confirm": " ⚠️approbation requise",
+  "chat_tool_result": "📄 Résultat de l’outil",
+  "chat_tool_chars": "caractères",
+  "chat_tool_expand": " — cliquer pour déplier",
+  "chat_copy_full": "Copier tout le texte",
+  "evo_empty": "Aucun insight — le système apprend à l’usage",
+  "hist_empty": "Aucune conversation",
+  "hist_load_fail": "Échec du chargement",
+  "hist_start_hint": "Cliquez sur « Nouveau chat » pour commencer",
+  "am_key_optional": "(optionnel · laisser vide si ce fournisseur est déjà configuré)",
+  "am_no_key": "Pas de clé ?",
+  "am_get_key": "En obtenir une →",
+  "approval_custom_ph": "Traitement personnalisé (ex. garder les 10 premières lignes)...",
+  "chat_set_default": "(défini par défaut global · effectif pour les nouveaux chats)",
+  "hub_del_confirm": "Supprimer cette carte ?",
+  "hub_spawn_fail": "Échec du lancement :",
+  "hub_approve_fail": "Échec de l’approbation :",
+  "hub_delete_fail": "Échec de la suppression :",
+  "ms_empty_retry": "⚠️ Liste de modèles vide — cliquer pour réessayer",
+  "ms_load_fail": "⚠️ Échec du chargement des modèles — cliquer pour réessayer",
+  "ms_switch_label": "Changer de modèle :",
+  "ms_empty_server": "Le serveur a renvoyé une liste de modèles vide",
+  "ms_err_auth": "(connectez-vous ou vérifiez MESHCTX_PASSWORD)",
+  "chat_interrupted_prev": "⏹ Tâche précédente interrompue, traitement du nouveau message...",
+  "chat_err_rate": "⏳ Limité par le fournisseur — attendez 30-60 s et réessayez, ou changez de modèle [",
+  "chat_err_billing": "💰 Solde ou quota insuffisant — rechargez sur la console du fournisseur, ou changez de modèle [",
+  "chat_err_timeout": "⏱ Délai dépassé — le fournisseur répond trop lentement ; réessayez ou changez de modèle [",
+  "chat_err_network": "🌐 Impossible de joindre le point de terminaison — vérifiez le réseau et le Base URL [",
+  "chat_err_nomodel": "🧭 Modèle introuvable — le fournisseur l’a peut-être retiré ; choisissez un autre modèle [",
+  "chat_err_noresp": "[Aucune réponse] Réessayez",
+  "chat_err_429": "[HTTP 429] Attendez 60 secondes et réessayez",
+  "am_need_fields": "⚠ id/fournisseur requis",
+  "am_custom_need_base": "⚠ custom exige un Base URL",
+  "am_adding": "✓ Ajouté — test en cours...",
+  "am_test_ok": "✓ Test réussi :",
+  "am_test_fail": "⚠ Ajouté, mais test échoué :",
+  "hist_del_confirm": "Supprimer cette conversation ?",
+  "kb_new_desc": "Effacer l’historique et démarrer un nouveau chat",
+  "kb_focus_label": "Focus sur la saisie",
+  "kb_focus_desc": "Aller au champ de saisie du chat",
+  "kb_copy_label": "Copier la dernière réponse",
+  "kb_copy_desc": "Copier la dernière réponse de l’IA",
+  "conv_not_found": "Conversation introuvable ou supprimée",
+  "conv_load_fail": "Échec du chargement de la conversation :",
+  "chat_need_login": "connexion requise",
+  "chat_login_hint": "Connectez-vous sur /ui/login puis réessayez (une installation locale ne nécessite pas de mot de passe par défaut ; connectez-vous seulement si vous avez défini MESHCTX_PASSWORD).",
+  "chat_err_auth_http": "Échec d’authentification",
+  "chat_http_fail": "Échec de la requête",
+  "am_add_fail": "Échec de l’ajout",
+  "kb_console_desc": "Ouvrir le tableau de bord meshctx",
+  "chat_history": "📚 Historique",
+  "am_base_autofill": "(rempli automatiquement, modifiable)"
  },
  "es": {
   "chat_agent_status": "Estado del agente",
@@ -1216,7 +1594,70 @@ const LANG = {
   "add_model_id": "ID del modelo",
   "add_model_name": "Nombre del modelo",
   "add_model_baseurl": "URL base (compatible OpenAI)",
-  "add_model_btn": "Añadir"
+  "add_model_btn": "Añadir",
+  "chat_sb_title": "💬 Conversaciones",
+  "chat_sb_loading": "Cargando...",
+  "am_confirm_ok": "Aceptar",
+  "hub_card_load_fail": "No se pudieron cargar las tarjetas",
+  "hub_approve": "✅ Aprobar",
+  "hub_reject": "❌ Rechazar",
+  "hub_cancel": "⏹ Cancelar",
+  "hub_retry": "🔄 Reintentar",
+  "hub_delete": "🗑 Eliminar",
+  "chat_processing": "🔄 Procesando tu solicitud...",
+  "chat_tool_call": "🔄 Llamando a la herramienta:",
+  "chat_need_confirm": " ⚠️requiere aprobación",
+  "chat_tool_result": "📄 Resultado de la herramienta",
+  "chat_tool_chars": "caracteres",
+  "chat_tool_expand": " — clic para expandir",
+  "chat_copy_full": "Copiar texto completo",
+  "evo_empty": "Aún sin ideas — el sistema aprende con el uso",
+  "hist_empty": "Aún no hay conversaciones",
+  "hist_load_fail": "Error al cargar",
+  "hist_start_hint": "Pulsa «Nuevo chat» para empezar",
+  "am_key_optional": "(opcional · deja vacío si el proveedor ya está configurado)",
+  "am_no_key": "¿Sin clave?",
+  "am_get_key": "Consigue una →",
+  "approval_custom_ph": "Procesamiento personalizado (p. ej. conservar las primeras 10 líneas)...",
+  "chat_set_default": "(establecido como predeterminado global · aplica a nuevos chats)",
+  "hub_del_confirm": "¿Eliminar esta tarjeta?",
+  "hub_spawn_fail": "Fallo al lanzar:",
+  "hub_approve_fail": "Fallo de aprobación:",
+  "hub_delete_fail": "Fallo al eliminar:",
+  "ms_empty_retry": "⚠️ Lista de modelos vacía — clic para reintentar",
+  "ms_load_fail": "⚠️ Error al cargar la lista de modelos — clic para reintentar",
+  "ms_switch_label": "Cambiar modelo:",
+  "ms_empty_server": "El servidor devolvió una lista de modelos vacía",
+  "ms_err_auth": "(inicia sesión o revisa MESHCTX_PASSWORD)",
+  "chat_interrupted_prev": "⏹ Tarea anterior interrumpida, procesando el nuevo mensaje...",
+  "chat_err_rate": "⏳ Límite del proveedor — espera 30-60 s y reintenta, o cambia de modelo [",
+  "chat_err_billing": "💰 Saldo o cuota insuficiente — recarga en la consola del proveedor, o cambia de modelo [",
+  "chat_err_timeout": "⏱ Tiempo agotado — el proveedor responde demasiado lento; reintenta o cambia de modelo [",
+  "chat_err_network": "🌐 No se puede conectar al endpoint del proveedor — revisa la red y el Base URL [",
+  "chat_err_nomodel": "🧭 Modelo no encontrado — el proveedor pudo haberlo retirado; elige otro modelo [",
+  "chat_err_noresp": "[Sin respuesta] Reintenta",
+  "chat_err_429": "[HTTP 429] Espera 60 segundos y reintenta",
+  "am_need_fields": "⚠ id/proveedor requerido",
+  "am_custom_need_base": "⚠ custom requiere un Base URL",
+  "am_adding": "✓ Añadido — probando...",
+  "am_test_ok": "✓ Prueba superada:",
+  "am_test_fail": "⚠ Añadido, pero la prueba falló:",
+  "hist_del_confirm": "¿Eliminar esta conversación?",
+  "kb_new_desc": "Borrar historial y empezar un nuevo chat",
+  "kb_focus_label": "Enfocar entrada",
+  "kb_focus_desc": "Ir al campo de entrada del chat",
+  "kb_copy_label": "Copiar última respuesta",
+  "kb_copy_desc": "Copia la última respuesta de la IA",
+  "conv_not_found": "Conversación no encontrada o eliminada",
+  "conv_load_fail": "Error al cargar la conversación:",
+  "chat_need_login": "inicio de sesión requerido",
+  "chat_login_hint": "Entra en /ui/login y reintenta (las instalaciones locales no necesitan contraseña por defecto; inicia sesión solo si definiste MESHCTX_PASSWORD).",
+  "chat_err_auth_http": "Fallo de autenticación",
+  "chat_http_fail": "Solicitud fallida",
+  "am_add_fail": "Fallo al añadir",
+  "kb_console_desc": "Abrir el panel de meshctx",
+  "chat_history": "📚 Historial",
+  "am_base_autofill": "(autocompletado, editable)"
  },
  "it": {
   "chat_agent_status": "Stato agente",
@@ -1290,7 +1731,70 @@ const LANG = {
   "add_model_id": "ID modello",
   "add_model_name": "Nome modello",
   "add_model_baseurl": "URL base (compatibile OpenAI)",
-  "add_model_btn": "Aggiungi"
+  "add_model_btn": "Aggiungi",
+  "chat_sb_title": "💬 Conversazioni",
+  "chat_sb_loading": "Caricamento...",
+  "am_confirm_ok": "OK",
+  "hub_card_load_fail": "Caricamento schede non riuscito",
+  "hub_approve": "✅ Approva",
+  "hub_reject": "❌ Rifiuta",
+  "hub_cancel": "⏹ Annulla",
+  "hub_retry": "🔄 Riprova",
+  "hub_delete": "🗑 Elimina",
+  "chat_processing": "🔄 Elaborazione della richiesta...",
+  "chat_tool_call": "🔄 Chiamata strumento:",
+  "chat_need_confirm": " ⚠️richiede approvazione",
+  "chat_tool_result": "📄 Risultato strumento",
+  "chat_tool_chars": "caratteri",
+  "chat_tool_expand": " — clicca per espandere",
+  "chat_copy_full": "Copia testo completo",
+  "evo_empty": "Nessuna intuizione — il sistema impara con l’uso",
+  "hist_empty": "Nessuna conversazione",
+  "hist_load_fail": "Caricamento non riuscito",
+  "hist_start_hint": "Clicca “Nuova chat” per iniziare",
+  "am_key_optional": "(opzionale · lascia vuoto se il provider è già configurato)",
+  "am_no_key": "Nessuna chiave?",
+  "am_get_key": "Ottienine una →",
+  "approval_custom_ph": "Elaborazione personalizzata (es. mantieni le prime 10 righe)...",
+  "chat_set_default": "(impostato come predefinito globale · vale per le nuove chat)",
+  "hub_del_confirm": "Eliminare questa scheda?",
+  "hub_spawn_fail": "Avvio non riuscito:",
+  "hub_approve_fail": "Approvazione non riuscita:",
+  "hub_delete_fail": "Eliminazione non riuscita:",
+  "ms_empty_retry": "⚠️ Elenco modelli vuoto — clicca per riprovare",
+  "ms_load_fail": "⚠️ Caricamento elenco modelli non riuscito — clicca per riprovare",
+  "ms_switch_label": "Cambia modello:",
+  "ms_empty_server": "Il server ha restituito un elenco modelli vuoto",
+  "ms_err_auth": "(accedi o controlla MESHCTX_PASSWORD)",
+  "chat_interrupted_prev": "⏹ Attività precedente interrotta, elaboro il nuovo messaggio...",
+  "chat_err_rate": "⏳ Limite del provider — attendi 30-60 s e riprova, o cambia modello [",
+  "chat_err_billing": "💰 Saldo o quota insufficienti — ricarica nella console del provider, o cambia modello [",
+  "chat_err_timeout": "⏱ Timeout — il provider risponde troppo lentamente; riprova o cambia modello [",
+  "chat_err_network": "🌐 Impossibile raggiungere l’endpoint del provider — controlla rete e Base URL [",
+  "chat_err_nomodel": "🧭 Modello non trovato — il provider potrebbe averlo rimosso; scegli un altro modello [",
+  "chat_err_noresp": "[Nessuna risposta] Riprova",
+  "chat_err_429": "[HTTP 429] Attendi 60 secondi e riprova",
+  "am_need_fields": "⚠ id/provider obbligatori",
+  "am_custom_need_base": "⚠ custom richiede un Base URL",
+  "am_adding": "✓ Aggiunto — provo...",
+  "am_test_ok": "✓ Test superato:",
+  "am_test_fail": "⚠ Aggiunto, ma test fallito:",
+  "hist_del_confirm": "Eliminare questa conversazione?",
+  "kb_new_desc": "Cancella cronologia e inizia una nuova chat",
+  "kb_focus_label": "Focus sull’input",
+  "kb_focus_desc": "Vai al campo di input della chat",
+  "kb_copy_label": "Copia l’ultima risposta",
+  "kb_copy_desc": "Copia l’ultima risposta dell’IA",
+  "conv_not_found": "Conversazione non trovata o eliminata",
+  "conv_load_fail": "Caricamento conversazione non riuscito:",
+  "chat_need_login": "accesso richiesto",
+  "chat_login_hint": "Vai a /ui/login e accedi per riprovare (le installazioni locali di default non richiedono password; accedi solo se hai impostato MESHCTX_PASSWORD).",
+  "chat_err_auth_http": "Autenticazione non riuscita",
+  "chat_http_fail": "Richiesta non riuscita",
+  "am_add_fail": "Aggiunta non riuscita",
+  "kb_console_desc": "Apri la dashboard meshctx",
+  "chat_history": "📚 Cronologia",
+  "am_base_autofill": "(compilato automaticamente, modificabile)"
  },
  "ar": {
   "chat_agent_status": "حالة الوكيل",
@@ -1364,7 +1868,70 @@ const LANG = {
   "add_model_id": "معرّف النموذج",
   "add_model_name": "اسم النموذج",
   "add_model_baseurl": "عنوان URL الأساسي (متوافق مع OpenAI)",
-  "add_model_btn": "إضافة"
+  "add_model_btn": "إضافة",
+  "chat_sb_title": "💬 المحادثات",
+  "chat_sb_loading": "جار التحميل...",
+  "am_confirm_ok": "موافق",
+  "hub_card_load_fail": "فشل تحميل بطاقات المهام",
+  "hub_approve": "✅ موافقة",
+  "hub_reject": "❌ رفض",
+  "hub_cancel": "⏹ إلغاء",
+  "hub_retry": "🔄 إعادة المحاولة",
+  "hub_delete": "🗑 حذف",
+  "chat_processing": "🔄 جار معالجة طلبك...",
+  "chat_tool_call": "🔄 استدعاء الأداة:",
+  "chat_need_confirm": " ⚠️يتطلب موافقة",
+  "chat_tool_result": "📄 نتيجة الأداة",
+  "chat_tool_chars": "حرف",
+  "chat_tool_expand": " — انقر للتوسيع",
+  "chat_copy_full": "نسخ النص الكامل",
+  "evo_empty": "لا رؤى بعد — يتعلم النظام مع الاستخدام",
+  "hist_empty": "لا محادثات بعد",
+  "hist_load_fail": "فشل التحميل",
+  "hist_start_hint": "انقر “محادثة جديدة” للبدء",
+  "am_key_optional": "(اختياري · اتركه فارغاً إذا كان المزوّد مهيأً)",
+  "am_no_key": "لا مفتاح؟",
+  "am_get_key": "احصل على واحد →",
+  "approval_custom_ph": "معالجة مخصصة (مثال: الاحتفاظ بأول 10 أسطر)...",
+  "chat_set_default": "(تم التعيين كافتراضي عام · يسري على المحادثات الجديدة)",
+  "hub_del_confirm": "حذف بطاقة المهمة هذه؟",
+  "hub_spawn_fail": "فشل الإطلاق:",
+  "hub_approve_fail": "فشل الموافقة:",
+  "hub_delete_fail": "فشل الحذف:",
+  "ms_empty_retry": "⚠️ قائمة النماذج فارغة — انقر لإعادة المحاولة",
+  "ms_load_fail": "⚠️ فشل تحميل قائمة النماذج — انقر لإعادة المحاولة",
+  "ms_switch_label": "تبديل النموذج:",
+  "ms_empty_server": "أعاد الخادم قائمة نماذج فارغة",
+  "ms_err_auth": "(سجّل الدخول أو تحقق من MESHCTX_PASSWORD)",
+  "chat_interrupted_prev": "⏹ تمت مقاطعة المهمة السابقة، جار معالجة الرسالة الجديدة...",
+  "chat_err_rate": "⏳ تجاوز حد المزوّد — انتظر 30-60 ثانية وأعد المحاولة أو بدّل النموذج [",
+  "chat_err_billing": "💰 رصيد أو حصة غير كافية — اشحن من لوحة المزوّد أو بدّل النموذج [",
+  "chat_err_timeout": "⏱ انتهت المهلة — استجابة المزوّد بطيئة جداً؛ أعد المحاولة أو بدّل النموذج [",
+  "chat_err_network": "🌐 تعذر الوصول إلى نقطة نهاية المزوّد — تحقق من الشبكة و Base URL [",
+  "chat_err_nomodel": "🧭 النموذج غير موجود — ربما أوقفه المزوّد؛ اختر نموذجاً آخر [",
+  "chat_err_noresp": "[لا استجابة] أعد المحاولة",
+  "chat_err_429": "[HTTP 429] انتظر 60 ثانية وأعد المحاولة",
+  "am_need_fields": "⚠ المعرّف/المزوّد مطلوب",
+  "am_custom_need_base": "⚠ يتطلب custom عنوان Base URL",
+  "am_adding": "✓ أُضيف — جار الاختبار...",
+  "am_test_ok": "✓ نجح الاختبار:",
+  "am_test_fail": "⚠ أُضيف لكن فشل الاختبار:",
+  "hist_del_confirm": "حذف هذه المحادثة؟",
+  "kb_new_desc": "امسح السجل وابدأ محادثة جديدة",
+  "kb_focus_label": "التركيز على مربع الإدخال",
+  "kb_focus_desc": "انتقل إلى مربع إدخال الدردشة",
+  "kb_copy_label": "نسخ الرد الأخير",
+  "kb_copy_desc": "انسخ آخر رد من الذكاء الاصطناعي",
+  "conv_not_found": "المحادثة غير موجودة أو محذوفة",
+  "conv_load_fail": "فشل تحميل المحادثة:",
+  "chat_need_login": "مطلوب تسجيل الدخول",
+  "chat_login_hint": "افتح /ui/login وسجّل الدخول ثم أعد المحاولة (التثبيت المحلي لا يحتاج كلمة مرور افتراضياً؛ سجّل الدخول فقط إذا عيّنت MESHCTX_PASSWORD).",
+  "chat_err_auth_http": "فشل المصادقة",
+  "chat_http_fail": "فشل الطلب",
+  "am_add_fail": "فشل الإضافة",
+  "kb_console_desc": "افتح لوحة meshctx",
+  "chat_history": "📚 سجل المحادثات",
+  "am_base_autofill": "(تعبئة تلقائية، قابل للتعديل)"
  },
  "ru": {
   "chat_agent_status": "Статус агента",
@@ -1438,7 +2005,70 @@ const LANG = {
   "add_model_id": "ID модели",
   "add_model_name": "Название модели",
   "add_model_baseurl": "Base URL (совместим с OpenAI)",
-  "add_model_btn": "Добавить"
+  "add_model_btn": "Добавить",
+  "chat_sb_title": "💬 Диалоги",
+  "chat_sb_loading": "Загрузка...",
+  "am_confirm_ok": "ОК",
+  "hub_card_load_fail": "Не удалось загрузить карточки",
+  "hub_approve": "✅ Одобрить",
+  "hub_reject": "❌ Отклонить",
+  "hub_cancel": "⏹ Отмена",
+  "hub_retry": "🔄 Повторить",
+  "hub_delete": "🗑 Удалить",
+  "chat_processing": "🔄 Обрабатываю ваш запрос...",
+  "chat_tool_call": "🔄 Вызов инструмента:",
+  "chat_need_confirm": " ⚠️требует подтверждения",
+  "chat_tool_result": "📄 Результат инструмента",
+  "chat_tool_chars": "символов",
+  "chat_tool_expand": " — нажмите, чтобы развернуть",
+  "chat_copy_full": "Копировать весь текст",
+  "evo_empty": "Пока нет инсайтов — система учится в процессе использования",
+  "hist_empty": "Пока нет диалогов",
+  "hist_load_fail": "Ошибка загрузки",
+  "hist_start_hint": "Нажмите «Новый чат», чтобы начать",
+  "am_key_optional": "(необязательно · оставьте пустым, если провайдер уже настроен)",
+  "am_no_key": "Нет ключа?",
+  "am_get_key": "Получить →",
+  "approval_custom_ph": "Своя обработка (напр. оставить первые 10 строк)...",
+  "chat_set_default": "(установлен как глобальный по умолчанию · действует для новых чатов)",
+  "hub_del_confirm": "Удалить эту карточку?",
+  "hub_spawn_fail": "Не удалось запустить:",
+  "hub_approve_fail": "Не удалось согласовать:",
+  "hub_delete_fail": "Не удалось удалить:",
+  "ms_empty_retry": "⚠️ Список моделей пуст — нажмите для повтора",
+  "ms_load_fail": "⚠️ Не удалось загрузить список моделей — нажмите для повтора",
+  "ms_switch_label": "Сменить модель:",
+  "ms_empty_server": "Сервер вернул пустой список моделей",
+  "ms_err_auth": "(войдите или проверьте MESHCTX_PASSWORD)",
+  "chat_interrupted_prev": "⏹ Предыдущая задача прервана, обрабатываю новое сообщение...",
+  "chat_err_rate": "⏳ Ограничение провайдера — подождите 30-60 с и повторите, или смените модель [",
+  "chat_err_billing": "💰 Недостаточно средств или квоты — пополните в консоли провайдера или смените модель [",
+  "chat_err_timeout": "⏱ Таймаут — провайдер отвечает слишком медленно; повторите или смените модель [",
+  "chat_err_network": "🌐 Не удается подключиться к эндпоинту провайдера — проверьте сеть и Base URL [",
+  "chat_err_nomodel": "🧭 Модель не найдена — провайдер мог её убрать; выберите другую модель [",
+  "chat_err_noresp": "[Нет ответа] Повторите",
+  "chat_err_429": "[HTTP 429] Подождите 60 секунд и повторите",
+  "am_need_fields": "⚠ требуются id/provider",
+  "am_custom_need_base": "⚠ для custom нужен Base URL",
+  "am_adding": "✓ Добавлено — проверяю...",
+  "am_test_ok": "✓ Тест пройден:",
+  "am_test_fail": "⚠ Добавлено, но тест не пройден:",
+  "hist_del_confirm": "Удалить этот диалог?",
+  "kb_new_desc": "Очистить историю и начать новый чат",
+  "kb_focus_label": "Фокус на поле ввода",
+  "kb_focus_desc": "Перейти к полю ввода чата",
+  "kb_copy_label": "Копировать последний ответ",
+  "kb_copy_desc": "Копировать последний ответ ИИ",
+  "conv_not_found": "Диалог не найден или удалён",
+  "conv_load_fail": "Не удалось загрузить диалог:",
+  "chat_need_login": "требуется вход",
+  "chat_login_hint": "Откройте /ui/login, войдите и повторите (локальная установка по умолчанию без пароля; вход нужен только если задан MESHCTX_PASSWORD).",
+  "chat_err_auth_http": "Ошибка аутентификации",
+  "chat_http_fail": "Ошибка запроса",
+  "am_add_fail": "Не удалось добавить",
+  "kb_console_desc": "Открыть панель meshctx",
+  "chat_history": "📚 История диалогов",
+  "am_base_autofill": "(заполнено автоматически, можно изменить)"
  },
  "he": {
   "chat_agent_status": "סטטוס סוכן",
@@ -1512,7 +2142,70 @@ const LANG = {
   "add_model_id": "מזהה מודל",
   "add_model_name": "שם מודל",
   "add_model_baseurl": "Base URL (תואם OpenAI)",
-  "add_model_btn": "הוסף"
+  "add_model_btn": "הוסף",
+  "chat_sb_title": "💬 שיחות",
+  "chat_sb_loading": "טוען...",
+  "am_confirm_ok": "אישור",
+  "hub_card_load_fail": "טעינת כרטיסי המשימות נכשלה",
+  "hub_approve": "✅ אישור",
+  "hub_reject": "❌ דחייה",
+  "hub_cancel": "⏹ ביטול",
+  "hub_retry": "🔄 נסה שוב",
+  "hub_delete": "🗑 מחק",
+  "chat_processing": "🔄 מעבד את בקשתך...",
+  "chat_tool_call": "🔄 קריאה לכלי:",
+  "chat_need_confirm": " ⚠️דורש אישור",
+  "chat_tool_result": "📄 תוצאת כלי",
+  "chat_tool_chars": "תווים",
+  "chat_tool_expand": " — לחץ להרחבה",
+  "chat_copy_full": "העתק טקסט מלא",
+  "evo_empty": "אין תובנות עדיין — המערכת לומדת תוך כדי שימוש",
+  "hist_empty": "אין שיחות עדיין",
+  "hist_load_fail": "הטעינה נכשלה",
+  "hist_start_hint": "לחץ “צ’אט חדש” כדי להתחיל",
+  "am_key_optional": "(רשות · השאר ריק אם הספק כבר מוגדר)",
+  "am_no_key": "אין מפתח?",
+  "am_get_key": "קבל אחד →",
+  "approval_custom_ph": "עיבוד מותאם (למשל: להשאיר את 10 השורות הראשונות)...",
+  "chat_set_default": "(הוגדר כברירת מחדל גלובלי · חל על צ’אטים חדשים)",
+  "hub_del_confirm": "למחוק את כרטיס המשימה הזה?",
+  "hub_spawn_fail": "ההרצה נכשלה:",
+  "hub_approve_fail": "האישור נכשל:",
+  "hub_delete_fail": "המחיקה נכשלה:",
+  "ms_empty_retry": "⚠️ רשימת הדגמים ריקה — לחץ לניסיון חוזר",
+  "ms_load_fail": "⚠️ טעינת רשימת הדגמים נכשלה — לחץ לניסיון חוזר",
+  "ms_switch_label": "החלף דגם:",
+  "ms_empty_server": "השרת החזיר רשימת דגמים ריקה",
+  "ms_err_auth": "(התחבר או בדוק את MESHCTX_PASSWORD)",
+  "chat_interrupted_prev": "⏹ המשימה הקודמת הופסקה, מעבד את ההודעה החדשה...",
+  "chat_err_rate": "⏳ חריגה ממכסת הספק — המתן 30-60 שניות ונסה שוב, או החלף דגם [",
+  "chat_err_billing": "💰 יתרה או מכסה לא מספיקים — הטען בקונסולת הספק או החלף דגם [",
+  "chat_err_timeout": "⏱ פסק זמן — הספק מגיב לאט מדי; נסה שוב או החלף דגם [",
+  "chat_err_network": "🌐 לא ניתן להתחבר לנקודת הקצה של הספק — בדוק רשת ו-Base URL [",
+  "chat_err_nomodel": "🧭 הדגם לא נמצא — ייתכן שהספק הסיר אותו; בחר דגם אחר [",
+  "chat_err_noresp": "[אין תגובה] נסה שוב",
+  "chat_err_429": "[HTTP 429] המתן 60 שניות ונסה שוב",
+  "am_need_fields": "⚠ נדרש id/provider",
+  "am_custom_need_base": "⚠ custom דורש Base URL",
+  "am_adding": "✓ נוסף — בודק...",
+  "am_test_ok": "✓ הבדיקה עברה:",
+  "am_test_fail": "⚠ נוסף, אך הבדיקה נכשלה:",
+  "hist_del_confirm": "למחוק את השיחה הזו?",
+  "kb_new_desc": "נקה היסטוריה והתחל צ’אט חדש",
+  "kb_focus_label": "מיקוד בקלט",
+  "kb_focus_desc": "קפוץ לשדה הקלט של הצ’אט",
+  "kb_copy_label": "העתק את התשובה האחרונה",
+  "kb_copy_desc": "העתק את תשובת ה-AI האחרונה",
+  "conv_not_found": "השיחה לא נמצאה או נמחקה",
+  "conv_load_fail": "טעינת השיחה נכשלה:",
+  "chat_need_login": "נדרשת התחברות",
+  "chat_login_hint": "גש ל-‎/ui/login, התחבר ונסה שוב (התקנה מקומית לא דורשת סיסמה כברירת מחדל; התחבר רק אם הגדרת MESHCTX_PASSWORD).",
+  "chat_err_auth_http": "אימות נכשל",
+  "chat_http_fail": "הבקשה נכשלה",
+  "am_add_fail": "ההוספה נכשלה",
+  "kb_console_desc": "פתח את לוח הבקרה של meshctx",
+  "chat_history": "📚 היסטוריית שיחות",
+  "am_base_autofill": "(מולא אוטומטית, ניתן לעריכה)"
  }
 };
 
@@ -1607,10 +2300,10 @@ async function spawnCard(){
     const r = await fetch('/api/tasks/cards', { method:'POST',
       headers:{'Content-Type':'application/json'}, body: JSON.stringify({prompt: prompt}) });
     const d = await r.json();
-    if (!r.ok) { alert('派活失败: ' + (d.detail || d.error || r.status)); return; }
+    if (!r.ok) { alert(t('hub_spawn_fail') + ' ' + (d.detail || d.error || r.status)); return; }
     inp.value = '';
     loadHubCards();
-  } catch(e){ alert('派活失败: ' + e.message); }
+  } catch(e){ alert(t('hub_spawn_fail') + ' ' + e.message); }
   finally { btn.disabled = false; }
 }
 function hubLabel(st){
@@ -1628,7 +2321,7 @@ async function loadHubCards(){
     const d = await r.json();
     const box = document.getElementById('hubCards');
     if (!box) return;
-    if (!r.ok || !d.cards) { box.innerHTML = '<div class="hub-empty">无法加载任务卡</div>'; return; }
+    if (!r.ok || !d.cards) { box.innerHTML = '<div class="hub-empty">'+t('hub_card_load_fail')+'</div>'; return; }
     if (!d.cards.length) { box.innerHTML = '<div class="hub-empty">' + t('hub_empty') + '</div>'; return; }
     box.innerHTML = d.cards.map(renderHubCard).join('');
   } catch(e){ /* 面板打开时静默重试 */ }
@@ -1639,16 +2332,16 @@ function renderHubCard(c){
   let pendingHtml = '';
   if (st === 'waiting_approval' && c.approval_pending) {
     const ap = c.approval_pending;
-    pendingHtml = `<div class="hc-pending">🔐 <span data-lang-key="hub_approval_req">需确认:</span> <code>${escHtml(ap.name)} ${escHtml(JSON.stringify(ap.args||{}))}</code>
+    pendingHtml = `<div class="hc-pending">🔐 <span data-lang-key="hub_approval_req">Needs approval:</span> <code>${escHtml(ap.name)} ${escHtml(JSON.stringify(ap.args||{}))}</code>
       <div class="hp-btns">
-        <button onclick="hubApprove('${c.id}','agree')" style="border-color:#22c55e;color:#4ade80;">✅ 同意</button>
-        <button onclick="hubApprove('${c.id}','reject')" style="border-color:#ef4444;color:#f87171;">❌ 拒绝</button>
+        <button onclick="hubApprove('${c.id}','agree')" style="border-color:#22c55e;color:#4ade80;">${t('hub_approve')}</button>
+        <button onclick="hubApprove('${c.id}','reject')" style="border-color:#ef4444;color:#f87171;">${t('hub_reject')}</button>
       </div></div>`;
   }
   let actions = '';
-  if (st === 'running' || st === 'queued') actions += `<button onclick="hubCancel('${c.id}')">⏹ 取消</button>`;
-  if (st === 'failed' || st === 'cancelled') actions += `<button onclick="hubRetry('${c.id}')">🔄 重试</button>`;
-  if (st === 'completed' || st === 'failed' || st === 'cancelled') actions += `<button onclick="hubDelete('${c.id}')">🗑 删除</button>`;
+  if (st === 'running' || st === 'queued') actions += `<button onclick="hubCancel('${c.id}')">${t('hub_cancel')}</button>`;
+  if (st === 'failed' || st === 'cancelled') actions += `<button onclick="hubRetry('${c.id}')">${t('hub_retry')}</button>`;
+  if (st === 'completed' || st === 'failed' || st === 'cancelled') actions += `<button onclick="hubDelete('${c.id}')">${t('hub_delete')}</button>`;
   const resultHtml = (st==='completed' && c.result) ? `<div class="hc-result">${escHtml(c.result)}</div>` : '';
   const errHtml = (st==='failed' && c.error) ? `<div class="hc-result" style="color:#f87171;">${escHtml(c.error)}</div>` : '';
   return `<div class="hub-card">
@@ -1667,18 +2360,18 @@ async function hubRetry(id){
     if (r.ok) loadHubCards(); } catch(e){}
 }
 async function hubDelete(id){
-  if (!confirm('删除这张任务卡?')) return;
+  if (!confirm(t('hub_del_confirm'))) return;
   try { const r = await fetch('/api/tasks/cards/'+id, {method:'DELETE'});
-    if (!r.ok) { const d = await r.json().catch(()=>({})); alert('删除失败: ' + (d.detail||r.status)); }
-    loadHubCards(); } catch(e){ alert('删除失败: ' + e.message); }
+    if (!r.ok) { const d = await r.json().catch(()=>({})); alert(t('hub_delete_fail') + ' ' + (d.detail||r.status)); }
+    loadHubCards(); } catch(e){ alert(t('hub_delete_fail') + ' ' + e.message); }
 }
 async function hubApprove(id, action){
   try {
     const r = await fetch('/api/tasks/cards/'+id+'/approve', { method:'POST',
       headers:{'Content-Type':'application/json'}, body: JSON.stringify({action: action}) });
-    if (!r.ok) { const d = await r.json().catch(()=>({})); alert('审批失败: ' + (d.detail||r.status)); }
+    if (!r.ok) { const d = await r.json().catch(()=>({})); alert(t('hub_approve_fail') + ' ' + (d.detail||r.status)); }
     loadHubCards();
-  } catch(e){ alert('审批失败: ' + e.message); }
+  } catch(e){ alert(t('hub_approve_fail') + ' ' + e.message); }
 }
 async function loadHubQuota(){
   try {
@@ -1713,7 +2406,7 @@ function applyModelOptions(list, isErr){
   const sel = document.getElementById('modelSelect');
   if (!sel) return;
   // v3.131.3: 空/失败不再静默降级 FALLBACK_MODELS(DeepSeek×3) — 显示重试项暴露真实错误
-  const opts = (list && list.length) ? list : [{ id:'__reload__', icon:'⚠️', providerName:'', desc:'', label:'⚠️ 模型列表为空 — 点击重试' }];
+  const opts = (list && list.length) ? list : [{ id:'__reload__', icon:'⚠️', providerName:'', desc:'', label:t('ms_empty_retry') }];
   sel.innerHTML = '';
   let hasSel = false;
   opts.forEach(function(m){
@@ -1727,7 +2420,7 @@ function applyModelOptions(list, isErr){
   // ➕ 手动添加自定义模型入口 (像 DeepSeek Harness)
   const addO = document.createElement('option');
   addO.value = '__add__';
-  addO.textContent = '➕ ' + ((L[(localStorage.getItem('meshctx-lang')||'en')]||{}).add_model_btn || '添加自定义模型');
+  addO.textContent = '➕ ' + t('add_model_btn');
   sel.appendChild(addO);
   if (!hasSel && opts.length) opts[0].selected = true;
   if (sel.value === '__add__' && opts.length) { opts[0].selected = true; model = sel.value; }
@@ -1738,7 +2431,7 @@ function applyModelOptions(list, isErr){
   // 同步 Ctrl+K 快捷切换指令（已配置/可用模型在前，最多 8 个）
   MODEL_COMMANDS = opts.filter(function(m){ return !m.disabled && m.id !== '__add__'; }).slice(0, 8).map(function(m){
     return { id:'model-'+m.id.replace(/[^a-z0-9]/gi,'-'), icon:m.icon||'🧩',
-      label:'切换模型: '+(m.label||m.id), desc:(m.providerName||'')+' · '+(m.desc||''),
+      label:t('ms_switch_label')+(m.label||m.id), desc:(m.providerName||'')+' · '+(m.desc||''),
       action:(function(id){ return function(){ document.getElementById('modelSelect').value=id; switchModel(); }; })(m.id) };
   });
 }
@@ -1751,7 +2444,7 @@ function renderModelMenu(opts){
   _mmItems = opts;
   _mmKbd = -1;
   const sel = document.getElementById('modelSelect');
-  const addLabel = ((L[(localStorage.getItem('meshctx-lang')||'en')]||{}).add_model_btn || '添加自定义模型');
+  const addLabel = t('add_model_btn');
   menu.innerHTML = '';
   opts.forEach(function(m, i){
     const it = document.createElement('div');
@@ -1779,7 +2472,7 @@ function updateModelBtnLabel(){
   const sel = document.getElementById('modelSelect'), lb = document.getElementById('modelSelectLabel');
   if (!sel || !lb) return;
   const v = sel.value;
-  if (v === '__reload__') { lb.textContent = '⚠️ 模型列表加载失败 — 点击重试'; return; }
+  if (v === '__reload__') { lb.textContent = t('ms_load_fail'); return; }
   const m = _mmItems.find(function(x){ return x.id === v; });
   lb.textContent = m ? (m.label || m.id) : (v || '—');
 }
@@ -1844,11 +2537,11 @@ document.addEventListener('keydown', function(e){
 let _lmRetries = 0, _lmTimer = null;
 function loadModels(isRetry){
   fetch('/api/models').then(function(r){
-    if (!r.ok) throw new Error('HTTP '+r.status+(r.status===401?' (请先登录或检查 MESHCTX_PASSWORD)':''));
+    if (!r.ok) throw new Error('HTTP '+r.status+(r.status===401?' '+t('ms_err_auth'):''));
     return r.json();
   }).then(function(d){
     const models = (d && d.models) || [];
-    if (!models.length) throw new Error('服务端返回模型列表为空');
+    if (!models.length) throw new Error(t('ms_empty_server'));
     _lmRetries = 0;
     const current = d.current || d.default || '';
     const usable = models.filter(function(m){ return m.usable || m.configured || m.current; });
@@ -1875,7 +2568,7 @@ function loadModels(isRetry){
       return;
     }
     applyModelOptions([{ id:'__reload__', icon:'⚠️', providerName:'', desc:'',
-      label:'⚠️ 模型列表加载失败 ('+((err&&err.message)||'network')+') — 点击重试' }], true);
+      label:t('ms_load_fail')+' ('+((err&&err.message)||'network')+')' }], true);
   });
 }
 window.addEventListener('focus', function(){ if (_lmRetries) { _lmRetries = 0; loadModels(true); } });
@@ -2154,7 +2847,7 @@ async function send() {
   // Typing indicator
   const typingDiv = document.createElement('div');
   typingDiv.className = 'msg ai typing-msg';
-  typingDiv.innerHTML = `<div class="avatar">🤖</div><div><div class="bubble typing"><span class="typing-dots">${t('chat_thinking')}</span></div><div class="stream-progress">🔄 正在处理你的请求...</div></div>`;
+  typingDiv.innerHTML = `<div class="avatar">🤖</div><div><div class="bubble typing"><span class="typing-dots">${t('chat_thinking')}</span></div>><div class="stream-progress">${t('chat_processing')}</div></div>`;
   document.getElementById('messages').appendChild(typingDiv);
   
   // 推理流思考区状态 (reasoning_content 独立渲染, 正文开始时冻结)
@@ -2181,15 +2874,15 @@ async function send() {
       if (low.indexOf('401') >= 0 || low.indexOf('unauthorized') >= 0 || low.indexOf('invalid api key') >= 0 || low.indexOf('authentication') >= 0)
         return '🔑 API Key 无效或与端点不匹配（注意: 智谱有国内 bigmodel / 国际 z.ai 两个端点，Key 不通用）。请在模型中心检查 Key 与 Base URL [' + s.slice(0, 120) + ']';
       if (low.indexOf('429') >= 0 || low.indexOf('rate limit') >= 0 || low.indexOf('too many') >= 0)
-        return '⏳ 请求过于频繁或触发厂商限流 — 请等 30-60 秒重试，或在模型中心切换其他模型 [' + s.slice(0, 120) + ']';
+        return t('chat_err_rate') + s.slice(0, 120) + ']';
       if (low.indexOf('insufficient') >= 0 || low.indexOf('balance') >= 0 || low.indexOf('quota') >= 0 || low.indexOf('欠费') >= 0)
-        return '💰 账户余额或额度不足 — 请到厂商控制台充值，或在模型中心切换其他模型 [' + s.slice(0, 120) + ']';
+        return t('chat_err_billing') + s.slice(0, 120) + ']';
       if (low.indexOf('timeout') >= 0 || low.indexOf('timed out') >= 0)
-        return '⏱ 请求超时 — 厂商响应过慢，请重试或切换其他模型 [' + s.slice(0, 120) + ']';
+        return t('chat_err_timeout') + s.slice(0, 120) + ']';
       if (low.indexOf('connect') >= 0 || low.indexOf('network') >= 0 || low.indexOf('econn') >= 0 || low.indexOf('getaddrinfo') >= 0)
-        return '🌐 无法连接厂商端点 — 请检查网络、Base URL 是否正确（自建网关确认已启动）[' + s.slice(0, 120) + ']';
+        return t('chat_err_network') + s.slice(0, 120) + ']';
       if (low.indexOf('model') >= 0 && (low.indexOf('not found') >= 0 || low.indexOf('does not exist') >= 0 || low.indexOf('不存在') >= 0))
-        return '🧭 模型不存在 — 厂商可能已下线该模型，请在模型中心选择其他模型 [' + s.slice(0, 120) + ']';
+        return t('chat_err_nomodel') + s.slice(0, 120) + ']';
       return '❌ ' + s;
     }
 
@@ -2205,11 +2898,11 @@ async function send() {
       setAgentStatus('idle');
       typingDiv.remove();
       if (resp.status === 401 || resp.status === 403) {
-        addMsg('ai', `[认证失败 HTTP ${resp.status}] ${detail || '需要登录'}\n请访问 /ui/login 登录后重试（本机安装默认无需密码；如设置过 MESHCTX_PASSWORD 请登录）`);
+        addMsg('ai', `[${t('chat_err_auth_http')} HTTP ${resp.status}] ${detail || t('chat_need_login')}\n${t('chat_login_hint')}`);
       } else if (resp.status === 429) {
-        addMsg('ai', '[请求过于频繁 HTTP 429] 请稍等 60 秒后重试');
+        addMsg('ai', t('chat_err_429'));
       } else {
-        addMsg('ai', `[请求失败 HTTP ${resp.status}] ${detail}`);
+        addMsg('ai', `[${t('chat_http_fail')} HTTP ${resp.status}] ${detail}`);
       }
       document.getElementById('sendBtn').disabled = false;
       input.focus();
@@ -2306,7 +2999,7 @@ async function send() {
             if (curBubble) curBubble.classList.remove('streaming');
             const toolDiv = document.createElement('div');
             toolDiv.className = 'msg ai tool-msg';
-            toolDiv.innerHTML = `<div class="avatar">🔧</div><div class="bubble tool-bubble">🔄 调用工具: <strong>${parsed.tool_start}</strong>${parsed.require_approval ? ' ⚠️需确认' : ''}</div>`;
+            toolDiv.innerHTML = `<div class="avatar">🔧</div><div class="bubble tool-bubble">${t('chat_tool_call')} <strong>${parsed.tool_start}</strong>${parsed.require_approval ? t('chat_need_confirm') : ''}</div>`;
             msgContainer.appendChild(toolDiv);
             msgContainer.scrollTop = msgContainer.scrollHeight;
           }
@@ -2322,7 +3015,7 @@ async function send() {
               var _tk = Object.keys(TOOL_RESULTS);
               if (_tk.length > 50) delete TOOL_RESULTS[_tk[0]];
               resDiv.innerHTML = `<div class="avatar">✅</div><div class="bubble tool-bubble" style="max-width:80%">` +
-                `<details${hasMore ? '' : ' open'}><summary style="cursor:pointer;font-size:.72rem;color:#8b9bbf">📄 工具结果 (${fullText.length} 字符${hasMore ? ' — 点击展开' : ''})<span title="复制全文" onclick="event.stopPropagation();copyToolResult(this,'${resId}')" style="cursor:pointer;margin-left:8px">📋</span></summary>` +
+                `<details${hasMore ? '' : ' open'}><summary style="cursor:pointer;font-size:.72rem;color:#8b9bbf">${t('chat_tool_result')} (${fullText.length} ${t('chat_tool_chars')}${hasMore ? t('chat_tool_expand') : ''})<span title="${t('chat_copy_full')}" onclick="event.stopPropagation();copyToolResult(this,'${resId}')" style="cursor:pointer;margin-left:8px">📋</span></summary>` +
                 `<pre style="margin:4px 0 0;padding:6px;background:#0d1120;border-radius:6px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;font-size:.72rem">${preview.replace(/</g,'&lt;')}</pre></details></div>`;
               msgContainer.appendChild(resDiv);
               msgContainer.scrollTop = msgContainer.scrollHeight;
@@ -2374,7 +3067,7 @@ async function send() {
         // 服务器返回了非 SSE 内容（HTML/JSON 错误页等）→ 展示真实内容便于排查
         addMsg('ai', `[服务器未返回流式数据] ${snippet}\n\n请检查服务日志：~/.meshctx/logs 或 ~/Library/Logs/meshctx.error.log`);
       } else {
-        addMsg('ai', '[无响应] 请重试');
+        addMsg('ai', t('chat_err_noresp'));
       }
     }
 
@@ -2458,22 +3151,22 @@ function submitAddModel(){
   var provider=(document.getElementById('am_provider').value||'').trim();
   var key=(document.getElementById('am_key').value||'').trim();
   var base=(document.getElementById('am_baseurl').value||'').trim();
-  if(!id||!provider){ st.textContent='⚠ id/provider 必填'; return; }
+  if(!id||!provider){ st.textContent=t('am_need_fields'); return; }
   if(id.indexOf(':')===-1) id=provider+':'+id;   // v3.131: 只输 "glm-4.6" 自动补全 "zhipu:glm-4.6"
-  if(provider==='custom' && !base){ st.textContent='⚠ custom 需填 Base URL'; return; }
+  if(provider==='custom' && !base){ st.textContent=t('am_custom_need_base'); return; }
   st.textContent='…';
   fetch('/api/models',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({id:id,provider:provider,model:id.split(':').slice(1).join(':')||id,key:key,base_url:base,overwrite:true})})
   .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); })
   .then(function(res){
-    if(!res.ok){ st.textContent='⚠ '+(res.d.error||res.d.detail||'添加失败'); return; }
-    st.textContent='✓ 已添加，测活中…';
+    if(!res.ok){ st.textContent='⚠ '+(res.d.error||res.d.detail||t('am_add_fail')); return; }
+    st.textContent=t('am_adding');
     // v3.131: 自动测活 + 持久默认 (原仅 switch env, 重启丢失)
     return fetch('/api/models/'+encodeURIComponent(id)+'/test',{method:'POST'})
       .then(function(r){ return r.json(); })
       .then(function(d){
-        st.textContent = (d.status==='ok') ? '✓ 测活通过: '+(d.response||'').slice(0,30)
-                                          : '⚠ 已添加, 测活失败: '+(d.message||'').slice(0,50);
+        st.textContent = (d.status==='ok') ? t('am_test_ok')+(d.response||'').slice(0,30)
+                                          : t('am_test_fail')+(d.message||'').slice(0,50);
         return fetch('/api/models/'+encodeURIComponent(id)+'/default',{method:'PATCH'});
       })
       .then(function(){ setTimeout(function(){ closeAddModel(); loadModels(); }, 700); });
@@ -2501,7 +3194,7 @@ function switchModel() {
       var info = document.getElementById('modelInfo');
       if (info) {
         var old = info.innerHTML;
-        info.innerHTML = '✓ ' + icon + ' ' + model + ' (已设为全局默认 · 新对话生效)';
+        info.innerHTML = '✓ ' + icon + ' ' + model + ' ' + t('chat_set_default');
         setTimeout(function(){ info.innerHTML = old; }, 2600);
       }
     })
@@ -2529,7 +3222,7 @@ function loadEvoPanel(){
     var el = document.getElementById('evoInsights');
     if (!el) return;
     if (!(d.top_insights || []).length) {
-      el.innerHTML = '<div style="color:#8b9bbf">暂无洞见 — 系统将随使用自动学习</div>';
+      el.innerHTML = '<div style="color:#8b9bbf">'+t('evo_empty')+'</div>';
       return;
     }
     el.innerHTML = d.top_insights.map(function(i){
@@ -2643,7 +3336,7 @@ async function loadConversationList() {
     // 下拉 (保留)
     if (dd) {
       if (!list.length) {
-        dd.innerHTML = '<div class="conv-empty">暂无历史对话</div>';
+        dd.innerHTML = '<div class="conv-empty">'+t('hist_empty')+'</div>';
       } else {
         dd.innerHTML = list.map(function(c) {
           const cid = c.id || c.conversation_id || '';
@@ -2653,16 +3346,16 @@ async function loadConversationList() {
             encodeURIComponent(cid) + '\')">' +
             '<span class="conv-title" title="' + escapeHtml(title) + '">💬 ' + escapeHtml(title) + '</span>' +
             '<span class="conv-del" onclick="event.stopPropagation();deleteConversation(\'' +
-            encodeURIComponent(cid) + '\')" title="删除">🗑</span></div>';
+            encodeURIComponent(cid) + '\')" title="Delete">🗑</span></div>';
         }).join('');
       }
     }
     // 侧边栏 (2026-08-26 常驻, DSH 式)
     renderSidebar(list);
   } catch(e) {
-    if (dd) dd.innerHTML = '<div class="conv-empty">加载失败: ' + escapeHtml(String(e)) + '</div>';
+    if (dd) dd.innerHTML = '<div class="conv-empty">'+t('hist_load_fail')+': ' + escapeHtml(String(e)) + '</div>';
     const sb = document.getElementById('sidebarList');
-    if (sb) sb.innerHTML = '<div class="sb-empty">加载失败</div>';
+    if (sb) sb.innerHTML = '<div class="sb-empty">'+t('hist_load_fail')+'</div>';
   }
 }
 
@@ -2670,7 +3363,7 @@ function renderSidebar(list) {
   const sb = document.getElementById('sidebarList');
   if (!sb) return;
   if (!list || !list.length) {
-    sb.innerHTML = '<div class="sb-empty">暂无历史对话<br><br>点击「新对话」开始</div>';
+    sb.innerHTML = '<div class="sb-empty">'+t('hist_empty')+'<br><br>'+t('hist_start_hint')+'</div>';
     return;
   }
   sb.innerHTML = list.map(function(c) {
@@ -2681,7 +3374,7 @@ function renderSidebar(list) {
       encodeURIComponent(cid) + '\')">' +
       '<span class="sb-title" title="' + escapeHtml(title) + '">💬 ' + escapeHtml(title) + '</span>' +
       '<span class="sb-del" onclick="event.stopPropagation();deleteConversation(\'' +
-      encodeURIComponent(cid) + '\')" title="删除">🗑</span></div>';
+      encodeURIComponent(cid) + '\')" title="Delete">🗑</span></div>';
   }).join('');
 }
 
@@ -2689,7 +3382,7 @@ async function loadConversation(encId) {
   const convId = decodeURIComponent(encId);
   try {
     const resp = await fetch('/api/conversations/' + encodeURIComponent(convId));
-    if (!resp.ok) { alert('对话不存在或已删除'); return; }
+    if (!resp.ok) { alert(t('conv_not_found')); return; }
     const d = await resp.json();
     const msgs = d.messages || [];
     // 渲染历史
@@ -2709,13 +3402,13 @@ async function loadConversation(encId) {
     msgsDiv.scrollTop = msgsDiv.scrollHeight;
     loadConversationList();  // 刷新侧边栏选中态
   } catch(e) {
-    alert('加载对话失败: ' + e.message);
+    alert(t('conv_load_fail') + ' ' + e.message);
   }
 }
 
 async function deleteConversation(encId) {
   const convId = decodeURIComponent(encId);
-  if (!confirm('确定删除该对话？')) return;
+  if (!confirm(t('hist_del_confirm'))) return;
   try {
     await fetch('/api/conversations/' + encodeURIComponent(convId), {method: 'DELETE'});
     if (currentConvId === convId) {
@@ -2978,11 +3671,11 @@ document.addEventListener('click', function(e) {
 // ══════════════════ Ctrl+K command palette ══════════════════
 let MODEL_COMMANDS = [];  // v3.119.5: 动态模型切换指令（applyModelOptions 填充）
 const COMMANDS = [
-  { id:'new', icon:'➕', label:'新对话', desc:'清除历史，开始新对话', shortcut:'Ctrl+N', action: newChat },
-  { id:'console', icon:'🏠', label:'返回控制台', desc:'打开 meshctx 仪表盘', action: ()=>{ window.location.href='/ui/'; } },
+  { id:'new', icon:'➕', label:t('chat_new'), desc:t('kb_new_desc'), shortcut:'Ctrl+N', action: newChat },
+  { id:'console', icon:'🏠', label:t('chat_console'), desc:t('kb_console_desc'), action: ()=>{ window.location.href='/ui/'; } },
   { id:'docs', icon:'📚', label:'文档', desc:'打开 meshctx 文档', action: ()=>{ window.location.href='/docs/'; } },
-  { id:'focus', icon:'🎯', label:'聚焦输入框', desc:'跳转到聊天输入框', shortcut:'Ctrl+L', action: ()=>{ document.getElementById('input').focus(); } },
-  { id:'copy-last', icon:'📋', label:'复制最后回复', desc:'复制 AI 最后一条回复', action: ()=>{
+  { id:'focus', icon:'🎯', label:t('kb_focus_label'), desc:t('kb_focus_desc'), shortcut:'Ctrl+L', action: ()=>{ document.getElementById('input').focus(); } },
+  { id:'copy-last', icon:'📋', label:t('kb_copy_label'), desc:t('kb_copy_desc'), action: ()=>{
     const msgs = document.querySelectorAll('.msg.ai');
     if (msgs.length > 0) {
       const last = msgs[msgs.length - 1].querySelector('.collapsed-content');
@@ -3311,22 +4004,22 @@ function orgDeptToggle(){
 
 <div id="addModelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:#161b2c;color:#e6e9f2;border:1px solid #2a3350;border-radius:14px;padding:20px;width:min(440px,92vw);font-family:inherit;">
-    <h3 style="margin:0 0 12px;font-size:1.05rem;">➕ <span data-lang-key="add_model_title">添加自定义模型</span></h3>
+    <h3 style="margin:0 0 12px;font-size:1.05rem;">➕ <span data-lang-key="add_model_title">Add Custom Model</span></h3>
     <!-- v3.131: 选厂商 → base_url/获Key链接/常见模型 全自动预填 (像 ZCode/DeepSeek Harness) -->
     <label style="display:block;font-size:.8rem;margin-bottom:4px;" data-lang-key="add_model_provider">Provider</label>
     <select id="am_provider" onchange="amOnProvider()" style="width:100%;margin-bottom:8px;padding:8px;border-radius:8px;border:1px solid #2a3350;background:#0d1120;color:#e6e9f2;"></select>
-    <label style="display:block;font-size:.8rem;margin-bottom:4px;" data-lang-key="add_model_id">模型 ID</label>
+    <label style="display:block;font-size:.8rem;margin-bottom:4px;" data-lang-key="add_model_id">Model ID</label>
     <input id="am_id" list="am_id_list" placeholder="zhipu:glm-4.6 / custom:my-model" style="width:100%;margin-bottom:8px;">
     <datalist id="am_id_list"></datalist>
     <div id="am_getkey" style="font-size:.74rem;margin:-4px 0 8px;color:#8b9bbf;"></div>
-    <label style="display:block;font-size:.8rem;margin-bottom:4px;">API Key <span style="color:#8b9bbf">(可选 · 已配置该厂商可留空)</span></label>
+    <label style="display:block;font-size:.8rem;margin-bottom:4px;">API Key <span style="color:#8b9bbf" data-lang-key="am_key_optional">(optional · leave empty if this provider is already configured)</span></label>
     <input id="am_key" type="password" placeholder="sk-..." style="width:100%;margin-bottom:8px;">
-    <label style="display:block;font-size:.8rem;margin-bottom:4px;" data-lang-key="add_model_baseurl">Base URL <span style="color:#8b9bbf">(自动填好，可改)</span></label>
+    <label style="display:block;font-size:.8rem;margin-bottom:4px;" data-lang-key="add_model_baseurl">Base URL <span style="color:#8b9bbf" data-lang-key="am_base_autofill">(autofilled, editable)</span></label>
     <input id="am_baseurl" placeholder="https://open.bigmodel.cn/api/paas/v4" style="width:100%;margin-bottom:12px;">
     <div id="am_status" style="font-size:.8rem;color:#f87171;margin-bottom:8px;"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
       <button onclick="closeAddModel()" style="padding:7px 16px;border-radius:8px;border:1px solid #2a3350;background:transparent;color:#e6e9f2;cursor:pointer;">✕</button>
-      <button onclick="submitAddModel()" style="padding:7px 16px;border-radius:8px;border:none;background:#6c5ce7;color:#fff;cursor:pointer;font-weight:600;" data-lang-key="add_model_btn">添加</button>
+      <button onclick="submitAddModel()" style="padding:7px 16px;border-radius:8px;border:none;background:#6c5ce7;color:#fff;cursor:pointer;font-weight:600;" data-lang-key="add_model_btn">Add</button>
     </div>
   </div>
 </div>
@@ -3350,7 +4043,7 @@ var AM_ORDER = ['deepseek','openai','anthropic','zhipu','zai','moonshot','bailia
   var sel = document.getElementById('am_provider');
   if (!sel) return;
   sel.innerHTML = AM_ORDER.map(function(p){
-    var names = {deepseek:'DeepSeek 🚀',openai:'OpenAI 🤖',anthropic:'Anthropic ✳️',zhipu:'智谱 GLM 🧪',zai:'智谱 Z.AI 🌍',moonshot:'Moonshot 🌙',bailian:'阿里百炼 ☁️',openrouter:'OpenRouter 🌐',google:'Gemini 🟦',ollama:'Ollama(本地) 🐳',custom:'自定义 🔧'};
+    var names = {deepseek:'DeepSeek 🚀',openai:'OpenAI 🤖',anthropic:'Anthropic ✳️',zhipu:'Zhipu GLM 🧪',zai:'Z.AI 🌍',moonshot:'Moonshot 🌙',bailian:'Bailian ☁️',openrouter:'OpenRouter 🌐',google:'Gemini 🟦',ollama:'Ollama (local) 🐳',custom:'Custom 🔧'};
     return '<option value="' + p + '">' + (names[p]||p) + '</option>';
   }).join('');
 })();
@@ -3359,7 +4052,7 @@ function amOnProvider(){
   var m = AM_PROVIDERS[p] || AM_PROVIDERS.custom;
   document.getElementById('am_baseurl').value = m.base || '';
   document.getElementById('am_getkey').innerHTML = m.key
-    ? '没有 Key? <a href="' + m.key + '" target="_blank" style="color:#7aa2ff">点击获取 →</a>'
+    ? t('am_no_key') + ' <a href="' + m.key + '" target="_blank" style="color:#7aa2ff">' + t('am_get_key') + '</a>'
     : '';
   document.getElementById('am_id_list').innerHTML = (m.models||[]).map(function(id){
     return '<option value="' + id + '">'; }).join('');
