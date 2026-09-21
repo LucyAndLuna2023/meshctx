@@ -1,6 +1,6 @@
 [project]
 name = "meshctx"
-version = "3.131.9"
+version = "3.131.10"
 description = "World's First Self-Evolving Agent System"
 authors = [{name = "Jason Liu", email = "jason.liu@meshctx.com"}]
 requires-python = ">=3.10"
