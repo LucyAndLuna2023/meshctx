@@ -527,7 +527,6 @@ class TestCardWorker:
             t0 = time.time()
             w.cancel(c.id)
             done = False
-            import sys as _s
             seen = []
             for _ in range(300):  # night-41: 终态轮询预算 5s→15s (满载容忍)
                 time.sleep(0.05)
@@ -535,18 +534,10 @@ class TestCardWorker:
                 st = getattr(g, "status", None)
                 if not seen or seen[-1] != str(st):
                     seen.append(str(st))
-                    print(f"[dbg-poll] t={time.time()-t0:.2f} status={st} file={getattr(g,'id',None)}", file=_s.stderr)
                 if g and g.status in (CardStatus.CANCELLED, CardStatus.COMPLETED, CardStatus.FAILED):
                     done = True
                     break
             elapsed = time.time() - t0
-            print(f"[dbg-poll] done={done} elapsed={elapsed:.1f} seen={seen} file_id={c.id[:8]}", file=_s.stderr)
-            import sys as _s, pathlib as _pl
-            try:
-                raw = _pl.Path(str(w._store._dir)) / f"{c.id}.json"
-                print("[dbg-disk]", raw.read_text(encoding="utf-8")[:400], file=_s.stderr)
-            except Exception as _e:
-                print("[dbg-disk] read fail:", _e, file=_s.stderr)
             assert done, "cancel 后卡未及时终止"
             assert elapsed < 10.0, f"取消不及时: {elapsed:.1f}s"
         finally:

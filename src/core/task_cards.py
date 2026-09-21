@@ -890,7 +890,6 @@ class CardWorker:
         card.mark(CardStatus.RUNNING)
         self._store.save(card)
         # 同步阻塞型 agent 执行 → 线程池 (每卡独立线程, 不占 worker 调度 loop)
-        import sys as _s, time as _t0
         try:
             await asyncio.to_thread(self._run_card_in_thread, card.id)
         except asyncio.CancelledError:
