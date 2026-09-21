@@ -120,11 +120,8 @@ def _reset_global_state():
     if "src.core.self_evolution" in sys.modules:
         try:
             from src.core.self_evolution import get_self_evolution
-            loop = get_self_evolution()
-            loop.insights = {}
-            loop._exp_index.clear()
-            loop._since_reflect = 0
-            loop._exp_loaded = False
+            import src.core.self_evolution as _se_mod
+            _se_mod._loop = None  # 002meshctx P3 (32fe444a): 单例整体置空, 防跨测试路径/句柄串接
         except Exception:
             pass
     _clear_rate_limits()
