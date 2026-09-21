@@ -1,3 +1,24 @@
+## [v3.131.7] - 2026-09-21 (Model Hub UI 重排 · pyproject 漏升修正 · G10 盲区补全)
+
+### Changed
+- **Model Hub 模型配置页重排** (用户实测驱动, 参照 zcode Model Hub 方法 + deepseek harness 设置页方法):
+  - 7 卡平铺 → 紧凑头部 + 5 tab 分区导航 (模型/添加模型/对比/自进化/高级), 支持 `#锚点` 深链
+  - 头部 = 标题 + 当前模型 pill (图标/名称/徽章/Test) — 原欢迎卡与当前模型卡合并
+  - Base URL 渐进披露: 默认折叠, custom 厂商自动展开 (防缺 base_url 盲区)
+  - 添加成功自动跳「模型」tab; 首次引导显示时默认落「添加模型」tab
+  - tab 键盘/无障碍: role=tab + aria-selected 同步 + hashchange 响应
+  - 引导/标题文案去 ①②③ 序号引用 (hub_wiz_1/2/3, hub_models, hub_add, hub_none_hint 改值)
+  - i18n: +5 键 ×11 语言 (1587→1592) 严格平价; 全部测试契约标记与 JS 函数名保留
+
+### Fixed
+- **pyproject.toml 漏升** (deepseek v3.131.6 抽审 P2): 3.131.5 → 3.131.7, 版本资产链 21 文件全链一致
+- **G10 checks 盲区补全 12 文件** (同抽审 P3): pyproject/package.json/install-mac+edition sh/bat ×8 + docs 镜像 + llms.txt + support_bot 挂进门禁, 防 bump 漏改复发
+
+### Verification
+- 002codex: UI c01e7675 五项全 PASS + release tag 81b1de24 PASS_WITH_FINDINGS (tag 可确认), 全量 3933P/0F/59S
+- 004meshctx round44: PASS_WITH_FINDINGS, 3933P/0F, jepa flaky 根修后零复现
+- 004zcode: v3.131.6 抽审两条件销项确认, v3.131.7 可发
+
 ## [v3.131.6] - 2026-09-21 (setup.html i18n 残留清零 · round36/37 账龄清偿)
 
 ### Fixed

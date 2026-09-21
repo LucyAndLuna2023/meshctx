@@ -128,11 +128,11 @@ details.adv[open] summary{margin-bottom:8px}
     <button class="btn" onclick="testModel(currentId,this)" data-i18n="hub_test">Test</button>
   </div>
   <div class="tabs" role="tablist">
-    <button type="button" class="tab-btn active" data-tab="models" data-i18n="hub_tab_models">Models</button>
-    <button type="button" class="tab-btn" data-tab="add" data-i18n="hub_tab_add">Add Model</button>
-    <button type="button" class="tab-btn" data-tab="compare" data-i18n="hub_tab_compare">Compare</button>
-    <button type="button" class="tab-btn" data-tab="evo" data-i18n="hub_tab_evo">Evolution</button>
-    <button type="button" class="tab-btn" data-tab="advanced" data-i18n="hub_tab_advanced">Advanced</button>
+    <button type="button" role="tab" aria-selected="true" class="tab-btn active" data-tab="models" data-i18n="hub_tab_models">Models</button>
+    <button type="button" role="tab" aria-selected="false" class="tab-btn" data-tab="add" data-i18n="hub_tab_add">Add Model</button>
+    <button type="button" role="tab" aria-selected="false" class="tab-btn" data-tab="compare" data-i18n="hub_tab_compare">Compare</button>
+    <button type="button" role="tab" aria-selected="false" class="tab-btn" data-tab="evo" data-i18n="hub_tab_evo">Evolution</button>
+    <button type="button" role="tab" aria-selected="false" class="tab-btn" data-tab="advanced" data-i18n="hub_tab_advanced">Advanced</button>
   </div>
 </div>
 
@@ -283,12 +283,17 @@ function switchTab(name, keepHash) {
     var pane = document.getElementById('pane-' + t);
     if (pane) pane.hidden = (t !== name);
     var btn = document.querySelector('.tab-btn[data-tab="' + t + '"]');
-    if (btn) btn.classList.toggle('active', t === name);
+    if (btn) { btn.classList.toggle('active', t === name); btn.setAttribute('aria-selected', t === name ? 'true' : 'false'); }
   });
   if (!keepHash) { try { history.replaceState(null, '', '#' + name); } catch (e) {} }
 }
 document.querySelectorAll('.tab-btn').forEach(function(b) {
   b.addEventListener('click', function() { switchTab(b.getAttribute('data-tab')); });
+});
+// v3.131.7 (002codex P3-3): 浏览器前进/后退与 #hash 修改联动 tab
+window.addEventListener('hashchange', function() {
+  var h = (window.location.hash || '').replace('#', '');
+  if (TABS.indexOf(h) >= 0) switchTab(h, true);
 });
 (function initTab() {
   var h = (window.location.hash || '').replace('#', '');
@@ -477,7 +482,7 @@ function onProviderChange(){
 }
 // night-20 (P1-1): 推荐起步 chips — 一键选中厂商并聚焦 Key 输入
 function quickPick(p){
-  switchTab('add', true);
+  switchTab('add');
   var sel = $('ad_provider');
   if (!sel || !PROVIDERS[p]) return;
   sel.value = p;
@@ -626,8 +631,8 @@ function addAndTest(){
         if (d.status === 'ok') {
           st.className='status ok';
           st.textContent = '✓ ' + T('hub_live','Connection OK') + ' — ' + (d.response||'').slice(0,40);
-          // v3.131.7: 添加成功自动切到「模型」tab 看到新条目
-          setTimeout(function(){ switchTab('models', true); }, 700);
+          // v3.131.7: 添加成功自动切到「模型」tab 看到新条目 (hash 同步归位, 002codex P3-3)
+          setTimeout(function(){ switchTab('models'); }, 700);
         } else {
           st.className='status bad';
           st.textContent = '⚠ ' + T('hub_added_but','Added, but the connection test failed') + ': ' + (d.message||'').slice(0,80);
@@ -667,7 +672,7 @@ function maybeShowWizard(){
   $('wizSkipBtn').textContent = T('hub_wiz_skip','Skip guide');
   card.style.display = 'block';
   // v3.131.7: 首次引导默认落在「添加模型」tab — 少一次点击
-  switchTab('add', true);
+  switchTab('add');
 }
 function dismissWizard(){
   var card = $('wizardCard');
