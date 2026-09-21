@@ -1,3 +1,20 @@
+## [v3.131.6] - 2026-09-21 (setup.html i18n 残留清零 · round36/37 账龄清偿)
+
+### Fixed
+- **setup.html 中文硬编码清零** (002meshctx round36/37 挂账 + deepseek i18n 终验 CONDITIONAL):
+  - 词典 +49 键 ×11 语言 (en 1538→1587): hub_* 全部 T() 键 34 个补齐 + evo/对比/健康徽章 8 个 + vendor_* 7 个
+  - 「用」按钮 → T('hub_use') (L340 硬编码 + L357 兜底中文)
+  - 7 厂商显示名 (智谱/百炼/豆包/混元/Ollama/vLLM/自定义) → VN() 助手: vendor_* 键词典优先, PROVIDERS.name 兜底
+  - 2 placeholder (ad_key/cmp_q) → 运行时 T() 回填 (新增 applyI18nPlaceholders)
+  - 对比运行中/评分/custom需填BaseURL/evo空态/健康徽章title → T() 化
+  - 静态默认文案 zh→en 翻转 28 处 (data-i18n 运行时按语言覆盖, 11 语言显示不变; curl 级 en 扫描零中文)
+  - JS 兜底参数机械化 zh→en 翻转 35 处 (仅键在词典且 en 值无引号者)
+  - 实测: /ui/setup en 渲染可见中文残留=0 (此前 64); zh 渲染 3 处为服务端 t() 正确中文行为
+  - 渲染页 JS node --check 0 失败; i18n 平价/渲染扫描/本地化 237 passed + Model Hub/自进化 27 passed
+
+### Version
+- 版本资产链 3.131.5 → 3.131.6 (15 文件 + 5 镜像; FastAPI version 动态 __version__ 自动跟随)
+
 ## [Unreleased · 夜间批二] - 2026-09-11 (自进化闭环自转 + 管理页收口 + 测活横幅)
 ### Added / Fixed (zcode@004 夜间批, 待四方门后随下版发布)
 - 自进化闭环 Phase-0 完成自转: record 每 20 条自动 reflect (阈值可调);

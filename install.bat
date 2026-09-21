@@ -6,7 +6,7 @@ title meshctx Installer
 setlocal enabledelayedexpansion
 
 set "INSTALL_DIR=%USERPROFILE%\.meshctx"
-set "VERSION=3.131.5"
+set "VERSION=3.131.6"
 set "SRC_URL=https://github.com/LucyAndLuna2023/meshctx/archive/refs/tags/v%VERSION%.tar.gz"
 set "PORTABLE_URL=https://github.com/LucyAndLuna2023/meshctx/releases/download/v%VERSION%/meshctx-windows-cli.zip"
 
@@ -380,7 +380,7 @@ if defined MESHCTX_CORE_TOKEN (
 echo   OK
 
 :done
-REM ── v3.131.5 免登录 + 编码 + 启动器保证 ─────────────
+REM ── v3.131.6 免登录 + 编码 + 启动器保证 ─────────────
 REM 1) 清除 .env 密码残留(仅公网部署手动设置 MESHCTX_PASSWORD, 装完默认免登录)
 powershell -Command "$f='%INSTALL_DIR%\.env'; if (Test-Path $f) { (Get-Content $f) | Where-Object {$_ -notmatch '^MESHCTX_PASSWORD='} | Set-Content $f }" 2>nul
 REM 2) 源码模式缺 meshctx.cmd 时补齐启动器(portable 模式已生成, 此处幂等覆盖源码版)
