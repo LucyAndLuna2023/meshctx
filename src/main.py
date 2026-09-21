@@ -3367,10 +3367,12 @@ async def test_model_connection(model_id: str):
         try:
             from src.core.self_evolution import get_self_evolution
             pid = model_id.split(":")[0] if ":" in model_id else model_id
-            get_self_evolution().record("provider_test", pid,
-                                        outcome=test_ok,
-                                        detail=f"{model_id}: {test_detail[:100]}",
-                                        duration_ms=(time.perf_counter() - _t0) * 1000)
+            # round37 P3-2: 哈希链写在 async finally 中 to_thread 化, 不阻塞 loop
+            await asyncio.to_thread(
+                get_self_evolution().record, "provider_test", pid,
+                outcome=test_ok,
+                detail=f"{model_id}: {test_detail[:100]}",
+                duration_ms=(time.perf_counter() - _t0) * 1000)
         except Exception:
             pass
 
@@ -4364,13 +4366,19 @@ async def api_chat_stream(request: Request):
             # v3.131.1: 自进化经验层 — 聊天结果入闭环 (错误标记→失败经验)
             try:
                 from src.core.self_evolution import get_self_evolution
-                get_self_evolution().record("chat", model_id or "default",
-                                            outcome=(not _se_had_error),
-                                            duration_ms=(time.perf_counter() - _se_t0) * 1000)
-                # night-4: ④ 归因回灌 — 本次注入的洞见按真实成败强化/衰减 (闭合第四环)
-                if _se_rules:
-                    get_self_evolution().reinforce("chat", _se_rules,
-                                                   outcome=(not _se_had_error))
+                _se = get_self_evolution()
+
+                def _se_finish():
+                    _se.record("chat", model_id or "default",
+                               outcome=(not _se_had_error),
+                               duration_ms=(time.perf_counter() - _se_t0) * 1000)
+                    # night-4: ④ 归因回灌 — 本次注入的洞见按真实成败强化/衰减 (闭合第四环)
+                    if _se_rules:
+                        _se.reinforce("chat", _se_rules,
+                                      outcome=(not _se_had_error))
+
+                # round37 P3-2: record+reinforce 同步链写 to_thread 化, 不阻塞 loop
+                await asyncio.to_thread(_se_finish)
             except Exception:
                 pass
             try:
@@ -7618,10 +7626,12 @@ async def code_run(request: Request):
         # v3.131.1: 自进化闭环 — 代码执行结果记入经验层 (统计蒸馏→洞见→注入)
         try:
             from src.core.self_evolution import get_self_evolution
-            get_self_evolution().record("code_run", language,
-                                        outcome=(result.returncode == 0),
-                                        detail=f"exit={result.returncode}",
-                                        duration_ms=(time.perf_counter() - _t0) * 1000)
+            # round37 P3-2: 哈希链写 to_thread 化, 不阻塞 loop
+            await asyncio.to_thread(
+                get_self_evolution().record, "code_run", language,
+                outcome=(result.returncode == 0),
+                detail=f"exit={result.returncode}",
+                duration_ms=(time.perf_counter() - _t0) * 1000)
         except Exception:
             pass
         return response
@@ -7723,9 +7733,10 @@ async def evolution_record(request: Request):
     task_type = str(body.get("task_type") or "general")
     strategy = str(body.get("strategy") or "default")
     outcome = bool(body.get("outcome"))
-    exp = get_self_evolution().record(task_type, strategy, outcome,
-                                      detail=str(body.get("detail", "")),
-                                      duration_ms=float(body.get("duration_ms", 0) or 0))
+    exp = await asyncio.to_thread(
+        get_self_evolution().record, task_type, strategy, outcome,
+        detail=str(body.get("detail", "")),
+        duration_ms=float(body.get("duration_ms", 0) or 0))
     return {"status": "ok", "task_type": task_type, "strategy": strategy}
 
 
