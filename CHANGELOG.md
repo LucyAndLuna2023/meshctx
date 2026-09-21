@@ -1,3 +1,21 @@
+## [v3.131.9] - 2026-09-21 (chat+files i18n 全面根治 · 下拉 P1 修正 · 键盘焦点重做)
+
+### Fixed
+- **chat.html i18n 全面根治** (用户报"切语言切不完全"): LANG 私典 72→135 键×11 语言 (+63), 接线 ~70 处硬编码站点 (侧边栏/任务卡/审批面板/聊天流/工具气泡/错误映射/添加模型/Ctrl+K/401 提示), 静态默认系统翻转英文 + data-lang-key 运行时覆盖
+- **致命雷自曝并修正** (002codex abee5742 P1): v3.131.8 下拉提交误用未定义 `L[]` (词典实为 `LANG`), loadModels 运行时 ReferenceError → 下拉必坏; 统一改 `t('add_model_btn')`
+- **下拉键盘焦点重做** (同回执 P2): `#modelMenu` 加 `tabindex="-1"`, 开菜单焦点入 listbox, 关闭焦点回 button, Enter/ArrowUp/ArrowDown/ESC 真实键盘可达, 与点击同一 pickModelMenu 路径; button Enter/Space 交原生 click 防双触发
+- **files.html i18n**: 10 站点接 `{{ t() }}`; 中央词典 +8 键 (files_*/common_search_ph), 总 1600 键 × 11 语言严格平价
+
+### Added
+- `tests/ui/test_chat_dropdown.py`: 真实浏览器运行时行为守门 ×4 (无 ReferenceError / 点击选 PATCH / 键盘 Enter 选择+焦点回位 / 状态存储契约) — 堵 P1 逃逸的 UI 盲区
+- `tests/ui/test_chat.py::test_model_selector_exists` 契约更新为自定义下拉结构 (002codex P3-2)
+
+## [v3.131.8] - 2026-09-21 (chat 模型下拉 Mac 根修 · ⚠️ 本版有 P1 缺陷, 勿用, 以 v3.131.9 为准)
+
+### Changed
+- **自定义模型下拉替换原生 select** (Mac 桌面版 pywebview→WKWebView 原生弹出菜单兼容缺陷): 隐藏 select 状态存储 + msel-btn/msel-menu 组件, 外部点击/ESC 关闭, 方向键导航, ✓当前项/🚫禁用/➕添加入口
+- ⚠️ 本版含 P1 (未定义 `L[]` 引用致下拉必坏) 与 P2 (键盘焦点不可达), 均已在 v3.131.9 修复; 002codex 裁决 FAIL/HOLD
+
 ## [v3.131.7] - 2026-09-21 (Model Hub UI 重排 · pyproject 漏升修正 · G10 盲区补全)
 
 ### Changed

@@ -500,7 +500,7 @@ body {
     <button type="button" class="msel-btn" id="modelSelectBtn" aria-haspopup="listbox" aria-expanded="false" onclick="toggleModelMenu(event)">
       <span class="msel-label" id="modelSelectLabel">⚡ V4-Flash</span><span class="msel-caret">▾</span>
     </button>
-    <div class="msel-menu" id="modelMenu" role="listbox" aria-label="Model" hidden></div>
+    <div class="msel-menu" id="modelMenu" role="listbox" aria-label="Model" tabindex="-1" hidden></div>
   </div>
   <select id="modelSelect" hidden aria-hidden="true" tabindex="-1">
     <option value="deepseek:v4-flash">⚡ V4-Flash</option>
@@ -2484,11 +2484,20 @@ function toggleModelMenu(ev){
   if (open) { renderModelMenu(_mmItems.length ? _mmItems : [{id: (document.getElementById('modelSelect')||{}).value||'__reload__', label:''}]); }
   menu.hidden = !open;
   btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-  if (open) { _mmKbd = -1; }
+  if (open) {
+    _mmKbd = -1;
+    menu.focus({preventScroll:true});   // v3.131.9 P2: 焦点入 listbox, 真实键盘可达
+  } else {
+    btn.focus({preventScroll:true});
+  }
 }
 function closeModelMenu(){
   const menu = document.getElementById('modelMenu'), btn = document.getElementById('modelSelectBtn');
-  if (menu) menu.hidden = true;
+  if (menu) {
+    const hadFocus = (document.activeElement === menu);  // 先记焦点: hidden 会自动把焦点丢到 body
+    menu.hidden = true;
+    if (hadFocus && btn) btn.focus({preventScroll:true});  // 关闭后 focus 回 button (P2)
+  }
   if (btn) btn.setAttribute('aria-expanded','false');
 }
 function pickModelMenu(i){
@@ -2502,12 +2511,13 @@ function pickModelMenu(i){
 }
 // 键盘导航 (002codex round45 P4 同类: 方向键/Enter/ESC)
 document.getElementById('modelSelectBtn').addEventListener('keydown', function(e){
-  if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+  if (e.key === 'ArrowDown') {
     e.preventDefault();
     const menu = document.getElementById('modelMenu');
-    if (menu && menu.hidden) { toggleModelMenu(); }
+    if (menu && menu.hidden) { toggleModelMenu(); } else if (menu) { menu.focus({preventScroll:true}); }
     moveMenuKbd(1);
   }
+  // Enter/Space: 交给 button 原生 click → toggleModelMenu (内含焦点转移), 防 Enter 双触发
 });
 document.getElementById('modelMenu').addEventListener('keydown', function(e){
   if (e.key === 'ArrowDown') { e.preventDefault(); moveMenuKbd(1); }

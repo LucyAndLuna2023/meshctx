@@ -141,16 +141,19 @@ def test_welcome_message_present(chat_page):
 
 @pytest.mark.ui
 def test_model_selector_exists(chat_page):
-    """Chat page should have a model selector dropdown."""
-    select = chat_page.locator("#modelSelect")
-    if select.count() == 0:
-        select = chat_page.locator("select").first
-
-    if select.count() > 0:
-        assert select.is_visible(), "Model selector is not visible"
-        options = select.locator("option").all()
-        assert len(options) > 0, "Model selector has no options"
-    # If no selector exists, that's acceptable too — not all UIs have one
+    """Chat page model selector: v3.131.9 自定义下拉 — 可见控件 #modelSelectBtn,
+    隐藏 <select id="modelSelect"> 仅作状态存储 (002codex abee5742 P3-2)."""
+    btn = chat_page.locator("#modelSelectBtn")
+    if btn.count() == 0:
+        # 兼容旧回退: 无自定义组件时允许原生 select
+        select = chat_page.locator("#modelSelect")
+        if select.count() > 0:
+            assert select.is_visible(), "原生 model selector 不可见"
+        return
+    assert btn.is_visible(), "模型下拉按钮 #modelSelectBtn 不可见"
+    store = chat_page.locator("#modelSelect")
+    assert store.count() == 1, "隐藏状态存储 #modelSelect 缺失"
+    assert store.locator("option").count() > 0, "状态存储 select 无 option"
 
 
 # ── Basic Interaction (no actual API call) ─────────────────
