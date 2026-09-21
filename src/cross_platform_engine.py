@@ -100,11 +100,12 @@ class CrossPlatformStorage:
         else:
             from .models import Memory as Model  # fallback
         cache_key = f"{self.base_path}:{entity_type}"
-        # 目录级指纹: (dir_mtime, 文件数) — 比逐文件 glob 快得多
+        # 目录级指纹 (v3.131.7 性能修复, 004 大记忆库实测): 原 (dir_mtime, iterdir 文件数)
+        # 的 entry_count 每次调用全量列目录 — 记忆库文件数上千后 dashboard 渲染爬行数分钟
+        # (faulthandler 实锤 pathlib.iterdir 卡渲染线程)。dir mtime 单独即可捕获新增/删除
+        # (与原双元组语义等价: 原地改写文件两者本就都不感知), stat() O(1) 替代 O(n) 列目录。
         try:
-            dir_stat = entity_dir.stat()
-            entry_count = len(list(entity_dir.iterdir()))
-            fingerprint = (dir_stat.st_mtime_ns, entry_count)
+            fingerprint = entity_dir.stat().st_mtime_ns
         except Exception:
             fingerprint = None
         cache = self._index_cache.get(cache_key)
