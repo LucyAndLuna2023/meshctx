@@ -38,6 +38,39 @@ _OLLAMA_HOST = os.environ.get("MESHCTX_OLLAMA_HOST", "localhost")
 _VLLM_HOST = os.environ.get("MESHCTX_VLLM_HOST", "localhost")
 _LOCALAI_HOST = os.environ.get("MESHCTX_LOCALAI_HOST", "localhost")
 
+# v3.131.4: API Key/URL 非法字符防御 — 粘贴混入的非 ASCII 字符会导致 httpx
+# 构造 Authorization 头时报 "ascii codec can't encode character ... ordinal
+# not in range(128)"（Mac zhipu 配置实测）。此处统一剥离不可见字符并在仍含
+# 非 ASCII 时给出可定位的明确报错（含位置+码点），替代 httpx 的晦涩堆栈。
+_INVISIBLE_RE = re.compile(
+    "[\u200b\u200c\u200d\u2060\ufeff\u00ad\u3000\u00a0\u2000-\u200a\u2028\u2029\t\r]"
+)
+
+
+def _sanitize_api_key(raw: str, model_id: str = "") -> str:
+    """剥离粘贴混入的不可见字符; 仍含非 ASCII 时抛出可定位错误。"""
+    key = _INVISIBLE_RE.sub("", str(raw or "")).strip()
+    bad = [(i, c, f"U+{ord(c):04X}") for i, c in enumerate(key) if ord(c) > 127]
+    if bad:
+        sample = ", ".join(f"位置{i}({cp})" for i, _, cp in bad[:5])
+        raise ValueError(
+            f"模型 {model_id} 的 API Key 含非法字符: {sample}。"
+            f"通常是复制粘贴混入全角/零宽字符，请重新复制纯文本 Key 后保存。"
+        )
+    return key
+
+
+def _sanitize_base_url(raw: str, model_id: str = "") -> str:
+    """base_url 剥离空白; 含非 ASCII 时给出可定位错误。"""
+    url = _INVISIBLE_RE.sub("", str(raw or "")).strip().rstrip("/")
+    bad = [(i, c, f"U+{ord(c):04X}") for i, c in enumerate(url) if ord(c) > 127]
+    if bad:
+        sample = ", ".join(f"位置{i}({cp})" for i, _, cp in bad[:5])
+        raise ValueError(
+            f"模型 {model_id} 的 base_url 含非法字符: {sample}，请修正后保存。"
+        )
+    return url
+
 # ═══════════════════════════════════════════════════
 # 内置模型目录 — 123+ 模型，37+ 供应商，零配置可用
 # ═══════════════════════════════════════════════════
@@ -569,9 +602,11 @@ class ModelRegistry:
             cfg = self._entries[model_id]
             if not cfg.get("key"):
                 return None
+            clean_key = _sanitize_api_key(cfg["key"], model_id)
+            clean_url = _sanitize_base_url(cfg.get("base_url", ""), model_id)
             self._clients[model_id] = OpenAI(
-                api_key=cfg["key"],
-                base_url=cfg["base_url"],
+                api_key=clean_key,
+                base_url=clean_url,
                 timeout=CLIENT_TIMEOUT,
             )
         

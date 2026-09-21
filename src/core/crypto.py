@@ -164,12 +164,21 @@ def decrypt_key(key: str) -> str:
                 return fernet.decrypt(payload.encode("ascii")).decode("utf-8", errors="replace")
             except Exception as e:  # noqa: BLE001
                 logger.debug("Fernet 解密失败, 尝试 XOR 降级: %s", e)
-        raw = base64.urlsafe_b64decode(payload.encode("ascii") + b"=" * (-len(payload) % 4))
+        try:
+            raw = base64.urlsafe_b64decode(payload.encode("ascii") + b"=" * (-len(payload) % 4))
+        except UnicodeEncodeError as e:
+            # v3.131.4: 密文含非 ASCII(存储损坏/手改) — 给出可定位错误而非 ascii 堆栈
+            bad = [(i, f"U+{ord(c):04X}") for i, c in enumerate(payload) if ord(c) > 127][:5]
+            raise ValueError(f"加密密钥密文损坏(非ASCII字符 {bad})，请重新保存 API Key") from e
         return _fallback_decrypt(raw).decode("utf-8", errors="replace")
     if value.startswith(_B64_PREFIX):
         # 兼容旧格式: b64: 为纯 base64 明文
         payload = value[len(_B64_PREFIX):]
-        raw = base64.b64decode(payload.encode("ascii") + b"=" * (-len(payload) % 4))
+        try:
+            raw = base64.b64decode(payload.encode("ascii") + b"=" * (-len(payload) % 4))
+        except UnicodeEncodeError as e:
+            bad = [(i, f"U+{ord(c):04X}") for i, c in enumerate(payload) if ord(c) > 127][:5]
+            raise ValueError(f"b64 密钥密文损坏(非ASCII字符 {bad})，请重新保存 API Key") from e
         return raw.decode("utf-8", errors="replace")
     return value  # 明文
 

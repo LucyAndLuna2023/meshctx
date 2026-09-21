@@ -9,6 +9,22 @@ from typing import Dict, List, Optional, Any
 logger = logging.getLogger("meshctx.model_adapter")
 from dataclasses import dataclass
 import os
+import re as _re
+
+# v3.131.4: 与 model_registry 同规的 key/url 防御（详见 model_registry._sanitize_api_key）
+_INVISIBLE_RE = _re.compile(
+    "[\u200b\u200c\u200d\u2060\ufeff\u00ad\u3000\u00a0\u2000-\u200a\u2028\u2029\t\r]"
+)
+
+
+def _sanitize_secret(raw: str, what: str = "API Key") -> str:
+    val = _INVISIBLE_RE.sub("", str(raw or "")).strip()
+    bad = [(i, f"U+{ord(c):04X}") for i, c in enumerate(val) if ord(c) > 127]
+    if bad:
+        sample = ", ".join(f"位置{i}({cp})" for i, cp in bad[:5])
+        raise ValueError(f"{what} 含非法字符: {sample}，请重新复制纯文本后保存。")
+    return val
+
 
 # 流式输出超时(秒)
 _STREAM_READ_TIMEOUT = 60
@@ -86,7 +102,7 @@ class ModelAdapter:
 
         try:
             from openai import OpenAI
-            self._client = OpenAI(api_key=api_key, base_url=base_url,
+            self._client = OpenAI(api_key=_sanitize_secret(api_key), base_url=_sanitize_secret(base_url, "base_url"),
                                 timeout=_CLIENT_TIMEOUT)
             self._model = model
             self._ready = True
