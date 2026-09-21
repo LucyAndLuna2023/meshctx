@@ -438,6 +438,19 @@ class TestRegressionPrevention:
             "docs/install.sh": [f'VERSION="{ver}"'],
             # night-11: build.bat 显示串曾残留旧版 3.131.2 — 挂进 G10 防 bump 漏改
             "build.bat": [f"FileVersion {ver}", f"echo   Version: {ver}"],
+            # v3.131.7 (deepseek v3.131.6 抽审 P2/P3): pyproject 漏升实锤 — checks 盲区补全
+            "pyproject.toml": [f'version = "{ver}"'],
+            "package.json": [f'"version": "{ver}"'],
+            "install-mac.sh": [f'VERSION="{ver}"'],
+            "docs/install-mac.sh": [f'VERSION="{ver}"'],
+            "install-edition.sh": [f'VERSION="{ver}"'],
+            "docs/install-edition.sh": [f'VERSION="{ver}"'],
+            "install.bat": [f'set "VERSION={ver}"'],
+            "docs/install.bat": [f'set "VERSION={ver}"'],
+            "install-edition.bat": [f'set "VERSION={ver}"'],
+            "docs/install-edition.bat": [f'set "VERSION={ver}"'],
+            "docs/llms.txt": [f"v{ver}"],
+            "tools/meshctx_support_bot.py": [f'VERSION = "v{ver}"'],
         }
         for fname, needles in checks.items():
             text = (PROJECT / fname).read_text(encoding="utf-8")

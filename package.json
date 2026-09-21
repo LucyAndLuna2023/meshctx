@@ -1,6 +1,6 @@
 {
   "name": "meshctx",
-  "version": "3.131.6",
+  "version": "3.131.7",
   "description": "Auditable Self-Adaptive Agent Platform 鈥?200+ core modules, 3784 tests, 46+ models",
   "main": "src/cli.js",
   "bin": {
