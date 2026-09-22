@@ -941,3 +941,12 @@
 
 ### Fixed
 - **chat 切语言后进 Console/dashboard 又变回原语言** (用户实测): chat `changeLang` 只写 localStorage(`meshctx-lang`) 不写 cookie, 服务端页按旧 `meshctx_lang` cookie 渲染 → 现同步写 cookie + 双 key; base `switchLang` 反向同步连字符 key, 双向一致
+
+## [v3.131.13] - 2026-09-22 (AI 回复语言联动 UI 语言)
+
+### Added
+- **回复语言联动**: 界面选 11 语言之一 → chat 系统提示注入 "Response Language" 规则(默认用该语言回复; 用户用其他语言提问则跟随用户; 代码/路径/工具调用保持原样)。CLI 不受影响
+- 语言指令插在稳定段末尾/记忆段之前 — 同语言下前缀逐字节稳定(T1 缓存契约不破坏)
+
+### Verification
+- 守门 ×6 `tests/test_chat_language_prompt.py` (注入/None/非法值/大小写/11语言全覆盖/记忆段顺序); 定向 52P + G10 38P
