@@ -311,6 +311,7 @@ function toggleTheme() {
 function switchLang(lang) {
     document.cookie = 'meshctx_lang=' + lang + ';path=/;max-age=31536000';
     localStorage.setItem('meshctx_lang', lang);
+    localStorage.setItem('meshctx-lang', lang);  // v3.131.11: 同步 chat 页连字符 key, 双向一致
     window.__lang = lang;
     fetch('/api/lang/set', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({lang:lang})})
         .then(function(){ location.reload(); })

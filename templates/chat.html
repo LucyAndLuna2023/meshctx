@@ -2250,6 +2250,9 @@ function changeLang(lang) {
     }
   });
   localStorage.setItem('meshctx-lang', lang);
+  // v3.131.11: 同步 cookie 供服务端页(dashboard/setup/files)渲染, 并写 base.html 同名 key 双向兼容
+  document.cookie = 'meshctx_lang=' + lang + ';path=/;max-age=31536000';
+  localStorage.setItem('meshctx_lang', lang);
   var sel = document.getElementById('langSelect');
   if (sel) sel.value = lang;
 }

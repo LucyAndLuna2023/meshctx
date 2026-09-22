@@ -937,3 +937,7 @@
 - 插件市场上线
 - 本地文件直读API
 - Web搜索API
+## [v3.131.12] - 2026-09-22 (语言切换跨页修复)
+
+### Fixed
+- **chat 切语言后进 Console/dashboard 又变回原语言** (用户实测): chat `changeLang` 只写 localStorage(`meshctx-lang`) 不写 cookie, 服务端页按旧 `meshctx_lang` cookie 渲染 → 现同步写 cookie + 双 key; base `switchLang` 反向同步连字符 key, 双向一致
