@@ -1642,15 +1642,7 @@
     "hub_tab_add": "添加模型",
     "hub_tab_compare": "对比试聊",
     "hub_tab_evo": "自进化",
-    "hub_tab_advanced": "高级",
-    "files_subtitle": "浏览 meshctx 工作区文件（/api/files）",
-    "files_path_ph": "路径（默认 ~/.meshctx）",
-    "files_open": "打开",
-    "files_name": "名称",
-    "files_type": "类型",
-    "files_size": "大小",
-    "files_mtime": "修改时间",
-    "common_search_ph": "搜索..."
+    "hub_tab_advanced": "高级"
   },
   "en": {
     " (等待": " (Waiting",
@@ -3295,15 +3287,7 @@
     "hub_tab_add": "Add Model",
     "hub_tab_compare": "Compare",
     "hub_tab_evo": "Evolution",
-    "hub_tab_advanced": "Advanced",
-    "files_subtitle": "Browse meshctx workspace files (/api/files)",
-    "files_path_ph": "Path (default ~/.meshctx)",
-    "files_open": "Open",
-    "files_name": "Name",
-    "files_type": "Type",
-    "files_size": "Size",
-    "files_mtime": "Modified",
-    "common_search_ph": "Search..."
+    "hub_tab_advanced": "Advanced"
   },
   "ja": {
     " (等待": " (待機",
@@ -4948,15 +4932,7 @@
     "hub_tab_add": "モデル追加",
     "hub_tab_compare": "比較",
     "hub_tab_evo": "進化",
-    "hub_tab_advanced": "詳細",
-    "files_subtitle": "meshctx ワークスペースのファイルを閲覧 (/api/files)",
-    "files_path_ph": "パス（既定 ~/.meshctx）",
-    "files_open": "開く",
-    "files_name": "名前",
-    "files_type": "種類",
-    "files_size": "サイズ",
-    "files_mtime": "更新日時",
-    "common_search_ph": "検索..."
+    "hub_tab_advanced": "詳細"
   },
   "ko": {
     " (等待": " (대기",
@@ -6601,15 +6577,7 @@
     "hub_tab_add": "모델 추가",
     "hub_tab_compare": "비교",
     "hub_tab_evo": "진화",
-    "hub_tab_advanced": "고급",
-    "files_subtitle": "meshctx 작업공간 파일 탐색(/api/files)",
-    "files_path_ph": "경로(기본값 ~/.meshctx)",
-    "files_open": "열기",
-    "files_name": "이름",
-    "files_type": "유형",
-    "files_size": "크기",
-    "files_mtime": "수정 시각",
-    "common_search_ph": "검색..."
+    "hub_tab_advanced": "고급"
   },
   "fr": {
     " (等待": " (En attente",
@@ -8254,15 +8222,7 @@
     "hub_tab_add": "Ajouter",
     "hub_tab_compare": "Comparer",
     "hub_tab_evo": "Évolution",
-    "hub_tab_advanced": "Avancé",
-    "files_subtitle": "Parcourir les fichiers de l’espace de travail meshctx (/api/files)",
-    "files_path_ph": "Chemin (défaut ~/.meshctx)",
-    "files_open": "Ouvrir",
-    "files_name": "Nom",
-    "files_type": "Type",
-    "files_size": "Taille",
-    "files_mtime": "Modifié",
-    "common_search_ph": "Rechercher..."
+    "hub_tab_advanced": "Avancé"
   },
   "de": {
     " (等待": " (Warten",
@@ -9907,15 +9867,7 @@
     "hub_tab_add": "Hinzufügen",
     "hub_tab_compare": "Vergleichen",
     "hub_tab_evo": "Evolution",
-    "hub_tab_advanced": "Erweitert",
-    "files_subtitle": "meshctx-Arbeitsbereichsdateien durchsehen (/api/files)",
-    "files_path_ph": "Pfad (Standard ~/.meshctx)",
-    "files_open": "Öffnen",
-    "files_name": "Name",
-    "files_type": "Typ",
-    "files_size": "Größe",
-    "files_mtime": "Geändert",
-    "common_search_ph": "Suchen..."
+    "hub_tab_advanced": "Erweitert"
   },
   "es": {
     " (等待": " (Esperando",
@@ -11560,15 +11512,7 @@
     "hub_tab_add": "Añadir",
     "hub_tab_compare": "Comparar",
     "hub_tab_evo": "Evolución",
-    "hub_tab_advanced": "Avanzado",
-    "files_subtitle": "Explorar los archivos del espacio de trabajo meshctx (/api/files)",
-    "files_path_ph": "Ruta (por defecto ~/.meshctx)",
-    "files_open": "Abrir",
-    "files_name": "Nombre",
-    "files_type": "Tipo",
-    "files_size": "Tamaño",
-    "files_mtime": "Modificado",
-    "common_search_ph": "Buscar..."
+    "hub_tab_advanced": "Avanzado"
   },
   "it": {
     " (等待": " (attesa",
@@ -13213,15 +13157,7 @@
     "hub_tab_add": "Aggiungi",
     "hub_tab_compare": "Confronta",
     "hub_tab_evo": "Evoluzione",
-    "hub_tab_advanced": "Avanzato",
-    "files_subtitle": "Sfoglia i file dell’area di lavoro meshctx (/api/files)",
-    "files_path_ph": "Percorso (predefinito ~/.meshctx)",
-    "files_open": "Apri",
-    "files_name": "Nome",
-    "files_type": "Tipo",
-    "files_size": "Dimensione",
-    "files_mtime": "Modificato",
-    "common_search_ph": "Cerca..."
+    "hub_tab_advanced": "Avanzato"
   },
   "ar": {
     " (等待": " (في الانتظار",
@@ -14866,15 +14802,7 @@
     "hub_tab_add": "إضافة",
     "hub_tab_compare": "مقارنة",
     "hub_tab_evo": "التطور",
-    "hub_tab_advanced": "متقدم",
-    "files_subtitle": "تصفح ملفات مساحة عمل meshctx‏ (/api/files)",
-    "files_path_ph": "المسار (الافتراضي ~/.meshctx)",
-    "files_open": "فتح",
-    "files_name": "الاسم",
-    "files_type": "النوع",
-    "files_size": "الحجم",
-    "files_mtime": "آخر تعديل",
-    "common_search_ph": "بحث..."
+    "hub_tab_advanced": "متقدم"
   },
   "ru": {
     " (等待": " (ожидание",
@@ -16519,15 +16447,7 @@
     "hub_tab_add": "Добавить",
     "hub_tab_compare": "Сравнение",
     "hub_tab_evo": "Эволюция",
-    "hub_tab_advanced": "Дополнительно",
-    "files_subtitle": "Просмотр файлов рабочей области meshctx (/api/files)",
-    "files_path_ph": "Путь (по умолчанию ~/.meshctx)",
-    "files_open": "Открыть",
-    "files_name": "Имя",
-    "files_type": "Тип",
-    "files_size": "Размер",
-    "files_mtime": "Изменён",
-    "common_search_ph": "Поиск..."
+    "hub_tab_advanced": "Дополнительно"
   },
   "he": {
     " (等待": " (ממתין",
@@ -18172,14 +18092,6 @@
     "hub_tab_add": "הוספה",
     "hub_tab_compare": "השוואה",
     "hub_tab_evo": "אבולוציה",
-    "hub_tab_advanced": "מתקדם",
-    "files_subtitle": "עיון בקבצי סביבת העבודה של meshctx‏ (/api/files)",
-    "files_path_ph": "נתיב (ברירת מחדל ‎~/.meshctx)",
-    "files_open": "פתח",
-    "files_name": "שם",
-    "files_type": "סוג",
-    "files_size": "גודל",
-    "files_mtime": "שונה",
-    "common_search_ph": "חיפוש..."
+    "hub_tab_advanced": "מתקדם"
   }
 }

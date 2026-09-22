@@ -119,3 +119,31 @@ def test_compare_tryout_ui(client):
     assert "function runCompare" in html
     assert "fillCompareSelects" in html
     assert 'id="cmp_out"' in html
+
+
+def test_no_cjk_in_rendered_attributes(client):
+    """002meshctx 30a9d5b3 P2-1 守门: en 渲染属性 (placeholder/title/aria-label)
+    不得含 CJK — 文本级扫描之外的盲区封堵 (v3.131.10 整改)。"""
+    exemptions = {"中文", "日本語"}  # 语言自名豁免
+    for page in ("/ui/chat", "/ui/files", "/ui/setup"):
+        r = client.get(page, headers={"Cookie": "meshctx_lang=en"})
+        assert r.status_code == 200
+        body = re.sub(r"<script[^>]*>.*?</script>", "", r.text, flags=re.S)
+        hits = []
+        for m in re.finditer(r'(placeholder|title|aria-label)="([^"]*)"', body):
+            val = m.group(2).strip()
+            if re.search(r"[\u4e00-\u9fff]", val) and val not in exemptions:
+                hits.append((page, m.group(1), val[:40]))
+        assert not hits, f"en 渲染属性级 CJK 残留: {hits}"
+
+
+def test_chat_interrupt_toast_key_resolved(client):
+    """002codex 95067377 P2 守门: chat 私有 LANG 必须包含所有 t() 引用键,
+    防 chat_interrupt_toast 类裸键 (chat t() 不查中央词典)。"""
+    r = client.get("/ui/chat", headers={"Cookie": "meshctx_lang=en"})
+    m = re.search(r"const LANG = (\{.*?\n\});", r.text, re.S)
+    assert m, "chat LANG 词典未找到"
+    lang = json.loads(m.group(1))
+    used = set(re.findall(r"(?<![a-zA-Z0-9_.])t\('([a-z0-9_]+)'\)", r.text))
+    missing = sorted(k for k in used if k not in lang["en"])
+    assert not missing, f"t() 引用键缺失于私有 LANG (将显示裸键名): {missing}"

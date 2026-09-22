@@ -523,7 +523,7 @@ body {
     <button onclick="toggleConvDropdown()" id="convSwitchBtn" title="Chat history" data-lang-key="chat_history">📚 Chat history</button>
     <div class="conv-dropdown" id="convDropdown" style="display:none"></div>
   </span>
-  <button onclick="toggleChatTheme()" id="chatThemeBtn" title="切换主题" style="font-size:14px;">☀️</button>
+  <button onclick="toggleChatTheme()" id="chatThemeBtn" title="Toggle theme" style="font-size:14px;">☀️</button>
   <button id="hubBtn" onclick="toggleHubPanel()" title="Agent task center" data-lang-key="hub_title">Agent Hub</button>
   <span style="flex:1"></span>
   <a href="/ui/" style="color:var(--muted);text-decoration:none;font-size:13px" data-lang-key="chat_console">← Console</a>
@@ -636,7 +636,7 @@ body {
 <div class="status-panel" id="statusPanel">
   <div class="status-panel-title">
     📊 <span data-lang-key="chat_status_panel">Status Panel</span>
-    <button onclick="toggleStatusPanel()" title="收起">−</button>
+    <button onclick="toggleStatusPanel()" title="Collapse">−</button>
   </div>
   <div class="status-row">
     <span class="label" data-lang-key="chat_mode">Mode</span>
@@ -672,7 +672,7 @@ body {
   <div class="cmd-palette">
     <div class="cmd-palette-input">
       <span style="font-size:16px">🔍</span>
-      <input type="text" id="cmdPaletteInput" placeholder="输入指令... 或输入关键词搜索"
+      <input type="text" id="cmdPaletteInput" data-lang-key="cmd_search_placeholder" placeholder="Type a command... or search"
         autocomplete="off" autofocus>
       <span class="cmd-palette-hint">Esc</span>
     </div>
@@ -835,7 +835,9 @@ const LANG = {
   "am_add_fail": "Add failed",
   "kb_console_desc": "Open the meshctx dashboard",
   "chat_history": "📚 Chat history",
-  "am_base_autofill": "(autofilled, editable)"
+  "am_base_autofill": "(autofilled, editable)",
+  "cmd_search_placeholder": "Type a command... or search",
+  "chat_interrupt_toast": "⏹ Previous task interrupted, processing the new message..."
  },
  "zh": {
   "chat_agent_status": "Agent 状态",
@@ -972,7 +974,9 @@ const LANG = {
   "am_add_fail": "添加失败",
   "kb_console_desc": "打开 meshctx 仪表盘",
   "chat_history": "📚 对话历史",
-  "am_base_autofill": "(自动填好，可改)"
+  "am_base_autofill": "(自动填好，可改)",
+  "cmd_search_placeholder": "输入指令... 或输入关键词搜索",
+  "chat_interrupt_toast": "⏹ 已打断上一任务，正在处理新消息..."
  },
  "ja": {
   "chat_agent_status": "エージェント状態",
@@ -1109,7 +1113,9 @@ const LANG = {
   "am_add_fail": "追加失敗",
   "kb_console_desc": "meshctx ダッシュボードを開く",
   "chat_history": "📚 会話履歴",
-  "am_base_autofill": "(自動入力済み、編集可)"
+  "am_base_autofill": "(自動入力済み、編集可)",
+  "cmd_search_placeholder": "コマンド入力... または検索",
+  "chat_interrupt_toast": "⏹ 前のタスクを中断し、新しいメッセージを処理中..."
  },
  "ko": {
   "chat_agent_status": "에이전트 상태",
@@ -1246,7 +1252,9 @@ const LANG = {
   "am_add_fail": "추가 실패",
   "kb_console_desc": "meshctx 대시보드 열기",
   "chat_history": "📚 대화 기록",
-  "am_base_autofill": "(자동 입력, 수정 가능)"
+  "am_base_autofill": "(자동 입력, 수정 가능)",
+  "cmd_search_placeholder": "명령 입력... 또는 검색",
+  "chat_interrupt_toast": "⏹ 이전 작업을 중단하고 새 메시지를 처리 중..."
  },
  "de": {
   "chat_agent_status": "Agent-Status",
@@ -1383,7 +1391,9 @@ const LANG = {
   "am_add_fail": "Hinzufügen fehlgeschlagen",
   "kb_console_desc": "meshctx-Dashboard öffnen",
   "chat_history": "📚 Verlauf",
-  "am_base_autofill": "(automatisch ausgefüllt, editierbar)"
+  "am_base_autofill": "(automatisch ausgefüllt, editierbar)",
+  "cmd_search_placeholder": "Befehl eingeben... oder suchen",
+  "chat_interrupt_toast": "⏹ Vorherige Aufgabe unterbrochen, neue Nachricht wird verarbeitet..."
  },
  "fr": {
   "chat_agent_status": "Statut agent",
@@ -1520,7 +1530,9 @@ const LANG = {
   "am_add_fail": "Échec de l’ajout",
   "kb_console_desc": "Ouvrir le tableau de bord meshctx",
   "chat_history": "📚 Historique",
-  "am_base_autofill": "(rempli automatiquement, modifiable)"
+  "am_base_autofill": "(rempli automatiquement, modifiable)",
+  "cmd_search_placeholder": "Tapez une commande... ou recherchez",
+  "chat_interrupt_toast": "⏹ Tâche précédente interrompue, traitement du nouveau message..."
  },
  "es": {
   "chat_agent_status": "Estado del agente",
@@ -1657,7 +1669,9 @@ const LANG = {
   "am_add_fail": "Fallo al añadir",
   "kb_console_desc": "Abrir el panel de meshctx",
   "chat_history": "📚 Historial",
-  "am_base_autofill": "(autocompletado, editable)"
+  "am_base_autofill": "(autocompletado, editable)",
+  "cmd_search_placeholder": "Escribe un comando... o busca",
+  "chat_interrupt_toast": "⏹ Tarea anterior interrumpida, procesando el nuevo mensaje..."
  },
  "it": {
   "chat_agent_status": "Stato agente",
@@ -1794,7 +1808,9 @@ const LANG = {
   "am_add_fail": "Aggiunta non riuscita",
   "kb_console_desc": "Apri la dashboard meshctx",
   "chat_history": "📚 Cronologia",
-  "am_base_autofill": "(compilato automaticamente, modificabile)"
+  "am_base_autofill": "(compilato automaticamente, modificabile)",
+  "cmd_search_placeholder": "Digita un comando... o cerca",
+  "chat_interrupt_toast": "⏹ Attività precedente interrotta, elaboro il nuovo messaggio..."
  },
  "ar": {
   "chat_agent_status": "حالة الوكيل",
@@ -1931,7 +1947,9 @@ const LANG = {
   "am_add_fail": "فشل الإضافة",
   "kb_console_desc": "افتح لوحة meshctx",
   "chat_history": "📚 سجل المحادثات",
-  "am_base_autofill": "(تعبئة تلقائية، قابل للتعديل)"
+  "am_base_autofill": "(تعبئة تلقائية، قابل للتعديل)",
+  "cmd_search_placeholder": "اكتب أمراً... أو ابحث",
+  "chat_interrupt_toast": "⏹ تمت مقاطعة المهمة السابقة، جار معالجة الرسالة الجديدة..."
  },
  "ru": {
   "chat_agent_status": "Статус агента",
@@ -2068,7 +2086,9 @@ const LANG = {
   "am_add_fail": "Не удалось добавить",
   "kb_console_desc": "Открыть панель meshctx",
   "chat_history": "📚 История диалогов",
-  "am_base_autofill": "(заполнено автоматически, можно изменить)"
+  "am_base_autofill": "(заполнено автоматически, можно изменить)",
+  "cmd_search_placeholder": "Введите команду... или ищите",
+  "chat_interrupt_toast": "⏹ Предыдущая задача прервана, обрабатываю новое сообщение..."
  },
  "he": {
   "chat_agent_status": "סטטוס סוכן",
@@ -2205,7 +2225,9 @@ const LANG = {
   "am_add_fail": "ההוספה נכשלה",
   "kb_console_desc": "פתח את לוח הבקרה של meshctx",
   "chat_history": "📚 היסטוריית שיחות",
-  "am_base_autofill": "(מולא אוטומטית, ניתן לעריכה)"
+  "am_base_autofill": "(מולא אוטומטית, ניתן לעריכה)",
+  "cmd_search_placeholder": "הקלד פקודה... או חפש",
+  "chat_interrupt_toast": "⏹ המשימה הקודמת הופסקה, מעבד את ההודעה החדשה..."
  }
 };
 
@@ -2840,7 +2862,7 @@ async function send() {
     if (prevTyping) { try { prevTyping.remove(); } catch(e) {} }
     const prog = document.querySelector('.stream-progress');
     if (prog && !prog.closest('.typing-msg')) { try { prog.remove(); } catch(e) {} }
-    try { showToast(t('chat_interrupt_toast') || '⏹ 已打断上一任务，正在处理新消息...'); } catch(e) {}
+    try { showToast(t('chat_interrupt_toast')); } catch(e) {}
   }
   
   addMsg('user', text);
