@@ -1,3 +1,29 @@
+## [v3.131.11] - 2026-09-22 (属性级 i18n 清零 · files 单源 · 双审 PASS)
+
+### Fixed
+- chat 属性级中文残留 3 处 (chatThemeBtn title / 状态面板 title / cmdPaletteInput placeholder) — 002meshctx 30a9d5b3 P2-1
+- `chat_interrupt_toast` 裸键: 补入私有 LANG ×11 (135→137), 去中文 fallback — 002codex 95067377 P2
+
+### Changed
+- files 单源统一: 磁盘 templates/files.html 对齐内嵌副本逐字节同源 (默认渲染本就零中文); 中央词典 -8 孤儿键回 1592 ×11 — 002codex 95067377 P1 处置
+
+### Added
+- 守门 ×2: `test_no_cjk_in_rendered_attributes` (en 渲染 placeholder/title/aria-label 属性级 CJK 扫描) + `test_chat_interrupt_toast_key_resolved` (chat t() 引用键全覆盖断言)
+
+### Verification
+- 002meshctx: 🟢 PASS @1542f990 零 P1/P2, 全量 3936P/0F 复现, 词典双典平价复核
+- 002codex: PASS_WITH_FINDINGS / 可放行, 上轮 P1/P2 全部实证清零, Chromium 键盘 13/13 独立复测 PASS, 渲染矩阵 110/110
+
+## [v3.131.10] - 2026-09-21 (下拉键盘焦点重做 · 002codex abee5742 销项)
+
+### Fixed
+- **键盘焦点管理重做** (abee5742 P2): `#modelMenu` tabindex=-1, 开菜单焦点入 listbox, 关闭焦点回 button (先记焦点再 hidden); Enter/ArrowUp/Down/ESC 真实键盘可达, 与点击同一 pickModelMenu 路径; button Enter/Space 交原生 click 防双触发
+- v3.131.9 整改线: P1 L雷修正 + i18n 根治 (见 v3.131.9)
+
+### Added
+- `tests/ui/test_chat_dropdown.py` 真实浏览器行为守门 ×4; `test_model_selector_exists` 契约更新 (abee5742 P3-2)
+- CHANGELOG 补 v3.131.8 (标注 P1/P2 缺陷) 条目 (abee5742 P3-1)
+
 ## [v3.131.9] - 2026-09-21 (chat+files i18n 全面根治 · 下拉 P1 修正 · 键盘焦点重做)
 
 ### Fixed

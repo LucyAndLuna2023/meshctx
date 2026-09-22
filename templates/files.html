@@ -368,12 +368,12 @@ document.addEventListener('DOMContentLoaded', function(){
       if(!row) return;
       var path = row.getAttribute('data-path');
       var isDir = row.getAttribute('data-isdir') === 'true';
-      
+
       // Select
       var prev = document.querySelector('.fm-file-table tr.selected');
       if(prev) prev.classList.remove('selected');
       row.classList.add('selected');
-      
+
       // Double-click detection
       if(clickTimer){
         clearTimeout(clickTimer);
@@ -386,7 +386,7 @@ document.addEventListener('DOMContentLoaded', function(){
       }
     });
   }
-  
+
   var ta = document.getElementById('fileEditor');
   if(ta){
     ta.addEventListener('input', onEditorInput);

@@ -67,7 +67,8 @@ def test_dropdown_click_select_patches_default(chat_page):
 
 
 def test_dropdown_keyboard_enter_selects(chat_page):
-    """P2 守门: 真实键盘 — Enter 开菜单, ArrowDown 移动, Enter 选中 (焦点可达)."""
+    """P2 守门: 真实键盘 — Enter 开菜单, ArrowDown 移动, Enter 选中 (焦点可达).
+    覆盖 002codex df642c78 建议: 两次 ArrowDown 真实选择"下一项" (kbd 从 -1 起算)."""
     btn = chat_page.locator("#modelSelectBtn")
     btn.focus()
     chat_page.keyboard.press("Enter")
@@ -76,11 +77,14 @@ def test_dropdown_keyboard_enter_selects(chat_page):
     assert not menu.get_attribute("hidden"), "Enter 未打开菜单"
     assert chat_page.evaluate("document.activeElement && document.activeElement.id") == "modelMenu", \
         "焦点未进入 listbox (P2 焦点管理)"
+    # 两次 ArrowDown: kbd -1→0(alpha)→1(beta), 真实选择"下一项"
+    chat_page.keyboard.press("ArrowDown")
     chat_page.keyboard.press("ArrowDown")
     chat_page.keyboard.press("Enter")
     chat_page.wait_for_timeout(300)
     assert menu.get_attribute("hidden"), "选择后菜单未关闭"
-    assert chat_page.locator("#modelSelect").input_value() in ("beta:two", "alpha:one")
+    assert chat_page.locator("#modelSelect").input_value() == "beta:two", \
+        "两次 ArrowDown + Enter 未选中下一项 beta:two"
     # 焦点回到 button
     assert chat_page.evaluate("document.activeElement && document.activeElement.id") == "modelSelectBtn", \
         "关闭后焦点未回 button"
