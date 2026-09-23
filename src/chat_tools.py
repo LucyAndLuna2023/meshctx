@@ -839,14 +839,12 @@ def build_system_prompt(project_dir: str = None, include_memory: bool = True,
                     break
     # 稳定段末尾: 工具定义（恒在记忆段之前 → 前缀稳定可缓存）
     parts.append("\n\n" + get_tools_prompt())
-    # v3.131.13: UI 语言联动回复语言 — 同语言下逐字节稳定(插在记忆段前), 切语言才前缀失效一次
-    lang_name = UI_LANG_NAMES.get((ui_lang or "").lower())
-    if lang_name:
-        parts.append(
-            f"\n\n## Response Language\n"
-            f"- Default to replying in {lang_name} ({ui_lang.lower()}).\n"
-            f"- If the user's latest message is written in a different language, follow the user's language instead.\n"
-            f"- Keep code, identifiers, file paths and tool calls unchanged.")
+    # v3.131.14: 统一英语 — 流式正文与思考/推理过程固定英语, 与界面/用户语言无关 (用户要求 2026-09-22)
+    parts.append(
+        "\n\n## Response Language\n"
+        "- Always respond in English, regardless of the interface language or the language of the user's message.\n"
+        "- All reasoning/thinking output must also be written in English.\n"
+        "- Keep code, identifiers, file paths and tool calls unchanged.")
     # 记忆段: 检索式注入，按 importance×retention 排序，固定上限
     if include_memory:
         entries = _collect_memory_entries(current_query=current_query, max_entries=30)

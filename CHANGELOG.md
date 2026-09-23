@@ -950,3 +950,15 @@
 
 ### Verification
 - 守门 ×6 `tests/test_chat_language_prompt.py` (注入/None/非法值/大小写/11语言全覆盖/记忆段顺序); 定向 52P + G10 38P
+
+## [v3.131.14] - 2026-09-22 (流式输出+思考过程统一英语)
+
+### Changed
+- **AI 产出统一英语** (用户要求): system prompt 无条件注入 Response Language 规则 — 正文与 reasoning/thinking 均固定英语, 与界面语言/用户消息语言无关; 取代 v3.131.13 的 UI 语言联动(含"跟随用户语言"条款移除)
+- 界面翻译 11 语言不受影响 (UI 仍是各自语言)
+
+### Removed
+- 端点 cookie→ui_lang 传递 (规则已无条件, 无需逐请求注入)
+
+### Verification
+- 守门 ×5 重写 (无条件注入/thinking 条款/参数无关/前缀顺序/唯一性); 定向 55P + G10 38P

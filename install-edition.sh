@@ -11,7 +11,7 @@ set -e
 GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[0;33m'; NC='\033[0m'
 
 EDITION="${1:-personal}"
-VERSION="3.131.13"
+VERSION="3.131.14"
 INSTALL_DIR="${MESHCTX_HOME:-$HOME/.meshctx}"
 
 case "$EDITION" in
@@ -130,7 +130,7 @@ echo ""
 echo -e "${GREEN}══════════════════════════════════════${NC}"
 echo -e "${GREEN}✅ meshctx ${EDITION_LABEL} v${VERSION} 安装完成${NC}"
 echo -e "${GREEN}══════════════════════════════════════${NC}"
-# v3.131.13 免登录保证: 无条件清除 .env 密码残留(设计上仅公网部署手动设 MESHCTX_PASSWORD)
+# v3.131.14 免登录保证: 无条件清除 .env 密码残留(设计上仅公网部署手动设 MESHCTX_PASSWORD)
 sed -i '/^MESHCTX_PASSWORD=/d' "${INSTALL_DIR}/.env" 2>/dev/null || true
 sed -i '/^MESHCTX_PASSWORD=/d' "${HOME}/.meshctx/.env" 2>/dev/null || true
 echo -e "${GREEN}✓${NC} 认证: 免登录 (本机/局域网直接可用; 公网部署可手动设置 MESHCTX_PASSWORD)"
