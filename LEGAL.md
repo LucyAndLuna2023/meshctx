@@ -1,3 +1,5 @@
+
+> **Free tier**: Individuals and teams of up to five (5) people may use the core brain layer free of charge, including commercial-free personal usage. Organizations with more than 5 people, or any entity deploying MeshCtx for commercial services, require a Commercial License (contact: license@meshctx.com).
 # MeshCtx 法律声明
 
 ## 一、开源许可 (License)
