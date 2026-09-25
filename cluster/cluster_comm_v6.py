@@ -539,7 +539,7 @@ def poll_once(r=None, timeout: float = 1.0) -> List[Dict[str, Any]]:
         except Exception as e:
             return [{"_error": f"redis 不可用: {e}"}]
     got: List[Dict[str, Any]] = []
-    chan = inbox_channels()[0]
+    chans = inbox_channels()  # v6.1b: 遍历全部订阅通道 (项目专属 + profile 主通道)
 
     def _accept(data: Dict[str, Any]) -> bool:
         """v6.1: 信封校验先行 (不占去重坑) → 去重 → journal→收件箱→归档。
@@ -563,17 +563,18 @@ def poll_once(r=None, timeout: float = 1.0) -> List[Dict[str, Any]]:
         got.append(data)
         return True
 
-    while True:
-        raw = r.rpop(chan)
-        if not raw:
-            break
-        try:
-            data = json.loads(raw)
-        except json.JSONDecodeError:
-            continue
-        _accept(data)
+    for chan in chans:
+        while True:
+            raw = r.rpop(chan)
+            if not raw:
+                break
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            _accept(data)
     ps = r.pubsub()
-    ps.subscribe(chan)
+    ps.subscribe(*chans)
     deadline = time.perf_counter() + timeout
     while time.perf_counter() < deadline:
         remain = max(0.0, deadline - time.perf_counter())

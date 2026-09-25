@@ -516,3 +516,17 @@ def test_v61_inbox_channels_include_profile_main(v6):
     chans = mod.inbox_channels()
     assert f"hub:profile:{mod.MACHINE_ID}:{mod.AGENT}" in chans
     assert mod.zcode_inbox_channel() in chans
+
+
+def test_v61_poll_once_receives_from_profile_main_channel(v6):
+    """v6.1b: LPUSH 到 hub:profile:{mid}:{agent} 主通道的消息必须被 poll_once 收到
+    (003 部署端到端发现: poll_once 原写死 chans[0], 主通道消息永远收不到)."""
+    mod, fr = v6
+    main_chan = f"hub:profile:{mod.MACHINE_ID}:{mod.AGENT}"
+    fr.lpush(main_chan, json.dumps({"msg_id": "MAIN1", "from": "004",
+                                    "from_profile": "deepseek",
+                                    "to": mod.MACHINE_ID,
+                                    "to_profile": mod.AGENT,
+                                    "message": "e2e via main channel"}))
+    got = mod.poll_once(r=fr, timeout=0.05)
+    assert [g["msg_id"] for g in got] == ["MAIN1"]
