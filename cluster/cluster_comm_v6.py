@@ -354,10 +354,18 @@ def send_dm(target_mid: str, message: str, from_profile: str = "",
     elif project_id:
         msg["project_id"] = project_id
 
-    # v5.1 铁律: 单通道 LPUSH + PUBLISH, 不双写 hub:profile:*
+    # v6.1d: 双通道投递 — profile 主通道为主 (生态实际消费), 机器通道兜底。
+    # 同 msg_id 经接收方 NX 去重, 双投不重复。历史教训 (I-6): 只投机器通道时
+    # 不消费该键的节点 (001 等) 永远收不到, 8 条件堆积 6 天。
     raw = json.dumps(msg, ensure_ascii=False)
-    r.lpush(f"hub:inbox:{target_mid}", raw)
-    r.publish(f"hub:inbox:{target_mid}", raw)
+    routes = [f"hub:inbox:{target_mid}"]
+    base_prof = (split_to_profile(to_profile)[0] if to_profile else "") or (from_profile or AGENT)
+    if base_prof and validate_profile_name(base_prof):
+        routes.insert(0, f"hub:profile:{target_mid}:{base_prof}")
+    for ch in routes:
+        assert validate_route_key(ch), f"非法路由键: {ch}"  # 铁律机器化: 发送前强制校验
+        r.lpush(ch, raw)
+        r.publish(ch, raw)
     journal_record("send", msg)
     return msg_id
 
@@ -509,6 +517,30 @@ def _seen(r, msg_id: str) -> bool:
         return not r.set(f"hub:dedup:{_INSTANCE}:{msg_id}", "1", nx=True, ex=300)
     except Exception:
         return False
+
+
+def validate_route_key(channel: str) -> bool:
+    """v6.1d 发送路由键白名单 — 铁律机器化 (INCIDENTS I-6: 手搓键把 project 混进
+    profile 通道名, 8 条件堆积 6 天无人消费)。
+
+    合法形态:
+      hub:inbox:{mid}                      机器兜底队列
+      hub:profile:{mid}:{profile}          profile 主通道 (AGENTS.md 钦定)
+      hub:inbox:{mid}:{agent}:{project}    zcode 项目实例通道
+    其他一切形态 (含 hub:profile:{mid}:{profile}:{project} 四段污染键) 一律非法。
+    """
+    if not channel or not isinstance(channel, str):
+        return False
+    parts = channel.split(":")
+    if parts[0] == "hub" and parts[1] == "inbox" and len(parts) == 3 and parts[2]:
+        return True
+    if (parts[0] == "hub" and parts[1] == "profile" and len(parts) == 4
+            and parts[2] and validate_profile_name(parts[3])):
+        return True
+    if (parts[0] == "hub" and parts[1] == "inbox" and len(parts) == 5
+            and parts[2] and parts[3] and parts[4]):
+        return True
+    return False
 
 
 def envelope_valid(data: Dict[str, Any]) -> bool:
