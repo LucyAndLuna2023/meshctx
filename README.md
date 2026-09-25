@@ -1,15 +1,15 @@
 <p align="center">
   <img src="docs/assets/logo.png" alt="MeshCtx" width="200">
-  <h1 align="center">🧠 MeshCtx v3.116.0</h1>
-  <h3 align="center">全脑仿真自进化AI Agent · SDM突破性记忆 · 自修改代码 · 17脑区 · 14模块</h3>
-  <h3 align="center">Brain-Inspired Self-Evolving AI Agent Platform</h3>
+  <h1 align="center">🧠 MeshCtx</h1>
+  <h3 align="center">The agent that remembers you — fully local, fully offline, fully auditable.</h3>
+  <h3 align="center">本地优先 · 跨会话记忆 · 断网可用 · 可审计发布 · 17脑区认知架构 · 11 语言</h3>
 </p>
 
 <p align="center">
   <a href="LEGAL.md"><img src="https://img.shields.io/badge/license-AGPLv3+Commercial-blue"></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.10+-green"></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-3404-brightgreen"></a>
-  <a href="#"><img src="https://img.shields.io/badge/modules-14-purple"></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-3936_brightgreen"></a>
+  <a href="#"><img src="https://img.shields.io/badge/core_modules-313-purple"></a>
   <a href="#"><img src="https://img.shields.io/badge/brain_regions-17-orange"></a>
   <a href="#"><img src="https://img.shields.io/badge/papers-3-blue"></a>
   <a href="https://github.com/LucyAndLuna2023/meshctx/stargazers"><img src="https://img.shields.io/github/stars/LucyAndLuna2023/meshctx?style=social"></a>
@@ -27,7 +27,17 @@
 
 ## 🌍 Why MeshCtx?
 
-**Most AI agents are stateless tools. MeshCtx is a cognitive architecture.**
+**The agent that remembers you — fully local, fully offline, fully auditable.**
+
+### Verified in this repo
+
+- 🔓 **Local-First, Zero Login** — runs on your machine. No account, no cloud auth, no phone-home. (Most cloud agents require online verification even for local models.)
+- 📴 **Offline-Capable** — point MeshCtx at [Ollama](https://ollama.com) (`ollama:qwen3` / `ollama:llama3.3` presets built in) or any OpenAI-compatible local endpoint, and keep working with the network unplugged.
+- 🧠 **Cross-Session Memory** — retrieval-injected, on-disk local memory (`src/chat_tools.py :: _collect_memory_entries`). Survives restarts. Never leaves your disk.
+- 🔍 **Auditable Releases** — every release passes a 3,900+ test gated suite plus a multi-party AI audit with SHA256 evidence per tag.
+- 🌍 **11 Languages** — full UI i18n, parity-checked dictionaries (1,592 keys × 11 languages).
+
+### Design philosophy: a cognitive architecture, not a stateless tool
 
 | Feature | Typical Agent | MeshCtx |
 |---------|--------------|---------|
@@ -45,8 +55,8 @@ MeshCtx treats AI agent design as a **neuroscience problem**, not just an engine
 
 | Repo | Visibility | Content |
 |------|-----------|---------|
-| **meshctx** (this repo) | 🔓 Public | Security modules (full impl) + core module **interface stubs** (signatures + docs) |
-| **meshctx-core** | 🔒 Private | 33 core modules **full implementation** (AgentSwarm · Kernel · SuperBrain · Sandbox · MultiAgent · AutonomousEngine) |
+| **meshctx** (this repo) | 🔓 Public | Security modules (full impl) + **313 core modules — 311 with real implementations** (Kernel · SuperBrain · Sandbox · Memory · CognitiveLoop …), 2 interface stubs |
+| **meshctx-core** | 🔒 Private | Optional enhanced/enterprise layer (plugin registration, ResourceManager, enterprise base) — absent install degrades gracefully |
 
 **For developers**: `src/core/*.py` contains complete interface definitions. Use `from src.core.agent_swarm import AgentIdentity` for type-safe integration.
 
@@ -55,6 +65,14 @@ MeshCtx treats AI agent design as a **neuroscience problem**, not just an engine
 ---
 
 ## 🚀 Quick Start
+
+### Fully offline in 2 minutes (Ollama)
+
+```bash
+ollama serve & ollama pull qwen3
+# Start MeshCtx, open Model Hub → Add Model → preset `ollama:qwen3` (http://127.0.0.1:11434/v1)
+# …unplug the network. Chat, memory, tools keep working — 100% on your machine.
+```
 
 ### Windows
 ```powershell
@@ -287,7 +305,7 @@ python -m pytest tests/ -x
 ## 📄 License
 
 - **Framework layer**: AGPLv3 Open Source
-- **Core brain layer**: Source visible · Non-commercial free · Commercial license required
+- **Core brain layer**: Source visible · **Free for individuals and teams of up to 5 people** · Commercial license required for organization/commercial use
 - Contact: license@meshctx.com
 
 ---
