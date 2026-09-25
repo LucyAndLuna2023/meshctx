@@ -962,3 +962,17 @@
 
 ### Verification
 - 守门 ×5 重写 (无条件注入/thinking 条款/参数无关/前缀顺序/唯一性); 定向 55P + G10 38P
+
+## [v3.131.15] - 2026-09-22 (仿脑记忆引擎持久化 · 用户拍板)
+
+### Fixed
+- **HumanLikeMemory 重启失忆** (离线自证 XK7 发现): 纯内存引擎现持久化到 `~/.meshctx/data/human_memory.json` — encode(新建/重巩固)/force_replay 后原子落盘(tmp+replace), `get_human_memory` 单例首建自动 load 跨进程恢复
+- README Open/Closed 表对齐代码现实 (313 模块=311 实体+2 桩); 徽章 v3.131.14/tests-3936; 新定位句 + Why 五卖点 + Ollama 离线快速开始 (07993209)
+- `_extract_user_facts` 补英文句式 ×5 组 (re.I) — 原"Please remember..."不触发离线兜底记忆 (af79b5ed)
+
+### Added
+- `tools/offline_memory_proof.py` 可复放离线自证 (verdict PASS: 落盘10/10→跨进程注入10/10→零外联) + `docs/offline_memory_evidence.json`
+- 守门: test_human_memory_persistence ×5 + test_memory_rules ×5
+
+### Verification
+- 定向 53P + G10 38P; 自证复跑 PASS

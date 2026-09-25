@@ -9,6 +9,7 @@
 __all__ = ['EmotionIntensity', 'MemoryChunk', 'HumanLikeMemory', 'get_human_memory']
 
 import hashlib
+import json
 import re
 import time
 from collections import OrderedDict
@@ -101,6 +102,38 @@ class HumanLikeMemory:
         self._chunks: OrderedDict[str, MemoryChunk] = OrderedDict()
         self._signatures: Dict[str, str] = {}  # sig → chunk_id
 
+    # ── v3.131.15 持久化 (用户拍板: 记忆肯定要持久化) ──
+    @staticmethod
+    def _persistence_path():
+        from pathlib import Path as _P
+        return _P.home() / ".meshctx" / "data" / "human_memory.json"
+
+    def save(self) -> bool:
+        """原子落盘 (encode/replay/associate 后调用) — 失败静默不阻断记忆主流程"""
+        try:
+            p = self._persistence_path()
+            p.parent.mkdir(parents=True, exist_ok=True)
+            tmp = p.with_suffix(".json.tmp")
+            tmp.write_text(json.dumps(self.to_dict(), ensure_ascii=False), encoding="utf-8")
+            tmp.replace(p)
+            return True
+        except Exception:
+            return False
+
+    def load(self) -> bool:
+        """从落盘恢复 (get_human_memory 单例首次创建时调用)"""
+        try:
+            p = self._persistence_path()
+            if not p.exists():
+                return False
+            restored = HumanLikeMemory.from_dict(json.loads(p.read_text(encoding="utf-8")))
+            self._chunks = restored._chunks
+            self._signatures = restored._signatures
+            self.replay_interval = restored.replay_interval
+            return True
+        except Exception:
+            return False
+
     @property
     def total_chunks(self) -> int:
         return len(self._chunks)
@@ -117,6 +150,7 @@ class HumanLikeMemory:
             existing_id = self._signatures[sig]
             existing = self._chunks[existing_id]
             existing.reconsolidate(text, emotion)
+            self.save()
             return existing
 
         chunk_id = f"mem_{len(self._chunks) + 1}"
@@ -139,6 +173,7 @@ class HumanLikeMemory:
         )
         self._chunks[chunk_id] = chunk
         self._signatures[sig] = chunk_id
+        self.save()  # v3.131.15: 新编码记忆立即落盘
         return chunk
 
     def recall(self, query: str, limit: int = 10) -> List[MemoryChunk]:
@@ -211,6 +246,7 @@ class HumanLikeMemory:
             else:
                 chunk.strength = max(0.01, chunk.strength * 0.95)
             replay_count += 1
+        self.save()
         return {"replay_count": replay_count, "strong_memories": strong}
 
     def get_memory_stats(self) -> dict:
@@ -281,6 +317,7 @@ def get_human_memory() -> HumanLikeMemory:
     global _human_memory_instance
     if _human_memory_instance is None:
         _human_memory_instance = HumanLikeMemory()
+        _human_memory_instance.load()  # v3.131.15: 跨进程记忆恢复
     return _human_memory_instance
 
 
