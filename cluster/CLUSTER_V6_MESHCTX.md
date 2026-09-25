@@ -2,7 +2,7 @@
 
 > 权威协议: hermes `profiles/admin/CLUSTER-COMM-V6.md` (v6 2026-08-30 + v6.1 2026-09-01)
 > 本文档描述 meshctx 侧的实现、配置、用法与安全边界。
-> 实现: `cluster/cluster_comm_v6.py` · 测试: `tests/test_cluster_comm_v6.py` (54 用例, FakeRedis 离线)
+> 实现: `cluster/cluster_comm_v6.py` · 测试: `tests/test_cluster_comm_v6.py` (56 用例, FakeRedis 离线)
 
 ---
 
@@ -104,7 +104,7 @@ MESHCTX_ADMIN_MSG_DIR=\\wsl.localhost\<发行版名>\tmp\admin_msgs
 
 ## 7. 验证记录 (2026-09-09)
 
-- 单元测试: 54/54 通过 (FakeRedis 离线)。
+- 单元测试: 56/56 通过 (FakeRedis 离线)。
 - 真实 hub 冒烟: heartbeat ok → workers 出现 `004:zcode` 且 hermes `004` 条目完好 →
   入网通告投递成功 (msg 09c48a26) → zcode 通道空查正常 → journal 哈希链 verify ok。
 - 全量回归: 见 OPTIMIZATION_REPORT_v3.129.0.md §2 (3.130.0 批次沿用同口径)。

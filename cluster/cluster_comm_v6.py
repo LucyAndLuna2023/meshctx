@@ -367,7 +367,7 @@ def send_dm(target_mid: str, message: str, from_profile: str = "",
     # 时补投 hub:inbox:{mid}:{profile}:{project}, 打通项目实例唯一消费键 (发收对称)
     if to_proj:
         third = f"hub:inbox:{target_mid}:{base_prof}:{to_proj}"
-        if validate_route_key(third):
+        if validate_route_key(third) and third not in routes:  # P3-F: to_proj==base 时防重
             routes.append(third)
     # P2-A (clusterv6_audit_86cceb0e): 项目实例专属通道第三投递 — 此前 5 段键
     # hub:inbox:{mid}:{agent}:{project} 全生态无发送面 (双投只到 机器+profile 主),
