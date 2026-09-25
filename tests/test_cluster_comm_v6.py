@@ -217,15 +217,17 @@ def test_split_to_profile(v6):
     assert mod.split_to_profile("") == ("", None)
 
 
-# ── 发送: 单通道 + 项目路由 (v5.1 禁双写 / v6 §2) ──────────
+# ── 发送: 双通道 + 项目路由 (v6.1d 演进: 主通道+机器兜底; 原v5.1单通道
+#    因 I-6 事故废弃 — 只投机器通道时 001 类节点永远收不到, 8条堆积6天) ──
 
 def test_send_dm_single_channel_and_fields(v6):
     mod, fr = v6
     mid = mod.send_dm("002", "hello", to_profile="meshctx:quant", r=fr)
     assert mid and mid != "rejected"
-    # 单通道: 只写 hub:inbox:002
-    assert list(fr.lists.keys()) == ["hub:inbox:002"]
-    assert fr.published[0][0] == "hub:inbox:002"
+    # v6.1d 双通道: profile 主通道优先 + 机器兜底 (接收方 msg_id NX 去重防重复)
+    assert "hub:profile:002:meshctx" in fr.lists, "主通道必须收到"
+    assert "hub:inbox:002" in fr.lists, "机器兜底通道保留"
+    assert fr.published[0][0] == "hub:profile:002:meshctx"
     msg = json.loads(fr.lists["hub:inbox:002"][0])
     assert msg["from"] == "004" and msg["from_profile"] == "zcode"
     assert msg["to_profile"] == "meshctx:quant"
@@ -540,3 +542,26 @@ def test_v61c_hermes_minimal_envelope_accepted():
                              "from_profile": "", "message": "hermes DM no -f"})
     # 壳原型仍拒 (I-1 防护不回退)
     assert not m.envelope_valid({"msg_id": "s1", "to_profile": "zcode"})
+
+
+# ── v6.1d: 路由键白名单 + send_dm 双通道 (INCIDENTS I-6 根修) ──
+
+def test_v61d_validate_route_key():
+    m = importlib.import_module("cluster_comm_v6")
+    assert m.validate_route_key("hub:inbox:004")
+    assert m.validate_route_key("hub:profile:002:meshctx")
+    assert m.validate_route_key("hub:inbox:004:zcode:quant")   # zcode 项目实例键合法
+    for bad in ("hub:profile:004:zcode:meshctx",               # I-6 真实污染键 (四段)
+                "hub:inbox:004:zcode",                          # 两段不完整
+                "hub:dm:004", "random", "", None,
+                "hub:profile:004:", "hub:profile::meshctx"):
+        assert not m.validate_route_key(bad), bad
+
+
+def test_v61d_send_dm_delivers_to_profile_main_channel(v6):
+    """I-6 根修: send_dm 必须送达 profile 主通道 (只投机器通道 = 001 类节点永远收不到)."""
+    mod, fr = v6
+    mod.send_dm("004", "route fix verify", from_profile="deepseek",
+                to_profile="zcode", r=fr)
+    assert fr.lists.get("hub:profile:004:zcode"), "主通道必须收到"
+    assert fr.lists.get("hub:inbox:004"), "机器兜底通道仍保留"

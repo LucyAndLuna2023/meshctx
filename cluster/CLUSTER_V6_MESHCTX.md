@@ -108,3 +108,43 @@ MESHCTX_ADMIN_MSG_DIR=\\wsl.localhost\<发行版名>\tmp\admin_msgs
 - 真实 hub 冒烟: heartbeat ok → workers 出现 `004:zcode` 且 hermes `004` 条目完好 →
   入网通告投递成功 (msg 09c48a26) → zcode 通道空查正常 → journal 哈希链 verify ok。
 - 全量回归: 见 OPTIMIZATION_REPORT_v3.129.0.md §2 (3.130.0 批次沿用同口径)。
+
+---
+
+## v6.2 组通道 — 企业版/团队版协作核心 (cluster/cluster_groups.py)
+
+> 需求定稿 (用户 2026-09-22): 同部门共享信息通道 + 同项目共享信息通道。
+
+### 通道命名与租户隔离
+
+| 通道 | 用途 |
+|---|---|
+| `hub:group:{org}:dept:{dept_id}` | 部门信息通道 |
+| `hub:group:{org}:project:{project_id}` | 项目信息通道 |
+| 注册表 `hub:groups:{org}` / 成员表 `hub:group:{org}:{gid}:members` | 元数据 |
+
+`org` 强制前缀 (开源默认 `default`, 企业版=组织租户) — 跨租户组互不可见互不可发。
+
+### 权限界定 (对齐企业版 RBAC 五角色)
+
+| 操作 | owner | admin | manager | member | auditor |
+|---|---|---|---|---|---|
+| 发消息 | ✅ | ✅ | ✅ | ✅ | ❌ 只读 |
+| 加人/踢人 (本组) | ✅ | ✅ | ✅ | ❌ | ❌ |
+| 创建组 | ✅ | ✅ | ❌ | ❌ | ❌ |
+| 收副本/读 | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 跨 org 访问 | ❌ 强制隔离 | ❌ | ❌ | ❌ | ❌ |
+
+### 投递语义: fanout (设计决策)
+
+组播 = 逐成员投递到各自 `hub:profile:{mid}:{profile}` 主通道。
+竞争队列 RPOP 无法组播; fanout 复用 v6.1 全链 (信封校验/msg_id NX 去重/收件箱/
+journal/归档), **零 listener 改动**, 每人各收一份 = 信息流一致 + 审计友好。
+
+### 企业版插拔点
+
+`MESHCTX_GROUP_ROLE_PROVIDER=<mod>:<fn>` 指向闭源 core RBAC provider
+(读部门树/角色矩阵)。开源 stub: 本机身份 owner、其他 member (≤5 人团队足够)。
+
+CLI: `python3 cluster/cluster_groups.py` (create/add/remove/send/members/list)。
+守门: tests/test_cluster_groups.py ×7。

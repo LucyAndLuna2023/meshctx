@@ -976,3 +976,18 @@
 
 ### Verification
 - 定向 53P + G10 38P; 自证复跑 PASS
+
+## [v3.131.16] - 2026-09-22 (v6.2 组通道: 部门/项目共享信息通道)
+
+### Added
+- **组通道** `cluster/cluster_groups.py`: 部门通道 hub:group:{org}:dept:{id} + 项目通道 hub:group:{org}:project:{id} — 企业版/团队版协作核心
+- 权限界定 (RBAC 五角色): member 可发 / auditor 只读 / 加踢人 owner·manager+ / 建组 admin+ / org 强制租户隔离
+- fanout 投递 (逐成员 profile 主通道, 复用 v6.1 全链, 零 listener 改动)
+- 企业版插拔点 MESHCTX_GROUP_ROLE_PROVIDER (闭源 RBAC provider 覆写)
+
+### Fixed (集群 v6.1 系列)
+- I-6 发送路由键错 (7件堆积6天): validate_route_key 白名单 + send_dm 双通道 + INCIDENTS 铁律追加
+- I-1/I-4 空壳信封根修; I-5 003 全 16 profile listener 部署; poll_once 主通道断层修复; hermes 漏 -f 兼容
+
+### Verification
+- cluster 全套 58P (v6 51 + groups 7); G10 38P
