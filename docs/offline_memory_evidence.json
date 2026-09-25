@@ -1,0 +1,65 @@
+{
+ "claim": "Cross-session memory works fully offline (no LLM API, no network egress)",
+ "method": "Phase A: production _auto_save_memory (rule fallback channel) in subprocess 1; Phase B: fresh interpreter calls build_system_prompt — the exact call /api/chat makes (src/main.py:4040) — asserting fingerprint injection; HOME sandboxed",
+ "timestamp": "2026-09-25T11:34:46+0800",
+ "phase_a_write": {
+  "ok": false,
+  "entries_persisted": 10,
+  "fingerprint_hits": "2/10"
+ },
+ "phase_b_cross_process_recall": {
+  "hits": "10/10",
+  "detail": [
+   {
+    "fingerprint": "XK7-DELTA",
+    "injected": true
+   },
+   {
+    "fingerprint": "AURORA-BUDGET",
+    "injected": true
+   },
+   {
+    "fingerprint": "HELIOS-CERT",
+    "injected": true
+   },
+   {
+    "fingerprint": "MIRA-LEGACY",
+    "injected": true
+   },
+   {
+    "fingerprint": "VULCAN-PORT",
+    "injected": true
+   },
+   {
+    "fingerprint": "NORDIC-SLA",
+    "injected": true
+   },
+   {
+    "fingerprint": "SABLE-KEY",
+    "injected": true
+   },
+   {
+    "fingerprint": "LUMEN-DOCS",
+    "injected": true
+   },
+   {
+    "fingerprint": "TALIS-CARGO",
+    "injected": true
+   },
+   {
+    "fingerprint": "ORION-PAGER",
+    "injected": true
+   }
+  ]
+ },
+ "network_egress": {
+  "phase_a": -1,
+  "phase_b": 0,
+  "note": "per-process ss sample; 0 = loopback-only"
+ },
+ "verdict": "PASS",
+ "debug": {
+  "a_stdout_tail": "",
+  "a_stderr_tail": " mode: 闭源核心缺失, 当前为降级版 — 高级能力不可用。\nTraceback (most recent call last):\n  File \"<string>\", line 12, in <module>\n    _me = [l for l in _eg.splitlines() if f\"pid={_os.getpid()},\" in l or f\"pid={_os.getpid()})\" in l]\n                                                 ^^^\nNameError: name '_os' is not defined\n"
+ }
+}

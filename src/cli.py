@@ -929,6 +929,9 @@ def _extract_user_facts(messages: List[Dict]) -> List[str]:
 
     命中模式: 记住/我叫/我是/我喜欢/我的项目/我的目标 等明确陈述。
     仅在用户消息中抽取，避免把工具调用/推理噪声写入记忆。
+
+    v3.131.14b: 补英文句式 (remember/my name is/I like/note...) —
+    11 语言产品的离线记忆兜底不应只认中文 (离线自证 XK7 发现, 2026-09-22)。
     """
     import re as _re
     patterns = [
@@ -938,6 +941,12 @@ def _extract_user_facts(messages: List[Dict]) -> List[str]:
         _re.compile(r'^我(?:的)?(?:项目|工作|团队|公司|职位|角色)[:：是]?\s*(.{2,200})$'),
         _re.compile(r'^(?:我的目标|我的计划|我打算|我要做|我需要)[:：]?\s*(.{4,200})$'),
         _re.compile(r'^(?:请务必|请注意|重要提示|关键要求)[:：,，]?\s*(.{4,200})$'),
+        # ── English equivalents (re.I) ──
+        _re.compile(r"^(?:please\s+)?remember(?:\s+that)?[:：,]?\s*(.{4,200})$", _re.I),
+        _re.compile(r"^(?:my name is|call me|i am)\s+(.{2,100})$", _re.I),
+        _re.compile(r"^(?:i\s+(?:like|prefer|usually\s+use|use|am\s+responsible\s+for))[:：]?\s*(.{4,200})$", _re.I),
+        _re.compile(r"^(?:my\s+(?:project|work|team|company|role|goal|plan))\s+(?:is\s+)?(.{2,200})$", _re.I),
+        _re.compile(r"^(?:important|note|critical|key\s+requirement)[:：,]?\s*(.{4,200})$", _re.I),
     ]
     facts = []
     for msg in messages:
