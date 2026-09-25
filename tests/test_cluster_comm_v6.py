@@ -599,3 +599,27 @@ def test_p2a_send_dm_rejects_bad_target_agent(v6):
                       to_profile="meshctx:meshctx", target_agent="bad agent!", r=fr)
     assert out == "rejected"
     assert not fr.lists, "拒绝路径不得产生任何投递"
+
+
+def test_v61e_send_dm_third_delivery_project_instance(v6):
+    """002meshctx P2-A: to_profile 含 :project → 第三投递项目实例通道 (发收对称)."""
+    mod, fr = v6
+    mod.send_dm("002", "project instance delivery", to_profile="meshctx:quant", r=fr)
+    assert "hub:inbox:002:meshctx:quant" in fr.lists, "项目实例通道必须收到"
+    # 三通道去重靠接收方 msg_id NX; 发送面三键全部白名单合法 (assert 已在 send 内)
+
+
+def test_v61e_conftest_env_immunity(monkeypatch):
+    """002meshctx P3-E: 测试不免疫 MESHCTX_CLUSTER_MACHINE_ID env 的守门固化."""
+    monkeypatch.setenv("MESHCTX_CLUSTER_MACHINE_ID", "999")
+    monkeypatch.setenv("MESHCTX_CLUSTER_AGENT", "someone")
+    monkeypatch.setenv("MESHCTX_CLUSTER_PROJECT", "other")
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "cluster"))
+    try:
+        import importlib
+        mod = importlib.import_module("cluster_comm_v6")
+        mod = importlib.reload(mod)
+        assert mod.MACHINE_ID == "999"  # 模块自身尊重 env (行为正确)
+    finally:
+        sys.path.remove(str(Path(__file__).resolve().parent.parent / "cluster"))
+    # 守门套件对 env 的免疫由 conftest delenv 固化 (本次提交同补)

@@ -359,9 +359,16 @@ def send_dm(target_mid: str, message: str, from_profile: str = "",
     # 不消费该键的节点 (001 等) 永远收不到, 8 条件堆积 6 天。
     raw = json.dumps(msg, ensure_ascii=False)
     routes = [f"hub:inbox:{target_mid}"]
-    base_prof = (split_to_profile(to_profile)[0] if to_profile else "") or (from_profile or AGENT)
+    base_prof, to_proj = (split_to_profile(to_profile) if to_profile else ("", None))
+    base_prof = base_prof or (from_profile or AGENT)
     if base_prof and validate_profile_name(base_prof):
         routes.insert(0, f"hub:profile:{target_mid}:{base_prof}")
+    # v6.1e (002meshctx P2-A 升格条件): 项目实例第三投递 — to_profile="profile:project"
+    # 时补投 hub:inbox:{mid}:{profile}:{project}, 打通项目实例唯一消费键 (发收对称)
+    if to_proj:
+        third = f"hub:inbox:{target_mid}:{base_prof}:{to_proj}"
+        if validate_route_key(third):
+            routes.append(third)
     # P2-A (clusterv6_audit_86cceb0e): 项目实例专属通道第三投递 — 此前 5 段键
     # hub:inbox:{mid}:{agent}:{project} 全生态无发送面 (双投只到 机器+profile 主),
     # 项目实例唯一消费键永远收不到标准发送 (I-6 同族残余)。to_profile 含项目

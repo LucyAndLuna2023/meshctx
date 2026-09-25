@@ -125,3 +125,10 @@ def _reset_global_state():
         except Exception:
             pass
     _clear_rate_limits()
+
+
+# 002meshctx P3-E: 集群守门对宿主 env 免疫 (同壳 export 即红的测试卫生问题)
+import os as _os
+for _v in ("MESHCTX_CLUSTER_MACHINE_ID", "MESHCTX_CLUSTER_AGENT",
+           "MESHCTX_CLUSTER_PROJECT"):
+    _os.environ.pop(_v, None)
