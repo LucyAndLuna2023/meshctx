@@ -502,7 +502,7 @@ def test_v61_envelope_valid_unit():
     assert m.envelope_valid({"msg_id": "x", "from": "002", "from_profile": "codex", "message": "hi"})
     for bad in (
         {"msg_id": "x", "to_profile": "z"},                     # 裸通知壳 (事故原型)
-        {"msg_id": "x", "from": "002", "message": "hi"},        # 缺 from_profile
+        {"msg_id": "x", "message": "hi"},                        # from 与 from_profile 全空 (v6.1c 拒)
         {"msg_id": "", "from": "002", "from_profile": "c", "message": "hi"},
         {"msg_id": "x", "from": "002", "from_profile": "c", "message": "  "},
         "not-a-dict",
@@ -530,3 +530,13 @@ def test_v61_poll_once_receives_from_profile_main_channel(v6):
                                     "message": "e2e via main channel"}))
     got = mod.poll_once(r=fr, timeout=0.05)
     assert [g["msg_id"] for g in got] == ["MAIN1"]
+
+
+def test_v61c_hermes_minimal_envelope_accepted():
+    """002admin P2: hermes CLI 漏 -f → from_profile="" 但 from 有值 — 必须可收,
+    静默拒收即跨生态丢件; 同时壳防护不减弱 (三项全缺仍拒)."""
+    m = importlib.import_module("cluster_comm_v6")
+    assert m.envelope_valid({"msg_id": "h1", "from": "002",
+                             "from_profile": "", "message": "hermes DM no -f"})
+    # 壳原型仍拒 (I-1 防护不回退)
+    assert not m.envelope_valid({"msg_id": "s1", "to_profile": "zcode"})

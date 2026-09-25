@@ -512,17 +512,21 @@ def _seen(r, msg_id: str) -> bool:
 
 
 def envelope_valid(data: Dict[str, Any]) -> bool:
-    """v6.1 信封完整性校验 — 必含 msg_id/from/from_profile/message 非空。
+    """v6.1 信封完整性校验 — msg_id/message 非空, 且 from/from_profile 至少一个非空。
 
     根因 (2026-09-22 空壳事故): 裸通知壳 {msg_id,to_profile} 先占 msg_id 去重坑,
     随后全量件被去重误杀 → 消息丢失。现空壳在去重前即拒收, 不占 msg_id。
+
+    v6.1c (002admin b90e052d P2 采纳): from_profile 不再强制 — hermes CLI 漏 -f
+    时 from_profile="" 但 from 有值, 属合法跨生态件, 首版会静默拒收;
+    壳防护不减弱 (壳 msg_id/message/from/from_profile 全缺, 必拒)。
     """
     return bool(
         isinstance(data, dict)
         and str(data.get("msg_id", "")).strip()
-        and str(data.get("from", "")).strip()
-        and str(data.get("from_profile", "")).strip()
         and str(data.get("message", "")).strip()
+        and (str(data.get("from", "")).strip()
+             or str(data.get("from_profile", "")).strip())
     )
 
 
