@@ -111,8 +111,9 @@ def test_identity_defaults(v6):
     assert mod.MACHINE_ID == "004"
     assert mod.AGENT == "zcode"
     assert mod.PROJECT == "meshctx"
-    # zcode 三实例按项目隔离: 通道带项目维度
-    assert mod.inbox_channels() == ["hub:inbox:004:zcode:meshctx"]
+    # zcode 三实例按项目隔离: 通道带项目维度 (v6.1: +profile 主通道)
+    assert mod.inbox_channels() == ["hub:inbox:004:zcode:meshctx",
+                                    "hub:profile:004:zcode"]
 
 
 def test_zcode_project_isolation(tmp_path, monkeypatch):
@@ -135,14 +136,16 @@ def test_zcode_project_isolation(tmp_path, monkeypatch):
 
     # ① meshctx 实例
     m = load("meshctx", tmp_path / "h1")
-    assert m.inbox_channels() == ["hub:inbox:004:zcode:meshctx"]
+    assert m.inbox_channels() == ["hub:inbox:004:zcode:meshctx",
+                                  "hub:profile:004:zcode"]
     fr1 = FakeRedis()
     m.heartbeat(r=fr1)
     assert "004:zcode:meshctx" in fr1.hashes["hub:workers"]
 
     # ② quant 实例 (另一个 zcode 对话): 通道/心跳键不同
     m = load("quant", tmp_path / "h2")
-    assert m.inbox_channels() == ["hub:inbox:004:zcode:quant"]
+    assert m.inbox_channels() == ["hub:inbox:004:zcode:quant",
+                                  "hub:profile:004:zcode"]
     fr2 = FakeRedis()
     m.heartbeat(r=fr2)
     assert "004:zcode:quant" in fr2.hashes["hub:workers"]
@@ -505,3 +508,11 @@ def test_v61_envelope_valid_unit():
         "not-a-dict",
     ):
         assert not m.envelope_valid(bad), bad
+
+
+def test_v61_inbox_channels_include_profile_main(v6):
+    """v6.1: listener 必须兼订 hub:profile:{mid}:{agent} 主通道 (003 部署发现)."""
+    mod, _ = v6
+    chans = mod.inbox_channels()
+    assert f"hub:profile:{mod.MACHINE_ID}:{mod.AGENT}" in chans
+    assert mod.zcode_inbox_channel() in chans

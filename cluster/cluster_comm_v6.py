@@ -132,7 +132,12 @@ def zcode_inbox_channel(project: str = "") -> str:
 
 
 def inbox_channels() -> List[str]:
-    return [zcode_inbox_channel()]
+    """订阅通道: 项目专属通道 + profile 主通道 (v6.1)。
+
+    hub:profile:{mid}:{agent} 是集群主通道 (AGENTS.md 钦定, 004↔001/002/003
+    既有生态全部走它) — listener 必须兼订, 否则收不到生态消息 (003 部署发现)。
+    """
+    return [zcode_inbox_channel(), f"hub:profile:{MACHINE_ID}:{AGENT}"]
 
 
 def resolve_project_profile(project_id: str) -> str:
