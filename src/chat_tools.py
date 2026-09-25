@@ -816,6 +816,8 @@ UI_LANG_NAMES = {"en": "English", "zh": "中文", "ja": "日本語", "ko": "한�
 
 def build_system_prompt(project_dir: str = None, include_memory: bool = True,
                         current_query: str = None, ui_lang: str = None) -> str:
+    # ui_lang 形参保留 (v3.131.13 历史 API 兼容; v3.131.14 起语言策略=统一英语,
+    # 该参数无行为影响 — 002meshctx round46 P3-C 口径记录)
     """CLI 与 UI 共用的完整系统提示词 — 保证两端逐字一致。
 
     T1 前缀稳定化: system prompt 三段式——

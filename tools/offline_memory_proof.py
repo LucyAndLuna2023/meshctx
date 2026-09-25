@@ -126,7 +126,7 @@ def main():
     b_results = json.loads(b_line[0][7:]) if b_line else []
     b_hits = sum(1 for r in b_results if r["strict_injected"])
 
-    a_ok = a["done"] and len(entries) >= 10
+    a_ok = a["done"] and len(entries) >= 10 and a_hits == 10  # P2-5: 指纹命中入判据
     # P1: verdict 必须满足全部条件 — 不再忽略 A.ok / egress
     verdict_pass = (a_ok and b_hits == 10 and a["egress"] == 0 and b["egress"] == 0)
 

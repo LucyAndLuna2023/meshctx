@@ -1,3 +1,57 @@
+## [v3.131.16] - 2026-09-22 (v6.2 组通道: 部门/项目共享信息通道)
+
+### Added
+- **组通道** `cluster/cluster_groups.py`: 部门通道 hub:group:{org}:dept:{id} + 项目通道 hub:group:{org}:project:{id} — 企业版/团队版协作核心
+- 权限界定 (RBAC 五角色): member 可发 / auditor 只读 / 加踢人 owner·manager+ / 建组 admin+ / org 强制租户隔离
+- fanout 投递 (逐成员 profile 主通道, 复用 v6.1 全链, 零 listener 改动)
+- 企业版插拔点 MESHCTX_GROUP_ROLE_PROVIDER (闭源 RBAC provider 覆写)
+
+### Fixed (集群 v6.1 系列)
+- I-6 发送路由键错 (7件堆积6天): validate_route_key 白名单 + send_dm 双通道 + INCIDENTS 铁律追加
+- I-1/I-4 空壳信封根修; I-5 003 全 16 profile listener 部署; poll_once 主通道断层修复; hermes 漏 -f 兼容
+
+### Verification
+- cluster 全套 58P (v6 51 + groups 7); G10 38P
+## [v3.131.15] - 2026-09-22 (仿脑记忆引擎持久化 · 用户拍板)
+
+### Fixed
+- **HumanLikeMemory 重启失忆** (离线自证 XK7 发现): 纯内存引擎现持久化到 `~/.meshctx/data/human_memory.json` — encode(新建/重巩固)/force_replay 后原子落盘(tmp+replace), `get_human_memory` 单例首建自动 load 跨进程恢复
+- README Open/Closed 表对齐代码现实 (313 模块=311 实体+2 桩); 徽章 v3.131.14/tests-3936; 新定位句 + Why 五卖点 + Ollama 离线快速开始 (07993209)
+- `_extract_user_facts` 补英文句式 ×5 组 (re.I) — 原"Please remember..."不触发离线兜底记忆 (af79b5ed)
+
+### Added
+- `tools/offline_memory_proof.py` 可复放离线自证 (verdict PASS: 落盘10/10→跨进程注入10/10→零外联) + `docs/offline_memory_evidence.json`
+- 守门: test_human_memory_persistence ×5 + test_memory_rules ×5
+
+### Verification
+- 定向 53P + G10 38P; 自证复跑 PASS
+
+## [v3.131.14] - 2026-09-22 (流式输出+思考过程统一英语)
+
+### Changed
+- **AI 产出统一英语** (用户要求): system prompt 无条件注入 Response Language 规则 — 正文与 reasoning/thinking 均固定英语, 与界面语言/用户消息语言无关; 取代 v3.131.13 的 UI 语言联动(含"跟随用户语言"条款移除)
+- 界面翻译 11 语言不受影响 (UI 仍是各自语言)
+
+### Removed
+- 端点 cookie→ui_lang 传递 (规则已无条件, 无需逐请求注入)
+
+### Verification
+- 守门 ×5 重写 (无条件注入/thinking 条款/参数无关/前缀顺序/唯一性); 定向 55P + G10 38P
+
+## [v3.131.13] - 2026-09-22 (AI 回复语言联动 UI 语言)
+
+### Added
+- **回复语言联动**: 界面选 11 语言之一 → chat 系统提示注入 "Response Language" 规则(默认用该语言回复; 用户用其他语言提问则跟随用户; 代码/路径/工具调用保持原样)。CLI 不受影响
+- 语言指令插在稳定段末尾/记忆段之前 — 同语言下前缀逐字节稳定(T1 缓存契约不破坏)
+
+### Verification
+- 守门 ×6 `tests/test_chat_language_prompt.py` (注入/None/非法值/大小写/11语言全覆盖/记忆段顺序); 定向 52P + G10 38P
+
+## [v3.131.12] - 2026-09-22 (语言切换跨页修复)
+
+### Fixed
+- **chat 切语言后进 Console/dashboard 又变回原语言** (用户实测): chat `changeLang` 只写 localStorage(`meshctx-lang`) 不写 cookie, 服务端页按旧 `meshctx_lang` cookie 渲染 → 现同步写 cookie + 双 key; base `switchLang` 反向同步连字符 key, 双向一致
+
 ## [v3.131.11] - 2026-09-22 (属性级 i18n 清零 · files 单源 · 双审 PASS)
 
 ### Fixed
@@ -937,57 +991,3 @@
 - 插件市场上线
 - 本地文件直读API
 - Web搜索API
-## [v3.131.12] - 2026-09-22 (语言切换跨页修复)
-
-### Fixed
-- **chat 切语言后进 Console/dashboard 又变回原语言** (用户实测): chat `changeLang` 只写 localStorage(`meshctx-lang`) 不写 cookie, 服务端页按旧 `meshctx_lang` cookie 渲染 → 现同步写 cookie + 双 key; base `switchLang` 反向同步连字符 key, 双向一致
-
-## [v3.131.13] - 2026-09-22 (AI 回复语言联动 UI 语言)
-
-### Added
-- **回复语言联动**: 界面选 11 语言之一 → chat 系统提示注入 "Response Language" 规则(默认用该语言回复; 用户用其他语言提问则跟随用户; 代码/路径/工具调用保持原样)。CLI 不受影响
-- 语言指令插在稳定段末尾/记忆段之前 — 同语言下前缀逐字节稳定(T1 缓存契约不破坏)
-
-### Verification
-- 守门 ×6 `tests/test_chat_language_prompt.py` (注入/None/非法值/大小写/11语言全覆盖/记忆段顺序); 定向 52P + G10 38P
-
-## [v3.131.14] - 2026-09-22 (流式输出+思考过程统一英语)
-
-### Changed
-- **AI 产出统一英语** (用户要求): system prompt 无条件注入 Response Language 规则 — 正文与 reasoning/thinking 均固定英语, 与界面语言/用户消息语言无关; 取代 v3.131.13 的 UI 语言联动(含"跟随用户语言"条款移除)
-- 界面翻译 11 语言不受影响 (UI 仍是各自语言)
-
-### Removed
-- 端点 cookie→ui_lang 传递 (规则已无条件, 无需逐请求注入)
-
-### Verification
-- 守门 ×5 重写 (无条件注入/thinking 条款/参数无关/前缀顺序/唯一性); 定向 55P + G10 38P
-
-## [v3.131.15] - 2026-09-22 (仿脑记忆引擎持久化 · 用户拍板)
-
-### Fixed
-- **HumanLikeMemory 重启失忆** (离线自证 XK7 发现): 纯内存引擎现持久化到 `~/.meshctx/data/human_memory.json` — encode(新建/重巩固)/force_replay 后原子落盘(tmp+replace), `get_human_memory` 单例首建自动 load 跨进程恢复
-- README Open/Closed 表对齐代码现实 (313 模块=311 实体+2 桩); 徽章 v3.131.14/tests-3936; 新定位句 + Why 五卖点 + Ollama 离线快速开始 (07993209)
-- `_extract_user_facts` 补英文句式 ×5 组 (re.I) — 原"Please remember..."不触发离线兜底记忆 (af79b5ed)
-
-### Added
-- `tools/offline_memory_proof.py` 可复放离线自证 (verdict PASS: 落盘10/10→跨进程注入10/10→零外联) + `docs/offline_memory_evidence.json`
-- 守门: test_human_memory_persistence ×5 + test_memory_rules ×5
-
-### Verification
-- 定向 53P + G10 38P; 自证复跑 PASS
-
-## [v3.131.16] - 2026-09-22 (v6.2 组通道: 部门/项目共享信息通道)
-
-### Added
-- **组通道** `cluster/cluster_groups.py`: 部门通道 hub:group:{org}:dept:{id} + 项目通道 hub:group:{org}:project:{id} — 企业版/团队版协作核心
-- 权限界定 (RBAC 五角色): member 可发 / auditor 只读 / 加踢人 owner·manager+ / 建组 admin+ / org 强制租户隔离
-- fanout 投递 (逐成员 profile 主通道, 复用 v6.1 全链, 零 listener 改动)
-- 企业版插拔点 MESHCTX_GROUP_ROLE_PROVIDER (闭源 RBAC provider 覆写)
-
-### Fixed (集群 v6.1 系列)
-- I-6 发送路由键错 (7件堆积6天): validate_route_key 白名单 + send_dm 双通道 + INCIDENTS 铁律追加
-- I-1/I-4 空壳信封根修; I-5 003 全 16 profile listener 部署; poll_once 主通道断层修复; hermes 漏 -f 兼容
-
-### Verification
-- cluster 全套 58P (v6 51 + groups 7); G10 38P
