@@ -313,7 +313,7 @@ def read_inbox(count: int = 20) -> List[Dict[str, Any]]:
 
 def send_dm(target_mid: str, message: str, from_profile: str = "",
             to_profile: str = "", reply_channel: str = "",
-            project_id: str = "", r=None):
+            project_id: str = "", r=None, target_agent: str = ""):
     """点对点消息 (v6 单通道协议 + B1 白名单 + 项目路由)。
 
     返回 msg_id; profile 非法返回 "rejected"; redis 不可用返回 {"ok": False,...}。
@@ -362,6 +362,14 @@ def send_dm(target_mid: str, message: str, from_profile: str = "",
     base_prof = (split_to_profile(to_profile)[0] if to_profile else "") or (from_profile or AGENT)
     if base_prof and validate_profile_name(base_prof):
         routes.insert(0, f"hub:profile:{target_mid}:{base_prof}")
+    # P2-A (clusterv6_audit_86cceb0e): 项目实例专属通道第三投递 — 此前 5 段键
+    # hub:inbox:{mid}:{agent}:{project} 全生态无发送面 (双投只到 机器+profile 主),
+    # 项目实例唯一消费键永远收不到标准发送 (I-6 同族残余)。to_profile 含项目
+    # 后缀且调用方声明 target_agent 时追加第三投递; 接收方 NX 去重, 三投不重复。
+    if proj2 and target_agent:
+        if not validate_profile_name(target_agent):
+            return "rejected"
+        routes.append(f"hub:inbox:{target_mid}:{target_agent}:{proj2}")
     for ch in routes:
         assert validate_route_key(ch), f"非法路由键: {ch}"  # 铁律机器化: 发送前强制校验
         r.lpush(ch, raw)
@@ -461,6 +469,7 @@ def send_to_zcode(project: str, message: str, target_mid: str = "", r=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     chan = zcode_inbox_channel(project)
+    assert validate_route_key(chan), f"非法路由键: {chan}"  # 铁律机器化 (P2-A 同批对齐)
     raw = json.dumps(msg, ensure_ascii=False)
     r.lpush(chan, raw)
     r.publish(chan, raw)

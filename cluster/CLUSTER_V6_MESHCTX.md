@@ -2,7 +2,7 @@
 
 > 权威协议: hermes `profiles/admin/CLUSTER-COMM-V6.md` (v6 2026-08-30 + v6.1 2026-09-01)
 > 本文档描述 meshctx 侧的实现、配置、用法与安全边界。
-> 实现: `cluster/cluster_comm_v6.py` · 测试: `tests/test_cluster_comm_v6.py` (39 用例, FakeRedis 离线)
+> 实现: `cluster/cluster_comm_v6.py` · 测试: `tests/test_cluster_comm_v6.py` (54 用例, FakeRedis 离线)
 
 ---
 
@@ -46,7 +46,7 @@ journal/收件箱文件:     ~/.meshctx/web3_journal/zcode_meshctx.jsonl
 |---|---|
 | §1.1 项目路由 | `project_id` 字段 + `to_profile="profile:project"` 拆分; 优先级 `project_id > :后缀 > to_profile > from_profile > deepseek` |
 | §1.2/§3 profile 白名单 | `validate_profile_name()`: 注册表名或 `[A-Za-z0-9_-]{1,64}`; 拒纯数字/`test`/含 `:` 空白控制符; 项目名放宽 (≤128, 禁路由分隔符) |
-| §1.3 订阅白名单 | 本模块只订阅自己的 `hub:inbox:004:zcode` |
+| §1.3 订阅白名单 | 实例订阅: 专属通道 `hub:inbox:004:zcode:meshctx` (v6 §1.3) + v6.1b 兼订 profile 主通道 `hub:profile:004:zcode`; P2-A 起 send_dm 声明 target_agent 可第三投递专属通道 |
 | §1.4 归档 TTL | `_archive()` 30 天 `EXPIRE` |
 | §1.5/§5 Web3 记录层 | 收发写 `src/core/web3_messaging.Web3MessagingLayer` (哈希链, `~/.meshctx/web3_journal/zcode.jsonl`), `journal_verify()` 防篡改 |
 | §1.6 孤儿队列 | 不产生含 `:` 的收件人歧义 — zcode 通道为自消费专属通道 |
@@ -104,7 +104,7 @@ MESHCTX_ADMIN_MSG_DIR=\\wsl.localhost\<发行版名>\tmp\admin_msgs
 
 ## 7. 验证记录 (2026-09-09)
 
-- 单元测试: 39/39 通过 (FakeRedis 离线)。
+- 单元测试: 54/54 通过 (FakeRedis 离线)。
 - 真实 hub 冒烟: heartbeat ok → workers 出现 `004:zcode` 且 hermes `004` 条目完好 →
   入网通告投递成功 (msg 09c48a26) → zcode 通道空查正常 → journal 哈希链 verify ok。
 - 全量回归: 见 OPTIMIZATION_REPORT_v3.129.0.md §2 (3.130.0 批次沿用同口径)。

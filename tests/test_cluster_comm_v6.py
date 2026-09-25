@@ -565,3 +565,37 @@ def test_v61d_send_dm_delivers_to_profile_main_channel(v6):
                 to_profile="zcode", r=fr)
     assert fr.lists.get("hub:profile:004:zcode"), "主通道必须收到"
     assert fr.lists.get("hub:inbox:004"), "机器兜底通道仍保留"
+
+
+# ── clusterv6_audit P2-A: 项目实例专属通道发送面 ──────────
+
+def test_p2a_send_dm_third_delivery_to_project_channel(v6):
+    """P2-A: to_profile 含项目后缀 + target_agent 声明 → 第三投递 5 段键."""
+    mod, fr = v6
+    mod.send_dm("004", "p2a third delivery", from_profile="deepseek",
+                to_profile="meshctx:meshctx", target_agent="zcode", r=fr)
+    assert fr.lists.get("hub:profile:004:meshctx"), "profile 主通道 (v6.1d)"
+    assert fr.lists.get("hub:inbox:004"), "机器兜底通道 (v6.1d)"
+    assert fr.lists.get("hub:inbox:004:zcode:meshctx"), "项目实例专属通道 (P2-A 第三投递)"
+    a = json.loads(fr.lists["hub:profile:004:meshctx"][0])
+    b = json.loads(fr.lists["hub:inbox:004:zcode:meshctx"][0])
+    assert a["msg_id"] == b["msg_id"], "三通道同一信封 (接收方 NX 去重)"
+
+
+def test_p2a_send_dm_without_target_agent_stays_dual(v6):
+    """P2-A: 未声明 target_agent 保持 v6.1d 双投, 不误投 5 段键."""
+    mod, fr = v6
+    mod.send_dm("004", "dual only", from_profile="deepseek",
+                to_profile="meshctx:meshctx", r=fr)
+    assert fr.lists.get("hub:profile:004:meshctx")
+    assert fr.lists.get("hub:inbox:004")
+    assert not fr.lists.get("hub:inbox:004:zcode:meshctx"), "未声明 target_agent 不应三投"
+
+
+def test_p2a_send_dm_rejects_bad_target_agent(v6):
+    """P2-A: 非法 target_agent 走 B1 拒绝路径."""
+    mod, fr = v6
+    out = mod.send_dm("004", "x", from_profile="deepseek",
+                      to_profile="meshctx:meshctx", target_agent="bad agent!", r=fr)
+    assert out == "rejected"
+    assert not fr.lists, "拒绝路径不得产生任何投递"
