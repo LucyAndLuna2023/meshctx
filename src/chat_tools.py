@@ -809,11 +809,6 @@ def _collect_memory_entries(current_query: str = None, base_dirs: list = None, m
     return [r["value"] for r in rows[:max_entries]]
 
 
-UI_LANG_NAMES = {"en": "English", "zh": "中文", "ja": "日本語", "ko": "한국어",
-                 "fr": "Français", "de": "Deutsch", "es": "Español", "it": "Italiano",
-                 "ar": "العربية", "ru": "Русский", "he": "עברית"}
-
-
 def build_system_prompt(project_dir: str = None, include_memory: bool = True,
                         current_query: str = None, ui_lang: str = None) -> str:
     # ui_lang 形参保留 (v3.131.13 历史 API 兼容; v3.131.14 起语言策略=统一英语,
