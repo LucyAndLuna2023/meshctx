@@ -8,6 +8,7 @@
 归档 TTL (§1.4) · 跨轮询去重 · admin 文件队列互通。
 """
 import importlib
+from pathlib import Path
 import json
 import os
 import sys
@@ -149,13 +150,15 @@ def test_zcode_project_isolation(tmp_path, monkeypatch):
 
     # ③ 去重键隔离: quant 实例标记 dup1 后, meshctx 实例收同 id 消息不受影响
     fr3 = FakeRedis()
-    fr3.lpush("hub:inbox:004:zcode:quant", json.dumps({"msg_id": "dup1", "message": "x"}))
+    fr3.lpush("hub:inbox:004:zcode:quant", json.dumps(
+        {"msg_id": "dup1", "from": "002", "from_profile": "meshctx", "message": "x"}))
     assert len(m.poll_once(r=fr3, timeout=0.05)) == 1
 
     # ④ 回到 meshctx 实例: 同 msg_id 走 meshctx 通道, 不被 quant 的去重标记拦截
     m = load("meshctx", tmp_path / "h1")
     fr3.lpush("hub:inbox:004:zcode:meshctx",
-              json.dumps({"msg_id": "dup1", "message": "y"}))
+              json.dumps({"msg_id": "dup1", "from": "002",
+                          "from_profile": "meshctx", "message": "y"}))
     got = m.poll_once(r=fr3, timeout=0.05)
     assert [g["msg_id"] for g in got] == ["dup1"]
     m._journal = None
@@ -370,7 +373,7 @@ def test_get_redis_requires_config(v6, monkeypatch):
 def test_poll_once_drains_queue_dedups(v6):
     mod, fr = v6
     chan = mod.inbox_channels()[0]
-    m1 = {"msg_id": "aaa", "from": "002", "message": "q1"}
+    m1 = {"msg_id": "aaa", "from": "002", "from_profile": "meshctx", "message": "q1"}
     fr.lpush(chan, json.dumps(m1))
     got = mod.poll_once(r=fr, timeout=0.05)
     assert [g["msg_id"] for g in got] == ["aaa"]
@@ -454,3 +457,51 @@ def test_resolve_project_profile(v6):
     assert mod.resolve_project_profile("crypto v2") == "crypto-v2"
     assert mod.resolve_project_profile("unknown-proj") == "deepseek"
     assert mod.resolve_project_profile("") == "deepseek"
+
+
+# ── v6.1: 信封完整性校验 (空壳拒收不占去重坑) ───────────────
+
+def test_v61_shell_rejected_and_does_not_block_full_payload(tmp_path, monkeypatch):
+    """空壳事故根修: {msg_id,to_profile} 裸壳先到 → 拒收且不占 msg_id;
+    随后同 msg_id 全量件必须正常收取 (首版事故: 全量件被去重误杀)。"""
+    monkeypatch.setenv("MESHCTX_HOME", str(tmp_path))
+    monkeypatch.setenv("MESHCTX_CLUSTER_PROJECT", "meshctx")
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "cluster"))
+    try:
+        mod = importlib.import_module("cluster_comm_v6")
+        mod = importlib.reload(mod)
+    finally:
+        sys.path.remove(str(Path(__file__).resolve().parent.parent / "cluster"))
+    mod._journal = None
+    fr = FakeRedis()
+    chan = mod.inbox_channels()[0]
+    shell = {"msg_id": "V61SHELL", "to_profile": "zcode"}  # 裸壳: 缺 from/from_profile/message
+    full = {"msg_id": "V61SHELL", "from": "002", "from_profile": "codex",
+            "to": "004", "to_profile": "zcode", "message": "full payload"}
+    fr.lpush(chan, json.dumps(shell))
+    fr.lpush(chan, json.dumps(full))  # RPOP 后进先出: full 先被处理
+    got = mod.poll_once(r=fr, timeout=0.05)
+    assert [g["msg_id"] for g in got] == ["V61SHELL"]
+    assert got[0].get("message") == "full payload", "全量件必须存活, 空壳不得占坑"
+    # 再单独投壳: 必须 0 收取 (拒收), 且 journal 留 rejected_malformed 痕迹
+    fr2 = FakeRedis()
+    fr2.lpush(chan, json.dumps(shell))
+    assert mod.poll_once(r=fr2, timeout=0.05) == []
+    jdir = tmp_path / "web3_journal"
+    traces = " ".join(f.read_text(errors="replace") for f in jdir.rglob("*") if f.is_file()) \
+        if jdir.exists() else ""
+    assert "rejected_malformed" in traces, "空壳拒收必须留 journal 痕迹"
+    mod._journal = None
+
+
+def test_v61_envelope_valid_unit():
+    m = importlib.import_module("cluster_comm_v6")
+    assert m.envelope_valid({"msg_id": "x", "from": "002", "from_profile": "codex", "message": "hi"})
+    for bad in (
+        {"msg_id": "x", "to_profile": "z"},                     # 裸通知壳 (事故原型)
+        {"msg_id": "x", "from": "002", "message": "hi"},        # 缺 from_profile
+        {"msg_id": "", "from": "002", "from_profile": "c", "message": "hi"},
+        {"msg_id": "x", "from": "002", "from_profile": "c", "message": "  "},
+        "not-a-dict",
+    ):
+        assert not m.envelope_valid(bad), bad

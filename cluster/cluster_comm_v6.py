@@ -506,10 +506,27 @@ def _seen(r, msg_id: str) -> bool:
         return False
 
 
+def envelope_valid(data: Dict[str, Any]) -> bool:
+    """v6.1 信封完整性校验 — 必含 msg_id/from/from_profile/message 非空。
+
+    根因 (2026-09-22 空壳事故): 裸通知壳 {msg_id,to_profile} 先占 msg_id 去重坑,
+    随后全量件被去重误杀 → 消息丢失。现空壳在去重前即拒收, 不占 msg_id。
+    """
+    return bool(
+        isinstance(data, dict)
+        and str(data.get("msg_id", "")).strip()
+        and str(data.get("from", "")).strip()
+        and str(data.get("from_profile", "")).strip()
+        and str(data.get("message", "")).strip()
+    )
+
+
 def poll_once(r=None, timeout: float = 1.0) -> List[Dict[str, Any]]:
     """单次收取: 先 RPOP 队列 (pubsub 离线期间的消息), 再消费 pubsub 实时消息。
 
-    每条消息: 去重 → 写本地收件箱 jsonl + Web3 journal + 归档 (30 天 TTL)。
+    每条消息: 信封校验(v6.1) → 去重 → 写本地收件箱 jsonl + Web3 journal + 归档。
+    v6.1: 校验失败记 rejected_malformed journal 且不占 msg_id 去重坑 —
+    空壳先到不再误杀后续同 msg_id 全量件。
     """
     if r is None:
         try:
@@ -520,8 +537,19 @@ def poll_once(r=None, timeout: float = 1.0) -> List[Dict[str, Any]]:
     chan = inbox_channels()[0]
 
     def _accept(data: Dict[str, Any]) -> bool:
-        """去重通过则 journal→收件箱→归档, 返回 True。(NX 先行保证单投递;
-        journal 先于收件箱, 最小化 hermes P0 'zombie dedup' 丢失窗口)"""
+        """v6.1: 信封校验先行 (不占去重坑) → 去重 → journal→收件箱→归档。
+        (NX 仍先于收件箱, 保持 hermes P0 'zombie dedup' 最小丢失窗口)"""
+        if not envelope_valid(data):
+            try:
+                journal_record("rejected_malformed", {
+                    "msg_id": str(data.get("msg_id", ""))[:16] if isinstance(data, dict) else "",
+                    "from": str(data.get("from", "")) if isinstance(data, dict) else "",
+                    "reason": "envelope incomplete (v6.1 裸通知壳拒收)",
+                    "raw": json.dumps(data, ensure_ascii=False)[:200] if data else str(data)[:200],
+                })
+            except Exception:
+                pass
+            return False
         if _seen(r, data.get("msg_id", "")):
             return False
         journal_record("recv", data)
