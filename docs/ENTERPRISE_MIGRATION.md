@@ -14,6 +14,7 @@
 | agent_teams.py | meshctx-enterprise |
 | business_plans.py / billing_payments.py | meshctx-enterprise |
 | memory_hierarchy.py / key_vault.py / sso.py / sso_state.py | meshctx-enterprise |
+| **cluster/cluster_groups.py** (v6.2 部门/项目共享信息通道) | **meshctx-team** |
 
 ## API 行为
 企业版 API (`/api/team/*`, `/api/billing/*`, `/api/swarm/*` 等) 在开源库
