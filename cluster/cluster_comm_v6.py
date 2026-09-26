@@ -377,6 +377,8 @@ def send_dm(target_mid: str, message: str, from_profile: str = "",
         if not validate_profile_name(target_agent):
             return "rejected"
         routes.append(f"hub:inbox:{target_mid}:{target_agent}:{proj2}")
+    routes = list(dict.fromkeys(routes))  # v6.1f (002meshctx 方案b): 保序去重一次治本,
+    # 组合路径 (v6.1e third 键 == P2-A 键) 重复投递根除; 002codex 95869942 唯一阻断
     for ch in routes:
         assert validate_route_key(ch), f"非法路由键: {ch}"  # 铁律机器化: 发送前强制校验
         r.lpush(ch, raw)

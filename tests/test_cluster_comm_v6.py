@@ -623,3 +623,16 @@ def test_v61e_conftest_env_immunity(monkeypatch):
     finally:
         sys.path.remove(str(Path(__file__).resolve().parent.parent / "cluster"))
     # 守门套件对 env 的免疫由 conftest delenv 固化 (本次提交同补)
+
+
+def test_v61f_combined_path_no_duplicate_delivery(v6):
+    """002codex 95869942 唯一阻断: 组合路径 (v6.1e third == P2-A 键) 不得重复投递.
+    复现原样: send_dm("999", to_profile="meshctx:quant") → hub:inbox:999:meshctx:quant 恰 1 份."""
+    mod, fr = v6
+    mod.send_dm("999", "combined path", from_profile="sender",
+                to_profile="meshctx:quant", r=fr)
+    key = "hub:inbox:999:meshctx:quant"
+    assert fr.lists.get(key, []).count(fr.lists[key][0]) == 1 if key in fr.lists else False
+    # 全部通道各自恰一份 (保序去重)
+    for k, lst in fr.lists.items():
+        assert len(set(lst)) == len(lst), f"{k} 重复投递"
