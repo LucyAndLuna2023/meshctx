@@ -29,7 +29,7 @@
 
 ## TODO（v6.2 候选）
 
-- [ ] `tools/hub_receipt_watch.py`：扫 journal 中带 `expect_reply` 的发出件，>6h 无回执输出告警清单（直接消 I-3）
+- [x] `tools/hub_receipt_watch.py`：扫 journal 中带 expect_reply 标记的发出件，>6h 无回执输出告警清单（I-3 根治件, 守门 ×4, 实机 10 件 checked/0 超期）— cron 建议每 30 分钟
 - [ ] 收件侧 `to_profile` 归属核对 + `misrouted` 计数（直接消 I-2 复发盲区）
 - [ ] `hub:heartbeat` 看板 + `LLEN hub:inbox:*` 阈值告警（直接消 I-5）
 - [ ] 集群各节点 listener 升级 v6.1：**004 已升级；002/001/003 需各自拉取**（防护是接收侧的，各节点升级各自受益；新旧 listener 互通兼容）
