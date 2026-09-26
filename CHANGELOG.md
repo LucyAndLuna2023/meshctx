@@ -1,3 +1,19 @@
+## [v3.131.17] - 2026-09-22 (集群 v6.1x 全修复版 — 取代 v3.131.16)
+
+> ⚠️ **v3.131.16 作废勿装**: 该 tag 含误放的团队版组通道实现 (已迁 meshctx-team)
+> 与 send_dm 组合路径重复投递 bug (P3-F)。已装者请升级本版。
+
+### Fixed
+- P3-F 组合路径重复投递: routes 统一保序去重 (dict.fromkeys, 002codex 95869942)
+- v6.1e 项目实例第三投递 (to_profile 含 :project, 002meshctx P2-A)
+- conftest 集群 env 免疫固化 (P3-E); 文档用例口径 56
+- 组通道开源侧 stub 化 + 防回流守门 (完整实现迁 meshctx-team)
+
+### Added
+- docs/EDITION_BOUNDARIES.md 四层版本边界权威口径
+- docs/LICENSE_CLARIFICATION_cluster_groups.md 版权人双许可再授权声明
+- docs/SMA_ROADMAP.md 小模型放大器路线 (v7 方向, Phase 1 开跑)
+
 ## [v3.131.16] - 2026-09-22 (v6.2 组通道: 部门/项目共享信息通道)
 
 ### Added
