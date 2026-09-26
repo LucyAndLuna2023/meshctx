@@ -66,4 +66,6 @@
 
 ## 状态
 
-- Phase 1 未开始。前置依赖: P3-F 修复闭环 (进行中) + v6.2c 复审收尾。
+- Phase 1 骨架已入库 @2753e41a (src/cascade_router.py 规则分级器 + 守门 ×5, 002codex 审计通过)。
+- 下一迭代: registry 实际模型解析接线 → Ollama L0 实测 → token 计量看板。
+- 前置依赖已清: P3-F 闭环 (v6.1f @5f936535, 002codex 复审确认)。

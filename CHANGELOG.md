@@ -6,7 +6,7 @@
 ### Fixed
 - P3-F 组合路径重复投递: routes 统一保序去重 (dict.fromkeys, 002codex 95869942)
 - v6.1e 项目实例第三投递 (to_profile 含 :project, 002meshctx P2-A)
-- conftest 集群 env 免疫固化 (P3-E); 文档用例口径 56
+- conftest 集群 env 免疫固化 (P3-E); 文档用例口径 57
 - 组通道开源侧 stub 化 + 防回流守门 (完整实现迁 meshctx-team)
 
 ### Added

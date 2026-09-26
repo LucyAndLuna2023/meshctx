@@ -630,7 +630,7 @@ def test_v61f_combined_path_no_duplicate_delivery(v6):
     复现原样: send_dm("999", to_profile="meshctx:quant") → hub:inbox:999:meshctx:quant 恰 1 份."""
     mod, fr = v6
     mod.send_dm("999", "combined path", from_profile="sender",
-                to_profile="meshctx:quant", r=fr)
+                to_profile="meshctx:quant", target_agent="meshctx", r=fr)  # 002codex P3-B: 精确组合断言
     key = "hub:inbox:999:meshctx:quant"
     assert fr.lists.get(key, []).count(fr.lists[key][0]) == 1 if key in fr.lists else False
     # 全部通道各自恰一份 (保序去重)
