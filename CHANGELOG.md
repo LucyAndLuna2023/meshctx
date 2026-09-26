@@ -1,3 +1,28 @@
+## [v7.0.0] - 2026-09-22 (SMA 小模型放大器 — 世代大版本)
+
+> 大版本跃迁 (3.x → 7.0): SMA (Small Model Amplification) 完整落地 —
+> 开源弱模型 + meshctx ≈ 强模型效果 (结构化可验证任务域)。
+
+### Added — SMA Phase 1 级联路由
+- `src/cascade_router.py`: L0 本地小模型 / L1 云中档 / L2 旗舰 三级分级 (规则引擎), 显式用户指定优先, needs_tools 工具下限, should_escalate 升级触发
+- registry 接线 + 降级链 (无本地模型→L1→L2, 旧行为等价零风险), env 可配 MESHCTX_L0/L1/L2_MODEL
+- CascadeUsage per-tier 计量 + saved_tokens 反事实估算; 看板 API /api/usage/report + /api/usage/reset
+
+### Added — SMA Phase 2 验证与自修复
+- `src/validators.py`: JSON (围栏/尾逗号容忍) / Python 编译期 / 文件引用存在性 验证器
+- `src/sma_repair.py`: 自修复链 (带错误反馈重试→级联升级→最佳候选兜底) + 自一致投票 (json 规范化多数/exact) + rbac 样板配套
+- chat 双端点接线 (/api/chat + /api/chat/stream): 用户显式优先; MESHCTX_CASCADE=0 回落默认
+
+### Added — 集群 v6.1x (v3.131.16→17 系列修复线收编)
+- 信封完整性校验 (I-1/I-4 根修) · 路由键白名单+双通道 (I-6) · 项目实例第三投递+组合去重 (P3-F/P2-A) · poll_once 主通道 · INCIDENTS 六案+receipt_watch (I-3)
+
+### Docs
+- EDITION_BOUNDARIES 四库边界 / LICENSE_CLARIFICATION 双许可声明 / ENTERPRISE_MIGRATION 表更新 / SMA_ROADMAP
+
+### Verification
+- 全量 3998P / 0F / 44S; cluster 58P; groups(team) 12P; cascade+sma 13P; G10 38P
+- SMA 三级解析/降级链/验证器/修复链/投票 全守门
+
 ## [v3.131.17] - 2026-09-22 (集群 v6.1x 全修复版 — 取代 v3.131.16)
 
 > ⚠️ **v3.131.16 作废勿装**: 该 tag 含误放的团队版组通道实现 (已迁 meshctx-team)

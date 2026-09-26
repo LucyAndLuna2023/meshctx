@@ -100,3 +100,10 @@ def test_pick_simple_greeting_uses_l0_when_available():
         {"ollama:qwen3": {"provider": "ollama"},
          "deepseek:flash": {"provider": "deepseek"}}, default="deepseek:flash"))
     assert out["tier"] == "L0" and out["model"] == "ollama:qwen3"
+
+
+def test_usage_reset():
+    from src.cascade_router import record_usage, usage_report, usage_reset
+    record_usage("L1", 10)
+    usage_reset()
+    assert usage_report()["total_tokens"] == 0

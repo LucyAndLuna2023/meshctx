@@ -4002,6 +4002,20 @@ async def _call_llm_stream(client, **kwargs):
         yield kind, val
 
 
+@app.get("/api/usage/report")
+async def usage_report_api():
+    """SMA token 计量看板 — per-tier 调用/消耗/节省估算 (v7.0.0)."""
+    from src.cascade_router import usage_report
+    return usage_report()
+
+
+@app.post("/api/usage/reset")
+async def usage_reset_api():
+    from src.cascade_router import usage_reset
+    usage_reset()
+    return {"ok": True}
+
+
 @app.post("/api/chat")
 async def api_chat(request: Request):
     """非流式Chat API — 完整工具循环。用于前端chat.html"""
