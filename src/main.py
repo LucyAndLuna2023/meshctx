@@ -4026,11 +4026,23 @@ async def api_chat(request: Request):
 
     model_id = body.get("model")
     if not model_id:
+        # SMA Phase 1 接线 (v3.131.17+): 级联路由 — 用户显式指定永远优先;
+        # 无本地模型时降级链保证行为与旧版等价 (MESHCTX_CASCADE=0 关闭)
         try:
-            config = load_config()
-            model_id = config.get("models", {}).get("default", "deepseek:v4-flash")
+            from src.cascade_router import pick_model_for_message
+            _cfg_default = ""
+            try:
+                _cfg_default = load_config().get("models", {}).get("default", "")
+            except Exception:
+                pass
+            _dec = pick_model_for_message(msg, registry=None, cascade_on=None)
+            model_id = _dec.get("model") or _cfg_default or "deepseek:v4-flash"
         except Exception:
-            model_id = "deepseek:v4-flash"
+            try:
+                config = load_config()
+                model_id = config.get("models", {}).get("default", "deepseek:v4-flash")
+            except Exception:
+                model_id = "deepseek:v4-flash"
 
     # 确保 system prompt 在最前面（与 CLI 同一份完整提示词：记忆+工具规则+桌面路径）
     if not msgs or msgs[0].get("role") != "system":
@@ -4216,12 +4228,24 @@ async def api_chat_stream(request: Request):
 
     model_id = body.get("model")
     if not model_id:
+        # SMA Phase 1 接线 (stream 主力路径): 用户显式优先 + 降级链等价 (MESHCTX_CASCADE=0 关闭)
         try:
-            config = load_config()
-            model_id = config.get("models", {}).get("default", "deepseek:v4-flash")
+            from src.cascade_router import pick_model_for_message
+            _cfg_default = ""
+            try:
+                _cfg_default = load_config().get("models", {}).get("default", "")
+            except Exception:
+                pass
+            _user_msg = next((x.get("content", "") for x in reversed(msgs)
+                              if x.get("role") == "user"), "")
+            _dec = pick_model_for_message(_user_msg, registry=None, cascade_on=None)
+            model_id = _dec.get("model") or _cfg_default or "deepseek:v4-flash"
         except Exception:
-            logger.debug("Suppressed exception", exc_info=True)
-            model_id = "deepseek:v4-flash"
+            try:
+                config = load_config()
+                model_id = config.get("models", {}).get("default", "deepseek:v4-flash")
+            except Exception:
+                model_id = "deepseek:v4-flash"
 
     # ── 工具定义 ──
     SENSITIVE_TOOLS = {"terminal", "write_file", "remote_write", "remote_exec"}

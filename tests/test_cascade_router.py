@@ -67,3 +67,36 @@ def test_usage_meter_and_saving():
     r = usage_report()
     assert r["by_tier"]["L0"]["calls"] == 2 and r["by_tier"]["L0"]["tokens"] == 150
     assert r["saved_tokens_estimate"] == 150 * 50  # L0_SAVING_FACTOR 默认 50
+
+
+# ── Phase 1 收尾: chat 端点接线守门 ─────────────────────────
+
+def test_pick_user_model_always_wins():
+    """用户显式指定模型 → 级联不介入 (铁律: 用户优先)."""
+    from src.cascade_router import pick_model_for_message
+    out = pick_model_for_message("你好", requested_model="anthropic:opus")
+    assert out["tier"] == "user" and out["model"] == "anthropic:opus"
+
+
+def test_pick_cascade_off_falls_back(monkeypatch):
+    from src.cascade_router import pick_model_for_message
+    monkeypatch.setenv("MESHCTX_CASCADE", "0")
+    monkeypatch.setenv("MESHCTX_L1_MODEL", "deepseek:flash")
+    out = pick_model_for_message("分析这段代码的根因", cascade_on=False)
+    assert out["model"] == "" and out["tier"] == "default"  # 返回空 → 调用方回落 registry 默认 (旧行为等价)
+
+
+def test_pick_needs_tools_never_below_l1():
+    from src.cascade_router import pick_model_for_message
+    out = pick_model_for_message("帮我查看文件并执行脚本", registry=FakeRegistry(
+        {"ollama:qwen3": {"provider": "ollama"},
+         "deepseek:flash": {"provider": "deepseek"}}, default="deepseek:flash"))
+    assert out["tier"] in ("L1", "L2"), "工具意图消息不得落 L0"
+
+
+def test_pick_simple_greeting_uses_l0_when_available():
+    from src.cascade_router import pick_model_for_message
+    out = pick_model_for_message("你好", registry=FakeRegistry(
+        {"ollama:qwen3": {"provider": "ollama"},
+         "deepseek:flash": {"provider": "deepseek"}}, default="deepseek:flash"))
+    assert out["tier"] == "L0" and out["model"] == "ollama:qwen3"

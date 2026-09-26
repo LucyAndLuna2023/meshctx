@@ -193,3 +193,40 @@ def record_usage(tier: str, tokens: int) -> None:
 
 def usage_report() -> Dict[str, Any]:
     return _usage.report()
+
+
+# ── Phase 1 收尾: chat 端点接线 ────────────────────────────────
+
+_TOOLS_RE = re.compile(
+    r"文件|执行|运行|命令|搜索|搜索|查看|读取|打开|终端|shell|terminal|"
+    r"file|run|exec|search|browse|command|script|部署|安装|删除|写入", re.I)
+
+
+def needs_tools(text: str) -> bool:
+    """消息是否隐含工具/执行意图 (简单规则; 误判安全: 误判 True→至少 L1)."""
+    return bool(text) and bool(_TOOLS_RE.search(text))
+
+
+def pick_model_for_message(message: str, requested_model: str = "",
+                           registry=None, cascade_on: bool = None) -> Dict[str, object]:
+    """chat 端点模型选择入口 (v6.1 接线, 安全设计):
+
+    · 用户显式指定模型 (下拉选择) → 原样返回, 级联不介入
+    · MESHCTX_CASCADE=0 → 回落 registry 默认 (旧行为)
+    · 级联开启 → 分级 (needs_tools 决定工具下限) + resolve_models 降级链
+      (无本地模型时 L0 降级 L1=默认 → 行为与旧版完全等价, 零风险)
+    """
+    if requested_model and str(requested_model).strip():
+        return {"tier": "user", "model": requested_model,
+                "reason": "用户显式指定, 级联不介入"}
+    if cascade_on is None:
+        cascade_on = os.environ.get("MESHCTX_CASCADE", "1") not in ("0", "false", "no")
+    if not cascade_on:
+        return {"tier": "default", "model": "",
+                "reason": "级联关闭 → 调用方回落 registry 默认 (旧行为等价)"}
+    needs = needs_tools(message or "")
+    tier = classify_task(message or "", has_tools=needs)
+    models = resolve_models(registry)
+    model = models.get(tier) or models.get("L1") or models.get("L2") or ""
+    return {"tier": tier, "model": model,
+            "reason": _reason(tier, message or "", needs) if cascade_on else "级联关闭, 默认模型"}
