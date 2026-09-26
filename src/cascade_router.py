@@ -102,3 +102,94 @@ def _reason(tier: str, text: str, has_tools: bool) -> str:
 def should_escalate(fail_count: int, validation_failed: bool = False) -> bool:
     """升级触发 (Phase 2 验证器联动入口): 失败≥2 或校验失败即升级一档。"""
     return fail_count >= 2 or bool(validation_failed)
+
+
+# ── Phase 1 深化: registry 接线 + 降级链 + token 计量 ──────────
+
+_L2_SIGNATURES = ("opus", "gpt-4o", "gpt-4.1", "claude", "gemini-2.5-pro", "deepseek-v4-pro", "o1", "o3")
+
+
+def resolve_models(registry=None) -> Dict[str, str]:
+    """从 model_registry 解析三级实际可用模型 (含降级链):
+
+    L0 = provider=ollama 的已配置条目 (本地零 token)
+    L1 = registry 默认模型 (云中档主力)
+    L2 = 已配置条目中匹配旗舰签名的第一个
+    降级: L0 缺→用 L1; L1 缺→用 L2; 全缺→空串 (调用方决定禁用/直连)。
+    """
+    env_models = {t: os.environ.get(f"MESHCTX_{t}_MODEL", "") for t in TIERS}
+    models = {t: "" for t in TIERS}
+    try:
+        if registry is None:
+            from src.model_registry import get_registry
+            registry = get_registry()
+        entries = getattr(registry, "_entries", {}) or {}
+        default = getattr(registry, "_default", "") or ""
+        # L0: ollama 条目
+        for mid, info in entries.items():
+            if info.get("provider") == "ollama":
+                models["L0"] = mid
+                break
+        # L1: registry 默认
+        if default:
+            models["L1"] = default
+        # L2: 旗舰签名
+        for mid in entries:
+            low = mid.lower()
+            if any(s in low for s in _L2_SIGNATURES):
+                models["L2"] = mid
+                break
+    except Exception:
+        pass
+    # 合成: env 显式指定 > registry 解析
+    for t in TIERS:
+        models[t] = env_models.get(t) or models.get(t) or ""
+    # 降级链 (仅对未显式指定的档位)
+    for t in TIERS:
+        if models[t]:
+            break
+    for t in reversed(TIERS):
+        if models[t]:
+            top = models[t]
+    if not models["L0"]:
+        models["L0"] = models["L1"] or models["L2"] or ""
+    if not models["L1"]:
+        models["L1"] = models["L2"] or ""
+    return models
+
+
+class CascadeUsage:
+    """per-tier token 计量器 (看板数据源)。
+
+    saved_tokens = 反事实估算: L0 处理的量若走 L2 的等效成本,
+    按 L0:L2 价差倍率 (默认 50x) 折算 — 看板展示"节省"。
+    """
+
+    L0_SAVING_FACTOR = int(os.environ.get("MESHCTX_L0_SAVING_FACTOR", "50"))
+
+    def __init__(self):
+        self._by_tier: Dict[str, Dict[str, int]] = {t: {"calls": 0, "tokens": 0} for t in TIERS}
+
+    def record(self, tier: str, tokens: int) -> None:
+        if tier in self._by_tier and tokens >= 0:
+            self._by_tier[tier]["calls"] += 1
+            self._by_tier[tier]["tokens"] += tokens
+
+    def report(self) -> Dict[str, Any]:
+        total = sum(v["tokens"] for v in self._by_tier.values())
+        l0_tokens = self._by_tier["L0"]["tokens"]
+        return {"by_tier": {k: dict(v) for k, v in self._by_tier.items()},
+                "total_tokens": total,
+                "saved_tokens_estimate": l0_tokens * self.L0_SAVING_FACTOR}
+
+
+_usage = CascadeUsage()
+
+
+def record_usage(tier: str, tokens: int) -> None:
+    """模块级计量入口 (chat 端点接线用)。"""
+    _usage.record(tier, tokens)
+
+
+def usage_report() -> Dict[str, Any]:
+    return _usage.report()
