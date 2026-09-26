@@ -4035,7 +4035,9 @@ async def api_chat(request: Request):
                 _cfg_default = load_config().get("models", {}).get("default", "")
             except Exception:
                 pass
-            _dec = pick_model_for_message(msg, registry=None, cascade_on=None)
+            _user_msg = next((x.get("content", "") for x in reversed(msgs)
+                              if x.get("role") == "user"), "") or str(msg or "")
+            _dec = pick_model_for_message(_user_msg, registry=None, cascade_on=None)  # 002codex P2-A: messages 路径绑定
             model_id = _dec.get("model") or _cfg_default or "deepseek:v4-flash"
         except Exception:
             try:

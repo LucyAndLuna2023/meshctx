@@ -16,7 +16,7 @@
 """
 import os
 import re
-from typing import Dict, Optional
+from typing import Any, Dict, Optional  # 002codex P1: Any 未导入在 3.12 触发 NameError (3.14 惰性注解掩盖)
 
 TIERS = ("L0", "L1", "L2")
 
@@ -106,7 +106,7 @@ def should_escalate(fail_count: int, validation_failed: bool = False) -> bool:
 
 # ── Phase 1 深化: registry 接线 + 降级链 + token 计量 ──────────
 
-_L2_SIGNATURES = ("opus", "gpt-4o", "gpt-4.1", "claude", "gemini-2.5-pro", "deepseek-v4-pro", "o1", "o3")
+_L2_SIGNATURES = ("opus", "gpt-4o", "gpt-4.1", "claude-opus", "claude-4", "gemini-2.5-pro", "deepseek-v4-pro", "o1", "o3")  # 002codex P3: 宽签名 "claude" 收紧
 
 
 def resolve_models(registry=None) -> Dict[str, str]:
@@ -144,13 +144,7 @@ def resolve_models(registry=None) -> Dict[str, str]:
     # 合成: env 显式指定 > registry 解析
     for t in TIERS:
         models[t] = env_models.get(t) or models.get(t) or ""
-    # 降级链 (仅对未显式指定的档位)
-    for t in TIERS:
-        if models[t]:
-            break
-    for t in reversed(TIERS):
-        if models[t]:
-            top = models[t]
+    # 降级链 (仅对未显式指定的档位) — 002codex P3: 原 dead loop 已清
     if not models["L0"]:
         models["L0"] = models["L1"] or models["L2"] or ""
     if not models["L1"]:
@@ -195,11 +189,17 @@ def usage_report() -> Dict[str, Any]:
     return _usage.report()
 
 
+def usage_reset() -> None:
+    """测试/运维重置 (002codex P3: 全局状态可重置防测试顺序污染)."""
+    global _usage
+    _usage = CascadeUsage()
+
+
 # ── Phase 1 收尾: chat 端点接线 ────────────────────────────────
 
 _TOOLS_RE = re.compile(
-    r"文件|执行|运行|命令|搜索|搜索|查看|读取|打开|终端|shell|terminal|"
-    r"file|run|exec|search|browse|command|script|部署|安装|删除|写入", re.I)
+    r"文件|执行|运行|命令|搜索|查看|读取|打开|终端|shell|terminal|"
+    r"file|run|exec|search|browse|command|script|部署|安装|删除|写入", re.I)  # 002codex P3: 重复"搜索"删
 
 
 def needs_tools(text: str) -> bool:
