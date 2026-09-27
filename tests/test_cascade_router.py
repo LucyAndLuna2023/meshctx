@@ -107,3 +107,12 @@ def test_usage_reset():
     record_usage("L1", 10)
     usage_reset()
     assert usage_report()["total_tokens"] == 0
+
+
+def test_sma_endpoint_registered():
+    """SMA 轻端点已注册 (契约: 存在且带校验)."""
+    import src.main as M
+    routes = [getattr(r, "path", "") for r in M.app.routes]
+    assert "/api/chat/sma" in routes
+    assert "/api/usage/report" in routes
+    assert "/api/usage/reset" in routes

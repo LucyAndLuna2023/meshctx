@@ -4002,6 +4002,74 @@ async def _call_llm_stream(client, **kwargs):
         yield kind, val
 
 
+@app.post("/api/chat/sma")
+async def chat_sma(request: Request):
+    """SMA 轻通道 — L0 本地模型 + 验证器 + 自修复链 (Phase 2 编排).
+
+    与 /api/chat 隔离: 不走工具循环/brain, 纯文本生成 + 机器校验。
+    适用: 摘要/分类/格式化/JSON 提取等结构化任务 (省 token 主战场)。
+    body: {message, checks?: ["json","python"], tier?: "L0"|"L1"}
+    """
+    import json as _json
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "invalid json body")
+    message = str(body.get("message", "")).strip()
+    if not message:
+        raise HTTPException(400, "message required")
+    checks = body.get("checks") or []
+    if not isinstance(checks, list):
+        checks = []
+    requested = str(body.get("model", "")).strip()
+
+    from src.cascade_router import (pick_model_for_message, resolve_models,
+                                    record_usage)
+    from src.sma_repair import run_with_repair
+    try:
+        reg = get_registry()
+    except Exception:
+        reg = None
+
+    if requested:
+        models = {t: requested for t in ("L0", "L1", "L2")}
+        tier = "L1"
+    else:
+        dec = pick_model_for_message(message, registry=reg)
+        tier = str(dec.get("tier", "L1"))
+        if tier == "user":
+            tier = "L1"
+        models = resolve_models(reg if reg else None)
+        if not models.get(tier):
+            models[tier] = dec.get("model") or ""
+        if not models.get(tier):
+            raise HTTPException(503, "SMA 模型未配置 (无可用 L0/L1/L2)")
+
+    def task_fn(model_id: str, prompt: str) -> str:
+        client = reg.get(model_id) if reg else None
+        if not client:
+            raise RuntimeError(f"模型不可用: {model_id}")
+        resp = client.chat([{"role": "user", "content": prompt}], max_tokens=2048)
+        return str((resp or {}).get("content", ""))
+
+    try:
+        out = run_with_repair(task_fn, message, tier, models,
+                              checks=[c for c in checks if c in ("json", "python")],
+                              max_retry=2)
+    except Exception as e:
+        raise HTTPException(502, f"SMA 编排失败: {e}")
+
+    record_usage(out.get("tier_used", tier),
+                 len(message) + len(out.get("output", "")))
+    return {
+        "ok": out.get("ok", False),
+        "content": out.get("output", ""),
+        "tier_used": out.get("tier_used", tier),
+        "attempts": out.get("attempts", []),
+        "exhausted": out.get("exhausted", False),
+    }
+
+
 @app.get("/api/usage/report")
 async def usage_report_api():
     """SMA token 计量看板 — per-tier 调用/消耗/节省估算 (v7.0.0)."""
