@@ -843,6 +843,14 @@ def build_system_prompt(project_dir: str = None, include_memory: bool = True,
         "- All reasoning/thinking output must also be written in English.\n"
         "- Keep code, identifiers, file paths and tool calls unchanged.")
     # 记忆段: 检索式注入，按 importance×retention 排序，固定上限
+    # SMA Phase 3: 轨迹过程记忆注入 (空返回空串, 零注入零行为变化; 本地零依赖)
+    try:
+        from src.trajectories import build_injection as _build_inj
+        _traj = _build_inj(current_query or "", top_k=2)
+        if _traj:
+            parts.append(_traj)
+    except Exception:
+        pass
     if include_memory:
         entries = _collect_memory_entries(current_query=current_query, max_entries=30)
         if entries:

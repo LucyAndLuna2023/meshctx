@@ -4032,6 +4032,11 @@ async def chat_sma(request: Request):
     except Exception as e:
         raise HTTPException(500, f'SMA registry init failed: {type(e).__name__}: {e}')
 
+    return _sma_run(message=message, checks=checks, requested=requested, reg=reg)
+
+
+def _sma_run(message: str, checks: List, requested: str, reg) -> Dict[str, Any]:
+    """SMA 编排公共实现 (chat_sma 端点与 /api/chat sma 参数共用)."""
     if requested:
         models = {t: requested for t in ("L0", "L1", "L2")}
         tier = "L1"
@@ -4106,6 +4111,19 @@ async def api_chat(request: Request):
 
     if not msgs:
         return JSONResponse({"error": "请输入消息"}, status_code=400)
+
+    # SMA 轻编排显式开关 (body.sma=true): 结构化任务走 L0+验证器+修复链, 失败自动回退主路径
+    if body.get("sma"):
+        from src.model_registry import get_registry as _gr
+        try:
+            return JSONResponse(_sma_run(message=str(msg or ""), checks=["json"]
+                                         if "json" in str(msg or "").lower() else [],
+                                         requested=str(body.get("model", "") or ""),
+                                         reg=_gr()))
+        except HTTPException as e:
+            if e.status_code not in (502, 503):
+                raise
+            # 502/503 → 回落主路径 (编排不可用时行为等价旧版)
 
     model_id = body.get("model")
     if not model_id:
