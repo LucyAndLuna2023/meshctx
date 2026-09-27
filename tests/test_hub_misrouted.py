@@ -37,5 +37,5 @@ def test_suspicious_flags_empty_and_multicolons():
         if tp == "(空)" or tp.count(":") > 1:
             suspicious.append(tp)
     assert dist["zcode:quant:extra"] == 1  # 多段冒号入分布
-    assert len(suspicious) == 1            # 只有空 to_profile 判可疑
+    assert len(suspicious) == 2            # 多段冒号与空 to_profile 均判可疑
     os.unlink(fp.name)
