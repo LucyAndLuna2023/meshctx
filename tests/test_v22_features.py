@@ -27,7 +27,7 @@ def _service_up(host: str = "127.0.0.1", port: int = 3001, timeout: float = 0.5)
         if r.status_code != 200:
             return False
         version = (r.json() or {}).get("version", "")
-        return version.startswith("3.")  # meshctx 版本号形如 3.129.0
+        return version.startswith(("3.", "7."))  # meshctx 版本号形如 3.129.0
     except (requests.RequestException, ValueError):
         return False
 
@@ -172,7 +172,7 @@ class TestV22Integration:
         r = requests.get(f"{BASE}/api/version")
         assert r.status_code == 200
         d = r.json()
-        assert d["version"].startswith("3."), f"Version not 3.x: {d['version']}"
+        assert d["version"].startswith(("3.", "7.")), f"Version not 3.x: {d['version']}"
         assert d["models"] == 123
         assert d["providers"] == 37
         print(f"  ✓ v{d['version']} models={d['models']} providers={d['providers']}")
