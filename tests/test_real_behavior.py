@@ -30,8 +30,9 @@ class TestExeBehavior:
         resp = client.get("/api/health")
         assert "version" in resp.json()
         ver = resp.json()["version"]
-        # 必须包含3.
-        assert ver.startswith("3."), f"版本号不是3.x: {ver}"
+        # 相对断言 (v7.0.0 大版本升号): 对照 src.__version__ 真源, 不锁主版本号
+        import src as _src
+        assert ver == _src.__version__, f"API 版本 {ver} != src.__version__ {_src.__version__}"
 
     def test_desktop_no_input_crash(self):
         """Bug: console=False时input()崩溃"""

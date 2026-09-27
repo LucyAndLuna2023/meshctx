@@ -230,12 +230,14 @@ class TestVersionConsistency:
         assert resp.status_code == 200
         data = resp.json()
         assert "version" in data
-        assert data["version"].startswith("3.")
+        import src as _src
+        assert data["version"] == _src.__version__, "API 版本必须等于 src.__version__ (相对断言, 大版本升号不破)"
 
     def test_core_version(self):
-        from src.core import __version__
-        assert __version__.startswith("3.")
-        assert "." in __version__
+        from src import __version__ as app_ver
+        from src.core import __version__ as core_ver
+        assert core_ver == app_ver, "core 版本必须与 src 主版本一致 (G10 口径)"
+        assert "." in core_ver
 
 
 # ═══════════════════════════════════════════════════
