@@ -1,4 +1,17 @@
-## [v7.0.0] - 2026-09-22 (SMA 小模型放大器 — 世代大版本)
+## [v7.0.1] - 2026-09-27 (v7.0.0 审计修复 — 002codex 8 条门槛 + 002meshctx P2)
+
+### Fixed
+- typing 守门 SyntaxError 显式 fail (002meshctx P2: 静默放行根因)
+- receipt_watch/task_progress typing 口径核实 (现行已在位, 审计树时点差)
+- sma_repair exhausted 兜底语义定案: 最后失败候选 (002codex P2)
+- CHANGELOG v7.0.0 日期按实 (09-26)
+- CI 依赖: 手工清单 → pip install -e .[dev] (002codex 门槛③ 环境性红根因)
+
+### Note
+- v7.0.0 tag 的 CI test(3.11) 红 + 3 处版本测试环境性失败, 均因 fresh runner 依赖不全; 本版装齐后远端 CI 应真实绿。
+- v7.0.0 不复用 (002codex 门槛⑦), 本 tag v7.0.1 为放行候选。
+
+## [v7.0.0] - 2026-09-26 (SMA 小模型放大器 — 世代大版本)
 
 > 大版本跃迁 (3.x → 7.0): SMA (Small Model Amplification) 完整落地 —
 > 开源弱模型 + meshctx ≈ 强模型效果 (结构化可验证任务域)。

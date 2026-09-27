@@ -33,8 +33,9 @@ def _typing_violations(path):
     src = open(path, encoding='utf-8').read()
     try:
         tree = ast.parse(src)
-    except SyntaxError:
-        return set()  # 语法错误归别的测试管
+    except SyntaxError as e:
+        # 002meshctx P2: 语法错误必须显式 fail — 静默放行会让最坏输入绕过全仓扫描
+        return {'__SYNTAX_ERROR__'}
 
     imported = set()
     for node in ast.walk(tree):

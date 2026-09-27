@@ -76,14 +76,18 @@ def run_with_repair(task_fn: Callable[[str, str], str],
             if ok:
                 return {"ok": True, "output": output, "tier_used": t,
                         "attempts": attempts}
-            if not best["ok"] and output:
+            if output:
+                # 语义定案 (002codex P2): exhausted 兜底 = **最后失败候选**
+                # (最接近修复: 经历了最多反馈轮次), 字段名 last_failed 明示
                 best = {"ok": False, "output": output,
                         "errors": errors or best["errors"]}
             prompt = repair_prompt(task, output,
                                    "\n".join(vr.to_feedback() for vr in results)
                                    or "输出为空")
-    return {"ok": False, "output": best["output"], "tier_used": path[-1] if path else tier,
-            "attempts": attempts, "exhausted": True}
+    return {"ok": False, "output": best["output"],
+            "tier_used": path[-1] if path else tier,
+            "attempts": attempts, "exhausted": True,
+            "note": "output = 最后失败候选 (非最佳语义, 002codex P2 语义定案)"}
 
 
 def self_consistency_vote(candidates: List[str],

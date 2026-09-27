@@ -28,7 +28,7 @@ jobs:
 
     - name: Test with pytest (framework only, skip brain)
       run: |
-        pip install pytest
+        pip install -e .[dev]  # 002codex: 装齐实际依赖 (httpx/pytest-asyncio 等, 手工清单缺失致环境性红)
         set -o pipefail  # 002codex P1-B: 假绿根修 — pytest rc 被 tail 吞掉, broken code 进 main CI 仍 success
         pytest tests/ -v --tb=short -k "not brain and not super_brain and not healer and not predictor and not orchestrator and not free_energy and not active_inference" \
           --ignore=tests/ui/ --ignore=tests/run_e2e_test.py \
