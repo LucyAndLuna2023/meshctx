@@ -370,9 +370,8 @@ def test_get_redis_requires_config(v6, monkeypatch):
     monkeypatch.setattr(mod, "REDIS_HOST", "")
     monkeypatch.setattr(mod, "REDIS_PASSWORD", "")
     # 002codex 36318431502: 3.11 fresh runner 上 _HUB 缓存为空时错误形态不同 —
-    # 语义守门: 任何"未配置即拒连"的异常都算达标 (match 放宽)
-    with pytest.raises(RuntimeError, match="hub|redis|配置|Redis", flags=2 if False else 0) if False else \
-            pytest.raises((RuntimeError, ValueError)):
+    # 语义守门: 任何"未配置即拒连"的异常都算达标
+    with pytest.raises((RuntimeError, ValueError)):
         mod.get_redis()
 
 
