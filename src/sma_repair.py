@@ -67,7 +67,15 @@ def run_with_repair(task_fn: Callable[[str, str], str],
             continue
         retries = max_retry if i == 0 else 1  # 升级档只试一次 (成本控制)
         for r in range(retries + 1):
-            output = task_fn(model, prompt)
+            try:
+                output = task_fn(model, prompt)
+            except Exception as exc:
+                # 执行异常 (模型不可用/网络/超时) 计为失败尝试, 走重试→升级,
+                # 不炸编排 (002codex E2E: registry 默认模型 client 缺失场景)
+                attempts.append({"model": model, "tier": t, "retry": r,
+                                 "ok": False, "errors": [f"执行异常: {exc}"]})
+                prompt = repair_prompt(task, "", f"执行异常: {exc}")
+                continue
             results = validate_response(output, checks)
             errors = [e for vr in results if not vr.ok for e in vr.errors]
             ok = all(vr.ok for vr in results) if results else bool(output.strip())

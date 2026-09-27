@@ -122,3 +122,18 @@ def test_vote_no_majority():
 def test_vote_exact_mode():
     out = self_consistency_vote(["yes", "yes", "no"], mode="exact")
     assert out["ok"] and out["output"] == "yes"
+
+
+def test_repair_chain_task_fn_exception_escalates():
+    """模型不可用等执行异常 → 计失败尝试并升级下一档 (不炸编排)."""
+    def task_fn(model, prompt):
+        if model == "m_L0":
+            raise RuntimeError("模型不可用: m_L0")
+        return '{"ok": true}'
+
+    out = run_with_repair(task_fn, "输出 json", "L0",
+                          {"L0": "m_L0", "L1": "m_L1", "L2": "m_L2"},
+                          checks=["json"], max_retry=1)
+    assert out["ok"] and out["tier_used"] == "L1"
+    bad = [a for a in out["attempts"] if not a["ok"]]
+    assert bad and any("执行异常" in e for a in bad for e in a["errors"])

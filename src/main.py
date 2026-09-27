@@ -4023,13 +4023,14 @@ async def chat_sma(request: Request):
         checks = []
     requested = str(body.get("model", "")).strip()
 
+    from src.model_registry import get_registry  # 002codex 教训: NameError 曾被 broad except 掩盖
     from src.cascade_router import (pick_model_for_message, resolve_models,
                                     record_usage)
     from src.sma_repair import run_with_repair
     try:
         reg = get_registry()
-    except Exception:
-        reg = None
+    except Exception as e:
+        raise HTTPException(500, f'SMA registry init failed: {type(e).__name__}: {e}')
 
     if requested:
         models = {t: requested for t in ("L0", "L1", "L2")}
