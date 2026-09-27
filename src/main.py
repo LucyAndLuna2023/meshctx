@@ -4067,12 +4067,26 @@ def _sma_run(message: str, checks: List, requested: str, reg) -> Dict[str, Any]:
 
     record_usage(out.get("tier_used", tier),
                  len(message) + len(out.get("output", "")))
+
+    # SMA Phase 3: 成功任务自动落轨迹 (过程记忆; 失败也存 outcome=fail 供避坑)
+    traj_id = ""
+    try:
+        from src.trajectories import save_trajectory
+        steps = [{"action": f"attempt_{i}", "model": a.get("model", ""),
+                  "ok": a.get("ok")} for i, a in enumerate(out.get("attempts", []))]
+        traj_id = save_trajectory(message, steps, out.get("output", ""),
+                                  outcome="success" if out.get("ok") else "fail",
+                                  tags=["sma", out.get("tier_used", tier)])
+    except Exception:
+        pass
+
     return {
         "ok": out.get("ok", False),
         "content": out.get("output", ""),
         "tier_used": out.get("tier_used", tier),
         "attempts": out.get("attempts", []),
         "exhausted": out.get("exhausted", False),
+        "trajectory_id": traj_id,
     }
 
 

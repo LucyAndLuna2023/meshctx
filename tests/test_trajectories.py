@@ -44,3 +44,13 @@ def test_build_injection_contains_trajectory(traj_home):
 def test_atomic_write_no_tmp(traj_home):
     T.save_trajectory("tmp 残留检查", [], "ok")
     assert not list(T._dir().glob("*.tmp"))
+
+
+def test_fail_trajectory_not_injected(traj_home):
+    """失败轨迹落盘供避坑但默认不注入 (注入只取 success)."""
+    T = T if False else __import__("src.trajectories", fromlist=["save_trajectory"])
+    from src import trajectories as tmod
+    tmod.save_trajectory("坏案例 kubernetes", [], "错误输出", outcome="fail")
+    tmod.save_trajectory("好案例 kubernetes 部署", [], "成功输出", outcome="success")
+    inj = tmod.build_injection("kubernetes 怎么部署")
+    assert "好案例" in inj and "坏案例" not in inj
