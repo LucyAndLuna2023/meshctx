@@ -64,3 +64,17 @@ def test_recent_send_below_threshold_not_alerted(jdir, monkeypatch):
     # 定时炸弹修复: 冻结时钟到 NOW+1h (账龄 1h < 6h), 否则真实时间流逝 6h 后必红
     monkeypatch.setattr(w.time, "time", lambda: w.ts_to_epoch(NOW) + 3600.0)
     assert w.watch(hours=6)["verdict"] == "OK"
+
+
+def test_board_to_epoch_dual_format():
+    """_to_epoch 兼容 epoch float 与 ISO 字符串 (002admin 实机数据 ISO)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "hub_board", Path(__file__).resolve().parent.parent / "tools" / "hub_board.py")
+    m = importlib.util.module_from_spec(spec)
+    sys.modules["hub_board"] = m
+    spec.loader.exec_module(m)
+    assert m._to_epoch(1789000000) == 1789000000
+    assert m._to_epoch("2026-09-27T03:29:14+00:00") > 1789000000
+    assert m._to_epoch("") == 0.0 and m._to_epoch(None) == 0.0
+    assert m._to_epoch("garbage") == 0.0
