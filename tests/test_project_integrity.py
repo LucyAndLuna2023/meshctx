@@ -180,6 +180,7 @@ class TestSpecHiddenImports:
 
     def test_collect_submodules_covers_all_modules(self):
         """验证collect_submodules确实能发现所有src.core模块"""
+        pytest.importorskip("PyInstaller")  # 002codex: CI fresh runner 无 PyInstaller → skip 非 fail
         from PyInstaller.utils.hooks import collect_submodules
         core_dir = PROJECT / "src" / "core"
         core_modules = sorted([

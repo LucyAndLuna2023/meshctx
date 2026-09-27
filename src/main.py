@@ -4130,14 +4130,19 @@ async def api_chat(request: Request):
     if body.get("sma"):
         from src.model_registry import get_registry as _gr
         try:
-            return JSONResponse(_sma_run(message=str(msg or ""), checks=["json"]
-                                         if "json" in str(msg or "").lower() else [],
+            # 002codex P1-B: messages 数组路径下 msg 未绑定 — 统一 _user_msg 提取
+            _sma_user = next((x.get("content", "") for x in reversed(msgs)
+                              if x.get("role") == "user"), "") or str(msg or "")
+            return JSONResponse(_sma_run(message=_sma_user,
+                                         checks=["json"] if "json" in _sma_user.lower() else [],
                                          requested=str(body.get("model", "") or ""),
                                          reg=_gr()))
         except HTTPException as e:
             if e.status_code not in (502, 503):
                 raise
             # 502/503 → 回落主路径 (编排不可用时行为等价旧版)
+        except Exception:
+            pass  # 002codex P3-C: 非 HTTP 异常同样回落主路径 (编排不可用不冒泡)
 
     model_id = body.get("model")
     if not model_id:
