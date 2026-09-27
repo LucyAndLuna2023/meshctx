@@ -18,6 +18,7 @@
     "expect_reply" / "请回执" 之一
 """
 import json
+from typing import Any, Dict
 import os
 import sys
 import time

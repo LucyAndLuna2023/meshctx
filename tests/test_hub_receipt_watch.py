@@ -59,6 +59,8 @@ def test_non_expect_reply_ignored(jdir):
     assert out["checked"] == 0 and out["verdict"] == "OK"
 
 
-def test_recent_send_below_threshold_not_alerted(jdir):
+def test_recent_send_below_threshold_not_alerted(jdir, monkeypatch):
     _write(jdir, [_send("AUD3", "[送审] 刚发出 1h", NOW)])
+    # 定时炸弹修复: 冻结时钟到 NOW+1h (账龄 1h < 6h), 否则真实时间流逝 6h 后必红
+    monkeypatch.setattr(w.time, "time", lambda: w.ts_to_epoch(NOW) + 3600.0)
     assert w.watch(hours=6)["verdict"] == "OK"

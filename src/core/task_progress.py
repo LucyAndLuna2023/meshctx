@@ -1,4 +1,5 @@
 """Task Progress — task queue with priority, async processing, and singleton."""
+from typing import Dict  # 3.12/CI 注解求值需要 (PEP649 3.14 会掩盖缺失)
 from __future__ import annotations
 
 import asyncio
