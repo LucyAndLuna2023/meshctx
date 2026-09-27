@@ -25,7 +25,6 @@ def test_suspicious_flags_empty_and_multicolons():
                           "to_profile": "zcode:quant:extra", "message": "m"}) + "\n")
     fp.write(_json.dumps({"msg_id": "x2", "from": "004", "message": "no tp"}) + "\n")
     fp.close()
-    import hub_misrouted as hm
     old = m.__dict__.get("_scan_paths")
     # 直接调内部: 构造文件清单扫描
     dist, suspicious = {}, []
