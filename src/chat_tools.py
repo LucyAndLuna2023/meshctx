@@ -846,7 +846,7 @@ def build_system_prompt(project_dir: str = None, include_memory: bool = True,
     # SMA Phase 3: 轨迹过程记忆注入 (空返回空串, 零注入零行为变化; 本地零依赖)
     try:
         from src.trajectories import build_injection as _build_inj
-        _traj = _build_inj(current_query or "", top_k=2)
+        _traj = _build_inj(current_query or "", top_k=2)  # owner 缺省 _identity (004 修复)
         if _traj:
             parts.append(_traj)
     except Exception:

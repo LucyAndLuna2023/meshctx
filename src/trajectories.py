@@ -45,11 +45,25 @@ def save_trajectory(task: str, steps: List[Dict[str, Any]], output: str,
 
 
 def _identity() -> str:
-    try:
-        from cluster_comm_v6 import MACHINE_ID, AGENT  # type: ignore
-        return f"{MACHINE_ID}:{AGENT}"
-    except Exception:
-        return "local"
+    """当前实例身份 ({mid}:{profile}) — 002codex 58fa630a 修复:
+
+    原实现顶级导入 cluster_comm_v6 在干净进程 ModuleNotFoundError →
+    被 try/except 吞成恒 "local" → owner 隔离完全失效。现双路径 +
+    env 兜底, 确保生产语义正确。
+    """
+    mid = os.environ.get("MESHCTX_CLUSTER_MACHINE_ID", "")
+    agent = os.environ.get("MESHCTX_CLUSTER_AGENT", "")
+    if mid and agent:
+        return f"{mid}:{agent}"
+    for modpath in ("cluster.cluster_comm_v6", "cluster_comm_v6"):
+        try:
+            mod = __import__(modpath, fromlist=["MACHINE_ID", "AGENT"])
+            return f"{getattr(mod, 'MACHINE_ID')}:{getattr(mod, 'AGENT')}"
+        except Exception:
+            continue
+    # 仍失败: 进程级环境缺身份 — 明示而非静默 "local"
+    import socket
+    return f"unknown:{socket.gethostname()}"
 
 
 def load_trajectories(outcome: str = "success",
@@ -120,10 +134,14 @@ def build_injection(query: str, top_k: int = 2, owner: Optional[str] = None) -> 
     for h in hits:
         steps = " → ".join(str(s.get("tool", s.get("action", "?")))[:40]
                            for s in (h.get("steps") or [])[:8])
-        # 内容清洗: 剥围栏/尖括号标签, 截断长度 (防边界逃逸)
-        task_txt = _re.sub(r"</?untrusted_trajectories>", "", str(h.get("task", "")))[:150]
-        steps_txt = _re.sub(r"</?untrusted_trajectories>", "", steps)[:320]
-        out_txt = _re.sub(r"</?untrusted_trajectories>", "", str(h.get("output", "")))[:200]
+        # 内容清洗 (002codex 复审加强): 大小写不敏感剥全部 XML 标签形态
+        # (防 </UNTRUSTED_TRAJECTORIES> 等变体逃逸) + 截断长度
+        def _scrub(s: str) -> str:
+            s = _re.sub(r"</?[A-Za-z_][A-Za-z0-9_]*>", "", str(s))  # 剥全部标签形态
+            return s.replace("</untrusted_trajectories>", "")[:400]
+        task_txt = _scrub(str(h.get("task", "")))[:150]
+        steps_txt = _scrub(steps)[:320]
+        out_txt = _scrub(str(h.get("output", "")))[:200]
         parts.append(f"- 任务: {task_txt}\n  解法步骤: {steps_txt or '(直接作答)'}\n"
                      f"  要点: {out_txt}")
     parts.append("</untrusted_trajectories>")

@@ -4071,14 +4071,21 @@ def _sma_run(message: str, checks: List, requested: str, reg) -> Dict[str, Any]:
     # SMA Phase 3: 成功任务自动落轨迹 (过程记忆; 失败也存 outcome=fail 供避坑)
     traj_id = ""
     try:
-        from src.trajectories import save_trajectory
+        from src.trajectories import save_trajectory, _identity
         steps = [{"action": f"attempt_{i}", "model": a.get("model", ""),
                   "ok": a.get("ok")} for i, a in enumerate(out.get("attempts", []))]
+        # 002codex 58fa630a ②: 显式传 owner (默认 _identity 双路径已修, 此处显式防回归)
         traj_id = save_trajectory(message, steps, out.get("output", ""),
                                   outcome="success" if out.get("ok") else "fail",
-                                  tags=["sma", out.get("tier_used", tier)])
-    except Exception:
-        pass
+                                  tags=["sma", out.get("tier_used", tier)],
+                                  owner=_identity())
+    except Exception as e:
+        # 002codex P3-A: 落盘失败不再静默 — 留痕 (002codex 口径不符项闭合)
+        try:
+            import logging
+            logging.getLogger("sma").warning("trajectory save failed: %s", e)
+        except Exception:
+            pass
 
     return {
         "ok": out.get("ok", False),
