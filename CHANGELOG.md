@@ -1,3 +1,21 @@
+## [v3.132.0] - 2026-09-28 (SMA 世代正式版 — 取代误跳的 v7.0.x)
+
+> ⚠️ **v7.0.0 / v7.0.1 版本号作废勿装** (世代跳号决策失误, 内容与本版完全一致)。
+> 被取代版本 → 本版 v3.132.0。版本线回归 3.x 连续序列。
+
+> 本版 = SMA (Small Model Amplification) 世代首版: v3.131.17 基础上加入
+> 级联路由 + 验证器自修复 + 轨迹过程记忆 + 看板 API (即误跳版 v7.0.0/v7.0.1
+> 的全部内容), 外加集群 v6.1x 全系列修复。
+
+### Fixed (相对 v7.0.1 的审计修复, 均已复审)
+- 002codex 58fa630a: owner 隔离接通生产 (_identity 双路径+env 兜底 / main 显式传 owner / 注入 owner 过滤) + 注入边界清洗加强 (大小写不敏感剥标签变体)
+- get_redis 守门放宽 (3.11 fresh runner 错误形态差异) + PyInstaller importorskip (CI 环境适配)
+- sma_repair 编排容错 (task_fn 异常走升级不炸) + exhausted 兜底语义定案
+
+### Verification
+- 全量 4013P / 0F / 44S; G10 38P; cluster 58P; cascade+sma 13P; trajectories 5P
+- 002meshctx: v7.0.1 终判 PASS (第 18 轮) + 第 19/20 轮 106P/78P 独立复跑
+
 ## [v7.0.1] - 2026-09-27 (v7.0.0 审计修复 — 002codex 8 条门槛 + 002meshctx P2)
 
 ### Fixed
