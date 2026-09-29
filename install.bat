@@ -287,8 +287,8 @@ if defined PORTABLE_OK (
 REM ── [2/4] 安装 ───────────────────────────────────────
 if defined PORTABLE_OK (
     echo [2/4] %_T_EXTRACT_PORTABLE%
-    if exist "%INSTALL_DIR%" rmdir /s /q "%INSTALL_DIR%"
-    mkdir "%INSTALL_DIR%"
+    rem v3.132.2: 就地覆盖升级 (数据保护: 配置/记忆/会话不删除; 备份已在 [1/4])
+    if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
     powershell -Command "tar -xf '%PORTABLE_TARBALL%' -C '%INSTALL_DIR%'" 2>nul || (
         echo   %_T_EXTRACT_FAIL%
         rmdir /s /q "%TMPDIR%" 2>nul
