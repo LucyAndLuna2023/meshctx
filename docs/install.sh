@@ -527,7 +527,7 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.132.1"
+VERSION="3.132.2"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 PORT=3001
@@ -708,8 +708,12 @@ if [ -d "${INSTALL_DIR}" ]; then
     [ -z "$CONFIG_BACKUP" ] || echo -e "  ${GREEN}✓${NC} $(T backup_config)"
 fi
 
-rm -rf "${INSTALL_DIR}"
+# v3.132.2 (用户事故: 升级后配置/key 丢失 — INSTALL_DIR=数据目录同体, rm -rf 全灭):
+# 就地覆盖升级 — tar 解压时排除全部数据/配置 (白名单保护), 用户数据原地保留
+# 双保险: 前置 CONFIG_BACKUP 备份仍保留 (升级失败可回滚)
 mkdir -p "${INSTALL_DIR}"
+tar xzf "${TARBALL}" -C "${INSTALL_DIR}" --exclude='config.yaml' --exclude='.env' --exclude='provider_config.json' --exclude='data' --exclude='memories' --exclude='conversations' --exclude='agents' --exclude='profiles' --exclude='trajectories' --exclude='web3_journal' --exclude='knowledge' --exclude='goals' --exclude='genomes' --exclude='heartbeats' --exclude='backups' --exclude='diff_backups' --exclude='crew_templates' --exclude='archives' --exclude='.history_' --exclude='.active_profile' --exclude='hub_env.json' --exclude='*.jsonl' --exclude='.git' 2>/dev/null || true
+
 if [ "$PORTABLE_MODE" = "1" ]; then
     tar xzf "${TARBALL}" -C "${INSTALL_DIR}" || {
         echo -e "${RED}✗ $(T extract_fail)${NC}"; exit 1
@@ -961,7 +965,7 @@ echo -e "${GREEN}║          $(T install_banner)                     ║${NC}"
 echo -e "${GREEN}║                                                  ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════╝${NC}"
 echo ""
-# v3.132.1 免登录保证: 无条件清除两处 .env 的密码残留(不只备份恢复分支)。
+# v3.132.2 免登录保证: 无条件清除两处 .env 的密码残留(不只备份恢复分支)。
 # 密码残留会使 UI 弹登录页(设计上仅公网部署需要手动设置 MESHCTX_PASSWORD)。
 sed -i '/^MESHCTX_PASSWORD=/d' "${INSTALL_DIR}/.env" 2>/dev/null || true
 sed -i '/^MESHCTX_PASSWORD=/d' "${HOME}/.meshctx/.env" 2>/dev/null || true

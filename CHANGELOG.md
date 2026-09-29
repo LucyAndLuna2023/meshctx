@@ -1,3 +1,16 @@
+## [v3.132.2] - 2026-09-28 (安装器升级数据保护 — 用户实测修复)
+
+### Fixed
+- **升级后 base_url/key/配置丢失** (用户实测 Mac): 安装器 `rm -rf INSTALL_DIR` 全灭重建,
+  而 INSTALL_DIR(=~/.meshctx) 与数据目录同体 — config/key 之外的 memories/conversations/
+  trajectories/data 亦曾全灭。修: 三安装器 (install.sh/install-mac.sh/install.bat)
+  改**就地覆盖升级** — tar 解压白名单排除全部数据/配置, 用户数据原地保留;
+  前置 CONFIG_BACKUP 备份恢复逻辑保留 (双保险)。
+
+### Note
+- 旧版升级丢失的数据无法追回 (除非有 Time Machine/快照); 本版起升级不再丢任何数据。
+- 配置丢失的用户: 重配一次 base_url/key 后, 后续升级永久保留。
+
 ## [v3.132.1] - 2026-09-28 (流式输出语言修复 — 推理模型 user 尾部指令)
 
 ### Fixed
