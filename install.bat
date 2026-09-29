@@ -289,7 +289,7 @@ if defined PORTABLE_OK (
     echo [2/4] %_T_EXTRACT_PORTABLE%
     rem v3.132.2: 就地覆盖升级 (数据保护: 配置/记忆/会话不删除; 备份已在 [1/4])
     if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
-    powershell -Command "tar -xf '%PORTABLE_TARBALL%' -C '%INSTALL_DIR%'" 2>nul || (
+    powershell -Command "tar -xf '%PORTABLE_TARBALL%' -C '%INSTALL_DIR%' --exclude=config.yaml --exclude=.env --exclude=provider_config.json --exclude=data --exclude=memories --exclude=conversations --exclude=agents --exclude=profiles --exclude=trajectories --exclude=web3_journal --exclude=knowledge --exclude=hub_env.json" 2>nul || (
         echo   %_T_EXTRACT_FAIL%
         rmdir /s /q "%TMPDIR%" 2>nul
         pause
@@ -324,9 +324,9 @@ curl -fsSL --connect-timeout 60 -o "%TMPDIR%\meshctx-src.tar.gz" "%SRC_URL%" 2>n
 echo   OK
 
 echo [3/4] %_T_STEP_EXTRACT%
-if exist "%INSTALL_DIR%" rmdir /s /q "%INSTALL_DIR%"
-mkdir "%INSTALL_DIR%"
-powershell -Command "tar -xzf '%TMPDIR%\meshctx-src.tar.gz' -C '%INSTALL_DIR%' --strip-components=1" 2>nul || (
+rem v3.132.2: 就地覆盖升级 (数据保护: 配置/记忆/会话不删除; 备份已在 [2/4])
+if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
+powershell -Command "tar -xzf '%TMPDIR%\meshctx-src.tar.gz' -C '%INSTALL_DIR%' --strip-components=1 --exclude=config.yaml --exclude=.env --exclude=provider_config.json --exclude=data --exclude=memories --exclude=conversations --exclude=agents --exclude=profiles --exclude=trajectories --exclude=web3_journal --exclude=knowledge --exclude=hub_env.json" 2>nul || (
     echo   %_T_EXTRACT_FAIL%
     rmdir /s /q "%TMPDIR%" 2>nul
     pause
