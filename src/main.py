@@ -4179,6 +4179,12 @@ async def api_chat(request: Request):
         #（避免末条是 assistant 时误取；002 fb890903 ①）
         _cur_q = next((m.get("content", "") for m in reversed(msgs) if m.get("role") == "user"), "")
         msgs.insert(0, {"role": "system", "content": build_system_prompt(current_query=_cur_q)})
+        # v7.0.2: 推理模型语言策略 — user 尾部内嵌英语指令 (system 服从弱, 用户实测流式仍中文)
+        try:
+            from src.chat_tools import append_language_notice
+            append_language_notice(msgs)
+        except Exception:
+            pass
 
     try:
         reg = get_registry()
@@ -4385,6 +4391,12 @@ async def api_chat_stream(request: Request):
     # 统一循环(run_agent_loop)负责注入 system 到 messages[0]；与 CLI 共用同一份完整提示词
     # T3 接线（P2-3）：以当前用户消息作为 current_query 做相关性检索注入
     _full_system_prompt = build_system_prompt(current_query=user_msg)
+    # v7.0.2: 推理模型语言策略 — user 尾部内嵌英语指令 (deepseek-v4-flash 实测 system 服从弱)
+    try:
+        from src.chat_tools import append_language_notice
+        append_language_notice(msgs)
+    except Exception:
+        pass
 
     # night-4 (Phase-1 闭环): 注入 top 洞见进系统提示 + 记录供 finally 归因回灌
     _se_rules = []

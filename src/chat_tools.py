@@ -888,6 +888,28 @@ def trim_messages(messages: List[Dict], max_len: int = 40, keep: int = 30) -> Li
     return out
 
 # ═══════════════════════════════════════════════════════════
+# ── UI 语言策略: 推理模型 user 消息内嵌语言指令 ────────────────
+
+LANGUAGE_NOTICE = ("\n\n[System notice: Respond in English. "
+                   "Your reasoning/thinking must also be written in English.]")
+
+
+def append_language_notice(msgs):
+    """把语言指令追加到最后一条 user 消息尾部 (原地修改并返回).
+
+    为什么不放 system: deepseek-v4-flash 等推理模型对 system 语言指令服从弱
+    (实测 reasoning 自行决定中文, 2026-09-28 用户实测流式输出仍中文);
+    user 消息尾部对所有模型/网关生效。只改当前轮 user 消息, 不动历史。
+    """
+    for m in reversed(msgs):
+        if m.get("role") == "user":
+            content = str(m.get("content", ""))
+            if "[System notice: Respond in English" not in content:
+                m["content"] = content + LANGUAGE_NOTICE
+            break
+    return msgs
+
+
 # 统一 SYSTEM_PROMPT / TOOLS —— CLI 与 UI 共用同一份
 # ═══════════════════════════════════════════════════════════
 

@@ -116,3 +116,25 @@ def test_sma_endpoint_registered():
     assert "/api/chat/sma" in routes
     assert "/api/usage/report" in routes
     assert "/api/usage/reset" in routes
+
+
+# ── 语言策略: 推理模型 user 尾部指令 ─────────────────────────
+
+def test_language_notice_appended_to_last_user():
+    from src.chat_tools import append_language_notice
+    msgs = [{"role": "system", "content": "sys"},
+            {"role": "user", "content": "你好"},
+            {"role": "assistant", "content": "hi"},
+            {"role": "user", "content": "再来一个"}]
+    append_language_notice(msgs)
+    assert "Respond in English" in msgs[3]["content"]   # 最后一条 user
+    assert "Respond in English" not in msgs[1]["content"]  # 历史 user 不动
+
+
+def test_language_notice_idempotent():
+    from src.chat_tools import append_language_notice
+    msgs = [{"role": "user", "content": "hi"}]
+    append_language_notice(msgs)
+    once = msgs[0]["content"]
+    append_language_notice(msgs)
+    assert msgs[0]["content"] == once  # 不重复追加
