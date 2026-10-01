@@ -2878,6 +2878,122 @@ def _schedule_remote_refresh(force: bool = False):
         _REMOTE_REFRESHING = False
 
 
+@app.post("/api/models/discover")
+async def discover_models(request: Request):
+    """SMA 配套 (用户需求 2026-09-28): 手输 base_url+api_key → 拉取该端点全部模型.
+
+    OpenAI 兼容标准 GET {base_url}/models — Ollama/vLLM/one-api/OpenRouter/
+    各云厂商兼容端点通用。任意自建/中转端点开箱可用。
+    body: {base_url: str, api_key?: str}
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "invalid json body")
+    base_url = str(body.get("base_url", "")).strip().rstrip("/")
+    api_key = str(body.get("api_key", "")).strip()
+    if not base_url:
+        raise HTTPException(400, "base_url required")
+    if not base_url.startswith(("http://", "https://")):
+        raise HTTPException(400, "base_url must start with http:// or https://")
+    # 防 SSRF: 禁内网/本机地址 (企业版部署安全边界; 本机 Ollama 场景用 MESHCTX_ALLOW_PRIVATE=1 放开)
+    import re as _re
+    host_m = _re.match(r"https?://([^/:]+)", base_url)
+    host = host_m.group(1).lower() if host_m else ""
+    private_ok = os.environ.get("MESHCTX_ALLOW_PRIVATE", "") in ("1", "true", "yes")
+    if host and not private_ok and (host in ("localhost", "0.0.0.0") or host.startswith(("127.", "10.", "192.168.", "169.254.")) or _re.match(r"^172\.(1[6-9]|2\d|3[01])\.", host)):
+        if "127.0.0.1" not in host and "localhost" not in host:
+            raise HTTPException(400, "内网地址已拦截 (MESHCTX_ALLOW_PRIVATE=1 可放开本机网段)")
+
+    import httpx
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+    url = base_url + "/models"
+    try:
+        async with httpx.AsyncClient(timeout=20) as hc:
+            resp = await hc.get(url, headers=headers)
+    except Exception as e:
+        raise HTTPException(502, f"端点不可达: {e}")
+    if resp.status_code != 200:
+        raise HTTPException(resp.status_code, f"端点返回 {resp.status_code}: {resp.text[:200]}")
+    try:
+        data = resp.json()
+    except Exception:
+        raise HTTPException(502, "端点返回非 JSON")
+    ids = []
+    for it in (data.get("data") or (data.get("models") if isinstance(data.get("models"), list) else []) or []):
+        mid = it.get("id") if isinstance(it, dict) else str(it)
+        if mid and mid not in ids:
+            ids.append(str(mid))
+    return {"base_url": base_url, "models": ids, "count": len(ids)}
+
+
+@app.post("/api/models/batch")
+async def batch_add_models(request: Request):
+    """批量添加模型 (SMA 配套): discover 选中的 model_ids 一次写入 entries.
+
+    body: {provider, base_url?, api_key?, model_ids: [..], set_default?: bool}
+    model_id 命名 = "{provider}:{短名}" (与既有惯例一致)。
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "invalid json body")
+    provider = str(body.get("provider", "")).strip() or "custom"
+    base_url = str(body.get("base_url", "")).strip().rstrip("/")
+    api_key = str(body.get("api_key", "")).strip()
+    model_ids = body.get("model_ids") or []
+    set_default = bool(body.get("set_default"))
+    if not isinstance(model_ids, list) or not model_ids:
+        raise HTTPException(400, "model_ids required")
+    if len(model_ids) > 200:
+        raise HTTPException(400, "单次批量 ≤200")
+
+    from src.config import get_config_path
+    import yaml as _yaml
+    config_path = get_config_path()
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config = {}
+    if config_path.exists():
+        with open(config_path, encoding="utf-8") as f:
+            config = _yaml_load(f) or {}
+    config.setdefault("models", {}).setdefault("entries", {})
+
+    from src.core.crypto import encrypt_key, decrypt_key  # noqa: F401
+    added, skipped, failed = [], [], []
+    for mid in model_ids[:200]:
+        mid = str(mid).strip()
+        if not mid:
+            continue
+        full_id = mid if ":" in mid else f"{provider}:{mid}"
+        if full_id in config["models"]["entries"]:
+            skipped.append(full_id)
+            continue
+        entry = {"model": mid, "provider": provider,
+                 "base_url": base_url, "key": ""}
+        try:
+            entry["key"] = encrypt_key(api_key) if api_key else ""
+        except Exception:
+            entry["key"] = api_key
+        config["models"]["entries"][full_id] = entry
+        added.append(full_id)
+    if not config["models"].get("default") and added:
+        config["models"]["default"] = added[0]
+    if set_default and added:
+        config["models"]["default"] = added[0]
+    with open(config_path, "w", encoding="utf-8") as f:
+        _yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+    # registry 热刷新
+    try:
+        import src.model_registry as mr
+        mr._registry = None
+    except Exception:
+        pass
+    logger.info("models_batch: provider=%s added=%d skipped=%d",
+                provider, len(added), len(skipped))
+    return {"status": "ok", "added": added, "skipped": skipped,
+            "failed": failed, "count": len(added)}
+
+
 @app.get("/api/models/remote/{provider_id}")
 async def remote_models(provider_id: str):
     """厂商实时模型列表 (添加模型页 datalist); 未配/未知厂商零网络请求"""

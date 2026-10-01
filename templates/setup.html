@@ -175,6 +175,21 @@ details.adv[open] summary{margin-bottom:8px}
         <input id="ad_base" placeholder="https://api.deepseek.com/v1">
       </details>
     </div>
+    <!-- v3.133.0: 手输 base_url+key → 获取模型 → 多选/全选批量加入 -->
+    <div class="full" style="display:flex;gap:8px;align-items:center">
+      <button type="button" class="btn" style="flex:1" onclick="discoverModels()" id="ad_discover_btn">🔎 Discover models</button>
+      <span class="hint" id="ad_discover_hint" style="flex:2"></span>
+    </div>
+    <div class="full" id="ad_discover_box" style="display:none;max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:8px"></div>
+    <div class="full" id="ad_discover_actions" style="display:none;gap:8px">
+      <button type="button" class="btn primary" style="flex:1" onclick="addSelectedModels()">✚ Add selected</button>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.8rem">
+        <input type="checkbox" id="ad_disc_all" onchange="toggleAllModels(this.checked)"> select all
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.8rem">
+        <input type="checkbox" id="ad_set_default"> set first as default
+      </label>
+    </div>
     <div class="full" style="display:flex;gap:8px">
       <button class="btn primary" style="flex:1" onclick="addAndTest()" data-i18n="hub_add_and_test">🚀 Add &amp; test</button>
       <button class="btn" onclick="resetForm()" data-i18n="hub_reset">Reset</button>
@@ -603,6 +618,61 @@ function detectProviderFromKey(key) {
   });
 })();
 
+// ── v3.133.0: 手输 base_url+key → 获取模型 → 多选/全选批量加入 ──
+var DISC = {base:'', key:'', models:[]};
+function discoverModels(){
+  var st = $('ad_status');
+  var base = ($('ad_base').value||'').trim();
+  var key = ($('ad_key').value||'').trim();
+  if (!base) { st.className='status bad'; st.textContent='⚠ Base URL required for discovery'; return; }
+  var btn = $('ad_discover_btn'); btn.disabled = true;
+  var hint = $('ad_discover_hint'); hint.textContent = '…fetching';
+  fetch('/api/models/discover',{method:'POST',headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({base_url: base, api_key: key})})
+  .then(function(r){ return r.json().then(function(d){ return {status:r.status, d:d}; }); })
+  .then(function(x){
+    btn.disabled = false;
+    if (x.status !== 200) { hint.textContent = '✗ ' + (x.d.detail || ('HTTP ' + x.status)); return; }
+    DISC.base = base; DISC.key = key; DISC.models = x.d.models || [];
+    hint.textContent = '✓ ' + DISC.models.length + ' models found';
+    renderDiscoverList();
+  })
+  .catch(function(e){ btn.disabled = false; hint.textContent = '✗ ' + e; });
+}
+function renderDiscoverList(){
+  var box = $('ad_discover_box'); box.style.display = 'block';
+  box.innerHTML = DISC.models.map(function(mid, i){
+    return '<label style="display:block;padding:2px 4px;font-size:.82rem">'
+      + '<input type="checkbox" class="ad_disc_ck" value="' + mid + '"'
+      + (i === 0 ? ' checked' : '') + '> ' + mid + '</label>';
+  }).join('');
+  $('ad_discover_actions').style.display = 'flex';
+}
+function toggleAllModels(on){
+  document.querySelectorAll('.ad_disc_ck').forEach(function(c){ c.checked = on; });
+}
+function addSelectedModels(){
+  var sel = Array.prototype.slice.call(document.querySelectorAll('.ad_disc_ck:checked'))
+    .map(function(c){ return c.value; });
+  if (!sel.length) { $('ad_discover_hint').textContent = '⚠ none selected'; return; }
+  var p = ($('ad_provider').value||'custom');
+  fetch('/api/models/batch',{method:'POST',headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({provider: p, base_url: DISC.base, api_key: DISC.key,
+                          model_ids: sel,
+                          set_default: document.getElementById('ad_set_default').checked})})
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    var st = $('ad_status');
+    if (d.status === 'ok') {
+      st.className = 'status ok';
+      st.textContent = '✓ added ' + d.count + ' models' + (d.skipped.length ? ' (skipped ' + d.skipped.length + ' existing)' : '');
+      $('ad_discover_box').style.display = 'none';
+      $('ad_discover_actions').style.display = 'none';
+      loadModels && loadModels();
+    } else { st.className='status bad'; st.textContent = '✗ ' + (d.detail || JSON.stringify(d)); }
+  })
+  .catch(function(e){ $('ad_status').textContent = '✗ ' + e; });
+}
 function addAndTest(){
   var st = $('ad_status');
   st.className = 'status';
