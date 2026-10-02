@@ -30,7 +30,7 @@ def _read(name):
 
 
 def test_no_wipe_rebuild_in_any_installer():
-    """三安装器不得存在 INSTALL_DIR 全灭删除 (v3.132.2 就地覆盖取代)."""
+    """三安装器不得存在 INSTALL_DIR 全灭删除 (v3.133.1 就地覆盖取代)."""
     for name in INSTALLERS:
         t = _read(name)
         assert not FORBIDDEN_SH.search(t), f"{name} 仍有 rm -rf INSTALL_DIR 全灭模式"

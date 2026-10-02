@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']  # 002codex: tag 构建不可达 = 发版无 CI 门禁 (v3.133.0 教训)
   pull_request:
     branches: [main]
 
