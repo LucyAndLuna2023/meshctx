@@ -2878,6 +2878,28 @@ def _schedule_remote_refresh(force: bool = False):
         _REMOTE_REFRESHING = False
 
 
+def _discover_private_reason(host: str):
+    """SSRF 判定 (v3.133.1): 返回拦截原因, None=放行。loopback 豁免 (桌面本机 Ollama)。"""
+    import ipaddress as _ipa
+    import socket as _socket
+    try:
+        infos = _socket.getaddrinfo(host, None)
+    except Exception:
+        return None  # 解析失败不在此误拦, 交给 fetch 阶段报 502
+    for info in infos:
+        try:
+            ip = _ipa.ip_address(info[4][0])
+        except ValueError:
+            continue
+        if getattr(ip, "ipv4_mapped", None) is not None:
+            ip = ip.ipv4_mapped  # ::ffff:10.x 归位为 IPv4 再判定
+        if ip.is_loopback:
+            return None  # loopback 豁免 (与 v3.133.0 carve-out 行为一致)
+        if ip.is_private or ip.is_link_local or ip.is_reserved or ip.is_unspecified or ip.is_multicast:
+            return f"{ip} 为内网/保留地址"
+    return None
+
+
 @app.post("/api/models/discover")
 async def discover_models(request: Request):
     """SMA 配套 (用户需求 2026-09-28): 手输 base_url+api_key → 拉取该端点全部模型.
@@ -2896,14 +2918,20 @@ async def discover_models(request: Request):
         raise HTTPException(400, "base_url required")
     if not base_url.startswith(("http://", "https://")):
         raise HTTPException(400, "base_url must start with http:// or https://")
-    # 防 SSRF: 禁内网/本机地址 (企业版部署安全边界; 本机 Ollama 场景用 MESHCTX_ALLOW_PRIVATE=1 放开)
-    import re as _re
-    host_m = _re.match(r"https?://([^/:]+)", base_url)
-    host = host_m.group(1).lower() if host_m else ""
+    # 防 SSRF: 禁内网/本机地址 (企业版部署安全边界; 本机 Ollama 场景 loopback 豁免,
+    # 其余内网用 MESHCTX_ALLOW_PRIVATE=1 放开)。
+    # v3.133.1 (002zcode 审计): 纯字符串正则可被 IPv6 字面量([::1]/[::ffff:10.x])、
+    # 十进制 IP(2130706433)、DNS rebinding 绕过 → urlsplit 取 host + getaddrinfo
+    # 解析后逐 IP 用 ipaddress 判定; loopback 豁免与原 carve-out 行为一致。
+    from urllib.parse import urlsplit as _urlsplit
     private_ok = os.environ.get("MESHCTX_ALLOW_PRIVATE", "") in ("1", "true", "yes")
-    if host and not private_ok and (host in ("localhost", "0.0.0.0") or host.startswith(("127.", "10.", "192.168.", "169.254.")) or _re.match(r"^172\.(1[6-9]|2\d|3[01])\.", host)):
-        if "127.0.0.1" not in host and "localhost" not in host:
-            raise HTTPException(400, "内网地址已拦截 (MESHCTX_ALLOW_PRIVATE=1 可放开本机网段)")
+    host = (_urlsplit(base_url).hostname or "").lower()
+    if not host:
+        raise HTTPException(400, "base_url 缺少有效主机名")
+    if not private_ok:
+        _reason = _discover_private_reason(host)
+        if _reason:
+            raise HTTPException(400, f"内网地址已拦截 ({_reason}; MESHCTX_ALLOW_PRIVATE=1 可放开)")
 
     import httpx
     headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
@@ -2972,8 +3000,10 @@ async def batch_add_models(request: Request):
                  "base_url": base_url, "key": ""}
         try:
             entry["key"] = encrypt_key(api_key) if api_key else ""
-        except Exception:
-            entry["key"] = api_key
+        except Exception as e:
+            # v3.133.1 (002zcode 审计): 加密失败禁止静默明文落盘 — 该条计入 failed 跳过
+            failed.append({"model": full_id, "reason": f"key 加密失败: {e}"})
+            continue
         config["models"]["entries"][full_id] = entry
         added.append(full_id)
     if not config["models"].get("default") and added:

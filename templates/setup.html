@@ -639,12 +639,17 @@ function discoverModels(){
   })
   .catch(function(e){ btn.disabled = false; hint.textContent = '✗ ' + e; });
 }
+function escDisc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 function renderDiscoverList(){
   var box = $('ad_discover_box'); box.style.display = 'block';
+  // v3.133.1 (002zcode 审计): model id 来自任意外部端点, 必须 HTML 转义 — 防 XSS
   box.innerHTML = DISC.models.map(function(mid, i){
     return '<label style="display:block;padding:2px 4px;font-size:.82rem">'
-      + '<input type="checkbox" class="ad_disc_ck" value="' + mid + '"'
-      + (i === 0 ? ' checked' : '') + '> ' + mid + '</label>';
+      + '<input type="checkbox" class="ad_disc_ck" value="' + escDisc(mid) + '"'
+      + (i === 0 ? ' checked' : '') + '> ' + escDisc(mid) + '</label>';
   }).join('');
   $('ad_discover_actions').style.display = 'flex';
 }

@@ -67,3 +67,51 @@ def test_batch_dedup_and_limit(client, tmp_path):
     assert d["count"] == 0 and d["skipped"] == ["oneapi:dup-model"]
     r2 = client.post("/api/models/batch", json={"provider": "p", "model_ids": ["x"] * 201})
     assert r2.status_code == 400
+
+
+# ── v3.133.1 守门 (002zcode 审计: SSRF 解析级判定 / 禁明文回退 / 模板转义) ──
+
+def test_batch_encrypt_failure_never_plaintext(client, tmp_path, monkeypatch):
+    """加密失败必须计入 failed, 严禁静默把明文 key 写进 config.yaml"""
+    import yaml
+    def _boom(k):
+        raise RuntimeError("no master key")
+    monkeypatch.setattr("src.core.crypto.encrypt_key", _boom)
+    r = client.post("/api/models/batch", json={
+        "provider": "oneapi", "base_url": "https://gw.example/v1",
+        "api_key": "sk-PLAINTEXT-SECRET", "model_ids": ["m-enc-fail"]})
+    assert r.status_code == 200
+    d = r.json()
+    assert d["count"] == 0 and d["added"] == []
+    assert d["failed"] and d["failed"][0]["model"] == "oneapi:m-enc-fail"
+    cfg_path = Path(tmp_path) / ".meshctx" / "config.yaml"
+    if cfg_path.exists():
+        cfg = yaml.safe_load(open(cfg_path)) or {}
+        entries = (cfg.get("models") or {}).get("entries") or {}
+        assert "oneapi:m-enc-fail" not in entries          # 条目未写入
+        assert "sk-PLAINTEXT-SECRET" not in open(cfg_path).read()  # 明文未落盘
+
+
+def test_discover_blocks_ipv6_private_and_v4mapped(client, monkeypatch):
+    """字符串正则绕过面封堵: IPv6 ULA / v4-mapped 内网默认拦截"""
+    monkeypatch.delenv("MESHCTX_ALLOW_PRIVATE", raising=False)
+    for url in ("http://[fd00::1]/v1", "http://[::ffff:10.0.0.5]/v1",
+                "http://169.254.169.254/v1", "http://192.168.1.10/v1"):
+        r = client.post("/api/models/discover", json={"base_url": url})
+        assert r.status_code == 400, f"{url} 未拦截"
+
+
+def test_discover_loopback_carveout_preserved(client, monkeypatch):
+    """行为保持: loopback (本机 Ollama) 默认放行 — 解析级判定不改变 carve-out"""
+    monkeypatch.delenv("MESHCTX_ALLOW_PRIVATE", raising=False)
+    r = client.post("/api/models/discover", json={"base_url": "http://127.0.0.1:1/v1"})
+    assert r.status_code in (200, 502)  # 不被 400 拦截, 仅连接失败 502
+
+
+def test_setup_discover_list_escapes_html():
+    """模板静态门禁: 远端 model id 注入 innerHTML 前必须经 escDisc 转义 (防 XSS)"""
+    html = Path(__file__).resolve().parent.parent / "templates" / "setup.html"
+    src = html.read_text(encoding="utf-8")
+    assert "function escDisc(" in src, "缺少 escDisc 转义助手"
+    assert src.count("escDisc(mid)") >= 2, "renderDiscoverList 未对 mid 转义 (属性+文本两处)"
+    assert "value=\"' + mid + '" not in src, "仍存在未转义的 mid 拼接"

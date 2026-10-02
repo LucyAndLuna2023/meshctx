@@ -1,3 +1,18 @@
+## [Unreleased] — v3.133.0 安全加固 (002zcode 夜间审计, 2026-10-02)
+
+### Security
+- **models/discover SSRF 解析级判定**: v3.133.0 的字符串正则私网检查可被 IPv6 字面量
+  (`[::1]`/`[::ffff:10.0.0.5]`→host="[" 直接穿透)、十进制 IP (2130706433=127.0.0.1)、
+  DNS rebinding 绕过。改为 urlsplit 取 host + getaddrinfo 解析后逐 IP 用 ipaddress 判定
+  (private/link-local/reserved/multicast 全拦); loopback 豁免保持桌面本机 Ollama 开箱可用。
+- **models/batch 加密失败禁明文回退**: `encrypt_key` 异常时原实现把明文 api_key 写入
+  config.yaml (静默安全降级)。改为该条计入 `failed` (含原因) 并跳过, 明文绝不落盘。
+- **setup.html 发现列表 XSS**: 远端端点返回的 model id 未经转义直接 innerHTML 字符串拼接
+  (恶意中转端点可注入脚本到 setup 页会话)。新增 `escDisc()` 转义 value 属性与标签文本两处。
+- 守门 ×4: test_batch_encrypt_failure_never_plaintext /
+  test_discover_blocks_ipv6_private_and_v4mapped / test_discover_loopback_carveout_preserved /
+  test_setup_discover_list_escapes_html
+
 ## [v3.132.2] - 2026-09-28 (安装器升级数据保护 — 用户实测修复)
 
 ### Fixed
