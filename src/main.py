@@ -4182,7 +4182,14 @@ async def chat_sma(request: Request):
 
 
 def _sma_run(message: str, checks: List, requested: str, reg) -> Dict[str, Any]:
-    """SMA 编排公共实现 (chat_sma 端点与 /api/chat sma 参数共用)."""
+    """SMA 编排公共实现 (chat_sma 端点与 /api/chat sma 参数共用).
+
+    002codex 984b8b6e P1: 四个依赖导入必须在本函数作用域 —
+    原先留在 chat_sma 端点函数内, /api/chat sma=true 路径 NameError 502/500。
+    """
+    from src.cascade_router import (pick_model_for_message, resolve_models,
+                                    record_usage)
+    from src.sma_repair import run_with_repair
     if requested:
         models = {t: requested for t in ("L0", "L1", "L2")}
         tier = "L1"

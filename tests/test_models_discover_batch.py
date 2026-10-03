@@ -115,3 +115,33 @@ def test_setup_discover_list_escapes_html():
     assert "function escDisc(" in src, "缺少 escDisc 转义助手"
     assert src.count("escDisc(mid)") >= 2, "renderDiscoverList 未对 mid 转义 (属性+文本两处)"
     assert "value=\"' + mid + '" not in src, "仍存在未转义的 mid 拼接"
+
+
+def test_sma_endpoint_no_nameerror_both_paths(client, monkeypatch):
+    """002codex 984b8b6e P1 守门: /api/chat/sma 带/不带 model 均不得 NameError 500.
+
+    依赖注入: monkeypatch registry client.chat 返回固定内容 (零网络).
+    """
+    import src.model_registry as mr
+
+    class FakeClient:
+        def chat(self, msgs, max_tokens=1024, **kw):
+            return {"content": '{"result": "ok"}', "tokens": 10}
+
+    class FakeReg:
+        _entries = {"ollama:qwen3": {"provider": "ollama"}}
+        _default = "ollama:qwen3"
+        def get(self, mid=None):
+            return FakeClient()
+
+    import src.main as M
+    monkeypatch.setattr(M, "get_registry", lambda: FakeReg(), raising=False)
+    r1 = client.post("/api/chat/sma",
+                     json={"message": '输出 json: {"a":1}',
+                           "model": "ollama:qwen3",
+                           "checks": ["json"]})
+    d1 = r1.json()
+    assert "content" in d1
+    # 不带 model (级联解析路径)
+    r2 = client.post("/api/chat/sma", json={"message": "总结一下", "checks": []})
+    assert r2.status_code != 500, f"500=NameError 未修: {r2.text[:200]}"
