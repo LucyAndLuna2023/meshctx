@@ -1,0 +1,38 @@
+{
+ "preregistered": "判据冻结于跑前 (2026-09-28), 本文件即预注册记录",
+ "model": "glm-5.3-flash (via 8989 gateway, zhipu 渠道)",
+ "tasks": 10,
+ "line_A_bare_model": {
+  "hits": "5/10",
+  "detail": [
+   0,
+   0,
+   0,
+   0,
+   1,
+   1,
+   0,
+   1,
+   1,
+   1
+  ]
+ },
+ "line_B_meshctx": {
+  "hits": "7/10",
+  "detail": [
+   1,
+   0,
+   0,
+   0,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1
+  ]
+ },
+ "delta_pp": 20,
+ "note": "判分=关键词命中 (judge.py 口径); 差异<10pp 标注无显著增量; B 线 system 含 build_system_prompt (记忆检索注入+语言指令), 任务设计覆盖 meshctx 声称域 (记忆/上下文/工具)",
+ "generated_at": "2026-10-04T18:14:05+0800"
+}
