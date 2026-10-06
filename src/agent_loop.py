@@ -137,8 +137,28 @@ async def run_agent_loop(
     from src.core.interruptible_runner import InterruptSignal
 
     _round = 0
+    _forced_summary_done = False
     while max_rounds == 0 or _round < max_rounds:
         if time.perf_counter() - _start_ts > wall_clock:
+            # v3.133.2: 超时前若已有工具结果, 强制一轮无工具总结 (有结论再结束)
+            has_tool_hist = any(m.get("role") == "tool" for m in messages)
+            if has_tool_hist and not _forced_summary_done:
+                _forced_summary_done = True
+                messages.append({"role": "user", "content": FINAL_HINT})
+                _tools_ok = False
+                yield {"type": "deliver"}
+                try:
+                    stream = client.chat_stream(messages, temperature=0.7,
+                                                max_tokens=max_tokens)
+                    async for item in stream:
+                        if interrupt_check is not None:
+                            interrupt_check()
+                        if isinstance(item, tuple) and item[0] == "__REASONING__":
+                            yield {"type": "reasoning", "text": item[1]}
+                        elif isinstance(item, str):
+                            yield {"type": "token", "text": item}
+                except Exception:
+                    pass
             yield {"type": "timed_out", "text": f"[已达到最大处理时间 {int(wall_clock)} 秒，已中止]"}
             _timed_out = True
             break
@@ -216,12 +236,16 @@ async def run_agent_loop(
 
             # 防循环: web_search 上限
             def _safe_exec(name, args):
-                nonlocal _total_search_calls
+                nonlocal _total_search_calls, _tools_ok
                 if name == "web_search":
                     _total_search_calls += 1
                     if _total_search_calls > max_search_calls:
-                        return (f"[防循环] 搜索已达 {max_search_calls} 次上限，请立即基于已有信息输出最终结果，"
-                                "不要再调用 web_search")
+                        # v3.133.2 (用户实测: 多轮搜索后无结论): 上限触发后禁用工具 —
+                        # 下一轮模型只能纯文本总结 = 强制闭环; 原先仅返回提示但模型
+                        # 可继续无视搜索到 wall_clock 超时中止 → 永无结论
+                        _tools_ok = False
+                        return (f"[防循环] 搜索已达 {max_search_calls} 次上限。工具已停用。"
+                                "请立即基于以上全部搜索结果输出最终结论。")
                 return exec_tool(name, args)
 
             # 并发执行工具（run_in_executor + asyncio.wait，Python 3.12 兼容）

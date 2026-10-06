@@ -90,3 +90,37 @@ def test_direct_reply_ends_immediately():
     rounds = [e for e in evs if e["type"] == "round"]
     assert len(rounds) == 1               # 只 1 轮
     assert evs[-1]["type"] == "done"
+
+
+# ── v3.132.3: 搜索上限→禁工具强制闭环 (用户实测: 多轮搜索后无结论) ──
+
+def test_search_cap_disables_tools_then_final_answer():
+    """web_search 超 max_search_calls → 工具停用 → 模型纯文本总结收敛 (有结论)."""
+    calls = {"n": 0}
+
+    def script_factory(m):
+        # 前 9 轮都调 web_search (超过上限 8), 之后给最终回答
+        if calls["n"] < 9:
+            calls["n"] += 1
+            return iter([("__TOOLS__", [{"id": str(calls["n"]),
+                                         "name": "web_search",
+                                         "arguments": {"query": f"q{calls['n']}"}}], "")])
+        return iter(["基于全部搜索结果的最终结论: 答案是 X。"])
+
+    client = _FakeClient([script_factory(None) for _ in range(20)])
+    client = _FakeClient([])
+    calls2 = {"n": 0}
+    class _LoopClient:
+        def chat_stream(self, messages, **kw):
+            calls2["n"] += 1
+            if calls2["n"] <= 9:
+                calls2["n"] += 0
+                return iter([("__TOOLS__", [{"id": str(calls2["n"]),
+                                             "name": "web_search",
+                                             "arguments": {"query": f"q{calls2['n']}"}}], "")])
+            return iter(["最终结论: 答案是 X。"])
+    evs = _run(_LoopClient(), [{"role": "user", "content": "研究 q"}],
+               max_rounds=0, max_search_calls=8)
+    tokens = "".join(e["text"] for e in evs if e["type"] == "token")
+    assert "最终结论" in tokens, "上限触发后必须收敛出结论"
+    assert evs[-1]["type"] == "done"

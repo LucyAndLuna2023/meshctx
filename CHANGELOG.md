@@ -13,6 +13,15 @@
   test_discover_blocks_ipv6_private_and_v4mapped / test_discover_loopback_carveout_preserved /
   test_setup_discover_list_escapes_html
 
+## [v3.132.3] - 2026-09-28 (搜索闭环 + 推理区可见性 — 用户 Mac 实测两问题)
+
+### Fixed
+- **多轮搜索后不给结论**: web_search 超 max_search_calls(8) 上限 → **工具停用**强制模型纯文本总结闭环 (原先仅返回提示, 模型可无视搜索到 wall_clock 超时中止→永无结论); wall_clock 超时前若已有工具结果, 先强制 FINAL_HINT 总结轮再中止
+- **推理区被搜索气泡刷屏淹没**: web_search 工具气泡合并计数 (🔍 web_search × N), 推理思考区可见性恢复
+
+### Note
+- v3.133.1 (b58ad929 线) 本修复不在其中 — Mac 用户请直接升本版
+
 ## [v3.132.2] - 2026-09-28 (安装器升级数据保护 — 用户实测修复)
 
 ### Fixed
