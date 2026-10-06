@@ -124,3 +124,69 @@ def test_search_cap_disables_tools_then_final_answer():
     tokens = "".join(e["text"] for e in evs if e["type"] == "token")
     assert "最终结论" in tokens, "上限触发后必须收敛出结论"
     assert evs[-1]["type"] == "done"
+
+
+# ── 002zcode 审计 (v3.132.3): 超时强制总结必须回写 assistant 消息 ──
+
+def test_timeout_forced_summary_written_back():
+    """非流式 /api/chat 以 msgs[-1] 取回复 — 超时前强制总结若只 yield token 不回写,
+    总结会被 '处理超时,请重试' 兜底吞掉 (SSE 可见但 API/CLI 丢结论)。"""
+    import time as _time
+
+    def slow_exec(name, args):
+        _time.sleep(0.25)          # 令 wall_clock (0.05s) 在下一轮前耗尽
+        return "搜索结果: OK"
+
+    client = _FakeClient([
+        lambda m: iter([("__TOOLS__", [{"id": "1", "name": "web_search",
+                                        "arguments": {"query": "x"}}], "")]),
+        lambda m: iter(["最终结论: 答案是 X。"]),
+        lambda m: iter(["不应被消费"]),
+    ])
+    msgs = [{"role": "user", "content": "研究 q"}]
+
+    async def go():
+        evs = []
+        async for ev in run_agent_loop(client, msgs, tools=[], exec_tool=slow_exec,
+                                       max_rounds=0, wall_clock=0.05):
+            evs.append(ev)
+        return evs
+
+    evs = asyncio.run(go())
+    toks = "".join(e["text"] for e in evs if e["type"] == "token")
+    assert "最终结论" in toks, "强制总结必须流出"
+    assert any(e["type"] == "timed_out" for e in evs), "总结后须以 timed_out 收束"
+    assert msgs[-1]["role"] == "assistant", \
+        f"msgs[-1] 应为 assistant 总结, 实为 {msgs[-1]['role']} (非流式端点将丢结论)"
+    assert "最终结论" in (msgs[-1].get("content") or ""), "总结内容必须写回 messages"
+
+
+def test_timeout_summary_failure_removes_hint():
+    """总结流失败(空文本)时须移除 FINAL_HINT — msgs[-1] 不得指向系统提示。"""
+    import time as _time
+    from src.agent_loop import FINAL_HINT as _HINT
+
+    def slow_exec(name, args):
+        _time.sleep(0.25)
+        return "搜索结果: OK"
+
+    class _BoomClient:
+        def chat_stream(self, messages, **kw):
+            if any(m.get("role") == "tool" for m in messages):
+                raise RuntimeError("model down")   # 强制总结轮失败
+            return iter([("__TOOLS__", [{"id": "1", "name": "web_search",
+                                         "arguments": {"query": "x"}}], "")])
+
+    msgs = [{"role": "user", "content": "研究 q"}]
+
+    async def go():
+        evs = []
+        async for ev in run_agent_loop(_BoomClient(), msgs, tools=[], exec_tool=slow_exec,
+                                       max_rounds=0, wall_clock=0.05):
+            evs.append(ev)
+        return evs
+
+    evs = asyncio.run(go())
+    assert any(e["type"] == "timed_out" for e in evs)
+    assert msgs[-1]["role"] != "user" or msgs[-1].get("content") != _HINT, \
+        "FINAL_HINT 残留为 msgs[-1]"

@@ -147,18 +147,30 @@ async def run_agent_loop(
                 messages.append({"role": "user", "content": FINAL_HINT})
                 _tools_ok = False
                 yield {"type": "deliver"}
+                _sum_txt = ""
                 try:
                     stream = client.chat_stream(messages, temperature=0.7,
                                                 max_tokens=max_tokens)
-                    async for item in stream:
+                    # 002zcode 审计修复: 必须 for 同步迭代 — chat_stream 返回同步迭代器,
+                    # 原 async for 抛 TypeError 被 except pass 静默吞掉 →
+                    # 强制总结轮自上线起从未产出过结论 (必现死代码)
+                    for item in stream:
                         if interrupt_check is not None:
                             interrupt_check()
                         if isinstance(item, tuple) and item[0] == "__REASONING__":
                             yield {"type": "reasoning", "text": item[1]}
                         elif isinstance(item, str):
+                            _sum_txt += item
                             yield {"type": "token", "text": item}
                 except Exception:
                     pass
+                if _sum_txt.strip():
+                    # 002zcode 审计修复: 总结须回写 assistant 消息 — 非流式 /api/chat
+                    # 以 msgs[-1] 取回复, 此前只 yield token 不回写 → 总结被
+                    # "处理超时,请重试" 兜底吞掉 (SSE 可见但 API/CLI 丢结论)
+                    messages.append({"role": "assistant", "content": _sum_txt})
+                else:
+                    messages.pop()  # 总结失败: 移除 FINAL_HINT, 免 msgs[-1] 指向系统提示
             yield {"type": "timed_out", "text": f"[已达到最大处理时间 {int(wall_clock)} 秒，已中止]"}
             _timed_out = True
             break
