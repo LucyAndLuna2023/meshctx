@@ -33,7 +33,8 @@ FILES = ["pyproject.toml", "src/__init__.py", "src/core/__init__.py", "package.j
 
 def tuple_of(v):
     p = v.split(".")
-    return "(" + ", ".join(p + ["0"] * (4 - len(p))) + ", 0)"
+    p += ["0"] * (4 - len(p))  # 补齐四段, 不再额外加 ", 0" (双零 bug: 五段永失配)
+    return "(" + ", ".join(p) + ")"
 
 
 def docstring_lines(text):
