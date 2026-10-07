@@ -235,6 +235,13 @@ async def lifespan(app: FastAPI):
     # 审计修复 (2026-08-15): 内存限制从模块顶层移至此处 — 服务启动时才设置 (功能保留)
     _setup_memory_limit()
 
+    # 002meshctx round61 P2-C 补: SIGSEGV/SIGBUS 运行期保护 — 模块级注册现带主线程
+    # 守卫 (非主线程 import 跳过), lifespan 在主线程执行 → 此处补注册语义不损失
+    if _IS_LINUX or _IS_MACOS:
+        signal.signal(signal.SIGSEGV, _memory_signal_handler)
+        if hasattr(signal, 'SIGBUS'):
+            signal.signal(signal.SIGBUS, _memory_signal_handler)
+
     # v2.33: 加载API Key — 从.env和provider_config.json
     _load_api_keys_on_startup()
     

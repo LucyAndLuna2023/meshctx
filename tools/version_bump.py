@@ -66,8 +66,23 @@ for p in scan_paths:
         t = p.read_text(encoding="utf-8", errors="replace")
     except Exception:
         continue
-    hits = [ln.strip() for ln in t.splitlines()
-            if OLD in ln and not ln.strip().startswith(("#", "//", "<!--"))]
+    # 002meshctx round61 P2-3b 补: docstring 行豁免 (agent_loop 注释含 OLD 致扫描自锁)
+    import ast as _ast
+    try:
+        tree = _ast.parse(t)
+        doc_lines = set()
+        for node in _ast.walk(tree):
+            if isinstance(node, (_ast.Module, _ast.FunctionDef, _ast.ClassDef, _ast.AsyncFunctionDef)):
+                if (getattr(node, "body", None) and isinstance(node.body[0], _ast.Expr)
+                        and isinstance(node.body[0].value, _ast.Constant)
+                        and isinstance(node.body[0].value.value, str)):
+                    doc_lines.update(range(node.body[0].lineno,
+                                           (node.body[0].end_lineno or node.body[0].lineno) + 1))
+    except Exception:
+        doc_lines = set()
+    hits = [ln.strip() for i, ln in enumerate(t.splitlines(), 1)
+            if OLD in ln and i not in doc_lines
+            and not ln.strip().startswith(("#", "//", "<!--"))]
     if hits:
         left.append(f"{sp}: {hits[0][:80]}")
 if left:
