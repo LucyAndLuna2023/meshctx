@@ -1358,7 +1358,7 @@ cat > "${LAUNCHD_DIR}/${LAUNCHD_LABEL}.plist" << LAUNCHDEOF
         <string>uvicorn</string>
         <string>src.main:app</string>
         <string>--host</string>
-        <string>0.0.0.0</string>
+        <string>127.0.0.1</string>
         <string>--port</string>
         <string>${PORT}</string>
     </array>

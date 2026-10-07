@@ -57,6 +57,13 @@ def find_free_port(start=3001, max_tries=20):
 
 
 def start_server(port):
+    # codex round64 P1-B: uvicorn 跑在 worker 线程 → lifespan 非主线程, 信号注册
+    # 会被守卫跳过 (SigCgt 实测 SIG_DFL)。主线程先行导入 src.main, 模块级
+    # SIGSEGV/SIGBUS 注册 (带主线程守卫) 即在主线程完成, worker 复用已注册 handler。
+    try:
+        import src.main  # noqa: F401
+    except Exception as _e:
+        logger.warning(f"src.main 预导入失败 (信号守卫跳过): {_e}")
     import asyncio
     async def serve():
         import uvicorn

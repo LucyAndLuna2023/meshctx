@@ -235,8 +235,10 @@ async def lifespan(app: FastAPI):
     # 审计修复 (2026-08-15): 内存限制从模块顶层移至此处 — 服务启动时才设置 (功能保留)
     _setup_memory_limit()
 
-    # 002meshctx round61 P2-C 补: SIGSEGV/SIGBUS 运行期保护 — 模块级注册现带主线程
-    # 守卫 (非主线程 import 跳过), lifespan 在主线程执行 → 此处补注册语义不损失
+    # 002meshctx round61 P2-C: SIGSEGV/SIGBUS 运行期保护 — 模块级注册带主线程守卫。
+    # 诚实口径 (codex round64 P1-B): uvicorn 生产形态 lifespan 多跑在 worker 线程,
+    # 此处注册会被守卫跳过 — 真正生效点 = meshctx_desktop.py 主线程预导入 src.main
+    # (模块级注册在主线程完成); TestClient 场景同样跳过+留痕, 不炸 startup
     # v3.132.3-hotfix: TestClient/portal 的 lifespan 跑在非主线程 — signal.signal
     # 只能主线程注册, 非主线程静默跳过 (log 留痕), 不炸 startup
     import threading as _th
@@ -427,9 +429,9 @@ async def lifespan(app: FastAPI):
     port = int(os.environ.get("MESHCTX_PORT", "3001"))  # 默认端口 — 与 install.sh 和 cli.py 保持一致
     logger.info("═══════════════════════════════════════════")
     logger.info("  meshctx v1.0 已就绪!")
-    logger.info(f"  API: http://0.0.0.0:{port}")
-    logger.info(f"  Docs: http://0.0.0.0:{port}/docs")
-    logger.info(f"  Web UI: http://0.0.0.0:{port}/ui")
+    logger.info(f"  API: http://127.0.0.1:{port}  (远端监听: MESHCTX_HOST + MESHCTX_PASSWORD)")
+    logger.info(f"  Docs: http://127.0.0.1:{port}/docs")
+    logger.info(f"  Web UI: http://127.0.0.1:{port}/ui")
     logger.info("═══════════════════════════════════════════")
 
     # v2.18: 会话自动存档

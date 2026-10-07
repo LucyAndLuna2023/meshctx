@@ -8,10 +8,10 @@ class UnifiedDashboard:
 
     def __init__(self, *a, **kw):
         object.__setattr__(self, '_running', False)
-        self._host: str = "0.0.0.0"
+        self._host: str = "127.0.0.1"
         self._port: int = 3001
 
-    def start(self, host: str = "0.0.0.0", port: int = 3001, **kw) -> bool:
+    def start(self, host: str = "127.0.0.1", port: int = 3001, **kw) -> bool:
         self._running = True
         self._host = host
         self._port = port

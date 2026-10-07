@@ -1838,13 +1838,31 @@ def cmd_task(args):
 # start / stop / status
 # ═══════════════════════════════════════════════════
 
+
+
+def _resolve_bind_host():
+    """绑定地址解析 (codex round64 P1-A): 默认本机回环; 显式远端必须设密码.
+
+    历史: 0.0.0.0 曾为默认 → 未设 MESHCTX_PASSWORD 时局域网可裸访问 /api/*
+    (README/banner 称 localhost 与行为不符)。现默认 127.0.0.1;
+    远端监听必须 MESHCTX_PASSWORD 在位, 否则拒绝启动。
+    """
+    host = os.environ.get("MESHCTX_HOST", "127.0.0.1")
+    if host not in ("127.0.0.1", "localhost", "::1"):
+        if not os.environ.get("MESHCTX_PASSWORD"):
+            sys.exit("🔴 拒绝绑定非回环地址 " + host +
+                     ": 未设置 MESHCTX_PASSWORD (局域网将裸奔)。"
+                     "设置 MESHCTX_PASSWORD 后重试, 或取消 MESHCTX_HOST 回到本机模式。")
+    return host
+
+
 def cmd_start(args):
     """启动 meshctx v1.0 统一服务"""
     import uvicorn
     from src.main import app
     
     port = args.port or 3001  # 默认端口 — 与 install.sh 和 main.py 保持一致
-    host = '0.0.0.0'
+    host = _resolve_bind_host()
     from src.core import __version__
     
     print(f"""
@@ -3066,7 +3084,7 @@ def main():
             threading.Thread(target=_open_browser, daemon=True).start()
         
         from src.main import app
-        host = os.environ.get("MESHCTX_HOST", "0.0.0.0")
+        host = _resolve_bind_host()  # round64 P1-A: 默认回环, 远端需密码
         port = int(os.environ.get("MESHCTX_PORT", "3001"))
         uvicorn.run(app, host=host, port=port, log_level="info", timeout_keep_alive=300)
         return
