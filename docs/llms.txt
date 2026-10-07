@@ -1,5 +1,5 @@
 # MeshCtx — llms.txt
-# AI Agent accessibility for MeshCtx v3.132.3 documentation
+# AI Agent accessibility for MeshCtx v3.133.2 documentation
 # Last updated: 2026-09-02
 
 ## MeshCtx

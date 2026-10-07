@@ -13,6 +13,23 @@
   test_discover_blocks_ipv6_private_and_v4mapped / test_discover_loopback_carveout_preserved /
   test_setup_discover_list_escapes_html
 
+## [v3.133.2] - 2026-09-28 (desktop HOST 污染根修 + 版本 bump 工具化 — 002codex v3.132.3 FAIL 根因)
+
+### Fixed
+- 🔴 **desktop exe 自 v3.132.0 起 bind 失败无法启动** (002codex v3.132.3 FAIL P1-A):
+  版本 bump 全局 replace 撞上 IP 子串 (127.0.0.1 含 "7.0.0" → 被 v3.132.0 bump 撞成
+  123.132.0.1, 此后随版本走)。修: HOST 恢复 loopback + 版本引用常量化
+  (DESKTOP_VERSION, bump 工具仅精确替换常量行) + 静态守门 (HOST 必须 loopback)
+- bump 工具化: tools/version_bump.py (旧版残留扫描 exit1 + desktop 精确替换 + tuple 形态)
+
+### Fixed (承前)
+- owner 隔离接通生产 / 注入边界 / 落盘留痕 (c1c912f4, 002codex 五项通过)
+- 搜索闭环+推理区可见性 (v3.132.3) + 超时总结轮死代码根修 (004zcode 0af1f82a)
+
+### Verification
+- 全量 4013P 基线 (ea9ad9ed) + 定向 109P; CI tag 实跑 success (v3.132.3 四项全绿)
+- desktop 守门: HOST 必须 loopback (防再犯)
+
 ## [v3.132.3] - 2026-09-28 (搜索闭环 + 推理区可见性 — 用户 Mac 实测两问题)
 
 ### Fixed

@@ -56,3 +56,13 @@ def test_docs_mirror_synced():
     """docs/install*.sh 与根目录一致 (三平台修复不同步的历史教训)."""
     for name in ("install.sh", "install-mac.sh", "install-edition.sh"):
         assert (_read(name) == _read(f"docs/{name}")), f"docs/{name} 镜像漂移"
+
+
+def test_desktop_host_never_version_polluted():
+    """I-8 同族防线: desktop HOST 曾被版本 bump 全局替换污染 (127.0.0.1→123.132.0.1)
+    致 bind 失败 — 静态守门: HOST 必须 loopback."""
+    t = (ROOT / "meshctx_desktop.py").read_text(encoding="utf-8", errors="replace")
+    m = re.search(r'HOST\s*=\s*"([^"]+)"', t)
+    assert m, "HOST 定义缺失"
+    host = m.group(1)
+    assert host == "127.0.0.1", f"desktop HOST 被污染: {host} (必须 loopback)"

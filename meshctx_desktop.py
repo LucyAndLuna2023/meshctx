@@ -32,8 +32,9 @@ logger = logging.getLogger("meshctx.desktop")
 
 # ── 全局配置 ─────────────────────────────────────────
 PORT = int(os.environ.get("MESHCTX_PORT", "3001"))
-HOST = "123.132.3.1"
-TITLE = "meshctx Desktop v3.132.3"
+HOST = "127.0.0.1"  # ⚠ 勿被版本 bump 污染 (I-8 同族)
+DESKTOP_VERSION = "v3.133.2"
+TITLE = f"meshctx Desktop {DESKTOP_VERSION}"
 
 # 路径（兼容 PyInstaller 冻结模式）
 if getattr(sys, 'frozen', False):
@@ -48,7 +49,7 @@ def find_free_port(start=3001, max_tries=20):
     for port in range(start, start + max_tries):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(("123.132.3.1", port))
+                s.bind(("127.0.0.1", port))
                 return port
         except OSError:
             continue
@@ -154,7 +155,7 @@ def main():
     global PORT
     try:
         logger.info("=" * 50)
-        logger.info(f"meshctx Desktop v3.132.3 启动中...")
+        logger.info(f"meshctx Desktop v{DESKTOP_VERSION} 启动中...")
         logger.info(f"Python: {sys.version}")
         logger.info(f"Frozen: {getattr(sys, 'frozen', False)}")
         logger.info(f"Log: {LOG_FILE}")
