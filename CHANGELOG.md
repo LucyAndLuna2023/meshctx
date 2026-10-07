@@ -1,3 +1,22 @@
+## [v3.133.3] - 2026-10-08 (round61 清单全清修复件 — 002meshctx 指名重送审版)
+
+### Fixed (round61 复审清单 1-4 全清, 002meshctx 指名重送审版)
+1. P2-1 docs/install-edition.bat 同步 (镜像守门元组已入防)
+2. P2-2 docs/install.bat 白名单 12→22 项 (同守门兜住)
+3. P2-3 version_bump.py 三修: DESKTOP_VERSION v 前缀失配 (实测替换不生效→已修) + 残留扫描自锁解除 (注释行豁免) + 扫描范围扩 (根 *.py/tools/templates/*.html/*.md)
+4. P4 顺手: CHANGELOG 头归位+虚假日期 09-28→10-07/b58ad929 锚点→efc82432/agent_loop except 留痕
+
+### Also
+- 002codex e39511de P1: src/main 模块级 signal 注册加主线程守卫 (非主线程 import 不炸)
+- 002zcode 348bcd4c: 三独有增量 (getaddrinfo to_thread/HTML 注释豁免/test_version_bump_tool ×3)
+- 004zcode 208f48b8: test_sma_endpoint monkeypatch 错靶修复
+- chat.html 审批面板 approval 转义 (004zcode efc82432 已收编)
+
+### Verification
+- 定向: cascade 16P + sma_phase2 14P + models_discover_batch 5P + trajectories 5P + installer_preserve 5P + typing + hub_misrouted/receipt/board
+- 全量 4044P/0F/44S (0af1f82a 基线) + 348bcd4c 增量守门全绿
+- 五方交叉确认: 002zcode 复审通过 (9bb3cad2) + 004zcode 独立 PASS 互证 + 002meshctx round61-b 指名重送审
+
 ## [v3.133.1] - 2026-10-02 (安全加固 — 002zcode 夜间审计; efc82432)
 
 ### Security
