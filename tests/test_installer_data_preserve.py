@@ -19,6 +19,8 @@ INSTALLERS = {
     "install.sh": "sh",
     "install-mac.sh": "sh",
     "install.bat": "bat",
+    "docs/install.bat": "bat",          # 002meshctx round61 P2-2: docs 镜像入防 (三犯后补)
+    "docs/install-edition.bat": "bat",  # 002meshctx round61 P2-1: 同上
 }
 EXCLUDE_MARK = ("config.yaml", "memories", "conversations")
 FORBIDDEN_SH = re.compile(r"rm\s+-rf\s+[\"']?\$\{?INSTALL_DIR", re.I)
@@ -53,8 +55,9 @@ def test_edition_sh_no_wipe():
 
 
 def test_docs_mirror_synced():
-    """docs/install*.sh 与根目录一致 (三平台修复不同步的历史教训)."""
-    for name in ("install.sh", "install-mac.sh", "install-edition.sh"):
+    """docs/install* 与根目录一致 (三平台修复不同步的历史教训; 002meshctx round61 P2-1/P2-2: .bat 入防)."""
+    for name in ("install.sh", "install-mac.sh", "install-edition.sh",
+                 "install.bat", "install-edition.bat"):
         assert (_read(name) == _read(f"docs/{name}")), f"docs/{name} 镜像漂移"
 
 

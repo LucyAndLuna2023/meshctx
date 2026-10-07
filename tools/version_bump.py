@@ -37,25 +37,42 @@ for f in FILES:
         n += 1
 
 # desktop.py: 仅精确替换 DESKTOP_VERSION 常量 (永不全局 replace — HOST IP 保护)
+# 002meshctx round61 P2-3a 修复: 捕获组含 v 前缀, replace 目标带 v (原失配永不生效)
 dp = pathlib.Path("meshctx_desktop.py")
 t = dp.read_text(encoding="utf-8", errors="replace")
-m = re.search(r'DESKTOP_VERSION = "v?([^"]+)"', t)
+m = re.search(r'DESKTOP_VERSION = "(v[^"]+)"', t)
 if m:
     t = t.replace(f'DESKTOP_VERSION = "{m.group(1)}"',
                   f'DESKTOP_VERSION = "v{NEW}"')
     dp.write_text(t, encoding="utf-8")
     n += 1
+else:
+    print("⚠ DESKTOP_VERSION 常量未找到 — desktop 版本未 bump (人工检查)")
 
-# 残留扫描
+# 残留扫描 (002meshctx P2-3b/c 修复):
+#  · 只报非注释行 (功能性版本串), 注释行豁免 — 修复"扫描自锁" (自身注释含旧版本号致 bump 必 exit1)
+#  · 范围: src/**/*.py + tools/*.py + 根 *.py + *.md + templates/*.html
 left = []
-for p in list(pathlib.Path("src").rglob("*.py")) + list(pathlib.Path(".").glob("*.md")):
+scan_paths = (list(pathlib.Path("src").rglob("*.py"))
+              + list(pathlib.Path("tools").glob("*.py"))
+              + list(pathlib.Path(".").glob("*.py"))
+              + list(pathlib.Path("templates").glob("*.html"))
+              + list(pathlib.Path(".").glob("*.md")))
+for p in scan_paths:
+    sp = str(p)
+    if "CHANGELOG" in sp or "INCIDENTS" in sp:
+        continue
     try:
         t = p.read_text(encoding="utf-8", errors="replace")
     except Exception:
         continue
-    if OLD in t and "CHANGELOG" not in str(p) and "INCIDENTS" not in str(p):
-        left.append(str(p))
+    hits = [ln.strip() for ln in t.splitlines()
+            if OLD in ln and not ln.strip().startswith(("#", "//"))]
+    if hits:
+        left.append(f"{sp}: {hits[0][:80]}")
 if left:
-    print(f"⚠ 旧版本号残留: {left}")
+    print("⚠ 旧版本号功能性残留 (非注释行):")
+    for x in left:
+        print(f"  {x}")
     sys.exit(1)
-print(f"bump {OLD} → {NEW}: {n} 文件, 残留 0 ✅")
+print(f"bump {OLD} → {NEW}: {n} 文件, 功能性残留 0 ✅")
