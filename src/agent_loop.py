@@ -162,8 +162,11 @@ async def run_agent_loop(
                         elif isinstance(item, str):
                             _sum_txt += item
                             yield {"type": "token", "text": item}
-                except Exception:
-                    pass
+                except Exception as _sum_err:
+                    # round61 P4: 超时总结路径异常不再静默 — 留痕供排查
+                    import logging as _log
+                    _log.getLogger("agent_loop").warning(
+                        "timeout summary stream aborted: %s", _sum_err)
                 if _sum_txt.strip():
                     # 002zcode 审计修复: 总结须回写 assistant 消息 — 非流式 /api/chat
                     # 以 msgs[-1] 取回复, 此前只 yield token 不回写 → 总结被

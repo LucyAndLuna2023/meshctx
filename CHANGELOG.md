@@ -1,4 +1,4 @@
-## [Unreleased] — v3.133.0 安全加固 (002zcode 夜间审计, 2026-10-02)
+## [v3.133.1] - 2026-10-02 (安全加固 — 002zcode 夜间审计; efc82432)
 
 ### Security
 - **models/discover SSRF 解析级判定**: v3.133.0 的字符串正则私网检查可被 IPv6 字面量
@@ -13,7 +13,7 @@
   test_discover_blocks_ipv6_private_and_v4mapped / test_discover_loopback_carveout_preserved /
   test_setup_discover_list_escapes_html
 
-## [v3.133.2] - 2026-09-28 (desktop HOST 污染根修 + 版本 bump 工具化 — 002codex v3.132.3 FAIL 根因)
+## [v3.133.2] - 2026-10-07 (desktop HOST 污染根修 + 版本 bump 工具化 — 002codex v3.132.3 FAIL 根因)
 
 ### Fixed
 - 🔴 **desktop exe 自 v3.132.0 起 bind 失败无法启动** (002codex v3.132.3 FAIL P1-A):
@@ -37,7 +37,7 @@
 - **推理区被搜索气泡刷屏淹没**: web_search 工具气泡合并计数 (🔍 web_search × N), 推理思考区可见性恢复
 
 ### Note
-- v3.133.1 (b58ad929 线) 本修复不在其中 — Mac 用户请直接升本版
+- v3.133.1 (efc82432 安全加固线) 本修复不在其中 — Mac 用户请直接升本版
 
 ## [v3.132.2] - 2026-09-28 (安装器升级数据保护 — 用户实测修复)
 

@@ -22,6 +22,17 @@ INSTALLERS = {
     "docs/install.bat": "bat",          # 002meshctx round61 P2-2: docs 镜像入防 (三犯后补)
     "docs/install-edition.bat": "bat",  # 002meshctx round61 P2-1: 同上
 }
+# tar 系安装器 (解包覆盖, 需要数据白名单排除) — round61 P2-1 守门精化:
+# edition 系为 git 更新模式 (pull --ff-only, 无解包), 不适用排除标记, 另测 git 语义
+TAR_INSTALLERS = {
+    "install.sh": "sh",
+    "install-mac.sh": "sh",
+    "install.bat": "bat",
+    "docs/install.sh": "sh",
+    "docs/install-mac.sh": "sh",
+    "docs/install.bat": "bat",
+}
+EDITION_GIT = ("install-edition.sh", "install-edition.bat", "docs/install-edition.bat")
 EXCLUDE_MARK = ("config.yaml", "memories", "conversations")
 FORBIDDEN_SH = re.compile(r"rm\s+-rf\s+[\"']?\$\{?INSTALL_DIR", re.I)
 FORBIDDEN_BAT = re.compile(r"rmdir\s+/s\s+/q\s+\"?%INSTALL_DIR%", re.I)
@@ -41,11 +52,23 @@ def test_no_wipe_rebuild_in_any_installer():
 
 
 def test_exclude_whitelist_present():
-    """升级解压必须带数据白名单排除 (config/memories/conversations 等原地保留)."""
-    for name in INSTALLERS:
+    """tar 系升级解压必须带数据白名单排除 (config/memories/conversations 等原地保留).
+
+    round61 P2-1 精化: edition 系是 git 更新模式 (无 tar 解包), 排除标记不适用 —
+    其数据保护语义由 test_edition_git_mode_preserves_data 单独守门。
+    """
+    for name in TAR_INSTALLERS:
         t = _read(name)
         for mark in EXCLUDE_MARK:
             assert mark in t, f"{name} 缺数据保护排除标记: {mark}"
+
+
+def test_edition_git_mode_preserves_data():
+    """edition 系 (git 更新模式): 必须 pull --ff-only 原地升级, 不得全灭重建."""
+    for name in EDITION_GIT:
+        t = _read(name)
+        assert "pull --ff-only" in t, f"{name} 缺 git pull --ff-only (原地升级语义)"
+        assert "clone" in t, f"{name} 缺 clone (首装路径)"
 
 
 def test_edition_sh_no_wipe():
