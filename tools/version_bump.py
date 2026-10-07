@@ -81,6 +81,7 @@ else:
 # ── 阶段 2: 残留扫描 (内存文本优先, 不写盘) ───────────────
 scan_paths = (list(pathlib.Path("src").rglob("*.py"))
               + list(pathlib.Path("tools").glob("*.py"))
+              + list(pathlib.Path("tests").rglob("*.py"))
               + list(pathlib.Path(".").glob("*.py"))
               + list(pathlib.Path("templates").glob("*.html"))
               + list(pathlib.Path(".").glob("*.md")))
