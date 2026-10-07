@@ -1,3 +1,4 @@
+from pathlib import Path
 # -*- coding: utf-8 -*-
 """SMA Phase 1 级联路由守门 — 三级分级/工具下限/升级触发."""
 from src.cascade_router import classify_task, route, should_escalate
@@ -139,3 +140,14 @@ def test_language_notice_idempotent():
     once = msgs[0]["content"]
     append_language_notice(msgs)
     assert msgs[0]["content"] == once  # 不重复追加
+
+
+def test_confirm_panel_overflow_guard():
+    """用户实测: 授权UI溢出屏幕 — CSS 防御三件套静态断言 (多语言/多平台通杀)."""
+    h = Path(__file__).resolve().parent.parent / "templates" / "chat.html"
+    t = h.read_text(encoding="utf-8")
+    # 面板本体
+    assert "max-width: 100vw" in t and "max-height: 70vh" in t
+    assert "overflow-wrap: anywhere" in t
+    # 选项/标题/自定义输入同样受控
+    assert "confirm-options" in t and "confirm-custom" in t
