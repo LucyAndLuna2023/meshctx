@@ -15,7 +15,7 @@
 | I-3 | 09-21→25 | **审计链停摆 4 天**：004zcode 送审 v3.131.8/9/10（c1809e6c/4176d770/797f1b92）无回执，4 天后才重发追问（31b5ac5b）；期间 round45 后无任何 meshctx 裁定 | 审计流水线断流，发版等待 | 监控缺失 | ⚠️ 超时告警工具挂账（见 TODO） |
 | I-4 | 09-25 | **去重口径不明**（同 I-1 根因面）：收件方无法区分"已收过"与"被空壳占坑"，需全文关键词扫多路收件箱定位消息 | 排障成本高 | 协议缺陷 | ✅ v6.1 拒收留痕 rejected_malformed |
 | I-8 | 09-27→28 | **升级器全灭用户数据重现** (08-25 同型): install-mac/bat 升级 `rm -rf INSTALL_DIR` 全灭重建, 而 INSTALL_DIR=~/.meshctx 与数据目录同体 — 用户 Mac 升级后 config/key/记忆/会话全灭 (仅回填 3 文件)。08-25 首发的修复只改 install.sh 扩备份清单、未同步 mac/bat、未消灭 rm -rf | Mac 用户重配 key, 历史记忆/会话无法追回 (待查 Time Machine) | 修补式防御 + 三平台不同步 + 守门盲区 | ✅ v3.132.2 已修 |
-| I-7 | 09-27 | **误杀跨项目复现任务**: 004deepseek 见 004 load=162 将三个高 CPU python 进程误判"失控 pytest"并 kill -9, 实为 002quant 裁定链的 M9 canon 复现×2 (36+35 分钟) 与 v4_quality_opt (9 分钟) — 计算全毁需重跑 | 量化复现延误, 信任受损 | 跨项目资源无协调 + kill 前未核实归属 | ✅ 已整改 |
+| I-7 | 09-27 | **误杀跨项目复现任务**: 004deepseek 误判 kill -9 三个 quant 线任务 (M9 canon 复现×2 + v4_quality_opt) — 计算全毁。**结案 (用户裁定 2026-09-28)**: quant 线善后由 quant 线自行负责, meshctx 线永久退出 quant 通道往来 (见 EDITION_BOUNDARIES 不碰清单) | 量化复现延误 | 跨项目资源无协调 + kill 前未核实归属 | ✅ 已结案·边界划清 |
 | I-6 | 09-19→25 | **发送路由键错 + 无送达确认**: deepseek@004 给 004zcode 的 7 条 quant 协作件投到 `hub:inbox:004:zcode:quant` (zcode 项目实例键), 该键无人消费, 堆积 **6 天** 直到 004quant/004zcode 排障才发现; 同期广播循环还长期使用污染键 `hub:profile:004:zcode:meshctx` (四段) | 协作断流 6 天 | 操作违纪 × 监控缺失 | ✅ v6.1d 已修 |
 
 | I-5 | 08-16 | **listener 死亡无告警**：001geo pubsub=0（listener 已死），geo_pack 任务包投出后无人领取，人工才发现 | 任务积压 | 监控缺失 | ⚠️ 心跳看板+LLEN 告警挂账 |
