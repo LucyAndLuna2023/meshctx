@@ -237,10 +237,15 @@ async def lifespan(app: FastAPI):
 
     # 002meshctx round61 P2-C 补: SIGSEGV/SIGBUS 运行期保护 — 模块级注册现带主线程
     # 守卫 (非主线程 import 跳过), lifespan 在主线程执行 → 此处补注册语义不损失
-    if _IS_LINUX or _IS_MACOS:
+    # v3.132.3-hotfix: TestClient/portal 的 lifespan 跑在非主线程 — signal.signal
+    # 只能主线程注册, 非主线程静默跳过 (log 留痕), 不炸 startup
+    import threading as _th
+    if _th.current_thread() is _th.main_thread() and (_IS_LINUX or _IS_MACOS):
         signal.signal(signal.SIGSEGV, _memory_signal_handler)
         if hasattr(signal, 'SIGBUS'):
             signal.signal(signal.SIGBUS, _memory_signal_handler)
+    elif _IS_LINUX or _IS_MACOS:
+        logger.info("SIGSEGV/SIGBUS handler 跳过 (非主线程 lifespan, TestClient 场景)")
 
     # v2.33: 加载API Key — 从.env和provider_config.json
     _load_api_keys_on_startup()
