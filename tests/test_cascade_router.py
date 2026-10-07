@@ -60,7 +60,8 @@ def test_resolve_models_degrade_no_ollama():
 
 
 def test_usage_meter_and_saving():
-    from src.cascade_router import record_usage, usage_report
+    from src.cascade_router import record_usage, usage_report, usage_reset
+    usage_reset()  # 全局单例隔离 (测试顺序依赖根修)
     record_usage("L0", 100)
     record_usage("L0", 50)
     record_usage("L2", 200)
