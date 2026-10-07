@@ -34,9 +34,15 @@ echo ============================================
 mkdir "%INSTALL_DIR%\src" 2>nul
 
 echo [1/3] Downloading meshctx base...
-git clone --depth 1 --branch v%VERSION% https://github.com/LucyAndLuna2023/meshctx.git "%INSTALL_DIR%\src\meshctx" 2>nul
-if errorlevel 1 (
-  git clone --depth 1 https://github.com/LucyAndLuna2023/meshctx.git "%INSTALL_DIR%\src\meshctx" 2>nul
+rem v3.132.2 (002codex/002meshctx 对齐 sh 版): 已存在时 git pull 更新 (升级不失败不丢数据)
+if exist "%INSTALL_DIR%\src\meshctx\.git" (
+  echo   meshctx: already exists, updating...
+  git -C "%INSTALL_DIR%\src\meshctx" pull --ff-only 2>nul
+) else (
+  git clone --depth 1 --branch v%VERSION% https://github.com/LucyAndLuna2023/meshctx.git "%INSTALL_DIR%\src\meshctx" 2>nul
+  if errorlevel 1 (
+    git clone --depth 1 https://github.com/LucyAndLuna2023/meshctx.git "%INSTALL_DIR%\src\meshctx" 2>nul
+  )
 )
 
 if not "%EDITION%"=="personal" (
@@ -46,12 +52,25 @@ if not "%EDITION%"=="personal" (
     exit /b 1
   )
   echo [2/3] Downloading private repos...
+  rem v3.132.2: 已存在时 git pull 更新 (升级不失败; P3-2 对齐 sh 版)
   if "%EDITION%"=="team" (
-    git clone --depth 1 https://%MESHCTX_GIT_TOKEN%@github.com/LucyAndLuna2023/meshctx-team.git "%INSTALL_DIR%\src\meshctx-team" 2>nul
+    if exist "%INSTALL_DIR%\src\meshctx-team\.git" (
+      git -C "%INSTALL_DIR%\src\meshctx-team" pull --ff-only 2>nul
+    ) else (
+      git clone --depth 1 https://%MESHCTX_GIT_TOKEN%@github.com/LucyAndLuna2023/meshctx-team.git "%INSTALL_DIR%\src\meshctx-team" 2>nul
+    )
     git -C "%INSTALL_DIR%\src\meshctx-team" remote set-url origin https://github.com/LucyAndLuna2023/meshctx-team.git 2>nul
   ) else (
-    git clone --depth 1 https://%MESHCTX_GIT_TOKEN%@github.com/LucyAndLuna2023/meshctx-team.git "%INSTALL_DIR%\src\meshctx-team" 2>nul
-    git clone --depth 1 https://%MESHCTX_GIT_TOKEN%@github.com/LucyAndLuna2023/meshctx-enterprise.git "%INSTALL_DIR%\src\meshctx-enterprise" 2>nul
+    if exist "%INSTALL_DIR%\src\meshctx-team\.git" (
+      git -C "%INSTALL_DIR%\src\meshctx-team" pull --ff-only 2>nul
+    ) else (
+      git clone --depth 1 https://%MESHCTX_GIT_TOKEN%@github.com/LucyAndLuna2023/meshctx-team.git "%INSTALL_DIR%\src\meshctx-team" 2>nul
+    )
+    if exist "%INSTALL_DIR%\src\meshctx-enterprise\.git" (
+      git -C "%INSTALL_DIR%\src\meshctx-enterprise" pull --ff-only 2>nul
+    ) else (
+      git clone --depth 1 https://%MESHCTX_GIT_TOKEN%@github.com/LucyAndLuna2023/meshctx-enterprise.git "%INSTALL_DIR%\src\meshctx-enterprise" 2>nul
+    )
     git -C "%INSTALL_DIR%\src\meshctx-team" remote set-url origin https://github.com/LucyAndLuna2023/meshctx-team.git 2>nul
     git -C "%INSTALL_DIR%\src\meshctx-enterprise" remote set-url origin https://github.com/LucyAndLuna2023/meshctx-enterprise.git 2>nul
   )
