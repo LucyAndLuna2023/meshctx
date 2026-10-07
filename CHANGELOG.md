@@ -1,3 +1,18 @@
+## [v3.133.5] - 2026-10-08 (CSS 溢出防御收编主线 + 版本线唯一化 3.133.x)
+
+> 取代已作废的 v3.132.5 (tag≠资产二犯) 与误跳的 v7.0.x。版本线唯一化 3.133.x 正式落定
+> (002zcode/002meshctx round66 双方要求, 002codex 615f8ed2 同判)。
+
+### Added
+- confirm-panel CSS 溢出防御三件套 (授权UI溢出屏幕 — 用户实测多语言/多平台):
+  max-width:100vw / max-height:70vh+overflow-y / overflow-wrap:anywhere+word-break
+  选项/标题/自定义输入同步受控; 守门 test_confirm_panel_overflow_guard
+- SSE 转发修复: version-gate tag 分支可达 (ci.yml tags trigger)
+
+### Verification
+- 全量 4049P/0F/63S (002codex 独立复跑同数); CI 17 success/0 failure exact SHA
+- CSS panel 22/22 OK + RTL 正确 (002codex 审计确认)
+
 ## [v3.133.4] - 2026-10-07 (lifespan 信号守卫 + bump 工具原子化 + tag 对位修正)
 
 ### Fixed
