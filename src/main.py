@@ -2929,7 +2929,9 @@ async def discover_models(request: Request):
     if not host:
         raise HTTPException(400, "base_url 缺少有效主机名")
     if not private_ok:
-        _reason = _discover_private_reason(host)
+        # 004zcode P3 (round 台账, 002zcode 落地): getaddrinfo 同步阻塞调用,
+        # async 端点路径 DNS+坏解析器环境存在事件循环阻塞面 → to_thread 包裹
+        _reason = await asyncio.to_thread(_discover_private_reason, host)
         if _reason:
             raise HTTPException(400, f"内网地址已拦截 ({_reason}; MESHCTX_ALLOW_PRIVATE=1 可放开)")
 

@@ -67,7 +67,7 @@ for p in scan_paths:
     except Exception:
         continue
     hits = [ln.strip() for ln in t.splitlines()
-            if OLD in ln and not ln.strip().startswith(("#", "//"))]
+            if OLD in ln and not ln.strip().startswith(("#", "//", "<!--"))]
     if hits:
         left.append(f"{sp}: {hits[0][:80]}")
 if left:
