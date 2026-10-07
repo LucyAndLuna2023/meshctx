@@ -6,7 +6,7 @@ title meshctx Installer
 setlocal enabledelayedexpansion
 
 set "INSTALL_DIR=%USERPROFILE%\.meshctx"
-set "VERSION=3.133.3"
+set "VERSION=3.133.4"
 set "SRC_URL=https://github.com/LucyAndLuna2023/meshctx/archive/refs/tags/v%VERSION%.tar.gz"
 set "PORTABLE_URL=https://github.com/LucyAndLuna2023/meshctx/releases/download/v%VERSION%/meshctx-windows-cli.zip"
 
@@ -287,7 +287,7 @@ if defined PORTABLE_OK (
 REM ── [2/4] 安装 ───────────────────────────────────────
 if defined PORTABLE_OK (
     echo [2/4] %_T_EXTRACT_PORTABLE%
-    rem v3.133.3: 就地覆盖升级 (数据保护: 配置/记忆/会话不删除; 备份已在 [1/4])
+    rem v3.133.4: 就地覆盖升级 (数据保护: 配置/记忆/会话不删除; 备份已在 [1/4])
     if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
     powershell -Command "tar -xf '%PORTABLE_TARBALL%' -C '%INSTALL_DIR%' --exclude=config.yaml --exclude=.env --exclude=provider_config.json --exclude=data --exclude=memories --exclude=conversations --exclude=agents --exclude=profiles --exclude=trajectories --exclude=web3_journal --exclude=knowledge --exclude=goals --exclude=genomes --exclude=heartbeats --exclude=backups --exclude=diff_backups --exclude=crew_templates --exclude=archives --exclude=.history_ --exclude=.active_profile --exclude=hub_env.json --exclude=*.jsonl" 2>nul || (
         echo   %_T_EXTRACT_FAIL%
@@ -324,7 +324,7 @@ curl -fsSL --connect-timeout 60 -o "%TMPDIR%\meshctx-src.tar.gz" "%SRC_URL%" 2>n
 echo   OK
 
 echo [3/4] %_T_STEP_EXTRACT%
-rem v3.133.3: 就地覆盖升级 (数据保护: 配置/记忆/会话不删除; 备份已在 [2/4])
+rem v3.133.4: 就地覆盖升级 (数据保护: 配置/记忆/会话不删除; 备份已在 [2/4])
 if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
 powershell -Command "tar -xzf '%TMPDIR%\meshctx-src.tar.gz' -C '%INSTALL_DIR%' --strip-components=1 --exclude=config.yaml --exclude=.env --exclude=provider_config.json --exclude=data --exclude=memories --exclude=conversations --exclude=agents --exclude=profiles --exclude=trajectories --exclude=web3_journal --exclude=knowledge --exclude=goals --exclude=genomes --exclude=heartbeats --exclude=backups --exclude=diff_backups --exclude=crew_templates --exclude=archives --exclude=.history_ --exclude=.active_profile --exclude=hub_env.json --exclude=*.jsonl" 2>nul || (
     echo   %_T_EXTRACT_FAIL%
@@ -380,7 +380,7 @@ if defined MESHCTX_CORE_TOKEN (
 echo   OK
 
 :done
-REM ── v3.133.3 免登录 + 编码 + 启动器保证 ─────────────
+REM ── v3.133.4 免登录 + 编码 + 启动器保证 ─────────────
 REM 1) 清除 .env 密码残留(仅公网部署手动设置 MESHCTX_PASSWORD, 装完默认免登录)
 powershell -Command "$f='%INSTALL_DIR%\.env'; if (Test-Path $f) { (Get-Content $f) | Where-Object {$_ -notmatch '^MESHCTX_PASSWORD='} | Set-Content $f }" 2>nul
 REM 2) 源码模式缺 meshctx.cmd 时补齐启动器(portable 模式已生成, 此处幂等覆盖源码版)

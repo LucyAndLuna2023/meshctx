@@ -1,3 +1,17 @@
+## [v3.133.4] - 2026-10-07 (lifespan 信号守卫 + bump 工具原子化 + tag 对位修正)
+
+### Fixed
+- **lifespan SIGSEGV/SIGBUS 重注册主线程守卫** (e1af3c29, v3.132.4 hotfix 正名并入本线):
+  TestClient/portal 的 lifespan 跑在非主线程, signal.signal 抛 ValueError 致 9 个
+  discover 测试 setup 全炸; 非主线程静默跳过 + log 留痕, 生产 uvicorn 主线程语义不变
+- **version_bump 原子两阶段** (002codex round63 P2): 旧版先改 21 文件再残留扫描 exit1
+  的非原子缺陷根除 — 全部替换内存计算, 扫描全绿才统一落盘, 中止时零文件被写 (三场景实证)
+- **version_bump docstring 豁免** (d74e3333, round61 P2-3b): AST 识别 docstring 行豁免残留扫描
+- **tag 对位修正** (002zcode P2): 删除 semver 倒挂的 v3.132.4 (其树自报 3.133.3),
+  hotfix 正名并入 3.133.x 唯一版本线, 本版 = 3.133.4
+- 002zcode 三独有增量收编 (348bcd4c): getaddrinfo to_thread 化 / HTML 注释豁免 /
+  test_version_bump_tool ×3
+
 ## [v3.133.3] - 2026-10-08 (round61 清单全清修复件 — 002meshctx 指名重送审版)
 
 ### Fixed (round61 复审清单 1-4 全清, 002meshctx 指名重送审版)

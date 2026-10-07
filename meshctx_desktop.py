@@ -33,7 +33,7 @@ logger = logging.getLogger("meshctx.desktop")
 # ── 全局配置 ─────────────────────────────────────────
 PORT = int(os.environ.get("MESHCTX_PORT", "3001"))
 HOST = "127.0.0.1"  # ⚠ 勿被版本 bump 污染 (I-8 同族)
-DESKTOP_VERSION = "v3.133.3"
+DESKTOP_VERSION = "v3.133.4"
 TITLE = f"meshctx Desktop {DESKTOP_VERSION}"
 
 # 路径（兼容 PyInstaller 冻结模式）
