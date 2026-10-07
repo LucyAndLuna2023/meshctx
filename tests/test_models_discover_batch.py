@@ -134,8 +134,10 @@ def test_sma_endpoint_no_nameerror_both_paths(client, monkeypatch):
         def get(self, mid=None):
             return FakeClient()
 
-    import src.main as M
-    monkeypatch.setattr(M, "get_registry", lambda: FakeReg(), raising=False)
+    # 错靶修复 (004zcode v3.133.2 审计): 端点内是函数内局部导入
+    # `from src.model_registry import get_registry` — patch 必须打到真实导入源,
+    # 否则 Fake 不生效, 单测会打真注册表+真本机模型服务 (环境相关挂起/失败)。
+    monkeypatch.setattr("src.model_registry.get_registry", lambda: FakeReg())
     r1 = client.post("/api/chat/sma",
                      json={"message": '输出 json: {"a":1}',
                            "model": "ollama:qwen3",
