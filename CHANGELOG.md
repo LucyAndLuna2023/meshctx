@@ -24,7 +24,7 @@
 - 002codex e39511de P1: src/main 模块级 signal 注册加主线程守卫 (非主线程 import 不炸)
 - 002zcode 348bcd4c: 三独有增量 (getaddrinfo to_thread/HTML 注释豁免/test_version_bump_tool ×3)
 - 004zcode 208f48b8: test_sma_endpoint monkeypatch 错靶修复
-- chat.html 审批面板 approval 转义 (004zcode efc82432 已收编)
+- chat.html 审批面板 approval 转义 (approval 转义实收编点=0d75fddd/v3.133.3; efc82432 未含此修复, 002meshctx round65 勘误)
 
 ### Verification
 - 定向: cascade 16P + sma_phase2 14P + models_discover_batch 5P + trajectories 5P + installer_preserve 5P + typing + hub_misrouted/receipt/board
