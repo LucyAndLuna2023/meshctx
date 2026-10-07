@@ -24,6 +24,7 @@ except ImportError:
 import signal
 import shlex
 import subprocess
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -672,7 +673,10 @@ def _memory_signal_handler(signum, frame):
 # 审计修复 (2026-08-15): _setup_memory_limit() 原在模块顶层调用, import 即设 RLIMIT_AS=2GB,
 # 导致 Python 3.14 下 import src.main 触发 MemoryError (pytest/uvicorn 导入均受污染)。
 # 现移至 lifespan startup — 服务真正启动时才设置内存限制, 功能保留。
-if _IS_LINUX or _IS_MACOS:
+# 002codex e39511de P1 修复: 非主线程 import src.main 时 signal 注册抛 ValueError
+# (Python 限制: handler 只能主线程注册) — 加主线程守卫; 服务运行期保护由 lifespan
+# startup 再注册 (主线程保证), 语义不损失。
+if (_IS_LINUX or _IS_MACOS) and threading.current_thread() is threading.main_thread():
     signal.signal(signal.SIGSEGV, _memory_signal_handler)
     if hasattr(signal, 'SIGBUS'):
         signal.signal(signal.SIGBUS, _memory_signal_handler)
