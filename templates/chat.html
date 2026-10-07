@@ -2977,8 +2977,9 @@ async function send() {
             pendingApproval = parsed.approval.request_id;
             const titleEl = document.querySelector('#confirmPanel .confirm-title');
             if (titleEl) {
-              const reason = parsed.approval.reason || '';
-              titleEl.innerHTML = `🔐 <strong>${parsed.approval.name}</strong> — ${reason}`;
+              // 002zcode 审计修复 (v3.133.2): approval name/reason 未经转义注入 innerHTML —
+              // reason 含工具参数(模型可间接影响) → XSS; 复用既有 escHtml
+              titleEl.innerHTML = `🔐 <strong>${escHtml(parsed.approval.name)}</strong> — ${escHtml(parsed.approval.reason || '')}`;
             }
             const wrap = document.getElementById('approvalCustomWrap');
             if (wrap) wrap.style.display = 'none';
