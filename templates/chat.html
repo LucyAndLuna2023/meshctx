@@ -273,14 +273,13 @@ body {
   border-top: 2px solid var(--accent);
   border-radius: 12px 12px 0 0;
   animation: slideUp .25s ease;
-  /* v3.132.5 防御三件套 → v3.132.6 强化 (用户 Mac 复测仍溢出):
-   根因: .confirm-custom 的 flex input 无 min-width:0 → 长文本不收缩溢出;
-        .confirm-option 三列 flex 无 wrap → 窄窗横向溢出;
-        面板无 left/right 锚定 → 父容器宽于视口时跟随溢出 */
-  max-width: 100vw; max-width: 100dvw; max-height: 70vh; overflow-y: auto; overflow-x: hidden;
+  /* v3.132.7 (用户 Mac 三测仍溢出 — 根因定案):
+   .confirm-panel 是 .messages(flex column) 的流内子元素, 宽度受父容器约束;
+   前两版误设 max-width:100vw/100dvw = 以视口为目标 → 面板天然比聊天框宽 → 溢出。
+   正确: width:100% (贴合 .messages 内容宽) + 全子元素 min-width:0 防撑破 */
+  width: 100%; max-width: 100%; max-height: 70vh; overflow-y: auto; overflow-x: hidden;
   overflow-wrap: anywhere; word-break: break-word; word-break: break-all;
   box-sizing: border-box;
-  left: 0; right: 0; margin: 0 auto;
   min-width: 0;
 }
 .confirm-panel * { max-width: 100%; box-sizing: border-box; }
@@ -292,6 +291,7 @@ body {
   min-width: 0; padding: 8px 12px; cursor: pointer;
   border-radius: 8px; background: var(--bg);
 }
+.confirm-panel .confirm-option .co-icon { flex-shrink: 0; }
 .confirm-panel .confirm-custom {
   flex-wrap: wrap; min-width: 0;
 }
