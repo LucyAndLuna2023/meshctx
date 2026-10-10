@@ -143,11 +143,19 @@ def test_language_notice_idempotent():
 
 
 def test_confirm_panel_overflow_guard():
-    """用户实测: 授权UI溢出屏幕 — CSS 防御三件套静态断言 (多语言/多平台通杀)."""
+    """用户实测: 授权UI溢出屏幕 — 静态断言 (v3.132.7 根修语义, 002zcode 对齐).
+
+    v3.132.7: 面板 width:100% 受父容器约束 (100vw/100dvw 系视口目标, 已废),
+    全子元素 max-width:100% + min-width:0 — 断言随根修更新, 旧 100vw 断言删除。
+    """
     h = Path(__file__).resolve().parent.parent / "templates" / "chat.html"
     t = h.read_text(encoding="utf-8")
-    # 面板本体
-    assert "max-width: 100vw" in t and "max-height: 70vh" in t
+    # 面板本体: 父容器约束语义
+    assert "width: 100%; max-width: 100%; max-height: 70vh" in t
     assert "overflow-wrap: anywhere" in t
+    assert "min-width: 0;" in t
+    # 全子元素兜底 + 选项区 flex-wrap + 图标不收缩
+    assert ".confirm-panel * { max-width: 100%" in t
+    assert "flex-wrap: wrap" in t and "flex-shrink: 0" in t
     # 选项/标题/自定义输入同样受控
     assert "confirm-options" in t and "confirm-custom" in t
