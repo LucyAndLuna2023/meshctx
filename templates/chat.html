@@ -273,11 +273,32 @@ body {
   border-top: 2px solid var(--accent);
   border-radius: 12px 12px 0 0;
   animation: slideUp .25s ease;
-  /* v3.132.5 (用户实测: 授权UI溢出屏幕, 多语言/多平台): 防御三件套 */
-  max-width: 100vw; max-height: 70vh; overflow-y: auto;
-  overflow-wrap: anywhere; word-break: break-word;
+  /* v3.132.5 防御三件套 → v3.132.6 强化 (用户 Mac 复测仍溢出):
+   根因: .confirm-custom 的 flex input 无 min-width:0 → 长文本不收缩溢出;
+        .confirm-option 三列 flex 无 wrap → 窄窗横向溢出;
+        面板无 left/right 锚定 → 父容器宽于视口时跟随溢出 */
+  max-width: 100vw; max-width: 100dvw; max-height: 70vh; overflow-y: auto; overflow-x: hidden;
+  overflow-wrap: anywhere; word-break: break-word; word-break: break-all;
   box-sizing: border-box;
+  left: 0; right: 0; margin: 0 auto;
+  min-width: 0;
 }
+.confirm-panel * { max-width: 100%; box-sizing: border-box; }
+.confirm-panel .confirm-options {
+  display: flex; flex-direction: column; gap: 6px; min-width: 0;
+}
+.confirm-panel .confirm-options .confirm-option {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  min-width: 0; padding: 8px 12px; cursor: pointer;
+  border-radius: 8px; background: var(--bg);
+}
+.confirm-panel .confirm-custom {
+  flex-wrap: wrap; min-width: 0;
+}
+.confirm-panel .confirm-custom input {
+  min-width: 0; flex: 1 1 120px;
+}
+[dir="rtl"] .confirm-panel { text-align: right; }
 .confirm-panel.show { display: block; }
 /* 审批选项/标题在同场景下同样防溢出 (11语言长词/RTL/窄窗) */
 .confirm-panel .confirm-title,
