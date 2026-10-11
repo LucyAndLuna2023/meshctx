@@ -90,6 +90,9 @@ for p in scan_paths:
     sp = str(p)
     if "CHANGELOG" in sp or "INCIDENTS" in sp:
         continue
+    # v3.134.2: bump 守门测试自身的探针参数 (版本号是测试输入非资产) — 豁免
+    if "test_version_bump_tool" in sp:
+        continue
     if sp in pending:
         t = pending[sp]                    # 扫描"将要写入"的新文本
     else:
