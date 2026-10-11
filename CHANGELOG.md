@@ -1,3 +1,16 @@
+## [v3.133.6] - 2026-10-10 (安装器版本源对位 + CSS 根修收编 — 002zcode PASS / 002meshctx 预核通过)
+
+> Mac 装到旧版根因修复: install-mac.sh VERSION 硬编码未随 tag 更新, 且曾手工改安装器跳过版本源
+> bump 被 G10 守门正确拦截 — 本版用 version_bump 工具原子升级 21 文件, 三向对位
+> (pyproject = install*.sh VERSION = DESKTOP_VERSION = 3.133.6)。
+> 含 confirm-panel CSS 根修 (width:100% 父容器约束, 三测迭代定案) + CLI 回环默认安全。
+> CI 全绿: CI/i18n Guard/Build Linux/Windows/macOS 全 success; release 24 assets。
+
+## [历史版本线声明 — v3.132.x tag 线 = 历史冻结勿部署]
+
+> v3.132.0~v3.132.5 为版本线混乱期历史锚点 (v3.132.4/v3.132.5 存在 tag 名≠资产版本错位)。
+> **生产部署一律使用 v3.133.x 线**。推荐 v3.133.6。
+
 ## [v3.133.5] - 2026-10-08 (CSS 溢出防御收编主线 + 版本线唯一化 3.133.x)
 
 > 取代已作废的 v3.132.5 (tag≠资产二犯) 与误跳的 v7.0.x。版本线唯一化 3.133.x 正式落定
