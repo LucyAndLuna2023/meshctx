@@ -6,6 +6,55 @@ import logging
 import time
 from typing import Dict, List, Optional, Any
 
+
+def _extract_api_error(e) -> str:
+    """v3.134.0: 从 HTTP 异常中提取 API 返回的具体错误信息.
+
+    智谱 429 返回 {"error":{"code":"1113","message":"余额不足"}} — 原先只显示
+    'HTTP Error 429' 用户无法判断是速率限制还是余额耗尽 (用户实测报障)."""
+    try:
+        body = getattr(e, 'response', None)
+        if body is not None:
+            import json as _json
+            data = _json.loads(body.read().decode('utf-8', errors='replace'))
+            err = data.get('error', {})
+            code = err.get('code', '')
+            msg = err.get('message', '') or data.get('message', '') or str(data)[:200]
+            if code:
+                return f"[{code}] {msg}"
+            return msg
+    except Exception:
+        pass
+    # openai SDK 的 APIStatusError
+    try:
+        body = getattr(e, 'body', None)
+        if body:
+            if isinstance(body, dict):
+                err = body.get('error', body)
+                code = err.get('code', '')
+                msg = err.get('message', '') or str(err)[:200]
+                if code:
+                    return f"[{code}] {msg}"
+                return msg
+    except Exception:
+        pass
+    # openai SDK v1.x: 异常 message 内嵌 JSON body
+    try:
+        import json as _json2, re as _re
+        s = str(e)
+        m2 = _re.search(r"\{.*\}", s)
+        if m2:
+            data = _json2.loads(m2.group(0))
+            err = data.get('error', data)
+            code = err.get('code', '')
+            msg = err.get('message', '') or str(err)[:200]
+            if code:
+                return f"[{code}] {msg}"
+            return msg
+    except Exception:
+        pass
+    return ""
+
 logger = logging.getLogger("meshctx.model_adapter")
 from dataclasses import dataclass
 import os
@@ -176,8 +225,10 @@ class ModelAdapter:
                 cache_miss_tokens=miss_tokens,
             )
         except Exception as e:
+            # v3.134.0: 透传 API 具体错误 (智谱 1113 余额不足 / OpenAI 429 速率等)
+            detail = _extract_api_error(e)
             return ModelResponse(
-                content=f"[模型调用失败: {e}]",
+                content=f"[模型调用失败: {detail or e}]",
                 model=self._model,
             )
 
@@ -239,7 +290,8 @@ class ModelAdapter:
                             if tc.function.arguments:
                                 tool_calls_acc[idx]["args_str"] += tc.function.arguments
         except Exception as e:
-            yield f"\n[流式错误: {e}]"
+            detail = _extract_api_error(e)
+            yield f"\n[流式错误: {detail or e}]"
 
         # Parse accumulated tool calls
         if tool_calls_acc:
