@@ -845,10 +845,12 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
             if collect_output:
                 _final_answer += ev["text"]
         elif ev["type"] == "round":
+            # v3.133.8 (用户实测: "第N轮搜索"不专业): 改为思考指示
             _total_txt = f"/{ev['total']}" if ev.get("total") else ""
-            print(f"\n🔍 第{ev['round'] + 1}{_total_txt}轮搜索...", flush=True)
+            print(f"\n⏳ Thinking{_total_txt}...", flush=True)
         elif ev["type"] == "reasoning":
-            pass  # 推理流不入 CLI 正文 (UI 单独渲染思考区), 避免刷屏
+            # v3.133.8: 推理流实时显示 (灰色前缀, 与正文区分) — 用户要求看推理过程
+            print(f"\033[90m{ev['text']}\033[0m", end="", flush=True)
         elif ev["type"] == "deliver":
             print("\n📝 **Deliver** — 基于已获取的真实数据生成最终报告...\n", flush=True)
         elif ev["type"] == "tool_start":

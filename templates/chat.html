@@ -3087,13 +3087,13 @@ async function send() {
               const lastTxt = lastTool ? lastTool.textContent : '';
               const mm = lastTxt.match(/^(.*?)(\d+)(\s*x.*)?$/);
               if (lastTool && mm && mm[1].indexOf('web_search') !== -1) {
-                lastTool.textContent = t('chat_tool_call') + ' web_search × ' + (parseInt(mm[2],10)+1);
+                lastTool.textContent = '🔍 Searching × ' + (parseInt(mm[2],10)+1);
                 msgContainer.scrollTop = msgContainer.scrollHeight;
                 return;
               }
               const sDiv = document.createElement('div');
               sDiv.className = 'msg ai tool-msg';
-              sDiv.innerHTML = `<div class="avatar">🔍</div><div class="bubble tool-bubble search-bubble">${t('chat_tool_call')} <strong>web_search</strong> × 1</div>`;
+              sDiv.innerHTML = `<div class="avatar">🔍</div><div class="bubble tool-bubble search-bubble">🔍 <strong>Searching</strong> × 1</div>`;
               msgContainer.appendChild(sDiv);
               msgContainer.scrollTop = msgContainer.scrollHeight;
               return;
