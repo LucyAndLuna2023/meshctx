@@ -140,3 +140,17 @@ def test_language_notice_idempotent():
     once = msgs[0]["content"]
     append_language_notice(msgs)
     assert msgs[0]["content"] == once  # 不重复追加
+
+
+def test_clean_surrogates():
+    """用户实测: glm-5.3-flash 流式回复含 \\ud83d → SSE encode 报 surrogates not allowed."""
+    import src.main as M
+    # surrogate 半字符 (emoji 拆分)
+    dirty = "hello \ud83d\ude00 world \ud83d"
+    clean = M._clean_surrogates(dirty)
+    # 清理后不含 surrogate, 且正常 emoji (完整对) 被保留
+    assert "\\ud83d" not in repr(clean) or "\\ud83d" not in clean
+    assert "hello" in clean and "world" in clean
+    # 完整 emoji 对不受影响
+    ok = M._clean_surrogates("🎉 正常")
+    assert "正常" in ok

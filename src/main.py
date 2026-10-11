@@ -4412,6 +4412,12 @@ async def api_chat(request: Request):
         status = 503 if any(kw in err_msg.lower() for kw in ('401', '403', 'unauthorized', 'invalid api key', 'invalid key', 'authentication')) else 500
         return JSONResponse({"error": f"模型调用失败: {err_msg}", "content": ""}, status_code=status)
 
+def _clean_surrogates(text: str) -> str:
+    """清理 UTF-16 surrogate 半字符 (emoji 拆分/流式截断) — 否则 SSE encode 到 UTF-8 报
+    'surrogates not allowed' (用户实测: glm-5.3-flash 流式回复含 \ud83d)"""
+    return text.encode("utf-8", errors="ignore").decode("utf-8", errors="ignore")
+
+
 @app.post("/api/chat/stream")
 async def api_chat_stream(request: Request):
     """流式Chat API — SSE逐token推送 + web_search 工具
@@ -4657,10 +4663,10 @@ async def api_chat_stream(request: Request):
                     yield "data: [DONE]\n\n"
                     return
                 if ev["type"] == "token":
-                    yield f"data: {_json.dumps({'token': ev['text']})}\n\n"
+                    yield f"data: {_json.dumps({'token': _clean_surrogates(ev['text'])})}\n\n"
                 elif ev["type"] == "reasoning":
                     # 推理流独立通道 (reasoning_content), 前端单独渲染思考区
-                    yield f"data: {_json.dumps({'reasoning': ev['text']})}\n\n"
+                    yield f"data: {_json.dumps({'reasoning': _clean_surrogates(ev['text'])})}\n\n"
                 elif ev["type"] == "round":
                     # v3.133.8 (用户实测: 连"你好"也显示"第一轮搜索" — 不专业):
                     # round 事件不再作为正文 token 发送 — 推理流已有独立 reasoning 通道,
@@ -4687,7 +4693,7 @@ async def api_chat_stream(request: Request):
                 elif ev["type"] == "final":
                     yield f"data: {_json.dumps({'content': ev['text']})}\n\n"
                 elif ev["type"] == "timed_out":
-                    yield f"data: {_json.dumps({'token': ev['text']})}\n\n"
+                    yield f"data: {_json.dumps({'token': _clean_surrogates(ev['text'])})}\n\n"
                 elif ev["type"] == "error":
                     _se_had_error = True   # v3.131.1: 自进化经验标记
                     yield f"data: {_json.dumps({'error': ev['text']})}\n\n"
