@@ -29,6 +29,15 @@ _AUTH_SECRET=os.environ.get("MESHCTX_SECRET", secrets.token_hex(32))
 # 所有 /api/* 一律 401 且无法登录 → UI 保存 token/聊天等全部不可用。
 _AUTH_DISABLED = os.environ.get("MESHCTX_AUTH_DISABLED", "").lower() in ("1", "true", "yes")
 _AUTH_ENABLED = bool(_AUTH_PASSWORD) and not _AUTH_DISABLED
+# codex P2 等效防线: 显式密码在位时 AUTH_DISABLED 不生效 (防 0.0.0.0+关认证裸奔;
+# 真要关认证须先移除密码 — 单一开关不可能把"有密码的部署"变成裸奔)
+if _AUTH_PASSWORD and _AUTH_DISABLED:
+    import logging as _log
+    _log.getLogger("auth").warning(
+        "MESHCTX_AUTH_DISABLED 被忽略: MESHCTX_PASSWORD 已显式设置 "
+        "(codex P2 防线 — 显式密码部署不可被降级为无认证)")
+    _AUTH_DISABLED = False
+    _AUTH_ENABLED = True
 if not _AUTH_PASSWORD:
     logger.warning("⚠️ 未设置 MESHCTX_PASSWORD，认证已禁用（本地安装 UI 正常可用；公网部署请设置 MESHCTX_PASSWORD）")
     logger.warning("⚠️⚠️ 认证禁用模式: 所有 /api/* 无认证（仅本地回环可信）。公网部署必须设置 MESHCTX_PASSWORD，否则 API 完全裸奔 (002codex 建议)")

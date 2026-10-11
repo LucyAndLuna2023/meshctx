@@ -1860,6 +1860,12 @@ def _resolve_bind_host():
             sys.exit("🔴 拒绝绑定非回环地址 " + host +
                      ": 未设置 MESHCTX_PASSWORD (局域网将裸奔)。"
                      "设置 MESHCTX_PASSWORD 后重试, 或取消 MESHCTX_HOST 回到本机模式。")
+        # codex P2 (v3.134.0 前置): AUTH_DISABLED=1 可覆盖显式密码 →
+        # 0.0.0.0 + 认证关闭 = LAN 裸 200。非回环必须认证真实生效, fail-closed。
+        if os.environ.get("MESHCTX_AUTH_DISABLED", "").lower() in ("1", "true", "yes"):
+            sys.exit("🔴 拒绝绑定非回环地址 " + host +
+                     ": MESHCTX_AUTH_DISABLED=1 已显式关闭认证 (局域网将裸奔)。"
+                     "远程部署必须开启认证: 移除 MESHCTX_AUTH_DISABLED 后重试。")
     return host
 
 

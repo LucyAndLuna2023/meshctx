@@ -36,9 +36,17 @@ def test_auth_enabled_with_password(monkeypatch):
     assert _auth_enabled_with(monkeypatch, "secret", None) is True
 
 
-def test_auth_disabled_flag_overrides_password(monkeypatch):
-    """MESHCTX_AUTH_DISABLED=1 显式关闭优先于密码"""
-    assert _auth_enabled_with(monkeypatch, "secret", "1") is False
+def test_auth_disabled_cannot_downgrade_passworded_deploy(monkeypatch):
+    """codex P2 (v3.134.0): 显式密码在位 → AUTH_DISABLED 无效 (不可降级为无认证).
+
+    旧语义 (AUTH_DISABLED 覆盖密码) 系安全缺陷: 0.0.0.0 绑定 + 关认证 = LAN 裸奔;
+    真要关认证须先移除 MESHCTX_PASSWORD (见下一用例)。"""
+    assert _auth_enabled_with(monkeypatch, "secret", "1") is True
+
+
+def test_auth_disabled_still_works_without_password(monkeypatch):
+    """无密码 + AUTH_DISABLED=1 → 认证禁用 (本地显式覆盖路径保留)."""
+    assert _auth_enabled_with(monkeypatch, None, "1") is False
 
 
 

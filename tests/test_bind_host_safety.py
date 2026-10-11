@@ -45,3 +45,42 @@ def test_desktop_registers_memory_signals_on_main_thread():
 def test_main_banner_matches_loopback():
     t = _read("src/main.py")
     assert 'http://0.0.0.0:{port}' not in t, "main.py banner 仍宣 0.0.0.0"
+
+
+# ── codex P2 (v3.134.0 前置): 非回环 + 认证关闭 fail-closed ──
+
+def test_bind_gate_rejects_auth_disabled_on_remote():
+    """MESHCTX_HOST=0.0.0.0 + AUTH_DISABLED=1 (即使有密码) → 拒启."""
+    import os, sys
+    import importlib
+    sys.path.insert(0, str(ROOT))
+    from src.cli import _resolve_bind_host
+    os.environ["MESHCTX_HOST"] = "0.0.0.0"
+    os.environ["MESHCTX_PASSWORD"] = "x"
+    os.environ["MESHCTX_AUTH_DISABLED"] = "1"
+    try:
+        _resolve_bind_host()
+        raise AssertionError("AUTH_DISABLED + 远端应拒启")
+    except SystemExit as e:
+        assert "MESHCTX_AUTH_DISABLED" in str(e)
+    finally:
+        os.environ.pop("MESHCTX_AUTH_DISABLED", None)
+        os.environ.pop("MESHCTX_HOST", None)
+        os.environ.pop("MESHCTX_PASSWORD", None)
+
+
+def test_auth_disabled_cannot_override_explicit_password():
+    """auth_v2: 显式密码在位时 AUTH_DISABLED 无效 (_AUTH_ENABLED 保持 True)."""
+    import os, sys
+    sys.path.insert(0, str(ROOT))
+    os.environ["MESHCTX_PASSWORD"] = "secret"
+    os.environ["MESHCTX_AUTH_DISABLED"] = "1"
+    try:
+        import importlib
+        import src.core.auth_v2 as av
+        importlib.reload(av)
+        assert av._AUTH_ENABLED is True, "显式密码部署不得被 AUTH_DISABLED 降级为无认证"
+    finally:
+        os.environ.pop("MESHCTX_PASSWORD", None)
+        os.environ.pop("MESHCTX_AUTH_DISABLED", None)
+        importlib.reload(av)  # 还原
