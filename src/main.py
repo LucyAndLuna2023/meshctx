@@ -4662,12 +4662,13 @@ async def api_chat_stream(request: Request):
                     # 推理流独立通道 (reasoning_content), 前端单独渲染思考区
                     yield f"data: {_json.dumps({'reasoning': ev['text']})}\n\n"
                 elif ev["type"] == "round":
-                    _total_txt = f"/{ev['total']}" if ev.get('total') else ""
-                    _round_txt = f"\n\n🔍 第{ev['round'] + 1}{_total_txt}轮搜索...\n"
-                    yield f"data: {_json.dumps({'token': _round_txt})}\n\n"
+                    # v3.133.8 (用户实测: 连"你好"也显示"第一轮搜索" — 不专业):
+                    # round 事件不再作为正文 token 发送 — 推理流已有独立 reasoning 通道,
+                    # 前端已有思考区; 工具调用已有 tool_start 气泡 — round 纯噪声, 静默跳过
+                    pass
                 elif ev["type"] == "deliver":
-                    _deliver_txt = "\n\n📝 **Deliver** — 基于已获取的真实数据生成最终报告...\n\n"
-                    yield f"data: {_json.dumps({'token': _deliver_txt})}\n\n"
+                    # v3.133.8: deliver 提示也不再注入正文 (模型自然过渡到最终回答)
+                    pass
                 elif ev["type"] == "approval":
                     # 删除/改动类工具审批请求 → 前端弹 允许/拒绝/自定义 面板
                     _approval_payload = _json.dumps({
