@@ -146,7 +146,7 @@ def test_clean_surrogates():
     """用户实测: glm-5.3-flash 流式回复含 \\ud83d → SSE encode 报 surrogates not allowed."""
     import src.main as M
     # surrogate 半字符 (emoji 拆分)
-    dirty = "hello \ud83d\ude00 world \ud83d"
+    dirty = "hello " + chr(0xD83D) + chr(0xDE00) + " world " + chr(0xD83D)
     clean = M._clean_surrogates(dirty)
     # 清理后不含 surrogate, 且正常 emoji (完整对) 被保留
     assert "\\ud83d" not in repr(clean) or "\\ud83d" not in clean

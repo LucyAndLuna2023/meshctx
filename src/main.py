@@ -4413,8 +4413,8 @@ async def api_chat(request: Request):
         return JSONResponse({"error": f"模型调用失败: {err_msg}", "content": ""}, status_code=status)
 
 def _clean_surrogates(text: str) -> str:
-    """清理 UTF-16 surrogate 半字符 (emoji 拆分/流式截断) — 否则 SSE encode 到 UTF-8 报
-    'surrogates not allowed' (用户实测: glm-5.3-flash 流式回复含 \ud83d)"""
+    r"""清理 UTF-16 surrogate 半字符 (emoji 拆分/流式截断) — 否则 SSE encode 到 UTF-8 报
+    'surrogates not allowed' (emoji 高位代理对被拆分)"""
     return text.encode("utf-8", errors="ignore").decode("utf-8", errors="ignore")
 
 
