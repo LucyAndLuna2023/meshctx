@@ -1070,7 +1070,7 @@ if [ -d "${INSTALL_DIR}" ]; then
     [ -z "${CONFIG_BACKUP}" ] || echo -e "  ${GREEN}✓${NC} $(T config_backed_up)"
 fi
 
-# v3.133.5 (用户事故: 升级后配置/key 丢失 — INSTALL_DIR=~/.meshctx 即数据目录, rm -rf 全灭):
+# v3.133.6 (用户事故: 升级后配置/key 丢失 — INSTALL_DIR=~/.meshctx 即数据目录, rm -rf 全灭):
 # 就地覆盖升级 — tar 解压时排除全部数据/配置 (白名单保护), 用户数据原地保留
 mkdir -p "${INSTALL_DIR}"
 
