@@ -2644,7 +2644,9 @@ async def run_benchmark():
     # 延迟测试
     t0 = _time.time()
     try:
-        resp = client.chat.completions.create(model=client.model_name, messages=test_messages, max_tokens=50, temperature=0)
+        # v3.134.2: 同测试连接标准 — 按模型配置自适应 (默认 512, 推理模型 reasoning 需 76+)
+        _lat_budget = int(self.cfg.get("test_max_tokens", 512)) if hasattr(self, 'cfg') else 512
+        resp = client.chat.completions.create(model=client.model_name, messages=test_messages, max_tokens=_lat_budget, temperature=0)
         elapsed = _time.time() - t0
         results["latency_ms"] = round(elapsed * 1000, 1)
         results["ttfb_ms"] = results["latency_ms"]  # 非流式近似
@@ -3504,13 +3506,15 @@ async def test_model_connection(model_id: str):
 
     try:
         import asyncio
-        # v3.134.1 (用户实测: glm-5.3 测试连接 429 而 flash 正常): max_tokens=10 对纯推理
-        # 模型是必挂请求 — reasoning_tokens 先行消耗 (实测 glm-5.3 需 76+, flash 45+),
-        # 10 预算连思考都跑不完, 部分网关/上游对此类必截断请求直接拒绝 (429)。
-        # 修: 512 预算 (覆盖旗舰 reasoning) + 45s 超时 (推理模型余量) + 空内容也算连通。
+        # v3.134.1→v3.134.2 (用户指令: 不得硬编码, 按扫描模型自适应): 测试预算从模型配置
+        # 读取 cfg["test_max_tokens"] — UI 扫描加入/用户手配均可按厂商模型能力覆盖;
+        # 默认 512 覆盖纯推理模型 reasoning (实测 glm-5.3 需 76+, flash 45+, o1/r1 系更高)。
+        # v3.134.1 根因: 旧硬编码 10 对推理模型是必挂请求 (网关拒之 = 429 假象)。
+        _test_budget = int(cfg.get("test_max_tokens", 512))
+        _test_timeout = float(cfg.get("test_timeout", 45))
         response = await asyncio.wait_for(
-            asyncio.to_thread(client.chat, [{"role":"user","content":"Hi"}], max_tokens=512),
-            timeout=45
+            asyncio.to_thread(client.chat, [{"role":"user","content":"Hi"}], max_tokens=_test_budget),
+            timeout=_test_timeout
         )
         content = str(response.get("content", "")).strip()
         # 检测假成功 (错误消息伪装) — v3.134.0 错误透传后含 [1113] 等具体码

@@ -1,3 +1,11 @@
+## [v3.134.2] - 2026-10-12 (测试预算按模型配置自适应 — 用户指令: 不得硬编码)
+
+### Fixed
+- test_model_connection: max_tokens/timeout 从模型配置读取 (cfg.test_max_tokens 默认 512
+  / cfg.test_timeout 默认 45s) — UI 扫描加入/用户手配均可按厂商模型能力覆盖, 全模型统一标准
+- 延迟测试: 硬编码 50 → 同标准 (cfg.test_max_tokens, 默认 512)
+- 11 语言测试文案平价确认 (29 key × 11 语言零缺失)
+
 ## [v3.134.1] - 2026-10-12 (测试连接对推理模型适配 — glm-5.3 测试 429 根修)
 
 > 用户实测: 包月含 glm-5.3 (本会话即 glm-5.3 运行, API 正常), 但 meshctx 测试连接
