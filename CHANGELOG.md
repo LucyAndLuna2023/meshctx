@@ -1,3 +1,16 @@
+## [v3.133.8] - 2026-10-11 (流式输出专业体验 — "第N轮搜索"根除)
+
+> 用户实测: UI 和 CLI 都显示"第N轮搜索"，连打个"你好"也出现 — 不专业。
+
+### Fixed
+- **UI SSE 流**: round 事件不再作为正文 token 注入"🔍 第N轮搜索..."文字 (根因: agent_loop
+  每轮 yield round 事件, SSE 端转成 token 发送, 前端当正文渲染 — 连无工具调用的普通对话
+  也触发); deliver 事件同理静默。推理流已有独立 reasoning 通道+前端思考区, 工具调用已有
+  tool_start 气泡 — round/deliver 是纯噪声。
+- **CLI**: round 事件从"🔍 第N轮搜索..."改为"⏳ Thinking..."; reasoning 事件从 pass 改为
+  灰色实时打印 (用户要求看推理过程)
+- **前端**: web_search 气泡从"🔄 调用工具: web_search × N"改为"🔍 Searching × N"
+
 ## [v3.133.7] - 2026-10-11 (confirm-panel 溢出四测定案 — position:fixed bottom bar)
 
 > 用户 Mac 四测持续溢出, 前三版根因全错 (100vw/100dvw/width:100% 均以错误父级为目标)。
