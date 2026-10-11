@@ -143,19 +143,21 @@ def test_language_notice_idempotent():
 
 
 def test_confirm_panel_overflow_guard():
-    """用户实测: 授权UI溢出屏幕 — 静态断言 (v3.132.7 根修语义, 002zcode 对齐).
+    """用户实测: 授权UI溢出屏幕 — v3.133.7 终修: position:fixed bottom bar.
 
-    v3.132.7: 面板 width:100% 受父容器约束 (100vw/100dvw 系视口目标, 已废),
-    全子元素 max-width:100% + min-width:0 — 断言随根修更新, 旧 100vw 断言删除。
+    前三版 (100vw/100dvw/width:100%) 全失败 — 根因: confirmPanel 不在
+    .chat-main/.messages DOM 内 (chat-main 闭合位置 < confirmPanel 位置),
+    width:100% 相对错误父级计算。唯一可靠: fixed 定位三边锚定。
     """
     h = Path(__file__).resolve().parent.parent / "templates" / "chat.html"
     t = h.read_text(encoding="utf-8")
-    # 面板本体: 父容器约束语义
-    assert "width: 100%; max-width: 100%; max-height: 70vh" in t
-    assert "overflow-wrap: anywhere" in t
-    assert "min-width: 0;" in t
-    # 全子元素兜底 + 选项区 flex-wrap + 图标不收缩
-    assert ".confirm-panel * { max-width: 100%" in t
-    assert "flex-wrap: wrap" in t and "flex-shrink: 0" in t
+    # 面板必须 fixed 定位 + 三边锚定
+    assert "position: fixed" in t, "面板必须 fixed (前三版相对父级 width 全失败)"
+    assert "bottom: 0; left: 0; right: 0" in t, "三边锚定"
+    assert "max-width: 100vw" in t, "视口宽上限"
+    assert "overflow-wrap: anywhere" in t, "11 语言长词断行"
+    assert "max-height: 60vh" in t, "高度上限"
     # 选项/标题/自定义输入同样受控
     assert "confirm-options" in t and "confirm-custom" in t
+    assert ".confirm-panel * { max-width: 100%" in t
+    assert "flex-wrap: wrap" in t and "flex-shrink: 0" in t
