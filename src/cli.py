@@ -63,6 +63,11 @@ except ImportError:
     def t(key: str) -> str: return key
 
 
+def _cs(text):
+    """清理 surrogate 半字符 — CLI print 到 Windows 终端(GBK) 也需要"""
+    return text.encode("utf-8", errors="ignore").decode("utf-8", errors="ignore")
+
+
 def _get_port() -> int:
     """Get meshctx server port from env var (default 3001 — 与 install.sh 一致)"""
     return int(os.environ.get("MESHCTX_PORT", "3001"))
@@ -841,7 +846,7 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
     def _on_event(ev):
         nonlocal _final_answer, _tool_calls
         if ev["type"] == "token":
-            print(ev["text"], end="", flush=True)
+            print(_cs(ev["text"]), end="", flush=True)
             if collect_output:
                 _final_answer += ev["text"]
         elif ev["type"] == "round":
@@ -850,7 +855,7 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
             print(f"\n⏳ Thinking{_total_txt}...", flush=True)
         elif ev["type"] == "reasoning":
             # v3.133.8: 推理流实时显示 (灰色前缀, 与正文区分) — 用户要求看推理过程
-            print(f"\033[90m{ev['text']}\033[0m", end="", flush=True)
+            print(f"\033[90m{_cs(ev['text'])}\033[0m", end="", flush=True)
         elif ev["type"] == "deliver":
             print("\n📝 **Deliver** — 基于已获取的真实数据生成最终报告...\n", flush=True)
         elif ev["type"] == "tool_start":
@@ -868,7 +873,7 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
                         break
             print(f"    ✅ {first_line}", flush=True)
         elif ev["type"] == "error":
-            print(f"\n[错误: {ev['text']}]", flush=True)
+            print(f"\n[错误: {_cs(ev['text'])}]", flush=True)
         elif ev["type"] == "timed_out":
             print(f"\n{ev.get('text', '[已达到最大处理时间，已中止]')}", flush=True)
 

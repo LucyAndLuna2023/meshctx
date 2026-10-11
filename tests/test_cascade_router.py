@@ -154,3 +154,19 @@ def test_clean_surrogates():
     # 完整 emoji 对不受影响
     ok = M._clean_surrogates("🎉 正常")
     assert "正常" in ok
+
+
+def test_agent_loop_surrogate_cleaned():
+    """v3.133.9: agent_loop 源头清理 surrogate — 下游 CLI/SSE/非流式全受益."""
+    from src.agent_loop import _cs
+    dirty = "hello " + chr(0xD83D) + chr(0xDE00) + " world " + chr(0xD83D)
+    clean = _cs(dirty)
+    assert "hello" in clean and "world" in clean
+
+
+def test_cli_surrogate_cleaned():
+    """CLI print 到 Windows 终端(GBK) 也需要 surrogate 清理."""
+    from src.cli import _cs
+    dirty = "test " + chr(0xD83D)
+    clean = _cs(dirty)
+    assert "test" in clean

@@ -25,6 +25,16 @@ import time
 import uuid
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
+
+def _cs(text):
+    """v3.133.9: 清理 surrogate 半字符 — 模型流式返回的 emoji 可能被拆成
+    UTF-16 surrogate 对, 下游 print/SSE encode 到 UTF-8 报 surrogates not allowed"""
+    try:
+        return text.encode("utf-8", errors="ignore").decode("utf-8", errors="ignore")
+    except Exception:
+        return str(text)
+
+
 from src.chat_tools import trim_messages, strip_dsml_tool_calls
 
 DEFAULT_WALL_CLOCK = 1800.0     # 整轮处理墙钟上限(秒) — 无固定轮次限制, 由墙钟兜底
@@ -158,10 +168,10 @@ async def run_agent_loop(
                         if interrupt_check is not None:
                             interrupt_check()
                         if isinstance(item, tuple) and item[0] == "__REASONING__":
-                            yield {"type": "reasoning", "text": item[1]}
+                            yield {"type": "reasoning", "text": _cs(item[1])}
                         elif isinstance(item, str):
                             _sum_txt += item
-                            yield {"type": "token", "text": item}
+                            yield {"type": "token", "text": _cs(item)}
                 except Exception as _sum_err:
                     # round61 P4: 超时总结路径异常不再静默 — 留痕供排查
                     import logging as _log
@@ -221,9 +231,9 @@ async def run_agent_loop(
                     tool_calls_raw = item[1]
                 msg_content = item[2]
             elif isinstance(item, tuple) and item[0] == "__REASONING__":
-                yield {"type": "reasoning", "text": item[1]}
+                yield {"type": "reasoning", "text": _cs(item[1])}
             elif isinstance(item, str):
-                yield {"type": "token", "text": item}
+                yield {"type": "token", "text": _cs(item)}
                 msg_content += item
 
         # 组装伪消息（兼容 model_registry.chat_stream 的 ("__TOOLS__", ...) 协议）
