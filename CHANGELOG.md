@@ -1,3 +1,11 @@
+## [v3.133.7] - 2026-10-11 (confirm-panel 溢出四测定案 — position:fixed bottom bar)
+
+> 用户 Mac 四测持续溢出, 前三版根因全错 (100vw/100dvw/width:100% 均以错误父级为目标)。
+> DOM 解析实证: confirmPanel 不在 .chat-main/.messages 内 (chat-main 闭合 26906 < confirmPanel 29582),
+> 它是 body 直下普通块 — width:100% 相对错误父级计算。
+> **终修: position:fixed; bottom:0; left:0; right:0; max-width:100vw; z-index:10000** —
+> fixed 包含块=viewport, 三边锚定物理不可能横向溢出 (002zcode 终审 PASS + 002meshctx DOM 独立复现)。
+
 ## [v3.133.6] - 2026-10-10 (安装器版本源对位 + CSS 根修收编 — 002zcode PASS / 002meshctx 预核通过)
 
 > Mac 装到旧版根因修复: install-mac.sh VERSION 硬编码未随 tag 更新, 且曾手工改安装器跳过版本源
