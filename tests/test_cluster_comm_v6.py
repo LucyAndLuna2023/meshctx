@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """meshctx 集群通讯 v6 单元测试 (zcode@004/meshctx)
 
-权威规范: hermes CLUSTER-COMM-V6.md (v6 + v6.1)
+权威规范: hermes CLUSTER-COMM-V6.md (v6 + v7.0)
 全部用 FakeRedis 注入, 不依赖网络/真实 hub。
 覆盖: 身份默认值 · B1 profile 白名单 · 项目路由优先级 (§2.3) · 单通道发送
-(v5.1 禁双写) · v6.1 回执路由 (§8) · 自杀防护 (§9) · Web3 journal (§5) ·
+(v5.1 禁双写) · v7.0 回执路由 (§8) · 自杀防护 (§9) · Web3 journal (§5) ·
 归档 TTL (§1.4) · 跨轮询去重 · admin 文件队列互通。
 """
 import importlib
@@ -94,7 +94,7 @@ def v6(tmp_path, monkeypatch):
     root = Path(__file__).resolve().parent.parent
     sys.path.insert(0, str(root / "cluster"))
     try:
-        mod = importlib.import_module("cluster_comm_v6")
+        mod = importlib.import_module("cluster_comm_v7")
         importlib.reload(mod)
     finally:
         sys.path.remove(str(root / "cluster"))
@@ -111,7 +111,7 @@ def test_identity_defaults(v6):
     assert mod.MACHINE_ID == "004"
     assert mod.AGENT == "zcode"
     assert mod.PROJECT == "meshctx"
-    # zcode 三实例按项目隔离: 通道带项目维度 (v6.1: +profile 主通道)
+    # zcode 三实例按项目隔离: 通道带项目维度 (v7.0: +profile 主通道)
     assert mod.inbox_channels() == ["hub:inbox:004:zcode:meshctx",
                                     "hub:profile:004:zcode"]
 
@@ -129,7 +129,7 @@ def test_zcode_project_isolation(tmp_path, monkeypatch):
         monkeypatch.setenv("MESHCTX_CLUSTER_PROJECT", project)
         sys.path.insert(0, str(root / "cluster"))
         try:
-            mod = importlib.import_module("cluster_comm_v6")
+            mod = importlib.import_module("cluster_comm_v7")
             return importlib.reload(mod)
         finally:
             sys.path.remove(str(root / "cluster"))
@@ -217,14 +217,14 @@ def test_split_to_profile(v6):
     assert mod.split_to_profile("") == ("", None)
 
 
-# ── 发送: 双通道 + 项目路由 (v6.1d 演进: 主通道+机器兜底; 原v5.1单通道
+# ── 发送: 双通道 + 项目路由 (v7.0d 演进: 主通道+机器兜底; 原v5.1单通道
 #    因 I-6 事故废弃 — 只投机器通道时 001 类节点永远收不到, 8条堆积6天) ──
 
 def test_send_dm_single_channel_and_fields(v6):
     mod, fr = v6
     mid = mod.send_dm("002", "hello", to_profile="meshctx:quant", r=fr)
     assert mid and mid != "rejected"
-    # v6.1d 双通道: profile 主通道优先 + 机器兜底 (接收方 msg_id NX 去重防重复)
+    # v7.0d 双通道: profile 主通道优先 + 机器兜底 (接收方 msg_id NX 去重防重复)
     assert "hub:profile:002:meshctx" in fr.lists, "主通道必须收到"
     assert "hub:inbox:002" in fr.lists, "机器兜底通道保留"
     assert fr.published[0][0] == "hub:profile:002:meshctx"
@@ -272,7 +272,7 @@ def test_send_dm_redis_unavailable_graceful(v6):
         mod.get_redis = orig
 
 
-# ── v6.1 §8 回执路由 ───────────────────────────────────────
+# ── v7.0 §8 回执路由 ───────────────────────────────────────
 
 def test_send_reply_routes_to_publisher(v6):
     mod, fr = v6
@@ -305,7 +305,7 @@ def test_send_reply_no_publisher_profile_returns_empty(v6):
     assert mod.send_reply({"from": "002"}, "x", r=fr) == ""
 
 
-# ── 自杀防护 (v6.1 §9) ─────────────────────────────────────
+# ── 自杀防护 (v7.0 §9) ─────────────────────────────────────
 
 def test_selfkill_guard(v6):
     mod, _ = v6
@@ -358,8 +358,8 @@ def test_send_reply_direct_to_dedicated_channel(v6):
 
 
 def test_hub_credentials_not_in_source():
-    """P0 回归: 源码零凭据 — cluster_comm_v6.py 不得内嵌 hub 密码/IP 默认值。"""
-    src = (Path(__file__).resolve().parent.parent / "cluster" / "cluster_comm_v6.py").read_text(encoding="utf-8")
+    """P0 回归: 源码零凭据 — cluster_comm_v7.py 不得内嵌 hub 密码/IP 默认值。"""
+    src = (Path(__file__).resolve().parent.parent / "cluster" / "cluster_comm_v7.py").read_text(encoding="utf-8")
     assert "Hm@2026" not in src, "hub 密码不得出现在源码"
     assert "66.154.101.18" not in src, "hub 地址默认值不得出现在源码 (env/hub_env 注入)"
 
@@ -466,7 +466,7 @@ def test_resolve_project_profile(v6):
     assert mod.resolve_project_profile("") == "deepseek"
 
 
-# ── v6.1: 信封完整性校验 (空壳拒收不占去重坑) ───────────────
+# ── v7.0: 信封完整性校验 (空壳拒收不占去重坑) ───────────────
 
 def test_v61_shell_rejected_and_does_not_block_full_payload(tmp_path, monkeypatch):
     """空壳事故根修: {msg_id,to_profile} 裸壳先到 → 拒收且不占 msg_id;
@@ -475,7 +475,7 @@ def test_v61_shell_rejected_and_does_not_block_full_payload(tmp_path, monkeypatc
     monkeypatch.setenv("MESHCTX_CLUSTER_PROJECT", "meshctx")
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "cluster"))
     try:
-        mod = importlib.import_module("cluster_comm_v6")
+        mod = importlib.import_module("cluster_comm_v7")
         mod = importlib.reload(mod)
     finally:
         sys.path.remove(str(Path(__file__).resolve().parent.parent / "cluster"))
@@ -502,11 +502,11 @@ def test_v61_shell_rejected_and_does_not_block_full_payload(tmp_path, monkeypatc
 
 
 def test_v61_envelope_valid_unit():
-    m = importlib.import_module("cluster_comm_v6")
+    m = importlib.import_module("cluster_comm_v7")
     assert m.envelope_valid({"msg_id": "x", "from": "002", "from_profile": "codex", "message": "hi"})
     for bad in (
         {"msg_id": "x", "to_profile": "z"},                     # 裸通知壳 (事故原型)
-        {"msg_id": "x", "message": "hi"},                        # from 与 from_profile 全空 (v6.1c 拒)
+        {"msg_id": "x", "message": "hi"},                        # from 与 from_profile 全空 (v7.0c 拒)
         {"msg_id": "", "from": "002", "from_profile": "c", "message": "hi"},
         {"msg_id": "x", "from": "002", "from_profile": "c", "message": "  "},
         "not-a-dict",
@@ -515,7 +515,7 @@ def test_v61_envelope_valid_unit():
 
 
 def test_v61_inbox_channels_include_profile_main(v6):
-    """v6.1: listener 必须兼订 hub:profile:{mid}:{agent} 主通道 (003 部署发现)."""
+    """v7.0: listener 必须兼订 hub:profile:{mid}:{agent} 主通道 (003 部署发现)."""
     mod, _ = v6
     chans = mod.inbox_channels()
     assert f"hub:profile:{mod.MACHINE_ID}:{mod.AGENT}" in chans
@@ -523,7 +523,7 @@ def test_v61_inbox_channels_include_profile_main(v6):
 
 
 def test_v61_poll_once_receives_from_profile_main_channel(v6):
-    """v6.1b: LPUSH 到 hub:profile:{mid}:{agent} 主通道的消息必须被 poll_once 收到
+    """v7.0b: LPUSH 到 hub:profile:{mid}:{agent} 主通道的消息必须被 poll_once 收到
     (003 部署端到端发现: poll_once 原写死 chans[0], 主通道消息永远收不到)."""
     mod, fr = v6
     main_chan = f"hub:profile:{mod.MACHINE_ID}:{mod.AGENT}"
@@ -539,17 +539,17 @@ def test_v61_poll_once_receives_from_profile_main_channel(v6):
 def test_v61c_hermes_minimal_envelope_accepted():
     """002admin P2: hermes CLI 漏 -f → from_profile="" 但 from 有值 — 必须可收,
     静默拒收即跨生态丢件; 同时壳防护不减弱 (三项全缺仍拒)."""
-    m = importlib.import_module("cluster_comm_v6")
+    m = importlib.import_module("cluster_comm_v7")
     assert m.envelope_valid({"msg_id": "h1", "from": "002",
                              "from_profile": "", "message": "hermes DM no -f"})
     # 壳原型仍拒 (I-1 防护不回退)
     assert not m.envelope_valid({"msg_id": "s1", "to_profile": "zcode"})
 
 
-# ── v6.1d: 路由键白名单 + send_dm 双通道 (INCIDENTS I-6 根修) ──
+# ── v7.0d: 路由键白名单 + send_dm 双通道 (INCIDENTS I-6 根修) ──
 
 def test_v61d_validate_route_key():
-    m = importlib.import_module("cluster_comm_v6")
+    m = importlib.import_module("cluster_comm_v7")
     assert m.validate_route_key("hub:inbox:004")
     assert m.validate_route_key("hub:profile:002:meshctx")
     assert m.validate_route_key("hub:inbox:004:zcode:quant")   # zcode 项目实例键合法
@@ -563,10 +563,11 @@ def test_v61d_validate_route_key():
 def test_v61d_send_dm_delivers_to_profile_main_channel(v6):
     """I-6 根修: send_dm 必须送达 profile 主通道 (只投机器通道 = 001 类节点永远收不到)."""
     mod, fr = v6
-    mod.send_dm("004", "route fix verify", from_profile="deepseek",
+    # v7.0: 发到跨机 (004→002) 保留原语义; 完全自发件 (004→004 且 to_profile==AGENT) 被 v7.0 正确跳过
+    mod.send_dm("002", "route fix verify", from_profile="deepseek",
                 to_profile="zcode", r=fr)
-    assert fr.lists.get("hub:profile:004:zcode"), "主通道必须收到"
-    assert fr.lists.get("hub:inbox:004"), "机器兜底通道仍保留"
+    assert fr.lists.get("hub:profile:002:zcode"), "主通道必须收到"
+    assert fr.lists.get("hub:inbox:002"), "机器兜底通道仍保留"
 
 
 # ── clusterv6_audit P2-A: 项目实例专属通道发送面 ──────────
@@ -574,24 +575,25 @@ def test_v61d_send_dm_delivers_to_profile_main_channel(v6):
 def test_p2a_send_dm_third_delivery_to_project_channel(v6):
     """P2-A: to_profile 含项目后缀 + target_agent 声明 → 第三投递 5 段键."""
     mod, fr = v6
-    mod.send_dm("004", "p2a third delivery", from_profile="deepseek",
+    # v7.0: 跨机 (004→999) 保留原语义; 发到自己机器的 AGENT 实例通道被 v7.0 正确跳过 (I-10)
+    mod.send_dm("999", "p2a third delivery", from_profile="deepseek",
                 to_profile="meshctx:meshctx", target_agent="zcode", r=fr)
-    assert fr.lists.get("hub:profile:004:meshctx"), "profile 主通道 (v6.1d)"
-    assert fr.lists.get("hub:inbox:004"), "机器兜底通道 (v6.1d)"
-    assert fr.lists.get("hub:inbox:004:zcode:meshctx"), "项目实例专属通道 (P2-A 第三投递)"
-    a = json.loads(fr.lists["hub:profile:004:meshctx"][0])
-    b = json.loads(fr.lists["hub:inbox:004:zcode:meshctx"][0])
+    assert fr.lists.get("hub:profile:999:meshctx"), "profile 主通道 (v7.0d)"
+    assert fr.lists.get("hub:inbox:999"), "机器兜底通道 (v7.0d)"
+    assert fr.lists.get("hub:inbox:999:zcode:meshctx"), "项目实例专属通道 (P2-A 第三投递)"
+    a = json.loads(fr.lists["hub:profile:999:meshctx"][0])
+    b = json.loads(fr.lists["hub:inbox:999:zcode:meshctx"][0])
     assert a["msg_id"] == b["msg_id"], "三通道同一信封 (接收方 NX 去重)"
 
 
 def test_p2a_send_dm_without_target_agent_stays_dual(v6):
-    """P2-A: 未声明 target_agent 保持 v6.1d 双投, 不误投 5 段键."""
+    """P2-A: 未声明 target_agent 保持 v7.0d 双投, 不误投 5 段键."""
     mod, fr = v6
-    mod.send_dm("004", "dual only", from_profile="deepseek",
+    mod.send_dm("999", "dual only", from_profile="deepseek",
                 to_profile="meshctx:meshctx", r=fr)
-    assert fr.lists.get("hub:profile:004:meshctx")
-    assert fr.lists.get("hub:inbox:004")
-    assert not fr.lists.get("hub:inbox:004:zcode:meshctx"), "未声明 target_agent 不应三投"
+    assert fr.lists.get("hub:profile:999:meshctx")
+    assert fr.lists.get("hub:inbox:999")
+    assert not fr.lists.get("hub:inbox:999:zcode:meshctx"), "未声明 target_agent 不应三投"
 
 
 def test_p2a_send_dm_rejects_bad_target_agent(v6):
@@ -619,7 +621,7 @@ def test_v61e_conftest_env_immunity(monkeypatch):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "cluster"))
     try:
         import importlib
-        mod = importlib.import_module("cluster_comm_v6")
+        mod = importlib.import_module("cluster_comm_v7")
         mod = importlib.reload(mod)
         assert mod.MACHINE_ID == "999"  # 模块自身尊重 env (行为正确)
     finally:
@@ -628,7 +630,7 @@ def test_v61e_conftest_env_immunity(monkeypatch):
 
 
 def test_v61f_combined_path_no_duplicate_delivery(v6):
-    """002codex 95869942 唯一阻断: 组合路径 (v6.1e third == P2-A 键) 不得重复投递.
+    """002codex 95869942 唯一阻断: 组合路径 (v7.0e third == P2-A 键) 不得重复投递.
     复现原样: send_dm("999", to_profile="meshctx:quant") → hub:inbox:999:meshctx:quant 恰 1 份."""
     mod, fr = v6
     mod.send_dm("999", "combined path", from_profile="sender",
@@ -638,3 +640,28 @@ def test_v61f_combined_path_no_duplicate_delivery(v6):
     # 全部通道各自恰一份 (保序去重)
     for k, lst in fr.lists.items():
         assert len(set(lst)) == len(lst), f"{k} 重复投递"
+
+
+# ── v7.0: I-10 根修 — 自身通道跳过 (发件不再弹回自己) ──────────
+
+def test_v70_no_self_echo_routes(v6):
+    """I-10: 发件时 routes 不含自身 profile/项目实例通道 — 19 条回显堆积根因."""
+    mod, fr = v6
+    from_profile = mod.AGENT  # 用自己 profile 发件
+    # 发给自己 (target=自己机器+自己 profile) — 不应有任何投递
+    result = mod.send_dm(mod.MACHINE_ID, "self test", from_profile=from_profile,
+                         to_profile=f"{from_profile}:meshctx", r=fr)
+    # 检查所有写入的通道 — 不应含自身通道
+    self_channels = [ch for ch in fr.lists if mod.MACHINE_ID in ch]
+    # 允许机器通道 hub:inbox:{mid} 存在 (兜底), 但 profile/实例通道不应有
+    self_profile_ch = [ch for ch in self_channels if f"hub:profile:{mod.MACHINE_ID}" in ch
+                       or f"hub:inbox:{mod.MACHINE_ID}:{mod.AGENT}:" in ch]
+    assert not self_profile_ch, f"自身通道被写入: {self_profile_ch} (I-10 回显根因)"
+
+
+def test_v70_cross_machine_still_delivers(v6):
+    """v7.0 自身跳过不影响跨机投递."""
+    mod, fr = v6
+    mod.send_dm("002", "cross test", from_profile="deepseek",
+                to_profile="meshctx:audit", r=fr)
+    assert "hub:profile:002:meshctx" in fr.lists, "跨机主通道必须收到"

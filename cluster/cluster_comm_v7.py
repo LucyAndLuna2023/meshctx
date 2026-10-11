@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""meshctx 集群通讯 v6 (CLUSTER-COMM-V6.md 线缆兼容实现)
+"""meshctx 集群通讯 v7 (CLUSTER-COMM-V6.md 线缆兼容实现)
 
 身份: agent=zcode · machine=004 · project=meshctx (可用 MESHCTX_CLUSTER_* 环境变量覆盖)
 
@@ -9,8 +9,8 @@
   因此所有隔离维度均带项目: 通道 / 去重键 / 心跳键 / journal / 收件箱文件。
   其他 zcode 实例以 MESHCTX_CLUSTER_PROJECT=<各自项目> 启动本模块即可互不干扰。
 
-权威规范: hermes profiles/admin/CLUSTER-COMM-V6.md (v6, 2026-08-30; v6.1 2026-09-01)
-线缆协议与 WSL ~/.hermes/scripts/hub_client.py v6.1 保持字节级兼容:
+权威规范: hermes profiles/admin/CLUSTER-COMM-V6.md (v6, 2026-08-30; v7.0 2026-09-01)
+线缆协议与 WSL ~/.hermes/scripts/hub_client.py v7.0 保持字节级兼容:
 
   - 发送: 单通道 LPUSH + PUBLISH `hub:inbox:{target_mid}` (v5.1 起禁止双写)
   - 消息字段: msg_id/from/from_label/from_profile/to/to_profile/reply_channel/
@@ -19,9 +19,9 @@
     to_profile 原值 > from_profile > deepseek 汇聚
   - profile 白名单 (v6 §3): 注册表声明 或 [A-Za-z0-9_-]{1,64};
     拒绝纯数字/保留字 test/含 : / 空白 控制符
-  - 回执路由 (v6.1 §8): 回执 to_profile = 发布者 from_profile (禁止固定 admin),
+  - 回执路由 (v7.0 §8): 回执 to_profile = 发布者 from_profile (禁止固定 admin),
     reply_channel 优先 (hub:inbox:NNN 数字后缀可改投递机器)
-  - 自杀防护 (v6.1 §9): 拒绝执行含 "hub_client.py listen"/"pkill" 的任务
+  - 自杀防护 (v7.0 §9): 拒绝执行含 "hub_client.py listen"/"pkill" 的任务
   - Web3 记录层 (v6 §5): 收发写哈希链 journal (~/.meshctx/web3_journal/,
     复用 src/core/web3_messaging.py, Redis 挂后可重建)
   - 归档 TTL (v6 §1.4): hub:archive:* 30 天过期
@@ -132,7 +132,7 @@ def zcode_inbox_channel(project: str = "") -> str:
 
 
 def inbox_channels() -> List[str]:
-    """订阅通道: 项目专属通道 + profile 主通道 (v6.1)。
+    """订阅通道: 项目专属通道 + profile 主通道 (v7.0)。
 
     hub:profile:{mid}:{agent} 是集群主通道 (AGENTS.md 钦定, 004↔001/002/003
     既有生态全部走它) — listener 必须兼订, 否则收不到生态消息 (003 部署发现)。
@@ -179,13 +179,13 @@ def split_to_profile(to_profile: str):
     return to_profile, None
 
 
-# ── 自杀防护 (v6.1 §9) ─────────────────────────────────────
+# ── 自杀防护 (v7.0 §9) ─────────────────────────────────────
 
 _SELFKILL_PATTERNS = ("hub_client.py listen", "pkill", "killall")
 
 
 def is_selfkill_command(cmd: str) -> bool:
-    """listener 自杀类命令识别 (v6.1 §9 铁律)。"""
+    """listener 自杀类命令识别 (v7.0 §9 铁律)。"""
     if not cmd:
         return False
     low = str(cmd).lower()
@@ -354,20 +354,24 @@ def send_dm(target_mid: str, message: str, from_profile: str = "",
     elif project_id:
         msg["project_id"] = project_id
 
-    # v6.1d: 双通道投递 — profile 主通道为主 (生态实际消费), 机器通道兜底。
+    # v7.0d: 双通道投递 — profile 主通道为主 (生态实际消费), 机器通道兜底。
     # 同 msg_id 经接收方 NX 去重, 双投不重复。历史教训 (I-6): 只投机器通道时
     # 不消费该键的节点 (001 等) 永远收不到, 8 条件堆积 6 天。
     raw = json.dumps(msg, ensure_ascii=False)
     routes = [f"hub:inbox:{target_mid}"]
     base_prof, to_proj = (split_to_profile(to_profile) if to_profile else ("", None))
     base_prof = base_prof or (from_profile or AGENT)
-    if base_prof and validate_profile_name(base_prof):
+    # v7.0 (I-10 根修): 完全自发件跳过自身通道 (from==to 且 profile==自己的 AGENT)
+    # — 发给自己机器的其他 profile 是合法的 (004zcode → 004deepseek), 不跳过
+    _is_self_send = (target_mid == MACHINE_ID and base_prof == AGENT)
+    if base_prof and validate_profile_name(base_prof) and not _is_self_send:
         routes.insert(0, f"hub:profile:{target_mid}:{base_prof}")
-    # v6.1e (002meshctx P2-A 升格条件): 项目实例第三投递 — to_profile="profile:project"
+    # v7.0e (002meshctx P2-A 升格条件): 项目实例第三投递 — to_profile="profile:project"
     # 时补投 hub:inbox:{mid}:{profile}:{project}, 打通项目实例唯一消费键 (发收对称)
     if to_proj:
         third = f"hub:inbox:{target_mid}:{base_prof}:{to_proj}"
-        if validate_route_key(third) and third not in routes:  # P3-F: to_proj==base 时防重
+        _self_third = f"hub:inbox:{MACHINE_ID}:{AGENT}:{to_proj}"
+        if (_is_self_send is False or third != _self_third) and validate_route_key(third) and third not in routes:
             routes.append(third)
     # P2-A (clusterv6_audit_86cceb0e): 项目实例专属通道第三投递 — 此前 5 段键
     # hub:inbox:{mid}:{agent}:{project} 全生态无发送面 (双投只到 机器+profile 主),
@@ -376,9 +380,12 @@ def send_dm(target_mid: str, message: str, from_profile: str = "",
     if proj2 and target_agent:
         if not validate_profile_name(target_agent):
             return "rejected"
-        routes.append(f"hub:inbox:{target_mid}:{target_agent}:{proj2}")
-    routes = list(dict.fromkeys(routes))  # v6.1f (002meshctx 方案b): 保序去重一次治本,
-    # 组合路径 (v6.1e third 键 == P2-A 键) 重复投递根除; 002codex 95869942 唯一阻断
+        _agent_third = f"hub:inbox:{target_mid}:{target_agent}:{proj2}"
+        _self_agent = f"hub:inbox:{MACHINE_ID}:{AGENT}:{proj2}"
+        if not (target_mid == MACHINE_ID and target_agent == AGENT):
+            routes.append(_agent_third)
+    routes = list(dict.fromkeys(routes))  # v7.0f (002meshctx 方案b): 保序去重一次治本,
+    # 组合路径 (v7.0e third 键 == P2-A 键) 重复投递根除; 002codex 95869942 唯一阻断
     for ch in routes:
         assert validate_route_key(ch), f"非法路由键: {ch}"  # 铁律机器化: 发送前强制校验
         r.lpush(ch, raw)
@@ -389,7 +396,7 @@ def send_dm(target_mid: str, message: str, from_profile: str = "",
 
 def send_reply(original_msg: Dict[str, Any], reply_text: str,
                from_profile: str = "", project_id: str = "", r=None):
-    """v6.1 §8 回执路由: 回执回给发布者 (from_profile), 禁止固定 admin。
+    """v7.0 §8 回执路由: 回执回给发布者 (from_profile), 禁止固定 admin。
 
     v3.131.1 (002codex P2): reply_channel 为任意 hub:inbox:* 通道 (含冒号
     后缀的专属通道如 hub:inbox:004:zcode:meshctx) 时直接 LPUSH+PUBLISH 该
@@ -538,7 +545,7 @@ def _seen(r, msg_id: str) -> bool:
 
 
 def validate_route_key(channel: str) -> bool:
-    """v6.1d 发送路由键白名单 — 铁律机器化 (INCIDENTS I-6: 手搓键把 project 混进
+    """v7.0d 发送路由键白名单 — 铁律机器化 (INCIDENTS I-6: 手搓键把 project 混进
     profile 通道名, 8 条件堆积 6 天无人消费)。
 
     合法形态:
@@ -562,12 +569,12 @@ def validate_route_key(channel: str) -> bool:
 
 
 def envelope_valid(data: Dict[str, Any]) -> bool:
-    """v6.1 信封完整性校验 — msg_id/message 非空, 且 from/from_profile 至少一个非空。
+    """v7.0 信封完整性校验 — msg_id/message 非空, 且 from/from_profile 至少一个非空。
 
     根因 (2026-09-22 空壳事故): 裸通知壳 {msg_id,to_profile} 先占 msg_id 去重坑,
     随后全量件被去重误杀 → 消息丢失。现空壳在去重前即拒收, 不占 msg_id。
 
-    v6.1c (002admin b90e052d P2 采纳): from_profile 不再强制 — hermes CLI 漏 -f
+    v7.0c (002admin b90e052d P2 采纳): from_profile 不再强制 — hermes CLI 漏 -f
     时 from_profile="" 但 from 有值, 属合法跨生态件, 首版会静默拒收;
     壳防护不减弱 (壳 msg_id/message/from/from_profile 全缺, 必拒)。
     """
@@ -583,8 +590,8 @@ def envelope_valid(data: Dict[str, Any]) -> bool:
 def poll_once(r=None, timeout: float = 1.0) -> List[Dict[str, Any]]:
     """单次收取: 先 RPOP 队列 (pubsub 离线期间的消息), 再消费 pubsub 实时消息。
 
-    每条消息: 信封校验(v6.1) → 去重 → 写本地收件箱 jsonl + Web3 journal + 归档。
-    v6.1: 校验失败记 rejected_malformed journal 且不占 msg_id 去重坑 —
+    每条消息: 信封校验(v7.0) → 去重 → 写本地收件箱 jsonl + Web3 journal + 归档。
+    v7.0: 校验失败记 rejected_malformed journal 且不占 msg_id 去重坑 —
     空壳先到不再误杀后续同 msg_id 全量件。
     """
     if r is None:
@@ -593,17 +600,17 @@ def poll_once(r=None, timeout: float = 1.0) -> List[Dict[str, Any]]:
         except Exception as e:
             return [{"_error": f"redis 不可用: {e}"}]
     got: List[Dict[str, Any]] = []
-    chans = inbox_channels()  # v6.1b: 遍历全部订阅通道 (项目专属 + profile 主通道)
+    chans = inbox_channels()  # v7.0b: 遍历全部订阅通道 (项目专属 + profile 主通道)
 
     def _accept(data: Dict[str, Any]) -> bool:
-        """v6.1: 信封校验先行 (不占去重坑) → 去重 → journal→收件箱→归档。
+        """v7.0: 信封校验先行 (不占去重坑) → 去重 → journal→收件箱→归档。
         (NX 仍先于收件箱, 保持 hermes P0 'zombie dedup' 最小丢失窗口)"""
         if not envelope_valid(data):
             try:
                 journal_record("rejected_malformed", {
                     "msg_id": str(data.get("msg_id", ""))[:16] if isinstance(data, dict) else "",
                     "from": str(data.get("from", "")) if isinstance(data, dict) else "",
-                    "reason": "envelope incomplete (v6.1 裸通知壳拒收)",
+                    "reason": "envelope incomplete (v7.0 裸通知壳拒收)",
                     "raw": json.dumps(data, ensure_ascii=False)[:200] if data else str(data)[:200],
                 })
             except Exception:
@@ -709,7 +716,7 @@ def send_admin_msg(target: str, message: str, msg_dir: str = "") -> Dict[str, An
 
 def _cli(argv: List[str]):
     import argparse
-    ap = argparse.ArgumentParser(description="meshctx 集群通讯 v6 (zcode@004/meshctx)")
+    ap = argparse.ArgumentParser(description="meshctx 集群通讯 v7 (zcode@004/meshctx)")
     ap.add_argument("action", choices=[
         "heartbeat", "workers", "send", "reply", "inbox", "listen",
         "announce", "verify", "admin-msg", "selfcheck",
