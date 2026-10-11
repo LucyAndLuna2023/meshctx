@@ -3504,16 +3504,28 @@ async def test_model_connection(model_id: str):
 
     try:
         import asyncio
+        # v3.134.1 (用户实测: glm-5.3 测试连接 429 而 flash 正常): max_tokens=10 对纯推理
+        # 模型是必挂请求 — reasoning_tokens 先行消耗 (实测 glm-5.3 需 76+, flash 45+),
+        # 10 预算连思考都跑不完, 部分网关/上游对此类必截断请求直接拒绝 (429)。
+        # 修: 512 预算 (覆盖旗舰 reasoning) + 45s 超时 (推理模型余量) + 空内容也算连通。
         response = await asyncio.wait_for(
-            asyncio.to_thread(client.chat, [{"role":"user","content":"Hi"}], max_tokens=10),
-            timeout=20
+            asyncio.to_thread(client.chat, [{"role":"user","content":"Hi"}], max_tokens=512),
+            timeout=45
         )
-        content = str(response.get("content", ""))
-        # 检测假成功 (错误消息伪装)
-        if content.startswith("[错误") or "Error" in content or "error" in content.lower():
+        content = str(response.get("content", "")).strip()
+        # 检测假成功 (错误消息伪装) — v3.134.0 错误透传后含 [1113] 等具体码
+        if content.startswith("[错误") or content.startswith("[模型调用失败") \
+                or "Error" in content or "error" in content.lower():
             test_detail = f"API返回错误: {content[:200]}"
             return {"status": "error", "message": test_detail}
         test_ok = True
+        if not content:
+            # 推理模型 reasoning 耗尽预算 → content 空, 但 HTTP 200 已证明连通
+            return {
+                "status": "ok", "model": model_id, "response": "(推理模型: 连接正常)",
+                "tokens": response.get("tokens", 0),
+                "message": "连接成功 (推理模型测试回复为空属正常, 连通性已验证)"
+            }
         test_detail = content[:100]
         return {
             "status": "ok",
