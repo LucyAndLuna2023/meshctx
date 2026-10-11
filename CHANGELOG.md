@@ -1,3 +1,19 @@
+## [v3.134.0] - 2026-10-11 (API 错误透传 + surrogate 全方位清理 + 流式专业体验)
+
+> 用户实测三连: ①智谱余额不足只显示 HTTP 429 看不出原因 ②emoji 对话报 surrogate 错误
+> ③"你好"也显示"第一轮搜索"。全平台全版本全方位修复。
+
+### Added
+- **API 错误透传**: _extract_api_error 三层提取 (httpx response → openai SDK body → str(e) JSON)
+  — 智谱 1113"余额不足"/OpenAI 429 等具体错误直达用户 (chat/stream 双路径)
+- **surrogate 全方位清理**: agent_loop 源头(4 yield 点) + SSE(3 点) + CLI(3 点 Windows GBK 兼容)
+  — 纵深防御三层, 全平台 (Windows/Linux/Mac) 全版本 (个人/团队/企业) 一次修复
+- **流式专业体验**: UI SSE round/deliver 静默 (连"你好"不再显示"第一轮搜索");
+  CLI 改"⏳ Thinking"+推理流灰色实时显示; 前端搜索气泡"🔍 Searching × N"
+- **confirm-panel 终修** (继承 v3.133.7): position:fixed bottom bar 四测定案
+
+## [v3.133.9] - 2026-10-11 (surrogate 清理 v1 → v3.134.0 扩全链路)
+
 ## [v3.133.8] - 2026-10-11 (流式输出专业体验 — "第N轮搜索"根除)
 
 > 用户实测: UI 和 CLI 都显示"第N轮搜索"，连打个"你好"也出现 — 不专业。

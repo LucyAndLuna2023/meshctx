@@ -170,3 +170,19 @@ def test_cli_surrogate_cleaned():
     dirty = "test " + chr(0xD83D)
     clean = _cs(dirty)
     assert "test" in clean
+
+
+def test_extract_api_error_zhipu_1113():
+    """v3.134.0: 智谱 1113 余额不足错误透传 — 用户实测 HTTP 429 看不出原因."""
+    from src.model_adapter import _extract_api_error
+    from openai._exceptions import RateLimitError
+    import httpx
+    req = httpx.Request('POST', 'https://api.test/v1/chat/completions')
+    resp = httpx.Response(429, request=req,
+                          json={'error': {'code': '1113', 'message': '余额不足'}})
+    try:
+        raise RateLimitError("429", response=resp,
+                             body={'error': {'code': '1113', 'message': '余额不足'}})
+    except RateLimitError as e:
+        assert '1113' in _extract_api_error(e)
+        assert '余额不足' in _extract_api_error(e)
