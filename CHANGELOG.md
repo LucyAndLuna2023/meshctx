@@ -1,3 +1,9 @@
+## [v3.135.3] - 2026-10-12 (002codex v3.135.2 FAIL 清偿 — 部分残项见 v3.135.4)
+
+- set_status 全程持锁 + pass 门槛锁内重验 (stale pass 根修) + REST malformed 400 + 并发终态守门
+- 已知残项 (002codex f37fce7a 抓出, v3.135.4 修): 版本源错位 (bump 原子中止未验) / pass 后新轮次
+  不一致态 / closed 吸收态可写 / CHANGELOG 本条目
+
 ## [v3.135.2] - 2026-10-12 (002codex v3.135.0/1 FAIL 清偿)
 
 - Task Cards 并发根修: _locked_update 读-改-写全程 flock + _save 纯原子写 + 重入死锁根除 (并发回归 10/10)

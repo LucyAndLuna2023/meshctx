@@ -9568,7 +9568,10 @@ async def taskcards_list(status: str = None, owner: str = None):
 @app.post("/api/taskcards")
 async def taskcards_create(request: Request):
     from src.task_cards import create_card
-    body = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "invalid JSON body")
     if not isinstance(body, dict):
         raise HTTPException(400, "body must be a JSON object")
     try:
@@ -9594,7 +9597,10 @@ async def taskcards_get(tid: str):
 @app.post("/api/taskcards/{tid}/status")
 async def taskcards_status(tid: str, request: Request):
     from src.task_cards import set_status
-    body = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "invalid JSON body")
     if not isinstance(body, dict):
         raise HTTPException(400, "body must be a JSON object")
     try:
@@ -9606,7 +9612,10 @@ async def taskcards_status(tid: str, request: Request):
 @app.post("/api/taskcards/{tid}/round")
 async def taskcards_round(tid: str, request: Request):
     from src.task_cards import add_round
-    body = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "invalid JSON body")
     if not isinstance(body, dict):
         raise HTTPException(400, "body must be a JSON object")
     try:
@@ -9620,7 +9629,10 @@ async def taskcards_round(tid: str, request: Request):
 @app.post("/api/taskcards/{tid}/settle")
 async def taskcards_settle(tid: str, request: Request):
     from src.task_cards import settle
-    body = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "invalid JSON body")
     if not isinstance(body, dict):
         raise HTTPException(400, "body must be a JSON object")
     try:

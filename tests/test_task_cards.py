@@ -108,3 +108,24 @@ def test_concurrent_settle_and_status_no_stale_pass(tmp_path, monkeypatch):
     if final["status"] == "pass":
         open_p2 = [e for e in final["ledger"] if e["status"] == "open" and e["sev"] == "P2"]
         assert not open_p2, f"stale pass! 开放 P2 挂账: {open_p2}"
+
+
+def test_closed_absorbing_and_pass_demotion(tmp_path, monkeypatch):
+    """v3.135.4 002codex: closed 拒新轮次; pass+新阻断挂账 → 自动降 review (一致性)."""
+    monkeypatch.setenv("MESHCTX_HOME", str(tmp_path))
+    tc.create_card("吸收态", criteria=["c"], tid="tc-abs")
+    tc.set_status("tc-abs", "in_progress"); tc.set_status("tc-abs", "review")
+    tc.add_round("tc-abs", "a", "fail", [{"sev": "P2", "note": "x", "evidence": "e"}])
+    tc.settle("tc-abs", "x", evidence="c1")
+    c = tc.set_status("tc-abs", "pass")
+    assert c["status"] == "pass"
+    # pass 后新阻断挂账 → 降 review
+    c = tc.add_round("tc-abs", "a", "fail", [{"sev": "P2", "note": "new-bug", "evidence": "e"}])
+    assert c["status"] == "review", "pass+新 P2 必须降 review"
+    tc.settle("tc-abs", "new-bug", evidence="c2")
+    tc.set_status("tc-abs", "pass"); tc.set_status("tc-abs", "closed")
+    # closed 吸收态: add_round/settle 全拒
+    with pytest.raises(ValueError, match="closed"):
+        tc.add_round("tc-abs", "a", "info", [])
+    with pytest.raises(ValueError, match="closed"):
+        tc.settle("tc-abs", "whatever", evidence="e")

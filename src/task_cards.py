@@ -52,7 +52,7 @@ def create_card(title: str, criteria: List[str], owner: str = "",
     """
     if not title or not title.strip():
         raise ValueError("title 不能为空")
-    criteria = [c.strip() for c in (criteria or []) if c and c.strip()]  # v3.135.2: 空白串过滤
+    criteria = [c.strip() for c in (criteria or []) if c and c.strip()]  # 空白串过滤
     if not criteria:
         raise ValueError("criteria (预注册判据) 不能为空 — 防事后移动球门")
     tid = tid or f"tc-{int(time.time()*1000):x}-{uuid.uuid4().hex[:4]}"
@@ -168,12 +168,24 @@ def add_round(tid: str, auditor: str, verdict: str,
     """记录一轮审计 — findings 里的开放问题自动入挂账 (ledger)."""
     if verdict not in ("pass", "cond", "fail", "info"):
         raise ValueError("verdict: pass/cond/fail/info")
+    # v3.135.4 (002codex f37fce7a): closed 吸收态拒绝新轮次;
+    # pass 态加开放 >=floor 挂账 → 自动降级 review (防 pass+open P2 不一致态, 18/100 实证)
+    _pre = get_card(tid)
+    if _pre["status"] == "closed":
+        raise ValueError("任务卡已 closed — 吸收态不接受新审计轮 (如需重开走 v3 流程新卡)")
     findings = findings or []
     for f in findings:
         if f.get("sev") not in _SEVERITIES:
             raise ValueError(f"finding.sev 非法: {f.get('sev')} (P1-P4)")
 
     def _mut(card):
+        # 锁内重验吸收态 (并发 closed 竞态)
+        if card["status"] == "closed":
+            raise ValueError("任务卡已 closed — 吸收态不接受新审计轮")
+        _floor = card.get("severity_floor", "P2")
+        _new_blocking = any(_sev_ge(f.get("sev", "P4"), _floor) for f in findings)
+        if card["status"] == "pass" and _new_blocking:
+            card["status"] = "review"  # pass 被新阻断级挂账推翻 → 回 review (一致性保持)
         rnd = {"n": len(card["rounds"]) + 1,
                "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
                "auditor": auditor or "unknown",
@@ -193,6 +205,8 @@ def settle(tid: str, note_match: str, evidence: str = "") -> Dict[str, Any]:
     if not evidence:
         raise ValueError("清偿必须带 evidence (SHA/commit/URL — 无证据不销账)")
     def _mut(card):
+        if card["status"] == "closed":
+            raise ValueError("任务卡已 closed — 吸收态不接受清偿操作")
         hit = 0
         for e in card["ledger"]:
             if e["status"] == "open" and note_match and note_match in e["note"]:
