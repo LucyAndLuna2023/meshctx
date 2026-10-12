@@ -15,11 +15,14 @@ from typing import Any, Dict, List, Optional
 import sys
 import time
 
-try:
-    from cluster_comm_v6 import get_redis, MACHINE_ID  # type: ignore
-except ImportError:
-    _c = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "cluster")
+# v7.0 迁移 (004zcode): v7 优先, v6 回退 — 集群标准已升 v7.0 (a6643f61),
+# v6 模块保留过渡期; 裸 import 依赖 sys.path 恰含 cluster/ 的隐式行为已消除。
+_c = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "cluster")
+if _c not in sys.path:
     sys.path.insert(0, _c)
+try:
+    from cluster_comm_v7 import get_redis, MACHINE_ID  # type: ignore
+except ImportError:
     from cluster_comm_v6 import get_redis, MACHINE_ID  # type: ignore
 
 HEARTBEAT_STALE_SEC = 300
