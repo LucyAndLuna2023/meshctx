@@ -407,7 +407,9 @@ function rowHtml(m, ready){
     '<span class="dot ' + dot + '"></span>' +
     '<span>' + iconOf(m.provider) + '</span>' +
     '<div class="main"><div class="mid">' + esc(m.model_name || m.id) + '<span class="star">★</span></div>' +
-    '<div class="sub2">' + esc(m.provider_name || m.provider) + ' · ' + esc(m.id) + '</div></div>' +
+    '<div class="sub2">' + esc(m.provider_name || m.provider) + ' · ' + esc(m.id) +
+      (m.base_url ? ' · <span title="' + esc(m.base_url) + '" style="opacity:.65">' + esc(m.base_url.replace(/^https?:\/\//,'').slice(0,42)) + '</span>' : '') +
+    '</div></div>' +
     healthBadge(m.provider) +
     '<span class="msg" id="msg-' + esc(m.id).replace(/[^a-zA-Z0-9_-]/g,'_') + '" style="font-size:.72rem;color:var(--muted)"></span>' +
     (ready
