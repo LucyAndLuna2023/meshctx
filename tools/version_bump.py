@@ -79,12 +79,10 @@ else:
     print("⚠ DESKTOP_VERSION 常量未找到 — desktop 版本未 bump (人工检查)")
 
 # ── 阶段 2: 残留扫描 (内存文本优先, 不写盘) ───────────────
-scan_paths = (list(pathlib.Path("src").rglob("*.py"))
-              + list(pathlib.Path("tools").glob("*.py"))
-              + list(pathlib.Path("tests").rglob("*.py"))
-              + list(pathlib.Path(".").glob("*.py"))
-              + list(pathlib.Path("templates").glob("*.html"))
-              + list(pathlib.Path(".").glob("*.md")))
+# v3.135.1 (002zcode 设计备忘根治): 残留扫描只查 FILES 白名单 (这些文件本就该只有
+# 当前版本号); src/tools/templates/tests 的注释/探针引用不扫 (合法历史记载与测试输入)
+scan_paths = ([pathlib.Path(f) for f in FILES if pathlib.Path(f).is_file()]
+              + [p for p in pathlib.Path("src").rglob("*.py")])  # src 全量 (注释/docstring 已豁免)
 left = []
 for p in scan_paths:
     sp = str(p)

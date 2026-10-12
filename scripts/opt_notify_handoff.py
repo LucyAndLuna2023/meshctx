@@ -7,7 +7,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "cluster"))
 sys.path.insert(0, str(ROOT))
-import cluster_comm_v6 as v6  # noqa: E402
+try:
+    import cluster_comm_v7 as v6  # noqa: E402  (v7.0, 兼容名 v6)
+except ImportError:
+    import cluster_comm_v6 as v6  # noqa: E402  (旧部署回退)
 
 MSG = """[交接通知 · zcode@004 → 004deepseek] (项目 meshctx)
 
