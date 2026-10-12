@@ -50,6 +50,13 @@ h1{font-size:1.35rem;margin-bottom:4px}h1 span{color:var(--accent)}
 .row .dot.ok{background:var(--green)}.row .dot.bad{background:var(--red)}
 .row .main{flex:1;min-width:0}
 .row .mid{font-weight:600;font-size:0.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.edit-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:9999}
+.edit-modal.show{display:flex}
+.edit-box{background:var(--surface,#161b22);border:1px solid var(--border,#2a3350);border-radius:10px;padding:18px;width:min(420px,92vw);max-height:86vh;overflow-y:auto}
+.edit-box h4{margin:0 0 10px;font-size:.95rem}
+.edit-box label{display:block;font-size:.75rem;color:var(--muted,#8b9bbf);margin:8px 0 3px}
+.edit-box input{width:100%;box-sizing:border-box;background:var(--bg,#0d1120);border:1px solid var(--border,#2a3350);border-radius:6px;color:var(--text,#e6edf3);padding:7px 10px;font-size:.85rem}
+.edit-box .btns{display:flex;gap:8px;margin-top:14px;justify-content:flex-end}
 .row .sub2{color:var(--muted);font-size:0.76rem;margin-top:1px}
 .row .star{color:var(--amber);font-size:0.9rem;margin-left:6px;display:none}
 .row.is-current .star{display:inline}
@@ -418,6 +425,7 @@ function rowHtml(m, ready){
                : '<button class="btn primary" onclick="useModel(\'' + esc(m.id) + '\',this)">' + T('hub_use','Use') + '</button>') +
         '<button class="btn danger" onclick="delModel(\'' + esc(m.id) + '\')">✕</button>'
       : '<button class="btn" onclick="fillKey(\'' + esc(m.id) + '\')">' + T('hub_fill_key','Add key') + '</button>') +
+    '<button class="btn" title="Edit endpoint/key" onclick="editModel(\'' + esc(m.id) + '\')">✎</button>' +
     '</div>';
 }
 
@@ -815,6 +823,46 @@ loadEvoStatus();
   // 清理 URL 参数避免刷新重复弹
   window.history.replaceState({}, '', window.location.pathname);
 })();
+</script>
+<div class="edit-modal" id="editModal" onclick="if(event.target===this)closeEdit()">
+  <div class="edit-box">
+    <h4 id="editTitle">Edit model</h4>
+    <label>Base URL</label>
+    <input id="editBaseUrl" placeholder="https://open.bigmodel.cn/api/coding/paas/v4">
+    <label>API Key</label>
+    <input id="editKey" type="password" placeholder="(unchanged if empty)">
+    <label>Model name</label>
+    <input id="editModelName" placeholder="glm-5.3">
+    <div class="btns">
+      <button class="btn" onclick="closeEdit()">Cancel</button>
+      <button class="btn primary" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+<script>
+var EDIT_ID = null;
+function editModel(id){
+  EDIT_ID = id;
+  var m = (MODELS||[]).find(function(x){return x.id===id;}) || {};
+  document.getElementById('editTitle').textContent = 'Edit: ' + id;
+  document.getElementById('editBaseUrl').value = m.base_url || '';
+  document.getElementById('editModelName').value = m.model_name || '';
+  document.getElementById('editKey').value = '';
+  document.getElementById('editModal').classList.add('show');
+}
+function closeEdit(){ document.getElementById('editModal').classList.remove('show'); EDIT_ID = null; }
+function saveEdit(){
+  if (!EDIT_ID) return;
+  var payload = {base_url: document.getElementById('editBaseUrl').value.trim()};
+  var k = document.getElementById('editKey').value.trim();
+  if (k) payload.key = k;
+  var mn = document.getElementById('editModelName').value.trim();
+  if (mn) payload.model = mn;
+  fetch('/api/models/' + encodeURIComponent(EDIT_ID), {method:'PUT',
+    headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)})
+  .then(function(r){ if(!r.ok) throw 0; closeEdit(); return loadModels(); })
+  .catch(function(){ alert('Save failed'); });
+}
 </script>
 </body>
 </html>
