@@ -107,7 +107,7 @@ def _locked_update(tid: str, mutator) -> Dict[str, Any]:
     import fcntl
     _valid_id(tid) or (_ for _ in ()).throw(ValueError(f"非法任务 id: {tid}"))
     lock = _tasks_dir() / f".{tid}.lock"
-    with open(lock, "w") as lf:
+    with open(lock, "w", encoding="utf-8") as lf:  # v3.129 编码铁律: text-mode open 必带 encoding
         fcntl.flock(lf.fileno(), fcntl.LOCK_EX)
         try:
             card = get_card(tid)
