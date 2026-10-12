@@ -80,3 +80,31 @@ def test_blank_criteria_rejected(tmp_path, monkeypatch):
     monkeypatch.setenv("MESHCTX_HOME", str(tmp_path))
     with pytest.raises(ValueError):
         tc.create_card("x", criteria=["  ", ""])
+
+
+def test_concurrent_settle_and_status_no_stale_pass(tmp_path, monkeypatch):
+    """v3.135.3 002codex: set_status 未锁 → stale pass 可覆写 settled ledger — 并发终态守门."""
+    import concurrent.futures
+    monkeypatch.setenv("MESHCTX_HOME", str(tmp_path))
+    tc.create_card("并发终态", criteria=["c"], tid="tc-sp")
+    tc.set_status("tc-sp", "in_progress")
+    tc.add_round("tc-sp", "aud", "fail", [{"sev": "P2", "note": "bug1", "evidence": "e"}])
+    tc.set_status("tc-sp", "review")
+    def _settle(_):
+        try:
+            return tc.settle("tc-sp", "bug1", evidence="commit xyz")
+        except ValueError:
+            return "already-settled"  # 只有一条挂账, 并发后续 settle 抛错是合法
+    def _try_pass(_):
+        try:
+            return tc.set_status("tc-sp", "pass")
+        except ValueError:
+            return "blocked"
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+        futs = [ex.submit(_settle, i) for i in range(4)] + [ex.submit(_try_pass, i) for i in range(4)]
+        results = [f.result() for f in futs]
+    final = tc.get_card("tc-sp")
+    # 终态一致性: 若 pass 成立则 P2 必须全部 settled (锁内重验语义)
+    if final["status"] == "pass":
+        open_p2 = [e for e in final["ledger"] if e["status"] == "open" and e["sev"] == "P2"]
+        assert not open_p2, f"stale pass! 开放 P2 挂账: {open_p2}"

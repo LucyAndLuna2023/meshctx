@@ -1,3 +1,9 @@
+## [v3.135.2] - 2026-10-12 (002codex v3.135.0/1 FAIL 清偿)
+
+- Task Cards 并发根修: _locked_update 读-改-写全程 flock + _save 纯原子写 + 重入死锁根除 (并发回归 10/10)
+- 空白 criteria 绕过根修 + 坏 JSON 容错 + CHANGELOG/body 补齐
+- 已知残项: set_status 未锁 (v3.135.3 修) / 锁文件 encoding (51603915 已修)
+
 ## [v3.135.0] - 2026-10-12 (任务卡管理系统 — 参考 zcode 审计工作流)
 
 - 预注册判据冻结 / 状态机七态 / 审计轮次 P1-P4 自动挂账 / 无证据不销账 / severity_floor 门槛

@@ -140,22 +140,23 @@ def _open_count(card: Dict[str, Any]) -> int:
 
 
 def set_status(tid: str, status: str) -> Dict[str, Any]:
-    card = get_card(tid)
     if status not in _STATUS_FLOW:
         raise ValueError(f"非法状态: {status} (合法: {sorted(_STATUS_FLOW)})")
-    allowed = _STATUS_FLOW[card["status"]]
-    if status not in allowed:
-        raise ValueError(f"状态转移不允许: {card['status']} → {status} (合法目标: {sorted(allowed)})")
-    # pass/cond 前置: 高于门槛的挂账必须全部清偿
-    if status in ("pass", "cond") and status == "pass":
-        blocking = [e for e in card.get("ledger", [])
-                    if e.get("status") == "open" and _sev_ge(e["sev"], card["severity_floor"])]
-        if blocking:
-            raise ValueError(f"存在 {len(blocking)} 条未清偿的 >= {card['severity_floor']} 挂账, "
-                             f"不能 pass: {[e['note'][:40] for e in blocking]}")
-    card["status"] = status
-    _save(card)
-    return card
+
+    def _mut(card):
+        allowed = _STATUS_FLOW[card["status"]]
+        if status not in allowed:
+            raise ValueError(f"状态转移不允许: {card['status']} → {status} (合法目标: {sorted(allowed)})")
+        # pass 前置: 高于门槛的挂账必须全部清偿 (在锁内重验 — v3.135.3 002codex: stale pass 根修)
+        if status == "pass":
+            blocking = [e for e in card.get("ledger", [])
+                        if e.get("status") == "open" and _sev_ge(e["sev"], card["severity_floor"])]
+            if blocking:
+                raise ValueError(f"存在 {len(blocking)} 条未清偿的 >= {card['severity_floor']} 挂账, "
+                                 f"不能 pass: {[e['note'][:40] for e in blocking]}")
+        card["status"] = status
+
+    return _locked_update(tid, _mut)
 
 
 def _sev_ge(a: str, b: str) -> bool:
