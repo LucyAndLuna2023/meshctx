@@ -295,16 +295,22 @@ async def lifespan(app: FastAPI):
 
     # v2.13: 自动激活内置插件
     try:
+        # v3.134.3 (002meshctx round70 P3-①): 函数是同步返回 int — 原 await 一个 int
+        # 抛 TypeError 被 lifespan except 静默吞 → 插件自动激活自上线起从未生效
         from .core.plugin_autoload import auto_activate_builtins
-        builtin_count = await auto_activate_builtins(_kernel)
+        _res = auto_activate_builtins(_kernel)
+        import inspect as _insp
+        builtin_count = (await _res) if _insp.iscoroutine(_res) else _res
         logger.info(f"内置插件自动激活: {builtin_count}")
     except Exception as e:
         logger.warning(f"内置插件自动激活跳过: {e}")
 
     # v2.13: 启动WebSocket实时推送
     try:
-        from .core.realtime_push import get_hub
-        asyncio.create_task(get_hub().start())
+        # v3.134.3 (002meshctx round70 P3-②): 实际导出名是 get_realtime — 原 get_hub
+        # ImportError 被静默吞 → WS 推送自上线起从未生效
+        from .core.realtime_push import get_realtime as _get_rt
+        asyncio.create_task(_get_rt().start())
         logger.info("WebSocket实时推送已启动 (2s间隔)")
     except Exception as e:
         logger.warning(f"WebSocket实时推送跳过: {e}")
@@ -2644,8 +2650,15 @@ async def run_benchmark():
     # 延迟测试
     t0 = _time.time()
     try:
-        # v3.134.2: 同测试连接标准 — 按模型配置自适应 (默认 512, 推理模型 reasoning 需 76+)
-        _lat_budget = int(self.cfg.get("test_max_tokens", 512)) if hasattr(self, 'cfg') else 512
+        # v3.134.3 (002codex P1-3 根修): 本函数模块级无 self — 原写法 hasattr(self..)
+        # 在 self 未定义时 NameError (v3.134.2 引入)。改从 registry 条目读, 同测试连接标准。
+        _lat_budget = 512
+        try:
+            from src.model_registry import get_registry as _gr
+            _cfg_lat = _gr()._entries.get(current, {})
+            _lat_budget = int(_cfg_lat.get("test_max_tokens", 512))
+        except Exception:
+            pass
         resp = client.chat.completions.create(model=client.model_name, messages=test_messages, max_tokens=_lat_budget, temperature=0)
         elapsed = _time.time() - t0
         results["latency_ms"] = round(elapsed * 1000, 1)
@@ -3519,7 +3532,11 @@ async def test_model_connection(model_id: str):
         content = str(response.get("content", "")).strip()
         # 检测假成功 (错误消息伪装) — v3.134.0 错误透传后含 [1113] 等具体码
         if content.startswith("[错误") or content.startswith("[模型调用失败") \
-                or "Error" in content or "error" in content.lower():
+                or content.startswith("[流式错误") \
+                or "Error" in content or "error" in content.lower() \
+                or "insufficient" in content.lower() or "余额不足" in content \
+                or "rate limit" in content.lower() or "unauthorized" in content.lower() \
+                or "forbidden" in content.lower() or "timeout" in content.lower():
             test_detail = f"API返回错误: {content[:200]}"
             return {"status": "error", "message": test_detail}
         test_ok = True
@@ -6430,6 +6447,10 @@ async def install_plugin_url(req: Request):
         raise HTTPException(400)
     url = (body.get("url") or "").strip()
     if not url: raise HTTPException(400, t('error_missing_url_short'))
+    # v3.134.3 (002meshctx round70 P2): SSRF 守卫 — 与 discover 同标准 (fd00/169.254 等私网拦截)
+    _priv = _discover_private_reason(url)
+    if _priv:
+        raise HTTPException(400, f"Blocked: {_priv}")
     # Validate URL before attempting request
     import urllib.parse as urlparse
     parsed = urlparse.urlparse(url)

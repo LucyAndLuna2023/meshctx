@@ -1,3 +1,27 @@
+## [v3.134.3] - 2026-10-12 (002codex v3.134.2 FAIL 全清偿 + 002meshctx round70 新发现修复)
+
+### Fixed (002codex 4286f23e FAIL 项)
+- P1-1 install-mac.sh/docs 手动启动 fallback: uvicorn --host 0.0.0.0 → 127.0.0.1
+  (LAN 无凭据 /api/models=200 裸暴露根除; 实际 0.0.0.0 绑定代码全仓清零)
+- P1-2 tools/hub_board.py v6 残留: 已由 0ad4b2f6 (004zcode) 修复收编
+- P1-3 /api/benchmark/run self.cfg NameError (v3.134.2 引入): 模块级函数无 self —
+  改从 registry 条目读 test_max_tokens (同测试连接标准)
+- P2-1 [1113] 假成功: 判定收紧 (+[流式错误]前缀/insufficient/余额不足/rate limit/
+  unauthorized/forbidden/timeout)
+- release body: 本版发布时同步填写
+
+### Fixed (002meshctx round70 新发现)
+- P2 /api/plugins/install-url SSRF 守卫 (v2.12 历史缺口): 补 _discover_private_reason
+  与 discover 同标准 (fd00/169.254 私网拦截)
+- P3-① auto_activate_builtins await int TypeError 静默: 插件自动激活自上线从未生效 —
+  改 iscoroutine 自适应
+- P3-② realtime_push get_hub ImportError 静默: 实际导出名 get_realtime — WS 推送
+  自上线从未生效, 已接通
+
+### 收编
+- 99832076 AUTH_DISABLED 安全根修 (002meshctx/002zcode 双 PASS, 本版入 artifact)
+- 0ad4b2f6 hub_board v7 import (004zcode)
+
 ## [v3.134.2] - 2026-10-12 (测试预算按模型配置自适应 — 用户指令: 不得硬编码)
 
 ### Fixed
