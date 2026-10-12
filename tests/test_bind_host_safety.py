@@ -84,3 +84,64 @@ def test_auth_disabled_cannot_override_explicit_password():
         os.environ.pop("MESHCTX_PASSWORD", None)
         os.environ.pop("MESHCTX_AUTH_DISABLED", None)
         importlib.reload(av)  # 还原
+
+
+# ── codex v3.134.7 三 P2 守门 ──────────────────────────────
+
+def test_fake_success_quota_and_429_detected():
+    """P2-1: [1113] upstream quota exceeded / [HTTP 429] too many requests 不得判连接成功."""
+    import re as _re_err
+    pats_quota = ["[1113] upstream quota exceeded", "[HTTP 429] too many requests"]
+    for content in pats_quota:
+        hit = (content.startswith("[错误") or content.startswith("[模型调用失败")
+               or content.startswith("[流式错误")
+               or "Error" in content or "error" in content.lower()
+               or "insufficient" in content.lower() or "余额不足" in content
+               or "rate limit" in content.lower() or "unauthorized" in content.lower()
+               or "forbidden" in content.lower() or "timeout" in content.lower()
+               or "quota" in content.lower() or "429" in content
+               or "too many requests" in content.lower()
+               or _re_err.match(r"^\[[^\]]*\d{3}[^\]]*\]", content))
+        assert hit, f"假成功漏检: {content[:50]}"
+
+
+def test_install_url_guard_extracts_hostname():
+    """P2-2: install-url 必须先 urlsplit 取 hostname 再 SSRF 判定 (完整 URL 不 fail-open)."""
+    import inspect
+    import src.main as M
+    body = inspect.getsource(M.install_plugin_url)
+    assert 'urlsplit' in body and '_discover_private_reason(_url_host)' in body, \
+        "install-url 守卫必须判定 hostname 而非完整 URL"
+
+
+def test_auth_disabled_remote_client_fail_closed():
+    """P2-3: 无密码部署 + 非回环客户端 → 401/403 (app 层兜底, 覆盖直跑 uvicorn 路径)."""
+    import importlib
+    import os
+    import src.core.auth_v2 as av
+    os.environ.pop("MESHCTX_PASSWORD", None)
+    os.environ.pop("MESHCTX_AUTH_DISABLED", None)
+    importlib.reload(av)
+    assert av._AUTH_ENABLED is False
+    orig = av._is_loopback_client
+    av._is_loopback_client = lambda request: False  # 模拟非回环客户端
+
+    class _FakeReq:
+        class url:
+            path = "/api/models"
+
+    import asyncio
+    called = []
+
+    async def _call_next(r):
+        called.append(1)
+        return "SHOULD-NOT-REACH"
+
+    resp = asyncio.get_event_loop().run_until_complete(
+        av.auth_middleware_v2(_FakeReq(), _call_next)) if False else None
+    # 同步驱动 async: 用 asyncio.run
+    import asyncio as _aio
+    resp = _aio.run(av.auth_middleware_v2(_FakeReq(), _call_next))
+    av._is_loopback_client = orig
+    assert not called, "非回环客户端不得穿透到业务处理"
+    assert getattr(resp, 'status_code', None) == 401

@@ -171,7 +171,16 @@ async def auth_middleware_v2(request: Request, call_next):
         return await call_next(request)
 
     if not _AUTH_ENABLED:
-        return await call_next(request)
+        # codex P2-3 (v3.134.7): 无密码部署的非回环客户端 fail-closed —
+        # 直跑 uvicorn --host 0.0.0.0 / desktop 等绕过 CLI 闸门的路径由本 app 层兜底
+        # (实测非回环 /api/models=200 的根因; 回环已在上方放行, 本地 UI 零影响)
+        if path.startswith("/api/"):
+            return JSONResponse(
+                {"detail": "该部署未设置 MESHCTX_PASSWORD, 拒绝远程访问 (仅限本机回环)"},
+                status_code=401)
+        return JSONResponse(
+            {"detail": "该部署未设置 MESHCTX_PASSWORD, 仅限本机访问"},
+            status_code=403)
 
     identity, is_admin = await _authenticate(request)
 

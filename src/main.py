@@ -3528,7 +3528,7 @@ async def test_model_connection(model_id: str):
         _test_budget = int(cfg.get("test_max_tokens", 512))
         _test_timeout = float(cfg.get("test_timeout", 45))
         # v3.134.4: 测试消息加时间戳 — 防网关侧响应缓存命中假成功 (004 实测同请求 0.0s 返回)
-        _probe_msg = f"Hi [{int(time.time()*1000)}]"
+        # (时间戳在实际调用处内联生成, 每次尝试都新鲜 — 本变量已除, P4)
         # v3.134.5: 429 自动重试 — 包月旗舰并发低 (2~5 路), 后台 agent 常驻调用时
         # 交互式测试连接易撞并发上限; 等 2s 重试一次 (带新时间戳防缓存)
         import asyncio as _aio
@@ -3548,12 +3548,17 @@ async def test_model_connection(model_id: str):
                 raise
         content = str(response.get("content", "")).strip()
         # 检测假成功 (错误消息伪装) — v3.134.0 错误透传后含 [1113] 等具体码
+        # codex P2-1 (v3.134.7): 补 quota/429/too many requests + 泛化 [..数字码..] 前缀
+        import re as _re_err
         if content.startswith("[错误") or content.startswith("[模型调用失败") \
                 or content.startswith("[流式错误") \
                 or "Error" in content or "error" in content.lower() \
                 or "insufficient" in content.lower() or "余额不足" in content \
                 or "rate limit" in content.lower() or "unauthorized" in content.lower() \
-                or "forbidden" in content.lower() or "timeout" in content.lower():
+                or "forbidden" in content.lower() or "timeout" in content.lower() \
+                or "quota" in content.lower() or "429" in content \
+                or "too many requests" in content.lower() \
+                or _re_err.match(r"^\[[^\]]*\d{3}[^\]]*\]", content):
             test_detail = f"API返回错误: {content[:200]}"
             return {"status": "error", "message": test_detail}
         test_ok = True
@@ -6469,7 +6474,14 @@ async def install_plugin_url(req: Request):
     url = (body.get("url") or "").strip()
     if not url: raise HTTPException(400, t('error_missing_url_short'))
     # v3.134.3 (002meshctx round70 P2): SSRF 守卫 — 与 discover 同标准 (fd00/169.254 等私网拦截)
-    _priv = _discover_private_reason(url)
+    # codex P2-2 (v3.134.7) 根修: 原实现把完整 URL 传给按 host 处理的
+    # _discover_private_reason → getaddrinfo 解析整串 URL 必失败 → except fail-open,
+    # 守卫纯装饰 (完整 URL 私网命中 200 实证)。先 urlsplit 取 hostname 再判定。
+    from urllib.parse import urlsplit as _us2
+    _url_host = (_us2(url).hostname or "")
+    if not _url_host:
+        raise HTTPException(400, f"无效的URL: {url}")
+    _priv = _discover_private_reason(_url_host)
     if _priv:
         raise HTTPException(400, f"Blocked: {_priv}")
     # Validate URL before attempting request

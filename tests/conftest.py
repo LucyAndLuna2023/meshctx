@@ -86,6 +86,19 @@ def _clear_rate_limits():
 
 
 @pytest.fixture(autouse=True)
+def _test_client_is_loopback(monkeypatch):
+    """codex P2-3 适配: TestClient 主机 (testclient) 非回环, 而测试语义=本机用户 —
+    默认按回环放行; 专测远程拒绝的用例自行 monkeypatch _is_loopback_client=False."""
+    try:
+        import src.core.auth_v2 as _av
+        if not hasattr(_av, "__real_is_loopback_client"):
+            _av.__real_is_loopback_client = _av._is_loopback_client  # 存真身供单测引用
+        monkeypatch.setattr(_av, "_is_loopback_client", lambda request: True, raising=False)
+    except Exception:
+        pass
+
+
+@pytest.fixture(autouse=True)
 def _reset_global_state():
     """每个测试前后重置全局单例，防止测试间状态污染。
 

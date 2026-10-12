@@ -40,8 +40,11 @@ class _FakeRequest:
     ("", False),
 ])
 def test_loopback_detection(host, expect_local):
-    from src.core.auth_v2 import _is_loopback_client
-    assert _is_loopback_client(_FakeRequest(host)) is expect_local
+    # 用真身判定: conftest 的回环适配 (TestClient=本机用户语义) 会盖掉模块属性,
+    # 而本用例单测的就是 _is_loopback_client 本身
+    import src.core.auth_v2 as _av
+    real = getattr(_av, "__real_is_loopback_client", None) or _av._is_loopback_client
+    assert real(_FakeRequest(host)) is expect_local
 
 
 def test_auth_disabled_without_password(monkeypatch):
