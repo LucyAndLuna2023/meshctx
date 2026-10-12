@@ -9555,3 +9555,68 @@ try:
 except Exception as _e:
     import logging as _log_ent2
     _log_ent2.getLogger("meshctx.edition").warning(f"隐藏路由失败: {_e}")
+
+
+# ═══ 任务卡管理系统 (v3.135.0, 参考 zcode 审计工作流) ═══════════════════
+
+@app.get("/api/taskcards")
+async def taskcards_list(status: str = None, owner: str = None):
+    from src.task_cards import list_cards, summary
+    return {"cards": list_cards(status=status, owner=owner), "summary": summary()}
+
+
+@app.post("/api/taskcards")
+async def taskcards_create(request: Request):
+    from src.task_cards import create_card
+    body = await request.json()
+    try:
+        card = create_card(title=body.get("title", ""),
+                           criteria=body.get("criteria") or [],
+                           owner=body.get("owner", ""),
+                           severity_floor=body.get("severity_floor", "P2"),
+                           tid=body.get("id", ""))
+        return {"ok": True, "card": card}
+    except (ValueError, FileExistsError) as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get("/api/taskcards/{tid}")
+async def taskcards_get(tid: str):
+    from src.task_cards import get_card
+    try:
+        return get_card(tid)
+    except (ValueError, FileNotFoundError) as e:
+        raise HTTPException(404, str(e))
+
+
+@app.post("/api/taskcards/{tid}/status")
+async def taskcards_status(tid: str, request: Request):
+    from src.task_cards import set_status
+    body = await request.json()
+    try:
+        return {"ok": True, "card": set_status(tid, body.get("status", ""))}
+    except (ValueError, FileNotFoundError) as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/taskcards/{tid}/round")
+async def taskcards_round(tid: str, request: Request):
+    from src.task_cards import add_round
+    body = await request.json()
+    try:
+        return {"ok": True, "card": add_round(tid, body.get("auditor", ""),
+                                              body.get("verdict", "info"),
+                                              body.get("findings"))}
+    except (ValueError, FileNotFoundError) as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/taskcards/{tid}/settle")
+async def taskcards_settle(tid: str, request: Request):
+    from src.task_cards import settle
+    body = await request.json()
+    try:
+        return {"ok": True, "card": settle(tid, body.get("match", ""),
+                                           body.get("evidence", ""))}
+    except (ValueError, FileNotFoundError) as e:
+        raise HTTPException(400, str(e))

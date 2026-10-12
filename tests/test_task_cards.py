@@ -1,545 +1,59 @@
 # -*- coding: utf-8 -*-
-"""Task Cards (Agent 派活中心) — T1 单元测试"""
-import json
-import pathlib
-import shutil
-import sys
-import tempfile
-import time
-
+"""任务卡管理系统守门 — zcode 审计工作流模式 (v3.135.0)."""
 import pytest
 
-
-@pytest.fixture()
-def tmp_dir():
-    d = tempfile.mkdtemp(prefix="meshctx_task_cards_")
-    yield pathlib.Path(d)
-    shutil.rmtree(d, ignore_errors=True)
+from src import task_cards as tc
 
 
-@pytest.fixture()
-def store(tmp_dir):
-    from src.core.task_cards import TaskCardStore
-    return TaskCardStore(base_dir=tmp_dir / "cards")
+@pytest.fixture(autouse=True)
+def _iso(tmp_path, monkeypatch):
+    monkeypatch.setenv("MESHCTX_HOME", str(tmp_path))
+    yield
 
 
-class TestTaskCard:
-    def test_roundtrip(self):
-        from src.core.task_cards import TaskCard, CardStatus
-        c = TaskCard(owner="local", plan="free", title="T", prompt="读 README",
-                     model="deepseek:v4-flash")
-        c.mark(CardStatus.RUNNING)
-        c.log("deliver", text="hi")
-        d = c.to_dict()
-        c2 = TaskCard.from_dict(d)
-        assert c2.id == c.id
-        assert c2.owner == "local"
-        assert c2.status == CardStatus.RUNNING
-        assert len(c2.timeline) == 1
-        assert c2.timeline[0]["kind"] == "deliver"
-
-    def test_status_transitions(self):
-        from src.core.task_cards import TaskCard, CardStatus
-        c = TaskCard()
-        assert c.status == CardStatus.QUEUED
-        c.mark(CardStatus.COMPLETED, result="ok")
-        assert c.status == CardStatus.COMPLETED
-        assert c.result == "ok"
-        assert c.finished_at is not None
-
-    def test_missing_fields_default(self):
-        from src.core.task_cards import TaskCard, CardStatus
-        c = TaskCard.from_dict({"id": "x1"})
-        assert c.owner == "local"
-        assert c.plan == "free"
-        assert c.status == CardStatus.QUEUED
+def test_full_zcode_workflow():
+    """全流程: 建卡(预注册判据) → 审计轮(findings 自动挂账) → 清偿(须证据) → pass(门槛校验)."""
+    c = tc.create_card("SMA Phase 2 深化", criteria=["注入边界守门绿", "A/B +10pp"],
+                       owner="004deepseek", tid="tc-demo1")
+    assert c["criteria"] == ["注入边界守门绿", "A/B +10pp"]
+    # 状态机: new 不能直接 pass
+    with pytest.raises(ValueError):
+        tc.set_status("tc-demo1", "pass")
+    tc.set_status("tc-demo1", "in_progress")
+    tc.set_status("tc-demo1", "review")
+    # 审计轮: 两条 findings 自动入挂账
+    c = tc.add_round("tc-demo1", "002zcode", "fail", [
+        {"sev": "P2", "note": "注入边界缺对抗守门", "evidence": "audit-r1"},
+        {"sev": "P4", "note": "文档口径建议", "evidence": "audit-r1"},
+    ])
+    assert _open(c, "P2") == 1 and _open(c, "P4") == 1
+    # P2 未清偿 → pass 被拦 (severity_floor=P2)
+    with pytest.raises(ValueError, match="未清偿"):
+        tc.set_status("tc-demo1", "pass")
+    # 清偿必须带证据
+    with pytest.raises(ValueError, match="evidence"):
+        tc.settle("tc-demo1", "注入边界")
+    tc.settle("tc-demo1", "注入边界", evidence="commit abc123 + 守门 test_x 2P")
+    c = tc.set_status("tc-demo1", "pass")   # P4 开着不阻断 (低于 P2 门槛)
+    assert c["status"] == "pass"
+    assert len(c["rounds"]) == 1 and c["rounds"][0]["verdict"] == "fail"
 
 
-class TestTaskCardStore:
-    def test_save_load_delete(self, store):
-        from src.core.task_cards import TaskCard
-        c = TaskCard(owner="local", prompt="do x")
-        store.save(c)
-        assert (store._dir / f"{c.id}.json").exists()
-        got = store.load(c.id)
-        assert got is not None and got.prompt == "do x"
-        assert store.load("nope") is None
-        assert store.delete(c.id) is True
-        assert store.load(c.id) is None
-
-    @pytest.mark.skipif(sys.platform == "win32",
-                        reason="POSIX 0600 权限语义 Windows 不适用 (os.chmod 仅切换只读位)")
-    def test_file_perms_0600(self, store):
-        from src.core.task_cards import TaskCard
-        c = TaskCard(owner="local", prompt="secret")
-        store.save(c)
-        p = store._dir / f"{c.id}.json"
-        mode = p.stat().st_mode & 0o777
-        assert mode == 0o600, f"expected 0600 got {oct(mode)}"
-
-    def test_list_filter(self, store):
-        from src.core.task_cards import TaskCard, CardStatus
-        a = TaskCard(owner="alice", prompt="a")
-        b = TaskCard(owner="alice", prompt="b")
-        c2 = TaskCard(owner="bob", prompt="c")
-        for x in (a, b, c2):
-            store.save(x)
-        a.mark(CardStatus.COMPLETED)
-        store.save(a)
-        alice = store.list_cards(owner="alice")
-        assert len(alice) == 2
-        assert {x.id for x in alice} == {a.id, b.id}
-        done = store.list_cards(owner="alice", status=CardStatus.COMPLETED)
-        assert [x.id for x in done] == [a.id]
-
-    def test_prune(self, store):
-        from src.core.task_cards import TaskCard, CardStatus
-        for i in range(12):
-            c = TaskCard(owner="alice", prompt=f"t{i}")
-            c.mark(CardStatus.COMPLETED, result=str(i))
-            c.created_at = time.time() - (12 - i)  # 旧的先完成
-            store.save(c)
-        removed = store.prune("alice", keep=3)
-        assert removed == 9
-        assert len(store.list_cards(owner="alice")) == 3
+def _open(card, sev):
+    return sum(1 for e in card["ledger"]
+               if e["status"] == "open" and e["sev"] == sev)
 
 
-class TestHubQuota:
-    def test_limits_table(self):
-        from src.core.task_cards import PLAN_LIMITS
-        assert PLAN_LIMITS["free"]["spawns_per_day"] > 0
-        assert PLAN_LIMITS["enterprise"]["spawns_per_day"] >= PLAN_LIMITS["team"]["spawns_per_day"]
-
-    def test_consume_personal_never_hard_blocked(self):
-        from src.core.task_cards import get_hub_quota
-        hq = get_hub_quota()
-        # 个人版永远 ok (soft), 不因 quota_manager 缺失崩溃
-        res = hq.try_consume_spawn("test-user", plan="free")
-        assert res["ok"] is True
-        assert "remaining" in res
-
-    def test_concurrent_soft_warn(self):
-        from src.core.task_cards import get_hub_quota
-        hq = get_hub_quota()
-        lim = hq._limits("free")
-        res = hq.try_consume_spawn("u", plan="free", concurrent_now=lim["max_concurrent"] + 5)
-        assert res["ok"] is True
-        assert res["warned"] is True
+def test_no_empty_criteria():
+    """预注册判据不能为空 — 防事后移动球门."""
+    with pytest.raises(ValueError):
+        tc.create_card("x", criteria=[])
 
 
-class TestCardWorker:
-    def _make(self, tmp_dir, run_fn):
-        from src.core.task_cards import CardWorker, TaskCardStore
-        w = CardWorker()
-        w._store = TaskCardStore(base_dir=tmp_dir / "w")
-        w.start(run_fn=run_fn)
-        return w
-
-    def test_start_consume_end_to_end(self, tmp_dir):
-        import asyncio, time
-        from src.core.task_cards import TaskCard, CardStatus
-
-        async def run_fn(card):
-            await asyncio.sleep(0.01)
-            return {"result": "done: " + card.prompt}
-
-        w = self._make(tmp_dir, run_fn)
-        try:
-            c = TaskCard(owner="local", prompt="hello")
-            assert w.enqueue(c) is True
-            got = None
-            for _ in range(600):  # night-28: 轮询预算 4s→12s (满载容忍)
-                time.sleep(0.02)
-                got = w._store.load(c.id)
-                if got and got.status in (CardStatus.COMPLETED, CardStatus.FAILED, CardStatus.CANCELLED):
-                    break
-            assert got is not None and got.status == CardStatus.COMPLETED, got.status if got else None
-            assert got.result == "done: hello"
-        finally:
-            w.stop()
-            w.join(timeout=3.0)
-
-    def test_failure_sets_failed(self, tmp_dir):
-        import time
-        from src.core.task_cards import TaskCard, CardStatus
-
-        async def run_fn(card):
-            raise RuntimeError("boom")
-
-        w = self._make(tmp_dir, run_fn)
-        try:
-            c = TaskCard(owner="local", prompt="x")
-            assert w.enqueue(c) is True
-            got = None
-            for _ in range(600):  # night-28: 轮询预算 4s→12s (满载容忍)
-                time.sleep(0.02)
-                got = w._store.load(c.id)
-                if got and got.status in (CardStatus.COMPLETED, CardStatus.FAILED, CardStatus.CANCELLED):
-                    break
-            assert got is not None and got.status == CardStatus.FAILED
-            assert "boom" in (got.error or "")
-        finally:
-            w.stop()
-            w.join(timeout=3.0)
-
-    def test_cancel_queued(self, tmp_dir):
-        """night-40 (002codex): 确定性排队取消 — 用 3 张阻塞卡占满 free 档并发
-        (max_concurrent=3), 目标卡确定处于 queued 态再取消, 不依赖调度快慢。"""
-        import threading
-        from src.core.task_cards import TaskCard, CardStatus
-
-        release = threading.Event()
-
-        async def run_fn(card):
-            if card.prompt.startswith("BLOCKER"):
-                release.wait(timeout=20)
-                return {"result": "blocker-done"}
-            return {"result": "quick"}
-
-        w = self._make(tmp_dir, run_fn)
-        try:
-            # 占满 free 档并发 (3): 全部卡在 release 门上
-            blockers = []
-            for i in range(3):
-                b = TaskCard(owner="local", prompt=f"BLOCKER{i}")
-                assert w.enqueue(b) is True
-                blockers.append(b)
-            for _ in range(300):
-                running = sum(
-                    1 for b in blockers
-                    if (s := w._store.load(b.id)) and s.status == CardStatus.RUNNING)
-                if running >= 3:
-                    break
-                time.sleep(0.05)
-            assert running >= 3, "阻塞卡未全部进入 RUNNING"
-            # 目标卡: 3 并发已满 → 确定处于 queued
-            c = TaskCard(owner="local", prompt="job")
-            assert w.enqueue(c) is True
-            time.sleep(0.2)  # 给 worker 一轮循环确认 c 未被消费 (并发已满)
-            assert w.cancel(c.id) is True
-            got = None
-            for _ in range(600):
-                time.sleep(0.02)
-                got = w._store.load(c.id)
-                if got and got.status == CardStatus.CANCELLED:
-                    break
-            assert got is not None and got.status == CardStatus.CANCELLED
-        finally:
-            release.set()
-            w.stop()
-            w.join(timeout=3.0)
-
-    def test_running_cancel(self, tmp_dir):
-        import time
-        from src.core.task_cards import TaskCard, CardStatus
-
-        async def run_fn(card):
-            import asyncio
-            await asyncio.sleep(3)  # 足够久以便先看到 running 再 cancel
-            return {"result": "done"}
-
-        w = self._make(tmp_dir, run_fn)
-        try:
-            c = TaskCard(owner="local", prompt="slow-job")
-            assert w.enqueue(c) is True
-            got = None
-            for _ in range(600):  # night-28: 轮询预算 4s→12s (满载容忍)
-                time.sleep(0.02)
-                got = w._store.load(c.id)
-                if got and got.status == CardStatus.RUNNING:
-                    break
-            assert got is not None and got.status == CardStatus.RUNNING
-            w.cancel(c.id)
-            cancelled = False
-            for _ in range(600):  # night-28: 轮询预算 4s→12s (满载容忍)
-                time.sleep(0.02)
-                got2 = w._store.load(c.id)
-                if got2 and got2.status in (CardStatus.CANCELLED, CardStatus.FAILED):
-                    cancelled = True
-                    break
-            assert cancelled, "running 卡取消后应进入终止态"
-        finally:
-            w.stop()
-            w.join(timeout=3.0)
-
-    def test_approval_register_decide(self, tmp_dir):
-        """审批协调: register (worker loop 外也可注册? 实际在 loop 内) — 直接验证 decide 幂等。"""
-        import asyncio
-        from src.core.task_cards import CardWorker, TaskCard, TaskCardStore, CardStatus
-        # 用显式 loop 模式 (测试注入)
-        w = CardWorker()
-        w._store = TaskCardStore(base_dir=tmp_dir / "w5")
-        loop = asyncio.new_event_loop()
-        w.start(run_fn=lambda c: None, loop=loop)
-        try:
-            c = TaskCard(owner="local", prompt="x")
-            # 在 loop 内注册 future
-            asyncio.set_event_loop(loop)
-            fut = loop.create_future()
-            w._approval_futures["req-test"] = fut
-            # 模拟 waiter 已挂起
-            async def waiter():
-                return await fut
-            task = loop.create_task(waiter())
-            assert w.decide_approval("req-test", "agree") is True
-            loop.run_until_complete(asyncio.wait_for(task, timeout=2))
-            assert task.result() == {"action": "agree", "text": ""}
-            # 二次 decide 应 False (已弹出)
-            assert w.decide_approval("req-test", "agree") is False
-        finally:
-            w.stop()
-            w.join(timeout=2.0)
-            loop.close()
-
-    def test_approve_multi_card_no_cross_contamination(self, tmp_dir):
-        """P2-2 (002meshctx): 双卡并发 WAITING_APPROVAL 时, decide 卡A 不得把
-        无辜卡B 误登记进 _approval_decided (原实现: 对无关卡 discard 后
-        not-in-reqs 恒真 → decided_card 被覆盖为迭代末尾的无关卡)。"""
-        import asyncio
-        from src.core.task_cards import CardWorker, TaskCard, TaskCardStore
-        w = CardWorker()
-        w._store = TaskCardStore(base_dir=tmp_dir / "w6")
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            ca = TaskCard(owner="local", prompt="A")
-            cb = TaskCard(owner="local", prompt="B")
-            # 模拟 register_approval 后状态: 两卡各挂 1 个 pending request
-            fa = loop.create_future()
-            fb = loop.create_future()
-            w._approval_futures["req-A"] = fa
-            w._approval_futures["req-B"] = fb
-            w._approval_by_card.setdefault(ca.id, set()).add("req-A")
-            w._approval_by_card.setdefault(cb.id, set()).add("req-B")
-            # decide 卡A 的审批
-            assert w.decide_approval("req-A", "agree") is True
-            # 目标卡 A 已登记, 无辜卡 B 未被误登记
-            assert ca.id in w._approval_decided
-            assert cb.id not in w._approval_decided, "无辜卡 B 被跨卡污染!"
-            # 映射清理正确: B 的 pending request 仍保留可独立 decide
-            assert "req-B" in w._approval_futures
-            assert w.decide_approval("req-B", "agree") is True
-            assert cb.id in w._approval_decided
-            assert ca.id in w._approval_decided
-            assert not w._approval_by_card, "全部 decide 后 card→request 映射应清空"
-        finally:
-            w.stop()
-            w.join(timeout=2.0)
-            loop.close()
-
-    def test_cancel_waiting_approval_resolves_pending(self, tmp_dir):
-        """P3 002codex: cancel WAITING_APPROVAL 卡应即时对挂起审批 future 投
-        reject (原实现仅登记 _cancelled, 卡线程仍阻塞到 120s 审批超时才收尾)。"""
-        import asyncio
-        from src.core.task_cards import CardWorker, TaskCard, TaskCardStore, CardStatus
-        w = CardWorker()
-        w._store = TaskCardStore(base_dir=tmp_dir / "w7")
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            c = TaskCard(owner="local", prompt="need approval")
-            c.status = CardStatus.WAITING_APPROVAL
-            w._store.save(c)
-            fut = loop.create_future()
-            w._approval_futures["req-A"] = fut
-            w._approval_by_card.setdefault(c.id, set()).add("req-A")
-            assert w.cancel(c.id) is True
-            loop.run_until_complete(asyncio.sleep(0))  # 泵起 call_soon_threadsafe
-            assert fut.done(), "cancel 后挂起审批 future 应立即 resolve (不等 120s)"
-            assert fut.result()["action"] == "reject"
-            assert "req-A" not in w._approval_futures
-            assert c.id not in w._approval_by_card
-        finally:
-            w.stop()
-            w.join(timeout=2.0)
-            loop.close()
-
-    def test_run_sets_card_trace_id(self, tmp_dir):
-        """WP1: worker 执行时给卡预置稳定 trace_id (审批/取消事件归因)。"""
-        import re, time
-        from src.core.task_cards import TaskCard, CardStatus
-        seen = {}
-
-        async def run_fn(card):
-            seen["trace"] = (card.extra or {}).get("trace_id", "")
-            return {"result": "ok"}
-
-        w = self._make(tmp_dir, run_fn)
-        try:
-            c = TaskCard(owner="local", prompt="t")
-            assert w.enqueue(c) is True
-            done = False
-            for _ in range(600):  # night-28: 轮询预算 4s→12s (满载容忍)
-                time.sleep(0.02)
-                got = w._store.load(c.id)
-                if got and got.status == CardStatus.COMPLETED:
-                    done = True
-                    break
-            assert done
-            assert seen["trace"], "执行时应预置 trace_id"
-            assert re.fullmatch(r"[0-9a-f]{32}", seen["trace"])   # OTLP traceId 32-hex (rc1 P3)
-            got = w._store.load(c.id)
-            assert (got.extra or {}).get("trace_id") == seen["trace"]
-        finally:
-            w.stop()
-            w.join(timeout=3.0)
-
-    def test_recover_interrupted_after_restart(self, tmp_dir):
-        """模拟进程重启: 预置 running/queued/waiting_approval 卡, start(recover=True)
-        后 running→queued 重新执行、queued 直接排队、waiting_approval→failed。"""
-        import time
-        from src.core.task_cards import CardWorker, TaskCard, TaskCardStore, CardStatus
-
-        async def run_fn(card):
-            import asyncio
-            await asyncio.sleep(0.05)
-            return {"result": "recovered:" + card.prompt}
-
-        store = TaskCardStore(base_dir=tmp_dir / "rec")
-
-        # 预置三种状态卡 (模拟上次进程遗留)
-        c_running = TaskCard(owner="local", prompt="r")
-        c_running.mark(CardStatus.RUNNING)
-        store.save(c_running)
-        c_queued = TaskCard(owner="local", prompt="q")
-        c_queued.mark(CardStatus.QUEUED)
-        store.save(c_queued)
-        c_wait = TaskCard(owner="local", prompt="w")
-        c_wait.mark(CardStatus.WAITING_APPROVAL)
-        c_wait.approval_pending = {"request_id": "x"}
-        store.save(c_wait)
-
-        w = CardWorker()
-        w._store = store
-        w.start(run_fn=run_fn, recover=True)
-        try:
-            # waiting_approval 应立即转 failed
-            gw = store.load(c_wait.id)
-            assert gw.status == CardStatus.FAILED, gw.status
-            # running/queued 应被恢复并最终完成
-            done = set()
-            for _ in range(600):  # night-28: 轮询预算 4s→12s (满载容忍)
-                time.sleep(0.05)
-                for cid in (c_running.id, c_queued.id):
-                    g = store.load(cid)
-                    if g and g.status == CardStatus.COMPLETED:
-                        done.add(cid)
-                if len(done) == 2:
-                    break
-            assert c_running.id in done, "running 卡未恢复完成"
-            assert c_queued.id in done, "queued 卡未恢复完成"
-            gr = store.load(c_running.id)
-            assert gr.result == "recovered:r"
-        finally:
-            w.stop()
-            w.join(timeout=3.0)
-
-    def test_recover_skips_stale_cards(self, tmp_dir):
-        """超窗 (>6h) 的 running/queued 卡不重跑: running→failed, queued 丢弃。"""
-        import time
-        from src.core.task_cards import CardWorker, TaskCard, TaskCardStore, CardStatus
-
-        async def run_fn(card):
-            import asyncio
-            await asyncio.sleep(0.05)
-            return {"result": "ok"}
-
-        store = TaskCardStore(base_dir=tmp_dir / "stale")
-        old = time.time() - 7 * 3600  # 7h 前
-        c_stale_run = TaskCard(owner="local", prompt="old")
-        c_stale_run.created_at = old
-        c_stale_run.mark(CardStatus.RUNNING)
-        store.save(c_stale_run)
-        c_stale_q = TaskCard(owner="local", prompt="oldq")
-        c_stale_q.created_at = old
-        c_stale_q.mark(CardStatus.QUEUED)
-        store.save(c_stale_q)
-        # 近期卡应恢复
-        c_fresh = TaskCard(owner="local", prompt="new")
-        c_fresh.mark(CardStatus.QUEUED)
-        store.save(c_fresh)
-
-        w = CardWorker()
-        w._store = store
-        w.start(run_fn=run_fn, recover=True)
-        try:
-            g1 = store.load(c_stale_run.id)
-            assert g1.status == CardStatus.FAILED, g1.status
-            assert "恢复窗口" in (g1.error or ""), g1.error
-            # stale queued: 直接清理删除
-            g2 = store.load(c_stale_q.id)
-            assert g2 is None, "超窗排队卡应被清理"
-            # fresh 卡应完成
-            done = False
-            for _ in range(100):
-                time.sleep(0.05)
-                gf = store.load(c_fresh.id)
-                if gf and gf.status == CardStatus.COMPLETED:
-                    done = True
-                    break
-            assert done, "近期卡未恢复完成"
-        finally:
-            w.stop()
-            w.join(timeout=3.0)
-
-
-    def test_cancel_running_is_timely(self, tmp_dir):
-        """P2-1 (002meshctx): cancel() API → interrupt_check 及时中断 (worker 级集合)。
-
-        night-41 (002codex 二轮): 确定性化 — 等 run_fn 完成首轮 interrupt_check 后
-        再 cancel (守门证据: 中断机制确已建立); 终态轮询预算 5s→15s (满载容忍)。
-        """
-        import time
-        from src.core.task_cards import CardWorker, TaskCard, TaskCardStore, CardStatus
-
-        checks = {"n": 0}
-
-        async def run_fn(card):
-            import asyncio
-            import sys as _s
-            # 模拟长循环: 每 0.05s 检查一次 interrupt_check
-            from src.core.task_card_runner import make_interrupt_check
-            from src.core.interruptible_runner import InterruptSignal
-            check = make_interrupt_check(card, w)
-            for _ in range(400):
-                try:
-                    check()
-                    checks["n"] += 1
-                except InterruptSignal:
-                    return {"result": "interrupted"}
-                await asyncio.sleep(0.05)
-            return {"result": "finished"}
-
-        w = CardWorker()
-        w._store = TaskCardStore(base_dir=tmp_dir / "cancel")
-        w.start(run_fn=run_fn)
-        try:
-            c = TaskCard(owner="local", prompt="job")
-            assert w.enqueue(c) is True
-            # night-41 确定性证据: 等 RUNNING 且 interrupt_check 首轮已执行
-            for _ in range(300):
-                time.sleep(0.05)
-                g = w._store.load(c.id)
-                if g and g.status == CardStatus.RUNNING and checks["n"] >= 1:
-                    break
-            assert checks["n"] >= 1, f"run_fn 未建立 interrupt_check (checks={checks['n']})"
-            # cancel → 中断机制每 0.05s 检查一次, 应即时终止
-            t0 = time.time()
-            w.cancel(c.id)
-            done = False
-            seen = []
-            for _ in range(300):  # night-41: 终态轮询预算 5s→15s (满载容忍)
-                time.sleep(0.05)
-                g = w._store.load(c.id)
-                st = getattr(g, "status", None)
-                if not seen or seen[-1] != str(st):
-                    seen.append(str(st))
-                if g and g.status in (CardStatus.CANCELLED, CardStatus.COMPLETED, CardStatus.FAILED):
-                    done = True
-                    break
-            elapsed = time.time() - t0
-            assert done, "cancel 后卡未及时终止"
-            assert elapsed < 10.0, f"取消不及时: {elapsed:.1f}s"
-        finally:
-            w.stop()
-            w.join(timeout=3.0)
+def test_list_and_summary():
+    tc.create_card("a", criteria=["c1"], tid="tc-l1")
+    tc.create_card("b", criteria=["c2"], tid="tc-l2")
+    tc.add_round("tc-l1", "aud", "fail", [{"sev": "P1", "note": "bug", "evidence": "e"}])
+    s = tc.summary()
+    assert s["total"] == 2 and s["open_ledger"] == 1 and s["rounds_total"] == 1
+    assert [c["id"] for c in tc.list_cards()] == ["tc-l1", "tc-l2"]

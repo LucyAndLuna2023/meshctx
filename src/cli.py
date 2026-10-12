@@ -1801,6 +1801,39 @@ def cmd_agent(args):
 # task — 一次性任务
 # ═══════════════════════════════════════════════════
 
+def cmd_tcard(args):
+    """任务卡管理 — zcode 审计工作流模式 (建卡/轮次/挂账/清偿/状态)."""
+    from src import task_cards as tc
+    try:
+        if args.tcard_cmd == "add":
+            card = tc.create_card(args.title, args.criteria, owner=args.owner or "")
+            print(f"✅ 建卡 {card['id']}: {card['title']}")
+            print(f"   预注册判据 (冻结): {card['criteria']}")
+        elif args.tcard_cmd == "list":
+            for c in tc.list_cards():
+                print(f"  [{c['status']:11}] {c['id']:24} {c['title'][:40]}"
+                      f"  挂账:{c['open_ledger']} 轮次:{c['rounds']}")
+            s = tc.summary()
+            print(f"  合计 {s['total']} 卡 | 开放挂账 {s['open_ledger']} | 审计轮 {s['rounds_total']}")
+        elif args.tcard_cmd == "show":
+            import json as _j
+            print(_j.dumps(tc.get_card(args.id), ensure_ascii=False, indent=1))
+        elif args.tcard_cmd == "round":
+            findings = [{"sev": s.strip()[:2], "note": s.strip()[2:].strip()}
+                        for s in (args.findings or []) if s.strip()[:2] in ("P1", "P2", "P3", "P4")]
+            card = tc.add_round(args.id, args.auditor or "cli", args.verdict or "info", findings)
+            print(f"✅ 第 {card['rounds'][-1]['n']} 轮记录 ({card['rounds'][-1]['verdict']}), "
+                  f"新挂账 {len(findings)} 条")
+        elif args.tcard_cmd == "settle":
+            card = tc.settle(args.id, args.match, evidence=args.evidence or "")
+            print(f"✅ 清偿: {args.match!r} (证据: {args.evidence})")
+        elif args.tcard_cmd == "status":
+            card = tc.set_status(args.id, args.new_status)
+            print(f"✅ {card['id']} → {card['status']}")
+    except (ValueError, FileNotFoundError, FileExistsError) as e:
+        print(f"❌ {e}")
+
+
 def cmd_task(args):
     """一次性任务 — 接收描述，循环执行直到完成"""
     _ensure_keys_loaded()
@@ -3076,6 +3109,24 @@ def main():
     rv.add_argument("--ai", action="store_true", help="启用AI深度审查 (需要LLM)")
     rv.add_argument("--max-issues", type=int, default=30, help="显示的最大问题数 (默认30)")
     rv.set_defaults(func=cmd_review)
+
+    # tcard (v3.135.0: 任务卡 — zcode 审计工作流)
+    t = sub.add_parser("tcard", help="任务卡管理 (zcode 审计工作流)")
+    ts = t.add_subparsers(dest="tcard_cmd")
+    ta = ts.add_parser("add", help="建卡 (判据预注册)")
+    ta.add_argument("title"); ta.add_argument("--criteria", nargs="+", required=True)
+    ta.add_argument("--owner", default="")
+    tl = ts.add_parser("list", help="卡片列表")
+    tsh = ts.add_parser("show", help="卡片详情"); tsh.add_argument("id")
+    tr = ts.add_parser("round", help="记录审计轮")
+    tr.add_argument("id"); tr.add_argument("--auditor", default="")
+    tr.add_argument("--verdict", default="info", choices=["pass", "cond", "fail", "info"])
+    tr.add_argument("--findings", nargs="*", default=[], help="P1:note P2:note ...")
+    tv = ts.add_parser("settle", help="清偿挂账 (须证据)")
+    tv.add_argument("id"); tv.add_argument("match"); tv.add_argument("--evidence", default="")
+    tst = ts.add_parser("status", help="状态流转")
+    tst.add_argument("id"); tst.add_argument("new_status")
+    t.set_defaults(func=cmd_tcard)
 
     # loop (v2.50)
     lo = sub.add_parser("loop", help="统一OODA循环测试")
