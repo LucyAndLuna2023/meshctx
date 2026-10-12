@@ -87,8 +87,12 @@ def get_card(tid: str) -> Dict[str, Any]:
 
 def _save(card: Dict[str, Any]) -> None:
     card["updated"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
-    (_tasks_dir() / f"{card['id']}.json").write_text(
-        json.dumps(card, ensure_ascii=False, indent=1), encoding="utf-8")
+    # 原子写 (审计发现 C): 任务卡=审计台账, 半写损坏即丢账 — tmp+os.replace
+    import os as _os
+    target = _tasks_dir() / f"{card['id']}.json"
+    tmp = target.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(card, ensure_ascii=False, indent=1), encoding="utf-8")
+    _os.replace(tmp, target)
 
 
 def list_cards(status: Optional[str] = None, owner: Optional[str] = None) -> List[Dict[str, Any]]:
