@@ -1,3 +1,13 @@
+## [v3.135.0] - 2026-10-12 (任务卡管理系统 — 参考 zcode 审计工作流)
+
+- 预注册判据冻结 / 状态机七态 / 审计轮次 P1-P4 自动挂账 / 无证据不销账 / severity_floor 门槛
+- src/task_cards.py + REST API×6 + CLI tcard 六子命令 + 守门×3
+- 002meshctx round73 PWF (四口径十项探针) + 002zcode PASS
+
+## [v3.135.1] - 2026-10-12 (round72 挂账清偿)
+
+- CHANGELOG v3.134.4-7 四条目 / scripts v6→v7 回退 / bump 扫描白名单化根治 (002zcode 备忘) / 旧 release body 补填
+
 ## [v3.134.4] - 2026-10-12 (测试连接防缓存扰动)
 
 - 测试消息加毫秒时间戳 — 防网关侧响应缓存命中假成功 (004 实测同请求 0.0s 返回)

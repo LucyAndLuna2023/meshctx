@@ -57,3 +57,26 @@ def test_list_and_summary():
     s = tc.summary()
     assert s["total"] == 2 and s["open_ledger"] == 1 and s["rounds_total"] == 1
     assert [c["id"] for c in tc.list_cards()] == ["tc-l1", "tc-l2"]
+
+
+def test_concurrent_rounds_no_loss(tmp_path, monkeypatch):
+    """v3.135.2 002codex P2: 并发 add_round 不得丢轮次 (flock 串行化)."""
+    import concurrent.futures
+    monkeypatch.setenv("MESHCTX_HOME", str(tmp_path))
+    tc.create_card("并发测试", criteria=["c"], tid="tc-conc")
+    tc.set_status("tc-conc", "in_progress")
+    def _round(i):
+        return tc.add_round("tc-conc", f"aud{i}", "info",
+                            [{"sev": "P4", "note": f"n{i}", "evidence": f"e{i}"}])
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as ex:
+        list(ex.map(_round, range(10)))
+    c = tc.get_card("tc-conc")
+    assert len(c["rounds"]) == 10, f"并发丢轮次: {len(c['rounds'])}/10"
+    assert len(c["ledger"]) == 10
+
+
+def test_blank_criteria_rejected(tmp_path, monkeypatch):
+    """v3.135.2: 空白串 criteria 不能绕过预注册 (002codex P3)."""
+    monkeypatch.setenv("MESHCTX_HOME", str(tmp_path))
+    with pytest.raises(ValueError):
+        tc.create_card("x", criteria=["  ", ""])

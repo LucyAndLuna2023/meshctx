@@ -52,6 +52,7 @@ def create_card(title: str, criteria: List[str], owner: str = "",
     """
     if not title or not title.strip():
         raise ValueError("title 不能为空")
+    criteria = [c.strip() for c in (criteria or []) if c and c.strip()]  # v3.135.2: 空白串过滤
     if not criteria:
         raise ValueError("criteria (预注册判据) 不能为空 — 防事后移动球门")
     tid = tid or f"tc-{int(time.time()*1000):x}-{uuid.uuid4().hex[:4]}"
@@ -82,17 +83,39 @@ def get_card(tid: str) -> Dict[str, Any]:
     p = _tasks_dir() / f"{tid}.json"
     if not p.exists():
         raise FileNotFoundError(f"任务卡不存在: {tid}")
-    return json.loads(p.read_text(encoding="utf-8"))
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        raise ValueError(f"任务卡损坏: {tid} — {e}")
 
 
 def _save(card: Dict[str, Any]) -> None:
-    card["updated"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
-    # 原子写 (审计发现 C): 任务卡=审计台账, 半写损坏即丢账 — tmp+os.replace
+    """纯原子写 (无锁 — 调用方 _locked_update 持锁; 独立调用仅限新卡 create 无并发面).
+
+    v3.135.2: 原子写 (审计发现 C) — tmp+os.replace; 锁在 _locked_update 层 (此前 _save
+    自带 flock 与外层锁重入死锁, 同进程不同 fd 互阻塞)。
+    """
     import os as _os
     target = _tasks_dir() / f"{card['id']}.json"
     tmp = target.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(card, ensure_ascii=False, indent=1), encoding="utf-8")
     _os.replace(tmp, target)
+
+
+def _locked_update(tid: str, mutator) -> Dict[str, Any]:
+    """v3.135.2: 读-改-写全程持锁 — flock 只包写不够 (002codex 并发丢轮次实证 2/10)."""
+    import fcntl
+    _valid_id(tid) or (_ for _ in ()).throw(ValueError(f"非法任务 id: {tid}"))
+    lock = _tasks_dir() / f".{tid}.lock"
+    with open(lock, "w") as lf:
+        fcntl.flock(lf.fileno(), fcntl.LOCK_EX)
+        try:
+            card = get_card(tid)
+            mutator(card)
+            _save(card)
+            return card
+        finally:
+            fcntl.flock(lf.fileno(), fcntl.LOCK_UN)
 
 
 def list_cards(status: Optional[str] = None, owner: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -142,42 +165,43 @@ def _sev_ge(a: str, b: str) -> bool:
 def add_round(tid: str, auditor: str, verdict: str,
               findings: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
     """记录一轮审计 — findings 里的开放问题自动入挂账 (ledger)."""
-    card = get_card(tid)
     if verdict not in ("pass", "cond", "fail", "info"):
         raise ValueError("verdict: pass/cond/fail/info")
     findings = findings or []
     for f in findings:
         if f.get("sev") not in _SEVERITIES:
             raise ValueError(f"finding.sev 非法: {f.get('sev')} (P1-P4)")
-    rnd = {"n": len(card["rounds"]) + 1,
-           "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-           "auditor": auditor or "unknown",
-           "verdict": verdict,
-           "findings": findings}
-    card["rounds"].append(rnd)
-    for f in findings:
-        card["ledger"].append({"sev": f["sev"], "note": f.get("note", ""),
-                               "evidence": f.get("evidence", ""), "ts": rnd["ts"],
-                               "status": "open"})
-    _save(card)
-    return card
+
+    def _mut(card):
+        rnd = {"n": len(card["rounds"]) + 1,
+               "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+               "auditor": auditor or "unknown",
+               "verdict": verdict,
+               "findings": findings}
+        card["rounds"].append(rnd)
+        for f in findings:
+            card["ledger"].append({"sev": f["sev"], "note": f.get("note", ""),
+                                   "evidence": f.get("evidence", ""), "ts": rnd["ts"],
+                                   "status": "open"})
+
+    return _locked_update(tid, _mut)
 
 
 def settle(tid: str, note_match: str, evidence: str = "") -> Dict[str, Any]:
     """清偿挂账 — note_match 子串匹配挂账条目 (清偿须带证据, 铁律: 无证据不销账)."""
     if not evidence:
         raise ValueError("清偿必须带 evidence (SHA/commit/URL — 无证据不销账)")
-    card = get_card(tid)
-    hit = 0
-    for e in card["ledger"]:
-        if e["status"] == "open" and note_match and note_match in e["note"]:
-            e["status"] = "settled"
-            e["settle"] = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "evidence": evidence}
-            hit += 1
-    if not hit:
-        raise ValueError(f"无匹配的开放挂账: {note_match!r}")
-    _save(card)
-    return card
+    def _mut(card):
+        hit = 0
+        for e in card["ledger"]:
+            if e["status"] == "open" and note_match and note_match in e["note"]:
+                e["status"] = "settled"
+                e["settle"] = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "evidence": evidence}
+                hit += 1
+        if not hit:
+            raise ValueError(f"无匹配的开放挂账: {note_match!r}")
+
+    return _locked_update(tid, _mut)
 
 
 def summary() -> Dict[str, Any]:
