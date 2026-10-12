@@ -3527,10 +3527,23 @@ async def test_model_connection(model_id: str):
         _test_timeout = float(cfg.get("test_timeout", 45))
         # v3.134.4: 测试消息加时间戳 — 防网关侧响应缓存命中假成功 (004 实测同请求 0.0s 返回)
         _probe_msg = f"Hi [{int(time.time()*1000)}]"
-        response = await asyncio.wait_for(
-            asyncio.to_thread(client.chat, [{"role":"user","content":_probe_msg}], max_tokens=_test_budget),
-            timeout=_test_timeout
-        )
+        # v3.134.5: 429 自动重试 — 包月旗舰并发低 (2~5 路), 后台 agent 常驻调用时
+        # 交互式测试连接易撞并发上限; 等 2s 重试一次 (带新时间戳防缓存)
+        import asyncio as _aio
+        response = None
+        for _attempt in range(2):
+            try:
+                response = await _aio.wait_for(
+                    _aio.to_thread(client.chat,
+                                   [{"role":"user","content": f"Hi [{int(time.time()*1000)}]"}],
+                                   max_tokens=_test_budget),
+                    timeout=_test_timeout)
+                break
+            except Exception as _te:
+                if "429" in str(_te) and _attempt == 0:
+                    await _aio.sleep(2.0)
+                    continue
+                raise
         content = str(response.get("content", "")).strip()
         # 检测假成功 (错误消息伪装) — v3.134.0 错误透传后含 [1113] 等具体码
         if content.startswith("[错误") or content.startswith("[模型调用失败") \
