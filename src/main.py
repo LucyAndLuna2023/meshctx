@@ -3126,7 +3126,7 @@ async def list_models():
             "provider": pid,
             "provider_name": _provider_display_name(pid),
             "model_name": info["model"],
-            "base_url": info.get("base_url", ""),  # v3.134.6: UI 显示 endpoint (多条目不一致自诊断)
+            "base_url": info.get("base_url", ""),  # UI 显示 endpoint (多条目不一致自诊断)
             "configured": configd,
             "usable": usable,
             "has_key": has_key,
@@ -3144,7 +3144,7 @@ async def list_models():
             "provider": pid,
             "provider_name": _provider_display_name(pid),
             "model_name": info.get("model", mid),
-            "base_url": info.get("base_url", ""),  # v3.134.6
+            "base_url": info.get("base_url", ""),  # (endpoint 自诊断)
             "configured": True,
             "usable": bool(info.get("key")),
             "has_key": bool(info.get("key")),
@@ -3578,6 +3578,7 @@ async def test_model_connection(model_id: str):
     except Exception as e:
         # v3.134.6: 失败信息带实际 endpoint — 多模型各自 base_url 不一致时自诊断
         _ep = cfg.get("base_url", "?")
+        from src.model_adapter import _extract_api_error  # NameError 根修 (本地导入)
         _body = _extract_api_error(e) or str(e)[:200]
         test_detail = f"连接失败 [{_ep}]: {_body}"
         return {"status": "error", "message": test_detail}
