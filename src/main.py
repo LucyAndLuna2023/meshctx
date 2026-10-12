@@ -3525,8 +3525,10 @@ async def test_model_connection(model_id: str):
         # v3.134.1 根因: 旧硬编码 10 对推理模型是必挂请求 (网关拒之 = 429 假象)。
         _test_budget = int(cfg.get("test_max_tokens", 512))
         _test_timeout = float(cfg.get("test_timeout", 45))
+        # v3.134.4: 测试消息加时间戳 — 防网关侧响应缓存命中假成功 (004 实测同请求 0.0s 返回)
+        _probe_msg = f"Hi [{int(time.time()*1000)}]"
         response = await asyncio.wait_for(
-            asyncio.to_thread(client.chat, [{"role":"user","content":"Hi"}], max_tokens=_test_budget),
+            asyncio.to_thread(client.chat, [{"role":"user","content":_probe_msg}], max_tokens=_test_budget),
             timeout=_test_timeout
         )
         content = str(response.get("content", "")).strip()
