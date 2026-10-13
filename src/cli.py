@@ -829,7 +829,13 @@ def _chat_one_shot(client, msg, args):
     profile = _get_profile_name(args.config, getattr(args, 'profile', None))
     prefix = f"[{profile}] " if profile else ""
     print(f"{prefix}meshctx> ", end="", flush=True)
-    _chat_loop(client, messages, TOOLS, execute_tool, {}, max_turns=2)
+    try:
+        _chat_loop(client, messages, TOOLS, execute_tool, {}, max_turns=2)
+    except Exception as e:
+        # v3.135.7b: 一发模式同样异常可见 (用户实测完全静默 — asyncio.run 未捕获)
+        import traceback
+        print(f"\n[一发模式异常] {type(e).__name__}: {e}", flush=True)
+        traceback.print_exc()
     print()
 
 
