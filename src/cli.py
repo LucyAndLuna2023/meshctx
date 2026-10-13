@@ -721,12 +721,23 @@ def cmd_chat(args):
                     continue
 
                 messages.append({"role": "user", "content": user})
-                messages[0] = _build_system_msg(args, current_query=user)[0]
+                try:
+                    messages[0] = _build_system_msg(args, current_query=user)[0]
+                except Exception as _se:
+                    import traceback as _tb
+                    print(f"\n[系统提示构造失败 — 继续用基础上下文] {_se}", flush=True)
+                    _tb.print_exc()
                 try:
                     session_id = _chat_loop(
                         client, messages, TOOLS, execute_tool, TOOL_ICONS,
                         max_turns=max_turns, wall_clock=wall_clock,
                         interrupt_check=_runner.interrupt_check)
+                except Exception as _ce:
+                    # v3.135.7 (用户 Mac 实测: 输入 hi 静默无回复): 一切未捕获异常必须可见
+                    import traceback as _tb
+                    print(f"\n[对话循环异常] {type(_ce).__name__}: {_ce}", flush=True)
+                    _tb.print_exc()
+                    continue
                 except InterruptSignal as sig:
                     # 任务被打断: 新消息置顶, 下一轮 next_task_blocking 立即取到并执行
                     if sig.messages:
