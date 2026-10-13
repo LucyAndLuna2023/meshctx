@@ -6238,29 +6238,16 @@ _APPROVAL_FUTURES: Dict[str, "asyncio.Future"] = {}
 
 
 def _needs_approval(name: str, args: dict) -> Optional[str]:
-    """判定工具是否属于「内容删除/改动」类, 返回审批原因 (None=放行)。
+    """v3.136.0: 统一走 permissions.evaluate — 三档权限 (full/standard/restricted) + 黑白名单.
 
-    - write_file if_exists=overwrite → 覆盖已有文件内容
-    - terminal 危险命令 (rm -rf / mv / dd / mkfs 等, 复用 ApprovalEngine 危险模式库)
-    - remote_write / remote_exec → 远程改动
+    返回 None=放行 / str=审批原因; "DENY:" 前缀 = 直接拒绝 (deny_tools 黑名单).
     """
-    if name == "write_file" and args.get("if_exists") == "overwrite":
-        return "修改已有文件内容 (write_file overwrite)"
-    if name in ("remote_write", "remote_exec"):
-        return f"远程操作 ({name}) 需用户授权"
-    if name == "terminal":
-        _cmd = args.get("cmd", "") or ""
-        # 删除/移动/复制类命令 (rm/rmdir/unlink/del/remove/mv/cp) → 审批 (002codex 建议补 mv/cp)
-        import re as _re
-        if _re.search(r"\b(rm|rmdir|unlink|del|remove|mv|cp)\b", _cmd):
-            return "删除/移动/复制文件命令 (terminal)"
-        try:
-            from src.core.approval import check as _approval_check
-            r = _approval_check(_cmd, {})
-            if r.requires_approval:
-                return f"危险命令 ({r.reason})"
-        except Exception:
-            pass
+    from src.permissions import evaluate
+    decision, reason = evaluate(name, args)
+    if decision == "deny":
+        return f"DENY: {reason}"
+    if decision == "approval":
+        return reason
     return None
 
 
@@ -9652,3 +9639,26 @@ async def taskcards_settle(tid: str, request: Request):
                                            body.get("evidence", ""))}
     except (ValueError, FileNotFoundError) as e:
         raise HTTPException(400, str(e))
+
+
+# ═══ 权限档位管理 (v3.136.0) ═════════════════════════════════════════════
+
+@app.get("/api/permissions")
+async def permissions_get():
+    from src.permissions import load_permissions
+    return load_permissions()
+
+
+@app.put("/api/permissions")
+async def permissions_put(request: Request):
+    from src.permissions import save_permissions
+    body = await request.json()
+    if not isinstance(body, dict):
+        raise HTTPException(400, "body must be a JSON object")
+    try:
+        return {"ok": True, "permissions": save_permissions(
+            body.get("mode", "standard"),
+            body.get("deny_tools"), body.get("allow_tools"))}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+

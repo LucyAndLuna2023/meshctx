@@ -739,7 +739,7 @@ def cmd_chat(args):
                     session_id = _chat_loop(
                         client, messages, TOOLS, execute_tool, TOOL_ICONS,
                         max_turns=max_turns, wall_clock=wall_clock,
-                        interrupt_check=_runner.interrupt_check)
+                        interrupt_check=_runner.interrupt_check, cli_approval=True)
                 except Exception as _ce:
                     # v3.135.7 (用户 Mac 实测: 输入 hi 静默无回复): 一切未捕获异常必须可见
                     import traceback as _tb
@@ -847,7 +847,7 @@ def _chat_one_shot(client, msg, args):
     print()
 
 
-def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, collect_output=False, wall_clock=None, interrupt_check=None):
+def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, collect_output=False, wall_clock=None, interrupt_check=None, cli_approval=False):
     """核心对话循环 — 与 UI /api/chat/stream 共用同一套 agent_loop 逻辑
 
     collect_output=True 时，收集最终答案与工具调用记录并返回
@@ -902,8 +902,28 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
         elif ev["type"] == "timed_out":
             print(f"\n{ev.get('text', '[已达到最大处理时间，已中止]')}", flush=True)
 
+    _CLI_APPROVALS: dict = {}
+
     async def _run():
         from src.agent_loop import run_agent_loop
+        import asyncio as _aio
+        # v3.136.0: CLI 审批 — 权限档位 standard/restricted 时终端询问 (UI 已有弹窗, CLI 此前完全无审批)
+        _na = _aw = None
+        if cli_approval:
+            def _needs(name, args):
+                from src.permissions import evaluate
+                d, reason = evaluate(name, args)
+                if d == "deny":
+                    return f"DENY: {reason}"
+                if d == "approval":
+                    return reason
+                return None
+            async def _wait(rid):
+                loop = _aio.get_running_loop()
+                fut = loop.create_future()
+                _CLI_APPROVALS[rid] = fut
+                return await fut
+            _na, _aw = _needs, _wait
         async for ev in run_agent_loop(
             client, messages,
             tools=tools_def,
@@ -912,8 +932,23 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
             wall_clock=wall_clock,
             system_prompt=None,
             interrupt_check=interrupt_check,
+            needs_approval=_na,
+            approval_waiter=_aw,
         ):
             _on_event(ev)
+
+            # CLI 审批: approval 事件 → 终端 y/n (同步桥接 future)
+            if cli_approval and ev.get("type") == "approval":
+                import threading as _th
+                def _ask(rid=ev["request_id"], name=ev["name"], reason=ev.get("reason", "")):
+                    ans = input(f"\n🔐 审批: {name} — {reason}\n   允许执行? [y/N]: ").strip().lower()
+                    fut = _CLI_APPROVALS.get(rid)
+                    if fut and not fut.done():
+                        loop = _aio.get_running_loop()
+                        loop.call_soon_threadsafe(
+                            fut.set_result,
+                            {"action": "agree"} if ans in ("y", "yes", "是") else {"action": "reject"})
+                _th.Thread(target=_ask, daemon=True).start()
 
     asyncio.run(_run())
     if collect_output:

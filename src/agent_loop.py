@@ -285,6 +285,14 @@ async def run_agent_loop(
                 # ── 删除/改动类工具审批 (2026-08-26 用户要求: 像 deepseek harness 征求用户意见) ──
                 if needs_approval is not None and approval_waiter is not None:
                     _reason = needs_approval(name, args)
+                    if _reason and _reason.startswith("DENY:"):
+                        # v3.136.0: deny_tools 黑名单 — 不弹审批直接拒绝 (权限黑名单语义)
+                        _deny_note = _reason[5:].strip()
+                        yield {"type": "tool_result", "name": name,
+                               "result": f"[权限拒绝] {_deny_note}"}
+                        messages.append({"role": "tool", "tool_call_id": tc.id,
+                                         "content": f"[权限拒绝] {_deny_note}"})
+                        continue
                     if _reason:
                         request_id = f"{uuid.uuid4().hex[:12]}"
                         # 预注册 future (事件 yield 前启动协程), 防前端极快决策时 404 (002codex 建议)

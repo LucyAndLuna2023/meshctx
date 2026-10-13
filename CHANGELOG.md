@@ -1,3 +1,17 @@
+## [v3.136.0] - 2026-10-13 (权限档位管理 — 用户指令: 对标 zcode/codex/deepseek harness)
+
+> 用户实测: harness 有"完全权限/部分审批/全部审批"下拉, meshctx 有审批机制但用户从 UI 看不到
+> 也控制不了, 且 CLI 完全没有审批 — 严重体验缺陷。本版三端补齐。
+
+### Added
+- **三档权限**: config.yaml permissions.mode — full(完全)/standard(标准, 默认)/restricted(全部审批)
+- **细粒度黑白名单**: deny_tools (直接拒绝, 跨档位持久) / allow_tools (免审批), 优先级 deny > allow > mode
+- **CLI 审批补齐**: agent_loop 首次在 CLI 路径注入 needs_approval — 终端 y/n 询问 (此前 CLI 完全无审批)
+- **UI 权限卡片**: setup.html 档位下拉 + 黑白名单编辑 (自动保存)
+- **REST**: GET/PUT /api/permissions
+- **deny 语义**: agent_loop DENY: 前缀 — 黑名单工具不弹审批直接拒绝执行
+- 守门 ×5: 三档/优先级/跨档位持久/非法档位/config 其他段保全
+
 ## [v3.135.13] - 2026-10-13 (publish job 自等待死锁修)
 
 - release-publish 轮询排除自身 run (GITHUB_RUN_ID) — 首跑 30min 超时实证 (自己在 active 列表永远等不完)
