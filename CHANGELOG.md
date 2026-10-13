@@ -1,3 +1,10 @@
+## [v3.135.12] - 2026-10-13 (发布时序治本 — 002codex 989b678a)
+
+- pipeline 改造: build job 只上 **draft release**; 新增 release-publish job
+  (needs test/version-gate/release-gate + 轮询等全部 exact-SHA workflow 完成 0 failure → publish)
+- 根因: release 由 build 完成即 publish (早于全部 checks 绿 258s) — 结构性时序缺陷, 人工纪律不可保证
+- workflow 强制 post-tag: release-publish 即 workflow 内发布点 (时序强制)
+
 ## [v3.135.11] - 2026-10-13 (全新不可变 tag — 002codex e0b3ebd7 身份漂移清偿)
 
 - 前因: v3.135.10 gate job 红后 force-move tag (A→B) 而 body 仍写 A — 身份漂移治理硬阻断

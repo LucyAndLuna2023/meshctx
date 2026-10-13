@@ -8,6 +8,42 @@ on:
     branches: [main]
 
 jobs:
+  release-publish:
+    # v3.135.12 (002codex 989b678a): 发布时序治本 — 等本 workflow 全绿后 publish draft release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test, version-gate, release-gate]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Wait & verify all exact-SHA checks green
+        run: |
+          pip install requests
+          python3 - <<'EOF'
+          import requests, sys, os, time
+          tok = os.environ["GITHUB_TOKEN"]; sha = os.environ["C_SHA"]
+          for _ in range(60):  # 最多等 30 分钟
+              runs = requests.get(f"https://api.github.com/repos/LucyAndLuna2023/meshctx/actions/runs",
+                  params={"head_sha": sha, "per_page": 50},
+                  headers={"Authorization": f"token {tok}"}).json().get("workflow_runs", [])
+              active = [r for r in runs if r["status"] != "completed"]
+              red = [r for r in runs if r["status"] == "completed" and r["conclusion"] == "failure"]
+              if red:
+                  print("🔴 exact-SHA workflow failure:", [r["name"] for r in red]); sys.exit(1)
+              if not active and len(runs) >= 6:
+                  print("🟢 全部 exact-SHA workflow 完成 且 0 failure"); break
+              time.sleep(30)
+          else:
+              print("🔴 等待超时"); sys.exit(1)
+          EOF
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          C_SHA: ${{ github.sha }}
+      - name: Publish release (draft → public)
+        run: |
+          curl -s -X PATCH -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}"             -H "Accept: application/vnd.github+json"             "https://api.github.com/repos/LucyAndLuna2023/meshctx/releases/tags/${GITHUB_REF_NAME}"             -d '{"draft": false}' | grep -q '"draft":false' || echo "release 可能尚未由 build 创建 (将在 assets 上传后由人工 publish)"
+
   release-gate:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest

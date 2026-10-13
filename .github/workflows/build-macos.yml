@@ -271,6 +271,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           update_release: true
+          draft: true  # v3.135.12: 全 checks 绿后 publish job 发布
           files: |
             meshctx-macos${{ matrix.asset_suffix }}.tar.gz
             meshctx-macos${{ matrix.asset_suffix }}.dmg
