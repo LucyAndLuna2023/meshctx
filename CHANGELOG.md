@@ -1,3 +1,7 @@
+## [v3.135.13] - 2026-10-13 (publish job 自等待死锁修)
+
+- release-publish 轮询排除自身 run (GITHUB_RUN_ID) — 首跑 30min 超时实证 (自己在 active 列表永远等不完)
+
 ## [v3.135.12] - 2026-10-13 (发布时序治本 — 002codex 989b678a)
 
 - pipeline 改造: build job 只上 **draft release**; 新增 release-publish job
