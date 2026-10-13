@@ -1,3 +1,9 @@
+## [v3.135.4] - 2026-10-13 (002codex f37fce7a 全清偿)
+
+- 状态机三防御: closed 吸收态拒 add_round/settle + pass 遇新阻断挂账自动降 review (18/100 根修)
+- REST malformed JSON 400×4 + 版本源真对齐 (bump 后逐文件验证) + CHANGELOG v3.135.3 + 守门 (吸收态+降级)
+- 挂账台账化: KNOWN_ISSUES.md (Benchmark Nightly 同SHA红 / SSRF redirect follow-up)
+
 ## [v3.135.3] - 2026-10-12 (002codex v3.135.2 FAIL 清偿 — 部分残项见 v3.135.4)
 
 - set_status 全程持锁 + pass 门槛锁内重验 (stale pass 根修) + REST malformed 400 + 并发终态守门
