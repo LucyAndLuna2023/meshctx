@@ -149,7 +149,7 @@ def test_install_url_no_redirect():
 
 
 def test_cli_invalid_model_visible_hint():
-    """002codex: CLI 无效模型提示须仓库级行为守门 — 真实子进程跑 CLI 断言输出."""
+    """002codex: CLI 无效模型提示完整契约 — ID/来源/unset 指引/可用列表/默认模型."""
     import subprocess, sys, os
     env = dict(os.environ, MESHCTX_MODEL="ghost:nonexistent-id")
     r = subprocess.run([sys.executable, "-m", "src.cli", "chat", "hi"],
@@ -157,4 +157,41 @@ def test_cli_invalid_model_visible_hint():
                        cwd=str(Path(__file__).resolve().parent.parent))
     out = r.stdout + r.stderr
     assert "模型未找到" in out or "无可用模型" in out, f"CLI 静默失败回归!: {out[:200]}"
-    assert "ghost:nonexistent-id" in out, "提示须含实际尝试的模型 ID"
+    assert "ghost:nonexistent-id" in out, "契约1: 实际尝试的模型 ID"
+    assert "MESHCTX_MODEL" in out, "契约2: 来源指明"
+    assert "unset MESHCTX_MODEL" in out, "契约3: unset 指引"
+    assert "可用模型" in out, "契约4: 可用列表"
+    assert "默认模型" in out, "契约5: 默认模型"
+
+
+def test_install_url_redirect_blocked_behavior():
+    """KI-2 行为守门 (002codex: 静态断言不替代行为): redirect 目标必须被拒."""
+    from fastapi.testclient import TestClient
+    import _thread
+    import http.server
+    # 本地 redirect 服务器: /redir 302 → http://127.0.0.1:1/x (不可达端口, 若被 follow 会连接错误)
+    # 更直接: 302 → http://169.254.169.254/latest (云元数据 — 若被 follow 会有请求发出)
+    hit = {"target": False}
+    class H(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == "/redir":
+                self.send_response(302)
+                self.send_header("Location", "http://169.254.169.254/latest/meta-data/")
+                self.end_headers()
+            elif self.path.startswith("/latest"):
+                hit["target"] = True  # 若 redirect 被跟随且目标可达 (本地 mock 场景)
+                self.send_response(200); self.end_headers()
+        def log_message(self, *a): pass
+    srv = http.server.HTTPServer(("127.0.0.1", 0), H)
+    port = srv.server_address[1]
+    _thread.start_new_thread(srv.serve_forever, ())
+    import os
+    os.environ.setdefault("MESHCTX_AUTH_DISABLED", "1")
+    import src.main as M
+    with TestClient(M.app) as tc:
+        # redirect 源用 127.0.0.1 (loopback 放行), 目标 169.254 — 3xx 必须直接拒绝
+        r = tc.post("/api/plugins/install-url",
+                    json={"url": f"http://127.0.0.1:{port}/redir"})
+        assert r.status_code in (400, 422, 502), f"redirect 未被拒: {r.status_code}"
+        assert "redirect blocked" in r.text or "Blocked" in r.text or r.status_code == 400
+    srv.shutdown()

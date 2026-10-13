@@ -8,6 +8,19 @@ on:
     branches: [main]
 
 jobs:
+  release-gate:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Release gate (pre-tag checks)
+        run: |
+          pip install pytest pyyaml fastapi httpx pydantic
+          VER=${GITHUB_REF_NAME#v}
+          python tools/release_gate.py "$VER"
+
   test:
     runs-on: ubuntu-latest
     strategy:

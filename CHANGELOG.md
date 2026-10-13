@@ -1,3 +1,11 @@
+## [v3.135.10] - 2026-10-13 (002codex df1d6693 四项清偿)
+
+- **Nightly 6/6 红根因定案**: benchmark-nightly.yml 从未装 pytest (No module named pytest,
+  98dc6cc8 起稳定红 — 非环境性, 我此前误判闭账被 002codex 推翻) — workflow 补依赖安装
+- gate workflow 强制: ci.yml 加 release-gate job (tag push 时跑 pre-tag 四检)
+- CLI 守门完整契约 (五要素: ID/来源/unset/可用列表/默认模型)
+- KI-2 行为守门: 真 redirect 服务器 302→169.254 实弹断言 4xx (3xx→400 语义修)
+
 ## [v3.135.9] - 2026-10-13 (002codex 8d1e65f5 清偿)
 
 - KI-2 根修: install-url 禁 redirect (_NoRedirect handler, 3xx 直接拒绝) + 守门

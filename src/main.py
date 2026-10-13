@@ -6510,6 +6510,9 @@ async def install_plugin_url(req: Request):
         return {"status":"ok","plugin":name}
     except HTTPException:
         raise
+    except urllib.error.HTTPError as _uhe:
+        # KI-2: redirect 拒绝 (3xx HTTPError) → 400 带原因 (非 500)
+        raise HTTPException(400, f"安装失败: {_uhe.reason if hasattr(_uhe,'reason') else _uhe}")
     except Exception as e:
         raise HTTPException(500,f"安装失败: {e}")
 
