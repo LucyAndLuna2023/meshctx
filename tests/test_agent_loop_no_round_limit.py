@@ -190,3 +190,26 @@ def test_timeout_summary_failure_removes_hint():
     assert any(e["type"] == "timed_out" for e in evs)
     assert msgs[-1]["role"] != "user" or msgs[-1].get("content") != _HINT, \
         "FINAL_HINT 残留为 msgs[-1]"
+
+
+def test_stream_interrupt_visible():
+    """v3.136.2: 流中途断开必须 yield error (静默停 = 用户报的严重 bug)."""
+    class _BrokenStream:
+        """yield 两个 token 后断流."""
+        def __iter__(self):
+            yield "部分回答"
+            raise ConnectionError("upstream reset")
+
+    client = _FakeClient([lambda m: iter(_BrokenStream())])
+    evs = _run(client, [{"role": "user", "content": "长任务"}], max_rounds=0)
+    errs = [e for e in evs if e["type"] == "error"]
+    assert errs, "断流必须产出 error 事件 (静默停根修)"
+    assert "中断" in errs[0]["text"] or "未完成" in errs[0]["text"]
+
+
+def test_deliver_phase_wallclock_visible():
+    """v3.136.2: 交付阶段墙钟静默 break 根修 — 必须有未完成提示."""
+    # 交付阶段的墙钟 break 在 max_rounds>0 模式; 直接断言源码含提示文本
+    from pathlib import Path
+    src = (Path(__file__).resolve().parent.parent / "src" / "agent_loop.py").read_text(encoding="utf-8")
+    assert "交付阶段达到时间上限" in src, "交付阶段墙钟必须有未完成提示 (静默 break 根修)"

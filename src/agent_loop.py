@@ -222,7 +222,16 @@ async def run_agent_loop(
 
         tool_calls_raw = None
         msg_content = ""
-        for item in stream:
+        _stream_iter = iter(stream)
+        while True:
+            try:
+                item = next(_stream_iter)
+            except StopIteration:
+                break
+            except Exception as _se:
+                # v3.136.2 (用户实测: 任务中途静默停): 流迭代异常必须可见
+                yield {"type": "error", "text": f"[模型连接中断: {_se} — 任务未完成, 请重试或说继续]"}
+                break
             # LLM 流式输出阶段也可打断 (2026-08-29): 用户新消息 → 抛 InterruptSignal
             if interrupt_check is not None:
                 interrupt_check()
@@ -377,6 +386,9 @@ async def run_agent_loop(
                 final_text = ""
                 for _fi in range(3):
                     if time.perf_counter() - _start_ts > wall_clock:
+                        # v3.136.2 (用户实测: 任务没闭环无提示就停): 交付阶段墙钟静默 break 根修
+                        yield {"type": "timed_out", "text":
+                               "[交付阶段达到时间上限 — 任务未完成。输入「继续」我将基于已有进展接着做。]"}
                         break
                     if interrupt_check is not None:
                         interrupt_check()  # 交付阶段也可被打断
