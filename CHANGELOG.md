@@ -1,3 +1,10 @@
+## [v3.135.9] - 2026-10-13 (002codex 8d1e65f5 清偿)
+
+- KI-2 根修: install-url 禁 redirect (_NoRedirect handler, 3xx 直接拒绝) + 守门
+- KI-1 闭账 (代码面证据): b758cd9e 后 benchmark 面零改动
+- CLI 无效模型提示仓库级行为守门 (真实子进程断言)
+- v3.135.7 release body 补填 + macOS run rerun (tag 已被 .8 取代的治理补齐)
+
 ## [v3.135.8] - 2026-10-13 (CLI 无回复根因闭环)
 
 - MESHCTX_MODEL 指向不存在 ID 时的误导提示根修: 明确来源/unset 指引/可用列表

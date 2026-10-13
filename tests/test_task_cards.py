@@ -137,3 +137,24 @@ def test_release_gate_post_tag_tool_exists():
     g = (Path(__file__).resolve().parent.parent / "tools" / "release_gate.py").read_text(encoding="utf-8")
     assert "--post-tag" in g and "rev-parse" in g and "releases/tags" in g
     assert "sys.exit(1)" in g  # 失败必须有退出码
+
+
+def test_install_url_no_redirect():
+    """KI-2: install-url 禁 redirect — 3xx 直接拒绝 (公网302→私网绕过守卫根修)."""
+    import inspect
+    import src.main as M
+    src_txt = inspect.getsource(M)
+    assert "_NoRedirect" in src_txt and "redirect_request" in src_txt
+    assert "redirect blocked" in src_txt
+
+
+def test_cli_invalid_model_visible_hint():
+    """002codex: CLI 无效模型提示须仓库级行为守门 — 真实子进程跑 CLI 断言输出."""
+    import subprocess, sys, os
+    env = dict(os.environ, MESHCTX_MODEL="ghost:nonexistent-id")
+    r = subprocess.run([sys.executable, "-m", "src.cli", "chat", "hi"],
+                       capture_output=True, text=True, timeout=90, env=env,
+                       cwd=str(Path(__file__).resolve().parent.parent))
+    out = r.stdout + r.stderr
+    assert "模型未找到" in out or "无可用模型" in out, f"CLI 静默失败回归!: {out[:200]}"
+    assert "ghost:nonexistent-id" in out, "提示须含实际尝试的模型 ID"

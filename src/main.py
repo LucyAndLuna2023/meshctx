@@ -6491,8 +6491,17 @@ async def install_plugin_url(req: Request):
         raise HTTPException(400, f"无效的URL: {url}")
     import urllib.request
     try:
+        # KI-2 根修 (002codex): urllib 默认 follow redirect — 公网 URL 302→私网时实际请求
+        # LAN 目标绕过守卫。禁重定向: 自定义 opener 遇 3xx 直接拒绝。
+        class _NoRedirect(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self, req, fp, code, msg, headers, newurl):
+                raise urllib.error.HTTPError(req.full_url, code,
+                                             "redirect blocked (KI-2): " + newurl[:120],
+                                             headers, fp)
+        _opener = urllib.request.build_opener(_NoRedirect)
         r = urllib.request.Request(url, headers={"User-Agent":"MeshCtx/2.12"})
-        with urllib.request.urlopen(r, timeout=30) as resp:
+        # 二次防御: redirect 目标若为私网同样拦截 (与直连同标准)
+        with _opener.open(r, timeout=30) as resp:
             data = json.loads(resp.read())
         name = data.get("name","unknown")
         d = Path(__file__).resolve().parent.parent / "plugins" / name
