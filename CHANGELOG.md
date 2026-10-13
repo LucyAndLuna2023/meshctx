@@ -1,3 +1,10 @@
+## [v3.135.5] - 2026-10-13 (发版门禁固化 — 治本)
+
+- tools/release_gate.py 四检: 版本对位六资产/CHANGELOG 条目/定向守门/KNOWN_ISSUES 台账 (pre-tag)
+  + post-tag 第五检提醒 (release body 40位SHA) — 002meshctx round71-74 催办, 流程失误应验 8 次的根治
+- KNOWN_ISSUES.md 仓内挂账台账 (KI-1 Benchmark Nightly / KI-2 SSRF redirect)
+- 首战自拦实证: gate 抓到本版自身缺 CHANGELOG 条目 (九犯线的工具化终结)
+
 ## [v3.135.4] - 2026-10-13 (002codex f37fce7a 全清偿)
 
 - 状态机三防御: closed 吸收态拒 add_round/settle + pass 遇新阻断挂账自动降 review (18/100 根修)
