@@ -546,7 +546,8 @@ class TestModelSlashUse:
         captured = capsys.readouterr()
         # night-13: 文案随环境 i18n 语言变化 (zh/en 至少三种), 断言语义而非具体措辞
         assert any(s in captured.out for s in
-                   ("无可用模型", "No model available", "No available models"))
+                   ("无可用模型", "No model available", "No available models",
+                    "模型未找到"))  # v3.135.7: 升级提示 (含来源/unset 指引/可用列表)
 
     @patch("src.model_registry.get_registry")
     def test_cmd_model_test_no_client(self, mock_get_registry, capsys):
