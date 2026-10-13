@@ -23,10 +23,12 @@ jobs:
           python3 - <<'EOF'
           import requests, sys, os, time
           tok = os.environ["GITHUB_TOKEN"]; sha = os.environ["C_SHA"]
+          self_id = int(os.environ["GITHUB_RUN_ID"])  # v3.135.13: 排除自身 — 自等待死锁 (30min 超时实证)
           for _ in range(60):  # 最多等 30 分钟
               runs = requests.get(f"https://api.github.com/repos/LucyAndLuna2023/meshctx/actions/runs",
                   params={"head_sha": sha, "per_page": 50},
                   headers={"Authorization": f"token {tok}"}).json().get("workflow_runs", [])
+              runs = [r for r in runs if r["id"] != self_id]  # 排除自身 (publish job 属于该 run)
               active = [r for r in runs if r["status"] != "completed"]
               red = [r for r in runs if r["status"] == "completed" and r["conclusion"] == "failure"]
               if red:
