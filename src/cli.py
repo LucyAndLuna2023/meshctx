@@ -609,7 +609,15 @@ def cmd_chat(args):
     model_id = args.model or os.environ.get("MESHCTX_MODEL")
     client = reg.get(model_id)
     if not client:
-        print(t("i18n_scan_6de16b"))
+        # v3.135.7c (004 实测复现): MESHCTX_MODEL 指向不存在 ID 时静默误导 —
+        # 必须指出实际尝试的 ID/来源与可用列表 (UI=launchd 无此变量所以正常, 差异根源)
+        _src = "MESHCTX_MODEL 环境变量" if os.environ.get("MESHCTX_MODEL") == model_id else "--model 参数或配置"
+        _avail = ", ".join(list(reg._entries.keys())[:6])
+        print(f"模型未找到: {model_id!r} (来源: {_src})")
+        if os.environ.get("MESHCTX_MODEL"):
+            print(f"  → unset MESHCTX_MODEL 后重试 (当前值: {os.environ.get('MESHCTX_MODEL')!r})")
+        print(f"  可用模型: {_avail}{'...' if len(reg._entries) > 6 else ''}")
+        print(f"  默认模型: {reg._default}")
         return
 
     # ── 一发模式: meshctx chat "问题" ──
