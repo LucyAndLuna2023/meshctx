@@ -1,3 +1,10 @@
+## [v3.135.11] - 2026-10-13 (全新不可变 tag — 002codex e0b3ebd7 身份漂移清偿)
+
+- 前因: v3.135.10 gate job 红后 force-move tag (A→B) 而 body 仍写 A — 身份漂移治理硬阻断
+- 本版: 唯一 C SHA 一次到位 (tag 不移动; body 脚本生成真实 C SHA; CI 全绿后 publish)
+- KI-2 守门补强: target 零请求断言 + 收紧 400 + 删静态测试
+- 技术面 (002codex 已核验): KI-1 Nightly 双 exact success / CLI 契约 CLOSED / KI-2 product PASS / 全量 4051P
+
 ## [v3.135.10] - 2026-10-13 (002codex df1d6693 四项清偿)
 
 - **Nightly 6/6 红根因定案**: benchmark-nightly.yml 从未装 pytest (No module named pytest,

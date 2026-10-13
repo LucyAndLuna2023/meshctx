@@ -139,15 +139,6 @@ def test_release_gate_post_tag_tool_exists():
     assert "sys.exit(1)" in g  # 失败必须有退出码
 
 
-def test_install_url_no_redirect():
-    """KI-2: install-url 禁 redirect — 3xx 直接拒绝 (公网302→私网绕过守卫根修)."""
-    import inspect
-    import src.main as M
-    src_txt = inspect.getsource(M)
-    assert "_NoRedirect" in src_txt and "redirect_request" in src_txt
-    assert "redirect blocked" in src_txt
-
-
 def test_cli_invalid_model_visible_hint():
     """002codex: CLI 无效模型提示完整契约 — ID/来源/unset 指引/可用列表/默认模型."""
     import subprocess, sys, os
@@ -192,6 +183,9 @@ def test_install_url_redirect_blocked_behavior():
         # redirect 源用 127.0.0.1 (loopback 放行), 目标 169.254 — 3xx 必须直接拒绝
         r = tc.post("/api/plugins/install-url",
                     json={"url": f"http://127.0.0.1:{port}/redir"})
-        assert r.status_code in (400, 422, 502), f"redirect 未被拒: {r.status_code}"
-        assert "redirect blocked" in r.text or "Blocked" in r.text or r.status_code == 400
+        # 收紧 (002codex e0b3ebd7): 必须 400 且明示 redirect blocked
+        assert r.status_code == 400, f"redirect 未被拒: {r.status_code}"
+        assert "redirect blocked" in r.text, f"body 须含原因: {r.text[:100]}"
     srv.shutdown()
+    # target 零请求断言: redirect 目标 (本 mock 场景的 /latest) 从未被命中
+    assert not hit["target"], "redirect 目标被请求! (KI-2 泄漏)"
