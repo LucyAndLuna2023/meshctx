@@ -1,3 +1,10 @@
+## [v3.135.6] - 2026-10-13 (002codex 2dfbcd60 全清偿)
+
+- gate post-tag 第五检真实现: --post-tag 模式 (API 取 release body + git rev-parse 本地真实 SHA
+  完整 40 位比对 + 失败 exit 1) + 守门 (工具存在性/退出码)
+- KNOWN_ISSUES 补离散字段: KI-1/KI-2 验收判据 + 清偿版本
+- KI-1 Benchmark Nightly: 新 SHA 重跑闭账 (见 body)
+
 ## [v3.135.5] - 2026-10-13 (发版门禁固化 — 治本)
 
 - tools/release_gate.py 四检: 版本对位六资产/CHANGELOG 条目/定向守门/KNOWN_ISSUES 台账 (pre-tag)

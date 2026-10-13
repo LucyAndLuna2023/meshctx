@@ -63,8 +63,31 @@ print(f"  [{'✓' if ok else '✗'}] KNOWN_ISSUES.md 台账在位")
 if not ok:
     fail.append("KNOWN_ISSUES.md 缺失")
 
-# post-tag 提醒
-print("\n⚠ post-tag 第五检 (发版后): release body 非空且含完整 40 位 SHA — curl PATCH 后必须验证返回值")
+# post-tag 第五检 — 真实现 (v3.135.6, 002codex 2dfbcd60): --post-tag 模式
+# 用法: python3 tools/release_gate.py X.Y.Z --post-tag  (tag+push 后跑)
+if "--post-tag" in sys.argv:
+    import json as _json
+    import urllib.request as _ur
+    tok = __import__("os").environ.get("GITHUB_TOKEN", "")
+    if not tok:
+        print("🔴 需要 GITHUB_TOKEN env (post-tag 检查)"); sys.exit(1)
+    req = _ur.Request(
+        f"https://api.github.com/repos/LucyAndLuna2023/meshctx/releases/tags/v{VER}",
+        headers={"Authorization": f"token {tok}"})
+    d = _json.loads(_ur.urlopen(req, timeout=30).read())
+    body = d.get("body") or ""
+    # 本地真实 full SHA (git rev-parse, 非手输)
+    full = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                          capture_output=True, text=True).stdout.strip()
+    ok_body = bool(body)
+    ok_sha = full and full in body
+    print(f"  [{'✓' if ok_body else '✗'}] release body 非空 ({len(body)}c)")
+    print(f"  [{'✓' if ok_sha else '✗'}] body 含本地完整 40 位 SHA: {full[:12]}...")
+    if not (ok_body and ok_sha):
+        print(f"\n🔴 post-tag 第五检拦截 — body 需含真实 SHA {full}")
+        sys.exit(1)
+    print("\n🟢 post-tag 第五检过")
+    sys.exit(0)
 
 if fail:
     print(f"\n🔴 发版门禁拦截 ({len(fail)} 项):")

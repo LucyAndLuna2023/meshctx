@@ -1,3 +1,4 @@
+from pathlib import Path
 # -*- coding: utf-8 -*-
 """任务卡管理系统守门 — zcode 审计工作流模式 (v3.135.0)."""
 import pytest
@@ -129,3 +130,10 @@ def test_closed_absorbing_and_pass_demotion(tmp_path, monkeypatch):
         tc.add_round("tc-abs", "a", "info", [])
     with pytest.raises(ValueError, match="closed"):
         tc.settle("tc-abs", "whatever", evidence="e")
+
+
+def test_release_gate_post_tag_tool_exists():
+    """v3.135.6 002codex: gate post-tag 第五检必须是真实现 (非 print 提醒)."""
+    g = (Path(__file__).resolve().parent.parent / "tools" / "release_gate.py").read_text(encoding="utf-8")
+    assert "--post-tag" in g and "rev-parse" in g and "releases/tags" in g
+    assert "sys.exit(1)" in g  # 失败必须有退出码
