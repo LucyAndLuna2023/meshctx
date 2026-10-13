@@ -1,3 +1,8 @@
+## [v3.135.7] - 2026-10-13 (CLI 静默失败可见化)
+
+- 用户 Mac 实测: meshctx chat 输入 hi 无回复 (UI 正常) — 未捕获异常被吞
+- 修复: 交互循环外层异常全显 (类型+消息+traceback) + system 提示构造失败降级续跑
+
 ## [v3.135.6] - 2026-10-13 (002codex 2dfbcd60 全清偿)
 
 - gate post-tag 第五检真实现: --post-tag 模式 (API 取 release body + git rev-parse 本地真实 SHA
