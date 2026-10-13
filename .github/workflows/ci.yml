@@ -17,7 +17,9 @@ jobs:
         with: {python-version: "3.11"}
       - name: Release gate (pre-tag checks)
         run: |
-          pip install pytest pyyaml fastapi httpx pydantic
+          python -m pip install --upgrade pip
+          pip install fastapi uvicorn pyyaml numpy requests python-multipart aiofiles jinja2 websockets cryptography
+          pip install -e .[dev]
           VER=${GITHUB_REF_NAME#v}
           python tools/release_gate.py "$VER"
 
