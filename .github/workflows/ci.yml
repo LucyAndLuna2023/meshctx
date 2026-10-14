@@ -32,10 +32,12 @@ jobs:
               active = [r for r in runs if r["status"] != "completed"]
               # v3.135.14: 去掉 fail-fast (瞬时红如 PyPI/Choco 超时会 rerun —
               # 立即退出会误判; 只认"全部完成且 0 failure"或超时)
-              if not active and len(runs) >= 6 and not red:
+              # v3.136.7 (NameError 根修): red 在此分支定义 (去 fail-fast 重构遗留)
+              if not active and len(runs) >= 6:
+                  red = [r for r in runs if r["status"] == "completed" and r["conclusion"] == "failure"]
+                  if red:
+                      print(f"🔴 全部完成但有 failure: {[r['name'] for r in red]}"); sys.exit(1)
                   print("🟢 全部 exact-SHA workflow 完成 且 0 failure"); break
-              if not active and red:
-                  print(f"🔴 全部完成但有 failure: {[r['name'] for r in red]}"); sys.exit(1)
               time.sleep(30)
           else:
               print("🔴 等待超时"); sys.exit(1)
