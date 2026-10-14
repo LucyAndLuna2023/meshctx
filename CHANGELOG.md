@@ -1,3 +1,8 @@
+## [v3.136.7] - 2026-10-14 (release-publish NameError 根修)
+
+- 去 fail-fast 重构遗留: red 变量在超时/red 分支未定义 (本地单 workflow 绿测不出,
+  CI 多 workflow 并发才触发 — 本地/CI 差异盲区又例)
+
 ## [v3.136.6] - 2026-10-14 (publish 轮询去 fail-fast)
 
 - release-publish wait 步: 瞬时红 (PyPI/Choco 超时族) rerun 期间误判退出 —
