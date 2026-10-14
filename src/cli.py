@@ -922,13 +922,19 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
                     return reason
                 return None
             async def _wait(rid):
-                # v3.136.4 (002codex f63045a9): 注册屏障 — 先查 pending buffer (fast-input
-                # 在 future 注册前到达时不丢), 再注册; 仍兜底 pending 后到场景
+                # v3.136.5 (002codex 42bb3dd2 P1 TOCTOU 三检): 检1 注册前 / 检2 注册瞬间 /
+                # 检3 await 前 (create_future 与 await 之间的事件循环让路窗口 — 输入线程
+                # 可在此写入 pending, 不查则丢 — 生产 closure probe 3/3 丢失的根因)
                 if rid in _CLI_PENDING:
                     return _CLI_PENDING.pop(rid)
                 fut = _aio.get_running_loop().create_future()
                 _CLI_APPROVALS[rid] = fut
-                if rid in _CLI_PENDING:  # 双检: 注册瞬间 pending 到达
+                if rid in _CLI_PENDING:  # 检2: 注册瞬间
+                    ans = _CLI_PENDING.pop(rid)
+                    _CLI_APPROVALS.pop(rid, None)
+                    return ans
+                await _aio.sleep(0)  # 让路一个事件循环周期 (输入线程可在此写 pending)
+                if rid in _CLI_PENDING:  # 检3: await 前 (TOCTOU 闭合)
                     ans = _CLI_PENDING.pop(rid)
                     _CLI_APPROVALS.pop(rid, None)
                     return ans

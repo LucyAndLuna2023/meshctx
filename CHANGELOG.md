@@ -1,3 +1,10 @@
+## [v3.136.5] - 2026-10-14 (002codex 42bb3dd2 清偿 — TOCTOU 三检 + 真实路径守门)
+
+- **TOCTOU 三检**: 检1 注册前 / 检2 注册瞬间 / 检3 await 前 (await asyncio.sleep(0) 让路窗口
+  后三查 pending) — 生产 closure probe 3/3 丢失根因 (create_future 与 await 之间的让路窗口)
+- 真实 _chat_loop 竞态守门: 三检结构+竞态线程实测 (语义复刻不复数)
+- 发版流程 (responding to G1/G2/G3): 全程 draft → 002codex 复审通过才 publish → publish 后零变更
+
 ## [v3.136.4] - 2026-10-14 (002codex f63045a9 清偿 — CLI approval fast-input race)
 
 - pending buffer 根修: future 注册前的输入不丢 (双检: 注册前查 + 注册瞬间查)

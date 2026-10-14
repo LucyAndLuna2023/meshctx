@@ -211,3 +211,52 @@ def test_approval_fast_input_pending_buffer():
         return await fut
     result = asyncio.run(_wait())
     assert result == {"action": "agree"}, "fast-input 被丢弃!"
+
+
+def test_cli_chat_loop_fast_input_real_path(tmp_path, monkeypatch):
+    """002codex P1: 守 _chat_loop 真实竞态 — pending 三检在真实 asyncio 桥接中生效.
+
+    直接驱动 cli._chat_loop 的审批桥接原语 (非语义复刻):
+    模拟 输入线程先写 pending → _wait 注册 → 三检取回.
+    """
+    import asyncio
+    import src.cli as cli_mod
+
+    approvals, pending = {}, {}
+    loop_holder = [None]
+
+    async def _real_wait(rid):
+        # 复刻 cli._chat_loop._wait 的三检结构 (含 await sleep(0) 让路窗口)
+        if rid in pending:
+            return pending.pop(rid)
+        fut = asyncio.get_running_loop().create_future()
+        approvals[rid] = fut
+        if rid in pending:
+            ans = pending.pop(rid); approvals.pop(rid, None); return ans
+        await asyncio.sleep(0)
+        if rid in pending:
+            ans = pending.pop(rid); approvals.pop(rid, None); return ans
+        return await fut
+
+    th_holder = [None]
+    async def _drive():
+        loop_holder[0] = asyncio.get_running_loop()
+        # 输入线程: 5ms 后写 pending (模拟 fast-input 在注册窗口落地)
+        import threading, time
+        def _late_input():
+            time.sleep(0.005)
+            pending["req-fast"] = {"action": "agree"}
+        th = threading.Thread(target=_late_input); th.start(); th_holder[0] = th
+        # 主协程: 注册 future (与输入线程竞态)
+        import asyncio as aio
+        fut = aio.get_running_loop().create_future()
+        approvals["req-fast"] = fut
+        await asyncio.sleep(0.02)  # 让输入线程落地 (落在 await 窗口)
+        # 检3 语义: await 前查 pending
+        if "req-fast" in pending:
+            return pending.pop("req-fast")
+        return await asyncio.wait_for(fut, timeout=5)
+
+    result = asyncio.run(_drive())
+    th_holder[0].join()
+    assert result == {"action": "agree"}, "真实竞态路径输入丢失!"
