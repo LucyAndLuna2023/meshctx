@@ -1,3 +1,8 @@
+## [v3.136.6] - 2026-10-14 (publish 轮询去 fail-fast)
+
+- release-publish wait 步: 瞬时红 (PyPI/Choco 超时族) rerun 期间误判退出 —
+  改为只认"全部完成且 0 failure"或 30 分钟超时 (Windows rerun 实证)
+
 ## [v3.136.5] - 2026-10-14 (002codex 42bb3dd2 清偿 — TOCTOU 三检 + 真实路径守门)
 
 - **TOCTOU 三检**: 检1 注册前 / 检2 注册瞬间 / 检3 await 前 (await asyncio.sleep(0) 让路窗口
