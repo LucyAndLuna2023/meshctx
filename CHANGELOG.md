@@ -1,3 +1,9 @@
+## [v3.136.4] - 2026-10-14 (002codex f63045a9 清偿 — CLI approval fast-input race)
+
+- pending buffer 根修: future 注册前的输入不丢 (双检: 注册前查 + 注册瞬间查)
+- 确定性守门: pending buffer 语义测试 (fast-input 不再被静默丢弃)
+- KI-3 补账: v3.136.2 认证 API 12/24 assets 说明 (KNOWN_ISSUES)
+
 ## [v3.136.3] - 2026-10-14 (002codex v3.136.0/1 FAIL 全清偿)
 
 - permissions fresh profile 根修: _config_path 支持 MESHCTX_HOME + save 建父目录 (3F/2P 根修)

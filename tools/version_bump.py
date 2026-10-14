@@ -99,9 +99,15 @@ for p in scan_paths:
         except Exception:
             continue
     doc_lines = docstring_lines(t)
-    hits = [ln.strip() for i, ln in enumerate(t.splitlines(), 1)
-            if OLD in ln and i not in doc_lines
-            and not ln.strip().startswith(("#", "//", "<!--"))]
+    hits = []
+    for i, ln in enumerate(t.splitlines(), 1):
+        if OLD not in ln or i in doc_lines:
+            continue
+        # 行内注释剥离: 代码 # 注释 形态的行, 只看代码部分 (002codex 连环根因: 行内注释含
+        # 历史版本号 → 扫描自锁三犯; 功能性残留判定只对代码部分生效)
+        code_part = ln.split("#")[0] if "#" in ln else ln
+        if OLD in code_part:
+            hits.append(ln.strip())
     if hits:
         left.append(f"{sp}: {hits[0][:80]}")
 

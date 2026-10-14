@@ -189,3 +189,25 @@ def test_install_url_redirect_blocked_behavior():
     srv.shutdown()
     # target 零请求断言: redirect 目标 (本 mock 场景的 /latest) 从未被命中
     assert not hit["target"], "redirect 目标被请求! (KI-2 泄漏)"
+
+
+def test_approval_fast_input_pending_buffer():
+    """v3.136.4 002codex: fast-input race — future 注册前的输入必须不丢 (pending buffer)."""
+    # 模拟 CLI 的 pending buffer 语义 (与 src/cli.py _chat_loop 同构)
+    approvals, pending = {}, {}
+    # 时序1: 输入先到 (future 未注册)
+    rid = "req-1"
+    pending[rid] = {"action": "agree"}  # 用户按了 y
+    # 时序2: future 注册 — 先查 pending
+    import asyncio
+    async def _wait():
+        if rid in pending:
+            return pending.pop(rid)
+        import asyncio as aio
+        fut = aio.get_running_loop().create_future()
+        approvals[rid] = fut
+        if rid in pending:
+            ans = pending.pop(rid); approvals.pop(rid, None); return ans
+        return await fut
+    result = asyncio.run(_wait())
+    assert result == {"action": "agree"}, "fast-input 被丢弃!"

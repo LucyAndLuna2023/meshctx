@@ -903,6 +903,7 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
             print(f"\n{ev.get('text', '[已达到最大处理时间，已中止]')}", flush=True)
 
     _CLI_APPROVALS: dict = {}
+    _CLI_PENDING: dict = {}  # v3.136.4: fast-input race — future 注册前的输入缓冲 (002codex: immediate y 0/3)
     _CLI_LOOP: list = [None]  # v3.136.3: 主线程 loop 引用 (审批线程桥接)
 
     async def _run():
@@ -921,9 +922,16 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
                     return reason
                 return None
             async def _wait(rid):
-                loop = _aio.get_running_loop()
-                fut = loop.create_future()
+                # v3.136.4 (002codex f63045a9): 注册屏障 — 先查 pending buffer (fast-input
+                # 在 future 注册前到达时不丢), 再注册; 仍兜底 pending 后到场景
+                if rid in _CLI_PENDING:
+                    return _CLI_PENDING.pop(rid)
+                fut = _aio.get_running_loop().create_future()
                 _CLI_APPROVALS[rid] = fut
+                if rid in _CLI_PENDING:  # 双检: 注册瞬间 pending 到达
+                    ans = _CLI_PENDING.pop(rid)
+                    _CLI_APPROVALS.pop(rid, None)
+                    return ans
                 return await fut
             _na, _aw = _needs, _wait
         async for ev in run_agent_loop(
@@ -945,7 +953,11 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
                 def _ask(rid=ev["request_id"], name=ev["name"], reason=ev.get("reason", "")):
                     ans = input(f"\n🔐 审批: {name} — {reason}\n   允许执行? [y/N]: ").strip().lower()
                     fut = _CLI_APPROVALS.get(rid)
-                    if fut and not fut.done():
+                    if not fut or fut.done():
+                        # fast-input: future 未注册 → 决策入 pending buffer (不丢)
+                        _CLI_PENDING[rid] = {"action": "agree"} if ans in ("y", "yes", "是") else {"action": "reject"}
+                        return
+                    if not fut.done():
                         # v3.136.3 (002codex P1 根修): 线程内无 running loop —
                         # fut.set_result 线程安全版直接用 future (asyncio Future 的
                         # set_result 非线程安全, 正确桥接 = loop.call_soon_threadsafe,
