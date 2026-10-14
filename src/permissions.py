@@ -23,6 +23,10 @@ _MODES = ("full", "standard", "restricted")
 
 
 def _config_path() -> Path:
+    """v3.136.3 (002codex P1 根修): 支持 MESHCTX_HOME (与 task_cards/测试隔离一致)."""
+    base_env = os.environ.get("MESHCTX_HOME")
+    if base_env:
+        return Path(base_env) / "config.yaml"
     profile = os.environ.get("MESHCTX_PROFILE")
     if not profile:
         af = Path.home() / ".meshctx" / ".active_profile"
@@ -72,6 +76,7 @@ def save_permissions(mode: str, deny_tools: List[str] = None,
         cfg["permissions"]["deny_tools"] = [t.strip() for t in deny_tools if t.strip()]
     if allow_tools is not None:
         cfg["permissions"]["allow_tools"] = [t.strip() for t in allow_tools if t.strip()]
+    p.parent.mkdir(parents=True, exist_ok=True)  # v3.136.3: fresh profile 目录创建
     tmp = p.with_suffix(".yaml.tmp")
     tmp.write_text(yaml.dump(cfg, allow_unicode=True, default_flow_style=False, sort_keys=False),
                    encoding="utf-8")

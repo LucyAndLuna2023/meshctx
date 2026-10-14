@@ -1645,7 +1645,11 @@
   "perm_title": "🔐 权限档位",
   "perm_desc": "工具执行审批策略 (CLI 与 UI 共用)",
   "perm_deny_ph": "黑名单工具 (逗号分隔, 直接拒绝)",
-  "perm_allow_ph": "白名单工具 (逗号分隔, 免审批)"
+  "perm_allow_ph": "白名单工具 (逗号分隔, 免审批)",
+  "perm_full": "完全权限 (不审批)",
+  "perm_standard": "标准 (危险操作审批)",
+  "perm_restricted": "全部审批 (每次工具调用)",
+  "perm_saved": "已保存 ✓"
  },
  "en": {
   " (等待": " (Waiting",
@@ -3293,7 +3297,11 @@
   "perm_title": "🔐 Permission Mode",
   "perm_desc": "Tool approval policy (shared by CLI & UI)",
   "perm_deny_ph": "Denied tools (comma-separated, hard reject)",
-  "perm_allow_ph": "Allowed tools (comma-separated, skip approval)"
+  "perm_allow_ph": "Allowed tools (comma-separated, skip approval)",
+  "perm_full": "Full (no approval)",
+  "perm_standard": "Standard (danger approval)",
+  "perm_restricted": "Approve everything",
+  "perm_saved": "Saved ✓"
  },
  "ja": {
   " (等待": " (待機",
@@ -4941,7 +4949,11 @@
   "perm_title": "🔐 権限モード",
   "perm_desc": "ツール実行承認ポリシー (CLI と UI 共通)",
   "perm_deny_ph": "拒否ツール (カンマ区切り, 直接拒否)",
-  "perm_allow_ph": "許可ツール (カンマ区切り, 承認スキップ)"
+  "perm_allow_ph": "許可ツール (カンマ区切り, 承認スキップ)",
+  "perm_full": "完全権限 (承認なし)",
+  "perm_standard": "標準 (危険操作承認)",
+  "perm_restricted": "全承認 (毎ツール呼び出し)",
+  "perm_saved": "保存済み ✓"
  },
  "ko": {
   " (等待": " (대기",
@@ -6589,7 +6601,11 @@
   "perm_title": "🔐 권한 모드",
   "perm_desc": "도구 실행 승인 정책 (CLI·UI 공용)",
   "perm_deny_ph": "거부 도구 (쉼표 구분, 즉시 거부)",
-  "perm_allow_ph": "허용 도구 (쉼표 구분, 승인 생략)"
+  "perm_allow_ph": "허용 도구 (쉼표 구분, 승인 생략)",
+  "perm_full": "전체 권한 (승인 없음)",
+  "perm_standard": "표준 (위험 작업 승인)",
+  "perm_restricted": "전체 승인 (매 도구 호출)",
+  "perm_saved": "저장됨 ✓"
  },
  "fr": {
   " (等待": " (En attente",
@@ -8237,7 +8253,11 @@
   "perm_title": "🔐 Mode d'autorisation",
   "perm_desc": "Politique d'approbation des outils (CLI et UI)",
   "perm_deny_ph": "Outils interdits (séparés par virgules, rejet direct)",
-  "perm_allow_ph": "Outils autorisés (séparés par virgules, sans approbation)"
+  "perm_allow_ph": "Outils autorisés (séparés par virgules, sans approbation)",
+  "perm_full": "Complet (sans approbation)",
+  "perm_standard": "Standard (approbation des dangers)",
+  "perm_restricted": "Tout approuver (chaque appel)",
+  "perm_saved": "Enregistré ✓"
  },
  "de": {
   " (等待": " (Warten",
@@ -9885,7 +9905,11 @@
   "perm_title": "🔐 Berechtigungsmodus",
   "perm_desc": "Tool-Genehmigungsrichtlinie (CLI & UI)",
   "perm_deny_ph": "Verbotene Tools (kommagetrennt, direkt abgelehnt)",
-  "perm_allow_ph": "Erlaubte Tools (kommagetrennt, ohne Genehmigung)"
+  "perm_allow_ph": "Erlaubte Tools (kommagetrennt, ohne Genehmigung)",
+  "perm_full": "Vollzugriff (ohne Genehmigung)",
+  "perm_standard": "Standard (Gefahren-Genehmigung)",
+  "perm_restricted": "Alles genehmigen (jeder Aufruf)",
+  "perm_saved": "Gespeichert ✓"
  },
  "es": {
   " (等待": " (Esperando",
@@ -11533,7 +11557,11 @@
   "perm_title": "🔐 Modo de permisos",
   "perm_desc": "Política de aprobación de herramientas (CLI y UI)",
   "perm_deny_ph": "Herramientas denegadas (separadas por comas, rechazo directo)",
-  "perm_allow_ph": "Herramientas permitidas (separadas por comas, sin aprobación)"
+  "perm_allow_ph": "Herramientas permitidas (separadas por comas, sin aprobación)",
+  "perm_full": "Completo (sin aprobación)",
+  "perm_standard": "Estándar (aprobación de peligros)",
+  "perm_restricted": "Aprobar todo (cada llamada)",
+  "perm_saved": "Guardado ✓"
  },
  "it": {
   " (等待": " (attesa",
@@ -13181,7 +13209,11 @@
   "perm_title": "🔐 Modalità permessi",
   "perm_desc": "Politica di approvazione strumenti (CLI e UI)",
   "perm_deny_ph": "Strumenti negati (virgole, rifiuto diretto)",
-  "perm_allow_ph": "Strumenti consentiti (virgole, senza approvazione)"
+  "perm_allow_ph": "Strumenti consentiti (virgole, senza approvazione)",
+  "perm_full": "Completo (senza approvazione)",
+  "perm_standard": "Standard (approvazione pericoli)",
+  "perm_restricted": "Approva tutto (ogni chiamata)",
+  "perm_saved": "Salvato ✓"
  },
  "ar": {
   " (等待": " (في الانتظار",
@@ -14829,7 +14861,11 @@
   "perm_title": "🔐 وضع الأذونات",
   "perm_desc": "سياسة موافقة الأدوات (CLI و UI)",
   "perm_deny_ph": "أدوات محظورة (مفصولة بفواصل، رفض مباشر)",
-  "perm_allow_ph": "أدوات مسموحة (مفصولة بفواصل، بدون موافقة)"
+  "perm_allow_ph": "أدوات مسموحة (مفصولة بفواصل، بدون موافقة)",
+  "perm_full": "كامل (بدون موافقة)",
+  "perm_standard": "قياسي (موافقة العمليات الخطرة)",
+  "perm_restricted": "الموافقة على كل شيء",
+  "perm_saved": "تم الحفظ ✓"
  },
  "ru": {
   " (等待": " (ожидание",
@@ -16477,7 +16513,11 @@
   "perm_title": "🔐 Режим разрешений",
   "perm_desc": "Политика одобрения инструментов (CLI и UI)",
   "perm_deny_ph": "Запрещённые инструменты (через запятую, жёсткий отказ)",
-  "perm_allow_ph": "Разрешённые инструменты (через запятую, без одобрения)"
+  "perm_allow_ph": "Разрешённые инструменты (через запятую, без одобрения)",
+  "perm_full": "Полный (без одобрения)",
+  "perm_standard": "Стандартный (одобрение опасных)",
+  "perm_restricted": "Одобрять всё (каждый вызов)",
+  "perm_saved": "Сохранено ✓"
  },
  "he": {
   " (等待": " (ממתין",
@@ -18125,6 +18165,10 @@
   "perm_title": "🔐 מצב הרשאות",
   "perm_desc": "מדיניות אישור כלים (CLI ו-UI)",
   "perm_deny_ph": "כלים אסורים (מופרדים בפסיקים, דחייה מיידית)",
-  "perm_allow_ph": "כלים מותרים (מופרדים בפסיקים, ללא אישור)"
+  "perm_allow_ph": "כלים מותרים (מופרדים בפסיקים, ללא אישור)",
+  "perm_full": "מלא (ללא אישור)",
+  "perm_standard": "רגיל (אישור פעולות מסוכנות)",
+  "perm_restricted": "לאשר הכל (כל קריאה)",
+  "perm_saved": "נשמר ✓"
  }
 }

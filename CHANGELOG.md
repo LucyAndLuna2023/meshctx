@@ -1,3 +1,10 @@
+## [v3.136.3] - 2026-10-14 (002codex v3.136.0/1 FAIL 全清偿)
+
+- permissions fresh profile 根修: _config_path 支持 MESHCTX_HOME + save 建父目录 (3F/2P 根修)
+- CLI 审批线程桥接根修: 主线程 loop 预捕获 (_CLI_LOOP) — 线程内 get_running_loop "no running event loop" 根修 (y 审批失效根修)
+- UI i18n 残余清零: 3 个 option + "已保存" → 11 语言 (44 key)
+- v3.136.2 release 已创建+publish (002meshctx COND 残项清偿) + v3.136.0 body 补 (十犯清偿)
+
 ## [v3.136.2] - 2026-10-13 (任务静默中断根修 — 用户报"很严重的 bug")
 
 > 用户实测: 很多任务最后没有闭环也没有完成就停了, 连"继续"提示都没有。

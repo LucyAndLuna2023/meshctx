@@ -903,10 +903,12 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
             print(f"\n{ev.get('text', '[已达到最大处理时间，已中止]')}", flush=True)
 
     _CLI_APPROVALS: dict = {}
+    _CLI_LOOP: list = [None]  # v3.136.3: 主线程 loop 引用 (审批线程桥接)
 
     async def _run():
         from src.agent_loop import run_agent_loop
         import asyncio as _aio
+        _CLI_LOOP[0] = _aio.get_running_loop()  # v3.136.3: 主线程 loop
         # v3.136.0: CLI 审批 — 权限档位 standard/restricted 时终端询问 (UI 已有弹窗, CLI 此前完全无审批)
         _na = _aw = None
         if cli_approval:
@@ -944,10 +946,17 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
                     ans = input(f"\n🔐 审批: {name} — {reason}\n   允许执行? [y/N]: ").strip().lower()
                     fut = _CLI_APPROVALS.get(rid)
                     if fut and not fut.done():
-                        loop = _aio.get_running_loop()
-                        loop.call_soon_threadsafe(
-                            fut.set_result,
-                            {"action": "agree"} if ans in ("y", "yes", "是") else {"action": "reject"})
+                        # v3.136.3 (002codex P1 根修): 线程内无 running loop —
+                        # fut.set_result 线程安全版直接用 future (asyncio Future 的
+                        # set_result 非线程安全, 正确桥接 = loop.call_soon_threadsafe,
+                        # loop 引用须在主线程预先捕获)
+                        _loop = _CLI_LOOP[0]
+                        if _loop:
+                            _loop.call_soon_threadsafe(
+                                fut.set_result,
+                                {"action": "agree"} if ans in ("y", "yes", "是") else {"action": "reject"})
+                        else:
+                            fut.set_result({"action": "reject"})
                 _th.Thread(target=_ask, daemon=True).start()
 
     asyncio.run(_run())

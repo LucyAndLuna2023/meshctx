@@ -869,14 +869,14 @@ function saveEdit(){
 
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <select id="permMode" onchange="savePerm()" style="padding:6px 10px;border-radius:6px;background:var(--bg);color:var(--text);border:1px solid var(--border)">
-      <option value="full">完全权限 (不审批)</option>
-      <option value="standard">标准 (危险操作审批)</option>
-      <option value="restricted">全部审批 (每次工具调用)</option>
+      <option value="full" data-lang-key="perm_full">Full (no approval)</option>
+      <option value="standard" data-lang-key="perm_standard">Standard (danger approval)</option>
+      <option value="restricted" data-lang-key="perm_restricted">Approve everything</option>
     </select>
     <input id="permDeny" data-lang-key-placeholder="perm_deny_ph" data-lang-key="perm_deny_ph" placeholder="Denied tools (comma-separated, hard reject)" style="flex:1;min-width:200px;padding:6px 10px;border-radius:6px;background:var(--bg);color:var(--text);border:1px solid var(--border)">
     <input id="permAllow" data-lang-key-placeholder="perm_allow_ph" data-lang-key="perm_allow_ph" placeholder="Allowed tools (comma-separated, skip approval)" style="flex:1;min-width:200px;padding:6px 10px;border-radius:6px;background:var(--bg);color:var(--text);border:1px solid var(--border)">
     <h3 style="margin:0 0 8px" data-lang-key="perm_title">🔐 Permission Mode <span style="font-size:.72rem;color:var(--muted)" data-lang-key="perm_desc">Tool approval policy (shared by CLI &amp; UI)</span></h3>
-    <span id="permSaved" style="font-size:.72rem;color:#22c55e;opacity:0;transition:opacity .4s">已保存 ✓</span>
+    <span id="permSaved" data-lang-key="perm_saved" style="font-size:.72rem;color:#22c55e;opacity:0;transition:opacity .4s">Saved ✓</span>
   </div>
 </div>
 <script>
