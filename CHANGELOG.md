@@ -1,3 +1,7 @@
+## [v3.136.8] - 2026-10-14 (release-publish NameError 真修)
+
+- 上一 commit (v3.136.7) 只落了 CHANGELOG 未落 workflow 修复 — 核对失实, 本版真修
+
 ## [v3.136.7] - 2026-10-14 (release-publish NameError 根修)
 
 - 去 fail-fast 重构遗留: red 变量在超时/red 分支未定义 (本地单 workflow 绿测不出,
