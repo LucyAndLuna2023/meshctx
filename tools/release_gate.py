@@ -72,9 +72,14 @@ if "--post-tag" in sys.argv:
     if not tok:
         print("🔴 需要 GITHUB_TOKEN env (post-tag 检查)"); sys.exit(1)
     req = _ur.Request(
-        f"https://api.github.com/repos/LucyAndLuna2023/meshctx/releases/tags/v{VER}",
+        f"https://api.github.com/repos/LucyAndLuna2023/meshctx/releases?per_page=20",
         headers={"Authorization": f"token {tok}"})
-    d = _json.loads(_ur.urlopen(req, timeout=30).read())
+    ds = _json.loads(_ur.urlopen(req, timeout=30).read())
+    # v3.136.8 修复: draft release 不出现在 tags 端点 (404) — 走列表端点按 tag 匹配
+    _match = [r for r in ds if r.get("tag_name") == f"v{VER}"]
+    if not _match:
+        print(f"🔴 v{VER} release 未创建"); sys.exit(1)
+    d = _match[0]
     body = d.get("body") or ""
     # 本地真实 full SHA (git rev-parse, 非手输)
     full = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,

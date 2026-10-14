@@ -135,7 +135,8 @@ def test_closed_absorbing_and_pass_demotion(tmp_path, monkeypatch):
 def test_release_gate_post_tag_tool_exists():
     """v3.135.6 002codex: gate post-tag 第五检必须是真实现 (非 print 提醒)."""
     g = (Path(__file__).resolve().parent.parent / "tools" / "release_gate.py").read_text(encoding="utf-8")
-    assert "--post-tag" in g and "rev-parse" in g and "releases/tags" in g
+    assert "--post-tag" in g and "rev-parse" in g
+    assert "releases?per_page" in g or "releases/tags" in g  # v3.136.9: 列表端点回退 (draft 404 根修)
     assert "sys.exit(1)" in g  # 失败必须有退出码
 
 
