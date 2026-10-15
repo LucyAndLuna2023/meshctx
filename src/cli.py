@@ -921,24 +921,12 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
                 if d == "approval":
                     return reason
                 return None
-            async def _wait(rid):
-                # v3.136.5 (002codex 42bb3dd2 P1 TOCTOU 三检): 检1 注册前 / 检2 注册瞬间 /
-                # 检3 await 前 (create_future 与 await 之间的事件循环让路窗口 — 输入线程
-                # 可在此写入 pending, 不查则丢 — 生产 closure probe 3/3 丢失的根因)
-                if rid in _CLI_PENDING:
-                    return _CLI_PENDING.pop(rid)
-                fut = _aio.get_running_loop().create_future()
-                _CLI_APPROVALS[rid] = fut
-                if rid in _CLI_PENDING:  # 检2: 注册瞬间
-                    ans = _CLI_PENDING.pop(rid)
-                    _CLI_APPROVALS.pop(rid, None)
-                    return ans
-                await _aio.sleep(0)  # 让路一个事件循环周期 (输入线程可在此写 pending)
-                if rid in _CLI_PENDING:  # 检3: await 前 (TOCTOU 闭合)
-                    ans = _CLI_PENDING.pop(rid)
-                    _CLI_APPROVALS.pop(rid, None)
-                    return ans
-                return await fut
+            # 行为级可测重构 (004meshctx位 audit_v3136061): 语义抽至模块级
+            # make_cli_approval_bridge (TOCTOU 三检逐字保留), 闭包仅做注册表接线
+            _wait, (_CLI_APPROVALS_X, _CLI_PENDING_X, _loop_x) = make_cli_approval_bridge()
+            _CLI_PENDING = _CLI_PENDING_X
+            _CLI_APPROVALS = _CLI_APPROVALS_X
+            _CLI_LOOP[0] = _aio.get_running_loop()  # 主线程 loop (输入线程桥接用)
             _na, _aw = _needs, _wait
         async for ev in run_agent_loop(
             client, messages,
@@ -3244,3 +3232,36 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def make_cli_approval_bridge():
+    """CLI 审批桥接工厂 (004meshctx位 audit_v3136061: 闭包抽模块级 — 行为级可测).
+
+    返回 (waiter, registries): waiter=async 可调用 (agent_loop approval_waiter 契约),
+    registries=(approvals, pending, loop_ref) 供终端输入线程写入。
+    语义与原闭包逐字一致 (v3.136.3 线程安全桥接 + v3.136.4 pending 缓冲 +
+    v3.136.5 TOCTOU 三检: 注册前/注册瞬间/await 前)。
+    """
+    import asyncio as _aio
+    approvals: dict = {}
+    pending: dict = {}
+    loop_ref: list = [None]
+
+    async def _wait(rid):
+        if rid in pending:                      # 检1: 注册前
+            return pending.pop(rid)
+        fut = _aio.get_running_loop().create_future()
+        approvals[rid] = fut
+        if rid in pending:                      # 检2: 注册瞬间
+            ans = pending.pop(rid)
+            approvals.pop(rid, None)
+            return ans
+        await _aio.sleep(0)                     # 让路一个事件循环周期
+        if rid in pending:                      # 检3: await 前 (TOCTOU 闭合)
+            ans = pending.pop(rid)
+            approvals.pop(rid, None)
+            return ans
+        return await fut
+
+    return _wait, (approvals, pending, loop_ref)
+
