@@ -923,7 +923,7 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
                 return None
             # 行为级可测重构 (004meshctx位 audit_v3136061): 语义抽至模块级
             # make_cli_approval_bridge (TOCTOU 三检逐字保留), 闭包仅做注册表接线
-            _wait, (_CLI_APPROVALS_X, _CLI_PENDING_X, _loop_x) = make_cli_approval_bridge()
+            _wait, (_CLI_APPROVALS_X, _CLI_PENDING_X, _loop_x), _submit = make_cli_approval_bridge()
             _CLI_PENDING = _CLI_PENDING_X
             _CLI_APPROVALS = _CLI_APPROVALS_X
             _CLI_LOOP[0] = _aio.get_running_loop()  # 主线程 loop (输入线程桥接用)
@@ -946,23 +946,10 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
                 import threading as _th
                 def _ask(rid=ev["request_id"], name=ev["name"], reason=ev.get("reason", "")):
                     ans = input(f"\n🔐 审批: {name} — {reason}\n   允许执行? [y/N]: ").strip().lower()
-                    fut = _CLI_APPROVALS.get(rid)
-                    if not fut or fut.done():
-                        # fast-input: future 未注册 → 决策入 pending buffer (不丢)
-                        _CLI_PENDING[rid] = {"action": "agree"} if ans in ("y", "yes", "是") else {"action": "reject"}
-                        return
-                    if not fut.done():
-                        # v3.136.3 (002codex P1 根修): 线程内无 running loop —
-                        # fut.set_result 线程安全版直接用 future (asyncio Future 的
-                        # set_result 非线程安全, 正确桥接 = loop.call_soon_threadsafe,
-                        # loop 引用须在主线程预先捕获)
-                        _loop = _CLI_LOOP[0]
-                        if _loop:
-                            _loop.call_soon_threadsafe(
-                                fut.set_result,
-                                {"action": "agree"} if ans in ("y", "yes", "是") else {"action": "reject"})
-                        else:
-                            fut.set_result({"action": "reject"})
+                    _decision = {"action": "agree"} if ans in ("y", "yes", "是") else {"action": "reject"}
+                    # v3.136.10 (002codex P1 原子根修): 输入线程唯一动作 = call_soon_threadsafe
+                    # 提交 — event-loop callback 原子落地 (resolve/pending), 时序窗口彻底消除
+                    _submit(rid, _decision)
                 _th.Thread(target=_ask, daemon=True).start()
 
     asyncio.run(_run())
@@ -3238,30 +3225,50 @@ def make_cli_approval_bridge():
     """CLI 审批桥接工厂 (004meshctx位 audit_v3136061: 闭包抽模块级 — 行为级可测).
 
     返回 (waiter, registries): waiter=async 可调用 (agent_loop approval_waiter 契约),
-    registries=(approvals, pending, loop_ref) 供终端输入线程写入。
-    语义与原闭包逐字一致 (v3.136.3 线程安全桥接 + v3.136.4 pending 缓冲 +
-    v3.136.5 TOCTOU 三检: 注册前/注册瞬间/await 前)。
+    registries=(approvals, pending, loop_ref) 供终端输入线程提交决策。
+
+    v3.136.10 (002codex P1 原子根修): 输入线程不再直接碰 future/pending —
+    统一 loop.call_soon_threadsafe(_apply_decision, ...) 由 event-loop callback 在
+    loop 线程内**原子**落地 (resolve future 或写 pending) — TOCTOU 窗口彻底消除
+    (002codex 生产 closure probe 3/3 丢失 = 三检非原子的实证)。
     """
     import asyncio as _aio
     approvals: dict = {}
     pending: dict = {}
     loop_ref: list = [None]
 
+    def _apply_decision(rid: str, decision: dict) -> None:
+        """loop 线程 callback: 原子落地 — resolve future 优先, 否则写 pending."""
+        fut = approvals.get(rid)
+        if fut is not None and not fut.done():
+            fut.set_result(decision)
+        else:
+            pending[rid] = decision  # future 未注册 → pending (wait 首查取回)
+
+    def submit_from_thread(rid: str, decision: dict) -> None:
+        """输入线程入口: 唯一合法提交路径 (call_soon_threadsafe 原子提交)."""
+        loop = loop_ref[0]
+        if loop is not None:
+            loop.call_soon_threadsafe(_apply_decision, rid, decision)
+        else:
+            # loop 不可用极端兜底: future 已注册则直接 set_result (loop None = 单线程场景,
+            # set_result 非线程安全问题不存在); 未注册则 pending (wait 检1 会取回)
+            fut = approvals.get(rid)
+            if fut is not None and not fut.done():
+                fut.set_result(decision)
+            else:
+                pending[rid] = decision
+
     async def _wait(rid):
-        if rid in pending:                      # 检1: 注册前
+        if rid in pending:                      # 检1 (防御保留 — callback 已保证原子)
             return pending.pop(rid)
         fut = _aio.get_running_loop().create_future()
         approvals[rid] = fut
-        if rid in pending:                      # 检2: 注册瞬间
-            ans = pending.pop(rid)
-            approvals.pop(rid, None)
-            return ans
-        await _aio.sleep(0)                     # 让路一个事件循环周期
-        if rid in pending:                      # 检3: await 前 (TOCTOU 闭合)
+        if rid in pending:                      # 检2 (同上)
             ans = pending.pop(rid)
             approvals.pop(rid, None)
             return ans
         return await fut
 
-    return _wait, (approvals, pending, loop_ref)
+    return _wait, (approvals, pending, loop_ref), submit_from_thread
 

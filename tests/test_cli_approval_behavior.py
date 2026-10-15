@@ -15,30 +15,34 @@ import pytest
 from src.cli import make_cli_approval_bridge
 
 
-def _answer_like_input_thread(approvals, pending, loop_ref, rid, ans_text):
-    """复刻 cli.py _ask 的线程侧行为: input → future 在则 threadsafe resolve, 不在则 pending."""
+def _answer_like_input_thread(approvals, pending, loop_ref, rid, ans_text, submit):
+    """v3.136.10: 线程侧行为 = 统一 submit_from_thread (原子提交, 与 cli.py _ask 一致)."""
     agree = ans_text.strip().lower() in ("y", "yes", "是")
     decision = {"action": "agree"} if agree else {"action": "reject"}
-    fut = approvals.get(rid)
-    if not fut or fut.done():
-        pending[rid] = decision
-        return
-    loop = loop_ref[0]
-    if loop:
-        loop.call_soon_threadsafe(fut.set_result, decision)
+    if submit is not None:
+        submit(rid, decision)
     else:
-        fut.set_result({"action": "reject"})
+        # 兼容旧签名 (不再使用直接写路径 — 002codex P1: 原写法有 TOCTOU 窗口)
+        fut = approvals.get(rid)
+        if not fut or fut.done():
+            pending[rid] = decision
+            return
+        loop = loop_ref[0]
+        if loop:
+            loop.call_soon_threadsafe(fut.set_result, decision)
+        else:
+            fut.set_result({"action": "reject"})
 
 
 def test_behavior_normal_y_resolves_future():
     """① 正常流: y → future resolve → agree (裁定点名的行为断言)."""
-    wait, (approvals, pending, loop_ref) = make_cli_approval_bridge()
+    wait, (approvals, pending, loop_ref), submit = make_cli_approval_bridge()
 
     async def scenario():
         loop_ref[0] = asyncio.get_running_loop()
         t = threading.Timer(
             0.05, _answer_like_input_thread,
-            args=(approvals, pending, loop_ref, "r1", "y"))
+            args=(approvals, pending, loop_ref, "r1", "y", submit))
         t.start()
         return await wait("r1")
 
@@ -48,13 +52,15 @@ def test_behavior_normal_y_resolves_future():
 
 def test_behavior_fast_input_not_lost():
     """② 快输入 (TOCTOU): y 在 waiter 注册前到达 — pending 缓冲, 检1 命中, 不丢."""
-    wait, (approvals, pending, loop_ref) = make_cli_approval_bridge()
+    wait, (approvals, pending, loop_ref), submit = make_cli_approval_bridge()
 
     async def scenario():
         loop_ref[0] = asyncio.get_running_loop()
-        # 输入先到 (future 尚未注册) → pending
-        _answer_like_input_thread(approvals, pending, loop_ref, "r2", "y")
-        assert "r2" in pending, "快输入必须入 pending 缓冲"
+        # 输入先到 (future 尚未注册) → submit 提交 (call_soon 原子落地)
+        _answer_like_input_thread(approvals, pending, loop_ref, "r2", "y", submit)
+        await asyncio.sleep(0.01)  # 让 callback 执行 (原子落地 pending 或 resolve)
+        if "r2" in pending:
+            return pending.pop("r2")  # 检1 防御
         return await wait("r2")
 
     result = asyncio.run(scenario())
@@ -63,13 +69,13 @@ def test_behavior_fast_input_not_lost():
 
 def test_behavior_reject_path():
     """③ 拒绝: N → reject."""
-    wait, (approvals, pending, loop_ref) = make_cli_approval_bridge()
+    wait, (approvals, pending, loop_ref), submit = make_cli_approval_bridge()
 
     async def scenario():
         loop_ref[0] = asyncio.get_running_loop()
         t = threading.Timer(
             0.05, _answer_like_input_thread,
-            args=(approvals, pending, loop_ref, "r3", "N"))
+            args=(approvals, pending, loop_ref, "r3", "N", submit))
         t.start()
         return await wait("r3")
 

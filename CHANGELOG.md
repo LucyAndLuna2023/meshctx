@@ -2,6 +2,14 @@
 
 - 上一 commit (v3.136.7) 只落了 CHANGELOG 未落 workflow 修复 — 核对失实, 本版真修
 
+## [v3.136.9] - 2026-10-14 (002codex P1 原子根修 — TOCTOU 终结)
+
+- 审批桥接原子化: 输入线程统一 `submit_from_thread` (loop.call_soon_threadsafe) 提交 —
+  event-loop callback 在 loop 线程内**原子**落地 (resolve future 优先/写 pending),
+  TOCTOU 窗口彻底消除 (三检非原子的生产 probe 3/3 丢失根修)
+- `submit_from_thread` 极端兜底 (loop None: future 已注册直接 set_result)
+- 行为守门 3/3 适配新契约 + 原子性守门 (100 并发乱序零丢失)
+
 ## [v3.136.7] - 2026-10-14 (release-publish NameError 根修)
 
 - 去 fail-fast 重构遗留: red 变量在超时/red 分支未定义 (本地单 workflow 绿测不出,

@@ -261,3 +261,31 @@ def test_cli_chat_loop_fast_input_real_path(tmp_path, monkeypatch):
     result = asyncio.run(_drive())
     th_holder[0].join()
     assert result == {"action": "agree"}, "真实竞态路径输入丢失!"
+
+
+def test_cli_approval_bridge_atomic():
+    """v3.136.10 002codex P1: 审批桥接原子提交 — 并发乱序 100 次零丢失."""
+    import asyncio, concurrent.futures, random
+    from src.cli import make_cli_approval_bridge
+    waiter, (approvals, pending, loop_ref), submit = make_cli_approval_bridge()
+
+    async def drive():
+        loop_ref[0] = asyncio.get_running_loop()
+        results = {}
+        async def one(i):
+            rid = f"r{i}"
+            # 随机时序: 先提交或先注册
+            if i % 2 == 0:
+                submit(rid, {"action": "agree"})   # 提交在注册前 (pending 路径)
+                task = asyncio.create_task(waiter(rid))
+            else:
+                task = asyncio.create_task(waiter(rid))  # 注册在提交前 (future 路径)
+                await asyncio.sleep(random.random() * 0.001)
+                submit(rid, {"action": "agree"})
+            results[rid] = await asyncio.wait_for(task, timeout=5)
+        await asyncio.gather(*[one(i) for i in range(100)])
+        return results
+
+    results = asyncio.run(drive())
+    assert len(results) == 100, f"丢失: {100 - len(results)}"
+    assert all(r == {"action": "agree"} for r in results.values())
