@@ -841,7 +841,12 @@ source venv/bin/activate
 pip install -q --upgrade pip 2>/dev/null
 pip install -q -r requirements.txt 2>/dev/null || {
     pip install -q fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging python-multipart playwright 2>/dev/null || {
-        echo -e "${RED}✗ $(T dep_fail)${NC}"; exit 1
+        echo -e "${YELLOW}→ Dependency install failed, retrying with error details:${NC}"
+        pip install fastapi uvicorn pydantic numpy openai jinja2 httpx pyyaml aiofiles packaging python-multipart playwright || {
+            echo -e "${RED}✗ $(T dep_fail)${NC}"
+            echo -e "${YELLOW}  Hint: 网络/证书问题 → export PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple 后重试${NC}"
+            exit 1
+        }
     }
 }
 

@@ -1255,8 +1255,22 @@ fi
 
 echo -e "  ${GREEN}✓${NC} $(T deps_ok)"
 # 安装 meshctx 包（pip install -e .）
+# v3.136.13 (用户实测: "meshctx package install failed" 无错误细节 — 2>/dev/null+q 吞错误根修):
+# 保留错误输出; 失败时重试一次带完整日志 + 常见原因诊断提示
 echo -e "  ${CYAN}→${NC} $(T installing_meshctx_pkg)"
-pip install -q -e . $PIP_EXTRA 2>/dev/null || { echo -e "${RED}✗ meshctx package install failed${NC}"; exit 1; }
+pip install -e . $PIP_EXTRA || {
+    echo -e "${YELLOW}→ meshctx package install failed, retrying with verbose output:${NC}"
+    pip install -e . $PIP_EXTRA -v || {
+        echo -e "${RED}✗ meshctx package install failed${NC}"
+        echo -e "${YELLOW}常见原因诊断:${NC}"
+        echo -e "  1) Python 版本 < 3.10: python3 --version 确认 (需 3.10+)"
+        echo -e "  2) pyproject.toml 依赖冲突: pip install -e . 2>&1 | tail -30 查看冲突包"
+        echo -e "  3) 权限问题: 检查 venv 是否激活 (which pip 应指向 venv 内)"
+        echo -e "  4) 网络: export PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple 后重试"
+        echo -e "  5) Xcode CLT 缺失 (编译型依赖): xcode-select --install"
+        exit 1
+    }
+}
 echo -e "  ${GREEN}✓${NC} $(T meshctx_pkg_ok)"
 fi
 
