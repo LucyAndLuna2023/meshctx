@@ -88,10 +88,13 @@ if "--post-tag" in sys.argv:
     ok_sha = full and full in body
     print(f"  [{'✓' if ok_body else '✗'}] release body 非空 ({len(body)}c)")
     print(f"  [{'✓' if ok_sha else '✗'}] body 含本地完整 40 位 SHA: {full[:12]}...")
-    if not (ok_body and ok_sha):
-        print(f"\n🔴 post-tag 第五检拦截 — body 需含真实 SHA {full}")
+    # v3.136.9 第六检 (002meshctx 传承: body 空正/负例 — 空 body 曾上线)
+    has_version = f"v{VER}" in body or VER in body
+    print(f"  [{'✓' if has_version else '✗'}] body 含版本号 v{VER}")
+    if not (ok_body and ok_sha and has_version):
+        print(f"\n🔴 post-tag 第五/六检拦截 — body 需含真实 SHA {full} 与版本号 v{VER}")
         sys.exit(1)
-    print("\n🟢 post-tag 第五检过")
+    print("\n🟢 post-tag 第五/六检过")
     sys.exit(0)
 
 if fail:

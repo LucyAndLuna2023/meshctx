@@ -1489,6 +1489,11 @@
     "code": "he",
     "name": "Hebrew",
     "native": "עברית"
+   },
+   {
+    "code": "fa",
+    "name": "Persian",
+    "native": "فارسی"
    }
   ],
   "hub_title": "Agent 派活中心",
@@ -1763,6 +1768,11 @@
     "code": "he",
     "name": "Hebrew",
     "native": "עברית"
+   },
+   {
+    "code": "fa",
+    "name": "Persian",
+    "native": "فارسی"
    }
   ],
   "action_archive": "Archive",
@@ -4793,6 +4803,11 @@
     "code": "he",
     "name": "Hebrew",
     "native": "עברית"
+   },
+   {
+    "code": "fa",
+    "name": "Persian",
+    "native": "فارسی"
    }
   ],
   "hub_title": "Agent ハブ",
@@ -6445,6 +6460,11 @@
     "code": "he",
     "name": "Hebrew",
     "native": "עברית"
+   },
+   {
+    "code": "fa",
+    "name": "Persian",
+    "native": "فارسی"
    }
   ],
   "hub_title": "Agent 허브",
@@ -8097,6 +8117,11 @@
     "code": "he",
     "name": "Hebrew",
     "native": "עברית"
+   },
+   {
+    "code": "fa",
+    "name": "Persian",
+    "native": "فارسی"
    }
   ],
   "hub_title": "Centre d'agents",
@@ -9749,6 +9774,11 @@
     "code": "he",
     "name": "Hebrew",
     "native": "עברית"
+   },
+   {
+    "code": "fa",
+    "name": "Persian",
+    "native": "فارسی"
    }
   ],
   "hub_title": "Agent-Hub",
@@ -11401,6 +11431,11 @@
     "code": "he",
     "name": "Hebrew",
     "native": "עברית"
+   },
+   {
+    "code": "fa",
+    "name": "Persian",
+    "native": "فارسی"
    }
   ],
   "hub_title": "Centro de agentes",
@@ -11675,6 +11710,11 @@
     "code": "he",
     "name": "Hebrew",
     "native": "עברית"
+   },
+   {
+    "code": "fa",
+    "name": "Persian",
+    "native": "فارسی"
    }
   ],
   "action_archive": "Archivia",
@@ -13327,6 +13367,11 @@
     "code": "he",
     "name": "Hebrew",
     "native": "עברית"
+   },
+   {
+    "code": "fa",
+    "name": "Persian",
+    "native": "فارسی"
    }
   ],
   "action_archive": "أرشفة",
@@ -14979,6 +15024,11 @@
     "code": "he",
     "name": "Hebrew",
     "native": "עברית"
+   },
+   {
+    "code": "fa",
+    "name": "Persian",
+    "native": "فارسی"
    }
   ],
   "action_archive": "Архив",
@@ -16631,6 +16681,11 @@
     "code": "he",
     "name": "Hebrew",
     "native": "עברית"
+   },
+   {
+    "code": "fa",
+    "name": "Persian",
+    "native": "فارسی"
    }
   ],
   "action_archive": "ארכיון",
@@ -18283,6 +18338,11 @@
     "code": "he",
     "name": "Hebrew",
     "native": "עברית"
+   },
+   {
+    "code": "fa",
+    "name": "Persian",
+    "native": "فارسی"
    }
   ],
   "action_archive": "Archive",
