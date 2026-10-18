@@ -485,12 +485,12 @@ function switchLang(lang) {
         // Still update UI elements that don't need translations
         var toggle2 = document.getElementById('langToggle');
         if (toggle2) {
-            var labels2 = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ar:'🇸🇦 العربية',he:'🇮🇱 עברית',ru:'🇷🇺 Русский'};
+            var labels2 = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ar:'🇸🇦 العربية',he:'🇮🇱 עברית',fa:'🇮🇷 فارسی',ru:'🇷🇺 Русский'};
             toggle2.textContent = (labels2[lang]||'🌐 '+lang.toUpperCase())+' ▾';
         }
         return;
     }
-    var labels = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ar:'🇸🇦 العربية',he:'🇮🇱 עברית',ru:'🇷🇺 Русский'};
+    var labels = {en:'🇺🇸 English',zh:'🇨🇳 中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',es:'🇪🇸 Español',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch',it:'🇮🇹 Italiano',ar:'🇸🇦 العربية',he:'🇮🇱 עברית',fa:'🇮🇷 فارسی',ru:'🇷🇺 Русский'};
     // 🔧 BUG-043: null guards for all DOM access
     var toggle = document.getElementById('langToggle');
     if (toggle) toggle.textContent = (labels[lang]||'🌐 '+lang.toUpperCase())+' ▾';
@@ -540,7 +540,7 @@ function switchLang(lang) {
         if (val !== undefined) el.placeholder = val;
     });
     // Update html lang attribute
-    if (document.documentElement) { document.documentElement.lang = lang; document.documentElement.dir = (lang === 'ar' || lang === 'he') ? 'rtl' : 'ltr'; }
+    if (document.documentElement) { document.documentElement.lang = lang; document.documentElement.dir = (lang === 'ar' || lang === 'he' || lang === 'fa') ? 'rtl' : 'ltr'; }
     // Update title and meta description
     var pm = pageMeta[lang] || pageMeta['en'];
     document.title = pm.title;
