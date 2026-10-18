@@ -18,7 +18,7 @@ logger = logging.getLogger("meshctx.webui")
 _TEMPLATES = {}
 
 _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
-<html lang="{{ __lang }}" dir="{{ 'rtl' if __lang in ('ar','he') else 'ltr' }}">
+<html lang="{{ __lang }}" dir="{{ 'rtl' if __lang in ('ar','he','fa') else 'ltr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1594,7 +1594,7 @@ function addCodeRunButtons(container){
 
 
 _TEMPLATES["desktop.html"] = r"""<!DOCTYPE html>
-<html lang="{{ __lang }}" dir="{{ 'rtl' if __lang in ('ar','he') else 'ltr' }}">
+<html lang="{{ __lang }}" dir="{{ 'rtl' if __lang in ('ar','he','fa') else 'ltr' }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">

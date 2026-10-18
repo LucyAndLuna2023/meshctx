@@ -45,3 +45,29 @@ def test_src_internal_keyset_parity_with_landing_lang_set():
     assert len(en_keys) > 1000, f"src en 键数异常: {len(en_keys)}"
     for lang, table in src.items():
         assert set(table.keys()) == en_keys, f"src[{lang}] parity broken"
+
+
+# ── 004zcode v3.136.12 审计: RTL 三语齐守门 (fa 漏 4 处 + he 回归 1 处的类级防线) ──
+
+def test_all_rtl_judgments_include_ar_he_fa():
+    """全仓 dir/rtl 判定凡含 ar 必须同时含 he 与 fa (round46 he 漏判 + 本次 fa 漏 4 处
+    + setup.html he 被后续改动挤掉的回归 — 扫描型守门防第五次同型)。"""
+    import re
+    from pathlib import Path
+    ROOT = Path(__file__).resolve().parent.parent
+    bad = []
+    for d in ("templates", "src"):
+        for p in (ROOT / d).rglob("*"):
+            if p.suffix not in (".html", ".py"):
+                continue
+            try:
+                text = p.read_text(encoding="utf-8", errors="replace")
+            except Exception:
+                continue
+            for i, ln in enumerate(text.splitlines(), 1):
+                if ("rtl" in ln.lower() or "dir=" in ln) and "'ar'" in ln:
+                    if "'fa'" not in ln and '"fa"' not in ln:
+                        bad.append(f"{p.relative_to(ROOT)}:L{i}")
+                    if "'he'" not in ln and '"he"' not in ln:
+                        bad.append(f"{p.relative_to(ROOT)}:L{i} (缺 he)")
+    assert not bad, f"RTL 判定漏 RTL 语言: {bad}"

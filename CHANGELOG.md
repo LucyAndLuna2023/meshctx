@@ -1,3 +1,17 @@
+## [v3.136.12] - 2026-10-18 (波斯语 fa 第 12 语言全链 + RTL 补漏)
+
+### Added
+- **波斯语 (fa) 第 12 语言全链**: src/i18n_translations.json 1599 key × 12 语言平价
+  (核心 UI 人工精校 ~50 条, 未覆盖英文回退全非空); docs/i18n/landing.json 270 keys 双侧;
+  语言下拉 🇮🇷 فارسی (setup + chat); LANGUAGES 常量 +fa (rtl:True); 守门×6 对齐 12 语言
+- **RTL 补漏 (004zcode 审计发现, 随补)**: base.html + web_ui.py ×2 内嵌模板 dir 判定漏 fa
+  (4 处) + setup.html 丢 he (round46 回归) — 统一 (ar,he,fa); 新增扫描型守门
+  test_all_rtl_judgments_include_ar_he_fa (全仓 RTL 判定三语齐, 防同型第五犯)
+
+## [v3.136.10] - 2026-10-18 (波斯语 fa 首批 + 发版门禁第二次实战拦截)
+
+## [v3.136.11] - 2026-10-18 (fa 语言集守门对齐中间版)
+
 ## [v3.136.8] - 2026-10-14 (release-publish NameError 真修)
 
 - 上一 commit (v3.136.7) 只落了 CHANGELOG 未落 workflow 修复 — 核对失实, 本版真修
@@ -55,7 +69,6 @@
 - landing.json (meshctx.com 网站侧) 加 fa — 按 en landing key 集重建 (270 keys, 英文回退);
   test_i18n_cross_parity 双侧守门 (LANGS +fa) 全过
 
-## [v3.136.12] - 2026-10-14 (landing.json fa 双侧同步)
 
 - landing.json (meshctx.com 网站侧) 加 fa — 按 en landing key 集重建 (270 keys, 英文回退);
   test_i18n_cross_parity 双侧守门 (LANGS +fa) 全过
