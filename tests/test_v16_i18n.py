@@ -257,7 +257,7 @@ class TestI18nAvailableLanguages:
         """Returns exactly 10 language entries"""
         import src.i18n as i18n
         langs = i18n.get_available_languages()
-        assert len(langs) == 11
+        assert len(langs) == 12  # v3.136.12: fa 第 12 语言
 
     def test_i18n_available_languages_structure(self):
         """Each entry has code, name, native fields"""
