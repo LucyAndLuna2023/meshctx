@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ __lang }}" dir="{{ 'rtl' if __lang in ['ar', 'he'] else 'ltr' }}">
+<html lang="{{ __lang }}" dir="{{ 'rtl' if __lang in ['ar', 'he', 'fa'] else 'ltr' }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -562,6 +562,7 @@ body {
     <option value="it">Italiano</option>
     <option value="ar">العربية</option>
     <option value="he">עברית</option>
+    <option value="fa" {% if __lang == 'fa' %}selected{% endif %}>🇮🇷 فارسی</option>
     <option value="ru">Русский</option>
   </select>
   <button onclick="newChat()" data-lang-key="chat_new">➕ New Chat</button>
@@ -2284,7 +2285,7 @@ function t(key) {
 
 function changeLang(lang) {
   document.documentElement.lang = lang;
-  document.documentElement.dir = (lang==='ar'||lang==='he') ? 'rtl' : 'ltr';
+  document.documentElement.dir = (lang==='ar'||lang==='he'||lang==='fa') ? 'rtl' : 'ltr';
   document.querySelectorAll('[data-lang-key]').forEach(el => {
     const key = el.dataset.langKey;
     if (LANG[lang] && LANG[lang][key]) {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ __lang }}" dir="{{ 'rtl' if __lang == 'ar' else 'ltr' }}">
+<html lang="{{ __lang }}" dir="{{ 'rtl' if __lang in ['ar', 'fa'] else 'ltr' }}">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ t('meshctx 设置向导') }} · Model Hub</title>
@@ -103,6 +103,7 @@ details.adv[open] summary{margin-bottom:8px}
     <option value="ar" {% if __lang == 'ar' %}selected{% endif %}>🇸🇦 العربية</option>
     <option value="ru" {% if __lang == 'ru' %}selected{% endif %}>🇷🇺 Русский</option>
     <option value="he" {% if __lang == 'he' %}selected{% endif %}>🇮🇱 עברית</option>
+    <option value="fa" {% if __lang == 'fa' %}selected{% endif %}>🇮🇷 فارسی</option>
   </select>
   <button onclick="toggleSetupTheme()" id="setupThemeBtn" title="Theme">☀️</button>
 </div>
