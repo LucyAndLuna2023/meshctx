@@ -50,6 +50,16 @@
 - **交付阶段墙钟静默 break**: 交付循环超时直接 break 无提示 — 补 timed_out 提示 (含"继续"指引)
 - 守门 ×2: 断流必须产出 error 事件 / 交付墙钟提示源码断言
 
+## [v3.135.17/3.136.12] - 2026-10-14 (landing.json fa 双侧同步)
+
+- landing.json (meshctx.com 网站侧) 加 fa — 按 en landing key 集重建 (270 keys, 英文回退);
+  test_i18n_cross_parity 双侧守门 (LANGS +fa) 全过
+
+## [v3.136.12] - 2026-10-14 (landing.json fa 双侧同步)
+
+- landing.json (meshctx.com 网站侧) 加 fa — 按 en landing key 集重建 (270 keys, 英文回退);
+  test_i18n_cross_parity 双侧守门 (LANGS +fa) 全过
+
 ## [v3.136.11] - 2026-10-14 (波斯语守门对齐)
 
 - test_v16_i18n 语言数 11→12 + 语言集加 fa (v3.136.10 遗漏的守门对齐 — CI 拦截实证)

@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parent.parent
-LANGS = ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'es', 'it', 'ar', 'ru', 'he']
+LANGS = ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'es', 'it', 'ar', 'ru', 'he', "fa"]
 
 
 def _load():
