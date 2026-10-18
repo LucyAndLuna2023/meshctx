@@ -56,14 +56,14 @@ class TestI18nInit:
         assert lang == "en"
 
     def test_i18n_init_10_languages(self):
-        """TRANSLATIONS dict has exactly 11 languages (he added 2026-09-06)"""
+        """TRANSLATIONS dict has exactly 12 languages (fa added 2026-10-14, v3.136.10)"""
         import src.i18n as i18n
-        assert len(i18n.TRANSLATIONS) == 11
+        assert len(i18n.TRANSLATIONS) == 12
 
     def test_i18n_all_lang_codes_present(self):
         """All required language codes are present"""
         import src.i18n as i18n
-        expected = {"zh", "en", "ja", "ko", "fr", "de", "es", "it", "ar", "ru", "he"}
+        expected = {"zh", "en", "ja", "ko", "fr", "de", "es", "it", "ar", "ru", "he", "fa"}
         assert expected == set(i18n.TRANSLATIONS.keys())
 
 
