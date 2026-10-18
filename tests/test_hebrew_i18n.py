@@ -45,7 +45,7 @@ class TestHebrewRegistry:
     def test_registry_he_full_parity(self):
         import src.i18n as i
         d = dict(i.TRANSLATIONS)
-        assert len(d) == 11 and "he" in d
+        assert len(d) == 12 and "he" in d and "fa" in d  # v3.136.12: fa 第 12 语言
         assert set(d["he"]) == set(d["en"])
         assert len(d["he"]) == len(d["en"]) > 1400
 
