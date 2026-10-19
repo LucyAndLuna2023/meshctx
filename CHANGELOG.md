@@ -1,3 +1,10 @@
+## [v3.136.16] - 2026-10-19 (真根因: web_ui 内嵌模板副本)
+
+- 生产 /ui/projects 下拉缺 he/fa 的**真根因**: src/web_ui.py 内嵌 _TEMPLATES["base.html"]
+  副本 (DictLoader 优先) — 我此前只改了 templates/base.html 文件, 渲染走内嵌副本永远不生效
+- 修: 内嵌副本下拉补 he/fa (12 语言); TestClient 生产渲染实测 [zh,en,ja,ko,fr,de,es,it,ar,he,fa,ru]
+- 教训入档: 模板双源 (文件+内嵌) 的改动必须两处同步 — 002codex 连续三轮指出该页, 根因终于到位
+
 ## [v3.136.15] - 2026-10-19 (002codex 42bb3dd2 全清偿)
 
 - P2-1 base.html 语言下拉补 he/fa (/ui/projects 生产下拉 12 语言闭环)
