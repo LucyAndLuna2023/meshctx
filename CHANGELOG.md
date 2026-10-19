@@ -1,3 +1,9 @@
+## [v3.136.15] - 2026-10-19 (002codex 42bb3dd2 全清偿)
+
+- P2-1 base.html 语言下拉补 he/fa (/ui/projects 生产下拉 12 语言闭环)
+- P2-2 __available_langs__ 12 张表全部补 ru+fa (web_ui.py:3393 生产消费源)
+- CHANGELOG 头部=最新版条目置顶 (P3 头部漂移修复)
+
 ## [v3.136.12] - 2026-10-18 (波斯语 fa 第 12 语言全链 + RTL 补漏)
 
 ### Added
