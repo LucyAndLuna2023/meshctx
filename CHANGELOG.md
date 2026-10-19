@@ -1,3 +1,9 @@
+## [v3.136.17] - 2026-10-19 (002codex 034c67dc 清偿)
+
+- G-block: draft release 417105691 tag_name PATCH → v3.136.16 (untagged 身份闭合)
+- 双源一致性守门: test_template_dual_source_langselect_parity (文件模板 vs web_ui 内嵌副本语言下拉必须一致 — 防三轮同型漂移)
+- __languages dead context 记账 (JS 数据源保留, 模板消费者为零)
+
 ## [v3.136.16] - 2026-10-19 (真根因: web_ui 内嵌模板副本)
 
 - 生产 /ui/projects 下拉缺 he/fa 的**真根因**: src/web_ui.py 内嵌 _TEMPLATES["base.html"]
