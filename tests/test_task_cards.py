@@ -289,3 +289,22 @@ def test_cli_approval_bridge_atomic():
     results = asyncio.run(drive())
     assert len(results) == 100, f"丢失: {100 - len(results)}"
     assert all(r == {"action": "agree"} for r in results.values())
+
+def test_template_dual_source_langselect_parity():
+    """002codex v3.136.16: 模板双源 (templates/base.html 文件 vs web_ui.py 内嵌副本)
+    的语言下拉必须一致 — 双源漂移导致生产下拉缺 he/fa 三轮未修."""
+    import re
+    root = Path(__file__).resolve().parent.parent
+    file_html = (root / "templates" / "base.html").read_text(encoding="utf-8")
+    m = re.search(r'_TEMPLATES\["base\.html"\] = r"""(.*?)"""',
+                  (root / "src" / "web_ui.py").read_text(encoding="utf-8"), re.S)
+    assert m, "内嵌 base.html 未找到"
+    embedded = m.group(1)
+
+    def opts(src):
+        i = src.find("langSelect")
+        seg = src[i:i+1200] if i >= 0 else ""
+        return re.findall(r'<option value="([^"]+)"', seg)
+
+    fo, eo = opts(file_html), opts(embedded)
+    assert fo == eo, f"语言下拉双源漂移: file={fo} vs embedded={eo}"
