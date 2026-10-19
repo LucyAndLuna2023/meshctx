@@ -2,7 +2,7 @@
 
 ### Added
 - **波斯语 (fa) 第 12 语言全链**: src/i18n_translations.json 1599 key × 12 语言平价
-  (核心 UI 人工精校 ~50 条, 未覆盖英文回退全非空); docs/i18n/landing.json 270 keys 双侧;
+  (核心 UI 人工精校 23 条 (实测口径, 原 ~50 系夸大表述勘误), 未覆盖英文回退全非空); docs/i18n/landing.json 270 keys 双侧;
   语言下拉 🇮🇷 فارسی (setup + chat); LANGUAGES 常量 +fa (rtl:True); 守门×6 对齐 12 语言
 - **RTL 补漏 (004zcode 审计发现, 随补)**: base.html + web_ui.py ×2 内嵌模板 dir 判定漏 fa
   (4 处) + setup.html 丢 he (round46 回归) — 统一 (ar,he,fa); 新增扫描型守门

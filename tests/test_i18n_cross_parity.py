@@ -71,3 +71,26 @@ def test_all_rtl_judgments_include_ar_he_fa():
                     if "'he'" not in ln and '"he"' not in ln:
                         bad.append(f"{p.relative_to(ROOT)}:L{i} (缺 he)")
     assert not bad, f"RTL 判定漏 RTL 语言: {bad}"
+
+
+# ── 004zcode (codex 025dd371 复审 P2 现场修正): 语言清单恒等守门 ──
+
+def test_available_langs_match_language_keys():
+    """每语言 __available_langs__ 的 code 集必须与词典语言键集恒等.
+
+    历史: fa 缺 (45fad371 树, codex 实证) → v3.136.14 补 fa 但 ru 仍缺 (11 语言
+    时代的历史缺口) — 新语言接入时清单"补新忘旧"的同型第二犯, 本守门恒等断言根除。"""
+    import json
+    from pathlib import Path
+    data = json.loads((Path(__file__).resolve().parent.parent / "src" / "i18n_translations.json")
+                      .read_text(encoding="utf-8"))
+    langs = set(data.keys())
+    bad = []
+    for lang, tbl in data.items():
+        al = tbl.get("__available_langs__")
+        if not isinstance(al, list):
+            continue
+        codes = {e.get("code") for e in al if isinstance(e, dict)}
+        if codes != langs:
+            bad.append(f"{lang}: 清单 {sorted(codes - langs)} 多 / {sorted(langs - codes)} 缺")
+    assert not bad, f"__available_langs__ 与语言键集不恒等: {bad}"
