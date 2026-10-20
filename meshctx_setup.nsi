@@ -36,6 +36,8 @@ VIAddVersionKey "FileDescription" "MeshCtx Desktop Installer"
 !insertmacro MUI_LANGUAGE "Italian"
 !insertmacro MUI_LANGUAGE "Arabic"
 !insertmacro MUI_LANGUAGE "Hebrew"
+!insertmacro MUI_LANGUAGE "Russian"
+!insertmacro MUI_LANGUAGE "Persian"
 
 ; ═══ 语言选择对话框（必须在LANGUAGE之后） ═══
 !define MUI_LANGDLL_ALLLANGUAGES
