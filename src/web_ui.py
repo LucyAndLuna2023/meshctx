@@ -3389,13 +3389,9 @@ def _render(template_name: str, context: dict, request = None) -> HTMLResponse:
     context.setdefault('ollama_host', _os.environ.get('MESHCTX_OLLAMA_HOST', 'localhost'))
     context.setdefault('vllm_host', _os.environ.get('MESHCTX_VLLM_HOST', 'localhost'))
     context.setdefault('localai_host', _os.environ.get('MESHCTX_LOCALAI_HOST', 'localhost'))
-    # 注入支持的语言列表供 JS 使用（缓存）
-    if '_langs_json' not in _i18n_json_cache:
-        _i18n_json_cache['_langs_json'] = __import__('json').dumps(
-            i18n_translations.get('en', {}).get('__available_langs__',
-                [{"code": lang["code"], "name": lang["name"], "native": lang["native"]} for lang in LANGUAGES])
-        )
-    context['__languages'] = _i18n_json_cache['_langs_json']
+    # __languages 注入已删除 (codex v3.136.17 放行要求): 零模板消费的 dead context —
+    # 语言下拉由各模板静态 <option> 渲染, 生产渲染正确性由
+    # tests/test_i18n_cross_parity.py::test_production_lang_selects_render_12 守门。
     template = _jinja_env.get_template(template_name)
     html = template.render(**context)
     return HTMLResponse(html)

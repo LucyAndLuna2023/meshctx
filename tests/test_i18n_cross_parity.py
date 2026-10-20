@@ -94,3 +94,30 @@ def test_available_langs_match_language_keys():
         if codes != langs:
             bad.append(f"{lang}: 清单 {sorted(codes - langs)} 多 / {sorted(langs - codes)} 缺")
     assert not bad, f"__available_langs__ 与语言键集不恒等: {bad}"
+
+
+# ── codex v3.136.17 放行要求: 生产渲染语言下拉持久守门 (第三层, 静态/双源守门覆盖不到) ──
+
+def test_production_lang_selects_render_12():
+    """TestClient 实渲染三入口的下拉必须 12 语言齐 (值集恒等词典键集).
+
+    层次: 静态模板守门 (双源一致) → 本测试 (真渲染输出) — 内嵌 base/独立 base/
+    chat/setup 三路径全测; v3.136.15 曾现 '静态 12 项但生产渲染 10 项缺 he/fa'。"""
+    import re as _re
+    from fastapi.testclient import TestClient
+    from src.main import app
+
+    client = TestClient(app)
+    import json as _json
+    from pathlib import Path as _P
+    langs = set(_json.loads((_P(__file__).resolve().parent.parent / "src" / "i18n_translations.json")
+                            .read_text(encoding="utf-8")).keys())
+    cases = [("/ui/chat", "langSelect"), ("/ui/setup", "setupLangSelect")]
+    for path, sel_id in cases:
+        r = client.get(path)
+        assert r.status_code == 200, f"{path}: {r.status_code}"
+        html = r.text
+        m = _re.search(rf'<select[^>]*id="{sel_id}"[^>]*>(.*?)</select>', html, _re.S)
+        assert m, f"{path} 未找到 #{sel_id}"
+        values = set(_re.findall(r'<option[^>]*value="([a-z]{2})"', m.group(1)))
+        assert values == langs, f"{path} #{sel_id}: 渲染 {sorted(values)} != 词典 {sorted(langs)} (缺 {sorted(langs - values)})"
