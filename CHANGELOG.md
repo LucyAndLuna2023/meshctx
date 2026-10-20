@@ -127,6 +127,11 @@
 - **deny 语义**: agent_loop DENY: 前缀 — 黑名单工具不弹审批直接拒绝执行
 - 守门 ×5: 三档/优先级/跨档位持久/非法档位/config 其他段保全
 
+## [v3.135.18/主页] - 2026-10-13 (主页 langMenu 补 fa 按钮)
+
+- docs/index.html langMenu 下拉补 🇮🇷 فارسی 按钮 — 此前 labels/RTL/landing.json 全有但
+  下拉列表漏了按钮 (用户截图实证: 下拉 11 项无 fa)
+
 ## [v3.135.13] - 2026-10-13 (publish job 自等待死锁修)
 
 - release-publish 轮询排除自身 run (GITHUB_RUN_ID) — 首跑 30min 超时实证 (自己在 active 列表永远等不完)
