@@ -17,6 +17,11 @@
 - P2-2 __available_langs__ 12 张表全部补 ru+fa (web_ui.py:3393 生产消费源)
 - CHANGELOG 头部=最新版条目置顶 (P3 头部漂移修复)
 
+## [v3.136.13] - 2026-10-13 (主页波斯语 + langMenu 按钮)
+
+- 主页 langMenu 下拉补 🇮🇷 فارسی 按钮 (此前 labels/RTL/landing 全就位但下拉列表漏了按钮)
+- 主页波斯语: hero/about/nav/17 脑区/features 核心串波斯语上线
+
 ## [v3.136.12] - 2026-10-18 (波斯语 fa 第 12 语言全链 + RTL 补漏)
 
 ### Added
