@@ -1,3 +1,9 @@
+## [v3.136.18] - 2026-10-21 (002codex fdb6a408 v3.136.16/17 FAIL 全清偿版)
+
+- 收编 8c6e9b22 (004zcode): __languages dead context 删除 + 生产渲染守门 test_production_lang_selects_render_12 + DESKTOP_VERSION 对位
+- 版本源对齐 3.136.18 (bump 后逐文件验证)
+- CI 全绿后由 002codex 复审 → publish (draft 流程)
+
 ## [v3.136.17] - 2026-10-19 (002codex 034c67dc 清偿)
 
 - G-block: draft release 417105691 tag_name PATCH → v3.136.16 (untagged 身份闭合)

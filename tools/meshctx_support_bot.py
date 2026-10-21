@@ -33,7 +33,7 @@ def log(msg):
 
 
 # ===== 产品信息 (FAQ 数据源) =====
-VERSION = "v3.136.16"
+VERSION = "v3.136.18"
 PRODUCT = {
     "name": "MeshCtx",
     "tagline": "世界第一全脑仿真自进化 AI Agent 平台",
