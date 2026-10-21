@@ -24,3 +24,12 @@ Build Windows/Linux 后到但上传至同一 release 前 release 被手动 publi
 - **补账/澄清**: 后续 run (38432266277 macOS rerun + Win/Linux dispatch) 将 assets 补齐至 24/24
   (公开 API 可验); 流程根修 = v3.135.12 release-publish job (draft 机制) 防再犯
 - **清偿版本**: v3.135.12 (pipeline 根修) / v3.136.2 (assets 补齐 24/24)
+
+## KI-4 | P3 | open | 002codex fdb6a408 (v3.136.18 Windows build 红)
+
+**NSIS 标准发行不含 Persian.nlf** — `!insertmacro MUI_LANGUAGE "Persian"` 直接编译失败
+(Can't open language file Persian.nlf)。
+- **当前处置**: Windows 安装界面 11 语言 (产品 UI 12 语言含 fa — 安装器语言与产品 UI 语言是两层)
+- **清偿路径**: 下载 NSIS contrib 非官方 Persian.nlf 放入 NSIS Contrib/Language files/ (需可重复获取的 URL,
+  不能靠 runner 手动放置); 或维持 11 语言安装界面 (产品 UI fa 不受影响)
+- **清偿版本**: 待排期 (P3, 安装器语言与产品语言解耦)

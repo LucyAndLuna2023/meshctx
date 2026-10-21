@@ -1,3 +1,8 @@
+## [v3.136.19] - 2026-10-21 (Windows 安装器语言修正 — NSIS Persian.nlf 缺失)
+
+- Windows 安装界面 11 语言 (NSIS 标准发行无 Persian.nlf, 编译失败根修; 产品 UI 12 语言 fa 不受影响 — 安装器与产品语言两层)
+- KNOWN_ISSUES KI-4 台账 (清偿路径: contrib 非官方 Persian.nlf 或维持 11 语言)
+
 ## [v3.136.18] - 2026-10-21 (002codex fdb6a408 v3.136.16/17 FAIL 全清偿版)
 
 - 收编 8c6e9b22 (004zcode): __languages dead context 删除 + 生产渲染守门 test_production_lang_selects_render_12 + DESKTOP_VERSION 对位

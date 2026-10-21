@@ -12,10 +12,10 @@ RequestExecutionLevel admin
 !define MUI_ICON "logo.ico"
 !define MUI_UNICON "logo.ico"
 
-!define VERSION "3.136.18"
-VIProductVersion "3.136.18.0"
-VIAddVersionKey "FileVersion" "3.136.18"
-VIAddVersionKey "ProductVersion" "3.136.18"
+!define VERSION "3.136.19"
+VIProductVersion "3.136.19.0"
+VIAddVersionKey "FileVersion" "3.136.19"
+VIAddVersionKey "ProductVersion" "3.136.19"
 VIAddVersionKey "ProductName" "MeshCtx Desktop"
 VIAddVersionKey "FileDescription" "MeshCtx Desktop Installer"
 
@@ -37,7 +37,7 @@ VIAddVersionKey "FileDescription" "MeshCtx Desktop Installer"
 !insertmacro MUI_LANGUAGE "Arabic"
 !insertmacro MUI_LANGUAGE "Hebrew"
 !insertmacro MUI_LANGUAGE "Russian"
-!insertmacro MUI_LANGUAGE "Persian"
+; Persian NLF 文件 NSIS 标准发行不含 — Windows 安装界面 11 语言 (产品 UI 12 语言含 fa; KI-4)
 
 ; ═══ 语言选择对话框（必须在LANGUAGE之后） ═══
 !define MUI_LANGDLL_ALLLANGUAGES
