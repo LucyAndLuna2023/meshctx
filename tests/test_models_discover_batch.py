@@ -147,3 +147,85 @@ def test_sma_endpoint_no_nameerror_both_paths(client, monkeypatch):
     # 不带 model (级联解析路径)
     r2 = client.post("/api/chat/sma", json={"message": "总结一下", "checks": []})
     assert r2.status_code != 500, f"500=NameError 未修: {r2.text[:200]}"
+
+
+# ═══ v3.136.20 一键自动发现 (对标 harness) — 行为级守门 ═══
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+
+class _FakeGateway(BaseHTTPRequestHandler):
+    """最小 OpenAI 兼容 /models 服务 — 真实 socket, 不 mock httpx。"""
+    def do_GET(self):  # noqa: N802
+        body = json.dumps({"data": [{"id": "glm-5.3"}, {"id": "glm-5.3-flash"}]}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *a):  # 静音
+        pass
+
+
+@pytest.fixture()
+def gateway(monkeypatch):
+    srv = HTTPServer(("127.0.0.1", 0), _FakeGateway)
+    t = threading.Thread(target=srv.serve_forever, daemon=True)
+    t.start()
+    url = f"http://127.0.0.1:{srv.server_port}/v1"
+    monkeypatch.setenv("MESHCTX_GATEWAY_URL", url)
+    monkeypatch.setenv("MESHCTX_GATEWAY_KEY", "sk-fake-not-a-real-key")
+    monkeypatch.setenv("MESHCTX_OLLAMA_HOST", "127.0.0.1")
+    yield url
+    srv.shutdown()
+
+
+def test_autodiscover_returns_gateway_models(client, gateway):
+    """真实请求打到真实 socket — 断言模型列表被枚举出来 (不是字符串断言)。"""
+    r = client.post("/api/models/autodiscover")
+    assert r.status_code == 200
+    d = r.json()
+    assert "providers" in d and "ollama_found" in d
+    gw = [p for p in d["providers"] if p["provider"] == "gateway"]
+    assert gw, f"gateway 源未出现: {json.dumps(d, ensure_ascii=False)[:300]}"
+    assert gw[0]["models"] == ["glm-5.3", "glm-5.3-flash"]
+    assert gw[0]["base_url"] == gateway
+    assert gw[0]["key_required"] is True
+
+
+def test_autodiscover_survives_dead_sources(client, monkeypatch):
+    """网关/Ollama 都不可达时不得 500 — 三路 gather 单源失败必须静默降级。"""
+    monkeypatch.setenv("MESHCTX_GATEWAY_URL", "http://127.0.0.1:1/v1")
+    monkeypatch.setenv("MESHCTX_OLLAMA_HOST", "127.0.0.1")
+    r = client.post("/api/models/autodiscover")
+    assert r.status_code == 200
+    d = r.json()
+    assert isinstance(d.get("providers"), list)
+
+
+def test_autodiscover_then_batch_end_to_end(client, gateway, tmp_path):
+    """UI 一键流: 发现 → 勾选 → 批量写入 → 配置落盘可读。"""
+    d = client.post("/api/models/autodiscover").json()
+    gw = next(p for p in d["providers"] if p["provider"] == "gateway")
+    ids = [f"zhipu:{m}" for m in gw["models"]]
+    r = client.post("/api/models/batch",
+                    json={"provider": "zhipu", "base_url": gw["base_url"], "model_ids": ids})
+    assert r.status_code == 200, r.text[:200]
+    assert r.json()["count"] == 2
+    import yaml
+    cfg = yaml.safe_load(open(Path(tmp_path) / ".meshctx" / "config.yaml"))
+    assert set(ids) <= set(cfg["models"]["entries"])
+    for mid in ids:
+        assert cfg["models"]["entries"][mid]["base_url"] == gateway
+
+
+def test_autodiscover_no_plaintext_key_leak(client, gateway, tmp_path):
+    """网关 key 只能以 enc: 落盘, 绝不明文 (护城河 + 泄露事故防线)。"""
+    d = client.post("/api/models/autodiscover").json()
+    gw = next(p for p in d["providers"] if p["provider"] == "gateway")
+    client.post("/api/models/batch",
+                json={"provider": "zhipu", "base_url": gw["base_url"],
+                      "api_key": "sk-fake-not-a-real-key", "model_ids": ["zhipu:glm-5.3"]})
+    raw = (Path(tmp_path) / ".meshctx" / "config.yaml").read_text()
+    assert "sk-fake-not-a-real-key" not in raw, "明文 key 落盘!"
