@@ -72,7 +72,12 @@ jobs:
       run: |
         if [ -n "${CORE_TOKEN}" ]; then
           echo "Bundling closed-source core (full product)"
-          git clone --depth 1 "https://${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" /tmp/meshctx-core >/dev/null 2>&1
+          # v3.136.21 诊断: 克隆失败必须留证据 (v3.136.20 三连红均因 >/dev/null 2>&1 吞掉 stderr)
+          rm -rf /tmp/meshctx-core
+          if ! git clone --depth 1 "https://${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" /tmp/meshctx-core > /tmp/core_clone.log 2>&1; then
+            echo "FAIL: meshctx-core 克隆失败 — 脱敏日志:"; sed -e "s|${CORE_TOKEN}|***|g" /tmp/core_clone.log | tail -30; exit 1
+          fi
+          sed -e "s|${CORE_TOKEN}|***|g" /tmp/core_clone.log | tail -3
           # 修复(2026-08-24): 只叠加闭源独有模块 + 替换公开 stub; 公开真实实现(auth_v2 等)不被私有镜像覆盖
           bash scripts/overlay_core.sh /tmp/meshctx-core/src/core
         else
