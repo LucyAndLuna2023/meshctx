@@ -1,3 +1,23 @@
+## [v3.136.22] - 2026-10-22 (P1 根修: publish 触发资产替换事故 + 五方 findings 清偿)
+
+> **事件披露 (002codex post-publish 终验 P1 FAIL)**: v3.136.21 于 07:21:55Z publish 后,
+> build-macos.yml 的 `release: types: [published]` 触发器在 07:21:57 以 tag ref 重跑构建,
+> 07:24:47 (arm64) / 07:28:02 (intel) 两次替换了已发布 release 的全部 12 个 macOS 资产
+> (资产 ID 全换, 6 binary + 6 sidecar 内容 SHA 变化 — 同源码 SHA 23d3c8e0 重建, PyInstaller
+> 非可复现构建)。**同类替换在 v3.136.19 也发生过** (publish 02:48:19 → 资产 02:51/02:53 被换),
+> 属系统性缺陷而非孤例。当前 .21 release 内部自洽 (12/12 binary/sidecar 匹配), 按 002codex
+> 指示保持现状不原地修改; 本版为 fresh immutable 新版本 + 本披露。
+
+### 根修
+- **移除 build-macos.yml `release: types: [published]` 触发器** — 资产只应在 tag push 时构建上传;
+  publish 事件不得再触发任何构建 (全 workflow 扫描确认仅此一处有该触发器)
+
+### 五方 findings 清偿 (d1323748, 004zcode 实现 + 本版收编)
+- F2: autodiscover 改真三路并发 (ensure_future + gather return_exceptions), 与原声明对齐
+- F3: MESHCTX_GATEWAY_URL 补 SSRF 守卫 (hostname 提取 + _discover_private_reason + loopback 豁免)
+- F4: 死源异常 logger.debug 留痕 (Ollama/gather, 配错可诊断)
+- F1: build-linux 凭证步骤尾补 `rm -f ~/.git-credentials` (落盘卫生双保险)
+
 ## [v3.136.21] - 2026-10-22 (Linux 封装包三连红根修 — 给 git 装 `credential.helper`)
 
 > 事故: v3.136.16 起 `meshctx-linux.tar.gz` 连续缺失 (v3.136.16 / 3.136.20 / 3.136.21 三个 tag 的

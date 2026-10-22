@@ -47,7 +47,7 @@ stderr 被 `>/dev/null 2>&1` 吞掉只剩 `exit code 128`。
 - **清偿版本**: v3.136.21 已发布 (2026-10-22T07:21:55Z, release ID 420313317) — 24/24 assets 含
   meshctx-linux.tar.gz (SHA256=590638c5…, 与 002codex 独立核验一致), 三连缺位回补完成
 
-## KI-6 | P3 | open | 五方审计 v3.136.21 findings (002codex/002zcode/004zcode/004meshctx, 随 .22 清偿)
+## KI-6 | P3 | closed @ v3.136.22 | 五方审计 v3.136.21 findings (002codex/002zcode/004zcode/004meshctx, 随 .22 清偿)
 
 1. **F1 凭证落盘卫生**: build-linux.yml 步骤尾补 `rm -f ~/.git-credentials` (runner ephemeral 但显式清理);
    远期评估 `http.extraheader` / GITHUB_TOKEN 免落盘
@@ -56,3 +56,14 @@ stderr 被 `>/dev/null 2>&1` 吞掉只剩 `exit code 128`。
 4. **守门收编**: autodiscover 行为级 4 例 (dd36380a, tag 外) 随 .22 进发布树 (004meshctx ③ "在途")
 5. **声明纪律**: 送审件描述须与代码逐字对齐 (本轮 SSRF/并发两处夸大被 004zcode 抓 P2)
 6. **draft 脱钩怪癖**: GitHub draft tag_name 会漂移 untagged-* (v3.136.19/.21 两犯) — 发布前 no-drift 必查 tag_name
+
+## KI-7 | P1 | closed @ v3.136.22 | 002codex post-publish 终验 (v3.136.21)
+
+**publish 事件触发资产替换**: build-macos.yml `release: types: [published]` 触发器在每次
+publish 后以 tag ref 重跑构建, "Upload to Release" 条件为真 → 替换已发布 release 的 12 个
+macOS 资产。v3.136.19 (02:48 publish → 02:51/53 换) 与 v3.136.21 (07:21:55 publish →
+07:24/28 换) 两次实证。同源码 SHA 重建 (非可复现构建), 内容来源可信但违反 publish 后
+immutable 纪律 (002codex P1)。
+- **根修**: v3.136.22 移除该触发器 (全 workflow 扫描唯一一处)
+- **v3.136.21 处置**: 按 002codex 指示保持现状 (内部自洽 12/12), 不原地修改, 由 .22 承接
+- **教训**: publish 事件的 workflow 触发面需在发版前审计 (触发器→构建→上传链路)

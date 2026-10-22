@@ -5,8 +5,9 @@ on:
     branches: [main]
     tags: ['v*']
   workflow_dispatch:
-  release:
-    types: [published]
+  # v3.136.22 根修: 移除 release published 触发器 — publish 事件会以 tag ref 重跑构建,
+  # 其 "Upload to Release" 条件 (startsWith tag) 为真 → 替换已发布 release 的资产
+  # (v3.136.19/.21 两次 post-publish macOS 资产被换, 002codex P1)。资产只应在 tag push 时构建。
 
 permissions:
   contents: write
