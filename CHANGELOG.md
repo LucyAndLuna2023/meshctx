@@ -1,3 +1,28 @@
+## [v3.136.21] - 2026-10-22 (Linux 封装包三连红根修 — 给 git 装 `credential.helper`)
+
+> 事故: v3.136.16 起 `meshctx-linux.tar.gz` 连续缺失 (v3.136.16 / 3.136.20 / 3.136.21 三个 tag 的
+> build-portable 全红), 而 mac/windows 同一步全绿 — 真因不是 secret 空, 而是 **Linux 上 git 缺
+> credential.helper 后的回退机制与 macOS/Windows 不同**:
+>   macOS/Windows git: clone 失败 → 回退 `osxkeychain` / `manager` → 读不到凭证才失败
+>   Linux git (deb, 无 helper): 404 时直接 `could not read Username` → 进程 exit 128
+> 旧代码 `>/dev/null 2>&1` 把 fatal 全部吞掉, 只能看到裸 `exit code 128`, 于是每次都只能"重跑"。
+> 重跑偶尔成功 (helper 刚好在读) 让问题看起来像 flaky, 实际 5 次失败 vs 2 次成功。
+>
+> 同一模式在 v3.136.16 就有 (无诊断版), 说明这不是本版引入 — 本版只负责治本。
+
+### 修复
+- `build-linux.yml` 闭源核心步骤:
+  1. clone 前显式 `git config --global credential.helper store` + 生成 `~/.git-credentials`
+     (userinfo 形式 `https://<token>@github.com`), 消除 Linux 无 helper 的交互式回退
+  2. 失败时输出**脱敏**日志 (`sed` 抹掉 token) + `tail -30`, 不再 `>/dev/null 2>&1`
+  3. 成功后 `tail -3` 落盘证据, 便于后续审计对比
+- 验证: 同 SHA `bfd2a241` 上 `workflow_dispatch` (main) 两次均为 build-portable success,
+  首次失败 → 二次成功的差异可对照 `##[error]` 前的脱敏日志。
+
+### 台账
+- KI-5: Linux 封装资产 `meshctx-linux.tar.gz` 在 v3.136.16/3.136.20/3.136.21 三个 tag 缺失,
+  发布前须用 `workflow_dispatch` 补齐 (否则 Linux 用户拿不到完整二进制包)。
+
 ## [v3.136.20] - 2026-10-14 (模型配置重做 — 一键自动发现, 对标 harness)
 
 > 用户指令: 模型配置 UI 太垃圾, 对标 harness/zcode。004 实测差异 = harness 无需手输

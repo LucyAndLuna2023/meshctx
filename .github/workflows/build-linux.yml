@@ -72,9 +72,15 @@ jobs:
       run: |
         if [ -n "${CORE_TOKEN}" ]; then
           echo "Bundling closed-source core (full product)"
-          # v3.136.21 诊断: 克隆失败必须留证据 (v3.136.20 三连红均因 >/dev/null 2>&1 吞掉 stderr)
+          # v3.136.21 根修: Linux runner 的 git 没有 osxkeychain/manager 这类凭证回退,
+          # userinfo 里 token 一旦失效/被拒, git 直接走交互式用户名提示 → "could not read Username"
+          # → exit 128 (mac/windows 同一步却回退到 helper 才失败, 所以看起来 flaky)。
+          # 治本: 显式装 store helper + 预写 ~/.git-credentials, 并把失败原因脱敏打出来。
+          git config --global credential.helper store
+          printf 'https://%s@github.com\n' "${CORE_TOKEN}" > "$HOME/.git-credentials"
+          chmod 600 "$HOME/.git-credentials"
           rm -rf /tmp/meshctx-core
-          if ! git clone --depth 1 "https://${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" /tmp/meshctx-core > /tmp/core_clone.log 2>&1; then
+          if ! git clone --depth 1 "https://github.com/LucyAndLuna2023/meshctx-core.git" /tmp/meshctx-core > /tmp/core_clone.log 2>&1; then
             echo "FAIL: meshctx-core 克隆失败 — 脱敏日志:"; sed -e "s|${CORE_TOKEN}|***|g" /tmp/core_clone.log | tail -30; exit 1
           fi
           sed -e "s|${CORE_TOKEN}|***|g" /tmp/core_clone.log | tail -3

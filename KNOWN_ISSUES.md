@@ -33,3 +33,15 @@ Build Windows/Linux 后到但上传至同一 release 前 release 被手动 publi
 - **清偿路径**: 下载 NSIS contrib 非官方 Persian.nlf 放入 NSIS Contrib/Language files/ (需可重复获取的 URL,
   不能靠 runner 手动放置); 或维持 11 语言安装界面 (产品 UI fa 不受影响)
 - **清偿版本**: 待排期 (P3, 安装器语言与产品语言解耦)
+
+## KI-5 | P2 | open | 004meshctx 自查 (v3.136.21 Linux 封装包红)
+
+**`meshctx-linux.tar.gz` 在 v3.136.16 / v3.136.20 / v3.136.21 三个 tag 上缺失** — build-portable 全红,
+stderr 被 `>/dev/null 2>&1` 吞掉只剩 `exit code 128`。
+- **真因**: Linux runner 的 git 无可交互凭证回退 (mac=osxkeychain, win=manager), clone 私有仓时
+  userinfo token 未被接受即走 `could not read Username` → exit 128
+- **根修**: v3.136.21 — `credential.helper store` + `~/.git-credentials` + 脱敏失败日志
+  (Linux 诊断日志实证: `fatal: could not read Username for 'https://github.com'`)
+- **发布前必做**: 用 `workflow_dispatch` (main) 补跑 build-portable 补齐该资产, 否则 Linux 用户
+  只有 .deb 源码包, 拿不到完整二进制包
+- **清偿版本**: v3.136.21 (修法) / 资产补齐待下次 tag
