@@ -34,7 +34,7 @@ Build Windows/Linux 后到但上传至同一 release 前 release 被手动 publi
   不能靠 runner 手动放置); 或维持 11 语言安装界面 (产品 UI fa 不受影响)
 - **清偿版本**: 待排期 (P3, 安装器语言与产品语言解耦)
 
-## KI-5 | P2 | open | 004meshctx 自查 (v3.136.21 Linux 封装包红)
+## KI-5 | P2 | closed @ v3.136.21 已发布 | 004meshctx 自查 (v3.136.21 Linux 封装包红)
 
 **`meshctx-linux.tar.gz` 在 v3.136.16 / v3.136.20 / v3.136.21 三个 tag 上缺失** — build-portable 全红,
 stderr 被 `>/dev/null 2>&1` 吞掉只剩 `exit code 128`。
@@ -44,4 +44,15 @@ stderr 被 `>/dev/null 2>&1` 吞掉只剩 `exit code 128`。
   (Linux 诊断日志实证: `fatal: could not read Username for 'https://github.com'`)
 - **发布前必做**: 用 `workflow_dispatch` (main) 补跑 build-portable 补齐该资产, 否则 Linux 用户
   只有 .deb 源码包, 拿不到完整二进制包
-- **清偿版本**: v3.136.21 (修法) / 资产补齐待下次 tag
+- **清偿版本**: v3.136.21 已发布 (2026-10-22T07:21:55Z, release ID 420313317) — 24/24 assets 含
+  meshctx-linux.tar.gz (SHA256=590638c5…, 与 002codex 独立核验一致), 三连缺位回补完成
+
+## KI-6 | P3 | open | 五方审计 v3.136.21 findings (002codex/002zcode/004zcode/004meshctx, 随 .22 清偿)
+
+1. **F1 凭证落盘卫生**: build-linux.yml 步骤尾补 `rm -f ~/.git-credentials` (runner ephemeral 但显式清理);
+   远期评估 `http.extraheader` / GITHUB_TOKEN 免落盘
+2. **F2 autodiscover 串行**: docstring 称"三路并发"实为顺序 await — 下版改真 `asyncio.gather` 或改注释
+3. **F3 网关 SSRF**: `MESHCTX_GATEWAY_URL` 直连无 getaddrinfo 守卫 (operator env, P3) — 复用 discover 的守卫
+4. **守门收编**: autodiscover 行为级 4 例 (dd36380a, tag 外) 随 .22 进发布树 (004meshctx ③ "在途")
+5. **声明纪律**: 送审件描述须与代码逐字对齐 (本轮 SSRF/并发两处夸大被 004zcode 抓 P2)
+6. **draft 脱钩怪癖**: GitHub draft tag_name 会漂移 untagged-* (v3.136.19/.21 两犯) — 发布前 no-drift 必查 tag_name
