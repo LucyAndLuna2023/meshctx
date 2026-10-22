@@ -77,11 +77,16 @@ jobs:
           # → exit 128 (mac/windows 同一步却回退到 helper 才失败, 所以看起来 flaky)。
           # 治本: 显式装 store helper + 预写 ~/.git-credentials, 并把失败原因脱敏打出来。
           git config --global credential.helper store
-          printf 'https://%s@github.com\n' "${CORE_TOKEN}" > "$HOME/.git-credentials"
+          # 必须是 user:token 两段式 (单段只有用户名没有密码 → git 仍会提示输入密码)
+          user="${CORE_TOKEN%%:*}"; secret="${CORE_TOKEN#*:}"
+          if [ "$secret" = "$CORE_TOKEN" ]; then user="x-access-token"; secret="$CORE_TOKEN"; fi
+          printf 'https://%s:%s@github.com\n' "$user" "$secret" > "$HOME/.git-credentials"
           chmod 600 "$HOME/.git-credentials"
           rm -rf /tmp/meshctx-core
           if ! git clone --depth 1 "https://github.com/LucyAndLuna2023/meshctx-core.git" /tmp/meshctx-core > /tmp/core_clone.log 2>&1; then
-            echo "FAIL: meshctx-core 克隆失败 — 脱敏日志:"; sed -e "s|${CORE_TOKEN}|***|g" /tmp/core_clone.log | tail -30; exit 1
+            echo "凭证文件形态: $(sed -e "s|${secret}|***|g" -e "s|${CORE_TOKEN}|***|g" "$HOME/.git-credentials")"
+            echo "helper=$(git config --global --get credential.helper)"
+            echo "FAIL: meshctx-core 克隆失败 — 脱敏日志:"; sed -e "s|${secret}|***|g" -e "s|${CORE_TOKEN}|***|g" /tmp/core_clone.log | tail -30; exit 1
           fi
           sed -e "s|${CORE_TOKEN}|***|g" /tmp/core_clone.log | tail -3
           # 修复(2026-08-24): 只叠加闭源独有模块 + 替换公开 stub; 公开真实实现(auth_v2 等)不被私有镜像覆盖
