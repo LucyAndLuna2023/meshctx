@@ -185,6 +185,7 @@ details.adv[open] summary{margin-bottom:8px}
     </div>
     <!-- v3.133.0: 手输 base_url+key → 获取模型 → 多选/全选批量加入 -->
     <div class="full" style="display:flex;gap:8px;align-items:center">
+      <button type="button" class="btn primary" style="flex:1" onclick="autoDiscover()" id="auto_disc_btn">⚡ One-click auto-discover</button>
       <button type="button" class="btn" style="flex:1" onclick="discoverModels()" id="ad_discover_btn">🔎 Discover models</button>
       <span class="hint" id="ad_discover_hint" style="flex:2"></span>
     </div>
@@ -631,6 +632,67 @@ function detectProviderFromKey(key) {
 
 // ── v3.133.0: 手输 base_url+key → 获取模型 → 多选/全选批量加入 ──
 var DISC = {base:'', key:'', models:[]};
+
+// ═══ v3.136.20: 一键自动发现 (对标 harness — 无需手输 base_url) ═══
+var AUTODISC = {providers: [], selected: {}};
+
+function autoDiscover(){
+  var btn = document.getElementById('auto_disc_btn');
+  btn.disabled = true; btn.textContent = '⚡ Scanning…';
+  fetch('/api/models/autodiscover', {method:'POST', headers:{'Content-Type':'application/json'}})
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    btn.disabled = false; btn.textContent = '⚡ One-click auto-discover';
+    AUTODISC.providers = d.providers || [];
+    renderAutoDisc();
+  })
+  .catch(function(e){ btn.disabled = false; btn.textContent = '⚡ Retry'; alert('scan failed: ' + e); });
+}
+
+function renderAutoDisc(){
+  var box = document.getElementById('auto_disc_box');
+  if (!AUTODISC.providers.length) {
+    box.style.display = 'block';
+    box.innerHTML = '<div style="color:var(--muted);padding:8px">未发现可用 provider — Ollama 未运行且 env 无 key</div>';
+    return;
+  }
+  var html = '';
+  AUTODISC.providers.forEach(function(p, pi){
+    html += '<div style="border-bottom:1px solid var(--border);padding:6px 4px">' +
+      '<label style="display:flex;align-items:center;gap:6px;font-weight:600">' +
+      '<input type="checkbox" class="ad-provider-cb" data-pi="' + pi + '" checked> ' +
+      escDisc(p.provider) + ' (' + p.models.length + ' models) · ' + escDisc(p.auth) + '</label>' +
+      '<div style="padding-left:24px;font-size:.78rem;color:var(--muted)">' +
+      p.models.map(function(m){ return '<span style="display:inline-block;margin:2px 4px;padding:1px 6px;border:1px solid var(--border);border-radius:4px">' + escDisc(m) + '</span>'; }).join('') +
+      '</div></div>';
+  });
+  html += '<div style="padding:6px;text-align:right"><button class="btn primary" onclick="addAutoDiscSelected()">✚ Add all selected providers</button></div>';
+  box.innerHTML = html;
+  box.style.display = 'block';
+}
+
+function addAutoDiscSelected(){
+  var boxes = document.querySelectorAll('.ad-provider-cb:checked');
+  var jobs = [];
+  boxes.forEach(function(cb){
+    var pi = parseInt(cb.dataset.pi, 10);
+    var p = AUTODISC.providers[pi];
+    if (!p) return;
+    jobs.push(fetch('/api/models/batch', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({provider: p.provider, base_url: p.base_url,
+                             key: (p.auth||'').indexOf('no-key')>=0 ? '' : (os_env_key(p) || ''),
+                             model_ids: p.models})}));
+  });
+  Promise.all(jobs).then(function(){ loadModels(); toast('✓ Added', '', true); })
+    .catch(function(){ alert('add failed'); });
+}
+
+// env key 查找 (batch 需要真实 key 落库)
+function os_env_key(p){
+  // 后端 batch 端点支持空 key (会从 env 拾取), UI 传空即可 — 由后端 _scan_env 补
+  return p.key_required ? '' : '';
+}
+
 function discoverModels(){
   var st = $('ad_status');
   var base = ($('ad_base').value||'').trim();

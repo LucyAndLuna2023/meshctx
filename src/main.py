@@ -3004,6 +3004,18 @@ async def batch_add_models(request: Request):
     provider = str(body.get("provider", "")).strip() or "custom"
     base_url = str(body.get("base_url", "")).strip().rstrip("/")
     api_key = str(body.get("api_key", "")).strip()
+    # v3.136.20: api_key 为空时从 env 自动拾取 (autodiscover 流 — Ollama 无 key, 其他按 provider 映射)
+    if not api_key:
+        from src.model_registry import ENV_KEY_MAP
+        env_var = ENV_KEY_MAP.get(f"{provider}:*") or ENV_KEY_MAP.get(provider)
+        if not env_var:
+            # 模糊匹配 (provider 前缀)
+            for ev, pat in ENV_KEY_MAP.items():
+                if pat.startswith(provider + ":"):
+                    env_var = ev
+                    break
+        if env_var:
+            api_key = os.environ.get(env_var, "").strip()
     model_ids = body.get("model_ids") or []
     set_default = bool(body.get("set_default"))
     if not isinstance(model_ids, list) or not model_ids:
@@ -9661,4 +9673,74 @@ async def permissions_put(request: Request):
             body.get("deny_tools"), body.get("allow_tools"))}
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+
+@app.post("/api/models/autodiscover")
+async def autodiscover_models():
+    """v3.136.20 (对标 harness): 一键自动发现本机全部可用模型 — 无需手输 base_url.
+
+    三路并发:
+    1. Ollama 本地 (GET /api/tags — 无需 key, 返回本机全部已 pull 模型)
+    2. 环境变量 keys (既有 auto_configure 逻辑 — 全 provider)
+    3. Ollama 之外的自定义网关 (MESHCTX_GATEWAY_URL env — 可选)
+
+    返回: {providers: [{provider, base_url, models: [...], key_required, discovered}]}
+    UI 侧: 勾选需要的模型 → POST /api/models/batch 批量加入。
+    """
+    import httpx
+    results = []
+
+    # ── 1. Ollama 本地探测 ──
+    ollama_host = os.environ.get("MESHCTX_OLLAMA_HOST", "localhost")
+    try:
+        async with httpx.AsyncClient(timeout=3) as hc:
+            r = await hc.get(f"http://{ollama_host}:11434/api/tags")
+            if r.status_code == 200:
+                models = [m.get("name","").split(":")[0] for m in r.json().get("models",[]) if m.get("name")]
+                results.append({
+                    "provider": "ollama", "base_url": f"http://{ollama_host}:11434/v1",
+                    "models": sorted(set(models)), "key_required": False,
+                    "auth": "no-key (local)",
+                })
+    except Exception:
+        pass  # Ollama 未运行 — 静默跳过
+
+    # ── 2. 环境变量 keys (全 provider) ──
+    from src.model_registry import ENV_KEY_MAP, BUILTIN_MODELS
+    env_hits = {}
+    for env_var, pattern in ENV_KEY_MAP.items():
+        key = os.environ.get(env_var, "")
+        if not key:
+            continue
+        provider = pattern.split(":")[0]
+        env_hits.setdefault(provider, {"key": key, "env_var": env_var})
+    for provider, info in env_hits.items():
+        models = sorted(set(mid.split(":")[-1] for mid, info in BUILTIN_MODELS.items()
+                           if info["provider"] == provider))
+        if models:
+            # base_url 从 BUILTIN 取第一个
+            base = next((info["base_url"] for mid, info in BUILTIN_MODELS.items()
+                        if info["provider"] == provider), "")
+            results.append({
+                "provider": provider, "base_url": base,
+                "models": models, "key_required": True,
+                "auth": f"{info['env_var']} in env",
+            })
+
+    # ── 3. 可选: 自定义网关 (env) ──
+    gw_url = os.environ.get("MESHCTX_GATEWAY_URL", "")
+    if gw_url:
+        gw_key = os.environ.get("MESHCTX_GATEWAY_KEY", "")
+        try:
+            async with httpx.AsyncClient(timeout=5) as hc:
+                r = await hc.get(gw_url.rstrip("/") + "/models",
+                                 headers={"Authorization": f"Bearer {gw_key}"} if gw_key else {})
+                if r.status_code == 200:
+                    models = [m.get("id","") for m in r.json().get("data",[]) if m.get("id")]
+                    results.append({"provider": "gateway", "base_url": gw_url.rstrip("/"),
+                                    "models": models, "key_required": bool(gw_key), "auth": "gateway env"})
+        except Exception:
+            pass
+
+    return {"providers": results, "ollama_found": any(r["provider"]=="ollama" for r in results)}
 

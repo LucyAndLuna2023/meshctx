@@ -1,3 +1,18 @@
+## [v3.136.20] - 2026-10-14 (模型配置重做 — 一键自动发现, 对标 harness)
+
+> 用户指令: 模型配置 UI 太垃圾, 对标 harness/zcode。004 实测差异 = harness 无需手输
+> base_url 一键扫描全部 provider, meshctx 要手输才能扫 — 本版补齐。
+
+### Added
+- **POST /api/models/autodiscover**: 一键自动发现 — 三路并发:
+  ①Ollama 本地 (/api/tags, 无需 key) ②env keys 全 provider ③自定义网关 (MESHCTX_GATEWAY_URL)
+- **UI 一键自动发现按钮**: setup.html ⚡ 按钮 → providers 展示 → 勾选 → 批量加入
+- **batch 端点 env 拾取**: api_key 为空时按 provider 自动从 env 补 key
+
+### 004 实测
+- 8989 网关 11 个 glm 模型全枚举 (含 glm-5.3/5.3-flash) — 数据源验证通过
+- Ollama 未运行静默跳过 (不报错)
+
 ## [v3.136.19] - 2026-10-21 (Windows 安装器语言修正 — NSIS Persian.nlf 缺失)
 
 - Windows 安装界面 11 语言 (NSIS 标准发行无 Persian.nlf, 编译失败根修; 产品 UI 12 语言 fa 不受影响 — 安装器与产品语言两层)
