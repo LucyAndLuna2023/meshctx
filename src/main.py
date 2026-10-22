@@ -9688,24 +9688,62 @@ async def autodiscover_models():
     UI 侧: 勾选需要的模型 → POST /api/models/batch 批量加入。
     """
     import httpx
+    import asyncio as _aio
+    import logging as _log
     results = []
 
-    # ── 1. Ollama 本地探测 ──
-    ollama_host = os.environ.get("MESHCTX_OLLAMA_HOST", "localhost")
-    try:
-        async with httpx.AsyncClient(timeout=3) as hc:
-            r = await hc.get(f"http://{ollama_host}:11434/api/tags")
-            if r.status_code == 200:
-                models = [m.get("name","").split(":")[0] for m in r.json().get("models",[]) if m.get("name")]
-                results.append({
-                    "provider": "ollama", "base_url": f"http://{ollama_host}:11434/v1",
-                    "models": sorted(set(models)), "key_required": False,
-                    "auth": "no-key (local)",
-                })
-    except Exception:
-        pass  # Ollama 未运行 — 静默跳过
+    async def _probe_ollama():
+        # ── 1. Ollama 本地探测 ──
+        ollama_host = os.environ.get("MESHCTX_OLLAMA_HOST", "localhost")
+        try:
+            async with httpx.AsyncClient(timeout=3) as hc:
+                r = await hc.get(f"http://{ollama_host}:11434/api/tags")
+                if r.status_code == 200:
+                    models = [m.get("name","").split(":")[0] for m in r.json().get("models",[]) if m.get("name")]
+                    return [{
+                        "provider": "ollama", "base_url": f"http://{ollama_host}:11434/v1",
+                        "models": sorted(set(models)), "key_required": False,
+                        "auth": "no-key (local)",
+                    }]
+        except Exception as e:
+            _log.getLogger("autodiscover").debug("ollama 源失败 (常态=未运行): %s", e)  # F4: 不再零留痕
+        return []
 
-    # ── 2. 环境变量 keys (全 provider) ──
+    async def _probe_gateway():
+        # ── 3. 可选: 自定义网关 (env) ──
+        # F3 (五方共识): 补 SSRF 守卫 (loopback 豁免 — 与原送审声明对齐;
+        # MESHCTX_GATEWAY_URL 系 operator env, 风险 P3, 此为防御纵深)
+        gw_url = os.environ.get("MESHCTX_GATEWAY_URL", "")
+        if not gw_url:
+            return []
+        from urllib.parse import urlsplit as _us
+        _gw_host = (_us(gw_url).hostname or "")
+        if not _gw_host:
+            return []
+        if _gw_host not in ("127.0.0.1", "localhost", "::1"):
+            _reason = _discover_private_reason(_gw_host)
+            if _reason:
+                _log.getLogger("autodiscover").warning(
+                    "MESHCTX_GATEWAY_URL 指向非回环私网地址被拒: %s", _reason)
+                return []
+        gw_key = os.environ.get("MESHCTX_GATEWAY_KEY", "")
+        try:
+            async with httpx.AsyncClient(timeout=5) as hc:
+                r = await hc.get(gw_url.rstrip("/") + "/models",
+                                 headers={"Authorization": f"Bearer {gw_key}"} if gw_key else {})
+                if r.status_code == 200:
+                    models = [m.get("id","") for m in r.json().get("data",[]) if m.get("id")]
+                    return [{"provider": "gateway", "base_url": gw_url.rstrip("/"),
+                             "models": models, "key_required": bool(gw_key), "auth": "gateway env"}]
+        except Exception as e:
+            _log.getLogger("autodiscover").debug("gateway 源失败: %s", e)
+        return []
+
+    # F2: 真·三路并发 (原实现串行 — 与送审 "gather 并发" 声明不符, 五方 F2)
+    _gw_task = _aio.ensure_future(_probe_gateway())
+    _ol_task = _aio.ensure_future(_probe_ollama())
+
+    # ── 2. 环境变量 keys (全 provider, 纯本地无 IO — 同步段) ──
     from src.model_registry import ENV_KEY_MAP, BUILTIN_MODELS
     env_hits = {}
     for env_var, pattern in ENV_KEY_MAP.items():
@@ -9727,20 +9765,16 @@ async def autodiscover_models():
                 "auth": f"{info['env_var']} in env",
             })
 
-    # ── 3. 可选: 自定义网关 (env) ──
-    gw_url = os.environ.get("MESHCTX_GATEWAY_URL", "")
-    if gw_url:
-        gw_key = os.environ.get("MESHCTX_GATEWAY_KEY", "")
-        try:
-            async with httpx.AsyncClient(timeout=5) as hc:
-                r = await hc.get(gw_url.rstrip("/") + "/models",
-                                 headers={"Authorization": f"Bearer {gw_key}"} if gw_key else {})
-                if r.status_code == 200:
-                    models = [m.get("id","") for m in r.json().get("data",[]) if m.get("id")]
-                    results.append({"provider": "gateway", "base_url": gw_url.rstrip("/"),
-                                    "models": models, "key_required": bool(gw_key), "auth": "gateway env"})
-        except Exception:
-            pass
+    # F2 合并: env 源(同步) + 两路异步探针 gather 收集
+    _ol, _gw = await _aio.gather(_ol_task, _gw_task, return_exceptions=True)
+    if isinstance(_ol, Exception):
+        _log.getLogger("autodiscover").debug("ollama gather 异常: %s", _ol)
+        _ol = []
+    if isinstance(_gw, Exception):
+        _log.getLogger("autodiscover").debug("gateway gather 异常: %s", _gw)
+        _gw = []
+    results.extend(_gw)   # 网关在前 (自定义优先展示)
+    results.extend(_ol)
 
     return {"providers": results, "ollama_found": any(r["provider"]=="ollama" for r in results)}
 
