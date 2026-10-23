@@ -386,19 +386,63 @@ function renderCurrent(){
   $('curProv').textContent = (cur.provider_name || cur.provider) + ' · ' + cur.id;
 }
 
+// v3.137.0: provider 分组渲染 (对标 harness/zcode) — 组头可折叠, 默认组置顶
+var COLLAPSE = {};
+function providerGroups(){
+  var groups = {}, order = [];
+  MODELS.forEach(function(m){
+    var p = m.provider || 'other';
+    if (!groups[p]) { groups[p] = {provider:p, name:m.provider_name||p, models:[], ready:0, rest:0}; order.push(p); }
+    groups[p].models.push(m);
+    if (m.usable || m.configured || m.current) groups[p].ready++; else groups[p].rest++;
+  });
+  order.sort(function(a,b){
+    var ga = groups[a], gb = groups[b];
+    var ca = ga.models.some(function(m){ return m.id === CURRENT; }) ? 0 : 1;
+    var cb = gb.models.some(function(m){ return m.id === CURRENT; }) ? 0 : 1;
+    if (ca !== cb) return ca - cb;
+    if (gb.ready !== ga.ready) return gb.ready - ga.ready;
+    return a.localeCompare(b);
+  });
+  return order.map(function(p){ return groups[p]; });
+}
+function toggleGroup(idx){ COLLAPSE[idx] = !COLLAPSE[idx]; renderList(); }
 function renderList(){
-  var usable = MODELS.filter(function(m){ return m.usable || m.configured || m.current; });
-  var rest   = MODELS.filter(function(m){ return !(m.usable || m.configured || m.current); });
   var el = $('modelList');
   if (!MODELS.length) {
     el.innerHTML = '<div class="empty">' + T('hub_empty','No task cards yet — type one line and let the Agent work') + '</div>';
     return;
   }
-  var html = usable.map(function(m){ return rowHtml(m, true); }).join('');
-  if (rest.length) {
-    html += '<div class="sec-title" style="margin:12px 0 8px">' + T('hub_needs_key','Key not configured') + ' · ' + rest.length + '</div>';
-    html += rest.slice(0, 8).map(function(m){ return rowHtml(m, false); }).join('');
-  }
+  var html = '';
+  providerGroups().forEach(function(g, idx){
+    var hasCur = g.models.some(function(m){ return m.id === CURRENT; });
+    if (COLLAPSE[idx] === undefined) COLLAPSE[idx] = !(hasCur || g.ready > 0);
+    var collapsed = COLLAPSE[idx];
+    var status;
+    if (g.rest === 0) {
+      status = '<span style="font-size:.72rem;color:var(--green)">✓ ' + g.ready + ' ' + T('hub_grp_ready','ready') + '</span>';
+    } else if (g.ready > 0) {
+      status = '<span style="font-size:.72rem;color:var(--green)">✓' + g.ready + '</span>' +
+               '<span style="font-size:.72rem;color:var(--muted)">⚠ ' + g.rest + ' ' + T('hub_needs_key','Key not configured') + '</span>';
+    } else {
+      status = '<span style="font-size:.72rem;color:var(--muted)">⚠ ' + T('hub_needs_key','Key not configured') + '</span>';
+    }
+    html += '<div class="pgroup" style="margin:10px 0 14px">' +
+      '<div class="phead" onclick="toggleGroup(' + idx + ')" style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;padding:6px 2px;border-bottom:1px solid var(--border)">' +
+        '<span style="opacity:.6;font-size:.8rem;width:1em">' + (collapsed ? '▸' : '▾') + '</span>' +
+        '<span>' + iconOf(g.provider) + '</span>' +
+        '<b style="font-size:.95rem">' + esc(g.name) + '</b>' +
+        '<span style="opacity:.55;font-size:.72rem">' + g.models.length + '</span>' +
+        (hasCur ? '<span class="badge ok" style="font-size:.66rem">' + T('hub_grp_default','default') + '</span>' : '') +
+        '<span style="margin-left:auto;display:flex;gap:8px;align-items:center">' + status + healthBadge(g.provider) + '</span>' +
+      '</div>' +
+      '<div class="pbody"' + (collapsed ? ' hidden' : '') + '>' +
+        g.models.map(function(m){
+          var ready = m.usable || m.configured || m.current;
+          return rowHtml(m, ready);
+        }).join('') +
+      '</div></div>';
+  });
   el.innerHTML = html;
 }
 

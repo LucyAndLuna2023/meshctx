@@ -229,3 +229,15 @@ def test_autodiscover_no_plaintext_key_leak(client, gateway, tmp_path):
                       "api_key": "sk-fake-not-a-real-key", "model_ids": ["zhipu:glm-5.3"]})
     raw = (Path(tmp_path) / ".meshctx" / "config.yaml").read_text()
     assert "sk-fake-not-a-real-key" not in raw, "明文 key 落盘!"
+
+
+# ═══ v3.137.0 setup 页 provider 分组渲染守门 (行为级: 真渲染输出) ═══
+def test_setup_page_provider_grouping_rendered(client):
+    """/ui/setup 必须含分组逻辑 (providerGroups/toggleGroup), 且旧平铺截断逻辑已移除。"""
+    r = client.get("/ui/setup")
+    assert r.status_code == 200
+    html = r.text
+    for probe in ("providerGroups", "toggleGroup", "COLLAPSE", "hub_grp_default", "hub_grp_ready"):
+        assert probe in html, f"分组渲染缺 {probe}"
+    # 旧平铺逻辑 (usable 平铺 + rest.slice(0,8) 截断) 不应再出现
+    assert "rest.slice(0, 8)" not in html, "旧平铺截断逻辑仍在"

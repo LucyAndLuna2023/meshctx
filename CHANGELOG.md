@@ -1,3 +1,22 @@
+## [v3.137.0] - 2026-10-23 (minor: setup 页模型 provider 分组渲染 — 对标 harness/zcode)
+
+> 用户指令: setup 页模型"一堆堆在那里,没有 provider 分类",要求学 deepseek harness /
+> zhipu zcode 的分组体验。旧 renderList 平铺 (usable 一列 + 缺 key 截断 8 条), 本版重写。
+
+### 实现 (templates/setup.html, 文件系统模板 — 无内嵌双源问题)
+- `providerGroups()`: 按 provider 聚合 (组内计数 ready/rest), 排序 = 默认模型组置顶 →
+  ready 数降序 → 字典序
+- 组头: 展开/折叠箭头 + 厂商图标 + 名称 + 模型数 + default 徽标 (当前默认所在组) +
+  ready/缺 key 计数 + 厂商健康度
+- 折叠默认: 有 key 的组展开, 无 key 组折叠; `toggleGroup(idx)` 翻转, 按组索引记忆
+- 每行 Test/Use/✕/✎ 操作不变; 移除旧 `rest.slice(0, 8)` 截断 (分组后全量展示)
+
+### 验证
+- node 行为级: 分组数/置顶/计数/折叠默认/toggle 翻转 全过 (真实函数抽取执行)
+- TestClient 生产渲染: /ui/setup 200 含 providerGroups/toggleGroup/COLLAPSE 五探针
+- 守门: test_setup_page_provider_grouping_rendered (渲染含分组 + 旧截断已移除)
+- 聚焦 86 passed
+
 ## [v3.136.22] - 2026-10-22 (P1 根修: publish 触发资产替换事故 + 五方 findings 清偿)
 
 > **事件披露 (002codex post-publish 终验 P1 FAIL)**: v3.136.21 于 07:21:55Z publish 后,
