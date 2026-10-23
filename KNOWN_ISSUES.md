@@ -67,3 +67,11 @@ immutable 纪律 (002codex P1)。
 - **根修**: v3.136.22 移除该触发器 (全 workflow 扫描唯一一处)
 - **v3.136.21 处置**: 按 002codex 指示保持现状 (内部自洽 12/12), 不原地修改, 由 .22 承接
 - **教训**: publish 事件的 workflow 触发面需在发版前审计 (触发器→构建→上传链路)
+
+## 旧账 release 清理注记 (2026-10-23, 五方裁定)
+
+- **v3.136.4**: 该版 release (untagged-082532f0…, FAIL/HOLD 版) 已于 2026-10-23 移除,
+  git tag 留存可考; 内容由 v3.136.5+ 取代 (002zcode 注记条件 + 004meshctx 会签)。
+- **v3.136.20**: FAIL 冻结 draft 已于 2026-10-23 移除, 裁定在五方回执链, 删 draft 不销账
+  (004meshctx 口径); 其有效内容 (autodiscover) 由 v3.136.21+ 承载。
+- 全量 17 draft + 1 published untagged 处置台账: docs/release_cleanup_ledger_20261023.md
