@@ -75,3 +75,5 @@ immutable 纪律 (002codex P1)。
 - **v3.136.20**: FAIL 冻结 draft 已于 2026-10-23 移除, 裁定在五方回执链, 删 draft 不销账
   (004meshctx 口径); 其有效内容 (autodiscover) 由 v3.136.21+ 承载。
 - 全量 17 draft + 1 published untagged 处置台账: docs/release_cleanup_ledger_20261023.md
+- 附带发现 (412272750): tag=v3.136.8 / name=v3.136.3 历史错位 — owner 裁决不改 (publish 后
+  身份面不可变, 002codex 口径), API 消费以 tag 为准; 台账: docs/release_cleanup_ledger_20261023.md
