@@ -1,3 +1,24 @@
+## [v3.137.3] - 2026-10-24 (patch: 002codex v3.137.2 FAIL 清偿 — 端口来源全覆盖 + 精确 stop + status 身份)
+
+> 002codex 对 v3.137.2 裁定 FAIL/CHANGES REQUESTED: explicit/persisted 端口来源未校验
+> (MESHCTX_PORT=99999 env/.env 均 rc=0 PREFLIGHT_OK)、broad pkill 可误杀 foreign 同名进程、
+> status 可被 generic /health spoof。本版逐条清偿。
+
+### P1 端口来源全覆盖 (install.sh + cli)
+- cli: _resolve_validated_port — 解析+范围校验一体, 所有来源 (explicit/env/.env) 出来的
+  端口都过 1-65535, 不合法 exit 3 (此前 99999 直过到 bind 才 OverflowError)
+- installer: PORT 解析后即范围校验 (交互循环重试/非交互 fail-fast); 端口空闲但不可 bind
+  (特权端口等) 也校验 — 交互重选/非交互中止; 检查顺序: 范围 → 占用+身份 → bind (分层报错)
+
+### P2 精确 stop + status 身份 (禁杀 foreign 兑现)
+- cmd_stop: 逐 PID 校验 /proc/cmdline 含 meshctx 才杀 (broad pkill "uvicorn.*src.main"
+  可误杀 foreign 同名进程 — 收紧); 不自杀; foreign 占用端口时明示"不停止"
+- cmd_status: /health 必须含 service=="meshctx" 才报"运行中" — generic health spoof
+  报"端口被其它服务占用 (非 MeshCtx)"
+
+### 验证
+- 守门 16P (CLI 10 + installer 6): 含 99999 explicit/env 双负例、generic health spoof、
+  解析链、三态; 聚焦 103P
 ## [v3.137.2] - 2026-10-24 (patch: 002codex v3.137.1 FAIL 两 P1 阻断 + P2 全清偿)
 
 > 002codex 终审 v3.137.1 = FAIL/CHANGES REQUESTED (两个 P1 阻断 + P2 同步阻断放行)。

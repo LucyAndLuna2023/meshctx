@@ -1989,6 +1989,31 @@ def _resolve_start_port(explicit_port):
     return 3001
 
 
+def _resolve_validated_port(explicit_port):
+    """v3.137.3 (002codex P1): 解析 + 范围校验一体 — 所有来源 (explicit/env/persisted)
+    出来的端口都过 1-65535 校验, 不合法即非零退出 (此前 99999 会直过到 bind 才 OverflowError)。"""
+    port = _resolve_start_port(explicit_port)
+    ok, reason = _validate_port_value(port)
+    if not ok:
+        print(f"🔴 启动失败: 端口配置不合法 ({reason})。", file=sys.stderr)
+        print(f"   来源排查: --port 参数 / MESHCTX_PORT 环境变量 / ~/.meshctx/.env 的 MESHCTX_PORT 行。", file=sys.stderr)
+        print(f"   处置: meshctx start --port <1-65535>", file=sys.stderr)
+        sys.exit(3)
+    return port
+
+
+def _validate_port_value(port):
+    """v3.137.3 (002codex P1): 端口值校验 — 1-65535, 不合法返回 (False, 原因)。
+    适用于所有来源 (explicit/env/persisted/replacement), 杜绝 99999 直过。"""
+    try:
+        p = int(port)
+    except (TypeError, ValueError):
+        return False, "非数字"
+    if p < 1 or p > 65535:
+        return False, f"超出范围 1-65535 (got {p})"
+    return True, ""
+
+
 def _probe_meshctx_health(port, timeout=2.0):
     """探测 {port}/health 是否为 MeshCtx。
 
@@ -2031,7 +2056,7 @@ def cmd_start(args):
     from src.main import app
     from src.core import __version__
 
-    port = _resolve_start_port(args.port)
+    port = _resolve_validated_port(args.port)
     host = _resolve_bind_host()
     os.environ["MESHCTX_PORT"] = str(port)  # 回写: 探针/子进程与本服务同端口
 
@@ -2088,6 +2113,15 @@ def cmd_stop(args):
     import subprocess
     import sys as _sys
     stopped = False
+    port = _get_port()
+
+    # v3.137.3 (002codex P2): 按端口 + /health 身份精确 stop。
+    # 1) 先识别: 端口上是否 MeshCtx (service==meshctx) — foreign 服务一律不动
+    meshctx_on_port = _probe_meshctx_health(port)
+    if not meshctx_on_port:
+        if _port_has_listener(port):
+            print(f"端口 {port} 被非 MeshCtx 服务占用 — 不停止 (禁杀 foreign 服务)。")
+        # 落到模式匹配兜底 (覆盖无 /health 的老版本自装实例)
 
     if _sys.platform == "win32" or os.name == "nt":
         # Windows: 找占用端口的进程并结束 (netstat + taskkill)
@@ -2103,18 +2137,40 @@ def cmd_stop(args):
                     if m:
                         pids.add(m.group(1))
             for pid in pids:
-                subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True, timeout=10)
-                stopped = True
+                # v3.137.3: 只杀 cmdline 含 meshctx 的进程 (禁杀 foreign)
+                cmd = ""
+                try:
+                    cmd = open(f"/proc/{pid}/cmdline", encoding="utf-8", errors="replace").read() if os.path.exists(f"/proc/{pid}/cmdline") else ""
+                except Exception:
+                    pass
+                if "meshctx" in cmd.lower() or not cmd:
+                    subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True, timeout=10)
+                    stopped = True
         except Exception:
             pass
     else:
-        # POSIX: 先 pkill uvicorn 模式, 再兜底封装版进程 (macOS 默认安装路径 cmdline 是 meshctx/meshctx)
-        for pattern in ("uvicorn.*src.main", "meshctx/meshctx"):
+        # POSIX: v3.137.3 收紧 — 逐 PID 校验 cmdline 含 meshctx 才杀 (禁 broad pkill 误杀
+        # foreign 的 uvicorn src.main; codex 实测 broad pkill 可杀 foreign 同名进程)
+        try:
+            r = subprocess.run(["pgrep", "-f", r"meshctx|src\.main|uvicorn.*src\.main"],
+                               capture_output=True, text=True, timeout=10)
+            pids = [p for p in (r.stdout or "").split() if p.strip()]
+        except (FileNotFoundError, OSError):
+            pids = []
+        for pid in pids:
+            if pid == str(os.getpid()):
+                continue  # 不自杀
+            cmd = ""
             try:
-                r = subprocess.run(
-                    ["pkill", "-f", pattern], capture_output=True, timeout=10)
-                if r.returncode == 0:
-                    stopped = True
+                cmd = open(f"/proc/{pid}/cmdline", encoding="utf-8", errors="replace").read()
+            except Exception:
+                continue
+            low = cmd.lower()
+            if "meshctx" not in low:
+                continue  # 归属校验失败 → 不杀 (禁杀 foreign)
+            try:
+                subprocess.run(["kill", "-9", pid], capture_output=True, timeout=10)
+                stopped = True
             except (FileNotFoundError, OSError):
                 continue
 
@@ -2184,6 +2240,11 @@ def cmd_status(args):
         import requests
         r = requests.get(f"http://localhost:{_get_port()}/health", timeout=3)
         d = r.json()
+        # v3.137.3 (002codex P2): 身份强校验 — generic /health (无 service==meshctx)
+        # 不得报"运行中" (foreign 服务占用端口会被误报成 meshctx 健康)
+        if d.get("service") != "meshctx":
+            print(f"端口 {_get_port()} 被其它服务占用 (非 MeshCtx — /health 身份不符)。")
+            return
         print(f"meshctx v{d.get('version','?')} 运行中  "
               f"项目:{d.get('projects_count',0)} 会话:{d.get('conversations_count',0)} 记忆:{d.get('memories_count',0)}")
     except Exception:

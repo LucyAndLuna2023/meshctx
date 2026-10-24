@@ -10,6 +10,7 @@ import socket
 import subprocess
 import sys
 import threading
+import types
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
@@ -198,3 +199,67 @@ def test_health_endpoint_has_stable_identity():
         assert d.get("service") == "meshctx", f"/health 缺稳定身份: {d}"
         assert "version" in d
         assert cli._probe_meshctx_health_via_dict(d) if hasattr(cli, "_probe_meshctx_health_via_dict") else True
+
+
+# ═══ v3.137.3 (002codex v3.137.2 FAIL 清偿) ═══
+def test_explicit_port_99999_fails_fast():
+    """codex P1 负例: explicit --port 99999 → 非零退出, 不再 OverflowError 崩到 bind。"""
+    out, err = io.StringIO(), io.StringIO()
+    code = None
+    with _RedirectPair(out, err):
+        try:
+            cli.cmd_start(types.SimpleNamespace(port=99999))
+        except SystemExit as e:
+            code = e.code
+        except OverflowError:
+            code = "OverflowError(未校验!)"
+    assert code == 3, f"99999 应 exit 3, got {code}"
+    assert "超出范围" in err.getvalue()
+
+
+def test_env_port_99999_fails_fast():
+    """codex P1 负例: MESHCTX_PORT=99999 (env 来源) → 同样 fail-fast。"""
+    os.environ["MESHCTX_PORT"] = "99999"
+    try:
+        out, err = io.StringIO(), io.StringIO()
+        code = None
+        with _RedirectPair(out, err):
+            try:
+                cli.cmd_start(types.SimpleNamespace(port=None))
+            except SystemExit as e:
+                code = e.code
+        assert code == 3, f"env 99999 应 exit 3, got {code}"
+        assert "超出范围" in err.getvalue()
+    finally:
+        os.environ.pop("MESHCTX_PORT", None)
+
+
+def test_get_port_unified_resolution():
+    """stop/status 共用的 _get_port 走完整解析链 (env > .env > 3001), 非 env-only。"""
+    os.environ.pop("MESHCTX_PORT", None)
+    assert cli._get_port() == 3001
+    os.environ["MESHCTX_PORT"] = "4567"
+    try:
+        assert cli._get_port() == 4567
+    finally:
+        os.environ.pop("MESHCTX_PORT", None)
+
+
+def test_status_rejects_generic_health(monkeypatch):
+    """codex P2: generic /health (无 service==meshctx) → status 不得报运行中。"""
+    import types
+
+    class FakeResp:
+        def json(self):
+            return {"status": "healthy", "version": "9.9.9"}  # 无 service 字段
+
+    fake_mod = types.SimpleNamespace(get=lambda *a, **k: FakeResp())
+    import types as _t
+    sys.modules.setdefault("requests_placeholder", fake_mod)
+    out = io.StringIO()
+    monkeypatch.setitem(sys.modules, "requests", types.SimpleNamespace(get=lambda *a, **k: FakeResp()))
+    with _RedirectPair(out, io.StringIO()):
+        cli.cmd_status(types.SimpleNamespace())
+    text = out.getvalue()
+    assert "运行中" not in text, "generic /health 不得报运行中"
+    assert "被其它服务占用" in text or "身份不符" in text
