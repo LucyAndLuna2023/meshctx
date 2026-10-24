@@ -33,7 +33,7 @@ logger = logging.getLogger("meshctx.desktop")
 # ── 全局配置 ─────────────────────────────────────────
 PORT = int(os.environ.get("MESHCTX_PORT", "3001"))
 HOST = "127.0.0.1"  # ⚠ 勿被版本 bump 污染 (I-8 同族)
-DESKTOP_VERSION = "v3.137.1"
+DESKTOP_VERSION = "v3.137.2"
 TITLE = f"meshctx Desktop {DESKTOP_VERSION}"
 
 # 路径（兼容 PyInstaller 冻结模式）
@@ -44,16 +44,34 @@ else:
 LOGO_ICO = BASE_DIR / "logo.ico"
 
 
-def find_free_port(start=3001, max_tries=20):
+def resolve_desktop_port():
+    """v3.137.2 (002codex P2): 禁止静默端口漂移 — 端口解析链
+    MESHCTX_PORT env > ~/.meshctx/.env 持久化 > 3001; 端口被占 → 明确报错退出 (非零),
+    不再自动 +1 漂移 (漂移会导致 URL/探针/用户预期三处不一致)。"""
     import socket
-    for port in range(start, start + max_tries):
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(("127.0.0.1", port))
-                return port
-        except OSError:
-            continue
-    return start
+    port = int(os.environ.get("MESHCTX_PORT", "") or 0)
+    if not port:
+        envf = Path.home() / ".meshctx" / ".env"
+        if envf.exists():
+            try:
+                for line in envf.read_text(encoding="utf-8", errors="replace").splitlines():
+                    if line.startswith("MESHCTX_PORT="):
+                        v = line.split("=", 1)[1].strip().strip('"').strip("'")
+                        if v.isdigit():
+                            port = int(v)
+                        break
+            except OSError:
+                pass
+    if not port:
+        port = 3001
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("127.0.0.1", port))
+    except OSError as e:
+        logger.error(f"端口 {port} 不可用 ({e}) — 不做静默漂移。"
+                     f"处置: 停用占用服务, 或设置 MESHCTX_PORT=<空闲端口> 后重试。")
+        raise SystemExit(3)
+    return port
 
 
 def start_server(port):
@@ -167,7 +185,7 @@ def main():
         logger.info(f"Frozen: {getattr(sys, 'frozen', False)}")
         logger.info(f"Log: {LOG_FILE}")
 
-        PORT = find_free_port(PORT)
+        PORT = resolve_desktop_port()
         app_url = f"http://{HOST}:{PORT}/ui/desktop"
 
         # 1. 启动后台服务器

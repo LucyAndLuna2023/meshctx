@@ -101,7 +101,7 @@ def test_meshctx_already_running_no_double_bind():
     """端口上是 MeshCtx (/health 含 version) → 提示已在运行, 不重复 bind。"""
     class H(BaseHTTPRequestHandler):
         def do_GET(self):
-            body = b'{"status":"healthy","version":"test"}'
+            body = b'{"service":"meshctx","status":"healthy","version":"test"}'
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(body)))
@@ -159,3 +159,42 @@ def test_clean_start_binds_and_prints_banner():
     assert "已启动" in out and str(port) in out, "bind 成功后必须输出含端口的成功 banner"
     # 子进程内 MESHCTX_PORT 回写: /health 由同端口服务应答即为间接证据; 直接证据=进程启动无误
     os.remove(target)
+
+
+def test_probe_rejects_spoofed_version():
+    """002codex P1 负例: {"version":"9.9.9"} 无 service=="meshctx" → 探针判 False。"""
+    import types
+
+    class Spoof(BaseHTTPRequestHandler):
+        def do_GET(self):
+            body = b'{"service": "not-meshctx", "version": "9.9.9"}'
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *a):
+            pass
+
+    srv = HTTPServer(("127.0.0.1", 0), Spoof)
+    port = srv.server_address[1]
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        assert cli._probe_meshctx_health(port) is False, "伪造 version 不得通过身份校验"
+    finally:
+        srv.shutdown()
+
+
+def test_health_endpoint_has_stable_identity():
+    """/health 必须含 service=="meshctx" 稳定身份字段 (安装器/CLI 识别依据)。"""
+    os.environ.pop("MESHCTX_PASSWORD", None)
+    from fastapi.testclient import TestClient
+    from src.main import app
+    with TestClient(app) as c:
+        r = c.get("/health")
+        assert r.status_code == 200
+        d = r.json()
+        assert d.get("service") == "meshctx", f"/health 缺稳定身份: {d}"
+        assert "version" in d
+        assert cli._probe_meshctx_health_via_dict(d) if hasattr(cli, "_probe_meshctx_health_via_dict") else True

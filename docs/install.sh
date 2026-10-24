@@ -527,11 +527,19 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.137.1"
+VERSION="3.137.2"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
-# v3.137.1 (codex 修复单): 端口解析 = MESHCTX_PORT 显式 opt-in > 默认 3001; 默认不漂移
+# v3.137.2 (codex 需求锁定): 端口解析 = MESHCTX_PORT env > ~/.meshctx/.env 持久化 > 默认 3001
+# 默认不漂移; 持久化仅由显式 opt-in 写入
 PORT="${MESHCTX_PORT:-3001}"
+if [ -z "${MESHCTX_PORT:-}" ] && [ -f "${HOME}/.meshctx/.env" ]; then
+    _persisted=$(sed -n 's/^MESHCTX_PORT=//p' "${HOME}/.meshctx/.env" 2>/dev/null | head -1 | tr -d '"' | tr -d "'")
+    case "$_persisted" in
+        ''|*[!0-9]*) ;;  # 空或非数字 → 忽略
+        *) PORT="$_persisted" ;;
+    esac
+fi
 
 echo ""
 echo -e "  ${CYAN}  ╔══════════════════════════════════════════╗${NC}"
@@ -559,7 +567,7 @@ if pgrep -f "meshctx-linux/meshctx" >/dev/null 2>&1; then
 fi
 sleep 1
 
-# ── v3.137.1 端口预检 (002codex 修复单 meshctx-port-conflict-fix-20261024-codex-001) ──
+# ── v3.137.2 端口预检 (002codex 修复单 meshctx-port-conflict-fix-20261024-codex-001) ──
 # 旧逻辑依赖 ss -tlnp 提取 PID — 普通用户对 docker/他人进程看不到 PID → 整个检查分支
 # 被跳过 → 无警告照常提示 3001, 打开却是别人的服务 (fail-open, .21/.137 两代实测)。
 # 新逻辑: TCP 连接探测占用 + /health 身份识别, 完全不依赖 PID/权限。
@@ -574,8 +582,30 @@ port_occupied() {
     return 1
 }
 is_meshctx_port() {
+    # v3.137.2 (002codex P1): 必须含稳定身份字段 service=="meshctx" 且含 version —
+    # 仅查 version 可被 foreign 服务 {"version":"9.9.9"} 伪造 (实机复现)
     command -v curl >/dev/null 2>&1 || return 1
-    curl -sf -m 3 "http://127.0.0.1:${1}/health" 2>/dev/null | grep -q '"version"'
+    local h
+    h=$(curl -sf -m 3 "http://127.0.0.1:${1}/health" 2>/dev/null) || return 1
+    echo "$h" | grep -q '"version"' || return 1
+    echo "$h" | grep -q '"service": *"meshctx"'
+}
+# 替代端口校验: 范围 1-65535 + 未被占用 + 真实 bind 通过 (三关全过才可用)
+validate_replacement_port() {
+    local p="$1"
+    case "$p" in
+        ''|*[!0-9]*) echo "无效端口号 (非数字)"; return 1 ;;
+    esac
+    if [ "$p" -lt 1 ] || [ "$p" -gt 65535 ]; then
+        echo "端口超出范围 (1-65535)"; return 1
+    fi
+    if port_occupied "$p"; then
+        echo "端口 ${p} 也被占用"; return 1
+    fi
+    if ! python3 -c "import socket; s=socket.socket(); s.bind(('127.0.0.1', ${p})); s.close()" 2>/dev/null; then
+        echo "端口 ${p} 真实 bind 失败 (权限/保留范围)"; return 1
+    fi
+    return 0
 }
 persist_port() {
     local envf="${HOME}/.meshctx/.env"
@@ -603,11 +633,16 @@ if port_occupied "$PORT"; then
             printf "  选择: [1] 中止安装  [2] 指定其它端口继续 (输入端口号): "
             read -r _choice
             if [ "$_choice" = "2" ]; then
-                printf "  新端口号: "
-                read -r _newport
-                case "$_newport" in
-                    ''|*[!0-9]*) echo -e "${RED}✗ 无效端口, 中止${NC}"; exit 1 ;;
-                esac
+                _valid=0
+                while [ "$_valid" = "0" ]; do
+                    printf "  新端口号 (1-65535, 需空闲且可 bind): "
+                    read -r _newport
+                    if _err=$(validate_replacement_port "$_newport"); then
+                        _valid=1
+                    else
+                        echo -e "  ${YELLOW}✗ ${_err} — 请重输或 Ctrl+C 中止${NC}"
+                    fi
+                done
                 PORT="$_newport"
                 persist_port "$PORT" && echo -e "  ${GREEN}✓${NC} 已持久化 MESHCTX_PORT=${PORT} 到 ~/.meshctx/.env"
             else
@@ -632,7 +667,7 @@ else
     echo -e "  ${GREEN}✓${NC} $(T no_stop_needed)"
 fi
 
-# v3.137.1 测试钩子: 仅执行端口预检后退出 (供行为级守门测试, 不执行安装)
+# v3.137.2 测试钩子: 仅执行端口预检后退出 (供行为级守门测试, 不执行安装)
 if [ "${MESHCTX_PREFLIGHT_ONLY:-0}" = "1" ]; then
     echo "PREFLIGHT_OK PORT=${PORT}"
     exit 0
@@ -755,7 +790,7 @@ if [ -d "${INSTALL_DIR}" ]; then
     [ -z "$CONFIG_BACKUP" ] || echo -e "  ${GREEN}✓${NC} $(T backup_config)"
 fi
 
-# v3.137.1 (用户事故: 升级后配置/key 丢失 — INSTALL_DIR=数据目录同体, rm -rf 全灭):
+# v3.137.2 (用户事故: 升级后配置/key 丢失 — INSTALL_DIR=数据目录同体, rm -rf 全灭):
 # 就地覆盖升级 — tar 解压时排除全部数据/配置 (白名单保护), 用户数据原地保留
 # 双保险: 前置 CONFIG_BACKUP 备份仍保留 (升级失败可回滚)
 mkdir -p "${INSTALL_DIR}"
@@ -1017,7 +1052,7 @@ echo -e "${GREEN}║          $(T install_banner)                     ║${NC}"
 echo -e "${GREEN}║                                                  ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════╝${NC}"
 echo ""
-# v3.137.1 免登录保证: 无条件清除两处 .env 的密码残留(不只备份恢复分支)。
+# v3.137.2 免登录保证: 无条件清除两处 .env 的密码残留(不只备份恢复分支)。
 # 密码残留会使 UI 弹登录页(设计上仅公网部署需要手动设置 MESHCTX_PASSWORD)。
 sed -i '/^MESHCTX_PASSWORD=/d' "${INSTALL_DIR}/.env" 2>/dev/null || true
 sed -i '/^MESHCTX_PASSWORD=/d' "${HOME}/.meshctx/.env" 2>/dev/null || true

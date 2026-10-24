@@ -1,3 +1,29 @@
+## [v3.137.2] - 2026-10-24 (patch: 002codex v3.137.1 FAIL 两 P1 阻断 + P2 全清偿)
+
+> 002codex 终审 v3.137.1 = FAIL/CHANGES REQUESTED (两个 P1 阻断 + P2 同步阻断放行)。
+> 本版逐条清偿, 硬验收口径按 002codex 需求锁定件 (默认 3001 不漂移)。
+
+### P1-1 交互替代端口校验根修 (install.sh)
+- 新增 validate_replacement_port: 范围 1-65535 + 未被占用 + **真实 bind 测试** (python3 socket)
+  三关全过才接受; 交互路径循环重试直至合法或中止 — "输入 99999/另一个占用端口仍 PREFLIGHT_OK
+  并持久化" 的复现路径已消灭 (行为级负例覆盖: 99999/已占用/abc/0/65536 全拒)
+
+### P1-2 身份伪造根修 (/health 稳定身份字段)
+- /health 响应新增 **service=="meshctx"** 稳定身份字段 (成功与异常兜底双路径都有);
+  installer is_meshctx_port 与 cli _probe_meshctx_health 均改为 **service+version 双条件** —
+  foreign 伪造 {"service":"not-meshctx","version":"9.9.9"} 被判外部占用 (负例守门)
+
+### P2 清偿
+- start/stop/status/serve 端口解析统一走 _get_port() (解析链 explicit > env > .env > 3001)
+- installer 端口解析补 ~/.meshctx/.env 持久化层 (此前 installer 忽略 .env)
+- 守门测试改动态端口 (bind :0), 消除固定端口 flaky
+- desktop find_free_port 静默漂移根修: resolve_desktop_port() 解析链 + 冲突明确报错 exit 3,
+  不再自动 +1 (行为级: env 解析/占用 exit 3/默认 3001 三断言)
+
+### 不变项
+- 默认 3001 (干净机器安装后 URL=http://localhost:3001) / 禁杀 foreign 服务 /
+  MESHCTX_AUTH_DISABLED 语义不动 / 无随机端口漂移
+
 ## [v3.137.1] - 2026-10-24 (patch: Linux 安装 3001 端口冲突假成功三连根修 — 002codex 修复单)
 
 > **实测定性 (002codex 真机取证)**: 用户装完打开 localhost:3001/ui/setup 看到

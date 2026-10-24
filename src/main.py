@@ -6600,13 +6600,14 @@ async def health_root():
         monitor = get_health_monitor()
         result = await monitor.check_all()
         return {
+            "service": "meshctx",  # v3.137.2: 稳定身份字段 — 端口占用识别用 (防 foreign version 伪造)
             "status": "healthy" if result["error"] == 0 else "degraded",
             "version": __version__,
             "modules_ok": result["ok"],
             "modules_total": result["total"],
         }
     except Exception as e:
-        return {"status": "healthy", "version": __version__, "error": str(e)}
+        return {"service": "meshctx", "status": "healthy", "version": __version__, "error": str(e)}
 
 
 @app.get("/api/health")

@@ -70,8 +70,9 @@ def _cs(text):
 
 
 def _get_port() -> int:
-    """Get meshctx server port from env var (default 3001 — 与 install.sh 一致)"""
-    return int(os.environ.get("MESHCTX_PORT", "3001"))
+    """Get meshctx server port — v3.137.2 统一解析链 (与 cmd_start 同源):
+    explicit 传参 > MESHCTX_PORT env > ~/.meshctx/.env 持久化 > 3001"""
+    return _resolve_start_port(None)
 
 
 def _ensure_keys_loaded():
@@ -1989,13 +1990,19 @@ def _resolve_start_port(explicit_port):
 
 
 def _probe_meshctx_health(port, timeout=2.0):
-    """探测 {port}/health 是否为 MeshCtx (返回 JSON 且含 version)。"""
+    """探测 {port}/health 是否为 MeshCtx。
+
+    v3.137.2 (002codex P1): 必须含稳定身份字段 service=="meshctx" 且含 version —
+    仅查 version 可被 foreign 服务 {"version":"9.9.9"} 伪造 (实机复现的 P1)。
+    """
     import urllib.request
     try:
         with urllib.request.urlopen(
                 f"http://127.0.0.1:{port}/health", timeout=timeout) as resp:
             data = json.loads(resp.read().decode("utf-8", "replace"))
-            return isinstance(data, dict) and "version" in data
+            return (isinstance(data, dict)
+                    and data.get("service") == "meshctx"
+                    and "version" in data)
     except Exception:
         return False
 
@@ -2085,7 +2092,7 @@ def cmd_stop(args):
     if _sys.platform == "win32" or os.name == "nt":
         # Windows: 找占用端口的进程并结束 (netstat + taskkill)
         import re as _re
-        port = os.environ.get("MESHCTX_PORT", "3001")
+        port = _get_port()  # v3.137.2: 统一解析链 (env > .env > 3001)
         try:
             netstat = subprocess.run(
                 ["netstat", "-ano"], capture_output=True, text=True, timeout=10).stdout
@@ -3297,7 +3304,7 @@ def main():
         
         from src.main import app
         host = _resolve_bind_host()  # round64 P1-A: 默认回环, 远端需密码
-        port = int(os.environ.get("MESHCTX_PORT", "3001"))
+        port = _get_port()  # v3.137.2: 统一解析链
         uvicorn.run(app, host=host, port=port, log_level="info", timeout_keep_alive=300)
         return
     args.func(args)
