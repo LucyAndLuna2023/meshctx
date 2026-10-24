@@ -28,12 +28,16 @@ jobs:
               runs = requests.get(f"https://api.github.com/repos/LucyAndLuna2023/meshctx/actions/runs",
                   params={"head_sha": sha, "per_page": 50},
                   headers={"Authorization": f"token {tok}"}).json().get("workflow_runs", [])
-              runs = [r for r in runs if r["id"] != self_id]  # 排除自身 (publish job 属于该 run)
+              # v3.137.3 (同 SHA 双 CI 互等死锁根修): 排除自身之外的所有 CI workflow run —
+              # 同 commit 同时 push main + tag 会产生两个 CI run, 各含一个 release-publish
+              # poller, 互等对方完成 → 双双 30min 超时 (2026-10-24 v3.137.3 首跑实证)。
+              # 同 SHA 的测试已由本 run 的 test job 覆盖, 其余 CI run 冗余。
+              runs = [r for r in runs if r["id"] != self_id and r["name"] != "CI"]
               active = [r for r in runs if r["status"] != "completed"]
               # v3.135.14: 去掉 fail-fast (瞬时红如 PyPI/Choco 超时会 rerun —
               # 立即退出会误判; 只认"全部完成且 0 failure"或超时)
               # v3.136.7 (NameError 根修): red 在此分支定义 (去 fail-fast 重构遗留)
-              if not active and len(runs) >= 6:
+              if not active and len(runs) >= 5:  # v3.137.3: 排除 CI run 后阈值 6→5
                   red = [r for r in runs if r["status"] == "completed" and r["conclusion"] == "failure"]
                   if red:
                       print(f"🔴 全部完成但有 failure: {[r['name'] for r in red]}"); sys.exit(1)
