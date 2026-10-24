@@ -17,6 +17,7 @@ import asyncio
 import atexit
 import json
 import logging
+import socket
 import os
 import sys
 import time
@@ -1964,15 +1965,97 @@ def _resolve_bind_host():
     return host
 
 
+def _resolve_start_port(explicit_port):
+    """v3.137.1 (codex 修复单): 端口解析链 — explicit --port > MESHCTX_PORT env >
+    ~/.meshctx/.env 持久化配置 > 3001。标准默认不漂移。"""
+    if explicit_port:
+        return int(explicit_port)
+    env_port = os.environ.get("MESHCTX_PORT", "").strip()
+    if env_port.isdigit():
+        return int(env_port)
+    env_path = os.path.expanduser("~/.meshctx/.env")
+    if os.path.exists(env_path):
+        try:
+            with open(env_path, encoding="utf-8") as f:
+                for line in f:
+                    if line.startswith("MESHCTX_PORT="):
+                        v = line.split("=", 1)[1].strip().strip('"').strip("'")
+                        if v.isdigit():
+                            return int(v)
+                        break
+        except OSError:
+            pass
+    return 3001
+
+
+def _probe_meshctx_health(port, timeout=2.0):
+    """探测 {port}/health 是否为 MeshCtx (返回 JSON 且含 version)。"""
+    import urllib.request
+    try:
+        with urllib.request.urlopen(
+                f"http://127.0.0.1:{port}/health", timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8", "replace"))
+            return isinstance(data, dict) and "version" in data
+    except Exception:
+        return False
+
+
+def _port_has_listener(port, timeout=1.0):
+    """端口上是否有任何监听者 (TCP 连接探测, 不依赖 root/PID)。"""
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
 def cmd_start(args):
-    """启动 meshctx v1.0 统一服务"""
+    """启动 meshctx v1.0 统一服务
+
+    v3.137.1 (002codex 修复单 meshctx-port-conflict-fix-20261024-codex-001):
+    - 端口解析链: explicit --port > MESHCTX_PORT > ~/.meshctx/.env > 3001
+    - 冲突 fail-fast: 成功 banner 必须在真实 bind 成功之后; 端口被 MeshCtx 占
+      → 报告 already running; 被非 MeshCtx 占 → 非零退出并给替代端口命令,
+      禁止假成功 (v3.137.0 前端口被占仍打印"已启动")
+    - MESHCTX_PORT 回写: 后台健康探针 (autonomous_agent) 与本服务同端口,
+      杜绝把外部服务的健康误判成 meshctx 故障
+    """
     import uvicorn
     from src.main import app
-    
-    port = args.port or 3001  # 默认端口 — 与 install.sh 和 main.py 保持一致
-    host = _resolve_bind_host()
     from src.core import __version__
-    
+
+    port = _resolve_start_port(args.port)
+    host = _resolve_bind_host()
+    os.environ["MESHCTX_PORT"] = str(port)  # 回写: 探针/子进程与本服务同端口
+
+    # ── 预检: 单次连接判定占用 (v3.137.1 修复: 健康探测会在监听者 backlog 留下
+    #    悬空连接, 二次连接探测会因 backlog 满而误判空闲 — 故占用判定只做一次) ──
+    occupied = _port_has_listener(port)
+    if occupied and _probe_meshctx_health(port):
+        print(f"ℹ MeshCtx 已在 http://127.0.0.1:{port} 运行 (version 已确认), 无需重复启动。")
+        print(f"  Web UI: http://localhost:{port}/ui")
+        return
+    if occupied:
+        # 被非 MeshCtx 服务占用 → fail-fast, 禁止成功 banner
+        print(f"🔴 启动失败: 端口 {port} 已被其它服务占用 (非 MeshCtx — /health 无 version 标识)。", file=sys.stderr)
+        print(f"   排查: ss -tlnp | grep :{port}", file=sys.stderr)
+        print(f"   处置: 停用该服务后重试; 或显式改端口: meshctx start --port <空闲端口>", file=sys.stderr)
+        sys.exit(3)
+
+    # ── 真实 bind 先于 banner: bind 失败在此处确定性失败, 不产生假成功 ──
+    bind_sock = socket.socket(socket.AF_INET if host != "::" else socket.AF_INET6,
+                              socket.SOCK_STREAM)
+    bind_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        bind_sock.bind((host, port))
+        bind_sock.listen(2048)
+    except OSError as e:
+        bind_sock.close()
+        print(f"🔴 启动失败: 无法绑定 {host}:{port} ({e})。", file=sys.stderr)
+        print(f"   排查: ss -tlnp | grep :{port}", file=sys.stderr)
+        print(f"   处置: meshctx start --port <空闲端口>", file=sys.stderr)
+        sys.exit(3)
+
     print(f"""
 ╔══════════════════════════════════════╗
 ║       meshctx v{__version__} 已启动           ║
@@ -1982,8 +2065,11 @@ def cmd_start(args):
 ║  Web UI:  http://localhost:{port}/ui ║
 ╚══════════════════════════════════════╝
     """)
-    
-    uvicorn.run(app, host=host, port=port, log_level="info", timeout_keep_alive=300)
+
+    config = uvicorn.Config(app, host=host, port=port, log_level="info",
+                            timeout_keep_alive=300)
+    server = uvicorn.Server(config)
+    server.run(sockets=[bind_sock])
 
 
 def cmd_stop(args):

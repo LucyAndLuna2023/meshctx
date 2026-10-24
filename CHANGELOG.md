@@ -1,3 +1,34 @@
+## [v3.137.1] - 2026-10-24 (patch: Linux 安装 3001 端口冲突假成功三连根修 — 002codex 修复单)
+
+> **实测定性 (002codex 真机取证)**: 用户装完打开 localhost:3001/ui/setup 看到
+> "邮箱+密码+创建账号" — 该页面是 **FreeLLMAPI Docker 容器** (freellmapi_freellmapi_1,
+> 占 3001 已 8 天), 非 meshctx、非认证回归。meshctx 全代码库无邮箱/用户名/注册流程,
+> 本机回环访问零登录 (行为级实测双证)。
+
+### 三个 P1 根修 (002codex 修复单 meshctx-port-conflict-fix-20261024-codex-001)
+1. **installer fail-open 根修** (install.sh): 旧端口检查依赖 `ss -tlnp` 提取 PID —
+   普通用户对 docker/他人进程看不到 PID → 检查分支整体跳过 → 无警告照常提示 3001。
+   新预检: TCP 连接探测占用 (不依赖 PID/权限) + `/health` 身份识别 (含 version = MeshCtx);
+   非交互 (curl|bash/CI) 冲突 → fail-fast 非零中止, 禁止输出成功 URL;
+   交互 TTY → 显示占用者信息, 用户显式选择中止或持久化替代端口 (写 ~/.meshctx/.env)。
+   端口解析: MESHCTX_PORT 显式 opt-in > 默认 3001, 默认不漂移。
+2. **CLI 假成功根修** (src/cli.py cmd_start): 旧版端口被占时 uvicorn EADDRINUSE 退出
+   但仍打印"已启动" banner。新流程: 解析端口 → 预检 (MeshCtx 已运行=提示不重复启动 /
+   外部占用=非零退出+排查与替代端口命令) → 真实 bind 先于 banner (SO_REUSEADDR socket
+   预绑定, EADDRINUSE 在此处确定性失败) → banner。
+3. **端口口径统一**: cmd_start 端口解析链 = explicit --port > MESHCTX_PORT env >
+   ~/.meshctx/.env 持久化 > 3001; 启动时回写 os.environ["MESHCTX_PORT"] —
+   后台健康探针 (autonomous_agent) 与本服务同端口, 终结"探针打 3001 误报"。
+
+### 修复过程中的追加发现 (自证守门有效)
+- 预检健康探测会在监听者 backlog 留下悬空连接, 二次连接探测因 backlog 满误判空闲 →
+  占用判定改单次连接 (行为级测试当场抓获, 反向证明守门非空壳)。
+
+### 验收对照 (002codex 硬约束)
+- 干净 3001 默认启动 ✓ (真实子进程 /health healthy + banner) / 交互冲突确认 ✓ /
+  非交互冲突 fail-fast ✓ / 禁杀 foreign 服务 ✓ (全程未杀) /
+  不改 MESHCTX_AUTH_DISABLED 语义 ✓ / 默认解析链 ✓ / 无随机漂移 ✓
+
 ## [v3.137.0] - 2026-10-23 (minor: setup 页模型 provider 分组渲染 — 对标 harness/zcode)
 
 > 用户指令: setup 页模型"一堆堆在那里,没有 provider 分类",要求学 deepseek harness /

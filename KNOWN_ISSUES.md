@@ -77,3 +77,15 @@ immutable 纪律 (002codex P1)。
 - 全量 17 draft + 1 published untagged 处置台账: docs/release_cleanup_ledger_20261023.md
 - 附带发现 (412272750): tag=v3.136.8 / name=v3.136.3 历史错位 — owner 裁决不改 (publish 后
   身份面不可变, 002codex 口径), API 消费以 tag 为准; 台账: docs/release_cleanup_ledger_20261023.md
+
+## KI-8 | P1 | closed @ v3.137.1 | Linux 安装 3001 端口冲突假成功 (002codex 实机取证)
+
+用户装完打开 localhost:3001/ui/setup 见"邮箱+密码+创建账号" — 实为 FreeLLMAPI Docker
+容器占用 3001 (非 meshctx 页面)。三缺陷: ① installer 端口检查依赖 root 可见 PID,
+普通用户下 fail-open 照常提示 3001; ② CLI 端口被占仍打印"已启动"假成功;
+③ cli/探针/安装器端口口径分裂 (cli 写死 3001 忽略 MESHCTX_PORT)。
+- **根修**: v3.137.1 — installer 身份探测预检 (TCP+health, 不依赖 PID) + 交互/非交互
+  双模式 + 端口持久化; CLI fail-fast (bind 先于 banner) + 解析链统一 + MESHCTX_PORT 回写
+- **教训**: 与 KI-7 同族 — "装完可用"必须以运行时实探为准, 静态检查 (PID 可见性/环境假设)
+  在真实用户环境不可靠; 行为级守门 (tests/test_install_preflight.py + test_cli_start_port_conflict.py)
+  防 recurrence

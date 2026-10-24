@@ -527,10 +527,11 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.137.0"
+VERSION="3.137.1"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
-PORT=3001
+# v3.137.1 (codex 修复单): 端口解析 = MESHCTX_PORT 显式 opt-in > 默认 3001; 默认不漂移
+PORT="${MESHCTX_PORT:-3001}"
 
 echo ""
 echo -e "  ${CYAN}  ╔══════════════════════════════════════════╗${NC}"
@@ -558,37 +559,83 @@ if pgrep -f "meshctx-linux/meshctx" >/dev/null 2>&1; then
 fi
 sleep 1
 
-# 释放端口
-if command -v ss >/dev/null 2>&1; then
-    PORT_PID=$(ss -tlnp 2>/dev/null | grep ":${PORT} " | grep -oP 'pid=\K[0-9]+' | head -1)
-elif command -v lsof >/dev/null 2>&1; then
-    PORT_PID=$(lsof -ti:${PORT} 2>/dev/null | head -1)
-else
-    PORT_PID=""
-fi
-if [ -n "$PORT_PID" ]; then
-    # 2026-08-25 004meshctx 审计修复: 仅杀 meshctx 相关进程, 禁止 kill -9 任意占用者 (误杀风险)
-    # 通过 /proc/<pid>/cmdline 校验进程归属
-    _CMD=""
-    if [ -r "/proc/${PORT_PID}/cmdline" ]; then
-        _CMD=$(tr '\0' ' ' < "/proc/${PORT_PID}/cmdline" 2>/dev/null)
+# ── v3.137.1 端口预检 (002codex 修复单 meshctx-port-conflict-fix-20261024-codex-001) ──
+# 旧逻辑依赖 ss -tlnp 提取 PID — 普通用户对 docker/他人进程看不到 PID → 整个检查分支
+# 被跳过 → 无警告照常提示 3001, 打开却是别人的服务 (fail-open, .21/.137 两代实测)。
+# 新逻辑: TCP 连接探测占用 + /health 身份识别, 完全不依赖 PID/权限。
+port_occupied() {
+    if command -v ss >/dev/null 2>&1 && ss -tln 2>/dev/null | grep -q ":${1} "; then
+        return 0
     fi
-    case "$_CMD" in
-        *meshctx*|*src.main*|*src.cli*|*uvicorn*)
-            kill -9 "$PORT_PID" 2>/dev/null || true
-            KILLED=1
-            ;;
-        *)
-            echo -e "  ${YELLOW}⚠${NC} 端口 ${PORT} 被非 meshctx 进程占用 (PID=${PORT_PID}): $_CMD"
-            echo -e "  ${YELLOW}⚠${NC} 已跳过 (不误杀)。请手动停止该进程后重试。"
-            ;;
-    esac
+    if command -v lsof >/dev/null 2>&1 && lsof -ti:"$1" >/dev/null 2>&1; then
+        return 0
+    fi
+    (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null && { exec 3>&- 3<&-; return 0; }
+    return 1
+}
+is_meshctx_port() {
+    command -v curl >/dev/null 2>&1 || return 1
+    curl -sf -m 3 "http://127.0.0.1:${1}/health" 2>/dev/null | grep -q '"version"'
+}
+persist_port() {
+    local envf="${HOME}/.meshctx/.env"
+    mkdir -p "$(dirname "$envf")" 2>/dev/null
+    touch "$envf" 2>/dev/null || return 1
+    sed -i '/^MESHCTX_PORT=/d' "$envf" 2>/dev/null
+    echo "MESHCTX_PORT=${1}" >> "$envf"
+    return 0
+}
+# 非交互判定: curl|bash 时脚本的 stdin 是管道 (非 TTY)
+INTERACTIVE=0
+if [ -t 0 ] && [ -t 1 ]; then INTERACTIVE=1; fi
+
+# 预检执行 (在停止旧版本之后 — 老的 meshctx 进程已被上面的 pgrep 清理)
+if port_occupied "$PORT"; then
+    if is_meshctx_port "$PORT"; then
+        echo -e "  ${GREEN}ℹ${NC} 端口 ${PORT} 上已是 MeshCtx 服务在运行 — 本次安装将更新文件, 服务保持运行。"
+        MESHCTX_ALREADY_RUNNING=1
+    else
+        echo -e "  ${RED}🔴 端口 ${PORT} 已被其它服务占用 (非 MeshCtx)。${NC}"
+        if [ "$INTERACTIVE" = "1" ]; then
+            echo -e "  占用者信息 (尽力识别):"
+            ss -tlnp 2>/dev/null | grep ":${PORT} " | sed 's/^/    /' || true
+            docker ps --filter "publish=${PORT}" --format '    容器: {{.Names}} ({{.Image}}) {{.Ports}}' 2>/dev/null || true
+            printf "  选择: [1] 中止安装  [2] 指定其它端口继续 (输入端口号): "
+            read -r _choice
+            if [ "$_choice" = "2" ]; then
+                printf "  新端口号: "
+                read -r _newport
+                case "$_newport" in
+                    ''|*[!0-9]*) echo -e "${RED}✗ 无效端口, 中止${NC}"; exit 1 ;;
+                esac
+                PORT="$_newport"
+                persist_port "$PORT" && echo -e "  ${GREEN}✓${NC} 已持久化 MESHCTX_PORT=${PORT} 到 ~/.meshctx/.env"
+            else
+                echo -e "${RED}✗ 已按你的选择中止。请先释放端口 ${PORT} 或用 MESHCTX_PORT=<端口> 重跑安装。${NC}"
+                exit 1
+            fi
+        else
+            # 非交互 (curl | bash / CI): fail-fast — 禁止安装后提示一个打不开的 URL
+            echo -e "  ${RED}✗ 非交互环境下端口冲突无法确认处置 — 安装中止 (exit 1)。${NC}"
+            echo -e "  ${YELLOW}处置方式 (任选):${NC}"
+            echo -e "    a) 停止占用 ${PORT} 的服务后重跑安装"
+            echo -e "    b) 显式指定端口: MESHCTX_PORT=<端口> curl -fsSL ... | bash"
+            echo -e "  排查: ss -tlnp | grep :${PORT}   (或: docker ps --filter publish=${PORT})"
+            exit 1
+        fi
+    fi
 fi
 
 if [ "$KILLED" = "1" ]; then
     echo -e "  ${GREEN}✓${NC} $(T stopped_ok)"
 else
     echo -e "  ${GREEN}✓${NC} $(T no_stop_needed)"
+fi
+
+# v3.137.1 测试钩子: 仅执行端口预检后退出 (供行为级守门测试, 不执行安装)
+if [ "${MESHCTX_PREFLIGHT_ONLY:-0}" = "1" ]; then
+    echo "PREFLIGHT_OK PORT=${PORT}"
+    exit 0
 fi
 
 # ── Check Python ──────────────────────────────────────
@@ -708,7 +755,7 @@ if [ -d "${INSTALL_DIR}" ]; then
     [ -z "$CONFIG_BACKUP" ] || echo -e "  ${GREEN}✓${NC} $(T backup_config)"
 fi
 
-# v3.137.0 (用户事故: 升级后配置/key 丢失 — INSTALL_DIR=数据目录同体, rm -rf 全灭):
+# v3.137.1 (用户事故: 升级后配置/key 丢失 — INSTALL_DIR=数据目录同体, rm -rf 全灭):
 # 就地覆盖升级 — tar 解压时排除全部数据/配置 (白名单保护), 用户数据原地保留
 # 双保险: 前置 CONFIG_BACKUP 备份仍保留 (升级失败可回滚)
 mkdir -p "${INSTALL_DIR}"
@@ -970,7 +1017,7 @@ echo -e "${GREEN}║          $(T install_banner)                     ║${NC}"
 echo -e "${GREEN}║                                                  ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════╝${NC}"
 echo ""
-# v3.137.0 免登录保证: 无条件清除两处 .env 的密码残留(不只备份恢复分支)。
+# v3.137.1 免登录保证: 无条件清除两处 .env 的密码残留(不只备份恢复分支)。
 # 密码残留会使 UI 弹登录页(设计上仅公网部署需要手动设置 MESHCTX_PASSWORD)。
 sed -i '/^MESHCTX_PASSWORD=/d' "${INSTALL_DIR}/.env" 2>/dev/null || true
 sed -i '/^MESHCTX_PASSWORD=/d' "${HOME}/.meshctx/.env" 2>/dev/null || true
