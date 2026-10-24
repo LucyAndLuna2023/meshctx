@@ -567,27 +567,53 @@ class TestModelSlashUse:
 
     @patch("subprocess.run")
     def test_cmd_stop(self, mock_run, capsys):
-        """cmd_stop 跨平台: POSIX=pkill (uvicorn+封装版双模式), Windows=netstat+taskkill
-        (v3.129.0: 原断言只认 pkill, Windows 分支首调 netstat -ano 被误判失败)"""
+        """cmd_stop 跨平台 (v3.137.3 契约: 精确 stop — POSIX=pgrep 逐 PID + cmdline
+        含 meshctx 归属校验才 kill, 禁 broad pkill 误杀 foreign; Windows=netstat+taskkill)"""
+        import io
         from src.cli import cmd_stop
-        mock_run.return_value.returncode = 0
         args = MagicMock()
-        cmd_stop(args)
-        assert mock_run.call_count >= 1
-        first_cmd = mock_run.call_args_list[0][0][0]
+
+        def _run_side_effect(cmd, **kw):
+            r = MagicMock()
+            r.returncode = 0
+            if cmd and cmd[0] == "pgrep":
+                r.stdout = "111\n222\n"  # 111=meshctx 自家, 222=foreign
+            return r
+        mock_run.side_effect = _run_side_effect
+
+        import builtins
+        real_open = builtins.open
+
+        def fake_open(path, *a, **k):
+            p = str(path)
+            if "/proc/111/cmdline" in p:
+                return io.StringIO("/home/x/.meshctx/meshctx-linux/meshctx start")
+            if "/proc/222/cmdline" in p:
+                return io.StringIO("/usr/bin/uvicorn src.main:app --host 0.0.0.0")
+            return real_open(path, *a, **k)
+
         if sys.platform == "win32" or os.name == "nt":
-            assert first_cmd == ["netstat", "-ano"], \
-                f"Windows 应先 netstat 找端口进程, 实际: {first_cmd}"
+            with patch("builtins.open", fake_open):
+                cmd_stop(args)
+            assert mock_run.call_count >= 1
         else:
-            # macOS 默认安装路径为封装版, 需同时匹配 uvicorn 与 meshctx/meshctx 两种模式
-            assert "pkill" in first_cmd
+            with patch("builtins.open", fake_open):
+                cmd_stop(args)
+            calls = [str(c[0][0]) for c in mock_run.call_args_list]
+            joined = "|".join(calls)
+            assert "pgrep" in joined, f"应先 pgrep 找候选 PID: {joined[:120]}"
+            kill_calls = [c for c in calls if c.startswith("['kill'")]
+            assert any("111" in c for c in kill_calls), \
+                f"cmdline 含 meshctx 的 PID 应被 kill: {calls}"
+            assert not any("'222'" in c or "222'" in c for c in kill_calls), \
+                "foreign (无 meshctx) PID 禁杀 — broad pkill 已废除"
 
     @patch("requests.get")
     def test_cmd_status_running(self, mock_get, capsys):
         """cmd_status shows running info"""
         from src.cli import cmd_status
         mock_response = MagicMock()
-        mock_response.json.return_value = {"version": "1.5.26", "projects_count": 2, "conversations_count": 5, "memories_count": 10}
+        mock_response.json.return_value = {"service": "meshctx", "version": "1.5.26", "projects_count": 2, "conversations_count": 5, "memories_count": 10}
         mock_get.return_value = mock_response
         args = MagicMock()
         cmd_status(args)
