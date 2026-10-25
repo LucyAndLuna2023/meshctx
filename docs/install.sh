@@ -527,10 +527,10 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.137.3"
+VERSION="3.137.4"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
-# v3.137.3 (codex 需求锁定): 端口解析 = MESHCTX_PORT env > ~/.meshctx/.env 持久化 > 默认 3001
+# v3.137.4 (codex 需求锁定): 端口解析 = MESHCTX_PORT env > ~/.meshctx/.env 持久化 > 默认 3001
 # 默认不漂移; 持久化仅由显式 opt-in 写入
 PORT="${MESHCTX_PORT:-3001}"
 if [ -z "${MESHCTX_PORT:-}" ] && [ -f "${HOME}/.meshctx/.env" ]; then
@@ -551,23 +551,33 @@ echo ""
 echo -e "${CYAN}[1/5]${NC} $(T step_stop)"
 KILLED=0
 # 停止本机 uvicorn
-# v3.137.3 (002codex P2): 收紧 kill 边界 — 逐 PID 校验 cmdline 含 meshctx 才杀,
+# v3.137.4 (002codex P2): 收紧 kill 边界 — 逐 PID 校验 cmdline 含 meshctx 才杀,
 # 禁止 broad pkill 误杀 foreign 的 uvicorn src.main 同名进程
 for _pid in $(pgrep -f "uvicorn.*src.main" 2>/dev/null); do
-    _cmd=""
-    [ -r "/proc/${_pid}/cmdline" ] && _cmd=$(tr '\0' ' ' < "/proc/${_pid}/cmdline" 2>/dev/null)
-    case "$_cmd" in
-        *meshctx*)
-            kill -9 "$_pid" 2>/dev/null || true
-            KILLED=1
-            ;;
-    esac
+    _owned=0
+    _cmd="";  [ -r "/proc/${_pid}/cmdline" ] && _cmd=$(tr '\0' ' ' < "/proc/${_pid}/cmdline" 2>/dev/null)
+    _cwd="";  [ -L "/proc/${_pid}/cwd" ] && _cwd=$(readlink "/proc/${_pid}/cwd" 2>/dev/null)
+    case "$_cmd" in *meshctx*) _owned=1 ;; esac
+    case "$_cwd" in *meshctx*) _owned=1 ;; esac
+    if [ "$_owned" = "1" ]; then
+        kill -9 "$_pid" 2>/dev/null || true
+        KILLED=1
+    fi
 done
-# 停止 meshctx 产品 CLI 进程（仅精确匹配 src.cli，禁止用 "python.*meshctx" 这种会误杀 hermes -p meshctx 的宽模式）
-if pgrep -f "python3? -m src\.cli" >/dev/null 2>&1; then
-    pkill -9 -f "python3? -m src\.cli" 2>/dev/null || true
-    KILLED=1
-fi
+# 停止 meshctx 产品 CLI 进程 — v3.137.4 (002codex B1 实杀实证): pkill 模式杀掉了
+# foreign 的 python3 -m src.cli (live probe BEFORE_ALIVE=0 AFTER_ALIVE=1)。
+# 改逐 PID 双重归属校验: cmdline 或 cwd 含 meshctx 才杀 (foreign src.cli 的 cwd 不在本产品目录)
+for _pid in $(pgrep -f "python3? -m src\.cli" 2>/dev/null); do
+    _owned=0
+    _cmd="";  [ -r "/proc/${_pid}/cmdline" ] && _cmd=$(tr '\0' ' ' < "/proc/${_pid}/cmdline" 2>/dev/null)
+    _cwd="";  [ -L "/proc/${_pid}/cwd" ] && _cwd=$(readlink "/proc/${_pid}/cwd" 2>/dev/null)
+    case "$_cmd" in *meshctx*) _owned=1 ;; esac
+    case "$_cwd" in *meshctx*) _owned=1 ;; esac
+    if [ "$_owned" = "1" ]; then
+        kill -9 "$_pid" 2>/dev/null || true
+        KILLED=1
+    fi
+done
 # 停止 PyInstaller 封装版进程（护城河 2026-08-23 起默认完整版封装）
 if pgrep -f "meshctx-linux/meshctx" >/dev/null 2>&1; then
     pkill -9 -f "meshctx-linux/meshctx" 2>/dev/null || true
@@ -575,7 +585,7 @@ if pgrep -f "meshctx-linux/meshctx" >/dev/null 2>&1; then
 fi
 sleep 1
 
-# ── v3.137.3 端口预检 (002codex 修复单 meshctx-port-conflict-fix-20261024-codex-001) ──
+# ── v3.137.4 端口预检 (002codex 修复单 meshctx-port-conflict-fix-20261024-codex-001) ──
 # 旧逻辑依赖 ss -tlnp 提取 PID — 普通用户对 docker/他人进程看不到 PID → 整个检查分支
 # 被跳过 → 无警告照常提示 3001, 打开却是别人的服务 (fail-open, .21/.137 两代实测)。
 # 新逻辑: TCP 连接探测占用 + /health 身份识别, 完全不依赖 PID/权限。
@@ -590,7 +600,7 @@ port_occupied() {
     return 1
 }
 is_meshctx_port() {
-    # v3.137.3 (002codex P1): 必须含稳定身份字段 service=="meshctx" 且含 version —
+    # v3.137.4 (002codex P1): 必须含稳定身份字段 service=="meshctx" 且含 version —
     # 仅查 version 可被 foreign 服务 {"version":"9.9.9"} 伪造 (实机复现)
     command -v curl >/dev/null 2>&1 || return 1
     local h
@@ -627,7 +637,7 @@ persist_port() {
 INTERACTIVE=0
 if [ -t 0 ] && [ -t 1 ]; then INTERACTIVE=1; fi
 
-# v3.137.3 (002codex P1): 显式/持久化端口同样过范围校验 —
+# v3.137.4 (002codex P1): 显式/持久化端口同样过范围校验 —
 # 此前 MESHCTX_PORT=99999 (env 或 .env) 直过预检, 装完 CLI bind OverflowError
 _port_err=$(python3 - "$PORT" <<'PYEOF'
 import socket, sys
@@ -708,7 +718,7 @@ else
     echo -e "  ${GREEN}✓${NC} $(T no_stop_needed)"
 fi
 
-# v3.137.3: 端口空闲但可能不可 bind (如 <1024 特权端口) — 真实 bind 校验
+# v3.137.4: 端口空闲但可能不可 bind (如 <1024 特权端口) — 真实 bind 校验
 if ! port_occupied "$PORT"; then
     _bind_err=$(python3 - "$PORT" <<'PYEOF3'
 import socket, sys
@@ -747,7 +757,7 @@ PYEOF4
     fi
 fi
 
-# v3.137.3 测试钩子: 仅执行端口预检后退出 (供行为级守门测试, 不执行安装)
+# v3.137.4 测试钩子: 仅执行端口预检后退出 (供行为级守门测试, 不执行安装)
 if [ "${MESHCTX_PREFLIGHT_ONLY:-0}" = "1" ]; then
     echo "PREFLIGHT_OK PORT=${PORT}"
     exit 0
@@ -870,7 +880,7 @@ if [ -d "${INSTALL_DIR}" ]; then
     [ -z "$CONFIG_BACKUP" ] || echo -e "  ${GREEN}✓${NC} $(T backup_config)"
 fi
 
-# v3.137.3 (用户事故: 升级后配置/key 丢失 — INSTALL_DIR=数据目录同体, rm -rf 全灭):
+# v3.137.4 (用户事故: 升级后配置/key 丢失 — INSTALL_DIR=数据目录同体, rm -rf 全灭):
 # 就地覆盖升级 — tar 解压时排除全部数据/配置 (白名单保护), 用户数据原地保留
 # 双保险: 前置 CONFIG_BACKUP 备份仍保留 (升级失败可回滚)
 mkdir -p "${INSTALL_DIR}"
@@ -1132,7 +1142,7 @@ echo -e "${GREEN}║          $(T install_banner)                     ║${NC}"
 echo -e "${GREEN}║                                                  ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════╝${NC}"
 echo ""
-# v3.137.3 免登录保证: 无条件清除两处 .env 的密码残留(不只备份恢复分支)。
+# v3.137.4 免登录保证: 无条件清除两处 .env 的密码残留(不只备份恢复分支)。
 # 密码残留会使 UI 弹登录页(设计上仅公网部署需要手动设置 MESHCTX_PASSWORD)。
 sed -i '/^MESHCTX_PASSWORD=/d' "${INSTALL_DIR}/.env" 2>/dev/null || true
 sed -i '/^MESHCTX_PASSWORD=/d' "${HOME}/.meshctx/.env" 2>/dev/null || true

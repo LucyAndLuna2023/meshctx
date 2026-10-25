@@ -565,10 +565,13 @@ class TestModelSlashUse:
         captured = capsys.readouterr()
         assert "未配置" in captured.out or "not configured" in captured.out
 
+    @patch("src.cli._probe_meshctx_health")
+    @patch("src.cli._port_has_listener")
     @patch("subprocess.run")
-    def test_cmd_stop(self, mock_run, capsys):
-        """cmd_stop 跨平台 (v3.137.3 契约: 精确 stop — POSIX=pgrep 逐 PID + cmdline
-        含 meshctx 归属校验才 kill, 禁 broad pkill 误杀 foreign; Windows=netstat+taskkill)"""
+    def test_cmd_stop(self, mock_run, mock_listener, mock_health, capsys):
+        """cmd_stop 跨平台 (v3.137.4 终版契约: 端口+身份 精确 stop —
+        /health 身份确认 + ss 定位监听 PID 才 kill; 模式兜底已废除;
+        Windows=身份确认后 netstat+taskkill)"""
         import io
         from src.cli import cmd_stop
         args = MagicMock()
@@ -576,37 +579,44 @@ class TestModelSlashUse:
         def _run_side_effect(cmd, **kw):
             r = MagicMock()
             r.returncode = 0
-            if cmd and cmd[0] == "pgrep":
-                r.stdout = "111\n222\n"  # 111=meshctx 自家, 222=foreign
+            if cmd and cmd[0] == "ss":
+                r.stdout = "LISTEN 0 128 127.0.0.1:3001 users:((\"meshctx\",pid=555))"
             return r
         mock_run.side_effect = _run_side_effect
+        mock_health.return_value = True       # 端口上是 MeshCtx
+        mock_listener.return_value = True     # 端口有监听
 
-        import builtins
-        real_open = builtins.open
+        with patch("builtins.open", side_effect=OSError):
+            cmd_stop(args)
 
-        def fake_open(path, *a, **k):
-            p = str(path)
-            if "/proc/111/cmdline" in p:
-                return io.StringIO("/home/x/.meshctx/meshctx-linux/meshctx start")
-            if "/proc/222/cmdline" in p:
-                return io.StringIO("/usr/bin/uvicorn src.main:app --host 0.0.0.0")
-            return real_open(path, *a, **k)
-
+        calls = [str(c[0][0]) for c in mock_run.call_args_list]
+        joined = "|".join(calls)
         if sys.platform == "win32" or os.name == "nt":
-            with patch("builtins.open", fake_open):
-                cmd_stop(args)
-            assert mock_run.call_count >= 1
+            assert "netstat" in joined
         else:
-            with patch("builtins.open", fake_open):
-                cmd_stop(args)
-            calls = [str(c[0][0]) for c in mock_run.call_args_list]
-            joined = "|".join(calls)
-            assert "pgrep" in joined, f"应先 pgrep 找候选 PID: {joined[:120]}"
+            assert "ss" in joined, f"应先 ss -tlnp 定位监听 PID: {joined[:120]}"
             kill_calls = [c for c in calls if c.startswith("['kill'")]
-            assert any("111" in c for c in kill_calls), \
-                f"cmdline 含 meshctx 的 PID 应被 kill: {calls}"
-            assert not any("'222'" in c or "222'" in c for c in kill_calls), \
-                "foreign (无 meshctx) PID 禁杀 — broad pkill 已废除"
+            assert any("555" in c for c in kill_calls), f"应精确 kill 监听 PID 555: {calls}"
+
+    @patch("src.cli._probe_meshctx_health")
+    @patch("src.cli._port_has_listener")
+    @patch("subprocess.run")
+    def test_cmd_stop_foreign_not_killed(self, mock_run, mock_listener, mock_health, capsys):
+        """v3.137.4: foreign 占用端口 → 明示不停止, 零 kill 调用 (禁杀 foreign)"""
+        from src.cli import cmd_stop
+        args = MagicMock()
+        mock_run.side_effect = lambda cmd, **kw: MagicMock(stdout="")
+        mock_health.return_value = False
+        mock_listener.return_value = True
+
+        import io as _io
+        out = _io.StringIO()
+        import contextlib
+        with contextlib.redirect_stdout(out):
+            cmd_stop(args)
+        assert "被非 MeshCtx 服务占用" in out.getvalue() or "禁杀" in out.getvalue()
+        kill_calls = [str(c[0][0]) for c in mock_run.call_args_list if str(c[0][0]).startswith("['kill'")]
+        assert not kill_calls, f"foreign 不得被 kill: {kill_calls}"
 
     @patch("requests.get")
     def test_cmd_status_running(self, mock_get, capsys):

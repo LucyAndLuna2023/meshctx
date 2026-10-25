@@ -263,3 +263,20 @@ def test_status_rejects_generic_health(monkeypatch):
     text = out.getvalue()
     assert "运行中" not in text, "generic /health 不得报运行中"
     assert "被其它服务占用" in text or "身份不符" in text
+
+
+def test_env_nonnumeric_port_fails_fast():
+    """002codex B3: 非数字 MESHCTX_PORT → fail-fast (不再静默回退 3001)。"""
+    os.environ["MESHCTX_PORT"] = "abc"
+    try:
+        out, err = io.StringIO(), io.StringIO()
+        code = None
+        with _RedirectPair(out, err):
+            try:
+                cli._resolve_start_port(None)
+            except SystemExit as e:
+                code = e.code
+        assert code == 3, f"非数字端口应 exit 3, got {code}"
+        assert "不合法" in err.getvalue()
+    finally:
+        os.environ.pop("MESHCTX_PORT", None)

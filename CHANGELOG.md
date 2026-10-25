@@ -1,3 +1,33 @@
+## [v3.137.4] - 2026-10-24 (patch: 002codex v3.137.3 FAIL B1-B5 全清偿 + 误杀 hermes 现场根治)
+
+> 002codex 终审 v3.137.3 = FAIL/B1-B5。本版逐条清偿, 并附一个开发期自伤实证:
+> B2 兜底模式匹配 (pgrep "meshctx|src.main|...") 实测 SIGKILL 了本机 `hermes -p meshctx`
+> (cmdline 含 "meshctx" 命中归属校验) — 模式兜底整体废除的直接动因。
+
+### B1 installer 杀进程双重归属 (install.sh)
+- src.cli 与 uvicorn 两个逐 PID 块: 归属校验升为 **cmdline 或 cwd 含 meshctx** 双通道 —
+  foreign 的 `python3 -m src.cli` (live probe 实杀实证) cwd 不在本产品目录 → 不再被杀
+
+### B2 cmd_stop 模式兜底废除 (src/cli.py)
+- POSIX 分支只保留 **端口+身份精确路径**: /health 确认 MeshCtx → ss -tlnp 定位监听 PID →
+  杀该 PID; foreign 占用 → 明示不停止; **模式兜底 (pgrep meshctx|...) 整体删除**
+- Windows 分支: 仅当端口身份确认为 MeshCtx 才执行 netstat+taskkill
+- 误杀 hermes 事故已入台账 (KI-8 附注); 被杀进程已重启恢复
+
+### B3 端口配置无效 fail-fast (src/cli.py)
+- _resolve_start_port 严格化: MESHCTX_PORT env / .env 持久化 **非数字或越界 → exit 3**
+  (此前静默回退 3001 造成口径分裂); 守门负例: abc / 99999 (env+.env 双来源)
+
+### B4 release body 表述修正
+- 本版 body 仅陈述已验证事实; CI runs/时序按实际记录 (v3.137.3 首跑双 CI 互等死锁
+  red=2 → poller 根修后 5 runs 全绿, 详见 v3.137.3 body 迁移链)
+
+### B5 no-subcommand 路径端口校验 (src/cli.py)
+- _get_port 改走校验版解析链 — 无子命令 serve 路径不再绕过端口校验
+
+### 不变项
+默认 3001 不漂移 / 禁杀 foreign / MESHCTX_AUTH_DISABLED 语义 / 解析链 explicit > env > .env > 3001
+
 ## [v3.137.3] - 2026-10-24 (patch: 002codex v3.137.2 FAIL 清偿 — 端口来源全覆盖 + 精确 stop + status 身份)
 
 > 002codex 对 v3.137.2 裁定 FAIL/CHANGES REQUESTED: explicit/persisted 端口来源未校验

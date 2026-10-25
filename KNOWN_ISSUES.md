@@ -89,3 +89,9 @@ immutable 纪律 (002codex P1)。
 - **教训**: 与 KI-7 同族 — "装完可用"必须以运行时实探为准, 静态检查 (PID 可见性/环境假设)
   在真实用户环境不可靠; 行为级守门 (tests/test_install_preflight.py + test_cli_start_port_conflict.py)
   防 recurrence
+
+### KI-8 附注 (2026-10-24 开发期自伤实证 + 终版形态)
+- v3.137.4 开发中, B2 兜底模式匹配 (pgrep "meshctx|src.main|...") 实测 SIGKILL 了本机
+  `hermes -p meshctx` (cmdline 含 "meshctx" 命中归属校验) — 已重启恢复。
+  终版: 模式兜底整体废除, stop 只认 端口+/health 身份 双确认。
+- 002codex NF/AB 项: B1-B5 全清偿见 v3.137.4; 遗留 P3 (desktop 无范围校验等) 随下版。

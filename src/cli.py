@@ -70,9 +70,10 @@ def _cs(text):
 
 
 def _get_port() -> int:
-    """Get meshctx server port — v3.137.2 统一解析链 (与 cmd_start 同源):
-    explicit 传参 > MESHCTX_PORT env > ~/.meshctx/.env 持久化 > 3001"""
-    return _resolve_start_port(None)
+    """Get meshctx server port — v3.137.4 (002codex B5): 走校验版解析链
+    (explicit > MESHCTX_PORT > .env > 3001, 无效配置 fail-fast), no-subcommand
+    serve 路径不再绕过端口校验。"""
+    return _resolve_validated_port(None)
 
 
 def _ensure_keys_loaded():
@@ -1971,19 +1972,27 @@ def _resolve_start_port(explicit_port):
     ~/.meshctx/.env 持久化配置 > 3001。标准默认不漂移。"""
     if explicit_port:
         return int(explicit_port)
+    # v3.137.4 (002codex B3): 无效配置一律 fail-fast (不再静默回退 3001) —
+    # 静默回退让用户以为自定义端口生效, 实际服务起在 3001 (口径分裂)
+    def _strict(value, source):
+        v = value.strip().strip('"').strip("'")
+        ok, reason = _validate_port_value(v)
+        if not ok:
+            print(f"🔴 MESHCTX_PORT 配置不合法 ({source}): {value!r} — {reason}。", file=sys.stderr)
+            print("   处置: 修正该来源配置, 或删除该行恢复默认 3001。", file=sys.stderr)
+            sys.exit(3)
+        return int(v)
+
     env_port = os.environ.get("MESHCTX_PORT", "").strip()
-    if env_port.isdigit():
-        return int(env_port)
+    if env_port:
+        return _strict(env_port, "MESHCTX_PORT 环境变量")
     env_path = os.path.expanduser("~/.meshctx/.env")
     if os.path.exists(env_path):
         try:
             with open(env_path, encoding="utf-8") as f:
                 for line in f:
                     if line.startswith("MESHCTX_PORT="):
-                        v = line.split("=", 1)[1].strip().strip('"').strip("'")
-                        if v.isdigit():
-                            return int(v)
-                        break
+                        return _strict(line.split("=", 1)[1], "~/.meshctx/.env 持久化配置")
         except OSError:
             pass
     return 3001
@@ -2125,8 +2134,13 @@ def cmd_stop(args):
 
     if _sys.platform == "win32" or os.name == "nt":
         # Windows: 找占用端口的进程并结束 (netstat + taskkill)
+        # v3.137.4: 仅当端口身份确认为 MeshCtx 才执行 (foreign 占用不动作)
         import re as _re
         port = _get_port()  # v3.137.2: 统一解析链 (env > .env > 3001)
+        if not _probe_meshctx_health(port):
+            if _port_has_listener(port):
+                print(f"端口 {port} 被非 MeshCtx 服务占用 — 不停止 (禁杀 foreign 服务)。")
+            return
         try:
             netstat = subprocess.run(
                 ["netstat", "-ano"], capture_output=True, text=True, timeout=10).stdout
@@ -2149,30 +2163,30 @@ def cmd_stop(args):
         except Exception:
             pass
     else:
-        # POSIX: v3.137.3 收紧 — 逐 PID 校验 cmdline 含 meshctx 才杀 (禁 broad pkill 误杀
-        # foreign 的 uvicorn src.main; codex 实测 broad pkill 可杀 foreign 同名进程)
+        # v3.137.4 (002codex B2): 精确路径优先 — 端口上确认是 MeshCtx (/health 身份)
+        # → ss -tlnp 定位该监听 PID (自家进程非 root 亦可见) 直接杀;
+        # 端口被 foreign 占用 → 明示不停止; 兜底模式候选需双重归属 (cmdline/cwd 含 meshctx)
+        target_pid = ""
         try:
-            r = subprocess.run(["pgrep", "-f", r"meshctx|src\.main|uvicorn.*src\.main"],
-                               capture_output=True, text=True, timeout=10)
-            pids = [p for p in (r.stdout or "").split() if p.strip()]
-        except (FileNotFoundError, OSError):
-            pids = []
-        for pid in pids:
-            if pid == str(os.getpid()):
-                continue  # 不自杀
-            cmd = ""
-            try:
-                cmd = open(f"/proc/{pid}/cmdline", encoding="utf-8", errors="replace").read()
-            except Exception:
-                continue
-            low = cmd.lower()
-            if "meshctx" not in low:
-                continue  # 归属校验失败 → 不杀 (禁杀 foreign)
-            try:
-                subprocess.run(["kill", "-9", pid], capture_output=True, timeout=10)
-                stopped = True
-            except (FileNotFoundError, OSError):
-                continue
+            out_ss = subprocess.run(["ss", "-tlnp"], capture_output=True, text=True,
+                                    timeout=10).stdout
+            import re as _re2
+            for line in out_ss.splitlines():
+                if f":{port} " in line:
+                    m = _re2.search(r"pid=(\d+)", line)
+                    if m:
+                        target_pid = m.group(1)
+        except (FileNotFoundError, OSError, subprocess.SubprocessError):
+            pass
+        if _probe_meshctx_health(port) and target_pid:
+            subprocess.run(["kill", "-9", target_pid], capture_output=True, timeout=10)
+            stopped = True
+        elif _port_has_listener(port):
+            print(f"端口 {port} 被非 MeshCtx 服务占用 — 不停止 (禁杀 foreign 服务)。")
+        # v3.137.4 终版: 模式兜底整体废除 — 实测 pgrep "meshctx|src.main|..." 会匹配
+        # "hermes -p meshctx" 且 cmdline 归属校验同样命中 → SIGKILL 掉 hermes agent
+        # (本版开发中真实发生)。无 /health 的极老实例请用 meshctx stop 的旧版或手动处理;
+        # 精确性 > 覆盖率: 只杀 端口+身份 双确认的进程。
 
     print("meshctx 已停止" if stopped else "未找到运行中的 meshctx")
 
