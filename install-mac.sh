@@ -676,10 +676,30 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.137.5"
+VERSION="3.137.6"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
-PORT=3001
+# v3.137.6 (002codex B3 同步): 端口解析 = MESHCTX_PORT env > .env 持久化 > 3001;
+# 无效值受控报错非零退出 (不静默回退)
+PORT="${MESHCTX_PORT:-}"
+if [ -n "$PORT" ]; then
+    case "$PORT" in
+        ''|*[!0-9]*)
+            echo -e "  ${RED}🔴 MESHCTX_PORT (环境变量)='$PORT' 无效 (需 1-65535 纯数字)。${NC}"
+            exit 1 ;;
+    esac
+else
+    PORT=3001
+    if [ -f "${HOME}/.meshctx/.env" ] && grep -q '^MESHCTX_PORT=' "${HOME}/.meshctx/.env" 2>/dev/null; then
+        _persisted=$(sed -n 's/^MESHCTX_PORT=//p' "${HOME}/.meshctx/.env" 2>/dev/null | head -1 | tr -d '"' | tr -d "'")
+        case "$_persisted" in
+            ''|*[!0-9]*)
+                echo -e "  ${RED}🔴 ~/.meshctx/.env 中的 MESHCTX_PORT='$_persisted' 无效 (需 1-65535 纯数字)。${NC}"
+                exit 1 ;;
+            *) PORT="$_persisted" ;;
+        esac
+    fi
+fi
 LAUNCHD_LABEL="com.meshctx.server"
 
 # github.com 主站在国内常不可达 → 直连失败后依次尝试公共加速镜像（仅用于开源仓库，不含 token）
@@ -705,7 +725,7 @@ echo -e "${CYAN}[1/6]${NC} $(T step1_stop)"
 
 KILLED=0
 
-# v3.137.5 (002codex B1 同型清偿 / 004meshctx F1): 归属判据 = 进程 cwd 在本安装目录
+# v3.137.6 (002codex B1 同型清偿 / 004meshctx F1): 归属判据 = 进程 cwd 在本安装目录
 # ${INSTALL_DIR} 之下 (路径前缀匹配, 非 "meshctx" 子串) — broad pkill 废除。
 # 实证: foreign python3 -m src.cli (cwd 不在本产品目录) 曾被模式 pkill 误杀。
 _owned_check() {
@@ -714,10 +734,12 @@ _owned_check() {
     case "$_cwd" in
         "${INSTALL_DIR}"|"${INSTALL_DIR}/"*) return 0 ;;
     esac
+    # v3.137.6 (002codex B1-macOS): 全局同布局兜底废除 (不锚定本安装的同布局路径) —
+    # 锚定本安装前缀; macOS 无 /proc, 此分支为 Linux 侧复用的惰性回退 (fail-safe 不杀)
     local _cmd=""
     [ -r "/proc/$1/cmdline" ] && _cmd=$(tr '\0' ' ' < "/proc/$1/cmdline" 2>/dev/null)
     case "$_cmd" in
-        "${INSTALL_DIR}/"*|*/.meshctx/meshctx/meshctx*) return 0 ;;
+        "${INSTALL_DIR}/meshctx/meshctx"*|"${INSTALL_DIR}/"*) return 0 ;;
     esac
     return 1
 }
@@ -738,11 +760,28 @@ fi
 
 sleep 1
 
-# 释放端口 (macOS 用 lsof)
-PORT_PID=$(lsof -ti:${PORT} 2>/dev/null | head -1)
-if [ -n "${PORT_PID}" ]; then
-    kill -9 "${PORT_PID}" 2>/dev/null || true
-    KILLED=1
+# 释放端口 (macOS 用 lsof) — v3.137.6 (002codex B1-macOS): 归属门控 —
+# 端口上确认是 MeshCtx (/health service=="meshctx") 才杀监听 PID;
+# foreign 占用 → 不杀并给出处置 (非交互 fail-fast), 禁止盲杀 foreign 端口占用者
+_meshctx_on_port() {
+    command -v curl >/dev/null 2>&1 || return 1
+    local h
+    h=$(curl -sf -m 3 "http://127.0.0.1:${1}/health" 2>/dev/null) || return 1
+    echo "$h" | grep -q '"service": *"meshctx"' || return 1
+    return 0
+}
+if lsof -ti:${PORT} >/dev/null 2>&1; then
+    if _meshctx_on_port "$PORT"; then
+        PORT_PID=$(lsof -ti:${PORT} 2>/dev/null | head -1)
+        if [ -n "${PORT_PID}" ]; then
+            kill -9 "${PORT_PID}" 2>/dev/null || true
+            KILLED=1
+        fi
+    else
+        echo -e "  ${RED}🔴 端口 ${PORT} 被非 MeshCtx 服务占用 — 不停止 (禁杀 foreign)。${NC}"
+        echo -e "  ${YELLOW}处置: 停用占用服务, 或 MESHCTX_PORT=<空闲端口> 重跑安装。${NC}"
+        exit 1
+    fi
 fi
 
 if [ "${KILLED}" = "1" ]; then
@@ -1077,7 +1116,7 @@ if [ -d "${INSTALL_DIR}" ]; then
     [ -z "${CONFIG_BACKUP}" ] || echo -e "  ${GREEN}✓${NC} $(T config_backed_up)"
 fi
 
-# v3.137.5 (用户事故: 升级后配置/key 丢失 — INSTALL_DIR=~/.meshctx 即数据目录, rm -rf 全灭):
+# v3.137.6 (用户事故: 升级后配置/key 丢失 — INSTALL_DIR=~/.meshctx 即数据目录, rm -rf 全灭):
 # 就地覆盖升级 — tar 解压时排除全部数据/配置 (白名单保护), 用户数据原地保留
 mkdir -p "${INSTALL_DIR}"
 
@@ -1424,7 +1463,7 @@ else
         nohup "${INSTALL_DIR}/meshctx/meshctx" start --port ${PORT} > /dev/null 2>&1 &
     else
         cd "${INSTALL_DIR}" && source venv/bin/activate
-        # v3.137.5 (002codex P1-1): 手动启动回环绑定 — 0.0.0.0 无密码 = LAN 裸暴露
+        # v3.137.6 (002codex P1-1): 手动启动回环绑定 — 0.0.0.0 无密码 = LAN 裸暴露
         nohup python -m uvicorn src.main:app --host 127.0.0.1 --port ${PORT} > /dev/null 2>&1 &
     fi
     sleep 5

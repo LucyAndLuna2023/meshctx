@@ -99,3 +99,19 @@ def test_persisted_nonnumeric_port_fails(tmp_path):
         assert "PREFLIGHT_OK PORT=3001" not in combined
     finally:
         blocker.close()
+
+
+def test_mac_ownership_anchored_and_lsof_gated():
+    """002codex B1-macOS/B3 同步: install-mac.sh 静态守门 —
+    ① 无全局同布局兜底 (*/.meshctx/meshctx/meshctx* 废除, 锚定 INSTALL_DIR 前缀)
+    ② lsof 端口释放必须身份门控 (_meshctx_on_port), foreign 占用不盲杀
+    ③ 端口解析严格化 (env/.env 非数字受控报错)"""
+    src = open("install-mac.sh", encoding="utf-8").read()
+    assert "*/.meshctx/meshctx/meshctx*" not in src, "全局同布局兜底仍在"
+    assert '"${INSTALL_DIR}/meshctx/meshctx"*' in src, "portable 回退应锚定本安装前缀"
+    # lsof 端口释放必须被身份门控包住
+    assert "_meshctx_on_port" in src, "缺身份门控函数"
+    i_lsof = src.index('lsof -ti:${PORT}')
+    seg = src[max(0, i_lsof-800):i_lsof]
+    assert "_meshctx_on_port" in seg, "lsof 杀进程前必须过身份门控"
+    assert src.count("pkill -9") == 0, "mac 安装器不得保留 broad pkill"

@@ -1,3 +1,30 @@
+## [v3.137.6] - 2026-10-26 (patch: 002codex v3.137.5 FAIL 清偿 — 归属锚定本安装 + mac lsof 身份门控 + 空值端口受控报错)
+
+> 002codex 终审 v3.137.5 = FAIL (live proven): ① portable 回退 "*/.meshctx/meshctx-linux/
+> meshctx*" 全局同布局命中 — foreign 装在自己 HOME 下同布局 exe (cwd 在外) 被误杀;
+> ② install-mac.sh `lsof -ti:${PORT}` 直接 kill -9 无归属确认 (盲杀 foreign 端口占用者),
+> 且有 "*/.meshctx/meshctx/meshctx*" 同型宽兜底; ③ .env "MESHCTX_PORT=" 空值行静默回退
+> 3001 (与"只有该行不存在才回默认"声明矛盾)。
+
+### B1-Linux portable 回退锚定本安装 (install.sh)
+- `_owned_check` portable 兜底: cmdline 必须以 **${INSTALL_DIR}/meshctx-linux/meshctx** 为
+  前缀 (本安装路径), 全局同布局 glob 废除 — foreign 同布局 exe (任意 HOME) 不再命中
+
+### B1-macOS (install-mac.sh)
+- `_owned_check` 同布局宽兜底废除, 锚定 ${INSTALL_DIR}/meshctx/meshctx 前缀
+- lsof 端口释放块加**身份门控** `_meshctx_on_port` (curl /health service=="meshctx"):
+  确认是 MeshCtx 才杀监听 PID; foreign 占用 → 明示不停止 + 处置提示 (非交互直接非零退出)
+
+### B3 空值端口行受控报错 (install.sh)
+- .env "MESHCTX_PORT="(空值) 行存在 → 受控报错非零退出 (此前静默回退 3001);
+  只有"该行不存在"才回默认 — 守门断言旧行为 "PREFLIGHT_OK PORT=3001" 不复现
+- install-mac.sh 端口解析同步严格化 (env/.env 非数字受控报错)
+
+### 验证
+- 行为级守门 5P: foreign 同布局/子串 cwd 存活×3 + owned 终止 + persisted abc 受控报错
+  + mac 静态守门 (同布局兜底废除/lsof 门控/无 broad pkill) — 聚焦 110P
+- install-mac.sh docs 镜像同步; bash -n 双脚本过
+
 ## [v3.137.5] - 2026-10-26 (patch: 002codex v3.137.4 FAIL 清偿 — 归属判据改安装目录前缀)
 
 > 002codex 终审 v3.137.4 = FAIL: ① 宽 `pkill -9 -f "meshctx-linux/meshctx"` 仍在;
