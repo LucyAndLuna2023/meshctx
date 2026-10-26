@@ -2182,6 +2182,7 @@ def cmd_stop(args):
             subprocess.run(["kill", "-9", target_pid], capture_output=True, timeout=10)
             stopped = True
         elif _port_has_listener(port):
+            # v3.137.7 (002meshctx F-a): 警告只打一遍 (此前双打)
             print(f"端口 {port} 被非 MeshCtx 服务占用 — 不停止 (禁杀 foreign 服务)。")
         # v3.137.4 终版: 模式兜底整体废除 — 实测 pgrep "meshctx|src.main|..." 会匹配
         # "hermes -p meshctx" 且 cmdline 归属校验同样命中 → SIGKILL 掉 hermes agent

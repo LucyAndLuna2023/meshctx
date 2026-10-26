@@ -1,3 +1,33 @@
+## [v3.137.7] - 2026-10-26 (patch: 002codex v3.137.6 B4 数字口径修正 + F1/F2 清偿)
+
+> 002codex 对 v3.137.6 唯一阻断 B4: 送审 body 声称 "聚焦 110P", 指定三文件口径实测
+> 22 collected — 数字混用了六文件组合回归与本轮新增守门口径。本版: 修正计数口径 +
+> 清偿 F1/F2 (macOS lsof 选中 client 风险 / _owned_check 无 /proc 不可达定性)。
+
+### F1/P2 清偿 (install-mac.sh)
+- 端口释放 `lsof -ti:${PORT}` 加 **-sTCP:LISTEN** — 只选 LISTEN owner,
+  不再可能选中 client 连接进程 (身份门控 _meshctx_on_port 之上再加状态过滤)
+
+### F2/P3 定案 (install-mac.sh)
+- _owned_check macOS 无 /proc → 恒 return 1 (fail-safe 不杀) **定为设计而非缺陷**,
+  注释明确: mac 实际杀面 = lsof 身份门控路径 (-sTCP:LISTEN + /health 身份),
+  Linux 侧才使用 /proc 归属
+
+### 顺手清偿 (002meshctx F-a/F-b)
+- cmd_stop 禁杀警告双打 → 单次
+- install.sh 死注释 (旧子串判据描述) 清理, 指向 _owned_check
+
+### B4 修正: 本版守门计数口径 (逐文件精确)
+- tests/test_install_preflight.py = 6P
+- tests/test_install_preflight_add.py = 5P (诱饵守门: foreign 同布局/子串 cwd 存活×2、
+  owned 终止、persisted abc 受控、mac 静态)
+- tests/test_cli_start_port_conflict.py = 11P (三态+解析链+99999/abc 负例+spoof 负例+
+  精确 stop 契约+foreign 禁杀+generic spoof)
+- **端口域小计 22P** (002codex 口径); 六文件组合回归 161P (含 discover/task_cards/
+  integrity/cascade/v16_cli)
+- 002zcode P4 (wrapper 启动 portable 的归属边角): release note 注记 "portable 须直启",
+  彻底方案 (cmdline 子串+cwd 双条件+decoy 守护) 随下版
+
 ## [v3.137.6] - 2026-10-26 (patch: 002codex v3.137.5 FAIL 清偿 — 归属锚定本安装 + mac lsof 身份门控 + 空值端口受控报错)
 
 > 002codex 终审 v3.137.5 = FAIL (live proven): ① portable 回退 "*/.meshctx/meshctx-linux/
