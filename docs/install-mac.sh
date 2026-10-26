@@ -676,7 +676,7 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.137.4"
+VERSION="3.137.5"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 PORT=3001
@@ -705,23 +705,30 @@ echo -e "${CYAN}[1/6]${NC} $(T step1_stop)"
 
 KILLED=0
 
-# 停止 uvicorn
-if pgrep -f "uvicorn.*src.main" >/dev/null 2>&1; then
-    pkill -9 -f "uvicorn.*src.main" 2>/dev/null || true
-    KILLED=1
-fi
-
-# 停止 meshctx CLI
-if pgrep -f "python.*meshctx" >/dev/null 2>&1; then
-    pkill -9 -f "python.*meshctx" 2>/dev/null || true
-    KILLED=1
-fi
-
-# 停止封装版 meshctx 服务（PyInstaller 二进制）
-if pgrep -f "meshctx/meshctx" >/dev/null 2>&1; then
-    pkill -9 -f "meshctx/meshctx" 2>/dev/null || true
-    KILLED=1
-fi
+# v3.137.5 (002codex B1 同型清偿 / 004meshctx F1): 归属判据 = 进程 cwd 在本安装目录
+# ${INSTALL_DIR} 之下 (路径前缀匹配, 非 "meshctx" 子串) — broad pkill 废除。
+# 实证: foreign python3 -m src.cli (cwd 不在本产品目录) 曾被模式 pkill 误杀。
+_owned_check() {
+    local _cwd=""
+    [ -L "/proc/$1/cwd" ] && _cwd=$(readlink "/proc/$1/cwd" 2>/dev/null) || return 1
+    case "$_cwd" in
+        "${INSTALL_DIR}"|"${INSTALL_DIR}/"*) return 0 ;;
+    esac
+    local _cmd=""
+    [ -r "/proc/$1/cmdline" ] && _cmd=$(tr '\0' ' ' < "/proc/$1/cmdline" 2>/dev/null)
+    case "$_cmd" in
+        "${INSTALL_DIR}/"*|*/.meshctx/meshctx/meshctx*) return 0 ;;
+    esac
+    return 1
+}
+for _pat in "uvicorn.*src.main" "python.*meshctx" "meshctx/meshctx"; do
+    for _pid in $(pgrep -f "$_pat" 2>/dev/null); do
+        if _owned_check "$_pid"; then
+            kill -9 "$_pid" 2>/dev/null || true
+            KILLED=1
+        fi
+    done
+done
 
 # 停止 launchd 服务
 if launchctl list 2>/dev/null | grep -q "${LAUNCHD_LABEL}"; then
@@ -1070,7 +1077,7 @@ if [ -d "${INSTALL_DIR}" ]; then
     [ -z "${CONFIG_BACKUP}" ] || echo -e "  ${GREEN}✓${NC} $(T config_backed_up)"
 fi
 
-# v3.137.4 (用户事故: 升级后配置/key 丢失 — INSTALL_DIR=~/.meshctx 即数据目录, rm -rf 全灭):
+# v3.137.5 (用户事故: 升级后配置/key 丢失 — INSTALL_DIR=~/.meshctx 即数据目录, rm -rf 全灭):
 # 就地覆盖升级 — tar 解压时排除全部数据/配置 (白名单保护), 用户数据原地保留
 mkdir -p "${INSTALL_DIR}"
 
@@ -1417,7 +1424,7 @@ else
         nohup "${INSTALL_DIR}/meshctx/meshctx" start --port ${PORT} > /dev/null 2>&1 &
     else
         cd "${INSTALL_DIR}" && source venv/bin/activate
-        # v3.137.4 (002codex P1-1): 手动启动回环绑定 — 0.0.0.0 无密码 = LAN 裸暴露
+        # v3.137.5 (002codex P1-1): 手动启动回环绑定 — 0.0.0.0 无密码 = LAN 裸暴露
         nohup python -m uvicorn src.main:app --host 127.0.0.1 --port ${PORT} > /dev/null 2>&1 &
     fi
     sleep 5

@@ -1,3 +1,25 @@
+## [v3.137.5] - 2026-10-26 (patch: 002codex v3.137.4 FAIL 清偿 — 归属判据改安装目录前缀)
+
+> 002codex 终审 v3.137.4 = FAIL: ① 宽 `pkill -9 -f "meshctx-linux/meshctx"` 仍在;
+> ② "cmdline/cwd 含 meshctx" 子串归属被绕过 — foreign 探针 cwd=
+> /tmp/.../meshctx-foreign-owned-probe 被误杀 (行为级实锤); ③ persisted .env 非数字
+> 静默回退 3001 与声明矛盾。本版逐条清偿。
+
+### B1 归属判据终版 (install.sh + install-mac.sh)
+- 三个杀块统一 `_owned_check`: 进程 **cwd 在 ${INSTALL_DIR} 之下** (路径前缀匹配) 或
+  cmdline 可执行路径在本安装目录内 — 子串匹配废除
+  (foreign cwd=/tmp/.../meshctx-foreign-owned-probe → 不再命中)
+- install-mac.sh 同型同步 (004meshctx F1: 三个 broad pkill 块废除)
+- 行为级守门: foreign 诱饵 (cwd 含 meshctx 子串) 存活 ✓ / 安装目录下诱饵终止 ✓
+  (tests/test_install_preflight_add.py, 真实 exec -a decoy)
+
+### B3 persisted 端口严格化 (install.sh)
+- ~/.meshctx/.env MESHCTX_PORT 非数字 → 受控报错非零退出 (此前静默回退 3001);
+  只有"该行不存在"才回默认 3001; env 非数字 → 受控报错 (去裸 traceback)
+
+### 不变项
+默认 3001 不漂移 / 禁杀 foreign / MESHCTX_AUTH_DISABLED 语义 / 解析链 explicit > env > .env > 3001
+
 ## [v3.137.4] - 2026-10-24 (patch: 002codex v3.137.3 FAIL B1-B5 全清偿 + 误杀 hermes 现场根治)
 
 > 002codex 终审 v3.137.3 = FAIL/B1-B5。本版逐条清偿, 并附一个开发期自伤实证:

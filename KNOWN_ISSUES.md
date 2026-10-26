@@ -95,3 +95,14 @@ immutable 纪律 (002codex P1)。
   `hermes -p meshctx` (cmdline 含 "meshctx" 命中归属校验) — 已重启恢复。
   终版: 模式兜底整体废除, stop 只认 端口+/health 身份 双确认。
 - 002codex NF/AB 项: B1-B5 全清偿见 v3.137.4; 遗留 P3 (desktop 无范围校验等) 随下版。
+
+### KI-8 附注2 (2026-10-26, v3.137.4 终审 + v3.137.5 清偿记录)
+- 002codex 终审 v3.137.4 = FAIL/B1 两实锤: ① `pkill -9 -f "meshctx-linux/meshctx"` 宽杀;
+  ② "cmdline/cwd 含 meshctx" 子串归属被 foreign cwd (/tmp/.../meshctx-foreign-owned-probe)
+  绕过误杀; B3 persisted .env 非数字静默回退 3001 与声明矛盾。
+- v3.137.5 清偿: 三个杀块统一 _owned_check (cwd 在 ${INSTALL_DIR} 之下的前缀匹配, 宽 pkill 废除);
+  persisted/env 非数字受控报错非零退出; install-mac.sh 同型同步 (004meshctx F1)。
+- 遗留 P3 随下版: desktop resolve_desktop_port 无 1-65535 范围校验 (004zcode);
+  cmd_stop Windows 分支 /proc 只读死代码 (004meshctx F3); F-a Windows stop health 门
+  (002zcode)。行为级守门: tests/test_install_preflight_add.py (foreign 诱饵存活/owned 终止/
+  persisted abc 受控报错)。
