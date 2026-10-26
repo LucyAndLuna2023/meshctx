@@ -1,3 +1,30 @@
+## [v3.137.8] - 2026-10-26 (patch: 004meshctx v3.137.7 FAIL (B7-a/B7-b 仅声称面) 真修)
+
+> 004meshctx 对 v3.137.7 裁定 FAIL: body 声称「禁杀警告双打→单次」「死注释清理」
+> 两项与实弹不符 — ① 警告仍双打 (识别段+处置段各打一遍, 首处未 return);
+> ② install.sh:580 旧判据死注释只清一半; ③ "161P 六文件" 实为八文件组合。
+> 002codex 同轮 PASS_WITH_FINDINGS (22P 口径确认, P3: 测试 _free_port TOCTOU 建议下版)。
+
+### B7-a 真修 (src/cli.py cmd_stop 重写)
+- foreign 警告**单次打印**: 判定顺序固定 (先占用探测后身份探测, 各只连一次 —
+  健康探测的悬空连接曾占满监听者 backlog 使后续占用探测误判空闲) +
+  foreign_on_port 命中即单次警告并 return (识别段/处置段不再各打一遍)
+- 行为级守门 test_cmd_stop_foreign_single_warning: 警告恰好 1 次 + foreign 不被停止
+- 守门自纠: 探针测试的 _get_port 替换改保存-还原 (此前 del 污染后续测试)
+
+### B7-b 真修 (install.sh)
+- src.cli 块与 uvicorn 块两处旧判据死注释 (「cmdline 或 cwd 含 meshctx 才杀」) 清除,
+  统一指向 _owned_check (cwd 在 ${INSTALL_DIR} 之下的前缀匹配)
+
+### B7-c 计数口径更正 (本版 body)
+- 守门 162P = 端口域 23P (22+新增 foreign 单次警告回归) + 其余五文件 139P;
+  八文件清单: preflight(6)+preflight_add(6)+cli_start(12)+discover(15)+task_cards(14)
+  +integrity(38)+cascade(20)+v16_cli(52) — 「六文件」口径废除
+
+### 不变项
+默认 3001 不漂移 / 禁杀 foreign / MESHCTX_AUTH_DISABLED 语义 / 解析链
+explicit > MESHCTX_PORT > .env > 3001 / v3.137.0-.7 tags 全冻结
+
 ## [v3.137.7] - 2026-10-26 (patch: 002codex v3.137.6 B4 数字口径修正 + F1/F2 清偿)
 
 > 002codex 对 v3.137.6 唯一阻断 B4: 送审 body 声称 "聚焦 110P", 指定三文件口径实测

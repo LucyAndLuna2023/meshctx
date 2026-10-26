@@ -280,3 +280,23 @@ def test_env_nonnumeric_port_fails_fast():
         assert "不合法" in err.getvalue()
     finally:
         os.environ.pop("MESHCTX_PORT", None)
+
+
+def test_cmd_stop_foreign_single_warning():
+    """004meshctx B7-a 回归守门: foreign 占用 → 警告恰好 1 次 (修复前识别段+处置段各打 1 次)。"""
+    port = _free_port()
+    blocker = socket.socket()
+    blocker.bind(("127.0.0.1", port))
+    blocker.listen(1)
+    orig = cli._get_port
+    try:
+        cli._get_port = lambda: port  # 探针让 cmd_stop 检查被占端口
+        out, err = io.StringIO(), io.StringIO()
+        with _RedirectPair(out, err):
+            cli.cmd_stop(types.SimpleNamespace())
+        text = out.getvalue()
+        assert text.count("被非 MeshCtx 服务占用") == 1, f"应恰好 1 次: {text!r}"
+        assert "已停止" not in text, "foreign 不得被停止"
+    finally:
+        cli._get_port = orig  # 还原, 防污染后续测试
+        blocker.close()

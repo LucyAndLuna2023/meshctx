@@ -2116,31 +2116,32 @@ def cmd_start(args):
 def cmd_stop(args):
     """停止运行中的 meshctx 服务 (跨平台, 2026-08-25 004meshctx 审计修复)。
 
-    - Windows: 无 pkill, 用 taskkill / 按端口杀进程
-    - macOS/Linux: pkill uvicorn.*src.main + 封装版 meshctx/meshctx 双模式兜底
+    v3.137.8 (004meshctx B7-a 真修): foreign 警告**单次打印** (此前识别段+处置段
+    各打一遍, 实弹探针 2 次 — 首处触发后未 return)。
+    v3.137.4 (002codex B2): 只杀 端口+/health 身份 双确认的进程, 模式兜底已废除
+    (pgrep 模式曾误杀 hermes -p meshctx, KI-8 附注)。
+    - POSIX: /health 确认 MeshCtx → ss -tlnp 定位监听 PID → 杀
+    - Windows: /health 确认 MeshCtx → netstat+taskkill (cmdline 含 meshctx 校验)
+    - foreign 占用端口 → 单次明示不停止 (禁杀 foreign) 并返回
     """
     import subprocess
     import sys as _sys
     stopped = False
     port = _get_port()
 
-    # v3.137.3 (002codex P2): 按端口 + /health 身份精确 stop。
-    # 1) 先识别: 端口上是否 MeshCtx (service==meshctx) — foreign 服务一律不动
-    meshctx_on_port = _probe_meshctx_health(port)
-    if not meshctx_on_port:
-        if _port_has_listener(port):
-            print(f"端口 {port} 被非 MeshCtx 服务占用 — 不停止 (禁杀 foreign 服务)。")
-        # 落到模式匹配兜底 (覆盖无 /health 的老版本自装实例)
+    # 身份识别 — 判定顺序固定: 先占用探测后身份探测 (各只连一次)。
+    # 反向顺序时, 健康探测的悬空连接会占满监听者 backlog, 使随后的占用探测
+    # 误判空闲 (v3.137.3 同型教训, 004meshctx B7-a 探针当场复现)。
+    listening = _port_has_listener(port)
+    meshctx_on_port = listening and _probe_meshctx_health(port)
+    foreign_on_port = listening and not meshctx_on_port
+    if foreign_on_port:
+        print(f"端口 {port} 被非 MeshCtx 服务占用 — 不停止 (禁杀 foreign 服务)。")
+        return
 
     if _sys.platform == "win32" or os.name == "nt":
-        # Windows: 找占用端口的进程并结束 (netstat + taskkill)
-        # v3.137.4: 仅当端口身份确认为 MeshCtx 才执行 (foreign 占用不动作)
+        # Windows: netstat 找端口监听 PID → taskkill (cmdline 含 meshctx 归属校验)
         import re as _re
-        port = _get_port()  # v3.137.2: 统一解析链 (env > .env > 3001)
-        if not _probe_meshctx_health(port):
-            if _port_has_listener(port):
-                print(f"端口 {port} 被非 MeshCtx 服务占用 — 不停止 (禁杀 foreign 服务)。")
-            return
         try:
             netstat = subprocess.run(
                 ["netstat", "-ano"], capture_output=True, text=True, timeout=10).stdout
@@ -2151,7 +2152,6 @@ def cmd_stop(args):
                     if m:
                         pids.add(m.group(1))
             for pid in pids:
-                # v3.137.3: 只杀 cmdline 含 meshctx 的进程 (禁杀 foreign)
                 cmd = ""
                 try:
                     cmd = open(f"/proc/{pid}/cmdline", encoding="utf-8", errors="replace").read() if os.path.exists(f"/proc/{pid}/cmdline") else ""
@@ -2163,31 +2163,25 @@ def cmd_stop(args):
         except Exception:
             pass
     else:
-        # v3.137.4 (002codex B2): 精确路径优先 — 端口上确认是 MeshCtx (/health 身份)
-        # → ss -tlnp 定位该监听 PID (自家进程非 root 亦可见) 直接杀;
-        # 端口被 foreign 占用 → 明示不停止; 兜底模式候选需双重归属 (cmdline/cwd 含 meshctx)
-        target_pid = ""
-        try:
-            out_ss = subprocess.run(["ss", "-tlnp"], capture_output=True, text=True,
-                                    timeout=10).stdout
-            import re as _re2
-            for line in out_ss.splitlines():
-                if f":{port} " in line:
-                    m = _re2.search(r"pid=(\d+)", line)
-                    if m:
-                        target_pid = m.group(1)
-        except (FileNotFoundError, OSError, subprocess.SubprocessError):
-            pass
-        if _probe_meshctx_health(port) and target_pid:
-            subprocess.run(["kill", "-9", target_pid], capture_output=True, timeout=10)
-            stopped = True
-        elif _port_has_listener(port):
-            # v3.137.7 (002meshctx F-a): 警告只打一遍 (此前双打)
-            print(f"端口 {port} 被非 MeshCtx 服务占用 — 不停止 (禁杀 foreign 服务)。")
-        # v3.137.4 终版: 模式兜底整体废除 — 实测 pgrep "meshctx|src.main|..." 会匹配
-        # "hermes -p meshctx" 且 cmdline 归属校验同样命中 → SIGKILL 掉 hermes agent
-        # (本版开发中真实发生)。无 /health 的极老实例请用 meshctx stop 的旧版或手动处理;
-        # 精确性 > 覆盖率: 只杀 端口+身份 双确认的进程。
+        # POSIX: /health 确认 MeshCtx → ss -tlnp 定位监听 PID (自家进程非 root 亦可见) 直接杀
+        if meshctx_on_port:
+            target_pid = ""
+            try:
+                out_ss = subprocess.run(["ss", "-tlnp"], capture_output=True, text=True,
+                                        timeout=10).stdout
+                import re as _re2
+                for line in out_ss.splitlines():
+                    if f":{port} " in line:
+                        m = _re2.search(r"pid=(\d+)", line)
+                        if m:
+                            target_pid = m.group(1)
+            except (FileNotFoundError, OSError, subprocess.SubprocessError):
+                pass
+            if target_pid:
+                subprocess.run(["kill", "-9", target_pid], capture_output=True, timeout=10)
+                stopped = True
+        # v3.137.4 终版: 模式兜底整体废除 (误杀 hermes -p meshctx 事故, KI-8 附注);
+        # 无 /health 的极老实例请手动处理 — 精确性 > 覆盖率
 
     print("meshctx 已停止" if stopped else "未找到运行中的 meshctx")
 
