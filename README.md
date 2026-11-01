@@ -29,6 +29,21 @@
 
 **The agent that remembers you — fully local, fully offline, fully auditable.**
 
+**The problem: your local AI has amnesia.** Ollama gives you a great local model — that remembers nothing between chats. Every session starts from zero.
+
+**MeshCtx gives it a memory that lives on your disk.** Tell it once — *"I'm allergic to peanuts"*, *"my report is due every Friday"* — and it still knows weeks later. Across restarts. With the network unplugged.
+
+```
+$ meshctx chat
+You: Remember — allergic to peanuts, prefers morning meetings.
+MeshCtx: Noted. Stored locally, encrypted at rest.
+
+  … three weeks later, after a reboot, Wi-Fi off …
+
+You: Suggest a lunch spot for the client visit tomorrow.
+MeshCtx: Three options near their office — all with peanut-free menus. Also, it's a Friday: your weekly report is due.
+```
+
 ### Verified in this repo
 
 - 🔓 **Local-First, Zero Login** — runs on your machine. No account, no cloud auth, no phone-home. (Most cloud agents require online verification even for local models.)
