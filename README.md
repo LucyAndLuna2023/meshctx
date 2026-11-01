@@ -8,7 +8,7 @@
 <p align="center">
   <a href="LEGAL.md"><img src="https://img.shields.io/badge/license-AGPLv3+Commercial-blue"></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.10+-green"></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-4014-brightgreen"></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-4096-brightgreen"></a>
   <a href="#"><img src="https://img.shields.io/badge/core_modules-313-purple"></a>
   <a href="#"><img src="https://img.shields.io/badge/brain_regions-17-orange"></a>
   <a href="#"><img src="https://img.shields.io/badge/papers-3-blue"></a>
@@ -50,7 +50,8 @@ MeshCtx: Three options near their office — all with peanut-free menus. Also, i
 - 🔓 **Local-First, Zero Login** — runs on your machine. No account, no cloud auth, no phone-home. (Most cloud agents require online verification even for local models.)
 - 📴 **Offline-Capable** — point MeshCtx at [Ollama](https://ollama.com) (`ollama:qwen3` / `ollama:llama3.3` presets built in) or any OpenAI-compatible local endpoint, and keep working with the network unplugged.
 - 🧠 **Cross-Session Memory** — retrieval-injected, on-disk local memory (`src/chat_tools.py :: _collect_memory_entries`). Survives restarts. Never leaves your disk.
-- 🔍 **Auditable Releases** — every release passes a 3,900+ test gated suite plus a multi-party AI audit with SHA256 evidence per tag.
+- 🔍 **Auditable Releases** — current releases pass a 4,096-test gated suite (v3.137.8: 4,096 passed / 0 failed / 63 skipped) plus a multi-party AI audit with SHA256 evidence per tag.
+> **Version line note:** v7.0.x was the SMA experimental generation (superseded and voided — do not install; see CHANGELOG v3.132.0). The current stable line is v3.137.x; latest release is **v3.137.8**.
 - 🌍 **11 Languages** — full UI i18n, parity-checked dictionaries (1,592 keys × 11 languages).
 
 ### Design philosophy: a cognitive architecture, not a stateless tool
@@ -235,7 +236,7 @@ meshctx/
 │       ├── genomic_optimizer.py # Genetic algorithm engine
 │       ├── memory_v5.py         # 4-tier memory injection
 │       └── ...                  # 14 modules total
-├── tests/                   # 3404 tests
+├── tests/                   # 4,096 tests (v3.137.8)
 ├── docs/                    # Documentation site
 └── install.sh               # One-click install
 ```
