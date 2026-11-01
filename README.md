@@ -13,6 +13,7 @@
   <a href="#"><img src="https://img.shields.io/badge/brain_regions-17-orange"></a>
   <a href="#"><img src="https://img.shields.io/badge/papers-3-blue"></a>
   <a href="https://github.com/LucyAndLuna2023/meshctx/stargazers"><img src="https://img.shields.io/github/stars/LucyAndLuna2023/meshctx?style=social"></a>
+  <a href="https://pypi.org/project/meshctx/"><img src="https://img.shields.io/pypi/v/meshctx?color=blue&label=pypi%20%F0%9F%93%A6"></a>
 </p>
 
 <p align="center">
@@ -80,6 +81,14 @@ MeshCtx treats AI agent design as a **neuroscience problem**, not just an engine
 ---
 
 ## 🚀 Quick Start
+
+### pip (Linux / macOS / WSL)
+
+```bash
+pip install meshctx
+meshctx setup    # Configure API keys
+meshctx start    # Web UI at http://localhost:3001
+```
 
 ### Fully offline in 2 minutes (Ollama)
 
