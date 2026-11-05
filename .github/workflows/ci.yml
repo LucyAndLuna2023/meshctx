@@ -9,7 +9,12 @@ on:
 
 jobs:
   release-publish:
-    # v3.135.12 (002codex 989b678a): 发布时序治本 — 等本 workflow 全绿后 publish draft release
+    # v3.137.11 (002meshctx F-A P2 根修): 原 job 是**结构性死步骤** —
+    #   PATCH /releases/tags/${GITHUB_REF_NAME} 对 draft release **恒 404**
+    #   (GitHub 语义: draft 不能用 tag 定位), 所以该步在 draft 状态下必然失败,
+    #   且 poller 里 r["name"] != "CI" 会把整个 CI workflow 排除, 形成假绿灯盲区。
+    # 现改为: **只做只读校验**, 不自动发布。发布由人按 release ID 显式执行
+    #   (PATCH /releases/{id} {"draft": false}), 见 tools/publish_release.py。
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [test, version-gate, release-gate]
     runs-on: ubuntu-latest
@@ -17,31 +22,27 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.11"}
-      - name: Wait & verify all exact-SHA checks green
+      - name: Verify all exact-SHA checks green (read-only, no publish)
         run: |
           pip install requests
           python3 - <<'EOF'
           import requests, sys, os, time
           tok = os.environ["GITHUB_TOKEN"]; sha = os.environ["C_SHA"]
-          self_id = int(os.environ["GITHUB_RUN_ID"])  # v3.135.13: 排除自身 — 自等待死锁 (30min 超时实证)
+          self_id = int(os.environ["GITHUB_RUN_ID"])  # 只排除自身 run id (防自等待死锁)
           for _ in range(60):  # 最多等 30 分钟
-              runs = requests.get(f"https://api.github.com/repos/LucyAndLuna2023/meshctx/actions/runs",
+              runs = requests.get("https://api.github.com/repos/LucyAndLuna2023/meshctx/actions/runs",
                   params={"head_sha": sha, "per_page": 50},
                   headers={"Authorization": f"token {tok}"}).json().get("workflow_runs", [])
-              # v3.137.3 (同 SHA 双 CI 互等死锁根修): 排除自身之外的所有 CI workflow run —
-              # 同 commit 同时 push main + tag 会产生两个 CI run, 各含一个 release-publish
-              # poller, 互等对方完成 → 双双 30min 超时 (2026-10-24 v3.137.3 首跑实证)。
-              # 同 SHA 的测试已由本 run 的 test job 覆盖, 其余 CI run 冗余。
-              runs = [r for r in runs if r["id"] != self_id and r["name"] != "CI"]
-              active = [r for r in runs if r["status"] != "completed"]
-              # v3.135.14: 去掉 fail-fast (瞬时红如 PyPI/Choco 超时会 rerun —
-              # 立即退出会误判; 只认"全部完成且 0 failure"或超时)
-              # v3.136.7 (NameError 根修): red 在此分支定义 (去 fail-fast 重构遗留)
-              if not active and len(runs) >= 5:  # v3.137.3: 排除 CI run 后阈值 6→5
-                  red = [r for r in runs if r["status"] == "completed" and r["conclusion"] == "failure"]
+              # v3.137.11: 只排除自身 run id —— 不再按 name=="CI" 排除整个 workflow
+              # (那样 tag CI 自身失败不进 red 判定 = 假绿; 同 SHA 双 run 互等已由
+              #  checkout 的 concurrency + 只排除自身 id 解决)
+              others = [r for r in runs if r["id"] != self_id]
+              active = [r for r in others if r["status"] != "completed"]
+              if not active and len(others) >= 4:
+                  red = [r for r in others if r["conclusion"] == "failure"]
                   if red:
                       print(f"🔴 全部完成但有 failure: {[r['name'] for r in red]}"); sys.exit(1)
-                  print("🟢 全部 exact-SHA workflow 完成 且 0 failure"); break
+                  print("🟢 全部 exact-SHA workflow 完成 且 0 failure (只读校验, 不发布)"); break
               time.sleep(30)
           else:
               print("🔴 等待超时"); sys.exit(1)
@@ -49,25 +50,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           C_SHA: ${{ github.sha }}
-      - name: Publish release (draft → public)
-        # v3.137.10 (002meshctx F1 P3): 原 `|| echo` 吞掉失败 → job 假绿 (job 绿但 release 仍 draft)。
-        # 现: 显式校验 PATCH 结果, 失败即 exit 1; 同时用 by-tag 复查 draft=false 才算发布成立。
+      - name: Remind manual publish by release ID
         run: |
-          set -o pipefail
-          RESP=$(curl -sS -X PATCH \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/LucyAndLuna2023/meshctx/releases/tags/${GITHUB_REF_NAME}" \
-            -d '{"draft": false}')
-          if ! printf '%s' "$RESP" | grep -q '"draft": *false'; then
-            echo "🔴 PATCH 未生效 (release 仍 draft) — 响应:"; printf '%s\n' "$RESP" | head -20; exit 1
-          fi
-          STATE=$(curl -sS -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/LucyAndLuna2023/meshctx/releases/tags/${GITHUB_REF_NAME}")
-          if ! printf '%s' "$STATE" | grep -q '"draft": *false'; then
-            echo "🔴 by-tag 复查仍为 draft — 发布未成立"; exit 1
-          fi
-          echo "🟢 release 已发布 (draft=false 已由 by-tag 复查确认)"
+          echo "ℹ 本 job **不发布**。发布由人按 release ID 执行:"
+          echo "    python3 tools/publish_release.py --tag ${GITHUB_REF_NAME} --apply"
+          echo "  (by-tag PATCH 对 draft 恒 404 — 必须按 release ID)"
 
   release-gate:
     if: startsWith(github.ref, 'refs/tags/v')

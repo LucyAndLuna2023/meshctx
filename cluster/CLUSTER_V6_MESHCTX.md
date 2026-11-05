@@ -2,7 +2,7 @@
 
 > 权威协议: hermes `profiles/admin/CLUSTER-COMM-V6.md` (v6 2026-08-30 + v6.1 2026-09-01)
 > 本文档描述 meshctx 侧的实现、配置、用法与安全边界。
-> 实现: `cluster/cluster_comm_v6.py` · 测试: `tests/test_cluster_comm_v6.py` (57 用例, FakeRedis 离线)
+> 实现: `cluster/cluster_comm_v7.py` · 测试: `tests/test_cluster_comm_v7.py` (57 用例, FakeRedis 离线)
 
 ---
 
@@ -58,24 +58,24 @@ journal/收件箱文件:     ~/.meshctx/web3_journal/zcode_meshctx.jsonl
 
 ```bash
 # 状态自检 (身份/通道/journal/防护)
-python cluster/cluster_comm_v6.py selfcheck
+python cluster/cluster_comm_v7.py selfcheck
 
 # 心跳 (hub:workers["004:zcode"], 与 hermes 004 条目共存)
-python cluster/cluster_comm_v6.py heartbeat
+python cluster/cluster_comm_v7.py heartbeat
 
 # 入网通告 (投递到本机 meshctx profile 收件箱, WSL listener 落盘)
-python cluster/cluster_comm_v6.py announce
+python cluster/cluster_comm_v7.py announce
 
 # 发消息: -t 目标机器  -tp profile:project  -p project_id
-python cluster/cluster_comm_v6.py send -t 002 -m "构建结果 OK" -tp meshctx:meshctx
+python cluster/cluster_comm_v7.py send -t 002 -m "构建结果 OK" -tp meshctx:meshctx
 
 # 回执最新一条收信 (自动按 v6.1 §8 路由给发布者)
-python cluster/cluster_comm_v6.py reply -m "收到"
+python cluster/cluster_comm_v7.py reply -m "收到"
 
 # 读本地收件箱 / 常驻监听 / journal 校验
-python cluster/cluster_comm_v6.py inbox
-python cluster/cluster_comm_v6.py listen
-python cluster/cluster_comm_v6.py verify
+python cluster/cluster_comm_v7.py inbox
+python cluster/cluster_comm_v7.py listen
+python cluster/cluster_comm_v7.py verify
 ```
 
 编程接口: `send_dm / send_reply / announce / heartbeat / poll_once / listen /

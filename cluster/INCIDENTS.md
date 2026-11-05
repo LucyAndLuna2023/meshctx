@@ -25,7 +25,7 @@
 | 根因类 | 对策 | 状态 |
 |--------|------|------|
 | **路由无守门**（send 键无白名单校验, 双通道断层: send_dm 只投机器通道） | `validate_route_key()` 白名单 (hub:inbox:{mid} / hub:profile:{mid}:{profile} / hub:inbox:{mid}:{agent}:{project}), send 前强制 assert; `send_dm` 升级双通道投递 (profile 主通道优先+机器兜底, 接收方 NX 去重防重复) | ✅ v6.1d 已实现 |
-| **协议缺陷**（listener 无信封校验，壳占去重坑） | `envelope_valid()`：msg_id/from/from_profile/message 全非空才收；拒收走 `rejected_malformed` journal 且**不占 msg_id 去重坑** → 空壳先到不再误杀全量件 | ✅ 已实现（cluster_comm_v6.py, 守门 test_v61_* ×2） |
+| **协议缺陷**（listener 无信封校验，壳占去重坑） | `envelope_valid()`：msg_id/from/from_profile/message 全非空才收；拒收走 `rejected_malformed` journal 且**不占 msg_id 去重坑** → 空壳先到不再误杀全量件 | ✅ 已实现（cluster_comm_v7.py, 守门 test_v61_* ×2） |
 | **操作违纪**（裸 publish / 路由拼写） | ①发送一律走 `send_to_zcode()/send_dm()` 封装，禁止手搓裸 publish（守门：代码评审项）②收件侧 to_profile 与本实例不符时留痕计数 | 部分完成（留痕待做） |
 | **监控缺失**（无回执超时、无 listener 存活告警） | ①送审/派活消息必须带 `expect_reply` 标记 + `hub_receipt_watch` 超时扫描 ②listener 心跳看板 + 队列 LLEN 阈值告警 | ⚠️ TODO（见下） |
 
@@ -51,4 +51,4 @@
 
 ---
 
-*维护: 每起事故由发现方/责任方共同补记；v6.1 代码: `cluster/cluster_comm_v6.py::envelope_valid`；守门: `tests/test_cluster_comm_v6.py::test_v61_*`*
+*维护: 每起事故由发现方/责任方共同补记；v6.1 代码: `cluster/cluster_comm_v7.py::envelope_valid`；守门: `tests/test_cluster_comm_v7.py::test_v61_*`*

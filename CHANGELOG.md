@@ -1,3 +1,47 @@
+## [v3.137.11] - 2026-11-05 (patch: 五方审计 v3.137.10 findings 清偿 — F-A 发布死步骤根修 + F-B/C/D/E)
+
+> 002meshctx 终版裁断 v3.137.10 = PASS_WITH_FINDINGS 并可发布, 同时指出两条 v3.137.11 必修
+> 与三条择机项; 004zcode 报 1×P4 数字口径。本版逐条清偿。
+
+### F-A (P2) release-publish 结构性死步骤根修
+- **根因**: `PATCH /releases/tags/{tag}` 对 **draft** release 恒 404 (GitHub 语义: draft 不能用
+  tag 定位)。CI 里用 by-tag PATCH 的自动发布通道**结构性必失败、从未有过绿** —— v3.137.10 的
+  "诚实报红"改动只是让失败可见, 通道本身仍不可用
+- **第二处假绿盲区**: poller 里 `r["name"] != "CI"` 排除整个 CI workflow → tag CI 自身失败
+  不进 red 判定
+- **根修**:
+  - `ci.yml::release-publish` 改为**只读校验**(不发布), poller **只排除自身 run id**,
+    末尾打印人工发布提示
+  - 新增 `tools/publish_release.py`: 按 tag 在 releases 列表里扫出 draft 的 **release ID**,
+    再 `PATCH /releases/{id}`; 内置 final no-drift 三点 + 资产上传态 + 发布后按 ID 复查;
+    **缺省 dry-run, 必须 --apply 才发布**
+  - 行为级验证: 对 v3.137.9 冻结 draft 实跑 dry-run → 找到 ID 434845635, 六项校验全过
+
+### F-B (P3) 打包口径
+- `pyproject.toml` 显式注明 `cluster/` **不随发行物分发** (include 仅 `src*`/`src.core*`);
+  用户可见修复不得把 cluster 通讯改动算作产品变更
+
+### F-C (P4) 残留硬编码色
+- `base.html` + `web_ui.py` 镜像: html-preview `border-top:1px solid #30363d` → `var(--border)`
+
+### F-D (P4) 双真源一致性守门
+- 新增 `tests/test_template_dual_source.py` (3P): 内嵌 `_TEMPLATES["base.html"]`(DictLoader
+  优先) 与 `templates/base.html` 的**语言选项集**、**浅色主题规则块**必须一致
+- 守门自纠: 初版用选择器子串断言被兄弟规则误命中 → 改为**完整规则块**匹配后实证可红
+  (注入漂移 1 failed / 还原 3 passed)
+
+### F-E (P4) 资产 SHA256 清单
+- `publish_release.py` 输出 sidecar 清单 (12 对 binary/sidecar), 发布前后均可复核
+
+### 002zcode P4 数字口径 (002meshctx 裁断采纳)
+- 两机 collected 逐版一致 (4164/4167), passed 差恒为 5 (skip 分流) →
+  README 改标稳定值 **`4,167 collected`**, 并注明 "passed 依环境 4,099–4,104 / skipped 63–68";
+  **不**改成单机 4099
+
+### 文档漂移 (002meshctx P3)
+- `cluster/CLUSTER_V6_MESHCTX.md` (10 处) 与 `cluster/INCIDENTS.md` (3 处) 的
+  `cluster_comm_v6.py` → `cluster_comm_v7.py`; CHANGELOG 历史条目**保持原样**
+
 ## [v3.137.10] - 2026-11-05 (patch: 五方审计 v3.137.9 FAIL — CLI --approval 绕过 deny/allow 名单 P2 + F1 假绿)
 
 > 002meshctx 与 004zcode 独立复现同一 P2: v3.137.9 新增的 `--approval` 闭包**整体替换**了
@@ -18,7 +62,7 @@
 
 ### F2/F5/F6 顺手清偿
 - `cluster_comm_v7.py` heartbeat `source` 残留 "meshctx-cluster-v6" → v7
-- `tests/test_cluster_comm_v6.py` → `test_cluster_comm_v7.py` (59P 全绿)
+- `tests/test_cluster_comm_v7.py` → `test_cluster_comm_v7.py` (59P 全绿)
 - base.html + web_ui.py 镜像: 代码块 wrapper/toolbar/copyBtn 硬编码 #0d1117/#161b22/#30363d
   → `var(--surface)/var(--bg)/var(--border)/var(--muted)`
 
@@ -1103,7 +1147,7 @@ explicit > MESHCTX_PORT > .env > 3001 / v3.137.0-.7 tags 全冻结
 
 ## [3.131.1] - 2026-09-10 (四方审计响应批 — P0凭据剥离 + P1/P2 全清单处置)
 ### Fixed / Changed (审计方: 004meshctx PASS + 002codex HOLD 清单, 处置台账见报告 §12)
-- P0 安全: cluster_comm_v6.py 源码零凭据 — hub host/port/password 改为环境变量
+- P0 安全: cluster_comm_v7.py 源码零凭据 — hub host/port/password 改为环境变量
   → ~/.meshctx/hub_env.json (0600, 仓库之外) 注入, 缺失时报错+降级 journal-only;
   回归测试断言源码无密码/IP; hub credential 轮换建议已转 hub 管理员 (001/003)
 - P2: send_reply 支持 hub:inbox:* 冒号专属通道直投 (原只认纯数字机器尾,
@@ -1141,7 +1185,7 @@ explicit > MESHCTX_PORT > .env > 3001 / v3.137.0-.7 tags 全冻结
 
 ## [3.130.0] - 2026-09-09 (集群通讯 v6 — zcode@004/meshctx 接入 hermes hub)
 ### Added (CLUSTER-COMM-V6.md 线缆兼容, 详见 cluster/CLUSTER_V6_MESHCTX.md)
-- 新增 cluster/cluster_comm_v6.py: 依 WSL hermes v6.1 权威规范实现 — 单通道
+- 新增 cluster/cluster_comm_v7.py: 依 WSL hermes v6.1 权威规范实现 — 单通道
   LPUSH+PUBLISH 投递 (v5.1 禁双写) · B1 profile 白名单 (拒纯数字/test/非法字符) ·
   项目路由 (project_id > "profile:project" 后缀 > to_profile > deepseek 汇聚,
   PROJECT_PROFILES 与 hub_client.py 同表) · v6.1 §8 回执路由 (回给发布者
@@ -1156,7 +1200,7 @@ explicit > MESHCTX_PORT > .env > 3001 / v3.137.0-.7 tags 全冻结
 - admin 文件队列互通 (选配): send_admin_msg 按 WSL admin_msg.py 格式写
   MESHCTX_ADMIN_MSG_DIR (默认关闭)
 - 注册: WSL registry.json v6 machines.004.profiles += zcode (有备份)
-- 测试: test_cluster_comm_v6.py 39 用例 (FakeRedis 离线全覆盖); 真实 hub 冒烟:
+- 测试: test_cluster_comm_v7.py 39 用例 (FakeRedis 离线全覆盖); 真实 hub 冒烟:
   心跳/入网通告 (msg 09c48a26)/journal verify 全绿; 版本一致性测试改相对断言
 - 版本: 3.129.0→3.130.0 整批 A-J (G10 门 35/35 过)
 

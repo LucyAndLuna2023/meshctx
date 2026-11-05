@@ -24,13 +24,13 @@ MSG = """[任务转交 · meshctx 夜间优化 → 002zcode] 发起: 用户经 z
      c. i18n: 11 语言 Model Hub 新增 key 补翻 (上次扫描 14 缺)
      d. 性能: API 延迟 (500 猎捕器/scripts/opt_api_benchmark.py 可复用)
      e. 测试: 边缘用例 + 集成测试
-  3. 每项改动必跑门禁 (tests/test_cluster_comm_v6.py 等 4 文件)
+  3. 每项改动必跑门禁 (tests/test_cluster_comm_v7.py 等 4 文件)
   4. 完成后 commit + push origin main + 跑全量回归
   5. 结果发回: hub:inbox:004:zcode:meshctx
 
 ■ 交付物 (已在 main, 你在此基础上继续):
   - src/core/self_evolution.py: 自进化闭环 v1 (统计蒸馏+LLM精炼+FSRS+哈希链)
-  - cluster/cluster_comm_v6.py: 集群通讯 (零凭据, env→hub_env.json 注入)
+  - cluster/cluster_comm_v7.py: 集群通讯 (零凭据, env→hub_env.json 注入)
   - templates/setup.html: Model Hub (Key 自动识别厂商/自动测活/切换持久化)
   - templates/chat.html: 错误中文映射/toast/evolution面板
   - tests/: 78+ 新用例

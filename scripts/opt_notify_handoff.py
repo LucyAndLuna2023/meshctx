@@ -23,7 +23,7 @@ MSG = """[交接通知 · zcode@004 → 004deepseek] (项目 meshctx)
 - Linux/Mac 免登录 (回环加固) + UI no-cache (升级免 Ctrl+F5)
 - 自进化闭环 v1 (self_evolution.py): record→reflect→inject→reinforce,
   E2E 实测通过; code_run + chat 结果自动入经验层
-- 集群通讯 v6 (cluster_comm_v6.py): zcode@004/meshctx, 项目隔离, 零凭据
+- 集群通讯 v6 (cluster_comm_v7.py): zcode@004/meshctx, 项目隔离, 零凭据
 - 源码零凭据 + provider_config 原子写 0600 + hub 凭据轮换手册
 - /ui/models 收口到 Model Hub; 全量回归 3883/0/66 (工作区)
 
