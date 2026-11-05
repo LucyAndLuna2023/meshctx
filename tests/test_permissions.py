@@ -55,3 +55,51 @@ def test_config_roundtrip_preserves_models():
     d = yaml.safe_load(p.read_text(encoding="utf-8"))
     assert d["models"]["default"] == "x" and d["models"]["entries"]["m1"]["key"] == "k"
     assert d["permissions"]["mode"] == "restricted"
+
+
+# ═══ v3.137.9: CLI --approval / --yolo 三档 (用户: 像 harness 一样设完全权限) ═══
+def test_cli_approval_flag_registered():
+    """chat 子命令必须暴露 --approval {full,standard,restricted} 与 --yolo。"""
+    import subprocess, sys, os
+    r = subprocess.run([sys.executable, "-m", "src.cli", "chat", "--help"],
+                       capture_output=True, text=True, timeout=180,
+                       cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    out = r.stdout + r.stderr
+    assert "--approval" in out, "缺 --approval 选项 (完全权限入口)"
+    assert "full" in out and "standard" in out and "restricted" in out
+    assert "--yolo" in out
+
+
+def test_full_mode_never_requests_approval():
+    """full 档: 危险工具也不触发审批 (完全权限语义)。"""
+    from src.permissions import _standard_risk
+
+    def req(name, args, mode="full"):
+        if mode == "full":
+            return None
+        if mode == "restricted":
+            return "restricted"
+        d, r = _standard_risk(name, args)
+        return r if d == "approval" else None
+
+    assert req("terminal", {"cmd": "rm -rf /tmp/x"}, "full") is None
+    assert req("write_file", {"if_exists": "overwrite"}, "full") is None
+    assert req("terminal", {"cmd": "rm -rf /tmp/x"}, "standard") is not None
+    assert req("read_file", {"path": "a"}, "standard") is None
+    assert req("read_file", {"path": "a"}, "restricted") is not None
+
+
+def test_setup_ui_exposes_full_permission_option():
+    """setup 页必须有清晰的三档下拉 (用户实测「看不到完全权限选项」)。"""
+    from pathlib import Path
+    t = (Path(__file__).resolve().parent.parent / "templates" / "setup.html").read_text(encoding="utf-8")
+    assert 'id="permMode"' in t, "缺权限下拉"
+    for v in ('value="full"', 'value="standard"', 'value="restricted"'):
+        assert v in t, f"缺档位 {v}"
+    assert "never ask" in t.lower() or "never ask for approval" in t.lower(), "full 档文案需明确「不再询问」"
+    # 权限卡必须在 Advanced 分区内 (原在 .wrap 之外, 无分区归属)
+    i_adv = t.index('id="pane-advanced"')
+    i_perm = t.index('id="permMode"')
+    assert i_adv < i_perm, "权限卡应在 Advanced 分区内"
+    # 说明行随档位变化
+    assert "permModeHint" in t and "perm_mode_hint_" in t

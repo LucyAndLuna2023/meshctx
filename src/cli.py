@@ -739,10 +739,25 @@ def cmd_chat(args):
                     print(f"\n[系统提示构造失败 — 继续用基础上下文] {_se}", flush=True)
                     _tb.print_exc()
                 try:
+                    # v3.137.9: --approval full/standard/restricted 或 --yolo → 显式策略覆盖 config
+                    _req_appr = None
+                    _ap = getattr(args, "approval", None)
+                    if getattr(args, "yolo", False):
+                        _ap = "full"
+                    if _ap:
+                        def _req_appr(_name, _args, _mode=_ap):
+                            if _mode == "full":
+                                return None
+                            if _mode == "restricted":
+                                return "restricted 模式: 所有工具调用需批准"
+                            from src.permissions import _standard_risk
+                            _d, _r = _standard_risk(_name, _args)
+                            return _r if _d == "approval" else None
                     session_id = _chat_loop(
                         client, messages, TOOLS, execute_tool, TOOL_ICONS,
                         max_turns=max_turns, wall_clock=wall_clock,
-                        interrupt_check=_runner.interrupt_check, cli_approval=True)
+                        interrupt_check=_runner.interrupt_check, cli_approval=True,
+                        require_approval=_req_appr)
                 except Exception as _ce:
                     # v3.135.7 (用户 Mac 实测: 输入 hi 静默无回复): 一切未捕获异常必须可见
                     import traceback as _tb
@@ -850,7 +865,7 @@ def _chat_one_shot(client, msg, args):
     print()
 
 
-def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, collect_output=False, wall_clock=None, interrupt_check=None, cli_approval=False):
+def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, collect_output=False, wall_clock=None, interrupt_check=None, cli_approval=False, require_approval=None):
     """核心对话循环 — 与 UI /api/chat/stream 共用同一套 agent_loop 逻辑
 
     collect_output=True 时，收集最终答案与工具调用记录并返回
@@ -931,6 +946,8 @@ def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, colle
             _CLI_APPROVALS = _CLI_APPROVALS_X
             _CLI_LOOP[0] = _aio.get_running_loop()  # 主线程 loop (输入线程桥接用)
             _na, _aw = _needs, _wait
+            if require_approval is not None:   # v3.137.9: CLI --approval full 等显式策略优先
+                _na = require_approval
         async for ev in run_agent_loop(
             client, messages,
             tools=tools_def,
@@ -3129,6 +3146,10 @@ def main():
     c.add_argument("--new", dest="new_session", action="store_true", help="强制新会话(跳过自动恢复)")
     c.add_argument("--max-rounds", type=int, default=0, help="搜索轮次上限 (默认0=无限制, 直到模型直接回复或墙钟超时; >0 为固定轮次模式)")
     c.add_argument("--wall-clock", type=float, default=0.0, help="整轮处理墙钟上限秒 (默认1800; 0则读环境变量 MESHCTX_WALL_CLOCK)")
+    # v3.137.9: 用户实测「像 deepseek harness 一样能设完全权限」— CLI 一次性开关, 对齐 UI 三档
+    c.add_argument("--approval", choices=["full","standard","restricted"], default=None,
+                   help="工具授权档位: full=完全不询问 / standard=危险操作才问 (默认, 同 config) / restricted=每次都问")
+    c.add_argument("--yolo", action="store_true", help="等同 --approval full (完全权限, 兼容习惯)")
     c.add_argument("message", nargs="?", help="一发模式: 直接问一个问题")
     c.set_defaults(func=cmd_chat)
 

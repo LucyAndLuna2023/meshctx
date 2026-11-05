@@ -139,6 +139,13 @@
         [data-theme="light"] .code-output-header {
             color: #64748b;
         }
+        /* v3.137.9: 命令面板/输入框/聊天气泡硬编码深底 → 浅色主题覆盖 (用户实测黑底黑字) */
+        [data-theme="light"] .cmd-panel { background: var(--surface); border-color: var(--border); }
+        [data-theme="light"] .cmd-input,
+        [data-theme="light"] .cmd-panel input { background: #ffffff; color: var(--text); border-color: var(--border); }
+        [data-theme="light"] .terminal,
+        [data-theme="light"] .console,
+        [data-theme="light"] .code-output { background: #f6f8fa; color: #1e293b; }
         /* ── 移动端响应式 (v2.19) ── */
         @media (max-width: 768px) {
             .header { padding: 12px 16px; flex-direction: column; align-items: flex-start; }

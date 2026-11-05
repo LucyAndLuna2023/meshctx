@@ -1,3 +1,39 @@
+## [v3.137.9] - 2026-11-05 (patch: UI 浅色主题流式/工具输出黑底黑字不可读 — 用户实测)
+
+> 用户实测: chat 页流式输出区「有一部分是黑色背景和黑色字体，看不到任何输出」。
+> 根因: 浅色主题是**默认** (body[data-theme=light], 2026-08-26 起)，但流式正文、
+> 工具结果容器/内联 `<pre>`、推理思考区、evo 面板、添加模型弹窗仍是**硬编码深底**
+> (#0d1117/#0d1120/#161b2c) + 硬编码浅字或继承深色 → 浅色主题下黑底黑字不可读；
+> 且 `:root` 变量默认是深色、主题只在 `body` 尾部脚本设置 → 首屏先按深色绘制再翻转。
+
+### 修复
+- `templates/chat.html`: `.msg .tool-result` 与内联工具结果 `<pre>` 背景改主题变量
+  (`var(--surface)` / `var(--border)`)，去掉 `#0d1117`/`#0d1120` 硬编码
+- 浅色主题显式覆盖新增: `.tool-result` `.tool-bubble` `.streaming .bubble` `.msg.ai .bubble`
+  `.reasoning-msg .bubble` `.reasoning-text` `pre` `#evoPanel` `#addModelModal`
+- 主题变量作用域从 `:root` 扩到 `:root, [data-theme="dark"]`；浅色变量同时挂在
+  `html[data-theme="light"], body[data-theme="light"]`（变量定义在 html 级，只在 body 设置会脱钩）
+- 主题初始化前移到 `<head>` 内先行应用 + `toggleChatTheme` 双写 html/body → 消除首屏闪黑
+- `templates/base.html` + `src/web_ui.py`(内嵌镜像): 浅色主题补 `.cmd-panel`/`.cmd-input`/
+  `.terminal`/`.console`/`.code-output` 覆盖
+
+### 权限完全开放 (用户实测「像 deepseek harness 一样可以设完全权限，目前没看到这个选项」)
+- 根因: v3.136.0 的权限卡虽存在, 但 ① 被放在 `.wrap` 容器之外 (页面最底部, 无分区归属)
+  ② 选项文案含糊 (`Full (no approval)`) ③ **CLI 完全没有该开关** → 实际不可用
+- UI (templates/setup.html): 权限卡收进 **Advanced 分区**; 三档文案明确化
+  (`Full — never ask for approval` / `Standard — ask before dangerous actions` /
+  `Restricted — ask before every action`); 新增随档位变化的说明行 `permModeHint`
+- CLI (src/cli.py): 新增 `meshctx chat --approval {full,standard,restricted}` 与
+  `--yolo` (=full); `_chat_loop(require_approval=...)` 显式策略优先于 config
+- i18n: `perm_full/standard/restricted/desc` 重写 + `perm_mode_hint_*` 三键, 12 语言全齐
+- 行为级验证: full → `rm -rf`/覆盖写入均不弹审批; standard → 危险才弹、读文件放行;
+  restricted → 全部弹
+
+### 守门
+- `tests/test_templates_ui.py::test_streaming_and_tool_output_use_theme_vars`
+  （硬编码深底零残留 + 浅色覆盖齐 + html 级变量 + head 内初始化；已实证可红）
+- `tests/test_templates_ui.py::test_base_light_theme_covers_command_panel`
+
 ## [v3.137.8] - 2026-10-26 (patch: 004meshctx v3.137.7 FAIL (B7-a/B7-b 仅声称面) 真修)
 
 > 004meshctx 对 v3.137.7 裁定 FAIL: body 声称「禁杀警告双打→单次」「死注释清理」

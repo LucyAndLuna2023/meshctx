@@ -250,6 +250,28 @@ details.adv[open] summary{margin-bottom:8px}
     <a href="/ui/desktop">🖥️ Desktop</a>
     <a href="/docs" target="_blank" style="color:#f59e0b">📚 API Docs</a>
   </div>
+  <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+  <div id="permCard">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+    <h3 style="margin:0;font-size:1rem" data-lang-key="perm_title">🔐 Permission Mode</h3>
+    <span style="font-size:.72rem;color:var(--muted)" data-lang-key="perm_desc">Tool approval policy (shared by CLI &amp; UI)</span>
+    <span id="permSaved" data-lang-key="perm_saved" style="font-size:.72rem;color:#22c55e;opacity:0;transition:opacity .4s;margin-left:auto">Saved ✓</span>
+  </div>
+  <!-- v3.137.9: 用户实测「看不到完全权限选项」— 原下拉文案含糊 + 整卡无分区归属。现: 三档明确 + 说明行 + 收进 Advanced 分区 -->
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+    <select id="permMode" onchange="permHint(this.value);savePerm()" style="padding:6px 10px;border-radius:6px;background:var(--bg);color:var(--text);border:1px solid var(--border);min-width:240px">
+      <option value="full" data-lang-key="perm_full">Full — never ask for approval</option>
+      <option value="standard" data-lang-key="perm_standard">Standard — ask before dangerous actions</option>
+      <option value="restricted" data-lang-key="perm_restricted">Restricted — ask before every action</option>
+    </select>
+    <span id="permModeHint" style="font-size:.74rem;color:var(--muted);flex:1;min-width:200px"></span>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <input id="permDeny" data-lang-key-placeholder="perm_deny_ph" data-lang-key="perm_deny_ph" placeholder="Denied tools (comma-separated, hard reject)" style="flex:1;min-width:200px;padding:6px 10px;border-radius:6px;background:var(--bg);color:var(--text);border:1px solid var(--border)">
+    <input id="permAllow" data-lang-key-placeholder="perm_allow_ph" data-lang-key="perm_allow_ph" placeholder="Allowed tools (comma-separated, skip approval)" style="flex:1;min-width:200px;padding:6px 10px;border-radius:6px;background:var(--bg);color:var(--text);border:1px solid var(--border)">
+  </div>
+  </div>
+  </div>
 </div>
 </div>
 
@@ -972,26 +994,24 @@ function saveEdit(){
 }
 </script>
 
-<div class="card" id="permCard" style="margin-top:14px">
 
-  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-    <select id="permMode" onchange="savePerm()" style="padding:6px 10px;border-radius:6px;background:var(--bg);color:var(--text);border:1px solid var(--border)">
-      <option value="full" data-lang-key="perm_full">Full (no approval)</option>
-      <option value="standard" data-lang-key="perm_standard">Standard (danger approval)</option>
-      <option value="restricted" data-lang-key="perm_restricted">Approve everything</option>
-    </select>
-    <input id="permDeny" data-lang-key-placeholder="perm_deny_ph" data-lang-key="perm_deny_ph" placeholder="Denied tools (comma-separated, hard reject)" style="flex:1;min-width:200px;padding:6px 10px;border-radius:6px;background:var(--bg);color:var(--text);border:1px solid var(--border)">
-    <input id="permAllow" data-lang-key-placeholder="perm_allow_ph" data-lang-key="perm_allow_ph" placeholder="Allowed tools (comma-separated, skip approval)" style="flex:1;min-width:200px;padding:6px 10px;border-radius:6px;background:var(--bg);color:var(--text);border:1px solid var(--border)">
-    <h3 style="margin:0 0 8px" data-lang-key="perm_title">🔐 Permission Mode <span style="font-size:.72rem;color:var(--muted)" data-lang-key="perm_desc">Tool approval policy (shared by CLI &amp; UI)</span></h3>
-    <span id="permSaved" data-lang-key="perm_saved" style="font-size:.72rem;color:#22c55e;opacity:0;transition:opacity .4s">Saved ✓</span>
-  </div>
-</div>
 <script>
+function permHint(mode){
+  var el = document.getElementById('permModeHint');
+  if (!el) return;
+  var k = 'perm_mode_hint_' + (mode || 'standard');
+  var fb = {full:'Full access: every tool runs without asking (trusted sandbox)',
+            standard:'Standard: only overwrite / remote / dangerous commands ask',
+            restricted:'Restricted: every single tool call needs your confirmation'};
+  var v = window.__t(k);
+  el.textContent = (v && v !== k) ? v : (fb[mode] || '');
+}
 function loadPerm(){
   fetch('/api/permissions').then(r=>r.json()).then(function(p){
     document.getElementById('permMode').value = p.mode || 'standard';
     document.getElementById('permDeny').value = (p.deny_tools||[]).join(', ');
     document.getElementById('permAllow').value = (p.allow_tools||[]).join(', ');
+    permHint(p.mode || 'standard');   // v3.137.9: 当前档位说明行
   });
 }
 var _permT = null;

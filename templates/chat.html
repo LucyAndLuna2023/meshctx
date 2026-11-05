@@ -4,8 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>meshctx Chat</title>
+<script>
+/* v3.137.9: 主题在 head 内先行应用 — 默认浅色; 若只在 body 尾部设置,
+   首屏会先用 :root 深色变量绘制 (黑底黑字/闪黑) 再翻转。 */
+(function(){try{var s=localStorage.getItem('meshctx_theme');var t=(s==='dark')?'dark':'light';
+document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
 <style>
-:root {
+:root, [data-theme="dark"] {
   --bg: #0d1117; --surface: #161b22; --border: #30363d;
   --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
   --user-bg: #1f6feb22; --ai-bg: #161b22;
@@ -14,7 +20,7 @@
   --panel-border: rgba(48,54,61,0.6);
 }
 /* 2026-08-26 用户要求: 白底黑字浅色主题 (默认) */
-[data-theme="light"] {
+html[data-theme="light"], body[data-theme="light"] {
   --bg: #f8fafc; --surface: #ffffff; --border: #e2e8f0;
   --text: #0f172a; --muted: #64748b; --accent: #6c5ce7;
   --user-bg: #6c5ce722; --ai-bg: #f1f5f9;
@@ -24,6 +30,23 @@
 }
 [data-theme="light"] .status-panel { box-shadow: 0 8px 32px rgba(15,23,42,0.12); }
 [data-theme="light"] .bubble { color: var(--text); }
+/* v3.137.9 用户实测: 流式输出/工具输出区硬编码深底深字 → 浅色主题下黑底黑字不可读。
+   硬编码深色背景统一改为主题变量; 浅色主题显式覆盖遗留内联深色。 */
+[data-theme="light"] .tool-result,
+[data-theme="light"] .tool-bubble,
+[data-theme="light"] .msg .tool-result {
+  background: var(--surface); color: var(--text); border-color: var(--border);
+}
+[data-theme="light"] pre { background: #f6f8fa; color: #1e293b; }
+[data-theme="light"] .streaming .bubble,
+[data-theme="light"] .msg.ai .bubble { background: var(--ai-bg); color: var(--text); }
+[data-theme="light"] .reasoning-msg .bubble { background: rgba(100,116,139,0.10); color: var(--text); }
+[data-theme="light"] .reasoning-text { color: var(--text); }
+[data-theme="light"] #evoPanel,
+[data-theme="light"] #addModelModal > div { background: var(--surface); color: var(--text); border-color: var(--border); }
+[data-theme="light"] #addModelModal select,
+[data-theme="light"] #addModelModal input { background: #ffffff; color: var(--text); border-color: var(--border); }
+
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -108,8 +131,8 @@ body {
   font-size: 11px; color: var(--muted);
 }
 .msg .tool-result {
-  margin-top: 8px; padding: 8px 10px; background: #0d1117;
-  border: 1px solid #30363d; border-radius: 6px;
+  margin-top: 8px; padding: 8px 10px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 6px;
   font-size: 12px; color: var(--muted); max-height: 200px; overflow-y: auto;
   font-family: monospace;
 }
@@ -673,7 +696,7 @@ body {
   <span id="tokenCount"></span>
 </div>
 <!-- Self-Evolution insights panel (click 🧠 to toggle) -->
-<div id="evoPanel" style="display:none;position:fixed;top:48px;right:12px;z-index:9998;background:#161b2c;border:1px solid #2a3350;border-radius:12px;padding:14px;width:min(360px,90vw);max-height:50vh;overflow-y:auto;font-size:0.8rem;color:#e6e9f2;box-shadow:0 4px 20px rgba(0,0,0,.4)">
+<div id="evoPanel" style="display:none;position:fixed;top:48px;right:12px;z-index:9998;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;width:min(360px,90vw);max-height:50vh;overflow-y:auto;font-size:0.8rem;color:var(--text);box-shadow:0 4px 20px rgba(0,0,0,.4)">
   <div style="font-weight:600;margin-bottom:8px">🧠 Self-Evolution</div>
   <div id="evoStats" style="color:#8b9bbf;margin-bottom:8px">loading...</div>
   <div id="evoInsights"></div>
@@ -733,13 +756,15 @@ body {
   var saved = localStorage.getItem('meshctx_theme');
   var theme = (saved === 'dark') ? 'dark' : 'light';  // 默认浅色
   document.body.setAttribute('data-theme', theme);
+  document.documentElement.setAttribute('data-theme', theme);
   var btn = document.getElementById('chatThemeBtn');
   if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
 })();
 function toggleChatTheme() {
-  var cur = document.body.getAttribute('data-theme') || 'light';
+  var cur = document.body.getAttribute('data-theme') || document.documentElement.getAttribute('data-theme') || 'light';
   var next = cur === 'dark' ? 'light' : 'dark';
   document.body.setAttribute('data-theme', next);
+  document.documentElement.setAttribute('data-theme', next);  // v3.137.9: 变量定义在 html 级, 双写防脱钩
   localStorage.setItem('meshctx_theme', next);
   var btn = document.getElementById('chatThemeBtn');
   if (btn) btn.textContent = next === 'light' ? '☀️' : '🌙';
@@ -3118,7 +3143,7 @@ async function send() {
               if (_tk.length > 50) delete TOOL_RESULTS[_tk[0]];
               resDiv.innerHTML = `<div class="avatar">✅</div><div class="bubble tool-bubble" style="max-width:80%">` +
                 `<details${hasMore ? '' : ' open'}><summary style="cursor:pointer;font-size:.72rem;color:#8b9bbf">${t('chat_tool_result')} (${fullText.length} ${t('chat_tool_chars')}${hasMore ? t('chat_tool_expand') : ''})<span title="${t('chat_copy_full')}" onclick="event.stopPropagation();copyToolResult(this,'${resId}')" style="cursor:pointer;margin-left:8px">📋</span></summary>` +
-                `<pre style="margin:4px 0 0;padding:6px;background:#0d1120;border-radius:6px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;font-size:.72rem">${preview.replace(/</g,'&lt;')}</pre></details></div>`;
+                `<pre style="margin:4px 0 0;padding:6px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;font-size:.72rem">${preview.replace(/</g,'&lt;')}</pre></details></div>`;
               msgContainer.appendChild(resDiv);
               msgContainer.scrollTop = msgContainer.scrollHeight;
             }
@@ -4105,11 +4130,11 @@ function orgDeptToggle(){
 </script>
 
 <div id="addModelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;">
-  <div style="background:#161b2c;color:#e6e9f2;border:1px solid #2a3350;border-radius:14px;padding:20px;width:min(440px,92vw);font-family:inherit;">
+  <div style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:14px;padding:20px;width:min(440px,92vw);font-family:inherit;">
     <h3 style="margin:0 0 12px;font-size:1.05rem;">➕ <span data-lang-key="add_model_title">Add Custom Model</span></h3>
     <!-- v3.131: 选厂商 → base_url/获Key链接/常见模型 全自动预填 (像 ZCode/DeepSeek Harness) -->
     <label style="display:block;font-size:.8rem;margin-bottom:4px;" data-lang-key="add_model_provider">Provider</label>
-    <select id="am_provider" onchange="amOnProvider()" style="width:100%;margin-bottom:8px;padding:8px;border-radius:8px;border:1px solid #2a3350;background:#0d1120;color:#e6e9f2;"></select>
+    <select id="am_provider" onchange="amOnProvider()" style="width:100%;margin-bottom:8px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);"></select>
     <label style="display:block;font-size:.8rem;margin-bottom:4px;" data-lang-key="add_model_id">Model ID</label>
     <input id="am_id" list="am_id_list" placeholder="zhipu:glm-4.6 / custom:my-model" style="width:100%;margin-bottom:8px;">
     <datalist id="am_id_list"></datalist>
@@ -4120,7 +4145,7 @@ function orgDeptToggle(){
     <input id="am_baseurl" placeholder="https://open.bigmodel.cn/api/paas/v4" style="width:100%;margin-bottom:12px;">
     <div id="am_status" style="font-size:.8rem;color:#f87171;margin-bottom:8px;"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button onclick="closeAddModel()" style="padding:7px 16px;border-radius:8px;border:1px solid #2a3350;background:transparent;color:#e6e9f2;cursor:pointer;">✕</button>
+      <button onclick="closeAddModel()" style="padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;">✕</button>
       <button onclick="submitAddModel()" style="padding:7px 16px;border-radius:8px;border:none;background:#6c5ce7;color:#fff;cursor:pointer;font-weight:600;" data-lang-key="add_model_btn">Add</button>
     </div>
   </div>
