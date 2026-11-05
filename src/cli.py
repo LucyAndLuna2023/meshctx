@@ -745,14 +745,7 @@ def cmd_chat(args):
                     if getattr(args, "yolo", False):
                         _ap = "full"
                     if _ap:
-                        def _req_appr(_name, _args, _mode=_ap):
-                            if _mode == "full":
-                                return None
-                            if _mode == "restricted":
-                                return "restricted 模式: 所有工具调用需批准"
-                            from src.permissions import _standard_risk
-                            _d, _r = _standard_risk(_name, _args)
-                            return _r if _d == "approval" else None
+                        _req_appr = make_cli_approval_policy(_ap)
                     session_id = _chat_loop(
                         client, messages, TOOLS, execute_tool, TOOL_ICONS,
                         max_turns=max_turns, wall_clock=wall_clock,
@@ -864,6 +857,30 @@ def _chat_one_shot(client, msg, args):
         traceback.print_exc()
     print()
 
+
+
+def make_cli_approval_policy(mode: str):
+    """v3.137.10 (002meshctx/004zcode P2 根修): CLI 审批策略工厂 — 行为级可测.
+
+    契约 (src/permissions.py): deny_tools > allow_tools > mode 规则;
+    CLI 显式档位**只覆盖 mode**, 不得绕过黑白名单。
+
+    返回 needs_approval(name, args) → None(放行) / "DENY: ..."(硬拒绝) / str(需审批原因)
+    """
+    def _policy(name, args, _mode=mode):
+        from src.permissions import load_permissions, _standard_risk
+        perm = load_permissions()
+        if name in perm["deny_tools"]:
+            return f"DENY: 工具在 deny_tools 黑名单中 ({name})"
+        if name in perm["allow_tools"]:
+            return None
+        if _mode == "full":
+            return None
+        if _mode == "restricted":
+            return "restricted 模式: 所有工具调用需批准"
+        d, r = _standard_risk(name, args)
+        return r if d == "approval" else None
+    return _policy
 
 def _chat_loop(client, messages, tools_def, exec_tool, icons, max_turns=6, collect_output=False, wall_clock=None, interrupt_check=None, cli_approval=False, require_approval=None):
     """核心对话循环 — 与 UI /api/chat/stream 共用同一套 agent_loop 逻辑

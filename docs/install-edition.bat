@@ -13,7 +13,7 @@ title meshctx Edition Installer
 
 set "EDITION=%~1"
 if "%EDITION%"=="" set "EDITION=personal"
-set "VERSION=3.137.9"
+set "VERSION=3.137.10"
 set "INSTALL_DIR=%USERPROFILE%\.meshctx"
 
 if "%EDITION%"=="personal" (

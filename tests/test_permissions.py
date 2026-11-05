@@ -103,3 +103,48 @@ def test_setup_ui_exposes_full_permission_option():
     assert i_adv < i_perm, "权限卡应在 Advanced 分区内"
     # 说明行随档位变化
     assert "permModeHint" in t and "perm_mode_hint_" in t
+
+
+# ═══ v3.137.10 (002meshctx/004zcode P2): CLI --approval 必须尊重 deny/allow 名单 ═══
+import yaml as _yaml
+
+
+def _policy(name, args, mode):
+    """调用产品的策略工厂 (行为级, 非源码字符串断言)."""
+    from src.cli import make_cli_approval_policy
+    return make_cli_approval_policy(mode)(name, args)
+
+
+def _write_perm(tmp_path, mode="standard", deny=None, allow=None):
+    (tmp_path / "config.yaml").write_text(
+        _yaml.safe_dump({"permissions": {"mode": mode,
+                                         "deny_tools": deny or [],
+                                         "allow_tools": allow or []}}), encoding="utf-8")
+
+
+def test_cli_approval_respects_deny_tools(tmp_path, monkeypatch):
+    """deny_tools=[terminal] 时 full/standard/restricted 三档都必须 DENY (硬拒绝优先)."""
+    monkeypatch.setenv("MESHCTX_HOME", str(tmp_path))
+    _write_perm(tmp_path, deny=["terminal"], allow=["read_file"])
+    for mode in ("full", "standard", "restricted"):
+        r = _policy("terminal", {"cmd": "rm -rf /tmp/x"}, mode)
+        assert r is not None and r.startswith("DENY:"), \
+            f"--approval {mode} 绕过 deny_tools (实际: {r}) — P2 回归"
+
+
+def test_cli_approval_respects_allow_tools(tmp_path, monkeypatch):
+    """allow_tools=[read_file] 时 restricted 档也必须放行 (白名单优先)."""
+    monkeypatch.setenv("MESHCTX_HOME", str(tmp_path))
+    _write_perm(tmp_path, deny=["terminal"], allow=["read_file"])
+    assert _policy("read_file", {"path": "a"}, "restricted") is None, \
+        "restricted 下白名单工具应放行 (allow_tools > mode)"
+
+
+def test_cli_approval_mode_semantics_without_lists(tmp_path, monkeypatch):
+    """无黑白名单时三档语义不变 (full 放行 / standard 危险才问 / restricted 全问)."""
+    monkeypatch.setenv("MESHCTX_HOME", str(tmp_path))
+    _write_perm(tmp_path)
+    assert _policy("terminal", {"cmd": "rm -rf /"}, "full") is None
+    assert _policy("terminal", {"cmd": "rm -rf /"}, "standard") is not None
+    assert _policy("read_file", {"path": "a"}, "standard") is None
+    assert _policy("read_file", {"path": "a"}, "restricted") is not None

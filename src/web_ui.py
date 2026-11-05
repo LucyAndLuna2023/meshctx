@@ -158,7 +158,7 @@ _TEMPLATES["base.html"] = r"""<!DOCTYPE html>
         [data-theme="light"] .code-output-header {
             color: #64748b;
         }
-        /* v3.137.9: 命令面板/输入框/聊天气泡硬编码深底 → 浅色主题覆盖 (用户实测黑底黑字) */
+        /* 浅色主题: 命令面板/输入框/聊天气泡硬编码深底覆盖 (用户实测黑底黑字) */
         [data-theme="light"] .cmd-panel { background: var(--surface); border-color: var(--border); }
         [data-theme="light"] .cmd-input,
         [data-theme="light"] .cmd-panel input { background: #ffffff; color: var(--text); border-color: var(--border); }
@@ -1496,11 +1496,11 @@ function enhanceCodeBlocks(container){
     
     var wrapper = document.createElement('div');
     wrapper.className = 'code-block-wrapper';
-    wrapper.style.cssText = 'position:relative;margin:8px 0;border:1px solid #30363d;border-radius:8px;overflow:hidden;background:#0d1117;';
+    wrapper.style.cssText = 'position:relative;margin:8px 0;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface);';
     
     // 顶部工具栏
     var toolbar = document.createElement('div');
-    toolbar.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:4px 8px;background:#161b22;border-bottom:1px solid #30363d;font-size:12px;';
+    toolbar.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:4px 8px;background:var(--bg);border-bottom:1px solid var(--border);font-size:12px;';
     
     var langLabel = document.createElement('span');
     langLabel.textContent = lang || 'code';
@@ -1513,7 +1513,7 @@ function enhanceCodeBlocks(container){
     var copyBtn = document.createElement('button');
     copyBtn.textContent = '📋';
     copyBtn.title = '复制代码';
-    copyBtn.style.cssText = 'background:transparent;border:1px solid #30363d;color:#8b949e;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:11px;margin-right:4px;';
+    copyBtn.style.cssText = 'background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:1px 6px;cursor:pointer;font-size:11px;margin-right:4px;';
     copyBtn.onclick = function(){ copyCodeBlock(code.textContent, copyBtn); };
     actions.appendChild(copyBtn);
     
@@ -1522,7 +1522,7 @@ function enhanceCodeBlocks(container){
       var previewBtn = document.createElement('button');
       previewBtn.textContent = '🌐';
       previewBtn.title = '预览HTML';
-      previewBtn.style.cssText = 'background:transparent;border:1px solid #30363d;color:#8b949e;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:11px;margin-right:4px;';
+      previewBtn.style.cssText = 'background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:1px 6px;cursor:pointer;font-size:11px;margin-right:4px;';
       previewBtn.onclick = function(){ previewHTML(code.textContent, wrapper); };
       actions.appendChild(previewBtn);
     }

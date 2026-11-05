@@ -1,3 +1,35 @@
+## [v3.137.10] - 2026-11-05 (patch: 五方审计 v3.137.9 FAIL — CLI --approval 绕过 deny/allow 名单 P2 + F1 假绿)
+
+> 002meshctx 与 004zcode 独立复现同一 P2: v3.137.9 新增的 `--approval` 闭包**整体替换**了
+> 统一判定入口, 只按档位判、从不读黑白名单 → `--approval full` 直接执行 deny_tools 里的工具,
+> `standard/restricted` 把硬 deny 降级成"可点同意"; `allow_tools` 在 restricted 下同样失效。
+> 违背 src/permissions.py 明文契约「deny_tools > allow_tools > mode; CLI 与 UI 共用同一判定入口」。
+
+### P2 根修 (src/cli.py)
+- 抽出**模块级** `make_cli_approval_policy(mode)`: 先查 deny_tools (硬拒绝 "DENY:")
+  → 再查 allow_tools (放行) → 最后才按档位分派; CLI 显式档位**只覆盖 mode**
+- 闭包改为调用该工厂 (原内联闭包不可行为级测试)
+- 实证: deny_tools=[terminal] × {full,standard,restricted} 三档**均 DENY**;
+  allow_tools=[read_file] × restricted **放行**; 无名单时三档语义不变
+
+### F1/P3 清偿 (ci.yml release-publish 假绿 — 002meshctx)
+- 原 `curl PATCH ... || echo "可能尚未创建"` 吞掉失败 → job 绿但 release 仍 draft
+- 现: PATCH 后校验响应 + **by-tag 复查 draft=false**, 任一不成立即 exit 1
+
+### F2/F5/F6 顺手清偿
+- `cluster_comm_v7.py` heartbeat `source` 残留 "meshctx-cluster-v6" → v7
+- `tests/test_cluster_comm_v6.py` → `test_cluster_comm_v7.py` (59P 全绿)
+- base.html + web_ui.py 镜像: 代码块 wrapper/toolbar/copyBtn 硬编码 #0d1117/#161b22/#30363d
+  → `var(--surface)/var(--bg)/var(--border)/var(--muted)`
+
+### 002zcode 数字口径订正
+- README badge/正文/目录树 "4,096 (v3.137.8)" → **"4,101 (v3.137.9)"** (其在本 tag 全量实测值)
+
+### 守门 (已实证可红)
+- `test_cli_approval_respects_deny_tools` / `_allow_tools` / `_mode_semantics_without_lists`
+  — 注入回归 (删掉名单检查) 实测 **2 failed**, 还原后 11 passed
+- permissions 11P; templates_ui 3P; cluster v7 59P
+
 ## [v3.137.9] - 2026-11-05 (patch: UI 浅色主题流式/工具输出黑底黑字不可读 — 用户实测)
 
 > 用户实测: chat 页流式输出区「有一部分是黑色背景和黑色字体，看不到任何输出」。

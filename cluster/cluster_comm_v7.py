@@ -505,7 +505,7 @@ def heartbeat(r=None) -> Dict[str, Any]:
         "hostname": socket.gethostname(),
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "worker_key": f"{_INSTANCE}",
-        "source": "meshctx-cluster-v6",
+        "source": "meshctx-cluster-v7",
     }
     if r is None:
         try:
