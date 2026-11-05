@@ -38,11 +38,21 @@ jobs:
               #  checkout 的 concurrency + 只排除自身 id 解决)
               others = [r for r in runs if r["id"] != self_id]
               active = [r for r in others if r["status"] != "completed"]
-              if not active and len(others) >= 4:
-                  red = [r for r in others if r["conclusion"] == "failure"]
-                  if red:
-                      print(f"🔴 全部完成但有 failure: {[r['name'] for r in red]}"); sys.exit(1)
-                  print("🟢 全部 exact-SHA workflow 完成 且 0 failure (只读校验, 不发布)"); break
+              # v3.137.12 (002meshctx B1): 红判定覆盖全部失败形态 —
+              # cancelled/timed_out/startup_failure/action_required 与 failure 同罪;
+              # 且要求五类 workflow (Build Linux/Windows/macOS/CI/i18n Guard) 全在列,
+              # 防 "缺 i18n Guard 只剩 4 run 也 GREEN" 的覆盖盲区
+              REQUIRED = {"Build Linux Package", "Build Windows Release", "Build macOS", "CI", "i18n Guard"}
+              names_present = {r["name"] for r in others}
+              missing = REQUIRED - names_present
+              bad = [r for r in others
+                     if r["conclusion"] not in ("success", "skipped", "neutral")]
+              if missing:
+                  print(f"🔴 exact-SHA workflow 缺席: {sorted(missing)} — 覆盖不全, 视为红"); sys.exit(1)
+              if bad:
+                  print(f"🔴 全部完成但有失败形态: {[(r['name'], r['conclusion']) for r in bad]}"); sys.exit(1)
+              if len(others) >= 5 and not active:
+                  print("🟢 全部 exact-SHA workflow success (只读校验, 不发布)"); break
               time.sleep(30)
           else:
               print("🔴 等待超时"); sys.exit(1)
