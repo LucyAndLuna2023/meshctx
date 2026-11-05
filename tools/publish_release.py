@@ -26,6 +26,8 @@ import argparse
 import json
 import os
 import sys
+import hashlib
+import re
 import urllib.error
 import urllib.request
 
@@ -51,7 +53,11 @@ def find_draft(repo: str, tag: str, tok: str) -> dict:
         if not isinstance(batch, list) or not batch:
             break
         for rel in batch:
-            if rel.get("tag_name") == tag and rel.get("draft"):
+            if not rel.get("draft"):
+                continue
+            # draft 的 tag_name 会被 GitHub 重置成 untagged-*（身份脱钩）——
+            # 此时用 release 的 name 字段回退匹配（CI/build 上传时 name 就是 tag）
+            if rel.get("tag_name") == tag or rel.get("name") == tag:
                 return rel
         if len(batch) < 100:
             break
@@ -134,6 +140,41 @@ def main() -> int:
     if not all(post.values()):
         print("🔴 发布后复查失败 — 立即人工介入")
         return 1
+
+    # v3.137.11 (002zcode F-E): --apply 后自动 append 资产 SHA256 清单到 body
+    # (004meshctx F-E 原始要求是 "release body 附清单便于离线核对"; 工具只打印终端不算达成)
+    sha_list_lines = []
+    for a in sorted(after["assets"], key=lambda x: x["name"]):
+        if a["name"].endswith(".sha256"):
+            continue
+        sc = next((x for x in after["assets"] if x["name"] == a["name"] + ".sha256"), None)
+        digest = ""
+        if sc:
+            import time as _t
+            for _attempt in range(3):
+                try:
+                    with urllib.request.urlopen(urllib.request.Request(
+                            sc["browser_download_url"],
+                            headers={"Authorization": f"token {tok}"})) as r:
+                        digest = r.read().decode().strip().split()[0]
+                    break
+                except Exception as e:
+                    if _attempt == 2:
+                        digest = f"(获取失败: {e})"
+                    _t.sleep(2)
+        sha_list_lines.append(f"- `{a['name']}`  `{digest}`")
+    sha_block = "\n\n## 资产 SHA256 (发布时固化)\n" + "\n".join(sha_list_lines)
+    new_body = (after.get("body") or "") + sha_block
+    _, updated = _req(f"/repos/{args.repo}/releases/{rid}", tok, "PATCH",
+                      {"body": new_body})
+    ubh = hashlib.sha256(updated["body"].encode()).hexdigest()
+    n_digests = updated["body"].count("sha256") + updated["body"].count(
+        sum(1 for _ in re.findall(r"[0-9a-f]{64}", updated["body"])) * [0][0] if False else 0)
+    import re as _re
+    n64 = len(_re.findall(r"[0-9a-f]{64}", updated["body"]))
+    print(f"  [{'✓' if n64 >= len(before_ids) else '✗'}] body 已附资产 SHA256 清单 ({n64} 个 64 位摘要)")
+    print(f"  ℹ body 已更新 (len={len(updated['body'])}, sha256={ubh[:16]}…) — 此变更已披露")
+
     print(f"\n🟢 {args.tag} 已发布 (release ID {rid})")
     return 0
 

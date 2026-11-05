@@ -37,14 +37,16 @@ def test_base_dual_source_theme_markers_parity():
     `[data-theme="light"] .terminal,` 的兄弟规则里出现) → 必须匹配带 `{ ... }` 的完整规则。
     """
     f, e = _both_sources()
-    rules = (
-        '[data-theme="light"] .cmd-panel { background: var(--surface)',
-        '[data-theme="light"] pre,\n        [data-theme="light"] .code-output-body',
-        '[data-theme="light"] .code-output-header',
+    # v3.137.11 增强 (002zcode 提案): 清单式只盖 3/8 规则 → 改为**全部 light 规则块集合比对**
+    # (任何规则漂移全捕获; 002zcode 已验证零假红)
+    pat = re.compile(r'\[data-theme="light"\][^{]*\{[^}]*\}')
+    fblocks = set(pat.findall(f))
+    eblocks = set(pat.findall(e))
+    assert fblocks == eblocks, (
+        f"双真源漂移: file-only={fblocks - eblocks}\n"
+        f"embedded-only={eblocks - fblocks}"
     )
-    for rule in rules:
-        assert rule in f, f"templates/base.html 缺规则 {rule!r}"
-        assert rule in e, f"web_ui.py 内嵌 base.html 缺规则 {rule!r} (双真源漂移)"
+    assert len(fblocks) >= 8, f"浅色规则块异常少 ({len(fblocks)}) — 疑截断"
 
 
 def test_base_no_hardcoded_dark_border_in_html_preview():
