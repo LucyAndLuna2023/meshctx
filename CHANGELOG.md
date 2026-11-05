@@ -1,3 +1,21 @@
+## [v3.137.12] - 2026-11-06 (patch: 五方审计 v3.137.11 FAIL B1-B4 清偿 — 版本资产补齐)
+
+> 002meshctx 终裁 v3.137.11 = FAIL/B1-B4 (core __init__ 与 version_info 未随 bump →
+> 门禁红; README 残留 v3.137.8/11 Languages/1,592 keys 过期声明)。本版补齐版本资产。
+
+### B1 (P2) poller 红判定覆盖全部失败形态 (ci.yml)
+- cancelled / timed_out / startup_failure / action_required 与 failure 同罪 (此前只判 failure)
+- 要求五类 workflow (Build Linux/Windows/macOS/CI/i18n Guard) 全在列, 缺席即红 —
+  防 "缺 i18n Guard 只剩 4 run 也 GREEN" 的覆盖盲区
+
+### B3 (P2) publish_release 门禁收紧 (tools/publish_release.py)
+- --expect-assets 默认 24 (此前默认 0 → 0/23 assets 也可 PATCH 成功)
+- 发布后复查: name/size 逐一比对 (此前只比 ID, size/digest 漂移仍 rc=0) +
+  sidecar SHA256 逐个下载并校验 64 位 hex (非空校验不算数)
+
+### B4 文档/README 失实清偿
+- README: latest v3.137.8 → v3.137.11; 11 Languages/1,592 keys → **12 Languages/1,602+ keys**
+
 ## [v3.137.11] - 2026-11-05 (patch: 五方审计 v3.137.10 findings 清偿 — F-A 发布死步骤根修 + F-B/C/D/E)
 
 > 002meshctx 终版裁断 v3.137.10 = PASS_WITH_FINDINGS 并可发布, 同时指出两条 v3.137.11 必修
