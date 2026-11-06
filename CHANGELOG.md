@@ -1,3 +1,19 @@
+## [v3.137.13] - 2026-11-06 (patch: 002codex v3.137.12 FAIL B1/B3 清偿 — poller 只认 success + sidecar 交叉校验)
+
+> 002codex 终审 v3.137.12 = FAIL: ① CI poller 只把 failure 判红 — skipped/neutral/cancelled/
+> timed_out/startup_failure 也算绿 (假绿盲区); ② sidecar 只验 64hex 格式、不与 binary digest
+> 交叉对照 (0 sidecar/发布后 digest 漂移均不阻断)。
+
+### B1 (P2) poller 只认 success
+- conclusion != "success" 一律判红 (skipped/neutral/cancelled/timed_out 不再算绿)
+
+### B3 (P2) sidecar 与 binary digest 交叉校验 (tools/publish_release.py)
+- sidecar digest 与 GitHub API asset.digest 交叉比对 (一致 → CROSS-OK)
+
+### 附带
+- macOS intel `.dmg` `Resource busy` 瞬时错误 → 重跑即绿 (非代码问题, 上版同款)
+- 首跑 version-gate/release-gate 红 — 根因 = bump 漏做 (与 v3.137.12 同因), 已补
+
 ## [v3.137.12] - 2026-11-06 (patch: 五方审计 v3.137.11 FAIL B1-B4 清偿 — 版本资产补齐)
 
 > 002meshctx 终裁 v3.137.11 = FAIL/B1-B4 (core __init__ 与 version_info 未随 bump →
