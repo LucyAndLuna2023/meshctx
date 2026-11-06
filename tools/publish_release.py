@@ -137,6 +137,11 @@ def main() -> int:
     }
     for k, v in post.items():
         print(f"  [{'✓' if v else '✗'}] {k}")
+    # v3.137.13 (002codex B3): 发布后 body 摘要数不变 (防 SHA256 清单被意外篡改)
+    n64_before = len(re.findall(r"[0-9a-f]{64}", rel.get("body") or ""))
+    n64_after = len(re.findall(r"[0-9a-f]{64}", after.get("body") or ""))
+    post["body SHA256 摘要数不变"] = (n64_before == n64_after)
+
     if not all(post.values()):
         print("🔴 发布后复查失败 — 立即人工介入")
         return 1
@@ -164,8 +169,14 @@ def main() -> int:
                         digest = f"(获取失败: {e})"
                     _t.sleep(2)
         ok64 = len(digest) == 64 and all(c in "0123456789abcdef" for c in digest)
+        # v3.137.13 (002codex B3): sidecar digest 与 GitHub API asset.digest 交叉校验
+        gh_digest = ""
+        if a.get("digest"):
+            gh_digest = a["digest"].split(":")[-1] if ":" in a["digest"] else a["digest"]
+        cross = ok64 and gh_digest and digest.lower() == gh_digest.lower()
         digest_by_name[a["name"]] = digest
-        print(f"  [{'✓' if ok64 else '✗'}] {a['name']} sha256={'OK' if ok64 else 'INVALID:' + digest[:20]}")
+        mark = "CROSS-OK" if cross else ("OK" if ok64 else "INVALID:" + digest[:20])
+        print(f"  [{'✓' if ok64 else ('⚠' if gh_digest else '✗')}] {a['name']} sha256={mark}")
 
     # size/digest 双比对 (v3.137.11 只比 ID — 002meshctx 指出的缺口)
     before_by_id = {aid: sz for aid, sz in

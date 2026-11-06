@@ -45,8 +45,9 @@ jobs:
               REQUIRED = {"Build Linux Package", "Build Windows Release", "Build macOS", "CI", "i18n Guard"}
               names_present = {r["name"] for r in others}
               missing = REQUIRED - names_present
-              bad = [r for r in others
-                     if r["conclusion"] not in ("success", "skipped", "neutral")]
+              # v3.137.13 (002codex B1): 只认 conclusion=="success" —
+              # skipped/neutral/cancelled/timed_out 等一律视为失败形态 (假绿盲区根除)
+              bad = [r for r in others if r["conclusion"] != "success"]
               if missing:
                   print(f"🔴 exact-SHA workflow 缺席: {sorted(missing)} — 覆盖不全, 视为红"); sys.exit(1)
               if bad:
