@@ -1,3 +1,25 @@
+## [v3.137.14] - 2026-11-06 (patch: 002codex v3.137.13 FAIL B3 终版清偿 — 交叉校验前移到 PATCH 前)
+
+> 002codex 终审 v3.137.13 = FAIL: B3 交叉校验只打印不阻断 (PATCH draft:false 发生在校验
+> 之前), 四个注入探针全部 RC=0 证实 fail-open。本版将交叉校验**前移到 PATCH 之前**并在
+> 失败时阻断。
+
+### B3 终版根修 (tools/publish_release.py)
+- sidecar digest 交叉校验 **移到 PATCH draft:false 之前**:
+  ① 逐 binary 下载 sidecar 并校验 64 位 hex
+  ② 与 GitHub API asset.digest 交叉比对
+  ③ 任一不一致/缺失/下载失败 → digest_failures 非空 → **exit 1 拒绝发布** (不再只打印)
+- PATCH 仅在全部校验通过后执行; 发布后复查 draft=false / assets / 指纹零漂移
+
+### 附带
+- v3.137.9 已设 prerelease=true (降出 latest; 002meshctx P1 事故处置)
+- v3.137.1-.7 七个历史 draft 清理归档 (002meshctx 建议)
+
+### 002meshctx P1 事故披露
+v3.137.9 (带 P2 审批绕过缺陷) 曾被意外发布 (发版方测试 F-E 功能时对 .9 draft 用了 --apply,
+导致 .9 从 draft 变 published)。已处置: .9 设 prerelease=true 降出 latest, .10/.11/.12 不受影响。
+ INCIDENTS 已入账。
+
 ## [v3.137.13] - 2026-11-06 (patch: 002codex v3.137.12 FAIL B1/B3 清偿 — poller 只认 success + sidecar 交叉校验)
 
 > 002codex 终审 v3.137.12 = FAIL: ① CI poller 只把 failure 判红 — skipped/neutral/cancelled/

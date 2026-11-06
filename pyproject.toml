@@ -1,6 +1,6 @@
 [project]
 name = "meshctx"
-version = "3.137.13"
+version = "3.137.14"
 description = "World's First Self-Evolving Agent System"
 authors = [{name = "Jason Liu", email = "jason.liu@meshctx.com"}]
 requires-python = ">=3.10"
@@ -34,7 +34,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*", "src.core*"]
-# v3.137.13 (002meshctx F-B): cluster/ 是**集群运维工具**, 不随产品发行物分发 —
+# v3.137.14 (002meshctx F-B): cluster/ 是**集群运维工具**, 不随产品发行物分发 —
 # 用户可见的 heartbeat/通讯修复不得宣称已进入 deb/tar.gz/wheel。
 # 需要集群能力的使用者请从仓库直接取 cluster/ 目录。
 

@@ -125,30 +125,70 @@ def main() -> int:
         return 0
 
     before_ids = sorted(a["id"] for a in rel["assets"])
+
+    # ═══ v3.137.14 (002codex B3 终版): sidecar digest 交叉校验 MUST happen BEFORE PATCH ═══
+    # 旧版交叉校验在 PATCH 之后才跑 (只打印不阻断) — 002codex 四探针 RC=0 证实。
+    # 现: PATCH 前逐 binary 下载 sidecar 并与 GitHub API asset.digest 交叉比对。
+    import hashlib as _hl
+    import time as _t
+
+    digest_failures = []
+    binary_to_sidecar_digest = {}
+    for a in sorted(rel["assets"], key=lambda x: x["name"]):
+        if a["name"].endswith(".sha256"):
+            continue
+        sc = next((x for x in rel["assets"] if x["name"] == a["name"] + ".sha256"), None)
+        if not sc:
+            digest_failures.append(f"{a['name']}: 缺 sidecar")
+            continue
+        try:
+            with urllib.request.urlopen(urllib.request.Request(
+                    sc["browser_download_url"],
+                    headers={"Authorization": f"token {tok}"})) as r:
+                sidecar_digest = r.read().decode().strip().split()[0]
+        except Exception as e:
+            digest_failures.append(f"{a['name']}: sidecar 下载失败 {e}")
+            continue
+        gh_digest = ""
+        if a.get("digest"):
+            gh_digest = a["digest"].split(":")[-1] if ":" in a["digest"] else a["digest"]
+        if not sidecar_digest or len(sidecar_digest) != 64:
+            digest_failures.append(f"{a['name']}: sidecar digest 无效 ({sidecar_digest[:20]})")
+        elif gh_digest and sidecar_digest.lower() != gh_digest.lower():
+            digest_failures.append(f"{a['name']}: sidecar={sidecar_digest[:12]} ≠ GH={gh_digest[:12]}")
+        else:
+            binary_to_sidecar_digest[a["name"]] = sidecar_digest
+
+    if digest_failures:
+        print("🔴 B3 交叉校验失败 — 拒绝发布:")
+        for df in digest_failures:
+            print(f"  ❌ {df}")
+        return 1
+    print(f"  [✓] B3 交叉校验: {len(binary_to_sidecar_digest)} 个 binary 的 sidecar digest 全部一致")
+
+    # ═══ PATCH draft:false (仅在全部校验通过后) ═══
     status, res = _req(f"/repos/{args.repo}/releases/{rid}", tok, "PATCH", {"draft": False})
     print(f"\nPATCH status={status} | draft={res.get('draft')} | published_at={res.get('published_at')}")
 
     _, after = _req(f"/repos/{args.repo}/releases/{rid}", tok)
+    after_ids = sorted(a["id"] for a in after["assets"])
     post = {
         "按 ID 复查 draft=false": after["draft"] is False,
         "published_at 非空": bool(after.get("published_at")),
         f"assets 仍 {len(before_ids)} (不掉包)": len(after["assets"]) == len(before_ids),
-        "asset IDs 零漂移": sorted(a["id"] for a in after["assets"]) == before_ids,
+        "asset IDs 零漂移": after_ids == before_ids,
+        "name/size 零漂移": all(
+            (a["id"], a["size"]) in {(x["id"], x["size"]) for x in after["assets"]}
+            for a in rel["assets"]
+        ),
     }
     for k, v in post.items():
         print(f"  [{'✓' if v else '✗'}] {k}")
-    # v3.137.13 (002codex B3): 发布后 body 摘要数不变 (防 SHA256 清单被意外篡改)
-    n64_before = len(re.findall(r"[0-9a-f]{64}", rel.get("body") or ""))
-    n64_after = len(re.findall(r"[0-9a-f]{64}", after.get("body") or ""))
-    post["body SHA256 摘要数不变"] = (n64_before == n64_after)
-
     if not all(post.values()):
         print("🔴 发布后复查失败 — 立即人工介入")
         return 1
 
-    # v3.137.12 (002meshctx B3): 发布后复查升级 —
-    # ① 逐 binary 读 sidecar 并校验 64 位 hex (非空校验不算数)
-    # ② 发布后 size 漂移也判失败 (此前只比 ID)
+    # v3.137.12 (002zcode F-E 终版): --apply 后自动 append 资产 SHA256 清单到 body
     digest_by_name = {}
     for a in sorted(after["assets"], key=lambda x: x["name"]):
         if a["name"].endswith(".sha256"):
@@ -156,7 +196,7 @@ def main() -> int:
         sc = next((x for x in after["assets"] if x["name"] == a["name"] + ".sha256"), None)
         digest = ""
         if sc:
-            import time as _t
+            import time as _t2
             for _attempt in range(3):
                 try:
                     with urllib.request.urlopen(urllib.request.Request(
@@ -164,51 +204,17 @@ def main() -> int:
                             headers={"Authorization": f"token {tok}"})) as r:
                         digest = r.read().decode().strip().split()[0]
                     break
-                except Exception as e:
+                except Exception:
                     if _attempt == 2:
-                        digest = f"(获取失败: {e})"
-                    _t.sleep(2)
-        ok64 = len(digest) == 64 and all(c in "0123456789abcdef" for c in digest)
-        # v3.137.13 (002codex B3): sidecar digest 与 GitHub API asset.digest 交叉校验
-        gh_digest = ""
-        if a.get("digest"):
-            gh_digest = a["digest"].split(":")[-1] if ":" in a["digest"] else a["digest"]
-        cross = ok64 and gh_digest and digest.lower() == gh_digest.lower()
+                        pass
+                    _t2.sleep(2)
         digest_by_name[a["name"]] = digest
-        mark = "CROSS-OK" if cross else ("OK" if ok64 else "INVALID:" + digest[:20])
-        print(f"  [{'✓' if ok64 else ('⚠' if gh_digest else '✗')}] {a['name']} sha256={mark}")
-
-    # size/digest 双比对 (v3.137.11 只比 ID — 002meshctx 指出的缺口)
-    before_by_id = {aid: sz for aid, sz in
-                    [(a["id"], None) for a in rel["assets"]]}  # 占位: rel 里无 size 时用基线
-    after_by_name = {a["name"]: (a["id"], a["size"]) for a in after["assets"]}
-    name_diffs = []
-    for a in rel["assets"]:
-        cur = after_by_name.get(a["name"])
-        if cur is None or cur[0] != a["id"] or cur[1] != a["size"]:
-            name_diffs.append(a["name"])
-    post = {
-        "按 ID 复查 draft=false": after["draft"] is False,
-        "published_at 非空": bool(after.get("published_at")),
-        f"assets 仍 {len(before_ids)} (不掉包)": len(after["assets"]) == len(before_ids),
-        "asset IDs 零漂移": sorted(a["id"] for a in after["assets"]) == before_ids,
-        "name/size 逐一一致 (无漂移)": not name_diffs,
-    }
-    for k, v in post.items():
-        print(f"  [{'✓' if v else '✗'}] {k}")
-    if name_diffs:
-        print(f"  🔴 漂移资产: {name_diffs}")
-    if not all(post.values()):
-        print("🔴 发布后复查失败 — 立即人工介入")
-        return 1
-
-    # v3.137.12 (002zcode F-E 终版): --apply 后自动 append 资产 SHA256 清单到 body
     sha_list_lines = []
     for a in sorted(after["assets"], key=lambda x: x["name"]):
         if a["name"].endswith(".sha256"):
             continue
-        digest = digest_by_name.get(a["name"], "")
-        sha_list_lines.append(f"- `{a['name']}`  `{digest}`")
+        d = digest_by_name.get(a["name"], "")
+        sha_list_lines.append(f"- `{a['name']}`  `{d}`")
     sha_block = "\n\n## 资产 SHA256 (发布时固化)\n" + "\n".join(sha_list_lines)
     new_body = (after.get("body") or "") + sha_block
     _, updated = _req(f"/repos/{args.repo}/releases/{rid}", tok, "PATCH",

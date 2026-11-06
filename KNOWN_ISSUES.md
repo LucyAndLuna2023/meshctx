@@ -106,3 +106,8 @@ immutable 纪律 (002codex P1)。
   cmd_stop Windows 分支 /proc 只读死代码 (004meshctx F3); F-a Windows stop health 门
   (002zcode)。行为级守门: tests/test_install_preflight_add.py (foreign 诱饵存活/owned 终止/
   persisted abc 受控报错)。
+
+### KI-8 附注3 (2026-11-06, v3.137.14 发版前)
+- v3.137.9 (带 P2 审批绕过缺陷) 在 11-05T16:39:54Z 被意外发布 (发版方测试 F-E 时对 .9 draft
+  用了 --apply) → releases/latest 曾指向缺陷版; 已设 prerelease=true 降出 latest。
+- v3.137.1-.7 七个历史 draft 已归档清理 (v3.137.14 发布前)。
