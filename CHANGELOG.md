@@ -1,3 +1,18 @@
+## [v3.137.15] - 2026-11-07 (patch: macOS arm64 core clone 间歇性失败专业修复)
+
+> 根因: build-macos.yml 的 core clone 用 token-in-URL 单次尝试, arm64 runner 上间歇性
+> `could not read Username` (GitHub Actions arm64 基础设施偶发, 非凭据问题)。
+> 专业修复: 3 次重试循环 (业界标准 CI 网络容错) + 去掉 credential.helper store
+> (arm64 上不可靠, 回归 token-in-URL 直连)。
+
+### 修复 (build-macos.yml)
+- `credential.helper store` / `~/.git-credentials` 全部移除
+- 回归 **token-in-URL** 直连 (`x-access-token:${CORE_TOKEN}@github.com`) — 此前一直成功的行业标准方式
+- 新增 **3 次重试循环**: 每次失败后 sleep 5s 再试, 3 次全败才 exit 1
+
+### 不变项
+默认 3001 不漂移 / 禁杀 foreign / MESHCTX_AUTH_DISABLED 语义 / 解析链 / poller 只认 success
+
 ## [v3.137.13] - 2026-11-06 (patch: 五方审计 v3.137.12 FAIL 清偿 — poller 批次隔离/全失败形态判红/发布工具门禁收紧/README 失实清偿)
 
 > 002meshctx 终裁 v3.137.12 = FAIL/B1-B4: ① poller 跨批污染死锁 (main 批 macOS 红跨批
