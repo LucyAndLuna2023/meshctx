@@ -37,7 +37,7 @@ jobs:
               # v3.137.11: 只排除自身 run id —— 不再按 name=="CI" 排除整个 workflow
               # (那样 tag CI 自身失败不进 red 判定 = 假绿; 同 SHA 双 run 互等已由
               #  checkout 的 concurrency + 只排除自身 id 解决)
-              others = [r for r in runs if r["id"] != self_id]
+              others = [r for r in runs if r["id"] != self_id and r.get("head_branch") == github_ref_name]
               active = [r for r in others if r["status"] != "completed"]
               # v3.137.12 (002meshctx B1): 红判定覆盖全部失败形态 —
               # cancelled/timed_out/startup_failure/action_required 与 failure 同罪;
@@ -53,7 +53,7 @@ jobs:
                   print(f"🔴 exact-SHA workflow 缺席: {sorted(missing)} — 覆盖不全, 视为红"); sys.exit(1)
               if bad:
                   print(f"🔴 全部完成但有失败形态: {[(r['name'], r['conclusion']) for r in bad]}"); sys.exit(1)
-              if len(others) >= 4 and not active:
+              if len(others) >= 5 and not active:
                   print("🟢 全部 exact-SHA workflow success (只读校验, 不发布)"); break
               time.sleep(30)
           else:
