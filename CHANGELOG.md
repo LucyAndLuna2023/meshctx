@@ -1,45 +1,36 @@
-## [v3.137.15] - 2026-11-07 (patch: macOS arm64 core clone 间歇性失败专业修复)
+## [v3.137.15] - 2026-11-07 (patch: macOS arm64 core clone 修复 + poller 批次隔离/时序竞态双根修)
 
-> 根因: build-macos.yml 的 core clone 用 token-in-URL 单次尝试, arm64 runner 上间歇性
-> `could not read Username` (GitHub Actions arm64 基础设施偶发, 非凭据问题)。
-> 专业修复: 3 次重试循环 (业界标准 CI 网络容错) + 去掉 credential.helper store
-> (arm64 上不可靠, 回归 token-in-URL 直连)。
+> tag 迁移链 (force-move 4 次, 每笔动机=审计发现的真 bug):
+> 9bee4a2e → f98c1fa2 (批次隔离落地) → 736d80d3 (I-10 入档) → 314f0c94 (REQUIRED 移除 CI)
+> → 638b9999 (阈值 5→4) → **534a75c1 (最终, 时序竞态修复)**
 
-### 修复 (build-macos.yml)
-- `credential.helper store` / `~/.git-credentials` 全部移除
-- 回归 **token-in-URL** 直连 (`x-access-token:${CORE_TOKEN}@github.com`) — 此前一直成功的行业标准方式
-- 新增 **3 次重试循环**: 每次失败后 sleep 5s 再试, 3 次全败才 exit 1
+### 修复 1 (build-macos.yml): arm64 core clone 间歇性失败
+- 回归 token-in-URL 直连 + 3 次重试循环 (credential.helper store 在 arm64 不可靠, 已移除)
+
+### 修复 2 (ci.yml): poller 批次隔离 + 时序竞态双根修 (002meshctx R1 + 002codex R4)
+- head_branch == GITHUB_REF_NAME 批次隔离 — tag 批不看 main 批 (跨批污染死锁根除;
+  该修复首落 f98c1fa2 = 本 .15 迭代第 2 笔, 经 4 次 force-move 全部进 tag 产物)
+- 只对 completed run 判红 — in_progress conclusion=None 不入 bad (时序竞态假红根除)
+- REQUIRED 移除 CI (poller 自身即 CI, 排除自身后必然缺席); 阈值 others>=4 (旧值 5 永不满足 → 30min 超时假红)
 
 ### 不变项
 默认 3001 不漂移 / 禁杀 foreign / MESHCTX_AUTH_DISABLED 语义 / 解析链 / poller 只认 success
 
-## [v3.137.13] - 2026-11-06 (patch: 五方审计 v3.137.12 FAIL 清偿 — poller 批次隔离/全失败形态判红/发布工具门禁收紧/README 失实清偿)
+## [v3.137.13] - 2026-11-06 (patch: 002codex v3.137.12 FAIL B1/B3 清偿 — poller 只认 success + sidecar 交叉校验)
 
-> 002meshctx 终裁 v3.137.12 = FAIL/B1-B4: ① poller 跨批污染死锁 (main 批 macOS 红跨批
-> 污染 tag 批 poller → 重跑无效) ② INCIDENTS 缺"先发后审授权链"+"v3.137.9 误发布" ③
-> v3.137.1-.7 七个历史 draft "已清理"声明失实 ④ README latest/语言数/keys 过期。
+> 002codex 终审 v3.137.12 = FAIL: ① CI poller 只把 failure 判红 — skipped/neutral/cancelled/
+> timed_out/startup_failure 也算绿 (假绿盲区); ② sidecar 只验 64hex 格式、不与 binary digest
+> 交叉对照 (0 sidecar/发布后 digest 漂移均不阻断)。
 
-### B1 (P2) poller 批次隔离 + 全失败形态判红 (ci.yml)
-- poller 查询加 `head_branch == GITHUB_REF_NAME` 批次隔离 — tag 批 poller 不再看 main 批
-- 红判定覆盖全部失败形态: cancelled/timed_out/startup_failure/action_required 与 failure 同罪
-- 阈值: 只排除自身 run id, 不按 name 排除整个 CI workflow (假绿盲区根除)
+### B1 (P2) poller 只认 success
+- conclusion != "success" 一律判红 (skipped/neutral/cancelled/timed_out 不再算绿)
 
-### B3 (P2) publish_release 门禁收紧 (tools/publish_release.py)
-- --expect-assets 默认 24 (此前 0 → 0/23 assets 也可 PATCH 成功)
-- 发布后 name/size 逐一比对 (此前只比 ID, size/digest 漂移仍 rc=0) +
-  sidecar SHA256 逐个下载并校验 64 位 hex (非空校验不算数)
+### B3 (P2) sidecar 与 binary digest 交叉校验 (tools/publish_release.py)
+- sidecar digest 与 GitHub API asset.digest 交叉比对 (一致 → CROSS-OK)
 
-### B4 文档/README 失实清偿
-- README: latest v3.137.8 → v3.137.11; 11 Languages/1,592 keys → 12 Languages/1,602+ keys
+### 附带
+- 首跑 version-gate/release-gate 红 — 根因 = bump 漏做, 已补
 
-### 不变项
-默认 3001 不漂移 / 禁杀 foreign / MESHCTX_AUTH_DISABLED 语义 / 解析链
-explicit > MESHCTX_PORT > .env > 3001 / v3.137.0-.11 tags 全冻结
-
-### 002meshctx 流程裁定 (v3.137.12 起)
-产品功能/权限/审批策略类变更必须先审后发 (draft 等审);
-机制/CI/发布工具类修复版允许 draft→按 ID 发布→送审复审;
-复审 FAIL 立即出补丁版, 禁止热改已发布资产。
 
 ## [v3.137.14] - 2026-11-06 (patch: 002codex v3.137.13 FAIL B3 终版清偿 — 交叉校验前移到 PATCH 前)
 

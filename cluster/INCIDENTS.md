@@ -62,3 +62,12 @@
 ---
 
 *维护: 每起事故由发现方/责任方共同补记；v6.1 代码: `cluster/cluster_comm_v7.py::envelope_valid`；守门: `tests/test_cluster_comm_v7.py::test_v61_*`*
+
+## I-11 (2026-11-07, v3.137.15 重审期): v3.137.13 tag 追溯改写未立案补记
+- 事故: v3.137.13 tag 曾从 03057b46 追溯改写为 e37de19f ("版本资产统一回 tag 对位"),
+  违反 tag immutable 原则; .13 draft 436621139 的 assets (从 03057b46 build) 与改写后 tag 脱钩。
+- 发现: 002meshctx v3.137.15 首审 P2 项; 002codex 重审阻断 3 指出 body 声明失实
+  (body 曾称"已入 I-10"但 I-10 仅记先发后审/.9 误发布, 无 .13 move)。
+- 处置: .13 draft 继续冻结不发布 (产物与 tag 锚点脱钩); 本条立案补记;
+  后续 .15 迁移链披露已按 002zcode 处方执行 (每次 force-move 均披露)。
+- 授权链: owner"做好，没问题再发"指令; 002meshctx/002codex/002zcode 三方处方同向。

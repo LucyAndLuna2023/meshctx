@@ -81,17 +81,23 @@ if "--post-tag" in sys.argv:
         print(f"🔴 v{VER} release 未创建"); sys.exit(1)
     d = _match[0]
     body = d.get("body") or ""
-    # 本地真实 full SHA (git rev-parse, 非手输)
-    full = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
-                          capture_output=True, text=True).stdout.strip()
+    # v3.137.15 (002codex 阻断1 + 004meshctx P3): HEAD-only 盲区根修 —
+    # post-tag 模式下以 tag^{commit} 为锚 (HEAD 可能领先 tag); HEAD+tag 双校验
+    tag_sha = subprocess.run(["git", "rev-parse", f"v{VER}^{{commit}}"], cwd=ROOT,
+                             capture_output=True, text=True).stdout.strip()
+    head_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                              capture_output=True, text=True).stdout.strip()
+    full = tag_sha or head_sha
     ok_body = bool(body)
     ok_sha = full and full in body
+    ok_tag_head = (not tag_sha) or (tag_sha == head_sha)
     print(f"  [{'✓' if ok_body else '✗'}] release body 非空 ({len(body)}c)")
-    print(f"  [{'✓' if ok_sha else '✗'}] body 含本地完整 40 位 SHA: {full[:12]}...")
+    print(f"  [{'✓' if ok_sha else '✗'}] body 含 tag^{{commit}} 完整 40 位 SHA: {full[:12]}...")
+    print(f"  [{'✓' if ok_tag_head else '✗'}] tag SHA == HEAD (防 tag 落后于 HEAD 的锚点漂移)")
     # v3.136.9 第六检 (002meshctx 传承: body 空正/负例 — 空 body 曾上线)
     has_version = f"v{VER}" in body or VER in body
     print(f"  [{'✓' if has_version else '✗'}] body 含版本号 v{VER}")
-    if not (ok_body and ok_sha and has_version):
+    if not (ok_body and ok_sha and has_version and ok_tag_head):
         print(f"\n🔴 post-tag 第五/六检拦截 — body 需含真实 SHA {full} 与版本号 v{VER}")
         sys.exit(1)
     print("\n🟢 post-tag 第五/六检过")
