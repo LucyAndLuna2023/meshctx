@@ -51,9 +51,11 @@ jobs:
               bad = [r for r in others if r["conclusion"] != "success"]
               if missing:
                   print(f"🔴 exact-SHA workflow 缺席: {sorted(missing)} — 覆盖不全, 视为红"); sys.exit(1)
-              if bad:
+              # v3.137.15 补4 (002codex R4 时序竞态): 只对 completed run 判红 —
+              # in_progress 的 run conclusion=None, 若在 active 检查前判 bad 会假红退出
+              if not active and bad:
                   print(f"🔴 全部完成但有失败形态: {[(r['name'], r['conclusion']) for r in bad]}"); sys.exit(1)
-              if len(others) >= 4 and not active:
+              if len(others) >= 4 and not active and not bad:
                   print("🟢 全部 exact-SHA workflow success (只读校验, 不发布)"); break
               time.sleep(30)
           else:
