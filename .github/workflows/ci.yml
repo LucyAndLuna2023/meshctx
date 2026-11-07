@@ -43,7 +43,7 @@ jobs:
               # cancelled/timed_out/startup_failure/action_required 与 failure 同罪;
               # 且要求五类 workflow (Build Linux/Windows/macOS/CI/i18n Guard) 全在列,
               # 防 "缺 i18n Guard 只剩 4 run 也 GREEN" 的覆盖盲区
-              REQUIRED = {"Build Linux Package", "Build Windows Release", "Build macOS", "CI", "i18n Guard"}
+              REQUIRED = {"Build Linux Package", "Build Windows Release", "Build macOS", "i18n Guard"}  # CI=self(排除自身后必然缺席, 不能列入 REQUIRED)
               names_present = {r["name"] for r in others}
               missing = REQUIRED - names_present
               # v3.137.13 (002codex B1): 只认 conclusion=="success" —
