@@ -49,6 +49,16 @@
 8. **安装器禁全灭**：升级必须就地覆盖+数据白名单，`rm -rf INSTALL_DIR` 类全灭重建永久禁止（I-8：两代事故同根因）；类级守门 tests/test_installer_data_preserve.py ×4 强制。
 9. **三平台同步纪律**：install.sh/install-mac.sh/install.bat/docs 镜像任一修改必须同步全部镜像（守门强制镜像一致）。
 
+| I-10 | 11-05→07 | **先发后审 + v3.137.9 误发布**: ①v3.137.11 (先发后审, owner 运筹) 发布后 002meshctx 终裁改 FAIL; ②**v3.137.9 (含 P2 审批绕过缺陷) 于 11-05T16:39:54Z 被意外 publish** (发版方测试 F-E 对 .9 draft 误用 --apply), releases/latest 曾指向缺陷版 ~40h, 已设 prerelease=true 降出 latest (latest 回 v3.137.11) | latest 短暂指向含 P2 缺陷版本 | 流程违纪 × 测试面混入发布面 | ⚠️ .9 prerelease 处置✓ + 本条目入档 + 发版纪律: 测试用 --apply 仅限 PR 环境, 生产 draft 的 --apply 必须二次确认 |
+
+## I-10 追加记录 (002meshctx R2 清偿, 2026-11-07)
+
+- v3.137.9 误发布事故 (11-05T16:39:54Z): latest 污染约 40 小时; 处置 = prerelease=true 降出 latest
+  (latest 回 v3.136.11), draft 434845635 保持冻结; KNOWN_ISSUES.md 有同步记录
+- "先发后审" 授权链: v3.137.11 系 owner 运筹批准的例外 (002meshctx round71-72 有完整裁定与立规:
+  机制/CI/发布工具类允许 draft→发布→复审; 产品功能/权限类必须先审后发)
+- 002codex v3.137.13 FAIL 四连缺 (先发后审/误发布/434845635/v3.137.9) 本条目即 R2 清偿
+
 ---
 
 *维护: 每起事故由发现方/责任方共同补记；v6.1 代码: `cluster/cluster_comm_v7.py::envelope_valid`；守门: `tests/test_cluster_comm_v7.py::test_v61_*`*
