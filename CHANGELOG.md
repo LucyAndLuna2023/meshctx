@@ -1,3 +1,31 @@
+## [v3.137.13] - 2026-11-06 (patch: 五方审计 v3.137.12 FAIL 清偿 — poller 批次隔离/全失败形态判红/发布工具门禁收紧/README 失实清偿)
+
+> 002meshctx 终裁 v3.137.12 = FAIL/B1-B4: ① poller 跨批污染死锁 (main 批 macOS 红跨批
+> 污染 tag 批 poller → 重跑无效) ② INCIDENTS 缺"先发后审授权链"+"v3.137.9 误发布" ③
+> v3.137.1-.7 七个历史 draft "已清理"声明失实 ④ README latest/语言数/keys 过期。
+
+### B1 (P2) poller 批次隔离 + 全失败形态判红 (ci.yml)
+- poller 查询加 `head_branch == GITHUB_REF_NAME` 批次隔离 — tag 批 poller 不再看 main 批
+- 红判定覆盖全部失败形态: cancelled/timed_out/startup_failure/action_required 与 failure 同罪
+- 阈值: 只排除自身 run id, 不按 name 排除整个 CI workflow (假绿盲区根除)
+
+### B3 (P2) publish_release 门禁收紧 (tools/publish_release.py)
+- --expect-assets 默认 24 (此前 0 → 0/23 assets 也可 PATCH 成功)
+- 发布后 name/size 逐一比对 (此前只比 ID, size/digest 漂移仍 rc=0) +
+  sidecar SHA256 逐个下载并校验 64 位 hex (非空校验不算数)
+
+### B4 文档/README 失实清偿
+- README: latest v3.137.8 → v3.137.11; 11 Languages/1,592 keys → 12 Languages/1,602+ keys
+
+### 不变项
+默认 3001 不漂移 / 禁杀 foreign / MESHCTX_AUTH_DISABLED 语义 / 解析链
+explicit > MESHCTX_PORT > .env > 3001 / v3.137.0-.11 tags 全冻结
+
+### 002meshctx 流程裁定 (v3.137.12 起)
+产品功能/权限/审批策略类变更必须先审后发 (draft 等审);
+机制/CI/发布工具类修复版允许 draft→按 ID 发布→送审复审;
+复审 FAIL 立即出补丁版, 禁止热改已发布资产。
+
 ## [v3.137.14] - 2026-11-06 (patch: 002codex v3.137.13 FAIL B3 终版清偿 — 交叉校验前移到 PATCH 前)
 
 > 002codex 终审 v3.137.13 = FAIL: B3 交叉校验只打印不阻断 (PATCH draft:false 发生在校验
