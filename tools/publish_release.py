@@ -142,9 +142,13 @@ def main() -> int:
             digest_failures.append(f"{a['name']}: 缺 sidecar")
             continue
         try:
+            # v3.137.15 补: draft 资产的 browser_download_url 恒 404 (未公开),
+            # 必须走 API 端点 /releases/assets/{id} (Accept: application/octet-stream)
+            api_url = f"https://api.github.com/repos/{args.repo}/releases/assets/{sc['id']}"
             with urllib.request.urlopen(urllib.request.Request(
-                    sc["browser_download_url"],
-                    headers={"Authorization": f"token {tok}"})) as r:
+                    api_url,
+                    headers={"Authorization": f"token {tok}",
+                             "Accept": "application/octet-stream"})) as r:
                 sidecar_digest = r.read().decode().strip().split()[0]
         except Exception as e:
             digest_failures.append(f"{a['name']}: sidecar 下载失败 {e}")
@@ -199,9 +203,11 @@ def main() -> int:
             import time as _t2
             for _attempt in range(3):
                 try:
+                    api_url = f"https://api.github.com/repos/{args.repo}/releases/assets/{sc['id']}"
                     with urllib.request.urlopen(urllib.request.Request(
-                            sc["browser_download_url"],
-                            headers={"Authorization": f"token {tok}"})) as r:
+                            api_url,
+                            headers={"Authorization": f"token {tok}",
+                                     "Accept": "application/octet-stream"})) as r:
                         digest = r.read().decode().strip().split()[0]
                     break
                 except Exception:
