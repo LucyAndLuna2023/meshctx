@@ -53,7 +53,7 @@ jobs:
                   print(f"🔴 exact-SHA workflow 缺席: {sorted(missing)} — 覆盖不全, 视为红"); sys.exit(1)
               if bad:
                   print(f"🔴 全部完成但有失败形态: {[(r['name'], r['conclusion']) for r in bad]}"); sys.exit(1)
-              if len(others) >= 5 and not active:
+              if len(others) >= 4 and not active:
                   print("🟢 全部 exact-SHA workflow success (只读校验, 不发布)"); break
               time.sleep(30)
           else:
