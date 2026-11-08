@@ -1,3 +1,24 @@
+## [v3.137.16] - 2026-11-08 (patch: 002codex 发布后审计整改 — gate fail-closed + poller settle window + 治理违规承认)
+
+> 002codex 对 v3.137.15 发布后审计判 "FAIL / POST-PUBLISH GOVERNANCE VIOLATION":
+> ① 其 FAIL 回执 (12:30:42Z) 未获复核通过即发布 (13:18:48Z) — 五方门禁全票原则被违反,
+> 发版方承认; ② gate tag 缺失回退 HEAD 是盲区; ③ poller 对晚创建的 required workflow
+> 立即红无 settle window。本版逐条整改, 且恢复"五方全票才发布"铁律。
+
+### gate fail-closed (tools/release_gate.py)
+- tag v{VER} 不存在 → **直接红退出** (不得回退 HEAD; 旧 `tag_sha or head_sha` 盲区根除)
+- HEAD 领先 tag 仅为提示 (main 常态), 锚点以 tag 为准
+
+### poller settle window (ci.yml)
+- required workflow 缺席不再立即红 — 等待最长 ~25min, 超时仍缺才 fail-closed
+  (002codex: "build 可能晚创建", 此前立即 EXIT_MISSING 是时序不健壮)
+
+### publish_release 分母修正
+- body SHA256 清单校验分母 24→12 (binaries 数; 旧值含 sidecar, 恒打 ✗)
+
+### 治理 (INCIDENTS I-10 后续)
+- 五方全票发布铁律恢复; 回执 hash 类字段必须 API 回读后填写 (002meshctx 三连发现后立规)
+
 ## [v3.137.15] - 2026-11-07 (patch: macOS arm64 core clone 修复 + poller 批次隔离/时序竞态双根修)
 
 > tag 迁移链 (force-move 4 次, 每笔动机=审计发现的真 bug):

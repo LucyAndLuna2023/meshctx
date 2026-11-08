@@ -49,8 +49,13 @@ jobs:
               # v3.137.13 (002codex B1): 只认 conclusion=="success" —
               # skipped/neutral/cancelled/timed_out 等一律视为失败形态 (假绿盲区根除)
               bad = [r for r in others if r["conclusion"] != "success"]
+              # v3.137.16 (002codex: required workflow 晚创建需 settle window) —
+              # 缺席不再立即红, 等待 (build 可能晚创建); 超时仍缺才 fail-closed
               if missing:
-                  print(f"🔴 exact-SHA workflow 缺席: {sorted(missing)} — 覆盖不全, 视为红"); sys.exit(1)
+                  if _loop < 50:  # 前 50 轮 (~25min) 内继续等
+                      time.sleep(30)
+                      continue
+                  print(f"🔴 exact-SHA workflow 缺席 (等待超时): {sorted(missing)}"); sys.exit(1)
               # v3.137.15 补4 (002codex R4 时序竞态): 只对 completed run 判红 —
               # in_progress 的 run conclusion=None, 若在 active 检查前判 bad 会假红退出
               if not active and bad:

@@ -227,7 +227,8 @@ def main() -> int:
                       {"body": new_body})
     import re as _re
     n64 = len(_re.findall(r"[0-9a-f]{64}", updated["body"]))
-    print(f"  [{'✓' if n64 >= len(before_ids) else '✗'}] body 已附资产 SHA256 清单 ({n64} 个 64 位摘要)")
+    n_binaries = len([a for a in after['assets'] if not a['name'].endswith('.sha256')])
+    print(f"  [{'✓' if n64 >= n_binaries else '✗'}] body 已附资产 SHA256 清单 ({n64}/{n_binaries} 个 64 位摘要)")
     ubh = hashlib.sha256(updated["body"].encode()).hexdigest()
     print(f"  ℹ body 已更新 (len={len(updated['body'])}, sha256={ubh[:16]}…) — 此变更已披露")
 
