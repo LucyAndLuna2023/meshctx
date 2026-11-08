@@ -51,7 +51,7 @@ MeshCtx: Three options near their office — all with peanut-free menus. Also, i
 - 📴 **Offline-Capable** — point MeshCtx at [Ollama](https://ollama.com) (`ollama:qwen3` / `ollama:llama3.3` presets built in) or any OpenAI-compatible local endpoint, and keep working with the network unplugged.
 - 🧠 **Cross-Session Memory** — retrieval-injected, on-disk local memory (`src/chat_tools.py :: _collect_memory_entries`). Survives restarts. Never leaves your disk.
 - 🔍 **Auditable Releases** — current releases pass a 4,173-test gated suite (4,173 collected; passed varies 4,099–4,110 by environment, 0 failed, 63–68 skipped) plus a multi-party AI audit with SHA256 evidence per tag.
-> **Version line note:** v7.0.x was the SMA experimental generation (superseded and voided — do not install; see CHANGELOG v3.132.0). The current stable line is v3.137.x; latest release is **v3.137.15**.
+> **Version line note:** v7.0.x was the SMA experimental generation (superseded and voided — do not install; see CHANGELOG v3.132.0). The current stable line is v3.137.x; latest release is **v3.137.19**.
 - 🌍 **12 Languages** — full UI i18n, parity-checked dictionaries (1,602+ keys × 12 languages).
 
 ### Design philosophy: a cognitive architecture, not a stateless tool

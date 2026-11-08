@@ -119,11 +119,6 @@ def main() -> int:
         if len(sidecars) > 6:
             print(f"  … 共 {len(sidecars)} 对 (binary/sidecar 一一对应)")
 
-    if not args.apply:
-        print("\n(dry-run) 校验全过。加 --apply 执行:\n"
-              f"  PATCH /releases/{rid} {{'draft': false}}")
-        return 0
-
     before_ids = sorted(a["id"] for a in rel["assets"])
 
     # ═══ v3.137.14 (002codex B3 终版): sidecar digest 交叉校验 MUST happen BEFORE PATCH ═══
@@ -169,6 +164,13 @@ def main() -> int:
             print(f"  ❌ {df}")
         return 1
     print(f"  [✓] B3 交叉校验: {len(binary_to_sidecar_digest)} 个 binary 的 sidecar digest 全部一致")
+
+    if not args.apply:
+        print("\n(dry-run) 校验全过 (含 B3 交叉校验)。加 --apply 执行:\n"
+              f"  ① PATCH body: 资产 SHA256 清单 (发布前写入, body 即终态)\n"
+              f"  ② PATCH /releases/{rid} {{'draft': false}}")
+        return 0
+
 
     # ═══ v3.137.17 (002codex B2): SHA256 清单在 draft:false 之前写入 — body 发布即终态 ═══
     sha_list_lines = []

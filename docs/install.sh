@@ -527,7 +527,7 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.137.18"
+VERSION="3.137.19"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 # v3.137.8 (codex 需求锁定): 端口解析 = MESHCTX_PORT env > ~/.meshctx/.env 持久化 > 默认 3001

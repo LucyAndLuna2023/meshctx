@@ -1,3 +1,23 @@
+## [v3.137.19] - 2026-11-08 (patch: 002codex v3.137.18 FAIL D1 清偿 — README 失实声明订正 + P4 批量)
+
+> 002codex 审计 v3.137.18 = FAIL D1 (声明失实): 送审件/CHANGELOG/release body 均称
+> "README latest 已更新为 v3.137.18", 但 tag 树 README.md:54 实际仍 v3.137.15
+> (发版方在 .18 改的是 .11→.15, 声明又超前执行)。
+
+### D1 订正 (README.md)
+- latest release → **v3.137.19** (本版发布后即为真, 不再超前)
+- .18 条目失实声明以删除线标 corrupt 并指向本版真改
+
+### P4 批量清偿
+- dry-run 覆盖 B3 交叉校验 (早返移至 B3 之后; 002meshctx 第5版携带, 实测: dry-run 输出含
+  "含 B3 交叉校验")
+- INCIDENTS **I-12 台账**: 10 个 stale drafts 可审计删除清单 (tag/release ID/assets 三列,
+  API 逐条 DELETE; 002codex 阻断 6)
+- core_clone.log 写入路径修复随 .18 已进 tag (本版确认)
+
+### 不变项
+gate fail-closed (returncode) / settle window / 批次隔离 / SHA256 清单前置 / 五方全票铁律
+
 ## [v3.137.18] - 2026-11-08 (patch: 002codex v3.137.17 FAIL F1 清偿 — gate fail-closed 可达化 + P4 批量)
 
 > 002codex 审计 v3.137.17 = FAIL F1 (P2): ① git rev-parse 失败时 RC=128 但 stdout 非空
