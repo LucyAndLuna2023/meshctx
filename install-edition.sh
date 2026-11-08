@@ -11,7 +11,7 @@ set -e
 GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[0;33m'; NC='\033[0m'
 
 EDITION="${1:-personal}"
-VERSION="3.137.19"
+VERSION="3.137.20"
 INSTALL_DIR="${MESHCTX_HOME:-$HOME/.meshctx}"
 
 case "$EDITION" in

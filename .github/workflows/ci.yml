@@ -69,6 +69,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           C_SHA: ${{ github.sha }}
+      - name: Release gate (post-tag, fail-closed tag anchor)
+        # v3.137.20 (002codex P4): --post-tag 接入 CI — tag^{commit} 锚 + body 校验自动化
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git fetch origin tag "${GITHUB_REF_NAME}" --no-tags
+          python tools/release_gate.py "${GITHUB_REF_NAME#v}" --post-tag
+
       - name: Remind manual publish by release ID
         run: |
           echo "ℹ 本 job **不发布**。发布由人按 release ID 执行:"

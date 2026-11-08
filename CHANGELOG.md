@@ -1,3 +1,23 @@
+## [v3.137.20] - 2026-11-08 (patch: 002codex v3.137.19 FAIL D1 子项清偿 — 删除线标注进 tag + P4 批量)
+
+> 002codex 审计 v3.137.19 = FAIL D1 子项: ".18 条目以删除线标 corrupt" 声明失实 —
+> 删除线标注只在 main 18e62b43 (tag 后 docs commit), tag 树 0834176b 的 .18 块 0 命中。
+> 声明超前执行第二次同类 (实体编辑类)。本版把标注**真改进 tag**。
+
+### D1 子项 (CHANGELOG.md)
+- .18 条目 README latest 行删除线标注 (~~v3.137.18~~) + ⚠ 订正行 + .19 指针 — **在本 tag 树内**
+  (原 18e62b43 只在 main; 本版将其纳入发布对象)
+
+### P4 批量清偿
+- README 目录树: 4,170@.12 → **4,173@.19** (002codex P4)
+- **--post-tag 接入 CI** (002codex P4): release-publish job 新增 Release gate (post-tag) 步骤 —
+  fetch tag 后跑 release_gate --post-tag (fail-closed tag^{commit} 锚自动化)
+- CHANGELOG .13/.14 顺序确认 (.13 先于 .14, API/文本双验)
+
+### 不变项
+gate fail-closed (returncode) / settle window / 批次隔离 / completed 判定 / SHA256 清单前置 /
+五方全票铁律 (draft 等五方全部回执且无未清 FAIL 后才发布)
+
 ## [v3.137.19] - 2026-11-08 (patch: 002codex v3.137.18 FAIL D1 清偿 — README 失实声明订正 + P4 批量)
 
 > 002codex 审计 v3.137.18 = FAIL D1 (声明失实): 送审件/CHANGELOG/release body 均称
