@@ -82,15 +82,25 @@ if "--post-tag-ci" in sys.argv:
     ok_anchor = (not c_sha) or (tag_sha == c_sha)
     print(f"  [{'✓' if ok_anchor else '✗'}] tag^{{commit}} == C_SHA: {tag_sha[:12]}")
     draft_found = None
+    total_seen = 0
     for page in range(1, 4):
         req = _ur.Request(f"https://api.github.com/repos/LucyAndLuna2023/meshctx/releases?per_page=100&page={page}",
                           headers={"Authorization": f"token {tok}"})
-        batch = _json.loads(_ur.urlopen(req).read().decode())
-        if not isinstance(batch, list) or not batch: break
+        raw = _ur.urlopen(req).read().decode()
+        batch = _json.loads(raw)
+        if not isinstance(batch, list):
+            print(f"  [debug] releases page{page} 非列表: {raw[:120]}"); break
+        if not batch:
+            print(f"  [debug] releases page{page} 空"); break
+        total_seen += len(batch)
         for rel in batch:
-            if rel.get("draft") and (rel.get("tag_name") == f"v{VER}" or rel.get("name") == f"v{VER}"):
+            tag_n, rel_n = rel.get("tag_name"), rel.get("name")
+            if rel.get("draft"):
+                print(f"  [debug] draft 可见: tag_name={tag_n!r} name={rel_n!r} target={rel.get('target_commitish','')!r}")
+            if rel.get("draft") and (tag_n == f"v{VER}" or rel_n == f"v{VER}"):
                 draft_found = rel; break
         if draft_found: break
+    print(f"  [debug] 扫描 releases 总数={total_seen}, 目标 v{VER}")
     ok_draft = draft_found is not None
     ok_assets = ok_draft and len(draft_found["assets"]) == 24 and all(
         a.get("state") == "uploaded" for a in draft_found["assets"])
