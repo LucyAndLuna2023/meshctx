@@ -30,7 +30,7 @@ jobs:
           tok = os.environ["GITHUB_TOKEN"]; sha = os.environ["C_SHA"]
           github_ref_name = os.environ.get("GITHUB_REF_NAME", "")
           self_id = int(os.environ["GITHUB_RUN_ID"])  # 只排除自身 run id (防自等待死锁)
-          for _ in range(60):  # 最多等 30 分钟
+          for i in range(60):  # 最多等 30 分钟
               runs = requests.get("https://api.github.com/repos/LucyAndLuna2023/meshctx/actions/runs",
                   params={"head_sha": sha, "per_page": 50},
                   headers={"Authorization": f"token {tok}"}).json().get("workflow_runs", [])
@@ -52,7 +52,7 @@ jobs:
               # v3.137.16 (002codex: required workflow 晚创建需 settle window) —
               # 缺席不再立即红, 等待 (build 可能晚创建); 超时仍缺才 fail-closed
               if missing:
-                  if _loop < 50:  # 前 50 轮 (~25min) 内继续等
+                  if i < 50:  # 前 50 轮 (~25min) 内继续等 (002codex B1: 引用循环变量, 勿用未定义名)
                       time.sleep(30)
                       continue
                   print(f"🔴 exact-SHA workflow 缺席 (等待超时): {sorted(missing)}"); sys.exit(1)

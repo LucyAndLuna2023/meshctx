@@ -1,3 +1,30 @@
+## [v3.137.17] - 2026-11-08 (patch: 002codex v3.137.16 FAIL B1-B3 清偿 + settle 回归测试)
+
+> 002codex 审计 v3.137.16 = FAIL: ① settle window 引用未定义变量 _loop (NameError —
+> 002meshctx/004zcode 双漏, 002codex 抓住) ② publish_release 在 PATCH draft:false 之后
+> 二次 PATCH body 追加 SHA256 清单 (与发布后冻结 I-10 直接冲突) ③ "immutable" 口径失实
+> (repo 无 ruleset/tag protection)。
+
+### B1 (P1) settle 变量修复 + 回归测试 (ci.yml)
+- 循环变量 `for i in range(60)`, settle 分支 `if i < 50` (旧 `_loop` 未定义 → missing 时 NameError)
+- 新增 tests/test_ci_settle_window.py 3P: 循环变量引用 / missing 先等后判 / 时序竞态 completed-only
+  (已实证可红: 注入 _loop bug → 1 failed, 还原 3 passed)
+
+### B2 (P1) body 发布即终态 (tools/publish_release.py)
+- 资产 SHA256 清单**移到 PATCH draft:false 之前**写入 (旧版发布后二次 PATCH body, 与
+  INCIDENTS I-10 "发布后 body PATCH = P1" 直接冲突)
+- PATCH 之后零 body 变更 — "冻结"口径与实现一致
+
+### B3 (P1) immutable 口径如实化 (INCIDENTS I-11 补充)
+- repo 无 rulesets/tag protection → 口径统一为 **"纪律冻结(无技术强制)"**, 不再称"技术不可变"
+- 技术强制方案 (GitHub rulesets) 列为待 owner 决策项
+
+### P4 清偿
+- CHANGELOG .15 迁移链 force-move 计数 4 次→**5 次** (6 节点)
+
+### 不变项
+默认 3001 不漂移 / 禁杀 foreign / 解析链 / gate fail-closed / poller 批次隔离+completed 判定
+
 ## [v3.137.16] - 2026-11-08 (patch: 002codex 发布后审计整改 — gate fail-closed + poller settle window + 治理违规承认)
 
 > 002codex 对 v3.137.15 发布后审计判 "FAIL / POST-PUBLISH GOVERNANCE VIOLATION":
@@ -21,7 +48,7 @@
 
 ## [v3.137.15] - 2026-11-07 (patch: macOS arm64 core clone 修复 + poller 批次隔离/时序竞态双根修)
 
-> tag 迁移链 (force-move 4 次, 每笔动机=审计发现的真 bug):
+> tag 迁移链 (force-move 5 次, 6 节点; 每笔动机=审计发现的真 bug):
 > 9bee4a2e → f98c1fa2 (批次隔离落地) → 736d80d3 (I-10 入档) → 314f0c94 (REQUIRED 移除 CI)
 > → 638b9999 (阈值 5→4) → **534a75c1 (最终, 时序竞态修复)**
 

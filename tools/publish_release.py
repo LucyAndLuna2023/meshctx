@@ -170,7 +170,23 @@ def main() -> int:
         return 1
     print(f"  [✓] B3 交叉校验: {len(binary_to_sidecar_digest)} 个 binary 的 sidecar digest 全部一致")
 
-    # ═══ PATCH draft:false (仅在全部校验通过后) ═══
+    # ═══ v3.137.17 (002codex B2): SHA256 清单在 draft:false 之前写入 — body 发布即终态 ═══
+    sha_list_lines = []
+    for a in sorted(rel["assets"], key=lambda x: x["name"]):
+        if a["name"].endswith(".sha256"):
+            continue
+        d = binary_to_sidecar_digest.get(a["name"], "")
+        sha_list_lines.append(f"- `{a['name']}`  `{d}`")
+    sha_block = "\n\n## 资产 SHA256 (发布时固化)\n" + "\n".join(sha_list_lines)
+    if "## 资产 SHA256" not in (rel.get("body") or ""):
+        pre_body = (rel.get("body") or "") + sha_block
+        _, pre_upd = _req(f"/repos/{args.repo}/releases/{rid}", tok, "PATCH", {"body": pre_body})
+        import re as _re
+        n64 = len(_re.findall(r"[0-9a-f]{64}", pre_upd["body"]))
+        n_binaries = len(binary_to_sidecar_digest)
+        print(f"  [{'✓' if n64 >= n_binaries else '✗'}] body SHA256 清单发布前写入 ({n64}/{n_binaries} 摘要) — body 此后冻结")
+
+    # ═══ PATCH draft:false (校验+body 终态后) ═══
     status, res = _req(f"/repos/{args.repo}/releases/{rid}", tok, "PATCH", {"draft": False})
     print(f"\nPATCH status={status} | draft={res.get('draft')} | published_at={res.get('published_at')}")
 
@@ -192,46 +208,7 @@ def main() -> int:
         print("🔴 发布后复查失败 — 立即人工介入")
         return 1
 
-    # v3.137.12 (002zcode F-E 终版): --apply 后自动 append 资产 SHA256 清单到 body
-    digest_by_name = {}
-    for a in sorted(after["assets"], key=lambda x: x["name"]):
-        if a["name"].endswith(".sha256"):
-            continue
-        sc = next((x for x in after["assets"] if x["name"] == a["name"] + ".sha256"), None)
-        digest = ""
-        if sc:
-            import time as _t2
-            for _attempt in range(3):
-                try:
-                    api_url = f"https://api.github.com/repos/{args.repo}/releases/assets/{sc['id']}"
-                    with urllib.request.urlopen(urllib.request.Request(
-                            api_url,
-                            headers={"Authorization": f"token {tok}",
-                                     "Accept": "application/octet-stream"})) as r:
-                        digest = r.read().decode().strip().split()[0]
-                    break
-                except Exception:
-                    if _attempt == 2:
-                        pass
-                    _t2.sleep(2)
-        digest_by_name[a["name"]] = digest
-    sha_list_lines = []
-    for a in sorted(after["assets"], key=lambda x: x["name"]):
-        if a["name"].endswith(".sha256"):
-            continue
-        d = digest_by_name.get(a["name"], "")
-        sha_list_lines.append(f"- `{a['name']}`  `{d}`")
-    sha_block = "\n\n## 资产 SHA256 (发布时固化)\n" + "\n".join(sha_list_lines)
-    new_body = (after.get("body") or "") + sha_block
-    _, updated = _req(f"/repos/{args.repo}/releases/{rid}", tok, "PATCH",
-                      {"body": new_body})
-    import re as _re
-    n64 = len(_re.findall(r"[0-9a-f]{64}", updated["body"]))
-    n_binaries = len([a for a in after['assets'] if not a['name'].endswith('.sha256')])
-    print(f"  [{'✓' if n64 >= n_binaries else '✗'}] body 已附资产 SHA256 清单 ({n64}/{n_binaries} 个 64 位摘要)")
-    ubh = hashlib.sha256(updated["body"].encode()).hexdigest()
-    print(f"  ℹ body 已更新 (len={len(updated['body'])}, sha256={ubh[:16]}…) — 此变更已披露")
-
+    # v3.137.17 (002codex B2): 发布后 body 冻结 — 无二次 PATCH (清单已在 draft:false 前写入)
     print(f"\n🟢 {args.tag} 已发布 (release ID {rid})")
     return 0
 
