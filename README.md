@@ -8,7 +8,7 @@
 <p align="center">
   <a href="LEGAL.md"><img src="https://img.shields.io/badge/license-AGPLv3+Commercial-blue"></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.10+-green"></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-4170%20collected-brightgreen"></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-4173%20collected-brightgreen"></a>
   <a href="#"><img src="https://img.shields.io/badge/core_modules-313-purple"></a>
   <a href="#"><img src="https://img.shields.io/badge/brain_regions-17-orange"></a>
   <a href="#"><img src="https://img.shields.io/badge/papers-3-blue"></a>
@@ -50,7 +50,7 @@ MeshCtx: Three options near their office — all with peanut-free menus. Also, i
 - 🔓 **Local-First, Zero Login** — runs on your machine. No account, no cloud auth, no phone-home. (Most cloud agents require online verification even for local models.)
 - 📴 **Offline-Capable** — point MeshCtx at [Ollama](https://ollama.com) (`ollama:qwen3` / `ollama:llama3.3` presets built in) or any OpenAI-compatible local endpoint, and keep working with the network unplugged.
 - 🧠 **Cross-Session Memory** — retrieval-injected, on-disk local memory (`src/chat_tools.py :: _collect_memory_entries`). Survives restarts. Never leaves your disk.
-- 🔍 **Auditable Releases** — current releases pass a 4,170-test gated suite (4,170 collected; passed varies 4,099–4,107 by environment, 0 failed, 63–68 skipped) plus a multi-party AI audit with SHA256 evidence per tag.
+- 🔍 **Auditable Releases** — current releases pass a 4,173-test gated suite (4,173 collected; passed varies 4,099–4,110 by environment, 0 failed, 63–68 skipped) plus a multi-party AI audit with SHA256 evidence per tag.
 > **Version line note:** v7.0.x was the SMA experimental generation (superseded and voided — do not install; see CHANGELOG v3.132.0). The current stable line is v3.137.x; latest release is **v3.137.15**.
 - 🌍 **12 Languages** — full UI i18n, parity-checked dictionaries (1,602+ keys × 12 languages).
 

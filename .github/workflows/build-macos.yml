@@ -52,7 +52,7 @@ jobs:
           # v3.137.14 (专业修复): token-in-URL + 3 次重试 (业界标准 CI 网络容错)
           _clone_ok=0
           for _attempt in 1 2 3; do
-            if git clone --depth 1 "https://x-access-token:${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" /tmp/meshctx-core 2>&1; then
+            if git clone --depth 1 "https://x-access-token:${CORE_TOKEN}@github.com/LucyAndLuna2023/meshctx-core.git" /tmp/meshctx-core > /tmp/core_clone.log 2>&1; then
               _clone_ok=1
               break
             fi

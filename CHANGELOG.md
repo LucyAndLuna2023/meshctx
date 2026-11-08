@@ -1,3 +1,28 @@
+## [v3.137.18] - 2026-11-08 (patch: 002codex v3.137.17 FAIL F1 清偿 — gate fail-closed 可达化 + P4 批量)
+
+> 002codex 审计 v3.137.17 = FAIL F1 (P2): ① git rev-parse 失败时 RC=128 但 stdout 非空
+> (字面量参数), `if not tag_sha:` 永不成立 = **fail-closed 死代码**; ② --post-tag 分支在
+> pre-tag 失败检查之前 sys.exit — **绕过全部 pre-tag 失败**。无网络 mock 复现 EXIT 0 假绿。
+
+### F1-1 (P2) rev-parse 查 returncode (tools/release_gate.py)
+- `_rp.returncode == 0` 才取 stdout; 否则 tag_sha="" → fail-closed 分支可达
+- 实测: 缺失 tag (9.9.9) → EXIT=1; 正常 (3.137.17) → EXIT=0
+
+### F1-2 (P2) pre-tag 失败先拦截 (tools/release_gate.py)
+- post-tag 分支入口前: pre-tag fail 非空 → 逐条打印 + exit 1 (不得绕过)
+- 实测: 缺 CHANGELOG 等场景 → post-tag 拦截打印 7 项 → EXIT=1
+
+### P4 批量清偿
+- core_clone.log 死路径 → clone 输出始终重定向到该文件 (读之前有写)
+- CHANGELOG .17 内部 force-move 计数自洽 (5 次/6 节点)
+- README → 4,173 collected (v3.137.17) / latest v3.137.18
+
+### 不变项
+gate fail-closed / settle window / 批次隔离 / completed 判定 / SHA256 清单前置 / 默认 3001
+
+### 治理
+五方全票铁律执行中: 本 draft 等五方全部回执且无未清 FAIL 后才发布 (002codex FAIL 须其本方复核通过)。
+
 ## [v3.137.17] - 2026-11-08 (patch: 002codex v3.137.16 FAIL B1-B3 清偿 + settle 回归测试)
 
 > 002codex 审计 v3.137.16 = FAIL: ① settle window 引用未定义变量 _loop (NameError —
@@ -57,7 +82,7 @@
 
 ### 修复 2 (ci.yml): poller 批次隔离 + 时序竞态双根修 (002meshctx R1 + 002codex R4)
 - head_branch == GITHUB_REF_NAME 批次隔离 — tag 批不看 main 批 (跨批污染死锁根除;
-  该修复首落 f98c1fa2 = 本 .15 迭代第 2 笔, 经 4 次 force-move 全部进 tag 产物)
+  该修复首落 f98c1fa2 = 本 .15 迭代第 2 笔, 经 5 次 force-move 全部进 tag 产物)
 - 只对 completed run 判红 — in_progress conclusion=None 不入 bad (时序竞态假红根除)
 - REQUIRED 移除 CI (poller 自身即 CI, 排除自身后必然缺席); 阈值 others>=4 (旧值 5 永不满足 → 30min 超时假红)
 

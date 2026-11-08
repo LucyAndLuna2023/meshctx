@@ -65,6 +65,12 @@ if not ok:
 
 # post-tag 第五检 — 真实现 (v3.135.6, 002codex 2dfbcd60): --post-tag 模式
 # 用法: python3 tools/release_gate.py X.Y.Z --post-tag  (tag+push 后跑)
+# v3.137.18 (002codex F1-2): pre-tag 失败先拦截 — post-tag 分支不再绕过 pre-tag ✗
+if fail and "--post-tag" in sys.argv:
+    for x in fail:
+        print(f"  ✗ (pre-tag, post-tag 前拦截): {x}")
+    print(f"\n🔴 post-tag 拦截 — pre-tag 失败 {len(fail)} 项未清 (不得绕过)")
+    sys.exit(1)
 if "--post-tag" in sys.argv:
     import json as _json
     import urllib.request as _ur
@@ -86,12 +92,15 @@ if "--post-tag" in sys.argv:
     # v3.137.16 (002codex 发布后审计): fail-closed —
     # ① tag 不存在 → 直接红 (不得回退 HEAD; 旧 `tag_sha or head_sha` 是盲区)
     # ② tag 存在但 HEAD≠tag → 仅提示 (main 领先 tag 是常态), 锚点以 tag 为准
-    tag_sha = subprocess.run(["git", "rev-parse", f"v{VER}^{{commit}}"], cwd=ROOT,
-                             capture_output=True, text=True).stdout.strip()
+    # v3.137.18 (002codex F1): rev-parse 必须查 returncode —
+    # 缺失 tag 时 RC=128 但 stdout 非空 (字面量参数), 仅查 stdout 会使 fail-closed 成死代码
+    _rp = subprocess.run(["git", "rev-parse", f"v{VER}^{{commit}}"], cwd=ROOT,
+                         capture_output=True, text=True)
+    tag_sha = _rp.stdout.strip() if _rp.returncode == 0 else ""
     head_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
                               capture_output=True, text=True).stdout.strip()
     if not tag_sha:
-        print(f"  [✗] tag v{VER} 不存在 — post-tag 模式 fail-closed (不回退 HEAD)")
+        print(f"  [✗] tag v{VER} 不存在 (rev-parse RC={_rp.returncode}) — post-tag fail-closed (不回退 HEAD)")
         print(f"\n🔴 post-tag 第五/六检拦截 — tag v{VER} 缺失, 锚点不可用")
         sys.exit(1)
     full = tag_sha
