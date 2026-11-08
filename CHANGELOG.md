@@ -35,7 +35,8 @@ gate fail-closed (returncode) / settle window / 批次隔离 / SHA256 清单前�
 ### P4 批量清偿
 - core_clone.log 死路径 → clone 输出始终重定向到该文件 (读之前有写)
 - CHANGELOG .17 内部 force-move 计数自洽 (5 次/6 节点)
-- README → 4,173 collected (v3.137.17) / latest v3.137.18
+- README → 4,173 collected (v3.137.17) / latest ~~v3.137.18~~
+  ⚠ 订正: 该声明系超前执行失实 — tag 树实际仍 v3.137.15, 真改随 v3.137.19 (README latest 现 v3.137.19, 002codex D1)
 
 ### 不变项
 gate fail-closed / settle window / 批次隔离 / completed 判定 / SHA256 清单前置 / 默认 3001
