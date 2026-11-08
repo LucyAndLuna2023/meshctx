@@ -9,6 +9,10 @@ on:
 
 jobs:
   release-publish:
+    # v3.137.20 补: contents:read — 默认 GITHUB_TOKEN 仅 metadata 权限时 releases 列表
+    # 看不到 draft (post-tag-ci 扫描 170 releases 0 draft 可见实锤), 显式授权读取
+    permissions:
+      contents: read
     # v3.137.11 (002meshctx F-A P2 根修): 原 job 是**结构性死步骤** —
     #   PATCH /releases/tags/${GITHUB_REF_NAME} 对 draft release **恒 404**
     #   (GitHub 语义: draft 不能用 tag 定位), 所以该步在 draft 状态下必然失败,
