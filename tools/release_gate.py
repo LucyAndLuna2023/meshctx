@@ -70,7 +70,9 @@ if not ok:
 # --post-tag-ci 只校验 CI 阶段可判定的项: tag 锚 (rev-parse returncode) + draft assets uploaded。
 if "--post-tag-ci" in sys.argv:
     import json as _json, urllib.request as _ur
-    tok = __import__("os").environ.get("GITHUB_TOKEN", "")
+    # v3.137.20 补: GITHUB_TOKEN 创建的 draft 对其他 token 不可见 (GitHub 隔离机制) —
+    # 必须用创建方同源 PAT (MESHCTX_RELEASE_PAT secret) 才能扫到 draft
+    tok = __import__("os").environ.get("MESHCTX_RELEASE_PAT") or __import__("os").environ.get("GITHUB_TOKEN", "")
     if not tok:
         print("🔴 需要 GITHUB_TOKEN env (post-tag-ci)"); sys.exit(1)
     _rp = subprocess.run(["git", "rev-parse", f"v{VER}^{{commit}}"], cwd=ROOT,

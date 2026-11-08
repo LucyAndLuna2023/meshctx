@@ -78,6 +78,7 @@ jobs:
         # (body 此时尚未填写, 完整 --post-tag 由派单阶段人工跑; 002codex 两态探针同源)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MESHCTX_RELEASE_PAT: ${{ secrets.MESHCTX_RELEASE_PAT }}
           C_SHA: ${{ github.sha }}
         run: |
           python -m pip install -q fastapi uvicorn pyyaml numpy requests python-multipart aiofiles jinja2 websockets cryptography
