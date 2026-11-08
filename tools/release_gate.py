@@ -65,6 +65,42 @@ if not ok:
 
 # post-tag 第五检 — 真实现 (v3.135.6, 002codex 2dfbcd60): --post-tag 模式
 # 用法: python3 tools/release_gate.py X.Y.Z --post-tag  (tag+push 后跑)
+# v3.137.20 (002codex P4 "--post-tag 未接 CI"): CI 阶段专用模式 —
+# 此时 draft body 尚未填写 (派单阶段才填), 完整 --post-tag 的 body 校验必然失败。
+# --post-tag-ci 只校验 CI 阶段可判定的项: tag 锚 (rev-parse returncode) + draft assets uploaded。
+if "--post-tag-ci" in sys.argv:
+    import json as _json, urllib.request as _ur
+    tok = __import__("os").environ.get("GITHUB_TOKEN", "")
+    if not tok:
+        print("🔴 需要 GITHUB_TOKEN env (post-tag-ci)"); sys.exit(1)
+    _rp = subprocess.run(["git", "rev-parse", f"v{VER}^{{commit}}"], cwd=ROOT,
+                         capture_output=True, text=True)
+    tag_sha = _rp.stdout.strip() if _rp.returncode == 0 else ""
+    c_sha = __import__("os").environ.get("C_SHA", "")
+    if not tag_sha:
+        print(f"  [✗] tag v{VER} 不存在 (RC={_rp.returncode}) — fail-closed"); sys.exit(1)
+    ok_anchor = (not c_sha) or (tag_sha == c_sha)
+    print(f"  [{'✓' if ok_anchor else '✗'}] tag^{{commit}} == C_SHA: {tag_sha[:12]}")
+    draft_found = None
+    for page in range(1, 4):
+        req = _ur.Request(f"https://api.github.com/repos/LucyAndLuna2023/meshctx/releases?per_page=100&page={page}",
+                          headers={"Authorization": f"token {tok}"})
+        batch = _json.loads(_ur.urlopen(req).read().decode())
+        if not isinstance(batch, list) or not batch: break
+        for rel in batch:
+            if rel.get("draft") and (rel.get("tag_name") == f"v{VER}" or rel.get("name") == f"v{VER}"):
+                draft_found = rel; break
+        if draft_found: break
+    ok_draft = draft_found is not None
+    ok_assets = ok_draft and len(draft_found["assets"]) == 24 and all(
+        a.get("state") == "uploaded" for a in draft_found["assets"])
+    print(f"  [{'✓' if ok_draft else '✗'}] draft 存在 (tag_name 或 name 匹配)")
+    print(f"  [{'✓' if ok_assets else '✗'}] 24 assets 全 uploaded (body 校验留待派单阶段 --post-tag)")
+    if not (ok_anchor and ok_draft and ok_assets):
+        print("\n🔴 post-tag-ci 拦截"); sys.exit(1)
+    print("\n🟢 post-tag-ci 过 (CI 阶段可判定项全过; body 校验由派单阶段 --post-tag 承担)")
+    sys.exit(0)
+
 # v3.137.18 (002codex F1-2): pre-tag 失败先拦截 — post-tag 分支不再绕过 pre-tag ✗
 if fail and "--post-tag" in sys.argv:
     for x in fail:

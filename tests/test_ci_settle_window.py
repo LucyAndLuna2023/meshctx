@@ -35,3 +35,16 @@ def test_race_condition_completed_only():
     """002codex R4: 只对 completed run 判红 (in_progress conclusion=None 不入 bad)."""
     src = _poller_src()
     assert "not active and bad" in src, "bad 判定必须在 not active 之后 (时序竞态)"
+
+
+def test_post_tag_ci_mode_exists_and_uses_json_import():
+    """002codex P4 --post-tag 接入 CI: CI 专用模式必须在位且无未定义名 (NameError 防复发)."""
+    src = (ROOT / "tools" / "release_gate.py").read_text(encoding="utf-8")
+    assert '"--post-tag-ci" in sys.argv' in src, "缺 --post-tag-ci CI 阶段模式"
+    assert "if not tag_sha:" in src, "post-tag-ci 必须含 tag 缺失 fail-closed"
+    # post-tag-ci 块内引用的 json 必须 _json (该分支 import 的是 json as _json)
+    m = re.search(r'if "--post-tag-ci" in sys\.argv:(.*?)post-tag-ci \u8fc7', src, re.S)
+    assert m, "post-tag-ci 块未定位"
+    block = m.group(1)
+    assert "_json.loads" in block, "post-tag-ci 块应使用 _json.loads"
+    assert re.search(r"(?<![_\w])json\.loads", block) is None, "post-tag-ci 块内裸 json.loads 会 NameError (应 _json)"

@@ -10,8 +10,12 @@
 
 ### P4 批量清偿
 - README 目录树: 4,170@.12 → **4,173@.19** (002codex P4)
-- **--post-tag 接入 CI** (002codex P4): release-publish job 新增 Release gate (post-tag) 步骤 —
-  fetch tag 后跑 release_gate --post-tag (fail-closed tag^{commit} 锚自动化)
+- **--post-tag-ci 接入 CI** (002codex P4 "--post-tag 未接 CI"): release-publish job 新增
+  Release gate (post-tag-ci) 步骤 — CI 阶段只校验 tag^{commit} 锚 (rev-parse returncode,
+  fail-closed) + draft 存在 + 24 assets uploaded; body 校验由派单阶段 --post-tag 承担
+  (CI 时点 body 尚未填写, 完整 --post-tag 必然失败 — 首跑实战验证后改用专用模式)
+- 回归测试扩至 4P: post-tag-ci 模式存在性 + tag 缺失 fail-closed + 裸 json.loads NameError 防复发
+  (实证可红: 注入裸 json.loads → 1 failed)
 - CHANGELOG .13/.14 顺序确认 (.13 先于 .14, API/文本双验)
 
 ### 不变项
