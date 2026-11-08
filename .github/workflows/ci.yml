@@ -76,6 +76,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           C_SHA: ${{ github.sha }}
         run: |
+          python -m pip install -q fastapi uvicorn pyyaml numpy requests python-multipart aiofiles jinja2 websockets cryptography
+          pip install -q -e .[dev]
           git fetch origin tag "${GITHUB_REF_NAME}" --no-tags
           python tools/release_gate.py "${GITHUB_REF_NAME#v}" --post-tag-ci
 
