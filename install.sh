@@ -527,7 +527,7 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.137.20"
+VERSION="3.137.21"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 # v3.137.8 (codex 需求锁定): 端口解析 = MESHCTX_PORT env > ~/.meshctx/.env 持久化 > 默认 3001
@@ -941,7 +941,17 @@ else
         echo -e "${RED}✗ $(T extract_fail)${NC}"; exit 1
     }
     # 处理 tag 归档顶层目录 (meshctx-<branch>/)，把源码拍平到 INSTALL_DIR
-    _SUBDIR=$(find "${INSTALL_DIR}" -maxdepth 1 -mindepth 1 -type d | head -1)
+    # v3.137.21 (用户实测 macOS 同款): find|head -1 可能选中既有目录 (venv/data/src 等)
+    # 而非解压目录 → 拍平被跳过 → pip install -e . 找不到 pyproject.toml。同 install-mac.sh 修法。
+    _SUBDIR=$(find "${INSTALL_DIR}" -maxdepth 1 -mindepth 1 -type d -name 'meshctx-*' 2>/dev/null | head -1)
+    if [ -z "$_SUBDIR" ] && [ ! -f "${INSTALL_DIR}/pyproject.toml" ]; then
+        for _d in "${INSTALL_DIR}"/*/; do
+            if [ -f "${_d}src/main.py" ] && [ -f "${_d}pyproject.toml" ]; then
+                _SUBDIR="${_d%/}"
+                break
+            fi
+        done
+    fi
     if [ -n "$_SUBDIR" ] && [ -f "${_SUBDIR}/src/main.py" ]; then
         mv "${_SUBDIR}"/* "${_SUBDIR}"/.[!.]* "${INSTALL_DIR}"/ 2>/dev/null || true
         rmdir "${_SUBDIR}" 2>/dev/null || true

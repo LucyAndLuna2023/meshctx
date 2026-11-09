@@ -1,3 +1,24 @@
+## [v3.137.21] - 2026-11-09 (patch: 用户实测 macOS x86_64 安装失败根修 — tarball 拍平逻辑顺序依赖)
+
+> 用户 (macOS 13.7.8 x86_64, Python 3.12.8) 经镜像下载源码 tarball 安装:
+> `pip install -e .` 报 "file:///Users/xxx/.meshctx does not appear to be a Python project:
+> neither setup.py nor pyproject.toml found"。
+
+### 根因 (install-mac.sh / install.sh 同款)
+- GitHub 源码 tarball 解压到 `~/.meshctx/meshctx-<tag>/` 顶层目录, 拍平逻辑用
+  `find ~/.meshctx -maxdepth 1 -type d | head -1` 取第一个目录
+- 用户机器 ~/.meshctx 为**既有数据目录** (venv/data/src 等旧目录共存), find 返回顺序
+  依赖目录项存储顺序 (非字母序) → 在用户机上选中了**旧目录而非解压目录**
+- 拍平被跳过 → pyproject.toml 埋在 meshctx-<tag>/ 子目录 → pip install -e . 失败
+
+### 修复 (两脚本同步)
+- 解压目录定位改按 **meshctx-* 模式匹配** (GitHub tarball 顶层目录命名规范)
+- 兜底: 无 meshctx-* 时遍历一级目录找含 src/main.py + pyproject.toml 的解压特征目录
+- 顶层已有 pyproject.toml (tar 平铺) 则跳过拍平
+
+### 不变项
+便携版路径 / core overlay / 白名单排除 / 配置备份恢复 / 密码不回填
+
 ## [v3.137.20] - 2026-11-08 (patch: 002codex v3.137.19 FAIL D1 子项清偿 — 删除线标注进 tag + P4 批量)
 
 > 002codex 审计 v3.137.19 = FAIL D1 子项: ".18 条目以删除线标 corrupt" 声明失实 —

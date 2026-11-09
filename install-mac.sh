@@ -676,7 +676,7 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.137.20"
+VERSION="3.137.21"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 # v3.137.8 (002codex B3 同步): 端口解析 = MESHCTX_PORT env > .env 持久化 > 3001;
@@ -1161,7 +1161,19 @@ else
         echo -e "${RED}✗ Extraction failed${NC}"; exit 1
     }
     # 处理 tag 归档顶层目录 (meshctx-<tag>/)，把源码拍平到 INSTALL_DIR
-    _SUBDIR=$(find "${INSTALL_DIR}" -maxdepth 1 -mindepth 1 -type d | head -1)
+    # v3.137.21 (用户实测 macOS x86_64): find|head -1 可能选中既有目录 (venv/data/src 等)
+    # 而非解压目录 → 拍平被跳过 → pip install -e . 找不到 pyproject.toml。
+    # 修法: 按 meshctx-* 模式定位解压目录; 兜底找含 src/main.py+pyproject.toml 的目录;
+    #       若 pyproject.toml 已在顶层 (tar 平铺) 则无需拍平。
+    _SUBDIR=$(find "${INSTALL_DIR}" -maxdepth 1 -mindepth 1 -type d -name 'meshctx-*' 2>/dev/null | head -1)
+    if [ -z "$_SUBDIR" ] && [ ! -f "${INSTALL_DIR}/pyproject.toml" ]; then
+        for _d in "${INSTALL_DIR}"/*/; do
+            if [ -f "${_d}src/main.py" ] && [ -f "${_d}pyproject.toml" ]; then
+                _SUBDIR="${_d%/}"
+                break
+            fi
+        done
+    fi
     if [ -n "$_SUBDIR" ] && [ -f "${_SUBDIR}/src/main.py" ]; then
         mv "${_SUBDIR}"/* "${_SUBDIR}"/.[!.]* "${INSTALL_DIR}"/ 2>/dev/null || true
         rmdir "${_SUBDIR}" 2>/dev/null || true
