@@ -1,3 +1,28 @@
+## [v3.137.23] - 2026-11-09 (patch: 002codex v3.137.22 FAIL 清偿 — 真实 tarball 内容识别 + staging 预检)
+
+> 002codex 用**真实 GitHub 源码 tarball** 复现: 顶层目录 = meshctx-<commit SHA> (不含版本号!)。
+> v3.137.22 的 ${VERSION} 名称匹配对真实 tarball 永不命中 → 失败重试路径 (.21 残留 + .22 重装
+> 两个 SHA 目录并存) 在多候选无版本匹配处 fail-closed → 升级不可完成 (真实验证场景)。
+
+### 内容识别候选 (002codex 处方)
+- 逐候选读取 pyproject.toml (metadata) + src/__init__.py (payload) 版本
+- **两者都 == VERSION 才入选**; 0 匹配 → fail-closed 列印候选版本; >1 匹配 → 歧义 fail-closed
+- 回归测试新增: 真实 SHA 双候选重试路径 (meshctx-<sha21> + meshctx-<sha22> 并存 → 选中 .22
+  合并, 旧版不残留, 用户数据零破坏)
+
+### staging 预检后合并 (002codex: 先合并后自检会污染安装根且删候选)
+- 候选内容识别 (metadata+payload 双校验) 在**任何变更之前**完成
+- 不匹配 → 候选保留 + 安装根零污染 (测试 test_staging_zero_sideeffect_on_mismatch)
+
+### metadata 与 payload 双校验
+- 002codex P2: 仅校验 src payload 不够 — metadata 不符的候选同样不入选 (测试 test_pyproject_metadata_mismatch_fails)
+
+### install.sh 死代码清除 (002codex P4)
+- END FLATTEN 后旧 mv 孤儿块删除 (回归 test_no_orphan_mv_block)
+
+### 不变项
+版本一致性自检 / 残留检测 / 平铺跳过 / 五方全票铁律
+
 ## [v3.137.22] - 2026-11-09 (patch: 002codex B1/B2/B3 + 004zcode 对抗面 a-d 清偿 — 安装拍平合并式重写)
 
 > 002codex 与 004zcode 对 v3.137.21 独立 FAIL, 互相印证同一缺陷族: 拍平 mv 对非空目标目录
