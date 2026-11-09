@@ -527,7 +527,7 @@ T() {
 }
 
 INSTALL_DIR="${HOME}/.meshctx"
-VERSION="3.137.21"
+VERSION="3.137.22"
 REPO="LucyAndLuna2023/meshctx"
 SRC_URL="https://github.com/${REPO}/archive/refs/tags/v${VERSION}.tar.gz"
 # v3.137.8 (codex 需求锁定): 端口解析 = MESHCTX_PORT env > ~/.meshctx/.env 持久化 > 默认 3001
@@ -940,18 +940,74 @@ else
     tar xzf "${TARBALL}" -C "${INSTALL_DIR}" || {
         echo -e "${RED}✗ $(T extract_fail)${NC}"; exit 1
     }
-    # 处理 tag 归档顶层目录 (meshctx-<branch>/)，把源码拍平到 INSTALL_DIR
-    # v3.137.21 (用户实测 macOS 同款): find|head -1 可能选中既有目录 (venv/data/src 等)
-    # 而非解压目录 → 拍平被跳过 → pip install -e . 找不到 pyproject.toml。同 install-mac.sh 修法。
-    _SUBDIR=$(find "${INSTALL_DIR}" -maxdepth 1 -mindepth 1 -type d -name 'meshctx-*' 2>/dev/null | head -1)
-    if [ -z "$_SUBDIR" ] && [ ! -f "${INSTALL_DIR}/pyproject.toml" ]; then
+    # ── BEGIN FLATTEN v3.137.22 (002codex B1/B2 + 004zcode 对抗面 a-d) ──
+    # 处理 tag 归档顶层目录 (meshctx-<tag>/)，把源码合并进 INSTALL_DIR
+    # ① 精确定位: 优先含版本号的候选 (meshctx-*${VERSION}*), 多候选无版本匹配 → fail-closed
+    # ② 合并式拍平: cp -Rp 逐项覆盖 (旧 mv 对非空目标目录静默拒绝 → src 残留 → pip 静默装旧版)
+    #    tarball 只含 repo 代码文件, 用户数据目录 (venv/data 等) 不在 tarball 中不受影响
+    # ③ 合并后自检: src/__init__.py __version__ 必须等于 VERSION, 不符即红字退出 (防静默旧版)
+    # ④ 残留检测: 拍平后 meshctx-* 目录仍存在即红字警告
+    _CANDS=$(find "${INSTALL_DIR}" -maxdepth 1 -mindepth 1 -type d -name 'meshctx-*' 2>/dev/null)
+    _ncand=$(printf '%s\n' "${_CANDS}" | grep -c . 2>/dev/null || true)
+    _ncand=${_ncand:-0}
+    _SUBDIR=""
+    if [ "${_ncand}" -eq 1 ]; then
+        _SUBDIR="${_CANDS}"
+    elif [ "${_ncand}" -gt 1 ]; then
+        for _c in ${_CANDS}; do
+            case "${_c}" in
+                *"${VERSION}"*) _SUBDIR="${_c}"; break ;;
+            esac
+        done
+        if [ -z "${_SUBDIR}" ]; then
+            echo -e "${RED}✗ 多个 meshctx-* 解压目录候选且无版本匹配 — fail-closed 拒绝拍平:${NC}"
+            printf '%s\n' "${_CANDS}" | sed 's/^/    /'
+            exit 1
+        fi
+    fi
+    if [ -n "${_SUBDIR}" ]; then
+        cp -Rp "${_SUBDIR}"/. "${INSTALL_DIR}/" || {
+            echo -e "${RED}✗ 合并拍平失败${NC}"; exit 1
+        }
+        rm -rf "${_SUBDIR}"
+        echo -e "  ${GREEN}✓${NC} Source merged (cp -Rp) from ${_SUBDIR##*/}"
+    elif [ ! -f "${INSTALL_DIR}/pyproject.toml" ]; then
+        # 兜底: 无 meshctx-* 候选且顶层无 pyproject → 扫描解压特征目录 (src/main.py+pyproject.toml)
         for _d in "${INSTALL_DIR}"/*/; do
             if [ -f "${_d}src/main.py" ] && [ -f "${_d}pyproject.toml" ]; then
                 _SUBDIR="${_d%/}"
                 break
             fi
         done
+        if [ -n "${_SUBDIR}" ]; then
+            cp -Rp "${_SUBDIR}"/. "${INSTALL_DIR}/" || { echo -e "${RED}✗ 合并失败${NC}"; exit 1; }
+            rm -rf "${_SUBDIR}"
+            echo -e "  ${GREEN}✓${NC} Source merged (feature-scan) from ${_SUBDIR##*/}"
+        fi
     fi
+    # ③ 版本一致性自检 (metadata 与 payload 必须同版; 不符 = 静默旧版, 拒绝继续)
+    if command -v python3 >/dev/null 2>&1; then
+        _PAYLOAD_VER=$(python3 -c "
+import re,sys
+try:
+    src = open('${INSTALL_DIR}/src/__init__.py', encoding='utf-8').read()
+except Exception:
+    print('MISSING'); sys.exit(0)
+m = re.search('__version__ = .([0-9][0-9.]*).', src)
+print(m.group(1) if m else 'MISSING')
+" 2>/dev/null || echo MISSING)
+        if [ "${_PAYLOAD_VER}" != "${VERSION}" ]; then
+            echo -e "${RED}✗ 版本一致性自检失败: src payload=${_PAYLOAD_VER} ≠ 安装版本 ${VERSION} — 拒绝继续 (防静默旧版)${NC}"
+            exit 1
+        fi
+        echo -e "  ${GREEN}✓${NC} 版本一致性自检: src payload ${_PAYLOAD_VER} == ${VERSION}"
+    fi
+    # ④ 残留检测
+    _LEFT=$(find "${INSTALL_DIR}" -maxdepth 1 -mindepth 1 -type d -name 'meshctx-*' 2>/dev/null | head -1)
+    if [ -n "${_LEFT}" ]; then
+        echo -e "${RED}⚠ 拍平后残留解压目录: ${_LEFT} — 请人工检查${NC}"
+    fi
+    # ── END FLATTEN ──
     if [ -n "$_SUBDIR" ] && [ -f "${_SUBDIR}/src/main.py" ]; then
         mv "${_SUBDIR}"/* "${_SUBDIR}"/.[!.]* "${INSTALL_DIR}"/ 2>/dev/null || true
         rmdir "${_SUBDIR}" 2>/dev/null || true

@@ -1,3 +1,29 @@
+## [v3.137.22] - 2026-11-09 (patch: 002codex B1/B2/B3 + 004zcode 对抗面 a-d 清偿 — 安装拍平合并式重写)
+
+> 002codex 与 004zcode 对 v3.137.21 独立 FAIL, 互相印证同一缺陷族: 拍平 mv 对非空目标目录
+> 静默拒绝 → 升级场景 src/ 残留解压目录 → **pip 静默装旧版** (metadata 3.137.21 / payload
+> 旧版) — 比原显式失败更隐蔽。
+
+### 合并式拍平重写 (install-mac.sh / install.sh 同步)
+- `cp -Rp "${_SUBDIR}"/. "${INSTALL_DIR}/"` 合并语义 (文件覆盖/目录合并), 替代 mv
+  — tarball 只含 repo 代码文件, 用户数据目录 (venv/data 等) 不在 tarball 中不受影响
+- 精确定位: 单候选直取; 多候选时优先含 ${VERSION} 的目录, **无版本匹配 → fail-closed 退出**
+  (002codex B1: meshctx-core 等误配候选不再静默跳过)
+- 兜底特征扫描保留 (src/main.py + pyproject.toml)
+- 平铺 tarball (顶层 pyproject 存在) 跳过拍平
+
+### 版本一致性自检 (004zcode 建议b)
+- 合并后校验 src/__init__.py __version__ == 安装 VERSION, 不符 → **红字退出** (防静默旧版)
+- 004zcode 探针 [3] 场景 (payload 3.100.0 vs VERSION 3.137.22) 实测 EXIT=1
+
+### 残留检测 (004zcode 建议c)
+- 拍平后 meshctx-* 目录仍存在 → 红字警告人工检查
+
+### 行为级回归测试 (004zcode 建议d / 002codex B3)
+- tests/test_installer_flatten.py **8P** (两脚本×四场景):
+  ① 升级合并 (venv/data/旧src 共存 → 新版覆盖 + 用户数据零破坏) ② 多候选 fail-closed
+  ③ 版本不一致红字退出 ④ 平铺跳过 — 测试块逐字提取自安装脚本沙箱实跑
+
 ## [v3.137.21] - 2026-11-09 (patch: 用户实测 macOS x86_64 安装失败根修 — tarball 拍平逻辑顺序依赖)
 
 > 用户 (macOS 13.7.8 x86_64, Python 3.12.8) 经镜像下载源码 tarball 安装:
